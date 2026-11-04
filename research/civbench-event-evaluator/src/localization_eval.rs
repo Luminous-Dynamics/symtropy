@@ -1179,6 +1179,128 @@ mod tests {
     }
 
     #[test]
+    fn oracle_receipt_must_bind_exact_case_network_layout_model_and_window() {
+        let base = case(
+            "receipt-bound",
+            OracleResolution::UniquePipe,
+            &["pipe-a"],
+            None,
+            "pipe-a",
+            prediction(&["pipe-a"], 900_000),
+        );
+
+        let mut wrong_case = vec![base.clone()];
+        wrong_case[0].observability.case_id = "other-case".to_owned();
+        assert_eq!(
+            evaluate_localization(&wrong_case, &config())
+                .expect_err("wrong case binding")
+                .code,
+            "oracle_case_mismatch"
+        );
+
+        let mut wrong_network = vec![base.clone()];
+        wrong_network[0].observability.network_id = "network-2".to_owned();
+        assert_eq!(
+            evaluate_localization(&wrong_network, &config())
+                .expect_err("wrong network binding")
+                .code,
+            "oracle_network_mismatch"
+        );
+
+        let mut wrong_layout = vec![base.clone()];
+        wrong_layout[0].observability.sensor_layout_id = "layout-2".to_owned();
+        assert_eq!(
+            evaluate_localization(&wrong_layout, &config())
+                .expect_err("wrong sensor layout binding")
+                .code,
+            "oracle_sensor_layout_mismatch"
+        );
+
+        let mut wrong_model = vec![base.clone()];
+        wrong_model[0].observability.hydraulic_model_ref = "hydraulic-model-2".to_owned();
+        assert_eq!(
+            evaluate_localization(&wrong_model, &config())
+                .expect_err("wrong hydraulic model binding")
+                .code,
+            "oracle_hydraulic_model_mismatch"
+        );
+
+        let mut wrong_window = vec![base];
+        wrong_window[0].observability.observation_window_ref = "window-2".to_owned();
+        assert_eq!(
+            evaluate_localization(&wrong_window, &config())
+                .expect_err("wrong observation window binding")
+                .code,
+            "oracle_observation_window_mismatch"
+        );
+    }
+
+    #[test]
+    fn owner_receipt_and_prediction_receipt_references_must_be_unique() {
+        let first = case(
+            "receipt-a",
+            OracleResolution::UniquePipe,
+            &["pipe-a"],
+            None,
+            "pipe-a",
+            prediction(&["pipe-a"], 900_000),
+        );
+        let mut second = case(
+            "receipt-b",
+            OracleResolution::UniquePipe,
+            &["pipe-b"],
+            None,
+            "pipe-b",
+            prediction(&["pipe-b"], 900_000),
+        );
+
+        let mut duplicate_oracle = vec![first.clone(), second.clone()];
+        duplicate_oracle[1].observability.receipt_ref =
+            duplicate_oracle[0].observability.receipt_ref.clone();
+        assert_eq!(
+            evaluate_localization(&duplicate_oracle, &config())
+                .expect_err("oracle receipt replay")
+                .code,
+            "duplicate_oracle_receipt_ref"
+        );
+
+        second.prediction_receipt_ref = first.prediction_receipt_ref.clone();
+        assert_eq!(
+            evaluate_localization(&[first, second], &config())
+                .expect_err("prediction receipt replay")
+                .code,
+            "duplicate_prediction_receipt_ref"
+        );
+    }
+
+    #[test]
+    fn oracle_owner_and_receipt_identity_must_be_present() {
+        let mut cases = vec![case(
+            "missing-owner",
+            OracleResolution::UniquePipe,
+            &["pipe-a"],
+            None,
+            "pipe-a",
+            prediction(&["pipe-a"], 900_000),
+        )];
+        cases[0].observability.owner_ref.clear();
+        assert_eq!(
+            evaluate_localization(&cases, &config())
+                .expect_err("missing oracle owner")
+                .code,
+            "invalid_oracle_owner_ref"
+        );
+        cases[0].observability.owner_ref = "sol-atlas-observability-v1".to_owned();
+        cases[0].observability.receipt_ref.clear();
+        assert_eq!(
+            evaluate_localization(&cases, &config())
+                .expect_err("missing oracle receipt")
+                .code,
+            "invalid_oracle_receipt_ref"
+        );
+    }
+
+    #[test]
     fn zero_k_and_empty_corpus_fail_closed() {
         let invalid = LocalizationEvaluationConfig {
             top_k: 0,
