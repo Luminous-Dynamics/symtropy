@@ -235,10 +235,7 @@ impl BranchEvaluation {
             .map(|(value, weight)| {
                 Ok((
                     value,
-                    ExactRational::new(
-                        i128::from(weight),
-                        u128::from(self.total_weight),
-                    )?,
+                    ExactRational::new(i128::from(weight), u128::from(self.total_weight))?,
                 ))
             })
             .collect()
@@ -794,11 +791,15 @@ mod tests {
 
         assert_eq!(
             shared.marginal_probabilities(&id("response-a")).unwrap(),
-            independent.marginal_probabilities(&id("response-a")).unwrap()
+            independent
+                .marginal_probabilities(&id("response-a"))
+                .unwrap()
         );
         assert_eq!(
             shared.marginal_probabilities(&id("response-b")).unwrap(),
-            independent.marginal_probabilities(&id("response-b")).unwrap()
+            independent
+                .marginal_probabilities(&id("response-b"))
+                .unwrap()
         );
         assert_eq!(
             shared
