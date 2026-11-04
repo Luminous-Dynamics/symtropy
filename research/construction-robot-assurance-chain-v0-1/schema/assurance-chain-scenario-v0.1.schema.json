@@ -169,7 +169,10 @@
               "safe_hold",
               "aborted",
               "authorized",
-              "rejected"
+              "rejected",
+              "context_stale",
+              "inadmissible_for_named_claim",
+              "measured"
             ]
           },
           "expected_reason_codes": {
