@@ -47,7 +47,12 @@
         "first_pass_major_defects",
         "first_pass_minor_defects",
         "first_pass_unknown_severity_defects",
-        "critical_inspected_units"
+        "critical_inspected_units",
+        "not_attempted_units",
+        "cancelled_units",
+        "superseded_units",
+        "unresolved_units",
+        "active_units"
       ],
       "properties": {
         "planned_units": {
@@ -107,6 +112,26 @@
           "minimum": 0
         },
         "critical_inspected_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_attempted_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cancelled_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "superseded_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "active_units": {
           "type": "integer",
           "minimum": 0
         }
