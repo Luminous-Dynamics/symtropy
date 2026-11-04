@@ -206,6 +206,8 @@ def main() -> int:
 
     root = args.bocode_root.resolve()
     result_root = args.result_root.resolve()
+    if result_root.is_relative_to(root):
+        parser.error("--result-root must be outside the pinned BOCoDe source checkout")
     result_root.mkdir(parents=True, exist_ok=True)
     state = "wrapper_error"
     reason = "wrapper did not complete"
