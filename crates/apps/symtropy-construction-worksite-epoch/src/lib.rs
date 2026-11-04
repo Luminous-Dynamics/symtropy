@@ -683,10 +683,14 @@ mod frozen_scenario_tests {
     const RECONNECT: &str = include_str!(
         "../../../../research/construction-worksite-epoch-transition-benchmark-v0-1/scenarios/reconnect-needs-requalification.json"
     );
+    const EXPIRED: &str = include_str!(
+        "../../../../research/construction-worksite-epoch-transition-benchmark-v0-1/scenarios/qualification-lease-expiry-fails-closed.json"
+    );
 
     #[derive(Debug, Deserialize)]
     #[serde(deny_unknown_fields)]
     struct Scenario {
+        schema_version: String,
         scenario_id: String,
         task_scope: String,
         initial_configuration_digest: String,
@@ -772,6 +776,12 @@ mod frozen_scenario_tests {
 
     fn replay_scenario(raw: &str) {
         let scenario: Scenario = serde_json::from_str(raw).expect("strict scenario JSON");
+        assert_eq!(
+            scenario.schema_version,
+            "construction-worksite-epoch-scenario/0.1",
+            "scenario {} schema version",
+            scenario.scenario_id
+        );
         let mut model = Model::new(
             scenario.task_scope.clone(),
             scenario.initial_configuration_digest,
@@ -898,7 +908,7 @@ mod frozen_scenario_tests {
 
     #[test]
     fn frozen_transition_scenarios_replay_to_expected_decisions() {
-        for fixture in [ORDERED, REPLAY, RECONNECT] {
+        for fixture in [ORDERED, REPLAY, RECONNECT, EXPIRED] {
             replay_scenario(fixture);
         }
     }
