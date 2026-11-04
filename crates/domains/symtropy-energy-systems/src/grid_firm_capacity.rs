@@ -273,7 +273,6 @@ pub enum GridFirmCapacityError {
     DuplicateScheduledEventId,
     ScheduledOpportunityCountBelowMinimum { observed: usize, required: usize },
     ScheduledOpportunityCountMismatch { observed: usize, expected: usize },
-    MissingScheduledOpportunity(String),
     UnexpectedScheduledOpportunity(String),
     EmptyTrialSet,
     InsufficientTrials { observed: usize, required: usize },
@@ -322,9 +321,6 @@ impl fmt::Display for GridFirmCapacityError {
             Self::ScheduledOpportunityCountMismatch { observed, expected } => write!(
                 f, "trial set has {observed} events but opportunity manifest pins {expected}"
             ),
-            Self::MissingScheduledOpportunity(id) => {
-                write!(f, "scheduled event opportunity {id} is missing from the trial set")
-            }
             Self::UnexpectedScheduledOpportunity(id) => {
                 write!(f, "trial event {id} is not in the frozen opportunity manifest")
             }
@@ -416,13 +412,6 @@ impl GridFirmCapacityEvaluation {
             }
             if let GridFirmCapacityTrialOutcome::Evaluated(report) = &trial.outcome {
                 validate_response_report(&contract.identity, trial, report)?;
-            }
-        }
-        for expected_event_id in &contract.scheduled_event_ids {
-            if !event_ids.contains(expected_event_id) {
-                return Err(GridFirmCapacityError::MissingScheduledOpportunity(
-                    expected_event_id.clone(),
-                ));
             }
         }
         Ok(Self { contract, trials })
@@ -818,8 +807,14 @@ mod tests {
     fn missing_scheduled_opportunity_is_rejected_instead_of_silently_dropped() {
         let mut trials = passing_trials(5);
         trials.pop();
+        let manifest = contract_for(
+            (0..5).map(|i| format!("event-{i}")).collect(),
+            4,
+            0.60,
+            0.05,
+        );
         assert!(matches!(
-            GridFirmCapacityEvaluation::new(contract(), trials),
+            GridFirmCapacityEvaluation::new(manifest, trials),
             Err(GridFirmCapacityError::ScheduledOpportunityCountMismatch { .. })
         ));
     }
@@ -864,7 +859,7 @@ mod tests {
     }
 
     #[test]
-    fn hoeding_lower_bound_can_fail_despite_a_high_empirical_pass_rate() {
+    fn hoeffding_lower_bound_can_fail_despite_a_high_empirical_pass_rate() {
         let weak_contract = contract_for(
             (0..20).map(|i| format!("event-{i}")).collect(),
             5,
