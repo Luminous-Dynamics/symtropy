@@ -702,10 +702,12 @@ mod tests {
         binding.target = QualificationTarget::HumanLabel {
             rubric_id: id("crossing-behavior-rubric-v1"),
         };
-        binding.qualification =
-            binding.packet.qualify_against(&binding.subject_lineage, binding.target.clone());
-        if let OutcomeSupport::Supported { evidence_digest, .. } =
-            &mut manifest.decision.hypotheses[0].outcomes[0].support
+        binding.qualification = binding
+            .packet
+            .qualify_against(&binding.subject_lineage, binding.target.clone());
+        if let OutcomeSupport::Supported {
+            evidence_digest, ..
+        } = &mut manifest.decision.hypotheses[0].outcomes[0].support
         {
             *evidence_digest = binding.qualification.receipt_digest;
         }
@@ -737,20 +739,13 @@ mod tests {
     fn unsupported_outcome_needs_no_evidence_binding_and_stays_unsupported() {
         let mut manifest = decision_and_bindings();
         manifest.bindings.pop();
-        manifest.decision.hypotheses[0].outcomes[1].support =
-            OutcomeSupport::Unsupported {
-                reason_id: id("counterfactual-action-outside-support"),
-            };
+        manifest.decision.hypotheses[0].outcomes[1].support = OutcomeSupport::Unsupported {
+            reason_id: id("counterfactual-action-outside-support"),
+        };
         let certificate = manifest.evaluate().unwrap();
-        assert_eq!(
-            certificate.decision_status(),
-            DecisionStatus::Unsupported
-        );
+        assert_eq!(certificate.decision_status(), DecisionStatus::Unsupported);
         assert_eq!(certificate.evidence_references.len(), 1);
-        assert_eq!(
-            certificate.decision_certificate.minimax_regret_action,
-            None
-        );
+        assert_eq!(certificate.decision_certificate.minimax_regret_action, None);
     }
 
     #[test]
