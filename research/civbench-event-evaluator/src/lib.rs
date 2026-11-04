@@ -15,6 +15,7 @@ use std::fmt::Write as _;
 
 pub mod decision_closure;
 pub mod decision_fixture;
+pub mod decision_fixture;
 
 /// A confirmed incident class supported by the evaluator's truth source.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
