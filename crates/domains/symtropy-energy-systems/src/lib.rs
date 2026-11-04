@@ -21,6 +21,7 @@ mod fuel;
 mod matched_service;
 mod service_contract;
 mod stateful_resource;
+mod stateful_resource_pair;
 mod trace_validation;
 mod workload_schedule;
 
@@ -45,6 +46,11 @@ pub use fuel::{
 pub use matched_service::{
     MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
     ServiceDemandProfile, ServiceDemandSegment, ServiceTolerance, compare_matched_service,
+};
+pub use stateful_resource_pair::{
+    StatefulResourcePairError, StatefulResourcePairIdentity, StatefulResourcePairReport,
+    StatefulResourcePairSlotReceipt, StatefulResourcePairTolerance,
+    compare_stateful_resource_trajectories,
 };
 pub use stateful_resource::{
     ResourceTrajectoryError, StatefulResourceContract, StatefulResourceSlot,
