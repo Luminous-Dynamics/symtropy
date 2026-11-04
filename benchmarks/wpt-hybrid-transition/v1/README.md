@@ -76,10 +76,10 @@ The CLI compares every expected disposition in the frozen JSONL corpus, rejects 
 1. Add charge/flux-constraint residuals and state-vector reset receipts for explicit switched RLC models.
 2. Compute pre/post stored energy from measured inductor currents, capacitor voltages and qualified L/C storage matrices rather than accepting scalar energy values only.
 3. Add stream-level raw meter integration and independent reconstruction of port-work receipts to prove each event window is integrated once.
-2. Compare naive copy/truncation, energy-minimizing reinitialization, common-storage maps and hybrid energy-tank policies.
-3. Ingest a source-backed WPT mode-switching waveform when the complete waveform, component values, switch timing and measurement boundaries are available.
-4. Couple the event receipt to the transient ROM trace and segment-level route energy ledger.
-5. Add formal bounds or interval arithmetic before making continuous-state or hardware claims.
+4. Compare naive copy/truncation, energy-minimizing reinitialization, common-storage maps and hybrid energy-tank policies.
+5. Ingest a source-backed WPT mode-switching waveform when the complete waveform, component values, switch timing and measurement boundaries are available.
+6. Couple the event receipt to the transient ROM trace and segment-level route energy ledger.
+7. Add formal bounds or interval arithmetic before making continuous-state or hardware claims.
 
 ## Claim ceiling
 
