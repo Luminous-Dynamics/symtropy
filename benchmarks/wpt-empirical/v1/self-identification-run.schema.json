@@ -1,0 +1,449 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v1/self-identification-run.schema.json",
+  "title": "WPT Online Self-Identification Run v1",
+  "description": "One operating-point record for online WPT coupling/load estimation. A QUALIFIED run must bind estimates to calibrated reference measurements and enforce ZVS, excitation-overhead and fail-safe constraints.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "profile_id",
+    "system",
+    "conditions",
+    "reference",
+    "identification",
+    "estimates",
+    "control",
+    "artifacts",
+    "qualification"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-self-identification-run-v1"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]+$"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system_id",
+        "hardware_revision",
+        "controller_revision",
+        "configuration_sha256",
+        "power_rating_w",
+        "topology"
+      ],
+      "properties": {
+        "system_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "hardware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "power_rating_w": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "topology": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "split",
+        "operating_point_id",
+        "direction",
+        "frequency_hz",
+        "transfer_gap_m",
+        "offset_x_m",
+        "offset_y_m",
+        "offset_z_m",
+        "yaw_deg",
+        "load_resistance_ohm",
+        "output_power_w",
+        "ambient_temperature_c",
+        "coil_temperature_c",
+        "thermal_state"
+      ],
+      "properties": {
+        "split": {
+          "enum": [
+            "TRAIN",
+            "VALIDATION",
+            "TEST",
+            "HOLDOUT"
+          ]
+        },
+        "operating_point_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "enum": [
+            "GRID_TO_VEHICLE",
+            "VEHICLE_TO_GRID",
+            "UNIDIRECTIONAL"
+          ]
+        },
+        "frequency_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "transfer_gap_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "offset_x_m": {
+          "type": "number"
+        },
+        "offset_y_m": {
+          "type": "number"
+        },
+        "offset_z_m": {
+          "type": "number"
+        },
+        "yaw_deg": {
+          "type": "number"
+        },
+        "load_resistance_ohm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "output_power_w": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ambient_temperature_c": {
+          "type": "number"
+        },
+        "coil_temperature_c": {
+          "type": "number"
+        },
+        "thermal_state": {
+          "enum": [
+            "COLD_START",
+            "TRANSIENT",
+            "STEADY_STATE",
+            "THERMAL_SOAK"
+          ]
+        }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrument_id",
+        "instrument_model",
+        "method",
+        "calibration_id",
+        "calibration_valid_from_utc",
+        "calibration_due_utc",
+        "measurement_uncertainty_pct",
+        "window_start_utc",
+        "window_end_utc",
+        "reference_artifact_sha256"
+      ],
+      "properties": {
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instrument_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "enum": [
+            "LCR_METER",
+            "NETWORK_ANALYZER",
+            "CALIBRATED_IMPEDANCE_FIXTURE",
+            "OTHER_TRACEABLE_METHOD"
+          ]
+        },
+        "calibration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_valid_from_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "calibration_due_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "measurement_uncertainty_pct": {
+          "type": "number",
+          "minimum": 0
+        },
+        "window_start_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "window_end_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "reference_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "identification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "secondary_data_link_required",
+        "perturbation_energy_j",
+        "useful_transfer_energy_j",
+        "reported_overhead_pct",
+        "p99_latency_ms",
+        "control_deadline_ms",
+        "sample_count",
+        "batch_id"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "MULTISINE_PHASE_PERTURBATION",
+            "REFLECTED_IMPEDANCE",
+            "COMMUNICATION_TELEMETRY",
+            "LOOKUP_TABLE",
+            "FEM_MODEL",
+            "OTHER"
+          ]
+        },
+        "secondary_data_link_required": {
+          "type": "boolean"
+        },
+        "perturbation_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "useful_transfer_energy_j": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reported_overhead_pct": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p99_latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "control_deadline_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "batch_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "estimates": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "parameter",
+          "unit",
+          "estimate_value",
+          "reference_value",
+          "relative_error_pct",
+          "estimate_uncertainty_pct",
+          "reference_evidence_kind",
+          "estimate_artifact_sha256"
+        ],
+        "properties": {
+          "parameter": {
+            "enum": [
+              "L_PRIMARY",
+              "L_SECONDARY",
+              "MUTUAL_INDUCTANCE",
+              "EQUIVALENT_LOAD_RESISTANCE"
+            ]
+          },
+          "unit": {
+            "enum": [
+              "H",
+              "OHM"
+            ]
+          },
+          "estimate_value": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "reference_value": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "relative_error_pct": {
+            "type": "number",
+            "minimum": 0
+          },
+          "estimate_uncertainty_pct": {
+            "type": "number",
+            "minimum": 0
+          },
+          "reference_evidence_kind": {
+            "enum": [
+              "MEASURED",
+              "AUTHOR_CALCULATED",
+              "SIMULATED",
+              "UNKNOWN"
+            ]
+          },
+          "estimate_artifact_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "zvs_observation_count",
+        "zvs_success_count",
+        "reported_zvs_coverage_pct",
+        "switching_limit_violation_count",
+        "protection_trip_count",
+        "unidentifiable_state_fallback",
+        "uncertainty_outside_grid_rejected",
+        "authority_plane_independent",
+        "estimator_can_authorize_energization"
+      ],
+      "properties": {
+        "zvs_observation_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "zvs_success_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reported_zvs_coverage_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "switching_limit_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "protection_trip_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unidentifiable_state_fallback": {
+          "enum": [
+            "REDUCE_POWER",
+            "DEENERGIZE",
+            "HOLD_LAST_SAFE",
+            "UNSAFE",
+            "NOT_TESTED"
+          ]
+        },
+        "uncertainty_outside_grid_rejected": {
+          "type": "boolean"
+        },
+        "authority_plane_independent": {
+          "type": "boolean"
+        },
+        "estimator_can_authorize_energization": {
+          "type": "boolean"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_type",
+          "uri",
+          "sha256",
+          "description"
+        ],
+        "properties": {
+          "artifact_type": {
+            "enum": [
+              "RAW_WAVEFORM",
+              "REFERENCE_MEASUREMENT",
+              "ESTIMATOR_OUTPUT",
+              "CONTROLLER_CONFIG",
+              "REPORT",
+              "OTHER"
+            ]
+          },
+          "uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "qualification": {
+      "enum": [
+        "NOT_RUN",
+        "INCOMPLETE",
+        "QUALIFIED",
+        "REJECTED",
+        "MODEL_ONLY"
+      ]
+    }
+  }
+}
