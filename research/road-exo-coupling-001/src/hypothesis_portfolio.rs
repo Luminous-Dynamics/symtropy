@@ -144,6 +144,9 @@ pub struct HypothesisPortfolioManifest {
     pub parent_portfolio_digest: Option<[u8; 32]>,
     pub claim_scope: PortfolioClaimScope,
     pub decision: DecisionManifest,
+    /// Required dimensions are explicit so an entire missing dimension cannot
+    /// disappear from the coverage denominator.
+    pub required_dimensions: BTreeSet<CoverageDimension>,
     pub hypotheses: Vec<HypothesisLineageRecord>,
     pub coverage_obligations: Vec<CoverageObligation>,
     pub challenge_runs: Vec<ChallengeRun>,
@@ -239,6 +242,9 @@ pub enum PortfolioError {
     MissingChallengeBudget,
     InvalidCounterexample,
     DuplicateCoverageReference,
+    MissingRequiredCoverageDimension,
+    UnexpectedCoverageDimension,
+    ChallengeCoverageMismatch,
     UnknownAction,
     DuplicateResidualAction,
     MissingResidualAction,
@@ -316,6 +322,21 @@ impl HypothesisPortfolioManifest {
         if self.coverage_obligations.is_empty() {
             return Err(PortfolioError::EmptyCoverageManifest);
         }
+        if self.required_dimensions.is_empty() {
+            return Err(PortfolioError::MissingRequiredCoverageDimension);
+        }
+        let declared_dimensions = self
+            .coverage_obligations
+            .iter()
+            .map(|obligation| obligation.dimension)
+            .collect::<BTreeSet<_>>();
+        if !self.required_dimensions.is_subset(&declared_dimensions) {
+            return Err(PortfolioError::MissingRequiredCoverageDimension);
+        }
+        if !declared_dimensions.is_subset(&self.required_dimensions) {
+            return Err(PortfolioError::UnexpectedCoverageDimension);
+        }
+
         let mut obligation_ids = BTreeSet::new();
         let mut challenge_ids = BTreeSet::new();
         for run in &self.challenge_runs {
@@ -376,6 +397,14 @@ impl HypothesisPortfolioManifest {
                     for challenge_id in challenge_run_ids {
                         if !challenge_ids.contains(challenge_id) {
                             return Err(PortfolioError::UnknownCoverageChallenge);
+                        }
+                        let run = self
+                            .challenge_runs
+                            .iter()
+                            .find(|run| &run.challenge_id == challenge_id)
+                            .ok_or(PortfolioError::UnknownCoverageChallenge)?;
+                        if !run.coverage_dimensions.contains(&obligation.dimension) {
+                            return Err(PortfolioError::ChallengeCoverageMismatch);
                         }
                     }
                 }
@@ -495,6 +524,10 @@ impl HypothesisPortfolioManifest {
         }
         out.push(self.claim_scope as u8);
         out.extend_from_slice(&decision_digest);
+        out.push(self.required_dimensions.len() as u8);
+        for dimension in &self.required_dimensions {
+            out.push(*dimension as u8);
+        }
 
         let mut hypotheses = self.hypotheses.iter().collect::<Vec<_>>();
         hypotheses.sort_by(|a, b| a.hypothesis_id.cmp(&b.hypothesis_id));
@@ -610,6 +643,8 @@ impl HypothesisPortfolioManifest {
                 ChallengeResult::NoCounterexampleWithinBudget | ChallengeResult::Incomplete { .. } => None,
             })
             .collect::<Vec<_>>();
+        let mut discovered_counterexamples = discovered_counterexamples;
+        discovered_counterexamples.sort_by(|a, b| a.challenge_id.cmp(&b.challenge_id));
 
         let no_counterexample_run_count = self
             .challenge_runs
@@ -935,6 +970,7 @@ fn push_residual_envelope(out: &mut Vec<u8>, residual: &ResidualEnvelope) {
             out.push(2);
             out.push(*origin as u8);
             out.extend_from_slice(evidence_digest);
+            out.extend_from_slice(qualification_receipt_digest);
             out.extend_from_slice(calibration_digest);
             out.extend_from_slice(&independent_unit_count.to_le_bytes());
             let mut bounds = bounds.iter().collect::<Vec<_>>();
@@ -1146,6 +1182,7 @@ mod tests {
         ResidualEnvelope::Bounded {
             origin: ResidualEvidenceOrigin::IndependentObservedCalibration,
             evidence_digest: [9; 32],
+            qualification_receipt_digest: [35; 32],
             calibration_digest: [10; 32],
             independent_unit_count: 40,
             bounds: vec![
@@ -1172,6 +1209,12 @@ mod tests {
             parent_portfolio_digest: None,
             claim_scope: PortfolioClaimScope::EmpiricalRoadDecision,
             decision: decision(),
+            required_dimensions: BTreeSet::from([
+                CoverageDimension::OddAttributeAndCombination,
+                CoverageDimension::BehaviouralCompetency,
+                CoverageDimension::CausalMechanism,
+                CoverageDimension::RuleAndSafety,
+            ]),
             hypotheses: vec![hypothesis("model-a", [21; 32]), hypothesis("model-b", [22; 32])],
             coverage_obligations: vec![
                 coverage(CoverageDimension::OddAttributeAndCombination),
