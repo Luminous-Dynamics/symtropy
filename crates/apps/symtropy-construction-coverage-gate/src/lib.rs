@@ -540,6 +540,7 @@ mod tests {
     fn assessment() -> SurveyCoverageAssessmentV1 {
         let footprint = artifact("task-footprint", b"task polygon bytes");
         let domain = artifact("control-domain", b"qualified support domain bytes");
+        let support = artifact("support-map", b"placeholder support-map bytes");
         let receipt = adjustment_receipt(&footprint, &domain);
         let receipt_artifact = serialized_artifact("control-adjustment", &receipt);
         let envelope_value = survey_envelope_value(&footprint, &domain);
@@ -586,8 +587,7 @@ mod tests {
             critical_supported_cell_count: 20,
             critical_unsupported_cell_count: 0,
             critical_unmeasured_cell_count: 0,
-        }
-        ;
+        };
         let map = support_map_value(&assessment);
         assessment.support_map_artifact = serialized_artifact("support-map", &map);
         assessment
