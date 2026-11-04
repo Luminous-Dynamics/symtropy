@@ -1797,27 +1797,36 @@ mod tests {
                     && state.vibration_afferent == ChannelState::Intact
                     && state.contact_feedback == ChannelState::Intact
                     && state.acquisition == AcquisitionState::PositiveOffset
-                    && state.presynaptic_movement_inhibition.iter().all(|value| {
-                        *value == PresynapticMovementInhibition::Disinhibited
-                    })
+                    && state
+                        .presynaptic_movement_inhibition
+                        .iter()
+                        .all(|value| *value == PresynapticMovementInhibition::Disinhibited)
             })
             .unwrap();
-        let row = compiled.row_index(
-            "central-rhythm-model",
-            "stance-nominal",
-            &sensor.id,
-            "active-movement-probe",
-        ).unwrap();
+        let row = compiled
+            .row_index(
+                "central-rhythm-model",
+                "stance-nominal",
+                &sensor.id,
+                "active-movement-probe",
+            )
+            .unwrap();
         let outcomes = &compiled.kernel.rows[row].outcomes;
         assert_eq!(outcomes.len(), 2);
         assert_eq!(
-            outcomes.iter().map(|outcome| outcome.probability)
-                .try_fold(Rational::zero(), |sum, probability| sum.checked_add(probability))
+            outcomes
+                .iter()
+                .map(|outcome| outcome.probability)
+                .try_fold(Rational::zero(), |sum, probability| sum
+                    .checked_add(probability))
                 .unwrap(),
             Rational::one()
         );
         assert_eq!(
-            outcomes.iter().map(|outcome| outcome.probability).collect::<BTreeSet<_>>(),
+            outcomes
+                .iter()
+                .map(|outcome| outcome.probability)
+                .collect::<BTreeSet<_>>(),
             BTreeSet::from([Rational::new(1, 4).unwrap(), Rational::new(3, 4).unwrap()])
         );
     }
@@ -2323,12 +2332,16 @@ mod tests {
             },
         )
         .unwrap();
-        let identifying = exact.frontier.iter().find(|point| {
-            point.correct_identification_probability == Rational::new(3, 4).unwrap()
-                && point.false_identification_probability == Rational::new(1, 4).unwrap()
-                && point.hazard_probability == Rational::zero()
-                && point.abstention_probability == Rational::zero()
-        }).expect("reference calibration should make the noisy synthetic readout informative");
+        let identifying = exact
+            .frontier
+            .iter()
+            .find(|point| {
+                point.correct_identification_probability == Rational::new(3, 4).unwrap()
+                    && point.false_identification_probability == Rational::new(1, 4).unwrap()
+                    && point.hazard_probability == Rational::zero()
+                    && point.abstention_probability == Rational::zero()
+            })
+            .expect("reference calibration should make the noisy synthetic readout informative");
         match &identifying.plan {
             PolicyPlan::Action { action, branches } => {
                 assert_eq!(
