@@ -104,7 +104,7 @@ pub struct ServiceSensitivitySignal {
     pub schema_version: String,
     pub segment_index: usize,
     pub route_energy_uncertainty_upper_bound_wh: f64,
-    pub route_route_energy_uncertainty_budget_wh: f64,
+    pub route_energy_uncertainty_budget_wh: f64,
     /// Engineering estimate, in [0,1], of the fraction of the current uncertainty
     /// expected to be removed by one additional FEM/measurement sample.
     pub expected_uncertainty_reduction_fraction: f64,
