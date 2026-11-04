@@ -1344,21 +1344,30 @@ mod tests {
         .unwrap()
     }
 
-    fn case(
+    fn case_at(
         id: &str,
+        start: u64,
         scenarios: Vec<WeightedScenarioPath>,
         actual: [f64; 2],
     ) -> JointScenarioForecastCase {
         JointScenarioForecastCase::new(
             id,
-            90,
-            100,
-            110,
+            start - 10,
+            start,
+            start + 10,
             format!("joint-set-{id}"),
             scenarios,
             realized(actual),
         )
         .unwrap()
+    }
+
+    fn case(
+        id: &str,
+        scenarios: Vec<WeightedScenarioPath>,
+        actual: [f64; 2],
+    ) -> JointScenarioForecastCase {
+        case_at(id, 100, scenarios, actual)
     }
 
     #[test]
@@ -1543,7 +1552,7 @@ mod tests {
                 case("case1", vec![scenario("s", 1.0, [0.0, 10.0])], [0.0, 10.0]),
                 JointScenarioForecastCase::new(
                     "case2",
-                    105,
+                    104,
                     105,
                     115,
                     "set2",
@@ -1566,8 +1575,9 @@ mod tests {
             vec![scenario("s2", 0.5, [10.0, 0.0]), scenario("s1", 0.5, [0.0, 10.0])],
             [0.0, 10.0],
         );
-        let second = case(
+        let second = case_at(
             "case-b",
+            120,
             vec![scenario("s1", 0.5, [0.0, 10.0]), scenario("s2", 0.5, [10.0, 0.0])],
             [10.0, 0.0],
         );
@@ -1588,8 +1598,9 @@ mod tests {
                     vec![scenario("s1", 0.25, [0.0, 10.0]), scenario("s2", 0.75, [10.0, 0.0])],
                     [0.0, 10.0],
                 ),
-                case(
+                case_at(
                     "non-event-case",
+                    120,
                     vec![scenario("s1", 0.25, [0.0, 10.0]), scenario("s2", 0.75, [10.0, 0.0])],
                     [10.0, 0.0],
                 ),
