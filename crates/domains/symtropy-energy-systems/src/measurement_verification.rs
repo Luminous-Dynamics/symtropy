@@ -1127,4 +1127,23 @@ mod tests {
         assert!(report.verification_passed());
         assert!(!report.positive_savings_claim_supported());
     }
+
+    #[test]
+    fn rejects_duplicate_sample_ids_across_validation_and_reporting() {
+        let data = EnergyMvDataset::new(
+            vec![
+                validation_point("duplicate", 1_000, 100.0, 100.0),
+                validation_point("v2", 5_000, 100.0, 100.0),
+                validation_point("v3", 9_000, 100.0, 100.0),
+            ],
+            vec![reporting_point(
+                "duplicate", 20_000, 90.0, 100.0, 0.0, 0.0, 0.0, None, None,
+            )],
+        ).unwrap();
+        assert!(matches!(
+            verify_energy_mv(&plan(), &data),
+            Err(EnergyMvError::DuplicateSampleId(id)) if id == "duplicate"
+        ));
+    }
+
 }
