@@ -370,6 +370,14 @@ impl StrategyBenchmarkOutcome {
                 on_time: outcome.on_time_useful_work_units,
             });
         }
+        if outcome.on_time_useful_work_units < outcome.accepted_useful_work_units
+            && !outcome.deadline_violated
+        {
+            return Err(StrategyBenchmarkError::LateWorkMissingDeadlineViolation {
+                accepted: outcome.accepted_useful_work_units,
+                on_time: outcome.on_time_useful_work_units,
+            });
+        }
 
         Ok(outcome)
     }
@@ -680,6 +688,10 @@ pub enum StrategyBenchmarkError {
         accepted: f64,
         on_time: f64,
     },
+    LateWorkMissingDeadlineViolation {
+        accepted: f64,
+        on_time: f64,
+    },
     EmptyOutcomeSet,
     UnknownStrategy(String),
     DuplicateStrategyScenarioOutcome {
@@ -756,6 +768,10 @@ impl fmt::Display for StrategyBenchmarkError {
             } => write!(
                 f,
                 "work units must satisfy 0 <= on-time ({on_time}) <= accepted ({accepted}) <= offered ({offered})"
+            ),
+            Self::LateWorkMissingDeadlineViolation { accepted, on_time } => write!(
+                f,
+                "accepted work ({accepted}) exceeds on-time work ({on_time}) but deadline_violated is false"
             ),
             Self::EmptyOutcomeSet => write!(f, "strategy outcome set is empty"),
             Self::UnknownStrategy(id) => write!(f, "unknown strategy {id}"),
@@ -1507,6 +1523,12 @@ mod tests {
         assert_eq!(candidate.expected_on_time_useful_work_units, baseline.expected_on_time_useful_work_units);
         assert!((candidate.facility_kwh_per_on_time_useful_work_unit.unwrap() - 1.089_473_684_210_526_3).abs() < 1e-12);
         assert!(candidate.facility_to_it_energy_ratio.unwrap() > 1.0);
+        assert!(
+            (candidate.facility_to_it_energy_ratio.unwrap()
+                - baseline.facility_to_it_energy_ratio.unwrap())
+                .abs()
+                < 1e-12
+        );
         assert!(candidate.grid_kwh_per_on_time_useful_work_unit.unwrap() > 0.0);
     }
 
@@ -1674,6 +1696,15 @@ mod tests {
         assert_eq!(result.maximum_scenario_p95_latency_ms, 600.0);
         assert!(!result.latency_gate_passed);
         assert!(!result.passed);
+    }
+
+    #[test]
+    fn rejects_late_accepted_work_without_a_deadline_violation_receipt() {
+        assert!(matches!(
+            outcome("candidate", "late", 1.0, 100.0, 99.0, 100.0, 20.0, 10.0, 5.0,
+                false, false, false, false),
+            Err(StrategyBenchmarkError::LateWorkMissingDeadlineViolation { .. })
+        ));
     }
 
     #[test]
