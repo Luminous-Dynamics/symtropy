@@ -364,7 +364,7 @@ impl DecisionManifest {
                     OutcomeSupport::Supported { utility, .. } => Ok((
                         outcome.action_id.clone(),
                         ExactRational::new(utility.numerator, utility.denominator)?,
-                    ))
+                    )),
                     _ => Err(DecisionError::MissingActionOutcome),
                 })
                 .collect::<Result<Vec<_>, _>>()?;
