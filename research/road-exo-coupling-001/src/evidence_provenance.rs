@@ -9,6 +9,7 @@ use crate::StableId;
 
 const DOMAIN: &[u8] = b"symtropy.road-reality-gap.evidence.v0.1\0";
 
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum EvidenceOrigin {
     ObservedFactual,
@@ -20,6 +21,7 @@ pub enum EvidenceOrigin {
     HumanAdjudication,
 }
 
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum EvidenceClaim {
     FactualObservation,
@@ -31,6 +33,7 @@ pub enum EvidenceClaim {
     HumanJudgement,
 }
 
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum EvidenceUse {
     Fit,
@@ -41,6 +44,7 @@ pub enum EvidenceUse {
     IllustrativeOnly,
 }
 
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ActionRealization {
     Observed,
@@ -49,6 +53,7 @@ pub enum ActionRealization {
     Unknown,
 }
 
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum AssignmentMethod {
     Randomized,
@@ -113,6 +118,7 @@ pub struct SubjectLineage {
     pub complete: bool,
     pub generator_ancestry: BTreeSet<StableId>,
     pub upstream_source_digests: BTreeSet<[u8; 32]>,
+    pub parent_content_digests: BTreeSet<[u8; 32]>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -134,6 +140,7 @@ pub enum QualificationTarget {
     },
 }
 
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum GroundTruthEligibility {
     IndependentObservedAnchor,
@@ -148,6 +155,7 @@ pub enum GroundTruthEligibility {
     Contaminated,
 }
 
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum QualificationReason {
     FactualMeasurementMatchesExecutedAction,
@@ -176,6 +184,7 @@ pub struct QualificationReceipt {
     pub schema_id: &'static str,
     pub evidence_id: StableId,
     pub evidence_digest: [u8; 32],
+    pub metadata_digest: [u8; 32],
     pub target: QualificationTarget,
     pub eligibility: GroundTruthEligibility,
     pub reason: QualificationReason,
@@ -183,6 +192,7 @@ pub struct QualificationReceipt {
     pub receipt_digest: [u8; 32],
 }
 
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum DatasetSplit {
     Fit,
@@ -196,6 +206,7 @@ pub enum DatasetSplit {
 pub struct SplitEntry {
     pub record_id: StableId,
     pub split: DatasetSplit,
+    pub lineage_complete: bool,
     pub scenario_family_id: StableId,
     pub drive_id: StableId,
     pub capture_session_id: StableId,
@@ -217,6 +228,7 @@ pub enum EvidenceError {
     LeakageDetected,
     DuplicateParentDigest,
     ArithmeticOverflow,
+    ReceiptMismatch,
 }
 
 impl EvidenceLineage {
@@ -246,13 +258,66 @@ impl SubjectLineage {
             complete: self.complete,
             generator_ancestry: self.generator_ancestry.clone(),
             upstream_source_digests: self.upstream_source_digests.clone(),
-            parent_content_digests: BTreeSet::new(),
+            parent_content_digests: self.parent_content_digests.clone(),
         };
         lineage.digest()
     }
 }
 
 impl EvidencePacket {
+    pub fn metadata_digest(&self) -> [u8; 32] {
+        *blake3::hash(&self.metadata_bytes()).as_bytes()
+    }
+
+    pub fn metadata_bytes(&self) -> Vec<u8> {
+        let mut out = Vec::new();
+        out.extend_from_slice(b"symtropy.road-reality-gap.evidence-packet.v0.1\\0");
+        push_id(&mut out, &self.evidence_id);
+        out.extend_from_slice(&self.content_digest);
+        out.push(self.origin as u8);
+        out.push(self.claim as u8);
+        out.push(self.use_role as u8);
+        push_id(&mut out, &self.dataset_id);
+        push_id(&mut out, &self.dataset_version);
+        push_id(&mut out, &self.source_system_id);
+        push_option_id(&mut out, self.action_id.as_ref());
+        out.push(self.action_realization as u8);
+        match &self.assignment {
+            Some(assignment) => {
+                out.push(1);
+                push_id(&mut out, &assignment.protocol_id);
+                out.push(assignment.method as u8);
+                out.extend_from_slice(&assignment.protocol_digest);
+            }
+            None => out.push(0),
+        }
+        push_option_id(&mut out, self.measurement_calibration_id.as_ref());
+        match &self.identification {
+            Some(identification) => {
+                out.push(1);
+                push_id(&mut out, &identification.estimand_id);
+                out.extend_from_slice(&identification.assumptions_digest);
+                push_id(&mut out, &identification.overlap_evidence_id);
+                push_id(&mut out, &identification.sensitivity_plan_id);
+                push_id(&mut out, &identification.preregistration_id);
+            }
+            None => out.push(0),
+        }
+        push_option_id(&mut out, self.formal_domain_id.as_ref());
+        match &self.annotation {
+            Some(annotation) => {
+                out.push(1);
+                push_id(&mut out, &annotation.rubric_id);
+                push_id(&mut out, &annotation.assessor_protocol_id);
+                out.extend_from_slice(&annotation.disagreement_digest);
+                out.extend_from_slice(&annotation.assessor_count.to_le_bytes());
+            }
+            None => out.push(0),
+        }
+        out.extend_from_slice(&self.lineage.digest());
+        out
+    }
+
     pub fn validate_shape(&self) -> Result<(), QualificationReason> {
         let valid_pair = matches!(
             (self.origin, self.claim),
@@ -295,6 +360,7 @@ impl EvidencePacket {
             schema_id: "symtropy.road-reality-gap.qualification.v0.1",
             evidence_id: self.evidence_id.clone(),
             evidence_digest: self.content_digest,
+            metadata_digest: self.metadata_digest(),
             target,
             eligibility,
             reason,
@@ -331,6 +397,10 @@ impl EvidencePacket {
             .lineage
             .upstream_source_digests
             .is_disjoint(&subject.upstream_source_digests)
+            || !self
+                .lineage
+                .parent_content_digests
+                .is_disjoint(&subject.parent_content_digests)
         {
             return (
                 GroundTruthEligibility::ModelDependentReference,
@@ -488,6 +558,20 @@ impl QualificationReceipt {
     pub fn integrity_check(&self) -> bool {
         *blake3::hash(&qualification_bytes(self)).as_bytes() == self.receipt_digest
     }
+
+    /// Recompute the eligibility decision and every bound evidence/lineage digest.
+    pub fn verify_against(
+        &self,
+        packet: &EvidencePacket,
+        subject: &SubjectLineage,
+    ) -> Result<(), EvidenceError> {
+        let recomputed = packet.qualify_against(subject, self.target.clone());
+        if recomputed == *self {
+            Ok(())
+        } else {
+            Err(EvidenceError::ReceiptMismatch)
+        }
+    }
 }
 
 impl SplitManifest {
@@ -506,7 +590,8 @@ impl SplitManifest {
             if !records.insert(entry.record_id.clone()) {
                 return Err(EvidenceError::DuplicateRecord);
             }
-            if entry.scenario_family_id.as_str().is_empty()
+            if !entry.lineage_complete
+                || entry.scenario_family_id.as_str().is_empty()
                 || entry.drive_id.as_str().is_empty()
                 || entry.capture_session_id.as_str().is_empty()
             {
@@ -594,6 +679,7 @@ fn qualification_bytes(receipt: &QualificationReceipt) -> Vec<u8> {
     out.extend_from_slice(b"symtropy.road-reality-gap.qualification.v0.1\0");
     push_id(&mut out, &receipt.evidence_id);
     out.extend_from_slice(&receipt.evidence_digest);
+    out.extend_from_slice(&receipt.metadata_digest);
     match &receipt.target {
         QualificationTarget::FactualOutcome { action_id } => {
             out.push(1);
@@ -622,6 +708,16 @@ fn qualification_bytes(receipt: &QualificationReceipt) -> Vec<u8> {
     out
 }
 
+fn push_option_id(out: &mut Vec<u8>, id: Option<&StableId>) {
+    match id {
+        Some(value) => {
+            out.push(1);
+            push_id(out, value);
+        }
+        None => out.push(0),
+    }
+}
+
 fn push_id(out: &mut Vec<u8>, id: &StableId) {
     let bytes = id.as_str().as_bytes();
     let length = u32::try_from(bytes.len()).expect("StableId length is bounded");
@@ -647,6 +743,7 @@ mod tests {
             complete: true,
             generator_ancestry: BTreeSet::from([id("model-under-test-v3")]),
             upstream_source_digests: BTreeSet::from([[7; 32]]),
+            parent_content_digests: BTreeSet::from([[6; 32]]),
         }
     }
 
@@ -691,6 +788,7 @@ mod tests {
         SplitEntry {
             record_id: id(record),
             split,
+            lineage_complete: true,
             scenario_family_id: id(family),
             drive_id: id(drive),
             capture_session_id: id(session),
@@ -975,7 +1073,7 @@ mod tests {
     #[test]
     fn split_manifest_rejects_scenario_drive_session_and_parent_leakage() {
         for mutate in 0..4 {
-            let mut first = split_entry(
+            let first = split_entry(
                 "record-a",
                 DatasetSplit::Fit,
                 "family-a",
@@ -1004,7 +1102,6 @@ mod tests {
                 entries: vec![first.clone(), second],
             };
             assert_eq!(manifest.validate(), Err(EvidenceError::LeakageDetected));
-            first.record_id = id("unused-record");
         }
     }
 
@@ -1073,12 +1170,15 @@ mod tests {
             "session-b",
             [11; 32],
         );
-        incomplete_entry.capture_session_id = id("unknown-session");
+        incomplete_entry.lineage_complete = false;
         let incomplete = SplitManifest {
             manifest_id: id("split"),
             dataset_version: id("v1"),
             entries: vec![incomplete_entry],
         };
-        assert_eq!(incomplete.validate(), Ok(()));
+        assert_eq!(
+            incomplete.validate(),
+            Err(EvidenceError::IncompleteSplitLineage)
+        );
     }
 }
