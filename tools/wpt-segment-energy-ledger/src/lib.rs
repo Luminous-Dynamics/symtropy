@@ -92,8 +92,8 @@ pub struct SegmentEvent {
     pub segment_id: String,
     pub vehicle_id: String,
     pub geometry_digest: String,
-    pub start_ns: f64,
-    pub end_ns: f64,
+    pub start_ns: u64,
+    pub end_ns: u64,
     pub phases: Vec<PhaseEnergy>,
     /// Independent total meters for the complete inverter-rise to inverter-fall segment window.
     pub segment_spc_input: EnergyQuantity,
@@ -105,8 +105,8 @@ pub struct SegmentEvent {
 #[serde(deny_unknown_fields)]
 pub struct IdleInterval {
     pub interval_id: String,
-    pub start_ns: f64,
-    pub end_ns: f64,
+    pub start_ns: u64,
+    pub end_ns: u64,
     pub boundary_measurements: Vec<BoundaryMeasurement>,
 }
 
@@ -158,6 +158,7 @@ pub struct RouteReport {
     pub total_segment_evpc_output_wh: f64,
     pub total_idle_grid_input_wh: f64,
     pub total_idle_roadway_inverter_dc_input_wh: f64,
+    pub total_bess_dc_output_wh: Option<f64>,
     pub standard_route_segment_efficiency: EfficiencyInterval,
     pub inverter_dc_to_vehicle_dc_efficiency: EfficiencyInterval,
     pub grid_to_battery_efficiency: EfficiencyInterval,
@@ -281,9 +282,17 @@ impl RouteLedger {
         }
 
         intervals.sort_by(|left, right| left.0.total_cmp(&right.0).then_with(|| left.1.total_cmp(&right.1)));
+        if intervals.first().map(|interval| interval.0) != Some(self.route_start_ns)
+            || intervals.last().map(|interval| interval.1) != Some(self.route_end_ns)
+        {
+            return Err("segments and idle intervals must cover the complete route time range".into());
+        }
         for pair in intervals.windows(2) {
             if pair[1].0 < pair[0].1 {
                 return Err(format!("route intervals overlap: {} and {}", pair[0].2, pair[1].2));
+            }
+            if pair[1].0 > pair[0].1 {
+                return Err(format!("unaccounted route time between {} and {}", pair[0].2, pair[1].2));
             }
         }
         Ok(())
@@ -297,12 +306,12 @@ impl RouteLedger {
         let mut total_spc_bound = 0.0;
         let mut total_evpc_bound = 0.0;
         let mut total_idle_grid = 0.0;
-        let mut total_idle_grid_bound = 0.0;
+        let mut total_bess = 0.0;
+        let mut total_bess_present = false;
 
         let mut total_inverter = 0.0;
         let mut total_inverter_bound = 0.0;
         let mut total_idle_inverter = 0.0;
-        let mut total_idle_inverter_bound = 0.0;
         let mut total_vehicle_dc = 0.0;
         let mut total_vehicle_dc_bound = 0.0;
         let mut total_grid = 0.0;
@@ -328,6 +337,10 @@ impl RouteLedger {
                     EnergyBoundary::RoadwayInverterDcInput => {
                         total_inverter = checked_add(total_inverter, quantity.energy_wh)?;
                         total_inverter_bound = checked_add(total_inverter_bound, quantity.deterministic_absolute_bound_wh)?;
+                    }
+                    EnergyBoundary::BessDcOutput => {
+                        total_bess = checked_add(total_bess, quantity.energy_wh)?;
+                        total_bess_present = true;
                     }
                     EnergyBoundary::VehicleDcBusOutput => {
                         total_vehicle_dc = checked_add(total_vehicle_dc, quantity.energy_wh)?;
@@ -378,11 +391,13 @@ impl RouteLedger {
                 total_grid = checked_add(total_grid, grid.energy_wh)?;
                 total_grid_bound = checked_add(total_grid_bound, grid.deterministic_absolute_bound_wh)?;
                 total_idle_grid = checked_add(total_idle_grid, grid.energy_wh)?;
-                total_idle_grid_bound = checked_add(total_idle_grid_bound, grid.deterministic_absolute_bound_wh)?;
             }
             if let Some(inverter) = map.get(&EnergyBoundary::RoadwayInverterDcInput) {
                 total_idle_inverter = checked_add(total_idle_inverter, inverter.energy_wh)?;
-                total_idle_inverter_bound = checked_add(total_idle_inverter_bound, inverter.deterministic_absolute_bound_wh)?;
+            }
+            if let Some(bess) = map.get(&EnergyBoundary::BessDcOutput) {
+                total_bess = checked_add(total_bess, bess.energy_wh)?;
+                total_bess_present = true;
             }
         }
 
@@ -413,6 +428,7 @@ impl RouteLedger {
             total_segment_evpc_output_wh: total_evpc,
             total_idle_grid_input_wh: total_idle_grid,
             total_idle_roadway_inverter_dc_input_wh: total_idle_inverter,
+            total_bess_dc_output_wh: total_bess_present.then_some(total_bess),
             standard_route_segment_efficiency: standard_route,
             inverter_dc_to_vehicle_dc_efficiency: inverter_route,
             grid_to_battery_efficiency: grid_route,
@@ -607,8 +623,8 @@ mod tests {
             .enumerate()
             .map(|(index, phase)| PhaseEnergy {
                 phase: phase.clone(),
-                start_ns: start + index as f64,
-                end_ns: start + index as f64 + 1.0,
+                start_ns: start_ns + index as u64 * 1_000_000_000,
+                end_ns: start_ns + (index as u64 + 1) * 1_000_000_000,
                 spc_input: quantity(&format!("{id}-SPC-{index}"), "SPC_INPUT", 10.0),
                 evpc_output: quantity(&format!("{id}-EVPC-{index}"), "EVPC_OUTPUT", 9.0),
             })
@@ -617,8 +633,8 @@ mod tests {
             segment_id: id.into(),
             vehicle_id: "TRUCK-1".into(),
             geometry_digest: digest('c'),
-            start_ns: start,
-            end_ns: start + 6.0,
+            start_ns,
+            end_ns: start_ns + 6_000_000_000,
             phases,
             segment_spc_input: quantity(&format!("{id}-SPC-TOTAL"), "SPC_INPUT", 60.0),
             segment_evpc_output: quantity(&format!("{id}-EVPC-TOTAL"), "EVPC_OUTPUT", 54.0),
@@ -650,13 +666,13 @@ mod tests {
             evidence_class: EvidenceClass::SyntheticKnownTruth,
             power_flow_direction: PowerFlowDirection::GridToVehicle,
             route_geometry_digest: digest('d'),
-            route_start_ns: 0.0,
-            route_end_ns: 16.0,
-            segments: vec![segment("SEG-1", 0.0), segment("SEG-2", 10_000_000_000)],
+            route_start_ns: 0,
+            route_end_ns: 16_000_000_000,
+            segments: vec![segment("SEG-1", 0), segment("SEG-2", 10_000_000_000)],
             idle_intervals: vec![IdleInterval {
                 interval_id: "WAIT-1".into(),
-                start_ns: 6.0,
-                end_ns: 10.0,
+                start_ns: 6_000_000_000,
+                end_ns: 10_000_000_000,
                 boundary_measurements: vec![BoundaryMeasurement {
                     boundary: EnergyBoundary::GridAcInput,
                     quantity: quantity("WAIT-GRID", "GRID_AC_INPUT", 5.0),
@@ -715,7 +731,7 @@ mod tests {
     #[test]
     fn rejects_noncontiguous_phase_windows_and_wrong_phase_order() {
         let mut ledger = fixture();
-        ledger.segments[0].phases[2].start_ns += 0.1;
+        ledger.segments[0].phases[2].start_ns += 100_000_000;
         assert!(ledger.validate().unwrap_err().contains("contiguous"));
         let mut ledger = fixture();
         ledger.segments[0].phases.swap(0, 1);
@@ -725,7 +741,7 @@ mod tests {
     #[test]
     fn rejects_route_overlap_and_missing_idle_grid_energy() {
         let mut ledger = fixture();
-        ledger.segments[1].start_ns = 5.0;
+        ledger.segments[1].start_ns = 5_000_000_000;
         assert!(ledger.validate().unwrap_err().contains("overlap"));
         let mut ledger = fixture();
         ledger.idle_intervals[0].boundary_measurements.clear();
@@ -752,6 +768,34 @@ mod tests {
         assert!(ledger.validate().unwrap_err().contains("unique"));
     }
 
+
+    #[test]
+    fn rejects_phase_energy_that_does_not_reconcile_with_independent_segment_meter() {
+        let mut ledger = fixture();
+        ledger.segments[0].segment_evpc_output.energy_wh = 40.0;
+        assert!(
+            ledger.validate().unwrap_err().contains("does not reconcile with independent segment total")
+        );
+    }
+
+    #[test]
+    fn rejects_unaccounted_time_between_segment_and_idle_events() {
+        let mut ledger = fixture();
+        ledger.idle_intervals[0].start_ns = 7_000_000_000;
+        assert!(ledger.validate().unwrap_err().contains("unaccounted route time"));
+    }
+
+    #[test]
+    fn separates_idle_inverter_energy_from_active_transfer_efficiency() {
+        let mut ledger = fixture();
+        ledger.idle_intervals[0].boundary_measurements.push(BoundaryMeasurement {
+            boundary: EnergyBoundary::RoadwayInverterDcInput,
+            quantity: quantity("WAIT-INVERTER", "ROADWAY_INVERTER_DC_INPUT", 20.0),
+        });
+        let baseline = ledger.evaluate().unwrap();
+        assert!((baseline.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
+        assert_eq!(baseline.total_idle_roadway_inverter_dc_input_wh, 20.0);
+    }
     #[test]
     fn preserves_standby_energy_outside_the_standard_segment_metric() {
         let mut ledger = fixture();
