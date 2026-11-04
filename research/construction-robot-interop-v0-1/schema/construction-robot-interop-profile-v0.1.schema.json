@@ -169,7 +169,7 @@
           }
         },
         "ordering_scope": {
-          "const": "actor_session_scoped"
+          "const": "actor_session_task_scoped"
         },
         "duplicate_policy": {
           "const": "idempotent_same_digest"
