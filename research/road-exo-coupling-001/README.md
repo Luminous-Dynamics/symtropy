@@ -37,3 +37,27 @@ The standalone Rust crate has no third-party dependencies and is isolated from t
 ## Claim ceiling
 
 Passing establishes only that this small reference implementation serializes the declared identity contract and checks represented pair records. It does not validate the causal graph, select an event identity map, prove random-number quality, identify real-world counterfactuals, validate actor behavior or physics, establish a safety case, or authorize vehicle actuation.
+
+
+## Event-correspondence envelope (stacked extension for #3571)
+
+The crate now also represents multiple admissible partial maps between two branch-local event universes. It distinguishes:
+
+- Actor-keyed identity: the same scenario-authored actor and event family.
+- Directed-dyad identity: same initiator and recipient roles.
+- Encounter-slot identity: same declared opportunity slot, even when the actor occupant differs. This explicitly asserts an exchangeability assumption.
+
+Each candidate hypothesis must partition every event in its declared branch-local universe into exactly one matched pair or an explicit unmatched disposition. Endpoints cannot be reused. Pair compatibility is checked against the identity basis. An event with an observed counterpart in one branch and a causal-condition witness for non-realization in the other is not confused with a missing tracker record.
+
+The correspondence set retains multiple hypotheses rather than choosing whichever map is nearest, most numerous, or most variance-reducing. ExhaustiveWithinDeclaredScope is a caller-supplied evidence-bound assertion; internal coverage does not prove that all scientifically plausible maps were discovered. Unknown presence, unknown correspondence, or an incomplete candidate universe yields an incomplete assessment.
+
+The canonical_bytes method sorts event records, hypotheses, pairings and unmatched events before serialization. It is a deterministic representation only—not a hash, signature, authenticated receipt or proof of identity. A downstream receipt may apply its separately qualified digest/authentication mechanism.
+
+The new conformance module deliberately does not:
+- infer matches from geometry, runtime BodyHandle, actor enumeration or nearest-neighbour rank;
+- assign probabilities to correspondence hypotheses;
+- optimize the correspondence for CRN variance;
+- decide action rankings or causal identification (SAM #10372 remains responsible);
+- create or generate random values.
+
+Tests cover unique identity, ambiguous actor-vs-slot mappings, directed-role mismatch, conditional event non-realization, missing/unknown events, unmatched events, invalid partitions, duplicate endpoints, incomplete candidate universes and canonical order invariance.
