@@ -7,10 +7,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    condition_on_outcome, entropy, expected_information_gain, reject_candidate, splitmix64,
-    validate_candidate, validate_posterior, AbstainReason, Decision, DecisionConfig,
-    DecisionState, EngineError, EvidenceTier, ExperimentRecord, Feasibility, InterventionCandidate,
-    ModelAdequacy, Posterior, PosteriorUpdate, SelectionPolicy, StopReason,
+    AbstainReason, Decision, DecisionConfig, DecisionState, EngineError, EvidenceTier,
+    ExperimentRecord, Feasibility, InterventionCandidate, ModelAdequacy, Posterior,
+    PosteriorUpdate, SelectionPolicy, StopReason, condition_on_outcome, entropy,
+    expected_information_gain, reject_candidate, splitmix64, validate_candidate,
+    validate_posterior,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -103,7 +104,10 @@ fn validate_scenario(scenario: &SyntheticScenario) -> Result<(), BenchmarkError>
         return Err(BenchmarkError::InvalidScenario("empty scenario ID"));
     }
     validate_posterior(&scenario.initial_posterior)?;
-    if !scenario.initial_posterior.contains_key(&scenario.true_model_id) {
+    if !scenario
+        .initial_posterior
+        .contains_key(&scenario.true_model_id)
+    {
         return Err(BenchmarkError::UnknownTrueModel(
             scenario.true_model_id.clone(),
         ));
@@ -223,8 +227,7 @@ fn outcome_kl_under_true_model(
                 .iter()
                 .filter(|(model_id, _)| model_id.as_str() != true_model_id)
                 .map(|(model_id, probability)| {
-                    probability / alternative_mass
-                        * outcome.model_probabilities[model_id]
+                    probability / alternative_mass * outcome.model_probabilities[model_id]
                 })
                 .sum();
             if p_alternative == 0.0 {
@@ -294,8 +297,10 @@ fn choose_for_policy(
             Ok(Err(EpisodeTermination::NoPermittedCandidate))
         }
         BenchmarkPolicy::ClairvoyantMyopicUpperBound => {
-            Ok(clairvoyant_candidate_id(state, candidates, config, true_model_id)
-                .ok_or(EpisodeTermination::NoPermittedCandidate))
+            Ok(
+                clairvoyant_candidate_id(state, candidates, config, true_model_id)
+                    .ok_or(EpisodeTermination::NoPermittedCandidate),
+            )
         }
         adaptive => {
             let selection_policy = match adaptive {
@@ -319,9 +324,7 @@ fn choose_for_policy(
             )?;
             match decision {
                 Decision::Select(selection) => Ok(Ok(selection.candidate_id)),
-                Decision::Stop { reason, .. } => {
-                    Ok(Err(EpisodeTermination::PolicyStop(reason)))
-                }
+                Decision::Stop { reason, .. } => Ok(Err(EpisodeTermination::PolicyStop(reason))),
                 Decision::Abstain { reason, .. } => {
                     Ok(Err(EpisodeTermination::PolicyAbstain(reason)))
                 }
@@ -330,11 +333,7 @@ fn choose_for_policy(
     }
 }
 
-fn sample_outcome_id(
-    candidate: &InterventionCandidate,
-    true_model_id: &str,
-    seed: u64,
-) -> String {
+fn sample_outcome_id(candidate: &InterventionCandidate, true_model_id: &str, seed: u64) -> String {
     let draw = splitmix64(seed);
     let unit_interval = (draw >> 11) as f64 / ((1_u64 << 53) as f64);
     let mut outcomes: Vec<&super::OutcomeLikelihood> = candidate.outcomes.iter().collect();
@@ -530,10 +529,7 @@ mod tests {
     use super::*;
 
     fn posterior(p: f64) -> Posterior {
-        BTreeMap::from([
-            ("model-a".to_owned(), p),
-            ("model-b".to_owned(), 1.0 - p),
-        ])
+        BTreeMap::from([("model-a".to_owned(), p), ("model-b".to_owned(), 1.0 - p)])
     }
 
     fn candidate(id: &str, p_a_yes: f64, p_b_yes: f64, cost: f64) -> InterventionCandidate {
@@ -582,8 +578,18 @@ mod tests {
                 "model-b".to_owned()
             },
             candidates: vec![
-                candidate("intervention-a", discriminating_probability, 1.0 - discriminating_probability, 1.0),
-                candidate("intervention-b", weak_probability, 1.0 - weak_probability, 0.5),
+                candidate(
+                    "intervention-a",
+                    discriminating_probability,
+                    1.0 - discriminating_probability,
+                    1.0,
+                ),
+                candidate(
+                    "intervention-b",
+                    weak_probability,
+                    1.0 - weak_probability,
+                    0.5,
+                ),
             ],
             horizon: 8,
             cost_budget: 8.0,
@@ -611,8 +617,14 @@ mod tests {
                 for result in left.results {
                     assert!(result.steps_completed <= s.horizon);
                     assert!(result.cost_spent <= s.cost_budget + 1.0e-12);
-                    assert_eq!(result.selected_candidate_ids.len(), result.steps_completed as usize);
-                    assert_eq!(result.observed_outcome_ids.len(), result.steps_completed as usize);
+                    assert_eq!(
+                        result.selected_candidate_ids.len(),
+                        result.steps_completed as usize
+                    );
+                    assert_eq!(
+                        result.observed_outcome_ids.len(),
+                        result.steps_completed as usize
+                    );
                     assert!(result.true_model_posterior.is_finite());
                     assert!((0.0..=1.0).contains(&result.true_model_posterior));
                 }
@@ -623,12 +635,8 @@ mod tests {
     #[test]
     fn clairvoyant_myopic_upper_bound_has_zero_myopic_regret() {
         let s = scenario(0, 3);
-        let result = run_synthetic_episode(
-            &s,
-            BenchmarkPolicy::ClairvoyantMyopicUpperBound,
-            77,
-        )
-        .unwrap();
+        let result =
+            run_synthetic_episode(&s, BenchmarkPolicy::ClairvoyantMyopicUpperBound, 77).unwrap();
         assert_eq!(result.myopic_oracle_regret_nats_per_cost, 0.0);
     }
 
