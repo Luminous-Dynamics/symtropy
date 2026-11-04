@@ -268,3 +268,44 @@ Colas et al. formalize transmission programs that condition on the collective an
 | Civilizational dynamics | Existing socio-ecological model and external ABM ecosystems | Compose the above with physical constraints, historical evidence, institutions and service-floor outcomes |
 
 This positioning is complementary. The programme's competitive edge should be demonstrable only on named tasks where the extra evidence, physical closure or long-horizon cultural mechanisms improve an independently scored outcome.
+
+
+## 9. 2026 social-dilemma adaptation, welfare allocation and population-scale effects
+
+### Collective-risk adaptation — source task plus analytical oracle
+
+**Huynh et al. (2026), "Cooperation Without Adaptation: LLM Agents in a Collective-Risk Dilemma"**  
+https://arxiv.org/abs/2610.22882
+
+The paper's task uses six seats, 40 initial units per seat, ten rounds, choices of 0/2/4, target 120 and catastrophe probability p when the target is missed. Its expected-welfare optimum switches at p*=0.5. Its central methodological contribution for CivBench is not another cooperation score: it separates correct payoff reasoning from actual action adaptation, exact best response to fixed partners, mixed-model group composition and population-size-dependent evolutionary selection.
+
+**CivBench response:** use the exact six-seat task as a source-aligned reference; build an analytical welfare oracle and exhaustive best-response enumeration before comparing cognitive or LLM agents. The public task reconstruction is not a reproduction of prompts or model results.
+
+### Cooperation-support mechanisms — compare mechanisms under partner shift
+
+**Tewolde et al. (ICML 2026), "CoopEval: Benchmarking Cooperation-Sustaining Mechanisms and LLM Agents in Social Dilemmas"**  
+https://proceedings.mlr.press/v306/tewolde26a.html
+
+CoopEval compares repeated interaction, reputation, third-party mediation and outcome-contingent contracts. Its results indicate that repetition-based cooperation is fragile to changing partners in the studied games, whereas contracts and mediation more consistently support cooperative outcomes.
+
+**CivBench response:** compare mechanism families in homogeneous self-play, unfamiliar partner mixes, one-shot settings, noisy reputation and breach/dispute conditions. Keep mechanism authority, verification and appeal explicit. Do not count a simulated reputation label or contract name as an implemented mechanism.
+
+### Welfare allocation — productivity is not distributive legitimacy
+
+**Shi et al. (Findings ACL 2026), "Social Welfare Function Leaderboard: On the Emergence of LLM Agents as the Welfare Dictator"**  
+https://aclanthology.org/2026.findings-acl.1919/
+
+The SWF benchmark gives an LLM scarce allocation authority over heterogeneous recipients and measures a productivity-versus-inequality trade-off. It reports that general model ability does not predict allocation quality, and that allocations are sensitive to persuasion.
+
+**CivBench response:** add a bounded allocation task with auditable recipient data, verified needs/returns, essential floors, explicit objective families (utilitarian, max-min and leximin), Pareto-frontier reporting and adversarial persuasion. Facts and recipient claims must be immutable across rhetorical prompt perturbations unless an actual evidence input changes. Report rights-floor violations separately from productivity and Gini.
+
+### Population scaling — no linear extrapolation from self-play
+
+**Flint et al. (PNAS, 18 August 2026), "Group size effects and collective misalignment in LLM multi-agent systems"**  
+https://doi.org/10.1073/pnas.2531697123
+
+The paper varies population size and reports nonlinear effects on collective biases and emergent dynamics; a mean-field analysis is used to characterize large-population regimes.
+
+**CivBench response:** distinguish interaction-group size from total population size, evaluate overlapping group composition and policy-selection dynamics, and compare finite-population simulations with an explicit mean-field reference. Report transition thresholds and uncertainty, not a single large-N point estimate.
+
+These four works reinforce a general design rule: test incentives, partner turnover, distributional effects and scaling as independent dimensions. Do not interpret cooperative self-play or aggregate payoff as evidence of robust collective intelligence.
