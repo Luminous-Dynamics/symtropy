@@ -71,9 +71,9 @@ An adapter must not invent missing fields, silently convert units or coordinate 
 
 ## Message envelope and ordering
 
-The profile requires message ID, schema version, actor and actor-session identity, task ID, source sequence, idempotency/correlation keys, source time with clock uncertainty, receiver-observed time, site epoch, design/frame binding where applicable, payload digest and explicit message kind.
+The profile requires message ID, schema version, actor and actor-session identity, task ID, task-scoped sequence, idempotency/correlation keys, source time with clock uncertainty, receiver-observed time, site epoch, design/frame binding where applicable, payload digest and explicit message kind.
 
-Ordering is actor/session-scoped; a globally synchronized clock is not assumed. Duplicate delivery must be idempotent. A message ID reused with different content is a conflict. A delayed or stale event cannot overwrite a newer state. A source-sequence gap is reported; whether it blocks a task is determined by the declared event-stream completeness policy. A session/boot change requires explicit reconciliation rather than assuming the old sequence continues.
+The reference core scopes sequence to (actor, session, task), starts a new task stream at sequence 1 and requires contiguous events. Duplicate delivery with the same message ID/digest is idempotent; reuse of an ID with different content is a conflict. A gap, stale sequence or changed actor session is rejected without changing task state. A changed session requires an externally validated state checkpoint before the new session is admitted. A globally synchronized clock is not assumed; the core does not infer event order from wall-clock timestamps.
 
 This is an envelope and state-semantics contract, not a cryptographic identity or event-store implementation.
 
@@ -98,6 +98,28 @@ The reference transition oracle may verify receipt reference presence and bindin
 Resources include work zones, access corridors, crane/telehandler operating envelopes, material staging, charging/fuelling, lifts/hoists and protected survey-control areas.
 
 A reservation binds resource ID/revision, owner, task, scope, time interval, expiry, priority/override policy and source digest. Exclusive conflicts must be rejected. Expiry, owner loss, clock uncertainty, contradictory reservations or site-epoch changes trigger the declared invalidation path. A reservation is a scheduling fact only, never a safety permit.
+
+## Executable reference core
+
+The dependency-free Rust crate in `src/lib.rs` implements a deterministic task-lifecycle oracle:
+
+- immutable binding to site epoch, design revision digest, target frame and robot configuration digest;
+- per-actor/session/task sequence continuity, duplicate idempotency and conflicting message-ID rejection;
+- explicit actor-session reconciliation after reboot;
+- fail-closed start/resume on stale task context;
+- distinct executor completion, measurement pending, independently accepted and independently rejected states;
+- acceptance-receipt binding to exact task, context and output-evidence reference.
+
+Run it with:
+
+```sh
+cargo test --manifest-path research/construction-robot-interop-v0-1/Cargo.toml --locked
+cargo clippy --manifest-path research/construction-robot-interop-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+```
+
+The dedicated GitHub Actions workflow checks Rust 1.96 formatting, tests, metadata/lockfile consistency and strict Clippy on Ubuntu, Windows and macOS. Its concurrency policy does not cancel an in-progress matrix when a newer commit arrives.
+
+This core checks structural reference bindings only. It does not authenticate actors, verify receipt signatures or authority, compute hashes, evaluate construction tolerances, coordinate real resources, or grant motion/safety permission. Resource-reservation evaluation and protocol adapters remain later stages.
 
 ## Frozen reference corpus
 
