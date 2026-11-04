@@ -312,15 +312,15 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
             "MODE_UNQUALIFIED",
             "both adjacent modes require upstream PASSIVE_CERTIFIED evidence before transition qualification",
         )
-    } else if generation_upper_j > numeric_guard_j {
-        (
-            "ENERGY_GENERATION_UNRESOLVED",
-            "the conservative energy-generation interval overlaps possible positive generation",
-        )
     } else if tank_reserve_unresolved {
         (
             "ENERGY_TANK_RESERVE_UNRESOLVED",
             "the conservative pre/post energy-tank reserve lower bound is negative",
+        )
+    } else if generation_upper_j > numeric_guard_j {
+        (
+            "ENERGY_GENERATION_UNRESOLVED",
+            "the conservative energy-generation interval overlaps possible positive generation",
         )
     } else if residual_lower_j >= -tolerance_j && residual_upper_j <= tolerance_j {
         (
@@ -540,7 +540,7 @@ mod tests {
             "post_energy_j": 0.01,
             "post_energy_uncertainty_j": 0.02
         });
-        record["switch_event"]["absolute_tolerance_j"] = json!(0.05);
+        record["switch_event"]["absolute_tolerance_j"] = json!(0.005);
         record["switch_event"]["relative_tolerance"] = json!(0.001);
         assert_eq!(disposition(&record), "ENERGY_TANK_RESERVE_UNRESOLVED");
     }
