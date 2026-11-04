@@ -96,14 +96,29 @@ def verify_npz(path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
                 f"NPZ y shape must have {n} rows, got {y_shape}")
         y_outputs = y_shape[1]
     require(y_outputs == objectives, "NPZ y objective count differs from admitted metadata")
-    require(len(c_shape) == 2 and c_shape == (n, constraints),
-            f"NPZ c shape must be {(n, constraints)}, got {c_shape}")
+    require(len(c_shape) == 2 and c_shape[0] == n,
+            f"NPZ c must have {n} rows, got {c_shape}")
+    if constraints == 0:
+        require(c_shape[1] == 0, "unconstrained task must have an empty c matrix")
+        constraint_history_state = "not_applicable"
+    elif c_shape[1] == 0:
+        constraint_history_state = "unavailable"
+    elif c_shape[1] == constraints:
+        constraint_history_state = "available"
+    else:
+        raise ValueError(
+            f"NPZ c must have zero columns (unavailable) or {constraints} raw constraint columns, got {c_shape}"
+        )
     for name in ("iterations", "per_iteration_value", "wall_time"):
         require(len(shapes[name]) == 1, f"NPZ {name} must be one-dimensional")
     trace_lengths = [shapes[name][0] for name in ("iterations", "per_iteration_value", "wall_time")]
     require(len(set(trace_lengths)) == 1 and trace_lengths[0] > 0,
             "NPZ iteration, best and wall traces have inconsistent lengths")
-    return {"npz_evaluation_count_from_shape": n, "npz_trace_point_count_from_shape": trace_lengths[0]}
+    return {
+        "npz_evaluation_count_from_shape": n,
+        "npz_trace_point_count_from_shape": trace_lengths[0],
+        "constraint_history_state": constraint_history_state,
+    }
 
 
 def safe_artifact_path(root: Path, relative: str) -> Path:
@@ -207,6 +222,7 @@ def verify_receipt(path: Path) -> dict[str, Any]:
     row = rows[0]
     metrics_expected = {
         "objective_evaluation_count": metrics.get("objective_evaluation_count", ""),
+        "constraint_history_state": metrics.get("constraint_history_state", ""),
         "initial_design_count": metrics.get("initial_design_count", ""),
         "feasible_evaluation_count": metrics.get("feasible_evaluation_count", ""),
         "infeasible_evaluation_count": metrics.get("infeasible_evaluation_count", ""),
@@ -250,6 +266,10 @@ def verify_receipt(path: Path) -> dict[str, Any]:
         require(
             int(row["objective_evaluation_count"]) == npz_result["npz_evaluation_count_from_shape"],
             "normalized row evaluation count differs from raw NPZ",
+        )
+        require(
+            row["constraint_history_state"] == npz_result["constraint_history_state"],
+            "normalized row constraint-history state differs from raw NPZ shape",
         )
 
     return {
