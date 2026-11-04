@@ -381,21 +381,21 @@ impl GridFirmCapacityEvaluation {
         if trials.is_empty() {
             return Err(GridFirmCapacityError::EmptyTrialSet);
         }
-        if trials.len() != contract.scheduled_event_ids.len() {
-            return Err(GridFirmCapacityError::ScheduledOpportunityCountMismatch {
-                observed: trials.len(),
-                expected: contract.scheduled_event_ids.len(),
-            });
-        }
         if trials.len() < contract.minimum_trial_count {
             return Err(GridFirmCapacityError::InsufficientTrials {
                 observed: trials.len(),
                 required: contract.minimum_trial_count,
             });
         }
+        if trials.len() != contract.scheduled_event_ids.len() {
+            return Err(GridFirmCapacityError::ScheduledOpportunityCountMismatch {
+                observed: trials.len(),
+                expected: contract.scheduled_event_ids.len(),
+            });
+        }
         trials.sort_by(|left, right| left.event_id.cmp(&right.event_id));
         let mut event_ids = BTreeSet::new();
-        let scheduled_ids = contract.scheduled_event_ids.iter().collect::<BTreeSet<_>>();
+        let scheduled_ids = contract.scheduled_event_ids.iter().cloned().collect::<BTreeSet<_>>();
         for trial in &trials {
             if !event_ids.insert(trial.event_id.clone()) {
                 return Err(GridFirmCapacityError::DuplicateEventId(
@@ -616,14 +616,28 @@ mod tests {
         ).unwrap()
     }
 
-    fn contract() -> GridFirmCapacityContract {
+    fn contract_for(
+        event_ids: Vec<String>,
+        minimum_trial_count: usize,
+        minimum_success_probability: f64,
+        confidence_failure_probability: f64,
+    ) -> GridFirmCapacityContract {
         GridFirmCapacityContract::new(
             identity(),
+            event_ids,
+            minimum_trial_count,
+            minimum_success_probability,
+            confidence_failure_probability,
+        ).unwrap()
+    }
+
+    fn contract() -> GridFirmCapacityContract {
+        contract_for(
             (0..5).map(|i| format!("event-{i}")).collect(),
             5,
             0.60,
             0.05,
-        ).unwrap()
+        )
     }
 
     fn response_report(event_id: &str, passed: bool) -> GridResponseReport {
@@ -677,11 +691,13 @@ mod tests {
 
     #[test]
     fn all_passes_accredit_only_the_committed_capacity_when_bound_is_sufficient() {
-        let mut trials = passing_trials(100);
-        let mut expected = (0..100).map(|i| format!("event-{i}")).collect::<Vec<_>>();
-        let expanded = GridFirmCapacityContract::new(
-            identity(), expected.clone(), 5, 0.60, 0.05
-        ).unwrap();
+        let trials = passing_trials(100);
+        let expanded = contract_for(
+            (0..100).map(|i| format!("event-{i}")).collect(),
+            5,
+            0.60,
+            0.05,
+        );
         let input = GridFirmCapacityEvaluation::new(expanded, trials).unwrap();
         let report = evaluate_grid_firm_capacity(&input).unwrap();
         assert_eq!(report.successful_trial_count, 100);
@@ -707,7 +723,17 @@ mod tests {
             response_report("event-failed", false),
             "hot-ambient-high-workload",
         ).unwrap());
-        let input = GridFirmCapacityEvaluation::new(contract(), trials).unwrap();
+        let input = GridFirmCapacityEvaluation::new(
+            contract_for(
+                (0..100).map(|i| format!("event-{i}"))
+                    .chain(std::iter::once("event-failed".to_string()))
+                    .collect(),
+                5,
+                0.60,
+                0.05,
+            ),
+            trials,
+        ).unwrap();
         let report = evaluate_grid_firm_capacity(&input).unwrap();
         assert_eq!(report.failed_trial_count, 1);
         assert_eq!(report.successful_trial_count, 100);
@@ -723,7 +749,17 @@ mod tests {
             "controller unreachable",
             "availability-log-001",
         ).unwrap());
-        let input = GridFirmCapacityEvaluation::new(contract(), trials).unwrap();
+        let input = GridFirmCapacityEvaluation::new(
+            contract_for(
+                (0..100).map(|i| format!("event-{i}"))
+                    .chain(std::iter::once("event-unavailable".to_string()))
+                    .collect(),
+                5,
+                0.60,
+                0.05,
+            ),
+            trials,
+        ).unwrap();
         let report = evaluate_grid_firm_capacity(&input).unwrap();
         assert_eq!(report.unavailable_trial_count, 1);
         assert_eq!(report.failed_trial_count, 1);
@@ -746,7 +782,10 @@ mod tests {
             bad, "hot-ambient-high-workload"
         ).unwrap()];
         assert!(matches!(
-            GridFirmCapacityEvaluation::new(contract(), trials),
+            GridFirmCapacityEvaluation::new(
+                contract_for(vec!["event-bad".to_string()], 1, 0.60, 0.05),
+                trials
+            ),
             Err(GridFirmCapacityError::ServiceProductMismatch { .. })
         ));
     }
@@ -757,7 +796,7 @@ mod tests {
         bad.target_reduction_kw = 110.0;
         assert!(matches!(
             GridFirmCapacityEvaluation::new(
-                contract(),
+                contract_for(vec!["event-bad".to_string()], 1, 0.60, 0.05),
                 vec![GridFirmCapacityTrial::evaluated(
                     bad, "hot-ambient-high-workload"
                 ).unwrap()]
@@ -766,7 +805,7 @@ mod tests {
         ));
         assert!(matches!(
             GridFirmCapacityEvaluation::new(
-                contract(),
+                contract_for(vec!["event-stratum".to_string()], 1, 0.60, 0.05),
                 vec![GridFirmCapacityTrial::unavailable(
                     "event-stratum", "cold-low-workload", "not requested", "reason-log"
                 ).unwrap()]
@@ -786,6 +825,19 @@ mod tests {
     }
 
     #[test]
+    fn an_unexpected_event_cannot_replace_a_scheduled_opportunity() {
+        let mut trials = passing_trials(5);
+        trials[4] = GridFirmCapacityTrial::evaluated(
+            response_report("unscheduled-event", true),
+            "hot-ambient-high-workload",
+        ).unwrap();
+        assert!(matches!(
+            GridFirmCapacityEvaluation::new(contract(), trials),
+            Err(GridFirmCapacityError::UnexpectedScheduledOpportunity(_))
+        ));
+    }
+
+    #[test]
     fn duplicate_event_ids_are_rejected() {
         let first = GridFirmCapacityTrial::evaluated(
             response_report("same-event", true),
@@ -798,20 +850,27 @@ mod tests {
             "availability-log",
         ).unwrap();
         assert!(matches!(
-            GridFirmCapacityEvaluation::new(contract(), vec![first, second]),
+            GridFirmCapacityEvaluation::new(
+                contract_for(
+                    vec!["same-event".to_string(), "other-event".to_string()],
+                    2,
+                    0.60,
+                    0.05,
+                ),
+                vec![first, second],
+            ),
             Err(GridFirmCapacityError::DuplicateEventId(_))
         ));
     }
 
     #[test]
     fn hoeding_lower_bound_can_fail_despite_a_high_empirical_pass_rate() {
-        let weak_contract = GridFirmCapacityContract::new(
-            identity(),
+        let weak_contract = contract_for(
             (0..20).map(|i| format!("event-{i}")).collect(),
             5,
             0.99,
             0.05,
-        ).unwrap();
+        );
         let input = GridFirmCapacityEvaluation::new(weak_contract, passing_trials(20)).unwrap();
         let report = evaluate_grid_firm_capacity(&input).unwrap();
         assert_eq!(report.empirical_success_probability, 1.0);
@@ -822,10 +881,16 @@ mod tests {
     #[test]
     fn input_order_does_not_change_the_firm_capacity_report() {
         let trials = passing_trials(100);
-        let first = GridFirmCapacityEvaluation::new(contract(), trials.clone()).unwrap();
+        let many_event_contract = contract_for(
+            (0..100).map(|i| format!("event-{i}")).collect(),
+            5,
+            0.60,
+            0.05,
+        );
+        let first = GridFirmCapacityEvaluation::new(many_event_contract.clone(), trials.clone()).unwrap();
         let mut reversed = trials;
         reversed.reverse();
-        let second = GridFirmCapacityEvaluation::new(contract(), reversed).unwrap();
+        let second = GridFirmCapacityEvaluation::new(many_event_contract, reversed).unwrap();
         assert_eq!(
             evaluate_grid_firm_capacity(&first).unwrap(),
             evaluate_grid_firm_capacity(&second).unwrap()
@@ -856,7 +921,7 @@ mod tests {
         bad.ramp_limit_pass = false;
         assert!(matches!(
             GridFirmCapacityEvaluation::new(
-                contract(),
+                contract_for(vec!["event-inconsistent".to_string()], 1, 0.60, 0.05),
                 vec![GridFirmCapacityTrial::evaluated(
                     bad, "hot-ambient-high-workload"
                 ).unwrap()]
