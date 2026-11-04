@@ -105,7 +105,7 @@ The dependency-free Rust core checks:
 - total-workflow crew-hour output rate and adaptation-burden accounting;
 - deterministic metrics and typed errors.
 
-The Rust source contains 27 tests covering these invariants. The fixture corpus contains 39 synthetic cases. The schemas, fixtures and tests are research contracts and synthetic controls, not field-transfer evidence.
+The Rust source contains 29 tests covering these invariants. The fixture corpus contains 42 synthetic cases. The schemas, fixtures and tests are research contracts and synthetic controls, not field-transfer evidence.
 
 It validates a supplied data contract, not field truth. It does not authenticate evidence, calculate metrology uncertainty, approve a robot, estimate causal effects, perform power analysis, verify the ODD, or establish deployment readiness.
 
