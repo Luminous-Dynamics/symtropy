@@ -563,6 +563,7 @@ fn compile_diagnostic_order(
             right.code,
             right.element_id.as_deref().unwrap_or(""),
             right.step_id.as_deref().unwrap_or(""),
+            right.node_id.as_deref().unwrap_or(""),
             right.detail.as_str(),
         ))
 }
