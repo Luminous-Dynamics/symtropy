@@ -13,7 +13,11 @@ fn fmt(value: f64) -> String {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "CSV row width must remain stable");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "CSV row width must remain stable"
+    );
     println!("{}", fields.join(","));
 }
 
@@ -49,10 +53,7 @@ fn summary_row(outcome: &RunOutcome) {
     ]);
 }
 
-fn tick_row(
-    outcome: &RunOutcome,
-    tick: &TickOutcome,
-) {
+fn tick_row(outcome: &RunOutcome, tick: &TickOutcome) {
     emit(vec![
         "tick".into(),
         outcome.scenario_id.clone(),
@@ -107,7 +108,10 @@ mod tests {
     #[test]
     fn benchmark_portfolio_covers_all_shock_and_policy_combinations() {
         let outcomes = run_reference_portfolio().unwrap();
-        assert_eq!(outcomes.len(), ShockKind::ALL.len() * InterventionPolicy::ALL.len());
+        assert_eq!(
+            outcomes.len(),
+            ShockKind::ALL.len() * InterventionPolicy::ALL.len()
+        );
     }
 
     #[test]
