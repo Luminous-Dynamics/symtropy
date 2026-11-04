@@ -147,9 +147,7 @@ pub enum EndpointAnnotation {
         reason: AnnotationGapReason,
     },
     /// The raw endpoint is retained, but canonical identity is unresolved.
-    Unresolved {
-        reason: AnnotationGapReason,
-    },
+    Unresolved { reason: AnnotationGapReason },
 }
 
 impl EndpointAnnotation {
@@ -182,8 +180,9 @@ impl EndpointAnnotation {
     #[must_use]
     pub fn is_proofread(&self) -> bool {
         match self {
-            Self::CellTyped { proofread, .. }
-            | Self::IdentifiedUnclassified { proofread, .. } => *proofread,
+            Self::CellTyped { proofread, .. } | Self::IdentifiedUnclassified { proofread, .. } => {
+                *proofread
+            }
             Self::Unresolved { .. } => false,
         }
     }
@@ -320,10 +319,16 @@ impl fmt::Display for EvidenceError {
                 write!(formatter, "edge coverage field {field} is empty")
             }
             Self::MalformedSha256 => {
-                write!(formatter, "archive SHA-256 must be exactly 64 hexadecimal characters")
+                write!(
+                    formatter,
+                    "archive SHA-256 must be exactly 64 hexadecimal characters"
+                )
             }
             Self::TooManyEdgeRecords => {
-                write!(formatter, "edge record count exceeds the configured safety limit")
+                write!(
+                    formatter,
+                    "edge record count exceeds the configured safety limit"
+                )
             }
             Self::InvalidEdgeRecordId => write!(formatter, "edge record ID is empty"),
             Self::DuplicateEdgeRecordId => write!(formatter, "duplicate edge record ID"),
@@ -335,7 +340,10 @@ impl fmt::Display for EvidenceError {
                 write!(formatter, "{side:?} endpoint annotation is malformed")
             }
             Self::ConflictingEndpointAnnotation => {
-                write!(formatter, "one raw endpoint has conflicting annotations in this snapshot")
+                write!(
+                    formatter,
+                    "one raw endpoint has conflicting annotations in this snapshot"
+                )
             }
             Self::InvalidLookupEndpoint => {
                 write!(formatter, "lookup endpoint IDs must be non-empty")
@@ -457,10 +465,7 @@ pub struct ConnectomeEvidence {
 
 impl ConnectomeEvidence {
     /// Validates source identity, edge rows and annotation consistency.
-    pub fn new(
-        manifest: SourceManifest,
-        edges: Vec<EdgeRecord>,
-    ) -> Result<Self, EvidenceError> {
+    pub fn new(manifest: SourceManifest, edges: Vec<EdgeRecord>) -> Result<Self, EvidenceError> {
         manifest.validate()?;
         if edges.len() > MAX_EDGE_RECORDS {
             return Err(EvidenceError::TooManyEdgeRecords);
@@ -654,20 +659,15 @@ impl ConnectomeEvidence {
                     scope: scope.clone(),
                 }
             }
-            EdgeCoverage::Partial { scope, reason } => {
-                EdgeLookup::UnknownUnderPartialCoverage {
-                    scope: scope.clone(),
-                    reason: reason.clone(),
-                }
-            }
+            EdgeCoverage::Partial { scope, reason } => EdgeLookup::UnknownUnderPartialCoverage {
+                scope: scope.clone(),
+                reason: reason.clone(),
+            },
         })
     }
 }
 
-fn update_endpoint_coverage(
-    counts: &mut EndpointCoverageCount,
-    annotation: &EndpointAnnotation,
-) {
+fn update_endpoint_coverage(counts: &mut EndpointCoverageCount, annotation: &EndpointAnnotation) {
     counts.total_occurrences += 1;
     if annotation.is_identified() {
         counts.identified += 1;
@@ -815,12 +815,7 @@ mod tests {
         .expect("valid unresolved endpoint")
     }
 
-    fn edge(
-        id: &str,
-        pre: EndpointEvidence,
-        post: EndpointEvidence,
-        weight: u64,
-    ) -> EdgeRecord {
+    fn edge(id: &str, pre: EndpointEvidence, post: EndpointEvidence, weight: u64) -> EdgeRecord {
         EdgeRecord::new(id, pre, post, weight).expect("valid synthetic edge")
     }
 
@@ -828,10 +823,15 @@ mod tests {
     fn sha256_parser_is_strict_and_canonicalizes_case() {
         let upper = "A".repeat(64);
         assert_eq!(
-            Sha256Digest::parse(&upper).expect("valid upper hex").as_str(),
+            Sha256Digest::parse(&upper)
+                .expect("valid upper hex")
+                .as_str(),
             "a".repeat(64)
         );
-        assert_eq!(Sha256Digest::parse("abc"), Err(EvidenceError::MalformedSha256));
+        assert_eq!(
+            Sha256Digest::parse("abc"),
+            Err(EvidenceError::MalformedSha256)
+        );
         assert_eq!(
             Sha256Digest::parse(&format!("{}g", "a".repeat(63))),
             Err(EvidenceError::MalformedSha256)
@@ -878,7 +878,9 @@ mod tests {
                     reason: AnnotationGapReason::RootIdentityUnavailable,
                 }
             ),
-            Err(EvidenceError::InvalidRawEndpointId(EndpointSide::Presynaptic))
+            Err(EvidenceError::InvalidRawEndpointId(
+                EndpointSide::Presynaptic
+            ))
         );
     }
 
@@ -889,8 +891,18 @@ mod tests {
             reason: "fixture".to_owned(),
         });
         let edges = vec![
-            edge("same", typed("a", "A", "sensory", true), typed("b", "B", "motor", true), 1),
-            edge("same", typed("c", "C", "sensory", true), typed("d", "D", "motor", true), 2),
+            edge(
+                "same",
+                typed("a", "A", "sensory", true),
+                typed("b", "B", "motor", true),
+                1,
+            ),
+            edge(
+                "same",
+                typed("c", "C", "sensory", true),
+                typed("d", "D", "motor", true),
+                2,
+            ),
         ];
         assert_eq!(
             ConnectomeEvidence::new(source, edges),
