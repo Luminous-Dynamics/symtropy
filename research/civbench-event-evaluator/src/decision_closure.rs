@@ -98,6 +98,60 @@ pub enum ServiceEffect {
     Indeterminate,
 }
 
+/// Owner expected to issue one reference in the decision-closure chain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ReceiptOwner {
+    /// Event-level alarm/incident evaluator.
+    EventEvaluator,
+    /// Evidence acquisition / value-of-information planner.
+    AcquisitionPlanner,
+    /// Human authority and disposition plane.
+    HumanAuthority,
+    /// Finite resource ledger.
+    ResourceLedger,
+    /// Work-order / repair workflow.
+    RepairWorkflow,
+    /// Independent verification system.
+    IndependentVerifier,
+    /// Single-arm service outcome source.
+    ServiceOutcome,
+    /// Paired control/treatment outcome evaluator.
+    PairedOutcome,
+}
+
+/// Owner-issued receipt identifier bound to this decision episode and paired block.
+///
+/// The adapter checks the declared binding and digest shape. It does not fetch
+/// receipt bytes, verify signatures, or authenticate the issuer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReceiptBinding {
+    /// Owner role for this receipt.
+    pub owner: ReceiptOwner,
+    /// Immutable source-issued identifier.
+    pub receipt_id: String,
+    /// Decision episode to which the receipt is bound.
+    pub decision_episode_id: String,
+    /// Matched experiment block to which the receipt is bound.
+    pub paired_block_id: String,
+    /// Declared SHA-256 digest of the receipt payload.
+    pub payload_digest: String,
+}
+
+/// Resource reservation lifecycle state reported by the existing ledger.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResourceSettlement {
+    /// No reservation was attempted.
+    NotAttempted,
+    /// Reservation was rejected; no resources were held.
+    Rejected,
+    /// Resources remain reserved for planned/active work.
+    Reserved,
+    /// Completed work settled the reservation.
+    Settled,
+    /// Cancelled work released its reservation.
+    Released,
+}
+
 /// Opaque owner references for one decision-to-service composition episode.
 ///
 /// The strings are immutable record identifiers produced by their owners.
@@ -116,8 +170,20 @@ pub struct DecisionClosureRecord {
     pub decision_changed_after_acquisition: Option<bool>,
     /// Human disposition from the existing authority plane.
     pub human_disposition: HumanDisposition,
+    /// Owner-issued authority receipt for the recorded disposition.
+    pub human_authority_receipt_id: Option<String>,
+    /// Opaque principal reference for the human decision-maker.
+    pub human_actor_ref: Option<String>,
     /// Feasibility/reservation result from the existing resource ledger.
     pub resource_feasibility: ResourceFeasibility,
+    /// Reservation/settlement state from the resource ledger.
+    pub resource_settlement: ResourceSettlement,
+    /// Principal reference for the person/team executing the work.
+    pub executor_identity_ref: Option<String>,
+    /// Principal reference for the independent verifier.
+    pub verifier_identity_ref: Option<String>,
+    /// Owner-typed bindings for every receipt referenced in this record.
+    pub receipt_bindings: Vec<ReceiptBinding>,
     /// Highest workflow stage supported by the source workflow.
     pub action_progress: ActionProgress,
     /// Resource reservation/settlement/release receipt, including a failed
@@ -142,6 +208,24 @@ pub struct DecisionClosureRecord {
 pub enum DecisionClosureError {
     /// A required stable identifier is empty or contains whitespace.
     InvalidReference(&'static str),
+    /// A human disposition lacks its owner-issued authority receipt.
+    MissingAuthorityReceipt,
+    /// A referenced receipt lacks an owner/context/digest binding.
+    MissingReceiptBinding,
+    /// A receipt binding does not match its reference or decision context.
+    ReceiptBindingMismatch,
+    /// A receipt ID is reused across owner roles.
+    DuplicateReceiptId,
+    /// A receipt payload digest is malformed or the zero sentinel.
+    InvalidReceiptDigest,
+    /// Work progress lacks an executor principal reference.
+    MissingExecutorIdentity,
+    /// Independent verification lacks a verifier principal reference.
+    MissingVerifierIdentity,
+    /// The verifier principal is the same as the executor principal.
+    VerifierNotIndependent,
+    /// Resource settlement is inconsistent with work progress.
+    ResourceSettlementMismatch,
     /// A decision-change result is present without an acquisition receipt.
     DecisionChangeWithoutAcquisition,
     /// Rejected/deferred recommendations were followed by action.
@@ -176,6 +260,33 @@ impl std::fmt::Display for DecisionClosureError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidReference(field) => write!(f, "invalid or empty reference: {field}"),
+            Self::MissingAuthorityReceipt => {
+                write!(f, "human disposition requires an authority receipt")
+            }
+            Self::MissingReceiptBinding => {
+                write!(f, "a referenced receipt is missing its owner/context binding")
+            }
+            Self::ReceiptBindingMismatch => {
+                write!(f, "receipt binding does not match its reference or decision context")
+            }
+            Self::DuplicateReceiptId => {
+                write!(f, "receipt ID is reused across distinct owner roles")
+            }
+            Self::InvalidReceiptDigest => {
+                write!(f, "receipt payload digest must be non-zero SHA-256 hexadecimal")
+            }
+            Self::MissingExecutorIdentity => {
+                write!(f, "work progress requires an executor identity reference")
+            }
+            Self::MissingVerifierIdentity => {
+                write!(f, "independent verification requires a verifier identity reference")
+            }
+            Self::VerifierNotIndependent => {
+                write!(f, "verifier identity must differ from executor identity")
+            }
+            Self::ResourceSettlementMismatch => {
+                write!(f, "resource settlement does not match work progress")
+            }
             Self::DecisionChangeWithoutAcquisition => {
                 write!(f, "decision-change result requires an acquisition receipt")
             }
