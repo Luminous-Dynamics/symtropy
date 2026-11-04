@@ -512,7 +512,11 @@ fn write_artifact_manifest(root: &Path, artifacts: &[ArtifactRecord]) -> Result<
     Ok((digest, record))
 }
 
-fn validate_result_directory(path: &Path, delegated_root: &Path) -> Result<PathBuf, String> {
+fn validate_result_directory(
+    path: &Path,
+    delegated_root: &Path,
+    cgroup2_mount_point: &Path,
+) -> Result<PathBuf, String> {
     let parent = path
         .parent()
         .ok_or_else(|| "result directory must have a parent".to_owned())?;
@@ -524,8 +528,11 @@ fn validate_result_directory(path: &Path, delegated_root: &Path) -> Result<PathB
         path.file_name()
             .ok_or_else(|| "result directory name is empty".to_owned())?,
     );
+    if candidate.starts_with(cgroup2_mount_point) {
+        return Err("result directory must be outside the cgroup2 filesystem".to_owned());
+    }
     if candidate.starts_with(delegated_root) || delegated_root.starts_with(&candidate) {
-        return Err("result directory must be outside the delegated cgroup subtree".to_owned());
+        return Err("result directory must be outside the delegated cgroup subtree and its ancestors".to_owned());
     }
     if fs::symlink_metadata(&candidate).is_ok() {
         return Err("result directory already exists; run bundles are immutable and unique".to_owned());
@@ -660,7 +667,11 @@ pub fn run_cgroup_v2_process_tree(request: &CgroupV2RunRequest) -> Result<Cgroup
         return Err("timeout must be positive".to_owned());
     }
     let (delegated_root, mount) = validate_delegated_root(&request.delegated_root)?;
-    let result_root = validate_result_directory(&request.result_directory, &delegated_root)?;
+    let result_root = validate_result_directory(
+        &request.result_directory,
+        &delegated_root,
+        &mount.mount_point,
+    )?;
     let cgroup_path = create_operation_cgroup(&delegated_root, &request.run_id)?;
     let _empty_cgroup_guard = EmptyCgroupGuard {
         path: cgroup_path.clone(),
@@ -740,6 +751,7 @@ pub fn run_cgroup_v2_process_tree(request: &CgroupV2RunRequest) -> Result<Cgroup
         resource_csv.as_bytes(),
     )?;
 
+    let resource_sha256 = resource_artifact.sha256.clone();
     let mut artifacts = vec![
         command_artifact,
         environment_artifact,
@@ -805,7 +817,6 @@ pub fn run_cgroup_v2_process_tree(request: &CgroupV2RunRequest) -> Result<Cgroup
     let stderr = fs::read(&stderr_path).map_err(|error| format!("cannot read captured stderr: {error}"))?;
     let stdout_sha256 = sha256_hex(&stdout)?;
     let stderr_sha256 = sha256_hex(&stderr)?;
-    let resource_sha256 = resource_artifact.sha256;
     let _manifest = artifact_manifest;
     let values = vec![
         CGROUP_V2_RUN_SCHEMA.to_owned(),
