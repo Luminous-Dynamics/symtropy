@@ -1,0 +1,153 @@
+{
+  "schema_version": "construction-accepted-output-profile-v0.1",
+  "profile_id": "masonry-wall-accepted-output-v0.1",
+  "version": "0.1.0",
+  "status": "proposed",
+  "task_family": "robotic_masonry",
+  "source_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3629",
+  "generic_output_contract": "https://github.com/Luminous-Dynamics/symtropy/issues/3605",
+  "functional_unit": {
+    "unit_class": "accepted_wall_segment",
+    "unit_label": "finally accepted masonry wall segment",
+    "unit_symbol": "segment",
+    "definition": "A declared wall segment or separately measured square metre of wall which satisfies the frozen project-specific geometry, material, bond/pattern, opening/interface and required structural/inspection acceptance predicate."
+  },
+  "secondary_machine_metrics": [
+    {
+      "metric": "blocks_placed_per_robot_hour",
+      "evidence_status": "operational_machine_metric_not_accepted_output",
+      "required_strata": [
+        "block_type",
+        "block_dimensions",
+        "wall_assembly",
+        "bond_pattern"
+      ]
+    },
+    {
+      "metric": "wall_square_metres_per_robot_hour",
+      "evidence_status": "operational_machine_metric_not_accepted_output",
+      "required_strata": [
+        "block_type",
+        "wall_thickness",
+        "wall_geometry",
+        "opening_and_corner_scope"
+      ]
+    }
+  ],
+  "acceptance_predicate": {
+    "must_bind": [
+      "approved_design_revision",
+      "wall_segment_id",
+      "site_epoch",
+      "target_frame",
+      "block_identity_and_dimensions",
+      "material_batch_and_substitution_status",
+      "bond_pattern_and_course",
+      "opening_corner_lintel_reinforcement_and_tie_details",
+      "adhesive_or_mortar_identity_batch_and_application",
+      "robot_serial_and_configuration",
+      "telehandler_identity",
+      "independent_as_built_geometry",
+      "uncertainty_and_decision_rule",
+      "project_required_material_or_structural_tests",
+      "inspection_authority"
+    ],
+    "critical_feature_inspection": "complete_or_separately_justified_preregistered_sampling_method",
+    "disqualifying_conditions": [
+      "wrong_design_revision",
+      "wrong_block_type_or_substitution",
+      "critical_omission",
+      "wrong_bond_or_pattern",
+      "out_of_tolerance_line_level_or_plumb",
+      "missing_required_reinforcement_or_lintel",
+      "open_critical_defect",
+      "uncertainty_not_fit_for_decision",
+      "missing_required_acceptance_test"
+    ],
+    "threshold_policy": "all numeric geometry, bond, joint, material and structural criteria come from the frozen project specification and competent design/inspection authority",
+    "partial_acceptance": "only at a predeclared subsegment/feature boundary; never round partial work up to a whole accepted wall unit"
+  },
+  "vendor_reference_claims": [
+    {
+      "product": "FBR Hadrian H04",
+      "claim_type": "factory_acceptance_test",
+      "source": "https://investors.fbr.com.au/announcements/xzoJwm-fbr-annual-report-2026",
+      "reported_test_structure_blocks": 751,
+      "reported_effective_blocks_per_hour_lower_bound": 285,
+      "reported_wall_square_metres_per_hour_approx": 36,
+      "block_system": "large-format Wienerberger Porotherm",
+      "status": "vendor_reported_factory_acceptance_not_independent_field_comparison"
+    },
+    {
+      "product": "FBR Hadrian",
+      "claim_type": "manufacturer_specification",
+      "source": "https://www.fbr.com.au/view/hadrian",
+      "maximum_declared_blocks_per_hour": 360,
+      "maximum_block_dimensions_mm": [
+        600,
+        400,
+        300
+      ],
+      "maximum_block_mass_kg": 45,
+      "declared_boom_reach_m": 32,
+      "declared_operating_crew": 2,
+      "status": "vendor_specification_not_matched_independent_measurement"
+    },
+    {
+      "product": "FBR Hadrian",
+      "claim_type": "manufacturer_faq_claim",
+      "source": "https://www.fbr.com.au/view/faqs/faqs",
+      "blocks_per_hour_lower_bound": 300,
+      "wall_square_metres_per_hour_lower_bound": 70,
+      "condition": "largest-format blocks",
+      "status": "vendor_marketing_claim_distinct_from_H04_Porotherm_FAT"
+    }
+  ],
+  "workflow_accounting": {
+    "robot_hours_separate": true,
+    "direct_crew_hours_separate": true,
+    "total_workflow_crew_hours_required": true,
+    "required_categories": [
+      "BIM_model_preparation",
+      "design_trade_coordination",
+      "block_procurement_and_staging",
+      "telehandler_material_handling",
+      "robot_setup_calibration_stationing",
+      "operator_spotter_and_supervision",
+      "adhesive_mortar_mixing_and_application",
+      "cutting_and_special_units",
+      "lintel_rebar_tie_and_penetration_work",
+      "execution",
+      "QA_inspection_and_testing",
+      "rework_removal_and_reinstatement",
+      "weather_waiting_maintenance_and_recovery",
+      "evidence_closeout"
+    ],
+    "unknown_time_must_remain_explicit": true
+  },
+  "matched_baseline": {
+    "required_for_comparative_productivity_claim": true,
+    "preferred_designs": [
+      "randomized_work_package_allocation",
+      "balanced_within_site_crossover"
+    ],
+    "matching_fields": [
+      "wall_geometry",
+      "design_revision",
+      "block_and_material_system",
+      "bond_pattern",
+      "acceptance_predicate",
+      "inspection_scope",
+      "trade_scope",
+      "site_conditions"
+    ],
+    "unmatched_case_study_claim_limit": "descriptive_association_only_no_causal_robot_effect"
+  },
+  "safety_separation": {
+    "external_qualification_owner": "construction_robot_physical_safety_protocol",
+    "safety_is_non_compensable": true,
+    "productivity_may_not_change_safety_verdict": true,
+    "composite_safety_productivity_score_prohibited": true
+  },
+  "execution_status": "not_executed"
+}
