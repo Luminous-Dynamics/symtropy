@@ -29,6 +29,7 @@ mod service_contract;
 mod strategy_benchmark;
 mod trace_validation;
 mod workload_schedule;
+mod workload_flexibility_trajectory;
 
 pub use batch_duty_cycle::{
     BatchBoundDutyCycle, BatchBoundDutyCycleResult, BatchDutyCycleError,
@@ -116,6 +117,12 @@ pub use trace_validation::{
     PowerTraceSample, PowerTraceValidationReport, TraceClockType, TraceSite, TraceTimebase,
     TraceWorkloadSession,
 };
+pub use workload_flexibility_trajectory::{
+    WorkloadFlexibilitySlotReceipt, WorkloadFlexibilityTrajectoryError,
+    WorkloadFlexibilityTrajectoryIdentity, WorkloadFlexibilityTrajectoryReport,
+    compare_workload_flexibility_schedules,
+};
+
 pub use workload_schedule::{
     WorkloadAllocation, WorkloadJobContract, WorkloadPreemptionPolicy, WorkloadSchedule,
     WorkloadScheduleError, WorkloadScheduleSlot, WorkloadScheduleTolerance,
