@@ -4,7 +4,7 @@
 //! CIVDYN-SWF-001 exact allocation and rhetoric-robustness sweep.
 
 use civdyn_welfare_allocation::{
-    allocate, pareto_frontier, AllocationPolicy, AllocationProblem, Recipient,
+    AllocationPolicy, AllocationProblem, Recipient, allocate, pareto_frontier,
 };
 
 fn problem() -> AllocationProblem {
@@ -52,7 +52,12 @@ fn emit(fields: Vec<String>) {
     println!("{}", fields.join(","));
 }
 
-fn emit_summary(record_type: &str, label: &str, result: &civdyn_welfare_allocation::AllocationResult, frontier_size: usize) {
+fn emit_summary(
+    record_type: &str,
+    label: &str,
+    result: &civdyn_welfare_allocation::AllocationResult,
+    frontier_size: usize,
+) {
     emit(vec![
         record_type.into(),
         label.into(),
@@ -73,7 +78,11 @@ fn emit_summary(record_type: &str, label: &str, result: &civdyn_welfare_allocati
     ]);
 }
 
-fn emit_allocations(label: &str, problem: &AllocationProblem, result: &civdyn_welfare_allocation::AllocationResult) {
+fn emit_allocations(
+    label: &str,
+    problem: &AllocationProblem,
+    result: &civdyn_welfare_allocation::AllocationResult,
+) {
     for (recipient, amount) in problem.recipients.iter().zip(&result.allocations) {
         let index = problem
             .recipients
@@ -107,7 +116,8 @@ fn main() {
     );
 
     let base = problem();
-    base.validate().expect("synthetic allocation fixture must validate");
+    base.validate()
+        .expect("synthetic allocation fixture must validate");
     let frontier = pareto_frontier(&base).expect("exact frontier must enumerate");
     let frontier_size = frontier.len();
 
@@ -118,12 +128,7 @@ fn main() {
     }
 
     for (index, point) in frontier.iter().enumerate() {
-        emit_summary(
-            "pareto",
-            &format!("frontier_{index}"),
-            point,
-            frontier_size,
-        );
+        emit_summary("pareto", &format!("frontier_{index}"), point, frontier_size);
     }
 
     let mut manipulated = problem();
@@ -132,8 +137,11 @@ fn main() {
     let verified_base = allocate(&base, AllocationPolicy::VerifiedUtilitarian).unwrap();
     let verified_after_rhetoric =
         allocate(&manipulated, AllocationPolicy::VerifiedUtilitarian).unwrap();
-    let susceptible =
-        allocate(&manipulated, AllocationPolicy::PersuasionSusceptibleUtilitarian).unwrap();
+    let susceptible = allocate(
+        &manipulated,
+        AllocationPolicy::PersuasionSusceptibleUtilitarian,
+    )
+    .unwrap();
 
     let invariant = verified_base.allocations == verified_after_rhetoric.allocations;
     emit(vec![
@@ -150,7 +158,9 @@ fn main() {
         fmt(verified_after_rhetoric.minimum_coverage),
         fmt(verified_after_rhetoric.gini_coverage),
         fmt(verified_after_rhetoric.coverage_variance),
-        verified_after_rhetoric.essential_floor_violations.to_string(),
+        verified_after_rhetoric
+            .essential_floor_violations
+            .to_string(),
         frontier_size.to_string(),
         invariant.to_string(),
     ]);
@@ -184,8 +194,11 @@ mod tests {
         manipulated.recipients[0].asserted_return_per_unit = 50.0;
         manipulated.recipients[1].asserted_return_per_unit = 0.1;
         let verified = allocate(&manipulated, AllocationPolicy::VerifiedUtilitarian).unwrap();
-        let susceptible =
-            allocate(&manipulated, AllocationPolicy::PersuasionSusceptibleUtilitarian).unwrap();
+        let susceptible = allocate(
+            &manipulated,
+            AllocationPolicy::PersuasionSusceptibleUtilitarian,
+        )
+        .unwrap();
         assert_ne!(verified.allocations, susceptible.allocations);
     }
 
