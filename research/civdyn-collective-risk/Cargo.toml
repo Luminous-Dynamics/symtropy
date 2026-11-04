@@ -1,0 +1,16 @@
+[package]
+name = "civdyn-collective-risk"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Exact reference task and best-response oracle for collective-risk benchmarks"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "collective-risk-sweep"
+path = "src/bin/collective_risk_sweep.rs"
+
+[dependencies]
