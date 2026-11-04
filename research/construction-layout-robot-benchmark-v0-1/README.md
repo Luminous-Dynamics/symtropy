@@ -67,3 +67,21 @@ No universal robot ranking, no cross-task composite, no use of a vendor's own po
 ## Industry baseline
 
 See [vendor-baseline-matrix.md](vendor-baseline-matrix.md) for a task-class-separated comparison of HP SitePrint, Dusty FieldPrinter 2, CivDot, CivDot+ and CivDot Mini, including vendor caveats, matched tracks, and standards scope.
+
+## End-to-end workflow benchmark and pre-print input integrity
+
+A 2025 peer-reviewed multi-trade construction layout case study reported substantial gains for the studied project (including a reported 68% reduction in total labour hours and 18% fewer days, and rework falling from an estimated 6.42% to 0.25%). These are case-study results, not universal SOTA or an independently controlled multi-site comparison. The paper also documents an important counterexample: about one hour of robotic printing was placed incorrectly because a drywall CAD file used the wrong coordinate system; the model was realigned and the work reprinted. It also describes approximately five working days per floor for VDC file preparation and significant additional coordination effort.
+
+Source: Kam et al., *Comparison of dusty robotics and traditional layout methods*, Construction Robotics (2025-09-15): https://link.springer.com/article/10.1007/s41693-025-00163-z
+
+This changes the fair benchmark denominator. Measure total crew-hours and elapsed time per accepted feature / accepted printed metre, including source model preparation, multi-trade federation and revision coordination, coordinate/frame validation, survey control setup, exporter configuration, robot setup, operator/spotter, print time, QA, rework and recovery. Report robot-only print throughput separately, but never let it stand in for accepted project output.
+
+The pre-print input-integrity gate is now tracked in [#3561 / PR #3564](https://github.com/Luminous-Dynamics/symtropy/pull/3564). It consumes #1607's survey and transform references and checks exact source/export revisions, frame bindings, independent checkpoint evidence and feature inventory before a layout manifest is admitted. It does not calculate transforms or establish survey truth.
+
+This profile therefore treats three outcomes as separate:
+1. correct input admission (model, revision, frame, transform, inventory);
+2. physical output quality under the common independent referee;
+3. total-workflow productivity per accepted output.
+
+A robot can perform well on (2) for a wrong task input and still produce a failed project outcome. None of these three dimensions substitutes for the others.
+
