@@ -2182,6 +2182,100 @@ mod tests {
         }
     }
 
+    fn coverage_map_for(
+        assessment: &SurveyCoverageAssessmentV1,
+    ) -> SurveyControlCoverageMapV1 {
+        let cells = (0..assessment.total_cell_count)
+            .map(|index| SurveyCoverageCellV1 {
+                cell_id: format!("support-cell-{index:06}"),
+                area_m2: assessment.footprint_area_m2 / assessment.total_cell_count as f64,
+                critical: index < assessment.critical_cell_count,
+                disposition: SurveyCoverageCellDispositionV1::Supported,
+                support_gap_m: Some(assessment.maximum_support_gap_m),
+                distance_to_control_m: Some(assessment.maximum_support_distance_m),
+                local_control_density_per_m2: Some(
+                    assessment.minimum_local_control_density_per_m2,
+                ),
+                local_u95_m: Some(assessment.maximum_local_u95_m),
+            })
+            .collect();
+        SurveyControlCoverageMapV1 {
+            schema_version: SURVEY_CONTROL_COVERAGE_MAP_SCHEMA_VERSION,
+            task_footprint_sha256: assessment.task_footprint_artifact.sha256.clone(),
+            control_domain_sha256: assessment.control_domain_artifact.sha256.clone(),
+            worksite_epoch_sha256: assessment.worksite_epoch_sha256.clone(),
+            target_frame_id: assessment.target_frame_id.clone(),
+            support_domain_method_id: assessment.support_domain_method_id.clone(),
+            uncertainty_method_id: assessment.uncertainty_method_id.clone(),
+            cells,
+        }
+    }
+
+    #[test]
+    fn per_cell_map_recomputes_coverage_area_and_local_extrema() {
+        let assessment = coverage_assessment();
+        let map = coverage_map_for(&assessment);
+        let summary = map.summarize().expect("support map summary");
+        assert_eq!(summary.total_cell_count, 100);
+        assert_eq!(summary.supported_cell_count, 100);
+        assert_eq!(summary.unsupported_cell_count, 0);
+        assert_eq!(summary.unmeasured_cell_count, 0);
+        assert!((summary.footprint_area_m2 - 100.0).abs() < 1.0e-9);
+        assert!((summary.minimum_local_control_density_per_m2 - 0.08).abs() < 1.0e-12);
+        assert!((summary.maximum_local_u95_m - 0.004).abs() < 1.0e-12);
+        verify_coverage_map_summary(&assessment, &map)
+            .expect("assessment summary matches source support cells");
+    }
+
+    #[test]
+    fn support_map_does_not_allow_inferred_metrics_on_unmeasured_cells() {
+        let assessment = coverage_assessment();
+        let mut map = coverage_map_for(&assessment);
+        map.cells[0].disposition = SurveyCoverageCellDispositionV1::Unmeasured;
+        assert_eq!(
+            map.summarize(),
+            Err(SurveyContractErrorV1::CoverageMapMismatch(
+                "unmeasured_cell_has_inferred_metrics"
+            ))
+        );
+    }
+
+    #[test]
+    fn support_map_bytes_are_content_addressed_and_verified() {
+        let assessment = coverage_assessment();
+        let map = coverage_map_for(&assessment);
+        let (bytes, artifact) = map
+            .encode_with_digest("coverage-map", "survey-test://coverage-map")
+            .expect("valid support map");
+        let verified = VerifiedSurveyControlCoverageMapV1::decode_verified_json(
+            &bytes,
+            artifact.clone(),
+        )
+        .expect("support-map bytes verify");
+        assert_eq!(verified.coverage_map, map);
+        assert_eq!(verified.source_artifact(), &artifact);
+
+        let mut changed = bytes;
+        changed.push(b' ');
+        assert_eq!(
+            VerifiedSurveyControlCoverageMapV1::decode_verified_json(&changed, artifact),
+            Err(SurveyContractErrorV1::PayloadDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn assessment_summary_cannot_overstate_per_cell_support() {
+        let mut assessment = coverage_assessment();
+        let map = coverage_map_for(&assessment);
+        assessment.maximum_support_gap_m = 0.1;
+        assert_eq!(
+            verify_coverage_map_summary(&assessment, &map),
+            Err(SurveyContractErrorV1::CoverageMapMismatch(
+                "maximum_support_gap_m"
+            ))
+        );
+    }
+
     #[test]
     fn coverage_assessment_reconciles_footprint_and_cells() {
         assert!(coverage_assessment().validate().is_ok());
