@@ -121,6 +121,12 @@ The dedicated GitHub Actions workflow checks Rust 1.96 formatting, tests, metada
 
 This core checks structural reference bindings only. It does not authenticate actors, verify receipt signatures or authority, compute hashes, evaluate construction tolerances, coordinate real resources, or grant motion/safety permission. Resource-reservation evaluation and protocol adapters remain later stages.
 
+## Synthetic differential adapters
+
+The `adapters` module contains two deliberately different payload shapes that normalize to one canonical construction work contract. Vendor B uses milligrams and micrometres; the mapping converts only exact integer multiples to canonical grams and millimetres. Missing design/frame/epoch/tool fields, unsupported task families and lossy unit conversions are typed rejections. The differential tests compare full normalized task equality, then mutate frame, epoch and output class as negative controls.
+
+These are synthetic test adapters in one Rust crate, not two independently authored vendor implementations and not VDA 5050 / ISO 21423 implementations. They establish a local semantic test seam only. The next conformance step is to add an adapter implementation independently maintained outside this module and compare against an external finite-state/schema oracle.
+
 ## Shared-resource reservation evaluator
 
 The dependency-free `resources` module adds a deterministic calendar for exclusive and capacity-limited resources. It uses half-open time intervals, a declared common clock domain, explicit expiry, owner-bound release and site-epoch invalidation. It rejects overlapping reservations that exceed capacity and preserves released/expired/invalidated IDs so an old reservation cannot be resurrected by reusing its identifier.
