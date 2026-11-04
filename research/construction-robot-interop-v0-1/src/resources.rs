@@ -492,7 +492,7 @@ mod tests {
         first.clock_uncertainty_ms = 5;
         book.reserve(first, 50).expect("first reservation");
 
-        let mut touching = request("r2", "robot-2", 210, 300, 330, 1);
+        let mut touching = request("r2", "robot-2", 209, 300, 330, 1);
         touching.clock_uncertainty_ms = 5;
         assert_eq!(
             book.reserve(touching, 50),
