@@ -128,3 +128,5 @@ A straight-crossing V0.1 actor may use the narrower state command only when fixe
 
 
 The replay-harness integration target is part of the required CI contract: a passing library-only test command does not qualify the receipt/pose integration tests.
+
+The exact-head acceptance record must name the replay-tape domain version, command-schema version, source commit, CI run ID, and all three platform conclusions; a workflow conclusion alone is not an artifact identity.
