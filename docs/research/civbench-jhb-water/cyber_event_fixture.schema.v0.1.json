@@ -316,7 +316,7 @@
         "timely_detection_event_ids",
         "late_associated_event_ids",
         "missed_confirmed_event_ids",
-        "unscorable_alarm_ids",
+        "unscorable_episode_ids",
         "false_alarm_episode_ids",
         "notes"
       ],
@@ -384,12 +384,6 @@
             "type": "string"
           }
         },
-        "unscorable_alarm_ids": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "false_alarm_episode_ids": {
           "type": "array",
           "items": {
@@ -397,6 +391,12 @@
           }
         },
         "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unscorable_episode_ids": {
           "type": "array",
           "items": {
             "type": "string"
