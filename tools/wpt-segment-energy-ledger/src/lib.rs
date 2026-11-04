@@ -184,7 +184,9 @@ pub struct RouteReport {
     pub total_segment_spc_input_wh: f64,
     pub total_segment_evpc_output_wh: f64,
     pub total_idle_grid_input_wh: f64,
+    pub total_idle_grid_input_bound_wh: f64,
     pub total_idle_roadway_inverter_dc_input_wh: f64,
+    pub total_idle_roadway_inverter_dc_input_bound_wh: f64,
     pub total_bess_dc_output_wh: Option<f64>,
     pub total_bess_dc_output_bound_wh: Option<f64>,
     pub standard_route_segment_efficiency: EfficiencyInterval,
@@ -335,6 +337,7 @@ impl RouteLedger {
         let mut total_spc_bound = 0.0;
         let mut total_evpc_bound = 0.0;
         let mut total_idle_grid = 0.0;
+        let mut total_idle_grid_bound = 0.0;
         let mut total_bess = 0.0;
         let mut total_bess_bound = 0.0;
         let mut total_bess_present = false;
@@ -342,6 +345,7 @@ impl RouteLedger {
         let mut total_inverter = 0.0;
         let mut total_inverter_bound = 0.0;
         let mut total_idle_inverter = 0.0;
+        let mut total_idle_inverter_bound = 0.0;
         let mut total_vehicle_dc = 0.0;
         let mut total_vehicle_dc_bound = 0.0;
         let mut total_grid = 0.0;
@@ -407,7 +411,6 @@ impl RouteLedger {
                         total_battery = checked_add(total_battery, quantity.energy_wh)?;
                         total_battery_bound = checked_add(total_battery_bound, quantity.deterministic_absolute_bound_wh)?;
                     }
-                    EnergyBoundary::BessDcOutput => {}
                 }
             }
 
@@ -448,9 +451,17 @@ impl RouteLedger {
                 total_grid = checked_add(total_grid, grid.energy_wh)?;
                 total_grid_bound = checked_add(total_grid_bound, grid.deterministic_absolute_bound_wh)?;
                 total_idle_grid = checked_add(total_idle_grid, grid.energy_wh)?;
+                total_idle_grid_bound = checked_add(
+                    total_idle_grid_bound,
+                    grid.deterministic_absolute_bound_wh,
+                )?;
             }
             if let Some(inverter) = map.get(&EnergyBoundary::RoadwayInverterDcInput) {
                 total_idle_inverter = checked_add(total_idle_inverter, inverter.energy_wh)?;
+                total_idle_inverter_bound = checked_add(
+                    total_idle_inverter_bound,
+                    inverter.deterministic_absolute_bound_wh,
+                )?;
             }
             if let Some(bess) = map.get(&EnergyBoundary::BessDcOutput) {
                 total_bess = checked_add(total_bess, bess.energy_wh)?;
@@ -514,7 +525,9 @@ impl RouteLedger {
             total_segment_spc_input_wh: total_spc,
             total_segment_evpc_output_wh: total_evpc,
             total_idle_grid_input_wh: total_idle_grid,
+            total_idle_grid_input_bound_wh: total_idle_grid_bound,
             total_idle_roadway_inverter_dc_input_wh: total_idle_inverter,
+            total_idle_roadway_inverter_dc_input_bound_wh: total_idle_inverter_bound,
             total_bess_dc_output_wh: total_bess_present.then_some(total_bess),
             total_bess_dc_output_bound_wh: total_bess_present.then_some(total_bess_bound),
             standard_route_segment_efficiency: standard_route,
