@@ -521,14 +521,15 @@ fn validate_result_directory(
         .parent()
         .filter(|value| !value.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
-    fs::create_dir_all(parent)
-        .map_err(|error| format!("cannot create result parent {}: {error}", parent.display()))?;
+    // The operator must provide an existing results parent. Do not create directories
+    // before proving they are outside cgroup2 and the delegated subtree.
     let canonical_parent = fs::canonicalize(parent)
         .map_err(|error| format!("cannot resolve result parent: {error}"))?;
-    let candidate = canonical_parent.join(
-        path.file_name()
-            .ok_or_else(|| "result directory name is empty".to_owned())?,
-    );
+    let file_name = path
+        .file_name()
+        .filter(|name| !name.is_empty() && *name != "." && *name != "..")
+        .ok_or_else(|| "result directory must have a normal final path component".to_owned())?;
+    let candidate = canonical_parent.join(file_name);
     if candidate.starts_with(cgroup2_mount_point) {
         return Err("result directory must be outside the cgroup2 filesystem".to_owned());
     }
