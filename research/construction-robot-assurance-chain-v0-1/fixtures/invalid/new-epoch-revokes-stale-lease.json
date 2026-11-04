@@ -1,0 +1,205 @@
+{
+  "schema_version": "construction-robot-assurance-chain/0.1",
+  "task_binding": {
+    "project_id": "synthetic-project",
+    "site_id": "synthetic-site",
+    "work_package_revision": "wp-r1",
+    "task_scope": "floor-1-layout",
+    "work_zone_id": "zone-a",
+    "robot_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "initial_worksite_epoch_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "timebase_id": "synthetic-boot-001"
+  },
+  "scenario_id": "new-epoch-revokes-stale-lease",
+  "stages": [
+    {
+      "stage_id": "input",
+      "stage_kind": "layout_input_admission",
+      "sequence": 0,
+      "predecessor_stage_ids": [],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "source-export",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "role": "model-export"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "input-admission",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "admissible_for_named_layout_input",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "observation",
+      "stage_kind": "observation_evaluation",
+      "sequence": 1,
+      "predecessor_stage_ids": [
+        "input"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "input-admission",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "observation-clear",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "verified_clear",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "epoch-1",
+      "stage_kind": "worksite_epoch_transition",
+      "sequence": 2,
+      "predecessor_stage_ids": [
+        "observation"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "observation-clear",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "epoch-rev1",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "requalification_required",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "qualification-1",
+      "stage_kind": "qualification_lease",
+      "sequence": 3,
+      "predecessor_stage_ids": [
+        "epoch-1"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "epoch-rev1",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "lease-rev1",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "active",
+      "expected_reason_codes": [],
+      "qualification_generation": 1
+    },
+    {
+      "stage_id": "epoch-2",
+      "stage_kind": "worksite_epoch_transition",
+      "sequence": 4,
+      "predecessor_stage_ids": [
+        "qualification-1"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "lease-rev1",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "epoch-rev2",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "requalification_required",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "stale-command",
+      "stage_kind": "command_authorization",
+      "sequence": 5,
+      "predecessor_stage_ids": [
+        "epoch-2"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "lease-rev1",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "role": "stage-output"
+        },
+        {
+          "artifact_id": "observation-clear",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "role": "command-evidence"
+        },
+        {
+          "artifact_id": "epoch-rev2",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "role": "command-evidence"
+        }
+      ],
+      "produced_artifacts": [],
+      "expected_disposition": "rejected",
+      "expected_reason_codes": [
+        "qualification_lease_invalid_at_command",
+        "qualification_predates_current_epoch"
+      ]
+    }
+  ],
+  "command_attempts": [
+    {
+      "command_id": "command-using-old-lease",
+      "sequence": 2,
+      "epoch_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "task_scope": "floor-1-layout",
+      "timebase_id": "synthetic-boot-001",
+      "qualification_generation": 1,
+      "lease_valid_at_command": false,
+      "expected_authorized": false,
+      "expected_reason_codes": [
+        "qualification_lease_invalid_at_command",
+        "qualification_predates_current_epoch"
+      ],
+      "command_stage_id": "stale-command",
+      "observation_stage_id": "observation",
+      "epoch_stage_id": "epoch-2",
+      "qualification_stage_id": "qualification-1"
+    }
+  ],
+  "claim_expectations": [
+    {
+      "claim_id": "field-task-claim",
+      "claim_kind": "field_task_quality",
+      "evidence_origin": "bench_measured",
+      "intended_scope": "field",
+      "expected_decision": "not_evaluated",
+      "supporting_stage_ids": [
+        "input",
+        "observation",
+        "epoch-1",
+        "qualification-1",
+        "epoch-2",
+        "stale-command"
+      ]
+    }
+  ],
+  "statistical_units": []
+}
