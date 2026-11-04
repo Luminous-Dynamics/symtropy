@@ -143,3 +143,44 @@ The graph is currently bipartite: primitive finite exogenous variables feed one 
 - Zero duplicate/omitted variable values or zero-weight states admitted.
 - Zero receipt replay accepted against a different manifest or intervention.
 - Exact declaration-order-independent manifest digest and receipts.
+
+
+## Exact finite temporal dependence reference (ROAD-TEMPORAL-DEPENDENCE-001 #3601)
+
+The crate adds a second analytic reference that makes **process innovations** distinct from **process states**.
+
+### V0.1 finite transition law
+
+- Initial state X0 in {-1,+1}, equiprobable.
+- Transition innovation F1 in {-1,+1}, with probability 3/4 for +1 and 1/4 for -1.
+- The initial state and transition innovation are independently specified and the complete path table is checked against that exact factorization.
+- State equation: X1 = X0 × F1.
+- Two time indices are explicit; the innovation is process/time indexed and has an evidence-bound cross-world coupling disposition.
+- Interventions add a declared offset to the next-state structural descendant. They do not replace the shared initial-state or innovation values.
+
+Exact law:
+- (-1,-1) mass 1
+- (-1,+1) mass 3
+- (+1,-1) mass 1
+- (+1,+1) mass 3
+
+The exact mean at both times is zero, variance at both times is one, and lag-one covariance/correlation is 1/2.
+
+### Same-marginals / wrong-temporal-law negative control
+
+A second model replaces the next state with an independent, equiprobable per-tick innovation. It has exactly the same initial and next-state marginals and variances, but lag-one covariance zero. The temporal test suite catches this; marginal-only evaluation would not.
+
+### Branch intervention and receipts
+
+The test applies a +2 next-state intervention in one branch:
+- both branches retain the same initial-state and transition-innovation atoms where the manifest declares them shared;
+- the pre-intervention transition output remains identical;
+- the intervention-dependent next state changes by exactly +2;
+- the receipt binds process manifest digest, branch, time indices, input state/innovation, transition result, intervention offset and output state;
+- replay verification recomputes the receipt against the exact manifest and branch intervention.
+
+Unknown or branch-mismatched innovation coupling is rejected rather than silently treated as shared.
+
+### V0.1 claim boundary
+
+This is a finite binary transition oracle. It is not an empirical reaction-time model, measured human-driving process, continuous AR(1)/OU sampler, hidden Markov model, fitted spatiotemporal field or general temporal SCM. The next stages are multi-step discrete Markov processes, AR/OU discretization contracts, regime switching, renewal / duration models and empirical temporal dependence calibration.
