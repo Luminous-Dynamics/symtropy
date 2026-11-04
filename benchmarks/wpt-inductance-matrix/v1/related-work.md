@@ -49,6 +49,38 @@ The reported fabricated 335 × 335 mm aperture has a 9-position scan and a three
 
 **Engineering implication:** keep aggregate efficiency, per-receiver efficiency, delivered energy, and fairness separate. A matrix-valid model should be followed by a network-level performance test.
 
+### End-to-end MIMO DC-to-DC optimization is already a 2026 SOTA baseline
+
+Lee et al., **An End-to-End DC-to-DC Efficiency Optimization and Design Analysis for MIMO Wireless Power Transfer Systems**, IEEE Transactions on Microwave Theory and Techniques 74(9), 8545–8562, published 1 September 2026. DOI: https://doi.org/10.1109/TMTT.2026.3714844.
+
+The authors use measurement-based power-amplifier and rectifier models in a semidefinite-programming formulation that maximizes DC-to-DC efficiency under a transmit DC power budget. Successive convex approximation recovers a feasible rank-one excitation vector with a reported recovery ratio above 97% across tested conditions. The 5.64 GHz simulation uses a 12×12 TX array and 8×8 receive rectenna array at 0.5 m; it reports 31% and 48% higher end-to-end efficiency than RF-to-DC and RF-to-RF optimization formulations. A fabricated 16×16 TX array and 5×5 rectenna provide experimental validation over distance and azimuth sweeps.
+
+**Competitive implication:** we must not present a generic genetic algorithm or the inductance passivity gate as beating this optimizer. Our next digital-twin benchmark should compare against (a) unconstrained pairwise-inductance modelling, (b) the published SDP/SCA class of optimizer where its RF architecture applies, and (c) a robust/uncertainty-aware constrained formulation. Evaluate achieved useful DC output, source energy, constraint violations, rank-one feasibility/recovery, runtime and sensitivity to model error. This microwave MIMO result is not directly comparable to 85 kHz EV IPT and must remain a separate transfer lane.
+
+### Modular dynamic transmitter tracks
+
+Zeng et al., **Design and Implementation of Modular Transmitter Tracks for Dynamic Wireless Power Transfer Systems With Stable Coupling and Outputs**, IET Power Electronics 19(1), e70189 (first published 26 February 2026). DOI: https://doi.org/10.1049/pel2.70189.
+
+The proposed partially overlapping rectangular transmitter coils use LCC compensation and support straight, curved, ascending and descending paths. Simulation and experiment report coupling-coefficient deviations below 4.99% and output-current deviations below 6.3% across tested trajectories.
+
+**Competitive implication:** segmented-track design is no longer just a simulation opportunity. Our benchmark should record geometry continuity and actual receiver trajectories, then compare coupling drift, output ripple, handover loss, dead-zone energy, segment switching, construction complexity and material cost. The abstract-level stability figures are not efficiency or availability figures.
+
+### Coil packaging as a Pareto trade-off, not an efficiency-only problem
+
+A 2026 ORNL-associated study, **Stackless Onboard Coil for Dynamic Wireless Power Transfer**, IEEE Open Journal of Power Electronics 7, 45–58. DOI: https://doi.org/10.1109/OJPEL.2025.3634599.
+
+A 1.2 kW prototype at a 220 mm air gap uses a four-segment, single-layer composite magnetic structure. The paper reports a 35% reduction in onboard coil thickness, 13% increase in average output power, 1.8 percentage-point reduction in average efficiency, and 21.5 percentage-point improvement in power fluctuation relative to its DDQ reference.
+
+**Competitive implication:** this is a good example of why a single efficiency leaderboard misleads. The benchmark must compare delivered energy, power stability, thickness, mass, manufacturability, thermal stress and vehicle integration on a Pareto front. An efficiency regression may be rational if it buys substantial packaging and service improvements—but the trade must be explicit and measured.
+
+### Transient multi-transmitter dynamics
+
+A 2026 IEEE Transactions on Power Electronics study, **Parametric Study of Transient Dynamics of Multitransmitter Dynamic Wireless Power Transfer for Linear Transport Systems**, 41(1), 1164–1179. DOI: https://doi.org/10.1109/TPEL.2025.3596911.
+
+The study develops a transient multi-coupling model for segmented transmitters and moving receivers, then reports experimental agreement while analyzing motion speed, filter capacitance, acceleration, input voltage and load resistance effects on inverter current and output voltage fluctuations.
+
+**Competitive implication:** static mutual-inductance admissibility is a precondition, not a transient model. A later benchmark must test time-varying coupling matrices and controller response across segment handover and acceleration profiles.
+
 ## Standards and interoperability boundaries
 
 ### SAE J2954_202408
