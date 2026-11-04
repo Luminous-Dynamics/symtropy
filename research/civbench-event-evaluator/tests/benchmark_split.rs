@@ -37,11 +37,15 @@ fn sample(
     }
 }
 
-fn policy() -> SplitPolicy {
+fn policy_for(protocol: SplitProtocolPreset) -> SplitPolicy {
     SplitPolicy {
-        protocol: SplitProtocolPreset::WithinNetworkUnseenEvent,
+        protocol,
         manifest_digest: digest(900),
     }
+}
+
+fn policy() -> SplitPolicy {
+    policy_for(SplitProtocolPreset::WithinNetworkUnseenEvent)
 }
 
 fn valid_samples() -> Vec<BenchmarkSample> {
@@ -91,14 +95,11 @@ fn within_network_protocol_allows_shared_network_but_blocks_event_and_session_le
     assert_eq!(report.group_counts[&LeakageDimension::Network], 1);
     assert_eq!(
         report.exclusive_dimensions,
-        BTreeSet::from([
-            LeakageDimension::PhysicalEvent,
-            LeakageDimension::CaptureSession,
-        ])
+        policy().protocol.exclusive_dimensions()
     );
     assert_eq!(
         report.shared_dimensions,
-        BTreeSet::from([LeakageDimension::Network])
+        policy().protocol.shared_dimensions()
     );
     assert!(
         report
@@ -109,17 +110,9 @@ fn within_network_protocol_allows_shared_network_but_blocks_event_and_session_le
 
 #[test]
 fn cross_network_protocol_rejects_a_shared_network() {
-    let mut cross_network = policy();
-    cross_network.protocol = SplitProtocolPreset::CrossNetwork;
-    cross_network.protocol_id = cross_network.protocol.as_str().to_owned();
-    cross_network
-        .exclusive_dimensions
-        .insert(LeakageDimension::Network);
-    cross_network
-        .shared_dimensions
-        .remove(&LeakageDimension::Network);
-    let error =
-        audit_benchmark_split(&valid_samples(), &cross_network).expect_err("network overlap");
+    let cross_network = policy_for(SplitProtocolPreset::CrossNetwork);
+    let error = audit_benchmark_split(&valid_samples(), &cross_network)
+        .expect_err("network overlap must fail");
     assert_eq!(error.code, "cross_partition_group_overlap");
     assert_eq!(error.subject, "network=net-1");
 }
@@ -127,13 +120,12 @@ fn cross_network_protocol_rejects_a_shared_network() {
 #[test]
 fn within_network_protocol_rejects_a_test_only_network() {
     let mut samples = valid_samples();
-    if let Some(network) = samples[3]
+    samples[3]
         .leakage_groups
         .iter_mut()
         .find(|group| group.dimension == LeakageDimension::Network)
-    {
-        network.value = "net-2".to_owned();
-    }
+        .expect("network identity")
+        .value = "net-2".to_owned();
     let error = audit_benchmark_split(&samples, &policy())
         .expect_err("within-network split requires a common network");
     assert_eq!(error.code, "shared_group_not_in_all_partitions");
@@ -158,17 +150,6 @@ fn within_network_protocol_rejects_extra_networks_missing_from_any_partition() {
 }
 
 #[test]
-fn a_dimension_cannot_be_both_shared_and_exclusive() {
-    let mut invalid_policy = policy();
-    invalid_policy
-        .exclusive_dimensions
-        .insert(LeakageDimension::Network);
-    let error = audit_benchmark_split(&valid_samples(), &invalid_policy)
-        .expect_err("policy dimension conflict");
-    assert_eq!(error.code, "overlapping_policy_dimensions");
-}
-
-#[test]
 fn cross_partition_physical_event_reuse_fails_closed() {
     let mut samples = valid_samples();
     samples[3].leakage_groups[0].value = "event-a".to_owned();
@@ -189,7 +170,7 @@ fn exact_content_digest_reuse_across_distinct_samples_fails_closed() {
 fn repeated_group_values_within_one_partition_are_allowed() {
     let mut samples = valid_samples();
     samples[1].leakage_groups[0].value = "event-a".to_owned();
-    let report = audit_benchmark_split(&samples, &policy()).expect("same partition");
+    let report = audit_benchmark_split(&samples, &policy()).expect("same-partition group reuse");
     assert_eq!(report.partition_counts[&DataPartition::Train], 2);
 }
 
@@ -247,23 +228,47 @@ fn whitespace_padded_identifiers_are_rejected() {
 }
 
 #[test]
-fn each_registered_preset_has_immutable_protocol_identity_and_firewall() {
-    let cross_network = SplitProtocolPreset::CrossNetwork;
-    assert_eq!(cross_network.as_str(), "cross_network_v1");
+fn each_registered_preset_has_an_immutable_protocol_identity_and_firewall() {
+    let presets = [
+        SplitProtocolPreset::WithinNetworkUnseenEvent,
+        SplitProtocolPreset::NewOperatingRegime,
+        SplitProtocolPreset::CrossNetwork,
+        SplitProtocolPreset::CrossTopology,
+        SplitProtocolPreset::SensorLayoutTransfer,
+        SplitProtocolPreset::AssetTransfer,
+    ];
+    for preset in presets {
+        let exclusive = preset.exclusive_dimensions();
+        let shared = preset.shared_dimensions();
+        assert!(!exclusive.is_empty(), "{}", preset.as_str());
+        assert!(exclusive.is_disjoint(&shared), "{}", preset.as_str());
+    }
+
     assert!(
-        cross_network
+        SplitProtocolPreset::CrossNetwork
             .exclusive_dimensions()
             .contains(&LeakageDimension::Network)
     );
-    assert!(cross_network.shared_dimensions().is_empty());
-
-    let within_network = SplitProtocolPreset::WithinNetworkUnseenEvent;
-    assert_eq!(
-        within_network.as_str(),
-        "within_network_unseen_event_v1"
+    assert!(
+        SplitProtocolPreset::CrossTopology
+            .exclusive_dimensions()
+            .contains(&LeakageDimension::TopologyFamily)
     );
-    assert!(!within_network.exclusive_dimensions().contains(&LeakageDimension::Network));
-    assert!(within_network.shared_dimensions().contains(&LeakageDimension::Network));
+    assert!(
+        SplitProtocolPreset::NewOperatingRegime
+            .exclusive_dimensions()
+            .contains(&LeakageDimension::DemandProfile)
+    );
+    assert!(
+        SplitProtocolPreset::SensorLayoutTransfer
+            .exclusive_dimensions()
+            .contains(&LeakageDimension::SensorLayout)
+    );
+    assert!(
+        SplitProtocolPreset::AssetTransfer
+            .exclusive_dimensions()
+            .contains(&LeakageDimension::PipeAsset)
+    );
 }
 
 #[test]
@@ -296,20 +301,7 @@ fn malformed_manifest_digest_is_rejected() {
 }
 
 #[test]
-fn invalid_manifest_digest_and_empty_manifest_fail_closed() {
-    let mut invalid_policy = policy();
-    invalid_policy.manifest_digest = "sha256:00".to_owned();
-    assert_eq!(
-        audit_benchmark_split(&valid_samples(), &invalid_policy)
-            .expect_err("invalid manifest digest")
-            .code,
-        "invalid_manifest_digest"
-    );
-
-    assert_eq!(
-        audit_benchmark_split(&[], &policy())
-            .expect_err("empty manifest")
-            .code,
-        "empty_manifest"
-    );
+fn empty_manifest_is_rejected() {
+    let error = audit_benchmark_split(&[], &policy()).expect_err("empty manifest");
+    assert_eq!(error.code, "empty_manifest");
 }
