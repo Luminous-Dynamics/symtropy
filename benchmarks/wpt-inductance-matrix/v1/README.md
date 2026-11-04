@@ -35,7 +35,7 @@ The broader WPT context is multi-transmitter/multi-receiver operation with mutua
 One record represents one complete matrix at one declared operating point:
 - 2–32 stable, unique coil IDs in fixed order;
 - an explicit dot/polarity convention for every coil;
-- matrix kind: `SMALL_SIGNAL`, `DIFFERENTIAL` or `SECANT`;
+- matrix kind: `SMALL_SIGNAL` or `DIFFERENTIAL`; secant matrices are rejected because their quadratic form does not generally represent nonlinear stored energy.
 - frequency, temperature and one DC-bias current per coil;
 - square, finite, real matrix `matrix_h`, in henries;
 - same-shape, nonnegative `entrywise_absolute_bound_h` matrix;
@@ -44,7 +44,7 @@ One record represents one complete matrix at one declared operating point:
 
 The entrywise bounds are **deterministic absolute error bounds**, not standard deviations or confidence intervals. A probabilistic covariance model must not be relabelled as these bounds without a documented conservative conversion. The uncertainty bound used here is intentionally conservative.
 
-For differential matrices, temperature and DC bias are part of the operating point. A matrix from one bias/temperature point must not be reused as a global constant for a saturating magnetic system. A nonlinear or hysteretic trajectory requires a richer field/circuit model.
+For differential matrices, temperature and DC bias are part of the operating point. The PSD test is a local incremental-stability/convexity check on the differential constitutive matrix; it does not integrate the full nonlinear magnetic energy over a trajectory. A differential matrix from one bias/temperature point must not be reused as a global constant for a saturating magnetic system. A secant matrix is intentionally unsupported: `1/2 i^T L_sec i` is not generally the stored energy of a nonlinear constitutive law. A nonlinear or hysteretic trajectory requires a richer field/circuit model.
 
 ## Evaluation
 
@@ -84,11 +84,11 @@ The pairwise-plausible/global-invalid case is the key negative control. It preve
 
 ## Scope and claim ceiling
 
-V1 handles real-valued, reciprocal, passive inductance matrices at a single declared operating point. It does not qualify:
+V1 handles real-valued, reciprocal, passive small-signal or differential inductance matrices at a single declared operating point. It does not qualify:
 - complex, frequency-dependent impedance matrices;
 - capacitance/conductance/resistance matrices;
 - radiation, eddy-current diffusion or dispersive memory effects as a full model;
-- nonlinear hysteresis or saturation over a trajectory;
+- secant inductance as an energy quadratic, nonlinear hysteresis or saturation over a trajectory;
 - source-data provenance, FEM mesh convergence, geometry correctness or hardware behaviour.
 
 A passing matrix is a necessary consistency condition for this model class, not proof that the underlying field solution or measurement is accurate. Independent reference metrology, field/circuit validation and cross-laboratory replication remain required.
