@@ -16,6 +16,7 @@ use std::fmt::Write as _;
 pub mod benchmark_split;
 pub mod decision_closure;
 pub mod decision_fixture;
+pub mod corpus_registry;
 pub mod localization_eval;
 
 /// A confirmed incident class supported by the evaluator's truth source.
