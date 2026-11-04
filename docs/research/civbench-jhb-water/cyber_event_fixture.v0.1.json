@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "fixture_id": "CIVBENCH-CYBER-EVENT-FIXTURE-001",
+  "contract_version": "0.1.0",
+  "status": "synthetic_contract_fixture_only",
+  "claim_ceiling": "illustrative event-matching semantics; not WDSEventDB, ACG, BATADAL, utility, or field evidence",
+  "dataset_lane": "illustrative_synthetic",
+  "time_basis": {
+    "unit": "utc_epoch_milliseconds",
+    "clock_uncertainty_ms": 0,
+    "source_time_basis": "fixture_defined"
+  },
+  "evaluation": {
+    "monitored_duration_ms": 86400000,
+    "merge_gap_ms": 60000,
+    "allowed_lead_ms": 300000,
+    "maximum_detection_delay_ms": 600000,
+    "class_compatibility": "exact_or_unclassified_for_detection_only"
+  },
+  "events": [
+    {
+      "event_id": "event-leak-001",
+      "scenario_id": "scenario-positive-001",
+      "class": "leak",
+      "truth_status": "confirmed",
+      "onset_ms": 1000000,
+      "end_ms": 1300000,
+      "evidence_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "event_id": "event-sensor-001",
+      "scenario_id": "scenario-positive-001",
+      "class": "sensor_fault",
+      "truth_status": "confirmed",
+      "onset_ms": 5000000,
+      "end_ms": 5300000,
+      "evidence_ref": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "event_id": "event-cyber-001",
+      "scenario_id": "scenario-positive-001",
+      "class": "cyber_compromise",
+      "truth_status": "confirmed",
+      "onset_ms": 9000000,
+      "end_ms": 9600000,
+      "evidence_ref": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "event_id": "event-communication-001",
+      "scenario_id": "scenario-positive-001",
+      "class": "communication_fault",
+      "truth_status": "confirmed",
+      "onset_ms": 17000000,
+      "end_ms": 17200000,
+      "evidence_ref": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    {
+      "event_id": "event-leak-missed-001",
+      "scenario_id": "scenario-positive-001",
+      "class": "leak",
+      "truth_status": "confirmed",
+      "onset_ms": 25000000,
+      "end_ms": 25300000,
+      "evidence_ref": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+    }
+  ],
+  "unknown_intervals": [
+    {
+      "interval_id": "unknown-interval-001",
+      "scenario_id": "scenario-positive-001",
+      "start_ms": 12000000,
+      "end_ms": 14000000,
+      "reason": "cause_unresolved",
+      "evidence_ref": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "alarms": [
+    {
+      "alarm_id": "alarm-leak-001a",
+      "scenario_id": "scenario-positive-001",
+      "source_id": "sensor-cluster-a",
+      "class": "leak",
+      "start_ms": 900000,
+      "clear_ms": 1050000,
+      "evidence_ref": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "alarm_id": "alarm-leak-001b",
+      "scenario_id": "scenario-positive-001",
+      "source_id": "sensor-cluster-a",
+      "class": "leak",
+      "start_ms": 1100000,
+      "clear_ms": 1200000,
+      "evidence_ref": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "alarm_id": "alarm-sensor-001",
+      "scenario_id": "scenario-positive-001",
+      "source_id": "sensor-cluster-b",
+      "class": "unclassified",
+      "start_ms": 5200000,
+      "clear_ms": 5300000,
+      "evidence_ref": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "alarm_id": "alarm-late-cyber-001",
+      "scenario_id": "scenario-positive-001",
+      "source_id": "ot-monitor-a",
+      "class": "cyber_compromise",
+      "start_ms": 9700000,
+      "clear_ms": 10000000,
+      "evidence_ref": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "alarm_id": "alarm-unknown-001",
+      "scenario_id": "scenario-positive-001",
+      "source_id": "sensor-cluster-c",
+      "class": "unclassified",
+      "start_ms": 12500000,
+      "clear_ms": 12700000,
+      "evidence_ref": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "alarm_id": "alarm-communication-001",
+      "scenario_id": "scenario-positive-001",
+      "source_id": "gateway-a",
+      "class": "communication_fault",
+      "start_ms": 17000000,
+      "clear_ms": 17100000,
+      "evidence_ref": "sha256:abababababababababababababababababababababababababababababababab"
+    },
+    {
+      "alarm_id": "alarm-false-001",
+      "scenario_id": "scenario-positive-001",
+      "source_id": "sensor-cluster-z",
+      "class": "unclassified",
+      "start_ms": 40000000,
+      "clear_ms": 43000000,
+      "evidence_ref": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+    }
+  ],
+  "expected_semantics": {
+    "merged_alarm_episodes": [
+      {
+        "episode_id": "episode-1",
+        "constituent_alarm_ids": ["alarm-leak-001a", "alarm-leak-001b"],
+        "scenario_id": "scenario-positive-001",
+        "source_id": "sensor-cluster-a",
+        "start_ms": 900000,
+        "end_ms": 1200000
+      }
+    ],
+    "timely_detection_event_ids": ["event-leak-001", "event-sensor-001", "event-communication-001"],
+    "late_associated_event_ids": ["event-cyber-001"],
+    "missed_confirmed_event_ids": ["event-leak-missed-001"],
+    "unscorable_alarm_ids": ["alarm-unknown-001"],
+    "false_alarm_episode_ids": ["alarm-false-001"],
+    "notes": [
+      "The two leak alarms are one episode because their 50-second gap is below merge_gap_ms; the first onset is 100 seconds before the event onset and lies within allowed_lead_ms.",
+      "The unclassified sensor alarm may count as event detection but cannot count as correct sensor-fault classification.",
+      "The cyber alarm is associated with the confirmed incident but arrives 700 seconds after onset, beyond maximum_detection_delay_ms; it is late, not timely.",
+      "The alarm overlapping unknown truth is unscorable, not a false positive.",
+      "The communication alarm is timely at event onset.",
+      "The final leak has no alarm and is missed.",
+      "The late cyber alarm is not counted as a false alarm episode because it is associated with a confirmed event."
+    ]
+  }
+}
