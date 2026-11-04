@@ -461,3 +461,10 @@ The study constructs latent individual decision contexts before response generat
 **CivBench response:** benchmark direct prompting, evidence-grounded profile conditioning and structured context sampling under identical task splits and compute budgets. Do not award diversity gains that come from uncalibrated random noise.
 
 Implementation: [CIVDYN-HUMSIM-001 issue #3665](https://github.com/Luminous-Dynamics/symtropy/issues/3665). A synthetic Rust reference is being started; no human benchmark score is claimed.
+
+
+## 14. Human fidelity implementation status
+
+[CIVDYN-HUMSIM-001 issue #3665](https://github.com/Luminous-Dynamics/symtropy/issues/3665) now has a first executable reference in [draft PR #3668](https://github.com/Luminous-Dynamics/symtropy/pull/3668). It separates individual Brier/log-loss/accuracy from population TVD/JS/entropy/tail-option coverage, cohort/context slices and adjacent-context transition discrepancy. Its deterministic N={10,20,30,50,60} curve is explicitly a diagnostic, not an inference interval. The synthetic fixture compares a mode-collapse control to a structured-context oracle and uses no human/platform data.
+
+The source motivation includes ReliMap (EMNLP 2026), OmniBehavior (2026) and Context Modeling (Findings EMNLP 2026); see the HUMSIM issue for the exact protocol and data-rights boundaries.
