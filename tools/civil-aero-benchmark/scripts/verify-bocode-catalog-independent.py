@@ -58,11 +58,7 @@ def main(path: Path, source_commit: str, package_version: str,
     supported_domains = {"engineering", "hpo", "synthetic", "extended"}
     supported_classes = {
         "so_unconstrained", "so_constrained", "mo_unconstrained",
-        "mo_constrained", "so_mixed_variable",
-        "so_discrete_extension", "so_discrete_constrained_extension",
-        "mo_discrete_extension", "mo_discrete_constrained_extension",
-        "so_mixed_variable_constrained_extension", "mo_mixed_variable_extension",
-        "mo_mixed_variable_constrained_extension",
+        "mo_constrained", "so_mixed_variable", "mo_mixed_variable_extension",
     }
     previous_id = None
     seen = set()
@@ -115,18 +111,12 @@ def main(path: Path, source_commit: str, package_version: str,
                 f"line {line_number}: required_extra must be explicit (use none)")
 
         expected = {
-            "so_discrete_extension": objectives == 1 and constraints == 0 and variable_class == "discrete",
-            "so_discrete_constrained_extension": objectives == 1 and constraints > 0 and variable_class == "discrete",
-            "mo_discrete_extension": objectives > 1 and constraints == 0 and variable_class == "discrete",
-            "mo_discrete_constrained_extension": objectives > 1 and constraints > 0 and variable_class == "discrete",
-            "so_unconstrained": objectives == 1 and constraints == 0 and variable_class == "continuous",
-            "so_constrained": objectives == 1 and constraints > 0 and variable_class == "continuous",
-            "mo_unconstrained": objectives > 1 and constraints == 0 and variable_class == "continuous",
-            "mo_constrained": objectives > 1 and constraints > 0 and variable_class == "continuous",
-            "so_mixed_variable": objectives == 1 and constraints == 0 and variable_class == "mixed",
-            "so_mixed_variable_constrained_extension": objectives == 1 and constraints > 0 and variable_class == "mixed",
-            "mo_mixed_variable_extension": objectives > 1 and constraints == 0 and variable_class == "mixed",
-            "mo_mixed_variable_constrained_extension": objectives > 1 and constraints > 0 and variable_class == "mixed",
+            "so_unconstrained": objectives == 1 and constraints == 0 and variable_class != "mixed",
+            "so_constrained": objectives == 1 and constraints > 0 and variable_class != "mixed",
+            "mo_unconstrained": objectives > 1 and constraints == 0 and variable_class != "mixed",
+            "mo_constrained": objectives > 1 and constraints > 0 and variable_class != "mixed",
+            "so_mixed_variable": objectives == 1 and variable_class == "mixed",
+            "mo_mixed_variable_extension": objectives > 1 and variable_class == "mixed",
         }
         require(expected[problem_class],
                 f"line {line_number}: problem class contradicts objective/constraint/variable metadata")
