@@ -35,7 +35,8 @@
     "source_training_target_evaluation_overlap": 0,
     "target_adaptation_target_evaluation_work_item_overlap": 0,
     "accepted_without_independent_inspection": 0,
-    "unsupported_domain_silent_admission": 0
+    "unsupported_domain_silent_admission": 0,
+    "source_target_config_digest": "explicitly bound"
   },
   "limitations": [
     "No inference of safety from productivity",
@@ -48,5 +49,11 @@
     "work_item_separation": "source and target-evaluation tasks disjoint; target-adaptation tasks and target-evaluation tasks disjoint",
     "terminal_dispositions": "finally accepted + finally rejected + uninspected + unresolved cannot exceed attempted units",
     "zero_denominators": "return not-estimable, never zero/infinity"
+  },
+  "regime_rules": {
+    "zero_shot": "source and target model digests and robot configuration digests must match; no target labels or calibration-change receipt",
+    "calibration_only": "model/policy digest remains identical; any robot-configuration digest change requires an explicit calibration receipt; no target task labels",
+    "bounded_offline_adaptation": "target labels and actual adaptation effort must remain within separately declared budgets",
+    "human_supervised_method_adaptation": "engineering effort must be recorded and bounded by declared budget"
   }
 }
