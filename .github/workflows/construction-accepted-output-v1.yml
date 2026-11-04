@@ -46,3 +46,56 @@ jobs:
           path: research/construction-accepted-output-v0-1/Cargo.lock
           if-no-files-found: error
           retention-days: 7
+
+  commit_lockfile:
+    name: Commit exact package lockfile after matrix qualification
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'research/construction-accepted-output-v0-1' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Download Ubuntu-generated package lockfile
+        uses: actions/download-artifact@v4
+        with:
+          name: construction-accepted-output-cargo-lock-ubuntu-latest
+          path: /tmp/accepted-output-lock
+      - name: Commit the package lockfile and pin lock verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="research/construction-accepted-output-v0-1"
+          generated="/tmp/accepted-output-lock/Cargo.lock"
+          committed="$package/Cargo.lock"
+          test -f "$generated"
+          if test -f "$committed"; then
+            if cmp -s "$generated" "$committed"; then
+              echo "committed package lockfile matches the generated artifact"
+              exit 0
+            fi
+            echo "committed package lockfile differs from the generated artifact" >&2
+            exit 1
+          fi
+          cp "$generated" "$committed"
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path(".github/workflows/construction-accepted-output-v1.yml")
+          text = path.read_text()
+          old = "run: cargo generate-lockfile --manifest-path research/construction-accepted-output-v0-1/Cargo.toml"
+          new = "run: cargo metadata --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked --format-version 1"
+          if old not in text:
+              raise SystemExit("expected initial lock-generation command was not found")
+          text = text.replace(old, new)
+          text = text.replace("name: Resolve package lockfile for review", "name: Verify committed package lockfile")
+          path.write_text(text)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$committed" .github/workflows/construction-accepted-output-v1.yml
+          git commit -m "build(research): pin accepted-output package dependencies"
+          git push origin "HEAD:refs/heads/${GITHUB_HEAD_REF}"
