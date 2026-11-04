@@ -195,7 +195,11 @@ impl EvaluationReport {
         let _ = writeln!(&mut out, "confirmed_events={}", self.confirmed_event_count);
         let _ = writeln!(&mut out, "timely_events={}", self.timely_event_count);
         let _ = writeln!(&mut out, "event_precision={:.9}", self.event_precision);
-        let _ = writeln!(&mut out, "event_onset_recall={:.9}", self.event_onset_recall);
+        let _ = writeln!(
+            &mut out,
+            "event_onset_recall={:.9}",
+            self.event_onset_recall
+        );
         for cell in &self.class_confusion {
             let _ = writeln!(
                 &mut out,
@@ -403,10 +407,11 @@ fn validate_inputs(
                 event.event_id.as_str(),
             ));
         }
-        if event.onset_ms > event.end_ms
-            || event.end_ms > config.monitored_duration_ms
-        {
-            return Err(EvaluationError::new("invalid_event_interval", event.event_id.as_str()));
+        if event.onset_ms > event.end_ms || event.end_ms > config.monitored_duration_ms {
+            return Err(EvaluationError::new(
+                "invalid_event_interval",
+                event.event_id.as_str(),
+            ));
         }
         scenario_ids.insert(event.scenario_id.clone());
     }
@@ -436,11 +441,14 @@ fn validate_inputs(
             ));
         }
         if alarm.start_ms > config.monitored_duration_ms
-            || alarm.clear_ms.is_some_and(|end| {
-                end < alarm.start_ms || end > config.monitored_duration_ms
-            })
+            || alarm
+                .clear_ms
+                .is_some_and(|end| end < alarm.start_ms || end > config.monitored_duration_ms)
         {
-            return Err(EvaluationError::new("invalid_alarm_interval", alarm.alarm_id.as_str()));
+            return Err(EvaluationError::new(
+                "invalid_alarm_interval",
+                alarm.alarm_id.as_str(),
+            ));
         }
         scenario_ids.insert(alarm.scenario_id.clone());
     }
@@ -461,10 +469,7 @@ fn combine_class(left: AlarmClass, right: AlarmClass) -> AlarmClass {
     }
 }
 
-fn build_episodes(
-    alarms: &[Alarm],
-    config: EvaluationConfig,
-) -> Vec<Episode> {
+fn build_episodes(alarms: &[Alarm], config: EvaluationConfig) -> Vec<Episode> {
     let mut groups: BTreeMap<(String, String), Vec<&Alarm>> = BTreeMap::new();
     for alarm in alarms {
         groups
@@ -550,11 +555,7 @@ fn onset_distance(episode_start: u64, event_onset: u64) -> u64 {
     episode_start.abs_diff(event_onset)
 }
 
-fn candidate_order(
-    event: &TruthEvent,
-    episodes: &[Episode],
-    indexes: &mut [usize],
-) {
+fn candidate_order(event: &TruthEvent, episodes: &[Episode], indexes: &mut [usize]) {
     indexes.sort_by(|a, b| {
         onset_distance(episodes[*a].start_ms, event.onset_ms)
             .cmp(&onset_distance(episodes[*b].start_ms, event.onset_ms))
@@ -575,9 +576,7 @@ fn augment(
         seen[episode_index] = true;
         let can_reassign = match episode_owner[episode_index] {
             None => true,
-            Some(previous_owner) => {
-                augment(previous_owner, candidates, episode_owner, seen)
-            }
+            Some(previous_owner) => augment(previous_owner, candidates, episode_owner, seen),
         };
         if can_reassign {
             episode_owner[episode_index] = Some(event_index);
@@ -687,12 +686,8 @@ pub fn evaluate(
         candidate_order(event, &episodes, &mut timely_candidates[event_index]);
     }
 
-    let timely_assignment = maximum_cardinality_matching(
-        &event_indexes,
-        &timely_candidates,
-        events,
-        episodes.len(),
-    );
+    let timely_assignment =
+        maximum_cardinality_matching(&event_indexes, &timely_candidates, events, episodes.len());
     let mut used_episodes = BTreeSet::new();
     let mut matched_events = BTreeSet::new();
     let mut matches = Vec::new();
@@ -786,7 +781,10 @@ pub fn evaluate(
 
     let mut fragmentation = BTreeSet::new();
     for record in &matches {
-        let Some(event) = events.iter().find(|event| event.event_id == record.event_id) else {
+        let Some(event) = events
+            .iter()
+            .find(|event| event.event_id == record.event_id)
+        else {
             continue;
         };
         let lower = event.onset_ms.saturating_sub(config.allowed_lead_ms);
@@ -808,7 +806,10 @@ pub fn evaluate(
     let mut false_alarm_indexes = Vec::new();
     let mut missed_event_ids = Vec::new();
     let mut late_event_count = 0;
-    let timely_event_count = timely_assignment.iter().filter(|value| value.is_some()).count();
+    let timely_event_count = timely_assignment
+        .iter()
+        .filter(|value| value.is_some())
+        .count();
     let timely_event_ids: BTreeSet<&str> = matches
         .iter()
         .filter(|record| record.kind == MatchKind::Timely)
@@ -820,10 +821,10 @@ pub fn evaluate(
         .map(|record| record.event_id.as_str())
         .collect();
     for event in events {
-        if !timely_event_ids.contains(&event.event_id) {
+        if !timely_event_ids.contains(event.event_id.as_str()) {
             missed_event_ids.push(event.event_id.clone());
         }
-        if late_event_ids.contains(&event.event_id) {
+        if late_event_ids.contains(event.event_id.as_str()) {
             late_event_count += 1;
         }
     }
@@ -867,8 +868,7 @@ pub fn evaluate(
     } else {
         (all_active_ms * 1_000_000 / exposure_ms).min(u128::from(u64::MAX)) as u64
     };
-    let monitored_system_days =
-        exposure_ms as f64 / 86_400_000.0_f64;
+    let monitored_system_days = exposure_ms as f64 / 86_400_000.0_f64;
     let false_alarm_count = false_alarm_indexes.len();
     let false_rate = if monitored_system_days == 0.0 {
         0.0
@@ -887,18 +887,23 @@ pub fn evaluate(
         timely_event_count as f64 / events.len() as f64
     };
     let mut confusion_counts: BTreeMap<(EventClass, AlarmClass), usize> = BTreeMap::new();
-    for record in matches.iter().filter(|record| record.kind == MatchKind::Timely) {
+    for record in matches
+        .iter()
+        .filter(|record| record.kind == MatchKind::Timely)
+    {
         *confusion_counts
             .entry((record.truth_class, record.reported_class))
             .or_default() += 1;
     }
     let class_confusion = confusion_counts
         .into_iter()
-        .map(|((truth_class, reported_class), count)| ClassConfusionCell {
-            truth_class,
-            reported_class,
-            count,
-        })
+        .map(
+            |((truth_class, reported_class), count)| ClassConfusionCell {
+                truth_class,
+                reported_class,
+                count,
+            },
+        )
         .collect();
 
     matches.sort_by(|a, b| {
@@ -951,12 +956,7 @@ pub fn evaluate(
 mod tests {
     use super::*;
 
-    fn event(
-        id: &str,
-        class: EventClass,
-        onset_ms: u64,
-        end_ms: u64,
-    ) -> TruthEvent {
+    fn event(id: &str, class: EventClass, onset_ms: u64, end_ms: u64) -> TruthEvent {
         TruthEvent {
             event_id: id.into(),
             scenario_id: "scenario-1".into(),
@@ -967,13 +967,7 @@ mod tests {
         }
     }
 
-    fn alarm(
-        id: &str,
-        source: &str,
-        class: AlarmClass,
-        start_ms: u64,
-        clear_ms: u64,
-    ) -> Alarm {
+    fn alarm(id: &str, source: &str, class: AlarmClass, start_ms: u64, clear_ms: u64) -> Alarm {
         Alarm {
             alarm_id: id.into(),
             scenario_id: "scenario-1".into(),
@@ -1105,8 +1099,20 @@ mod tests {
     fn one_event_cannot_claim_two_timely_alarm_episodes() {
         let events = vec![event("event-1", EventClass::Leak, 1_000, 2_000)];
         let alarms = vec![
-            alarm("alarm-a", "sensor-a", AlarmClass::Unclassified, 1_100, 1_200),
-            alarm("alarm-b", "sensor-b", AlarmClass::Unclassified, 1_150, 1_250),
+            alarm(
+                "alarm-a",
+                "sensor-a",
+                AlarmClass::Unclassified,
+                1_100,
+                1_200,
+            ),
+            alarm(
+                "alarm-b",
+                "sensor-b",
+                AlarmClass::Unclassified,
+                1_150,
+                1_250,
+            ),
         ];
         let report = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         assert_eq!(report.timely_event_count, 1);
@@ -1139,8 +1145,20 @@ mod tests {
             event("event-b", EventClass::Leak, 900, 1_900),
         ];
         let alarms = vec![
-            alarm("alarm-near-a", "source-a", AlarmClass::Unclassified, 950, 1_000),
-            alarm("alarm-only-a", "source-b", AlarmClass::Unclassified, 1_050, 1_100),
+            alarm(
+                "alarm-near-a",
+                "source-a",
+                AlarmClass::Unclassified,
+                950,
+                1_000,
+            ),
+            alarm(
+                "alarm-only-a",
+                "source-b",
+                AlarmClass::Unclassified,
+                1_050,
+                1_100,
+            ),
         ];
         let report = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         assert_eq!(report.timely_event_count, 2);
@@ -1188,13 +1206,7 @@ mod tests {
             "duplicate_identifier"
         );
 
-        let invalid = vec![alarm(
-            "bad",
-            "source-a",
-            AlarmClass::Unclassified,
-            100,
-            99,
-        )];
+        let invalid = vec![alarm("bad", "source-a", AlarmClass::Unclassified, 100, 99)];
         assert_eq!(
             evaluate(&[], &[], &invalid, config()).unwrap_err().code,
             "invalid_alarm_interval"
@@ -1208,16 +1220,28 @@ mod tests {
             event("event-b", EventClass::CommunicationFault, 5_000, 5_500),
         ];
         let alarms = vec![
-            alarm("alarm-b", "source-b", AlarmClass::Unclassified, 5_100, 5_300),
-            alarm("alarm-a", "source-a", AlarmClass::Classified(EventClass::Leak), 1_100, 1_300),
+            alarm(
+                "alarm-b",
+                "source-b",
+                AlarmClass::Unclassified,
+                5_100,
+                5_300,
+            ),
+            alarm(
+                "alarm-a",
+                "source-a",
+                AlarmClass::Classified(EventClass::Leak),
+                1_100,
+                1_300,
+            ),
         ];
         let first = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         let mut reversed_events = events.clone();
         reversed_events.reverse();
         let mut reversed_alarms = alarms.clone();
         reversed_alarms.reverse();
-        let second = evaluate(&reversed_events, &[], &reversed_alarms, config())
-            .expect("permuted fixture");
+        let second =
+            evaluate(&reversed_events, &[], &reversed_alarms, config()).expect("permuted fixture");
         assert_eq!(first.canonical_text(), second.canonical_text());
     }
 
@@ -1225,8 +1249,20 @@ mod tests {
     fn different_alarm_sources_do_not_merge() {
         let events = vec![event("event-1", EventClass::Leak, 1_000, 2_000)];
         let alarms = vec![
-            alarm("alarm-a", "source-a", AlarmClass::Unclassified, 1_000, 1_100),
-            alarm("alarm-b", "source-b", AlarmClass::Unclassified, 1_120, 1_200),
+            alarm(
+                "alarm-a",
+                "source-a",
+                AlarmClass::Unclassified,
+                1_000,
+                1_100,
+            ),
+            alarm(
+                "alarm-b",
+                "source-b",
+                AlarmClass::Unclassified,
+                1_120,
+                1_200,
+            ),
         ];
         let report = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         assert_eq!(report.timely_event_count, 1);
