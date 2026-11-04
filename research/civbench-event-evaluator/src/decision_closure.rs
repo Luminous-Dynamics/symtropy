@@ -180,7 +180,10 @@ impl std::fmt::Display for DecisionClosureError {
                 write!(f, "decision-change result requires an acquisition receipt")
             }
             Self::ActionAfterNonAuthorization => {
-                write!(f, "rejected/deferred recommendation cannot be followed by action")
+                write!(
+                    f,
+                    "rejected/deferred recommendation cannot be followed by action"
+                )
             }
             Self::ActionWithoutFeasibility => {
                 write!(f, "work requires a feasible resource reservation")
@@ -192,13 +195,22 @@ impl std::fmt::Display for DecisionClosureError {
                 write!(f, "work progress requires a workflow receipt")
             }
             Self::VerifiedWithoutVerification => {
-                write!(f, "verified work requires an independent verification receipt")
+                write!(
+                    f,
+                    "verified work requires an independent verification receipt"
+                )
             }
             Self::VerificationWithoutVerifiedStage => {
-                write!(f, "verification receipt requires independently-verified work stage")
+                write!(
+                    f,
+                    "verification receipt requires independently-verified work stage"
+                )
             }
             Self::ActionAfterFeasibilityRejection => {
-                write!(f, "work cannot proceed after a rejected/not-attempted reservation")
+                write!(
+                    f,
+                    "work cannot proceed after a rejected/not-attempted reservation"
+                )
             }
             Self::ServiceEffectWithoutOutcome => {
                 write!(f, "service-effect claim requires a service outcome receipt")
@@ -210,13 +222,22 @@ impl std::fmt::Display for DecisionClosureError {
                 write!(f, "service-effect claim requires an evidence class")
             }
             Self::ServiceEffectEvidenceMismatch => {
-                write!(f, "service-effect claim disagrees with source evidence class")
+                write!(
+                    f,
+                    "service-effect claim disagrees with source evidence class"
+                )
             }
             Self::ImprovementWithoutVerifiedAction => {
-                write!(f, "service improvement requires an authorized, independently verified action")
+                write!(
+                    f,
+                    "service improvement requires an authorized, independently verified action"
+                )
             }
             Self::ReferencesWithoutServiceClaim => {
-                write!(f, "outcome/evidence references are present without a service-effect claim")
+                write!(
+                    f,
+                    "outcome/evidence references are present without a service-effect claim"
+                )
             }
         }
     }
@@ -268,7 +289,10 @@ fn is_improvement(effect: ServiceEffect) -> bool {
 }
 
 fn is_service_claim(effect: ServiceEffect) -> bool {
-    !matches!(effect, ServiceEffect::NotClaimed | ServiceEffect::Indeterminate)
+    !matches!(
+        effect,
+        ServiceEffect::NotClaimed | ServiceEffect::Indeterminate
+    )
 }
 
 impl DecisionClosureRecord {
@@ -292,7 +316,10 @@ impl DecisionClosureRecord {
         validate_optional_reference(&self.resource_receipt_id, "resource_receipt_id")?;
         validate_optional_reference(&self.workflow_receipt_id, "workflow_receipt_id")?;
         validate_optional_reference(&self.verification_receipt_id, "verification_receipt_id")?;
-        validate_optional_reference(&self.service_outcome_receipt_id, "service_outcome_receipt_id")?;
+        validate_optional_reference(
+            &self.service_outcome_receipt_id,
+            "service_outcome_receipt_id",
+        )?;
         validate_optional_reference(&self.paired_outcome_receipt_id, "paired_outcome_receipt_id")?;
 
         if self.decision_changed_after_acquisition.is_some()
@@ -333,9 +360,7 @@ impl DecisionClosureRecord {
             return Err(DecisionClosureError::MissingResourceReceipt);
         }
 
-        if self.action_progress == ActionProgress::Cancelled
-            && self.workflow_receipt_id.is_none()
-        {
+        if self.action_progress == ActionProgress::Cancelled && self.workflow_receipt_id.is_none() {
             return Err(DecisionClosureError::MissingWorkflowReceipt);
         }
 
@@ -563,7 +588,11 @@ mod tests {
     fn independently_verified_modelled_improvement_is_valid() {
         let record = positive_record();
         assert_eq!(record.validate(), Ok(()));
-        assert!(record.canonical_text().contains("service_effect=modelled_improvement"));
+        assert!(
+            record
+                .canonical_text()
+                .contains("service_effect=modelled_improvement")
+        );
     }
 
     #[test]
@@ -603,7 +632,7 @@ mod tests {
         record.resource_feasibility = ResourceFeasibility::RejectedMissingPart;
         assert_eq!(
             record.validate(),
-            Err(DecisionClosureError::ActionWithoutFeasibility)
+            Err(DecisionClosureError::ActionAfterFeasibilityRejection)
         );
     }
 
