@@ -1195,10 +1195,12 @@ mod tests {
     #[test]
     fn uncertainty_denominator_crossing_zero_is_unresolved() {
         let mut ledger = fixture();
-        for measurement in &mut ledger.segments[0].boundary_measurements {
-            if measurement.boundary == EnergyBoundary::RoadwayInverterDcInput {
-                measurement.quantity.deterministic_absolute_bound_wh =
-                    measurement.quantity.energy_wh + 1.0;
+        for segment in &mut ledger.segments {
+            for measurement in &mut segment.boundary_measurements {
+                if measurement.boundary == EnergyBoundary::RoadwayInverterDcInput {
+                    measurement.quantity.deterministic_absolute_bound_wh =
+                        measurement.quantity.energy_wh + 1.0;
+                }
             }
         }
         let report = ledger.evaluate().unwrap();
@@ -1229,8 +1231,9 @@ mod tests {
     #[test]
     fn rejects_route_overlap_and_missing_idle_grid_energy() {
         let mut ledger = fixture();
-        ledger.segments[1].start_ns = 5_000_000_000;
-        ledger.segments[1].phases[0].start_ns = 5_000_000_000;
+        let overlap_end = ledger.segments[1].start_ns + 1;
+        ledger.segments[0].end_ns = overlap_end;
+        ledger.segments[0].phases[5].end_ns = overlap_end;
         assert!(ledger.validate().unwrap_err().contains("overlap"));
         let mut ledger = fixture();
         ledger.idle_intervals[0].boundary_measurements.clear();
