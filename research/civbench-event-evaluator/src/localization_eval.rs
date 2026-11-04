@@ -66,6 +66,20 @@ impl OracleResolution {
 /// Owner-supplied physical ambiguity evidence for one event and sensor layout.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObservabilityEvidence {
+    /// Stable owner identity for the hydraulic/observability evidence.
+    pub owner_ref: String,
+    /// Unique owner receipt reference for this case.
+    pub receipt_ref: String,
+    /// Case identity to which the oracle receipt is bound.
+    pub case_id: String,
+    /// Network identity to which the oracle receipt is bound.
+    pub network_id: String,
+    /// Sensor-layout identity to which the oracle receipt is bound.
+    pub sensor_layout_id: String,
+    /// Hydraulic model/calibration version used to derive the ambiguity set.
+    pub hydraulic_model_ref: String,
+    /// Frozen measurement window used by the model and oracle.
+    pub observation_window_ref: String,
     /// Resolution class computed by the hydraulic/observability owner.
     pub resolution: OracleResolution,
     /// Pipe IDs consistent with the frozen measurements/model/tolerance.
@@ -89,6 +103,14 @@ pub struct LocalizationCase {
     pub network_id: String,
     /// Frozen sensor-layout identity.
     pub sensor_layout_id: String,
+    /// Hydraulic model/calibration version used for this evaluation case.
+    pub hydraulic_model_ref: String,
+    /// Frozen measurement window shared by the candidate and oracle.
+    pub observation_window_ref: String,
+    /// Candidate model/policy identity that produced the ranking or abstention.
+    pub model_ref: String,
+    /// Unique candidate prediction/abstention receipt reference for this case.
+    pub prediction_receipt_ref: String,
     /// Complete pipe universe for this network/version.
     pub network_pipe_ids: Vec<String>,
     /// Independently established true pipe.
@@ -359,9 +381,63 @@ fn validate_case(case: &LocalizationCase) -> Result<(), LocalizationEvaluationEr
     if !valid_identifier(&case.case_id)
         || !valid_identifier(&case.network_id)
         || !valid_identifier(&case.sensor_layout_id)
+        || !valid_identifier(&case.hydraulic_model_ref)
+        || !valid_identifier(&case.observation_window_ref)
+        || !valid_identifier(&case.model_ref)
+        || !valid_identifier(&case.prediction_receipt_ref)
     {
         return Err(LocalizationEvaluationError::new(
             "invalid_case_context",
+            case.case_id.as_str(),
+        ));
+    }
+
+    let oracle = &case.observability;
+    if !valid_identifier(&oracle.owner_ref) {
+        return Err(LocalizationEvaluationError::new(
+            "invalid_oracle_owner_ref",
+            case.case_id.as_str(),
+        ));
+    }
+    if !valid_identifier(&oracle.receipt_ref) {
+        return Err(LocalizationEvaluationError::new(
+            "invalid_oracle_receipt_ref",
+            case.case_id.as_str(),
+        ));
+    }
+    if !valid_identifier(&oracle.case_id) || oracle.case_id != case.case_id {
+        return Err(LocalizationEvaluationError::new(
+            "oracle_case_mismatch",
+            case.case_id.as_str(),
+        ));
+    }
+    if !valid_identifier(&oracle.network_id) || oracle.network_id != case.network_id {
+        return Err(LocalizationEvaluationError::new(
+            "oracle_network_mismatch",
+            case.case_id.as_str(),
+        ));
+    }
+    if !valid_identifier(&oracle.sensor_layout_id)
+        || oracle.sensor_layout_id != case.sensor_layout_id
+    {
+        return Err(LocalizationEvaluationError::new(
+            "oracle_sensor_layout_mismatch",
+            case.case_id.as_str(),
+        ));
+    }
+    if !valid_identifier(&oracle.hydraulic_model_ref)
+        || oracle.hydraulic_model_ref != case.hydraulic_model_ref
+    {
+        return Err(LocalizationEvaluationError::new(
+            "oracle_hydraulic_model_mismatch",
+            case.case_id.as_str(),
+        ));
+    }
+    if !valid_identifier(&oracle.observation_window_ref)
+        || oracle.observation_window_ref != case.observation_window_ref
+    {
+        return Err(LocalizationEvaluationError::new(
+            "oracle_observation_window_mismatch",
             case.case_id.as_str(),
         ));
     }
@@ -557,6 +633,8 @@ pub fn evaluate_localization(
     ordered_cases.sort_by(|left, right| left.case_id.cmp(&right.case_id));
 
     let mut case_ids = BTreeSet::new();
+    let mut oracle_receipt_refs = BTreeSet::new();
+    let mut prediction_receipt_refs = BTreeSet::new();
     let mut trusted_oracle_cases = 0;
     let mut oracle_top_k_feasible_cases = 0;
     let mut unique_pipe_cases = 0;
@@ -581,6 +659,18 @@ pub fn evaluate_localization(
             ));
         }
         validate_case(case)?;
+        if !oracle_receipt_refs.insert(case.observability.receipt_ref.as_str()) {
+            return Err(LocalizationEvaluationError::new(
+                "duplicate_oracle_receipt_ref",
+                case.observability.receipt_ref.as_str(),
+            ));
+        }
+        if !prediction_receipt_refs.insert(case.prediction_receipt_ref.as_str()) {
+            return Err(LocalizationEvaluationError::new(
+                "duplicate_prediction_receipt_ref",
+                case.prediction_receipt_ref.as_str(),
+            ));
+        }
 
         let resolution = case.observability.resolution;
         let trusted = resolution.has_trusted_pipe_set();
@@ -699,11 +789,19 @@ mod tests {
     }
 
     fn oracle(
+        case_id: &str,
         resolution: OracleResolution,
         candidates: &[&str],
         zone_id: Option<&str>,
     ) -> ObservabilityEvidence {
         ObservabilityEvidence {
+            owner_ref: "sol-atlas-observability-v1".to_owned(),
+            receipt_ref: format!("oracle-receipt-{case_id}"),
+            case_id: case_id.to_owned(),
+            network_id: "network-1".to_owned(),
+            sensor_layout_id: "layout-1".to_owned(),
+            hydraulic_model_ref: "hydraulic-model-1".to_owned(),
+            observation_window_ref: "window-1".to_owned(),
             resolution,
             candidate_pipe_ids: candidates.iter().map(|value| (*value).to_owned()).collect(),
             zone_id: zone_id.map(str::to_owned),
@@ -735,6 +833,10 @@ mod tests {
             case_id: case_id.to_owned(),
             network_id: "network-1".to_owned(),
             sensor_layout_id: "layout-1".to_owned(),
+            hydraulic_model_ref: "hydraulic-model-1".to_owned(),
+            observation_window_ref: "window-1".to_owned(),
+            model_ref: "candidate-model-1".to_owned(),
+            prediction_receipt_ref: format!("prediction-receipt-{case_id}"),
             network_pipe_ids: vec![
                 "pipe-a".to_owned(),
                 "pipe-b".to_owned(),
@@ -743,7 +845,7 @@ mod tests {
                 "pipe-e".to_owned(),
             ],
             truth_pipe_id: truth.to_owned(),
-            observability: oracle(resolution, candidates, zone_id),
+            observability: oracle(case_id, resolution, candidates, zone_id),
             ranked_pipe_ids: ranking.0,
             abstained: ranking.1,
             top_k_confidence_ppm: ranking.2,
