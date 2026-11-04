@@ -339,3 +339,78 @@ fn changing_kinematic_orientation_invalidates_the_old_receipt() {
     )
     .unwrap());
 }
+
+
+fn state_command(body: BodyHandle, x: f64) -> WorldCommand<3> {
+    WorldCommand::SetKinematicState {
+        body,
+        translation: Box::new(SVector::from([x, 0.0, 0.0])),
+        linear_velocity: Box::new(SVector::from([1.0, 0.0, 0.0])),
+    }
+}
+
+#[test]
+fn kinematic_translation_state_replays_in_a_fresh_world() {
+    let mut record_world = PhysicsWorld::<3>::default();
+    let actor = add_kinematic_actor(&mut record_world);
+    let mut tape = ReplayTape::<3>::default();
+    tape.push_frame(1.0 / 64.0, vec![state_command(actor, 0.125)]);
+    let context = evidence_context();
+    let receipt = execute_with_evidence(&mut record_world, &tape, &context).unwrap();
+    assert_eq!(record_world.body(actor).unwrap().position(), SVector::from([0.125, 0.0, 0.0]));
+
+    let mut replay_world = PhysicsWorld::<3>::default();
+    let replay_actor = add_kinematic_actor(&mut replay_world);
+    assert!(verify_replay_evidence(&mut replay_world, &tape, &context, &receipt).unwrap());
+    assert_eq!(replay_world.body(replay_actor).unwrap().position(), SVector::from([0.125, 0.0, 0.0]));
+}
+
+#[test]
+fn kinematic_translation_state_rejects_non_kinematic_body() {
+    let (mut world, handles) = build_world();
+    let before = WorldSnapshot::capture(&world);
+    let mut tape = ReplayTape::<3>::default();
+    tape.push_frame(1.0 / 64.0, vec![state_command(handles[0], 5.0)]);
+    assert_eq!(
+        execute_with_evidence(&mut world, &tape, &evidence_context()).unwrap_err(),
+        ReplayEvidenceError::ExpectedKinematicBody(handles[0])
+    );
+    assert_eq!(WorldSnapshot::capture(&world), before);
+}
+
+#[test]
+fn kinematic_translation_state_rejects_non_finite_values() {
+    let mut world = PhysicsWorld::<3>::default();
+    let actor = add_kinematic_actor(&mut world);
+    let before = WorldSnapshot::capture(&world);
+    let mut tape = ReplayTape::<3>::default();
+    tape.push_frame(
+        1.0 / 64.0,
+        vec![WorldCommand::SetKinematicState {
+            body: actor,
+            translation: Box::new(SVector::from([f64::NAN, 0.0, 0.0])),
+            linear_velocity: Box::new(SVector::from([1.0, 0.0, 0.0])),
+        }],
+    );
+    assert_eq!(
+        execute_with_evidence(&mut world, &tape, &evidence_context()).unwrap_err(),
+        ReplayEvidenceError::InvalidCommandValue
+    );
+    assert_eq!(WorldSnapshot::capture(&world), before);
+}
+
+#[test]
+fn changed_kinematic_translation_invalidates_old_receipt() {
+    let context = evidence_context();
+    let mut record_world = PhysicsWorld::<3>::default();
+    let actor = add_kinematic_actor(&mut record_world);
+    let mut original = ReplayTape::<3>::default();
+    original.push_frame(1.0 / 64.0, vec![state_command(actor, 0.125)]);
+    let receipt = execute_with_evidence(&mut record_world, &original, &context).unwrap();
+
+    let mut changed_world = PhysicsWorld::<3>::default();
+    let changed_actor = add_kinematic_actor(&mut changed_world);
+    let mut changed = ReplayTape::<3>::default();
+    changed.push_frame(1.0 / 64.0, vec![state_command(changed_actor, 0.25)]);
+    assert!(!verify_replay_evidence(&mut changed_world, &changed, &context, &receipt).unwrap());
+}
