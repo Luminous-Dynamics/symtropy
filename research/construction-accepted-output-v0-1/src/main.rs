@@ -1,5 +1,6 @@
 use construction_accepted_output::{
-    derive_report, read_json, schema_is_valid, validate_ledger, validate_profile_binding, validate_report,
+    derive_report, read_json, schema_is_valid, validate_ledger, validate_profile_binding,
+    validate_report,
 };
 use std::path::PathBuf;
 
@@ -60,9 +61,8 @@ fn main() {
         std::process::exit(1);
     }
 
-    let invalid_path = root.join(
-        "fixtures/invalid/uninspected-output-counted-as-accepted.synthetic.json",
-    );
+    let invalid_path =
+        root.join("fixtures/invalid/uninspected-output-counted-as-accepted.synthetic.json");
     let invalid = match read_json(&invalid_path) {
         Ok(value) => value,
         Err(error) => {
@@ -71,14 +71,17 @@ fn main() {
         }
     };
     let invalid_errors = validate_ledger(&schema, &invalid);
-    if !invalid_errors.iter().any(|error| {
-        error == "accepted_disposition_without_latest_accepted_inspection:p3"
-    }) {
+    if !invalid_errors
+        .iter()
+        .any(|error| error == "accepted_disposition_without_latest_accepted_inspection:p3")
+    {
         eprintln!("semantic_negative_control_not_rejected:{invalid_errors:?}");
         std::process::exit(1);
     }
 
-    println!("accepted_output|valid_fixture=pass|derived_report=pass|uninspected_as_accepted=reject");
+    println!(
+        "accepted_output|valid_fixture=pass|derived_report=pass|uninspected_as_accepted=reject"
+    );
     println!(
         "counts|attempted={}|first_pass_inspected={}|first_pass_accepted={}|finally_accepted={}|uninspected={}",
         report["derived_counts"]["attempted_units"],
