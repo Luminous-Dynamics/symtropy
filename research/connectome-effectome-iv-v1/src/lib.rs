@@ -726,7 +726,7 @@ mod tests {
         )
         .expect("two-instrument IV fit");
         assert!((result.iv_coefficient - 2.2).abs() < 0.05);
-        assert!(result.weak_first_stage == false);
+        assert!(!result.weak_first_stage);
         assert_eq!(
             result.instrument_ids,
             vec!["pulse-a".to_owned(), "pulse-b".to_owned()]
