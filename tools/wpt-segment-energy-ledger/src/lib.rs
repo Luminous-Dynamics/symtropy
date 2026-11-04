@@ -1096,7 +1096,14 @@ mod tests {
         ledger.idle_intervals[0].boundary_measurements[0].quantity.energy_wh = 20.0;
         let with_wait = ledger.evaluate().unwrap();
         assert_eq!(baseline.standard_route_segment_efficiency, with_wait.standard_route_segment_efficiency);
-        assert!(with_wait.grid_ac_to_battery_terminal_energy_ratio.input_energy_wh > baseline.grid_ac_to_battery_terminal_energy_ratio.input_energy_wh);
+        assert!(
+            with_wait
+                .grid_ac_to_battery_terminal_energy_ratio
+                .denominator_energy_wh
+                > baseline
+                    .grid_ac_to_battery_terminal_energy_ratio
+                    .denominator_energy_wh
+        );
         assert!(with_wait.total_idle_grid_input_wh > baseline.total_idle_grid_input_wh);
     }
 }
