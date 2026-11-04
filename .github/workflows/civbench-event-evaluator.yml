@@ -51,7 +51,8 @@ jobs:
           cargo fmt --manifest-path research/civbench-event-evaluator/Cargo.toml --all
           mkdir -p /tmp/civbench-event-evaluator-rustfmt
           cp -R research/civbench-event-evaluator/src /tmp/civbench-event-evaluator-rustfmt/src
-          git diff --no-ext-diff --unified=3 -- research/civbench-event-evaluator/src/ > /tmp/civbench-event-evaluator-rustfmt/rustfmt.diff
+          cp -R research/civbench-event-evaluator/tests /tmp/civbench-event-evaluator-rustfmt/tests
+          git diff --no-ext-diff --unified=3 -- research/civbench-event-evaluator/src/ research/civbench-event-evaluator/tests/ > /tmp/civbench-event-evaluator-rustfmt/rustfmt.diff
           test -s /tmp/civbench-event-evaluator-rustfmt/rustfmt.diff
 
       - name: Upload rustfmt diagnostic source
