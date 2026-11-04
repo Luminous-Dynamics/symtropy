@@ -28,6 +28,7 @@ HEADER = (
     "command_path", "command_bytes", "command_sha256",
     "diagnostic_path", "diagnostic_bytes", "diagnostic_sha256",
     "elapsed_monotonic_ns", "child_user_cpu_ns", "child_system_cpu_ns",
+    "peak_rss_bytes", "gpu_compute_ns", "energy_microjoules",
     "process_exit_code", "skip_detected", "summary_row_present", "trace_valid",
     "diagnostic_code", "receipt_sha256",
 )
@@ -135,7 +136,11 @@ def verify(receipt_csv: Path, receipt_root: Path) -> dict[str, object]:
     skip = bool_value(row["skip_detected"], "skip_detected")
     summary = bool_value(row["summary_row_present"], "summary_row_present")
     trace = bool_value(row["trace_valid"], "trace_valid")
-    exit_code = integer(row["process_exit_code"], "process_exit_code", optional=True)
+    exit_raw = row["process_exit_code"]
+    exit_code = None if exit_raw == "-" else int(exit_raw)
+    for name in ("elapsed_monotonic_ns", "child_user_cpu_ns", "child_system_cpu_ns",
+                 "peak_rss_bytes", "gpu_compute_ns", "energy_microjoules"):
+        integer(row[name], name, optional=True)
     evaluations = integer(row["objective_evaluation_count"], "objective_evaluation_count")
     initial = integer(row["initial_design_count"], "initial_design_count")
     feasible = integer(row["feasible_evaluation_count"], "feasible_evaluation_count")
