@@ -135,7 +135,8 @@
           "rate_includes_labor",
           "rate_includes_overhead",
           "included_cost_categories",
-          "evidence_refs"
+          "evidence_refs",
+          "entry_direction"
         ],
         "properties": {
           "entry_id": {
@@ -273,8 +274,57 @@
           },
           "notes": {
             "type": "string"
+          },
+          "entry_direction": {
+            "enum": [
+              "cost",
+              "credit"
+            ]
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "entry_direction": {
+                  "const": "credit"
+                }
+              },
+              "required": [
+                "entry_direction"
+              ]
+            },
+            "then": {
+              "properties": {
+                "category": {
+                  "const": "residual_value_credit"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "category": {
+                  "const": "residual_value_credit"
+                }
+              },
+              "required": [
+                "category"
+              ]
+            },
+            "then": {
+              "properties": {
+                "entry_direction": {
+                  "const": "credit"
+                }
+              },
+              "required": [
+                "entry_direction"
+              ]
+            }
+          }
+        ]
       }
     },
     "allocation_policies": {
