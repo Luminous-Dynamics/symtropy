@@ -9326,6 +9326,7 @@ dependencies = [
  "criterion",
  "nalgebra 0.34.2",
  "proptest",
+ "rayon",
  "serde",
  "symtropy-math",
 ]
