@@ -490,7 +490,7 @@ pub fn derive_report(ledger: &Value) -> Value {
     let metrics = vec![
         metric("first_pass_yield", first_pass_accepted as f64, first_pass_inspected as f64, "ratio"),
         metric("critical_feature_inspection_coverage", critical_first_pass_inspected_units as f64, critical_planned_units as f64, "ratio"),
-        metric("first_pass_critical_defects_per_critical_inspected_unit", first_pass_critical_defects as f64, critical_first_pass_inspected_units as f64, "defects_per_critical_unit"),
+        metric("first_pass_critical_defects_per_first_pass_inspected_unit", first_pass_critical_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit"),
         metric("first_pass_major_defects_per_first_pass_inspected_unit", first_pass_major_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit"),
         metric("first_pass_minor_defects_per_first_pass_inspected_unit", first_pass_minor_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit"),
         metric("final_acceptance_fraction", finally_accepted as f64, attempted_units as f64, "ratio"),
