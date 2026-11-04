@@ -1129,7 +1129,6 @@ mod tests {
         assert_eq!(disposition(value), "INVALID_INPUT");
     }
 
- 
     #[test]
     fn published_normalized_coupling_matrices_have_positive_rounding_margin() {
         const SOURCE: &str = include_str!(
