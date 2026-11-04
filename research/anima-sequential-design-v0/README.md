@@ -8,7 +8,7 @@ This crate does **not** implement a biological circuit, execute experiments, con
 
 The one-shot selector asks which intervention is informative under today's posterior. This crate asks which *permitted* intervention should come next after sequential evidence, subject to a frozen policy, finite budget, causal-validity preconditions, and a stop/abstain/model-revision contract.
 
-The policy does not control wet-lab hardware. The interface is an offline decision oracle until protocol review, delivery validation, ethics approval where applicable, and a separately qualified execution system exist.
+The policy does not control wet-lab hardware. Candidate costs must declare one shared comparable unit per decision manifest; mixed units are rejected. The interface is an offline decision oracle until protocol review, delivery validation, ethics approval where applicable, and a separately qualified execution system exist.
 
 ## Implemented surface
 
