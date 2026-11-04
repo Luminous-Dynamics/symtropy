@@ -13,8 +13,7 @@ use std::collections::BTreeMap;
 use crate::integrity::sha256_hex;
 
 pub const CGROUP_RESOURCE_SCHEMA: &str = "linux-cgroup-v2-resource-evidence/0.1.0";
-pub const CGROUP_RESOURCE_EVIDENCE_LEVEL: &str =
-    "raw_cgroup_v2_counter_snapshots_bound_to_process_tree_measure_cpu_and_peak_memory_not_gpu_or_energy";
+pub const CGROUP_RESOURCE_EVIDENCE_LEVEL: &str = "raw_cgroup_v2_counter_snapshots_bound_to_process_tree_measure_cpu_and_peak_memory_not_gpu_or_energy";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CgroupV2Snapshot {
@@ -73,13 +72,26 @@ fn parse_key_value_file(input: &str, label: &str) -> Result<BTreeMap<String, u64
             continue;
         };
         let Some(raw_value) = parts.next() else {
-            return Err(format!("{label} line {} is missing a value", line_number + 1));
+            return Err(format!(
+                "{label} line {} is missing a value",
+                line_number + 1
+            ));
         };
         if parts.next().is_some() {
-            return Err(format!("{label} line {} contains trailing fields", line_number + 1));
+            return Err(format!(
+                "{label} line {} contains trailing fields",
+                line_number + 1
+            ));
         }
-        if key.is_empty() || !key.bytes().all(|byte| byte.is_ascii_alphanumeric() || byte == b'_') {
-            return Err(format!("{label} line {} has an invalid key", line_number + 1));
+        if key.is_empty()
+            || !key
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+        {
+            return Err(format!(
+                "{label} line {} has an invalid key",
+                line_number + 1
+            ));
         }
         let value = raw_value
             .parse::<u64>()
@@ -91,11 +103,7 @@ fn parse_key_value_file(input: &str, label: &str) -> Result<BTreeMap<String, u64
     Ok(result)
 }
 
-fn required_counter(
-    values: &BTreeMap<String, u64>,
-    key: &str,
-    label: &str,
-) -> Result<u64, String> {
+fn required_counter(values: &BTreeMap<String, u64>, key: &str, label: &str) -> Result<u64, String> {
     values
         .get(key)
         .copied()
@@ -106,7 +114,9 @@ fn bool_counter(values: &BTreeMap<String, u64>, key: &str) -> Result<bool, Strin
     match required_counter(values, key, "cgroup.events")? {
         0 => Ok(false),
         1 => Ok(true),
-        value => Err(format!("cgroup.events {key} must be 0 or 1, observed {value}")),
+        value => Err(format!(
+            "cgroup.events {key} must be 0 or 1, observed {value}"
+        )),
     }
 }
 
@@ -335,17 +345,16 @@ pub fn derive_cgroup_v2_resource_report(
         .ok_or_else(|| "cgroup monotonic sample interval is zero or regressed".to_owned())?;
     let cpu_usage_usec = monotonic_delta(start.cpu_usage_usec, end.cpu_usage_usec, "usage_usec")?;
     let cpu_user_usec = monotonic_delta(start.cpu_user_usec, end.cpu_user_usec, "user_usec")?;
-    let cpu_system_usec = monotonic_delta(start.cpu_system_usec, end.cpu_system_usec, "system_usec")?;
+    let cpu_system_usec =
+        monotonic_delta(start.cpu_system_usec, end.cpu_system_usec, "system_usec")?;
     if end.memory_peak_bytes < start.memory_peak_bytes {
         return Err("memory.peak regressed or was reset during the operation".to_owned());
     }
     let oom_event_delta = monotonic_delta(start.oom_events, end.oom_events, "oom")?;
     let oom_kill_event_delta =
         monotonic_delta(start.oom_kill_events, end.oom_kill_events, "oom_kill")?;
-    let oom_group_kill_event_delta = match (
-        start.oom_group_kill_events,
-        end.oom_group_kill_events,
-    ) {
+    let oom_group_kill_event_delta = match (start.oom_group_kill_events, end.oom_group_kill_events)
+    {
         (Some(start), Some(end)) => Some(monotonic_delta(start, end, "oom_group_kill")?),
         (None, None) => None,
         _ => unreachable!("capability change was rejected above"),
@@ -432,7 +441,10 @@ pub fn cgroup_v2_resource_evidence_to_csv(
         row[9] = snapshot.memory_peak_bytes.to_string();
         row[10] = snapshot.oom_events.to_string();
         row[11] = snapshot.oom_kill_events.to_string();
-        row[12] = snapshot.oom_group_kill_events.map(|value| value.to_string()).unwrap_or_default();
+        row[12] = snapshot
+            .oom_group_kill_events
+            .map(|value| value.to_string())
+            .unwrap_or_default();
         row[13] = snapshot.populated.to_string();
         row[14] = snapshot.frozen.to_string();
         row[15] = snapshot.cpu_stat_sha256.clone();
@@ -458,7 +470,10 @@ pub fn cgroup_v2_resource_evidence_to_csv(
     row[29] = report.peak_memory_bytes.to_string();
     row[30] = report.oom_event_delta.to_string();
     row[31] = report.oom_kill_event_delta.to_string();
-    row[32] = report.oom_group_kill_event_delta.map(|value| value.to_string()).unwrap_or_default();
+    row[32] = report
+        .oom_group_kill_event_delta
+        .map(|value| value.to_string())
+        .unwrap_or_default();
     row[33] = report.start_snapshot_sha256.clone();
     row[34] = report.end_snapshot_sha256.clone();
     row[35] = report.evidence_level.clone();
@@ -472,7 +487,15 @@ pub fn cgroup_v2_resource_evidence_to_csv(
 mod tests {
     use super::*;
 
-    fn snapshot(time_ns: u64, cpu: u64, user: u64, system: u64, peak: u64, oom: u64, kill: u64) -> CgroupV2Snapshot {
+    fn snapshot(
+        time_ns: u64,
+        cpu: u64,
+        user: u64,
+        system: u64,
+        peak: u64,
+        oom: u64,
+        kill: u64,
+    ) -> CgroupV2Snapshot {
         parse_cgroup_v2_snapshot(
             "solver-operation-42",
             "memory-peak-reader-42",
@@ -483,14 +506,24 @@ mod tests {
             &format!("{peak}\n"),
             &format!("low 0\nhigh 0\nmax 0\noom {oom}\noom_kill {kill}\noom_group_kill 0\n"),
             "populated 0\nfrozen 0\n",
-        ).expect("parse cgroup snapshot fixture")
+        )
+        .expect("parse cgroup snapshot fixture")
     }
 
     #[test]
     fn derives_cpu_wall_peak_memory_and_oom_deltas() {
         let start = snapshot(1_000_000_000, 1_000_000, 800_000, 200_000, 0, 0, 0);
-        let end = snapshot(11_000_000_000, 6_000_000, 4_800_000, 1_200_000, 48_000_000, 1, 1);
-        let report = derive_cgroup_v2_resource_report(&start, &end).expect("derive resource report");
+        let end = snapshot(
+            11_000_000_000,
+            6_000_000,
+            4_800_000,
+            1_200_000,
+            48_000_000,
+            1,
+            1,
+        );
+        let report =
+            derive_cgroup_v2_resource_report(&start, &end).expect("derive resource report");
         assert_eq!(report.elapsed_wall_time_ns, 10_000_000_000);
         assert_eq!(report.cpu_usage_usec, 5_000_000);
         assert_eq!(report.cpu_user_usec, 4_000_000);
@@ -508,9 +541,11 @@ mod tests {
         active.populated = true;
         active.snapshot_sha256 =
             sha256_hex(&snapshot_canonical_bytes(&active)).expect("reseal active snapshot");
-        assert!(derive_cgroup_v2_resource_report(&start, &active)
-            .expect_err("active cgroup must reject")
-            .contains("empty"));
+        assert!(
+            derive_cgroup_v2_resource_report(&start, &active)
+                .expect_err("active cgroup must reject")
+                .contains("empty")
+        );
         let mut busy_start = snapshot(1_000, 0, 0, 0, 0, 0, 0);
         busy_start.populated = true;
         busy_start.snapshot_sha256 =
@@ -522,17 +557,21 @@ mod tests {
     fn rejects_counter_regression_identity_drift_and_memory_peak_reset() {
         let start = snapshot(1_000, 100, 80, 20, 0, 0, 0);
         let cpu_regressed = snapshot(2_000, 99, 79, 20, 1100, 0, 0);
-        assert!(derive_cgroup_v2_resource_report(&start, &cpu_regressed)
-            .expect_err("CPU counter reset must reject")
-            .contains("regressed"));
+        assert!(
+            derive_cgroup_v2_resource_report(&start, &cpu_regressed)
+                .expect_err("CPU counter reset must reject")
+                .contains("regressed")
+        );
 
         let mut wrong_id = snapshot(2_000, 200, 160, 40, 1200, 0, 0);
         wrong_id.cgroup_id = "other-operation".to_owned();
         wrong_id.snapshot_sha256 =
             sha256_hex(&snapshot_canonical_bytes(&wrong_id)).expect("reseal changed cgroup");
-        assert!(derive_cgroup_v2_resource_report(&start, &wrong_id)
-            .expect_err("cross-cgroup report must reject")
-            .contains("different cgroup"));
+        assert!(
+            derive_cgroup_v2_resource_report(&start, &wrong_id)
+                .expect_err("cross-cgroup report must reject")
+                .contains("different cgroup")
+        );
 
         let contaminated_baseline = snapshot(2_000, 200, 160, 40, 900, 0, 0);
         let same_cgroup_end = snapshot(3_000, 300, 240, 60, 1200, 0, 0);
@@ -545,28 +584,36 @@ mod tests {
 
     #[test]
     fn rejects_malformed_and_duplicate_kernel_counter_fields() {
-        assert!(parse_cgroup_v2_snapshot(
-            "x",
-            "reader-x",
-            0,
-            "rw,nosuid,nodev",
-            1,
-            "usage_usec 1\nuser_usec 1\n",
-            "10\n",
-            "oom 0\noom_kill 0\n",
-            "populated 0\nfrozen 0\n",
-        ).expect_err("missing system_usec").contains("system_usec"));
-        assert!(parse_cgroup_v2_snapshot(
-            "x",
-            "reader-x",
-            0,
-            "rw,nosuid,nodev",
-            1,
-            "usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n",
-            "10\n",
-            "oom 0\noom_kill 0\n",
-            "populated 0\nfrozen 0\n",
-        ).expect_err("duplicate CPU stat").contains("duplicate"));
+        assert!(
+            parse_cgroup_v2_snapshot(
+                "x",
+                "reader-x",
+                0,
+                "rw,nosuid,nodev",
+                1,
+                "usage_usec 1\nuser_usec 1\n",
+                "10\n",
+                "oom 0\noom_kill 0\n",
+                "populated 0\nfrozen 0\n",
+            )
+            .expect_err("missing system_usec")
+            .contains("system_usec")
+        );
+        assert!(
+            parse_cgroup_v2_snapshot(
+                "x",
+                "reader-x",
+                0,
+                "rw,nosuid,nodev",
+                1,
+                "usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n",
+                "10\n",
+                "oom 0\noom_kill 0\n",
+                "populated 0\nfrozen 0\n",
+            )
+            .expect_err("duplicate CPU stat")
+            .contains("duplicate")
+        );
     }
 
     #[test]
@@ -602,7 +649,15 @@ mod tests {
     #[test]
     fn independent_python_oracle_replays_cgroup_resource_evidence() {
         let start = snapshot(1_000_000_000, 1_000_000, 800_000, 200_000, 0, 0, 0);
-        let end = snapshot(11_000_000_000, 6_000_000, 4_800_000, 1_200_000, 48_000_000, 1, 1);
+        let end = snapshot(
+            11_000_000_000,
+            6_000_000,
+            4_800_000,
+            1_200_000,
+            48_000_000,
+            1,
+            1,
+        );
         let report = derive_cgroup_v2_resource_report(&start, &end).unwrap();
         let root = std::env::temp_dir().join(format!(
             "cgroup-v2-resource-oracle-{}-{}",
@@ -611,7 +666,11 @@ mod tests {
         ));
         std::fs::create_dir_all(&root).unwrap();
         let csv = root.join("resource.csv");
-        std::fs::write(&csv, cgroup_v2_resource_evidence_to_csv(&start, &end, &report)).unwrap();
+        std::fs::write(
+            &csv,
+            cgroup_v2_resource_evidence_to_csv(&start, &end, &report),
+        )
+        .unwrap();
         let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("scripts/verify-cgroup-v2-resource-independent.py");
         let output = std::process::Command::new("python3")
