@@ -112,7 +112,13 @@ def build_fixture(root: Path, wrong_x_shape: bool = False) -> Path:
         "peak_memory_bytes": None,
         "gpu_seconds": None,
         "energy_joules": None,
-        "metrics": {"objective_evaluation_count": 2},
+        "metrics": {
+            "objective_evaluation_count": 2,
+            "initial_design_count": 1,
+            "feasible_evaluation_count": 2,
+            "infeasible_evaluation_count": 0,
+            "feasible_evaluation_fraction": 1.0,
+        },
         "artifacts": artifacts,
     }
     receipt["receipt_sha256"] = sha(canonical(receipt))
