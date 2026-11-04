@@ -1563,7 +1563,7 @@ mod tests {
                                         "movement-presynaptic-released"
                                     }
                                 }
-                            },
+                            }
                             InterventionKind::Washout => {
                                 next_physical = if physical.carryover == PhysicalCarryover::Baseline
                                 {
@@ -1769,32 +1769,40 @@ mod tests {
     #[test]
     fn active_and_passive_probes_have_distinct_presynaptic_states_without_channel_loss() {
         let compiled = spec().compile().unwrap();
-        let initial = compiled.sensor_states.iter().find(|state| {
-            state.position_afferent == ChannelState::Intact
-                && state.movement_afferent == ChannelState::Intact
-                && state.vibration_afferent == ChannelState::Intact
-                && state.contact_feedback == ChannelState::Intact
-                && state.acquisition == AcquisitionState::Calibrated
-                && state.presynaptic_movement_inhibition
-                    == PresynapticMovementInhibition::Disinhibited
-        }).unwrap();
+        let initial = compiled
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Intact
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::Calibrated
+                    && state.presynaptic_movement_inhibition
+                        == PresynapticMovementInhibition::Disinhibited
+            })
+            .unwrap();
 
-        let active_row = compiled.row_index(
-            "central-rhythm-model",
-            "stance-nominal",
-            &initial.id,
-            "active-movement-probe",
-        ).unwrap();
-        let passive_row = compiled.row_index(
-            "central-rhythm-model",
-            "stance-nominal",
-            &initial.id,
-            "passive-movement-probe",
-        ).unwrap();
+        let active_row = compiled
+            .row_index(
+                "central-rhythm-model",
+                "stance-nominal",
+                &initial.id,
+                "active-movement-probe",
+            )
+            .unwrap();
+        let passive_row = compiled
+            .row_index(
+                "central-rhythm-model",
+                "stance-nominal",
+                &initial.id,
+                "passive-movement-probe",
+            )
+            .unwrap();
         let active_next =
             &compiled.sensor_states[compiled.kernel.rows[active_row].outcomes[0].next_sensor_state];
-        let passive_next =
-            &compiled.sensor_states[compiled.kernel.rows[passive_row].outcomes[0].next_sensor_state];
+        let passive_next = &compiled.sensor_states
+            [compiled.kernel.rows[passive_row].outcomes[0].next_sensor_state];
 
         assert_eq!(
             active_next.presynaptic_movement_inhibition,
@@ -1815,15 +1823,19 @@ mod tests {
     #[test]
     fn descending_modulation_uses_explicit_presynaptic_target_only() {
         let compiled = spec().compile().unwrap();
-        let initial = compiled.sensor_states.iter().find(|state| {
-            state.position_afferent == ChannelState::Intact
-                && state.movement_afferent == ChannelState::Intact
-                && state.vibration_afferent == ChannelState::Intact
-                && state.contact_feedback == ChannelState::Intact
-                && state.acquisition == AcquisitionState::Calibrated
-                && state.presynaptic_movement_inhibition
-                    == PresynapticMovementInhibition::Disinhibited
-        }).unwrap();
+        let initial = compiled
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Intact
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::Calibrated
+                    && state.presynaptic_movement_inhibition
+                        == PresynapticMovementInhibition::Disinhibited
+            })
+            .unwrap();
         for (action_id, expected) in [
             (
                 "descending-inhibition-engage",
@@ -1834,15 +1846,16 @@ mod tests {
                 PresynapticMovementInhibition::Disinhibited,
             ),
         ] {
-            let row = compiled.row_index(
-                "central-rhythm-model",
-                "stance-nominal",
-                &initial.id,
-                action_id,
-            ).unwrap();
-            let next = &compiled.sensor_states[
-                compiled.kernel.rows[row].outcomes[0].next_sensor_state
-            ];
+            let row = compiled
+                .row_index(
+                    "central-rhythm-model",
+                    "stance-nominal",
+                    &initial.id,
+                    action_id,
+                )
+                .unwrap();
+            let next =
+                &compiled.sensor_states[compiled.kernel.rows[row].outcomes[0].next_sensor_state];
             assert_eq!(next.presynaptic_movement_inhibition, expected);
             assert_eq!(next.movement_afferent, ChannelState::Intact);
             assert_eq!(next.position_afferent, ChannelState::Intact);
@@ -1858,23 +1871,28 @@ mod tests {
             PresynapticMovementInhibition::Disinhibited,
             PresynapticMovementInhibition::Engaged,
         ] {
-            let sensor = compiled.sensor_states.iter().find(|state| {
-                state.position_afferent == ChannelState::Intact
-                    && state.movement_afferent == ChannelState::Intact
-                    && state.vibration_afferent == ChannelState::Intact
-                    && state.contact_feedback == ChannelState::Intact
-                    && state.acquisition == AcquisitionState::Calibrated
-                    && state.presynaptic_movement_inhibition == inhibition
-            }).unwrap();
-            let row = compiled.row_index(
-                "central-rhythm-model",
-                "stance-nominal",
-                &sensor.id,
-                "movement-afferent-gate",
-            ).unwrap();
-            let next = &compiled.sensor_states[
-                compiled.kernel.rows[row].outcomes[0].next_sensor_state
-            ];
+            let sensor = compiled
+                .sensor_states
+                .iter()
+                .find(|state| {
+                    state.position_afferent == ChannelState::Intact
+                        && state.movement_afferent == ChannelState::Intact
+                        && state.vibration_afferent == ChannelState::Intact
+                        && state.contact_feedback == ChannelState::Intact
+                        && state.acquisition == AcquisitionState::Calibrated
+                        && state.presynaptic_movement_inhibition == inhibition
+                })
+                .unwrap();
+            let row = compiled
+                .row_index(
+                    "central-rhythm-model",
+                    "stance-nominal",
+                    &sensor.id,
+                    "movement-afferent-gate",
+                )
+                .unwrap();
+            let next =
+                &compiled.sensor_states[compiled.kernel.rows[row].outcomes[0].next_sensor_state];
             assert_eq!(next.movement_afferent, ChannelState::Gated);
             assert_eq!(next.presynaptic_movement_inhibition, inhibition);
         }
@@ -1883,9 +1901,11 @@ mod tests {
     #[test]
     fn descending_action_requires_an_explicit_target() {
         let mut input = spec();
-        let action = input.actions.iter_mut().find(|action| {
-            action.id == "descending-inhibition-engage"
-        }).unwrap();
+        let action = input
+            .actions
+            .iter_mut()
+            .find(|action| action.id == "descending-inhibition-engage")
+            .unwrap();
         action.presynaptic_inhibition_target = None;
         assert!(matches!(
             input.compile(),
