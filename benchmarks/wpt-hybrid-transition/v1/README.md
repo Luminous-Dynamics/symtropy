@@ -32,7 +32,7 @@ The separate non-generation inequality is:
 
     Delta H_total <= E_port,net + W_switch,net
 
-A PASSIVE_TRANSITION_CERTIFIED disposition requires both adjacent modes to carry PASSIVE_CERTIFIED receipts, a valid topology/state mapping, nonnegative declared dissipation, a complete energy-tank receipt when applicable, a residual interval fully contained by the declared decision tolerance, and no proven energy-generation violation.
+A PASSIVE_TRANSITION_CERTIFIED disposition requires both adjacent modes to carry PASSIVE_CERTIFIED receipts, a valid topology/state mapping, nonnegative declared dissipation, a complete energy-tank receipt when applicable, a residual interval fully contained by the declared decision tolerance, and the **entire conservative energy-generation interval** to remain at or below the floating-point guard. If the uncertainty interval still permits a positive energy jump, the result is ENERGY_GENERATION_UNRESOLVED rather than PASS. Deterministic synthetic fixtures use exact known-truth quantities; measurement uncertainty is exercised by separate abstention controls.
 
 A positive residual is never reinterpreted as an unknown source. A large negative residual is not silently called safe: it is ENERGY_BALANCE_UNRESOLVED until missing event loss or measurement boundaries are explained.
 
