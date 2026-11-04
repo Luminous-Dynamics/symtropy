@@ -1416,9 +1416,11 @@ pub fn rank_multivariate_interventions(
             candidate.predictions[0].metric_ids.clone(),
             candidate.predictions[0].unit_ids.clone(),
         );
-        if candidate.predictions.iter().any(|prediction| {
-            prediction.metric_ids != schema.0 || prediction.unit_ids != schema.1
-        }) {
+        if candidate
+            .predictions
+            .iter()
+            .any(|prediction| prediction.metric_ids != schema.0 || prediction.unit_ids != schema.1)
+        {
             return Err(BenchError::InconsistentOutcomeSchema {
                 intervention_id: candidate.intervention_id.clone(),
             });
@@ -1458,7 +1460,9 @@ pub fn rank_multivariate_interventions(
             prior_sum += prior.probability;
         }
         if prior_manifest.len() != model_ids.len()
-            || model_ids.iter().any(|model_id| !prior_manifest.contains_key(model_id))
+            || model_ids
+                .iter()
+                .any(|model_id| !prior_manifest.contains_key(model_id))
         {
             return Err(BenchError::ModelPriorSetMismatch);
         }
@@ -2639,13 +2643,8 @@ mod tests {
             ),
         ];
         let priors = equal_multivariate_priors(&predictions);
-        let candidate = multivariate_candidate(
-            "no-op-intervention",
-            1.0,
-            true,
-            predictions,
-            priors,
-        );
+        let candidate =
+            multivariate_candidate("no-op-intervention", 1.0, true, predictions, priors);
         assert_eq!(
             rank_multivariate_interventions(&[candidate], 1000, 7, 0.0),
             Err(BenchError::NoDiscriminatingIntervention)
@@ -2678,20 +2677,8 @@ mod tests {
             },
         ];
         let candidates = [
-            multivariate_candidate(
-                "candidate-a",
-                1.0,
-                false,
-                predictions.clone(),
-                equal_priors,
-            ),
-            multivariate_candidate(
-                "candidate-b",
-                1.0,
-                true,
-                predictions,
-                skewed_priors,
-            ),
+            multivariate_candidate("candidate-a", 1.0, false, predictions.clone(), equal_priors),
+            multivariate_candidate("candidate-b", 1.0, true, predictions, skewed_priors),
         ];
         assert_eq!(
             rank_multivariate_interventions(&candidates, 1000, 9, 0.0),
