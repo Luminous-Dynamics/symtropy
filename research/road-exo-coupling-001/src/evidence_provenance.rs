@@ -168,6 +168,7 @@ pub enum QualificationReason {
     MissingFormalDomain,
     UnsupportedEvidenceClass,
     IllustrativeOnlyCannotBeReference,
+    UseRoleMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -408,6 +409,15 @@ impl EvidencePacket {
             return (
                 GroundTruthEligibility::NotIdentified,
                 QualificationReason::IllustrativeOnlyCannotBeReference,
+            );
+        }
+        if !matches!(
+            self.use_role,
+            EvidenceUse::SealedTest | EvidenceUse::SafetyChallenge
+        ) {
+            return (
+                GroundTruthEligibility::NotIdentified,
+                QualificationReason::UseRoleMismatch,
             );
         }
 
@@ -833,6 +843,22 @@ mod tests {
             GroundTruthEligibility::NotIdentified
         );
         assert!(receipt.integrity_check());
+    }
+
+    #[test]
+    fn fit_and_calibration_data_cannot_qualify_as_sealed_reference() {
+        for use_role in [EvidenceUse::Fit, EvidenceUse::Calibration, EvidenceUse::DevelopmentValidation] {
+            let mut packet = factual_packet();
+            packet.use_role = use_role;
+            let receipt = packet.qualify_against(
+                &subject(),
+                QualificationTarget::FactualOutcome {
+                    action_id: id("continue"),
+                },
+            );
+            assert_eq!(receipt.eligibility, GroundTruthEligibility::NotIdentified);
+            assert_eq!(receipt.reason, QualificationReason::UseRoleMismatch);
+        }
     }
 
     #[test]
