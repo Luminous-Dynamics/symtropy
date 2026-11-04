@@ -107,11 +107,19 @@ impl fmt::Display for ValidationError {
             Self::EmptyMetricId => write!(f, "metric_id must not be empty"),
             Self::EmptyUnit => write!(f, "metric unit must not be empty"),
             Self::EmptyStratumId => write!(f, "stratum_id must not be empty"),
-            Self::UnitMismatch { side, expected, actual } => write!(
+            Self::UnitMismatch {
+                side,
+                expected,
+                actual,
+            } => write!(
                 f,
                 "{side} sample unit mismatch: expected {expected}, got {actual}"
             ),
-            Self::TooFewIndependentSamples { side, actual, minimum } => write!(
+            Self::TooFewIndependentSamples {
+                side,
+                actual,
+                minimum,
+            } => write!(
                 f,
                 "{side} has {actual} independent samples; at least {minimum} required"
             ),
@@ -121,7 +129,11 @@ impl fmt::Display for ValidationError {
             Self::DuplicateSampleId { side, sample_id } => {
                 write!(f, "{side} sample ID is duplicated: {sample_id}")
             }
-            Self::NonFiniteValue { side, sample_id, value } => write!(
+            Self::NonFiniteValue {
+                side,
+                sample_id,
+                value,
+            } => write!(
                 f,
                 "{side} sample {sample_id} has a non-finite value: {value}"
             ),
@@ -157,8 +169,7 @@ pub fn compare_metric(
         mean_delta_simulated_minus_observed: simulated_summary.mean - observed_summary.mean,
         p10_delta_simulated_minus_observed: simulated_summary.quantiles.p10
             - observed_summary.quantiles.p10,
-        median_delta_simulated_minus_observed: simulated_summary.median
-            - observed_summary.median,
+        median_delta_simulated_minus_observed: simulated_summary.median - observed_summary.median,
         p90_delta_simulated_minus_observed: simulated_summary.quantiles.p90
             - observed_summary.quantiles.p90,
         p99_delta_simulated_minus_observed: simulated_summary.quantiles.p99
@@ -224,7 +235,11 @@ fn validate_sample_set(
 }
 
 fn sorted_values(sample_set: &SampleSet) -> Vec<f64> {
-    let mut values = sample_set.samples.iter().map(|sample| sample.value).collect::<Vec<_>>();
+    let mut values = sample_set
+        .samples
+        .iter()
+        .map(|sample| sample.value)
+        .collect::<Vec<_>>();
     values.sort_by(f64::total_cmp);
     values
 }
@@ -287,7 +302,11 @@ fn kolmogorov_smirnov_distance(left: &[f64], right: &[f64]) -> f64 {
     while i < left.len() || j < right.len() {
         let next = match (left.get(i), right.get(j)) {
             (Some(a), Some(b)) => {
-                if a.total_cmp(b).is_le() { *a } else { *b }
+                if a.total_cmp(b).is_le() {
+                    *a
+                } else {
+                    *b
+                }
             }
             (Some(a), None) => *a,
             (None, Some(b)) => *b,
@@ -384,7 +403,10 @@ mod tests {
         assert_eq!(result.ks_distance, 0.0);
         assert_eq!(result.wasserstein_1, 0.0);
         assert_eq!(result.median_delta_simulated_minus_observed, 0.0);
-        assert_eq!(result.observed.mean_99_ci_half_width, result.simulated.mean_99_ci_half_width);
+        assert_eq!(
+            result.observed.mean_99_ci_half_width,
+            result.simulated.mean_99_ci_half_width
+        );
     }
 
     #[test]
@@ -424,7 +446,10 @@ mod tests {
     #[test]
     fn strata_remain_distinct_instead_of_being_pooled() {
         let observed = values_0_to_29();
-        let root_sim = observed.iter().map(|value| value + 10.0).collect::<Vec<_>>();
+        let root_sim = observed
+            .iter()
+            .map(|value| value + 10.0)
+            .collect::<Vec<_>>();
         let comment_sim = observed.clone();
 
         let root = compare_metric(
@@ -454,7 +479,10 @@ mod tests {
                 &set("obs", &values, "posts/day"),
                 &set("sim", &values, "users/day"),
             ),
-            Err(ValidationError::UnitMismatch { side: "simulated", .. })
+            Err(ValidationError::UnitMismatch {
+                side: "simulated",
+                ..
+            })
         ));
     }
 
@@ -477,11 +505,7 @@ mod tests {
         let mut duplicate = set("obs", &values, "posts/day");
         duplicate.samples[1].sample_id = duplicate.samples[0].sample_id.clone();
         assert!(matches!(
-            compare_metric(
-                metric("all"),
-                &duplicate,
-                &set("sim", &values, "posts/day"),
-            ),
+            compare_metric(metric("all"), &duplicate, &set("sim", &values, "posts/day"),),
             Err(ValidationError::DuplicateSampleId { .. })
         ));
 
