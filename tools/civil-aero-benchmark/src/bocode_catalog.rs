@@ -83,9 +83,13 @@ impl BoCoDeProblemClass {
             "so_discrete_constrained_extension" => Ok(Self::SingleObjectiveDiscreteConstrained),
             "mo_discrete_extension" => Ok(Self::MultiObjectiveDiscrete),
             "mo_discrete_constrained_extension" => Ok(Self::MultiObjectiveDiscreteConstrained),
-            "so_mixed_variable_constrained_extension" => Ok(Self::SingleObjectiveMixedVariableConstrained),
+            "so_mixed_variable_constrained_extension" => {
+                Ok(Self::SingleObjectiveMixedVariableConstrained)
+            }
             "mo_mixed_variable_extension" => Ok(Self::MultiObjectiveMixedVariable),
-            "mo_mixed_variable_constrained_extension" => Ok(Self::MultiObjectiveMixedVariableConstrained),
+            "mo_mixed_variable_constrained_extension" => {
+                Ok(Self::MultiObjectiveMixedVariableConstrained)
+            }
             _ => Err(format!("unsupported BOCoDe problem class {value}")),
         }
     }
@@ -101,9 +105,13 @@ impl BoCoDeProblemClass {
             Self::SingleObjectiveDiscreteConstrained => "so_discrete_constrained_extension",
             Self::MultiObjectiveDiscrete => "mo_discrete_extension",
             Self::MultiObjectiveDiscreteConstrained => "mo_discrete_constrained_extension",
-            Self::SingleObjectiveMixedVariableConstrained => "so_mixed_variable_constrained_extension",
+            Self::SingleObjectiveMixedVariableConstrained => {
+                "so_mixed_variable_constrained_extension"
+            }
             Self::MultiObjectiveMixedVariable => "mo_mixed_variable_extension",
-            Self::MultiObjectiveMixedVariableConstrained => "mo_mixed_variable_constrained_extension",
+            Self::MultiObjectiveMixedVariableConstrained => {
+                "mo_mixed_variable_constrained_extension"
+            }
         }
     }
 
@@ -115,40 +123,64 @@ impl BoCoDeProblemClass {
     ) -> Result<(), String> {
         let valid = match self {
             Self::SingleObjectiveUnconstrained => {
-                objectives == 1 && constraints == 0 && variable_type_class == BoCoDeVariableTypeClass::Continuous
+                objectives == 1
+                    && constraints == 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Continuous
             }
             Self::SingleObjectiveConstrained => {
-                objectives == 1 && constraints > 0 && variable_type_class == BoCoDeVariableTypeClass::Continuous
+                objectives == 1
+                    && constraints > 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Continuous
             }
             Self::MultiObjectiveUnconstrained => {
-                objectives > 1 && constraints == 0 && variable_type_class == BoCoDeVariableTypeClass::Continuous
+                objectives > 1
+                    && constraints == 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Continuous
             }
             Self::MultiObjectiveConstrained => {
-                objectives > 1 && constraints > 0 && variable_type_class == BoCoDeVariableTypeClass::Continuous
+                objectives > 1
+                    && constraints > 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Continuous
             }
             Self::SingleObjectiveMixedVariable => {
-                objectives == 1 && constraints == 0 && variable_type_class == BoCoDeVariableTypeClass::Mixed
+                objectives == 1
+                    && constraints == 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Mixed
             }
             Self::SingleObjectiveDiscrete => {
-                objectives == 1 && constraints == 0 && variable_type_class == BoCoDeVariableTypeClass::Discrete
+                objectives == 1
+                    && constraints == 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Discrete
             }
             Self::SingleObjectiveDiscreteConstrained => {
-                objectives == 1 && constraints > 0 && variable_type_class == BoCoDeVariableTypeClass::Discrete
+                objectives == 1
+                    && constraints > 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Discrete
             }
             Self::MultiObjectiveDiscrete => {
-                objectives > 1 && constraints == 0 && variable_type_class == BoCoDeVariableTypeClass::Discrete
+                objectives > 1
+                    && constraints == 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Discrete
             }
             Self::MultiObjectiveDiscreteConstrained => {
-                objectives > 1 && constraints > 0 && variable_type_class == BoCoDeVariableTypeClass::Discrete
+                objectives > 1
+                    && constraints > 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Discrete
             }
             Self::SingleObjectiveMixedVariableConstrained => {
-                objectives == 1 && constraints > 0 && variable_type_class == BoCoDeVariableTypeClass::Mixed
+                objectives == 1
+                    && constraints > 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Mixed
             }
             Self::MultiObjectiveMixedVariable => {
-                objectives > 1 && constraints == 0 && variable_type_class == BoCoDeVariableTypeClass::Mixed
+                objectives > 1
+                    && constraints == 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Mixed
             }
             Self::MultiObjectiveMixedVariableConstrained => {
-                objectives > 1 && constraints > 0 && variable_type_class == BoCoDeVariableTypeClass::Mixed
+                objectives > 1
+                    && constraints > 0
+                    && variable_type_class == BoCoDeVariableTypeClass::Mixed
             }
         };
         if !valid {
@@ -305,16 +337,14 @@ fn parse_bool(value: &str, field: &str, line_number: usize) -> Result<bool, Stri
     match value {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => Err(format!(
-            "line {line_number}: {field} must be true or false"
-        )),
+        _ => Err(format!("line {line_number}: {field} must be true or false")),
     }
 }
 
 fn parse_count(value: &str, field: &str, line_number: usize) -> Result<u32, String> {
-    value
-        .parse::<u32>()
-        .map_err(|error| format!("line {line_number}: {field} must be a non-negative integer: {error}"))
+    value.parse::<u32>().map_err(|error| {
+        format!("line {line_number}: {field} must be a non-negative integer: {error}")
+    })
 }
 
 fn append_u64(bytes: &mut Vec<u8>, value: u64) {
@@ -335,10 +365,7 @@ fn canonical_source_catalog_bytes(tasks: &[BoCoDeTaskRecord]) -> Vec<u8> {
     bytes
 }
 
-fn canonical_import_bytes(
-    context: &BoCoDeCatalogContext,
-    tasks: &[BoCoDeTaskRecord],
-) -> Vec<u8> {
+fn canonical_import_bytes(context: &BoCoDeCatalogContext, tasks: &[BoCoDeTaskRecord]) -> Vec<u8> {
     let mut bytes = Vec::new();
     for value in [
         BOCODE_CATALOG_SCHEMA,
@@ -385,7 +412,9 @@ fn validate_task(task: &BoCoDeTaskRecord, line_number: usize) -> Result<(), Stri
         }
         BoCoDeSourceReferenceStatus::Missing => {
             if !task.source_reference.is_empty() {
-                return Err(format!("line {line_number}: missing source state requires an empty source_reference"));
+                return Err(format!(
+                    "line {line_number}: missing source state requires an empty source_reference"
+                ));
             }
         }
     }
@@ -403,12 +432,13 @@ fn validate_task(task: &BoCoDeTaskRecord, line_number: usize) -> Result<(), Stri
             "line {line_number}: bounds, variable_types and metadata fields require SHA-256 digests"
         ));
     }
-    task.problem_class.validate(
-        task.num_objectives,
-        task.num_constraints,
-        task.variable_type_class,
-    )
-    .map_err(|error| format!("line {line_number}: {error}"))?;
+    task.problem_class
+        .validate(
+            task.num_objectives,
+            task.num_constraints,
+            task.variable_type_class,
+        )
+        .map_err(|error| format!("line {line_number}: {error}"))?;
     Ok(())
 }
 
@@ -416,12 +446,17 @@ impl BoCoDeCatalogReport {
     pub fn engineering_task_count(&self) -> usize {
         self.tasks
             .iter()
-            .filter(|task| task.application == BoCoDeApplication::Engineering && task.benchmark_set_member)
+            .filter(|task| {
+                task.application == BoCoDeApplication::Engineering && task.benchmark_set_member
+            })
             .count()
     }
 
     pub fn benchmark_set_task_count(&self) -> usize {
-        self.tasks.iter().filter(|task| task.benchmark_set_member).count()
+        self.tasks
+            .iter()
+            .filter(|task| task.benchmark_set_member)
+            .count()
     }
 
     pub fn to_csv(&self) -> String {
@@ -491,7 +526,9 @@ pub fn import_bocode_catalog_csv(
     for (index, raw_line) in lines.enumerate() {
         let line_number = index + 2;
         if raw_line.trim().is_empty() {
-            return Err(format!("line {line_number}: blank catalog records are not permitted"));
+            return Err(format!(
+                "line {line_number}: blank catalog records are not permitted"
+            ));
         }
         let fields = parse_csv_record(raw_line.trim_end_matches('\r'))
             .map_err(|error| format!("line {line_number}: {error}"))?;
@@ -535,7 +572,10 @@ pub fn import_bocode_catalog_csv(
                 task.problem_id
             ));
         }
-        if previous.as_ref().is_some_and(|value| value >= &task.problem_id) {
+        if previous
+            .as_ref()
+            .is_some_and(|value| value >= &task.problem_id)
+        {
             return Err(format!(
                 "line {line_number}: problem IDs must be in strict lexical order"
             ));
@@ -548,7 +588,9 @@ pub fn import_bocode_catalog_csv(
     }
     let source_catalog_sha256 = sha256_hex(&canonical_source_catalog_bytes(&tasks))?;
     if source_catalog_sha256 != context.source_catalog_sha256 {
-        return Err("source catalog digest does not match the task metadata digest inventory".to_owned());
+        return Err(
+            "source catalog digest does not match the task metadata digest inventory".to_owned(),
+        );
     }
     let import_sha256 = sha256_hex(&canonical_import_bytes(&context, &tasks))?;
     Ok(BoCoDeCatalogReport {
@@ -612,11 +654,46 @@ mod tests {
             "{BOCODE_CATALOG_CSV_HEADER}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
             row("car", "engineering", "so_constrained", 1, 3, "continuous"),
             row("cre21", "engineering", "mo_constrained", 2, 3, "continuous"),
-            row("hoip", "engineering", "so_discrete_extension", 1, 0, "discrete"),
-            row("re21", "engineering", "mo_unconstrained", 2, 0, "continuous"),
-            row("truss", "engineering", "so_unconstrained", 1, 0, "continuous"),
-            row("truss_mixed", "engineering", "so_mixed_variable", 1, 0, "mixed"),
-            row("vehicle_mixed_constrained", "engineering", "so_mixed_variable_constrained_extension", 1, 2, "mixed")
+            row(
+                "hoip",
+                "engineering",
+                "so_discrete_extension",
+                1,
+                0,
+                "discrete"
+            ),
+            row(
+                "re21",
+                "engineering",
+                "mo_unconstrained",
+                2,
+                0,
+                "continuous"
+            ),
+            row(
+                "truss",
+                "engineering",
+                "so_unconstrained",
+                1,
+                0,
+                "continuous"
+            ),
+            row(
+                "truss_mixed",
+                "engineering",
+                "so_mixed_variable",
+                1,
+                0,
+                "mixed"
+            ),
+            row(
+                "vehicle_mixed_constrained",
+                "engineering",
+                "so_mixed_variable_constrained_extension",
+                1,
+                2,
+                "mixed"
+            )
         )
     }
 
@@ -635,17 +712,20 @@ mod tests {
 
     #[test]
     fn preserves_unavailable_bounds_and_variable_types_without_guessing() {
-        let mut fields = parse_csv_record(
-            &row("mazda", "engineering", "mo_constrained", 5, 54, "continuous")
-        ).unwrap();
+        let mut fields = parse_csv_record(&row(
+            "mazda",
+            "engineering",
+            "mo_constrained",
+            5,
+            54,
+            "continuous",
+        ))
+        .unwrap();
         fields[8] = "unavailable".to_owned();
         fields[9] = sha256_hex(b"null").unwrap();
         fields[10] = "unavailable".to_owned();
         fields[11] = sha256_hex(b"null").unwrap();
-        let catalog = format!(
-            "{BOCODE_CATALOG_CSV_HEADER}\n{}\n",
-            fields.join(",")
-        );
+        let catalog = format!("{BOCODE_CATALOG_CSV_HEADER}\n{}\n", fields.join(","));
         let report = import_bocode_catalog_csv(
             &catalog,
             BoCoDeCatalogContext {
@@ -653,8 +733,12 @@ mod tests {
                 package_version: context().package_version,
                 source_catalog_sha256: source_catalog_sha256(&catalog),
             },
-        ).expect("unavailable fields remain explicit rather than guessed");
-        assert_eq!(report.tasks[0].bounds_state, BoCoDeFieldAvailability::Unavailable);
+        )
+        .expect("unavailable fields remain explicit rather than guessed");
+        assert_eq!(
+            report.tasks[0].bounds_state,
+            BoCoDeFieldAvailability::Unavailable
+        );
         assert_eq!(
             report.tasks[0].variable_types_state,
             BoCoDeFieldAvailability::Unavailable
@@ -678,9 +762,11 @@ mod tests {
             "{BOCODE_CATALOG_CSV_HEADER}\n{}\n",
             row("bad", "engineering", "so_unconstrained", 1, 1, "continuous")
         );
-        assert!(import_bocode_catalog_csv(&contradicted, context())
-            .unwrap_err()
-            .contains("contradicts"));
+        assert!(
+            import_bocode_catalog_csv(&contradicted, context())
+                .unwrap_err()
+                .contains("contradicts")
+        );
 
         let unknown = format!(
             "{BOCODE_CATALOG_CSV_HEADER}\n{}\n",
@@ -703,18 +789,36 @@ mod tests {
             row("car", "engineering", "so_unconstrained", 1, 0, "continuous"),
             row("car", "engineering", "so_unconstrained", 1, 0, "continuous")
         );
-        assert!(import_bocode_catalog_csv(&duplicate, context())
-            .unwrap_err()
-            .contains("duplicate"));
+        assert!(
+            import_bocode_catalog_csv(&duplicate, context())
+                .unwrap_err()
+                .contains("duplicate")
+        );
 
         let unsorted = format!(
             "{BOCODE_CATALOG_CSV_HEADER}\n{}\n{}\n",
-            row("zebra", "engineering", "so_unconstrained", 1, 0, "continuous"),
-            row("alpha", "engineering", "so_unconstrained", 1, 0, "continuous")
+            row(
+                "zebra",
+                "engineering",
+                "so_unconstrained",
+                1,
+                0,
+                "continuous"
+            ),
+            row(
+                "alpha",
+                "engineering",
+                "so_unconstrained",
+                1,
+                0,
+                "continuous"
+            )
         );
-        assert!(import_bocode_catalog_csv(&unsorted, context())
-            .unwrap_err()
-            .contains("lexical order"));
+        assert!(
+            import_bocode_catalog_csv(&unsorted, context())
+                .unwrap_err()
+                .contains("lexical order")
+        );
 
         let missing_source = format!(
             "{BOCODE_CATALOG_CSV_HEADER}\n{}\n",
@@ -729,7 +833,7 @@ mod tests {
                 source_catalog_sha256: source_catalog_sha256(&missing_source),
             },
         )
-            .expect("missing upstream citations are retained explicitly");
+        .expect("missing upstream citations are retained explicitly");
         assert_eq!(
             missing_source_report.tasks[0].source_reference_state,
             BoCoDeSourceReferenceStatus::Missing
@@ -745,10 +849,7 @@ mod tests {
         let wrong_version = fixture().replace(BOCODE_CATALOG_CSV_HEADER, "id,domain");
         assert!(import_bocode_catalog_csv(&wrong_version, context()).is_err());
 
-        let extra_column = fixture().replace(
-            ",none\n",
-            ",none,unexpected\n",
-        );
+        let extra_column = fixture().replace(",none\n", ",none,unexpected\n");
         assert!(import_bocode_catalog_csv(&extra_column, context()).is_err());
     }
 
@@ -760,10 +861,8 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("clock after epoch")
             .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "bocode-catalog-{}-{nonce}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("bocode-catalog-{}-{nonce}", std::process::id()));
         std::fs::create_dir_all(&root).unwrap();
         let csv_path = root.join("catalog.csv");
         std::fs::write(&csv_path, fixture()).unwrap();
