@@ -329,11 +329,15 @@ impl Model {
         }
         if command.context_age_ns > self.freshness_policy.max_context_age_ns {
             self.mark_context_stale();
-            return Err(GuardError::CommandNotAuthorized("context_age_exceeds_policy"));
+            return Err(GuardError::CommandNotAuthorized(
+                "context_age_exceeds_policy",
+            ));
         }
         if command.clock_uncertainty_ns > self.freshness_policy.max_clock_uncertainty_ns {
             self.mark_context_stale();
-            return Err(GuardError::CommandNotAuthorized("clock_uncertainty_exceeds_policy"));
+            return Err(GuardError::CommandNotAuthorized(
+                "clock_uncertainty_exceeds_policy",
+            ));
         }
         let current = self
             .current_epoch
@@ -438,11 +442,7 @@ mod tests {
         }
     }
 
-    fn qualify(
-        model: &mut Model,
-        epoch_digest: &str,
-        config: &str,
-    ) -> Result<(), GuardError> {
+    fn qualify(model: &mut Model, epoch_digest: &str, config: &str) -> Result<(), GuardError> {
         let proof = proof(model, epoch_digest, config);
         model.requalify(proof, true)
     }
@@ -660,7 +660,8 @@ mod tests {
             m.requalify(old_proof, true),
             Err(GuardError::StaleRevalidationProof)
         );
-        m.accept_epoch(epoch(2, C, Some(B)), true).expect("authenticated current epoch");
+        m.accept_epoch(epoch(2, C, Some(B)), true)
+            .expect("authenticated current epoch");
         qualify(&mut m, C, A).expect("fresh current-context proof");
         assert_eq!(*m.state(), State::Active);
     }
@@ -838,14 +839,11 @@ mod tests {
     }
 }
 
-
 #[cfg(test)]
 mod frozen_scenario_tests {
     use serde::Deserialize;
 
-    use super::{
-        CommandBinding, Epoch, FreshnessPolicy, Model, Qualification, State,
-    };
+    use super::{CommandBinding, Epoch, FreshnessPolicy, Model, Qualification, State};
 
     const ORDERED: &str = include_str!(
         "../../../../research/construction-worksite-epoch-transition-benchmark-v0-1/scenarios/ordered-epoch-change.json"
@@ -928,9 +926,7 @@ mod frozen_scenario_tests {
         let expected_result = match expected {
             "accepted" | "activated" | "authorized" => true,
             "rejected" | "denied" => false,
-            other => panic!(
-                "scenario {scenario} event {index}: unknown expected result {other}"
-            ),
+            other => panic!("scenario {scenario} event {index}: unknown expected result {other}"),
         };
         assert_eq!(
             actual, expected_result,
@@ -953,8 +949,7 @@ mod frozen_scenario_tests {
     fn replay_scenario(raw: &str) {
         let scenario: Scenario = serde_json::from_str(raw).expect("strict scenario JSON");
         assert_eq!(
-            scenario.schema_version,
-            "construction-worksite-epoch-scenario/0.1",
+            scenario.schema_version, "construction-worksite-epoch-scenario/0.1",
             "scenario {} schema version",
             scenario.scenario_id
         );
@@ -1022,12 +1017,7 @@ mod frozen_scenario_tests {
                         },
                         accepted_by_upstream,
                     );
-                    expected_bool(
-                        &scenario.scenario_id,
-                        index,
-                        result.is_ok(),
-                        &expected,
-                    );
+                    expected_bool(&scenario.scenario_id, index, result.is_ok(), &expected);
                 }
                 ScenarioEvent::Command {
                     epoch_digest,
@@ -1048,12 +1038,7 @@ mod frozen_scenario_tests {
                         timebase_id,
                         now_monotonic_ns,
                     });
-                    expected_bool(
-                        &scenario.scenario_id,
-                        index,
-                        result.is_ok(),
-                        &expected,
-                    );
+                    expected_bool(&scenario.scenario_id, index, result.is_ok(), &expected);
                 }
                 ScenarioEvent::CommunicationsLost => model.communications_lost(),
                 ScenarioEvent::CommunicationsRestored => model.communications_restored(),
@@ -1064,12 +1049,7 @@ mod frozen_scenario_tests {
                     expected,
                 } => {
                     let result = model.configuration_changed(new_digest);
-                    expected_bool(
-                        &scenario.scenario_id,
-                        index,
-                        result.is_ok(),
-                        &expected,
-                    );
+                    expected_bool(&scenario.scenario_id, index, result.is_ok(), &expected);
                 }
             }
         }
@@ -1108,8 +1088,7 @@ mod frozen_scenario_tests {
         jsonschema::draft202012::meta::validate(&schema)
             .expect("scenario schema must be valid Draft 2020-12");
 
-        let validator = jsonschema::draft202012::new(&schema)
-            .expect("compile scenario schema");
+        let validator = jsonschema::draft202012::new(&schema).expect("compile scenario schema");
         for (name, raw) in [
             ("ordered", ORDERED),
             ("replay", REPLAY),
