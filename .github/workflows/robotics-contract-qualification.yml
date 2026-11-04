@@ -54,3 +54,9 @@ jobs:
 
       - name: Test robotics bridge core
         run: cargo test --locked -p symtropy-robotics-bridge-core --all-targets
+
+      - name: Clippy construction coverage gate
+        run: cargo clippy --locked -p symtropy-construction-coverage-gate --all-targets -- -D warnings
+
+      - name: Test construction coverage gate
+        run: cargo test --locked -p symtropy-construction-coverage-gate --all-targets
