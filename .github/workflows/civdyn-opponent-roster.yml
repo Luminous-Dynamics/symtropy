@@ -1,0 +1,128 @@
+name: CivDyn opponent-roster meta-game reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-opponent-roster/**"
+      - ".github/workflows/civdyn-opponent-roster.yml"
+  push:
+    paths:
+      - "research/civdyn-opponent-roster/**"
+      - ".github/workflows/civdyn-opponent-roster.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute opponent-roster meta-game
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-opponent-roster/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-opponent-roster/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-opponent-roster/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-opponent-roster/Cargo.toml --all-targets
+
+      - name: Execute opponent-roster and regret sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-ntg-evidence
+          cargo run --locked --manifest-path research/civdyn-opponent-roster/Cargo.toml --bin opponent-roster-sweep \
+            | tee target/civdyn-ntg-evidence/opponent-roster-sweep.csv
+
+      - name: Verify roster reversals, cycles and regret certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/civdyn-ntg-evidence/opponent-roster-sweep.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+          assert len(rows) == 27, f"expected 27 records, got {len(rows)}"
+          assert all(len(row) == 21 for row in rows)
+
+          scores = {
+              (row["roster_id"], row["strategy"]): row
+              for row in rows if row["record_type"] == "roster_score"
+          }
+          expected_winners = {
+              "rock_heavy": "paper",
+              "paper_heavy": "scissors",
+              "scissors_heavy": "rock",
+          }
+          for roster, winner in expected_winners.items():
+              ranked = sorted(
+                  (row for (roster_id, _), row in scores.items() if roster_id == roster),
+                  key=lambda row: int(row["rank"]),
+              )
+              assert ranked[0]["strategy"] == winner, f"{roster} winner should be {winner}"
+
+          balanced = [row for (roster_id, _), row in scores.items() if roster_id == "balanced"]
+          assert all(abs(float(row["expected_payoff"])) < 1e-12 for row in balanced)
+
+          graphs = [row for row in rows if row["record_type"] == "invasion_graph"]
+          assert len(graphs) == 4
+          assert all(row["invasion_edge_count"] == "3" for row in graphs)
+          assert all(row["three_cycle_count"] == "1" for row in graphs)
+
+          cycles = [row for row in rows if row["record_type"] == "invasion_cycle"]
+          assert len(cycles) == 4
+          assert all(
+              {row["cycle_strategy_a"], row["cycle_strategy_b"], row["cycle_strategy_c"]}
+              == {"rock", "paper", "scissors"}
+              for row in cycles
+          )
+
+          correlations = {
+              (row["roster_id"], row["comparison_roster"]): row["spearman_rho"]
+              for row in rows if row["record_type"] == "rank_correlation"
+          }
+          assert abs(float(correlations[("rock_heavy", "paper_heavy")]) + 0.5) < 1e-12
+
+          certificate = next(row for row in rows if row["record_type"] == "regret_certificate")
+          regret = float(certificate["actual_regret"])
+          bound = float(certificate["certificate_upper_bound"])
+          assert certificate["predicted_best_response"] == "paper"
+          assert certificate["actual_best_response"] == "scissors"
+          assert abs(regret - 0.7) < 1e-12
+          assert abs(float(certificate["opponent_distribution_l1_error"]) - 1.4) < 1e-12
+          assert abs(bound - 2.8) < 1e-12
+          assert regret <= bound
+
+          print("CIVDYN-NTG-001 roster rank reversals, non-transitive cycle, Spearman and regret certificate verified.")
+          PY
+
+          {
+            echo "## CIVDYN-NTG-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-ntg-evidence/opponent-roster-sweep.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: exact synthetic RPS reference only"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload opponent-roster evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-opponent-roster-sweep
+          path: target/civdyn-ntg-evidence/opponent-roster-sweep.csv
+          if-no-files-found: error
+          retention-days: 30
