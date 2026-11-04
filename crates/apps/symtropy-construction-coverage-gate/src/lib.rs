@@ -537,6 +537,89 @@ mod tests {
         }
     }
 
+    fn support_map_value(
+        assessment: &SurveyCoverageAssessmentV1,
+    ) -> SurveyControlCoverageMapV1 {
+        let mut cells = Vec::with_capacity(assessment.total_cell_count as usize);
+        for index in 0..assessment.total_cell_count {
+            let (
+                disposition,
+                local_index,
+                category_count,
+                category_area,
+                critical_count,
+            ) = if index < assessment.supported_cell_count {
+                (
+                    SurveyCoverageCellDispositionV1::Supported,
+                    index,
+                    assessment.supported_cell_count,
+                    assessment.supported_area_m2,
+                    assessment.critical_supported_cell_count,
+                )
+            } else if index
+                < assessment.supported_cell_count + assessment.unsupported_cell_count
+            {
+                (
+                    SurveyCoverageCellDispositionV1::Unsupported,
+                    index - assessment.supported_cell_count,
+                    assessment.unsupported_cell_count,
+                    assessment.unsupported_area_m2,
+                    assessment.critical_unsupported_cell_count,
+                )
+            } else {
+                (
+                    SurveyCoverageCellDispositionV1::Unmeasured,
+                    index - assessment.supported_cell_count - assessment.unsupported_cell_count,
+                    assessment.unmeasured_cell_count,
+                    assessment.unmeasured_area_m2,
+                    assessment.critical_unmeasured_cell_count,
+                )
+            };
+            let area_m2 = if category_count == 0 {
+                0.0
+            } else {
+                category_area / category_count as f64
+            };
+            let measured = disposition != SurveyCoverageCellDispositionV1::Unmeasured;
+            cells.push(SurveyCoverageCellV1 {
+                cell_id: format!("cell-{index:06}"),
+                area_m2,
+                critical: local_index < critical_count,
+                disposition,
+                support_gap_m: measured.then_some(assessment.maximum_support_gap_m),
+                distance_to_control_m: measured
+                    .then_some(assessment.maximum_support_distance_m),
+                local_control_density_per_m2: measured
+                    .then_some(assessment.minimum_local_control_density_per_m2),
+                local_u95_m: measured.then_some(assessment.maximum_local_u95_m),
+            });
+        }
+        SurveyControlCoverageMapV1 {
+            schema_version: SURVEY_CONTROL_COVERAGE_MAP_SCHEMA_VERSION,
+            task_footprint_sha256: assessment.task_footprint_artifact.sha256.clone(),
+            control_domain_sha256: assessment.control_domain_artifact.sha256.clone(),
+            worksite_epoch_sha256: assessment.worksite_epoch_sha256.clone(),
+            target_frame_id: assessment.target_frame_id.clone(),
+            support_domain_method_id: assessment.support_domain_method_id.clone(),
+            uncertainty_method_id: assessment.uncertainty_method_id.clone(),
+            cells,
+        }
+    }
+
+    fn verified_support_map(
+        assessment: &SurveyCoverageAssessmentV1,
+    ) -> VerifiedSurveyControlCoverageMapV1 {
+        let support_map = support_map_value(assessment);
+        let bytes = serde_json::to_vec(&support_map).expect("support map serializes");
+        let source_artifact = ArtifactRef {
+            artifact_id: "support-map".to_owned(),
+            uri: "coverage-test://support-map".to_owned(),
+            sha256: format!("{:x}", Sha256::digest(&bytes)),
+        };
+        VerifiedSurveyControlCoverageMapV1::decode_verified_json(&bytes, source_artifact)
+            .expect("support map exact bytes verify")
+    }
+
     fn assessment() -> SurveyCoverageAssessmentV1 {
         let footprint = artifact("task-footprint", b"task polygon bytes");
         let domain = artifact("control-domain", b"qualified support domain bytes");
