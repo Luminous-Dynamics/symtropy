@@ -348,7 +348,7 @@ pub fn allocate(
             None => true,
             Some(current) => {
                 compare_candidates(problem, policy, &candidate, current) == Ordering::Greater
-            },
+            }
         };
         if replace {
             best = Some(candidate);
