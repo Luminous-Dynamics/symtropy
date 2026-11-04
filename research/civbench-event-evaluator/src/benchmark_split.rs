@@ -384,6 +384,19 @@ pub fn audit_benchmark_split(
         }
     }
 
+    for partition in [
+        DataPartition::Train,
+        DataPartition::Validation,
+        DataPartition::Test,
+    ] {
+        if partition_counts.get(&partition).copied().unwrap_or_default() == 0 {
+            return Err(SplitAuditError::new(
+                "empty_partition",
+                partition.as_str(),
+            ));
+        }
+    }
+
     let all_partitions = BTreeSet::from([
         DataPartition::Train,
         DataPartition::Validation,
@@ -399,19 +412,6 @@ pub fn audit_benchmark_split(
             return Err(SplitAuditError::new(
                 "no_common_group_across_partitions",
                 dimension.as_str(),
-            ));
-        }
-    }
-
-    for partition in [
-        DataPartition::Train,
-        DataPartition::Validation,
-        DataPartition::Test,
-    ] {
-        if partition_counts.get(&partition).copied().unwrap_or_default() == 0 {
-            return Err(SplitAuditError::new(
-                "empty_partition",
-                partition.as_str(),
             ));
         }
     }
