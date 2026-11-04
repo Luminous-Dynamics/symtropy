@@ -526,15 +526,16 @@ fn validate_action_transition_semantics(
     next_physical: &PhysicalState,
     next_sensor: &SensorState,
 ) -> Result<(), AdapterError> {
-    let preserve_non_target_channels = |position_target: bool,
-                                        movement_target: bool,
-                                        vibration_target: bool| {
-        (position_target || current_sensor.position_afferent == next_sensor.position_afferent)
-            && (movement_target || current_sensor.movement_afferent == next_sensor.movement_afferent)
-            && (vibration_target || current_sensor.vibration_afferent == next_sensor.vibration_afferent)
-            && current_sensor.contact_feedback == next_sensor.contact_feedback
-            && current_sensor.acquisition == next_sensor.acquisition
-    };
+    let preserve_non_target_channels =
+        |position_target: bool, movement_target: bool, vibration_target: bool| {
+            (position_target || current_sensor.position_afferent == next_sensor.position_afferent)
+                && (movement_target
+                    || current_sensor.movement_afferent == next_sensor.movement_afferent)
+                && (vibration_target
+                    || current_sensor.vibration_afferent == next_sensor.vibration_afferent)
+                && current_sensor.contact_feedback == next_sensor.contact_feedback
+                && current_sensor.acquisition == next_sensor.acquisition
+        };
 
     let reason = match action.kind {
         InterventionKind::PositionAfferentPerturbation => {
@@ -1323,13 +1324,14 @@ mod tests {
                             }
                             InterventionKind::DescendingPathwayModulation => "load-shifted",
                             InterventionKind::Washout => {
-                                next_physical = if physical.carryover == PhysicalCarryover::Baseline {
+                                next_physical = if physical.carryover == PhysicalCarryover::Baseline
+                                {
                                     physical.id.clone()
                                 } else {
                                     "stance-nominal".to_owned()
                                 };
                                 "load-shifted"
-                            },
+                            }
                         };
                         let _next_sensor_index = sensor_index(&sensor_states, &next_sensor);
                         transition_rows.push(JointTransitionRow {
