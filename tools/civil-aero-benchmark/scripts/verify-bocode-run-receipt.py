@@ -62,6 +62,10 @@ def parse_npy_header(data: bytes) -> tuple[tuple[int, ...], str, int]:
     shape = header.get("shape")
     descr = header.get("descr")
     require(
+        header.get("fortran_order") is False,
+        "Fortran-order NumPy arrays are not supported by the independent trace replay",
+    )
+    require(
         isinstance(shape, tuple) and all(isinstance(x, int) and x >= 0 for x in shape),
         "NumPy shape is malformed",
     )
