@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-task-graph-v0.1.schema.json",
+  "title": "Construction Task Graph V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "graph_id",
+    "project_id",
+    "site_id",
+    "work_package_id",
+    "model_digest",
+    "design_revision",
+    "target_frame_id",
+    "site_epoch",
+    "method_template_id",
+    "method_revision_digest",
+    "method_approval_ref",
+    "compiler_version",
+    "rule_set_digest",
+    "nodes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "graph_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "work_package_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "design_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_epoch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "method_template_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "method_revision_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "method_approval_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "compiler_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rule_set_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/task_node"
+      }
+    }
+  },
+  "$defs": {
+    "parameter_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "value",
+        "unit",
+        "source_ref"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "task_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "source_element_ids",
+        "method_step_id",
+        "transformation_rule_id",
+        "transformation_rule_digest",
+        "functional_unit_class",
+        "dependencies",
+        "parameters",
+        "required_capabilities",
+        "preconditions",
+        "postconditions",
+        "required_evidence"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_element_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "method_step_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transformation_rule_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transformation_rule_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functional_unit_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependencies": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter_binding"
+          }
+        },
+        "required_capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "preconditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "postconditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
