@@ -85,6 +85,7 @@ fn valid_digest(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
+#[derive(Clone)]
 pub struct Model {
     task_scope: String,
     configuration_digest: String,
@@ -680,6 +681,148 @@ mod tests {
             m.requalify(missing_clock, true),
             Err(GuardError::QualificationEvidenceNotAccepted)
         );
+    }
+
+    #[test]
+    fn bounded_event_sequences_preserve_active_lease_invariants() {
+        // Exhaust all action sequences of length four over eleven event classes.
+        // This checks 11^4 = 14,641 bounded traces (plus every prefix).
+        const DEPTH: usize = 4;
+        const ACTIONS: usize = 11;
+
+        fn assert_invariants(model: &mut Model) {
+            if model.state == State::Active {
+                let current = model.current_epoch.as_ref().expect("active requires an epoch");
+                let proof = model.qualification.as_ref().expect("active requires qualification");
+                assert!(model.communications_available, "active requires communications");
+                assert_eq!(proof.epoch_digest, current.digest);
+                assert_eq!(proof.configuration_digest, model.configuration_digest);
+                assert_eq!(proof.task_scope, model.task_scope);
+                assert_eq!(proof.revalidation_generation, model.invalidation_generation);
+                assert_eq!(proof.timebase_id, model.timebase_id);
+                assert!(proof.valid_until_monotonic_ns > proof.issued_at_monotonic_ns);
+                assert!(
+                    proof.valid_until_monotonic_ns - proof.issued_at_monotonic_ns
+                        <= model.freshness_policy.max_qualification_lease_ns
+                );
+                let valid = CommandBinding {
+                    epoch_digest: current.digest.clone(),
+                    configuration_digest: model.configuration_digest.clone(),
+                    task_scope: model.task_scope.clone(),
+                    context_age_ns: 0,
+                    clock_uncertainty_ns: 0,
+                    timebase_id: model.timebase_id.clone(),
+                    now_monotonic_ns: proof.issued_at_monotonic_ns,
+                };
+                assert_eq!(model.authorize(&valid), Ok(()));
+            } else if let Some(current) = model.current_epoch.as_ref() {
+                let denied = CommandBinding {
+                    epoch_digest: current.digest.clone(),
+                    configuration_digest: model.configuration_digest.clone(),
+                    task_scope: model.task_scope.clone(),
+                    context_age_ns: 0,
+                    clock_uncertainty_ns: 0,
+                    timebase_id: model.timebase_id.clone(),
+                    now_monotonic_ns: 1_500,
+                };
+                assert!(model.authorize(&denied).is_err());
+            }
+        }
+
+        fn walk(model: Model, remaining: usize, visited: &mut usize) {
+            *visited += 1;
+            let mut checked = model.clone();
+            assert_invariants(&mut checked);
+            if remaining == 0 {
+                return;
+            }
+
+            for action in 0..ACTIONS {
+                let mut next = model.clone();
+                match action {
+                    // Accept the next correctly linked context epoch.
+                    0 => {
+                        let (revision, predecessor) = match next.current_epoch.as_ref() {
+                            Some(current) => (
+                                current.revision.checked_add(1).unwrap_or(current.revision),
+                                Some(current.digest.clone()),
+                            ),
+                            None => (1, None),
+                        };
+                        let digest = format!("{:064x}", revision.saturating_add(0x1000));
+                        let _ = next.accept_epoch(
+                            epoch(revision, &digest, predecessor.as_deref()),
+                            true,
+                        );
+                    }
+                    1 => next.mark_context_stale(),
+                    2 => next.communications_lost(),
+                    3 => next.communications_restored(),
+                    4 => next.operator_acknowledged(),
+                    5 => {
+                        let replacement = if next.configuration_digest == A { C } else { A };
+                        let _ = next.configuration_changed(replacement.to_owned());
+                    }
+                    6 => {
+                        if let Some(current) = next.current_epoch.as_ref() {
+                            let digest = current.digest.clone();
+                            let config = next.configuration_digest.clone();
+                            let _ = qualify(&mut next, &digest, &config);
+                        }
+                    }
+                    7 => {
+                        if let Some(current) = next.current_epoch.as_ref() {
+                            let binding = CommandBinding {
+                                epoch_digest: current.digest.clone(),
+                                configuration_digest: next.configuration_digest.clone(),
+                                task_scope: next.task_scope.clone(),
+                                context_age_ns: 0,
+                                clock_uncertainty_ns: 0,
+                                timebase_id: next.timebase_id.clone(),
+                                now_monotonic_ns: 1_500,
+                            };
+                            let _ = next.authorize(&binding);
+                        }
+                    }
+                    8 => next.abort("bounded_sequence_abort"),
+                    9 => {
+                        let (revision, predecessor) = match next.current_epoch.as_ref() {
+                            Some(current) => (
+                                current.revision.saturating_add(1),
+                                Some(current.digest.clone()),
+                            ),
+                            None => (1, None),
+                        };
+                        let digest = format!("{:064x}", revision.saturating_add(0x2000));
+                        let _ = next.accept_epoch(
+                            epoch(revision, &digest, predecessor.as_deref()),
+                            false,
+                        );
+                    }
+                    10 => {
+                        if let Some(current) = next.current_epoch.as_ref() {
+                            let wrong_digest = if current.digest == B { C } else { B };
+                            let binding = CommandBinding {
+                                epoch_digest: wrong_digest.to_owned(),
+                                configuration_digest: next.configuration_digest.clone(),
+                                task_scope: next.task_scope.clone(),
+                                context_age_ns: 0,
+                                clock_uncertainty_ns: 0,
+                                timebase_id: next.timebase_id.clone(),
+                                now_monotonic_ns: 1_500,
+                            };
+                            let _ = next.authorize(&binding);
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+                walk(next, remaining - 1, visited);
+            }
+        }
+
+        let mut visited = 0;
+        walk(model(), DEPTH, &mut visited);
+        assert!(visited > 14_641);
     }
 
     #[test]
