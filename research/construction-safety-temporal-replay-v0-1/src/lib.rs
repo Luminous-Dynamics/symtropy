@@ -1119,9 +1119,16 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     );
 
     let mut events = base.clone();
-    events[0].source_time_ms = 5_005;
-    events[0].received_at_ms = 5_000;
-    events[0].clock_uncertainty_ms = 10;
+    // A source sequence denotes one acquisition frame across all covered cells.
+    // Move the complete lidar frame beyond the cutoff so this case isolates
+    // event-time cutoff handling rather than creating an inconsistent frame.
+    for item in &mut events {
+        if item.source_id == "lidar-front" && item.source_sequence == 1 {
+            item.source_time_ms = 5_005;
+            item.received_at_ms = 5_000;
+            item.clock_uncertainty_ms = 10;
+        }
+    }
     add_case(
         &mut cases,
         "TIME-039-source-event-after-evaluation-cutoff".to_owned(),
