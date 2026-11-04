@@ -698,6 +698,24 @@ mod tests {
     }
 
     #[test]
+    fn pins_one_sided_hoeffding_lower_bound_for_twenty_perfect_trials() {
+        let input = GridFirmCapacityEvaluation::new(
+            contract_for(
+                (0..20).map(|i| format!("event-{i}")).collect(),
+                20,
+                0.60,
+                0.05,
+            ),
+            passing_trials(20),
+        ).unwrap();
+        let report = evaluate_grid_firm_capacity(&input).unwrap();
+        let expected_radius = (20.0_f64.ln() / 40.0).sqrt();
+        assert!((report.hoeffding_radius - expected_radius).abs() < 1e-12);
+        assert!((report.lower_confidence_success_probability - (1.0 - expected_radius)).abs() < 1e-12);
+        assert!(!report.firm_capacity_qualified || report.lower_confidence_success_probability >= 0.60);
+    }
+
+    #[test]
     fn insufficient_trial_count_cannot_accredit_best_case_capacity() {
         assert!(matches!(
             GridFirmCapacityEvaluation::new(contract(), passing_trials(4)),
