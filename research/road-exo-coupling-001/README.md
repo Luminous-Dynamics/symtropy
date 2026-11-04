@@ -214,3 +214,39 @@ V0.1 is a finite exact regret oracle. It does not estimate real-world utilities,
 ### Utility comparability contract
 
 Minimax regret across hypotheses is valid only when all utilities use the same declared cardinal scale and semantic direction. The decision manifest therefore binds both a utility-scale ID and a utility-semantics ID (including the "higher is better" convention). Changing either changes the manifest digest. This is a declared comparability contract; future evidence-bound decision integration must verify that each source utility was transformed onto that scale under a reviewed rule. The oracle does not infer scale equivalence from numeric values.
+
+
+## Evidence-bound decision closure (ROAD-DECISION-EVIDENCE-BINDING-001 #3638)
+
+The decision_evidence module closes the gap between an exact regret computation and the evidence supporting each claimed utility value.
+
+### One-to-one support binding
+
+Every Supported action/hypothesis outcome must have exactly one DecisionEvidenceBinding containing:
+- the hypothesis ID and action ID;
+- evidence purpose (EmpiricalDecision, HumanAdjudication or FormalConformance);
+- exact EvidencePacket and SubjectLineage;
+- exact QualificationTarget and QualificationReceipt.
+
+Validation recomputes the evidence qualification from the packet, subject lineage and target. The outcome's evidence digest must equal the resulting qualification receipt digest. Missing, duplicate, orphan, mismatched, tampered or metadata-mutated bindings reject. Unsupported/NotIdentified/Incomplete outcome cells do not receive fabricated evidence bindings.
+
+### Purpose-specific admissibility
+
+- EmpiricalDecision accepts only IndependentObservedAnchor, ControlledInterventionOutcome or QualifiedNaturalExperiment. The target must bind the same action ID as the decision action.
+- HumanAdjudication accepts only HumanAdjudicationReference with the declared human-label target.
+- FormalConformance accepts only AnalyticReference with the declared formal domain target.
+
+SimulatorGenerated and ModelGenerated outputs are never accepted as independent empirical outcome evidence. The inherited #3635 use-role and lineage gates remain mandatory.
+
+### Evidence-bound certificate
+
+The certificate contains the exact regret certificate, a canonical evidence-bundle digest and sorted per-cell qualification receipt references. Replay recomputes the complete decision and every bound evidence qualification. Utility changes alter the decision certificate without altering the evidence receipt digest; evidence metadata changes invalidate the evidence bundle.
+
+### V0.1 limits
+
+This does not make utilities unbiased or prove causal assumptions. It ensures that every supported value used by the finite minimax-regret calculation is bound to an evidence packet whose declared origin, target, lineage and use-role pass the inherited evidence verifier. Natural-experiment assumptions and utility construction still require independent review.
+
+
+### Positive and negative purpose tests
+
+The Rust fixtures now cover valid human-adjudication and formal-conformance references in their own purposes, in addition to rejection of those sources for empirical claims. An Unsupported action cell requires no evidence packet and remains Unsupported; it cannot be silently omitted or turned into an empirical result.
