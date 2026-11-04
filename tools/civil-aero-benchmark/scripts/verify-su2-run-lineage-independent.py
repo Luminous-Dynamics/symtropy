@@ -78,8 +78,12 @@ def main() -> int:
     require(common["schema"] == SCHEMA, "lineage schema mismatch")
     require(common["evidence_level"] == EVIDENCE, "lineage evidence ceiling mismatch")
     require(receipt["status"] == "process_exited_zero_expected_outputs_present", "process did not exit successfully")
-    for field in ("run_id", "solver_id", "solver_version_claim", "executable_sha256", "receipt_sha256"):
+    for field in ("run_id", "solver_id", "solver_version_claim", "executable_sha256"):
         require(common[field] == receipt[field], f"lineage {field} differs from runner receipt")
+    require(
+        common["runner_receipt_sha256"] == receipt["receipt_sha256"],
+        "lineage receipt digest differs from runner receipt",
+    )
     require(receipt["solver_id"] == "SU2_CFD", "wrong solver ID")
     require(re.fullmatch(r"[0-9a-f]{64}", receipt["executable_sha256"]) is not None, "executable digest malformed")
     require(re.fullmatch(r"[0-9a-f]{64}", receipt["receipt_sha256"]) is not None, "receipt digest malformed")
