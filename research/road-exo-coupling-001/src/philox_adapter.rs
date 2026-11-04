@@ -135,12 +135,10 @@ impl AddressCollisionRegistry {
     pub fn register(&mut self, receipt: &DrawReceipt) -> Result<(), AddressCollision> {
         let block_address = (receipt.key, receipt.counter);
         match self.seen.get(&block_address) {
-            Some(existing) if existing != &receipt.derivation_digest => {
-                Err(AddressCollision {
-                    key: receipt.key,
-                    counter: receipt.counter,
-                })
-            }
+            Some(existing) if existing != &receipt.derivation_digest => Err(AddressCollision {
+                key: receipt.key,
+                counter: receipt.counter,
+            }),
             Some(_) => Ok(()),
             None => {
                 self.seen.insert(block_address, receipt.derivation_digest);
@@ -173,9 +171,7 @@ mod tests {
                 justification: id("scm:weather-v1"),
             }
         } else {
-            Coupling::BranchSpecific {
-                branch: id(branch),
-            }
+            Coupling::BranchSpecific { branch: id(branch) }
         };
         DrawAddress::new(
             id("world-17"),
@@ -199,10 +195,7 @@ mod tests {
             [0x6627_e8d5, 0xe169_c58d, 0xbc57_ac4c, 0x9b00_dbd8]
         );
         assert_eq!(
-            rand_philox::philox4x32_10(
-                [u32::MAX; 4],
-                [u32::MAX, u32::MAX]
-            ),
+            rand_philox::philox4x32_10([u32::MAX; 4], [u32::MAX, u32::MAX]),
             [0x408f_276d, 0x41c8_3b0e, 0xa20b_c7c6, 0x6d54_51fd]
         );
         assert_eq!(
@@ -226,10 +219,9 @@ mod tests {
     #[test]
     fn blake3_derive_key_matches_official_zero_length_vector() {
         let expected = [
-            0x2c, 0xc3, 0x97, 0x83, 0xc2, 0x23, 0x15, 0x4f,
-            0xea, 0x8d, 0xfb, 0x7c, 0x1b, 0x16, 0x60, 0xf2,
-            0xac, 0x2d, 0xcb, 0xd1, 0xc1, 0xde, 0x82, 0x77,
-            0xb0, 0xb0, 0xdd, 0x39, 0xb7, 0xe5, 0x0d, 0x7d,
+            0x2c, 0xc3, 0x97, 0x83, 0xc2, 0x23, 0x15, 0x4f, 0xea, 0x8d, 0xfb, 0x7c, 0x1b, 0x16,
+            0x60, 0xf2, 0xac, 0x2d, 0xcb, 0xd1, 0xc1, 0xde, 0x82, 0x77, 0xb0, 0xb0, 0xdd, 0x39,
+            0xb7, 0xe5, 0x0d, 0x7d,
         ];
         assert_eq!(
             blake3::derive_key("BLAKE3 2019-12-27 16:29:52 test vectors context", b""),
@@ -274,10 +266,7 @@ mod tests {
     fn one_semantic_address_repeats_identically() {
         let seed = [42; 32];
         let address = actor_address("continue", true);
-        assert_eq!(
-            resolve_draw(&seed, &address),
-            resolve_draw(&seed, &address)
-        );
+        assert_eq!(resolve_draw(&seed, &address), resolve_draw(&seed, &address));
     }
 
     #[test]
