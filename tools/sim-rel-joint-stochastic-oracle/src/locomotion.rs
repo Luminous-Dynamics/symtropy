@@ -501,7 +501,59 @@ fn source_supports_claim(source: &SourceManifest, claim: ClaimCeiling) -> bool {
 }
 
 impl LocomotionKernelSpec {
+    /// Compile independent of caller storage order. Stable IDs define canonical
+    /// indices so reordered but semantically identical manifests yield the same
+    /// exact kernel and provenance object.
     pub fn compile(&self) -> Result<CompiledLocomotionKernel, AdapterError> {
+        let mut canonical = self.clone();
+        canonical.sort_by_semantic_id();
+        canonical.compile_ordered()
+    }
+
+    fn sort_by_semantic_id(&mut self) {
+        self.source_manifests.sort_by(|left, right| left.id.cmp(&right.id));
+        for source in &mut self.source_manifests {
+            source.unknown_endpoints.sort();
+        }
+        self.source_pins
+            .sort_by(|left, right| left.source_manifest_id.cmp(&right.source_manifest_id));
+        self.hypotheses.sort_by(|left, right| left.id.cmp(&right.id));
+        for hypothesis in &mut self.hypotheses {
+            hypothesis.source_manifest_ids.sort();
+        }
+        self.physical_states.sort_by(|left, right| left.id.cmp(&right.id));
+        self.sensor_states.sort_by(|left, right| left.id.cmp(&right.id));
+        self.actions.sort_by(|left, right| left.id.cmp(&right.id));
+        self.observations.sort_by(|left, right| left.id.cmp(&right.id));
+        self.initial_belief.sort_by(|left, right| {
+            (
+                &left.hypothesis_id,
+                &left.physical_state_id,
+                &left.sensor_state_id,
+            )
+                .cmp(&(
+                    &right.hypothesis_id,
+                    &right.physical_state_id,
+                    &right.sensor_state_id,
+                ))
+        });
+        self.transition_rows.sort_by(|left, right| {
+            (
+                &left.hypothesis_id,
+                &left.physical_state_id,
+                &left.sensor_state_id,
+                &left.action_id,
+            )
+                .cmp(&(
+                    &right.hypothesis_id,
+                    &right.physical_state_id,
+                    &right.sensor_state_id,
+                    &right.action_id,
+                ))
+        });
+    }
+
+    fn compile_ordered(&self) -> Result<CompiledLocomotionKernel, AdapterError> {
         nonempty(&self.cost_unit_id, "cost_unit_id")?;
         if self.hypotheses.is_empty()
             || self.physical_states.is_empty()
@@ -1214,6 +1266,36 @@ mod tests {
         );
         assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 32 * 6);
         compiled.kernel.validate().unwrap();
+    }
+
+    #[test]
+    fn semantic_ids_make_compilation_invariant_to_input_storage_order() {
+        let original_spec = spec();
+        let original = original_spec.compile().unwrap();
+
+        let mut reordered_spec = original_spec;
+        reordered_spec.source_manifests.reverse();
+        reordered_spec.source_pins.reverse();
+        reordered_spec.hypotheses.reverse();
+        for hypothesis in &mut reordered_spec.hypotheses {
+            hypothesis.source_manifest_ids.reverse();
+        }
+        reordered_spec.physical_states.reverse();
+        reordered_spec.sensor_states.reverse();
+        reordered_spec.actions.reverse();
+        reordered_spec.observations.reverse();
+        reordered_spec.initial_belief.reverse();
+        reordered_spec.transition_rows.reverse();
+        let reordered = reordered_spec.compile().unwrap();
+
+        assert_eq!(original, reordered);
+        assert_eq!(
+            original.kernel.hypothesis_ids,
+            vec![
+                "central-rhythm-model".to_owned(),
+                "distributed-local-loop-model".to_owned()
+            ]
+        );
     }
 
     #[test]
