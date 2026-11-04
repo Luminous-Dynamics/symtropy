@@ -110,6 +110,8 @@ Report by dataset lane, event class, scenario stratum and detector version. Incl
 
 A sample-level confusion matrix may be included as a diagnostic, but it cannot replace the event-level results. Do not treat adjacent samples, windows or timesteps as independent incidents for confidence intervals.
 
+**Implementation boundary:** the first dependency-free Rust scoring core accepts alarm time and asserted class, not calibrated class probabilities or operator/physical-response records. It therefore computes episode construction, one-to-one event matching, event precision/recall, class-confusion counts, delay/lead-time quantiles, false-alarm burden and alarm duty cycle. Calibration, abstention/coverage, containment, safe-state, service-deficit and restoration metrics are specified by this protocol but remain **not measured** until separate probability-output and response/outcome interfaces are supplied. A binary alarm must never be reverse-engineered into a confidence score.
+
 ## 7. Dataset lanes and transfer discipline
 
 The following are distinct evidence lanes:
