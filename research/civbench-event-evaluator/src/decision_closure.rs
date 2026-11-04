@@ -562,11 +562,9 @@ impl DecisionClosureRecord {
             self.human_disposition,
             HumanDisposition::Rejected | HumanDisposition::Deferred
         ) && (self.resource_feasibility == ResourceFeasibility::FeasibleAndReserved
-            || matches!(
+            && matches!(
                 self.resource_settlement,
-                ResourceSettlement::Reserved
-                    | ResourceSettlement::Settled
-                    | ResourceSettlement::Released
+                ResourceSettlement::Reserved | ResourceSettlement::Settled
             ))
         {
             return Err(DecisionClosureError::ResourceReservationAfterNonAuthorization);
@@ -633,6 +631,11 @@ impl DecisionClosureRecord {
                 | ResourceFeasibility::RejectedBudget
                 | ResourceFeasibility::RejectedEnergyOrAccess,
                 ResourceSettlement::Rejected,
+            ) => {}
+            (
+                ActionProgress::NotStarted,
+                ResourceFeasibility::FeasibleAndReserved,
+                ResourceSettlement::Released,
             ) => {}
             (
                 ActionProgress::NotStarted | ActionProgress::Planned | ActionProgress::InProgress,
