@@ -288,7 +288,10 @@ impl ScenarioRiskEvaluation {
 pub struct ScenarioRiskReceipt {
     pub scenario_id: String,
     pub scenario_digest: String,
+    /// Weight supplied by the scenario set before tolerance normalization.
     pub probability_weight: f64,
+    /// Weight actually used for expectations, event probabilities and CVaR.
+    pub normalized_probability_weight: f64,
     pub operating_cost: f64,
     pub facility_energy_kwh: f64,
     pub completed_work_fraction: f64,
@@ -409,30 +412,61 @@ pub fn evaluate_scenario_risk(
         });
     }
 
-    let expected_operating_cost = weighted_sum(outcomes, |outcome| outcome.operating_cost)?;
-    let expected_facility_energy = weighted_sum(outcomes, |outcome| outcome.facility_energy_kwh)?;
-    let expected_work_completion = weighted_sum(outcomes, |outcome| outcome.completed_work_fraction)?;
+    // The input sum may differ from one within the declared tolerance. Normalize
+    // once here, then use exactly these weights for every expectation, event
+    // probability, quantile and tail calculation. Receipts preserve both forms.
+    let normalized_outcomes: Vec<ScenarioRiskOutcome> = outcomes
+        .iter()
+        .cloned()
+        .map(|mut outcome| {
+            outcome.probability_weight /= probability_sum;
+            outcome
+        })
+        .collect();
+    if normalized_outcomes
+        .iter()
+        .any(|outcome| !outcome.probability_weight.is_finite())
+    {
+        return Err(ScenarioRiskError::NumericalOverflow("normalized scenario weights"));
+    }
+
+    let expected_operating_cost =
+        weighted_sum(&normalized_outcomes, |outcome| outcome.operating_cost)?;
+    let expected_facility_energy =
+        weighted_sum(&normalized_outcomes, |outcome| outcome.facility_energy_kwh)?;
+    let expected_work_completion =
+        weighted_sum(&normalized_outcomes, |outcome| outcome.completed_work_fraction)?;
     let minimum_work_completion = outcomes
         .iter()
         .map(|outcome| outcome.completed_work_fraction)
         .fold(1.0_f64, f64::min);
 
-    let power_shortfall_probability =
-        weighted_event_probability(outcomes, |outcome| outcome.peak_power_shortfall_kw > 0.0)?;
-    let energy_shortfall_probability =
-        weighted_event_probability(outcomes, |outcome| outcome.energy_shortfall_kwh > 0.0)?;
-    let deadline_violation_probability =
-        weighted_event_probability(outcomes, |outcome| outcome.deadline_violated)?;
-    let thermal_violation_probability =
-        weighted_event_probability(outcomes, |outcome| outcome.thermal_limit_violated)?;
-    let reserve_breach_probability =
-        weighted_event_probability(outcomes, |outcome| outcome.protected_reserve_breached)?;
+    let power_shortfall_probability = weighted_event_probability(
+        &normalized_outcomes,
+        |outcome| outcome.peak_power_shortfall_kw > 0.0,
+    )?;
+    let energy_shortfall_probability = weighted_event_probability(
+        &normalized_outcomes,
+        |outcome| outcome.energy_shortfall_kwh > 0.0,
+    )?;
+    let deadline_violation_probability = weighted_event_probability(
+        &normalized_outcomes,
+        |outcome| outcome.deadline_violated,
+    )?;
+    let thermal_violation_probability = weighted_event_probability(
+        &normalized_outcomes,
+        |outcome| outcome.thermal_limit_violated,
+    )?;
+    let reserve_breach_probability = weighted_event_probability(
+        &normalized_outcomes,
+        |outcome| outcome.protected_reserve_breached,
+    )?;
 
-    let power_losses: Vec<_> = outcomes
+    let power_losses: Vec<_> = normalized_outcomes
         .iter()
         .map(|outcome| (outcome.peak_power_shortfall_kw, outcome.probability_weight))
         .collect();
-    let energy_losses: Vec<_> = outcomes
+    let energy_losses: Vec<_> = normalized_outcomes
         .iter()
         .map(|outcome| (outcome.energy_shortfall_kwh, outcome.probability_weight))
         .collect();
@@ -470,10 +504,12 @@ pub fn evaluate_scenario_risk(
 
     let receipts = outcomes
         .iter()
-        .map(|outcome| ScenarioRiskReceipt {
+        .zip(normalized_outcomes.iter())
+        .map(|(outcome, normalized)| ScenarioRiskReceipt {
             scenario_id: outcome.scenario_id.clone(),
             scenario_digest: outcome.scenario_digest.clone(),
             probability_weight: outcome.probability_weight,
+            normalized_probability_weight: normalized.probability_weight,
             operating_cost: outcome.operating_cost,
             facility_energy_kwh: outcome.facility_energy_kwh,
             completed_work_fraction: outcome.completed_work_fraction,
@@ -495,7 +531,7 @@ pub fn evaluate_scenario_risk(
         scenario_set_digest: contract.scenario_set_digest.clone(),
         service_contract_digest: contract.service_contract_digest.clone(),
         evaluation_configuration_digest: contract.evaluation_configuration_digest.clone(),
-        metric_convention_id: "SYMTROPY-WEIGHTED-DISCRETE-CVAR-V0.1".to_string(),
+        metric_convention_id: "SYMTROPY-WEIGHTED-DISCRETE-CVAR-NORMALIZED-V0.1".to_string(),
         scenario_count: outcomes.len(),
         probability_weight_sum: probability_sum,
         cvar_confidence_level: contract.cvar_confidence_level,
@@ -767,6 +803,44 @@ mod tests {
         assert!(!report.thermal_gate_passed);
         assert!(!report.reserve_gate_passed);
         assert!(report.power_shortfall_gate_passed);
+    }
+
+    #[test]
+    fn normalizes_small_probability_mass_drift_before_weighted_metrics() {
+        let evaluation = ScenarioRiskEvaluation::new(
+            contract(0.95),
+            vec![
+                outcome("low", 0.5, 0.0, 0.0, 1.0, false, false, false),
+                outcome("high", 0.499_999_999_5, 0.0, 0.0, 0.9, false, false, false),
+            ],
+        )
+        .unwrap();
+
+        let report = evaluate_scenario_risk(&evaluation).unwrap();
+        assert!(report.probability_mass_normalized);
+        assert!((report.probability_weight_sum - 0.999_999_999_5).abs() < 1e-15);
+        assert!((report.expected_operating_cost - 100.0).abs() < 1e-8);
+        assert!((report.expected_work_completion_fraction - 0.95).abs() < 1e-8);
+        assert_eq!(report.receipts.len(), 2);
+        assert!((report.receipts[0].probability_weight - 0.5).abs() < 1e-15);
+        assert!(
+            (report.receipts[0].normalized_probability_weight
+                - 0.5 / 0.999_999_999_5)
+                .abs()
+                < 1e-15
+        );
+        assert!(
+            (report.receipts[1].normalized_probability_weight
+                - 0.499_999_999_5 / 0.999_999_999_5)
+                .abs()
+                < 1e-15
+        );
+        let normalized_sum: f64 = report
+            .receipts
+            .iter()
+            .map(|receipt| receipt.normalized_probability_weight)
+            .sum();
+        assert!((normalized_sum - 1.0).abs() < 1e-15);
     }
 
     #[test]
