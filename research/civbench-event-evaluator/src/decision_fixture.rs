@@ -840,9 +840,11 @@ fn parse_expected(value: &JsonValue, path: &str) -> Result<ExpectedClosureSemant
     if note_values.is_empty() {
         return Err(FixtureError::new("missing_expected_notes", path, "at least one note is required"));
     }
-    let notes = note_values.iter().enumerate().map(|(index, value)| {
-        nonempty_string(value, &format!("{path}.notes[{index}]"))
-    }).collect::<Result<Vec<_>, _>>()?;
+    let notes = note_values
+        .iter()
+        .enumerate()
+        .map(|(index, value)| nonempty_text(value, &format!("{path}.notes[{index}]")))
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(ExpectedClosureSemantics {
         expected_status,
         service_effect_claim,
@@ -1271,6 +1273,17 @@ fn array<'a>(value: &'a JsonValue, path: &str) -> Result<&'a [JsonValue], Fixtur
     match value {
         JsonValue::Array(values) => Ok(values),
         _ => Err(FixtureError::new("expected_array", path, "field must be an array")),
+    }
+}
+
+fn nonempty_text(value: &JsonValue, path: &str) -> Result<String, FixtureError> {
+    match value {
+        JsonValue::String(value) if !value.trim().is_empty() => Ok(value.clone()),
+        _ => Err(FixtureError::new(
+            "expected_text",
+            path,
+            "expected non-empty explanatory text",
+        )),
     }
 }
 
