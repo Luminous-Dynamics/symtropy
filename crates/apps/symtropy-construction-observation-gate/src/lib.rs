@@ -126,7 +126,9 @@ fn valid_sha256(value: &str) -> bool {
 
 fn unique_nonempty(values: &[String]) -> bool {
     let mut set = BTreeSet::new();
-    values.iter().all(|value| !value.trim().is_empty() && set.insert(value))
+    values
+        .iter()
+        .all(|value| !value.trim().is_empty() && set.insert(value))
 }
 
 impl ObservationGate {
@@ -238,7 +240,9 @@ impl ObservationGate {
                 if observation.predecessor_digest != previous.evidence_digest {
                     self.channels.insert(
                         source_id,
-                        ChannelState::Conflicting("observation_predecessor_digest_mismatch".to_owned()),
+                        ChannelState::Conflicting(
+                            "observation_predecessor_digest_mismatch".to_owned(),
+                        ),
                     );
                     return Err(IngestError::PredecessorDigestMismatch);
                 }
@@ -255,7 +259,9 @@ impl ObservationGate {
                 if observation.predecessor_digest != source_policy.baseline_digest {
                     self.channels.insert(
                         source_id,
-                        ChannelState::Conflicting("initial_observation_predecessor_mismatch".to_owned()),
+                        ChannelState::Conflicting(
+                            "initial_observation_predecessor_mismatch".to_owned(),
+                        ),
                     );
                     return Err(IngestError::PredecessorDigestMismatch);
                 }
@@ -269,11 +275,7 @@ impl ObservationGate {
 
     /// Evaluate a full worksite observation snapshot. Any non-clear state requires
     /// a hold and epoch invalidation; this method does not execute that action.
-    pub fn evaluate(
-        &self,
-        current_timebase_id: &str,
-        now_monotonic_ns: u64,
-    ) -> Evaluation {
+    pub fn evaluate(&self, current_timebase_id: &str, now_monotonic_ns: u64) -> Evaluation {
         let mut reasons = BTreeSet::new();
         let mut changed_cells = BTreeSet::new();
         let mut clear_cells = BTreeSet::new();
@@ -282,7 +284,10 @@ impl ObservationGate {
 
         for source_policy in &self.policy.sources {
             let Some(channel) = self.channels.get(&source_policy.source_id) else {
-                reasons.insert(format!("required_source_missing:{}", source_policy.source_id));
+                reasons.insert(format!(
+                    "required_source_missing:{}",
+                    source_policy.source_id
+                ));
                 continue;
             };
 
@@ -310,7 +315,10 @@ impl ObservationGate {
             }
             if !observation.authenticated_by_upstream {
                 source_trustworthy = false;
-                reasons.insert(format!("source_not_authenticated:{}", source_policy.source_id));
+                reasons.insert(format!(
+                    "source_not_authenticated:{}",
+                    source_policy.source_id
+                ));
             }
             if observation.timebase_id != self.policy.expected_timebase_id
                 || current_timebase_id != self.policy.expected_timebase_id
@@ -320,7 +328,10 @@ impl ObservationGate {
             }
             if now_monotonic_ns < observation.observed_at_monotonic_ns {
                 source_trustworthy = false;
-                reasons.insert(format!("future_observation_timestamp:{}", source_policy.source_id));
+                reasons.insert(format!(
+                    "future_observation_timestamp:{}",
+                    source_policy.source_id
+                ));
             } else if now_monotonic_ns - observation.observed_at_monotonic_ns
                 > source_policy.max_age_ns
             {
@@ -329,10 +340,12 @@ impl ObservationGate {
             }
             if observation.clock_uncertainty_ns > source_policy.max_clock_uncertainty_ns {
                 source_trustworthy = false;
-                reasons.insert(format!("clock_uncertainty_exceeds_policy:{}", source_policy.source_id));
+                reasons.insert(format!(
+                    "clock_uncertainty_exceeds_policy:{}",
+                    source_policy.source_id
+                ));
             }
-            if observation.measurement_uncertainty_um
-                > source_policy.max_measurement_uncertainty_um
+            if observation.measurement_uncertainty_um > source_policy.max_measurement_uncertainty_um
             {
                 source_trustworthy = false;
                 reasons.insert(format!(
@@ -365,10 +378,16 @@ impl ObservationGate {
 
             let clear: BTreeSet<&str> =
                 observation.clear_cells.iter().map(String::as_str).collect();
-            let changed: BTreeSet<&str> =
-                observation.changed_cells.iter().map(String::as_str).collect();
-            let occluded: BTreeSet<&str> =
-                observation.occluded_cells.iter().map(String::as_str).collect();
+            let changed: BTreeSet<&str> = observation
+                .changed_cells
+                .iter()
+                .map(String::as_str)
+                .collect();
+            let occluded: BTreeSet<&str> = observation
+                .occluded_cells
+                .iter()
+                .map(String::as_str)
+                .collect();
 
             let unknown_cells = observation
                 .clear_cells
@@ -378,7 +397,10 @@ impl ObservationGate {
                 .any(|cell| !source_policy.required_cells.contains(cell));
             if unknown_cells {
                 source_trustworthy = false;
-                reasons.insert(format!("observation_contains_out_of_scope_cells:{}", source_policy.source_id));
+                reasons.insert(format!(
+                    "observation_contains_out_of_scope_cells:{}",
+                    source_policy.source_id
+                ));
             }
 
             for cell in &source_policy.required_cells {
@@ -520,18 +542,23 @@ mod tests {
 
     #[test]
     fn missing_required_source_is_unknown_not_clear() {
-        let gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let result = gate.evaluate("boot-001", 150);
         assert_eq!(result.state, GateState::UnknownOrUnobserved);
         assert!(result.must_hold);
-        assert!(result.reason_codes.iter().any(|v| v.starts_with("required_source_missing")));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|v| v.starts_with("required_source_missing"))
+        );
     }
 
     #[test]
     fn unknown_source_cannot_extend_the_policy() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         assert_eq!(
             gate.ingest(observation("unconfigured", 1, &["z1"], &[], &[])),
             Err(IngestError::UnknownSource)
@@ -544,8 +571,8 @@ mod tests {
 
     #[test]
     fn malformed_digest_quarantines_source() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let mut malformed = observation("tracker", 1, &["z1"], &[], &[]);
         malformed.evidence_digest = "not-a-digest".to_owned();
         assert_eq!(
@@ -583,19 +610,35 @@ mod tests {
         let result = gate.evaluate("boot-001", 150);
         assert_eq!(result.state, GateState::UnknownOrUnobserved);
         assert!(result.must_hold);
-        assert!(result.reason_codes.iter().any(|v| v.starts_with("required_cell_unobserved")));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|v| v.starts_with("required_cell_unobserved"))
+        );
     }
 
     #[test]
     fn out_of_scope_cell_cannot_be_promoted_to_clear_or_change() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
-        gate.ingest(observation("tracker", 1, &["z1", "unregistered-zone"], &[], &[]))
-            .expect("observation");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
+        gate.ingest(observation(
+            "tracker",
+            1,
+            &["z1", "unregistered-zone"],
+            &[],
+            &[],
+        ))
+        .expect("observation");
         let result = gate.evaluate("boot-001", 150);
         assert_eq!(result.state, GateState::UnknownOrUnobserved);
         assert!(result.must_hold);
-        assert!(result.reason_codes.iter().any(|v| v.starts_with("observation_contains_out_of_scope_cells")));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|v| v.starts_with("observation_contains_out_of_scope_cells"))
+        );
     }
 
     #[test]
@@ -612,8 +655,8 @@ mod tests {
 
     #[test]
     fn stale_source_forces_unknown() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let mut stale = observation("tracker", 1, &["z1"], &[], &[]);
         stale.observed_at_monotonic_ns = 0;
         gate.ingest(stale).expect("observation");
@@ -625,8 +668,8 @@ mod tests {
 
     #[test]
     fn future_observation_timestamp_forces_unknown() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let mut future = observation("tracker", 1, &["z1"], &[], &[]);
         future.observed_at_monotonic_ns = 151;
         gate.ingest(future).expect("observation");
@@ -638,8 +681,8 @@ mod tests {
 
     #[test]
     fn changed_timebase_forces_unknown() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         gate.ingest(observation("tracker", 1, &["z1"], &[], &[]))
             .expect("observation");
         assert_eq!(
@@ -650,8 +693,8 @@ mod tests {
 
     #[test]
     fn bad_clock_uncertainty_forces_unknown() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let mut bad_clock = observation("tracker", 1, &["z1"], &[], &[]);
         bad_clock.clock_uncertainty_ns = 11;
         gate.ingest(bad_clock).expect("observation");
@@ -663,20 +706,25 @@ mod tests {
 
     #[test]
     fn measurement_uncertainty_outside_policy_forces_unknown() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let mut uncertain = observation("tracker", 1, &["z1"], &[], &[]);
         uncertain.measurement_uncertainty_um = 251;
         gate.ingest(uncertain).expect("observation");
         let result = gate.evaluate("boot-001", 150);
         assert_eq!(result.state, GateState::UnknownOrUnobserved);
-        assert!(result.reason_codes.iter().any(|v| v.starts_with("measurement_uncertainty_exceeds_policy")));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|v| v.starts_with("measurement_uncertainty_exceeds_policy"))
+        );
     }
 
     #[test]
     fn degraded_sensor_forces_unknown() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let mut degraded = observation("tracker", 1, &["z1"], &[], &[]);
         degraded.health = SensorHealth::Degraded;
         gate.ingest(degraded).expect("observation");
@@ -688,8 +736,8 @@ mod tests {
 
     #[test]
     fn invalid_calibration_forces_unknown() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let mut uncalibrated = observation("tracker", 1, &["z1"], &[], &[]);
         uncalibrated.calibration_valid = false;
         gate.ingest(uncalibrated).expect("observation");
@@ -701,8 +749,8 @@ mod tests {
 
     #[test]
     fn non_independent_reference_forces_unknown_when_required() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let mut observation = observation("tracker", 1, &["z1"], &[], &[]);
         observation.reference_independence = ReferenceIndependence::CommonMode;
         gate.ingest(observation).expect("observation");
@@ -714,8 +762,8 @@ mod tests {
 
     #[test]
     fn unauthenticated_observation_forces_unknown() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let mut observation = observation("tracker", 1, &["z1"], &[], &[]);
         observation.authenticated_by_upstream = false;
         gate.ingest(observation).expect("observation");
@@ -735,7 +783,12 @@ mod tests {
         assert_eq!(result.state, GateState::OccupiedOrChanged);
         assert!(result.must_hold);
         assert!(result.changed_cells.contains(&"z2".to_owned()));
-        assert!(result.reason_codes.iter().any(|v| v.starts_with("required_cell_unobserved")));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|v| v.starts_with("required_cell_unobserved"))
+        );
     }
 
     #[test]
@@ -770,8 +823,8 @@ mod tests {
 
     #[test]
     fn duplicate_observation_is_idempotent_only_when_content_matches() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         let observation = observation("tracker", 1, &["z1"], &[], &[]);
         assert_eq!(
             gate.ingest(observation.clone()),
@@ -785,8 +838,8 @@ mod tests {
 
     #[test]
     fn same_sequence_divergent_digest_latches_conflict() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         gate.ingest(observation("tracker", 1, &["z1"], &[], &[]))
             .expect("observation");
         let mut divergent = observation("tracker", 1, &["z1"], &[], &[]);
@@ -800,8 +853,8 @@ mod tests {
 
     #[test]
     fn sequence_rollback_latches_conflict() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         gate.ingest(observation("tracker", 1, &["z1"], &[], &[]))
             .expect("sequence 1");
         gate.ingest(observation("tracker", 2, &["z1"], &[], &[]))
@@ -815,8 +868,8 @@ mod tests {
 
     #[test]
     fn wrong_predecessor_digest_latches_conflict() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         gate.ingest(observation("tracker", 1, &["z1"], &[], &[]))
             .expect("sequence 1");
         let mut tampered = observation("tracker", 2, &["z1"], &[], &[]);
@@ -836,14 +889,18 @@ mod tests {
         let mut gate = ObservationGate::new(p).expect("valid baseline policy");
         let mut first_after_baseline = observation("tracker", 8, &["z1"], &[], &[]);
         first_after_baseline.predecessor_digest = digest('7');
-        gate.ingest(first_after_baseline).expect("sequence after trusted baseline");
-        assert_eq!(gate.evaluate("boot-001", 150).state, GateState::VerifiedClear);
+        gate.ingest(first_after_baseline)
+            .expect("sequence after trusted baseline");
+        assert_eq!(
+            gate.evaluate("boot-001", 150).state,
+            GateState::VerifiedClear
+        );
     }
 
     #[test]
     fn sequence_gap_latches_unknown_until_external_rebaseline() {
-        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
-            .expect("valid policy");
+        let mut gate =
+            ObservationGate::new(policy(vec![source("tracker", &["z1"])])).expect("valid policy");
         assert_eq!(
             gate.ingest(observation("tracker", 2, &["z1"], &[], &[])),
             Err(IngestError::InitialSequenceGap)
