@@ -38,9 +38,8 @@ impl GameConfig {
 
     pub fn welfare_optimum(self) -> Result<WelfareOptimum, GameError> {
         self.validate()?;
-        let no_contribution = (1.0 - self.catastrophe_probability)
-            * ENDOWMENT as f64
-            * SEATS as f64;
+        let no_contribution =
+            (1.0 - self.catastrophe_probability) * ENDOWMENT as f64 * SEATS as f64;
         let exact_target = (ENDOWMENT * SEATS as u32 - TARGET) as f64;
         let group_welfare = no_contribution.max(exact_target);
         let pivot = RISK_PIVOT;
@@ -186,8 +185,14 @@ fn nearest_legal_action(value: f64, legal_max: u8) -> u8 {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GameError {
     InvalidRisk(f64),
-    WrongSeatCount { expected: usize, actual: usize },
-    WrongPartnerCount { expected: usize, actual: usize },
+    WrongSeatCount {
+        expected: usize,
+        actual: usize,
+    },
+    WrongPartnerCount {
+        expected: usize,
+        actual: usize,
+    },
     InvalidActionPlan {
         seat: usize,
         round: usize,
@@ -200,7 +205,10 @@ impl fmt::Display for GameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidRisk(value) => {
-                write!(f, "catastrophe probability must be finite and in [0, 1], got {value}")
+                write!(
+                    f,
+                    "catastrophe probability must be finite and in [0, 1], got {value}"
+                )
             }
             Self::WrongSeatCount { expected, actual } => {
                 write!(f, "expected {expected} seat strategies, got {actual}")
@@ -208,7 +216,12 @@ impl fmt::Display for GameError {
             Self::WrongPartnerCount { expected, actual } => {
                 write!(f, "expected {expected} scripted partners, got {actual}")
             }
-            Self::InvalidActionPlan { seat, round, action, remaining_endowment } => write!(
+            Self::InvalidActionPlan {
+                seat,
+                round,
+                action,
+                remaining_endowment,
+            } => write!(
                 f,
                 "seat {seat} planned contribution {action} in round {round} with only {remaining_endowment} endowment remaining"
             ),
@@ -433,9 +446,7 @@ fn gini(values: &[f64; SEATS]) -> f64 {
         .enumerate()
         .map(|(index, value)| (index + 1) as f64 * value)
         .sum::<f64>();
-    (2.0 * weighted / (SEATS as f64 * total)
-        - (SEATS as f64 + 1.0) / SEATS as f64)
-        .clamp(0.0, 1.0)
+    (2.0 * weighted / (SEATS as f64 * total) - (SEATS as f64 + 1.0) / SEATS as f64).clamp(0.0, 1.0)
 }
 
 #[cfg(test)]
@@ -519,7 +530,8 @@ mod tests {
 
     #[test]
     fn best_response_to_zero_partners_is_zero() {
-        let response = exact_best_response(config(0.9), &[Strategy::AlwaysZero; SEATS - 1]).unwrap();
+        let response =
+            exact_best_response(config(0.9), &[Strategy::AlwaysZero; SEATS - 1]).unwrap();
         assert_eq!(response.total_contribution, 0);
         assert!((response.expected_payoff - 4.0).abs() < 1e-12);
         assert!(response.candidates_examined > 0);
@@ -527,7 +539,8 @@ mod tests {
 
     #[test]
     fn best_response_to_max_partners_is_zero_when_target_is_guaranteed() {
-        let response = exact_best_response(config(0.9), &[Strategy::FixedMaximum; SEATS - 1]).unwrap();
+        let response =
+            exact_best_response(config(0.9), &[Strategy::FixedMaximum; SEATS - 1]).unwrap();
         assert_eq!(response.total_contribution, 0);
         assert_eq!(response.outcome.total_contribution, 200);
         assert!(response.outcome.target_reached);
@@ -546,24 +559,23 @@ mod tests {
 
     #[test]
     fn best_response_tie_at_pivot_prefers_minimum_contribution() {
-        let response = exact_best_response(
-            config(RISK_PIVOT),
-            &[Strategy::FixedFairShare; SEATS - 1],
-        )
-        .unwrap();
+        let response =
+            exact_best_response(config(RISK_PIVOT), &[Strategy::FixedFairShare; SEATS - 1])
+                .unwrap();
         assert_eq!(response.total_contribution, 0);
         assert!((response.expected_payoff - 20.0).abs() < 1e-12);
     }
 
     #[test]
     fn scripted_copy_policy_uses_public_previous_round_history() {
-        let outcome = run_episode(
-            config(0.9),
-            &[Strategy::CopyPreviousGroupMean; SEATS],
-        )
-        .unwrap();
+        let outcome = run_episode(config(0.9), &[Strategy::CopyPreviousGroupMean; SEATS]).unwrap();
         assert_eq!(outcome.total_contribution, TARGET);
-        assert!(outcome.contribution_history.iter().all(|round| round == &[2; SEATS]));
+        assert!(
+            outcome
+                .contribution_history
+                .iter()
+                .all(|round| round == &[2; SEATS])
+        );
     }
 
     #[test]
@@ -602,10 +614,8 @@ mod tests {
 
     #[test]
     fn best_response_reports_the_full_enumeration_budget() {
-        let response = exact_best_response(
-            config(0.9),
-            &[Strategy::FixedFairShare; SEATS - 1],
-        ).unwrap();
+        let response =
+            exact_best_response(config(0.9), &[Strategy::FixedFairShare; SEATS - 1]).unwrap();
         assert_eq!(response.candidates_examined, 59_049);
     }
 
