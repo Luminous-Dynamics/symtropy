@@ -720,15 +720,20 @@ fn parse_arm(
     let verifier_identity_ref = optional_reference_field(object, "verifier_identity_ref", path)?;
     let outcomes = parse_outcome(field(object, "service_outcome", path)?, path)?;
     let service_evidence_class = uniform_service_evidence(&outcomes, path)?;
-    let service_effect = match role {
-        ArmRole::Control => control_effect(service_evidence_class),
-        ArmRole::Candidate => candidate_effect_from_claim(
-            expected_claim.ok_or_else(|| {
-                FixtureError::new("missing_candidate_effect_claim", path, "candidate arm requires expected service-effect claim")
-            })?,
-            service_evidence_class,
-            path,
-        )?,
+    let (record_evidence_class, service_effect) = match role {
+        // A control arm supplies the reference measurements, not a treatment
+        // effect claim. Its metric evidence remains on ClosureArm::outcomes.
+        ArmRole::Control => (None, ServiceEffect::Indeterminate),
+        ArmRole::Candidate => {
+            let effect = candidate_effect_from_claim(
+                expected_claim.ok_or_else(|| {
+                    FixtureError::new("missing_candidate_effect_claim", path, "candidate arm requires expected service-effect claim")
+                })?,
+                service_evidence_class,
+                path,
+            )?;
+            (service_evidence_class, effect)
+        }
     };
     let receipt_bindings = parse_receipt_bindings(field(object, "receipt_bindings", path)?, episode_id, &common.block_id, path)?;
     let record = DecisionClosureRecord {
@@ -751,7 +756,7 @@ fn parse_arm(
         verification_receipt_id,
         service_outcome_receipt_id,
         paired_outcome_receipt_id,
-        service_evidence_class,
+        service_evidence_class: record_evidence_class,
         service_effect,
     };
     record.validate().map_err(|error| FixtureError::new("closure_record_invalid", path, error.to_string()))?;
@@ -1042,15 +1047,6 @@ fn candidate_effect_from_claim(
         _ => return Err(FixtureError::new("unknown_expected_effect_claim", path, "unsupported service-effect claim")),
     };
     Ok(effect)
-}
-
-fn control_effect(evidence: Option<ServiceEvidenceClass>) -> ServiceEffect {
-    match evidence {
-        Some(ServiceEvidenceClass::Modelled) => ServiceEffect::ModelledNoImprovement,
-        Some(ServiceEvidenceClass::Observed) => ServiceEffect::ObservedNoImprovement,
-        Some(ServiceEvidenceClass::Derived) => ServiceEffect::DerivedNoImprovement,
-        None => ServiceEffect::Indeterminate,
-    }
 }
 
 fn parse_receipt_bindings(
