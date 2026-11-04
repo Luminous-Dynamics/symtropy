@@ -249,9 +249,7 @@
               "firmware_revision",
               "calibration_id",
               "calibration_sha256",
-              "fault_domain",
-              "calibration_valid_from_unix_ns",
-              "calibration_valid_until_unix_ns"
+              "fault_domain"
             ],
             "properties": {
               "sensor_id": {
@@ -1019,6 +1017,18 @@
             "properties": {
               "raw_artifacts": {
                 "minItems": 1
+              }
+            }
+          },
+          "subject": {
+            "properties": {
+              "sensors": {
+                "items": {
+                  "required": [
+                    "calibration_valid_from_unix_ns",
+                    "calibration_valid_until_unix_ns"
+                  ]
+                }
               }
             }
           }
