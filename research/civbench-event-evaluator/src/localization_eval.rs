@@ -709,36 +709,11 @@ fn score_label(
             metrics.localized_events += 1;
             metrics.top1_hits += usize::from(top1);
             metrics.top5_hits += usize::from(top5);
-            metrics
-                .risk_coverage
-                .push(RiskCoveragePointSeed::new(*confidence_ppm, top1).into_point_seed());
+            risk_seeds
+                .entry(*evidence)
+                .or_default()
+                .push((*confidence_ppm, top1));
         }
     }
-    let _ = event_id;
     Ok(())
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct RiskCoveragePointSeed {
-    confidence_ppm: u32,
-    top1_hit: bool,
-}
-
-impl RiskCoveragePointSeed {
-    fn new(confidence_ppm: u32, top1_hit: bool) -> Self {
-        Self {
-            confidence_ppm,
-            top1_hit,
-        }
-    }
-
-    fn into_point_seed(self) -> RiskCoveragePoint {
-        RiskCoveragePoint {
-            minimum_confidence_ppm: self.confidence_ppm,
-            covered_events: usize::from(self.top1_hit),
-            coverage_ppm: None,
-            top1_errors: usize::from(!self.top1_hit),
-            risk_ppm: None,
-        }
-    }
 }
