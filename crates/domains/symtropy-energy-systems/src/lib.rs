@@ -17,6 +17,7 @@ mod batch_duty_cycle;
 mod batch_evaluation;
 mod duty_cycle;
 mod flexibility_evaluation;
+mod forecast_calibration;
 mod fuel;
 mod matched_service;
 mod service_contract;
@@ -35,6 +36,13 @@ pub use duty_cycle::{
 pub use flexibility_evaluation::{
     FlexibilityEventContract, FlexibilityEventIdentity, FlexibilityEventSample,
     FlexibilityEvaluationError, FlexibilityEvaluationReport, evaluate_flexibility_event,
+};
+
+pub use forecast_calibration::{
+    evaluate_forecast_calibration, ForecastCalibrationBlock, ForecastCalibrationBlockReceipt,
+    ForecastCalibrationCell, ForecastCalibrationContract, ForecastCalibrationError,
+    ForecastCalibrationEvaluation, ForecastCalibrationEvaluationBlockReceipt,
+    ForecastCalibrationReport, ForecastIntervalCellReceipt,
 };
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
