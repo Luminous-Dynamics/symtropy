@@ -647,6 +647,62 @@ fn report_is_deterministic_under_event_input_permutations() {
     assert_eq!(first.canonical_text(), second.canonical_text());
 }
 
+
+#[test]
+fn report_binds_policy_and_physical_observability_receipts() {
+    let truths = vec![truth(
+        "event-1",
+        known("zone-a", TruthEvidenceClass::Observed),
+        TruthLabel::NotApplicable,
+    )];
+    let assessments = vec![assessment(
+        "event-1",
+        LocalizationLevel::Zone,
+        &["zone-a", "zone-b"],
+        &[],
+        30,
+    )];
+    let predictions = vec![ranked(
+        "event-1",
+        LocalizationLevel::Zone,
+        &["zone-a"],
+        920_000,
+    )];
+    let report = evaluate_localization(&truths, &assessments, &predictions)
+        .expect("bound report");
+    let receipt = report.canonical_text();
+    assert!(receipt.contains("policy_ref=localizer-policy-v1"));
+    assert!(receipt.contains("observability_binding=event-1,zone,2,0,sensor-layout-v1,hydraulic-model-v1,"));
+}
+
+#[test]
+fn mixed_policy_versions_cannot_be_pooled_in_one_evaluation() {
+    let truths = vec![
+        truth(
+            "event-a",
+            known("zone-a", TruthEvidenceClass::Observed),
+            TruthLabel::NotApplicable,
+        ),
+        truth(
+            "event-b",
+            known("zone-b", TruthEvidenceClass::Observed),
+            TruthLabel::NotApplicable,
+        ),
+    ];
+    let assessments = vec![
+        assessment("event-a", LocalizationLevel::Zone, &["zone-a"], &[], 31),
+        assessment("event-b", LocalizationLevel::Zone, &["zone-b"], &[], 32),
+    ];
+    let mut predictions = vec![
+        ranked("event-a", LocalizationLevel::Zone, &["zone-a"], 900_000),
+        ranked("event-b", LocalizationLevel::Zone, &["zone-b"], 900_000),
+    ];
+    predictions[1].policy_ref = "localizer-policy-v2".to_owned();
+    let error = evaluate_localization(&truths, &assessments, &predictions)
+        .expect_err("mixed versions must not be aggregated");
+    assert_eq!(error.code, "mixed_localization_policy_refs");
+}
+
 #[test]
 fn unsupported_prediction_is_counted_even_when_truth_is_not_measured() {
     let truths = vec![truth(
