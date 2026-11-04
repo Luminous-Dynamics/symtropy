@@ -188,6 +188,12 @@ pub enum GameError {
     InvalidRisk(f64),
     WrongSeatCount { expected: usize, actual: usize },
     WrongPartnerCount { expected: usize, actual: usize },
+    InvalidActionPlan {
+        seat: usize,
+        round: usize,
+        action: u8,
+        remaining_endowment: u32,
+    },
 }
 
 impl fmt::Display for GameError {
@@ -202,6 +208,10 @@ impl fmt::Display for GameError {
             Self::WrongPartnerCount { expected, actual } => {
                 write!(f, "expected {expected} scripted partners, got {actual}")
             }
+            Self::InvalidActionPlan { seat, round, action, remaining_endowment } => write!(
+                f,
+                "seat {seat} planned contribution {action} in round {round} with only {remaining_endowment} endowment remaining"
+            ),
         }
     }
 }
@@ -362,7 +372,12 @@ fn run_internal(
                 ),
             };
             if !ACTIONS.contains(&requested) || requested > remaining {
-                return Err(GameError::InvalidRisk(config.catastrophe_probability));
+                return Err(GameError::InvalidActionPlan {
+                    seat,
+                    round,
+                    action: requested,
+                    remaining_endowment: remaining,
+                });
             }
             actions[seat] = requested;
         }
