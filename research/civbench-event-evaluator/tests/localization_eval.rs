@@ -52,6 +52,7 @@ fn ranked(
 ) -> LocalizationPrediction {
     LocalizationPrediction {
         event_id: event_id.to_owned(),
+        policy_ref: "localizer-policy-v1".to_owned(),
         decision: LocalizationDecision::Ranked {
             level,
             candidate_ids: candidates.iter().map(|value| (*value).to_owned()).collect(),
@@ -63,6 +64,7 @@ fn ranked(
 fn abstain(event_id: &str) -> LocalizationPrediction {
     LocalizationPrediction {
         event_id: event_id.to_owned(),
+        policy_ref: "localizer-policy-v1".to_owned(),
         decision: LocalizationDecision::Abstain {
             reason: AbstentionReason::NotIdentifiable,
         },
