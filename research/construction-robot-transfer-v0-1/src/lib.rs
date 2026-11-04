@@ -98,14 +98,34 @@ pub struct TransferStudy {
 pub enum ValidationError {
     EmptyField(&'static str),
     EmptyDimension,
-    DuplicateSplitId { dimension: String, id: String },
-    TrainingAdaptationLeakage { dimension: String, id: String },
-    TrainingEvaluationLeakage { dimension: String, id: String },
-    AdaptationEvaluationLeakage { dimension: String, id: String },
-    DuplicateWorkItem { id: String },
-    AdaptationEvaluationWorkItemLeakage { id: String },
-    TrainingAdaptationWorkItemLeakage { id: String },
-    TrainingEvaluationWorkItemLeakage { id: String },
+    DuplicateSplitId {
+        dimension: String,
+        id: String,
+    },
+    TrainingAdaptationLeakage {
+        dimension: String,
+        id: String,
+    },
+    TrainingEvaluationLeakage {
+        dimension: String,
+        id: String,
+    },
+    AdaptationEvaluationLeakage {
+        dimension: String,
+        id: String,
+    },
+    DuplicateWorkItem {
+        id: String,
+    },
+    AdaptationEvaluationWorkItemLeakage {
+        id: String,
+    },
+    TrainingAdaptationWorkItemLeakage {
+        id: String,
+    },
+    TrainingEvaluationWorkItemLeakage {
+        id: String,
+    },
     MissingSplitPartition(&'static str),
     InvalidRegime(&'static str),
     LabelBudgetExceeded { budget: u64, actual: u64 },
@@ -159,8 +179,14 @@ impl TransferStudy {
             ("study_id", self.study_id.as_str()),
             ("source_model_digest", self.source_model_digest.as_str()),
             ("target_model_digest", self.target_model_digest.as_str()),
-            ("source_robot_config_digest", self.source_robot_config_digest.as_str()),
-            ("target_robot_config_digest", self.target_robot_config_digest.as_str()),
+            (
+                "source_robot_config_digest",
+                self.source_robot_config_digest.as_str(),
+            ),
+            (
+                "target_robot_config_digest",
+                self.target_robot_config_digest.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 errors.push(ValidationError::EmptyField(field));
@@ -168,10 +194,14 @@ impl TransferStudy {
         }
 
         if self.source.role != EvaluationRole::SourceReference {
-            errors.push(ValidationError::InvalidRole("source_must_be_source_reference"));
+            errors.push(ValidationError::InvalidRole(
+                "source_must_be_source_reference",
+            ));
         }
         if self.target.role != EvaluationRole::TargetEvaluation {
-            errors.push(ValidationError::InvalidRole("target_must_be_target_evaluation"));
+            errors.push(ValidationError::InvalidRole(
+                "target_must_be_target_evaluation",
+            ));
         }
 
         validate_record(&self.source, &mut errors);
@@ -204,27 +234,23 @@ impl TransferStudy {
                 });
             }
         }
-        let source_items: BTreeSet<&str> =
-            self.source.work_item_ids.iter().map(String::as_str).collect();
+        let source_items: BTreeSet<&str> = self
+            .source
+            .work_item_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
         for item in &self.target_adaptation_work_item_ids {
             if source_items.contains(item.as_str()) {
-                errors.push(ValidationError::TrainingAdaptationWorkItemLeakage {
-                    id: item.clone(),
-                });
+                errors
+                    .push(ValidationError::TrainingAdaptationWorkItemLeakage { id: item.clone() });
             }
         }
         for item in &self.target.work_item_ids {
             if source_items.contains(item.as_str()) {
-                errors.push(ValidationError::TrainingEvaluationWorkItemLeakage {
-                    id: item.clone(),
-                });
+                errors
+                    .push(ValidationError::TrainingEvaluationWorkItemLeakage { id: item.clone() });
             }
-        }
-
-        if self.source_model_digest.trim().is_empty()
-            || self.target_model_digest.trim().is_empty()
-        {
-            // Header errors are already reported above.
         }
 
         for (field, budget, actual) in [
@@ -268,8 +294,7 @@ impl TransferStudy {
             }
         }
 
-        if self.adaptation_effort.target_label_count
-            > self.adaptation_budget.max_target_label_count
+        if self.adaptation_effort.target_label_count > self.adaptation_budget.max_target_label_count
         {
             errors.push(ValidationError::LabelBudgetExceeded {
                 budget: self.adaptation_budget.max_target_label_count,
@@ -339,7 +364,9 @@ impl TransferStudy {
             errors.push(ValidationError::MismatchedComparison("task_family"));
         }
         if self.source.functional_unit_class != self.target.functional_unit_class {
-            errors.push(ValidationError::MismatchedComparison("functional_unit_class"));
+            errors.push(ValidationError::MismatchedComparison(
+                "functional_unit_class",
+            ));
         }
         if self.source.acceptance_profile_digest != self.target.acceptance_profile_digest {
             errors.push(ValidationError::MismatchedComparison(
@@ -378,10 +405,8 @@ impl TransferStudy {
     pub fn transfer_retention(&self) -> Result<TransferRetention, Vec<ValidationError>> {
         self.validate()?;
 
-        let source_metrics = calculate_metrics(&self.source)
-            .map_err(|error| vec![error])?;
-        let target_metrics = calculate_metrics(&self.target)
-            .map_err(|error| vec![error])?;
+        let source_metrics = calculate_metrics(&self.source).map_err(|error| vec![error])?;
+        let target_metrics = calculate_metrics(&self.target).map_err(|error| vec![error])?;
 
         let source_rate = source_metrics.accepted_units_per_total_workflow_crew_hour;
         let target_rate = target_metrics.accepted_units_per_total_workflow_crew_hour;
@@ -404,9 +429,7 @@ impl TransferStudy {
     }
 }
 
-pub fn calculate_metrics(
-    record: &EvaluationRecord,
-) -> Result<EvaluationMetrics, ValidationError> {
+pub fn calculate_metrics(record: &EvaluationRecord) -> Result<EvaluationMetrics, ValidationError> {
     let mut errors = Vec::new();
     validate_record(record, &mut errors);
     if let Some(error) = errors.into_iter().next() {
@@ -417,14 +440,16 @@ pub fn calculate_metrics(
         record.first_pass_accepted_units,
         record.first_pass_inspected_units,
     );
-    let final_acceptance_fraction_of_attempted = ratio(
+    let final_acceptance_fraction_of_attempted =
+        ratio(record.finally_accepted_units, record.attempted_units);
+    let accepted_units_per_total_workflow_crew_hour = rate_per_hour(
         record.finally_accepted_units,
-        record.attempted_units,
-    );
-    let accepted_units_per_total_workflow_crew_hour =
-        rate_per_hour(record.finally_accepted_units, record.total_workflow_crew_minutes)?;
-    let accepted_units_per_robot_hour =
-        rate_per_hour(record.finally_accepted_units, record.robot_operating_minutes)?;
+        record.total_workflow_crew_minutes,
+    )?;
+    let accepted_units_per_robot_hour = rate_per_hour(
+        record.finally_accepted_units,
+        record.robot_operating_minutes,
+    )?;
 
     Ok(EvaluationMetrics {
         first_pass_yield,
@@ -455,16 +480,19 @@ fn ratio(numerator: u64, denominator: u64) -> Option<f64> {
     }
 }
 
-fn validate_record(
-    record: &EvaluationRecord,
-    errors: &mut Vec<ValidationError>,
-) {
+fn validate_record(record: &EvaluationRecord, errors: &mut Vec<ValidationError>) {
     for (field, value) in [
         ("evaluation_id", record.evaluation_id.as_str()),
         ("match_stratum_id", record.match_stratum_id.as_str()),
         ("task_family", record.task_family.as_str()),
-        ("functional_unit_class", record.functional_unit_class.as_str()),
-        ("acceptance_profile_digest", record.acceptance_profile_digest.as_str()),
+        (
+            "functional_unit_class",
+            record.functional_unit_class.as_str(),
+        ),
+        (
+            "acceptance_profile_digest",
+            record.acceptance_profile_digest.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             errors.push(ValidationError::EmptyField(field));
@@ -489,7 +517,10 @@ fn validate_record(
     }
 
     for (name, value) in [
-        ("total_workflow_crew_minutes", record.total_workflow_crew_minutes),
+        (
+            "total_workflow_crew_minutes",
+            record.total_workflow_crew_minutes,
+        ),
         ("robot_operating_minutes", record.robot_operating_minutes),
     ] {
         if !value.is_finite() || value < 0.0 {
@@ -545,11 +576,7 @@ fn validate_split_guard(guard: &SplitGuard, errors: &mut Vec<ValidationError>) {
     }
 }
 
-fn validate_unique_ids(
-    values: &[String],
-    _field: &'static str,
-    errors: &mut Vec<ValidationError>,
-) {
+fn validate_unique_ids(values: &[String], _field: &'static str, errors: &mut Vec<ValidationError>) {
     let mut seen = BTreeSet::new();
     for value in values {
         if value.trim().is_empty() {
