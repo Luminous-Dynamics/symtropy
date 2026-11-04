@@ -40,7 +40,9 @@ fn dimension_for_quantity(q: &str) -> Option<&'static str> {
         | "equivalent_load_estimation_error"
         | "output_prediction_mape"
         | "cc_cv_regulation_error"
-        | "output_regulation_error" => Some("dimensionless"),
+        | "output_regulation_error"
+        | "output_power_fluctuation"
+        | "output_voltage_fluctuation" => Some("dimensionless"),
         "electric_field_strength" | "internal_electric_field" => Some("electric_field"),
         "magnetic_field_strength" => Some("magnetic_field"),
         "magnetic_flux_density" => Some("magnetic_flux_density"),
@@ -1197,6 +1199,26 @@ mod tests {
             !errors.iter().any(|error| error.contains("unit/dimension mismatch")),
             "{errors:#?}"
         );
+    }
+
+    #[test]
+    fn output_power_and_voltage_fluctuation_have_dimensionless_units() {
+        assert_eq!(dimension_for_quantity("output_power_fluctuation"), Some("dimensionless"));
+        assert_eq!(dimension_for_quantity("output_voltage_fluctuation"), Some("dimensionless"));
+        assert_eq!(dimension_for_unit("%"), Some("dimensionless"));
+    }
+
+    #[test]
+    fn distinct_power_and_voltage_fluctuations_are_not_same_quantity() {
+        let left = sample("POWER-FLUCT", 3.0);
+        let mut right = sample("VOLTAGE-FLUCT", 4.0);
+        left["quantity_kind"] = json!("output_power_fluctuation");
+        right["quantity_kind"] = json!("output_voltage_fluctuation");
+        left["measurement_purpose"] = json!("control_performance");
+        right["measurement_purpose"] = json!("control_performance");
+        let (disposition, reasons) = compare_measurements(&left, &right, "generic_numeric_ranking");
+        assert_eq!(disposition, "NOT_COMPARABLE");
+        assert!(reasons.contains(&"QUANTITY_KIND_MISMATCH".to_string()));
     }
 
     #[test]
