@@ -223,8 +223,8 @@ impl EnergyBalanceInput {
         )?;
 
         let delta_stored_energy_j = checked_sub(
-            self.final_stored_energy_j,
-            self.initial_stored_energy_j,
+            self.final_stored_energy_j.get(),
+            self.initial_stored_energy_j.get(),
             EnergyBalanceField::DeltaStoredEnergy,
         )?;
 
@@ -235,7 +235,7 @@ impl EnergyBalanceInput {
         )?;
         let energy_in = checked_add(
             work_heat_in,
-            flows.matter_energy_in_j,
+            flows.matter_energy_in_j.get(),
             EnergyBalanceField::BoundaryEnergyIn,
         )?;
         let work_heat_out = checked_add(
@@ -245,7 +245,7 @@ impl EnergyBalanceInput {
         )?;
         let energy_out = checked_add(
             work_heat_out,
-            flows.matter_energy_out_j,
+            flows.matter_energy_out_j.get(),
             EnergyBalanceField::BoundaryEnergyOut,
         )?;
 
@@ -273,7 +273,7 @@ impl EnergyBalanceInput {
             EnergyBalanceField::AllowedResidual,
         )?;
         let allowed_residual_j = checked_add(
-            tolerances.absolute_j,
+            tolerances.absolute_j.get(),
             relative_component,
             EnergyBalanceField::AllowedResidual,
         )?;
@@ -290,7 +290,8 @@ impl EnergyBalanceInput {
 
         let status = match self.boundary_coverage {
             BoundaryCoverage::Incomplete => EnergyBalanceStatus::Inconclusive,
-            BoundaryCoverage::Complete if residual_j.abs() <= allowed_residual_j => {
+            BoundaryCoverage::Complete
+                if residual_j.abs() <= allowed_residual_j => {
                 EnergyBalanceStatus::Balanced
             }
             BoundaryCoverage::Complete => EnergyBalanceStatus::Imbalanced,
@@ -394,8 +395,8 @@ mod tests {
         boundary_flows: BoundaryEnergyFlows,
     ) -> EnergyBalanceInput {
         EnergyBalanceInput {
-            initial_stored_energy_j,
-            final_stored_energy_j,
+            initial_stored_energy_j: Joules::new(initial_stored_energy_j),
+            final_stored_energy_j: Joules::new(final_stored_energy_j),
             boundary_flows,
             boundary_coverage: BoundaryCoverage::Complete,
         }
