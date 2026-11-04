@@ -123,6 +123,25 @@ fn cross_network_protocol_rejects_a_shared_network() {
 }
 
 #[test]
+fn cross_network_protocol_rejects_test_only_topology_family() {
+    let samples = vec![
+        sample("train-a", DataPartition::Train, 1, "net-1", "topology-1"),
+        sample(
+            "validation-a",
+            DataPartition::Validation,
+            2,
+            "net-2",
+            "topology-1",
+        ),
+        sample("test-a", DataPartition::Test, 3, "net-3", "topology-2"),
+    ];
+    let error = audit_benchmark_split(&samples, &policy(SplitProtocolPreset::CrossNetwork))
+        .expect_err("cross-network transfer must hold topology family common");
+    assert_eq!(error.code, "shared_group_not_in_all_partitions");
+    assert_eq!(error.subject, "topology_family");
+}
+
+#[test]
 fn cross_network_protocol_accepts_disjoint_networks() {
     let samples = vec![
         sample("train-a", DataPartition::Train, 1, "net-1", "topology-1"),
@@ -205,11 +224,21 @@ fn cross_partition_physical_event_reuse_fails_closed() {
 
 #[test]
 fn cross_topology_protocol_rejects_shared_topology_family() {
-    let samples = valid_within_network_samples();
+    let samples = vec![
+        sample("train-a", DataPartition::Train, 1, "net-1", "topology-1"),
+        sample(
+            "validation-a",
+            DataPartition::Validation,
+            2,
+            "net-2",
+            "topology-1",
+        ),
+        sample("test-a", DataPartition::Test, 3, "net-3", "topology-1"),
+    ];
     let error = audit_benchmark_split(&samples, &policy(SplitProtocolPreset::CrossTopology))
         .expect_err("topology family overlap must fail");
     assert_eq!(error.code, "cross_partition_group_overlap");
-    assert_eq!(error.subject, "network=net-1");
+    assert_eq!(error.subject, "topology_family=topology-1");
 }
 
 #[test]
