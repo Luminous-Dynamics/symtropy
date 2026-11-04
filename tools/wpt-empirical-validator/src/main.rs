@@ -1,7 +1,9 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use regex::Regex;
 use serde_json::Value;
+use url::Url;
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt;
@@ -21,6 +23,275 @@ impl fmt::Display for ValidationError {
 impl Error for ValidationError {}
 
 type ValidationResult<T> = Result<T, ValidationError>;
+
+
+// The benchmark schemas currently use a deliberately small JSON Schema
+// 2020-12 vocabulary. Enforce every keyword in that vocabulary and fail
+// closed if a future schema introduces a constraint this validator cannot
+// interpret. This is not advertised as a general-purpose JSON Schema engine.
+const SCHEMA_VALIDATION_KEYWORDS: &[&str] = &[
+    "type",
+    "const",
+    "enum",
+    "required",
+    "properties",
+    "additionalProperties",
+    "items",
+    "minItems",
+    "minLength",
+    "pattern",
+    "format",
+    "minimum",
+    "maximum",
+    "exclusiveMinimum",
+];
+
+const SCHEMA_ANNOTATION_KEYWORDS: &[&str] =
+    &["$schema", "$id", "title", "description"];
+
+fn ensure_supported_schema(schema: &Value, path: &str) -> ValidationResult<()> {
+    let object = schema
+        .as_object()
+        .ok_or_else(|| ValidationError(format!("{path}: schema must be an object")))?;
+
+    for key in object.keys() {
+        if !SCHEMA_VALIDATION_KEYWORDS.contains(&key.as_str())
+            && !SCHEMA_ANNOTATION_KEYWORDS.contains(&key.as_str())
+        {
+            return invalid(format!(
+                "{path}: unsupported JSON Schema keyword {key}; implement it before relying on this schema"
+            ));
+        }
+    }
+
+    if let Some(properties) = schema.get("properties") {
+        let properties = properties
+            .as_object()
+            .ok_or_else(|| ValidationError(format!("{path}: properties must be an object")))?;
+        for (name, child_schema) in properties {
+            ensure_supported_schema(child_schema, &format!("{path}.properties.{name}"))?;
+        }
+    }
+
+    if let Some(items) = schema.get("items") {
+        ensure_supported_schema(items, &format!("{path}.items"))?;
+    }
+
+    if let Some(additional) = schema.get("additionalProperties") {
+        if let Some(additional_schema) = additional.as_object() {
+            ensure_supported_schema(
+                &Value::Object(additional_schema.clone()),
+                &format!("{path}.additionalProperties"),
+            )?;
+        } else if !additional.is_boolean() {
+            return invalid(format!(
+                "{path}: additionalProperties must be boolean or a schema object"
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn matches_json_type(value: &Value, type_name: &str) -> bool {
+    match type_name {
+        "null" => value.is_null(),
+        "boolean" => value.is_boolean(),
+        "object" => value.is_object(),
+        "array" => value.is_array(),
+        "string" => value.is_string(),
+        "number" => value.is_number(),
+        "integer" => {
+            value.as_i64().is_some()
+                || value.as_u64().is_some()
+                || value
+                    .as_f64()
+                    .is_some_and(|number| number.is_finite() && number.fract() == 0.0)
+        }
+        _ => false,
+    }
+}
+
+fn validate_json_schema(value: &Value, schema: &Value, path: &str) -> ValidationResult<()> {
+    let schema_object = schema
+        .as_object()
+        .ok_or_else(|| ValidationError(format!("{path}: schema must be an object")))?;
+
+    if let Some(constant) = schema_object.get("const") {
+        if value != constant {
+            return invalid(format!("{path}: value does not match schema const"));
+        }
+    }
+
+    if let Some(allowed) = schema_object.get("enum") {
+        let allowed = allowed
+            .as_array()
+            .ok_or_else(|| ValidationError(format!("{path}: enum must be an array")))?;
+        if !allowed.contains(value) {
+            return invalid(format!("{path}: value is not in the allowed enum"));
+        }
+    }
+
+    if let Some(type_rule) = schema_object.get("type") {
+        let matches = if let Some(type_name) = type_rule.as_str() {
+            matches_json_type(value, type_name)
+        } else if let Some(type_names) = type_rule.as_array() {
+            type_names.iter().any(|candidate| {
+                candidate
+                    .as_str()
+                    .is_some_and(|type_name| matches_json_type(value, type_name))
+            })
+        } else {
+            return invalid(format!("{path}: schema type must be a string or array of strings"));
+        };
+
+        if !matches {
+            return invalid(format!("{path}: value does not match schema type"));
+        }
+    }
+
+    if let Some(required) = schema_object.get("required") {
+        let required = required
+            .as_array()
+            .ok_or_else(|| ValidationError(format!("{path}: required must be an array")))?;
+        let object = value
+            .as_object()
+            .ok_or_else(|| ValidationError(format!("{path}: required applies to an object")))?;
+        for field in required {
+            let field = field
+                .as_str()
+                .ok_or_else(|| ValidationError(format!("{path}: required entries must be strings")))?;
+            if !object.contains_key(field) {
+                return invalid(format!("{path}: missing required property {field}"));
+            }
+        }
+    }
+
+    if let Some(properties_rule) = schema_object.get("properties") {
+        let properties = properties_rule
+            .as_object()
+            .ok_or_else(|| ValidationError(format!("{path}: properties must be an object")))?;
+        if let Some(object) = value.as_object() {
+            for (name, child) in object {
+                if let Some(child_schema) = properties.get(name) {
+                    validate_json_schema(child, child_schema, &format!("{path}.{name}"))?;
+                }
+            }
+        }
+    }
+
+    if let Some(additional_rule) = schema_object.get("additionalProperties") {
+        if let Some(object) = value.as_object() {
+            let properties = schema_object.get("properties").and_then(Value::as_object);
+            for (name, child) in object {
+                if properties.is_some_and(|known| known.contains_key(name)) {
+                    continue;
+                }
+                match additional_rule {
+                    Value::Bool(true) => {}
+                    Value::Bool(false) => {
+                        return invalid(format!("{path}: undeclared property {name}"));
+                    }
+                    Value::Object(_) => {
+                        validate_json_schema(
+                            child,
+                            additional_rule,
+                            &format!("{path}.{name}"),
+                        )?;
+                    }
+                    _ => {
+                        return invalid(format!(
+                            "{path}: additionalProperties must be boolean or a schema object"
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(items_rule) = schema_object.get("items") {
+        let items = value
+            .as_array()
+            .ok_or_else(|| ValidationError(format!("{path}: items applies to an array")))?;
+        for (index, item) in items.iter().enumerate() {
+            validate_json_schema(item, items_rule, &format!("{path}[{index}]"))?;
+        }
+    }
+
+    if let Some(minimum_items) = schema_object.get("minItems") {
+        let minimum_items = minimum_items
+            .as_u64()
+            .ok_or_else(|| ValidationError(format!("{path}: minItems must be an unsigned integer")))?;
+        if value.as_array().is_some_and(|items| items.len() < minimum_items as usize) {
+            return invalid(format!("{path}: array has fewer than {minimum_items} items"));
+        }
+    }
+
+    if let Some(minimum_length) = schema_object.get("minLength") {
+        let minimum_length = minimum_length
+            .as_u64()
+            .ok_or_else(|| ValidationError(format!("{path}: minLength must be an unsigned integer")))?;
+        if value
+            .as_str()
+            .is_some_and(|text| text.chars().count() < minimum_length as usize)
+        {
+            return invalid(format!("{path}: string is shorter than {minimum_length} characters"));
+        }
+    }
+
+    if let Some(pattern) = schema_object.get("pattern") {
+        let pattern = pattern
+            .as_str()
+            .ok_or_else(|| ValidationError(format!("{path}: pattern must be a string")))?;
+        let regex = Regex::new(pattern)
+            .map_err(|error| ValidationError(format!("{path}: invalid schema pattern: {error}")))?;
+        let text = value
+            .as_str()
+            .ok_or_else(|| ValidationError(format!("{path}: pattern applies to a string")))?;
+        if !regex.is_match(text) {
+            return invalid(format!("{path}: string does not match required pattern"));
+        }
+    }
+
+    if let Some(format) = schema_object.get("format") {
+        let format = format
+            .as_str()
+            .ok_or_else(|| ValidationError(format!("{path}: format must be a string")))?;
+        match format {
+            "uri" => {
+                let text = value
+                    .as_str()
+                    .ok_or_else(|| ValidationError(format!("{path}: uri format applies to a string")))?;
+                Url::parse(text)
+                    .map_err(|error| ValidationError(format!("{path}: invalid absolute URI: {error}")))?;
+            }
+            _ => return invalid(format!("{path}: unsupported format assertion {format}")),
+        }
+    }
+
+    for keyword in ["minimum", "maximum", "exclusiveMinimum"] {
+        if let Some(limit) = schema_object.get(keyword) {
+            let limit = limit
+                .as_f64()
+                .ok_or_else(|| ValidationError(format!("{path}: {keyword} must be numeric")))?;
+            let actual = value
+                .as_f64()
+                .ok_or_else(|| ValidationError(format!("{path}: {keyword} applies to a number")))?;
+            let violated = match keyword {
+                "minimum" => actual < limit,
+                "maximum" => actual > limit,
+                "exclusiveMinimum" => actual <= limit,
+                _ => false,
+            };
+            if violated {
+                return invalid(format!("{path}: numeric value violates {keyword}={limit}"));
+            }
+        }
+    }
+
+    Ok(())
+}
+
 
 fn invalid<T>(message: impl Into<String>) -> ValidationResult<T> {
     Err(ValidationError(message.into()))
@@ -665,8 +936,23 @@ fn validate(root: &Path) -> ValidationResult<()> {
         return invalid("realization schema is not declared as JSON Schema 2020-12");
     }
 
+    ensure_supported_schema(&source_schema, "source schema")?;
+    ensure_supported_schema(&realization_schema, "realization schema")?;
+
     let sources = read_jsonl(&base.join("sources.jsonl"))?;
     let realizations = read_jsonl(&base.join("realizations.jsonl"))?;
+
+    for (index, record) in sources.iter().enumerate() {
+        validate_json_schema(record, &source_schema, &format!("source record {}", index + 1))?;
+    }
+    for (index, record) in realizations.iter().enumerate() {
+        validate_json_schema(
+            record,
+            &realization_schema,
+            &format!("realization record {}", index + 1),
+        )?;
+    }
+
     let source_ids = validate_sources(&sources, &source_schema)?;
     let (measurements, engineering_metrics) =
         validate_realizations(&realizations, &realization_schema, &source_ids)?;
@@ -692,6 +978,160 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn schema_enforces_nested_types_required_fields_and_closed_objects() {
+        use serde_json::json;
+
+        let schema = json!({
+            "type": "object",
+            "required": ["name", "measurement"],
+            "additionalProperties": false,
+            "properties": {
+                "name": {"type": "string", "pattern": "^[a-z]+$", "minLength": 3},
+                "measurement": {
+                    "type": "object",
+                    "required": ["value"],
+                    "additionalProperties": false,
+                    "properties": {
+                        "value": {"type": ["number", "null"], "minimum": 0.0}
+                    }
+                }
+            }
+        });
+        ensure_supported_schema(&schema, "$test").unwrap();
+
+        let valid = json!({"name": "coil", "measurement": {"value": 0.0}});
+        assert!(validate_json_schema(&valid, &schema, "$test").is_ok());
+
+        let extra_property = json!({
+            "name": "coil",
+            "measurement": {"value": 1.0, "hidden": true}
+        });
+        assert!(validate_json_schema(&extra_property, &schema, "$test").is_err());
+
+        let invalid_type = json!({"name": "coil", "measurement": {"value": "1"}});
+        assert!(validate_json_schema(&invalid_type, &schema, "$test").is_err());
+
+        let missing_required = json!({"name": "coil", "measurement": {}});
+        assert!(validate_json_schema(&missing_required, &schema, "$test").is_err());
+    }
+
+    #[test]
+    fn schema_enforces_union_nulls_and_numeric_exclusive_bounds() {
+        use serde_json::json;
+
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "frequency_hz": {"type": ["number", "null"], "exclusiveMinimum": 0.0},
+                "year": {"type": "integer", "minimum": 1900, "maximum": 2100}
+            }
+        });
+
+        assert!(validate_json_schema(
+            &json!({"frequency_hz": null, "year": 2026}),
+            &schema,
+            "$test"
+        ).is_ok());
+        assert!(validate_json_schema(
+            &json!({"frequency_hz": 85000.0, "year": 2026}),
+            &schema,
+            "$test"
+        ).is_ok());
+        assert!(validate_json_schema(
+            &json!({"frequency_hz": 0.0, "year": 2026}),
+            &schema,
+            "$test"
+        ).is_err());
+        assert!(validate_json_schema(
+            &json!({"frequency_hz": 85000.0, "year": 2101}),
+            &schema,
+            "$test"
+        ).is_err());
+        assert!(validate_json_schema(
+            &json!({"frequency_hz": 85000.0, "year": 2026.5}),
+            &schema,
+            "$test"
+        ).is_err());
+    }
+
+    #[test]
+    fn schema_enforces_uri_format_and_identifier_patterns() {
+        use serde_json::json;
+
+        let schema = json!({
+            "type": "object",
+            "required": ["uri", "id"],
+            "properties": {
+                "uri": {"type": "string", "format": "uri"},
+                "id": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9._-]+$"}
+            }
+        });
+        assert!(validate_json_schema(
+            &json!({"uri": "https://example.org/paper", "id": "WPT.SYSTEM-1"}),
+            &schema,
+            "$test"
+        ).is_ok());
+        assert!(validate_json_schema(
+            &json!({"uri": "not a uri", "id": "WPT.SYSTEM-1"}),
+            &schema,
+            "$test"
+        ).is_err());
+        assert!(validate_json_schema(
+            &json!({"uri": "https://example.org/paper", "id": "lowercase"}),
+            &schema,
+            "$test"
+        ).is_err());
+    }
+
+    #[test]
+    fn schema_enforces_array_and_string_lengths() {
+        use serde_json::json;
+
+        let schema = json!({
+            "type": "object",
+            "required": ["label", "points"],
+            "properties": {
+                "label": {"type": "string", "minLength": 3},
+                "points": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {"type": "number", "maximum": 10.0}
+                }
+            }
+        });
+        ensure_supported_schema(&schema, "$test").unwrap();
+
+        assert!(validate_json_schema(
+            &json!({"label": "coil", "points": [0.0, 10.0]}),
+            &schema,
+            "$test"
+        ).is_ok());
+        assert!(validate_json_schema(
+            &json!({"label": "hi", "points": [0.0, 10.0]}),
+            &schema,
+            "$test"
+        ).is_err());
+        assert!(validate_json_schema(
+            &json!({"label": "coil", "points": [0.0]}),
+            &schema,
+            "$test"
+        ).is_err());
+        assert!(validate_json_schema(
+            &json!({"label": "coil", "points": [0.0, 10.1]}),
+            &schema,
+            "$test"
+        ).is_err());
+    }
+
+    #[test]
+    fn unsupported_schema_keywords_fail_closed() {
+        use serde_json::json;
+
+        let schema = json!({"type": "string", "allOf": [{"minLength": 3}]});
+        assert!(ensure_supported_schema(&schema, "$test").is_err());
+    }
 
     #[test]
     fn checked_in_dataset_passes_the_full_integrity_audit() {
