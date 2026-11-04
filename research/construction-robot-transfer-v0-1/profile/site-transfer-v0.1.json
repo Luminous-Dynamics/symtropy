@@ -27,7 +27,9 @@
     "matched_transfer_retention_ratio",
     "adaptation_person_hours",
     "target_label_count",
-    "elapsed_time_to_first_accepted_unit"
+    "elapsed_time_to_first_accepted_unit",
+    "actual_adaptation_person_hours_by_role",
+    "label_budget_utilization"
   ],
   "hard_rules": {
     "source_training_target_evaluation_overlap": 0,
@@ -40,5 +42,11 @@
     "No field-transfer claim from synthetic fixtures",
     "No causal claim without matched/randomized design and appropriate independent units",
     "No universal retention threshold"
-  ]
+  ],
+  "accounting": {
+    "budget_vs_actual": "separate objects; actual labels/person-hours must not exceed declared budgets",
+    "work_item_separation": "source and target-evaluation tasks disjoint; target-adaptation tasks and target-evaluation tasks disjoint",
+    "terminal_dispositions": "finally accepted + finally rejected + uninspected + unresolved cannot exceed attempted units",
+    "zero_denominators": "return not-estimable, never zero/infinity"
+  }
 }
