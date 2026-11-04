@@ -453,7 +453,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn capacity_sweep_accepts_candidate_across_disjoint_existing_reservations() {
         let mut book = book(2);
