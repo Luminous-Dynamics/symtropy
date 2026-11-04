@@ -161,8 +161,21 @@ def verify_npz(path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
                     "NPZ uncompressed content exceeds the 512 MiB verifier cap")
         require(NPZ_REQUIRED.issubset(set(names)), "NPZ trace omits one or more required arrays")
         require(archive.testzip() is None, "NPZ ZIP CRC verification failed")
-        for name in NPZ_REQUIRED:
-            arrays[name[:-4]] = parse_npy_values(archive.read(name))
+        numeric_real = {
+            "best.npy", "X.npy", "y.npy", "c.npy",
+            "per_iteration_value.npy", "wall_time.npy",
+        }
+        numeric_integer = {"seed.npy", "n_init.npy", "iterations.npy"}
+        for name in names:
+            raw = archive.read(name)
+            _shape, descr, _offset = parse_npy_header(raw)
+            kind = descr[1:2]
+            if name in numeric_real and kind not in ("f", "i", "u"):
+                raise ValueError(f"NPZ {name} must use a real numeric dtype, got {descr!r}")
+            if name in numeric_integer and kind not in ("i", "u"):
+                raise ValueError(f"NPZ {name} must use an integer dtype, got {descr!r}")
+            if name in NPZ_REQUIRED:
+                arrays[name[:-4]] = parse_npy_values(raw)
 
     algorithm = npy_scalar(arrays, "algorithm")
     problem = npy_scalar(arrays, "problem")
@@ -416,8 +429,18 @@ def verify_receipt(path: Path) -> dict[str, Any]:
     if state == "succeeded":
         require(receipt.get("process_exit_code") == 0, "succeeded trial must have exit code 0")
         require(not has_skip, "succeeded trial stdout contains upstream SKIP")
-        require("upstream_npz" in artifacts and "upstream_summary" in artifacts,
-                "succeeded trial must retain raw NPZ and upstream summary")
+        required_artifacts = {
+            "task_metadata_json", "environment_freeze", "environment_freeze_stderr",
+            "stdout", "stderr", "upstream_npz", "upstream_summary",
+        }
+        require(required_artifacts.issubset(set(artifacts)),
+                "succeeded trial is missing mandatory metadata/environment/log/trace artifacts")
+        require(environment_projection is not None,
+                "succeeded trial must retain its safe environment projection")
+        require(command is not None,
+                "succeeded trial must retain the exact command argv")
+        require(receipt.get("environment_freeze_sha256") == artifacts["environment_freeze"].get("sha256"),
+                "succeeded trial dependency freeze digest does not bind the retained artifact")
         require(not receipt.get("timed_out"), "succeeded trial cannot be marked timed out")
         npz_path = safe_artifact_path(root, artifacts["upstream_npz"]["path"])
         expected_npz_name = f"{receipt['algorithm']}_{receipt['task_id']}_seed{receipt['seed']}.npz"
