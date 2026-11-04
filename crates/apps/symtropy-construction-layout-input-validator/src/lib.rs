@@ -309,22 +309,22 @@ fn check_source_and_export(manifest: &InputManifest, policy: &TrustedPolicy, out
         &source
             .discipline_revisions
             .iter()
-            .map(|v| format!("{}:{}", v.discipline_id, v.revision))
+            .map(|v| v.discipline_id.clone())
             .collect::<Vec<_>>(),
     ) || !unique_nonempty(
         &export
             .discipline_revisions
             .iter()
-            .map(|v| format!("{}:{}", v.discipline_id, v.revision))
+            .map(|v| v.discipline_id.clone())
             .collect::<Vec<_>>(),
     ) || source
         .discipline_revisions
         .iter()
-        .any(|v| !nonempty(&v.discipline_id) || !nonempty(&v.revision))
+        .any(|v| !nonempty(&v.revision))
         || export
             .discipline_revisions
             .iter()
-            .any(|v| !nonempty(&v.discipline_id) || !nonempty(&v.revision))
+            .any(|v| !nonempty(&v.revision))
     {
         out.hard("discipline_revision_identifiers_missing_or_duplicated");
     }
@@ -448,7 +448,7 @@ fn check_control_validation(
     {
         out.unknown("survey_evidence_digest_malformed");
     }
-    if !unique_nonempty(&control.fit_point_ids) {
+    if control.fit_point_ids.is_empty() || !unique_nonempty(&control.fit_point_ids) {
         out.unknown("fit_point_ids_empty_or_duplicated");
     }
 
@@ -552,7 +552,6 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
         || !nonempty(&policy.work_package_revision)
         || !nonempty(&policy.work_zone_id)
         || !nonempty(&policy.source_model_revision)
-        || !nonempty(&policy.source_model_revision)
         || !nonempty(&policy.expected_exporter_id)
         || !nonempty(&policy.source_frame_id)
         || !nonempty(&policy.target_frame_id)
@@ -567,7 +566,7 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
             &policy
                 .discipline_revisions
                 .iter()
-                .map(|v| format!("{}:{}", v.discipline_id, v.revision))
+                .map(|v| v.discipline_id.clone())
                 .collect::<Vec<_>>(),
         )
         || policy
