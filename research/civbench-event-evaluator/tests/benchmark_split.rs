@@ -258,8 +258,7 @@ fn empty_policy_cannot_claim_an_audited_protocol() {
         exclusive_dimensions: BTreeSet::new(),
         shared_dimensions: BTreeSet::new(),
     };
-    let error =
-        audit_benchmark_split(&valid_samples(), &empty_policy).expect_err("empty policy");
+    let error = audit_benchmark_split(&valid_samples(), &empty_policy).expect_err("empty policy");
     assert_eq!(error.code, "empty_exclusive_dimensions");
 }
 
