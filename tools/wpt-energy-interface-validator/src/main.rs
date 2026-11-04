@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::process::ExitCode;
 
 use serde_json::Value;
-use wpt_energy_interface_validator::evaluate_record;
+use wpt_energy_interface_validator::{evaluate_record, SessionValidator};
 
 fn run() -> Result<(), String> {
     let path = env::args_os().nth(1)
         .ok_or_else(|| "usage: wpt-energy-interface-validator <known-truth.jsonl>".to_owned())?;
     let file = File::open(&path).map_err(|error| format!("cannot open input: {error}"))?;
     let reader = BufReader::new(file);
-    let mut sessions = HashMap::new();
+    let mut sessions = SessionValidator::default();
     let mut event_ids = HashSet::new();
     let mut mismatches = 0usize;
     let mut records = 0usize;
