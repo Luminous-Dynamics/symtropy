@@ -495,6 +495,7 @@ mod tests {
             carrier,
             direction,
             energy_j,
+            uncertainty_bound_j: Some(0.0),
         }
     }
 
@@ -507,7 +508,9 @@ mod tests {
             boundary_id: "test-system".to_string(),
             interval_id: "tick-0001".to_string(),
             initial_stored_energy_j: Some(initial),
+            initial_stored_energy_uncertainty_bound_j: Some(0.0),
             final_stored_energy_j: Some(final_energy),
+            final_stored_energy_uncertainty_bound_j: Some(0.0),
             boundary_flows: Some(flows),
         }
     }
@@ -610,7 +613,9 @@ mod tests {
             boundary_id: "test-system".to_string(),
             interval_id: "tick-0001".to_string(),
             initial_stored_energy_j: Some(0.0),
+            initial_stored_energy_uncertainty_bound_j: Some(0.0),
             final_stored_energy_j: Some(10.0),
+            final_stored_energy_uncertainty_bound_j: Some(0.0),
             boundary_flows: None,
         };
         let report = record.evaluate(zero_tolerance()).unwrap();
@@ -629,7 +634,9 @@ mod tests {
             boundary_id: "test-system".to_string(),
             interval_id: "tick-0001".to_string(),
             initial_stored_energy_j: Some(0.0),
+            initial_stored_energy_uncertainty_bound_j: Some(0.0),
             final_stored_energy_j: None,
+            final_stored_energy_uncertainty_bound_j: None,
             boundary_flows: Some(vec![flow(
                 "bad-flow",
                 "reservoir",
@@ -750,6 +757,132 @@ mod tests {
         .unwrap();
         assert_eq!(small.status, EnergyBalanceStatus::Balanced);
         assert_eq!(large.status, EnergyBalanceStatus::Balanced);
+    }
+
+    #[test]
+    fn missing_uncertainty_is_incomplete_not_assumed_zero() {
+        let mut record = complete_balance(0.0, 1.0, vec![]);
+        record.initial_stored_energy_uncertainty_bound_j = None;
+        let report = record.evaluate(zero_tolerance()).unwrap();
+        assert_eq!(
+            report.status,
+            EnergyBalanceStatus::Incomplete {
+                missing_terms: vec![EnergyBalanceTerm::UncertaintyBounds],
+            }
+        );
+        assert_eq!(report.residual_uncertainty_bound_j, None);
+    }
+
+    #[test]
+    fn residual_interval_fully_within_tolerance_is_balanced() {
+        let mut record = complete_balance(
+            0.0,
+            0.05,
+            vec![flow(
+                "in",
+                "source",
+                EnergyCarrier::Work,
+                FlowDirection::IntoBoundary,
+                0.0,
+            )],
+        );
+        record.initial_stored_energy_uncertainty_bound_j = Some(0.01);
+        record.final_stored_energy_uncertainty_bound_j = Some(0.01);
+        let report = record
+            .evaluate(EnergyBalanceTolerance::new(0.1, 0.0).unwrap())
+            .unwrap();
+        assert_eq!(report.status, EnergyBalanceStatus::Balanced);
+        assert_eq!(report.residual_interval_j, Some((0.03, 0.07)));
+    }
+
+    #[test]
+    fn residual_interval_outside_tolerance_is_imbalanced() {
+        let mut record = complete_balance(
+            0.0,
+            0.5,
+            vec![flow(
+                "in",
+                "source",
+                EnergyCarrier::Work,
+                FlowDirection::IntoBoundary,
+                0.0,
+            )],
+        );
+        record.initial_stored_energy_uncertainty_bound_j = Some(0.02);
+        record.final_stored_energy_uncertainty_bound_j = Some(0.03);
+        let report = record
+            .evaluate(EnergyBalanceTolerance::new(0.1, 0.0).unwrap())
+            .unwrap();
+        assert_eq!(report.status, EnergyBalanceStatus::Imbalanced);
+        assert_eq!(report.residual_interval_j, Some((0.45, 0.55)));
+    }
+
+    #[test]
+    fn uncertainty_overlapping_tolerance_is_inconclusive() {
+        let mut record = complete_balance(
+            0.0,
+            0.2,
+            vec![flow(
+                "in",
+                "source",
+                EnergyCarrier::Work,
+                FlowDirection::IntoBoundary,
+                0.0,
+            )],
+        );
+        record.initial_stored_energy_uncertainty_bound_j = Some(0.1);
+        record.final_stored_energy_uncertainty_bound_j = Some(0.1);
+        let report = record
+            .evaluate(EnergyBalanceTolerance::new(0.1, 0.0).unwrap())
+            .unwrap();
+        assert_eq!(report.status, EnergyBalanceStatus::Inconclusive);
+        assert_eq!(report.residual_interval_j, Some((0.0, 0.4)));
+    }
+
+    #[test]
+    fn invalid_uncertainty_bounds_are_rejected() {
+        let mut record = complete_balance(0.0, 0.0, vec![]);
+        record.initial_stored_energy_uncertainty_bound_j = Some(-0.1);
+        assert_eq!(
+            record.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::InvalidUncertaintyBound {
+                field: "initial_stored_energy_uncertainty_bound_j",
+                flow_id: None,
+            })
+        );
+
+        let mut record = complete_balance(
+            0.0,
+            0.0,
+            vec![flow(
+                "bad",
+                "source",
+                EnergyCarrier::Work,
+                FlowDirection::IntoBoundary,
+                0.0,
+            )],
+        );
+        record.boundary_flows.as_mut().unwrap()[0].uncertainty_bound_j = Some(f64::NAN);
+        assert_eq!(
+            record.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::InvalidUncertaintyBound {
+                field: "boundary_flow_uncertainty_bound_j",
+                flow_id: Some("bad".to_string()),
+            })
+        );
+    }
+
+    #[test]
+    fn uncertainty_sum_overflow_is_rejected() {
+        let mut record = complete_balance(0.0, 0.0, vec![]);
+        record.initial_stored_energy_uncertainty_bound_j = Some(f64::MAX);
+        record.final_stored_energy_uncertainty_bound_j = Some(f64::MAX);
+        assert_eq!(
+            record.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::OverflowedBalance {
+                field: "boundary_flows",
+            })
+        );
     }
 
     #[test]
