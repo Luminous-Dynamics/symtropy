@@ -105,6 +105,13 @@ pub enum GaitPhase {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum BehavioralContext {
+    Walking,
+    Grooming,
+    Other,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ContactState {
     Supported,
     Slipping,
@@ -130,6 +137,7 @@ pub enum PhysicalCarryover {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PhysicalState {
     pub id: String,
+    pub behavioral_context: BehavioralContext,
     pub gait_phase: GaitPhase,
     pub contact_state: ContactState,
     pub load_state: LoadState,
@@ -710,16 +718,21 @@ fn validate_action_transition_semantics(
             .then_some("washout must clear physical carryover while preserving sensor state")
         }
         InterventionKind::ActiveMovementProbe => {
-            let target_is_engaged = action.target_leg.is_some_and(|leg| {
-                next_sensor.presynaptic_movement_inhibition[leg.index()]
-                    == PresynapticMovementInhibition::Engaged
+            let expected = match current_physical.behavioral_context {
+                BehavioralContext::Walking | BehavioralContext::Grooming => {
+                    PresynapticMovementInhibition::Engaged
+                }
+                BehavioralContext::Other => PresynapticMovementInhibition::Disinhibited,
+            };
+            let target_matches = action.target_leg.is_some_and(|leg| {
+                next_sensor.presynaptic_movement_inhibition[leg.index()] == expected
                     && presynaptic_legs_except_unchanged(current_sensor, next_sensor, leg)
             });
-            (!target_is_engaged
+            (!target_matches
                 || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
                 || current_sensor.acquisition != next_sensor.acquisition)
             .then_some(
-                "active self-generated movement must engage presynaptic inhibition on its target leg only, without altering channels or acquisition state",
+                "active probe must apply context-specific presynaptic inhibition to its target leg only",
             )
         }
         InterventionKind::PassiveMovementProbe => {
@@ -1386,6 +1399,7 @@ mod tests {
         let physical_states = vec![
             PhysicalState {
                 id: "stance-nominal".to_owned(),
+                behavioral_context: BehavioralContext::Walking,
                 gait_phase: GaitPhase::Stance,
                 contact_state: ContactState::Supported,
                 load_state: LoadState::Nominal,
@@ -1393,9 +1407,42 @@ mod tests {
             },
             PhysicalState {
                 id: "swing-loaded".to_owned(),
+                behavioral_context: BehavioralContext::Walking,
                 gait_phase: GaitPhase::Swing,
                 contact_state: ContactState::Slipping,
                 load_state: LoadState::Elevated,
+                carryover: PhysicalCarryover::Loaded,
+            },
+            PhysicalState {
+                id: "grooming-supported".to_owned(),
+                behavioral_context: BehavioralContext::Grooming,
+                gait_phase: GaitPhase::Transition,
+                contact_state: ContactState::Supported,
+                load_state: LoadState::Nominal,
+                carryover: PhysicalCarryover::Baseline,
+            },
+            PhysicalState {
+                id: "grooming-unloaded".to_owned(),
+                behavioral_context: BehavioralContext::Grooming,
+                gait_phase: GaitPhase::Transition,
+                contact_state: ContactState::Unloaded,
+                load_state: LoadState::Reduced,
+                carryover: PhysicalCarryover::Loaded,
+            },
+            PhysicalState {
+                id: "other-supported".to_owned(),
+                behavioral_context: BehavioralContext::Other,
+                gait_phase: GaitPhase::Transition,
+                contact_state: ContactState::Supported,
+                load_state: LoadState::Nominal,
+                carryover: PhysicalCarryover::Baseline,
+            },
+            PhysicalState {
+                id: "other-unloaded".to_owned(),
+                behavioral_context: BehavioralContext::Other,
+                gait_phase: GaitPhase::Transition,
+                contact_state: ContactState::Airborne,
+                load_state: LoadState::Reduced,
                 carryover: PhysicalCarryover::Loaded,
             },
         ];
@@ -1610,8 +1657,16 @@ mod tests {
                                 let target_leg = action
                                     .target_leg
                                     .expect("validated active probe has a target leg");
+                                let target_state = match physical.behavioral_context {
+                                    BehavioralContext::Walking | BehavioralContext::Grooming => {
+                                        PresynapticMovementInhibition::Engaged
+                                    }
+                                    BehavioralContext::Other => {
+                                        PresynapticMovementInhibition::Disinhibited
+                                    }
+                                };
                                 next_sensor.presynaptic_movement_inhibition[target_leg.index()] =
-                                    PresynapticMovementInhibition::Engaged;
+                                    target_state;
                                 next_sensor.id = sensor_state_semantic_id(&next_sensor);
                                 let physical_bit = usize::from(physical.id == "swing-loaded");
                                 let bias_bit = usize::from(
@@ -1661,11 +1716,16 @@ mod tests {
                                 "vibration-perturbed"
                             }
                             InterventionKind::ContactLoadPerturbation => {
-                                next_physical = if physical.id == "stance-nominal" {
-                                    "swing-loaded".to_owned()
-                                } else {
-                                    "stance-nominal".to_owned()
-                                };
+                                next_physical = match physical.id.as_str() {
+                                    "stance-nominal" => "swing-loaded",
+                                    "swing-loaded" => "stance-nominal",
+                                    "grooming-supported" => "grooming-unloaded",
+                                    "grooming-unloaded" => "grooming-supported",
+                                    "other-supported" => "other-unloaded",
+                                    "other-unloaded" => "other-supported",
+                                    _ => unreachable!("fixture physical state IDs are canonical"),
+                                }
+                                .to_owned();
                                 "load-shifted"
                             }
                             InterventionKind::DescendingPathwayModulation => {
@@ -1688,11 +1748,15 @@ mod tests {
                                 }
                             }
                             InterventionKind::Washout => {
-                                next_physical = if physical.carryover == PhysicalCarryover::Baseline
-                                {
+                                next_physical = if physical.carryover == PhysicalCarryover::Baseline {
                                     physical.id.clone()
                                 } else {
-                                    "stance-nominal".to_owned()
+                                    match physical.behavioral_context {
+                                        BehavioralContext::Walking => "stance-nominal",
+                                        BehavioralContext::Grooming => "grooming-supported",
+                                        BehavioralContext::Other => "other-supported",
+                                    }
+                                    .to_owned()
                                 };
                                 "washout-cleared"
                             }
@@ -1780,7 +1844,7 @@ mod tests {
             compiled.source_manifests[0].unknown_endpoints[0].raw_endpoint_id,
             "raw-untyped-endpoint-17"
         );
-        assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 2048 * 12);
+        assert_eq!(compiled.kernel.rows.len(), 2 * 6 * 2048 * 12);
         assert_eq!(compiled.transition_rows.len(), compiled.kernel.rows.len());
         compiled.kernel.validate().unwrap();
     }
