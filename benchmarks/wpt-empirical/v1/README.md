@@ -231,3 +231,9 @@ The WPT4/WPT3 2026 Koch et al. experiment is represented as a separate geometry-
 The comparator now has a negative control proving coupling-range reduction is a different quantity from DC-DC efficiency. Typed v1 fetch-back has 59 measurements and 20 comparison cases. Independent schema walks report zero structure errors; all case references resolve; all 20 frozen dispositions/reason requirements match a mirror of the current comparator logic. This is not a Rust execution result.
 
 The WPT4 concept is not represented as SAE J2954_202408 compliant; the published 2024 edition's scope is limited to stationary surface-mounted light-duty forward transfer up to 11 kVA. No 22 kW WPT4 normative standard claim is made.
+
+## Industry comparison scorecard and outperformance policy
+
+The scorecard in target-envelope.md keeps static high-power IPT, dynamic roadway transfer, full-system G2V/V2G, cross-generation geometry, FOD, magnetothermal performance and metrology on separate matched-boundary lanes. The reference anchors include Riekerk's 50 kW DC–DC result, Purdue/INDOT's ~85% roadway inverter DC-bus to vehicle DC-bus result at 50–190 kW and up to 65 mph, Zhang's direction-separated bidirectional system ranges, the Koch WPT4 coupling-envelope degradation claim and the MIT/DeMag safety results.
+
+Research targets include >=98% static DC–DC nominal, >=90% dynamic roadway DC-bus transfer at up to 190 kW, >=95% full-system efficiency each direction, <=5% cross-generation qualified-region reduction, zero FOD false negatives in a pre-registered >=10,000-case held-out positive set, <=80% Bsat(T) utilization, and three-lab metrology replication. These are proposed goals, not achieved results or standards requirements. The scorecard explicitly prohibits pooling link-stage and system efficiency, or treating route energy service as a conversion percentage.
