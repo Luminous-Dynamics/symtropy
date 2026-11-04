@@ -101,7 +101,7 @@ fn cross_network_protocol_rejects_a_shared_network() {
 
 
 #[test]
-fn within_network_protocol_requires_one_common_network_in_all_partitions() {
+fn within_network_protocol_rejects_a_test_only_network() {
     let mut samples = valid_samples();
     if let Some(network) = samples[3]
         .leakage_groups
@@ -112,7 +112,25 @@ fn within_network_protocol_requires_one_common_network_in_all_partitions() {
     }
     let error = audit_benchmark_split(&samples, &policy())
         .expect_err("within-network split requires a common network");
-    assert_eq!(error.code, "no_common_group_across_partitions");
+    assert_eq!(error.code, "shared_group_not_in_all_partitions");
+    assert_eq!(error.subject, "network");
+}
+
+
+#[test]
+fn within_network_protocol_rejects_extra_networks_missing_from_any_partition() {
+    let mut samples = valid_samples();
+    samples.push(sample(
+        "test-b",
+        DataPartition::Test,
+        5,
+        "event-e",
+        "session-e",
+        "net-2",
+    ));
+    let error = audit_benchmark_split(&samples, &policy())
+        .expect_err("all shared network groups must exist in all partitions");
+    assert_eq!(error.code, "shared_group_not_in_all_partitions");
     assert_eq!(error.subject, "network");
 }
 
