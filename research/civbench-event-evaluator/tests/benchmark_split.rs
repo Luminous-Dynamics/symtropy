@@ -3,7 +3,7 @@
 
 use civbench_event_evaluator::benchmark_split::{
     BenchmarkSample, DataPartition, LeakageDimension, LeakageGroup, SplitPolicy,
-    audit_benchmark_split,
+    SplitProtocolPreset, audit_benchmark_split,
 };
 use std::collections::BTreeSet;
 
@@ -40,6 +40,7 @@ fn sample(
 
 fn policy() -> SplitPolicy {
     SplitPolicy {
+        protocol: SplitProtocolPreset::WithinNetworkUnseenEvent,
         protocol_id: "within_network_unseen_event_v1".to_owned(),
         manifest_digest: digest(900),
         exclusive_dimensions: BTreeSet::from([
@@ -116,6 +117,8 @@ fn within_network_protocol_allows_shared_network_but_blocks_event_and_session_le
 #[test]
 fn cross_network_protocol_rejects_a_shared_network() {
     let mut cross_network = policy();
+    cross_network.protocol = SplitProtocolPreset::CrossNetwork;
+    cross_network.protocol_id = cross_network.protocol.as_str().to_owned();
     cross_network
         .exclusive_dimensions
         .insert(LeakageDimension::Network);
@@ -253,13 +256,33 @@ fn whitespace_padded_identifiers_are_rejected() {
 #[test]
 fn empty_policy_cannot_claim_an_audited_protocol() {
     let empty_policy = SplitPolicy {
-        protocol_id: "unconstrained".to_owned(),
+        protocol: SplitProtocolPreset::CrossNetwork,
+        protocol_id: "cross_network_v1".to_owned(),
         manifest_digest: digest(900),
         exclusive_dimensions: BTreeSet::new(),
         shared_dimensions: BTreeSet::new(),
     };
     let error = audit_benchmark_split(&valid_samples(), &empty_policy).expect_err("empty policy");
     assert_eq!(error.code, "empty_exclusive_dimensions");
+}
+
+#[test]
+fn a_registered_protocol_cannot_be_claimed_with_incompatible_dimensions() {
+    let mut invalid_policy = policy();
+    invalid_policy.protocol = SplitProtocolPreset::CrossNetwork;
+    invalid_policy.protocol_id = invalid_policy.protocol.as_str().to_owned();
+    let error = audit_benchmark_split(&valid_samples(), &invalid_policy)
+        .expect_err("within-network dimensions cannot claim cross-network transfer");
+    assert_eq!(error.code, "protocol_dimensions_mismatch");
+}
+
+#[test]
+fn a_custom_protocol_id_cannot_impersonate_a_registered_protocol() {
+    let mut invalid_policy = policy();
+    invalid_policy.protocol_id = "cross_network_v1".to_owned();
+    let error = audit_benchmark_split(&valid_samples(), &invalid_policy)
+        .expect_err("preset and ID differ");
+    assert_eq!(error.code, "protocol_id_preset_mismatch");
 }
 
 #[test]
