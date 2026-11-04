@@ -1,6 +1,6 @@
 # Construction Task Compiler — v0.1
 
-**Status:** normalized graph contract and deterministic structural validator. Not an IFC parser, method authoring tool, robot controller, safety case or construction acceptance authority.
+**Status:** normalized design/method input schemas, deterministic method-template instantiation and structural graph validation. Not an IFC parser, method authoring tool, robot controller, safety case or construction acceptance authority.
 
 ## Purpose
 
@@ -46,7 +46,13 @@ These are design/architecture comparators, not a claim that this package is alre
 
 This package owns only normalized work-graph structure, deterministic dependency validation and compile-time diagnostics. It does not create a second BIM parser, CRS engine, capability matcher, safety evaluator, resource authority, scheduler, fleet manager, evidence ledger or acceptance authority.
 
-## V0.1 graph validator
+## V0.1 method-template compiler and graph validator
+
+The dependency-free Rust crate now includes a bounded Stage 1 compiler over normalized design elements and an approved method-template contract. It instantiates one task node per design-element/method-step pair, preserves source element and transformation-rule lineage, binds typed properties, resolves declared same-element method dependencies, and feeds the resulting graph into the independent structural validator.
+
+The compiler requires an approved method reference, exact design revision/frame/site epoch, explicit task-family applicability, property names/values/units/source references and versioned transformation rule digests. If source and target units differ, a supplied conversion output and external conversion-evidence reference are required; this module does not perform or authorize conversions. Elements and steps are canonicalized by stable IDs before output, and task identities use length-prefixed element/step pairs to avoid delimiter collisions.
+
+The implementation remains a normalized adapter boundary: arbitrary IFC/AAS parsing, geometry processing, capability matching and Behavior Tree lowering are not part of this stage.
 
 The dependency-free Rust crate checks:
 - non-empty project/site/work-package/model/revision/frame/site-epoch/method/compiler/rule-set identities;
@@ -62,7 +68,7 @@ The validator reports structural completeness only. It does not authenticate app
 
 ## Benchmark corpus and target
 
-The frozen synthetic corpus is in `fixtures/construction-task-compiler-cases-v0.1.json`. It defines 45 positive, negative and mutation scenarios. The Rust tests exercise core graph invariants. Fixture expected outcomes are reference targets, not empirical results.
+The structural corpus is in `fixtures/construction-task-compiler-cases-v0.1.json` and defines 45 positive, negative and mutation scenarios. The method-template instantiation corpus is in `fixtures/construction-task-compiler-transform-cases-v0.1.json` and defines 25 cases. The Rust source currently contains 40 tests: 22 graph-validator tests and 18 method-instantiation tests. Fixture expected outcomes are reference targets, not empirical results.
 
 Prospective targets:
 - zero false executable graph admissions on frozen hard-negative cases;
