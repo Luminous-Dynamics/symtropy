@@ -349,11 +349,7 @@ pub fn generate_strength_weight_preserving_null_model(
     input: &ConnectomeGraph,
     config: NullModelConfig,
 ) -> Result<NullModelSample, NullModelError> {
-    generate_null_model_for_family(
-        input,
-        config,
-        NullModelFamily::StrengthAndWeightPreserving,
-    )
+    generate_null_model_for_family(input, config, NullModelFamily::StrengthAndWeightPreserving)
 }
 
 fn generate_null_model_for_family(
@@ -434,8 +430,7 @@ fn generate_null_model_for_family(
         NullModelFamily::StrengthAndWeightPreserving => {
             edge_indices_by_weight.into_values().collect::<Vec<_>>()
         }
-        NullModelFamily::DirectedDegreeOnly
-        | NullModelFamily::CellTypeAndEdgeClassConstrained => {
+        NullModelFamily::DirectedDegreeOnly | NullModelFamily::CellTypeAndEdgeClassConstrained => {
             edge_indices_by_block.into_values().collect::<Vec<_>>()
         }
     };
@@ -681,8 +676,7 @@ fn build_invariants(
         *source_weight_counts
             .entry((edge.source.clone(), edge.weight_units))
             .or_insert(0) += 1;
-        *target_strength.entry(edge.target.clone()).or_insert(0) +=
-            u128::from(edge.weight_units);
+        *target_strength.entry(edge.target.clone()).or_insert(0) += u128::from(edge.weight_units);
         *global_weight_counts.entry(edge.weight_units).or_insert(0) += 1;
 
         let source_type = node_types
@@ -984,9 +978,8 @@ mod tests {
             edge.weight_units = 5;
         }
         let original = validate_graph(&input).expect("valid input");
-        let sample =
-            generate_strength_weight_preserving_null_model(&input, config(17, 1, 1))
-                .expect("one equal-weight switch");
+        let sample = generate_strength_weight_preserving_null_model(&input, config(17, 1, 1))
+            .expect("one equal-weight switch");
 
         assert_eq!(
             sample.receipt.family,
@@ -996,8 +989,18 @@ mod tests {
         assert!(sample.receipt.invariants.degree_sequences_preserved);
         assert!(sample.receipt.invariants.strength_sequences_required);
         assert!(sample.receipt.invariants.strength_sequences_preserved);
-        assert!(sample.receipt.invariants.global_weight_distribution_required);
-        assert!(sample.receipt.invariants.global_weight_distribution_preserved);
+        assert!(
+            sample
+                .receipt
+                .invariants
+                .global_weight_distribution_required
+        );
+        assert!(
+            sample
+                .receipt
+                .invariants
+                .global_weight_distribution_preserved
+        );
         assert!(!sample.receipt.invariants.cell_type_blocks_required);
 
         let rewired = validate_graph(&sample.graph).expect("valid rewired graph");
