@@ -632,6 +632,20 @@ pub struct ScenarioPathProbabilityReceipt {
     pub scenario_evidence_id: String,
 }
 
+/// Marginal CRPS diagnostic for one forecast dimension.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ScenarioMarginalScoreReceipt {
+    pub dimension_id: String,
+    pub crps: f64,
+}
+
+/// Aggregate marginal CRPS for one forecast dimension across evaluation cases.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ScenarioDimensionScoreAggregate {
+    pub dimension_id: String,
+    pub mean_crps: f64,
+}
+
 /// One dimension pair's variogram forecast expectation and observed target.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ScenarioVariogramPairReceipt {
@@ -663,6 +677,7 @@ pub struct JointScenarioForecastCaseReceipt {
     pub scenario_count: usize,
     pub scenario_probabilities: Vec<ScenarioPathProbabilityReceipt>,
     pub variogram_pairs: Vec<ScenarioVariogramPairReceipt>,
+    pub marginal_crps: Vec<ScenarioMarginalScoreReceipt>,
     pub events: Vec<ScenarioEventCaseReceipt>,
     pub realization_evidence_ids: Vec<String>,
 }
@@ -686,6 +701,7 @@ pub struct JointScenarioForecastReport {
     pub dimensions: Vec<ScenarioDimensionScale>,
     pub variogram_pairs: Vec<ScenarioVariogramPair>,
     pub event_definitions: Vec<ScenarioEventDefinition>,
+    pub marginal_crps_by_dimension: Vec<ScenarioDimensionScoreAggregate>,
     pub metric_convention_id: String,
     pub case_count: usize,
     pub total_scenario_count: usize,
@@ -919,6 +935,7 @@ pub fn evaluate_joint_scenario_forecasts(
     let dimension_count = contract.dimensions.len();
     let mut case_receipts = Vec::with_capacity(evaluation.cases.len());
     let mut total_scenario_count = 0_usize;
+    let mut marginal_crps_sums = vec![0.0_f64; dimension_count];
     let mut energy_score_sum = 0.0_f64;
     let mut variogram_score_sum = 0.0_f64;
     let mut maximum_probability_mass_deviation = 0.0_f64;
@@ -980,6 +997,26 @@ pub fn evaluate_joint_scenario_forecasts(
             &contract.variogram_pairs,
             &normalized_weights,
         )?;
+        let mut marginal_crps = Vec::with_capacity(dimension_count);
+        for dimension_index in 0..dimension_count {
+            let crps = weighted_marginal_crps(
+                &case.scenarios,
+                case.realization.values[dimension_index],
+                &contract.dimensions[dimension_index],
+                dimension_index,
+                &normalized_weights,
+            )?;
+            marginal_crps_sums[dimension_index] += crps;
+            if !marginal_crps_sums[dimension_index].is_finite() {
+                return Err(JointScenarioForecastError::NumericalOverflow(
+                    "aggregate marginal CRPS",
+                ));
+            }
+            marginal_crps.push(ScenarioMarginalScoreReceipt {
+                dimension_id: contract.dimensions[dimension_index].dimension_id.clone(),
+                crps,
+            });
+        }
 
         let mut event_receipts = Vec::with_capacity(contract.events.len());
         for (event_index, event) in contract.events.iter().enumerate() {
@@ -1032,6 +1069,7 @@ pub fn evaluate_joint_scenario_forecasts(
             scenario_count: case.scenarios.len(),
             scenario_probabilities,
             variogram_pairs,
+            marginal_crps,
             events: event_receipts,
             realization_evidence_ids: case.realization.evidence_ids.clone(),
         });
@@ -1069,6 +1107,15 @@ pub fn evaluate_joint_scenario_forecasts(
         dimensions: contract.dimensions.clone(),
         variogram_pairs: contract.variogram_pairs.clone(),
         event_definitions: contract.events.clone(),
+        marginal_crps_by_dimension: contract
+            .dimensions
+            .iter()
+            .enumerate()
+            .map(|(index, dimension)| ScenarioDimensionScoreAggregate {
+                dimension_id: dimension.dimension_id.clone(),
+                mean_crps: marginal_crps_sums[index] / case_count as f64,
+            })
+            .collect(),
         metric_convention_id: "SYMTROPY-JOINT-SCENARIO-ENERGY-VARIOGRAM05-BRIER-V0.1"
             .to_string(),
         case_count,
@@ -1120,6 +1167,44 @@ fn weighted_energy_score(
     if !score.is_finite() || score < -1e-10 {
         return Err(JointScenarioForecastError::NumericalOverflow(
             "weighted energy score",
+        ));
+    }
+    Ok(score.max(0.0))
+}
+
+/// Weighted univariate CRPS for one dimension, retained alongside joint scores.
+fn weighted_marginal_crps(
+    scenarios: &[WeightedScenarioPath],
+    observed: f64,
+    dimension: &ScenarioDimensionScale,
+    dimension_index: usize,
+    normalized_weights: &[f64],
+) -> Result<f64, JointScenarioForecastError> {
+    if scenarios.len() != normalized_weights.len() {
+        return Err(JointScenarioForecastError::NumericalOverflow(
+            "marginal CRPS input dimensions",
+        ));
+    }
+    let observed_normalized = observed / dimension.normalization_scale;
+    let mut first_term = 0.0_f64;
+    for (scenario, weight) in scenarios.iter().zip(normalized_weights.iter()) {
+        let value = scenario.values[dimension_index] / dimension.normalization_scale;
+        first_term += *weight * (value - observed_normalized).abs();
+    }
+    let mut dispersion_term = 0.0_f64;
+    for (left_index, left) in scenarios.iter().enumerate() {
+        for (right_index, right) in scenarios.iter().enumerate() {
+            let left_value = left.values[dimension_index] / dimension.normalization_scale;
+            let right_value = right.values[dimension_index] / dimension.normalization_scale;
+            dispersion_term += normalized_weights[left_index]
+                * normalized_weights[right_index]
+                * (left_value - right_value).abs();
+        }
+    }
+    let score = first_term - 0.5 * dispersion_term;
+    if !score.is_finite() || score < -1e-10 {
+        return Err(JointScenarioForecastError::NumericalOverflow(
+            "weighted marginal CRPS",
         ));
     }
     Ok(score.max(0.0))
@@ -1397,6 +1482,10 @@ mod tests {
 
         assert!((dep_report.mean_energy_score - 2.5).abs() < 1e-12);
         assert!(broken_report.mean_energy_score > dep_report.mean_energy_score);
+        assert_eq!(
+            dep_report.marginal_crps_by_dimension,
+            broken_report.marginal_crps_by_dimension
+        );
         assert!(dep_report.mean_variogram_score < 1e-12);
         assert!((broken_report.mean_variogram_score - 10.0).abs() < 1e-12);
         assert!((dep_report.event_aggregates[0].mean_forecast_probability - 0.5).abs() < 1e-12);
@@ -1678,6 +1767,8 @@ mod tests {
         assert!(report.mean_event_brier_score >= 0.0);
         assert_eq!(report.case_receipts[0].scenario_probabilities.len(), 3);
         assert_eq!(report.case_receipts[0].variogram_pairs.len(), 1);
+        assert_eq!(report.case_receipts[0].marginal_crps.len(), 2);
+        assert_eq!(report.marginal_crps_by_dimension.len(), 2);
         assert_eq!(
             report.case_receipts[0].realization_evidence_ids,
             vec!["actual-renewable".to_string(), "actual-workload".to_string()]
