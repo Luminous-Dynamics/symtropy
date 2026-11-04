@@ -880,7 +880,6 @@ pub fn applicability_assessment_to_csv(assessment: &ApplicabilityAssessment) -> 
 }
 
 #[cfg(test)]
-
 mod tests {
     use super::*;
 
