@@ -350,7 +350,7 @@ pub struct ChronologicalAdequacyScenarioReceipt {
     pub augmented_loss_of_load_days: u32,
     pub augmented_loss_of_load_hours: f64,
     pub augmented_unserved_energy_mwh: f64,
-    pub augmented_net_reduction_energy_mwh: f64,
+    pub augmented_gross_reduction_energy_mwh: f64,
     pub augmented_rebound_energy_mwh: f64,
 }
 
@@ -374,7 +374,7 @@ pub struct ChronologicalAdequacyReport {
     pub augmented_loss_of_load_days: f64,
     pub augmented_loss_of_load_hours: f64,
     pub augmented_unserved_energy_mwh: f64,
-    pub augmented_net_reduction_energy_mwh: f64,
+    pub augmented_gross_reduction_energy_mwh: f64,
     pub augmented_rebound_energy_mwh: f64,
     pub reference_metric_value: f64,
     pub achieved_augmented_metric_value: f64,
@@ -396,7 +396,7 @@ struct ScenarioMetrics {
     loss_of_load_days: u32,
     loss_of_load_hours: f64,
     unserved_energy_mwh: f64,
-    net_reduction_energy_mwh: f64,
+    gross_reduction_energy_mwh: f64,
     rebound_energy_mwh: f64,
 }
 
@@ -405,7 +405,7 @@ struct AggregateMetrics {
     loss_of_load_days: f64,
     loss_of_load_hours: f64,
     unserved_energy_mwh: f64,
-    net_reduction_energy_mwh: f64,
+    gross_reduction_energy_mwh: f64,
     rebound_energy_mwh: f64,
 }
 
@@ -615,7 +615,7 @@ pub fn evaluate_chronological_adequacy(
             augmented_loss_of_load_days: augmented_scenario.loss_of_load_days,
             augmented_loss_of_load_hours: augmented_scenario.loss_of_load_hours,
             augmented_unserved_energy_mwh: augmented_scenario.unserved_energy_mwh,
-            augmented_net_reduction_energy_mwh: augmented_scenario.net_reduction_energy_mwh,
+            augmented_gross_reduction_energy_mwh: augmented_scenario.gross_reduction_energy_mwh,
             augmented_rebound_energy_mwh: augmented_scenario.rebound_energy_mwh,
         });
     }
@@ -644,7 +644,7 @@ pub fn evaluate_chronological_adequacy(
         augmented_loss_of_load_days: final_metrics.loss_of_load_days,
         augmented_loss_of_load_hours: final_metrics.loss_of_load_hours,
         augmented_unserved_energy_mwh: final_metrics.unserved_energy_mwh,
-        augmented_net_reduction_energy_mwh: final_metrics.net_reduction_energy_mwh,
+        augmented_gross_reduction_energy_mwh: final_metrics.gross_reduction_energy_mwh,
         augmented_rebound_energy_mwh: final_metrics.rebound_energy_mwh,
         reference_metric_value: reference_value,
         achieved_augmented_metric_value: achieved_value,
@@ -672,7 +672,7 @@ fn aggregate_scenarios(
         loss_of_load_days: 0.0,
         loss_of_load_hours: 0.0,
         unserved_energy_mwh: 0.0,
-        net_reduction_energy_mwh: 0.0,
+        gross_reduction_energy_mwh: 0.0,
         rebound_energy_mwh: 0.0,
     };
     for scenario in &study.scenarios {
@@ -687,14 +687,14 @@ fn aggregate_scenarios(
         aggregate.loss_of_load_days += weight * f64::from(metrics.loss_of_load_days);
         aggregate.loss_of_load_hours += weight * metrics.loss_of_load_hours;
         aggregate.unserved_energy_mwh += weight * metrics.unserved_energy_mwh;
-        aggregate.net_reduction_energy_mwh += weight * metrics.net_reduction_energy_mwh;
+        aggregate.gross_reduction_energy_mwh += weight * metrics.gross_reduction_energy_mwh;
         aggregate.rebound_energy_mwh += weight * metrics.rebound_energy_mwh;
     }
     if ![
         aggregate.loss_of_load_days,
         aggregate.loss_of_load_hours,
         aggregate.unserved_energy_mwh,
-        aggregate.net_reduction_energy_mwh,
+        aggregate.gross_reduction_energy_mwh,
         aggregate.rebound_energy_mwh,
     ]
     .iter()
@@ -717,7 +717,7 @@ fn evaluate_scenario(
     let mut loss_days = BTreeSet::new();
     let mut loss_of_load_hours = 0.0_f64;
     let mut unserved_energy_mwh = 0.0_f64;
-    let mut net_reduction_energy_mwh = 0.0_f64;
+    let mut gross_reduction_energy_mwh = 0.0_f64;
     let mut rebound_energy_mwh = 0.0_f64;
 
     for interval in &scenario.intervals {
@@ -742,14 +742,14 @@ fn evaluate_scenario(
             loss_days.insert(interval.day_index);
         }
         unserved_energy_mwh += interval_unserved_mwh;
-        net_reduction_energy_mwh += reduction_mwh;
+        gross_reduction_energy_mwh += reduction_mwh;
         rebound_energy_mwh += rebound_mwh;
     }
 
     if ![
         loss_of_load_hours,
         unserved_energy_mwh,
-        net_reduction_energy_mwh,
+        gross_reduction_energy_mwh,
         rebound_energy_mwh,
     ]
     .iter()
@@ -766,7 +766,7 @@ fn evaluate_scenario(
         })?,
         loss_of_load_hours,
         unserved_energy_mwh,
-        net_reduction_energy_mwh,
+        gross_reduction_energy_mwh,
         rebound_energy_mwh,
     })
 }
@@ -1013,4 +1013,34 @@ mod tests {
         assert!(report.reference_criterion_preserved);
         assert!(report.search_converged);
     }
+    #[test]
+    fn invalid_scenario_probability_is_rejected() {
+        assert!(matches!(
+            ChronologicalAdequacyScenario::new(
+                "invalid-probability",
+                0.0,
+                vec![interval(0, 100.0, 90.0, 10.0, "bad-p-0")],
+            ),
+            Err(ChronologicalAdequacyError::InvalidScenarioProbability { .. })
+        ));
+    }
+
+    #[test]
+    fn one_day_can_have_multiple_loss_hours_but_only_one_loss_day() {
+        let study = ChronologicalAdequacyStudy::new(
+            contract(ChronologicalAdequacyMetric::LossOfLoadDays, 20.0),
+            vec![ChronologicalAdequacyScenario::new(
+                "two-hours-one-day",
+                1.0,
+                vec![
+                    interval(0, 100.0, 90.0, 0.0, "two-0"),
+                    interval(0, 100.0, 95.0, 0.0, "two-1"),
+                ],
+            ).expect("scenario")],
+        ).expect("study");
+        let report = evaluate_chronological_adequacy(&study).expect("evaluation");
+        assert_eq!(report.reference_loss_of_load_days, 1.0);
+        assert_eq!(report.reference_loss_of_load_hours, 2.0);
+    }
+
 }
