@@ -1,0 +1,84 @@
+{
+  "schema_version": "construction-robot-claim-admissibility/0.2",
+  "packet_id": "claim-packet-independent-review-synthetic-001",
+  "source_receipt": {
+    "receipt_schema": "construction-robot-physical-trial/0.1",
+    "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "receipt_trial_id": "synthetic-trace-run-001"
+  },
+  "evidence_units": [
+    {
+      "evidence_unit_id": "evidence-unit-synthetic-001",
+      "origin": "synthetic",
+      "source_refs": [
+        {
+          "source_id": "frozen-trace-corpus",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "role": "frozen synthetic input and expected disposition set"
+        }
+      ],
+      "independence": {
+        "profile_ref": "not-applicable-synthetic-profile",
+        "assessment_ref": null,
+        "status": "not_assessed",
+        "unresolved_dependency_classes": []
+      },
+      "metrology": {
+        "status": "not_applicable",
+        "calibration_record_refs": [],
+        "uncertainty_budget_ref": null
+      },
+      "provenance": {
+        "digest_status": "digest_only",
+        "authentication_status": "unsigned",
+        "issuer_ref": null
+      },
+      "custody": {
+        "status": "local_reference",
+        "custody_record_ref": null
+      },
+      "odd_coverage": {
+        "status": "declared_only",
+        "profile_ref": "synthetic-odd-profile-v1",
+        "observed_strata": [],
+        "unmeasured_strata": [
+          "all-physical-strata"
+        ]
+      },
+      "replication": {
+        "status": "repeated_same_configuration",
+        "independent_encounters": 58,
+        "distinct_sites": 0,
+        "distinct_configurations": 1,
+        "sampling_policy_ref": "frozen-synthetic-case-policy-v1"
+      }
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "synthetic-to-field-promotion-attempt",
+      "claim_kind": "field_human_detection",
+      "statement": "Attempt to claim field human-detection performance from synthetic traces reviewed by an independent assessor.",
+      "requirements_profile_id": "field-human-detection-v0.2",
+      "requirements_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "supporting_evidence_unit_ids": [
+        "evidence-unit-synthetic-001"
+      ],
+      "decision": "inadmissible_for_named_claim",
+      "reason_codes": [
+        "evidence_origin_not_acceptable_for_claim"
+      ],
+      "limitations": [
+        "Independent review does not change synthetic evidence origin."
+      ]
+    }
+  ],
+  "assessment": {
+    "validator_id": "claim-admissibility-reference-validator",
+    "validator_revision": "0.2.0",
+    "assessment_reference": "synthetic-fixture-assessment",
+    "review_status": "independent_assessor_reviewed",
+    "assessor_reference": "external-assessor-role-token",
+    "record_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  }
+}
