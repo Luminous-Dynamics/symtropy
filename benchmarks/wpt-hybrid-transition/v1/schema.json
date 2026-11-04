@@ -7,6 +7,8 @@
   "required": [
     "schema_version",
     "event_id",
+    "transition_stream_id",
+    "transition_sequence",
     "event_time_ns",
     "event_window",
     "pre_mode",
@@ -16,6 +18,8 @@
   "properties": {
     "schema_version": { "const": "1.0.0" },
     "event_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "transition_stream_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "transition_sequence": { "type": "integer", "minimum": 0 },
     "event_time_ns": { "type": "integer", "minimum": 0 },
     "event_window": { "$ref": "#/$defs/eventWindow" },
     "expected_disposition": {
