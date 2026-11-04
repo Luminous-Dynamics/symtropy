@@ -83,3 +83,16 @@ The BLAKE3 adapter tests the official derive-key KAT using the official context 
 Machine-readable `event_identity_cases.json` now records the dependency versions, KAT inputs/outputs, KDF context, address mapping, length-prefix convention and the 192-bit collision model. The workflow checks both event-identity and correspondence fixture JSON.
 
 The locked dependency graph is a reproducibility contract. Any dependency update must update the lockfile intentionally and rerun KATs, formatting, tests, Clippy and cross-target checks.
+
+
+### Additional adapter invariants
+
+The resolver's unit tests also pin:
+- the official BLAKE3 derive-key zero-length-input vector;
+- exact little-endian u64 length-prefix framing for the experiment seed and canonical address as separate fields;
+- fixed BLAKE3 KDF context domain separation;
+- raw Philox output sensitivity to key and counter changes;
+- unchanged output after unrelated address draws;
+- seed/source/component separation, receipt recomputation and run-local block-address collision rejection.
+
+The standalone manifest uses `blake3 = =1.8.7` and `rand_philox = =0.2.1`; `Cargo.lock` freezes the resolved transitive graph, and the workflow requires `--locked`.
