@@ -266,12 +266,12 @@ impl BoCoDeRunLedgerRow {
                 "line {line_number}: iterations_requested must be positive"
             ));
         }
-        if let Some(fraction) = row.feasible_evaluation_fraction {
-            if !(0.0..=1.0).contains(&fraction) {
-                return Err(format!(
-                    "line {line_number}: feasible_evaluation_fraction must be in [0,1]"
-                ));
-            }
+        if let Some(fraction) = row.feasible_evaluation_fraction
+            && !(0.0..=1.0).contains(&fraction)
+        {
+            return Err(format!(
+                "line {line_number}: feasible_evaluation_fraction must be in [0,1]"
+            ));
         }
         let has_feasibility_counts = row.feasible_evaluation_count.is_some()
             || row.infeasible_evaluation_count.is_some()
@@ -308,15 +308,14 @@ impl BoCoDeRunLedgerRow {
                 ));
             }
         }
-        if let Some(count) = row.objective_evaluation_count {
-            if row
+        if let Some(count) = row.objective_evaluation_count
+            && row
                 .initial_design_count
                 .is_some_and(|initial| initial > count)
-            {
-                return Err(format!(
-                    "line {line_number}: initial design count exceeds observed evaluations"
-                ));
-            }
+        {
+            return Err(format!(
+                "line {line_number}: initial design count exceeds observed evaluations"
+            ));
         }
         if row.timed_out
             && (row.state != BoCoDeTrialState::Failed || row.process_exit_code != Some(124))
