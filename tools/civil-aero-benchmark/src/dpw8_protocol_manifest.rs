@@ -852,23 +852,23 @@ pub fn dpw8_oat15a_manifest_to_csv(manifest: &Dpw8Oat15aProtocolManifest) -> Str
     for source in sources {
         let mut row = vec![String::new(); 39];
         row[0] = "source".to_owned();
-        row[27] = source.source_id.clone();
-        row[28] = source.source_url.clone();
-        row[29] = source.source_kind.clone();
-        row[30] = source.state.as_str().to_owned();
-        row[31] = source
+        row[38] = source.source_id.clone();
+        row[38] = source.source_url.clone();
+        row[38] = source.source_kind.clone();
+        row[38] = source.state.as_str().to_owned();
+        row[38] = source
             .byte_length
             .map(|value| value.to_string())
             .unwrap_or_default();
-        row[32] = source.sha256.clone().unwrap_or_default();
-        row[33] = source.source_revision.clone();
-        row[34] = source.license_applicability.clone();
-        row[35] = source.acknowledgement.clone();
-        row[36] = source
+        row[38] = source.sha256.clone().unwrap_or_default();
+        row[38] = source.source_revision.clone();
+        row[38] = source.license_applicability.clone();
+        row[38] = source.acknowledgement.clone();
+        row[38] = source
             .permission_evidence_reference
             .clone()
             .unwrap_or_default();
-        row[37] = source
+        row[38] = source
             .permission_evidence_sha256
             .clone()
             .unwrap_or_default();
