@@ -5,8 +5,8 @@
 //! No human or platform traces are imported by this executable.
 
 use civdyn_human_fidelity::{
-    CoveragePoint, EvaluationResult, HumanFidelityDataset, ObservedTrial, SimulatedTrial,
-    evaluate, population_coverage_curve,
+    CoveragePoint, EvaluationResult, HumanFidelityDataset, ObservedTrial, SimulatedTrial, evaluate,
+    population_coverage_curve,
 };
 
 const OPTIONS: [&str; 4] = ["option_a", "option_b", "option_c", "option_d"];
@@ -18,7 +18,11 @@ fn fmt(value: f64) -> String {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "human-fidelity CSV schema must stay fixed");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "human-fidelity CSV schema must stay fixed"
+    );
     println!("{}", fields.join(","));
 }
 
@@ -33,22 +37,37 @@ fn synthetic_dataset(mode_collapse: bool) -> HumanFidelityDataset {
             let context_draw = ((participant * 7 + step_index as usize * 11) % 100) as u32;
             let choice = match participant % 3 {
                 0 => {
-                    if context_draw < 6 { 2 }
-                    else if context_draw < 10 { 3 }
-                    else if context_draw < 30 { 1 }
-                    else { 0 }
+                    if context_draw < 6 {
+                        2
+                    } else if context_draw < 10 {
+                        3
+                    } else if context_draw < 30 {
+                        1
+                    } else {
+                        0
+                    }
                 }
                 1 => {
-                    if context_draw < 6 { 2 }
-                    else if context_draw < 10 { 3 }
-                    else if context_draw < 30 { 0 }
-                    else { 1 }
+                    if context_draw < 6 {
+                        2
+                    } else if context_draw < 10 {
+                        3
+                    } else if context_draw < 30 {
+                        0
+                    } else {
+                        1
+                    }
                 }
                 _ => {
-                    if context_draw < 6 { 2 }
-                    else if context_draw < 10 { 1 }
-                    else if context_draw < 30 { 0 }
-                    else { 3 }
+                    if context_draw < 6 {
+                        2
+                    } else if context_draw < 10 {
+                        1
+                    } else if context_draw < 30 {
+                        0
+                    } else {
+                        3
+                    }
                 }
             };
             let context_id = format!("scenario_{step_index}");
@@ -104,9 +123,24 @@ fn metric_row(
         fmt(metrics.mean_log_loss),
         fmt(metrics.top_choice_accuracy),
     ];
-    row.extend(metrics.observed_choice_frequency.iter().map(|value| fmt(*value)));
-    row.extend(metrics.generated_choice_frequency.iter().map(|value| fmt(*value)));
-    row.extend(metrics.mean_predicted_probability.iter().map(|value| fmt(*value)));
+    row.extend(
+        metrics
+            .observed_choice_frequency
+            .iter()
+            .map(|value| fmt(*value)),
+    );
+    row.extend(
+        metrics
+            .generated_choice_frequency
+            .iter()
+            .map(|value| fmt(*value)),
+    );
+    row.extend(
+        metrics
+            .mean_predicted_probability
+            .iter()
+            .map(|value| fmt(*value)),
+    );
     row.extend([
         fmt(metrics.total_variation),
         fmt(metrics.jensen_shannon_bits),
@@ -218,14 +252,20 @@ mod tests {
         assert!(structured.overall.mean_brier_score < collapsed.overall.mean_brier_score);
         assert!(structured.overall.total_variation < collapsed.overall.total_variation);
         assert!(structured.overall.jensen_shannon_bits < collapsed.overall.jensen_shannon_bits);
-        assert!(structured.trajectory_transition_tvd.unwrap() < collapsed.trajectory_transition_tvd.unwrap());
+        assert!(
+            structured.trajectory_transition_tvd.unwrap()
+                < collapsed.trajectory_transition_tvd.unwrap()
+        );
     }
 
     #[test]
     fn coverage_curve_samples_the_declared_population_sizes() {
         let points = population_coverage_curve(&synthetic_dataset(true), &COVERAGE_SIZES).unwrap();
         assert_eq!(
-            points.iter().map(|point| point.participant_count).collect::<Vec<_>>(),
+            points
+                .iter()
+                .map(|point| point.participant_count)
+                .collect::<Vec<_>>(),
             COVERAGE_SIZES
         );
     }
