@@ -181,8 +181,31 @@
             "items": {
               "$ref": "#/$defs/id"
             }
+          },
+          "qualification_generation": {
+            "type": "integer",
+            "minimum": 0
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "stage_kind": {
+                  "const": "qualification_lease"
+                }
+              },
+              "required": [
+                "stage_kind"
+              ]
+            },
+            "then": {
+              "required": [
+                "qualification_generation"
+              ]
+            }
+          }
+        ]
       }
     },
     "command_attempts": {
@@ -200,7 +223,11 @@
           "qualification_generation",
           "lease_valid_at_command",
           "expected_authorized",
-          "expected_reason_codes"
+          "expected_reason_codes",
+          "command_stage_id",
+          "observation_stage_id",
+          "epoch_stage_id",
+          "qualification_stage_id"
         ],
         "properties": {
           "command_id": {
@@ -238,6 +265,23 @@
             "items": {
               "$ref": "#/$defs/id"
             }
+          },
+          "command_stage_id": {
+            "$ref": "#/$defs/id"
+          },
+          "observation_stage_id": {
+            "$ref": "#/$defs/id"
+          },
+          "epoch_stage_id": {
+            "$ref": "#/$defs/id"
+          },
+          "qualification_stage_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
           }
         }
       }
