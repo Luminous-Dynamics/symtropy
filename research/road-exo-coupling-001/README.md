@@ -177,3 +177,8 @@ The SplitManifest groups by scenario family, drive, capture session and upstream
 ### V0.1 limits
 
 This is an evidence-provenance and eligibility contract, not a causal-inference engine or an empirical validation study. The presence of a natural-experiment identification package does not prove its assumptions; it records what must be reviewed. It does not verify sensor calibration certificates, privacy permissions, dataset licences, or empirical ODD coverage. Those need independent validation and evidence-specific reviewers.
+
+
+### Reference-use gate
+
+The verifier accepts an evidence packet as an external reference only when its use role is explicitly SealedTest or SafetyChallenge. Fit, Calibration, DevelopmentValidation and IllustrativeOnly records are not eligible as sealed reference outcomes. This does not make a sealed label trustworthy by itself; the immutable split manifest and lineage audit must still pass.
