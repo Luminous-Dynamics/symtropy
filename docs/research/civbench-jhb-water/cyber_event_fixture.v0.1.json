@@ -156,7 +156,7 @@
   "expected_semantics": {
     "merged_alarm_episodes": [
       {
-        "episode_id": "episode-1",
+        "episode_id": "episode:alarm-leak-001a",
         "constituent_alarm_ids": [
           "alarm-leak-001a",
           "alarm-leak-001b"
@@ -178,11 +178,8 @@
     "missed_confirmed_event_ids": [
       "event-leak-missed-001"
     ],
-    "unscorable_alarm_ids": [
-      "alarm-unknown-001"
-    ],
     "false_alarm_episode_ids": [
-      "alarm-false-001"
+      "episode:alarm-false-001"
     ],
     "notes": [
       "The two leak alarms are one episode because their 50-second gap is below merge_gap_ms; the first onset is 100 seconds before the event onset and lies within allowed_lead_ms.",
@@ -192,6 +189,9 @@
       "The communication alarm is timely at event onset.",
       "The final leak has no alarm and is missed.",
       "The late cyber alarm is not counted as a false alarm episode because it is associated with a confirmed event."
+    ],
+    "unscorable_episode_ids": [
+      "episode:alarm-unknown-001"
     ]
   }
 }
