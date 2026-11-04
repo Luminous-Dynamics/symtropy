@@ -59,6 +59,16 @@ The intended differentiation is:
 3. Anytime-valid evidence tracking kept separate from expected information gain and posterior model probability.
 4. An eventual exact-to-approximate ladder: exact enumeration for small trees, admissible upper bounds and explicit optimality gaps for medium trees, then COPEx-style warm-started or amortized planning for large trees. The latter two are not implemented yet.
 
+## Exact finite-horizon scenario-tree planner
+
+The scenario_tree module adds an exact planner for the finite categorical V0 model. It expands every positive-probability outcome, updates the model posterior at each branch, applies candidate transition restrictions and the remaining cost budget, and maximizes expected discounted cumulative information gain. It returns the first action, immediate EIG, expected lookahead objective, horizon, expanded node count and residual budget.
+
+The planner is an exact reference for the supplied finite model, not a global solution to the biological experiment-design problem. Complexity grows with candidates, outcomes and horizon. A hard node-expansion limit returns an error; it never silently prunes branches and calls the result exact. It currently has no learned policy warm-start, posterior network, continuous design optimizer, Monte Carlo fantasy branch reduction or anytime branch-and-bound optimality gap.
+
+**External algorithmic baseline:** Guo et al. (ICML 2026), *Constrained Bayesian Experimental Design via Online Planning* (COPEx), combines offline amortized design-policy and posterior-network training with online multi-step scenario-tree planning, dynamic transition and budget constraints. Its public implementation uses Python/PyTorch and SLSQP-style optimization, with pre-trained ALINE models; its README describes horizon, fantasy branching, discounting, costs and transition restrictions. The published task suite includes active learning, location finding and CES, not Drosophila connectome experiments. COPEx is an important method baseline, not a drop-in fly-neuroscience comparator.
+
+Our differentiation target is an exact, dependency-free Rust reference for small categorical mechanism-discovery problems, with causal validity, assignment/delivery identity, evidence tier, safety, intervention provenance and anytime-valid inference wired into the same evaluation loop. A future exact-to-approximate ladder would use exact enumeration for small trees, admissible bounds and explicit optimality gaps for medium trees, and learned/warm-started scenario-tree planning for larger trees. The latter two stages are not implemented yet.
+
 ## Benchmark protocol
 
 Compare the policies on identical frozen model sets, priors, candidate manifests, outcome schemas, seeds and compute budgets:
