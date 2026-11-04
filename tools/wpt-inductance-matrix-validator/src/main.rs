@@ -948,7 +948,6 @@ mod tests {
         assert!(result["max_pairwise_abs_coupling"].as_f64().unwrap() < 1.0);
         assert_eq!(result["disposition"], "NONPASSIVE_REJECTED");
     }
-    
     #[test]
     fn accepts_seeded_gram_matrices_across_coil_counts() {
         // Deterministic property-style corpus: A^T A + I is positive definite.
@@ -969,20 +968,21 @@ mod tests {
             let mut gram = vec![vec![0.0_f64; n]; n];
             for i in 0..n {
                 for j in 0..n {
-                    let dot = (0..n)
-                        .map(|k| factors[k][i] * factors[k][j])
-                        .sum::<f64>();
+                    let dot = (0..n).map(|k| factors[k][i] * factors[k][j]).sum::<f64>();
                     gram[i][j] = dot * 1e-6 + if i == j { 1e-6 } else { 0.0 };
                 }
             }
 
             let mut value = fixture(json!(gram), zero_bounds(n), "PASSIVE_CERTIFIED");
-            value["coil_ids"] = json!((0..n).map(|index| format!("COIL-{index}")).collect::<Vec<_>>());
+            value["coil_ids"] = json!(
+                (0..n)
+                    .map(|index| format!("COIL-{index}"))
+                    .collect::<Vec<_>>()
+            );
             value["operating_point"]["dc_bias_currents_a"] = json!(vec![0.0; n]);
             let result = evaluate_value(&value);
             assert_eq!(
-                result["disposition"],
-                "PASSIVE_CERTIFIED",
+                result["disposition"], "PASSIVE_CERTIFIED",
                 "seeded Gram matrix with {n} coils: {result}"
             );
         }
@@ -1060,17 +1060,38 @@ mod tests {
     fn accepts_full_thirty_two_coil_boundary_and_rejects_thirty_three() {
         let n = 32;
         let mut value = fixture(
-            json!((0..n).map(|row| (0..n).map(|column| if row == column { 1e-6 } else { 0.0 }).collect::<Vec<_>>()).collect::<Vec<_>>()),
+            json!(
+                (0..n)
+                    .map(|row| (0..n)
+                        .map(|column| if row == column { 1e-6 } else { 0.0 })
+                        .collect::<Vec<_>>())
+                    .collect::<Vec<_>>()
+            ),
             zero_bounds(n),
             "PASSIVE_CERTIFIED",
         );
-        value["coil_ids"] = json!((0..n).map(|index| format!("COIL-{index}")).collect::<Vec<_>>());
+        value["coil_ids"] = json!(
+            (0..n)
+                .map(|index| format!("COIL-{index}"))
+                .collect::<Vec<_>>()
+        );
         value["operating_point"]["dc_bias_currents_a"] = json!(vec![0.0; n]);
         assert_eq!(disposition(value.clone()), "PASSIVE_CERTIFIED");
-        value["coil_ids"] = json!((0..=n).map(|index| format!("COIL-{index}")).collect::<Vec<_>>());
+        value["coil_ids"] = json!(
+            (0..=n)
+                .map(|index| format!("COIL-{index}"))
+                .collect::<Vec<_>>()
+        );
         value["operating_point"]["dc_bias_currents_a"] = json!(vec![0.0; n + 1]);
-        value["matrix_h"] = json!((0..=n).map(|row| (0..=n).map(|column| if row == column { 1e-6 } else { 0.0 }).collect::<Vec<_>>()).collect::<Vec<_>>());
-        value["entrywise_absolute_bound_h"] = json!((0..=n).map(|_| vec![0.0; n + 1]).collect::<Vec<_>>());
+        value["matrix_h"] = json!(
+            (0..=n)
+                .map(|row| (0..=n)
+                    .map(|column| if row == column { 1e-6 } else { 0.0 })
+                    .collect::<Vec<_>>())
+                .collect::<Vec<_>>()
+        );
+        value["entrywise_absolute_bound_h"] =
+            json!((0..=n).map(|_| vec![0.0; n + 1]).collect::<Vec<_>>());
         assert_eq!(disposition(value), "INVALID_INPUT");
     }
 
