@@ -785,7 +785,10 @@ mod tests {
                 .unwrap_or_else(|| panic!("{path}: instance is not an object"));
             for required in schema["required"].as_array().into_iter().flatten() {
                 let key = required.as_str().expect("required field name");
-                assert!(object.contains_key(key), "{path}: missing required field {key}");
+                assert!(
+                    object.contains_key(key),
+                    "{path}: missing required field {key}"
+                );
             }
             for (key, value) in object {
                 let child_schema = properties
