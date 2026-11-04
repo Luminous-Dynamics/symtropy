@@ -16,6 +16,11 @@ struct SessionState {
     state: String,
 }
 
+#[derive(Default)]
+pub struct SessionValidator {
+    sessions: HashMap<String, SessionState>,
+}
+
 fn string_field(value: &Value, key: &str, path: &str) -> Result<String, String> {
     let item = value.get(key).ok_or_else(|| format!("missing {path}.{key}"))?;
     let text = item.as_str().ok_or_else(|| format!("{path}.{key} must be a string"))?;
@@ -107,15 +112,16 @@ fn service_profile(service: &Value) -> Result<(), String> {
 fn common_evidence(record: &Value) -> Result<(), String> {
     let source = record.get("source").ok_or_else(|| "missing source".to_owned())?;
     let receiver = record.get("receiver").ok_or_else(|| "missing receiver".to_owned())?;
-    for (object, path, keys) in [
-        (source, "source", ["capability_sha256", "firmware_sha256", "topology_sha256"]),
-        (receiver, "receiver", ["capability_sha256", "firmware_sha256", "capability_sha256"]),
-    ] {
-        for key in keys {
-            let digest = string_field(object, key, path)?;
-            if !valid_sha256(&digest) {
-                return Err(format!("{path}.{key} must be a SHA-256 digest"));
-            }
+    for key in ["capability_sha256", "firmware_sha256", "topology_sha256"] {
+        let digest = string_field(source, key, "source")?;
+        if !valid_sha256(&digest) {
+            return Err(format!("source.{key} must be a SHA-256 digest"));
+        }
+    }
+    for key in ["capability_sha256", "firmware_sha256"] {
+        let digest = string_field(receiver, key, "receiver")?;
+        if !valid_sha256(&digest) {
+            return Err(format!("receiver.{key} must be a SHA-256 digest"));
         }
     }
     let service = record.get("service").ok_or_else(|| "missing service".to_owned())?;
@@ -144,6 +150,11 @@ fn common_evidence(record: &Value) -> Result<(), String> {
                 return Err("position receipt must be a SHA-256 digest".into());
             }
         }
+    }
+    if string_field(positioning, "status", "positioning")? == "CONFIRMED"
+        && positioning.get("position_receipt_sha256").and_then(Value::as_str).is_none()
+    {
+        return Err("confirmed positioning requires a position receipt".into());
     }
     Ok(())
 }
@@ -246,7 +257,7 @@ fn next_state(event_type: &str, prior: Option<&str>) -> Result<&'static str, Str
 
 fn evaluate_checked(
     record: &Value,
-    sessions: &mut HashMap<String, SessionState>,
+    validator: &mut SessionValidator,
 ) -> Result<String, String> {
     let schema_version = string_field(record, "schema_version", "record")?;
     if schema_version != "1.0.0" {
@@ -263,12 +274,12 @@ fn evaluate_checked(
     }
     let previous_digest = record.get("previous_event_sha256")
         .ok_or_else(|| "missing previous_event_sha256".to_owned())?;
-    let prior = sessions.get(&session_id).cloned();
+    let prior = validator.sessions.get(&session_id).cloned();
     match (&prior, previous_digest) {
         (None, Value::Null) if sequence == 0 => {}
         (None, _) => return Err("first session event must use sequence 0 and a null previous digest".into()),
         (Some(previous), Value::String(digest))
-            if sequence == previous.sequence + 1
+            if previous.sequence.checked_add(1) == Some(sequence)
                 && timestamp_ns > previous.timestamp_ns
                 && digest == &previous.event_digest => {}
         (Some(_), _) => return Err("session event sequence, timestamp or previous digest is not continuous".into()),
@@ -335,7 +346,7 @@ fn evaluate_checked(
         ));
     }
     let digest = claimed_digest;
-    sessions.insert(session_id, SessionState {
+    validator.sessions.insert(session_id, SessionState {
         sequence,
         timestamp_ns,
         event_digest: digest,
@@ -344,9 +355,9 @@ fn evaluate_checked(
     Ok(disposition.to_owned())
 }
 
-pub fn evaluate_record(record: &Value, sessions: &mut HashMap<String, SessionState>) -> Value {
+pub fn evaluate_record(record: &Value, validator: &mut SessionValidator) -> Value {
     let event_id = record.get("event_id").and_then(Value::as_str).unwrap_or("unknown").to_owned();
-    match evaluate_checked(record, sessions) {
+    match evaluate_checked(record, validator) {
         Ok(disposition) => json!({
             "event_id": event_id,
             "disposition": disposition,
@@ -362,15 +373,14 @@ pub fn evaluate_record(record: &Value, sessions: &mut HashMap<String, SessionSta
 
 #[cfg(test)]
 mod tests {
-    use super::evaluate_record;
+    use super::{evaluate_record, SessionValidator};
     use serde_json::Value;
-    use std::collections::HashMap;
 
     const FIXTURE: &str = include_str!("../../../benchmarks/wpt-energy-interface/v1/known-truth.jsonl");
 
     #[test]
     fn frozen_service_interface_corpus_matches_known_truth() {
-        let mut sessions = HashMap::new();
+        let mut sessions = SessionValidator::default();
         let mut records = 0usize;
         for line in FIXTURE.lines().filter(|line| !line.trim().is_empty()) {
             let record: Value = serde_json::from_str(line).expect("valid fixture JSON");
@@ -387,7 +397,7 @@ mod tests {
         let first = FIXTURE.lines().find(|line| !line.trim().is_empty()).unwrap();
         let mut record: Value = serde_json::from_str(first).unwrap();
         record["service"]["requested_useful_energy_j"] = serde_json::json!(999_999);
-        let report = evaluate_record(&record, &mut HashMap::new());
+        let report = evaluate_record(&record, &mut SessionValidator::default());
         assert_eq!(report["disposition"], "INVALID_INPUT");
     }
 }
