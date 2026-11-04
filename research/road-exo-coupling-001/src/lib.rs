@@ -2,6 +2,7 @@
 
 pub mod dependence;
 pub mod philox_adapter;
+pub mod temporal_dependence;
 
 use std::collections::{BTreeMap, BTreeSet};
 
