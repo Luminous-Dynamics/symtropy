@@ -1013,13 +1013,13 @@ mod tests {
 
     #[test]
     fn alarm_after_association_grace_is_false_and_event_missed() {
-        let events = vec![event("event-1", EventClass::Leak, 1_000, 1_200)];
+        let events = vec![event("event-1", EventClass::Leak, 1_000, 900_000)];
         let alarms = vec![alarm(
             "alarm-after-association",
             "source-a",
             AlarmClass::Unclassified,
-            301_201,
-            301_300,
+            1_200_001,
+            1_200_100,
         )];
         let report = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         assert_eq!(report.timely_event_count, 0);
