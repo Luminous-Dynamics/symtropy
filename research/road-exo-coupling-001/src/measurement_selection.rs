@@ -197,15 +197,9 @@ impl MeasurementSelectionManifest {
         out.extend_from_slice(&baseline_digest);
 
         push_id(&mut out, &self.constraints.cost_scale_id);
-        push_rational(
-            &mut out,
-            &self.constraints.maximum_cost,
-        )?;
+        push_rational(&mut out, &self.constraints.maximum_cost)?;
         push_id(&mut out, &self.constraints.risk_scale_id);
-        push_rational(
-            &mut out,
-            &self.constraints.maximum_risk,
-        )?;
+        push_rational(&mut out, &self.constraints.maximum_risk)?;
 
         let mut candidates = self.candidates.iter().collect::<Vec<_>>();
         candidates.sort_by(|a, b| a.experiment_id.cmp(&b.experiment_id));
@@ -220,9 +214,7 @@ impl MeasurementSelectionManifest {
         Ok(*blake3::hash(&self.canonical_bytes()?).as_bytes())
     }
 
-    pub fn evaluate(
-        &self,
-    ) -> Result<MeasurementSelectionCertificate, MeasurementSelectionError> {
+    pub fn evaluate(&self) -> Result<MeasurementSelectionCertificate, MeasurementSelectionError> {
         self.validate()?;
         let baseline_decision_certificate = self
             .baseline
@@ -241,9 +233,7 @@ impl MeasurementSelectionManifest {
         let mut candidate_evaluations = self
             .candidates
             .iter()
-            .map(|candidate| {
-                self.evaluate_candidate(candidate, &baseline_minimax_regret)
-            })
+            .map(|candidate| self.evaluate_candidate(candidate, &baseline_minimax_regret))
             .collect::<Result<Vec<_>, _>>()?;
         candidate_evaluations.sort_by(|a, b| a.experiment_id.cmp(&b.experiment_id));
 
@@ -251,9 +241,7 @@ impl MeasurementSelectionManifest {
 
         let pareto_experiment_ids = candidate_evaluations
             .iter()
-            .filter(|evaluation| {
-                evaluation.disposition == CandidateDisposition::ParetoEligible
-            })
+            .filter(|evaluation| evaluation.disposition == CandidateDisposition::ParetoEligible)
             .map(|evaluation| evaluation.experiment_id.clone())
             .collect::<Vec<_>>();
 
@@ -266,8 +254,7 @@ impl MeasurementSelectionManifest {
             pareto_experiment_ids,
             receipt_digest: [0; 32],
         };
-        certificate.receipt_digest =
-            *blake3::hash(&certificate_bytes(&certificate)).as_bytes();
+        certificate.receipt_digest = *blake3::hash(&certificate_bytes(&certificate)).as_bytes();
         Ok(certificate)
     }
 
@@ -278,11 +265,7 @@ impl MeasurementSelectionManifest {
     ) -> Result<CandidateEvaluation, MeasurementSelectionError> {
         let mut evaluation = empty_evaluation(candidate);
 
-        if let Err(reason) = validate_candidate(
-            candidate,
-            &self.baseline,
-            &self.constraints,
-        ) {
+        if let Err(reason) = validate_candidate(candidate, &self.baseline, &self.constraints) {
             evaluation.disposition = CandidateDisposition::Incomplete;
             evaluation.invalid_reason = Some(reason);
             return Ok(evaluation);
@@ -320,8 +303,8 @@ impl MeasurementSelectionManifest {
         }
 
         let mut outcome_evaluations = Vec::with_capacity(candidate.outcomes.len());
-        let mut worst_case_residual = ExactRational::new(0, 1)
-            .map_err(|_| MeasurementSelectionError::ArithmeticOverflow)?;
+        let mut worst_case_residual =
+            ExactRational::new(0, 1).map_err(|_| MeasurementSelectionError::ArithmeticOverflow)?;
 
         for outcome in &candidate.outcomes {
             let compatible = &outcome.compatible_hypotheses;
@@ -332,8 +315,7 @@ impl MeasurementSelectionManifest {
             let conditional_certificate = conditional_manifest
                 .evaluate()
                 .map_err(MeasurementSelectionError::BaselineInvalid)?;
-            let residual =
-                minimum_action_regret(&conditional_certificate.action_regrets)?;
+            let residual = minimum_action_regret(&conditional_certificate.action_regrets)?;
             if residual
                 .checked_cmp(&worst_case_residual)
                 .map_err(|_| MeasurementSelectionError::ArithmeticOverflow)?
@@ -407,8 +389,7 @@ fn empty_evaluation(candidate: &CandidateExperiment) -> CandidateEvaluation {
 }
 
 fn normalize_or_original(value: &ExactRational) -> ExactRational {
-    ExactRational::new(value.numerator, value.denominator)
-        .unwrap_or_else(|_| value.clone())
+    ExactRational::new(value.numerator, value.denominator).unwrap_or_else(|_| value.clone())
 }
 
 fn validate_candidate(
@@ -593,15 +574,9 @@ fn push_candidate(
     out.extend_from_slice(&candidate.preregistration_digest);
     out.extend_from_slice(&candidate.risk_assessment_digest);
     push_id(out, &candidate.cost_scale_id);
-    push_rational(
-        out,
-        &candidate.acquisition_cost,
-    )?;
+    push_rational(out, &candidate.acquisition_cost)?;
     push_id(out, &candidate.risk_scale_id);
-    push_rational(
-        out,
-        &candidate.risk_upper_bound,
-    )?;
+    push_rational(out, &candidate.risk_upper_bound)?;
 
     match &candidate.authorization {
         RiskAuthorization::Approved {
@@ -650,7 +625,12 @@ fn certificate_bytes(certificate: &MeasurementSelectionCertificate) -> Vec<u8> {
     out.extend_from_slice(&certificate.manifest_digest);
     out.extend_from_slice(&certificate.baseline_decision_certificate.receipt_digest);
     out.extend_from_slice(&certificate.baseline_minimax_regret.numerator.to_le_bytes());
-    out.extend_from_slice(&certificate.baseline_minimax_regret.denominator.to_le_bytes());
+    out.extend_from_slice(
+        &certificate
+            .baseline_minimax_regret
+            .denominator
+            .to_le_bytes(),
+    );
 
     push_len(&mut out, certificate.candidate_evaluations.len());
     for evaluation in &certificate.candidate_evaluations {
@@ -704,7 +684,6 @@ fn push_rational_bytes(out: &mut Vec<u8>, value: &ExactRational) {
     out.extend_from_slice(&value.denominator.to_le_bytes());
 }
 
-
 fn push_id(out: &mut Vec<u8>, id: &StableId) {
     let bytes = id.as_str().as_bytes();
     let length = u32::try_from(bytes.len()).expect("StableId length is bounded");
@@ -726,9 +705,7 @@ fn push_len(out: &mut Vec<u8>, length: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::decision_closure::{
-        DecisionHypothesis, HypothesisActionOutcome, OutcomeSupport,
-    };
+    use crate::decision_closure::{DecisionHypothesis, HypothesisActionOutcome, OutcomeSupport};
 
     fn id(value: &str) -> StableId {
         StableId::new(value).expect("fixture ID")
@@ -759,10 +736,7 @@ mod tests {
             utility_scale_id: id("net-safety-benefit-scale-v1"),
             utility_semantics_id: id("higher-is-better-v1"),
             actions: vec![id("action-a"), id("action-b")],
-            hypotheses: vec![
-                hypothesis("model-h1", 10, 0),
-                hypothesis("model-h2", 0, 10),
-            ],
+            hypotheses: vec![hypothesis("model-h1", 10, 0), hypothesis("model-h2", 0, 10)],
         }
     }
 
@@ -840,10 +814,7 @@ mod tests {
             evaluation.regret_reduction,
             Some(ExactRational::new(10, 1).unwrap())
         );
-        assert_eq!(
-            evaluation.disposition,
-            CandidateDisposition::ParetoEligible
-        );
+        assert_eq!(evaluation.disposition, CandidateDisposition::ParetoEligible);
     }
 
     #[test]
@@ -881,10 +852,7 @@ mod tests {
             vec![
                 ExperimentOutcome {
                     outcome_id: id("ambiguous-reading"),
-                    compatible_hypotheses: BTreeSet::from([
-                        id("model-h1"),
-                        id("model-h2"),
-                    ]),
+                    compatible_hypotheses: BTreeSet::from([id("model-h1"), id("model-h2")]),
                 },
                 ExperimentOutcome {
                     outcome_id: id("specific-reading"),
@@ -1032,13 +1000,9 @@ mod tests {
         let low_cost_higher_risk = candidate("low-cost", 5, 6, singleton_outcomes());
         let high_cost_low_risk = candidate("low-risk", 8, 4, singleton_outcomes());
         let dominated = candidate("dominated", 8, 8, singleton_outcomes());
-        let certificate = manifest(vec![
-            low_cost_higher_risk,
-            high_cost_low_risk,
-            dominated,
-        ])
-        .evaluate()
-        .unwrap();
+        let certificate = manifest(vec![low_cost_higher_risk, high_cost_low_risk, dominated])
+            .evaluate()
+            .unwrap();
         assert_eq!(
             certificate.pareto_experiment_ids,
             vec![id("low-cost"), id("low-risk")]
@@ -1060,8 +1024,12 @@ mod tests {
         for candidate in &mut second.candidates {
             candidate.outcomes.reverse();
             for outcome in &mut candidate.outcomes {
-                outcome.compatible_hypotheses =
-                    outcome.compatible_hypotheses.iter().cloned().rev().collect();
+                outcome.compatible_hypotheses = outcome
+                    .compatible_hypotheses
+                    .iter()
+                    .cloned()
+                    .rev()
+                    .collect();
             }
         }
         assert_eq!(first.digest().unwrap(), second.digest().unwrap());
@@ -1090,10 +1058,9 @@ mod tests {
     #[test]
     fn baseline_without_complete_action_hypothesis_support_is_rejected() {
         let mut invalid = baseline();
-        invalid.hypotheses[0].outcomes[0].support =
-            OutcomeSupport::NotIdentified {
-                evidence_ref: id("not-supported"),
-            };
+        invalid.hypotheses[0].outcomes[0].support = OutcomeSupport::NotIdentified {
+            evidence_ref: id("not-supported"),
+        };
         let manifest = MeasurementSelectionManifest {
             selection_id: id("invalid-baseline"),
             version: id("v0.1"),
@@ -1150,10 +1117,7 @@ mod tests {
             .unwrap()
             .candidate_evaluations[0];
         assert_eq!(evaluation.modality, ExperimentModality::SimulationChallenge);
-        assert_eq!(
-            evaluation.disposition,
-            CandidateDisposition::ParetoEligible
-        );
+        assert_eq!(evaluation.disposition, CandidateDisposition::ParetoEligible);
         // Eligibility here only means an informative, authorized challenge plan.
         // It does not promote a simulator result to real-world evidence.
     }
