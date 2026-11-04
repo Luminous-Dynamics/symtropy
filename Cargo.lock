@@ -9002,6 +9002,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-construction-coverage-gate"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+ "symtropy-robotics-bridge-core",
+]
+
+[[package]]
 name = "symtropy-core"
 version = "0.1.1"
 dependencies = [
