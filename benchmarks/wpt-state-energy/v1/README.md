@@ -16,7 +16,7 @@ V1 does not apply this formula to nonlinear, hysteretic, dispersive or frequency
 
 ## Conservative uncertainty
 
-All abs_uncertainty fields are deterministic absolute bounds, not standard deviations or confidence intervals.
+All abs_uncertainty fields are deterministic absolute bounds, not standard deviations or confidence intervals. Each L and C component also requires a matrix-basis digest and state-basis digest; they must match exactly, binding matrix row/column ordering to the current/voltage vector. Separate matrix, state and calibration receipt SHA-256 values bind the parameter extraction, state measurement and calibration evidence. A digest binds an artifact but does not itself prove the source is calibrated or trustworthy.
 
 For each reciprocal off-diagonal pair, the two entry intervals must overlap. Their intersection supplies the common symmetric interval. The midpoint and radius are used and the maximum reconciliation adjustment is reported. Disjoint reciprocal intervals invalidate the record; values are never silently averaged.
 
