@@ -372,13 +372,19 @@ impl OpenSystemEnergyBalance {
                 .expect("uncertainty completeness checked above");
             reservoir_ids.insert(flow.reservoir_id.clone());
 
-            if !net_work.is_finite()
-                || !net_heat.is_finite()
-                || !gross_boundary_flow.is_finite()
-                || !residual_uncertainty_bound.is_finite()
-            {
+            if !net_work.is_finite() || !net_heat.is_finite() {
                 return Err(EnergyBalanceError::OverflowedBalance {
-                    field: "boundary_flows",
+                    field: "net_boundary_flow_j",
+                });
+            }
+            if !gross_boundary_flow.is_finite() {
+                return Err(EnergyBalanceError::OverflowedBalance {
+                    field: "gross_boundary_flow_j",
+                });
+            }
+            if !residual_uncertainty_bound.is_finite() {
+                return Err(EnergyBalanceError::OverflowedBalance {
+                    field: "boundary_flow_uncertainty_bounds",
                 });
             }
         }
@@ -849,6 +855,30 @@ mod tests {
     }
 
     #[test]
+    fn missing_boundary_flow_uncertainty_is_incomplete() {
+        let mut record = complete_balance(
+            0.0,
+            1.0,
+            vec![flow(
+                "in",
+                "source",
+                EnergyCarrier::Work,
+                FlowDirection::IntoBoundary,
+                1.0,
+            )],
+        );
+        record.boundary_flows.as_mut().unwrap()[0].uncertainty_bound_j = None;
+        let report = record.evaluate(zero_tolerance()).unwrap();
+        assert_eq!(
+            report.status,
+            EnergyBalanceStatus::Incomplete {
+                missing_terms: vec![EnergyBalanceTerm::UncertaintyBounds],
+            }
+        );
+        assert_eq!(report.residual_j, None);
+    }
+
+    #[test]
     fn invalid_uncertainty_bounds_are_rejected() {
         let mut record = complete_balance(0.0, 0.0, vec![]);
         record.initial_stored_energy_uncertainty_bound_j = Some(-0.1);
@@ -895,6 +925,27 @@ mod tests {
     }
 
     #[test]
+    fn boundary_flow_uncertainty_sum_overflow_is_rejected() {
+        let mut record = complete_balance(
+            0.0,
+            0.0,
+            vec![
+                flow("a", "source-a", EnergyCarrier::Heat, FlowDirection::IntoBoundary, 0.0),
+                flow("b", "source-b", EnergyCarrier::Heat, FlowDirection::IntoBoundary, 0.0),
+            ],
+        );
+        for flow in record.boundary_flows.as_mut().unwrap() {
+            flow.uncertainty_bound_j = Some(f64::MAX);
+        }
+        assert_eq!(
+            record.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::OverflowedBalance {
+                field: "boundary_flow_uncertainty_bounds",
+            })
+        );
+    }
+
+    #[test]
     fn flow_sum_overflow_is_rejected() {
         let record = complete_balance(
             0.0,
@@ -907,7 +958,7 @@ mod tests {
         assert_eq!(
             record.evaluate(zero_tolerance()),
             Err(EnergyBalanceError::OverflowedBalance {
-                field: "boundary_flows",
+                field: "gross_boundary_flow_j",
             })
         );
     }
