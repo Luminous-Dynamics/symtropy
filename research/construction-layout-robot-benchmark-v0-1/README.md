@@ -27,6 +27,10 @@ The manufacturer's September 21, 2026 specification states ±1.6 mm print accura
 
 These are manufacturer statements under different configurations and conditions, not matched independent benchmark measurements. The profile records them as `vendor_reported`, never as observed result data.
 
+## Worksite and trade-coordination ODD
+
+Construction layout is not performed in a stationary factory cell. Record changes to work-zone boundaries, concurrent plant and trade activity, temporary exclusion zones, access routes, work phase and design-change notices. The benchmark may record that a crew briefing or site coordination notice occurred, but must not infer worker identity, intent or affect from cameras or telemetry, and should avoid collecting personal data that is not necessary for the safety/task claim. This is motivated by NIOSH's 7 October 2026 construction robotics guidance on changing work areas, multiple employers/trades, unfamiliar workers, and continuing risk monitoring.
+
 ## Required measurements
 
 - Signed X/Y and absolute plan-position residuals at independent checkpoints.
