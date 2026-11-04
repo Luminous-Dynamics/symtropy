@@ -720,7 +720,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn task_family_is_a_required_output_semantic() {
         let mut task = node("task-a", &[]);
