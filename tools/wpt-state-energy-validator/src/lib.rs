@@ -12,6 +12,29 @@ struct Matrix {
     reciprocity_adjustment: f64,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct EigenInterval {
+    minimum_lower: f64,
+    minimum_upper: f64,
+    maximum_lower: f64,
+    maximum_upper: f64,
+    residual_frobenius: f64,
+    uncertainty_frobenius: f64,
+    numeric_guard: f64,
+    converged: bool,
+}
+
+#[derive(Clone, Copy)]
+struct StorageSpec<'a> {
+    matrix_key: &'a str,
+    uncertainty_key: &'a str,
+    state_key: &'a str,
+    state_uncertainty_key: &'a str,
+    matrix_unit: &'a str,
+    state_unit: &'a str,
+    path: &'a str,
+}
+
 fn field<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a Value, String> {
     value
         .get(key)
@@ -218,18 +241,40 @@ fn jacobi(mut a: Vec<Vec<f64>>) -> Result<(f64, f64, f64, bool), String> {
                 a[q][q] = aqq + t * apq;
                 a[p][q] = 0.0;
                 a[q][p] = 0.0;
-                for k in 0..n {
-                    if k == p || k == q {
-                        continue;
+                // Compute paired row/column updates from the same pre-rotation values.
+                let updates: Vec<Option<(f64, f64)>> = a
+                    .iter()
+                    .enumerate()
+                    .map(|(k, row)| {
+                        if k == p || k == q {
+                            None
+                        } else {
+                            let akp = row[p];
+                            let akq = row[q];
+                            Some((c * akp - s * akq, s * akp + c * akq))
+                        }
+                    })
+                    .collect();
+
+                for (row, update) in a.iter_mut().zip(&updates) {
+                    if let Some((new_kp, new_kq)) = update {
+                        row[p] = *new_kp;
+                        row[q] = *new_kq;
                     }
-                    let akp = a[k][p];
-                    let akq = a[k][q];
-                    let x = c * akp - s * akq;
-                    let y = s * akp + c * akq;
-                    a[k][p] = x;
-                    a[p][k] = x;
-                    a[k][q] = y;
-                    a[q][k] = y;
+                }
+
+                let (before_q, from_q) = a.split_at_mut(q);
+                let row_p = &mut before_q[p];
+                let row_q = &mut from_q[0];
+                for (p_value, q_value, update) in
+                    row_p.iter_mut().zip(row_q.iter_mut()).zip(&updates).map(
+                        |((p_value, q_value), update)| (p_value, q_value, update),
+                    )
+                {
+                    if let Some((new_kp, new_kq)) = update {
+                        *p_value = *new_kp;
+                        *q_value = *new_kq;
+                    }
                 }
             }
         }
@@ -238,11 +283,11 @@ fn jacobi(mut a: Vec<Vec<f64>>) -> Result<(f64, f64, f64, bool), String> {
     let mut min_diag = f64::INFINITY;
     let mut max_diag = f64::NEG_INFINITY;
     let mut residual_sq = 0.0_f64;
-    for i in 0..n {
-        min_diag = min_diag.min(a[i][i]);
-        max_diag = max_diag.max(a[i][i]);
-        for j in (i + 1)..n {
-            residual_sq += 2.0 * a[i][j] * a[i][j];
+    for (i, row) in a.iter().enumerate() {
+        min_diag = min_diag.min(row[i]);
+        max_diag = max_diag.max(row[i]);
+        for value in row.iter().skip(i + 1) {
+            residual_sq += 2.0 * value * value;
         }
     }
     let residual = residual_sq.sqrt();
@@ -261,7 +306,7 @@ fn jacobi(mut a: Vec<Vec<f64>>) -> Result<(f64, f64, f64, bool), String> {
     ))
 }
 
-fn eigen_interval(matrix: &Matrix) -> Result<(f64, f64, f64, f64, f64, f64, bool), String> {
+fn eigen_interval(matrix: &Matrix) -> Result<EigenInterval, String> {
     let mut scale = 0.0_f64;
     for x in matrix
         .center
@@ -272,7 +317,16 @@ fn eigen_interval(matrix: &Matrix) -> Result<(f64, f64, f64, f64, f64, f64, bool
         scale = scale.max(x.abs());
     }
     if scale == 0.0 {
-        return Ok((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true));
+        return Ok(EigenInterval {
+            minimum_lower: 0.0,
+            minimum_upper: 0.0,
+            maximum_lower: 0.0,
+            maximum_upper: 0.0,
+            residual_frobenius: 0.0,
+            uncertainty_frobenius: 0.0,
+            numeric_guard: 0.0,
+            converged: true,
+        });
     }
 
     let exact_diagonal = matrix.center.iter().enumerate().all(|(i, row)| {
@@ -290,7 +344,16 @@ fn eigen_interval(matrix: &Matrix) -> Result<(f64, f64, f64, f64, f64, f64, bool
             .collect();
         let min = diag.iter().copied().fold(f64::INFINITY, f64::min);
         let max = diag.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-        return Ok((min, min, max, max, 0.0, 0.0, true));
+        return Ok(EigenInterval {
+            minimum_lower: min,
+            minimum_upper: min,
+            maximum_lower: max,
+            maximum_upper: max,
+            residual_frobenius: 0.0,
+            uncertainty_frobenius: 0.0,
+            numeric_guard: 0.0,
+            converged: true,
+        });
     }
 
     let (min_eig, max_eig, residual, converged) = jacobi(matrix.center.clone())?;
@@ -315,15 +378,16 @@ fn eigen_interval(matrix: &Matrix) -> Result<(f64, f64, f64, f64, f64, f64, bool
     if !values.into_iter().all(f64::is_finite) {
         return Err("eigenvalue interval overflow".into());
     }
-    Ok((
-        min_eig - radius,
-        min_eig + radius,
-        max_eig - radius,
-        max_eig + radius,
-        residual,
-        uncertainty_norm,
+    Ok(EigenInterval {
+        minimum_lower: min_eig - radius,
+        minimum_upper: min_eig + radius,
+        maximum_lower: max_eig - radius,
+        maximum_upper: max_eig + radius,
+        residual_frobenius: residual,
+        uncertainty_frobenius: uncertainty_norm,
+        numeric_guard: guard,
         converged,
-    ))
+    })
 }
 
 fn norm_bounds(values: &[f64], uncertainty: &[f64]) -> Result<(f64, f64), String> {
@@ -350,16 +414,16 @@ fn norm_bounds(values: &[f64], uncertainty: &[f64]) -> Result<(f64, f64), String
     Ok((min_sq.sqrt(), max_sq.sqrt()))
 }
 
-fn energy(
-    component: &Value,
-    matrix_key: &str,
-    uncertainty_key: &str,
-    state_key: &str,
-    state_uncertainty_key: &str,
-    matrix_unit: &str,
-    state_unit: &str,
-    path: &str,
-) -> Result<Value, String> {
+fn energy(component: &Value, spec: StorageSpec<'_>) -> Result<Value, String> {
+    let StorageSpec {
+        matrix_key,
+        uncertainty_key,
+        state_key,
+        state_uncertainty_key,
+        matrix_unit,
+        state_unit,
+        path,
+    } = spec;
     let matrix = parse_matrix(component, matrix_key, uncertainty_key, matrix_unit, path)?;
     let n = matrix.center.len();
     let actual_state_unit = string_field(component, "state_unit", path)?;
@@ -388,13 +452,12 @@ fn energy(
             "{path} matrix and state coordinate-basis digests differ"
         ));
     }
-    let (min_eig, max_min_eig, min_max_eig, max_eig, residual, uncertainty_norm, converged) =
-        eigen_interval(&matrix)?;
-    let status = if !converged {
+    let eigen = eigen_interval(&matrix)?;
+    let status = if !eigen.converged {
         "STORAGE_MATRIX_UNRESOLVED"
-    } else if max_min_eig < 0.0 {
+    } else if eigen.minimum_upper < 0.0 {
         "STORAGE_MATRIX_REJECTED"
-    } else if min_eig < 0.0 {
+    } else if eigen.minimum_lower < 0.0 {
         "STORAGE_MATRIX_UNRESOLVED"
     } else {
         "STORAGE_MATRIX_CERTIFIED"
@@ -411,8 +474,8 @@ fn energy(
         return Err(format!("{path} nominal energy overflow"));
     }
     let (norm_lower, norm_upper) = norm_bounds(&values, &state_uncertainty)?;
-    let lower = 0.5 * min_eig.max(0.0) * norm_lower * norm_lower;
-    let upper = 0.5 * max_eig.max(0.0) * norm_upper * norm_upper;
+    let lower = 0.5 * eigen.minimum_lower.max(0.0) * norm_lower * norm_lower;
+    let upper = 0.5 * eigen.maximum_upper.max(0.0) * norm_upper * norm_upper;
     if !lower.is_finite() || !upper.is_finite() {
         return Err(format!("{path} conservative energy interval overflow"));
     }
@@ -428,13 +491,14 @@ fn energy(
         "calibration_receipt_sha256": calibration_receipt,
         "nominal_energy_j": nominal,
         "energy_interval_j": { "lower": lower, "upper": upper },
-        "minimum_eigenvalue_interval": { "lower": min_eig, "upper": max_min_eig },
-        "maximum_eigenvalue_interval": { "lower": min_max_eig, "upper": max_eig },
+        "minimum_eigenvalue_interval": { "lower": eigen.minimum_lower, "upper": eigen.minimum_upper },
+        "maximum_eigenvalue_interval": { "lower": eigen.maximum_lower, "upper": eigen.maximum_upper },
         "state_norm_interval": { "lower": norm_lower, "upper": norm_upper },
-        "off_diagonal_residual_frobenius": residual,
-        "matrix_uncertainty_frobenius": uncertainty_norm,
+        "off_diagonal_residual_frobenius": eigen.residual_frobenius,
+        "matrix_uncertainty_frobenius": eigen.uncertainty_frobenius,
+        "floating_point_guard": eigen.numeric_guard,
         "reciprocity_max_interval_adjustment": matrix.reciprocity_adjustment,
-        "eigensolver_converged": converged
+        "eigensolver_converged": eigen.converged
     }))
 }
 
@@ -475,23 +539,27 @@ fn evaluate_checked(record: &Value, record_id: &str) -> Result<Value, String> {
 
     let magnetic = energy(
         field(record, "inductance", "record")?,
-        "matrix_h",
-        "abs_uncertainty_h",
-        "current_a",
-        "current_abs_uncertainty_a",
-        "H",
-        "A",
-        "inductance",
+        StorageSpec {
+            matrix_key: "matrix_h",
+            uncertainty_key: "abs_uncertainty_h",
+            state_key: "current_a",
+            state_uncertainty_key: "current_abs_uncertainty_a",
+            matrix_unit: "H",
+            state_unit: "A",
+            path: "inductance",
+        },
     )?;
     let electric = energy(
         field(record, "capacitance", "record")?,
-        "matrix_f",
-        "abs_uncertainty_f",
-        "voltage_v",
-        "voltage_abs_uncertainty_v",
-        "F",
-        "V",
-        "capacitance",
+        StorageSpec {
+            matrix_key: "matrix_f",
+            uncertainty_key: "abs_uncertainty_f",
+            state_key: "voltage_v",
+            state_uncertainty_key: "voltage_abs_uncertainty_v",
+            matrix_unit: "F",
+            state_unit: "V",
+            path: "capacitance",
+        },
     )?;
     let m_status = magnetic["status"]
         .as_str()
