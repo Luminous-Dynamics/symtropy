@@ -312,6 +312,11 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
             "MODE_UNQUALIFIED",
             "both adjacent modes require upstream PASSIVE_CERTIFIED evidence before transition qualification",
         )
+    } else if generation_upper_j > numeric_guard_j {
+        (
+            "ENERGY_GENERATION_UNRESOLVED",
+            "the conservative energy-generation interval overlaps possible positive generation",
+        )
     } else if tank_reserve_unresolved {
         (
             "ENERGY_TANK_RESERVE_UNRESOLVED",
@@ -482,7 +487,7 @@ mod tests {
         let mut record = event("uncertain", 1.0, 1.1, 0.0, 0.0);
         record["pre_mode"]["energy_uncertainty_j"] = json!(0.06);
         record["post_mode"]["energy_uncertainty_j"] = json!(0.06);
-        assert_eq!(disposition(&record), "ENERGY_BALANCE_UNRESOLVED");
+        assert_eq!(disposition(&record), "ENERGY_GENERATION_UNRESOLVED");
     }
 
     #[test]
