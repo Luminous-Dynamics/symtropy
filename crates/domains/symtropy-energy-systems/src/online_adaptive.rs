@@ -20,7 +20,7 @@ use core::fmt;
 use serde::Serialize;
 
 use crate::{
-    ForecastCalibrationBlock, ForecastCalibrationError, ForecastCalibrationEvaluation,
+    ForecastCalibrationBlock, ForecastCalibrationEvaluation,
 };
 
 const PPM_DENOMINATOR: u128 = 1_000_000;
@@ -508,9 +508,9 @@ fn minimum_finite_miscoverage_ppm(
 
 fn block_max_score(
     block: &ForecastCalibrationBlock,
-) -> Result<f64, ForecastCalibrationError> {
+) -> Result<f64, OnlineAdaptiveCalibrationError> {
     if block.cells().is_empty() {
-        return Err(ForecastCalibrationError::NumericalOverflow(
+        return Err(OnlineAdaptiveCalibrationError::NumericalOverflow(
             "empty calibration block",
         ));
     }
@@ -519,7 +519,7 @@ fn block_max_score(
         let absolute_error = (cell.realized_value() - cell.point_forecast()).abs();
         let normalized_error = absolute_error / cell.normalization_scale();
         if !absolute_error.is_finite() || !normalized_error.is_finite() {
-            return Err(ForecastCalibrationError::NumericalOverflow(
+            return Err(OnlineAdaptiveCalibrationError::NumericalOverflow(
                 "adaptive calibration residual",
             ));
         }
@@ -607,7 +607,7 @@ mod tests {
         assert_eq!(report.receipts[0].selected_order_statistic_rank, 95);
         assert_eq!(report.receipts[0].miscoverage_after_ppm, 40_500);
         assert_eq!(report.receipts[1].selected_order_statistic_rank, 96);
-        assert_eq!(report.receipts[1].calibrated_scale_multiplier, 9.6);
+        assert!((report.receipts[1].calibrated_scale_multiplier - 9.6).abs() < 1e-9);
         assert!(!report.receipts[0].joint_covered);
         assert!(report.receipts[1].joint_covered);
         assert_eq!(report.receipts[1].miscoverage_after_ppm, 41_000);
