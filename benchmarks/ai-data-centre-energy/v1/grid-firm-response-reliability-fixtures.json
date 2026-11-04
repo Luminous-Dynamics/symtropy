@@ -1,0 +1,1236 @@
+{
+  "schema_version": "symtropy.grid-firm-response-reliability-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "note": "Synthetic event-outcome fixtures only. They are not real site events, grid operator data, market qualification or system resource adequacy evidence.",
+  "confidence": {
+    "method": "ONE_SIDED_HOEFFDING_BERNOULLI_LOWER_BOUND",
+    "delta": 0.05,
+    "formula": "max(0, p_hat - sqrt(ln(1/delta)/(2*n)))",
+    "assumption": "Independent bounded Bernoulli event outcomes declared by caller; independence is not proven by these fixtures."
+  },
+  "identity": {
+    "portfolio_id": "synthetic-portfolio",
+    "service_product_id": "synthetic-fast-response-product",
+    "measurement_boundary_id": "synthetic-pcc",
+    "baseline_method_id": "synthetic-baseline-method",
+    "response_configuration_digest": "synthetic-response-config",
+    "condition_stratum_id": "hot-ambient-high-workload",
+    "independence_basis_id": "synthetic-independent-event-blocks",
+    "committed_reduction_kw": 100
+  },
+  "known_truth": [
+    {
+      "case_id": "twenty-perfect-events",
+      "opportunity_set_digest": "synthetic-manifest-20",
+      "scheduled_event_ids": [
+        "event-0",
+        "event-1",
+        "event-2",
+        "event-3",
+        "event-4",
+        "event-5",
+        "event-6",
+        "event-7",
+        "event-8",
+        "event-9",
+        "event-10",
+        "event-11",
+        "event-12",
+        "event-13",
+        "event-14",
+        "event-15",
+        "event-16",
+        "event-17",
+        "event-18",
+        "event-19"
+      ],
+      "minimum_trial_count": 20,
+      "minimum_success_probability": 0.7,
+      "trials": [
+        {
+          "event_id": "event-0",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-1",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-2",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-3",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-4",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-5",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-6",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-7",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-8",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-9",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-10",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-11",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-12",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-13",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-14",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-15",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-16",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-17",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-18",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-19",
+          "outcome": "PASS"
+        }
+      ],
+      "expected": {
+        "trial_count": 20,
+        "successful_trial_count": 20,
+        "failed_trial_count": 0,
+        "empirical_success_probability": 1,
+        "hoeffding_radius": 0.2736664152555987,
+        "lower_confidence_success_probability": 0.7263335847444012,
+        "event_response_reliability_qualified": true,
+        "qualified_committed_reduction_kw": 100
+      }
+    },
+    {
+      "case_id": "hundred-perfect-events",
+      "opportunity_set_digest": "synthetic-manifest-100",
+      "scheduled_event_ids": [
+        "event-0",
+        "event-1",
+        "event-2",
+        "event-3",
+        "event-4",
+        "event-5",
+        "event-6",
+        "event-7",
+        "event-8",
+        "event-9",
+        "event-10",
+        "event-11",
+        "event-12",
+        "event-13",
+        "event-14",
+        "event-15",
+        "event-16",
+        "event-17",
+        "event-18",
+        "event-19",
+        "event-20",
+        "event-21",
+        "event-22",
+        "event-23",
+        "event-24",
+        "event-25",
+        "event-26",
+        "event-27",
+        "event-28",
+        "event-29",
+        "event-30",
+        "event-31",
+        "event-32",
+        "event-33",
+        "event-34",
+        "event-35",
+        "event-36",
+        "event-37",
+        "event-38",
+        "event-39",
+        "event-40",
+        "event-41",
+        "event-42",
+        "event-43",
+        "event-44",
+        "event-45",
+        "event-46",
+        "event-47",
+        "event-48",
+        "event-49",
+        "event-50",
+        "event-51",
+        "event-52",
+        "event-53",
+        "event-54",
+        "event-55",
+        "event-56",
+        "event-57",
+        "event-58",
+        "event-59",
+        "event-60",
+        "event-61",
+        "event-62",
+        "event-63",
+        "event-64",
+        "event-65",
+        "event-66",
+        "event-67",
+        "event-68",
+        "event-69",
+        "event-70",
+        "event-71",
+        "event-72",
+        "event-73",
+        "event-74",
+        "event-75",
+        "event-76",
+        "event-77",
+        "event-78",
+        "event-79",
+        "event-80",
+        "event-81",
+        "event-82",
+        "event-83",
+        "event-84",
+        "event-85",
+        "event-86",
+        "event-87",
+        "event-88",
+        "event-89",
+        "event-90",
+        "event-91",
+        "event-92",
+        "event-93",
+        "event-94",
+        "event-95",
+        "event-96",
+        "event-97",
+        "event-98",
+        "event-99"
+      ],
+      "minimum_trial_count": 100,
+      "minimum_success_probability": 0.85,
+      "trials": [
+        {
+          "event_id": "event-0",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-1",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-2",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-3",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-4",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-5",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-6",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-7",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-8",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-9",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-10",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-11",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-12",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-13",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-14",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-15",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-16",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-17",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-18",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-19",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-20",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-21",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-22",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-23",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-24",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-25",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-26",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-27",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-28",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-29",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-30",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-31",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-32",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-33",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-34",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-35",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-36",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-37",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-38",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-39",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-40",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-41",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-42",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-43",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-44",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-45",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-46",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-47",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-48",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-49",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-50",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-51",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-52",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-53",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-54",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-55",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-56",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-57",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-58",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-59",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-60",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-61",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-62",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-63",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-64",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-65",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-66",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-67",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-68",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-69",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-70",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-71",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-72",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-73",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-74",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-75",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-76",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-77",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-78",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-79",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-80",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-81",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-82",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-83",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-84",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-85",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-86",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-87",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-88",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-89",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-90",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-91",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-92",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-93",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-94",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-95",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-96",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-97",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-98",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-99",
+          "outcome": "PASS"
+        }
+      ],
+      "expected": {
+        "trial_count": 100,
+        "successful_trial_count": 100,
+        "failed_trial_count": 0,
+        "empirical_success_probability": 1,
+        "hoeffding_radius": 0.12238734153404082,
+        "lower_confidence_success_probability": 0.8776126584659592,
+        "event_response_reliability_qualified": true,
+        "qualified_committed_reduction_kw": 100
+      }
+    },
+    {
+      "case_id": "one-unavailable-of-101",
+      "opportunity_set_digest": "synthetic-manifest-101",
+      "scheduled_event_ids": [
+        "event-0",
+        "event-1",
+        "event-2",
+        "event-3",
+        "event-4",
+        "event-5",
+        "event-6",
+        "event-7",
+        "event-8",
+        "event-9",
+        "event-10",
+        "event-11",
+        "event-12",
+        "event-13",
+        "event-14",
+        "event-15",
+        "event-16",
+        "event-17",
+        "event-18",
+        "event-19",
+        "event-20",
+        "event-21",
+        "event-22",
+        "event-23",
+        "event-24",
+        "event-25",
+        "event-26",
+        "event-27",
+        "event-28",
+        "event-29",
+        "event-30",
+        "event-31",
+        "event-32",
+        "event-33",
+        "event-34",
+        "event-35",
+        "event-36",
+        "event-37",
+        "event-38",
+        "event-39",
+        "event-40",
+        "event-41",
+        "event-42",
+        "event-43",
+        "event-44",
+        "event-45",
+        "event-46",
+        "event-47",
+        "event-48",
+        "event-49",
+        "event-50",
+        "event-51",
+        "event-52",
+        "event-53",
+        "event-54",
+        "event-55",
+        "event-56",
+        "event-57",
+        "event-58",
+        "event-59",
+        "event-60",
+        "event-61",
+        "event-62",
+        "event-63",
+        "event-64",
+        "event-65",
+        "event-66",
+        "event-67",
+        "event-68",
+        "event-69",
+        "event-70",
+        "event-71",
+        "event-72",
+        "event-73",
+        "event-74",
+        "event-75",
+        "event-76",
+        "event-77",
+        "event-78",
+        "event-79",
+        "event-80",
+        "event-81",
+        "event-82",
+        "event-83",
+        "event-84",
+        "event-85",
+        "event-86",
+        "event-87",
+        "event-88",
+        "event-89",
+        "event-90",
+        "event-91",
+        "event-92",
+        "event-93",
+        "event-94",
+        "event-95",
+        "event-96",
+        "event-97",
+        "event-98",
+        "event-99",
+        "event-100"
+      ],
+      "minimum_trial_count": 101,
+      "minimum_success_probability": 0.9,
+      "trials": [
+        {
+          "event_id": "event-0",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-1",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-2",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-3",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-4",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-5",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-6",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-7",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-8",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-9",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-10",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-11",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-12",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-13",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-14",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-15",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-16",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-17",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-18",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-19",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-20",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-21",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-22",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-23",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-24",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-25",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-26",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-27",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-28",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-29",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-30",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-31",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-32",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-33",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-34",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-35",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-36",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-37",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-38",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-39",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-40",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-41",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-42",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-43",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-44",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-45",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-46",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-47",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-48",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-49",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-50",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-51",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-52",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-53",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-54",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-55",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-56",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-57",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-58",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-59",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-60",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-61",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-62",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-63",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-64",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-65",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-66",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-67",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-68",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-69",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-70",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-71",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-72",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-73",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-74",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-75",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-76",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-77",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-78",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-79",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-80",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-81",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-82",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-83",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-84",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-85",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-86",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-87",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-88",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-89",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-90",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-91",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-92",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-93",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-94",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-95",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-96",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-97",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-98",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-99",
+          "outcome": "PASS"
+        },
+        {
+          "event_id": "event-100",
+          "outcome": "UNAVAILABLE",
+          "reason": "controller unreachable",
+          "evidence_id": "availability-log-100"
+        }
+      ],
+      "expected": {
+        "trial_count": 101,
+        "successful_trial_count": 100,
+        "failed_trial_count": 1,
+        "unavailable_trial_count": 1,
+        "empirical_success_probability": 0.9900990099009901,
+        "hoeffding_radius": 0.12177995643730229,
+        "lower_confidence_success_probability": 0.8683190534636878,
+        "event_response_reliability_qualified": false,
+        "qualified_committed_reduction_kw": null
+      }
+    }
+  ],
+  "hostile_controls": [
+    {
+      "case_id": "missing-scheduled-event",
+      "scheduled_event_ids": [
+        "event-a",
+        "event-b"
+      ],
+      "trial_event_ids": [
+        "event-a"
+      ],
+      "expected_result": "REJECT_SCHEDULED_OPPORTUNITY_COUNT_MISMATCH"
+    },
+    {
+      "case_id": "unexpected-event-replaces-scheduled",
+      "scheduled_event_ids": [
+        "event-a",
+        "event-b"
+      ],
+      "trial_event_ids": [
+        "event-a",
+        "event-c"
+      ],
+      "expected_result": "REJECT_UNEXPECTED_SCHEDULED_OPPORTUNITY"
+    },
+    {
+      "case_id": "duplicate-opportunity-id",
+      "scheduled_event_ids": [
+        "event-a",
+        "event-a"
+      ],
+      "expected_result": "REJECT_DUPLICATE_SCHEDULED_EVENT_ID"
+    },
+    {
+      "case_id": "wrong-condition-stratum",
+      "expected_result": "REJECT_CONDITION_STRATUM_MISMATCH"
+    },
+    {
+      "case_id": "wrong-product-or-boundary-or-baseline-or-config",
+      "expected_result": "REJECT_IDENTITY_MISMATCH"
+    },
+    {
+      "case_id": "different-commitment-level",
+      "expected_result": "REJECT_COMMITTED_CAPACITY_MISMATCH"
+    }
+  ]
+}
