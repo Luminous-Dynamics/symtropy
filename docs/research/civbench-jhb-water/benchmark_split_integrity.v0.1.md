@@ -26,7 +26,7 @@ Supported leakage dimensions are physical event, capture session, pipe/asset, ne
 The policy distinguishes two different properties:
 
 1. **Exclusive dimensions:** a value may occur in only one partition. For example, physical-event and capture-session IDs must not cross train/validation/test.
-2. **Shared dimensions:** at least one identical value must be represented in all three partitions. This allows a protocol to assert that it is genuinely within the same network rather than accidentally turning into a transfer experiment.
+2. **Shared dimensions:** every distinct value in each listed dimension must be represented in all three partitions. This prevents a purported within-network protocol from quietly including test-only networks or layouts.
 
 The audit always rejects duplicate content digests, duplicate sample IDs, malformed or padded identifiers, missing policy keys, empty partitions, and contradictory shared/exclusive declarations. Exact digest syntax is checked, but the caller is responsible for computing the digest over a canonical payload and retaining the raw manifest. A digest is not a signature, source attestation, or proof of truth.
 
