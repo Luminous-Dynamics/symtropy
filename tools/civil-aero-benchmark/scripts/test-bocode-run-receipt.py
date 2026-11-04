@@ -198,6 +198,69 @@ def build_fixture(
     return receipt_path
 
 
+def convert_to_preflight_wrapper_error(receipt_path: Path) -> None:
+    root = receipt_path.parent
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt.update({
+        "state": "wrapper_error",
+        "reason": "source checkout preflight failed before identity could be established",
+        "source_commit_verified": None,
+        "package_version_observed": None,
+        "task_metadata": None,
+        "environment_projection": None,
+        "environment_projection_sha256": None,
+        "environment_freeze_sha256": None,
+        "command": None,
+        "command_sha256": None,
+        "process_exit_code": None,
+        "wall_seconds": None,
+        "cpu_user_seconds_measured": None,
+        "cpu_system_seconds_measured": None,
+        "peak_memory_bytes": None,
+        "gpu_seconds": None,
+        "energy_joules": None,
+        "metrics": {},
+        "artifacts": {},
+        "timed_out": False,
+    })
+    receipt["receipt_sha256"] = sha(canonical({
+        key: value for key, value in receipt.items() if key != "receipt_sha256"
+    }))
+    receipt_path.write_bytes(canonical(receipt) + b"\n")
+
+    row_path = root / "run-row.csv"
+    with row_path.open("r", encoding="utf-8", newline="") as stream:
+        reader = csv.DictReader(stream)
+        row = next(reader)
+        header = reader.fieldnames
+    row.update({
+        "state": "wrapper_error",
+        "reason": receipt["reason"],
+        "source_commit": receipt["source_commit"],
+        "package_version": receipt["package_version_expected"],
+        "process_exit_code": "",
+        "wall_seconds": "",
+        "cpu_user_seconds": "",
+        "cpu_system_seconds": "",
+        "stdout_sha256": "",
+        "stderr_sha256": "",
+        "npz_sha256": "",
+        "summary_sha256": "",
+        "environment_freeze_sha256": "",
+        "receipt_sha256": receipt["receipt_sha256"],
+        "objective_evaluation_count": "",
+        "constraint_history_state": "",
+        "initial_design_count": "",
+        "feasible_evaluation_count": "",
+        "infeasible_evaluation_count": "",
+        "feasible_evaluation_fraction": "",
+    })
+    with row_path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=header, lineterminator="\n")
+        writer.writeheader()
+        writer.writerow(row)
+
+
 def run_verifier(path: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(VERIFY), str(path)],
@@ -215,6 +278,13 @@ def main() -> int:
         receipt = build_fixture(root)
         valid = run_verifier(receipt)
         assert valid.returncode == 0, valid.stderr
+
+        wrapper_root = Path(temp) / "wrapper-error"
+        wrapper_root.mkdir()
+        wrapper_error_receipt = build_fixture(wrapper_root)
+        convert_to_preflight_wrapper_error(wrapper_error_receipt)
+        wrapper_error_result = run_verifier(wrapper_error_receipt)
+        assert wrapper_error_result.returncode == 0, wrapper_error_result.stderr
 
         # Artifact tampering must fail the retained length/hash binding.
         (root / "stdout.bin").write_bytes(b"tampered")
@@ -281,7 +351,7 @@ def main() -> int:
             "bocode_receipt_verifier_selftest=pass "
             "valid_receipt=1 artifact_tamper_rejected=1 npz_shape_tamper_rejected=1 "
             "fortran_order_rejected=1 best_history_tamper_rejected=1 "
-            "missing_campaign_trial_retained=1"
+            "preflight_wrapper_error_verified=1 missing_campaign_trial_retained=1"
         )
     return 0
 
