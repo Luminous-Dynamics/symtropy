@@ -442,8 +442,13 @@ pub fn compile_work_graph(
     nodes.sort_by(|left, right| left.task_id.cmp(&right.task_id));
     let graph = TaskGraph {
         graph_id: graph_identity(
+            &manifest.project_id,
+            &manifest.site_id,
+            &manifest.work_package_id,
             &manifest.model_digest,
             &manifest.design_revision,
+            &manifest.target_frame_id,
+            &manifest.site_epoch,
             &method.template_id,
             &method.revision_digest,
             compiler_version,
@@ -509,19 +514,34 @@ pub fn task_id(element_id: &str, step_id: &str) -> String {
 /// Combines declared source/compiler identities into a deterministic graph label. It is
 /// not a content hash or tamper-evident receipt; authoritative digests remain upstream.
 fn graph_identity(
+    project_id: &str,
+    site_id: &str,
+    work_package_id: &str,
     model_digest: &str,
     design_revision: &str,
+    target_frame_id: &str,
+    site_epoch: &str,
     method_template_id: &str,
     method_revision_digest: &str,
     compiler_version: &str,
     rule_set_digest: &str,
 ) -> String {
     format!(
-        "graph:m{}:{}:d{}:{}:t{}:{}:r{}:{}:c{}:{}:q{}:{}",
+        "graph:p{}:{}:s{}:{}:w{}:{}:m{}:{}:d{}:{}:f{}:{}:e{}:{}:t{}:{}:r{}:{}:c{}:{}:q{}:{}",
+        project_id.len(),
+        project_id,
+        site_id.len(),
+        site_id,
+        work_package_id.len(),
+        work_package_id,
         model_digest.len(),
         model_digest,
         design_revision.len(),
         design_revision,
+        target_frame_id.len(),
+        target_frame_id,
+        site_epoch.len(),
+        site_epoch,
         method_template_id.len(),
         method_template_id,
         method_revision_digest.len(),
@@ -909,6 +929,42 @@ mod tests {
         let result = compile(&manifest(Vec::new()), &method(Vec::new()));
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
         assert!(result.graph.is_none());
+    }
+
+    #[test]
+    fn site_epoch_changes_graph_identity() {
+        let first = compile(
+            &manifest(vec![element("pile-1")]),
+            &method(vec![step("install", &[])]),
+        );
+        let mut second_manifest = manifest(vec![element("pile-1")]);
+        second_manifest.site_epoch = "site-epoch-2".to_owned();
+        let second = compile(
+            &second_manifest,
+            &method(vec![step("install", &[])]),
+        );
+        assert_ne!(
+            first.graph.expect("first graph").graph_id,
+            second.graph.expect("second graph").graph_id
+        );
+    }
+
+    #[test]
+    fn target_frame_changes_graph_identity() {
+        let first = compile(
+            &manifest(vec![element("pile-1")]),
+            &method(vec![step("install", &[])]),
+        );
+        let mut second_manifest = manifest(vec![element("pile-1")]);
+        second_manifest.target_frame_id = "local-frame-2".to_owned();
+        let second = compile(
+            &second_manifest,
+            &method(vec![step("install", &[])]),
+        );
+        assert_ne!(
+            first.graph.expect("first graph").graph_id,
+            second.graph.expect("second graph").graph_id
+        );
     }
 
     #[test]
