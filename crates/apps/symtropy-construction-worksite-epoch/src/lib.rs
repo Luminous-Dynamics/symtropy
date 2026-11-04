@@ -251,7 +251,7 @@ impl Model {
             return Err(GuardError::TerminalState);
         }
         if !valid_digest(&new_digest) {
-            self.qualification = None;
+            self.invalidate_qualification();
             self.state = State::SafeHold("configuration_digest_invalid");
             return Err(GuardError::InvalidDigest);
         }
@@ -499,6 +499,25 @@ mod tests {
         assert_eq!(*m.state(), State::SafeHold("communications_lost"));
         assert!(m.authorize(&command(B, A)).is_err());
         qualify(&mut m, B, A).expect("explicit requalify");
+        assert_eq!(*m.state(), State::Active);
+    }
+
+    #[test]
+    fn invalid_configuration_digest_invalidates_old_requalification_proof() {
+        let mut m = model();
+        m.accept_epoch(epoch(1, B, None), true).expect("genesis");
+        qualify(&mut m, B, A).expect("qualify");
+        let old_proof = proof(&m, B, A);
+        assert_eq!(
+            m.configuration_changed("not-a-digest".to_owned()),
+            Err(GuardError::InvalidDigest)
+        );
+        assert_eq!(*m.state(), State::SafeHold("configuration_digest_invalid"));
+        assert_eq!(
+            m.requalify(old_proof, true),
+            Err(GuardError::StaleRevalidationProof)
+        );
+        qualify(&mut m, B, A).expect("fresh requalification after configuration fault");
         assert_eq!(*m.state(), State::Active);
     }
 
