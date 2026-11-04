@@ -4,8 +4,8 @@
 //! Exact N=6/N=30 population-composition, Fermi and rare-mutation sweep.
 
 use civdyn_collective_risk::population::{
-    DEFAULT_SELECTION_INTENSITY, PopulationState, expected_type_fitness, rare_mutation_chain,
-    stationary_distribution,
+    DEFAULT_SELECTION_INTENSITY, PopulationState, expected_type_fitness, invasion_graph,
+    rare_mutation_chain, stationary_distribution,
 };
 use civdyn_collective_risk::{GameConfig, Strategy};
 
@@ -20,7 +20,7 @@ fn fmt(value: f64) -> String {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), 17, "every population record has 17 columns");
+    assert_eq!(fields.len(), 23, "every population record has 23 columns");
     println!("{}", fields.join(","));
 }
 
@@ -43,12 +43,18 @@ fn empty_fields(record_type: &str, population_size: usize, risk: f64, beta: f64)
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
     ]
 }
 
 fn main() {
     println!(
-        "record_type,population_size,risk,beta,strategy,other_strategy,population_count,expected_fitness,expected_group_welfare,target_reach_probability,expected_group_contribution,composition_count,fixation_probability,log_fixation,stationary_weight,stationary_iterations,stationary_residual_l1"
+        "record_type,population_size,risk,beta,strategy,other_strategy,population_count,expected_fitness,expected_group_welfare,target_reach_probability,expected_group_contribution,composition_count,fixation_probability,log_fixation,stationary_weight,stationary_iterations,stationary_residual_l1,invasion_edge_count,three_cycle_count,cycle_strategy_a,cycle_strategy_b,cycle_strategy_c,cycle_orientation"
     );
 
     for population_size in POPULATION_SIZES {
@@ -103,6 +109,29 @@ fn main() {
                     row[14] = fmt(stationary.weights[strategy_index]);
                     row[15] = stationary.iterations.to_string();
                     row[16] = fmt(stationary.residual_l1);
+                    emit(row);
+                }
+
+                let graph = invasion_graph(&chain, population_size)
+                    .expect("pairwise invasion graph must validate");
+                let mut graph_row = empty_fields("invasion_graph", population_size, risk, beta);
+                graph_row[17] = graph.edge_count.to_string();
+                graph_row[18] = graph.three_cycles.len().to_string();
+                emit(graph_row);
+
+                for cycle in graph.three_cycles {
+                    let mut row = empty_fields("invasion_cycle", population_size, risk, beta);
+                    row[19] = cycle.strategies[0].name().into();
+                    row[20] = cycle.strategies[1].name().into();
+                    row[21] = cycle.strategies[2].name().into();
+                    row[22] = match cycle.orientation {
+                        civdyn_collective_risk::population::InvasionCycleOrientation::Forward => {
+                            "forward".into()
+                        }
+                        civdyn_collective_risk::population::InvasionCycleOrientation::Reverse => {
+                            "reverse".into()
+                        }
+                    };
                     emit(row);
                 }
             }
