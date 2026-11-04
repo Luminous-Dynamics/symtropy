@@ -178,6 +178,34 @@ Declare each method's input modalities, update cadence, compute budget, training
 
 For cyber-to-physical and recovery experiments, compare nominal/reference controls with documented secure remote-access, least-privilege, segmentation, monitoring, safe-state and recovery configurations under identical controlled event schedules. The evaluation measures the effect of the declared controls; it does not authorize live interaction.
 
+## 8.3 2026 integrated orchestration and operational baselines
+
+The current competitive field contains several important results that CivBench must treat as comparators rather than claim to invent:
+
+- **LeakAgent (Communications AI & Computing, 6 October 2026):** an MLLM-coordinated multi-agent workflow shares a pressure-sensitivity field across hydraulic simulation, partitioning, sensor placement and leak detection. It reports approximately 96% global and regional detection accuracy at 20% leak magnitude across five networks of 191–920 nodes, with a reported 16.38% processing-time reduction and 98.18% recovery of induced execution faults. Four networks are synthetic and one is City H; train/validation use the same candidate leak-location set, and the headline result is at a large 20% leak magnitude. This is a workflow-orchestration baseline, not proof of arbitrary held-out-pipe generalization, incipient-leak performance, or verified service restoration: https://doi.org/10.1038/s44488-026-00024-w.
+- **CAUCCES (Neural Computing and Applications, 11 September 2026):** an uncertainty-aware demand forecast is directly coupled to maintenance scheduling. The paper reports validation over 12 Spanish municipalities and 18 months, reducing SLA violations from 9.3% to 1.5% at 3.1% additional operational cost; its ensemble MAPE is 14.12%, compared with 16.50% for DeepAR and 16.92% for TFT, and its inference is reported at 12 ms versus 340 ms for the Bayesian LSTM baseline. The same paper reports 12–26% performance degradation across climatic zones and a need for local recalibration. These are paper-specific field results and should be reconstructed before comparison; this work already establishes forecast-uncertainty-to-scheduling as a research direction, so CivBench's differentiator must be wider incident-to-authorized-repair-to-independent-service closure: https://doi.org/10.1007/s00521-026-12351-1.
+- **Concurrent abrupt and incipient leak detection (Water Research, 1 May 2026):** a hydraulic-simulation/Graph Transformer hybrid reports 95.6% recall and a €422,660 mean BattLeDIM2020 economic score while handling concurrent abrupt and incipient leaks. The article says data are available on request, so treat the published number as a reconstruction target rather than a locally reproducible baseline until the inputs, split and scoring rules are obtained: https://doi.org/10.1016/j.watres.2026.125538.
+- **Utility deployment case (Affinity Water / SUEZ / ASTERRA):** the provider's case study reports screening 9,045 km, 763 prioritized locations, 902 leaks found, estimated 1.26 billion litres/year recovered, less than 4% of the network walked, and 7.2 leaks found per crew-day versus its cited industry benchmark of 1.3. This is a provider-published case study, not an independently audited controlled comparison. It is nevertheless a practical crew-productivity and targeted-inspection baseline: https://www.suez.com/en/uk/case-studies/satellite-leak-detection-delivers-results-affinity-water.
+- **Industry adoption (AWWA survey, first published 15 April 2026):** its 2024 survey found strong interest in AI, digital twins and predictive analytics, while many responding utilities still lacked well-defined implementation plans. This makes implementation burden, staff workflow, integration and an incremental adoption path first-order benchmark dimensions—not merely model performance: https://doi.org/10.1002/awwa.70075.
+
+These comparators should not be collapsed into one leaderboard. Their units differ (per-sample accuracy, global/regional detection, SLA violations, BattLeDIM economic score, leaks per crew-day and annual recovered volume). CivBench should reconstruct each published protocol separately, then compare on a common decision-closure layer only where scenario, information, cost, outcome and verification definitions genuinely align.
+
+### 8.4 Mandatory orchestration and operational controls
+
+For any multi-agent or LLM-coordinated workflow, include a fixed deterministic DAG/tool-orchestration baseline with the same tools, inputs and compute budget. Also include:
+- coordinator-only / no-specialist-agent ablation;
+- specialist pipeline without an LLM coordinator;
+- shuffled or corrupted tool outputs;
+- tool crash / timeout / partial-result / stale-result recovery;
+- schema-valid but semantically invalid tool output;
+- repeated execution and idempotency controls;
+- prompt-injection or instruction-bearing untrusted evidence as inert data;
+- a human-readable plan/reason record and machine-verifiable execution trace.
+
+The 98.18% induced execution-fault recovery figure in LeakAgent should be reconstructed with the exact fault panel and denominator; it is not enough to count successful retries without measuring incorrect recovery, silent corruption, duplicated side effects, or downstream decision error. For research-only execution, no tool may mutate or actuate a live water system.
+
+For every maintenance/dispatch comparison, add a transparent crew-productivity view (confirmed incidents per crew-day; inspections per crew-day; true-leak yield; false-dispatch burden; kilometres or travel time per verified repair; p50/p95 event-to-inspection and event-to-restoration time). Where provider case-study values are used, label them provider-reported and preserve differences in region, sensing modality, leak severity, network scale and workforce rules.
+
 ## 9. Negative controls and acceptance tests
 
 The evaluator implementation must reject or correctly classify all of these:
