@@ -1127,6 +1127,19 @@ mod tests {
     }
 
     #[test]
+    fn rejects_missing_non_routine_adjustment_evidence() {
+        let mut data = valid_dataset();
+        data.reporting_points[0].non_routine_adjustment_evidence_id = None;
+        assert!(matches!(
+            verify_energy_mv(&plan(), &data),
+            Err(EnergyMvError::MissingEvidence {
+                evidence_kind: "non-routine adjustment",
+                ..
+            })
+        ));
+    }
+
+    #[test]
     fn rejects_cross_boundary_samples() {
         let mut data = valid_dataset();
         data.reporting_points[0].boundary_id = "ups-output".into();
