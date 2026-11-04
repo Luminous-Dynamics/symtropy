@@ -32,7 +32,10 @@ impl PopulationState {
     }
 
     pub fn population_size(self) -> usize {
-        self.counts.iter().sum()
+        self.counts
+            .iter()
+            .copied()
+            .fold(0_usize, usize::saturating_add)
     }
 
     pub fn count(self, strategy: Strategy) -> usize {
@@ -301,6 +304,7 @@ pub fn expected_type_fitness(
     population: PopulationState,
     focal_strategy: Strategy,
 ) -> Result<TypeFitness, PopulationError> {
+    population.validate()?;
     if !config.catastrophe_probability.is_finite()
         || !(0.0..=1.0).contains(&config.catastrophe_probability)
     {
@@ -665,6 +669,30 @@ mod tests {
         )
         .unwrap();
         assert!((probability - 1.0 / 6.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn neutral_fixation_is_one_over_population_size_for_n_thirty() {
+        let probability = fixation_probability(
+            config(0.9),
+            30,
+            Strategy::AlwaysZero,
+            Strategy::FixedMaximum,
+            0.0,
+        )
+        .unwrap();
+        assert!((probability - 1.0 / 30.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn malicious_count_overflow_fails_closed() {
+        let population = PopulationState {
+            counts: [usize::MAX, 1, 0, 0, 0, 0],
+        };
+        assert_eq!(
+            population.validate(),
+            Err(PopulationError::InvalidPopulationSize(usize::MAX))
+        );
     }
 
     #[test]
