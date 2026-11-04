@@ -1,0 +1,184 @@
+{
+  "schema_version": "symtropy.ai-online-calibration-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "note": "These score-level fixtures pin the bounded block-max ACI arithmetic. They are not measured forecast traces, coverage evidence, facility observations, or a calibration data set.",
+  "target_joint_coverage_ppm": 950000,
+  "calibration_block_max_scores": [
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    1,
+    1.1,
+    1.2,
+    1.3,
+    1.4,
+    1.5,
+    1.6,
+    1.7,
+    1.8,
+    1.9,
+    2,
+    2.1,
+    2.2,
+    2.3,
+    2.4,
+    2.5,
+    2.6,
+    2.7,
+    2.8,
+    2.9,
+    3,
+    3.1,
+    3.2,
+    3.3,
+    3.4,
+    3.5,
+    3.6,
+    3.7,
+    3.8,
+    3.9,
+    4,
+    4.1,
+    4.2,
+    4.3,
+    4.4,
+    4.5,
+    4.6,
+    4.7,
+    4.8,
+    4.9,
+    5,
+    5.1,
+    5.2,
+    5.3,
+    5.4,
+    5.5,
+    5.6,
+    5.7,
+    5.8,
+    5.9,
+    6,
+    6.1,
+    6.2,
+    6.3,
+    6.4,
+    6.5,
+    6.6,
+    6.7,
+    6.8,
+    6.9,
+    7,
+    7.1,
+    7.2,
+    7.3,
+    7.4,
+    7.5,
+    7.6,
+    7.7,
+    7.8,
+    7.9,
+    8,
+    8.1,
+    8.2,
+    8.3,
+    8.4,
+    8.5,
+    8.6,
+    8.7,
+    8.8,
+    8.9,
+    9,
+    9.1,
+    9.2,
+    9.3,
+    9.4,
+    9.5,
+    9.6,
+    9.7,
+    9.8,
+    9.9
+  ],
+  "default_adaptive_contract": {
+    "initial_miscoverage_ppm": 50000,
+    "step_size_ppm": 10000,
+    "minimum_miscoverage_ppm": 10000,
+    "maximum_miscoverage_ppm": 300000
+  },
+  "known_truth": {
+    "finite_quantile": {
+      "calibration_blocks": 99,
+      "minimum_finite_miscoverage_ppm": 10000,
+      "target_miscoverage_ppm": 50000,
+      "expected_rank": 95,
+      "expected_multiplier": 9.5
+    },
+    "miss_then_recovery": {
+      "evaluation_block_max_scores": [
+        9.9,
+        9.6
+      ],
+      "expected_decisions": [
+        {
+          "alpha_before_ppm": 50000,
+          "rank": 95,
+          "multiplier": 9.5,
+          "joint_covered": false,
+          "alpha_after_ppm": 40500
+        },
+        {
+          "alpha_before_ppm": 40500,
+          "rank": 96,
+          "multiplier": 9.6,
+          "joint_covered": true,
+          "alpha_after_ppm": 41000
+        }
+      ]
+    },
+    "lower_bound_saturation": {
+      "evaluation_block_max_scores": [
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "expected_alpha_after_ppm": [
+        40500,
+        31000,
+        21500,
+        12000,
+        10000
+      ],
+      "expected_last_decision_clamped_to_minimum": true
+    },
+    "upper_bound_saturation": {
+      "adaptive_contract": {
+        "initial_miscoverage_ppm": 50000,
+        "step_size_ppm": 10000,
+        "minimum_miscoverage_ppm": 10000,
+        "maximum_miscoverage_ppm": 50500
+      },
+      "evaluation_block_max_scores": [
+        0.1,
+        0.1
+      ],
+      "expected_alpha_after_ppm": [
+        50500,
+        50500
+      ],
+      "expected_last_decision_clamped_to_maximum": true
+    },
+    "delayed_feedback_negative_control": {
+      "previous_outcome_available_at_ns": 3010,
+      "next_forecast_issued_at_ns": 3005,
+      "next_forecast_valid_start_ns": 3020,
+      "expected_result": "REJECT_EVALUATION_FORECAST_ISSUED_BEFORE_PREVIOUS_OUTCOME"
+    }
+  }
+}
