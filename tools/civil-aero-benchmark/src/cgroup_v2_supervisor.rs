@@ -583,6 +583,19 @@ fn open_memory_peak(path: &Path) -> Result<(File, String, u64), String> {
     ))
 }
 
+struct EmptyCgroupGuard {
+    path: PathBuf,
+}
+
+impl Drop for EmptyCgroupGuard {
+    fn drop(&mut self) {
+        // Never remove a cgroup that may still contain a process or descendant.
+        if read_populated(&self.path).is_ok_and(|populated| !populated) {
+            let _ = fs::remove_dir(&self.path);
+        }
+    }
+}
+
 fn create_operation_cgroup(root: &Path, run_id: &str) -> Result<PathBuf, String> {
     let name = format!("symtropy-{run_id}");
     let path = root.join(name);
@@ -646,19 +659,12 @@ pub fn run_cgroup_v2_process_tree(request: &CgroupV2RunRequest) -> Result<Cgroup
     let (delegated_root, mount) = validate_delegated_root(&request.delegated_root)?;
     let result_root = validate_result_directory(&request.result_directory, &delegated_root)?;
     let cgroup_path = create_operation_cgroup(&delegated_root, &request.run_id)?;
-    let cgroup_id = cgroup_identity(&cgroup_path)?;
-    let mut memory_peak_reader = match open_memory_peak(&cgroup_path) {
-        Ok(value) => value,
-        Err(error) => {
-            let _ = fs::remove_dir(&cgroup_path);
-            return Err(error);
-        }
+    let _empty_cgroup_guard = EmptyCgroupGuard {
+        path: cgroup_path.clone(),
     };
-    let (mut memory_peak_reader, reader_id, reader_flags) = (
-        memory_peak_reader.0,
-        memory_peak_reader.1,
-        memory_peak_reader.2,
-    );
+    let cgroup_id = cgroup_identity(&cgroup_path)?;
+    let (mut memory_peak_reader, reader_id, reader_flags) =
+        open_memory_peak(&cgroup_path)?;
     let monotonic_origin = Instant::now();
     let (start, start_raw) = capture_snapshot(
         &cgroup_path,
@@ -774,6 +780,7 @@ pub fn run_cgroup_v2_process_tree(request: &CgroupV2RunRequest) -> Result<Cgroup
     } else {
         "failed"
     };
+    drop(memory_peak_reader);
     let cleanup_state = match fs::remove_dir(&cgroup_path) {
         Ok(()) => "removed",
         Err(_) => "retained",
