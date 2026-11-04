@@ -1,0 +1,124 @@
+{
+  "schema_version": "construction-accepted-output-profile-v0.1",
+  "profile_id": "layout-accepted-output-v0.1",
+  "version": "0.1.0",
+  "status": "proposed",
+  "task_family": "construction_layout_printing",
+  "source_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3605",
+  "benchmark_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3523",
+  "allowed_unit_classes": [
+    {
+      "unit_class": "layout_point",
+      "unit_label": "accepted layout point",
+      "unit_symbol": "point",
+      "definition": "One required point feature independently inspected and accepted against the frozen design, frame and site scope."
+    },
+    {
+      "unit_class": "layout_line_segment",
+      "unit_label": "accepted layout line segment",
+      "unit_symbol": "segment",
+      "definition": "One declared line segment independently inspected and accepted for geometry, continuity and downstream interpretation."
+    },
+    {
+      "unit_class": "layout_arc",
+      "unit_label": "accepted layout arc",
+      "unit_symbol": "arc",
+      "definition": "One declared arc independently inspected and accepted for geometry, orientation and downstream interpretation."
+    },
+    {
+      "unit_class": "layout_text_group",
+      "unit_label": "accepted text/annotation group",
+      "unit_symbol": "group",
+      "definition": "One declared annotation group independently inspected for presence, legibility, association and location."
+    }
+  ],
+  "acceptance_predicate": {
+    "must_bind": [
+      "approved_design_revision",
+      "source_and_export_digests",
+      "target_coordinate_frame",
+      "transform_lineage",
+      "site_epoch",
+      "task_footprint",
+      "required_feature_inventory",
+      "independent_reference_method",
+      "uncertainty_and_decision_rule"
+    ],
+    "critical_feature_inspection": "complete_or_separately_justified_preregistered_method",
+    "disqualifying_conditions": [
+      "wrong_design_revision",
+      "wrong_coordinate_frame",
+      "critical_omission",
+      "duplicate_critical_feature",
+      "wrong_layer_or_feature_type",
+      "open_critical_defect",
+      "reference_uncertainty_not_fit_for_decision"
+    ],
+    "geometry_thresholds": "must_be_bound_to_site_project_policy_and_measurand; no_universal_tolerance_in_this_profile",
+    "partial_acceptance": "only_at_a_predeclared_subfeature_unit; never round_partial_output_up_to_a_whole_unit"
+  },
+  "time_accounting": {
+    "human_resource_time_is_separate_from_robot_machine_time": true,
+    "non_overlapping_resource_intervals_required": true,
+    "required_categories": [
+      "model_vdc_preparation",
+      "design_trade_coordination",
+      "survey_control",
+      "robot_setup_calibration",
+      "operator_supervision",
+      "spotting",
+      "execution",
+      "charging_changeover",
+      "waiting",
+      "qa_inspection",
+      "rework_reprint",
+      "interruption_recovery",
+      "site_coordination_requalification",
+      "evidence_closeout"
+    ],
+    "unknown_time_must_remain_explicit": true,
+    "direct_crew_categories": [
+      "survey_control",
+      "robot_setup_calibration",
+      "operator_supervision",
+      "spotting",
+      "execution",
+      "charging_changeover",
+      "waiting",
+      "qa_inspection",
+      "rework_reprint",
+      "interruption_recovery",
+      "site_coordination_requalification"
+    ],
+    "total_workflow_only_categories": [
+      "model_vdc_preparation",
+      "design_trade_coordination",
+      "evidence_closeout"
+    ],
+    "privacy_rule": "human resource IDs must be opaque pseudonyms stable only within the accounting project/study; do not collect names, badge numbers, biometrics, inferred intent or affect"
+  },
+  "baseline": {
+    "required_for_comparative_productivity_claim": true,
+    "preferred_designs": [
+      "randomized_crossover",
+      "within_site_matched"
+    ],
+    "matching_fields": [
+      "functional_unit",
+      "design_revision",
+      "work_package_scope",
+      "acceptance_predicate_digest",
+      "site_conditions",
+      "trade_coordination_scope",
+      "work_sequence"
+    ],
+    "unmatched_case_study_claim_limit": "descriptive_association_only; no_causal_robot_effect"
+  },
+  "safety_separation": {
+    "external_qualification_owner": "construction_robot_physical_safety_protocol",
+    "safety_is_non_compensable": true,
+    "productivity_may_not_change_safety_verdict": true,
+    "composite_safety_productivity_score_prohibited": true
+  },
+  "execution_status": "not_executed"
+}
