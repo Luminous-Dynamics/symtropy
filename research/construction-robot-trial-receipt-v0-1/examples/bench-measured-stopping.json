@@ -7,7 +7,7 @@
     "protocol_id": "construction-stop-protocol-v0.1",
     "protocol_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "test_site_id": "isolated-bench-a",
-    "clock_domain": "reference-timebase-01",
+    "clock_domain": "robot-event-timebase-01",
     "operator_role": "test-operator",
     "supervisor_role": "independent-test-supervisor"
   },
