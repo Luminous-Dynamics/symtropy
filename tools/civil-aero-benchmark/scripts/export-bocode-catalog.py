@@ -56,31 +56,21 @@ def application_name(value: Any) -> str:
 
 
 def problem_class(objectives: int, constraints: int, variable_class: str) -> str:
-    mixed = variable_class == "mixed"
-    discrete = variable_class == "discrete"
-    if discrete and objectives == 1 and constraints == 0:
-        return "so_discrete_extension"
-    if discrete and objectives == 1 and constraints > 0:
-        return "so_discrete_constrained_extension"
-    if discrete and objectives > 1 and constraints == 0:
-        return "mo_discrete_extension"
-    if discrete and objectives > 1 and constraints > 0:
-        return "mo_discrete_constrained_extension"
-    if mixed and objectives == 1 and constraints == 0:
-        return "so_mixed_variable"
-    if mixed and objectives == 1 and constraints > 0:
-        return "so_mixed_variable_constrained_extension"
-    if mixed and objectives > 1 and constraints == 0:
+    # BOCoDe's five published strata classify input classes and multi/single-objective
+    # status separately: single-objective mixed tasks remain in the mixed class even
+    # when constrained; discrete-only tasks stay discrete in metadata but are grouped
+    # by their objective/constraint stratum.
+    if variable_class == "mixed":
+        if objectives == 1:
+            return "so_mixed_variable"
         return "mo_mixed_variable_extension"
-    if mixed and objectives > 1 and constraints > 0:
-        return "mo_mixed_variable_constrained_extension"
-    if not mixed and objectives == 1 and constraints == 0:
+    if objectives == 1 and constraints == 0:
         return "so_unconstrained"
-    if not mixed and objectives == 1 and constraints > 0:
+    if objectives == 1 and constraints > 0:
         return "so_constrained"
-    if not mixed and objectives > 1 and constraints == 0:
+    if objectives > 1 and constraints == 0:
         return "mo_unconstrained"
-    if not mixed and objectives > 1 and constraints > 0:
+    if objectives > 1 and constraints > 0:
         return "mo_constrained"
     raise ValueError("BOCoDe metadata contains a zero-objective task")
 
