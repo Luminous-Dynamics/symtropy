@@ -1,0 +1,158 @@
+{
+  "schema": "symtropy.road-reality-gap.fixtures.v0.1",
+  "purpose": "Evidence-origin, lineage-independence, counterfactual-target and split-leakage conformance; not a real-world ADS benchmark dataset.",
+  "reference_rules": {
+    "factual_log": "supports only outcomes under the action actually observed",
+    "controlled_intervention": "requires measured outcome, matching executed action, assignment protocol and calibration",
+    "natural_experiment": "requires explicit estimand, assumptions digest, overlap evidence, sensitivity plan and preregistration",
+    "simulator_or_model_output": "never independent real-world ground truth",
+    "formal_reference": "scoped to exact formal domain",
+    "human_adjudication": "requires rubric, assessor protocol, disagreement digest and assessor count",
+    "unknown_lineage": "Incomplete, never independent by default"
+  },
+  "cases": [
+    {
+      "id": "factual-observation-same-action",
+      "origin": "observed_factual",
+      "target": "factual_outcome",
+      "expected": "IndependentObservedAnchor"
+    },
+    {
+      "id": "factual-observation-unexecuted-action",
+      "origin": "observed_factual",
+      "target": "unexecuted_action_outcome",
+      "expected": "NotIdentified"
+    },
+    {
+      "id": "controlled-measured-intervention",
+      "origin": "controlled_intervention",
+      "target": "unexecuted_action_outcome",
+      "requires": [
+        "matching_action",
+        "assigned_and_executed",
+        "assignment_protocol",
+        "measurement_calibration"
+      ],
+      "expected": "ControlledInterventionOutcome"
+    },
+    {
+      "id": "controlled-intervention-no-assignment",
+      "origin": "controlled_intervention",
+      "expected": "Incomplete"
+    },
+    {
+      "id": "natural-experiment-no-package",
+      "origin": "natural_experiment",
+      "expected": "NotIdentified"
+    },
+    {
+      "id": "natural-experiment-complete-identification",
+      "origin": "natural_experiment",
+      "requires": [
+        "estimand",
+        "assumptions",
+        "overlap",
+        "sensitivity",
+        "preregistration",
+        "measurement_calibration"
+      ],
+      "expected": "QualifiedNaturalExperiment"
+    },
+    {
+      "id": "simulator-output-reference",
+      "origin": "simulator_generated",
+      "expected": "SimulationOnly"
+    },
+    {
+      "id": "model-output-reference",
+      "origin": "model_generated",
+      "expected": "ModelDependentReference"
+    },
+    {
+      "id": "same-model-family-different-seed",
+      "lineage_overlap": "generator_ancestry",
+      "expected": "ModelDependentReference"
+    },
+    {
+      "id": "different-vendor-same-upstream-source",
+      "lineage_overlap": "source_digest",
+      "expected": "ModelDependentReference"
+    },
+    {
+      "id": "same-content-digest-as-subject-parent",
+      "lineage_overlap": "content_digest",
+      "expected": "ModelDependentReference"
+    },
+    {
+      "id": "unknown-lineage",
+      "expected": "Incomplete"
+    },
+    {
+      "id": "incompatible-origin-claim",
+      "expected": "Contaminated"
+    },
+    {
+      "id": "illustrative-only-use",
+      "expected": "NotIdentified"
+    },
+    {
+      "id": "formal-reference-matching-domain",
+      "origin": "formal_reference",
+      "expected": "AnalyticReference"
+    },
+    {
+      "id": "formal-reference-different-domain",
+      "origin": "formal_reference",
+      "expected": "NotIdentified"
+    },
+    {
+      "id": "human-adjudication-complete",
+      "origin": "human_adjudication",
+      "expected": "HumanAdjudicationReference"
+    },
+    {
+      "id": "human-adjudication-no-disagreement",
+      "expected": "Incomplete"
+    },
+    {
+      "id": "tampered-evidence-metadata",
+      "expected": "qualification_receipt_replay_rejects"
+    },
+    {
+      "id": "scenario-family-cross-split",
+      "expected": "LeakageDetected"
+    },
+    {
+      "id": "drive-cross-split",
+      "expected": "LeakageDetected"
+    },
+    {
+      "id": "capture-session-cross-split",
+      "expected": "LeakageDetected"
+    },
+    {
+      "id": "shared-parent-cross-split",
+      "expected": "LeakageDetected"
+    },
+    {
+      "id": "duplicate-record-id",
+      "expected": "DuplicateRecord"
+    },
+    {
+      "id": "incomplete-split-lineage",
+      "expected": "IncompleteSplitLineage"
+    },
+    {
+      "id": "same-split-shared-scenario-family",
+      "expected": "allowed"
+    },
+    {
+      "id": "sealed-manifest-reordered",
+      "expected": "same_digest"
+    },
+    {
+      "id": "sealed-manifest-mutated",
+      "expected": "frozen_digest_mismatch"
+    }
+  ]
+}
