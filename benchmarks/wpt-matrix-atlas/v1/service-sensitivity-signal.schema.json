@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/wpt-service-sensitivity-signal-v1.json",
+  "title": "WPT segment service-sensitivity signal",
+  "description": "Externally derived route-energy uncertainty and field-solve value signal. Receipts must be verified independently.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "segment_index",
+    "route_energy_uncertainty_upper_bound_wh",
+    "route_energy_uncertainty_budget_wh",
+    "expected_uncertainty_reduction_fraction",
+    "estimated_field_solve_cost_seconds",
+    "circuit_model_digest",
+    "sensitivity_receipt_digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-service-sensitivity-signal-v1"
+    },
+    "segment_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "route_energy_uncertainty_upper_bound_wh": {
+      "type": "number",
+      "minimum": 0
+    },
+    "route_energy_uncertainty_budget_wh": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "expected_uncertainty_reduction_fraction": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "estimated_field_solve_cost_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "circuit_model_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "sensitivity_receipt_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    }
+  }
+}
