@@ -62,7 +62,8 @@ pub enum FlowDirection {
 /// `flow_id` must be unique within the evaluated interval. `reservoir_id`
 /// identifies the external source or sink. `energy_j` is a non-negative
 /// magnitude; direction is represented separately and must not be encoded by
-/// a negative amount.
+/// a negative amount. The conservative absolute uncertainty bound is required
+/// for a determinate balance classification; unknown uncertainty is not zero.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BoundaryEnergyFlow {
     pub flow_id: String,
@@ -132,15 +133,16 @@ pub struct OpenSystemEnergyBalance {
 /// Classification of a balance record.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EnergyBalanceStatus {
-    /// One or more required terms were not supplied. No residual is reported.
+    /// One or more required values or uncertainty bounds were not supplied.
+    /// No residual is reported.
     Incomplete {
         missing_terms: Vec<EnergyBalanceTerm>,
     },
-    /// The complete possible residual interval lies within the declared tolerance.
+    /// The entire conservative residual interval lies within the tolerance.
     Balanced,
-    /// The complete possible residual interval lies outside the declared tolerance.
+    /// The entire conservative residual interval lies outside the tolerance.
     Imbalanced,
-    /// The uncertainty interval overlaps the tolerance boundary; evidence is
+    /// The residual interval overlaps the tolerance boundary; evidence is
     /// insufficient to classify the balance as either balanced or imbalanced.
     Inconclusive,
 }
@@ -161,7 +163,9 @@ pub struct EnergyBalanceReport {
     pub net_boundary_energy_j: Option<f64>,
     /// Point-estimate residual: ΔE_stored - net_boundary_energy.
     pub residual_j: Option<f64>,
-    /// Conservative absolute bound on residual uncertainty, in joules.
+    /// Conservative worst-case absolute uncertainty bound on the residual,
+    /// computed by summing declared absolute bounds without assuming
+    /// statistical independence, in joules.
     pub residual_uncertainty_bound_j: Option<f64>,
     /// Conservative possible residual interval [lower, upper], in joules.
     pub residual_interval_j: Option<(f64, f64)>,
@@ -345,6 +349,11 @@ impl OpenSystemEnergyBalance {
         let mut net_heat = 0.0;
         let mut gross_boundary_flow = 0.0;
         let mut residual_uncertainty_bound = initial_uncertainty + final_uncertainty;
+        if !residual_uncertainty_bound.is_finite() {
+            return Err(EnergyBalanceError::OverflowedBalance {
+                field: "stored_energy_uncertainty_bounds",
+            });
+        }
         let mut reservoir_ids = BTreeSet::new();
 
         for flow in flows {
@@ -880,7 +889,7 @@ mod tests {
         assert_eq!(
             record.evaluate(zero_tolerance()),
             Err(EnergyBalanceError::OverflowedBalance {
-                field: "boundary_flows",
+                field: "stored_energy_uncertainty_bounds",
             })
         );
     }
