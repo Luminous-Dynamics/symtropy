@@ -1730,20 +1730,23 @@ mod tests {
         }
     }
 
-    fn lineage_lane(
-        lane_id: &str,
+    struct LineageLaneSpec<'a> {
+        lane_id: &'a str,
         lane_kind: DifferentialLaneKind,
-        backend_id: &str,
-        backend_version: &str,
-        configuration: &str,
-        implementation: &str,
-        expected_answer: &str,
+        backend_id: &'a str,
+        backend_version: &'a str,
+        configuration: &'a str,
+        implementation: &'a str,
+        expected_answer: &'a str,
         trace_digest: char,
-    ) -> (DifferentialLaneBinding, ObservationTrace) {
-        let run_identity = lineage_identity(backend_id, backend_version, configuration);
+    }
+
+    fn lineage_lane(spec: LineageLaneSpec<'_>) -> (DifferentialLaneBinding, ObservationTrace) {
+        let run_identity =
+            lineage_identity(spec.backend_id, spec.backend_version, spec.configuration);
         let dependencies = vec![
-            known_lineage(LineageDependencyKind::SolverImplementation, implementation),
-            known_lineage(LineageDependencyKind::ExpectedAnswer, expected_answer),
+            known_lineage(LineageDependencyKind::SolverImplementation, spec.implementation),
+            known_lineage(LineageDependencyKind::ExpectedAnswer, spec.expected_answer),
             known_lineage(
                 LineageDependencyKind::ScenarioGenerator,
                 "shared:scenario-generator-v1",
@@ -1766,10 +1769,10 @@ mod tests {
             ),
         ];
         let lane = DifferentialLaneBinding {
-            lane_id: lane_id.to_owned(),
-            lane_kind,
+            lane_id: spec.lane_id.to_owned(),
+            lane_kind: spec.lane_kind,
             run_identity: run_identity.clone(),
-            observation_trace_sha256: trace_digest.to_string().repeat(64),
+            observation_trace_sha256: spec.trace_digest.to_string().repeat(64),
             dependency_inventory: DependencyInventoryStatus::CompleteAsserted,
             dependencies,
         };
@@ -1782,26 +1785,26 @@ mod tests {
         BTreeMap<String, ObservationTrace>,
         DifferentialLineagePolicy,
     ) {
-        let (native, native_trace) = lineage_lane(
-            "native",
-            DifferentialLaneKind::NativeSolver,
-            "symtropy-native",
-            "0.2.1",
-            &"1".repeat(64),
-            "source:native-solver-tree-01",
-            "source:native-analytic-oracle-01",
-            '1',
-        );
-        let (reference, reference_trace) = lineage_lane(
-            "rapier",
-            DifferentialLaneKind::ExternalReference,
-            "rapier",
-            "0.18.0",
-            &"2".repeat(64),
-            "source:rapier-bridge-tree-01",
-            "source:reference-oracle-tree-02",
-            '2',
-        );
+        let (native, native_trace) = lineage_lane(LineageLaneSpec {
+            lane_id: "native",
+            lane_kind: DifferentialLaneKind::NativeSolver,
+            backend_id: "symtropy-native",
+            backend_version: "0.2.1",
+            configuration: &"1".repeat(64),
+            implementation: "source:native-solver-tree-01",
+            expected_answer: "source:native-analytic-oracle-01",
+            trace_digest: '1',
+        });
+        let (reference, reference_trace) = lineage_lane(LineageLaneSpec {
+            lane_id: "rapier",
+            lane_kind: DifferentialLaneKind::ExternalReference,
+            backend_id: "rapier",
+            backend_version: "0.18.0",
+            configuration: &"2".repeat(64),
+            implementation: "source:rapier-bridge-tree-01",
+            expected_answer: "source:reference-oracle-tree-02",
+            trace_digest: '2',
+        });
         let manifest = DifferentialLineageManifest {
             schema_version: DIFFERENTIAL_LINEAGE_SCHEMA_VERSION,
             comparison_id: "free-fall-native-vs-rapier-018".to_owned(),
@@ -1867,15 +1870,9 @@ mod tests {
 
     #[test]
     fn paired_lineage_rejects_a_trace_from_a_different_scenario() {
-        let (manifest, mut traces, policy) = differential_lineage_fixture();
-        let mut wrong = traces.get("rapier").expect("reference trace").clone();
-        let identity = lineage_identity("rapier", "0.18.0", &"2".repeat(64));
-        let mut frame = ObservationFrame::new(identity.clone(), 0, 0.0);
-        frame.bodies.push(body("ball/main"));
-        let mut replacement = ObservationTrace::new(identity);
-        replacement.push(frame).expect("valid alternative trace");
-        wrong = replacement;
-        traces.insert("rapier".to_owned(), wrong);
+        let (mut manifest, traces, policy) = differential_lineage_fixture();
+        manifest.lanes[1].run_identity.scenario_id = "foreign-scenario".to_owned();
+        manifest.lanes[1].run_identity.scenario_digest = "b".repeat(64);
         assert_eq!(
             audit_differential_lineage(&manifest, &traces, &policy, &policy.digest),
             Err(DifferentialLineageError::TraceScenarioMismatch(
@@ -2023,16 +2020,16 @@ mod tests {
             .expect("reference expected answer");
         *reference_expected = native_expected;
 
-        let (analytical, analytical_trace) = lineage_lane(
-            "analytical",
-            DifferentialLaneKind::AnalyticalOracle,
-            "symtropy-analytic",
-            "1.0.0",
-            &"3".repeat(64),
-            "source:analytic-oracle-tree-03",
-            "source:independent-analytic-answer-03",
-            '3',
-        );
+        let (analytical, analytical_trace) = lineage_lane(LineageLaneSpec {
+            lane_id: "analytical",
+            lane_kind: DifferentialLaneKind::AnalyticalOracle,
+            backend_id: "symtropy-analytic",
+            backend_version: "1.0.0",
+            configuration: &"3".repeat(64),
+            implementation: "source:analytic-oracle-tree-03",
+            expected_answer: "source:independent-analytic-answer-03",
+            trace_digest: '3',
+        });
         manifest.lanes.push(analytical);
         traces.insert("analytical".to_owned(), analytical_trace);
         policy
