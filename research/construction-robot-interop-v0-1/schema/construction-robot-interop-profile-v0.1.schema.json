@@ -213,7 +213,8 @@
         "expiry_required",
         "site_epoch_binding",
         "exclusive_conflict_policy",
-        "is_safety_permit"
+        "is_safety_permit",
+        "clock_domain_binding"
       ],
       "properties": {
         "resource_types": {
@@ -235,6 +236,9 @@
         },
         "is_safety_permit": {
           "const": false
+        },
+        "clock_domain_binding": {
+          "const": true
         }
       }
     },
