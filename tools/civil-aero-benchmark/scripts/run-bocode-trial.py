@@ -38,6 +38,8 @@ HEADER = (
     "stderr_path", "stderr_bytes", "stderr_sha256",
     "metadata_path", "metadata_bytes", "metadata_file_sha256",
     "freeze_path", "freeze_bytes", "freeze_sha256",
+    "environment_path", "environment_bytes", "environment_sha256",
+    "command_path", "command_bytes", "command_sha256",
     "diagnostic_path", "diagnostic_bytes", "diagnostic_sha256",
     "elapsed_monotonic_ns", "child_user_cpu_ns", "child_system_cpu_ns",
     "process_exit_code", "skip_detected", "summary_row_present", "trace_valid",
@@ -255,11 +257,18 @@ def main() -> int:
     (root / "stdout.bin").write_bytes(b"")
     (root / "stderr.bin").write_bytes(b"")
     (root / "environment-freeze.txt").write_bytes(b"")
+    (root / "environment.json").write_text(
+        json.dumps({key: os.environ[key] for key in ENV_ALLOWLIST if key in os.environ},
+                   sort_keys=True, separators=(",", ":")) + "\\n",
+        encoding="utf-8",
+    )
 
     source_commit = "-"
     package_version = "-"
     metadata_bytes = b""
     metadata_path: Path | None = None
+    environment_path = root / "environment.json"
+    command_path: Path | None = None
     archive_path: Path | None = None
     summary_path: Path | None = None
     diagnostic_path: Path | None = None
@@ -314,8 +323,10 @@ def main() -> int:
         package_version = importlib.metadata.version("bocode")
         if package_version != args.package_version:
             raise ValueError("installed BOCoDe package version does not match the declared version")
-        metadata_path = repo_root / "bocode" / "opt_problems_metadata" / f"{problem}.json"
-        metadata_bytes = metadata_path.read_bytes()
+        source_metadata_path = repo_root / "bocode" / "opt_problems_metadata" / f"{problem}.json"
+        metadata_bytes = source_metadata_path.read_bytes()
+        metadata_path = root / "metadata.json"
+        metadata_path.write_bytes(metadata_bytes)
         metadata_file_sha256 = sha256(metadata_bytes)
         metadata_byte_count = len(metadata_bytes)
         if metadata_file_sha256 != args.metadata_sha256.lower():
@@ -346,7 +357,10 @@ def main() -> int:
         # Import once before timing the optimizer process to confirm that this interpreter
         # resolves the expected editable/source checkout, but preserve the child process as
         # the actual execution boundary.
-        import bocode  # noqa: F401
+        import bocode
+        module_path = Path(bocode.__file__).resolve()
+        if not module_path.is_relative_to(repo_root):
+            raise ValueError("imported bocode module does not resolve inside the pinned source checkout")
 
         command = [
             sys.executable, str(runner),
@@ -359,6 +373,12 @@ def main() -> int:
             "--task-id", "0",
             "--num-tasks", "1",
         ]
+        command_path = root / "command.json"
+        command_path.write_text(
+            json.dumps({"argv": command, "environment_allowlist": ENV_ALLOWLIST},
+                       ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\\n",
+            encoding="utf-8",
+        )
         child_user_before, child_system_before = resource_snapshot()
         started = time.monotonic_ns()
         completed = subprocess.run(command, cwd=repo_root, env=os.environ.copy(), capture_output=True)
@@ -454,6 +474,8 @@ def main() -> int:
         "stderr": file_record(root, stderr_path),
         "metadata": file_record(root, metadata_path if metadata_path and metadata_path.is_file() else None),
         "freeze": file_record(root, freeze_path),
+        "environment": file_record(root, environment_path),
+        "command": file_record(root, command_path),
         "diagnostic": file_record(root, diagnostic_path),
     }
     fields = {
@@ -492,6 +514,12 @@ def main() -> int:
         "freeze_path": artifacts["freeze"][0],
         "freeze_bytes": artifacts["freeze"][1],
         "freeze_sha256": artifacts["freeze"][2],
+        "environment_path": artifacts["environment"][0],
+        "environment_bytes": artifacts["environment"][1],
+        "environment_sha256": artifacts["environment"][2],
+        "command_path": artifacts["command"][0],
+        "command_bytes": artifacts["command"][1],
+        "command_sha256": artifacts["command"][2],
         "diagnostic_path": artifacts["diagnostic"][0],
         "diagnostic_bytes": artifacts["diagnostic"][1],
         "diagnostic_sha256": artifacts["diagnostic"][2],
