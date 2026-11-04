@@ -141,8 +141,7 @@ impl MatrixAtlas {
             {
                 return Err("sample positions must be finite and strictly increasing".into());
             }
-            if index > 0 && !(sample.position_m - self.samples[index - 1].position_m).is_finite()
-            {
+            if index > 0 && !(sample.position_m - self.samples[index - 1].position_m).is_finite() {
                 return Err("adjacent sample position span must be finite".into());
             }
             if !sample.minimum_eigenvalue_lower_bound_h.is_finite()
@@ -780,9 +779,11 @@ mod tests {
         let mut atlas = fixture();
         atlas.samples[0].matrix_h = vec![vec![1e-6, 1.2e-6], vec![1.2e-6, 1e-6]];
         atlas.samples[0].minimum_eigenvalue_lower_bound_h = 0.0;
-        assert!(atlas
-            .validate()
-            .unwrap_err()
-            .contains("not proven positive semidefinite"));
+        assert!(
+            atlas
+                .validate()
+                .unwrap_err()
+                .contains("not proven positive semidefinite")
+        );
     }
 }
