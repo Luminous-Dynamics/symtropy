@@ -382,3 +382,43 @@ The ICML 2026 position paper *Time to Close the Validation Gap in LLM Social Sim
 https://proceedings.mlr.press/v306/puelma-touzel26a.html
 
 Our advantage should therefore be independently checkable reference tasks, exact group-composition oracles, distributional and procedural validity checks, and explicit claim ceilings—not the number of agent personas or the size of a simulation.
+
+
+## 11. Human-behaviour fidelity and audit-format sensitivity (4 November 2026)
+
+### Individual human simulation — macro fit is not individual fidelity
+
+**Hu et al. (ICLR 2026), "SimBench: Benchmarking the Ability of Large Language Models to Simulate Human Behaviors".**  
+https://proceedings.iclr.cc/paper_files/paper/2026/hash/2fc4d6a6400addda7493b9db258c34e0-Abstract-Conference.html  
+https://simbench.tiancheng.hu/
+
+SimBench unifies 20 diverse datasets (including moral decisions and economic choices). Its top published simulation-fidelity score is 40.80/100. The authors report log-linear scaling with model size, no gain from increased inference-time compute in their setup, an alignment–simulation trade-off (instruction tuning can improve low-entropy consensus tasks while harming high-entropy diversity), and difficulties simulating specific demographic groups.
+
+**CivBench response:** reproduce the upstream benchmark and per-task breakdown before adapting it. Evaluate micro/conditional/meso/macro fidelity, high-entropy response diversity, individual heterogeneity, participant holdouts and cohort-specific support. An aggregate score can be reported only with the upstream scoring semantics; it cannot replace the per-task vector.
+
+### Macro–micro dissociation — similar cooperation curves can come from wrong agents
+
+**Ferraz de Arruda et al. (2026), "Collective cooperation without individual fidelity in LLM agents".**  
+https://arxiv.org/abs/2606.30454
+
+In a networked Prisoner's Dilemma comparison with human data, the paper reports that an LLM population can reproduce several macro cooperation patterns while underestimating individual heterogeneity and misrepresenting conditional cooperation rules.
+
+**CivBench response:** score per-agent response distributions, conditional action curves and group interaction patterns as well as population trajectories. Random agents or noise should not be rewarded for restoring marginal variance if their conditional policies are wrong.
+
+Implementation: [CIVDYN-HUMSIM-001 issue #3665](https://github.com/Luminous-Dynamics/symtropy/issues/3665).
+
+### Audit-format sensitivity — bias direction can depend on the audit
+
+**Lukk (Findings EMNLP 2026), "FairFund-Bench: Evaluating Distributive Bias in LLM Resource Allocation".**  
+https://aclanthology.org/2026.findings-emnlp.1340/  
+https://arxiv.org/abs/2607.28934
+
+FairFund-Bench evaluates 14 models over 600 human-templated requests, varying rating/ranking/allocation, isolated versus multi-stimulus presentation and transparent versus disguised audits. The paper reports that audit format changes the direction of measured group bias and that causal framing effects exceed demographic effects in its benchmark.
+
+**CivBench response:** cross rating, ranking and allocation tasks with stimulus context and audit disclosure. Report demographic disparity, declared-rule/deservingness alignment, cross-task consistency and cross-context consistency separately. Test name/order counterfactuals and avoid assuming equal allocations are appropriate when verified need differs.
+
+Implementation extension: [CIVDYN-SWF-001 issue #3610](https://github.com/Luminous-Dynamics/symtropy/issues/3610).
+
+### Benchmark target discipline
+
+SimBench's 40.80/100 is an upstream result, not a directly comparable Symthaea score. Reproduce its exact evaluation, datasets, prompts, splits, scoring and uncertainty before making a comparison. The aspirational +5-point target is valid only under that matched protocol and must be accompanied by per-dataset and cohort non-regression checks.
