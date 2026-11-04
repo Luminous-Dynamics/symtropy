@@ -116,6 +116,9 @@ pub struct BenchmarkSample {
 pub struct SplitPolicy {
     /// Stable protocol identifier, such as `cross_network_v1`.
     pub protocol_id: String,
+    /// Caller-computed SHA-256 digest of the frozen canonical manifest bytes.
+    /// This validator checks syntax but cannot recompute it without raw data.
+    pub manifest_digest: String,
     /// Every listed dimension must be present on every sample and disjoint
     /// between train, validation, and test.
     pub exclusive_dimensions: BTreeSet<LeakageDimension>,
@@ -130,6 +133,12 @@ pub struct SplitPolicy {
 pub struct SplitAuditReport {
     /// Protocol identifier that was audited.
     pub protocol_id: String,
+    /// Frozen input manifest digest (syntax-checked, not recomputed).
+    pub manifest_digest: String,
+    /// Cross-partition firewalls actually enforced.
+    pub exclusive_dimensions: BTreeSet<LeakageDimension>,
+    /// Dimensions required to remain common across all three partitions.
+    pub shared_dimensions: BTreeSet<LeakageDimension>,
     /// Number of unique samples.
     pub sample_count: usize,
     /// Sample counts for all three required partitions.
@@ -147,6 +156,17 @@ impl SplitAuditReport {
         let mut output = String::new();
         let _ = writeln!(&mut output, "CIVBENCH_SPLIT_AUDIT_V0.1");
         let _ = writeln!(&mut output, "protocol_id={}", self.protocol_id);
+        let _ = writeln!(&mut output, "manifest_digest=sha256:{}", self.manifest_digest);
+        for dimension in &self.exclusive_dimensions {
+            let _ = writeln!(
+                &mut output,
+                "exclusive_dimension={}",
+                dimension.as_str()
+            );
+        }
+        for dimension in &self.shared_dimensions {
+            let _ = writeln!(&mut output, "shared_dimension={}", dimension.as_str());
+        }
         let _ = writeln!(&mut output, "sample_count={}", self.sample_count);
         for (partition, count) in &self.partition_counts {
             let _ = writeln!(&mut output, "partition={},count={count}", partition.as_str());
@@ -240,6 +260,9 @@ pub fn audit_benchmark_split(
             policy.protocol_id.as_str(),
         ));
     }
+    let manifest_digest = normalized_sha256(&policy.manifest_digest).ok_or_else(|| {
+        SplitAuditError::new("invalid_manifest_digest", policy.protocol_id.as_str())
+    })?;
     if policy.exclusive_dimensions.is_empty() {
         return Err(SplitAuditError::new(
             "empty_exclusive_dimensions",
@@ -400,6 +423,9 @@ pub fn audit_benchmark_split(
 
     Ok(SplitAuditReport {
         protocol_id: policy.protocol_id.clone(),
+        manifest_digest,
+        exclusive_dimensions: policy.exclusive_dimensions.clone(),
+        shared_dimensions: policy.shared_dimensions.clone(),
         sample_count: samples.len(),
         partition_counts,
         group_counts,
