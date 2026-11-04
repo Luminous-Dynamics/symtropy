@@ -755,7 +755,6 @@ mod tests {
                 .exclusive_dimensions()
                 .contains(&LeakageDimension::Network)
         );
-
     }
 
     #[test]
