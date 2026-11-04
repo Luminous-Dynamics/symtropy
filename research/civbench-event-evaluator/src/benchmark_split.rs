@@ -403,15 +403,19 @@ pub fn audit_benchmark_split(
         DataPartition::Test,
     ]);
     for dimension in &policy.shared_dimensions {
-        let dimension_groups: Vec<_> = shared_group_partitions
-            .iter()
-            .filter(|((group_dimension, _), _)| group_dimension == dimension)
-            .collect();
-        if dimension_groups.is_empty()
-            || dimension_groups
-                .iter()
-                .any(|(_, partitions)| *partitions != &all_partitions)
-        {
+        let mut has_groups = false;
+        for ((group_dimension, _), partitions) in &shared_group_partitions {
+            if group_dimension == dimension {
+                has_groups = true;
+                if partitions != &all_partitions {
+                    return Err(SplitAuditError::new(
+                        "shared_group_not_in_all_partitions",
+                        dimension.as_str(),
+                    ));
+                }
+            }
+        }
+        if !has_groups {
             return Err(SplitAuditError::new(
                 "shared_group_not_in_all_partitions",
                 dimension.as_str(),
