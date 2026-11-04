@@ -326,15 +326,12 @@ mod tests {
     }
 
     #[test]
-    fn zero_boundary_inputs_with_positive_outflow_are_imbalanced() {
+    fn stored_energy_loss_accounts_for_heat_outflow() {
         let report = complete_balance(10.0, 0.0, 0.0, 0.0, 0.0, 10.0)
             .evaluate(zero_tolerance())
             .unwrap();
-        assert_eq!(report.status, EnergyBalanceStatus::Imbalanced);
+        assert_eq!(report.status, EnergyBalanceStatus::Balanced);
         assert_eq!(report.residual_j, Some(0.0));
-        // This balance is actually closed: stored energy fell by 10 J while
-        // 10 J of heat left the boundary. Compare against the positive-output
-        // case with no corresponding stored-energy decrease below.
     }
 
     #[test]
