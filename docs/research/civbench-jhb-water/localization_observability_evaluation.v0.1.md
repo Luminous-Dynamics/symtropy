@@ -48,6 +48,32 @@ For a declared K:
 
 Do not collapse these into one weighted score. Always publish the denominators and the number of independent networks, events, sensor layouts and topology families.
 
+## Public corpus lanes and rights/evidence register
+
+Do not combine these datasets into one training pool and then publish a single score. They represent different physical scales, sensing modalities, label processes, and transfer claims. Register each release/version and keep its own evaluation lane.
+
+| Lane | Public corpus | What it supports | What it does not establish |
+|---|---|---|---|
+| Real utility / temporal holdout | [BattLeDIM L-Town 2018/2019](https://battledim.ucy.ac.cy/?page_id=33) | 5-minute SCADA, tank, 3 flows, 33 pressures, 82 AMRs; a useful historical 2018 → evaluation 2019 temporal benchmark with burst repair records and EPANET model | A fully live utility network; model parameters differ from actual and the published weekly demand profiles do not represent yearly seasonality. Data download currently uses the competition contact form. |
+| Multi-network hydraulic simulation | [LeakDB](https://zenodo.org/records/13985057) and [WaterBenchmarkHub description](https://waterfutures.github.io/WaterBenchmarkHub/benchmarks/KIOS-LeakDB.html) | Large synthetic multi-network scenarios; the hub describes 1,000 Net1 + 1,000 Hanoi scenarios with pressure, demand, flow and labels; useful for controlled cross-network simulation, severity and scenario stress tests | Field generalization, independent utility calibration, or cross-topology generality from only two common benchmark networks. The current Zenodo landing page is 13.9 GB and its Rights field is blank; a National Library of Medicine catalog lists CC BY 4.0, so confirm deposited licence metadata before redistribution. |
+| Cyber-physical testbed | [WDSEventDB](https://zenodo.org/records/17547955) / [repository](https://github.com/Moazeni-s-Concise-Lab/WDSEventDB) | Instrumented testbed events spanning normal operation, cyberattacks, leaks and sensor failures; event diagnosis, multi-class separation and alert burden | Full municipal-scale hydraulic localization or real utility prevalence. The GitHub repository contains a CC0 license file, but the Zenodo dataset record's Rights field is blank; confirm data-level rights and preserve its provenance independently. |
+| Acoustic/pressure laboratory | [LeakTestbed / Mendeley v1](https://data.mendeley.com/datasets/xw44wv2g88/1) | 280 labeled 30-second measurements from 47 m of 152.4 mm PVC; two accelerometers, two hydrophones and two dynamic pressure sensors; looped/branched layouts, four leak types plus no-leak, varied demand and noise. The Mendeley record lists CC BY 4.0. Excellent for acoustic and modality-ablation work. | Distribution-scale pipe ranking, utility sensor density, or multi-year field performance. Treat each acquisition/configuration as a group; don't randomly split correlated windows from the same capture. |
+| Real utility / derived feature space | [Slovak multi-source urban WDN dataset](https://zenodo.org/records/15096167), data descriptor [Scientific Data 2026](https://doi.org/10.1038/s41597-026-07203-5) | One year / 8,737 hourly rows from a single anonymized zone; 18 anomaly-score features from SCADA, energy and environment; supports early-warning/lead-time and single-zone temporal analysis. The article says the dataset is deposited under CC BY 4.0; the landing page's Rights field is currently blank, so verify metadata. | Raw-sensor benchmarking, multi-utility transfer, pipe-level localization, or unbiased re-running of the feature-generation process. Its `fault_d7` label marks observations within ±7 days of confirmed leaks; variables were transformed to 0–100 anomaly scores and selected for association with that label. |
+
+### Corpus-specific protocol and contamination controls
+
+- **BattLeDIM:** use 2018 for fitting/calibration and lock 2019 for temporal evaluation; preserve the published repair times and sensor inventory. Report model-vs-network discrepancy and demand seasonality as limitations. Because the official download page asks for contact details and consent, use the host's access process; do not mirror its data in this repository.
+- **LeakDB:** hold out scenario-template lineage and, where possible, entire network IDs. Report Net1 and Hanoi separately before any macro-average. It is a synthetic hydraulic stress lane, not a real field lane. Verify the 13.9 GB version's exact network/scenario inventory and licence metadata before use.
+- **WDSEventDB:** keep clean, cyberattack, leakage and sensor-failure event classes separate. Partition by source capture/attack episode and testbed run, not random time rows. Use it for cyber-physical event evaluation and alarm burden, not for claiming broad pipe-level localization performance.
+- **LeakTestbed:** group splits by physical experiment/capture, leak configuration, sensor placement and background-flow/noise condition. Report modality-specific results (acoustic vs pressure vs fused); preserve raw sample rate and the 30-second acquisition boundary. CC BY 4.0 attribution obligations apply to the Mendeley record.
+- **Slovak dataset:** use only as a derived-feature early-warning lane. The ±7-day label overlaps time before and after a confirmed fault; define lead-time targets against the actual maintenance timestamp and avoid a feature window crossing a label boundary. The descriptor reports that flow/pressure anomaly scores had negligible association in that specific zone while selected energy/environmental scores were more associated—do not generalize that result to all utilities. It also notes that no confirmed OIS event does not prove no leak occurred. The paper text itself is CC BY-NC-ND 4.0; the data descriptor says the separately deposited dataset is CC BY 4.0. Verify the data record's rights before commercial redistribution; do not redistribute adapted article figures or text under the article licence.
+
+### Registration requirements before using any corpus
+
+For every corpus version, capture the canonical accession/DOI, retrieval date, data licence and any terms-of-use, checksum, source network/site, sample granularity, sensor modality and layout, ground-truth source, event-label windows, scenario-generator version, known calibration/model discrepancy, allowed claims, and exclusion criteria. Store the *manifest and receipts*, not copies of restricted/proprietary raw telemetry.
+
+A lane may be used to pretrain a detector only if its license permits the intended use. The final score must still come from protocol-held-out test groups. Never train on a public dataset's held-out truth or use a published preprocessing transform that embeds test labels and then report the result as raw-signal generalization.
+
 ## Recommended benchmark ladder
 
 | Lane | Frozen physical/evidence boundary | Baselines |
@@ -93,6 +119,16 @@ For Johannesburg evaluation, low pressure and outage duration must be stratified
 No second EPANET/WNTR solver, sensor placement optimizer, value-of-information engine or autonomous PLC controller is introduced here.
 
 ## Source references
+
+
+- BattLeDIM 2020 dataset and L-Town SCADA / model / evaluation split: https://battledim.ucy.ac.cy/?page_id=33
+- LeakDB v1, 13.9 GB, Zenodo: https://zenodo.org/records/13985057
+- WaterBenchmarkHub LeakDB description and Net1/Hanoi scenario notes: https://waterfutures.github.io/WaterBenchmarkHub/benchmarks/KIOS-LeakDB.html
+- WDSEventDB, Zenodo: https://zenodo.org/records/17547955
+- WDSEventDB repository and CC0 repository licence file: https://github.com/Moazeni-s-Concise-Lab/WDSEventDB
+- LeakTestbed, Mendeley Data v1, CC BY 4.0: https://data.mendeley.com/datasets/xw44wv2g88/1
+- Babela, Munk & Munková (2026), "A multisource dataset for anomaly detection and fault prediction in urban water distribution networks", Scientific Data: https://doi.org/10.1038/s41597-026-07203-5
+- Slovak utility derived-feature dataset, Zenodo: https://zenodo.org/records/15096167
 
 - El Hachoumi et al. (2026), AQUA 75(10), 1014–1036, https://doi.org/10.2166/aqua.2026.300
 - Tarawneh (2026), Water Practice & Technology, https://doi.org/10.2166/wpt.2026.485
