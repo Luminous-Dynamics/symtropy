@@ -20,6 +20,23 @@ The policy does not control wet-lab hardware. Candidate costs must declare one s
 - Candidate and state reproducibility fingerprints; candidate ordering and model maps are canonicalized, and rejected candidates are retained in receipts.
 - Forty deterministic parameterized synthetic known-answer fixtures (eight regimes × five parameterizations), plus focused negative tests.
 
+## Anytime-valid model-discrimination evidence
+
+The `anytime` module adds a separate likelihood-ratio e-process for testing one pre-registered null model against a fixed prior mixture of alternatives. At each look it consumes conditional predictive probabilities for the observed outcome given the complete pre-outcome history and the intervention chosen using only past information. The mixture likelihood ratio is evaluated in log space and compared with the Ville boundary `1 / alpha`, so repeated peeking is covered under the stated conditional-model assumptions.
+
+The caller must supply:
+- a frozen prediction-manifest digest covering model versions, parameters, calibration, preprocessing and probability-generation code;
+- a conditioning-state digest for the complete past used to generate that trial's conditional distribution;
+- the exact assigned candidate and delivered protocol IDs;
+- a valid candidate that passed assignment, safety, delivery-fidelity, interference and carryover gates;
+- the complete outcome space, with each model's conditional probabilities summing to one.
+
+An exact-zero likelihood under the null is rejected as a model-adequacy failure; it is not converted into infinite evidence. Alternative weights are frozen at construction. Testing several null models requires a predeclared familywise alpha allocation across the separate e-processes.
+
+This is **not** a generic guarantee for arbitrary adaptive experiments: likelihood-ratio validity fails if forecasts are not correct conditional distributions, if outcomes are selected after inspection, if the action uses future data, or if serial dependence / individual clustering is ignored. The digest fields bind the declared conditioning inputs but cannot prove their scientific correctness. The e-process is a software primitive; biological inference requires a calibrated conditional likelihood model and an externally validated protocol.
+
+The motivating statistical frameworks are Howard et al. (2021), *Time-uniform, nonparametric, nonasymptotic confidence sequences*, Annals of Statistics, DOI [10.1214/20-AOS1991](https://doi.org/10.1214/20-AOS1991); Ramdas et al.'s 2025 ICML tutorial on game-theoretic statistics and sequential anytime-valid inference; and the adaptive-trial confidence-interval guidance of Robertson et al. (2025), DOI [10.1002/sim.70202](https://doi.org/10.1002/sim.70202). These are statistical method baselines, not locomotion-specific biological evidence.
+
 ## Important integrity limits
 
 The V0 receipt fingerprint is FNV-1a 64-bit and is explicitly **non-cryptographic**. It detects accidental input drift but is not a cryptographic content address, signature, or tamper-evidence mechanism. Before any biological data, external protocol exchange or high-consequence use, replace it with an audited SHA-256/BLAKE3 implementation and a versioned canonical serialization. No privacy, security or provenance-integrity claim follows from the current fingerprint.
