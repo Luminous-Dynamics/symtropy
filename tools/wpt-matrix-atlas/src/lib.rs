@@ -725,4 +725,46 @@ mod tests {
             .unwrap_err()
             .contains("not proven positive semidefinite"));
     }
+
+    #[test]
+    fn rejects_an_optimistic_endpoint_eigenvalue_claim() {
+        let mut atlas = fixture();
+        atlas.samples[0].minimum_eigenvalue_lower_bound_h = 9.0e-6;
+        assert!(atlas
+            .validate()
+            .unwrap_err()
+            .contains("more optimistic than the independently computed bound"));
+    }
+
+    #[test]
+    fn reports_dense_held_out_bounds_as_empirical_not_certified() {
+        let atlas = fixture();
+        let result = atlas.interpolate_at(5.0).unwrap();
+        assert_eq!(result.disposition, "EMPIRICAL_MARGIN_POSITIVE");
+        assert_eq!(
+            result.proof_scope,
+            "HELD_OUT_POSITIONS_ONLY_NOT_A_CONTINUOUS_INTERVAL_PROOF"
+        );
+    }
+
+    #[test]
+    fn only_formal_or_analytic_segment_bounds_receive_conditional_certificate_status() {
+        let mut atlas = fixture();
+        atlas.segments[0].error_bound_method = "FORMAL_INTERVAL_BOUND".into();
+        let result = atlas.interpolate_at(5.0).unwrap();
+        assert_eq!(result.disposition, "PASSIVE_CERTIFIED_CONDITIONAL");
+        assert!(result.proof_scope.contains("EXTERNAL_VERIFICATION"));
+    }
+
+    #[test]
+    fn rejects_non_psd_endpoint_even_when_digest_and_claim_are_present() {
+        let mut atlas = fixture();
+        atlas.samples[0].matrix_h = vec![vec![1e-6, 1.2e-6], vec![1.2e-6, 1e-6]];
+        atlas.samples[0].minimum_eigenvalue_lower_bound_h = 0.0;
+        assert!(atlas
+            .validate()
+            .unwrap_err()
+            .contains("not proven positive semidefinite"));
+    }
+
 }
