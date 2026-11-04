@@ -544,13 +544,13 @@ fn validate_graph(graph: &ConnectomeGraph) -> Result<GraphInvariants, NullModelE
         }
     }
 
-    Ok(build_invariants(graph, &node_types))
+    build_invariants(graph, &node_types)
 }
 
 fn build_invariants(
     graph: &ConnectomeGraph,
     node_types: &BTreeMap<String, String>,
-) -> GraphInvariants {
+) -> Result<GraphInvariants, NullModelError> {
     let mut in_degree = BTreeMap::new();
     let mut out_degree = BTreeMap::new();
     let mut source_strength = BTreeMap::new();
@@ -575,10 +575,10 @@ fn build_invariants(
 
         let source_type = node_types
             .get(&edge.source)
-            .expect("validated source node");
+            .ok_or_else(|| NullModelError::UnknownEndpoint(edge.source.clone()))?;
         let target_type = node_types
             .get(&edge.target)
-            .expect("validated target node");
+            .ok_or_else(|| NullModelError::UnknownEndpoint(edge.target.clone()))?;
         let block = (
             source_type.clone(),
             target_type.clone(),
@@ -595,7 +595,7 @@ fn build_invariants(
             .or_insert(0) += 1;
     }
 
-    GraphInvariants {
+    Ok(GraphInvariants {
         node_identity_and_type: graph
             .nodes
             .iter()
@@ -607,7 +607,7 @@ fn build_invariants(
         block_weight_counts,
         source_weight_counts,
         source_strength,
-    }
+    })
 }
 
 fn compare_invariants(
@@ -748,7 +748,9 @@ mod tests {
     #[test]
     fn incompatible_cell_type_or_edge_class_pairs_are_not_swapped() {
         let mut input = fixture_graph();
-        input.edges[1].edge_class = "inhibitory".to_string();
+        for (index, edge) in input.edges.iter_mut().enumerate() {
+            edge.edge_class = format!("class-{index}");
+        }
         assert_eq!(
             generate_null_model(&input, config(3, 1, 100)),
             Err(NullModelError::NoEligibleEdgePairs)
@@ -847,11 +849,12 @@ mod tests {
             },
         ];
         assert!(matches!(
-            generate_null_model(&input, config(5, 1, 10)),
+            generate_null_model(&input, config(1, 1, 1)),
             Err(NullModelError::SwapBudgetExhausted {
                 accepted: 0,
+                attempted: 1,
                 rejections: SwapRejections {
-                    duplicate_edge: 10,
+                    duplicate_edge: 1,
                     ..
                 },
                 ..
@@ -937,10 +940,7 @@ mod tests {
     fn preserves_edge_class_and_directional_cell_type_block_counts() {
         let input = fixture_graph();
         let sample = generate_null_model(&input, config(4, 15, 300)).expect("sample");
-        assert_eq!(
-            sample.receipt.invariants.cell_type_blocks_preserved,
-            true
-        );
+        assert!(sample.receipt.invariants.cell_type_blocks_preserved);
         let input_invariants = validate_graph(&input).expect("input");
         let output_invariants = validate_graph(&sample.graph).expect("output");
         assert_eq!(input_invariants.block_counts, output_invariants.block_counts);
