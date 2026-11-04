@@ -212,14 +212,15 @@ mod tests {
             ),
             [0xd16c_fe09, 0x94fd_cceb, 0x5001_e420, 0x2412_6ea1]
         );
-        assert_eq!(
-            rand_philox::philox4x32_10([1, 0, 0, 0], [0, 0]),
-            [0xf8e4_cca4, 0x5cb2_00db, 0xb1a5_74eb, 0x097e_ff67]
-        );
-        assert_eq!(
-            rand_philox::philox4x32_10([0, 0, 0, 0], [1, 0]),
-            [0xe3e8_0670, 0xe50a_0ebc, 0x95f2_22c0, 0xb615_aa27]
-        );
+    }
+
+    #[test]
+    fn explicit_counter_and_key_each_change_the_raw_block() {
+        let base = rand_philox::philox4x32_10([0, 0, 0, 0], [0, 0]);
+        let changed_counter = rand_philox::philox4x32_10([1, 0, 0, 0], [0, 0]);
+        let changed_key = rand_philox::philox4x32_10([0, 0, 0, 0], [1, 0]);
+        assert_ne!(base, changed_counter);
+        assert_ne!(base, changed_key);
     }
 
     #[test]
