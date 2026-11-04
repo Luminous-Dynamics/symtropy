@@ -8,9 +8,9 @@
       "reference_id": "BIT-WATT-DRO-CVAR-2026-09",
       "title": "Tail-risk-aware Bit-Watt co-optimization for data center integrated energy systems under joint forecast uncertainty",
       "doi": "10.1016/j.ijepes.2026.112227",
-      "published_at": "2026-09-01",
       "evidence_class": "peer_reviewed_modelled_case_study",
-      "scope_note": "Case-specific study: moment-based distributionally robust CVaR under joint PV/workload forecast errors; reported cost and shortfall figures are not universal benchmarks."
+      "scope_note": "Case-specific study: moment-based distributionally robust CVaR under joint PV/workload forecast errors; reported cost and shortfall figures are not universal benchmarks.",
+      "publication_period": "2026-09"
     },
     {
       "reference_id": "LIQUID-COOLING-DR-2026-06",
