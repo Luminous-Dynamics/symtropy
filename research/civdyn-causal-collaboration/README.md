@@ -4,7 +4,7 @@ A deterministic Rust kernel for scoring an externally supplied multi-agent actio
 
 ## Why this exists
 
-AgentWorld (2026) separates task success from Causal Collaboration Effectiveness (CCE), defined as the fraction of all actions in the causal ancestry of task success. This kernel retains that distinction and adds explicit adjudication uncertainty:
+AgentWorld (2026) evaluates long-horizon black-box collaboration with asymmetric roles and separates task success from Causal Collaboration Effectiveness (CCE), defined as the fraction of all actions in the causal ancestry of task success. AgentWorld reports 52% success and CCE 0.320 for its strongest tested main-set model; its human/LLM causal-edge agreement study reports 82% raw agreement and Cohen's kappa 0.64 on 84 judgments. This crate retains the deterministic CCE definition but adds explicit adjudication uncertainty:
 
 - verified causal edges define the CCE lower bound;
 - candidate edges define the inclusive upper bound;
@@ -66,3 +66,17 @@ cargo run --locked --manifest-path research/civdyn-causal-collaboration/Cargo.to
 ## Claim ceiling
 
 This crate validates the graph metric implementation on hand-computed fixtures. It does not establish human-level collaboration, real causal truth or model performance. Actual benchmark integration requires licensed action traces, independently verified task outcomes, causal-edge evidence and human/model adjudication studies.
+
+## Source and extension boundary
+
+This is a scoring-kernel implementation motivated by AgentWorld (Shu et al., 2026), not a reproduction of the 100-task AgentWorld benchmark, its game sandbox, its model calls or its human annotation study.
+
+Compared with the source CCE, the extension is evidence-qualified:
+- model-proposed links remain candidate edges and cannot enter the verified lower bound;
+- verified and candidate causal ancestries produce a lower/upper CCE interval;
+- resource-lineage evidence and cross-agent causal paths are counted explicitly;
+- per-agent PAC and useful-effort shares expose idle agents and concentrated contribution;
+- message count and message effectiveness remain separate;
+- repeated action fingerprints expose duplicate work.
+
+The candidate upper bound is not a claim that every proposed edge is true. It is a sensitivity envelope until edge adjudication is independently resolved. The metric cannot infer causal truth from temporal order alone.
