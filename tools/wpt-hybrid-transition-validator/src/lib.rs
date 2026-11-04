@@ -145,6 +145,10 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
     if validated_event_id != event_id {
         return Err("event_id must be a stable non-empty string".into());
     }
+    let transition_stream_id = text_field(record, "transition_stream_id", "record")?;
+    let transition_sequence = field(record, "transition_sequence", "record")?
+        .as_u64()
+        .ok_or_else(|| "record.transition_sequence must be a nonnegative integer".to_owned())?;
     let event_time_ns = field(record, "event_time_ns", "record")?
         .as_u64()
         .ok_or_else(|| "record.event_time_ns must be a nonnegative integer".to_owned())?;
@@ -158,8 +162,8 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
     if event_window_start_ns >= event_window_end_ns {
         return Err("event_window must have a strictly increasing time range".into());
     }
-    if event_time_ns < event_window_start_ns || event_time_ns > event_window_end_ns {
-        return Err("event_time_ns must lie inside event_window".into());
+    if event_time_ns < event_window_start_ns || event_time_ns >= event_window_end_ns {
+        return Err("event_time_ns must lie inside the half-open event_window".into());
     }
 
     let schema_version = text_field(record, "schema_version", "record")?;
@@ -361,6 +365,8 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
 
     Ok(json!({
         "event_id": event_id,
+        "transition_stream_id": transition_stream_id,
+        "transition_sequence": transition_sequence,
         "disposition": dispositions.0,
         "message": dispositions.1,
         "pre_mode_id": pre.id,
@@ -422,6 +428,8 @@ mod tests {
             "schema_version": "1.0.0",
             "event_id": event_id,
             "event_time_ns": 1000,
+            "transition_stream_id": "fixture-stream",
+            "transition_sequence": 1,
             "event_window": {
                 "start_ns": 900,
                 "end_ns": 1100
@@ -559,6 +567,30 @@ mod tests {
     fn rejects_missing_event_id() {
         let mut record = event("missing-id", 1.0, 1.0, 0.0, 0.0);
         record.as_object_mut().unwrap().remove("event_id");
+        assert_eq!(disposition(&record), "INVALID_INPUT");
+    }
+
+    #[test]
+    fn rejects_missing_or_invalid_stream_identity() {
+        let mut missing_stream = event("missing-stream", 1.0, 1.0, 0.0, 0.0);
+        missing_stream
+            .as_object_mut()
+            .unwrap()
+            .remove("transition_stream_id");
+        assert_eq!(disposition(&missing_stream), "INVALID_INPUT");
+
+        let mut missing_sequence = event("missing-sequence", 1.0, 1.0, 0.0, 0.0);
+        missing_sequence
+            .as_object_mut()
+            .unwrap()
+            .remove("transition_sequence");
+        assert_eq!(disposition(&missing_sequence), "INVALID_INPUT");
+    }
+
+    #[test]
+    fn event_window_uses_an_exclusive_end_boundary() {
+        let mut record = event("exclusive-end", 1.0, 1.0, 0.0, 0.0);
+        record["event_time_ns"] = json!(1100);
         assert_eq!(disposition(&record), "INVALID_INPUT");
     }
 
