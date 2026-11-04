@@ -66,8 +66,8 @@ pub struct SpatialFieldManifest {
     pub mechanism_id: StableId,
     pub coordinate_frame: StableId,
     pub domain_id: StableId,
-    pub left_basis_id: StableId,
-    pub right_basis_id: StableId,
+    pub left_basis: BasisCoefficientSpec,
+    pub right_basis: BasisCoefficientSpec,
     pub basis_version: StableId,
     pub evidence_ref: StableId,
     pub states: Vec<BasisCoefficientState>,
@@ -159,7 +159,7 @@ pub struct SpatialFieldEvaluation {
 
 impl SpatialFieldManifest {
     pub fn validate(&self) -> Result<u64, SpatialError> {
-        if self.left_basis_id == self.right_basis_id
+        if self.left_basis.id == self.right_basis.id
             || self.coordinate_frame.as_str().is_empty()
             || self.domain_id.as_str().is_empty()
         {
@@ -224,12 +224,10 @@ impl SpatialFieldManifest {
         push_id(&mut out, &self.mechanism_id);
         push_id(&mut out, &self.coordinate_frame);
         push_id(&mut out, &self.domain_id);
-        push_id(&mut out, &self.left_basis_id);
-        push_id(&mut out, &self.right_basis_id);
         push_id(&mut out, &self.basis_version);
         push_id(&mut out, &self.evidence_ref);
-        push_basis_spec(&mut out, &self.left_basis_id, &self.left_spec());
-        push_basis_spec(&mut out, &self.right_basis_id, &self.right_spec());
+        push_basis_spec(&mut out, &self.left_basis);
+        push_basis_spec(&mut out, &self.right_basis);
 
         let mut states = self.states.iter().collect::<Vec<_>>();
         states.sort_by_key(|state| (state.left_value, state.right_value));
@@ -242,32 +240,6 @@ impl SpatialFieldManifest {
         Ok(out)
     }
 
-    fn left_spec(&self) -> BasisCoefficientSpec {
-        BasisCoefficientSpec {
-            id: self.left_basis_id.clone(),
-            source_id: self.field_id.clone(),
-            source_profile_digest: [0; 32],
-            units: self.domain_id.clone(),
-            coupling: SpatialCoupling::SharedInvariant {
-                equivalence_group: self.field_id.clone(),
-                justification: self.evidence_ref.clone(),
-            },
-        }
-    }
-
-    fn right_spec(&self) -> BasisCoefficientSpec {
-        BasisCoefficientSpec {
-            id: self.right_basis_id.clone(),
-            source_id: self.field_id.clone(),
-            source_profile_digest: [0; 32],
-            units: self.domain_id.clone(),
-            coupling: SpatialCoupling::SharedInvariant {
-                equivalence_group: self.field_id.clone(),
-                justification: self.evidence_ref.clone(),
-            },
-        }
-    }
-
     pub fn digest(&self) -> Result<[u8; 32], SpatialError> {
         Ok(*blake3::hash(&self.canonical_bytes()?).as_bytes())
     }
@@ -277,12 +249,10 @@ impl SpatialFieldManifest {
         coordinate: RationalCoordinate,
         branch_id: StableId,
         query_context: SpatialQueryContext,
-        left_coupling: &SpatialCoupling,
-        right_coupling: &SpatialCoupling,
     ) -> Result<SpatialFieldEvaluation, SpatialError> {
         let total_weight = self.validate()?;
-        validate_coupling(left_coupling, &branch_id)?;
-        validate_coupling(right_coupling, &branch_id)?;
+        validate_coupling(&self.left_basis.coupling, &branch_id)?;
+        validate_coupling(&self.right_basis.coupling, &branch_id)?;
         let manifest_digest = self.digest()?;
         let left_weight = coordinate.denominator - coordinate.numerator;
         let right_weight = coordinate.numerator;
@@ -308,8 +278,8 @@ impl SpatialFieldManifest {
                 branch_id: branch_id.clone(),
                 coordinate: coordinate.clone(),
                 query_context: query_context.clone(),
-                left_basis_id: self.left_basis_id.clone(),
-                right_basis_id: self.right_basis_id.clone(),
+                left_basis_id: self.left_basis.id.clone(),
+                right_basis_id: self.right_basis.id.clone(),
                 left_coefficient: state.left_value,
                 right_coefficient: state.right_value,
                 left_basis_weight: left_weight,
@@ -445,15 +415,11 @@ impl SpatialFieldReceipt {
     pub fn verify_against(
         &self,
         manifest: &SpatialFieldManifest,
-        left_coupling: &SpatialCoupling,
-        right_coupling: &SpatialCoupling,
     ) -> Result<(), SpatialError> {
         let evaluation = manifest.evaluate(
             self.coordinate.clone(),
             self.branch_id.clone(),
             self.query_context.clone(),
-            left_coupling,
-            right_coupling,
         )?;
         if evaluation.receipts.iter().any(|candidate| candidate == self) {
             Ok(())
@@ -475,12 +441,8 @@ fn validate_coupling(
     }
 }
 
-fn push_basis_spec(
-    out: &mut Vec<u8>,
-    expected_id: &StableId,
-    spec: &BasisCoefficientSpec,
-) {
-    push_id(out, expected_id);
+fn push_basis_spec(out: &mut Vec<u8>, spec: &BasisCoefficientSpec) {
+    push_id(out, &spec.id);
     push_id(out, &spec.source_id);
     out.extend_from_slice(&spec.source_profile_digest);
     push_id(out, &spec.units);
@@ -578,8 +540,8 @@ mod tests {
             mechanism_id: id("linear-lagrange-1d-v1"),
             coordinate_frame: id("road-local-x"),
             domain_id: id("normalized-unit-interval"),
-            left_basis_id: id("basis-left"),
-            right_basis_id: id("basis-right"),
+            left_basis: basis_spec("basis-left"),
+            right_basis: basis_spec("basis-right"),
             basis_version: id("linear-lagrange-basis-v1"),
             evidence_ref: id("fixture:exact-finite-basis-law"),
             states: vec![
@@ -614,6 +576,16 @@ mod tests {
         }
     }
 
+    fn basis_spec(name: &str) -> BasisCoefficientSpec {
+        BasisCoefficientSpec {
+            id: id(name),
+            source_id: id("weather-source-01"),
+            source_profile_digest: *blake3::hash(b"weather-source-profile-v1").as_bytes(),
+            units: id("normalized-distance"),
+            coupling: shared_coupling(),
+        }
+    }
+
     fn context(mesh: &str, level: &str, ordinal: u64) -> SpatialQueryContext {
         SpatialQueryContext {
             mesh_id: id(mesh),
@@ -636,8 +608,6 @@ mod tests {
                 RationalCoordinate::new(numerator, denominator).unwrap(),
                 id("branch-a"),
                 context(mesh, level, ordinal),
-                &shared_coupling(),
-                &shared_coupling(),
             )
             .unwrap()
     }
@@ -758,7 +728,7 @@ mod tests {
         assert_ne!(first.digest().unwrap(), changed.digest().unwrap());
 
         let mut renamed = first.clone();
-        renamed.left_basis_id = id("basis-west");
+        renamed.left_basis.id = id("basis-west");
         assert_ne!(first.digest().unwrap(), renamed.digest().unwrap());
     }
 
@@ -823,10 +793,7 @@ mod tests {
         let evaluation = evaluate(&manifest, 1, 4, "mesh-coarse", "L0", 1);
         let receipt = evaluation.receipts[0].clone();
         assert!(receipt.integrity_check());
-        assert_eq!(
-            receipt.verify_against(&manifest, &shared_coupling(), &shared_coupling()),
-            Ok(())
-        );
+        assert_eq!(receipt.verify_against(&manifest), Ok(()));
 
         let mut tampered = receipt;
         tampered.query_context.vertex_ordinal = Some(99);
