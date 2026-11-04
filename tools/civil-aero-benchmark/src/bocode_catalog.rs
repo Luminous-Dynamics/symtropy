@@ -14,7 +14,7 @@ use crate::integrity::sha256_hex;
 use crate::shapebench::parse_csv_record;
 
 pub const BOCODE_CATALOG_SCHEMA: &str = "bocode-task-catalog/0.1.0";
-pub const BOCODE_CATALOG_CSV_HEADER: &str = "problem_id,application,problem_class,dimension,num_objectives,num_constraints,variable_type_class,benchmark_set_member,bounds_sha256,variable_types_sha256,source_reference_state,source_reference,metadata_sha256,required_extra";
+pub const BOCODE_CATALOG_CSV_HEADER: &str = "problem_id,application,problem_class,dimension,num_objectives,num_constraints,variable_type_class,benchmark_set_member,bounds_state,bounds_sha256,variable_types_state,variable_types_sha256,source_reference_state,source_reference,metadata_sha256,required_extra";
 pub const BOCODE_OBJECTIVE_DIRECTION: &str = "maximize";
 pub const BOCODE_CONSTRAINT_CONVENTION: &str = "g(x)<=0_is_feasible";
 pub const BOCODE_CATALOG_EVIDENCE_LEVEL: &str =
@@ -159,6 +159,29 @@ impl BoCoDeVariableTypeClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BoCoDeFieldAvailability {
+    Present,
+    Unavailable,
+}
+
+impl BoCoDeFieldAvailability {
+    fn parse(value: &str, field: &str) -> Result<Self, String> {
+        match value {
+            "present" => Ok(Self::Present),
+            "unavailable" => Ok(Self::Unavailable),
+            _ => Err(format!("unsupported {field} state {value}")),
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Present => "present",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoCoDeSourceReferenceStatus {
     Present,
     Missing,
@@ -201,9 +224,11 @@ pub struct BoCoDeTaskRecord {
     pub num_constraints: u32,
     pub variable_type_class: BoCoDeVariableTypeClass,
     pub benchmark_set_member: bool,
-    pub source_reference_state: BoCoDeSourceReferenceStatus,
+    pub bounds_state: BoCoDeFieldAvailability,
     pub bounds_sha256: String,
+    pub variable_types_state: BoCoDeFieldAvailability,
     pub variable_types_sha256: String,
+    pub source_reference_state: BoCoDeSourceReferenceStatus,
     pub source_reference: String,
     pub metadata_sha256: String,
     /// Use "none" when no BOCoDe optional extra is needed.
@@ -295,9 +320,11 @@ fn canonical_import_bytes(
             task.application.as_str(),
             task.problem_class.as_str(),
             task.variable_type_class.as_str(),
-            task.source_reference_state.as_str(),
+            task.bounds_state.as_str(),
             task.bounds_sha256.as_str(),
+            task.variable_types_state.as_str(),
             task.variable_types_sha256.as_str(),
+            task.source_reference_state.as_str(),
             task.source_reference.as_str(),
             task.metadata_sha256.as_str(),
             task.required_extra.as_str(),
@@ -360,7 +387,7 @@ impl BoCoDeCatalogReport {
     }
 
     pub fn to_csv(&self) -> String {
-        let header = "schema,source_commit,package_version,source_catalog_sha256,objective_direction,constraint_convention,problem_id,application,problem_class,dimension,num_objectives,num_constraints,variable_type_class,benchmark_set_member,source_reference_state,bounds_sha256,variable_types_sha256,source_reference,metadata_sha256,required_extra,import_sha256,evidence_level";
+        let header = "schema,source_commit,package_version,source_catalog_sha256,objective_direction,constraint_convention,problem_id,application,problem_class,dimension,num_objectives,num_constraints,variable_type_class,benchmark_set_member,bounds_state,bounds_sha256,variable_types_state,variable_types_sha256,source_reference_state,source_reference,metadata_sha256,required_extra,import_sha256,evidence_level";
         let mut output = format!("{header}\n");
         for task in &self.tasks {
             let fields = [
@@ -378,9 +405,11 @@ impl BoCoDeCatalogReport {
                 task.num_constraints.to_string(),
                 task.variable_type_class.as_str().to_owned(),
                 task.benchmark_set_member.to_string(),
-                task.source_reference_state.as_str().to_owned(),
+                task.bounds_state.as_str().to_owned(),
                 task.bounds_sha256.clone(),
+                task.variable_types_state.as_str().to_owned(),
                 task.variable_types_sha256.clone(),
+                task.source_reference_state.as_str().to_owned(),
                 task.source_reference.clone(),
                 task.metadata_sha256.clone(),
                 task.required_extra.clone(),
@@ -428,9 +457,9 @@ pub fn import_bocode_catalog_csv(
         }
         let fields = parse_csv_record(raw_line.trim_end_matches('\r'))
             .map_err(|error| format!("line {line_number}: {error}"))?;
-        if fields.len() != 14 {
+        if fields.len() != 16 {
             return Err(format!(
-                "line {line_number}: expected 14 catalog columns, got {}",
+                "line {line_number}: expected 16 catalog columns, got {}",
                 fields.len()
             ));
         }
@@ -449,13 +478,17 @@ pub fn import_bocode_catalog_csv(
             variable_type_class: BoCoDeVariableTypeClass::parse(&fields[6])
                 .map_err(|error| format!("line {line_number}: {error}"))?,
             benchmark_set_member: parse_bool(&fields[7], "benchmark_set_member", line_number)?,
-            source_reference_state: BoCoDeSourceReferenceStatus::parse(&fields[10])
+            bounds_state: BoCoDeFieldAvailability::parse(&fields[8], "bounds")
                 .map_err(|error| format!("line {line_number}: {error}"))?,
-            bounds_sha256: fields[8].clone(),
-            variable_types_sha256: fields[9].clone(),
-            source_reference: fields[11].clone(),
-            metadata_sha256: fields[12].clone(),
-            required_extra: fields[13].clone(),
+            bounds_sha256: fields[9].clone(),
+            variable_types_state: BoCoDeFieldAvailability::parse(&fields[10], "variable_types")
+                .map_err(|error| format!("line {line_number}: {error}"))?,
+            variable_types_sha256: fields[11].clone(),
+            source_reference_state: BoCoDeSourceReferenceStatus::parse(&fields[12])
+                .map_err(|error| format!("line {line_number}: {error}"))?,
+            source_reference: fields[13].clone(),
+            metadata_sha256: fields[14].clone(),
+            required_extra: fields[15].clone(),
         };
         validate_task(&task, line_number)?;
         if !seen.insert(task.problem_id.clone()) {
@@ -508,9 +541,10 @@ mod tests {
         variable_types: &str,
     ) -> String {
         format!(
-            "{id},{domain},{class},4,{objectives},{constraints},{variable_types},true,{},{},present,https://example.org/source,{},none",
+            "{id},{domain},{class},4,{objectives},{constraints},{variable_types},true,present,{},{},present,{},{},none",
             "b".repeat(64),
             "c".repeat(64),
+            "https://example.org/source",
             "d".repeat(64)
         )
     }
