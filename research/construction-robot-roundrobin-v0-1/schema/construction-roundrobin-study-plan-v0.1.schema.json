@@ -17,6 +17,9 @@
     "safety_separation"
   ],
   "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
     "profile_id": {
       "const": "construction-layout-roundrobin-v0.1"
     },
