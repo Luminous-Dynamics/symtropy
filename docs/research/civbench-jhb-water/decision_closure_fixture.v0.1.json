@@ -65,7 +65,8 @@
             "value": 0,
             "status": "modelled"
           }
-        }
+        },
+        "acquisition_summary": null
       },
       "candidate": {
         "policy_ref": "fixture:targeted-confirmatory-measurement-and-authorized-repair",
@@ -182,7 +183,8 @@
             "value": 0,
             "status": "modelled"
           }
-        }
+        },
+        "acquisition_summary": null
       },
       "candidate": {
         "policy_ref": "fixture:extra-pressure-sensor-but-no-crew-capacity",
@@ -299,7 +301,8 @@
             "value": 0,
             "status": "modelled"
           }
-        }
+        },
+        "acquisition_summary": null
       },
       "candidate": {
         "policy_ref": "fixture:higher-sensitivity-but-unbudgeted-alarm-policy",
@@ -417,7 +420,8 @@
             "value": 0,
             "status": "modelled"
           }
-        }
+        },
+        "acquisition_summary": null
       },
       "candidate": {
         "policy_ref": "fixture:repair-recommendation-with-no-spare-part",
@@ -528,7 +532,8 @@
             "value": null,
             "status": "not_measured"
           }
-        }
+        },
+        "acquisition_summary": null
       },
       "candidate": {
         "policy_ref": "fixture:repair-claim-without-independent-verifier",
