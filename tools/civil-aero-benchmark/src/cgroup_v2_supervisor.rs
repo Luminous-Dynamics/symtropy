@@ -108,7 +108,6 @@ struct MountEntry {
 struct ChildCompletion {
     status: ExitStatus,
     timed_out: bool,
-    elapsed_wall_time_ns: u64,
 }
 
 fn validate_run_id(value: &str) -> Result<(), String> {
@@ -360,12 +359,9 @@ fn wait_for_process_tree(
         }
         let populated = cgroup_event_flag(cgroup_path, "populated")?;
         if status.is_some() && !populated {
-            let elapsed_wall_time_ns = u64::try_from(started.elapsed().as_nanos())
-                .map_err(|_| "elapsed wall time exceeds u64 nanoseconds".to_owned())?;
             return Ok(ChildCompletion {
                 status: status.expect("checked above"),
                 timed_out,
-                elapsed_wall_time_ns,
             });
         }
         if !timed_out && started.elapsed() >= timeout {
@@ -839,7 +835,7 @@ pub fn run_cgroup_v2_process_tree(request: &CgroupV2RunRequest) -> Result<Cgroup
         exit_code.map(|value| value.to_string()).unwrap_or_default(),
         signal.map(|value| value.to_string()).unwrap_or_default(),
         timed_out.to_string(),
-        completion.elapsed_wall_time_ns.to_string(),
+        resource_report.elapsed_wall_time_ns.to_string(),
         resource_report.cpu_usage_usec.to_string(),
         resource_report.cpu_user_usec.to_string(),
         resource_report.cpu_system_usec.to_string(),
@@ -876,7 +872,8 @@ pub fn run_cgroup_v2_process_tree(request: &CgroupV2RunRequest) -> Result<Cgroup
         exit_code,
         signal,
         timed_out,
-        elapsed_wall_time_ns: completion.elapsed_wall_time_ns,
+        // Includes baseline capture, placement gate, child execution and descendant teardown.
+        elapsed_wall_time_ns: resource_report.elapsed_wall_time_ns,
         cpu_usage_usec: resource_report.cpu_usage_usec,
         cpu_user_usec: resource_report.cpu_user_usec,
         cpu_system_usec: resource_report.cpu_system_usec,
