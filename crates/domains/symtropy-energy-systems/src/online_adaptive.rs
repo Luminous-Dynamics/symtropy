@@ -409,11 +409,9 @@ pub fn evaluate_online_adaptive_calibration(
         let adjustment = (i128::from(adaptive_contract.step_size_ppm) * target_error_ppm)
             / i128::from(PPM_DENOMINATOR as u64);
         let unbounded_next = i128::from(current_miscoverage_ppm) + adjustment;
-        if unbounded_next < 0 || unbounded_next > i128::from(u32::MAX) {
-            return Err(OnlineAdaptiveCalibrationError::NumericalOverflow(
-                "ACI miscoverage update",
-            ));
-        }
+        // The bounded controller intentionally projects out-of-range ACI
+        // updates onto the caller-pinned interval; negative intermediate
+        // alpha values are therefore saturation, not arithmetic overflow.
         let clamped_to_minimum =
             unbounded_next < i128::from(adaptive_contract.minimum_miscoverage_ppm);
         let clamped_to_maximum =
@@ -669,6 +667,17 @@ mod tests {
         assert_eq!(report.final_miscoverage_ppm, 50_500);
         assert!(report.maximum_bound_hit_count > 0);
         assert!(report.receipts.last().unwrap().clamped_to_maximum);
+    }
+
+    #[test]
+    fn large_step_projects_negative_miscoverage_onto_the_declared_lower_bound() {
+        let aggressive =
+            OnlineAdaptiveCalibrationContract::new(50_000, 1_000_000, 10_000, 300_000)
+                .unwrap();
+        let report =
+            evaluate_online_adaptive_calibration(&stream(&[100.0]), &aggressive).unwrap();
+        assert_eq!(report.final_miscoverage_ppm, 10_000);
+        assert!(report.receipts[0].clamped_to_minimum);
     }
 
     #[test]
