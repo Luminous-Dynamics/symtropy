@@ -30,6 +30,7 @@ pub struct TaskGraph {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TaskNode {
     pub task_id: String,
+    pub task_family: String,
     pub source_element_ids: Vec<String>,
     pub method_step_id: String,
     pub transformation_rule_id: String,
@@ -38,6 +39,7 @@ pub struct TaskNode {
     pub dependencies: Vec<String>,
     pub parameters: Vec<ParameterBinding>,
     pub required_capabilities: Vec<String>,
+    pub required_resources: Vec<String>,
     pub preconditions: Vec<String>,
     pub postconditions: Vec<String>,
     pub required_evidence: Vec<String>,
@@ -46,6 +48,7 @@ pub struct TaskNode {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParameterBinding {
     pub name: String,
+    pub source_property: String,
     pub value: String,
     pub unit: String,
     pub source_ref: String,
@@ -164,6 +167,7 @@ fn validate_node(node: &TaskNode, diagnostics: &mut Vec<GraphDiagnostic>) {
     let node_id = Some(node.task_id.as_str());
 
     for (name, value) in [
+        ("task_family", node.task_family.as_str()),
         ("method_step_id", node.method_step_id.as_str()),
         (
             "transformation_rule_id",
@@ -226,6 +230,7 @@ fn validate_node(node: &TaskNode, diagnostics: &mut Vec<GraphDiagnostic>) {
     let mut parameter_names = BTreeSet::new();
     for parameter in &node.parameters {
         if parameter.name.trim().is_empty()
+            || parameter.source_property.trim().is_empty()
             || parameter.value.trim().is_empty()
             || parameter.unit.trim().is_empty()
             || parameter.source_ref.trim().is_empty()
@@ -233,7 +238,7 @@ fn validate_node(node: &TaskNode, diagnostics: &mut Vec<GraphDiagnostic>) {
             diagnostics.push(diagnostic(
                 "incomplete_parameter_binding",
                 node_id,
-                "parameter requires name, value, unit and source reference",
+                "parameter requires name, source property, value, unit and source reference",
             ));
         }
 
@@ -405,6 +410,7 @@ mod tests {
     fn node(id: &str, dependencies: &[&str]) -> TaskNode {
         TaskNode {
             task_id: id.to_owned(),
+            task_family: "piling".to_owned(),
             source_element_ids: vec![format!("element-{id}")],
             method_step_id: "install".to_owned(),
             transformation_rule_id: "rule-element-install".to_owned(),
@@ -416,6 +422,7 @@ mod tests {
                 .collect(),
             parameters: vec![ParameterBinding {
                 name: "embedment_depth".to_owned(),
+                source_property: "embedment_depth".to_owned(),
                 value: "1200".to_owned(),
                 unit: "mm".to_owned(),
                 source_ref: "design.property.embedment_depth".to_owned(),
@@ -423,6 +430,7 @@ mod tests {
                 conversion_evidence_ref: None,
             }],
             required_capabilities: vec!["rotary-installation".to_owned()],
+            required_resources: vec!["material-staging".to_owned()],
             preconditions: vec!["work-zone-released".to_owned()],
             postconditions: vec!["component-installed".to_owned()],
             required_evidence: vec!["independent-as-built-inspection".to_owned()],
@@ -710,6 +718,29 @@ mod tests {
                 .iter()
                 .any(|item| item.code == "duplicate_list_item")
         );
+    }
+
+
+    #[test]
+    fn task_family_is_a_required_output_semantic() {
+        let mut task = node("task-a", &[]);
+        task.task_family.clear();
+        let report = graph(vec![task]).validate();
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|item| item.code == "missing_task_derivation_field"));
+    }
+
+    #[test]
+    fn source_property_name_cannot_be_dropped_from_parameter_lineage() {
+        let mut task = node("task-a", &[]);
+        task.parameters[0].source_property.clear();
+        let report = graph(vec![task]).validate();
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|item| item.code == "incomplete_parameter_binding"));
     }
 
     #[test]
