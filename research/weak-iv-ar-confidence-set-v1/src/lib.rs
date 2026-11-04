@@ -14,7 +14,7 @@
 pub const MAX_OBSERVATIONS: usize = 5_000_000;
 /// Maximum number of instrument columns.
 pub const MAX_INSTRUMENTS: usize = 256;
-const RANK_TOLERANCE_DEFAULT: f64 = 1.0e-10;
+pub const RANK_TOLERANCE_DEFAULT: f64 = 1.0e-10;
 const BETA_FRACTION_MAX_ITERATIONS: usize = 300;
 const BETA_FRACTION_EPSILON: f64 = 3.0e-14;
 const BETA_FRACTION_MINIMUM: f64 = 1.0e-300;
@@ -814,7 +814,7 @@ pub fn f_quantile(
 }
 
 fn regularized_incomplete_beta(x: f64, a: f64, b: f64) -> Result<f64, ArError> {
-    if !x.is_finite() || x < 0.0 || x > 1.0 || a <= 0.0 || b <= 0.0 {
+    if !x.is_finite() || !(0.0..=1.0).contains(&x) || a <= 0.0 || b <= 0.0 {
         return Err(ArError::NumericalFailure);
     }
     if x == 0.0 {
@@ -890,14 +890,14 @@ fn beta_continued_fraction(a: f64, b: f64, x: f64) -> Result<f64, ArError> {
 fn log_gamma(value: f64) -> f64 {
     // Lanczos approximation, g=7, for the positive arguments used by the F CDF.
     const COEFFICIENTS: [f64; 9] = [
-        0.999_999_999_999_809_93,
+        0.999_999_999_999_809_9,
         676.520_368_121_885_1,
         -1_259.139_216_722_402_8,
-        771.323_428_777_653_13,
-        -176.615_029_162_140_59,
+        771.323_428_777_653_1,
+        -176.615_029_162_140_6,
         12.507_343_278_686_905,
         -0.138_571_095_265_720_12,
-        9.984_369_578_019_571_6e-6,
+        9.984_369_578_019_572e-6,
         1.505_632_735_149_311_6e-7,
     ];
     let z = value - 1.0;
