@@ -352,16 +352,15 @@ pub fn audit_benchmark_split(
                 .insert(group.value.clone());
 
             let key = (group.dimension, group.value.clone());
-            if policy.exclusive_dimensions.contains(&group.dimension) {
-                if group_partitions
+            if policy.exclusive_dimensions.contains(&group.dimension)
+                && group_partitions
                     .insert(key.clone(), sample.partition)
                     .is_some_and(|previous_partition| previous_partition != sample.partition)
-                {
-                    return Err(SplitAuditError::new(
-                        "cross_partition_group_overlap",
-                        format!("{}={}", key.0.as_str(), key.1),
-                    ));
-                }
+            {
+                return Err(SplitAuditError::new(
+                    "cross_partition_group_overlap",
+                    format!("{}={}", key.0.as_str(), key.1),
+                ));
             }
             if policy.shared_dimensions.contains(&group.dimension) {
                 shared_group_partitions
