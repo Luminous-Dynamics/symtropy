@@ -600,10 +600,7 @@ mod tests {
             vec![right],
             vec![pair("l-a", "r-a", IdentityBasis::DirectedDyad)],
         );
-        assert_eq!(
-            set.assess(),
-            Err(CorrespondenceError::DirectedDyadMismatch)
-        );
+        assert_eq!(set.assess(), Err(CorrespondenceError::DirectedDyadMismatch));
     }
 
     #[test]
@@ -646,11 +643,7 @@ mod tests {
 
     #[test]
     fn correspondence_unknown_is_not_conditionally_absent() {
-        let mut set = one_map(
-            vec![observed("l-a", "ped-a", "slot-1")],
-            vec![],
-            vec![],
-        );
+        let mut set = one_map(vec![observed("l-a", "ped-a", "slot-1")], vec![], vec![]);
         set.hypotheses[0].unmatched_left.push(UnmatchedEvent {
             event_id: id("l-a"),
             reason: UnmatchedReason::CorrespondenceUnknown {
@@ -665,11 +658,7 @@ mod tests {
 
     #[test]
     fn explicitly_unmatched_event_can_be_complete_under_one_hypothesis() {
-        let mut set = one_map(
-            vec![observed("l-a", "ped-a", "slot-1")],
-            vec![],
-            vec![],
-        );
+        let mut set = one_map(vec![observed("l-a", "ped-a", "slot-1")], vec![], vec![]);
         set.hypotheses[0].unmatched_left.push(UnmatchedEvent {
             event_id: id("l-a"),
             reason: UnmatchedReason::NoCounterpartUnderHypothesis {
@@ -751,10 +740,16 @@ mod tests {
         second.left_events.reverse();
         second.right_events.reverse();
         second.hypotheses[0].pairs.reverse();
-        assert_eq!(first.canonical_bytes().unwrap(), second.canonical_bytes().unwrap());
+        assert_eq!(
+            first.canonical_bytes().unwrap(),
+            second.canonical_bytes().unwrap()
+        );
         // Keep this mutable to ensure the test checks serialization, not a shared borrow.
         first.hypotheses[0].justification_ref = id("assumption:changed");
-        assert_ne!(first.canonical_bytes().unwrap(), second.canonical_bytes().unwrap());
+        assert_ne!(
+            first.canonical_bytes().unwrap(),
+            second.canonical_bytes().unwrap()
+        );
     }
 
     #[test]
@@ -773,6 +768,9 @@ mod tests {
             vec![pair("l-a", "r-a", IdentityBasis::Actor)],
         );
         set.hypotheses.push(set.hypotheses[0].clone());
-        assert_eq!(set.assess(), Err(CorrespondenceError::DuplicateHypothesisId));
+        assert_eq!(
+            set.assess(),
+            Err(CorrespondenceError::DuplicateHypothesisId)
+        );
     }
 }
