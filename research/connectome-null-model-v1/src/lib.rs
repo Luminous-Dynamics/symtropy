@@ -194,8 +194,12 @@ impl fmt::Display for NullModelError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyGraph => write!(formatter, "connectome graph is empty"),
-            Self::ResourceLimitExceeded => write!(formatter, "connectome null-model resource limit exceeded"),
-            Self::InvalidIdentifier { field } => write!(formatter, "invalid identifier in field {field}"),
+            Self::ResourceLimitExceeded => {
+                write!(formatter, "connectome null-model resource limit exceeded")
+            }
+            Self::InvalidIdentifier { field } => {
+                write!(formatter, "invalid identifier in field {field}")
+            }
             Self::DuplicateNode(id) => write!(formatter, "duplicate connectome node {id}"),
             Self::UnknownEndpoint(id) => write!(formatter, "edge references unknown node {id}"),
             Self::SelfLoop(id) => write!(formatter, "self-loop at node {id} is not allowed"),
@@ -204,7 +208,9 @@ impl fmt::Display for NullModelError {
             }
             Self::ZeroWeight => write!(formatter, "edge weight must be positive"),
             Self::InvalidConfig => write!(formatter, "invalid null-model swap configuration"),
-            Self::NoEligibleEdgePairs => write!(formatter, "no edge pairs share a swappable cell-type block"),
+            Self::NoEligibleEdgePairs => {
+                write!(formatter, "no edge pairs share a swappable cell-type block")
+            }
             Self::SwapBudgetExhausted {
                 requested,
                 accepted,
@@ -214,7 +220,9 @@ impl fmt::Display for NullModelError {
                 formatter,
                 "swap budget exhausted: accepted {accepted}/{requested} after {attempted} proposals"
             ),
-            Self::InvariantViolation => write!(formatter, "generated graph failed an invariant check"),
+            Self::InvariantViolation => {
+                write!(formatter, "generated graph failed an invariant check")
+            }
         }
     }
 }
@@ -334,8 +342,8 @@ pub fn generate_null_model(
         if edge_indices.len() < 2 {
             continue;
         }
-        let edge_count = u64::try_from(edge_indices.len())
-            .map_err(|_| NullModelError::ResourceLimitExceeded)?;
+        let edge_count =
+            u64::try_from(edge_indices.len()).map_err(|_| NullModelError::ResourceLimitExceeded)?;
         let pair_count = edge_count
             .checked_mul(edge_count - 1)
             .and_then(|value| value.checked_div(2))
@@ -433,8 +441,7 @@ pub fn generate_null_model(
         .filter(|edge| !original_edges.contains(&(edge.source.clone(), edge.target.clone())))
         .count();
     let acceptance_rate_per_million = u64::try_from(
-        (u128::from(accepted_swaps) * 1_000_000_u128)
-            / u128::from(attempted_proposals),
+        (u128::from(accepted_swaps) * 1_000_000_u128) / u128::from(attempted_proposals),
     )
     .map_err(|_| NullModelError::ResourceLimitExceeded)?;
 
@@ -458,10 +465,7 @@ pub fn generate_null_model(
     })
 }
 
-fn validate_config(
-    input: &ConnectomeGraph,
-    config: NullModelConfig,
-) -> Result<(), NullModelError> {
+fn validate_config(input: &ConnectomeGraph, config: NullModelConfig) -> Result<(), NullModelError> {
     if config.requested_accepted_swaps == 0
         || config.requested_accepted_swaps > MAX_ACCEPTED_SWAPS
         || config.attempt_budget < config.requested_accepted_swaps
@@ -505,9 +509,7 @@ fn validate_graph(graph: &ConnectomeGraph) -> Result<GraphInvariants, NullModelE
             return Err(NullModelError::InvalidIdentifier { field: "node_id" });
         }
         if !valid_identifier(&node.cell_type) {
-            return Err(NullModelError::InvalidIdentifier {
-                field: "cell_type",
-            });
+            return Err(NullModelError::InvalidIdentifier { field: "cell_type" });
         }
         if node_types
             .insert(node.id.clone(), node.cell_type.clone())
@@ -567,8 +569,7 @@ fn build_invariants(
     for edge in &graph.edges {
         *out_degree.entry(edge.source.clone()).or_insert(0) += 1;
         *in_degree.entry(edge.target.clone()).or_insert(0) += 1;
-        *source_strength.entry(edge.source.clone()).or_insert(0) +=
-            u128::from(edge.weight_units);
+        *source_strength.entry(edge.source.clone()).or_insert(0) += u128::from(edge.weight_units);
         *source_weight_counts
             .entry((edge.source.clone(), edge.weight_units))
             .or_insert(0) += 1;
@@ -586,12 +587,7 @@ fn build_invariants(
         );
         *block_counts.entry(block.clone()).or_insert(0) += 1;
         *block_weight_counts
-            .entry((
-                block.0,
-                block.1,
-                block.2,
-                edge.weight_units,
-            ))
+            .entry((block.0, block.1, block.2, edge.weight_units))
             .or_insert(0) += 1;
     }
 
@@ -610,10 +606,7 @@ fn build_invariants(
     })
 }
 
-fn compare_invariants(
-    input: &GraphInvariants,
-    output: &GraphInvariants,
-) -> InvariantReport {
+fn compare_invariants(input: &GraphInvariants, output: &GraphInvariants) -> InvariantReport {
     InvariantReport {
         node_identity_and_type_preserved: input.node_identity_and_type
             == output.node_identity_and_type,
@@ -628,10 +621,7 @@ fn compare_invariants(
     }
 }
 
-fn select_bucket(
-    buckets: &[EdgeBucket],
-    mut ticket: u64,
-) -> Result<&EdgeBucket, NullModelError> {
+fn select_bucket(buckets: &[EdgeBucket], mut ticket: u64) -> Result<&EdgeBucket, NullModelError> {
     for bucket in buckets {
         if ticket < bucket.pair_count {
             return Ok(bucket);
@@ -943,6 +933,9 @@ mod tests {
         assert!(sample.receipt.invariants.cell_type_blocks_preserved);
         let input_invariants = validate_graph(&input).expect("input");
         let output_invariants = validate_graph(&sample.graph).expect("output");
-        assert_eq!(input_invariants.block_counts, output_invariants.block_counts);
+        assert_eq!(
+            input_invariants.block_counts,
+            output_invariants.block_counts
+        );
     }
 }
