@@ -85,7 +85,11 @@
         "state_order",
         "model_digest",
         "training_data_digest",
-        "trace"
+        "trace",
+        "execution_environment_digest",
+        "runtime_median_ms",
+        "runtime_p95_ms",
+        "peak_memory_bytes"
       ],
       "properties": {
         "candidate_id": {
@@ -117,6 +121,21 @@
         },
         "trace": {
           "$ref": "#/$defs/trace"
+        },
+        "execution_environment_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "runtime_median_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "runtime_p95_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_memory_bytes": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
@@ -178,7 +197,10 @@
         "reference",
         "energy_channel_ids",
         "candidates",
-        "acceptance"
+        "acceptance",
+        "execution_environment_digest",
+        "reference_runtime_median_ms",
+        "reference_runtime_p95_ms"
       ],
       "properties": {
         "case_id": {
@@ -220,6 +242,17 @@
         },
         "acceptance": {
           "$ref": "#/$defs/acceptance"
+        },
+        "execution_environment_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "reference_runtime_median_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reference_runtime_p95_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     },
