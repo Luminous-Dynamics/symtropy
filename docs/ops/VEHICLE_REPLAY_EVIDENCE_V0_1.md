@@ -125,3 +125,6 @@ A straight-crossing V0.1 actor may use the narrower state command only when fixe
 
 
 **V0.2 review note (2026-11-04):** Full-pose replay is an additive command-vocabulary revision. Replay-tape domain v3 is required for the added pose variant; receipts and reports must preserve the exact source head and schema identity. The fixed-heading state command remains explicitly narrower.
+
+
+The replay-harness integration target is part of the required CI contract: a passing library-only test command does not qualify the receipt/pose integration tests.
