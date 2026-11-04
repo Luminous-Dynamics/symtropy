@@ -499,6 +499,17 @@ impl DecisionClosureRecord {
             }
         }
 
+        if self.human_authority_receipt_id.is_none() {
+            return Err(DecisionClosureError::MissingAuthorityReceipt);
+        }
+        if self.human_actor_ref.is_none() {
+            return Err(DecisionClosureError::InvalidReference("human_actor_ref"));
+        }
+
+        validate_optional_reference(&self.human_authority_receipt_id, "human_authority_receipt_id")?;
+        validate_optional_reference(&self.human_actor_ref, "human_actor_ref")?;
+        validate_optional_reference(&self.executor_identity_ref, "executor_identity_ref")?;
+        validate_optional_reference(&self.verifier_identity_ref, "verifier_identity_ref")?;
         validate_optional_reference(&self.acquisition_receipt_id, "acquisition_receipt_id")?;
         validate_optional_reference(&self.resource_receipt_id, "resource_receipt_id")?;
         validate_optional_reference(&self.workflow_receipt_id, "workflow_receipt_id")?;
@@ -530,6 +541,9 @@ impl DecisionClosureRecord {
         }
 
         if self.action_progress != ActionProgress::NotStarted {
+            if self.executor_identity_ref.is_none() {
+                return Err(DecisionClosureError::MissingExecutorIdentity);
+            }
             if self.resource_feasibility != ResourceFeasibility::FeasibleAndReserved {
                 return Err(DecisionClosureError::ActionAfterFeasibilityRejection);
             }
@@ -547,10 +561,6 @@ impl DecisionClosureRecord {
             return Err(DecisionClosureError::MissingResourceReceipt);
         }
 
-        if self.action_progress == ActionProgress::Cancelled && self.workflow_receipt_id.is_none() {
-            return Err(DecisionClosureError::MissingWorkflowReceipt);
-        }
-
         if self.action_progress == ActionProgress::IndependentlyVerified
             && self.verification_receipt_id.is_none()
         {
@@ -563,17 +573,51 @@ impl DecisionClosureRecord {
             return Err(DecisionClosureError::VerificationWithoutVerifiedStage);
         }
 
-        match self.resource_feasibility {
-            ResourceFeasibility::NotAttempted
-            | ResourceFeasibility::RejectedNoCapacity
-            | ResourceFeasibility::RejectedMissingPart
-            | ResourceFeasibility::RejectedBudget
-            | ResourceFeasibility::RejectedEnergyOrAccess => {
-                if self.action_progress != ActionProgress::NotStarted {
-                    return Err(DecisionClosureError::ActionAfterFeasibilityRejection);
-                }
+        if self.action_progress == ActionProgress::IndependentlyVerified {
+            let Some(verifier) = self.verifier_identity_ref.as_deref() else {
+                return Err(DecisionClosureError::MissingVerifierIdentity);
+            };
+            if self.executor_identity_ref.as_deref() == Some(verifier) {
+                return Err(DecisionClosureError::VerifierNotIndependent);
             }
-            ResourceFeasibility::FeasibleAndReserved => {}
+        } else if self.verifier_identity_ref.is_some() {
+            return Err(DecisionClosureError::VerificationWithoutVerifiedStage);
+        }
+
+        match (
+            self.action_progress,
+            self.resource_feasibility,
+            self.resource_settlement,
+        ) {
+            (
+                ActionProgress::NotStarted,
+                ResourceFeasibility::NotAttempted,
+                ResourceSettlement::NotAttempted,
+            ) => {}
+            (
+                ActionProgress::NotStarted,
+                ResourceFeasibility::RejectedNoCapacity
+                    | ResourceFeasibility::RejectedMissingPart
+                    | ResourceFeasibility::RejectedBudget
+                    | ResourceFeasibility::RejectedEnergyOrAccess,
+                ResourceSettlement::Rejected,
+            ) => {}
+            (
+                ActionProgress::NotStarted | ActionProgress::Planned | ActionProgress::InProgress,
+                ResourceFeasibility::FeasibleAndReserved,
+                ResourceSettlement::Reserved,
+            ) => {}
+            (
+                ActionProgress::RepairClaimed | ActionProgress::IndependentlyVerified,
+                ResourceFeasibility::FeasibleAndReserved,
+                ResourceSettlement::Settled,
+            ) => {}
+            (
+                ActionProgress::Cancelled,
+                ResourceFeasibility::FeasibleAndReserved,
+                ResourceSettlement::Released,
+            ) => {}
+            _ => return Err(DecisionClosureError::ResourceSettlementMismatch),
         }
 
         if is_service_claim(self.service_effect) {
@@ -610,6 +654,7 @@ impl DecisionClosureRecord {
             return Err(DecisionClosureError::ImprovementWithoutVerifiedAction);
         }
 
+        validate_receipt_bindings(self)?;
         Ok(())
     }
 
