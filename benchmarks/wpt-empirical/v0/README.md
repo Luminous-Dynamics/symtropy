@@ -398,3 +398,18 @@ This is an important architecture result, but not a published high-power EV perf
 Related work already in the catalogue: a separate 50 W 2026 communication-free CC/CV reflected-impedance prototype reports <6.4% mutual-inductance estimation error, <=3.1% equivalent-load estimation error and <1% CC/CV regulation error under tested misalignment (DOI 10.1109/JESTPE.2026.3694075). The two approaches are complementary but not yet a matched benchmark comparison: one focuses on joint Lp/Ls/M/R_eq identification and frequency/ZVS adaptation; the other focuses on reflected-impedance decoupling and CC/CV regulation.
 
 The follow-on benchmark is [WPT-SELF-IDENTIFICATION-001 #3512](https://github.com/Luminous-Dynamics/symtropy/issues/3512). Its central idea is to separate a secure session/authorization plane from a fast local estimation/control plane. This does not mean removing authentication or safety communications; it means testing whether fast coupling-state regulation can remain stable without a live secondary telemetry dependency.
+
+
+### IEC PAS 61980-4 frequency-class and interoperability nuance (secondary preview)
+
+The official IEC webstore page confirms that PAS 61980-4:2025 is the stationary high-power MF-WPT off-board equipment document. A publicly indexed non-IEC text preview of its clauses gives additional detail not shown in the official summary:
+- Compatibility class A is intended for interoperable application; class B is not intended for interoperable application but still has safety requirements.
+- The preview states class A fundamental-frequency range 79–90 kHz; class B allows 79–90 kHz or 19–21 kHz.
+- The preview reproduces rated-input power bands MF-WPT4 11.1–22 kW, MF-WPT5 22–50 kW, MF-WPT6 50–100 kW, MF-WPT7 100–150 kW, MF-WPT8 150–250 kW and MF-WPT9 250–500 kW.
+
+**Evidence hierarchy:** the official IEC catalogue confirms title, publication date and stationary high-power scope. The frequency-class and power-band details above are secondary-preview extraction and must be checked clause-by-clause against a licensed official copy before a normative test plan or product assessment uses them. The catalogue records the distinction as preview evidence, not as a compliance decision.
+
+**Design consequence:** the Zhang 30 kW / 20 kHz VA configuration is a candidate for investigation against the PAS's class-B frequency range, while 85 kHz lies in the class-A range. But the paper's 30 kW value is a vehicle-side VA nominal rating, not the measured/rated off-board input power used for the IEC class table; therefore no MF-WPT power class is assigned. More importantly, class B is explicitly not intended for interoperable application in the preview. The paper's support for three VAs on one ground-side platform demonstrates within-platform power-class compatibility; it does not by itself demonstrate the standards' class-A cross-vendor interoperability claim.
+
+The highest-value next test is a **class-A/class-B compatibility separation**: independently verify each network's frequency, input rated power, receiver class, FOD/EMF/EMC and cross-vendor pairing, while testing the class-B 20 kHz mode for safety without calling it interoperable under the PAS's class-A definition.
+
