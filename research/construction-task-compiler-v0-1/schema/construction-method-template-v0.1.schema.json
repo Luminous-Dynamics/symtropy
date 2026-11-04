@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-method-template-v0.1.schema.json",
+  "title": "Approved Construction Method Template V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "template_id",
+    "revision_digest",
+    "approval_ref",
+    "supported_task_families",
+    "steps"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "template_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "approval_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "supported_task_families": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/method_step"
+      }
+    }
+  },
+  "$defs": {
+    "conversion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "converted_value",
+        "evidence_ref"
+      ],
+      "properties": {
+        "converted_value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "parameter_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_name",
+        "source_property",
+        "target_unit"
+      ],
+      "properties": {
+        "target_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_property": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conversion": {
+          "$ref": "#/$defs/conversion"
+        }
+      }
+    },
+    "method_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id",
+        "functional_unit_class",
+        "transformation_rule_id",
+        "transformation_rule_digest",
+        "dependencies",
+        "parameters",
+        "required_capabilities",
+        "preconditions",
+        "postconditions",
+        "required_evidence"
+      ],
+      "properties": {
+        "step_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functional_unit_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transformation_rule_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transformation_rule_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependencies": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter_mapping"
+          }
+        },
+        "required_capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "preconditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "postconditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
