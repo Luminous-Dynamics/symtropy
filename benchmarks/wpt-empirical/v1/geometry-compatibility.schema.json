@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v1/geometry-compatibility.schema.json",
   "title": "WPT Geometry Compatibility Envelope v1",
-  "description": "A cross-generation GA/VA compatibility envelope with explicit geometry coordinates, sampling evidence and a coupling-range metric. Coupling range is not efficiency.",
+  "description": "A cross-generation GA/VA compatibility envelope with explicit geometry coordinates, sampling evidence and coupling-range metrics. Coupling range is not efficiency.",
   "type": "object",
   "additionalProperties": false,
   "required": [
