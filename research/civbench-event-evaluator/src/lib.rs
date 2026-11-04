@@ -282,7 +282,7 @@ impl EvaluationReport {
     }
 }
 
-fn option_i64(value: Option<i64>) -> String {
+fn match_kind_rank(kind: MatchKind) -> u8 {\n    match kind {\n        MatchKind::Timely => 0,\n        MatchKind::Late => 1,\n    }\n}\n\nfn option_i64(value: Option<i64>) -> String {
     value.map_or_else(|| "none".to_owned(), |v| v.to_string())
 }
 
@@ -377,12 +377,12 @@ fn validate_inputs(
     for event in events {
         insert_unique(&mut event_ids, &event.event_id, "event_id")?;
         if !valid_id(&event.scenario_id) || !valid_id(&event.source_id) {
-            return Err(EvaluationError::new("empty_event_source_or_scenario", &event.event_id));
+            return Err(EvaluationError::new("empty_event_source_or_scenario", event.event_id.as_str()));
         }
         if event.onset_ms > event.end_ms
             || event.end_ms > config.monitored_duration_ms
         {
-            return Err(EvaluationError::new("invalid_event_interval", &event.event_id));
+            return Err(EvaluationError::new("invalid_event_interval", event.event_id.as_str()));
         }
         scenario_ids.insert(event.scenario_id.clone());
     }
@@ -396,7 +396,7 @@ fn validate_inputs(
         {
             return Err(EvaluationError::new(
                 "invalid_unknown_interval",
-                &interval.interval_id,
+                interval.interval_id.as_str(),
             ));
         }
         scenario_ids.insert(interval.scenario_id.clone());
@@ -406,14 +406,14 @@ fn validate_inputs(
     for alarm in alarms {
         insert_unique(&mut alarm_ids, &alarm.alarm_id, "alarm_id")?;
         if !valid_id(&alarm.scenario_id) || !valid_id(&alarm.source_id) {
-            return Err(EvaluationError::new("empty_alarm_source_or_scenario", &alarm.alarm_id));
+            return Err(EvaluationError::new("empty_alarm_source_or_scenario", alarm.alarm_id.as_str()));
         }
         if alarm.start_ms > config.monitored_duration_ms
             || alarm.clear_ms.is_some_and(|end| {
                 end < alarm.start_ms || end > config.monitored_duration_ms
             })
         {
-            return Err(EvaluationError::new("invalid_alarm_interval", &alarm.alarm_id));
+            return Err(EvaluationError::new("invalid_alarm_interval", alarm.alarm_id.as_str()));
         }
         scenario_ids.insert(alarm.scenario_id.clone());
     }
@@ -457,44 +457,35 @@ fn build_episodes(
         let mut current: Option<Episode> = None;
         for alarm in group {
             let alarm_end = alarm.clear_ms.unwrap_or(config.monitored_duration_ms);
-            match current.as_mut() {
-                Some(episode)
-                    if alarm.start_ms <= episode.end_ms.saturating_add(config.merge_gap_ms) =>
-                {
+            let should_merge = current.as_ref().is_some_and(|episode| {
+                alarm.start_ms <= episode.end_ms.saturating_add(config.merge_gap_ms)
+            });
+
+            if should_merge {
+                if let Some(episode) = current.as_mut() {
                     episode.end_ms = episode.end_ms.max(alarm_end);
                     episode.class = combine_class(episode.class, alarm.class);
                     episode.constituent_alarm_ids.push(alarm.alarm_id.clone());
                 }
-                Some(_) => {
-                    if let Some(mut finished) = current.take() {
-                        finished.constituent_alarm_ids.sort();
-                        finished.episode_id =
-                            format!("episode:{}", finished.constituent_alarm_ids[0]);
-                        episodes.push(finished);
-                    }
-                    current = Some(Episode {
-                        episode_id: String::new(),
-                        scenario_id: scenario_id.clone(),
-                        source_id: source_id.clone(),
-                        class: alarm.class,
-                        start_ms: alarm.start_ms,
-                        end_ms: alarm_end,
-                        constituent_alarm_ids: vec![alarm.alarm_id.clone()],
-                    });
-                }
-                None => {
-                    current = Some(Episode {
-                        episode_id: String::new(),
-                        scenario_id: scenario_id.clone(),
-                        source_id: source_id.clone(),
-                        class: alarm.class,
-                        start_ms: alarm.start_ms,
-                        end_ms: alarm_end,
-                        constituent_alarm_ids: vec![alarm.alarm_id.clone()],
-                    });
-                }
+                continue;
             }
+
+            if let Some(mut finished) = current.take() {
+                finished.constituent_alarm_ids.sort();
+                finished.episode_id = format!("episode:{}", finished.constituent_alarm_ids[0]);
+                episodes.push(finished);
+            }
+            current = Some(Episode {
+                episode_id: String::new(),
+                scenario_id: scenario_id.clone(),
+                source_id: source_id.clone(),
+                class: alarm.class,
+                start_ms: alarm.start_ms,
+                end_ms: alarm_end,
+                constituent_alarm_ids: vec![alarm.alarm_id.clone()],
+            });
         }
+
         if let Some(mut finished) = current {
             finished.constituent_alarm_ids.sort();
             finished.episode_id = format!("episode:{}", finished.constituent_alarm_ids[0]);
@@ -789,7 +780,7 @@ pub fn evaluate(
     let timely_event_ids: BTreeSet<&str> = matches
         .iter()
         .filter(|record| record.kind == MatchKind::Timely)
-        .map(|record| record.event_id.as_str())
+        .map(|record| record.event_id.clone())
         .collect();
     let late_event_ids: BTreeSet<&str> = matches
         .iter()
@@ -797,10 +788,10 @@ pub fn evaluate(
         .map(|record| record.event_id.as_str())
         .collect();
     for event in events {
-        if !timely_event_ids.contains(event.event_id.as_str()) {
+        if !timely_event_ids.contains(&event.event_id) {
             missed_event_ids.push(event.event_id.clone());
         }
-        if late_event_ids.contains(event.event_id.as_str()) {
+        if late_event_ids.contains(&event.event_id) {
             late_event_count += 1;
         }
     }
@@ -881,13 +872,7 @@ pub fn evaluate(
     matches.sort_by(|a, b| {
         a.event_id
             .cmp(&b.event_id)
-            .then_with(|| match a.kind {
-                MatchKind::Timely => 0_u8,
-                MatchKind::Late => 1_u8,
-            }.cmp(&match b.kind {
-                MatchKind::Timely => 0_u8,
-                MatchKind::Late => 1_u8,
-            }))
+            .then_with(|| match_kind_rank(a.kind).cmp(&match_kind_rank(b.kind)))
     });
     missed_event_ids.sort();
 
