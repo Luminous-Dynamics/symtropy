@@ -246,11 +246,13 @@ fn kinematic_pose_updates_orientation_and_replays_in_a_fresh_world() {
     let mut tape = ReplayTape::<3>::default();
     tape.push_frame(1.0 / 64.0, vec![pose_command(actor, rotation.clone(), 0.125)]);
 
-    let receipt =
-        execute_with_evidence(&mut record_world, &tape, &evidence_context()).unwrap();
+    let receipt = execute_with_evidence(&mut record_world, &tape, &evidence_context()).unwrap();
     let recorded = record_world.body(actor).unwrap();
     assert_eq!(*recorded.transform.rotation.to_matrix(), *rotation.to_matrix());
-    assert_eq!(recorded.transform.translation.0, SVector::from([0.125, 0.0, 0.0]));
+    assert_eq!(
+        recorded.transform.translation.0,
+        SVector::from([0.125, 0.0, 0.0])
+    );
 
     let mut replay_world = PhysicsWorld::<3>::default();
     let replay_actor = add_kinematic_actor(&mut replay_world);
@@ -340,7 +342,6 @@ fn changing_kinematic_orientation_invalidates_the_old_receipt() {
     .unwrap());
 }
 
-
 fn state_command(body: BodyHandle, x: f64) -> WorldCommand<3> {
     WorldCommand::SetKinematicState {
         body,
@@ -357,12 +358,18 @@ fn kinematic_translation_state_replays_in_a_fresh_world() {
     tape.push_frame(1.0 / 64.0, vec![state_command(actor, 0.125)]);
     let context = evidence_context();
     let receipt = execute_with_evidence(&mut record_world, &tape, &context).unwrap();
-    assert_eq!(record_world.body(actor).unwrap().transform.translation.0, SVector::from([0.125, 0.0, 0.0]));
+    assert_eq!(
+        record_world.body(actor).unwrap().transform.translation.0,
+        SVector::from([0.125, 0.0, 0.0])
+    );
 
     let mut replay_world = PhysicsWorld::<3>::default();
     let replay_actor = add_kinematic_actor(&mut replay_world);
-    assert!(verify_replay_evidence(&mut replay_world, &tape, &context, &receipt).unwrap());
-    assert_eq!(replay_world.body(replay_actor).unwrap().transform.translation.0, SVector::from([0.125, 0.0, 0.0]));
+    assert!(verify_replay_evidence(&mut replay_world, &tape, &context, &receipt,).unwrap());
+    assert_eq!(
+        replay_world.body(replay_actor).unwrap().transform.translation.0,
+        SVector::from([0.125, 0.0, 0.0])
+    );
 }
 
 #[test]
@@ -412,5 +419,11 @@ fn changed_kinematic_translation_invalidates_old_receipt() {
     let changed_actor = add_kinematic_actor(&mut changed_world);
     let mut changed = ReplayTape::<3>::default();
     changed.push_frame(1.0 / 64.0, vec![state_command(changed_actor, 0.25)]);
-    assert!(!verify_replay_evidence(&mut changed_world, &changed, &context, &receipt).unwrap());
+    assert!(!verify_replay_evidence(
+        &mut changed_world,
+        &changed,
+        &context,
+        &receipt,
+    )
+    .unwrap());
 }
