@@ -45,7 +45,7 @@ jobs:
           if-no-files-found: error
           retention-days: 2
       - name: Commit formatted source to one-time diagnostic branch
-        if: always() && github.head_ref == 'qual/construction-accepted-output-rustfmt-final' && github.event.pull_request.head.repo.full_name == github.repository
+        if: always() && github.head_ref == 'qual/construction-accepted-output-rustfmt-run' && github.event.pull_request.head.repo.full_name == github.repository
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
