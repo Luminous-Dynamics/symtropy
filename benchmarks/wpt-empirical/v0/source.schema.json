@@ -56,7 +56,8 @@
         "peer_reviewed_article",
         "survey_article",
         "standard",
-        "other"
+        "other",
+        "preprint"
       ]
     },
     "rights_status": {
