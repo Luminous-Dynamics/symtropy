@@ -294,6 +294,9 @@ pub enum AdapterError {
     MissingConnectomeSnapshot {
         source_id: String,
     },
+    MissingMeasurementSnapshot {
+        source_id: String,
+    },
     IncompleteUnknownEndpointInventory {
         source_id: String,
     },
@@ -436,7 +439,15 @@ fn validate_source(source: &SourceManifest) -> Result<(), AdapterError> {
     }
 
     match source.evidence_class {
-        EvidenceClass::SyntheticFixture | EvidenceClass::InSilicoGenerated => {}
+        EvidenceClass::SyntheticFixture => {}
+        EvidenceClass::InSilicoGenerated => {
+            if source.kind != SourceKind::SimulationCode {
+                return Err(AdapterError::InvalidEvidenceClaim {
+                    hypothesis_id: source.id.clone(),
+                    claim: ClaimCeiling::InSilicoReproduction,
+                });
+            }
+        }
         EvidenceClass::ConnectomeDerived => {
             if source.kind != SourceKind::Connectome {
                 return Err(AdapterError::InvalidEvidenceClaim {
@@ -446,6 +457,16 @@ fn validate_source(source: &SourceManifest) -> Result<(), AdapterError> {
             }
         }
         EvidenceClass::PreprintMeasured | EvidenceClass::PeerReviewedMeasured => {
+            if source.dataset_id.as_deref().is_none_or(str::is_empty)
+                || source
+                    .release_or_materialization
+                    .as_deref()
+                    .is_none_or(str::is_empty)
+            {
+                return Err(AdapterError::MissingMeasurementSnapshot {
+                    source_id: source.id.clone(),
+                });
+            }
             if !matches!(
                 source.kind,
                 SourceKind::NeuralMeasurement
@@ -789,7 +810,9 @@ impl LocomotionKernelSpec {
             if !matches!(
                 protocol_source.kind,
                 SourceKind::ExperimentalProtocol | SourceKind::SyntheticFixture
-            ) {
+            ) && !(protocol_source.kind == SourceKind::SimulationCode
+                && protocol_source.evidence_class == EvidenceClass::InSilicoGenerated)
+            {
                 return Err(AdapterError::MissingProtocolSource {
                     action_id: action.id.clone(),
                 });
@@ -1791,6 +1814,53 @@ mod tests {
             }
             other => panic!("expected reference action first, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn measured_sources_require_dataset_and_release_identity() {
+        let mut input = spec_with_measured_source();
+        let source = input
+            .source_manifests
+            .iter_mut()
+            .find(|source| source.id == "peer-reviewed-neural-source")
+            .unwrap();
+        source.dataset_id = None;
+        assert!(matches!(
+            input.compile(),
+            Err(AdapterError::MissingMeasurementSnapshot { source_id })
+                if source_id == "peer-reviewed-neural-source"
+        ));
+    }
+
+    #[test]
+    fn in_silico_evidence_requires_a_simulation_code_source() {
+        let mut input = spec();
+        input.source_manifests.push(SourceManifest {
+            id: "in-silico-neural-source".to_owned(),
+            kind: SourceKind::NeuralMeasurement,
+            evidence_class: EvidenceClass::InSilicoGenerated,
+            citation_or_source_uri: "https://example.org/synthetic-simulation".to_owned(),
+            dataset_id: Some("simulated-recordings".to_owned()),
+            release_or_materialization: Some("sim-v1".to_owned()),
+            sha256: Some(sha('8')),
+            unknown_endpoint_inventory_complete: true,
+            unknown_endpoints: vec![],
+        });
+        input.source_pins.push(SourceDigestPin {
+            source_manifest_id: "in-silico-neural-source".to_owned(),
+            expected_sha256: sha('8'),
+        });
+        input.hypotheses[0]
+            .source_manifest_ids
+            .push("in-silico-neural-source".to_owned());
+        input.hypotheses[0].claim_ceiling = ClaimCeiling::InSilicoReproduction;
+        assert!(matches!(
+            input.compile(),
+            Err(AdapterError::InvalidEvidenceClaim {
+                claim: ClaimCeiling::InSilicoReproduction,
+                ..
+            })
+        ));
     }
 
     #[test]
