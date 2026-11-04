@@ -360,9 +360,13 @@ impl MatrixAtlas {
             let margin_deficit = (policy.minimum_required_eigenvalue_margin_h
                 - conservative_margin)
                 .max(0.0);
+            let endpoint_scale = left
+                .minimum_eigenvalue_lower_bound_h
+                .max(right.minimum_eigenvalue_lower_bound_h);
             let margin_scale = policy
                 .minimum_required_eigenvalue_margin_h
-                .max(f64::MIN_POSITIVE);
+                .max(0.01 * endpoint_scale)
+                .max(1e-15);
             let margin_ratio = margin_deficit / margin_scale;
 
             let mut triggers = Vec::new();
