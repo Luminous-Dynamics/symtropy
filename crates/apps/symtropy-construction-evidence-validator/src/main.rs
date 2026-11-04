@@ -21,13 +21,16 @@ fn run() -> Result<(), String> {
         if !key.starts_with("--") {
             return Err(format!("unexpected argument: {key}\n{}", usage()));
         }
-        let value = args.next().ok_or_else(|| format!("missing value for {key}\n{}", usage()))?;
+        let value = args
+            .next()
+            .ok_or_else(|| format!("missing value for {key}\n{}", usage()))?;
         if values.insert(key.clone(), value).is_some() {
             return Err(format!("duplicate argument: {key}"));
         }
     }
 
-    let packet_path = values.remove("--packet")
+    let packet_path = values
+        .remove("--packet")
         .ok_or_else(|| format!("required argument --packet is missing\n{}", usage()))?;
     let output_path = values.remove("--output");
     if let Some((unknown, _)) = values.into_iter().next() {
