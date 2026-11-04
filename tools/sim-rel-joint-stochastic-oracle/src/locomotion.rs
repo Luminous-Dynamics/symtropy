@@ -807,11 +807,11 @@ impl LocomotionKernelSpec {
                 action_id: action.id.clone(),
             })?;
             let protocol_source = &self.source_manifests[protocol_source_index];
-            if !matches!(
+            if !(matches!(
                 protocol_source.kind,
                 SourceKind::ExperimentalProtocol | SourceKind::SyntheticFixture
-            ) && !(protocol_source.kind == SourceKind::SimulationCode
-                && protocol_source.evidence_class == EvidenceClass::InSilicoGenerated)
+            ) || (protocol_source.kind == SourceKind::SimulationCode
+                && protocol_source.evidence_class == EvidenceClass::InSilicoGenerated))
             {
                 return Err(AdapterError::MissingProtocolSource {
                     action_id: action.id.clone(),
