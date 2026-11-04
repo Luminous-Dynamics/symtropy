@@ -1322,17 +1322,21 @@ mod tests {
             AcquisitionState::Calibrated,
             AcquisitionState::PositiveOffset,
         ];
-        let presynaptic_states = [
-            PresynapticMovementInhibition::Disinhibited,
-            PresynapticMovementInhibition::Engaged,
-        ];
         let mut states = Vec::new();
         for position in channels {
             for movement in channels {
                 for vib in vibration {
                     for contact in channels {
                         for acquisition_state in acquisition {
-                            for presynaptic in presynaptic_states {
+                            for inhibition_mask in 0_u8..64 {
+                                let presynaptic_movement_inhibition =
+                                    std::array::from_fn(|leg_index| {
+                                        if inhibition_mask & (1 << leg_index) == 0 {
+                                            PresynapticMovementInhibition::Disinhibited
+                                        } else {
+                                            PresynapticMovementInhibition::Engaged
+                                        }
+                                    });
                                 let mut sensor = SensorState {
                                     id: String::new(),
                                     position_afferent: position,
@@ -1340,7 +1344,7 @@ mod tests {
                                     vibration_afferent: vib,
                                     contact_feedback: contact,
                                     acquisition: acquisition_state,
-                                    presynaptic_movement_inhibition: presynaptic,
+                                    presynaptic_movement_inhibition,
                                 };
                                 sensor.id = sensor_state_semantic_id(&sensor);
                                 states.push(sensor);
@@ -1403,6 +1407,7 @@ mod tests {
                 protocol_id: "protocol-active-probe".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                target_leg: Some(LegId::FrontLeft),
                 presynaptic_inhibition_target: None,
             },
             InterventionAction {
@@ -1411,6 +1416,7 @@ mod tests {
                 protocol_id: "protocol-reference-calibration".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                target_leg: None,
                 presynaptic_inhibition_target: None,
             },
             InterventionAction {
@@ -1419,6 +1425,7 @@ mod tests {
                 protocol_id: "protocol-movement-gate".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                target_leg: None,
                 presynaptic_inhibition_target: None,
             },
             InterventionAction {
@@ -1427,6 +1434,7 @@ mod tests {
                 protocol_id: "protocol-position-perturbation".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                target_leg: None,
                 presynaptic_inhibition_target: None,
             },
             InterventionAction {
@@ -1435,6 +1443,7 @@ mod tests {
                 protocol_id: "protocol-vibration-perturbation".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                target_leg: None,
                 presynaptic_inhibition_target: None,
             },
             InterventionAction {
@@ -1443,6 +1452,7 @@ mod tests {
                 protocol_id: "protocol-contact-load".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                target_leg: None,
                 presynaptic_inhibition_target: None,
             },
             InterventionAction {
@@ -1451,6 +1461,7 @@ mod tests {
                 protocol_id: "protocol-passive-probe".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                target_leg: Some(LegId::FrontLeft),
                 presynaptic_inhibition_target: None,
             },
             InterventionAction {
@@ -1459,6 +1470,7 @@ mod tests {
                 protocol_id: "protocol-descending-engage".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                target_leg: Some(LegId::FrontLeft),
                 presynaptic_inhibition_target: Some(PresynapticMovementInhibition::Engaged),
             },
             InterventionAction {
@@ -1467,6 +1479,25 @@ mod tests {
                 protocol_id: "protocol-descending-release".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                target_leg: Some(LegId::FrontLeft),
+                presynaptic_inhibition_target: Some(PresynapticMovementInhibition::Disinhibited),
+            },
+            InterventionAction {
+                id: "descending-inhibition-engage-front-right".to_owned(),
+                kind: InterventionKind::DescendingPathwayModulation,
+                protocol_id: "protocol-descending-engage-front-right".to_owned(),
+                protocol_source_manifest_id: "synthetic-protocols".to_owned(),
+                cost_units: 1,
+                target_leg: Some(LegId::FrontRight),
+                presynaptic_inhibition_target: Some(PresynapticMovementInhibition::Engaged),
+            },
+            InterventionAction {
+                id: "descending-inhibition-release-front-right".to_owned(),
+                kind: InterventionKind::DescendingPathwayModulation,
+                protocol_id: "protocol-descending-release-front-right".to_owned(),
+                protocol_source_manifest_id: "synthetic-protocols".to_owned(),
+                cost_units: 1,
+                target_leg: Some(LegId::FrontRight),
                 presynaptic_inhibition_target: Some(PresynapticMovementInhibition::Disinhibited),
             },
             InterventionAction {
@@ -1475,6 +1506,7 @@ mod tests {
                 protocol_id: "protocol-washout".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                target_leg: None,
                 presynaptic_inhibition_target: None,
             },
         ];
@@ -1533,8 +1565,9 @@ mod tests {
                             && sensor.vibration_afferent == ChannelState::Intact
                             && sensor.contact_feedback == ChannelState::Intact
                             && sensor.acquisition == AcquisitionState::PositiveOffset
-                            && sensor.presynaptic_movement_inhibition
-                                == PresynapticMovementInhibition::Disinhibited
+                            && sensor.presynaptic_movement_inhibition.iter().all(|state| {
+                                *state == PresynapticMovementInhibition::Disinhibited
+                            })
                     })
                     .unwrap()
                     .id
@@ -1552,8 +1585,9 @@ mod tests {
                             && sensor.vibration_afferent == ChannelState::Intact
                             && sensor.contact_feedback == ChannelState::Intact
                             && sensor.acquisition == AcquisitionState::Calibrated
-                            && sensor.presynaptic_movement_inhibition
-                                == PresynapticMovementInhibition::Disinhibited
+                            && sensor.presynaptic_movement_inhibition.iter().all(|state| {
+                                *state == PresynapticMovementInhibition::Disinhibited
+                            })
                     })
                     .unwrap()
                     .id
@@ -1701,7 +1735,7 @@ mod tests {
             compiled.source_manifests[0].unknown_endpoints[0].raw_endpoint_id,
             "raw-untyped-endpoint-17"
         );
-        assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 64 * 10);
+        assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 2048 * 12);
         assert_eq!(compiled.transition_rows.len(), compiled.kernel.rows.len());
         compiled.kernel.validate().unwrap();
     }
