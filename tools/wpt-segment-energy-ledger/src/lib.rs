@@ -149,11 +149,24 @@ pub struct PhaseReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct BoundaryReport {
+    pub boundary: EnergyBoundary,
+    pub measurement_id: String,
+    pub meter_id: String,
+    pub measurement_plane_id: String,
+    pub energy_wh: f64,
+    pub deterministic_absolute_bound_wh: f64,
+    pub calibration_receipt_digest: String,
+    pub source_artifact_digest: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SegmentReport {
     pub segment_id: String,
     pub geometry_digest: String,
     pub segment_spc_measurement_id: String,
     pub segment_evpc_measurement_id: String,
+    pub boundary_measurements: Vec<BoundaryReport>,
     pub phases: Vec<PhaseReport>,
     pub spc_input_wh: f64,
     pub evpc_output_wh: f64,
@@ -355,8 +368,16 @@ impl RouteLedger {
 
         let mut boundary_coverage = BTreeMap::<EnergyBoundary, usize>::new();
         for segment in &self.segments {
-            let spc = sum_quantity(segment.phases.iter().map(|phase| &phase.spc_input))?;
-            let evpc = sum_quantity(segment.phases.iter().map(|phase| &phase.evpc_output))?;
+            let phase_spc = sum_quantity(segment.phases.iter().map(|phase| &phase.spc_input))?;
+            let phase_evpc = sum_quantity(segment.phases.iter().map(|phase| &phase.evpc_output))?;
+            let spc = (
+                segment.segment_spc_input.energy_wh,
+                segment.segment_spc_input.deterministic_absolute_bound_wh,
+            );
+            let evpc = (
+                segment.segment_evpc_output.energy_wh,
+                segment.segment_evpc_output.deterministic_absolute_bound_wh,
+            );
             let standard = efficiency_interval(spc.0, evpc.0, spc.1, evpc.1);
             let phase_metrics = segment
                 .phases
@@ -428,16 +449,37 @@ impl RouteLedger {
                 .get(&EnergyBoundary::BatteryTerminalInput)
                 .map(|measurement| measurement.energy_wh);
 
+            let boundary_reports = segment
+                .boundary_measurements
+                .iter()
+                .map(|measurement| BoundaryReport {
+                    boundary: measurement.boundary.clone(),
+                    measurement_id: measurement.quantity.measurement_id.clone(),
+                    meter_id: measurement.quantity.meter_id.clone(),
+                    measurement_plane_id: measurement.quantity.measurement_plane_id.clone(),
+                    energy_wh: measurement.quantity.energy_wh,
+                    deterministic_absolute_bound_wh: measurement
+                        .quantity
+                        .deterministic_absolute_bound_wh,
+                    calibration_receipt_digest: measurement
+                        .quantity
+                        .calibration_receipt_digest
+                        .clone(),
+                    source_artifact_digest: measurement.quantity.source_artifact_digest.clone(),
+                })
+                .collect();
+
             segment_reports.push(SegmentReport {
                 segment_id: segment.segment_id.clone(),
                 geometry_digest: segment.geometry_digest.clone(),
                 segment_spc_measurement_id: segment.segment_spc_input.measurement_id.clone(),
                 segment_evpc_measurement_id: segment.segment_evpc_output.measurement_id.clone(),
+                boundary_measurements: boundary_reports,
                 phases: phase_metrics,
                 spc_input_wh: spc.0,
                 evpc_output_wh: evpc.0,
-                phase_reconciliation_input_error_wh: (spc.0 - segment.segment_spc_input.energy_wh).abs(),
-                phase_reconciliation_output_error_wh: (evpc.0 - segment.segment_evpc_output.energy_wh).abs(),
+                phase_reconciliation_input_error_wh: (phase_spc.0 - segment.segment_spc_input.energy_wh).abs(),
+                phase_reconciliation_output_error_wh: (phase_evpc.0 - segment.segment_evpc_output.energy_wh).abs(),
                 standard_segment_efficiency: standard,
                 inverter_dc_to_vehicle_dc_efficiency: inverter_to_vehicle,
                 grid_ac_to_battery_terminal_efficiency: grid_ac_to_battery_terminal,
@@ -847,6 +889,16 @@ mod tests {
         assert_eq!(report.segments[0].phases.len(), 6);
         assert_eq!(report.segments[0].phases[0].phase, Phase::InverterRise);
         assert_eq!(report.segments[0].phases[5].phase, Phase::InverterFall);
+        assert_eq!(report.segments[0].boundary_measurements.len(), 5);
+        assert_eq!(
+            report.segments[0]
+                .boundary_measurements
+                .iter()
+                .find(|measurement| measurement.boundary == EnergyBoundary::RoadwayInverterDcInput)
+                .unwrap()
+                .energy_wh,
+            70.0
+        );
     }
 
     #[test]
