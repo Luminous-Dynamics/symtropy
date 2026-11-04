@@ -126,7 +126,13 @@ fn cross_network_protocol_rejects_a_shared_network() {
 fn cross_network_protocol_rejects_test_only_topology_family() {
     let samples = vec![
         sample("train-a", DataPartition::Train, 1, "net-1", "topology-1"),
-        sample("validation-a", DataPartition::Validation, 2, "net-2", "topology-1"),
+        sample(
+            "validation-a",
+            DataPartition::Validation,
+            2,
+            "net-2",
+            "topology-1",
+        ),
         sample("test-a", DataPartition::Test, 3, "net-3", "topology-2"),
     ];
     let error = audit_benchmark_split(&samples, &policy(SplitProtocolPreset::CrossNetwork))
