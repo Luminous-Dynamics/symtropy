@@ -282,7 +282,14 @@ impl EvaluationReport {
     }
 }
 
-fn match_kind_rank(kind: MatchKind) -> u8 {\n    match kind {\n        MatchKind::Timely => 0,\n        MatchKind::Late => 1,\n    }\n}\n\nfn option_i64(value: Option<i64>) -> String {
+fn match_kind_rank(kind: MatchKind) -> u8 {
+    match kind {
+        MatchKind::Timely => 0,
+        MatchKind::Late => 1,
+    }
+}
+
+fn option_i64(value: Option<i64>) -> String {
     value.map_or_else(|| "none".to_owned(), |v| v.to_string())
 }
 
