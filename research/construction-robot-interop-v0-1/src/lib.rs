@@ -5,6 +5,7 @@
 //! authenticate senders, verify signatures, assess physical work, grant motion authority,
 //! coordinate live robots, or replace a site safety system. Those remain external contracts.
 
+pub mod adapters;
 pub mod resources;
 
 use std::collections::BTreeMap;
