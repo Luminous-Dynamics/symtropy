@@ -1482,7 +1482,48 @@ mod tests {
             "raw-untyped-endpoint-17"
         );
         assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 32 * 7);
+        assert_eq!(
+            compiled.transition_rows.len(),
+            compiled.kernel.rows.len()
+        );
         compiled.kernel.validate().unwrap();
+    }
+
+    #[test]
+    fn transition_rows_must_carry_source_provenance() {
+        let mut input = spec();
+        input.transition_rows[0].source_manifest_ids.clear();
+        assert!(matches!(
+            input.compile(),
+            Err(AdapterError::MissingTransitionSource { .. })
+        ));
+    }
+
+    #[test]
+    fn transition_likelihood_claim_cannot_exceed_its_source_evidence() {
+        let mut input = spec();
+        input.transition_rows[0].claim_ceiling =
+            ClaimCeiling::PeerReviewedMeasuredNeuralReproduction;
+        assert!(matches!(
+            input.compile(),
+            Err(AdapterError::InvalidEvidenceClaim {
+                claim: ClaimCeiling::PeerReviewedMeasuredNeuralReproduction,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn compiled_adapter_preserves_row_level_transition_provenance() {
+        let compiled = spec().compile().unwrap();
+        assert_eq!(
+            compiled.transition_rows.len(),
+            compiled.kernel.rows.len()
+        );
+        assert!(compiled.transition_rows.iter().all(|row| {
+            row.source_manifest_ids == vec!["synthetic-models".to_owned()]
+                && row.claim_ceiling == ClaimCeiling::SyntheticQualification
+        }));
     }
 
     #[test]
