@@ -1,6 +1,6 @@
 # Scenario-bound physics replay evidence v0.1
 
-**Status:** replay receipt API implemented; no test execution claimed in this session  
+**Status:** replay receipt API plus kinematic state tape command authored; no test execution claimed in this session  
 **Crate:** `symtropy-physics`  
 **Code:** `replay::execute_with_evidence`, `replay::verify_replay_evidence`  
 **Composition target:** Symthaea SAM #10043 / #10234 / #10237 and Symtropy #3387
@@ -38,7 +38,7 @@ The tape digest includes:
 - frame count and exact timestep bit patterns;
 - frame order and command order;
 - command variant tags and body handles;
-- exact vector/scalar floating-point bit patterns, including angular-velocity matrix values.
+- exact vector/scalar floating-point bit patterns, including angular-velocity matrix values and kinematic translation/linear-velocity targets.
 
 Changing even one command, its order or timestep changes the tape digest.
 
@@ -47,7 +47,8 @@ Changing even one command, its order or timestep changes the tape digest.
 Each frame is preflight-checked before the first world mutation:
 - timestep finite and strictly positive;
 - referenced body handles exist in the initial world;
-- all force, impulse, velocity and angular-velocity values finite;
+- all force, impulse, velocity, angular-velocity and kinematic target values finite;
+- each `SetKinematicState` target references an existing `BodyType::Kinematic` body;
 - frame count within the declared hard cap.
 
 After each step, a bitwise world snapshot is captured. Initial and post-step snapshots are rejected if any body transform, velocity, angular velocity or collision-event numeric field is non-finite. The per-tick digests bind the exact recorded trajectory of the current `PhysicsWorld` implementation.
@@ -68,13 +69,24 @@ A successful comparison means bitwise equality for the named build/world/profile
 
 ## Errors and fail-closed behaviour
 
-The full tape is validated before the first frame is applied. Invalid context, empty tape, over-budget tape, invalid timestep, non-finite command, and missing-body references are rejected. A non-finite state discovered after a physics step produces no successful receipt.
+The full tape is validated before the first frame is applied. Invalid context, empty tape, over-budget tape, invalid timestep, non-finite command, missing-body references, and kinematic-state commands directed at non-kinematic bodies are rejected. A non-finite state discovered after a physics step produces no successful receipt.
 
 A failed post-step execution may already have mutated the in-memory world through that failed step; callers should discard that world instance. The API does not promise transactional rollback of arbitrary physics state.
 
+## Kinematic actor-state replay
+
+The replay command vocabulary now includes `SetKinematicState`, which binds a world-space translation and linear velocity for one kinematic body at a tick boundary. This is intentionally not a general dynamics command:
+- it rejects Static and Dynamic bodies;
+- it rejects non-finite translation/velocity before the first tape mutation;
+- it applies through `PhysicsWorld::body_mut`, which invalidates the cached static/kinematic broadphase before the next step;
+- it is included in the command-tape digest and per-tick snapshots;
+- the physics integrator still does not advance kinematic bodies; the scenario adapter supplies each kinematic state.
+
+A road actor adapter must separately bind stable scenario actor IDs, route/path profile, actor policy, allowed observation cues, reaction delay and actor transition receipts. A seed or body handle alone is not a durable actor identity. Curved paths, yaw updates and unsupported route semantics are outside this translation-only command and must not be silently inferred.
+
 ## Tests
 
-Seven tests are present in `crates/core/symtropy-physics/tests/replay_harness.rs`:
+Eleven tests are present in `crates/core/symtropy-physics/tests/replay_harness.rs`:
 1. Existing bitwise record/replay per tick.
 2. Scenario-bound receipt verified in a separate world.
 3. Changed tape or context cannot reuse an old receipt.
@@ -82,8 +94,12 @@ Seven tests are present in `crates/core/symtropy-physics/tests/replay_harness.rs
 5. Missing body rejected before world mutation.
 6. Malformed receipt digest rejected.
 7. Non-finite initial world rejected before stepping.
+8. Kinematic translation/linear velocity command replays bitwise in a fresh world.
+9. A Dynamic body cannot receive a kinematic-state command; rejection occurs before mutation.
+10. Non-finite kinematic targets reject before mutation.
+11. Changing a kinematic target invalidates the old replay receipt.
 
-These tests are authored but have not been compiled or executed in this session.
+These tests are authored but have not been compiled or executed in this session. CI now has an explicit `cargo test -p symtropy-physics --test replay_harness` step because the existing physics `--lib` test step does not execute integration-test targets.
 
 ## Composition with SAM
 
