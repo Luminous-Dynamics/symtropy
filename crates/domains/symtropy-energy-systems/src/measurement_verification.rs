@@ -256,6 +256,7 @@ pub struct EnergyMvReportingPoint {
     routine_adjustment_evidence_id: Option<String>,
     non_routine_adjustment_kwh: f64,
     non_routine_adjustment_evidence_id: Option<String>,
+    uncertainty_evidence_id: Option<String>,
     baseline_uncertainty_bound_kwh: f64,
     measurement_uncertainty_bound_kwh: f64,
     routine_adjustment_uncertainty_bound_kwh: f64,
@@ -281,6 +282,7 @@ impl EnergyMvReportingPoint {
         routine_adjustment_evidence_id: Option<String>,
         non_routine_adjustment_kwh: f64,
         non_routine_adjustment_evidence_id: Option<String>,
+        uncertainty_evidence_id: Option<String>,
         baseline_uncertainty_bound_kwh: f64,
         measurement_uncertainty_bound_kwh: f64,
         routine_adjustment_uncertainty_bound_kwh: f64,
@@ -303,6 +305,7 @@ impl EnergyMvReportingPoint {
             routine_adjustment_evidence_id,
             non_routine_adjustment_kwh,
             non_routine_adjustment_evidence_id,
+            uncertainty_evidence_id,
             baseline_uncertainty_bound_kwh,
             measurement_uncertainty_bound_kwh,
             routine_adjustment_uncertainty_bound_kwh,
@@ -380,6 +383,21 @@ impl EnergyMvReportingPoint {
             if let Some(id) = &self.non_routine_adjustment_evidence_id {
                 require_id("non-routine adjustment evidence ID", id)?;
             }
+        }
+        let uncertainty_is_nonzero = self.baseline_uncertainty_bound_kwh > 0.0
+            || self.measurement_uncertainty_bound_kwh > 0.0
+            || self.routine_adjustment_uncertainty_bound_kwh > 0.0
+            || self.non_routine_adjustment_uncertainty_bound_kwh > 0.0;
+        if uncertainty_is_nonzero
+            && self.uncertainty_evidence_id.as_deref().is_none_or(|id| id.trim().is_empty())
+        {
+            return Err(EnergyMvError::MissingEvidence {
+                sample_id: self.sample_id.clone(),
+                evidence_kind: "uncertainty bound",
+            });
+        }
+        if let Some(id) = &self.uncertainty_evidence_id {
+            require_id("uncertainty evidence ID", id)?;
         }
         Ok(())
     }
@@ -515,6 +533,7 @@ pub struct EnergyMvReportingReceipt {
     pub routine_adjustment_evidence_id: Option<String>,
     pub non_routine_adjustment_kwh: f64,
     pub non_routine_adjustment_evidence_id: Option<String>,
+    pub uncertainty_evidence_id: Option<String>,
     pub adjusted_baseline_energy_kwh: f64,
     pub adjusted_energy_difference_kwh: f64,
     pub baseline_uncertainty_bound_kwh: f64,
@@ -545,6 +564,7 @@ pub struct EnergyMvVerificationReport {
     prediction_basis: EnergyMvBaselinePredictionBasis,
     baseline_digest: String,
     model_digest: String,
+    metric_convention_id: String,
     validation_sample_ids: Vec<String>,
     reporting_sample_ids: Vec<String>,
     validation_receipts: Vec<EnergyMvValidationReceipt>,
@@ -564,6 +584,7 @@ pub struct EnergyMvVerificationReport {
     savings_lower_bound_kwh: f64,
     savings_upper_bound_kwh: f64,
     savings_percent_of_adjusted_baseline: Option<f64>,
+    data_integrity_passed: bool,
     model_fit_passed: bool,
     verification_passed: bool,
     positive_savings_claim_supported: bool,
@@ -572,6 +593,14 @@ pub struct EnergyMvVerificationReport {
 impl EnergyMvVerificationReport {
     pub fn plan_id(&self) -> &str {
         &self.plan_id
+    }
+
+    pub fn metric_convention_id(&self) -> &str {
+        &self.metric_convention_id
+    }
+
+    pub const fn data_integrity_passed(&self) -> bool {
+        self.data_integrity_passed
     }
 
     pub fn validation_sample_ids(&self) -> &[String] {
@@ -861,6 +890,7 @@ pub fn verify_energy_mv(
             routine_adjustment_evidence_id: point.routine_adjustment_evidence_id.clone(),
             non_routine_adjustment_kwh: point.non_routine_adjustment_kwh,
             non_routine_adjustment_evidence_id: point.non_routine_adjustment_evidence_id.clone(),
+            uncertainty_evidence_id: point.uncertainty_evidence_id.clone(),
             adjusted_baseline_energy_kwh: adjusted_baseline,
             adjusted_energy_difference_kwh: adjusted_baseline - point.observed_energy_kwh,
             baseline_uncertainty_bound_kwh: point.baseline_uncertainty_bound_kwh,
@@ -885,6 +915,7 @@ pub fn verify_energy_mv(
         prediction_basis: plan.prediction_basis,
         baseline_digest: plan.baseline_digest.clone(),
         model_digest: plan.model_digest.clone(),
+        metric_convention_id: "SYMTROPY-MV-POPULATION-RMSE-V0.1".to_string(),
         validation_sample_ids: dataset.validation_points.iter().map(|point| point.sample_id.clone()).collect(),
         reporting_sample_ids: dataset.reporting_points.iter().map(|point| point.sample_id.clone()).collect(),
         validation_receipts,
@@ -904,6 +935,7 @@ pub fn verify_energy_mv(
         savings_lower_bound_kwh: lower,
         savings_upper_bound_kwh: upper,
         savings_percent_of_adjusted_baseline: savings_percent,
+        data_integrity_passed: true,
         model_fit_passed,
         verification_passed,
         positive_savings_claim_supported,
@@ -1062,6 +1094,7 @@ mod tests {
         EnergyMvReportingPoint::new(
             id, "site-1", "facility-pcc", start, start + 3600, observed, predicted,
             routine, routine_evidence, non_routine, non_routine_evidence,
+            if uncertainty > 0.0 { Some(format!("uncertainty-{id}")) } else { None },
             uncertainty, uncertainty, 0.0, 0.0, BASELINE, MODEL,
             format!("conditions-{id}"), format!("meter-{id}"),
             format!("prediction-{id}"),
@@ -1134,6 +1167,19 @@ mod tests {
             verify_energy_mv(&plan(), &data),
             Err(EnergyMvError::MissingEvidence {
                 evidence_kind: "non-routine adjustment",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn rejects_uncertainty_bounds_without_evidence() {
+        let mut data = valid_dataset();
+        data.reporting_points[0].uncertainty_evidence_id = None;
+        assert!(matches!(
+            verify_energy_mv(&plan(), &data),
+            Err(EnergyMvError::MissingEvidence {
+                evidence_kind: "uncertainty bound",
                 ..
             })
         ));
