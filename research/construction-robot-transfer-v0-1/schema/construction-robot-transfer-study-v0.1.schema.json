@@ -1,0 +1,362 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-robot-transfer-study-v0.1.schema.json",
+  "title": "Construction Robot Site Transfer Study V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "study_id",
+    "owner_issue",
+    "task_family",
+    "functional_unit_class",
+    "acceptance_profile_digest",
+    "source_domain",
+    "target_domain",
+    "transfer_regime",
+    "model_binding",
+    "split_guards",
+    "evaluations",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "study_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "owner_issue": {
+      "const": 3672
+    },
+    "task_family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "functional_unit_class": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptance_profile_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_domain": {
+      "$ref": "#/$defs/domain"
+    },
+    "target_domain": {
+      "$ref": "#/$defs/domain"
+    },
+    "transfer_regime": {
+      "enum": [
+        "zero_shot",
+        "calibration_only",
+        "bounded_offline_adaptation",
+        "human_supervised_method_adaptation"
+      ]
+    },
+    "model_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_model_digest",
+        "source_robot_config_digest",
+        "target_model_digest",
+        "target_robot_config_digest",
+        "adaptation_budget"
+      ],
+      "properties": {
+        "source_model_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_robot_config_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_model_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_robot_config_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adaptation_budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "target_label_count",
+            "calibration_person_hours",
+            "engineering_person_hours",
+            "operator_person_hours",
+            "inspection_person_hours"
+          ],
+          "properties": {
+            "target_label_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "calibration_person_hours": {
+              "type": "number",
+              "minimum": 0
+            },
+            "engineering_person_hours": {
+              "type": "number",
+              "minimum": 0
+            },
+            "operator_person_hours": {
+              "type": "number",
+              "minimum": 0
+            },
+            "inspection_person_hours": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "split_guards": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/split_guard"
+      }
+    },
+    "evaluations": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/evaluation"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    }
+  },
+  "$defs": {
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_id",
+        "project_id",
+        "site_id",
+        "work_package_ids",
+        "material_batch_ids",
+        "robot_serial_ids",
+        "environment_labels",
+        "declared_shifts"
+      ],
+      "properties": {
+        "domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "work_package_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "material_batch_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "robot_serial_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "environment_labels": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "declared_shifts": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "split_guard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dimension",
+        "training_ids",
+        "adaptation_ids",
+        "evaluation_ids",
+        "allow_adaptation_evaluation_domain_overlap"
+      ],
+      "properties": {
+        "dimension": {
+          "type": "string",
+          "minLength": 1
+        },
+        "training_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "adaptation_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evaluation_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allow_adaptation_evaluation_domain_overlap": {
+          "type": "boolean"
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evaluation_id",
+        "domain_role",
+        "work_item_ids",
+        "match_stratum_id",
+        "task_family",
+        "functional_unit_class",
+        "acceptance_profile_digest",
+        "planned_units",
+        "attempted_units",
+        "first_pass_inspected_units",
+        "first_pass_accepted_units",
+        "finally_accepted_units",
+        "finally_rejected_units",
+        "uninspected_units",
+        "unresolved_units",
+        "total_workflow_crew_minutes",
+        "robot_operating_minutes",
+        "adaptation_person_hours"
+      ],
+      "properties": {
+        "evaluation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain_role": {
+          "enum": [
+            "source_reference",
+            "target_evaluation"
+          ]
+        },
+        "work_item_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "match_stratum_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functional_unit_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "planned_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "attempted_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_inspected_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_accepted_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "finally_accepted_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "finally_rejected_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uninspected_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_workflow_crew_minutes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "robot_operating_minutes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "adaptation_person_hours": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
