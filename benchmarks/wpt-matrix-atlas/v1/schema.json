@@ -112,7 +112,8 @@
         "minimum_eigenvalue_lower_bound_h",
         "matrix_digest",
         "source_artifact_digest",
-        "validator_receipt_digest"
+        "validator_receipt_digest",
+        "numerical_tolerance_h"
       ],
       "properties": {
         "position_m": {
@@ -136,6 +137,10 @@
         },
         "validator_receipt_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "numerical_tolerance_h": {
+          "type": "number",
+          "minimum": 0
         }
       }
     },
