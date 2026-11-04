@@ -12,6 +12,8 @@
 
 use core::fmt;
 
+pub mod population;
+
 pub const SEATS: usize = 6;
 pub const ROUNDS: usize = 10;
 pub const ENDOWMENT: u32 = 40;

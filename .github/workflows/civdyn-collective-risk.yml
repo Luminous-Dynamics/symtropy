@@ -97,6 +97,131 @@ jobs:
             echo "- Analytical pivot and best-response negative controls: verified"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Execute exact finite-population selection sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-pop-evidence
+          cargo run --locked --manifest-path research/civdyn-collective-risk/Cargo.toml --bin collective-risk-population-sweep \
+            | tee target/civdyn-pop-evidence/population-selection-sweep.csv
+
+      - name: Verify hypergeometric fitness, fixation and stationary controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          import math
+          from collections import defaultdict
+          from pathlib import Path
+
+          path = Path("target/civdyn-pop-evidence/population-selection-sweep.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) >= 1320, f"expected at least 1320 population rows, got {len(rows)}"
+          assert all(len(row) == 24 for row in rows), "population row schema must have 24 columns"
+          fitness = [row for row in rows if row["record_type"] == "mixture_fitness"]
+          fixation = [row for row in rows if row["record_type"] == "fixation"]
+          stationary = [row for row in rows if row["record_type"] == "stationary"]
+          graphs = [row for row in rows if row["record_type"] == "invasion_graph"]
+          cycles = [row for row in rows if row["record_type"] == "invasion_cycle"]
+          assert (len(fitness), len(fixation), len(stationary), len(graphs)) == (432, 720, 144, 24)
+
+          expected_n30_rosters = {"balanced", "zero_heavy", "fair_share_heavy", "maximum_heavy", "copy_heavy"}
+          observed_n30_rosters = {row["roster_id"] for row in fitness if row["population_size"] == "30"}
+          observed_n6_rosters = {row["roster_id"] for row in fitness if row["population_size"] == "6"}
+          assert observed_n30_rosters == expected_n30_rosters
+          assert observed_n6_rosters == {"one_of_each"}
+
+          roster_totals = defaultdict(int)
+          for row in fitness:
+              key = (row["population_size"], row["risk"], row["beta"], row["roster_id"])
+              roster_totals[key] += int(row["population_count"])
+          assert len(roster_totals) == 72
+          for key, total in roster_totals.items():
+              expected_size = int(key[0])
+              assert total == expected_size, f"roster counts must sum to N for {key}"
+
+          fitness_by_roster = defaultdict(list)
+          for row in fitness:
+              if row["population_size"] == "30":
+                  key = (row["risk"], row["beta"], row["strategy"])
+                  fitness_by_roster[key].append(float(row["expected_fitness"]))
+          assert any(max(values) - min(values) > 1e-6 for values in fitness_by_roster.values()), (
+              "at least one strategy must exhibit composition-dependent expected fitness"
+          )
+
+          cycle_counts = {}
+          for row in graphs:
+              key = (row["population_size"], row["risk"], row["beta"])
+              cycle_counts[key] = int(row["three_cycle_count"])
+              assert 0 <= int(row["invasion_edge_count"]) <= 30
+              assert 0 <= int(row["three_cycle_count"]) <= 40
+
+          observed_cycles = defaultdict(int)
+          strategy_names = {
+              "always_zero", "fixed_fair_share", "fixed_maximum",
+              "risk_pivot", "last_round_defection", "copy_previous_group_mean"
+          }
+          for row in cycles:
+              key = (row["population_size"], row["risk"], row["beta"])
+              observed_cycles[key] += 1
+              names = (
+                  row["cycle_strategy_a"],
+                  row["cycle_strategy_b"],
+                  row["cycle_strategy_c"],
+              )
+              assert len(set(names)) == 3 and set(names) <= strategy_names
+              assert row["cycle_orientation"] in {"forward", "reverse"}
+          assert set(observed_cycles).issubset(cycle_counts), "cycle row references a missing graph summary"
+          assert all(
+              observed_cycles.get(key, 0) == expected
+              for key, expected in cycle_counts.items()
+          ), "invasion graph cycle counts must match emitted cycle records"
+
+          assert all(int(row["composition_count"]) == 1 for row in fitness if row["population_size"] == "6")
+          assert all(int(row["composition_count"]) > 1 for row in fitness if row["population_size"] == "30")
+          assert all(math.isfinite(float(row["expected_fitness"])) for row in fitness)
+          assert all(float(row["fixation_probability"]) >= 0.0 for row in fixation)
+          assert all(math.isfinite(float(row["log_fixation"])) for row in fixation)
+
+          weights = defaultdict(list)
+          for row in stationary:
+              key = (row["population_size"], row["risk"], row["beta"])
+              weights[key].append(float(row["stationary_weight"]))
+              assert float(row["stationary_residual_l1"]) <= 1e-8
+              assert int(row["stationary_iterations"]) <= 200000
+
+          assert len(weights) == 24
+          for key, values in weights.items():
+              assert len(values) == 6
+              assert abs(sum(values) - 1.0) <= 1e-8, f"stationary weights do not sum to one for {key}"
+
+          neutral = [row for row in stationary if row["beta"] == "0.000000000000"]
+          for row in neutral:
+              assert abs(float(row["stationary_weight"]) - 1.0 / 6.0) <= 1e-8
+
+          print("CIVDYN-POP-001 hypergeometric, fixation, stationary and invasion-cycle controls verified.")
+          PY
+
+          {
+            echo "## CIVDYN-POP-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-pop-evidence/population-selection-sweep.csv | cut -d' ' -f1)"
+            echo "- Records: $(($(wc -l < target/civdyn-pop-evidence/population-selection-sweep.csv) - 1))"
+            echo "- Claim ceiling: scripted strategies under declared finite-population dynamics"
+            echo "- Invasion graph and three-cycle enumeration: verified"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload finite-population evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-population-selection-sweep
+          path: target/civdyn-pop-evidence/population-selection-sweep.csv
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload collective-risk run evidence
         uses: actions/upload-artifact@v4
         with:
