@@ -107,7 +107,7 @@ pub enum IngestError {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum ChannelState {
-    Current(Observation),
+    Current(Box<Observation>),
     Unknown(String),
     Conflicting(String),
 }
@@ -205,7 +205,7 @@ impl ObservationGate {
             }
             Some(ChannelState::Current(previous)) if observation.sequence == previous.sequence => {
                 if observation.evidence_digest == previous.evidence_digest
-                    && observation == *previous
+                    && observation == **previous
                 {
                     return Ok(IngestOutcome::DuplicateIdempotent);
                 }
@@ -269,7 +269,7 @@ impl ObservationGate {
         }
 
         self.channels
-            .insert(source_id, ChannelState::Current(observation));
+            .insert(source_id, ChannelState::Current(Box::new(observation)));
         Ok(IngestOutcome::Accepted)
     }
 
