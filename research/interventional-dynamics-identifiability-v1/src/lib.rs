@@ -12,7 +12,7 @@
 /// Maximum number of entries accepted in a matrix.
 pub const MAX_MATRIX_ELEMENTS: usize = 2_000_000;
 /// Maximum state / input / output dimension.
-pub const MAX_DIMENSION: usize = 512;
+pub const MAX_DIMENSION: usize = MAX_MATRIX_ELEMENTS;
 /// Maximum finite horizon for observability / controllability matrices.
 pub const MAX_HORIZON: usize = 512;
 
@@ -173,16 +173,14 @@ pub fn rank_diagnostics(
 
     let mut work = vec![vec![0.0; rows]; columns];
     for column in 0..columns {
-        let mut norm_squared = 0.0;
+        let mut norm = 0.0_f64;
         for row in 0..rows {
-            let value = matrix.get(row, column);
-            norm_squared += value * value;
+            norm = norm.hypot(matrix.get(row, column));
         }
-        if !norm_squared.is_finite() {
+        if !norm.is_finite() {
             return Err(IdentifiabilityError::NumericalOverflow);
         }
-        let norm = norm_squared.sqrt();
-        if norm > f64::MIN_POSITIVE {
+        if norm > 0.0 {
             for row in 0..rows {
                 work[column][row] = matrix.get(row, column) / norm;
             }
@@ -419,7 +417,9 @@ fn validate_system_horizon(horizon: usize) -> Result<(), IdentifiabilityError> {
 }
 
 fn vector_norm(values: &[f64]) -> f64 {
-    dot(values, values).sqrt()
+    values
+        .iter()
+        .fold(0.0_f64, |norm, value| norm.hypot(*value))
 }
 
 fn dot(left: &[f64], right: &[f64]) -> f64 {
