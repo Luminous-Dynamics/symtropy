@@ -137,7 +137,76 @@ As an initial design calculation, 500 effectively independent holdout blocks giv
 
 For M&V, baseline adjustment and demonstrated energy improvements, retain declared boundaries and methods under [ISO 50006:2023](https://www.iso.org/standard/79367.html). A calibration pass is not an M&V result.
 
-## 7. Research sequence
+## 7. Prequential online adaptation benchmark
+
+V0.1 static block-max split conformal is the fixed reference. The sibling online replay implementation adds one bounded Adaptive Conformal Inference (ACI) expert. It uses the same block-max score, calibration pool, channel/horizon grid and frozen forecast vintages, then updates the next block's miscoverage level only after the current block has ended.
+
+The implemented update is:
+
+    alpha_(t+1) = clip(alpha_t + gamma * (alpha_target - miss_t), alpha_min, alpha_max)
+
+where miss_t is 1 when any declared cell in the block falls outside its interval and 0 otherwise. The update uses integer parts-per-million arithmetic. Each receipt records alpha before/after, the selected calibration order statistic, quantile multiplier, joint/cell coverage, mean interval width, and per-cell forecast/actual/scale evidence identifiers.
+
+The bounded replay is deliberately not described as unmodified ACI: when either alpha bound activates, the textbook unprojected long-run guarantee does not transfer. The implementation also keeps the calibration score pool frozen, so the adaptive effect is isolated to alpha feedback rather than silently mixing in rolling-pool updates.
+
+### Mandatory comparators
+
+| Method | Role in benchmark | Required disclosure |
+|---|---|---|
+| Static split conformal | Fixed reference | Exchangeability assumption; coverage and width |
+| Rolling split conformal | Recent-history reference | Window size, burn-in and dropped history |
+| Bounded block-max ACI | Implemented online comparator | Gamma, alpha bounds, clamp counts and prequential feedback discipline |
+| FACI | Multi-rate online competitor | Expert rates, aggregation, loss and warm-up |
+| SAOCP | Strong adaptive-regret competitor | Exact published setup and per-interval regret/coverage diagnostics |
+| Conformal PID | Feedback-control competitor | Gains, saturation, stability and delayed-feedback policy |
+| DRACP | Regime/local/shift-aware competitor | Weight estimation, ESS floor, online controller and uncertainty in weights |
+| PACE | Population of adaptive calibrators | Population size, selection rule, refresh cadence and width/coverage trade-off |
+| UAI 2026 certificate-driven calibration | Strong research comparator | Reproduce martingale PAC-Bayes certificate, source-risk anchor and gated residual head; do not substitute ACI for this method |
+
+Use the same block-max path score and same forecast issue/valid windows wherever the published method permits. When a paper's method is not naturally compatible with the exact joint score, record the mismatch rather than silently changing its algorithm. Compare reference implementations as well as independent reproductions when source code exists.
+
+### Shift experiments
+
+1. Stationary residual stream.
+2. Abrupt scale increase in workload forecast error.
+3. Renewable ramp error correlated with high workload forecast error.
+4. Hot-ambient and cooling-saturation regime.
+5. Electricity-price spike correlated with system scarcity.
+6. Recurrent seasonal regime and a one-off structural break.
+7. Gradual concept drift and sudden return to the former regime.
+8. Delayed or missing realized labels; forecasts must never update from outcomes not yet observable.
+9. One channel/horizon fails while aggregate marginal coverage remains high.
+10. Long sustained extreme event rather than one isolated outlier.
+
+### Metrics and candidate targets
+
+- Joint block coverage and its dependence-aware uncertainty; marginal cell coverage only as a diagnostic.
+- Interval width and proper interval score at matched nominal joint coverage.
+- Time-to-recover after a preregistered shift, measured in feedback blocks.
+- Worst-regime undercoverage, maximum streak of misses, and lower-tail service reliability.
+- Frequency and duration of alpha-bound saturation, missing-label abstention and stale calibration.
+- Compute, memory, update latency and forecast-to-decision latency.
+
+Proposed research gates (not achieved results or standards limits): zero temporal feedback leakage; zero missing evidence receipts; absolute aggregate joint-coverage error within 2 percentage points when the effective sample size supports it; high-risk regime undercoverage no worse than 5 percentage points; recover to within 5 percentage points of target within 10 observable feedback blocks after a preregistered shift; and at least 10% narrower mean interval width than the strongest simple baseline at matched joint coverage. These are simultaneous requirements: wider intervals cannot buy a passing score by themselves.
+
+PACE's 2026 study reports higher empirical coverage during extreme regimes than five adaptive baselines, often with wider intervals, while SAOCP has stronger formal adaptive guarantees. The 2026 DRACP comparison reports a different point on the frontier: coverage closer to nominal but interval scores behind SAOCP, whose intervals were about 20% narrower in that study. Those are paper-specific results, not universal rankings. The 2026 UAI certificate-driven method is a more demanding comparator because it uses martingale PAC-Bayes certificates under temporal dependence and shift. Symtropy must reproduce comparator protocols before claiming it does better.
+
+Primary references: PACE (Shahbazi and Baheri, 2026), https://doi.org/10.3390/forecast8050077; DRACP (Oancea, 2026), https://arxiv.org/abs/2608.17079; Huang, Ma and Michailidis, UAI 2026, https://proceedings.mlr.press/v337/huang26b.html; local online conformal power-load forecasting (Shi et al., 2026), https://doi.org/10.1016/j.epsr.2026.113412.
+
+## 8. Research sequence
+
+1. **V0.1 — simultaneous holdout reference:** establish leakage-resistant, block-level baseline measurements.
+2. **V0.2 — bounded ACI replay:** compare prequential online adaptation against the static reference with explicit saturation and width reporting.
+3. **V0.3 — multi-rate / strongly adaptive calibration:** reproduce FACI and SAOCP on the same joint block-max score where algorithm semantics permit.
+4. **V0.4 — regime-conditioned calibration:** preregister high-risk regimes and report conditional coverage/width with insufficient-data outcomes.
+5. **V0.5 — certificate-driven adaptation:** investigate martingale PAC-Bayes certificates and gated residual correction; this is research, not a claim of equivalent proof by our ACI baseline.
+6. **V0.6 — joint scenario calibration:** test scenario path coverage, cross-channel dependence and tail co-occurrence separately from marginal interval calibration.
+7. **Decision benchmark:** run deterministic risk-neutral MILP, sample-average CVaR, moment-based DRO-CVaR, robust-box, MPC and scenario MPC on identical forecast vintages and realized traces.
+8. **Field qualification:** replay traceable forecasts and measurements, then use an approved shadow-mode trial before any actuation. M&V compares realized service and energy against a frozen counterfactual baseline.
+
+## 9. Interpretation
+
+A successful static or adaptive report means only that the supplied inputs passed the declared structural and temporal checks and that the reported empirical coverage and interval widths were computed according to the pinned metric convention. It does not establish arbitrary future coverage under drift, full joint probability calibration, a DRO guarantee, optimizer superiority, energy savings, or operational qualification.
 
 1. **V0.1 — simultaneous holdout reference:** this evaluator and its hostile fixtures; establish leakage-resistant, block-level baseline measurements.
 2. **V0.2 — regime-conditioned calibration:** preregister high-risk regimes (load ramps, PV ramps, price spikes, hot ambient, cooling saturation) and compute conditional coverage/width, with explicit insufficient-regime-data outcomes.
