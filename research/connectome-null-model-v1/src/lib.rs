@@ -381,7 +381,11 @@ fn generate_null_model_for_family(
 
     if family == NullModelFamily::DirectedDegreeOnly {
         edge_indices_by_block.insert(
-            ("__all_sources__".to_string(), "__all_targets__".to_string(), "__all_edges__".to_string()),
+            (
+                "__all_sources__".to_string(),
+                "__all_targets__".to_string(),
+                "__all_edges__".to_string(),
+            ),
             (0..input.edges.len()).collect(),
         );
     }
@@ -838,13 +842,28 @@ mod tests {
         assert_eq!(sample.receipt.family, NullModelFamily::DirectedDegreeOnly);
         assert!(sample.receipt.invariants.all_passed());
         assert!(sample.receipt.invariants.degree_sequences_preserved);
-        assert!(sample.receipt.invariants.source_weight_constraints_preserved);
+        assert!(
+            sample
+                .receipt
+                .invariants
+                .source_weight_constraints_preserved
+        );
         assert!(!sample.receipt.invariants.cell_type_blocks_required);
         assert!(!sample.receipt.invariants.cell_type_blocks_preserved);
         assert!(!sample.receipt.invariants.block_weight_distribution_required);
-        assert!(!sample.receipt.invariants.block_weight_distribution_preserved);
+        assert!(
+            !sample
+                .receipt
+                .invariants
+                .block_weight_distribution_preserved
+        );
         assert_eq!(
-            sample.graph.edges.iter().map(|edge| (edge.source.as_str(), edge.target.as_str())).collect::<BTreeSet<_>>(),
+            sample
+                .graph
+                .edges
+                .iter()
+                .map(|edge| (edge.source.as_str(), edge.target.as_str()))
+                .collect::<BTreeSet<_>>(),
             BTreeSet::from([("a", "d"), ("c", "b")])
         );
     }
