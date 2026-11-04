@@ -53,9 +53,7 @@ fn empty_fields(record_type: &str, population_size: usize, risk: f64, beta: f64)
     ]
 }
 
-fn population_profiles(
-    population_size: usize,
-) -> Vec<(&'static str, PopulationState)> {
+fn population_profiles(population_size: usize) -> Vec<(&'static str, PopulationState)> {
     match population_size {
         6 => vec![(
             "one_of_each",
