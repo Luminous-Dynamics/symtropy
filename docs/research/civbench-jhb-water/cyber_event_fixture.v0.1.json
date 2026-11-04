@@ -15,7 +15,8 @@
     "allowed_lead_ms": 300000,
     "maximum_detection_delay_ms": 600000,
     "late_association_grace_ms": 300000,
-    "class_compatibility": "exact_or_unclassified_for_detection_only"
+    "detection_matching": "class_agnostic_one_to_one",
+    "classification": "score_after_event_detection_matching"
   },
   "events": [
     {
@@ -25,7 +26,8 @@
       "truth_status": "confirmed",
       "onset_ms": 1000000,
       "end_ms": 1300000,
-      "evidence_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      "evidence_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "source_id": "evaluator-truth-source"
     },
     {
       "event_id": "event-sensor-001",
@@ -34,7 +36,8 @@
       "truth_status": "confirmed",
       "onset_ms": 5000000,
       "end_ms": 5300000,
-      "evidence_ref": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      "evidence_ref": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "source_id": "evaluator-truth-source"
     },
     {
       "event_id": "event-cyber-001",
@@ -43,7 +46,8 @@
       "truth_status": "confirmed",
       "onset_ms": 9000000,
       "end_ms": 9600000,
-      "evidence_ref": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      "evidence_ref": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "source_id": "evaluator-truth-source"
     },
     {
       "event_id": "event-communication-001",
@@ -52,7 +56,8 @@
       "truth_status": "confirmed",
       "onset_ms": 17000000,
       "end_ms": 17200000,
-      "evidence_ref": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      "evidence_ref": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "source_id": "evaluator-truth-source"
     },
     {
       "event_id": "event-leak-missed-001",
@@ -61,7 +66,8 @@
       "truth_status": "confirmed",
       "onset_ms": 25000000,
       "end_ms": 25300000,
-      "evidence_ref": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      "evidence_ref": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "source_id": "evaluator-truth-source"
     }
   ],
   "unknown_intervals": [
@@ -82,7 +88,8 @@
       "class": "leak",
       "start_ms": 900000,
       "clear_ms": 1050000,
-      "evidence_ref": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "evidence_ref": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "clear_state": "closed"
     },
     {
       "alarm_id": "alarm-leak-001b",
@@ -91,7 +98,8 @@
       "class": "leak",
       "start_ms": 1100000,
       "clear_ms": 1200000,
-      "evidence_ref": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      "evidence_ref": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "clear_state": "closed"
     },
     {
       "alarm_id": "alarm-sensor-001",
@@ -100,7 +108,8 @@
       "class": "unclassified",
       "start_ms": 5200000,
       "clear_ms": 5300000,
-      "evidence_ref": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      "evidence_ref": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "clear_state": "closed"
     },
     {
       "alarm_id": "alarm-late-cyber-001",
@@ -109,7 +118,8 @@
       "class": "cyber_compromise",
       "start_ms": 9700000,
       "clear_ms": 10000000,
-      "evidence_ref": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      "evidence_ref": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "clear_state": "closed"
     },
     {
       "alarm_id": "alarm-unknown-001",
@@ -118,7 +128,8 @@
       "class": "unclassified",
       "start_ms": 12500000,
       "clear_ms": 12700000,
-      "evidence_ref": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      "evidence_ref": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "clear_state": "closed"
     },
     {
       "alarm_id": "alarm-communication-001",
@@ -127,7 +138,8 @@
       "class": "communication_fault",
       "start_ms": 17000000,
       "clear_ms": 17100000,
-      "evidence_ref": "sha256:abababababababababababababababababababababababababababababababab"
+      "evidence_ref": "sha256:abababababababababababababababababababababababababababababababab",
+      "clear_state": "closed"
     },
     {
       "alarm_id": "alarm-false-001",
@@ -136,25 +148,41 @@
       "class": "unclassified",
       "start_ms": 40000000,
       "clear_ms": 43000000,
-      "evidence_ref": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      "evidence_ref": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "clear_state": "closed"
     }
   ],
   "expected_semantics": {
     "merged_alarm_episodes": [
       {
         "episode_id": "episode-1",
-        "constituent_alarm_ids": ["alarm-leak-001a", "alarm-leak-001b"],
+        "constituent_alarm_ids": [
+          "alarm-leak-001a",
+          "alarm-leak-001b"
+        ],
         "scenario_id": "scenario-positive-001",
         "source_id": "sensor-cluster-a",
         "start_ms": 900000,
         "end_ms": 1200000
       }
     ],
-    "timely_detection_event_ids": ["event-leak-001", "event-sensor-001", "event-communication-001"],
-    "late_associated_event_ids": ["event-cyber-001"],
-    "missed_confirmed_event_ids": ["event-leak-missed-001"],
-    "unscorable_alarm_ids": ["alarm-unknown-001"],
-    "false_alarm_episode_ids": ["alarm-false-001"],
+    "timely_detection_event_ids": [
+      "event-leak-001",
+      "event-sensor-001",
+      "event-communication-001"
+    ],
+    "late_associated_event_ids": [
+      "event-cyber-001"
+    ],
+    "missed_confirmed_event_ids": [
+      "event-leak-missed-001"
+    ],
+    "unscorable_alarm_ids": [
+      "alarm-unknown-001"
+    ],
+    "false_alarm_episode_ids": [
+      "alarm-false-001"
+    ],
     "notes": [
       "The two leak alarms are one episode because their 50-second gap is below merge_gap_ms; the first onset is 100 seconds before the event onset and lies within allowed_lead_ms.",
       "The unclassified sensor alarm may count as event detection but cannot count as correct sensor-fault classification.",
