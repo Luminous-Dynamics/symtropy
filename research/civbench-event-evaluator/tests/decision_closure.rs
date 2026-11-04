@@ -186,7 +186,8 @@ mod tests {
         record.verification_receipt_id = None;
         record.verifier_identity_ref = None;
         record.resource_settlement = ResourceSettlement::Settled;
-        record.receipt_bindings
+        record
+            .receipt_bindings
             .retain(|binding| binding.owner != ReceiptOwner::IndependentVerifier);
         assert_eq!(
             record.validate(),
@@ -443,7 +444,8 @@ mod tests {
         record.action_progress = ActionProgress::Cancelled;
         record.verification_receipt_id = None;
         record.verifier_identity_ref = None;
-        record.receipt_bindings
+        record
+            .receipt_bindings
             .retain(|binding| binding.owner != ReceiptOwner::IndependentVerifier);
         record.resource_settlement = ResourceSettlement::Settled;
         assert_eq!(
@@ -458,7 +460,8 @@ mod tests {
         record.action_progress = ActionProgress::InProgress;
         record.verification_receipt_id = None;
         record.verifier_identity_ref = None;
-        record.receipt_bindings
+        record
+            .receipt_bindings
             .retain(|binding| binding.owner != ReceiptOwner::IndependentVerifier);
         record.resource_settlement = ResourceSettlement::Settled;
         assert_eq!(
