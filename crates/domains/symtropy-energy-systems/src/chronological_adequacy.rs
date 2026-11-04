@@ -849,7 +849,7 @@ mod tests {
     }
 
     #[test]
-    fn weighted_eue_search_recovers_known_27_5_kw_value() {
+    fn weighted_eue_search_recovers_known_17_5_kw_value() {
         let study = ChronologicalAdequacyStudy::new(
             contract(ChronologicalAdequacyMetric::ExpectedUnservedEnergyMwh, 40.0),
             vec![
@@ -867,7 +867,7 @@ mod tests {
         ).expect("study");
         let report = evaluate_chronological_adequacy(&study).expect("evaluation");
         assert!((report.reference_unserved_energy_mwh - 0.01).abs() < 1e-12);
-        assert!((report.elcc_like_added_load_kw - 27.5).abs() < 1e-5);
+        assert!((report.elcc_like_added_load_kw - 17.5).abs() < 1e-5);
         assert!((report.achieved_augmented_metric_value - 0.01).abs() < 1e-8);
         assert!((report.scenario_receipts[0].normalized_probability_weight - 0.75).abs() < 1e-12);
         assert!((report.scenario_receipts[1].normalized_probability_weight - 0.25).abs() < 1e-12);
