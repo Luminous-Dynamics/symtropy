@@ -649,7 +649,7 @@ mod tests {
     #[test]
     fn terminal_soc_debt_is_rejected_even_when_each_path_individually_passes() {
         let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0)]);
-        let flexible = trajectory("flexible", &[(5.0, 0.0, 5.0, 25.0, 0.0)]);
+        let flexible = trajectory("flexible", &[(5.0, 0.0, 5.0, 25.0)]);
         assert!(verify_stateful_resource_trajectory(&baseline).expect("base").passed);
         assert!(verify_stateful_resource_trajectory(&flexible).expect("flex").passed);
         assert!(matches!(
