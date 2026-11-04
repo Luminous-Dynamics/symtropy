@@ -210,7 +210,7 @@ pub struct BoCoDeCatalogContext {
     pub source_commit: String,
     /// Exact package version installed in the external benchmark environment.
     pub package_version: String,
-    /// SHA-256 of the exact raw catalog export bytes, not of the normalized CSV.
+    /// SHA-256 of the canonical sorted (problem ID, raw metadata SHA-256) inventory.
     pub source_catalog_sha256: String,
 }
 
@@ -295,6 +295,15 @@ fn append_u64(bytes: &mut Vec<u8>, value: u64) {
 fn append_string(bytes: &mut Vec<u8>, value: &str) {
     append_u64(bytes, value.len() as u64);
     bytes.extend_from_slice(value.as_bytes());
+}
+
+fn canonical_source_catalog_bytes(tasks: &[BoCoDeTaskRecord]) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    for task in tasks {
+        append_string(&mut bytes, &task.problem_id);
+        append_string(&mut bytes, &task.metadata_sha256);
+    }
+    bytes
 }
 
 fn canonical_import_bytes(
@@ -508,6 +517,10 @@ pub fn import_bocode_catalog_csv(
     if tasks.is_empty() {
         return Err("BOCoDe catalog must contain at least one problem".to_owned());
     }
+    let source_catalog_sha256 = sha256_hex(&canonical_source_catalog_bytes(&tasks))?;
+    if source_catalog_sha256 != context.source_catalog_sha256 {
+        return Err("source catalog digest does not match the task metadata digest inventory".to_owned());
+    }
     let import_sha256 = sha256_hex(&canonical_import_bytes(&context, &tasks))?;
     Ok(BoCoDeCatalogReport {
         schema: BOCODE_CATALOG_SCHEMA.to_owned(),
@@ -524,11 +537,28 @@ pub fn import_bocode_catalog_csv(
 mod tests {
     use super::*;
 
+    fn source_catalog_sha256(input: &str) -> String {
+        let mut lines = input.lines();
+        let _header = lines.next().expect("fixture header");
+        let mut tasks = Vec::new();
+        for line in lines {
+            let fields = parse_csv_record(line).expect("fixture CSV record");
+            tasks.push((fields[0].clone(), fields[14].clone()));
+        }
+        tasks.sort_by(|left, right| left.0.cmp(&right.0));
+        let mut bytes = Vec::new();
+        for (problem_id, metadata_sha256) in tasks {
+            append_string(&mut bytes, &problem_id);
+            append_string(&mut bytes, &metadata_sha256);
+        }
+        sha256_hex(&bytes).expect("hash catalog inventory")
+    }
+
     fn context() -> BoCoDeCatalogContext {
         BoCoDeCatalogContext {
             source_commit: "0123456789abcdef0123456789abcdef01234567".to_owned(),
             package_version: "1.0.2.dev2".to_owned(),
-            source_catalog_sha256: "a".repeat(64),
+            source_catalog_sha256: source_catalog_sha256(&fixture()),
         }
     }
 
@@ -623,7 +653,14 @@ mod tests {
             row("car", "engineering", "so_unconstrained", 1, 0, "continuous")
                 .replace(",present,https://example.org/source,", ",missing,,")
         );
-        let missing_source_report = import_bocode_catalog_csv(&missing_source, context())
+        let missing_source_report = import_bocode_catalog_csv(
+            &missing_source,
+            BoCoDeCatalogContext {
+                source_commit: context().source_commit,
+                package_version: context().package_version,
+                source_catalog_sha256: source_catalog_sha256(&missing_source),
+            },
+        )
             .expect("missing upstream citations are retained explicitly");
         assert_eq!(
             missing_source_report.tasks[0].source_reference_state,
