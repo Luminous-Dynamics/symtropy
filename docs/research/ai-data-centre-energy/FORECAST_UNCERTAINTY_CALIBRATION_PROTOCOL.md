@@ -22,7 +22,7 @@ These are separate owners and separate claim boundaries.
 
 ## 2. V0.1 calibration method
 
-For forecast block b, channel c and horizon h, let y(b,c,h) be the realized value, f(b,c,h) the point forecast issued before the target window, and s(b,c,h) a declared positive normalization scale.
+For forecast block b, channel c and horizon h, let y(b,c,h) be the realized value, f(b,c,h) the point forecast issued before the target window, and s(b,c,h) a declared positive normalization scale with its own evidence ID.
 
 The block nonconformity score is the maximum scale-normalized absolute error over every declared channel and horizon:
 
