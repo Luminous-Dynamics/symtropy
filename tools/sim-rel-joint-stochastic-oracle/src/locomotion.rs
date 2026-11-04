@@ -1878,9 +1878,11 @@ mod tests {
         let compiled = spec_with_measured_source().compile().unwrap();
         let first = measured_receipt("sample-1", 'a');
         let second = measured_receipt("sample-2", 'b');
-        assert!(compiled
-            .validate_trial_receipts(&[first.clone(), second.clone()])
-            .is_ok());
+        assert!(
+            compiled
+                .validate_trial_receipts(&[first.clone(), second.clone()])
+                .is_ok()
+        );
         assert_eq!(
             compiled.validate_trial_receipts(&[first.clone(), first]),
             Err(AdapterError::DuplicateSampleId("sample-1".to_owned()))
