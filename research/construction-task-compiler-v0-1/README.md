@@ -15,7 +15,7 @@ A task graph is not merely a sequence of robot actions. It is a traceable, revie
 `approved design element + approved method step + versioned transformation rule -> task node`
 
 Every node binds:
-- source element/component identity and design revision;
+- source element/component identity, task family and design revision;
 - approved method template and method step;
 - transformation rule ID, version digest and compiler/rule-set digest;
 - typed parameter bindings with source references and units;
@@ -68,7 +68,7 @@ The validator reports structural completeness only. It does not authenticate app
 
 ## Benchmark corpus and target
 
-The structural corpus is in `fixtures/construction-task-compiler-cases-v0.1.json` and defines 45 positive, negative and mutation scenarios. The method-template instantiation corpus is in `fixtures/construction-task-compiler-transform-cases-v0.1.json` and defines 25 cases. The Rust source currently contains 40 tests: 22 graph-validator tests and 18 method-instantiation tests. Fixture expected outcomes are reference targets, not empirical results.
+The structural corpus is in `fixtures/construction-task-compiler-cases-v0.1.json` and defines 45 positive, negative and mutation scenarios. The method-template instantiation corpus is in `fixtures/construction-task-compiler-transform-cases-v0.1.json` and defines 25 cases. The Rust source currently contains 43 tests: 24 graph-validator tests and 19 method-instantiation tests. Fixture expected outcomes are reference targets, not empirical results.
 
 Prospective targets:
 - zero false executable graph admissions on frozen hard-negative cases;
