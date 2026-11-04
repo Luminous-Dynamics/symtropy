@@ -375,8 +375,8 @@ impl RouteLedger {
                 .iter()
                 .any(|measurement| measurement.boundary == EnergyBoundary::BessDcOutput)
         });
-        if bess_is_in_route {
-            if self.segments.iter().any(|segment| {
+        if bess_is_in_route
+            && (self.segments.iter().any(|segment| {
                 !segment
                     .boundary_measurements
                     .iter()
@@ -386,12 +386,12 @@ impl RouteLedger {
                     .boundary_measurements
                     .iter()
                     .any(|measurement| measurement.boundary == EnergyBoundary::BessDcOutput)
-            }) {
-                return Err(
-                    "BESS DC output must be measured for every route interval when BESS is present"
-                        .into(),
-                );
-            }
+            }))
+        {
+            return Err(
+                "BESS DC output must be measured for every route interval when BESS is present"
+                    .into(),
+            );
         }
 
         intervals.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
