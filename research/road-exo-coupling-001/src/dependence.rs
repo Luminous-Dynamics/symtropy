@@ -1050,6 +1050,38 @@ mod tests {
     }
 
     #[test]
+    fn joint_weight_accumulation_overflow_is_rejected() {
+        let mut manifest = shared_factor_fixture();
+        manifest.distribution.states[0].weight = u64::MAX;
+        manifest.distribution.states[1].weight = 1;
+        assert_eq!(manifest.validate(), Err(DependenceError::WeightOverflow));
+    }
+
+    #[test]
+    fn structural_output_arithmetic_overflow_is_rejected() {
+        let mut manifest = shared_factor_fixture();
+        manifest.outputs[0].intercept = i64::MAX;
+        assert_eq!(
+            manifest.evaluate(&BranchIntervention {
+                branch_id: id("continue"),
+                values: vec![],
+            }),
+            Err(DependenceError::ArithmeticOverflow)
+        );
+    }
+
+    #[test]
+    fn unknown_exogenous_parent_is_rejected_before_evaluation() {
+        let mut manifest = shared_factor_fixture();
+        manifest.outputs[0].terms[0].input =
+            StructuralInput::Exogenous(id("missing-latent-factor"));
+        assert_eq!(
+            manifest.validate(),
+            Err(DependenceError::UnknownOutputInput)
+        );
+    }
+
+    #[test]
     fn invalid_self_directed_dyad_is_rejected() {
         let mut manifest = shared_factor_fixture();
         manifest.variables[0].scope = FactorScope::DirectedDyad {
