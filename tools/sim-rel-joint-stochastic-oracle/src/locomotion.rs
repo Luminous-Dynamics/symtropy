@@ -2026,7 +2026,7 @@ mod tests {
                 next.presynaptic_movement_inhibition[target_leg.index()],
                 expected
             );
-            for leg in LegId::ALL.into_iter().filter(|leg| leg != target_leg) {
+            for leg in LegId::ALL.into_iter().filter(|leg| *leg != target_leg) {
                 assert_eq!(
                     next.presynaptic_movement_inhibition[leg.index()],
                     PresynapticMovementInhibition::Disinhibited
