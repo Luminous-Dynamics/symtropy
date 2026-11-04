@@ -933,7 +933,7 @@ mod tests {
         assert!(matches!(
             input.validate(),
             Err(errors) if errors.contains(&ValidationError::NonFiniteOrNegativeMetric(
-                "engineering_person_hours"
+                "adaptation_effort_person_hours"
             ))
         ));
     }
