@@ -101,6 +101,7 @@ pub enum ValidationError {
     AdaptationEvaluationLeakage { dimension: String, id: String },
     DuplicateWorkItem { id: String },
     AdaptationEvaluationWorkItemLeakage { id: String },
+    TrainingAdaptationWorkItemLeakage { id: String },
     TrainingEvaluationWorkItemLeakage { id: String },
     MissingSplitPartition(&'static str),
     InvalidRegime(&'static str),
@@ -200,6 +201,13 @@ impl TransferStudy {
         }
         let source_items: BTreeSet<&str> =
             self.source.work_item_ids.iter().map(String::as_str).collect();
+        for item in &self.target_adaptation_work_item_ids {
+            if source_items.contains(item.as_str()) {
+                errors.push(ValidationError::TrainingAdaptationWorkItemLeakage {
+                    id: item.clone(),
+                });
+            }
+        }
         for item in &self.target.work_item_ids {
             if source_items.contains(item.as_str()) {
                 errors.push(ValidationError::TrainingEvaluationWorkItemLeakage {
@@ -848,6 +856,18 @@ mod tests {
                 field: "engineering_person_hours",
                 budget_person_hours: 1.5,
                 actual_person_hours: 2.0
+            })
+        ));
+    }
+
+    #[test]
+    fn source_and_target_adaptation_work_items_must_be_disjoint() {
+        let mut input = study();
+        input.target_adaptation_work_item_ids = input.source.work_item_ids.clone();
+        assert!(matches!(
+            input.validate(),
+            Err(errors) if errors.contains(&ValidationError::TrainingAdaptationWorkItemLeakage {
+                id: "work-source-1".to_owned()
             })
         ));
     }
