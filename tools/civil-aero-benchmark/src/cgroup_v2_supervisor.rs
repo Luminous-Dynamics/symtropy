@@ -443,7 +443,9 @@ fn command_manifest(program: &Path, arguments: &[String], cwd: &Path) -> Result<
             sha256_hex(argument.as_bytes())?
         ));
     }
-    Ok((sha256_hex(&bytes)?, output.into_bytes()))
+    let digest = sha256_hex(&bytes)?;
+    output.push_str(&format!("command_identity_sha256={digest}\n"));
+    Ok((digest, output.into_bytes()))
 }
 
 fn environment_manifest(environment: &BTreeMap<String, String>) -> Result<(String, Vec<u8>), String> {
@@ -460,7 +462,9 @@ fn environment_manifest(environment: &BTreeMap<String, String>) -> Result<(Strin
             sha256_hex(value.as_bytes())?
         ));
     }
-    Ok((sha256_hex(&canonical)?, output.into_bytes()))
+    let digest = sha256_hex(&canonical)?;
+    output.push_str(&format!("environment_identity_sha256={digest}\n"));
+    Ok((digest, output.into_bytes()))
 }
 
 fn write_artifact(
