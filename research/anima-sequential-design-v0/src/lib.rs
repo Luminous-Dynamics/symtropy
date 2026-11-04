@@ -6,6 +6,7 @@
 //! All tests use synthetic fixtures.
 
 pub mod anytime;
+pub mod benchmark;
 
 use std::collections::{BTreeMap, BTreeSet};
 
