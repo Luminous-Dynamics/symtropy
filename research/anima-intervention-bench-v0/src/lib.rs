@@ -234,6 +234,7 @@ pub enum BenchError {
     },
     InvalidModelPriors,
     ModelPriorSetMismatch,
+    InconsistentModelPriors,
 }
 
 impl fmt::Display for BenchError {
@@ -357,6 +358,12 @@ impl fmt::Display for BenchError {
                 write!(
                     f,
                     "model-prior identities do not exactly match prediction identities"
+                )
+            }
+            Self::InconsistentModelPriors => {
+                write!(
+                    f,
+                    "intervention candidates do not share one frozen model-prior manifest"
                 )
             }
         }
@@ -905,6 +912,16 @@ pub struct MultivariateOutcomeDistribution {
 pub struct ModelFamilyPrior {
     pub model_family_id: String,
     pub probability: f64,
+}
+
+/// Candidate intervention with joint predictions and one frozen model-prior manifest.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MultivariateInterventionCandidate {
+    pub intervention_id: String,
+    pub cost_units: f64,
+    pub feasible: bool,
+    pub predictions: Vec<MultivariateOutcomeDistribution>,
+    pub priors: Vec<ModelFamilyPrior>,
 }
 
 /// Candidate intervention with a model prediction for every competing family.
