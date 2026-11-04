@@ -106,4 +106,4 @@ These are proposed engineering targets, not claimed results or regulatory requir
 
 ## 9. Validation status
 
-Seven unit tests are authored in V0.1 for known-truth shift/rebound, job-manifest mismatch, slot-contract mismatch, invalid baseline schedule, schedule-ID mismatch, identity/digest checks and service-contract mismatch. They have not been run in this environment. Rust build, unit test, rustfmt and Clippy results must come from a local Rust toolchain or exact-head CI and must be reported separately.
+Eight unit tests are authored in V0.1 for known-truth shift/rebound, job-manifest mismatch, slot-contract mismatch, invalid baseline schedule, schedule-ID mismatch, identity/digest checks and service-contract mismatch. They have not been run in this environment. Rust build, unit test, rustfmt and Clippy results must come from a local Rust toolchain or exact-head CI and must be reported separately.
