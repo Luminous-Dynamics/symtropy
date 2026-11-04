@@ -5,9 +5,10 @@
   "claim_ceiling": "illustrative event-matching semantics; not WDSEventDB, ACG, BATADAL, utility, or field evidence",
   "dataset_lane": "illustrative_synthetic",
   "time_basis": {
-    "unit": "utc_epoch_milliseconds",
+    "unit": "milliseconds_from_window_origin",
     "clock_uncertainty_ms": 0,
-    "source_time_basis": "fixture_defined"
+    "source_time_basis": "fixture_defined",
+    "window_origin_utc": "1970-01-01T00:00:00Z"
   },
   "evaluation": {
     "monitored_duration_ms": 86400000,
