@@ -219,7 +219,9 @@ fn nonempty(value: &str) -> bool {
 
 fn unique_nonempty(values: &[String]) -> bool {
     let mut seen = BTreeSet::new();
-    values.iter().all(|value| nonempty(value) && seen.insert(value))
+    values
+        .iter()
+        .all(|value| nonempty(value) && seen.insert(value))
 }
 
 fn sorted<T: Ord + Clone>(values: &[T]) -> Vec<T> {
@@ -245,14 +247,26 @@ fn check_policy_identity(manifest: &InputManifest, policy: &TrustedPolicy, out: 
 
     let site = &manifest.site_binding;
     for (actual, expected, code) in [
-        (site.site_id.as_str(), policy.site_id.as_str(), "site_id_mismatch"),
-        (site.task_scope.as_str(), policy.task_scope.as_str(), "task_scope_mismatch"),
+        (
+            site.site_id.as_str(),
+            policy.site_id.as_str(),
+            "site_id_mismatch",
+        ),
+        (
+            site.task_scope.as_str(),
+            policy.task_scope.as_str(),
+            "task_scope_mismatch",
+        ),
         (
             site.work_package_revision.as_str(),
             policy.work_package_revision.as_str(),
             "work_package_revision_stale_or_mismatched",
         ),
-        (site.work_zone_id.as_str(), policy.work_zone_id.as_str(), "work_zone_mismatch"),
+        (
+            site.work_zone_id.as_str(),
+            policy.work_zone_id.as_str(),
+            "work_zone_mismatch",
+        ),
         (
             site.worksite_epoch_sha256.as_str(),
             policy.worksite_epoch_sha256.as_str(),
@@ -339,16 +353,36 @@ fn check_source_and_export(manifest: &InputManifest, policy: &TrustedPolicy, out
 fn check_coordinate_frame(manifest: &InputManifest, policy: &TrustedPolicy, out: &mut Findings) {
     let frame = &manifest.coordinate_frame;
     for (actual, expected, code) in [
-        (frame.source_frame_id.as_str(), policy.source_frame_id.as_str(), "source_frame_id_mismatch"),
-        (frame.target_frame_id.as_str(), policy.target_frame_id.as_str(), "target_frame_id_mismatch"),
+        (
+            frame.source_frame_id.as_str(),
+            policy.source_frame_id.as_str(),
+            "source_frame_id_mismatch",
+        ),
+        (
+            frame.target_frame_id.as_str(),
+            policy.target_frame_id.as_str(),
+            "target_frame_id_mismatch",
+        ),
         (
             frame.horizontal_reference.as_str(),
             policy.horizontal_reference.as_str(),
             "horizontal_reference_mismatch",
         ),
-        (frame.vertical_datum.as_str(), policy.vertical_datum.as_str(), "vertical_datum_mismatch"),
-        (frame.units.as_str(), policy.units.as_str(), "coordinate_units_mismatch"),
-        (frame.handedness.as_str(), policy.handedness.as_str(), "coordinate_handedness_mismatch"),
+        (
+            frame.vertical_datum.as_str(),
+            policy.vertical_datum.as_str(),
+            "vertical_datum_mismatch",
+        ),
+        (
+            frame.units.as_str(),
+            policy.units.as_str(),
+            "coordinate_units_mismatch",
+        ),
+        (
+            frame.handedness.as_str(),
+            policy.handedness.as_str(),
+            "coordinate_handedness_mismatch",
+        ),
         (
             frame.transform_bundle_sha256.as_str(),
             policy.transform_bundle_sha256.as_str(),
@@ -363,7 +397,9 @@ fn check_coordinate_frame(manifest: &InputManifest, policy: &TrustedPolicy, out:
     if frame.axis_order != policy.axis_order {
         out.hard("coordinate_axis_order_mismatch");
     }
-    if policy.coordinate_epoch_required && frame.coordinate_epoch.as_ref().is_none_or(|v| !nonempty(v)) {
+    if policy.coordinate_epoch_required
+        && frame.coordinate_epoch.as_ref().is_none_or(|v| !nonempty(v))
+    {
         out.unknown("required_coordinate_epoch_missing");
     }
     if let Some(expected_epoch) = &policy.coordinate_epoch {
@@ -371,7 +407,10 @@ fn check_coordinate_frame(manifest: &InputManifest, policy: &TrustedPolicy, out:
             out.hard("coordinate_epoch_mismatch");
         }
     }
-    if !same_set(&frame.transform_resource_sha256s, &policy.transform_resource_sha256s) {
+    if !same_set(
+        &frame.transform_resource_sha256s,
+        &policy.transform_resource_sha256s,
+    ) {
         out.hard("transform_resource_set_mismatch");
     }
     for digest in std::iter::once(&frame.transform_bundle_sha256)
@@ -402,13 +441,19 @@ fn check_inventory(manifest: &InputManifest, policy: &TrustedPolicy, out: &mut F
         return;
     }
 
-    if !same_set(&inventory.expected_feature_ids, &policy.critical_feature_ids) {
+    if !same_set(
+        &inventory.expected_feature_ids,
+        &policy.critical_feature_ids,
+    ) {
         out.hard("expected_feature_inventory_not_bound_to_approved_policy");
     }
     if !same_set(source_ids, &inventory.expected_feature_ids) {
         out.hard("source_model_feature_inventory_mismatch");
     }
-    if !same_set(&manifest.export.feature_ids, &inventory.exported_feature_ids) {
+    if !same_set(
+        &manifest.export.feature_ids,
+        &inventory.exported_feature_ids,
+    ) {
         out.hard("export_feature_inventory_reference_mismatch");
     }
 
@@ -424,8 +469,8 @@ fn maximum_triangle_area(points: &[CheckPoint]) -> f64 {
     for (i, a) in points.iter().enumerate() {
         for (j, b) in points.iter().enumerate().skip(i + 1) {
             for c in points.iter().skip(j + 1) {
-                let twice_area = (b.x_m - a.x_m) * (c.y_m - a.y_m)
-                    - (b.y_m - a.y_m) * (c.x_m - a.x_m);
+                let twice_area =
+                    (b.x_m - a.x_m) * (c.y_m - a.y_m) - (b.y_m - a.y_m) * (c.x_m - a.x_m);
                 maximum = maximum.max(twice_area.abs() * 0.5);
             }
         }
@@ -537,8 +582,8 @@ fn check_control_validation(
 /// Evaluate a manifest against a policy supplied by the trusted project/site owner.
 /// The manifest never supplies its own policy, decision, or reason codes.
 pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation, String> {
-    let manifest: InputManifest =
-        serde_json::from_str(raw).map_err(|e| format!("invalid or non-conforming manifest: {e}"))?;
+    let manifest: InputManifest = serde_json::from_str(raw)
+        .map_err(|e| format!("invalid or non-conforming manifest: {e}"))?;
 
     if !valid_sha256(&policy.source_model_sha256)
         || !valid_sha256(&policy.worksite_epoch_sha256)
@@ -583,12 +628,23 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
         || !unique_nonempty(&policy.critical_feature_ids)
         || !unique_nonempty(&policy.transform_resource_sha256s)
     {
-        return Err("trusted policy contains missing or duplicated required identity fields".to_owned());
+        return Err(
+            "trusted policy contains missing or duplicated required identity fields".to_owned(),
+        );
     }
-    if policy.coordinate_epoch_required && policy.coordinate_epoch.as_ref().is_none_or(|v| !nonempty(v)) {
+    if policy.coordinate_epoch_required
+        && policy
+            .coordinate_epoch
+            .as_ref()
+            .is_none_or(|v| !nonempty(v))
+    {
         return Err("trusted policy requires a coordinate epoch but does not pin one".to_owned());
     }
-    if policy.coordinate_epoch.as_ref().is_some_and(|v| !nonempty(v)) {
+    if policy
+        .coordinate_epoch
+        .as_ref()
+        .is_some_and(|v| !nonempty(v))
+    {
         return Err("trusted policy contains an empty coordinate epoch".to_owned());
     }
     if policy.minimum_check_points < 3
@@ -617,11 +673,10 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
     check_source_and_export(&manifest, policy, &mut findings);
     check_coordinate_frame(&manifest, policy, &mut findings);
     check_inventory(&manifest, policy, &mut findings);
-    let max_bound =
-        check_control_validation(&manifest.control_validation, policy, &mut findings);
+    let max_bound = check_control_validation(&manifest.control_validation, policy, &mut findings);
 
-    let policy_bytes = serde_json::to_vec(policy)
-        .map_err(|e| format!("cannot serialize trusted policy: {e}"))?;
+    let policy_bytes =
+        serde_json::to_vec(policy).map_err(|e| format!("cannot serialize trusted policy: {e}"))?;
     Ok(Evaluation {
         schema_version: "construction-layout-input-evaluation/0.1".to_owned(),
         manifest_id: manifest.manifest_id,
@@ -707,21 +762,33 @@ mod tests {
     fn wrong_axis_order_is_inadmissible() {
         let result = evaluate_manifest(WRONG_AXIS, &policy()).expect("well-formed fixture");
         assert_eq!(result.decision, Decision::Inadmissible);
-        assert!(result.reason_codes.contains(&"coordinate_axis_order_mismatch".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"coordinate_axis_order_mismatch".to_owned())
+        );
     }
 
     #[test]
     fn stale_design_revision_is_inadmissible() {
         let result = evaluate_manifest(STALE_REVISION, &policy()).expect("well-formed fixture");
         assert_eq!(result.decision, Decision::Inadmissible);
-        assert!(result.reason_codes.contains(&"source_model_revision_or_digest_not_approved".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"source_model_revision_or_digest_not_approved".to_owned())
+        );
     }
 
     #[test]
     fn fitting_point_cannot_be_reused_as_independent_checkpoint() {
         let result = evaluate_manifest(REUSED_CHECK, &policy()).expect("well-formed fixture");
         assert_eq!(result.decision, Decision::Inadmissible);
-        assert!(result.reason_codes.contains(&"fit_point_reused_as_independent_check_point".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"fit_point_reused_as_independent_check_point".to_owned())
+        );
     }
 
     #[test]
@@ -747,9 +814,11 @@ mod tests {
         )
         .expect("well-formed manifest");
         assert_eq!(result.decision, Decision::Indeterminate);
-        assert!(result.reason_codes.contains(
-            &"reference_u95_exceeds_predeclared_fraction_of_margin".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"reference_u95_exceeds_predeclared_fraction_of_margin".to_owned())
+        );
     }
 
     #[test]
@@ -762,52 +831,68 @@ mod tests {
         )
         .expect("well-formed manifest");
         assert_eq!(result.decision, Decision::Inadmissible);
-        assert!(result.reason_codes.contains(&"worksite_epoch_stale_or_mismatched".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"worksite_epoch_stale_or_mismatched".to_owned())
+        );
     }
 
     #[test]
     fn author_supplied_decision_is_rejected_as_unknown_field() {
         let mut value: Value = serde_json::from_str(VALID).expect("manifest json");
         value["decision"] = serde_json::json!("admissible_for_named_layout_input");
-        assert!(evaluate_manifest(
-            &serde_json::to_string(&value).expect("manifest serializes"),
-            &policy(),
-        )
-        .is_err());
+        assert!(
+            evaluate_manifest(
+                &serde_json::to_string(&value).expect("manifest serializes"),
+                &policy(),
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn wrong_vertical_datum_is_inadmissible() {
         let result = evaluate_manifest(WRONG_VERTICAL_DATUM, &policy()).expect("fixture");
         assert_eq!(result.decision, Decision::Inadmissible);
-        assert!(result.reason_codes.contains(&"vertical_datum_mismatch".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"vertical_datum_mismatch".to_owned())
+        );
     }
 
     #[test]
     fn independent_checkpoint_must_use_the_approved_target_frame() {
         let result = evaluate_manifest(WRONG_FRAME_CHECK, &policy()).expect("fixture");
         assert_eq!(result.decision, Decision::Inadmissible);
-        assert!(result.reason_codes.contains(
-            &"independent_check_point_coordinate_frame_mismatch".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"independent_check_point_coordinate_frame_mismatch".to_owned())
+        );
     }
 
     #[test]
     fn manifest_cannot_exclude_critical_features_without_a_policy_mechanism() {
         let result = evaluate_manifest(FEATURE_EXCLUSION, &policy()).expect("fixture");
         assert_eq!(result.decision, Decision::Inadmissible);
-        assert!(result.reason_codes.contains(
-            &"declared_feature_exclusions_not_supported_in_v0_1".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"declared_feature_exclusions_not_supported_in_v0_1".to_owned())
+        );
     }
 
     #[test]
     fn independent_checkpoint_outside_margin_is_inadmissible() {
         let result = evaluate_manifest(CHECK_OUTSIDE_MARGIN, &policy()).expect("fixture");
         assert_eq!(result.decision, Decision::Inadmissible);
-        assert!(result.reason_codes.contains(
-            &"independent_check_point_exceeds_decision_margin".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"independent_check_point_exceeds_decision_margin".to_owned())
+        );
     }
 
     #[test]
@@ -827,7 +912,11 @@ mod tests {
         )
         .expect("well-formed manifest");
         assert_eq!(result.decision, Decision::Indeterminate);
-        assert!(result.reason_codes.contains(&"survey_evidence_digest_malformed".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"survey_evidence_digest_malformed".to_owned())
+        );
     }
 
     #[test]
