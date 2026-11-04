@@ -1,0 +1,139 @@
+{
+  "schema_version": "construction-accepted-output-profile-v0.1",
+  "profile_id": "solar-pile-accepted-output-v0.1",
+  "version": "0.1.0",
+  "status": "proposed",
+  "task_family": "autonomous_solar_piling",
+  "source_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3626",
+  "generic_output_contract": "https://github.com/Luminous-Dynamics/symtropy/issues/3605",
+  "functional_unit": {
+    "unit_class": "installed_pile",
+    "unit_label": "finally accepted installed pile",
+    "unit_symbol": "pile",
+    "definition": "One installed pile of a declared pile class, design revision and work-package scope, which has passed the project's predeclared engineer/geotechnical acceptance predicate and required independent as-built and QA inspection."
+  },
+  "acceptance_predicate": {
+    "must_bind": [
+      "pile_id",
+      "pile_class",
+      "pile_design_revision",
+      "material_identity_where_required",
+      "foundation_point_id",
+      "target_frame",
+      "site_epoch",
+      "soil_geotechnical_stratum",
+      "installation_method",
+      "machine_serial_and_configuration",
+      "as_built_position",
+      "verticality_or_inclination",
+      "embedment_or_depth",
+      "project_required_mechanical_tests",
+      "independent_reference_method",
+      "measurement_uncertainty",
+      "acceptance_rule_and_authority"
+    ],
+    "method_strata": [
+      "direct_drive",
+      "pre_drill",
+      "pre_drill_with_cement_stabilised_fill",
+      "other_approved"
+    ],
+    "required_quality_dimensions": [
+      "position",
+      "verticality_or_inclination",
+      "embedment_or_depth",
+      "pile_integrity",
+      "project_required_mechanical_capacity_or_load_test"
+    ],
+    "threshold_policy": "all_numeric limits and required tests are supplied by the frozen engineer-of-record/project/geotechnical specification; this profile sets no universal pile tolerance",
+    "acceptance_states": [
+      "accepted_under_named_rule",
+      "rejected_under_named_rule",
+      "indeterminate_measurement_or_missing_critical_evidence",
+      "not_evaluated"
+    ],
+    "rework_lineage": "every drive attempt, re-drive, extraction, replacement, defect and reinspection remains linked to the original pile/work-package decision"
+  },
+  "independent_evidence": {
+    "required_artifact_types": [
+      "approved_pile_schedule",
+      "survey_control_and_frame",
+      "independent_as_built_survey",
+      "verticality_or_inclination_measurement",
+      "embedment_or_depth_record",
+      "installation_trace_where_required",
+      "material_and_CSf_records_where_required",
+      "project_QA_and_mechanical_test_records_where_required",
+      "independent_adjudication"
+    ],
+    "control_output_not_acceptance": true,
+    "robot_self_reported_pile_count_not_acceptance": true
+  },
+  "ground_and_method_strata": [
+    "soil_geotechnical_class",
+    "hardness_or_refusal",
+    "groundwater_or_moisture",
+    "direct_drive_or_pre_drill",
+    "cement_stabilised_fill_recipe_and_hardness_when_used",
+    "pile_class_and_geometry"
+  ],
+  "workflow_accounting": {
+    "robot_hours_separate": true,
+    "direct_site_crew_hours_separate": true,
+    "total_workflow_crew_hours_required": true,
+    "required_categories": [
+      "survey_and_pile_setout",
+      "site_access_and_mobilisation",
+      "pre_drilling_and_spoils",
+      "CSF_mixing_delivery_pour_and_cure",
+      "pile_staging_and_basket_loading",
+      "telehandler_or_material_handling",
+      "robot_setup_calibration_and_repositioning",
+      "operator_spotter_and_remote_supervision",
+      "installation_cycle",
+      "tool_change_maintenance_and_refuelling",
+      "inspection_and_as_built_QA",
+      "rework_extraction_and_replacement",
+      "waiting_interruption_recovery_and_closeout"
+    ],
+    "unknown_time_must_remain_explicit": true,
+    "shared_operator_supervision_must_not_be_misattributed": true
+  },
+  "matched_baseline": {
+    "required_for_comparative_productivity_claim": true,
+    "preferred_designs": [
+      "randomized_within_site_crossover",
+      "balanced_matched_work_packages"
+    ],
+    "matching_fields": [
+      "pile_design",
+      "soil_stratum",
+      "installation_method",
+      "preparation_and_CSF",
+      "acceptance_predicate",
+      "site_access",
+      "shift_and_environment"
+    ],
+    "unmatched_case_study_claim_limit": "descriptive_association_only_no_causal_robot_effect"
+  },
+  "statistical_design": {
+    "pile_attempt_is_unit_for_pile_level_acceptance": true,
+    "clusters": [
+      "machine_serial",
+      "crew",
+      "shift",
+      "site",
+      "soil_stratum"
+    ],
+    "repeated_sensor_frames_or_depth_samples_are_not_independent_piles": true,
+    "cross_site_transfer_requires_independent_site_soil_and_configuration_replication": true,
+    "analysis_must_be_cluster_aware": true
+  },
+  "safety_separation": {
+    "external_qualification_owner": "construction_robot_physical_safety_protocol",
+    "safety_is_non_compensable": true,
+    "productivity_may_not_change_safety_verdict": true,
+    "composite_safety_productivity_score_prohibited": true
+  },
+  "execution_status": "not_executed"
+}
