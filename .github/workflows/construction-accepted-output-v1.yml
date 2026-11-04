@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: construction-accepted-output-v1-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   validate:
