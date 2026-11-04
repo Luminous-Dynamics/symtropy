@@ -390,31 +390,28 @@ fn validate_source(source: &SourceManifest) -> Result<(), AdapterError> {
     nonempty(&source.id, "source_manifest_id")?;
     nonempty(&source.citation_or_source_uri, "citation_or_source_uri")?;
 
-    match source.kind {
-        SourceKind::Connectome => {
-            if source.dataset_id.as_deref().is_none_or(str::is_empty)
-                || source
-                    .release_or_materialization
-                    .as_deref()
-                    .is_none_or(str::is_empty)
-            {
-                return Err(AdapterError::MissingConnectomeSnapshot {
-                    source_id: source.id.clone(),
-                });
-            }
-            if !source.unknown_endpoint_inventory_complete {
-                return Err(AdapterError::IncompleteUnknownEndpointInventory {
-                    source_id: source.id.clone(),
-                });
-            }
-            if source.evidence_class != EvidenceClass::ConnectomeDerived {
-                return Err(AdapterError::InvalidEvidenceClaim {
-                    hypothesis_id: source.id.clone(),
-                    claim: ClaimCeiling::AnatomicalConnectomeConstrained,
-                });
-            }
+    if source.kind == SourceKind::Connectome {
+        if source.dataset_id.as_deref().is_none_or(str::is_empty)
+            || source
+                .release_or_materialization
+                .as_deref()
+                .is_none_or(str::is_empty)
+        {
+            return Err(AdapterError::MissingConnectomeSnapshot {
+                source_id: source.id.clone(),
+            });
         }
-        _ => {}
+        if !source.unknown_endpoint_inventory_complete {
+            return Err(AdapterError::IncompleteUnknownEndpointInventory {
+                source_id: source.id.clone(),
+            });
+        }
+        if source.evidence_class != EvidenceClass::ConnectomeDerived {
+            return Err(AdapterError::InvalidEvidenceClaim {
+                hypothesis_id: source.id.clone(),
+                claim: ClaimCeiling::AnatomicalConnectomeConstrained,
+            });
+        }
     }
 
     match source.evidence_class {
