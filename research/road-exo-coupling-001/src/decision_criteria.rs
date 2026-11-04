@@ -79,7 +79,7 @@ pub struct DominancePair {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ActionExclusion {
     pub action_id: StableId,
-    pub infeasible_under: Vec<StableId>,
+    pub infeasible_under: Vec<FeasibilityGap>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -297,8 +297,12 @@ impl DecisionCriterionManifest {
             for hypothesis in &self.decision.hypotheses {
                 match feasibility.get(&(action.clone(), hypothesis.hypothesis_id.clone())) {
                     Some(FeasibilityStatus::Feasible) => {}
-                    Some(FeasibilityStatus::Infeasible { .. }) => {
-                        infeasible_under.push(hypothesis.hypothesis_id.clone());
+                    Some(FeasibilityStatus::Infeasible { reason_id }) => {
+                        infeasible_under.push(FeasibilityGap {
+                            action_id: action.clone(),
+                            hypothesis_id: hypothesis.hypothesis_id.clone(),
+                            reason_id: reason_id.clone(),
+                        });
                     }
                     Some(FeasibilityStatus::Unknown { .. }) | None => {
                         return Ok(empty_incomplete_certificate(manifest_digest));
@@ -355,11 +359,12 @@ impl DecisionCriterionManifest {
             });
         }
         let maximin_value = extremum(&maximin_floor_by_action, Ordering::Greater)?;
-        let maximin_actions = maximin_floor_by_action
-            .iter()
-            .filter(|score| cmp(&score.value, &maximin_value).ok() == Some(Ordering::Equal))
-            .map(|score| score.action_id.clone())
-            .collect::<Vec<_>>();
+        let mut maximin_actions = Vec::new();
+        for score in &maximin_floor_by_action {
+            if cmp(&score.value, &maximin_value)? == Ordering::Equal {
+                maximin_actions.push(score.action_id.clone());
+            }
+        }
 
         let mut worst_case_regret_by_action = Vec::new();
         for action in &robust_feasible_actions {
@@ -384,11 +389,12 @@ impl DecisionCriterionManifest {
             });
         }
         let minimum_worst_regret = extremum(&worst_case_regret_by_action, Ordering::Less)?;
-        let minimax_regret_actions = worst_case_regret_by_action
-            .iter()
-            .filter(|score| cmp(&score.value, &minimum_worst_regret).ok() == Some(Ordering::Equal))
-            .map(|score| score.action_id.clone())
-            .collect::<Vec<_>>();
+        let mut minimax_regret_actions = Vec::new();
+        for score in &worst_case_regret_by_action {
+            if cmp(&score.value, &minimum_worst_regret)? == Ordering::Equal {
+                minimax_regret_actions.push(score.action_id.clone());
+            }
+        }
 
         let epsilon_regret_sets = self
             .epsilon_values
@@ -690,7 +696,11 @@ fn certificate_bytes(certificate: &DecisionCriterionCertificate) -> Vec<u8> {
     push_len(&mut out, certificate.excluded_actions.len());
     for exclusion in &certificate.excluded_actions {
         push_id(&mut out, &exclusion.action_id);
-        push_ids(&mut out, &exclusion.infeasible_under);
+        push_len(&mut out, exclusion.infeasible_under.len());
+        for gap in &exclusion.infeasible_under {
+            push_id(&mut out, &gap.hypothesis_id);
+            push_id(&mut out, &gap.reason_id);
+        }
     }
     push_len(&mut out, certificate.unknown_feasibility.len());
     for gap in &certificate.unknown_feasibility {
