@@ -1,0 +1,104 @@
+{
+  "schema_version": "construction-robot-assurance-chain/0.1",
+  "task_binding": {
+    "project_id": "synthetic-project",
+    "site_id": "synthetic-site",
+    "work_package_revision": "wp-r1",
+    "task_scope": "floor-1-layout",
+    "work_zone_id": "zone-a",
+    "robot_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "initial_worksite_epoch_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "timebase_id": "synthetic-boot-001"
+  },
+  "scenario_id": "bench-evidence-cannot-support-field-human-detection",
+  "scenario_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "stages": [
+    {
+      "stage_id": "input",
+      "stage_kind": "layout_input_admission",
+      "sequence": 0,
+      "predecessor_stage_ids": [],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "source-export",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "role": "model-export"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "input-admission",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "admissible_for_named_layout_input",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "bench",
+      "stage_kind": "physical_outcome_receipt",
+      "sequence": 1,
+      "predecessor_stage_ids": [
+        "input"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "input-admission",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "bench-receipt",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "scope": "bench"
+        }
+      ],
+      "expected_disposition": "not_evaluated",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "claim",
+      "stage_kind": "claim_admissibility",
+      "sequence": 2,
+      "predecessor_stage_ids": [
+        "bench"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "bench-receipt",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "claim-assessment",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "scope": "bench"
+        }
+      ],
+      "expected_disposition": "inadmissible_for_named_claim",
+      "expected_reason_codes": [
+        "evidence_origin_not_acceptable_for_claim"
+      ]
+    }
+  ],
+  "command_attempts": [],
+  "claim_expectations": [
+    {
+      "claim_id": "field-detection-claim",
+      "claim_kind": "field_human_detection",
+      "evidence_origin": "bench_measured",
+      "intended_scope": "field",
+      "expected_decision": "inadmissible_for_named_claim",
+      "supporting_stage_ids": [
+        "bench",
+        "claim"
+      ]
+    }
+  ],
+  "statistical_units": []
+}
