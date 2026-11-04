@@ -271,7 +271,7 @@ impl DecisionCriterionManifest {
 
         // Unknown feasibility can change the feasible action set. Do not produce
         // a recommendation by assuming the unknown cell is feasible or infeasible.
-        let unknown_feasibility = self
+        let mut unknown_feasibility = self
             .feasibility
             .iter()
             .filter_map(|cell| match &cell.status {
@@ -283,6 +283,9 @@ impl DecisionCriterionManifest {
                 FeasibilityStatus::Feasible | FeasibilityStatus::Infeasible { .. } => None,
             })
             .collect::<Vec<_>>();
+        unknown_feasibility.sort_by(|a, b| {
+            (&a.action_id, &a.hypothesis_id).cmp(&(&b.action_id, &b.hypothesis_id))
+        });
         if !unknown_feasibility.is_empty() {
             return Ok(empty_incomplete_certificate(
                 manifest_digest,
@@ -309,6 +312,7 @@ impl DecisionCriterionManifest {
                     }
                 }
             }
+            infeasible_under.sort_by(|a, b| a.hypothesis_id.cmp(&b.hypothesis_id));
             if infeasible_under.is_empty() {
                 robust_feasible_actions.push(action.clone());
             } else {
@@ -319,6 +323,7 @@ impl DecisionCriterionManifest {
             }
         }
         robust_feasible_actions.sort();
+        excluded_actions.sort_by(|a, b| a.action_id.cmp(&b.action_id));
 
         if robust_feasible_actions.is_empty() {
             let mut certificate = DecisionCriterionCertificate {
@@ -396,29 +401,27 @@ impl DecisionCriterionManifest {
             }
         }
 
-        let epsilon_regret_sets = self
+        let mut ordered_epsilons = self
             .epsilon_values
             .iter()
-            .map(|epsilon| {
-                let normalized = normalize(epsilon)?;
-                let threshold = add(&minimum_worst_regret, &normalized)?;
-                let actions = worst_case_regret_by_action
-                    .iter()
-                    .filter_map(|score| {
-                        match cmp(&score.value, &threshold) {
-                            Ok(Ordering::Less | Ordering::Equal) => Some(Ok(score.action_id.clone())),
-                            Ok(Ordering::Greater) => None,
-                            Err(error) => Some(Err(error)),
-                        }
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-                Ok(EpsilonRegretSet {
-                    epsilon: normalized,
-                    threshold,
-                    actions,
-                })
-            })
-            .collect::<Result<Vec<_>, CriterionSensitivityError>>()?;
+            .map(normalize)
+            .collect::<Result<Vec<_>, _>>()?;
+        ordered_epsilons.sort_by(|a, b| cmp(a, b).expect("epsilon comparisons validated"));
+        let mut epsilon_regret_sets = Vec::with_capacity(ordered_epsilons.len());
+        for epsilon in ordered_epsilons {
+            let threshold = add(&minimum_worst_regret, &epsilon)?;
+            let mut actions = Vec::new();
+            for score in &worst_case_regret_by_action {
+                if cmp(&score.value, &threshold)? != Ordering::Greater {
+                    actions.push(score.action_id.clone());
+                }
+            }
+            epsilon_regret_sets.push(EpsilonRegretSet {
+                epsilon,
+                threshold,
+                actions,
+            });
+        }
 
         let robust_dominance = dominance_pairs(&utilities, &robust_feasible_actions, &self.decision)?;
         let agreement = compare_action_sets(&maximin_actions, &minimax_regret_actions);
