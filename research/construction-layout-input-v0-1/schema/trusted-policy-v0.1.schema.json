@@ -35,7 +35,10 @@
     "maximum_check_points",
     "minimum_spread_area_m2",
     "decision_margin_mm",
-    "maximum_u95_to_margin_ratio"
+    "maximum_u95_to_margin_ratio",
+    "approved_source_model_reference",
+    "expected_exporter_version",
+    "expected_exporter_config_sha256"
   ],
   "properties": {
     "policy_id": {
@@ -223,6 +226,20 @@
       "type": "number",
       "exclusiveMinimum": 0,
       "maximum": 1
+    },
+    "approved_source_model_reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "expected_exporter_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "expected_exporter_config_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
     }
   }
 }
