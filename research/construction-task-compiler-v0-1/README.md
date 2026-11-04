@@ -73,6 +73,12 @@ Prospective targets:
 - deterministic topological output under input-order permutations;
 - zero cycles unless a separately versioned bounded repeat/feedback construct is introduced.
 
+## Deterministic validator implementation
+
+The Rust library validates graph headers, task source/method/rule lineage, parameter unit/source binding, required capability and evidence lists, dependency references, duplicate/self edges, and DAG acyclicity. It returns sorted diagnostics and a lexicographically tie-broken topological order so input-vector permutations do not change the scheduling order. A unit conversion between different source/target units requires an explicit conversion-evidence reference.
+
+The validator deliberately does not calculate geometry, approve transformations, infer a construction method or produce a cryptographic graph digest. A canonical serializer/digest layer and graph rewrite engine are later stages.
+
 ## Build and test
 
 ```sh
