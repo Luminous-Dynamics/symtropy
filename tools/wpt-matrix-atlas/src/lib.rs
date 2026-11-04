@@ -1212,6 +1212,48 @@ mod tests {
         }));
     }
 
+
+    #[test]
+    fn deserializes_versioned_service_signals_and_rejects_missing_segment_coverage() {
+        const SIGNALS: &str = include_str!(
+            "../../../benchmarks/wpt-matrix-atlas/v1/synthetic-service-sensitivity-signals.json"
+        );
+        let signals: Vec<ServiceSensitivitySignal> =
+            serde_json::from_str(SIGNALS).expect("versioned service-sensitivity fixture");
+
+        let digest = |digit: char| format!("sha256:{}", digit.to_string().repeat(64));
+        let mut atlas = fixture();
+        let mut third = atlas.samples[1].clone();
+        third.position_m = 20.0;
+        third.matrix_digest = digest('3');
+        third.source_artifact_digest = digest('4');
+        third.validator_receipt_digest = digest('5');
+        atlas.samples.push(third);
+        atlas.segments.push(AtlasSegment {
+            from_sample_index: 1,
+            to_sample_index: 2,
+            interpolation_error_frobenius_bound_h: 0.1e-6,
+            error_bound_method: "HELD_OUT_DENSE_REFERENCE".into(),
+            validation_receipt_digest: digest('6'),
+        });
+
+        let policy = RefinementPolicy {
+            maximum_interpolation_error_frobenius_bound_h: 1.0e-6,
+            minimum_required_eigenvalue_margin_h: 0.0,
+        };
+        let plan = atlas.service_refinement_plan(policy, &signals).unwrap();
+        assert_eq!(plan.len(), 2);
+        assert_eq!(plan[0].segment_index, 1);
+
+        let missing_segment_signal = vec![signals[0].clone()];
+        assert!(
+            atlas
+                .service_refinement_plan(policy, &missing_segment_signal)
+                .unwrap_err()
+                .contains("cover every atlas segment")
+        );
+    }
+
     #[test]
     fn rejects_unverified_or_invalid_service_sensitivity_signals() {
         let mut atlas = fixture();
