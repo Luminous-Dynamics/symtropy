@@ -147,11 +147,7 @@ fn required(value: Option<String>, name: &'static str) -> Result<String, Adapter
     value.ok_or(AdapterError::MissingField(name))
 }
 
-fn exact_division(
-    value: u64,
-    divisor: u64,
-    name: &'static str,
-) -> Result<u64, AdapterError> {
+fn exact_division(value: u64, divisor: u64, name: &'static str) -> Result<u64, AdapterError> {
     if !value.is_multiple_of(divisor) {
         return Err(AdapterError::NonIntegralUnitConversion(name));
     }
