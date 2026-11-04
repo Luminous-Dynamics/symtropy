@@ -280,8 +280,8 @@ fn a_registered_protocol_cannot_be_claimed_with_incompatible_dimensions() {
 fn a_custom_protocol_id_cannot_impersonate_a_registered_protocol() {
     let mut invalid_policy = policy();
     invalid_policy.protocol_id = "cross_network_v1".to_owned();
-    let error = audit_benchmark_split(&valid_samples(), &invalid_policy)
-        .expect_err("preset and ID differ");
+    let error =
+        audit_benchmark_split(&valid_samples(), &invalid_policy).expect_err("preset and ID differ");
     assert_eq!(error.code, "protocol_id_preset_mismatch");
 }
 
