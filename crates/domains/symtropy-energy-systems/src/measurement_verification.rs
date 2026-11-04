@@ -352,7 +352,7 @@ impl EnergyMvReportingPoint {
             require_non_negative(name, value)?;
         }
         if self.routine_adjustment_kwh != 0.0
-            && self.routine_adjustment_evidence_id.as_deref().is_none_or(str::is_empty)
+            && self.routine_adjustment_evidence_id.as_deref().is_none_or(|id| id.trim().is_empty())
         {
             return Err(EnergyMvError::MissingEvidence {
                 sample_id: self.sample_id.clone(),
@@ -365,7 +365,7 @@ impl EnergyMvReportingPoint {
             }
         }
         if self.non_routine_adjustment_kwh != 0.0
-            && self.non_routine_adjustment_evidence_id.as_deref().is_none_or(str::is_empty)
+            && self.non_routine_adjustment_evidence_id.as_deref().is_none_or(|id| id.trim().is_empty())
         {
             return Err(EnergyMvError::MissingEvidence {
                 sample_id: self.sample_id.clone(),
