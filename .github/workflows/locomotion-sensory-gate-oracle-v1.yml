@@ -1,0 +1,37 @@
+name: Locomotion Sensory-Gate Oracle Verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/locomotion-sensory-gate-oracle-v1/**"
+      - ".github/workflows/locomotion-sensory-gate-oracle-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: locomotion-sensory-gate-oracle-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Sensory-gate oracle
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/locomotion-sensory-gate-oracle-v1/Cargo.toml -- --check
+      - name: Run synthetic sensory-gate known-answer tests
+        run: cargo test --manifest-path research/locomotion-sensory-gate-oracle-v1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/locomotion-sensory-gate-oracle-v1/Cargo.toml --locked --all-targets -- -D warnings
