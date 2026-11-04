@@ -11,7 +11,6 @@
     "timebase_id": "synthetic-boot-001"
   },
   "scenario_id": "new-epoch-revokes-stale-lease",
-  "scenario_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   "stages": [
     {
       "stage_id": "input",
