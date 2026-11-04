@@ -17,7 +17,7 @@ EVIDENCE = (
 HEADER = (
     "record_type,schema,protocol_revision,geometry_designation,geometry_ip_holder,"
     "geometry_acknowledgement_required_each_share,geometry_share_condition,evidence_level,"
-    "lane,flow_mode,angle_schedule,angle_of_attack_degrees,mach,chord_reynolds,"
+    "protocol_lane,lane,flow_mode,angle_schedule,angle_of_attack_degrees,mach,chord_reynolds,"
     "static_temperature_kelvin,grid_policy,sidewall_boundary_condition,common_farfield_chords,"
     "turbulence_model,sutherland_law,wall_thermal_condition,residual_target_log10,gamma,"
     "prandtl,turbulent_prandtl,farfield_kinematic_viscosity_ratio_chi,manifest_sha256,"
@@ -127,6 +127,10 @@ def validate_source(row: dict[str, str]) -> None:
 
 def validate_lane(meta: dict[str, str]) -> None:
     lane = meta["lane"]
+    require(
+        meta["protocol_lane"] == lane,
+        "DPW-8 outer protocol lane differs from nested specification lane",
+    )
     expected = {
         "V1a": {
             "flow_mode": "steady",
@@ -201,6 +205,7 @@ def canonical_digest(meta: dict[str, str], sources: list[dict[str, str]]) -> str
         "geometry_ip_holder",
         "geometry_share_condition",
         "evidence_level",
+        "protocol_lane",
         "lane",
         "flow_mode",
         "angle_schedule",
