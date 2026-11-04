@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+pub mod philox_adapter;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 const DOMAIN: &[u8] = b"symtropy.road-exo-coupling.draw-address.v0.1\0";
