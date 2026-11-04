@@ -1358,6 +1358,166 @@ pub fn estimate_multivariate_expected_information_gain_equal_priors(
     estimate_multivariate_expected_information_gain(predictions, &priors, samples_per_model, seed)
 }
 
+/// Rank correlated-outcome interventions by conservative expected information
+/// gain per comparable cost. All candidates share an exact model set, ordered
+/// endpoint schema and frozen prior manifest. A candidate is eligible only
+/// when its 95% Monte Carlo lower EIG bound exceeds the preregistered threshold.
+pub fn rank_multivariate_interventions(
+    candidates: &[MultivariateInterventionCandidate],
+    samples_per_model: usize,
+    seed: u64,
+    minimum_lower_bound_nats: f64,
+) -> Result<Vec<InterventionRanking>, BenchError> {
+    if !(100..=MAX_MONTE_CARLO_SAMPLES_PER_MODEL).contains(&samples_per_model) {
+        return Err(BenchError::InvalidMonteCarloSamples);
+    }
+    if !minimum_lower_bound_nats.is_finite() || minimum_lower_bound_nats < 0.0 {
+        return Err(BenchError::InvalidInformationGainThreshold);
+    }
+    if candidates.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut intervention_ids = BTreeSet::new();
+    let mut expected_models: Option<BTreeSet<String>> = None;
+    let mut expected_schema: Option<(Vec<String>, Vec<String>)> = None;
+    let mut expected_priors: Option<BTreeMap<String, u64>> = None;
+    let mut rankings = Vec::new();
+    let mut feasible_count = 0_usize;
+
+    for candidate in candidates {
+        non_empty(&candidate.intervention_id, "intervention_id")?;
+        if !intervention_ids.insert(candidate.intervention_id.as_str()) {
+            return Err(BenchError::DuplicateInterventionId(
+                candidate.intervention_id.clone(),
+            ));
+        }
+        if !candidate.cost_units.is_finite() || candidate.cost_units <= 0.0 {
+            return Err(BenchError::InvalidInterventionCost {
+                intervention_id: candidate.intervention_id.clone(),
+            });
+        }
+        if candidate.predictions.len() < 2 {
+            return Err(BenchError::TooFewModelFamilies);
+        }
+
+        let mut model_ids = BTreeSet::new();
+        for prediction in &candidate.predictions {
+            non_empty(&prediction.model_family_id, "model_family_id")?;
+            if !model_ids.insert(prediction.model_family_id.clone()) {
+                return Err(multivariate_error(
+                    &prediction.model_family_id,
+                    "duplicate model-family identity in intervention candidate",
+                ));
+            }
+        }
+
+        let schema = (
+            candidate.predictions[0].metric_ids.clone(),
+            candidate.predictions[0].unit_ids.clone(),
+        );
+        if candidate.predictions.iter().any(|prediction| {
+            prediction.metric_ids != schema.0 || prediction.unit_ids != schema.1
+        }) {
+            return Err(BenchError::InconsistentOutcomeSchema {
+                intervention_id: candidate.intervention_id.clone(),
+            });
+        }
+
+        if let Some(expected) = &expected_models {
+            if expected != &model_ids {
+                return Err(BenchError::ModelFamilySetMismatch {
+                    intervention_id: candidate.intervention_id.clone(),
+                });
+            }
+        } else {
+            expected_models = Some(model_ids.clone());
+        }
+        if let Some(expected) = &expected_schema {
+            if expected != &schema {
+                return Err(BenchError::InconsistentOutcomeSchema {
+                    intervention_id: candidate.intervention_id.clone(),
+                });
+            }
+        } else {
+            expected_schema = Some(schema);
+        }
+
+        let mut prior_manifest = BTreeMap::new();
+        let mut prior_sum = 0.0_f64;
+        for prior in &candidate.priors {
+            non_empty(&prior.model_family_id, "model_family_id")?;
+            if !prior.probability.is_finite()
+                || prior.probability < 0.0
+                || prior_manifest
+                    .insert(prior.model_family_id.clone(), prior.probability.to_bits())
+                    .is_some()
+            {
+                return Err(BenchError::InvalidModelPriors);
+            }
+            prior_sum += prior.probability;
+        }
+        if prior_manifest.len() != model_ids.len()
+            || model_ids.iter().any(|model_id| !prior_manifest.contains_key(model_id))
+        {
+            return Err(BenchError::ModelPriorSetMismatch);
+        }
+        if !prior_sum.is_finite() || (prior_sum - 1.0).abs() > 1.0e-10 {
+            return Err(BenchError::InvalidModelPriors);
+        }
+        if let Some(expected) = &expected_priors {
+            if expected != &prior_manifest {
+                return Err(BenchError::InconsistentModelPriors);
+            }
+        } else {
+            expected_priors = Some(prior_manifest);
+        }
+
+        if !candidate.feasible {
+            continue;
+        }
+        feasible_count += 1;
+
+        let candidate_seed = seed ^ stable_hash(&candidate.intervention_id);
+        let estimate = estimate_multivariate_expected_information_gain(
+            &candidate.predictions,
+            &candidate.priors,
+            samples_per_model,
+            candidate_seed,
+        )?;
+        if estimate.lower_95_nats <= minimum_lower_bound_nats {
+            continue;
+        }
+
+        rankings.push(InterventionRanking {
+            intervention_id: candidate.intervention_id.clone(),
+            expected_information_gain_nats: estimate.mean_nats,
+            information_gain_standard_error_nats: estimate.standard_error_nats,
+            information_gain_lower_95_nats: estimate.lower_95_nats,
+            information_gain_upper_95_nats: estimate.upper_95_nats,
+            cost_units: candidate.cost_units,
+            information_gain_per_cost: estimate.mean_nats / candidate.cost_units,
+            lower_95_information_gain_per_cost: estimate.lower_95_nats / candidate.cost_units,
+            model_family_count: candidate.predictions.len(),
+            samples_per_model,
+        });
+    }
+
+    if feasible_count == 0 {
+        return Err(BenchError::NoFeasibleIntervention);
+    }
+    if rankings.is_empty() {
+        return Err(BenchError::NoDiscriminatingIntervention);
+    }
+    rankings.sort_by(|left, right| {
+        right
+            .lower_95_information_gain_per_cost
+            .total_cmp(&left.lower_95_information_gain_per_cost)
+            .then_with(|| left.intervention_id.cmp(&right.intervention_id))
+    });
+    Ok(rankings)
+}
+
 fn log_sum_exp(values: &[f64]) -> f64 {
     let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     maximum
