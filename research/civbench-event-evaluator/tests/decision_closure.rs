@@ -153,6 +153,12 @@ mod tests {
     fn rejected_or_deferred_recommendations_cannot_hold_resource_reservations() {
         let mut record = positive_record();
         record.human_disposition = HumanDisposition::Deferred;
+        record.action_progress = ActionProgress::NotStarted;
+        record.verification_receipt_id = None;
+        record.verifier_identity_ref = None;
+        record
+            .receipt_bindings
+            .retain(|binding| binding.owner != ReceiptOwner::IndependentVerifier);
         assert_eq!(
             record.validate(),
             Err(DecisionClosureError::ResourceReservationAfterNonAuthorization)
