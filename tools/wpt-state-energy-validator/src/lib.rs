@@ -13,7 +13,9 @@ struct Matrix {
 }
 
 fn field<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a Value, String> {
-    value.get(key).ok_or_else(|| format!("missing {path}.{key}"))
+    value
+        .get(key)
+        .ok_or_else(|| format!("missing {path}.{key}"))
 }
 
 fn string_field(value: &Value, key: &str, path: &str) -> Result<String, String> {
@@ -27,7 +29,9 @@ fn string_field(value: &Value, key: &str, path: &str) -> Result<String, String> 
 }
 
 fn number(value: &Value, path: &str) -> Result<f64, String> {
-    let x = value.as_f64().ok_or_else(|| format!("{path} must be a number"))?;
+    let x = value
+        .as_f64()
+        .ok_or_else(|| format!("{path} must be a number"))?;
     if !x.is_finite() {
         return Err(format!("{path} must be finite"));
     }
@@ -35,7 +39,9 @@ fn number(value: &Value, path: &str) -> Result<f64, String> {
 }
 
 fn vector(value: &Value, path: &str, n: usize, nonnegative: bool) -> Result<Vec<f64>, String> {
-    let values = value.as_array().ok_or_else(|| format!("{path} must be an array"))?;
+    let values = value
+        .as_array()
+        .ok_or_else(|| format!("{path} must be an array"))?;
     if values.len() != n {
         return Err(format!("{path} length must equal {n}"));
     }
@@ -51,14 +57,18 @@ fn vector(value: &Value, path: &str, n: usize, nonnegative: bool) -> Result<Vec<
 }
 
 fn square_matrix(value: &Value, path: &str, nonnegative: bool) -> Result<Vec<Vec<f64>>, String> {
-    let rows = value.as_array().ok_or_else(|| format!("{path} must be an array of arrays"))?;
+    let rows = value
+        .as_array()
+        .ok_or_else(|| format!("{path} must be an array of arrays"))?;
     let n = rows.len();
     if n == 0 || n > MAX_DIMENSION {
         return Err(format!("{path} dimension must be in 1..={MAX_DIMENSION}"));
     }
     let mut result = Vec::with_capacity(n);
     for (i, raw_row) in rows.iter().enumerate() {
-        let row = raw_row.as_array().ok_or_else(|| format!("{path}[{i}] must be an array"))?;
+        let row = raw_row
+            .as_array()
+            .ok_or_else(|| format!("{path}[{i}] must be an array"))?;
         if row.len() != n {
             return Err(format!("{path} must be square"));
         }
@@ -75,7 +85,13 @@ fn square_matrix(value: &Value, path: &str, nonnegative: bool) -> Result<Vec<Vec
     Ok(result)
 }
 
-fn parse_matrix(component: &Value, center_key: &str, uncertainty_key: &str, unit: &str, path: &str) -> Result<Matrix, String> {
+fn parse_matrix(
+    component: &Value,
+    center_key: &str,
+    uncertainty_key: &str,
+    unit: &str,
+    path: &str,
+) -> Result<Matrix, String> {
     let actual_unit = string_field(component, "matrix_unit", path)?;
     if actual_unit != unit {
         return Err(format!("{path}.matrix_unit must be {unit}"));
@@ -90,17 +106,33 @@ fn parse_matrix(component: &Value, center_key: &str, uncertainty_key: &str, unit
         ("state_basis_sha256", state_basis.as_str()),
         ("matrix_receipt_sha256", matrix_receipt.as_str()),
         ("state_receipt_sha256", state_receipt.as_str()),
-        ("calibration_receipt_sha256", calibration_receipt.as_str())
+        ("calibration_receipt_sha256", calibration_receipt.as_str()),
     ] {
-        if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
-            return Err(format!("{path}.{name} must be 64 lowercase hexadecimal characters"));
+        if digest.len() != 64
+            || !digest
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Err(format!(
+                "{path}.{name} must be 64 lowercase hexadecimal characters"
+            ));
         }
     }
     if matrix_basis != state_basis {
-        return Err(format!("{path} matrix and state coordinate-basis digests differ"));
+        return Err(format!(
+            "{path} matrix and state coordinate-basis digests differ"
+        ));
     }
-    let center = square_matrix(field(component, center_key, path)?, &format!("{path}.{center_key}"), false)?;
-    let uncertainty = square_matrix(field(component, uncertainty_key, path)?, &format!("{path}.{uncertainty_key}"), true)?;
+    let center = square_matrix(
+        field(component, center_key, path)?,
+        &format!("{path}.{center_key}"),
+        false,
+    )?;
+    let uncertainty = square_matrix(
+        field(component, uncertainty_key, path)?,
+        &format!("{path}.{uncertainty_key}"),
+        true,
+    )?;
     let n = center.len();
     if uncertainty.len() != n {
         return Err(format!("{path} matrix and uncertainty dimensions differ"));
@@ -121,18 +153,26 @@ fn parse_matrix(component: &Value, center_key: &str, uncertainty_key: &str, unit
             let lo = lo_a.max(lo_b);
             let hi = hi_a.min(hi_b);
             if lo > hi {
-                return Err(format!("{path} reciprocity intervals do not overlap at ({i},{j})"));
+                return Err(format!(
+                    "{path} reciprocity intervals do not overlap at ({i},{j})"
+                ));
             }
             let midpoint = lo * 0.5 + hi * 0.5;
             let radius = hi * 0.5 - lo * 0.5;
-            adjustment = adjustment.max((midpoint - center[i][j]).abs()).max((midpoint - center[j][i]).abs());
+            adjustment = adjustment
+                .max((midpoint - center[i][j]).abs())
+                .max((midpoint - center[j][i]).abs());
             symmetric[i][j] = midpoint;
             symmetric[j][i] = midpoint;
             symmetric_uncertainty[i][j] = radius;
             symmetric_uncertainty[j][i] = radius;
         }
     }
-    Ok(Matrix { center: symmetric, uncertainty: symmetric_uncertainty, reciprocity_adjustment: adjustment })
+    Ok(Matrix {
+        center: symmetric,
+        uncertainty: symmetric_uncertainty,
+        reciprocity_adjustment: adjustment,
+    })
 }
 
 fn jacobi(mut a: Vec<Vec<f64>>) -> Result<(f64, f64, f64, bool), String> {
@@ -206,16 +246,29 @@ fn jacobi(mut a: Vec<Vec<f64>>) -> Result<(f64, f64, f64, bool), String> {
         }
     }
     let residual = residual_sq.sqrt();
-    if ![min_diag, max_diag, residual].into_iter().all(f64::is_finite) {
+    if ![min_diag, max_diag, residual]
+        .into_iter()
+        .all(f64::is_finite)
+    {
         return Err("Jacobi eigensolver returned non-finite values".into());
     }
     converged |= residual <= threshold * (n as f64).sqrt();
-    Ok((min_diag * scale, max_diag * scale, residual * scale, converged))
+    Ok((
+        min_diag * scale,
+        max_diag * scale,
+        residual * scale,
+        converged,
+    ))
 }
 
 fn eigen_interval(matrix: &Matrix) -> Result<(f64, f64, f64, f64, f64, f64, bool), String> {
     let mut scale = 0.0_f64;
-    for x in matrix.center.iter().flatten().chain(matrix.uncertainty.iter().flatten()) {
+    for x in matrix
+        .center
+        .iter()
+        .flatten()
+        .chain(matrix.uncertainty.iter().flatten())
+    {
         scale = scale.max(x.abs());
     }
     if scale == 0.0 {
@@ -223,26 +276,54 @@ fn eigen_interval(matrix: &Matrix) -> Result<(f64, f64, f64, f64, f64, f64, bool
     }
 
     let exact_diagonal = matrix.center.iter().enumerate().all(|(i, row)| {
-        row.iter().enumerate().all(|(j, x)| i == j || (*x == 0.0 && matrix.uncertainty[i][j] == 0.0))
+        row.iter()
+            .enumerate()
+            .all(|(j, x)| i == j || (*x == 0.0 && matrix.uncertainty[i][j] == 0.0))
     }) && matrix.uncertainty.iter().flatten().all(|x| *x == 0.0);
 
     if exact_diagonal {
-        let diag: Vec<f64> = matrix.center.iter().enumerate().map(|(i, row)| row[i]).collect();
+        let diag: Vec<f64> = matrix
+            .center
+            .iter()
+            .enumerate()
+            .map(|(i, row)| row[i])
+            .collect();
         let min = diag.iter().copied().fold(f64::INFINITY, f64::min);
         let max = diag.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         return Ok((min, min, max, max, 0.0, 0.0, true));
     }
 
     let (min_eig, max_eig, residual, converged) = jacobi(matrix.center.clone())?;
-    let uncertainty_norm = matrix.uncertainty.iter().flatten()
-        .map(|x| (x / scale).powi(2)).sum::<f64>().sqrt() * scale;
+    let uncertainty_norm = matrix
+        .uncertainty
+        .iter()
+        .flatten()
+        .map(|x| (x / scale).powi(2))
+        .sum::<f64>()
+        .sqrt()
+        * scale;
     let guard = 128.0 * EPS * matrix.center.len() as f64 * scale;
     let radius = residual + uncertainty_norm + guard;
-    let values = [min_eig - radius, min_eig + radius, max_eig - radius, max_eig + radius, uncertainty_norm, guard];
+    let values = [
+        min_eig - radius,
+        min_eig + radius,
+        max_eig - radius,
+        max_eig + radius,
+        uncertainty_norm,
+        guard,
+    ];
     if !values.into_iter().all(f64::is_finite) {
         return Err("eigenvalue interval overflow".into());
     }
-    Ok((min_eig - radius, min_eig + radius, max_eig - radius, max_eig + radius, residual, uncertainty_norm, converged))
+    Ok((
+        min_eig - radius,
+        min_eig + radius,
+        max_eig - radius,
+        max_eig + radius,
+        residual,
+        uncertainty_norm,
+        converged,
+    ))
 }
 
 fn norm_bounds(values: &[f64], uncertainty: &[f64]) -> Result<(f64, f64), String> {
@@ -254,7 +335,11 @@ fn norm_bounds(values: &[f64], uncertainty: &[f64]) -> Result<(f64, f64), String
         if !lo.is_finite() || !hi.is_finite() {
             return Err("state interval overflow".into());
         }
-        let min_abs = if lo <= 0.0 && hi >= 0.0 { 0.0 } else { lo.abs().min(hi.abs()) };
+        let min_abs = if lo <= 0.0 && hi >= 0.0 {
+            0.0
+        } else {
+            lo.abs().min(hi.abs())
+        };
         let max_abs = lo.abs().max(hi.abs());
         min_sq += min_abs * min_abs;
         max_sq += max_abs * max_abs;
@@ -265,24 +350,46 @@ fn norm_bounds(values: &[f64], uncertainty: &[f64]) -> Result<(f64, f64), String
     Ok((min_sq.sqrt(), max_sq.sqrt()))
 }
 
-fn energy(component: &Value, matrix_key: &str, uncertainty_key: &str, state_key: &str, state_uncertainty_key: &str, matrix_unit: &str, state_unit: &str, path: &str) -> Result<Value, String> {
+fn energy(
+    component: &Value,
+    matrix_key: &str,
+    uncertainty_key: &str,
+    state_key: &str,
+    state_uncertainty_key: &str,
+    matrix_unit: &str,
+    state_unit: &str,
+    path: &str,
+) -> Result<Value, String> {
     let matrix = parse_matrix(component, matrix_key, uncertainty_key, matrix_unit, path)?;
     let n = matrix.center.len();
     let actual_state_unit = string_field(component, "state_unit", path)?;
     if actual_state_unit != state_unit {
         return Err(format!("{path}.state_unit must be {state_unit}"));
     }
-    let values = vector(field(component, state_key, path)?, &format!("{path}.{state_key}"), n, false)?;
-    let state_uncertainty = vector(field(component, state_uncertainty_key, path)?, &format!("{path}.{state_uncertainty_key}"), n, true)?;
+    let values = vector(
+        field(component, state_key, path)?,
+        &format!("{path}.{state_key}"),
+        n,
+        false,
+    )?;
+    let state_uncertainty = vector(
+        field(component, state_uncertainty_key, path)?,
+        &format!("{path}.{state_uncertainty_key}"),
+        n,
+        true,
+    )?;
     let matrix_basis = string_field(component, "matrix_basis_sha256", path)?;
     let state_basis = string_field(component, "state_basis_sha256", path)?;
     let matrix_receipt = string_field(component, "matrix_receipt_sha256", path)?;
     let state_receipt = string_field(component, "state_receipt_sha256", path)?;
     let calibration_receipt = string_field(component, "calibration_receipt_sha256", path)?;
     if matrix_basis != state_basis {
-        return Err(format!("{path} matrix and state coordinate-basis digests differ"));
+        return Err(format!(
+            "{path} matrix and state coordinate-basis digests differ"
+        ));
     }
-    let (min_eig, max_min_eig, min_max_eig, max_eig, residual, uncertainty_norm, converged) = eigen_interval(&matrix)?;
+    let (min_eig, max_min_eig, min_max_eig, max_eig, residual, uncertainty_norm, converged) =
+        eigen_interval(&matrix)?;
     let status = if !converged {
         "STORAGE_MATRIX_UNRESOLVED"
     } else if max_min_eig < 0.0 {
@@ -332,10 +439,16 @@ fn energy(component: &Value, matrix_key: &str, uncertainty_key: &str, state_key:
 }
 
 pub fn evaluate(record: &Value) -> Value {
-    let record_id = record.get("record_id").and_then(Value::as_str).unwrap_or("unknown").to_owned();
+    let record_id = record
+        .get("record_id")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown")
+        .to_owned();
     match evaluate_checked(record, &record_id) {
         Ok(report) => report,
-        Err(message) => json!({ "record_id": record_id, "disposition": "INVALID_INPUT", "message": message })
+        Err(message) => {
+            json!({ "record_id": record_id, "disposition": "INVALID_INPUT", "message": message })
+        }
     }
 }
 
@@ -349,36 +462,84 @@ fn evaluate_checked(record: &Value, record_id: &str) -> Result<Value, String> {
     }
     let mode_id = string_field(record, "mode_id", "record")?;
     let digest = string_field(record, "topology_sha256", "record")?;
-    if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
+    if digest.len() != 64
+        || !digest
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
         return Err("topology_sha256 must be 64 lowercase hexadecimal characters".into());
     }
     if string_field(record, "model_class", "record")? != "LINEAR_RECIPROCAL_QUASI_STATIC" {
         return Err("v1 accepts only LINEAR_RECIPROCAL_QUASI_STATIC".into());
     }
 
-    let magnetic = energy(field(record, "inductance", "record")?, "matrix_h", "abs_uncertainty_h", "current_a", "current_abs_uncertainty_a", "H", "A", "inductance")?;
-    let electric = energy(field(record, "capacitance", "record")?, "matrix_f", "abs_uncertainty_f", "voltage_v", "voltage_abs_uncertainty_v", "F", "V", "capacitance")?;
-    let m_status = magnetic["status"].as_str().unwrap_or("STORAGE_MATRIX_UNRESOLVED");
-    let e_status = electric["status"].as_str().unwrap_or("STORAGE_MATRIX_UNRESOLVED");
+    let magnetic = energy(
+        field(record, "inductance", "record")?,
+        "matrix_h",
+        "abs_uncertainty_h",
+        "current_a",
+        "current_abs_uncertainty_a",
+        "H",
+        "A",
+        "inductance",
+    )?;
+    let electric = energy(
+        field(record, "capacitance", "record")?,
+        "matrix_f",
+        "abs_uncertainty_f",
+        "voltage_v",
+        "voltage_abs_uncertainty_v",
+        "F",
+        "V",
+        "capacitance",
+    )?;
+    let m_status = magnetic["status"]
+        .as_str()
+        .unwrap_or("STORAGE_MATRIX_UNRESOLVED");
+    let e_status = electric["status"]
+        .as_str()
+        .unwrap_or("STORAGE_MATRIX_UNRESOLVED");
 
-    let (disposition, message) = if m_status == "STORAGE_MATRIX_REJECTED" || e_status == "STORAGE_MATRIX_REJECTED" {
-        ("STORAGE_MODEL_REJECTED", "at least one matrix is provably non-PSD under its uncertainty bounds")
+    let (disposition, message) = if m_status == "STORAGE_MATRIX_REJECTED"
+        || e_status == "STORAGE_MATRIX_REJECTED"
+    {
+        (
+            "STORAGE_MODEL_REJECTED",
+            "at least one matrix is provably non-PSD under its uncertainty bounds",
+        )
     } else if m_status != "STORAGE_MATRIX_CERTIFIED" || e_status != "STORAGE_MATRIX_CERTIFIED" {
-        ("STORAGE_MODEL_UNRESOLVED", "at least one storage matrix lacks a robust PSD certificate")
+        (
+            "STORAGE_MODEL_UNRESOLVED",
+            "at least one storage matrix lacks a robust PSD certificate",
+        )
     } else {
-        ("STORED_ENERGY_DERIVED", "magnetic and electric storage energies are derived from qualified matrices and bounded states")
+        (
+            "STORED_ENERGY_DERIVED",
+            "magnetic and electric storage energies are derived from qualified matrices and bounded states",
+        )
     };
 
     let magnetic_nominal = magnetic["nominal_energy_j"].as_f64().unwrap_or(f64::NAN);
     let electric_nominal = electric["nominal_energy_j"].as_f64().unwrap_or(f64::NAN);
-    let magnetic_low = magnetic["energy_interval_j"]["lower"].as_f64().unwrap_or(f64::NAN);
-    let electric_low = electric["energy_interval_j"]["lower"].as_f64().unwrap_or(f64::NAN);
-    let magnetic_high = magnetic["energy_interval_j"]["upper"].as_f64().unwrap_or(f64::NAN);
-    let electric_high = electric["energy_interval_j"]["upper"].as_f64().unwrap_or(f64::NAN);
+    let magnetic_low = magnetic["energy_interval_j"]["lower"]
+        .as_f64()
+        .unwrap_or(f64::NAN);
+    let electric_low = electric["energy_interval_j"]["lower"]
+        .as_f64()
+        .unwrap_or(f64::NAN);
+    let magnetic_high = magnetic["energy_interval_j"]["upper"]
+        .as_f64()
+        .unwrap_or(f64::NAN);
+    let electric_high = electric["energy_interval_j"]["upper"]
+        .as_f64()
+        .unwrap_or(f64::NAN);
     let total_nominal = magnetic_nominal + electric_nominal;
     let total_lower = magnetic_low + electric_low;
     let total_upper = magnetic_high + electric_high;
-    if ![total_nominal, total_lower, total_upper].into_iter().all(f64::is_finite) {
+    if ![total_nominal, total_lower, total_upper]
+        .into_iter()
+        .all(f64::is_finite)
+    {
         return Err("combined stored-energy interval overflow".into());
     }
 
@@ -403,7 +564,17 @@ mod tests {
 
     const SHA: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-    fn record(id: &str, l: Value, lu: Value, i: Value, iu: Value, c: Value, cu: Value, v: Value, vu: Value) -> Value {
+    fn record(
+        id: &str,
+        l: Value,
+        lu: Value,
+        i: Value,
+        iu: Value,
+        c: Value,
+        cu: Value,
+        v: Value,
+        vu: Value,
+    ) -> Value {
         json!({
             "schema_version":"1.0.0", "record_id":id, "mode_id":"LCC_S", "topology_sha256":SHA,
             "model_class":"LINEAR_RECIPROCAL_QUASI_STATIC",
@@ -413,7 +584,17 @@ mod tests {
     }
 
     fn basic(id: &str) -> Value {
-        record(id, json!([[2e-6,0.5e-6],[0.5e-6,1e-6]]), json!([[1e-12,1e-12],[1e-12,1e-12]]), json!([0.4,0.2]), json!([0.001,0.001]), json!([[1e-6,0.2e-6],[0.2e-6,0.8e-6]]), json!([[1e-12,1e-12],[1e-12,1e-12]]), json!([100.0,50.0]), json!([0.1,0.1]))
+        record(
+            id,
+            json!([[2e-6, 0.5e-6], [0.5e-6, 1e-6]]),
+            json!([[1e-12, 1e-12], [1e-12, 1e-12]]),
+            json!([0.4, 0.2]),
+            json!([0.001, 0.001]),
+            json!([[1e-6, 0.2e-6], [0.2e-6, 0.8e-6]]),
+            json!([[1e-12, 1e-12], [1e-12, 1e-12]]),
+            json!([100.0, 50.0]),
+            json!([0.1, 0.1]),
+        )
     }
 
     fn disposition(value: &Value) -> String {
@@ -427,7 +608,10 @@ mod tests {
         assert_eq!(disposition(&mismatch), "INVALID_INPUT");
 
         let mut missing = basic("missing-receipt");
-        missing["capacitance"].as_object_mut().unwrap().remove("calibration_receipt_sha256");
+        missing["capacitance"]
+            .as_object_mut()
+            .unwrap()
+            .remove("calibration_receipt_sha256");
         assert_eq!(disposition(&missing), "INVALID_INPUT");
     }
 
@@ -435,47 +619,66 @@ mod tests {
     fn derives_analytic_magnetic_and_electric_energy() {
         let output = evaluate(&basic("analytic"));
         assert_eq!(output["disposition"], "STORED_ENERGY_DERIVED");
-        let magnetic = output["magnetic_storage"]["nominal_energy_j"].as_f64().unwrap();
-        let electric = output["electric_storage"]["nominal_energy_j"].as_f64().unwrap();
+        let magnetic = output["magnetic_storage"]["nominal_energy_j"]
+            .as_f64()
+            .unwrap();
+        let electric = output["electric_storage"]["nominal_energy_j"]
+            .as_f64()
+            .unwrap();
         assert!((magnetic - 0.22e-6).abs() < 1e-18);
         assert!((electric - 0.007).abs() < 1e-14);
     }
 
     #[test]
     fn certifies_exact_singular_diagonal_psd_matrix() {
-        let x = record("singular", json!([[1e-6,0.0],[0.0,0.0]]), json!([[0.0,0.0],[0.0,0.0]]), json!([1.0,0.5]), json!([0.0,0.0]), json!([[1e-6]]), json!([[0.0]]), json!([10.0]), json!([0.0]));
+        let x = record(
+            "singular",
+            json!([[1e-6, 0.0], [0.0, 0.0]]),
+            json!([[0.0, 0.0], [0.0, 0.0]]),
+            json!([1.0, 0.5]),
+            json!([0.0, 0.0]),
+            json!([[1e-6]]),
+            json!([[0.0]]),
+            json!([10.0]),
+            json!([0.0]),
+        );
         assert_eq!(disposition(&x), "STORED_ENERGY_DERIVED");
     }
 
     #[test]
     fn rejects_provably_indefinite_matrix() {
         let mut x = basic("indefinite");
-        x["inductance"]["matrix_h"] = json!([[1e-6,2e-6],[2e-6,1e-6]]);
-        x["inductance"]["abs_uncertainty_h"] = json!([[0.0,0.0],[0.0,0.0]]);
+        x["inductance"]["matrix_h"] = json!([[1e-6, 2e-6], [2e-6, 1e-6]]);
+        x["inductance"]["abs_uncertainty_h"] = json!([[0.0, 0.0], [0.0, 0.0]]);
         assert_eq!(disposition(&x), "STORAGE_MODEL_REJECTED");
     }
 
     #[test]
     fn abstains_at_psd_boundary_with_overlapping_uncertainty() {
         let mut x = basic("boundary");
-        x["inductance"]["matrix_h"] = json!([[1e-6,0.999999e-6],[0.999999e-6,1e-6]]);
-        x["inductance"]["abs_uncertainty_h"] = json!([[0.0,2e-9],[2e-9,0.0]]);
+        x["inductance"]["matrix_h"] = json!([[1e-6, 0.999999e-6], [0.999999e-6, 1e-6]]);
+        x["inductance"]["abs_uncertainty_h"] = json!([[0.0, 2e-9], [2e-9, 0.0]]);
         assert_eq!(disposition(&x), "STORAGE_MODEL_UNRESOLVED");
     }
 
     #[test]
     fn reconciles_reciprocity_only_when_intervals_overlap() {
         let mut x = basic("reciprocal-overlap");
-        x["inductance"]["matrix_h"] = json!([[2e-6,0.5e-6],[0.5001e-6,1e-6]]);
+        x["inductance"]["matrix_h"] = json!([[2e-6, 0.5e-6], [0.5001e-6, 1e-6]]);
         assert_eq!(disposition(&x), "STORED_ENERGY_DERIVED");
-        assert!(evaluate(&x)["magnetic_storage"]["reciprocity_max_interval_adjustment"].as_f64().unwrap() > 0.0);
+        assert!(
+            evaluate(&x)["magnetic_storage"]["reciprocity_max_interval_adjustment"]
+                .as_f64()
+                .unwrap()
+                > 0.0
+        );
     }
 
     #[test]
     fn rejects_nonoverlapping_reciprocity_intervals() {
         let mut x = basic("reciprocal-conflict");
-        x["inductance"]["matrix_h"] = json!([[2e-6,0.4e-6],[0.6e-6,1e-6]]);
-        x["inductance"]["abs_uncertainty_h"] = json!([[0.0,1e-9],[1e-9,0.0]]);
+        x["inductance"]["matrix_h"] = json!([[2e-6, 0.4e-6], [0.6e-6, 1e-6]]);
+        x["inductance"]["abs_uncertainty_h"] = json!([[0.0, 1e-9], [1e-9, 0.0]]);
         assert_eq!(disposition(&x), "INVALID_INPUT");
     }
 
@@ -518,7 +721,17 @@ mod tests {
             }
             let state: Vec<f64> = (0..n).map(|i| (i as f64 + 1.0) * 0.01).collect();
             let zeros = vec![vec![0.0; n]; n];
-            let x = record(&format!("gram-{n}"), json!(gram), json!(zeros), json!(state), json!(vec![0.0;n]), json!([[1e-6]]), json!([[0.0]]), json!([1.0]), json!([0.0]));
+            let x = record(
+                &format!("gram-{n}"),
+                json!(gram),
+                json!(zeros),
+                json!(state),
+                json!(vec![0.0; n]),
+                json!([[1e-6]]),
+                json!([[0.0]]),
+                json!([1.0]),
+                json!([0.0]),
+            );
             assert_eq!(disposition(&x), "STORED_ENERGY_DERIVED", "dimension {n}");
         }
     }
@@ -575,15 +788,45 @@ mod tests {
 
     #[test]
     fn handles_small_and_large_scales() {
-        let tiny = record("tiny", json!([[1e-308]]), json!([[0.0]]), json!([1e100]), json!([0.0]), json!([[1e-308]]), json!([[0.0]]), json!([1e100]), json!([0.0]));
+        let tiny = record(
+            "tiny",
+            json!([[1e-308]]),
+            json!([[0.0]]),
+            json!([1e100]),
+            json!([0.0]),
+            json!([[1e-308]]),
+            json!([[0.0]]),
+            json!([1e100]),
+            json!([0.0]),
+        );
         assert_eq!(disposition(&tiny), "STORED_ENERGY_DERIVED");
-        let large = record("large", json!([[1e308]]), json!([[0.0]]), json!([1e-100]), json!([0.0]), json!([[1e308]]), json!([[0.0]]), json!([1e-100]), json!([0.0]));
+        let large = record(
+            "large",
+            json!([[1e308]]),
+            json!([[0.0]]),
+            json!([1e-100]),
+            json!([0.0]),
+            json!([[1e308]]),
+            json!([[0.0]]),
+            json!([1e-100]),
+            json!([0.0]),
+        );
         assert_eq!(disposition(&large), "STORED_ENERGY_DERIVED");
     }
 
     #[test]
     fn supports_different_current_and_voltage_dimensions() {
-        let x = record("different-dimensions", json!([[2e-6,0.1e-6],[0.1e-6,1e-6]]), json!([[0.0,0.0],[0.0,0.0]]), json!([0.2,0.4]), json!([0.0,0.0]), json!([[1e-6]]), json!([[0.0]]), json!([12.0]), json!([0.0]));
+        let x = record(
+            "different-dimensions",
+            json!([[2e-6, 0.1e-6], [0.1e-6, 1e-6]]),
+            json!([[0.0, 0.0], [0.0, 0.0]]),
+            json!([0.2, 0.4]),
+            json!([0.0, 0.0]),
+            json!([[1e-6]]),
+            json!([[0.0]]),
+            json!([12.0]),
+            json!([0.0]),
+        );
         assert_eq!(disposition(&x), "STORED_ENERGY_DERIVED");
     }
 }
