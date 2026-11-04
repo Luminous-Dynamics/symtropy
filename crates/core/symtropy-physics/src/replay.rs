@@ -326,6 +326,13 @@ mod batch_replay_tests {
             world.step(frame.dt);
         }
 
+        let invariants = world.invariant_snapshot();
+        assert!(
+            invariants.is_numerically_healthy(1e-9),
+            "rollout {rollout_id} produced a numerically unhealthy state"
+        );
+        assert_eq!(invariants.non_finite_body_count, 0);
+
         BatchRolloutSnapshot {
             rollout_id,
             snapshot: WorldSnapshot::capture(&world),
