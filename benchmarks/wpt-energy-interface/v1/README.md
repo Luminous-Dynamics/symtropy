@@ -8,6 +8,14 @@ The April 2026 review *Wireless energy conversion in wireless energy internet* (
 
 Existing Symtropy work defines receiver architectures (#3473), cross-laboratory measurement (#3477), source-to-load accounting (#3472), dynamic service (#3493), traffic/power scheduling (#3590), transition energy receipts (#3600) and state-derived storage (#3634). This profile connects those systems at the service-contract boundary.
 
+## Current architecture benchmark: primary-only control
+
+Dimitriadou et al., *Dynamic charging system with reduced power semiconductor device count*, Wireless Power Transfer 13:e031 (published online 30 October 2026), DOI 10.48130/wpt-0026-0023, proposes a single high-frequency inverter supplying multiple track-based resonant couplers, a series reactive power compensator and an AC switching subsystem. Coil selection uses primary-side active-power/coupling signatures rather than a real-time vehicle–roadside communication link. The reported evaluation is ANSYS Maxwell finite-element analysis plus MATLAB/Simulink and PLECS co-simulation—not a demonstrated full-scale roadway hardware trial. Its model assumes one vehicle per converter set, 10 transmitters per set, and reports approximately 11.2 kW simulated output in its in-series operating mode against an 11.5 kW design target.
+
+This is a required architecture/control baseline. It motivates #3640's separation of local physical self-sensing from authenticated identity, authorization and revocation. A coupling or active-power threshold is not an identity credential, and the absence of a live communication link must not disable independent protection.
+
+The source identifies real trade-offs worth including in matched studies: inverter/semiconductor count, litz wire length, ferrite placement, adjacent-coil mutual coupling, output ripple, ZVS/ZCS switching losses, capacitor voltage stress, thermal dissipation and installation cost.
+
 ## Paradigm shift
 
 Interoperability is not simply support for a frequency, coil standard or power class. A source and receiver must agree on:
