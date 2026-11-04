@@ -1019,6 +1019,13 @@ mod tests {
         assert!(report.holdout_coverage_gate_passed);
         assert_eq!(report.total_cell_count, 12);
         assert_eq!(report.cell_covered_count, 12);
+        let first_cell = &report.evaluation_receipts[0].cells[0];
+        assert_eq!(
+            first_cell.normalization_scale_evidence_id,
+            "scale-ambient-0"
+        );
+        assert_eq!(first_cell.forecast_evidence_id, "forecast-ambient-0");
+        assert_eq!(first_cell.realization_evidence_id, "realized-ambient-0");
     }
 
     #[test]
