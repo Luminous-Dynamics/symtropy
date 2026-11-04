@@ -297,6 +297,9 @@ pub enum AdapterError {
     InvalidSha256 {
         source_id: String,
     },
+    SensorSemanticIdMismatch {
+        sensor_state_id: String,
+    },
     SourcePinMismatch {
         source_id: String,
     },
@@ -782,6 +785,13 @@ impl LocomotionKernelSpec {
         let physical_indices =
             index_ids(&self.physical_states, "physical_state_id", |item| &item.id)?;
         let sensor_indices = index_ids(&self.sensor_states, "sensor_state_id", |item| &item.id)?;
+        for sensor in &self.sensor_states {
+            if sensor.id != sensor_state_semantic_id(sensor) {
+                return Err(AdapterError::SensorSemanticIdMismatch {
+                    sensor_state_id: sensor.id.clone(),
+                });
+            }
+        }
         let action_indices = index_ids(&self.actions, "action_id", |item| &item.id)?;
         let observation_indices = index_ids(&self.observations, "observation_id", |item| &item.id)?;
 
@@ -1661,6 +1671,16 @@ mod tests {
             row.source_manifest_ids == vec!["synthetic-models".to_owned()]
                 && row.claim_ceiling == ClaimCeiling::SyntheticQualification
         }));
+    }
+
+    #[test]
+    fn sensor_semantic_ids_must_match_typed_channel_and_modulation_fields() {
+        let mut input = spec();
+        input.sensor_states[0].id.push_str("-wrong");
+        assert!(matches!(
+            input.compile(),
+            Err(AdapterError::SensorSemanticIdMismatch { .. })
+        ));
     }
 
     #[test]
