@@ -1,0 +1,222 @@
+{
+  "schema": "symtropy.road-decision-measurement.fixtures.v0.1",
+  "purpose": "Exact worst-case decision-regret reduction and cost/risk Pareto frontier over a finite declared hypothesis set. No test-outcome or epistemic-hypothesis probabilities are assumed.",
+  "baseline": {
+    "actions": [
+      "action-a",
+      "action-b"
+    ],
+    "hypotheses": [
+      {
+        "id": "model-h1",
+        "utility": {
+          "action_a": "10",
+          "action_b": "0"
+        }
+      },
+      {
+        "id": "model-h2",
+        "utility": {
+          "action_a": "0",
+          "action_b": "10"
+        }
+      }
+    ],
+    "expected_minimax_regret": "10"
+  },
+  "cases": [
+    {
+      "id": "perfect-discriminator",
+      "outcomes": [
+        {
+          "id": "o1",
+          "compatible": [
+            "model-h1"
+          ]
+        },
+        {
+          "id": "o2",
+          "compatible": [
+            "model-h2"
+          ]
+        }
+      ],
+      "expected": {
+        "worst_case_residual_regret": "0",
+        "regret_reduction": "10",
+        "disposition": "ParetoEligible"
+      }
+    },
+    {
+      "id": "uninformative-test",
+      "outcomes": [
+        {
+          "id": "same-reading",
+          "compatible": [
+            "model-h1",
+            "model-h2"
+          ]
+        }
+      ],
+      "expected": {
+        "worst_case_residual_regret": "10",
+        "regret_reduction": "0",
+        "disposition": "NoDecisionRegretReduction"
+      }
+    },
+    {
+      "id": "noisy-overlap",
+      "outcomes": [
+        {
+          "id": "ambiguous",
+          "compatible": [
+            "model-h1",
+            "model-h2"
+          ]
+        },
+        {
+          "id": "specific",
+          "compatible": [
+            "model-h2"
+          ]
+        }
+      ],
+      "expected": {
+        "worst_case_residual_regret": "10",
+        "regret_reduction": "0",
+        "disposition": "NoDecisionRegretReduction"
+      }
+    },
+    {
+      "id": "hypothesis-coverage-incomplete",
+      "outcomes": [
+        {
+          "id": "only-h1",
+          "compatible": [
+            "model-h1"
+          ]
+        }
+      ],
+      "expected": "IncompleteHypothesisCoverage"
+    },
+    {
+      "id": "empty-compatible-set",
+      "outcomes": [
+        {
+          "id": "empty",
+          "compatible": []
+        }
+      ],
+      "expected": "EmptyCompatibleHypothesisSet"
+    },
+    {
+      "id": "unknown-hypothesis",
+      "outcomes": [
+        {
+          "id": "unknown",
+          "compatible": [
+            "model-unknown"
+          ]
+        }
+      ],
+      "expected": "UnknownCompatibleHypothesis"
+    },
+    {
+      "id": "duplicate-outcome-id",
+      "expected": "DuplicateOutcomeId"
+    },
+    {
+      "id": "no-outcomes",
+      "expected": "NoPossibleOutcomes"
+    },
+    {
+      "id": "protocol-digest-missing",
+      "expected": "MissingProtocolDigest"
+    },
+    {
+      "id": "preregistration-digest-missing",
+      "expected": "MissingPreregistrationDigest"
+    },
+    {
+      "id": "risk-assessment-digest-missing",
+      "expected": "MissingRiskAssessmentDigest"
+    },
+    {
+      "id": "safety-case-digest-missing",
+      "expected": "MissingSafetyCaseDigest"
+    },
+    {
+      "id": "declared-not-approved",
+      "expected": "NotApproved"
+    },
+    {
+      "id": "risk-unassessed",
+      "expected": "Unassessed"
+    },
+    {
+      "id": "over-budget",
+      "expected": "OverBudget"
+    },
+    {
+      "id": "over-risk-limit",
+      "expected": "RiskLimitExceeded"
+    },
+    {
+      "id": "cost-scale-mismatch",
+      "expected": "CostScaleMismatch"
+    },
+    {
+      "id": "risk-scale-mismatch",
+      "expected": "RiskScaleMismatch"
+    },
+    {
+      "id": "negative-cost-or-risk",
+      "expected": "reject"
+    },
+    {
+      "id": "no-regret-improvement-despite-prediction-loss-improvement",
+      "expected": "NoDecisionRegretReduction"
+    },
+    {
+      "id": "pareto-cost-risk-tradeoff",
+      "expected": {
+        "frontier": [
+          "low-cost",
+          "low-risk"
+        ],
+        "dominated": [
+          "dominated"
+        ]
+      }
+    },
+    {
+      "id": "candidate-order-permutation",
+      "expected": "same_manifest_digest_and_certificate"
+    },
+    {
+      "id": "outcome-order-permutation",
+      "expected": "same_manifest_digest_and_certificate"
+    },
+    {
+      "id": "compatible-set-order-permutation",
+      "expected": "same_manifest_digest_and_certificate"
+    },
+    {
+      "id": "equivalent-rational-cost-risk-encoding",
+      "representations": [
+        "5/1",
+        "10/2"
+      ],
+      "expected": "same_manifest_digest_and_certificate"
+    },
+    {
+      "id": "baseline-unsupported-action-hypothesis",
+      "expected": "BaselineNotFullySupported"
+    },
+    {
+      "id": "simulation-challenge-does-not-become-empirical-evidence",
+      "expected": "modality_remains_SimulationChallenge"
+    }
+  ],
+  "safety_note": "A nonzero approval reference and safety-case digest are declared metadata, not cryptographic proof that an authorized safety authority approved an experiment. Physical execution requires external authorization verification; a SimulationChallenge result remains simulator/model evidence."
+}
