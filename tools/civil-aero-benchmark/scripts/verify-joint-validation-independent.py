@@ -140,6 +140,10 @@ def main(path: Path) -> int:
         rows = list(csv.DictReader(stream))
     require(rows, "joint validation CSV must contain records")
     require(list(rows[0].keys()) == HEADER, "joint validation CSV header mismatch")
+    require(
+        all(row["record_type"] in ("study", "output") for row in rows),
+        "joint validation CSV contains an unknown record type",
+    )
     metadata_rows = [row for row in rows if row["record_type"] == "study"]
     output_rows = [row for row in rows if row["record_type"] == "output"]
     require(len(metadata_rows) == 1, "exactly one study metadata row is required")
