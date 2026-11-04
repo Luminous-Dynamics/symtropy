@@ -5,6 +5,8 @@
 //! measure physical work, or accept construction output. It checks graph structure and
 //! declared source/method/transformation lineage only.
 
+pub mod compiler;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
