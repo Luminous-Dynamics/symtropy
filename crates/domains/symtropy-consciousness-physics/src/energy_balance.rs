@@ -33,6 +33,26 @@
 //! is not independent proof that all physical stores, ports, or external
 //! exchanges have been identified.
 
+/// Unit-bearing energy value in joules.
+///
+/// This newtype prevents raw scalars and other unit wrappers (for example an
+/// impulse magnitude) from being passed directly to energy-balance fields.
+/// Finiteness and flow-direction validation occurs when a balance is evaluated.
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
+pub struct Joules(f64);
+
+impl Joules {
+    /// Construct an energy value. The evaluator validates finiteness.
+    pub const fn new(value: f64) -> Self {
+        Self(value)
+    }
+
+    /// Return the represented value in joules.
+    pub const fn get(self) -> f64 {
+        self.0
+    }
+}
+
 /// Identity of a scalar field in an energy-balance input or report.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnergyBalanceField {
@@ -83,17 +103,17 @@ pub enum BoundaryCoverage {
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct BoundaryEnergyFlows {
     /// Mechanical, electrical, or other work entering the system, in joules.
-    pub work_in_j: f64,
+    pub work_in_j: Joules,
     /// Work leaving the system, in joules.
-    pub work_out_j: f64,
+    pub work_out_j: Joules,
     /// Heat entering the system, in joules.
-    pub heat_in_j: f64,
+    pub heat_in_j: Joules,
     /// Heat leaving the system, in joules.
-    pub heat_out_j: f64,
+    pub heat_out_j: Joules,
     /// Energy carried into the system by matter, in joules.
-    pub matter_energy_in_j: f64,
+    pub matter_energy_in_j: Joules,
     /// Energy carried out of the system by matter, in joules.
-    pub matter_energy_out_j: f64,
+    pub matter_energy_out_j: Joules,
 }
 
 /// Inputs for a single first-law balance over one declared boundary and interval.
@@ -103,9 +123,9 @@ pub struct EnergyBalanceInput {
     ///
     /// This may be signed because potential-energy references are conventional;
     /// it must be finite.
-    pub initial_stored_energy_j: f64,
+    pub initial_stored_energy_j: Joules,
     /// Total stored energy at the end of the interval, in joules.
-    pub final_stored_energy_j: f64,
+    pub final_stored_energy_j: Joules,
     /// All energy flows crossing the selected system boundary.
     pub boundary_flows: BoundaryEnergyFlows,
     /// Explicit caller assertion about whether the boundary accounting is complete.
@@ -120,14 +140,14 @@ pub struct EnergyBalanceInput {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EnergyBalanceTolerances {
     /// Absolute residual tolerance, in joules.
-    pub absolute_j: f64,
+    pub absolute_j: Joules,
     /// Dimensionless relative tolerance.
     pub relative: f64,
 }
 
 impl EnergyBalanceTolerances {
     /// Construct tolerances. Validation occurs when the input is evaluated.
-    pub const fn new(absolute_j: f64, relative: f64) -> Self {
+    pub const fn new(absolute_j: Joules, relative: f64) -> Self {
         Self {
             absolute_j,
             relative,
@@ -150,18 +170,18 @@ pub enum EnergyBalanceStatus {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EnergyBalanceReport {
     /// Change in stored energy, final minus initial, in joules.
-    pub delta_stored_energy_j: f64,
+    pub delta_stored_energy_j: Joules,
     /// Net energy crossing the boundary inward, in joules.
-    pub net_boundary_energy_j: f64,
+    pub net_boundary_energy_j: Joules,
     /// Scale used for normalization: max(|ΔE_stored|, total absolute boundary flow).
-    pub boundary_energy_scale_j: f64,
+    pub boundary_energy_scale_j: Joules,
     /// Signed residual: ΔE_stored - net boundary energy, in joules.
-    pub residual_j: f64,
+    pub residual_j: Joules,
     /// Absolute residual divided by the normalization scale (dimensionless).
     /// Equals zero when both the residual and scale are zero.
     pub normalized_residual: f64,
     /// Absolute tolerance plus relative tolerance times the normalization scale.
-    pub allowed_residual_j: f64,
+    pub allowed_residual_j: Joules,
     /// Result classification; incomplete boundary coverage is always inconclusive.
     pub status: EnergyBalanceStatus,
 }
@@ -178,27 +198,27 @@ impl EnergyBalanceInput {
         tolerances: EnergyBalanceTolerances,
     ) -> Result<EnergyBalanceReport, EnergyBalanceError> {
         validate_finite(
-            self.initial_stored_energy_j,
+            self.initial_stored_energy_j.get(),
             EnergyBalanceField::InitialStoredEnergy,
         )?;
         validate_finite(
-            self.final_stored_energy_j,
+            self.final_stored_energy_j.get(),
             EnergyBalanceField::FinalStoredEnergy,
         )?;
-        validate_tolerance(tolerances.absolute_j, EnergyBalanceField::AbsoluteTolerance)?;
+        validate_tolerance(tolerances.absolute_j.get(), EnergyBalanceField::AbsoluteTolerance)?;
         validate_tolerance(tolerances.relative, EnergyBalanceField::RelativeTolerance)?;
 
         let flows = self.boundary_flows;
-        validate_flow(flows.work_in_j, EnergyBalanceField::WorkIn)?;
-        validate_flow(flows.work_out_j, EnergyBalanceField::WorkOut)?;
-        validate_flow(flows.heat_in_j, EnergyBalanceField::HeatIn)?;
-        validate_flow(flows.heat_out_j, EnergyBalanceField::HeatOut)?;
+        validate_flow(flows.work_in_j.get(), EnergyBalanceField::WorkIn)?;
+        validate_flow(flows.work_out_j.get(), EnergyBalanceField::WorkOut)?;
+        validate_flow(flows.heat_in_j.get(), EnergyBalanceField::HeatIn)?;
+        validate_flow(flows.heat_out_j.get(), EnergyBalanceField::HeatOut)?;
         validate_flow(
-            flows.matter_energy_in_j,
+            flows.matter_energy_in_j.get(),
             EnergyBalanceField::MatterEnergyIn,
         )?;
         validate_flow(
-            flows.matter_energy_out_j,
+            flows.matter_energy_out_j.get(),
             EnergyBalanceField::MatterEnergyOut,
         )?;
 
@@ -209,8 +229,8 @@ impl EnergyBalanceInput {
         )?;
 
         let work_heat_in = checked_add(
-            flows.work_in_j,
-            flows.heat_in_j,
+            flows.work_in_j.get(),
+            flows.heat_in_j.get(),
             EnergyBalanceField::BoundaryEnergyIn,
         )?;
         let energy_in = checked_add(
@@ -219,8 +239,8 @@ impl EnergyBalanceInput {
             EnergyBalanceField::BoundaryEnergyIn,
         )?;
         let work_heat_out = checked_add(
-            flows.work_out_j,
-            flows.heat_out_j,
+            flows.work_out_j.get(),
+            flows.heat_out_j.get(),
             EnergyBalanceField::BoundaryEnergyOut,
         )?;
         let energy_out = checked_add(
@@ -277,12 +297,12 @@ impl EnergyBalanceInput {
         };
 
         Ok(EnergyBalanceReport {
-            delta_stored_energy_j,
-            net_boundary_energy_j,
-            boundary_energy_scale_j,
-            residual_j,
+            delta_stored_energy_j: Joules::new(delta_stored_energy_j),
+            net_boundary_energy_j: Joules::new(net_boundary_energy_j),
+            boundary_energy_scale_j: Joules::new(boundary_energy_scale_j),
+            residual_j: Joules::new(residual_j),
             normalized_residual,
-            allowed_residual_j,
+            allowed_residual_j: Joules::new(allowed_residual_j),
             status,
         })
     }
@@ -365,7 +385,7 @@ mod tests {
     use super::*;
 
     fn tolerances() -> EnergyBalanceTolerances {
-        EnergyBalanceTolerances::new(1e-12, 1e-9)
+        EnergyBalanceTolerances::new(Joules::new(1e-12), 1e-9)
     }
 
     fn complete_input(
@@ -387,8 +407,8 @@ mod tests {
         let report = input.evaluate(tolerances()).unwrap();
 
         assert_eq!(report.status, EnergyBalanceStatus::Balanced);
-        assert_eq!(report.delta_stored_energy_j, 0.0);
-        assert_eq!(report.net_boundary_energy_j, 0.0);
+        assert_eq!(report.delta_stored_energy_j, Joules::new(0.0));
+        assert_eq!(report.net_boundary_energy_j, Joules::new(0.0));
         assert_eq!(report.normalized_residual, 0.0);
     }
 
@@ -398,16 +418,16 @@ mod tests {
             10.0,
             25.0,
             BoundaryEnergyFlows {
-                work_in_j: 9.0,
-                heat_in_j: 6.0,
+                work_in_j: Joules::new(9.0),
+                heat_in_j: Joules::new(6.0),
                 ..BoundaryEnergyFlows::default()
             },
         );
         let report = input.evaluate(tolerances()).unwrap();
 
-        assert_eq!(report.delta_stored_energy_j, 15.0);
-        assert_eq!(report.net_boundary_energy_j, 15.0);
-        assert_eq!(report.residual_j, 0.0);
+        assert_eq!(report.delta_stored_energy_j, Joules::new(15.0));
+        assert_eq!(report.net_boundary_energy_j, Joules::new(15.0));
+        assert_eq!(report.residual_j, Joules::new(0.0));
         assert_eq!(report.status, EnergyBalanceStatus::Balanced);
     }
 
@@ -417,17 +437,17 @@ mod tests {
             25.0,
             16.0,
             BoundaryEnergyFlows {
-                work_out_j: 4.0,
-                heat_out_j: 3.0,
-                matter_energy_out_j: 2.0,
+                work_out_j: Joules::new(4.0),
+                heat_out_j: Joules::new(3.0),
+                matter_energy_out_j: Joules::new(2.0),
                 ..BoundaryEnergyFlows::default()
             },
         );
         let report = input.evaluate(tolerances()).unwrap();
 
-        assert_eq!(report.delta_stored_energy_j, -9.0);
-        assert_eq!(report.net_boundary_energy_j, -9.0);
-        assert_eq!(report.residual_j, 0.0);
+        assert_eq!(report.delta_stored_energy_j, Joules::new(-9.0));
+        assert_eq!(report.net_boundary_energy_j, Joules::new(-9.0));
+        assert_eq!(report.residual_j, Joules::new(0.0));
         assert_eq!(report.status, EnergyBalanceStatus::Balanced);
     }
 
@@ -437,31 +457,31 @@ mod tests {
             12.0,
             12.0,
             BoundaryEnergyFlows {
-                heat_out_j: 8.0,
+                heat_out_j: Joules::new(8.0),
                 ..BoundaryEnergyFlows::default()
             },
         );
         let report = input.evaluate(tolerances()).unwrap();
 
         assert_eq!(report.status, EnergyBalanceStatus::Imbalanced);
-        assert_eq!(report.residual_j, 8.0);
+        assert_eq!(report.residual_j, Joules::new(8.0));
         assert_eq!(report.normalized_residual, 1.0);
     }
 
     #[test]
     fn incomplete_boundary_is_inconclusive_even_when_terms_balance() {
         let input = EnergyBalanceInput {
-            initial_stored_energy_j: 4.0,
-            final_stored_energy_j: 9.0,
+            initial_stored_energy_j: Joules::new(4.0),
+            final_stored_energy_j: Joules::new(9.0),
             boundary_flows: BoundaryEnergyFlows {
-                work_in_j: 5.0,
+                work_in_j: Joules::new(5.0),
                 ..BoundaryEnergyFlows::default()
             },
             boundary_coverage: BoundaryCoverage::Incomplete,
         };
         let report = input.evaluate(tolerances()).unwrap();
 
-        assert_eq!(report.residual_j, 0.0);
+        assert_eq!(report.residual_j, Joules::new(0.0));
         assert_eq!(report.status, EnergyBalanceStatus::Inconclusive);
     }
 
@@ -471,15 +491,15 @@ mod tests {
             20.0,
             31.0,
             BoundaryEnergyFlows {
-                matter_energy_in_j: 12.0,
-                work_out_j: 1.0,
+                matter_energy_in_j: Joules::new(12.0),
+                work_out_j: Joules::new(1.0),
                 ..BoundaryEnergyFlows::default()
             },
         );
         let report = input.evaluate(tolerances()).unwrap();
 
-        assert_eq!(report.net_boundary_energy_j, 11.0);
-        assert_eq!(report.residual_j, 0.0);
+        assert_eq!(report.net_boundary_energy_j, Joules::new(11.0));
+        assert_eq!(report.residual_j, Joules::new(0.0));
         assert_eq!(report.status, EnergyBalanceStatus::Balanced);
     }
 
@@ -489,7 +509,7 @@ mod tests {
             0.0,
             0.0,
             BoundaryEnergyFlows {
-                heat_in_j: -1.0,
+                heat_in_j: Joules::new(-1.0),
                 ..BoundaryEnergyFlows::default()
             },
         );
@@ -504,7 +524,7 @@ mod tests {
             0.0,
             0.0,
             BoundaryEnergyFlows {
-                work_out_j: f64::NAN,
+                work_out_j: Joules::new(f64::NAN),
                 ..BoundaryEnergyFlows::default()
             },
         );
@@ -520,13 +540,13 @@ mod tests {
     fn invalid_tolerances_and_stored_energy_are_rejected() {
         let input = complete_input(0.0, 0.0, BoundaryEnergyFlows::default());
         assert_eq!(
-            input.evaluate(EnergyBalanceTolerances::new(-1.0, 0.0)),
+            input.evaluate(EnergyBalanceTolerances::new(Joules::new(-1.0), 0.0)),
             Err(EnergyBalanceError::NegativeMagnitude {
                 field: EnergyBalanceField::AbsoluteTolerance,
             })
         );
         assert_eq!(
-            input.evaluate(EnergyBalanceTolerances::new(0.0, f64::INFINITY)),
+            input.evaluate(EnergyBalanceTolerances::new(Joules::new(0.0), f64::INFINITY)),
             Err(EnergyBalanceError::NonFiniteInput {
                 field: EnergyBalanceField::RelativeTolerance,
             })
@@ -547,8 +567,8 @@ mod tests {
             0.0,
             0.0,
             BoundaryEnergyFlows {
-                work_in_j: f64::MAX,
-                heat_in_j: f64::MAX,
+                work_in_j: Joules::new(f64::MAX),
+                heat_in_j: Joules::new(f64::MAX),
                 ..BoundaryEnergyFlows::default()
             },
         );
@@ -566,7 +586,7 @@ mod tests {
             0.0,
             1000.0,
             BoundaryEnergyFlows {
-                work_in_j: 1000.5,
+                work_in_j: Joules::new(1000.5),
                 ..BoundaryEnergyFlows::default()
             },
         );
