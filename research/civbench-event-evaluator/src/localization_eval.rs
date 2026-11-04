@@ -735,7 +735,7 @@ mod tests {
         candidates: &[&str],
         zone_id: Option<&str>,
         truth: &str,
-        ranking: (&[&str], bool, Option<u32>),
+        ranking: (Vec<String>, bool, Option<u32>),
     ) -> LocalizationCase {
         LocalizationCase {
             case_id: case_id.to_owned(),
@@ -750,7 +750,7 @@ mod tests {
             ],
             truth_pipe_id: truth.to_owned(),
             observability: oracle(resolution, candidates, zone_id),
-            ranked_pipe_ids: ranking.0.iter().map(|value| (*value).to_owned()).collect(),
+            ranked_pipe_ids: ranking.0,
             abstained: ranking.1,
             top_k_confidence_ppm: ranking.2,
         }
