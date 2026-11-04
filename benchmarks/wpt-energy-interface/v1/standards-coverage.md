@@ -10,4 +10,6 @@ This is a preliminary scope map, not a clause-by-clause compliance assessment.
 | SAE J2954_202408 | Stationary light-duty, forward grid-to-vehicle WPT scope | Do not infer dynamic or reverse-flow compliance |
 | ISO/PAS 5474-6:2025 | Vehicle-side static/dynamic MF-WPT for heavy-duty applications; modular multi-secondary exclusions remain relevant | Keep multi-secondary modular arrangements explicit as a research extension |
 
+The 30 October 2026 primary-only DWC architecture paper is a research baseline, not a normative standards source: Dimitriadou et al., Wireless Power Transfer 13:e031, DOI 10.48130/wpt-0026-0023. It motivates an additional communication-independence and local-control profile, but its FEM/co-simulation evidence is not evidence of hardware interoperability or standards conformance.
+
 The schema is a proposed interoperability reference, not a substitute for normative requirements, jurisdictional safety rules, EMC assessment, exposure limits or certification testing. A profile-specific coverage map and clause-by-clause assessment must be produced before making any conformity statement.
