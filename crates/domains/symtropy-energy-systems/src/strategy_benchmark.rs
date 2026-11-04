@@ -1704,6 +1704,21 @@ mod tests {
     }
 
     #[test]
+    fn zero_baseline_energy_intensity_does_not_produce_infinite_savings() {
+        let outcomes = vec![
+            outcome("baseline", "s1", 0.5, 100.0, 100.0, 0.0, 0.0, 0.0, 0.0, false, false, false, false),
+            outcome("baseline", "s2", 0.5, 100.0, 100.0, 0.0, 0.0, 0.0, 0.0, false, false, false, false),
+            outcome("candidate", "s1", 0.5, 100.0, 100.0, 10.0, 2.0, 1.0, 1.0, false, false, false, false),
+            outcome("candidate", "s2", 0.5, 100.0, 100.0, 10.0, 2.0, 1.0, 1.0, false, false, false, false),
+        ];
+        let input = StrategyBenchmarkEvaluation::new(contract(), outcomes).unwrap();
+        assert!(matches!(
+            evaluate_strategy_benchmark(&input),
+            Err(StrategyBenchmarkError::ZeroBaselineEnergyIntensity)
+        ));
+    }
+
+    #[test]
     fn rejects_invalid_quantities_and_work_ordering() {
         assert!(matches!(
             StrategyBenchmarkOutcome::new(
