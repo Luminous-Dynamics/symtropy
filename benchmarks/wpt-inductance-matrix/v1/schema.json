@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-inductance-matrix/v1/schema.json",
+  "title": "WPT real-valued multi-coil inductance matrix v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "matrix_id",
+    "evidence_kind",
+    "matrix_kind",
+    "operating_point",
+    "coil_ids",
+    "polarity_reference",
+    "matrix_h",
+    "entrywise_absolute_bound_h",
+    "uncertainty_semantics",
+    "numerical_tolerances",
+    "configuration_reference",
+    "source_reference",
+    "artifact_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-inductance-matrix-v1"
+    },
+    "matrix_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_kind": {
+      "enum": [
+        "SYNTHETIC_KNOWN_TRUTH",
+        "MEASURED",
+        "MODEL_DERIVED"
+      ]
+    },
+    "matrix_kind": {
+      "enum": [
+        "SMALL_SIGNAL",
+        "DIFFERENTIAL"
+      ]
+    },
+    "operating_point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frequency_hz",
+        "temperature_c",
+        "dc_bias_currents_a"
+      ],
+      "properties": {
+        "frequency_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "temperature_c": {
+          "type": "number"
+        },
+        "dc_bias_currents_a": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 32,
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "coil_ids": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "polarity_reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "matrix_h": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 32,
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 32,
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "entrywise_absolute_bound_h": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 32,
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 32,
+        "items": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "uncertainty_semantics": {
+      "const": "DETERMINISTIC_ABSOLUTE_BOUND"
+    },
+    "numerical_tolerances": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "absolute_h",
+        "relative"
+      ],
+      "properties": {
+        "absolute_h": {
+          "type": "number",
+          "minimum": 0
+        },
+        "relative": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "configuration_reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_reference": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uri"
+    },
+    "artifact_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "expected_disposition": {
+      "enum": [
+        "PASSIVE_CERTIFIED",
+        "NONPASSIVE_REJECTED",
+        "NONRECIPROCAL_REJECTED",
+        "UNRESOLVED",
+        "INVALID_INPUT"
+      ]
+    }
+  },
+  "description": "Passivity is evaluated only for real-valued local linear or differential inductance matrices at one declared operating point. Secant matrices are outside v1 because 1/2 i^T L_sec i does not generally represent nonlinear stored energy."
+}
