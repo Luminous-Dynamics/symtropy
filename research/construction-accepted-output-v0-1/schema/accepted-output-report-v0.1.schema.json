@@ -131,7 +131,7 @@
               "elapsed_seconds_per_finally_accepted_unit",
               "rework_human_hours_per_finally_accepted_unit",
               "critical_feature_inspection_coverage",
-              "first_pass_critical_defects_per_critical_inspected_unit",
+              "first_pass_critical_defects_per_first_pass_inspected_unit",
               "first_pass_major_defects_per_first_pass_inspected_unit",
               "first_pass_minor_defects_per_first_pass_inspected_unit"
             ]
