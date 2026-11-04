@@ -70,5 +70,20 @@
     "uncertainty_reported": false
   },
   "qualification": "NOT_RUN",
-  "notes": "Template only. Not a geometry measurement, compatibility assessment, certification or hardware test."
+  "notes": "Template only. Not a geometry measurement, compatibility assessment, certification or hardware test.",
+  "qualified_region": {
+    "metric_scope": "UNKNOWN",
+    "evaluated_point_count": null,
+    "qualified_point_count": null,
+    "qualified_fraction": null,
+    "connected_component_count": null,
+    "confidence_level_percent": null,
+    "lower_confidence_bound_fraction": null,
+    "classification_sha256": null,
+    "analysis_sha256": null,
+    "convex_hull_used": null,
+    "disconnected_regions_preserved": null,
+    "notes": "NOT_RUN template; no sampled pass region or connected-component map is asserted."
+  },
+  "qualification_criteria": []
 }
