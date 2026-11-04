@@ -1,0 +1,223 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-robot-site-transfer-v0.1",
+  "fixture_class": "synthetic_reference_cases",
+  "cases": [
+    {
+      "id": "tr-001",
+      "scenario": "source_target_site_holdout",
+      "expected": "valid",
+      "description": "Source training site differs from target evaluation site."
+    },
+    {
+      "id": "tr-002",
+      "scenario": "source_training_target_eval_site_overlap",
+      "expected": "reject_leakage",
+      "description": "Target evaluation site appears in source training split."
+    },
+    {
+      "id": "tr-003",
+      "scenario": "source_training_target_eval_work_package_overlap",
+      "expected": "reject_leakage",
+      "description": "Target evaluation work package is exposed in source training."
+    },
+    {
+      "id": "tr-004",
+      "scenario": "adaptation_target_eval_work_item_overlap",
+      "expected": "reject_leakage",
+      "description": "Target adaptation and target evaluation reuse the same work item."
+    },
+    {
+      "id": "tr-005",
+      "scenario": "adaptation_same_site_disjoint_work_packages",
+      "expected": "valid",
+      "description": "Adaptation and evaluation share target site but use disjoint work packages under explicit regime."
+    },
+    {
+      "id": "tr-006",
+      "scenario": "zero_shot_has_target_task_labels",
+      "expected": "reject_regime",
+      "description": "Zero-shot regime declares target-task labels."
+    },
+    {
+      "id": "tr-007",
+      "scenario": "calibration_only_updates_policy_digest",
+      "expected": "reject_regime",
+      "description": "Calibration-only changes the task policy/model digest."
+    },
+    {
+      "id": "tr-008",
+      "scenario": "bounded_adaptation_exceeds_label_budget",
+      "expected": "reject_budget",
+      "description": "Actual target labels exceed frozen adaptation budget."
+    },
+    {
+      "id": "tr-009",
+      "scenario": "human_supervised_adaptation_unreported_engineering_hours",
+      "expected": "reject_accounting",
+      "description": "Required engineering effort is missing."
+    },
+    {
+      "id": "tr-010",
+      "scenario": "source_target_task_family_mismatch",
+      "expected": "reject_comparison",
+      "description": "Task families differ."
+    },
+    {
+      "id": "tr-011",
+      "scenario": "source_target_functional_unit_mismatch",
+      "expected": "reject_comparison",
+      "description": "Functional-unit classes differ."
+    },
+    {
+      "id": "tr-012",
+      "scenario": "source_target_acceptance_profile_mismatch",
+      "expected": "reject_comparison",
+      "description": "Acceptance-profile digests differ."
+    },
+    {
+      "id": "tr-013",
+      "scenario": "first_pass_accepted_exceeds_inspected",
+      "expected": "reject_denominator",
+      "description": "First-pass accepted units exceed inspected units."
+    },
+    {
+      "id": "tr-014",
+      "scenario": "first_pass_inspected_exceeds_attempted",
+      "expected": "reject_denominator",
+      "description": "Inspected units exceed attempts."
+    },
+    {
+      "id": "tr-015",
+      "scenario": "attempted_exceeds_planned",
+      "expected": "reject_denominator",
+      "description": "Attempts exceed planned units."
+    },
+    {
+      "id": "tr-016",
+      "scenario": "finally_accepted_exceeds_attempted",
+      "expected": "reject_denominator",
+      "description": "Finally accepted units exceed attempts."
+    },
+    {
+      "id": "tr-017",
+      "scenario": "zero_first_pass_inspection_denominator",
+      "expected": "not_estimable",
+      "description": "First-pass yield is not estimable, not zero or 100%."
+    },
+    {
+      "id": "tr-018",
+      "scenario": "zero_total_workflow_crew_minutes",
+      "expected": "not_estimable",
+      "description": "Accepted output per crew-hour is not estimable."
+    },
+    {
+      "id": "tr-019",
+      "scenario": "source_rate_zero_target_rate_positive",
+      "expected": "retention_not_estimable",
+      "description": "Transfer ratio is not finite when source denominator/rate is zero."
+    },
+    {
+      "id": "tr-020",
+      "scenario": "source_target_match_stratum_mismatch",
+      "expected": "reject_comparison",
+      "description": "Source and target are not matched on declared stratum."
+    },
+    {
+      "id": "tr-021",
+      "scenario": "uninspected_output_counted_as_accepted",
+      "expected": "reject_accounting",
+      "description": "Uninspected units cannot be finally accepted."
+    },
+    {
+      "id": "tr-022",
+      "scenario": "rejected_output_counted_as_accepted",
+      "expected": "reject_accounting",
+      "description": "Rejected units cannot be included in accepted numerator."
+    },
+    {
+      "id": "tr-023",
+      "scenario": "out_of_odd_silent_extrapolation",
+      "expected": "reject_domain",
+      "description": "Target condition outside declared support is marked unsupported, not silently scored as covered."
+    },
+    {
+      "id": "tr-024",
+      "scenario": "robot_serial_shift_unreported",
+      "expected": "reject_manifest",
+      "description": "Robot serial shift omitted from declared domain axes."
+    },
+    {
+      "id": "tr-025",
+      "scenario": "material_batch_shift_unreported",
+      "expected": "reject_manifest",
+      "description": "Material lot shift omitted from declared domain axes."
+    },
+    {
+      "id": "tr-026",
+      "scenario": "source_model_digest_changes_between_pairs",
+      "expected": "reject_model_binding",
+      "description": "Source model digest is not frozen across source/target comparison."
+    },
+    {
+      "id": "tr-027",
+      "scenario": "target_model_diff_zero_shot",
+      "expected": "reject_regime",
+      "description": "Zero-shot target model digest differs from the source model digest."
+    },
+    {
+      "id": "tr-028",
+      "scenario": "calibration_only_target_model_same",
+      "expected": "valid",
+      "description": "Calibration-only changes only declared calibration fields; model policy remains frozen."
+    },
+    {
+      "id": "tr-029",
+      "scenario": "offline_adaptation_shadow_copy",
+      "expected": "valid",
+      "description": "Offline candidate is validated as shadow model before use."
+    },
+    {
+      "id": "tr-030",
+      "scenario": "frames_counted_as_independent_sites",
+      "expected": "reject_sample_unit",
+      "description": "Frame counts cannot satisfy independent site/project sample requirements."
+    },
+    {
+      "id": "tr-031",
+      "scenario": "unresolved_units_dropped",
+      "expected": "reject_accounting",
+      "description": "Unresolved units remain in the disposition denominator."
+    },
+    {
+      "id": "tr-032",
+      "scenario": "adaptation_workflow_hours_omitted",
+      "expected": "reject_accounting",
+      "description": "Target adaptation person-hours are required in the full-workflow burden."
+    },
+    {
+      "id": "tr-033",
+      "scenario": "matched_manual_baseline_acceptance_changed",
+      "expected": "reject_comparison",
+      "description": "Manual/current-practice comparison uses different acceptance rules."
+    },
+    {
+      "id": "tr-034",
+      "scenario": "safety_hold_subtracted_from_burden_as_waste",
+      "expected": "reject_authority",
+      "description": "Safety hold remains a separate external state, not automatically waste."
+    },
+    {
+      "id": "tr-035",
+      "scenario": "single_target_site_generalized_to_all_sites",
+      "expected": "claim_ceiling",
+      "description": "One target site supports only a bounded site-specific claim."
+    },
+    {
+      "id": "tr-036",
+      "scenario": "same_model_diff_robot_config",
+      "expected": "requalified_comparison",
+      "description": "Robot configuration change is explicit and reported as a distinct regime."
+    }
+  ]
+}
