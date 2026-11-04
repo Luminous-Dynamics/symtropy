@@ -905,8 +905,18 @@ mod tests {
             reason: "fixture".to_owned(),
         });
         let edges = vec![
-            edge("e1", typed("shared", "root-1", "sensory", true), typed("b", "B", "motor", true), 1),
-            edge("e2", typed("shared", "root-1", "interneuron", true), typed("c", "C", "motor", true), 1),
+            edge(
+                "e1",
+                typed("shared", "root-1", "sensory", true),
+                typed("b", "B", "motor", true),
+                1,
+            ),
+            edge(
+                "e2",
+                typed("shared", "root-1", "interneuron", true),
+                typed("c", "C", "motor", true),
+                1,
+            ),
         ];
         assert_eq!(
             ConnectomeEvidence::new(source, edges),
@@ -929,18 +939,8 @@ mod tests {
                     typed("q1", "Q1", "motor", true),
                     7,
                 ),
-                edge(
-                    "e2",
-                    unclassified("p2", "P2", true),
-                    unresolved("q2"),
-                    3,
-                ),
-                edge(
-                    "e3",
-                    unresolved("p3"),
-                    unclassified("q3", "Q3", false),
-                    2,
-                ),
+                edge("e2", unclassified("p2", "P2", true), unresolved("q2"), 3),
+                edge("e3", unresolved("p3"), unclassified("q3", "Q3", false), 2),
             ],
         )
         .expect("valid evidence graph");
@@ -978,7 +978,12 @@ mod tests {
         let graph = ConnectomeEvidence::new(
             source,
             vec![
-                edge("e1", typed("p1", "P1", "sensory", true), typed("q1", "Q1", "motor", true), 2),
+                edge(
+                    "e1",
+                    typed("p1", "P1", "sensory", true),
+                    typed("q1", "Q1", "motor", true),
+                    2,
+                ),
                 edge("e2", unclassified("p2", "P2", true), unresolved("q2"), 1),
                 edge("e3", unresolved("p3"), unclassified("q3", "Q3", false), 1),
             ],
@@ -1028,8 +1033,18 @@ mod tests {
         let graph = ConnectomeEvidence::new(
             source,
             vec![
-                edge("e1", typed("raw-a", "A", "sensory", true), typed("raw-b", "B", "motor", true), 4),
-                edge("e2", typed("raw-a", "A", "sensory", true), typed("raw-b", "B", "motor", true), 3),
+                edge(
+                    "e1",
+                    typed("raw-a", "A", "sensory", true),
+                    typed("raw-b", "B", "motor", true),
+                    4,
+                ),
+                edge(
+                    "e2",
+                    typed("raw-a", "A", "sensory", true),
+                    typed("raw-b", "B", "motor", true),
+                    3,
+                ),
             ],
         )
         .expect("valid evidence graph");
@@ -1091,10 +1106,7 @@ mod tests {
     #[test]
     fn endpoint_annotation_accessors_do_not_infer_missing_metadata() {
         let identified = unclassified("raw", "root", true);
-        assert_eq!(
-            identified.annotation.canonical_neuron_id(),
-            Some("root")
-        );
+        assert_eq!(identified.annotation.canonical_neuron_id(), Some("root"));
         assert!(identified.annotation.is_identified());
         assert!(identified.annotation.is_proofread());
         assert_eq!(identified.annotation.cell_type(), None);
