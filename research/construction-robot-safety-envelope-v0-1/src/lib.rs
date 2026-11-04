@@ -1788,7 +1788,7 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
     add_case(
         &mut cases,
         "SAFE-042-fast-approach-increases-required-distance",
-        base_policy,
+        base_policy.clone(),
         observation,
         Disposition::StopRequiredBySyntheticPolicy,
     );
@@ -1924,7 +1924,7 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
     add_case(
         &mut cases,
         "SAFE-054-single-fault-domain-and-modality-fail-partial-zone",
-        base_policy,
+        base_policy.clone(),
         observation,
         Disposition::StopRequiredBySyntheticPolicy,
     );
@@ -2555,9 +2555,8 @@ mod tests {
     #[test]
     fn duplicate_sensor_coverage_cells_are_rejected() {
         let (policy, mut observation) = baseline();
-        observation.sensors[2]
-            .covered_cells
-            .push(observation.sensors[2].covered_cells[0]);
+        let covered_cell = observation.sensors[2].covered_cells[0];
+        observation.sensors[2].covered_cells.push(covered_cell);
         let decision = evaluate(&policy, &observation);
         assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
         assert_eq!(decision.reasons, vec![Reason::SensorSetMalformed]);
