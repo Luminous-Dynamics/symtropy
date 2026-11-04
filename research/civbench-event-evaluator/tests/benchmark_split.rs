@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civbench_event_evaluator::benchmark_split::{
-    audit_benchmark_split, BenchmarkSample, DataPartition, LeakageDimension, LeakageGroup,
-    SplitPolicy,
+    BenchmarkSample, DataPartition, LeakageDimension, LeakageGroup, SplitPolicy,
+    audit_benchmark_split,
 };
 use std::collections::BTreeSet;
 
@@ -52,10 +52,38 @@ fn policy() -> SplitPolicy {
 
 fn valid_samples() -> Vec<BenchmarkSample> {
     vec![
-        sample("train-a", DataPartition::Train, 1, "event-a", "session-a", "net-1"),
-        sample("train-b", DataPartition::Train, 2, "event-b", "session-b", "net-1"),
-        sample("validation-a", DataPartition::Validation, 3, "event-c", "session-c", "net-1"),
-        sample("test-a", DataPartition::Test, 4, "event-d", "session-d", "net-1"),
+        sample(
+            "train-a",
+            DataPartition::Train,
+            1,
+            "event-a",
+            "session-a",
+            "net-1",
+        ),
+        sample(
+            "train-b",
+            DataPartition::Train,
+            2,
+            "event-b",
+            "session-b",
+            "net-1",
+        ),
+        sample(
+            "validation-a",
+            DataPartition::Validation,
+            3,
+            "event-c",
+            "session-c",
+            "net-1",
+        ),
+        sample(
+            "test-a",
+            DataPartition::Test,
+            4,
+            "event-d",
+            "session-d",
+            "net-1",
+        ),
     ]
 }
 
@@ -78,10 +106,11 @@ fn within_network_protocol_allows_shared_network_but_blocks_event_and_session_le
         report.shared_dimensions,
         BTreeSet::from([LeakageDimension::Network])
     );
-    assert!(report.canonical_text().contains(&format!(
-        "manifest_digest={}",
-        policy().manifest_digest
-    )));
+    assert!(
+        report
+            .canonical_text()
+            .contains(&format!("manifest_digest={}", policy().manifest_digest))
+    );
 }
 
 #[test]
@@ -256,7 +285,6 @@ fn digest_comparison_is_case_insensitive() {
     let error = audit_benchmark_split(&samples, &policy()).expect_err("same digest");
     assert_eq!(error.code, "duplicate_content_digest");
 }
-
 
 #[test]
 fn malformed_manifest_digest_is_rejected() {
