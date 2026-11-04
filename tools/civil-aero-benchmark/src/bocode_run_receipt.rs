@@ -286,12 +286,7 @@ impl BoCoDeRunLedgerRow {
                 "line {line_number}: feasible/infeasible counts, fraction and total must be present together"
             ));
         }
-        if let (
-            Some(feasible),
-            Some(infeasible),
-            Some(total),
-            Some(fraction),
-        ) = (
+        if let (Some(feasible), Some(infeasible), Some(total), Some(fraction)) = (
             row.feasible_evaluation_count,
             row.infeasible_evaluation_count,
             row.objective_evaluation_count,
@@ -302,7 +297,11 @@ impl BoCoDeRunLedgerRow {
                     "line {line_number}: feasible + infeasible evaluation counts differ from total"
                 ));
             }
-            let expected_fraction = if total == 0 { 0.0 } else { feasible as f64 / total as f64 };
+            let expected_fraction = if total == 0 {
+                0.0
+            } else {
+                feasible as f64 / total as f64
+            };
             if (fraction - expected_fraction).abs() > 1.0e-12 {
                 return Err(format!(
                     "line {line_number}: feasible fraction differs from counts"
@@ -319,25 +318,36 @@ impl BoCoDeRunLedgerRow {
                 ));
             }
         }
-        if row.timed_out && (row.state != BoCoDeTrialState::Failed || row.process_exit_code != Some(124)) {
+        if row.timed_out
+            && (row.state != BoCoDeTrialState::Failed || row.process_exit_code != Some(124))
+        {
             return Err(format!(
                 "line {line_number}: timed_out rows must be failed with process_exit_code 124"
             ));
         }
-        if matches!(row.state, BoCoDeTrialState::Failed | BoCoDeTrialState::WrapperError)
-            && row.reason.trim().is_empty()
+        if matches!(
+            row.state,
+            BoCoDeTrialState::Failed | BoCoDeTrialState::WrapperError
+        ) && row.reason.trim().is_empty()
         {
-            return Err(format!("line {line_number}: failed/wrapper_error rows require a reason"));
+            return Err(format!(
+                "line {line_number}: failed/wrapper_error rows require a reason"
+            ));
         }
         if let Some(history_state) = row.constraint_history_state {
             match history_state {
                 BoCoDeConstraintHistoryState::Available if !has_feasibility_counts => {
-                    return Err(format!("line {line_number}: available constraint history requires feasibility counts"));
+                    return Err(format!(
+                        "line {line_number}: available constraint history requires feasibility counts"
+                    ));
                 }
-                BoCoDeConstraintHistoryState::Unavailable | BoCoDeConstraintHistoryState::NotApplicable
+                BoCoDeConstraintHistoryState::Unavailable
+                | BoCoDeConstraintHistoryState::NotApplicable
                     if has_feasibility_counts =>
                 {
-                    return Err(format!("line {line_number}: unavailable/not-applicable constraint history must not claim feasibility"));
+                    return Err(format!(
+                        "line {line_number}: unavailable/not-applicable constraint history must not claim feasibility"
+                    ));
                 }
                 _ => {}
             }
