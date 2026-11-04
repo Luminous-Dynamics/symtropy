@@ -82,3 +82,9 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT state-energy validator
+      run: cargo test --locked -p wpt-state-energy-validator
+
+    - name: Validate WPT state-energy known-truth corpus
+      run: cargo run --locked -p wpt-state-energy-validator -- benchmarks/wpt-state-energy/v1/known-truth.jsonl
