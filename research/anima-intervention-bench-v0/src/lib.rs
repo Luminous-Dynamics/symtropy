@@ -298,10 +298,16 @@ impl fmt::Display for BenchError {
                 write!(f, "no feasible intervention candidates were supplied")
             }
             Self::NoDiscriminatingIntervention => {
-                write!(f, "no feasible intervention has a Monte Carlo lower information-gain bound above the declared threshold")
+                write!(
+                    f,
+                    "no feasible intervention has a Monte Carlo lower information-gain bound above the declared threshold"
+                )
             }
             Self::InvalidInformationGainThreshold => {
-                write!(f, "minimum information-gain threshold must be finite and non-negative")
+                write!(
+                    f,
+                    "minimum information-gain threshold must be finite and non-negative"
+                )
             }
             Self::InvalidInterventionCost { intervention_id } => write!(
                 f,
@@ -1056,12 +1062,10 @@ pub fn estimate_expected_information_gain(
     samples_per_model: usize,
     seed: u64,
 ) -> Result<f64, BenchError> {
-    Ok(estimate_expected_information_gain_with_uncertainty(
-        predictions,
-        samples_per_model,
-        seed,
-    )?
-    .mean_nats)
+    Ok(
+        estimate_expected_information_gain_with_uncertainty(predictions, samples_per_model, seed)?
+            .mean_nats,
+    )
 }
 
 /// Rank interventions conservatively by the 95% Monte Carlo lower information
@@ -1193,8 +1197,7 @@ pub fn rank_interventions_with_minimum_information_gain(
             information_gain_upper_95_nats: estimate.upper_95_nats,
             cost_units: candidate.cost_units,
             information_gain_per_cost: estimate.mean_nats / candidate.cost_units,
-            lower_95_information_gain_per_cost: estimate.lower_95_nats
-                / candidate.cost_units,
+            lower_95_information_gain_per_cost: estimate.lower_95_nats / candidate.cost_units,
             model_family_count: candidate.predictions.len(),
             samples_per_model,
         });
@@ -1700,12 +1703,7 @@ mod tests {
             ],
         };
         assert_eq!(
-            rank_interventions_with_minimum_information_gain(
-                &[candidate],
-                1000,
-                71,
-                f64::NAN
-            ),
+            rank_interventions_with_minimum_information_gain(&[candidate], 1000, 71, f64::NAN),
             Err(BenchError::InvalidInformationGainThreshold)
         );
     }
