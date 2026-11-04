@@ -52,12 +52,14 @@ Do not publish one headline score called "generalization." Publish separate resu
 | Protocol | Exclusive dimensions | Shared dimensions | What it tests |
 |---|---|---|---|
 | Within-network unseen event | physical event, capture session, scenario template | network, topology family | New events in a known hydraulic setting |
-| New operating regime | physical event, capture session, demand profile, time block | network, topology family | Demand/season/operating-regime shift |
-| Cross-network | physical event, capture session, network | — | New network instances |
+| New operating regime | physical event, capture session, scenario template, demand profile, time block | network, topology family | Demand/season/operating-regime shift |
+| Cross-network | physical event, capture session, scenario template, network | — | New network instances |
 | Cross-topology | physical event, capture session, network, topology family, scenario template | — | Transfer beyond familiar topology/scenario generators |
-| Sensor-layout transfer | physical event, capture session, sensor layout | network, topology family | New sensor placements and sparsity |
-| Asset transfer | physical event, capture session, pipe/asset | network | Unseen pipe/asset identity |
+| Sensor-layout transfer | physical event, capture session, scenario template, sensor layout | network, topology family | New sensor placements and sparsity |
+| Asset transfer | physical event, capture session, scenario template, pipe/asset | network | Unseen pipe/asset identity |
 | Prospective field holdout | event, capture session, time block, sensor layout as applicable | explicitly preregistered site/network scope | Locked prospective operational evaluation |
+
+All registered protocol presets hold out scenario-generator template lineage. This matters for synthetic EPANET/WNTR corpora: a test set can contain new event IDs but still reuse the generator templates and parameterization families exposed during training. A protocol that lacks trustworthy scenario-template identifiers cannot claim this firewall; it must disclose the missing dimension as an unresolved limitation rather than fabricate a value.
 
 These rows are policy templates, not proof that a dataset possesses the listed identifiers. A forward-temporal claim additionally requires an independently checked chronological ordering of time blocks; group disjointness alone does not prove that test dates occur after training dates. Cross-network is not cross-topology unless topology family is also held out. Cross-sensor-layout is not a physical-world transfer test.
 
