@@ -302,7 +302,10 @@ impl std::fmt::Display for DecisionClosureError {
                 write!(f, "resource settlement does not match work progress")
             }
             Self::ResourceReservationAfterNonAuthorization => {
-                write!(f, "rejected/deferred decision cannot retain reserved resources")
+                write!(
+                    f,
+                    "rejected/deferred decision cannot retain reserved resources"
+                )
             }
             Self::DecisionChangeWithoutAcquisition => {
                 write!(f, "decision-change result requires an acquisition receipt")
