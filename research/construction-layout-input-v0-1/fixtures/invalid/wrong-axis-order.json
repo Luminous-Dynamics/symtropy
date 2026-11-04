@@ -1,0 +1,66 @@
+{
+  "schema_version": "construction-layout-input/0.1",
+  "manifest_id": "synthetic-layout-manifest-wrong-axis",
+  "project_id": "synthetic-project-01",
+  "source_model": {
+    "model_id": "bim-level-02",
+    "revision": "bim-r17",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "approval_reference": "synthetic-model-approval-17",
+    "discipline_revisions": [
+      {"discipline_id": "architecture", "revision": "A-17"},
+      {"discipline_id": "electrical", "revision": "E-04"},
+      {"discipline_id": "mechanical", "revision": "M-08"}
+    ],
+    "feature_ids": ["FEAT-001", "FEAT-002", "FEAT-003"]
+  },
+  "export": {
+    "source_model_revision": "bim-r17",
+    "export_id": "layout-export-wrong-axis",
+    "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "exporter_id": "vdc-layout-exporter",
+    "exporter_version": "4.2.0",
+    "exporter_config_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "discipline_revisions": [
+      {"discipline_id": "architecture", "revision": "A-17"},
+      {"discipline_id": "electrical", "revision": "E-04"},
+      {"discipline_id": "mechanical", "revision": "M-08"}
+    ],
+    "feature_ids": ["FEAT-001", "FEAT-002", "FEAT-003"]
+  },
+  "site_binding": {
+    "site_id": "synthetic-site-01",
+    "task_scope": "level-02-multi-trade-layout",
+    "work_package_revision": "wp-layout-r7",
+    "work_zone_id": "level-02-zone-a",
+    "worksite_epoch_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "approved_change_sequence": 12
+  },
+  "coordinate_frame": {
+    "source_frame_id": "BIM_LOCAL:LEVEL_02",
+    "target_frame_id": "SURVEY_GRID:LEVEL_02",
+    "horizontal_reference": "project-local-grid:LEVEL_02",
+    "vertical_datum": "project-level-datum:01",
+    "coordinate_epoch": "2026.75",
+    "units": "millimetres",
+    "axis_order": ["y", "x", "z"],
+    "handedness": "right_handed",
+    "transform_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "transform_resource_sha256s": [
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    ]
+  },
+  "inventory": {
+    "expected_feature_ids": ["FEAT-001", "FEAT-002", "FEAT-003"],
+    "exported_feature_ids": ["FEAT-001", "FEAT-002", "FEAT-003"],
+    "declared_excluded_feature_ids": []
+  },
+  "control_validation": {
+    "fit_point_ids": ["FIT-001", "FIT-002", "FIT-003"],
+    "independent_check_points": [
+      {"point_id":"CHK-001","x_m":0.0,"y_m":0.0,"residual_x_mm":0.1,"residual_y_mm":0.1,"u95_mm":0.15,"independence_status":"independent_under_profile","independence_assessment_reference":"synthetic-independent-survey-assessment"},
+      {"point_id":"CHK-002","x_m":10.0,"y_m":0.0,"residual_x_mm":0.2,"residual_y_mm":0.0,"u95_mm":0.15,"independence_status":"independent_under_profile","independence_assessment_reference":"synthetic-independent-survey-assessment"},
+      {"point_id":"CHK-003","x_m":0.0,"y_m":10.0,"residual_x_mm":0.0,"residual_y_mm":-0.1,"u95_mm":0.15,"independence_status":"independent_under_profile","independence_assessment_reference":"synthetic-independent-survey-assessment"}
+    ]
+  }
+}
