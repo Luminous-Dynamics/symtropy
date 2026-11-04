@@ -1,0 +1,22 @@
+[
+  {
+    "schema_version": "wpt-service-sensitivity-signal-v1",
+    "segment_index": 0,
+    "route_energy_uncertainty_upper_bound_wh": 0.2,
+    "route_energy_uncertainty_budget_wh": 0.1,
+    "expected_uncertainty_reduction_fraction": 0.5,
+    "estimated_field_solve_cost_seconds": 1,
+    "circuit_model_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "sensitivity_receipt_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+  },
+  {
+    "schema_version": "wpt-service-sensitivity-signal-v1",
+    "segment_index": 1,
+    "route_energy_uncertainty_upper_bound_wh": 0.5,
+    "route_energy_uncertainty_budget_wh": 0.1,
+    "expected_uncertainty_reduction_fraction": 0.2,
+    "estimated_field_solve_cost_seconds": 0.5,
+    "circuit_model_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+    "sensitivity_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+]
