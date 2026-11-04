@@ -1069,14 +1069,12 @@ mod tests {
 
     #[test]
     fn late_association_is_not_a_timely_detection_or_false_alarm() {
-        let events = vec![
-            event(
-                "event-1",
-                EventClass::CyberCompromise,
-                9_000_000,
-                9_600_000,
-            ),
-        ];
+        let events = vec![event(
+            "event-1",
+            EventClass::CyberCompromise,
+            9_000_000,
+            9_600_000,
+        )];
         let alarms = vec![alarm(
             "alarm-late",
             "ot-monitor",
