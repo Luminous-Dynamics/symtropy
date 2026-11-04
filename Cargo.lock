@@ -9310,6 +9310,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-neural-adapter-core"
+version = "0.1.0"
+
+[[package]]
 name = "symtropy-persistence"
 version = "0.1.0"
 dependencies = [
