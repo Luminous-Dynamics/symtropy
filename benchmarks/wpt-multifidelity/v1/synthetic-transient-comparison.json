@@ -1,0 +1,315 @@
+{
+  "schema_version": "wpt-multifidelity-bench-v1",
+  "suite_id": "SYNTHETIC-TRANSIENT-1T2R-V1",
+  "cases": [
+    {
+      "case_id": "LOAD-STEP-001",
+      "evidence_class": "synthetic_known_truth",
+      "power_flow_direction": "grid_to_vehicle",
+      "reference": {
+        "time_s": [
+          0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5
+        ],
+        "channels": [
+          {
+            "channel_id": "tx_current_a",
+            "unit": "A",
+            "values": [
+              0,
+              4,
+              8,
+              6,
+              4,
+              4
+            ]
+          },
+          {
+            "channel_id": "rx1_power_w",
+            "unit": "W",
+            "values": [
+              0,
+              100,
+              250,
+              250,
+              250,
+              250
+            ]
+          },
+          {
+            "channel_id": "rx2_power_w",
+            "unit": "W",
+            "values": [
+              0,
+              30,
+              80,
+              80,
+              80,
+              80
+            ]
+          }
+        ]
+      },
+      "energy_channel_ids": [
+        "rx1_power_w",
+        "rx2_power_w"
+      ],
+      "candidates": [
+        {
+          "candidate_id": "full-order",
+          "family": "full_order",
+          "state_order": 16,
+          "model_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "training_data_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "trace": {
+            "time_s": [
+              0,
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ],
+            "channels": [
+              {
+                "channel_id": "tx_current_a",
+                "unit": "A",
+                "values": [
+                  0,
+                  4,
+                  8,
+                  6,
+                  4,
+                  4
+                ]
+              },
+              {
+                "channel_id": "rx1_power_w",
+                "unit": "W",
+                "values": [
+                  0,
+                  100,
+                  250,
+                  250,
+                  250,
+                  250
+                ]
+              },
+              {
+                "channel_id": "rx2_power_w",
+                "unit": "W",
+                "values": [
+                  0,
+                  30,
+                  80,
+                  80,
+                  80,
+                  80
+                ]
+              }
+            ]
+          },
+          "execution_environment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "runtime_median_ms": 100,
+          "runtime_p95_ms": 120,
+          "peak_memory_bytes": 64000000
+        },
+        {
+          "candidate_id": "balanced-truncation",
+          "family": "balanced_truncation",
+          "state_order": 4,
+          "model_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "training_data_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "trace": {
+            "time_s": [
+              0,
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ],
+            "channels": [
+              {
+                "channel_id": "tx_current_a",
+                "unit": "A",
+                "values": [
+                  0,
+                  4,
+                  8.02,
+                  6,
+                  4,
+                  4
+                ]
+              },
+              {
+                "channel_id": "rx1_power_w",
+                "unit": "W",
+                "values": [
+                  0,
+                  100,
+                  249,
+                  250,
+                  250,
+                  250
+                ]
+              },
+              {
+                "channel_id": "rx2_power_w",
+                "unit": "W",
+                "values": [
+                  0,
+                  30,
+                  80.3,
+                  80,
+                  80,
+                  80
+                ]
+              }
+            ]
+          },
+          "execution_environment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "runtime_median_ms": 10,
+          "runtime_p95_ms": 12,
+          "peak_memory_bytes": 8000000
+        },
+        {
+          "candidate_id": "port-hamiltonian",
+          "family": "port_hamiltonian",
+          "state_order": 2,
+          "model_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "training_data_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "trace": {
+            "time_s": [
+              0,
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ],
+            "channels": [
+              {
+                "channel_id": "tx_current_a",
+                "unit": "A",
+                "values": [
+                  0,
+                  4.01,
+                  8.04,
+                  6.01,
+                  4,
+                  4
+                ]
+              },
+              {
+                "channel_id": "rx1_power_w",
+                "unit": "W",
+                "values": [
+                  0,
+                  100.5,
+                  251,
+                  250.5,
+                  250,
+                  250
+                ]
+              },
+              {
+                "channel_id": "rx2_power_w",
+                "unit": "W",
+                "values": [
+                  0,
+                  30.2,
+                  80.6,
+                  80.1,
+                  80,
+                  80
+                ]
+              }
+            ]
+          },
+          "execution_environment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "runtime_median_ms": 8,
+          "runtime_p95_ms": 11,
+          "peak_memory_bytes": 6000000
+        },
+        {
+          "candidate_id": "learned-surrogate",
+          "family": "learned_surrogate",
+          "state_order": null,
+          "model_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "training_data_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "trace": {
+            "time_s": [
+              0,
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5
+            ],
+            "channels": [
+              {
+                "channel_id": "tx_current_a",
+                "unit": "A",
+                "values": [
+                  0,
+                  4,
+                  8.8,
+                  6,
+                  4,
+                  4
+                ]
+              },
+              {
+                "channel_id": "rx1_power_w",
+                "unit": "W",
+                "values": [
+                  0,
+                  100,
+                  270,
+                  250,
+                  250,
+                  250
+                ]
+              },
+              {
+                "channel_id": "rx2_power_w",
+                "unit": "W",
+                "values": [
+                  0,
+                  30,
+                  74,
+                  80,
+                  80,
+                  80
+                ]
+              }
+            ]
+          },
+          "execution_environment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "runtime_median_ms": 3,
+          "runtime_p95_ms": 4,
+          "peak_memory_bytes": 12000000
+        }
+      ],
+      "acceptance": {
+        "maximum_channel_nrmse": 0.03,
+        "maximum_peak_magnitude_relative_error": 0.03,
+        "maximum_energy_relative_error": 0.02,
+        "peak_limits": [
+          {
+            "channel_id": "tx_current_a",
+            "maximum_absolute_value": 10
+          }
+        ]
+      },
+      "execution_environment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "reference_runtime_median_ms": 100,
+      "reference_runtime_p95_ms": 120
+    }
+  ]
+}
