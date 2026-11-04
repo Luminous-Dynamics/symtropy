@@ -165,31 +165,65 @@ pub struct TrialSplit {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchError {
     EmptyDataset,
-    EmptyIdentifier { field: &'static str },
+    EmptyIdentifier {
+        field: &'static str,
+    },
     EmptyOutcomeMetric,
-    InvalidObservedValue { sample_id: String },
+    InvalidObservedValue {
+        sample_id: String,
+    },
     DuplicateSampleId(String),
     EmptyHoldoutPolicy,
-    UnobservedHoldoutGroup { field: &'static str, value: String },
+    UnobservedHoldoutGroup {
+        field: &'static str,
+        value: String,
+    },
     EmptyTrainingPartition,
     EmptyHeldOutPartition,
-    EvidenceClaimNotSupported { claim: EvidenceClaim },
-    DuplicatePrediction { model_id: String, sample_id: String },
-    MissingPrediction { model_id: String, sample_id: String },
-    UnexpectedPrediction { model_id: String, sample_id: String },
-    PredictionModelMismatch { expected: String, actual: String },
-    PredictionSchemaMismatch { sample_id: String },
-    InvalidPrediction { sample_id: String },
+    EvidenceClaimNotSupported {
+        claim: EvidenceClaim,
+    },
+    DuplicatePrediction {
+        model_id: String,
+        sample_id: String,
+    },
+    MissingPrediction {
+        model_id: String,
+        sample_id: String,
+    },
+    UnexpectedPrediction {
+        model_id: String,
+        sample_id: String,
+    },
+    PredictionModelMismatch {
+        expected: String,
+        actual: String,
+    },
+    PredictionSchemaMismatch {
+        sample_id: String,
+    },
+    InvalidPrediction {
+        sample_id: String,
+    },
     InvalidBootstrapSamples,
     TooFewIndividualClusters,
     DuplicateInterventionId(String),
     NoFeasibleIntervention,
-    InvalidInterventionCost { intervention_id: String },
+    InvalidInterventionCost {
+        intervention_id: String,
+    },
     InvalidMonteCarloSamples,
     TooFewModelFamilies,
-    ModelFamilySetMismatch { intervention_id: String },
-    InvalidModelDistribution { intervention_id: String, model_id: String },
-    InconsistentOutcomeSchema { intervention_id: String },
+    ModelFamilySetMismatch {
+        intervention_id: String,
+    },
+    InvalidModelDistribution {
+        intervention_id: String,
+        model_id: String,
+    },
+    InconsistentOutcomeSchema {
+        intervention_id: String,
+    },
 }
 
 impl fmt::Display for BenchError {
@@ -197,30 +231,96 @@ impl fmt::Display for BenchError {
         match self {
             Self::EmptyDataset => write!(f, "trial dataset is empty"),
             Self::EmptyIdentifier { field } => write!(f, "empty identifier: {field}"),
-            Self::EmptyOutcomeMetric => write!(f, "outcome metric and unit identifiers must be non-empty"),
-            Self::InvalidObservedValue { sample_id } => write!(f, "observed value is non-finite for sample {sample_id}"),
+            Self::EmptyOutcomeMetric => {
+                write!(f, "outcome metric and unit identifiers must be non-empty")
+            }
+            Self::InvalidObservedValue { sample_id } => {
+                write!(f, "observed value is non-finite for sample {sample_id}")
+            }
             Self::DuplicateSampleId(id) => write!(f, "duplicate sample identity: {id}"),
-            Self::EmptyHoldoutPolicy => write!(f, "at least one explicit group holdout is required"),
-            Self::UnobservedHoldoutGroup { field, value } => write!(f, "holdout group was not present in observations: {field}={value}"),
+            Self::EmptyHoldoutPolicy => {
+                write!(f, "at least one explicit group holdout is required")
+            }
+            Self::UnobservedHoldoutGroup { field, value } => write!(
+                f,
+                "holdout group was not present in observations: {field}={value}"
+            ),
             Self::EmptyTrainingPartition => write!(f, "split produced no training observations"),
             Self::EmptyHeldOutPartition => write!(f, "split produced no held-out observations"),
-            Self::EvidenceClaimNotSupported { claim } => write!(f, "observation provenance does not support claim {claim:?}"),
-            Self::DuplicatePrediction { model_id, sample_id } => write!(f, "duplicate prediction for model {model_id}, sample {sample_id}"),
-            Self::MissingPrediction { model_id, sample_id } => write!(f, "missing prediction for model {model_id}, sample {sample_id}"),
-            Self::UnexpectedPrediction { model_id, sample_id } => write!(f, "prediction for model {model_id} references unknown sample {sample_id}"),
-            Self::PredictionModelMismatch { expected, actual } => write!(f, "prediction model mismatch: expected {expected}, got {actual}"),
-            Self::PredictionSchemaMismatch { sample_id } => write!(f, "metric/unit mismatch for sample {sample_id}"),
-            Self::InvalidPrediction { sample_id } => write!(f, "invalid prediction mean or standard deviation for sample {sample_id}"),
-            Self::InvalidBootstrapSamples => write!(f, "cluster bootstrap requires 100 to 1,000,000 resamples"),
-            Self::TooFewIndividualClusters => write!(f, "paired cluster bootstrap requires at least two independent individuals"),
-            Self::DuplicateInterventionId(id) => write!(f, "duplicate intervention candidate id: {id}"),
-            Self::NoFeasibleIntervention => write!(f, "no feasible intervention candidates were supplied"),
-            Self::InvalidInterventionCost { intervention_id } => write!(f, "invalid positive finite intervention cost: {intervention_id}"),
-            Self::InvalidMonteCarloSamples => write!(f, "expected-information-gain estimation requires 100 to 1,000,000 samples per model"),
-            Self::TooFewModelFamilies => write!(f, "at least two competing model families are required"),
-            Self::ModelFamilySetMismatch { intervention_id } => write!(f, "model-family set differs across intervention candidates: {intervention_id}"),
-            Self::InvalidModelDistribution { intervention_id, model_id } => write!(f, "invalid Gaussian prediction for model {model_id} under intervention {intervention_id}"),
-            Self::InconsistentOutcomeSchema { intervention_id } => write!(f, "intervention candidates do not share one metric/unit schema: {intervention_id}"),
+            Self::EvidenceClaimNotSupported { claim } => {
+                write!(f, "observation provenance does not support claim {claim:?}")
+            }
+            Self::DuplicatePrediction {
+                model_id,
+                sample_id,
+            } => write!(
+                f,
+                "duplicate prediction for model {model_id}, sample {sample_id}"
+            ),
+            Self::MissingPrediction {
+                model_id,
+                sample_id,
+            } => write!(
+                f,
+                "missing prediction for model {model_id}, sample {sample_id}"
+            ),
+            Self::UnexpectedPrediction {
+                model_id,
+                sample_id,
+            } => write!(
+                f,
+                "prediction for model {model_id} references unknown sample {sample_id}"
+            ),
+            Self::PredictionModelMismatch { expected, actual } => write!(
+                f,
+                "prediction model mismatch: expected {expected}, got {actual}"
+            ),
+            Self::PredictionSchemaMismatch { sample_id } => {
+                write!(f, "metric/unit mismatch for sample {sample_id}")
+            }
+            Self::InvalidPrediction { sample_id } => write!(
+                f,
+                "invalid prediction mean or standard deviation for sample {sample_id}"
+            ),
+            Self::InvalidBootstrapSamples => {
+                write!(f, "cluster bootstrap requires 100 to 1,000,000 resamples")
+            }
+            Self::TooFewIndividualClusters => write!(
+                f,
+                "paired cluster bootstrap requires at least two independent individuals"
+            ),
+            Self::DuplicateInterventionId(id) => {
+                write!(f, "duplicate intervention candidate id: {id}")
+            }
+            Self::NoFeasibleIntervention => {
+                write!(f, "no feasible intervention candidates were supplied")
+            }
+            Self::InvalidInterventionCost { intervention_id } => write!(
+                f,
+                "invalid positive finite intervention cost: {intervention_id}"
+            ),
+            Self::InvalidMonteCarloSamples => write!(
+                f,
+                "expected-information-gain estimation requires 100 to 1,000,000 samples per model"
+            ),
+            Self::TooFewModelFamilies => {
+                write!(f, "at least two competing model families are required")
+            }
+            Self::ModelFamilySetMismatch { intervention_id } => write!(
+                f,
+                "model-family set differs across intervention candidates: {intervention_id}"
+            ),
+            Self::InvalidModelDistribution {
+                intervention_id,
+                model_id,
+            } => write!(
+                f,
+                "invalid Gaussian prediction for model {model_id} under intervention {intervention_id}"
+            ),
+            Self::InconsistentOutcomeSchema { intervention_id } => write!(
+                f,
+                "intervention candidates do not share one metric/unit schema: {intervention_id}"
+            ),
         }
     }
 }
@@ -391,7 +491,9 @@ pub fn build_group_held_out_split(
     // Defensive postcondition: no training row may match any held-out group.
     for index in &split.training_indices {
         let row = &observations[*index];
-        if policy.held_out_intervention_families.contains(&row.intervention_family_id)
+        if policy
+            .held_out_intervention_families
+            .contains(&row.intervention_family_id)
             || policy.held_out_conditions.contains(&row.condition_id)
             || policy.held_out_individuals.contains(&row.individual_id)
             || policy
@@ -503,8 +605,10 @@ fn validate_prediction_join<'a>(
 ) -> Result<BTreeMap<&'a str, &'a TrialPrediction>, BenchError> {
     validate_observations(observations)?;
     non_empty(model_family_id, "model_family_id")?;
-    let known_samples: BTreeSet<&str> =
-        observations.iter().map(|row| row.sample_id.as_str()).collect();
+    let known_samples: BTreeSet<&str> = observations
+        .iter()
+        .map(|row| row.sample_id.as_str())
+        .collect();
     let mut by_sample = BTreeMap::new();
 
     for prediction in predictions {
@@ -543,12 +647,12 @@ fn validate_prediction_join<'a>(
     }
 
     for observation in observations {
-        let prediction = by_sample.get(observation.sample_id.as_str()).ok_or_else(|| {
-            BenchError::MissingPrediction {
+        let prediction = by_sample
+            .get(observation.sample_id.as_str())
+            .ok_or_else(|| BenchError::MissingPrediction {
                 model_id: model_family_id.to_string(),
                 sample_id: observation.sample_id.clone(),
-            }
-        })?;
+            })?;
         if prediction.metric_id != observation.metric_id
             || prediction.unit_id != observation.unit_id
         {
@@ -566,8 +670,7 @@ pub fn score_model_family(
     predictions: &[TrialPrediction],
     observations: &[TrialObservation],
 ) -> Result<PredictionScore, BenchError> {
-    let by_sample =
-        validate_prediction_join(model_family_id, predictions, observations)?;
+    let by_sample = validate_prediction_join(model_family_id, predictions, observations)?;
     let mut squared_error = 0.0;
     let mut log_score = 0.0;
     let mut covered = 0usize;
@@ -658,13 +761,9 @@ pub fn paired_cluster_bootstrap_log_score(
     if !(100..=MAX_BOOTSTRAP_RESAMPLES).contains(&bootstrap_resamples) {
         return Err(BenchError::InvalidBootstrapSamples);
     }
-    let candidate = validate_prediction_join(
-        candidate_model_id,
-        candidate_predictions,
-        observations,
-    )?;
-    let baseline =
-        validate_prediction_join(baseline_model_id, baseline_predictions, observations)?;
+    let candidate =
+        validate_prediction_join(candidate_model_id, candidate_predictions, observations)?;
+    let baseline = validate_prediction_join(baseline_model_id, baseline_predictions, observations)?;
 
     let mut clusters: BTreeMap<&str, Vec<f64>> = BTreeMap::new();
     let mut total_delta = 0.0;
@@ -720,10 +819,10 @@ pub fn paired_cluster_bootstrap_log_score(
     }
 
     replicates.sort_by(f64::total_cmp);
-    let lower_index = ((bootstrap_resamples as f64 * 0.025).floor() as usize)
-        .min(bootstrap_resamples - 1);
-    let upper_index = ((bootstrap_resamples as f64 * 0.975).ceil() as usize)
-        .min(bootstrap_resamples - 1);
+    let lower_index =
+        ((bootstrap_resamples as f64 * 0.025).floor() as usize).min(bootstrap_resamples - 1);
+    let upper_index =
+        ((bootstrap_resamples as f64 * 0.975).ceil() as usize).min(bootstrap_resamples - 1);
 
     Ok(PairedClusterComparison {
         candidate_model_id: candidate_model_id.to_string(),
@@ -771,13 +870,15 @@ pub struct InterventionRanking {
 
 fn log_sum_exp(values: &[f64]) -> f64 {
     let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-    maximum + values.iter().map(|value| (value - maximum).exp()).sum::<f64>().ln()
+    maximum
+        + values
+            .iter()
+            .map(|value| (value - maximum).exp())
+            .sum::<f64>()
+            .ln()
 }
 
-fn gaussian_log_density_scalar(
-    value: f64,
-    distribution: &ModelOutcomeDistribution,
-) -> Option<f64> {
+fn gaussian_log_density_scalar(value: f64, distribution: &ModelOutcomeDistribution) -> Option<f64> {
     gaussian_log_density(value, distribution.mean, distribution.standard_deviation)
 }
 
@@ -1039,7 +1140,6 @@ mod tests {
             .collect()
     }
 
-
     fn valid_raw_audit() -> RawTrajectoryAudit {
         RawTrajectoryAudit {
             termination: SolverTermination::Completed,
@@ -1124,14 +1224,18 @@ mod tests {
         let split = build_group_held_out_split(&rows, &policy).unwrap();
         assert_eq!(split.training_indices.len(), 4);
         assert_eq!(split.held_out_indices.len(), 2);
-        assert!(split
-            .training_indices
-            .iter()
-            .all(|index| rows[*index].intervention_family_id == "DNg100"));
-        assert!(split
-            .held_out_indices
-            .iter()
-            .all(|index| rows[*index].intervention_family_id == "DNg100+DNb08"));
+        assert!(
+            split
+                .training_indices
+                .iter()
+                .all(|index| rows[*index].intervention_family_id == "DNg100")
+        );
+        assert!(
+            split
+                .held_out_indices
+                .iter()
+                .all(|index| rows[*index].intervention_family_id == "DNg100+DNb08")
+        );
         assert_eq!(
             split.held_out_reasons["s05"],
             vec![HoldoutReason::InterventionFamily]
@@ -1215,11 +1319,7 @@ mod tests {
     #[test]
     fn cross_dataset_generalization_requires_multiple_datasets_and_individuals() {
         let rows = observations();
-        assert!(validate_evidence_claim(
-            &rows,
-            EvidenceClaim::CrossDatasetGeneralization
-        )
-        .is_ok());
+        assert!(validate_evidence_claim(&rows, EvidenceClaim::CrossDatasetGeneralization).is_ok());
         let one_dataset: Vec<_> = rows
             .iter()
             .take(4)
@@ -1230,10 +1330,7 @@ mod tests {
             })
             .collect();
         assert!(matches!(
-            validate_evidence_claim(
-                &one_dataset,
-                EvidenceClaim::CrossDatasetGeneralization
-            ),
+            validate_evidence_claim(&one_dataset, EvidenceClaim::CrossDatasetGeneralization),
             Err(BenchError::EvidenceClaimNotSupported { .. })
         ));
     }
@@ -1301,11 +1398,23 @@ mod tests {
         let candidate = predictions("hybrid", &rows, 0.0, 0.5);
         let baseline = predictions("oscillator", &rows, 0.4, 0.5);
         let first = paired_cluster_bootstrap_log_score(
-            "hybrid", &candidate, "oscillator", &baseline, &rows, 1000, 42,
+            "hybrid",
+            &candidate,
+            "oscillator",
+            &baseline,
+            &rows,
+            1000,
+            42,
         )
         .unwrap();
         let second = paired_cluster_bootstrap_log_score(
-            "hybrid", &candidate, "oscillator", &baseline, &rows, 1000, 42,
+            "hybrid",
+            &candidate,
+            "oscillator",
+            &baseline,
+            &rows,
+            1000,
+            42,
         )
         .unwrap();
         assert_eq!(first, second);
