@@ -445,41 +445,108 @@ pub fn verify_joint_validation_report(report: &JointValidationReport) -> Result<
     if report.evidence_level != MULTIVARIATE_VALIDATION_EVIDENCE_LEVEL {
         return Err("joint validation evidence level is not diagnostic-only".to_owned());
     }
+    require_nonempty(&report.study_id, "study_id")?;
+    require_nonempty(&report.model_id, "model_id")?;
     if report.output_schema.is_empty() || report.observations.is_empty() {
         return Err(
             "joint validation report must contain an output schema and observations".to_owned(),
         );
     }
+    let mut output_names = BTreeSet::new();
+    for (quantity, unit) in &report.output_schema {
+        require_nonempty(quantity, "output quantity")?;
+        require_nonempty(unit, "output unit")?;
+        if !output_names.insert(quantity.as_str()) {
+            return Err(format!("duplicate output quantity {quantity}"));
+        }
+    }
+
     let mut unique = BTreeSet::new();
+    let mut previous_id: Option<&str> = None;
     for row in &report.observations {
-        if !unique.insert(row.observation.observation_id.as_str()) {
+        let observation = &row.observation;
+        require_nonempty(&observation.observation_id, "observation_id")?;
+        require_nonempty(&observation.geometry_family, "geometry_family")?;
+        require_nonempty(&observation.flow_regime, "flow_regime")?;
+        require_nonempty(
+            &observation.uncertainty_source_reference,
+            "uncertainty_source_reference",
+        )?;
+        require_nonempty(
+            &observation.uncertainty_model_rationale,
+            "uncertainty_model_rationale",
+        )?;
+        if observation.dataset_split != "blind_confirmation" {
+            return Err(format!(
+                "observation {} must come from blind_confirmation",
+                observation.observation_id
+            ));
+        }
+        if !is_lower_sha256(&observation.uncertainty_source_sha256) {
+            return Err(format!(
+                "observation {} uncertainty source digest is malformed",
+                observation.observation_id
+            ));
+        }
+        if !unique.insert(observation.observation_id.as_str()) {
             return Err("joint validation report contains duplicate observations".to_owned());
+        }
+        if previous_id.is_some_and(|previous| previous >= observation.observation_id.as_str()) {
+            return Err("joint validation report observations must be sorted by ID".to_owned());
+        }
+        previous_id = Some(observation.observation_id.as_str());
+        if observation.outputs.len() != report.output_schema.len()
+            || row.standardized_residuals.len() != report.output_schema.len()
+            || row.whitened_residuals.len() != report.output_schema.len()
+        {
+            return Err("joint validation report output schema dimension mismatch".to_owned());
+        }
+        if observation.correlation_matrix.len() != report.output_schema.len() {
+            return Err("joint validation report correlation dimension mismatch".to_owned());
+        }
+        for (index, (output, schema)) in observation
+            .outputs
+            .iter()
+            .zip(&report.output_schema)
+            .enumerate()
+        {
+            if output.quantity != schema.0 || output.unit != schema.1 {
+                return Err(format!(
+                    "joint validation report output index {index} differs from frozen schema"
+                ));
+            }
+            for (field, value) in [
+                ("predicted_value", output.predicted_value),
+                ("observed_value", output.observed_value),
+                ("standard_uncertainty", output.standard_uncertainty),
+            ] {
+                if !value.is_finite() {
+                    return Err(format!(
+                        "observation {} output {} {field} must be finite",
+                        observation.observation_id, output.quantity
+                    ));
+                }
+            }
+            if output.standard_uncertainty <= 0.0 {
+                return Err(format!(
+                    "observation {} output {} standard uncertainty must be positive",
+                    observation.observation_id, output.quantity
+                ));
+            }
         }
         let expected_observation = sha256_hex(&observation_canonical_bytes(
             &report.study_id,
             &report.model_id,
-            &row.observation,
+            observation,
         )?)?;
         if expected_observation != row.observation_sha256 {
             return Err(format!(
                 "observation {} digest mismatch",
-                row.observation.observation_id
+                observation.observation_id
             ));
         }
-        if row.standardized_residuals.len() != report.output_schema.len()
-            || row.whitened_residuals.len() != report.output_schema.len()
-            || row
-                .observation
-                .outputs
-                .iter()
-                .zip(&report.output_schema)
-                .any(|(output, schema)| output.quantity != schema.0 || output.unit != schema.1)
-        {
-            return Err("joint validation report output schema mismatch".to_owned());
-        }
-        let lower = cholesky_lower(&row.observation.correlation_matrix)?;
-        let expected_standardized: Vec<f64> = row
-            .observation
+        let lower = cholesky_lower(&observation.correlation_matrix)?;
+        let expected_standardized: Vec<f64> = observation
             .outputs
             .iter()
             .map(|output| {
@@ -487,10 +554,10 @@ pub fn verify_joint_validation_report(report: &JointValidationReport) -> Result<
             })
             .collect();
         let expected_whitened = solve_lower(&lower, &expected_standardized)?;
-        let expected_squared = expected_whitened
-            .iter()
-            .map(|value| value * value)
-            .sum::<f64>();
+        let mut expected_squared = 0.0;
+        for value in &expected_whitened {
+            expected_squared += value * value;
+        }
         if !vectors_close(&row.standardized_residuals, &expected_standardized)
             || !vectors_close(&row.whitened_residuals, &expected_whitened)
             || !close(row.mahalanobis_squared, expected_squared)
@@ -498,27 +565,24 @@ pub fn verify_joint_validation_report(report: &JointValidationReport) -> Result<
         {
             return Err(format!(
                 "observation {} joint discrepancy does not replay",
-                row.observation.observation_id
+                observation.observation_id
             ));
         }
     }
+
     let in_domain = report
         .observations
         .iter()
         .filter(|row| row.observation.domain_status == DomainStatus::InDomain)
         .count();
     let out_domain = report.observations.len() - in_domain;
-    let mean = report
-        .observations
-        .iter()
-        .map(|row| row.mahalanobis_squared)
-        .sum::<f64>()
-        / report.observations.len() as f64;
-    let maximum = report
-        .observations
-        .iter()
-        .map(|row| row.mahalanobis_squared)
-        .fold(0.0_f64, f64::max);
+    let mut total_squared = 0.0;
+    let mut maximum = 0.0_f64;
+    for row in &report.observations {
+        total_squared += row.mahalanobis_squared;
+        maximum = maximum.max(row.mahalanobis_squared);
+    }
+    let mean = total_squared / report.observations.len() as f64;
     if in_domain != report.in_domain_observation_count
         || out_domain != report.out_of_domain_observation_count
         || !close(mean, report.mean_mahalanobis_squared)
