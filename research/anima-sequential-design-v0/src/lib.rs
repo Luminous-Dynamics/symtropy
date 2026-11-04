@@ -40,6 +40,8 @@ pub struct CausalValidity {
 pub struct InterventionCandidate {
     pub candidate_id: String,
     pub protocol_id: String,
+    /// Shared unit identifier for all candidates in one decision manifest.
+    pub cost_unit_id: String,
     pub cost: f64,
     pub feasibility: Feasibility,
     pub causal_validity: CausalValidity,
@@ -95,7 +97,7 @@ pub enum SelectionPolicy {
     /// Reproducible random feasible comparator.
     DeterministicRandom { seed: u64 },
     /// Fixed alphabetic manifest-order comparator, independent of model scores.
-    FixedManifestOrder,
+    FixedCanonicalOrder,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -129,6 +131,7 @@ pub enum EngineError {
     DuplicateOutcome(String),
     DuplicateSample(String),
     InvalidCost(String),
+    CostUnitMismatch,
     InvalidBudget,
     InvalidThreshold(&'static str),
     EmptyOutcomeSet(String),
@@ -249,6 +252,9 @@ fn validate_candidate(
     }
     if candidate.protocol_id.trim().is_empty() {
         return Err(EngineError::EmptyIdentifier("protocol_id"));
+    }
+    if candidate.cost_unit_id.trim().is_empty() {
+        return Err(EngineError::EmptyIdentifier("cost_unit_id"));
     }
     if !candidate.cost.is_finite() || candidate.cost <= 0.0 {
         return Err(EngineError::InvalidCost(candidate.candidate_id.clone()));
@@ -507,6 +513,7 @@ fn candidate_fingerprint(
     for candidate in sorted {
         push_str(&mut bytes, &candidate.candidate_id);
         push_str(&mut bytes, &candidate.protocol_id);
+        push_str(&mut bytes, &candidate.cost_unit_id);
         push_f64(&mut bytes, candidate.cost);
         match &candidate.feasibility {
             Feasibility::Permitted => bytes.push(0),
@@ -641,11 +648,16 @@ pub fn choose_next(
     validate_state(state, config)?;
     let model_ids: BTreeSet<String> = state.posterior.keys().cloned().collect();
     let mut candidate_ids = BTreeSet::new();
+    let mut cost_units = BTreeSet::new();
     for candidate in candidates {
         validate_candidate(candidate, &model_ids)?;
+        cost_units.insert(candidate.cost_unit_id.clone());
         if !candidate_ids.insert(candidate.candidate_id.clone()) {
             return Err(EngineError::DuplicateCandidate(candidate.candidate_id.clone()));
         }
+    }
+    if cost_units.len() > 1 {
+        return Err(EngineError::CostUnitMismatch);
     }
     let rejected: Vec<CandidateRejection> = candidates.iter().filter_map(|candidate| {
         reject_candidate(candidate, config, state).map(|reason| CandidateRejection {
@@ -706,7 +718,7 @@ pub fn choose_next(
             SelectionPolicy::CostNormalizedEig | SelectionPolicy::RobustMaximin => {
                 robust_gain / candidate.cost
             }
-            SelectionPolicy::DeterministicRandom { .. } | SelectionPolicy::FixedManifestOrder => 0.0,
+            SelectionPolicy::DeterministicRandom { .. } | SelectionPolicy::FixedCanonicalOrder => 0.0,
         };
         scored.push((candidate, current_gain, robust_gain, score));
     }
@@ -715,7 +727,7 @@ pub fn choose_next(
         SelectionPolicy::DeterministicRandom { seed } => {
             (splitmix64(seed) as usize) % scored.len()
         }
-        SelectionPolicy::FixedManifestOrder => {
+        SelectionPolicy::FixedCanonicalOrder => {
             scored.sort_by(|a, b| a.0.candidate_id.cmp(&b.0.candidate_id));
             0
         }
@@ -729,7 +741,7 @@ pub fn choose_next(
     let (candidate, current_gain, robust_gain, score) = scored[selected_index];
     let adaptive = !matches!(
         config.policy,
-        SelectionPolicy::DeterministicRandom { .. } | SelectionPolicy::FixedManifestOrder
+        SelectionPolicy::DeterministicRandom { .. } | SelectionPolicy::FixedCanonicalOrder
     );
     if adaptive && robust_gain <= config.minimum_information_gain_nats {
         let receipt = make_receipt(
@@ -775,6 +787,7 @@ mod tests {
         InterventionCandidate {
             candidate_id: id.to_owned(),
             protocol_id: format!("protocol-{id}"),
+            cost_unit_id: "experiment-credit".to_owned(),
             cost,
             feasibility: Feasibility::Permitted,
             causal_validity: CausalValidity {
@@ -850,6 +863,20 @@ mod tests {
             ..DecisionConfig::default()
         }).unwrap();
         assert!(matches!(result, Decision::Select(s) if s.candidate_id == "strong"));
+    }
+
+    #[test]
+    fn incompatible_cost_units_fail_closed() {
+        let mut second = candidate("second", 0.8, 0.2, 1.0);
+        second.cost_unit_id = "minutes".to_owned();
+        assert_eq!(
+            choose_next(
+                &state(0.5),
+                &[candidate("first", 0.9, 0.1, 1.0), second],
+                &DecisionConfig::default()
+            ),
+            Err(EngineError::CostUnitMismatch)
+        );
     }
 
     #[test]
@@ -991,7 +1018,7 @@ mod tests {
     #[test]
     fn fixed_and_random_baselines_are_not_filtered_by_eig() {
         let c = candidate("low", 0.5, 0.5, 1.0);
-        let fixed = DecisionConfig { policy: SelectionPolicy::FixedManifestOrder, ..DecisionConfig::default() };
+        let fixed = DecisionConfig { policy: SelectionPolicy::FixedCanonicalOrder, ..DecisionConfig::default() };
         let random = DecisionConfig { policy: SelectionPolicy::DeterministicRandom { seed: 7 }, ..DecisionConfig::default() };
         assert!(matches!(choose_next(&state(0.5), &[c.clone()], &fixed).unwrap(), Decision::Select(_)));
         assert!(matches!(choose_next(&state(0.5), &[c], &random).unwrap(), Decision::Select(_)));
