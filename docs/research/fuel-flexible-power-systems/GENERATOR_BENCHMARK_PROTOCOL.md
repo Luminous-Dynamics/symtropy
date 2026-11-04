@@ -349,6 +349,52 @@ Machine-readable cases:
 
 Five synthetic cases include feasible work allocation, grid cap, cooling cap, non-preemptible fragmentation and checkpoint-resume energy. They do not establish optimality, real site feasibility or physical grid-service qualification.
 
+### 5.12 Stateful storage, UPS reserve and thermal trajectory verification
+
+Dependent draft implementation: [PR #3578](https://github.com/Luminous-Dynamics/symtropy/pull/3578).
+
+Static slot budgets do not establish multi-interval feasibility. The stateful verifier independently propagates:
+- stored battery energy with separate charge/discharge efficiencies and power limits;
+- protected critical-load ride-through reserve from critical kW × seconds plus explicit margin;
+- one-zone first-order RC thermal state with declared heat injection, ambient conductance and thermal capacitance;
+- cooling heat extraction, cooling electrical input and a declared COP envelope;
+- site facility input and residual grid import for every interval.
+
+Use the machine-readable [AI_STATEFUL_RESOURCE_FIXTURES_2026-11-04.json](data/AI_STATEFUL_RESOURCE_FIXTURES_2026-11-04.json) and [schema](data/AI_STATEFUL_RESOURCE_SCHEMA_2026-11-04.json). Five synthetic cases cover a feasible trajectory, protected-reserve depletion, thermal overrun, thermal extraction without electrical cooling input, and grid-cap failure while reserve remains protected.
+
+The v0.1 RC solution assumes constant forcing within a slot and one thermal zone. It is a deterministic feasibility oracle, not CFD, a calibrated multi-node coolant model, UPS runtime qualification or live control. Next thermal validation must compare against held-out measured zone/coolant traces and more detailed electro-thermal models; do not promote a synthetic PASS to physical evidence.
+
+The June 2026 *Applied Energy* paper, “Exploring the Demand Response Potential of Liquid-Cooled Data Centers” (DOI 10.1016/j.apenergy.2026.127679), is a model-class comparator because it builds an electro-thermal coupled liquid-cooled data-centre model and coordinates server and liquid-cooling response. It is not a measured fleet performance guarantee.
+
+Proposed research targets after acquiring comparable calibrated data:
+- thermal-state MAE <= 0.5°C on a frozen held-out horizon set;
+- cooling electrical-power MAPE <= 10% on held-out load/ambient regimes;
+- zero false-negative thermal-limit violations in the frozen hostile suite;
+- protected reserve breach probability exactly zero for policies claiming protected operation within the declared scenario set;
+- report temperature prediction intervals and coverage, not only point error.
+
+### 5.13 Joint-scenario Bit-Watt risk and optimizer comparison
+
+Dependent draft implementation: [PR #3581](https://github.com/Luminous-Dynamics/symtropy/pull/3581).
+
+Use [AI_BIT_WATT_SCENARIO_RISK_FIXTURES_2026-11-04.json](data/AI_BIT_WATT_SCENARIO_RISK_FIXTURES_2026-11-04.json) and [schema](data/AI_BIT_WATT_SCENARIO_RISK_SCHEMA_2026-11-04.json). Six synthetic fixtures cover a passing scenario ensemble, fractional CVaR tail mass, risk-neutral shortfall rejection, independent thermal/reserve gates, worst-case service loss and invalid probability mass.
+
+The evaluator computes expected cost/energy/work, separate shortfall and violation probabilities, and weighted empirical VaR/CVaR for power and energy deficit. It does not generate joint scenarios or claim a distributionally robust guarantee. Scenario-set digest preserves the scenario ensemble identity; do not multiply marginal PV/workload probabilities to fabricate a joint distribution.
+
+**September 2026 competitive benchmark:** the *International Journal of Electrical Power & Energy Systems* paper “Tail-risk-aware Bit-Watt co-optimization for data center integrated energy systems under joint forecast uncertainty” (DOI 10.1016/j.ijepes.2026.112227) uses a moment-based ambiguity set and worst-case CVaR. Its case study reports a reduction in hourly power-shortfall probability from 50.05% to 1.84% at a 2.76% cost premium over deterministic risk-neutral scheduling. Its robust-box comparator reaches 0.26% but is 12.69% costlier than its proposed method. These are study-specific modeled results, not universal industry performance.
+
+Required policy comparison under identical frozen scenarios, forecast issue times, service contracts and evaluation budgets:
+1. Deterministic risk-neutral MILP.
+2. Sample-average CVaR.
+3. Moment-based distributionally robust CVaR.
+4. Robust-box optimization.
+5. MPC.
+6. Scenario MPC / receding-horizon robust scheduling.
+
+Publish cost/reliability Pareto frontiers, hourly and horizon-level shortfall probability, peak-power and energy-deficit VaR/CVaR at 90/95/97.5/99%, work completion, deadline/thermal/reserve violation probabilities, reserve stranding, runtime and optimization budget.
+
+Internal stretch target: independently reproduce the paper's 1.84% hourly shortfall at <=2.76% cost premium on a comparable modeled system, then target <=1% at <=2% premium without reducing useful work or breaching thermal/reserve contracts. This target requires an apples-to-apples reproduction and remains a research goal, not a current result.
+
 ## 6. Energy arithmetic and acceptance checks
 
 For each steady-state segment:
