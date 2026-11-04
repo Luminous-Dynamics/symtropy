@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod decision_closure;
 pub mod dependence;
 pub mod philox_adapter;
 
