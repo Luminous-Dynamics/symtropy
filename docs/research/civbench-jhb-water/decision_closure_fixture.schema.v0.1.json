@@ -270,7 +270,16 @@
           "$ref": "#/$defs/metric"
         },
         "worst_group_service_ppm": {
-          "$ref": "#/$defs/metric"
+          "$ref": "#/$defs/metric",
+          "allOf": [
+            {
+              "properties": {
+                "value": {
+                  "maximum": 1000000
+                }
+              }
+            }
+          ]
         },
         "physical_loss_l": {
           "$ref": "#/$defs/metric"
@@ -327,7 +336,53 @@
           "type": "integer",
           "minimum": 0
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision_value_status": {
+                "enum": [
+                  "modelled",
+                  "observed"
+                ]
+              }
+            },
+            "required": [
+              "decision_value_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "decision_value_minor": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "decision_value_status": {
+                "enum": [
+                  "not_measured",
+                  "unsupported"
+                ]
+              }
+            },
+            "required": [
+              "decision_value_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "decision_value_minor": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     },
     "arm": {
       "type": "object",
@@ -341,7 +396,8 @@
         "resource_ledger_receipt_ref",
         "workflow_receipt_ref",
         "verification_receipt_ref",
-        "service_outcome"
+        "service_outcome",
+        "acquisition_summary"
       ],
       "properties": {
         "policy_ref": {
@@ -404,7 +460,47 @@
         "service_outcome": {
           "$ref": "#/$defs/outcome"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "acquisition_receipt_ref": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "acquisition_receipt_ref"
+            ]
+          },
+          "then": {
+            "properties": {
+              "acquisition_summary": {
+                "$ref": "#/$defs/acquisition"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "acquisition_receipt_ref": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "acquisition_receipt_ref"
+            ]
+          },
+          "then": {
+            "properties": {
+              "acquisition_summary": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }
