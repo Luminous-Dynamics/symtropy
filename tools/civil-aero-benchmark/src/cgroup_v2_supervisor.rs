@@ -891,9 +891,10 @@ mod tests {
             marker.to_str().unwrap(),
         ]);
         let child = spawn_gated(command, &root).unwrap();
+        let child_pid = child.id();
         assert!(child.wait_with_output().unwrap().status.success());
         let pid = fs::read_to_string(cgroup_procs).unwrap();
-        assert_eq!(pid.trim(), child.id().to_string());
+        assert_eq!(pid.trim(), child_pid.to_string());
         assert_eq!(fs::read_to_string(marker).unwrap(), "executed");
         fs::remove_dir_all(root).unwrap();
     }
