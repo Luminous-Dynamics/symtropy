@@ -835,10 +835,8 @@ mod tests {
         suite.cases[0].candidates[0].trace.channels[0].unit = "mA".into();
         assert!(suite.validate().unwrap_err().contains("unit mismatch"));
         let mut suite = benchmark_suite();
-        suite.cases[0]
-            .reference
-            .channels
-            .push(suite.cases[0].reference.channels[0].clone());
+        let repeated_channel = suite.cases[0].reference.channels[0].clone();
+        suite.cases[0].reference.channels.push(repeated_channel);
         assert!(suite.validate().unwrap_err().contains("duplicate channel"));
     }
 
