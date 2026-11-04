@@ -182,7 +182,9 @@ impl BenchmarkSuite {
                 || !case.reference_runtime_p95_ms.is_finite()
                 || case.reference_runtime_p95_ms < case.reference_runtime_median_ms
             {
-                return Err("reference runtime or execution-environment metadata is invalid".into());
+                return Err(
+                    "reference runtime or execution-environment metadata is invalid".into(),
+                );
             }
             validate_trace(&case.reference)?;
             let reference_channels = channel_index(&case.reference)?;
@@ -207,7 +209,9 @@ impl BenchmarkSuite {
                     && candidate.family != ModelFamily::Other
                     && candidate.state_order.is_none()
                 {
-                    return Err("state_order is required for explicit state-space model families".into());
+                    return Err(
+                        "state_order is required for explicit state-space model families".into(),
+                    );
                 }
                 if !valid_sha256(&candidate.model_digest)
                     || !valid_sha256(&candidate.training_data_digest)
@@ -272,19 +276,28 @@ impl BenchmarkSuite {
                     return Err("peak-limit channel IDs must be unique".into());
                 }
                 if !reference_channels.contains_key(&limit.channel_id) {
-                    return Err(format!("peak limit references unknown channel {}", limit.channel_id));
+                    return Err(format!(
+                        "peak limit references unknown channel {}",
+                        limit.channel_id
+                    ));
                 }
-                if !limit.maximum_absolute_value.is_finite() || limit.maximum_absolute_value <= 0.0 {
+                if !limit.maximum_absolute_value.is_finite() || limit.maximum_absolute_value <= 0.0
+                {
                     return Err("peak limits must be finite and positive".into());
                 }
             }
             for (name, value) in [
-                ("maximum_channel_nrmse", case.acceptance.maximum_channel_nrmse),
+                    "maximum_channel_nrmse",
+                    case.acceptance.maximum_channel_nrmse,
+                ),
+                (
                 (
                     "maximum_peak_magnitude_relative_error",
                     case.acceptance.maximum_peak_magnitude_relative_error,
                 ),
-                ("maximum_energy_relative_error", case.acceptance.maximum_energy_relative_error),
+                    "maximum_energy_relative_error",
+                    case.acceptance.maximum_energy_relative_error,
+                ),
             ] {
                 if !value.is_finite() || value < 0.0 {
                     return Err(format!("{name} must be finite and non-negative"));
@@ -361,8 +374,8 @@ fn score_candidate(
         let nrmse = mse.sqrt() / reference_rms;
         let reference_peak = peak_absolute(&reference_channel.values);
         let candidate_peak = peak_absolute(&predicted_channel.values);
-        let peak_error = (candidate_peak - reference_peak).abs()
-            / reference_peak.max(f64::MIN_POSITIVE);
+        let peak_error =
+            (candidate_peak - reference_peak).abs() / reference_peak.max(f64::MIN_POSITIVE);
         if !nrmse.is_finite() || !peak_error.is_finite() {
             return Err(format!("non-finite metric for channel {channel_id}"));
         }
@@ -380,9 +393,7 @@ fn score_candidate(
     let mut energy_metrics = Vec::with_capacity(case.energy_channel_ids.len());
     let mut max_energy_error = 0.0_f64;
     for channel_id in &case.energy_channel_ids {
-        let reference_channel = reference
-            .get(channel_id)
-            .expect("validated energy channel");
+        let reference_channel = reference.get(channel_id).expect("validated energy channel");
         let predicted_channel = predicted
             .get(channel_id)
             .expect("validated candidate channel");
@@ -436,7 +447,11 @@ fn score_candidate(
         );
         if reference_peak > limit.maximum_absolute_value {
             let ratio = reference_peak / limit.maximum_absolute_value;
-            let excess = if ratio.is_finite() { ratio - 1.0 } else { f64::MAX };
+            let excess = if ratio.is_finite() {
+                ratio - 1.0
+            } else {
+                f64::MAX
+            };
             max_violation = max_violation.max(excess);
             violations.push(format!(
                 "REFERENCE_EXCEEDS_LIMIT:{}:{reference_peak}:{}",
@@ -497,8 +512,15 @@ fn compare_scores(left: &CandidateScore, right: &CandidateScore) -> std::cmp::Or
             left.maximum_energy_relative_error
                 .total_cmp(&right.maximum_energy_relative_error)
         })
-        .then_with(|| left.maximum_channel_nrmse.total_cmp(&right.maximum_channel_nrmse))
-        .then_with(|| right.speedup_vs_reference.total_cmp(&left.speedup_vs_reference))
+        .then_with(|| {
+            left.maximum_channel_nrmse
+                .total_cmp(&right.maximum_channel_nrmse)
+        })
+        .then_with(|| {
+            right
+                .speedup_vs_reference
+                .total_cmp(&left.speedup_vs_reference)
+        })
         .then_with(|| {
             left.state_order
                 .unwrap_or(u32::MAX)
@@ -551,16 +573,19 @@ fn validate_trace(trace: &WaveformTrace) -> Result<(), String> {
                 channel.channel_id
             ));
         }
-        if channel.unit.trim().is_empty()
-            || channel.values.iter().any(|value| !value.is_finite())
-        {
-            return Err(format!("channel {} has invalid unit or non-finite values", channel.channel_id));
+        if channel.unit.trim().is_empty() || channel.values.iter().any(|value| !value.is_finite()) {
+            return Err(format!(
+                "channel {} has invalid unit or non-finite values",
+                channel.channel_id
+            ));
         }
     }
     Ok(())
 }
 
-fn channel_index(trace: &WaveformTrace) -> Result<std::collections::BTreeMap<String, &TraceChannel>, String> {
+fn channel_index(
+    trace: &WaveformTrace,
+) -> Result<std::collections::BTreeMap<String, &TraceChannel>, String> {
     let mut result = std::collections::BTreeMap::new();
     for channel in &trace.channels {
         if channel.channel_id.trim().is_empty() {
@@ -594,7 +619,9 @@ fn integrate_wh(time_s: &[f64], power_w: &[f64]) -> Result<f64, String> {
 }
 
 fn peak_absolute(values: &[f64]) -> f64 {
-    values.iter().fold(0.0_f64, |peak, value| peak.max(value.abs()))
+    values
+        .iter()
+        .fold(0.0_f64, |peak, value| peak.max(value.abs()))
 }
 
 fn valid_sha256(value: &str) -> bool {
@@ -738,7 +765,14 @@ mod tests {
     #[test]
     fn feasibility_first_ranking_keeps_receiver_energy_as_separate_channels() {
         let report = suite().evaluate().unwrap();
-        assert_eq!(report.ranking, vec![vec!["full-order", "balanced-truncation", "learned-surrogate"]]);
+        assert_eq!(
+            report.ranking,
+            vec![vec![
+                "full-order",
+                "balanced-truncation",
+                "learned-surrogate"
+            ]]
+        );
         assert_eq!(report.scores.len(), 3);
         assert!(report.scores[0].feasible);
         assert!(report.scores[1].feasible);
@@ -753,9 +787,18 @@ mod tests {
         let mut suite = suite();
         suite.cases[0].acceptance.peak_limits[0].maximum_absolute_value = 8.5;
         let report = suite.evaluate().unwrap();
-        let learned = report.scores.iter().find(|score| score.candidate_id == "learned-surrogate").unwrap();
+        let learned = report
+            .scores
+            .iter()
+            .find(|score| score.candidate_id == "learned-surrogate")
+            .unwrap();
         assert!(!learned.feasible);
-        assert!(learned.violations.iter().any(|v| v.starts_with("PEAK_LIMIT_EXCEEDED")));
+        assert!(
+            learned
+                .violations
+                .iter()
+                .any(|v| v.starts_with("PEAK_LIMIT_EXCEEDED"))
+        );
     }
 
     #[test]
@@ -765,19 +808,32 @@ mod tests {
         assert!(suite.validate().unwrap_err().contains("time grid differs"));
         let mut suite = suite();
         suite.cases[0].reference.time_s.swap(1, 2);
-        assert!(suite.validate().unwrap_err().contains("strictly increasing"));
+        assert!(
+            suite
+                .validate()
+                .unwrap_err()
+                .contains("strictly increasing")
+        );
     }
 
     #[test]
     fn rejects_missing_channels_duplicate_channels_and_unit_mismatch() {
         let mut suite = suite();
         suite.cases[0].candidates[0].trace.channels.pop();
-        assert!(suite.validate().unwrap_err().contains("channel counts differ"));
+        assert!(
+            suite
+                .validate()
+                .unwrap_err()
+                .contains("channel counts differ")
+        );
         let mut suite = suite();
         suite.cases[0].candidates[0].trace.channels[0].unit = "mA".into();
         assert!(suite.validate().unwrap_err().contains("unit mismatch"));
         let mut suite = suite();
-        suite.cases[0].reference.channels.push(suite.cases[0].reference.channels[0].clone());
+        suite.cases[0]
+            .reference
+            .channels
+            .push(suite.cases[0].reference.channels[0].clone());
         assert!(suite.validate().unwrap_err().contains("duplicate channel"));
     }
 
@@ -798,23 +854,40 @@ mod tests {
         assert!(suite.validate().unwrap_err().contains("state_order"));
     }
 
-
     #[test]
     fn rejects_runtime_environment_mismatch_and_invalid_percentile_order() {
         let mut suite = suite();
         suite.cases[0].candidates[0].execution_environment_digest = digest_for_test('8');
-        assert!(suite.validate().unwrap_err().contains("execution environments differ"));
+        assert!(
+            suite
+                .validate()
+                .unwrap_err()
+                .contains("execution environments differ")
+        );
 
         let mut suite = suite();
         suite.cases[0].candidates[0].runtime_p95_ms = 99.0;
-        assert!(suite.validate().unwrap_err().contains("runtime distribution"));
+        assert!(
+            suite
+                .validate()
+                .unwrap_err()
+                .contains("runtime distribution")
+        );
     }
 
     #[test]
     fn reports_runtime_speedup_without_overriding_accuracy_priority() {
         let report = suite().evaluate().unwrap();
-        let full = report.scores.iter().find(|score| score.candidate_id == "full-order").unwrap();
-        let reduced = report.scores.iter().find(|score| score.candidate_id == "balanced-truncation").unwrap();
+        let full = report
+            .scores
+            .iter()
+            .find(|score| score.candidate_id == "full-order")
+            .unwrap();
+        let reduced = report
+            .scores
+            .iter()
+            .find(|score| score.candidate_id == "balanced-truncation")
+            .unwrap();
         assert_eq!(full.speedup_vs_reference, 1.0);
         assert_eq!(reduced.speedup_vs_reference, 10.0);
         assert!(full.feasible && reduced.feasible);
@@ -829,7 +902,12 @@ mod tests {
 
         let mut suite = suite();
         suite.cases[0].candidates[1].state_order = None;
-        assert!(suite.validate().unwrap_err().contains("state_order is required"));
+        assert!(
+            suite
+                .validate()
+                .unwrap_err()
+                .contains("state_order is required")
+        );
     }
 
     #[test]
@@ -839,7 +917,10 @@ mod tests {
         let report = suite.evaluate().unwrap();
         assert!(report.scores.iter().all(|score| !score.feasible));
         assert!(report.scores.iter().all(|score| {
-            score.violations.iter().any(|violation| violation.starts_with("REFERENCE_EXCEEDS_LIMIT"))
+            score
+                .violations
+                .iter()
+                .any(|violation| violation.starts_with("REFERENCE_EXCEEDS_LIMIT"))
         }));
     }
 
@@ -848,13 +929,15 @@ mod tests {
         const FIXTURE: &str = include_str!(
             "../../../benchmarks/wpt-multifidelity/v1/synthetic-transient-comparison.json"
         );
-        const SCHEMA: &str =
-            include_str!("../../../benchmarks/wpt-multifidelity/v1/schema.json");
+        const SCHEMA: &str = include_str!("../../../benchmarks/wpt-multifidelity/v1/schema.json");
         let suite: BenchmarkSuite =
             serde_json::from_str(FIXTURE).expect("synthetic benchmark fixture");
         let schema: serde_json::Value =
             serde_json::from_str(SCHEMA).expect("benchmark JSON schema");
-        assert_eq!(schema["properties"]["schema_version"]["const"], SUITE_SCHEMA_VERSION);
+        assert_eq!(
+            schema["properties"]["schema_version"]["const"],
+            SUITE_SCHEMA_VERSION
+        );
         assert_eq!(schema["additionalProperties"], false);
 
         let required_strings = |value: &serde_json::Value| {
@@ -880,7 +963,12 @@ mod tests {
         let report = suite.evaluate().unwrap();
         assert_eq!(
             report.ranking[0],
-            vec!["full-order", "balanced-truncation", "port-hamiltonian", "learned-surrogate"]
+            vec![
+                "full-order",
+                "balanced-truncation",
+                "port-hamiltonian",
+                "learned-surrogate"
+            ]
         );
     }
 
