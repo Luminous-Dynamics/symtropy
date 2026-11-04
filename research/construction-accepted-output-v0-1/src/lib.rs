@@ -73,6 +73,7 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                 .map(Vec::as_slice)
                 .unwrap_or(&[]);
             let mut latest_outcome = None;
+            let mut previous_attempt_end = None;
 
             for (index, attempt) in attempts.iter().enumerate() {
                 let attempt_id = attempt
@@ -96,6 +97,12 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                 let end = attempt.get("ended_at_unix_ms").and_then(Value::as_u64);
                 if !matches!((start, end), (Some(start), Some(end)) if start < end) {
                     add_error(&mut errors, format!("attempt_interval_invalid:{attempt_id}"));
+                }
+                if let (Some(start), Some(end)) = (start, end) {
+                    if previous_attempt_end.is_some_and(|previous_end| start < previous_end) {
+                        add_error(&mut errors, format!("attempt_intervals_not_sequential:{unit_id}:{attempt_id}"));
+                    }
+                    previous_attempt_end = Some(end);
                 }
                 if let (Some(start), Some(end), Some(package_start), Some(package_end)) =
                     (start, end, package_start, package_end)
@@ -233,6 +240,11 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                 .unwrap_or("unknown");
             let start = entry.get("start_at_unix_ms").and_then(Value::as_u64);
             let end = entry.get("end_at_unix_ms").and_then(Value::as_u64);
+            let package_clock = string_at(ledger, &["work_package", "clock_domain_id"]);
+            let entry_clock = entry.get("clock_domain_id").and_then(Value::as_str);
+            if package_clock.is_some() && entry_clock != package_clock {
+                add_error(&mut errors, format!("time_entry_clock_domain_mismatch:{entry_id}"));
+            }
             if !matches!((start, end), (Some(start), Some(end)) if start < end) {
                 add_error(&mut errors, format!("time_entry_interval_invalid:{entry_id}"));
                 continue;
@@ -290,6 +302,12 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
             if !matches!((start, end), (Some(start), Some(end)) if start < end) {
                 add_error(&mut errors, format!("interruption_interval_invalid:{id}"));
             }
+            if let (Some(start), Some(end), Some(package_start), Some(package_end)) =
+                (start, end, package_start, package_end)
+                && (start < package_start || end > package_end)
+            {
+                add_error(&mut errors, format!("interruption_outside_work_package:{id}"));
+            }
         }
     }
 
@@ -298,14 +316,14 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
     errors
 }
 
-fn metric(metric_id: &str, numerator: f64, denominator: f64, unit: &str) -> Value {
+fn metric(metric_id: &str, numerator: f64, denominator: f64, unit: &str, provisional: bool) -> Value {
     if denominator > 0.0 {
         json!({
             "metric_id": metric_id,
             "numerator": numerator,
             "denominator": denominator,
             "unit": unit,
-            "status": "estimable",
+            "status": if provisional { "provisional" } else { "estimable" },
             "value": numerator / denominator
         })
     } else {
@@ -486,19 +504,20 @@ pub fn derive_report(ledger: &Value) -> Value {
     let profile_id = string_at(ledger, &["profile_id"]).unwrap_or("unknown");
     let unit_class = string_at(ledger, &["functional_unit", "unit_class"]).unwrap_or("unknown");
     let accepted_unit = format!("{unit_class}_per_hour");
+    let provisional = string_at(ledger, &["work_package", "completion_state"]) != Some("completed");
 
     let metrics = vec![
-        metric("first_pass_yield", first_pass_accepted as f64, first_pass_inspected as f64, "ratio"),
-        metric("critical_feature_inspection_coverage", critical_first_pass_inspected_units as f64, critical_planned_units as f64, "ratio"),
-        metric("first_pass_critical_defects_per_first_pass_inspected_unit", first_pass_critical_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit"),
-        metric("first_pass_major_defects_per_first_pass_inspected_unit", first_pass_major_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit"),
-        metric("first_pass_minor_defects_per_first_pass_inspected_unit", first_pass_minor_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit"),
-        metric("final_acceptance_fraction", finally_accepted as f64, attempted_units as f64, "ratio"),
-        metric("accepted_units_per_robot_hour", finally_accepted as f64, robot_seconds / 3600.0, &accepted_unit),
-        metric("accepted_units_per_direct_crew_hour", finally_accepted as f64, direct_human_seconds / 3600.0, &accepted_unit),
-        metric("accepted_units_per_total_workflow_crew_hour", finally_accepted as f64, total_human_seconds / 3600.0, &accepted_unit),
-        metric("elapsed_seconds_per_finally_accepted_unit", elapsed_seconds, finally_accepted as f64, "seconds_per_accepted_unit"),
-        metric("rework_human_hours_per_finally_accepted_unit", rework_human_seconds / 3600.0, finally_accepted as f64, "human_hours_per_accepted_unit"),
+        metric("first_pass_yield", first_pass_accepted as f64, first_pass_inspected as f64, "ratio", provisional),
+        metric("critical_feature_inspection_coverage", critical_first_pass_inspected_units as f64, critical_planned_units as f64, "ratio", provisional),
+        metric("first_pass_critical_defects_per_first_pass_inspected_unit", first_pass_critical_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit", provisional),
+        metric("first_pass_major_defects_per_first_pass_inspected_unit", first_pass_major_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit", provisional),
+        metric("first_pass_minor_defects_per_first_pass_inspected_unit", first_pass_minor_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit", provisional),
+        metric("final_acceptance_fraction", finally_accepted as f64, attempted_units as f64, "ratio", provisional),
+        metric("accepted_units_per_robot_hour", finally_accepted as f64, robot_seconds / 3600.0, &accepted_unit, provisional),
+        metric("accepted_units_per_direct_crew_hour", finally_accepted as f64, direct_human_seconds / 3600.0, &accepted_unit, provisional),
+        metric("accepted_units_per_total_workflow_crew_hour", finally_accepted as f64, total_human_seconds / 3600.0, &accepted_unit, provisional),
+        metric("elapsed_seconds_per_finally_accepted_unit", elapsed_seconds, finally_accepted as f64, "seconds_per_accepted_unit", provisional),
+        metric("rework_human_hours_per_finally_accepted_unit", rework_human_seconds / 3600.0, finally_accepted as f64, "human_hours_per_accepted_unit", provisional),
     ];
 
     json!({
