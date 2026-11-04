@@ -91,7 +91,7 @@ pub struct TransferStudy {
     pub target: EvaluationRecord,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ValidationError {
     EmptyField(&'static str),
     EmptyDimension,
@@ -205,9 +205,59 @@ impl TransferStudy {
             // Header errors are already reported above.
         }
 
+        for (field, budget, actual) in [
+            (
+                "calibration_person_hours",
+                self.adaptation_budget.max_calibration_person_hours,
+                self.adaptation_effort.calibration_person_hours,
+            ),
+            (
+                "engineering_person_hours",
+                self.adaptation_budget.max_engineering_person_hours,
+                self.adaptation_effort.engineering_person_hours,
+            ),
+            (
+                "operator_person_hours",
+                self.adaptation_budget.max_operator_person_hours,
+                self.adaptation_effort.operator_person_hours,
+            ),
+            (
+                "inspection_person_hours",
+                self.adaptation_budget.max_inspection_person_hours,
+                self.adaptation_effort.inspection_person_hours,
+            ),
+        ] {
+            if !budget.is_finite() || budget < 0.0 {
+                errors.push(ValidationError::NonFiniteOrNegativeMetric(
+                    "adaptation_budget_person_hours",
+                ));
+            }
+            if !actual.is_finite() || actual < 0.0 {
+                errors.push(ValidationError::NonFiniteOrNegativeMetric(
+                    "adaptation_effort_person_hours",
+                ));
+            }
+            if actual > budget {
+                errors.push(ValidationError::AdaptationBudgetExceeded {
+                    field,
+                    budget_person_hours: budget,
+                    actual_person_hours: actual,
+                });
+            }
+        }
+
+        if self.adaptation_effort.target_label_count
+            > self.adaptation_budget.max_target_label_count
+        {
+            errors.push(ValidationError::LabelBudgetExceeded {
+                budget: self.adaptation_budget.max_target_label_count,
+                actual: self.adaptation_effort.target_label_count,
+            });
+        }
+
         match self.regime {
             TransferRegime::ZeroShot => {
-                if self.target_label_count != 0 {
+                if self.adaptation_effort.target_label_count != 0 {
                     errors.push(ValidationError::InvalidRegime(
                         "zero_shot_must_not_use_target_task_labels",
                     ));
@@ -219,7 +269,7 @@ impl TransferStudy {
                 }
             }
             TransferRegime::CalibrationOnly => {
-                if self.target_label_count != 0 {
+                if self.adaptation_effort.target_label_count != 0 {
                     errors.push(ValidationError::InvalidRegime(
                         "calibration_only_must_not_use_target_task_labels",
                     ));
@@ -230,31 +280,13 @@ impl TransferStudy {
                     ));
                 }
             }
-            TransferRegime::BoundedOfflineAdaptation => {
-                if self.target_label_count > self.adaptation_budget.target_label_count {
-                    errors.push(ValidationError::LabelBudgetExceeded {
-                        budget: self.adaptation_budget.target_label_count,
-                        actual: self.target_label_count,
-                    });
-                }
-            }
+            TransferRegime::BoundedOfflineAdaptation => {}
             TransferRegime::HumanSupervisedMethodAdaptation => {
-                if self.adaptation_budget.engineering_person_hours <= 0.0 {
+                if self.adaptation_effort.engineering_person_hours <= 0.0 {
                     errors.push(ValidationError::InvalidRegime(
                         "human_supervised_adaptation_requires_recorded_engineering_effort",
                     ));
                 }
-            }
-        }
-
-        for (name, value) in [
-            ("calibration_person_hours", self.adaptation_budget.calibration_person_hours),
-            ("engineering_person_hours", self.adaptation_budget.engineering_person_hours),
-            ("operator_person_hours", self.adaptation_budget.operator_person_hours),
-            ("inspection_person_hours", self.adaptation_budget.inspection_person_hours),
-        ] {
-            if !value.is_finite() || value < 0.0 {
-                errors.push(ValidationError::NonFiniteOrNegativeMetric(name));
             }
         }
 
@@ -285,19 +317,18 @@ impl TransferStudy {
     pub fn adaptation_burden(&self) -> Result<AdaptationBurden, Vec<ValidationError>> {
         self.validate()?;
 
-        let total_recorded_person_hours = self.adaptation_budget.calibration_person_hours
-            + self.adaptation_budget.engineering_person_hours
-            + self.adaptation_budget.operator_person_hours
-            + self.adaptation_budget.inspection_person_hours
-            + self.target.adaptation_person_hours;
+        let total_recorded_person_hours = self.adaptation_effort.calibration_person_hours
+            + self.adaptation_effort.engineering_person_hours
+            + self.adaptation_effort.operator_person_hours
+            + self.adaptation_effort.inspection_person_hours;
 
         Ok(AdaptationBurden {
-            target_labels: self.target_label_count,
-            declared_label_budget: self.adaptation_budget.target_label_count,
-            calibration_person_hours: self.adaptation_budget.calibration_person_hours,
-            engineering_person_hours: self.adaptation_budget.engineering_person_hours,
-            operator_person_hours: self.adaptation_budget.operator_person_hours,
-            inspection_person_hours: self.adaptation_budget.inspection_person_hours,
+            target_labels: self.adaptation_effort.target_label_count,
+            declared_label_budget: self.adaptation_budget.max_target_label_count,
+            calibration_person_hours: self.adaptation_effort.calibration_person_hours,
+            engineering_person_hours: self.adaptation_effort.engineering_person_hours,
+            operator_person_hours: self.adaptation_effort.operator_person_hours,
+            inspection_person_hours: self.adaptation_effort.inspection_person_hours,
             total_recorded_person_hours,
         })
     }
@@ -398,13 +429,19 @@ fn validate_record(
         }
     }
 
+    let disposition_count = record
+        .finally_accepted_units
+        .checked_add(record.finally_rejected_units)
+        .and_then(|count| count.checked_add(record.uninspected_units))
+        .and_then(|count| count.checked_add(record.unresolved_units));
+
     if record.planned_units == 0
         || record.attempted_units > record.planned_units
         || record.first_pass_inspected_units > record.attempted_units
         || record.first_pass_accepted_units > record.first_pass_inspected_units
         || record.finally_accepted_units > record.attempted_units
         || record.finally_rejected_units > record.attempted_units
-        || record.finally_accepted_units + record.finally_rejected_units > record.attempted_units
+        || disposition_count.is_none_or(|count| count > record.attempted_units)
     {
         errors.push(ValidationError::InvalidCount("unit_denominator_invariant"));
     }
@@ -412,7 +449,6 @@ fn validate_record(
     for (name, value) in [
         ("total_workflow_crew_minutes", record.total_workflow_crew_minutes),
         ("robot_operating_minutes", record.robot_operating_minutes),
-        ("adaptation_person_hours", record.adaptation_person_hours),
     ] {
         if !value.is_finite() || value < 0.0 {
             errors.push(ValidationError::NonFiniteOrNegativeMetric(name));
@@ -434,6 +470,12 @@ fn validate_split_guard(guard: &SplitGuard, errors: &mut Vec<ValidationError>) {
     validate_unique_ids(&guard.training_ids, "training_ids", errors);
     validate_unique_ids(&guard.adaptation_ids, "adaptation_ids", errors);
     validate_unique_ids(&guard.evaluation_ids, "evaluation_ids", errors);
+    if guard.training_ids.is_empty() {
+        errors.push(ValidationError::MissingSplitPartition("training_ids"));
+    }
+    if guard.evaluation_ids.is_empty() {
+        errors.push(ValidationError::MissingSplitPartition("evaluation_ids"));
+    }
 
     let training: BTreeSet<&str> = guard.training_ids.iter().map(String::as_str).collect();
     let adaptation: BTreeSet<&str> = guard.adaptation_ids.iter().map(String::as_str).collect();
@@ -773,6 +815,45 @@ mod tests {
             input.validate(),
             Err(errors) if errors.contains(&ValidationError::NonFiniteOrNegativeMetric(
                 "engineering_person_hours"
+            ))
+        ));
+    }
+
+
+    #[test]
+    fn actual_adaptation_hours_cannot_exceed_declared_effort_budget() {
+        let mut input = study();
+        input.adaptation_effort.engineering_person_hours = 2.0;
+        assert!(matches!(
+            input.validate(),
+            Err(errors) if errors.contains(&ValidationError::AdaptationBudgetExceeded {
+                field: "engineering_person_hours",
+                budget_person_hours: 1.5,
+                actual_person_hours: 2.0
+            })
+        ));
+    }
+
+    #[test]
+    fn source_and_target_evaluation_work_items_must_be_disjoint() {
+        let mut input = study();
+        input.target.work_item_ids = input.source.work_item_ids.clone();
+        assert!(matches!(
+            input.validate(),
+            Err(errors) if errors.contains(&ValidationError::TrainingEvaluationWorkItemLeakage {
+                id: "work-source-1".to_owned()
+            })
+        ));
+    }
+
+    #[test]
+    fn final_disposition_subcounts_cannot_exceed_attempted_units() {
+        let mut input = study();
+        input.target.uninspected_units = 85;
+        assert!(matches!(
+            input.validate(),
+            Err(errors) if errors.contains(&ValidationError::InvalidCount(
+                "unit_denominator_invariant"
             ))
         ));
     }
