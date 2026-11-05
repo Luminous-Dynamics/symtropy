@@ -7,8 +7,9 @@ on:
       - "benchmarks/ai-data-centre-energy/v1/pras-interop-fixtures.json"
       - "docs/research/ai-data-centre-energy/PRAS_INTEROP_PROTOCOL.md"
       - ".github/workflows/pras-interop.yml"
+  workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, "research/pras-interop-known-truth-v0.1"]
     paths:
       - "benchmarks/ai-data-centre-energy/pras/**"
       - "benchmarks/ai-data-centre-energy/v1/pras-interop-fixtures.json"
