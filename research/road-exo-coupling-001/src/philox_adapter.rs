@@ -381,7 +381,7 @@ pub fn verify_correspondence_draw_bundle(
             for unmatched in events {
                 let receipt = find_unique_draw(&hypothesis.draws, branch, &unmatched.event_id)
                     .ok_or(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
-                expected_addresses.insert((branch.clone(), unmatched.event_id.clone()));
+                expected_addresses.insert(((*branch).clone(), unmatched.event_id.clone()));
                 let expected = match (&unmatched.reason, &receipt.presence) {
                     (_, PlannedPresence::Unknown { .. })
                     | (crate::correspondence::UnmatchedReason::CorrespondenceUnknown { .. }, _) => {
