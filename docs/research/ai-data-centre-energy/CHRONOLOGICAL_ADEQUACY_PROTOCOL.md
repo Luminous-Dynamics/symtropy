@@ -1,7 +1,7 @@
 # Chronological Adequacy and ELCC-Like Evaluation for Flexible Data Centres
 
 **Protocol:** GRID-SYSTEM-ELCC-001  
-**Version:** 0.1  
+**Version:** 0.2  
 **Status:** single-zone chronological prototype; not production system accreditation
 
 ## 1. Objective and paradigm shift
@@ -110,6 +110,53 @@ The South African benchmark should include:
 - high-demand and lower-demand trajectories, as well as high-temperature cooling derates and water stress.
 
 Do not infer local PCC deliverability from national adequacy, nor infer a national capacity credit from the V0.1 copperplate prototype. The official MTSAO report itself has not yet been ingested and independently reconciled in this prototype branch.
+
+## 4A. Distinguish adequacy dimensions: event periods, hours, days and tail severity
+
+The evaluator exposes complementary criteria rather than treating all shortfall metrics as synonyms:
+
+- **Loss-of-load periods (LOLE-like):** expected number of simulation intervals containing any shortfall. This is resolution-dependent. Two 15-minute shortfall periods count as two event periods, not as one-half period.
+- **Loss-of-load hours:** expected elapsed duration of shortage intervals, integrated in hours. At hourly resolution it coincides numerically with LOLE; at 15-minute resolution it does not.
+- **Loss-of-load days (LOLD):** expected number of calendar day indices containing one or more shortfall periods.
+- **Expected unserved energy (EUE):** mean scenario-level shortfall energy in MWh.
+- **Upper-tail EUE CVaR:** weighted mean EUE in the worst (1−α) probability mass of complete scenario outcomes. Confidence level is supplied in integer basis points (9,500 = 95%); fractional scenario probability is included when the tail boundary cuts through a scenario weight.
+
+These dimensions answer different questions. Event periods quantify frequency at a chosen simulation resolution; elapsed hours quantify duration; days quantify dispersion across the calendar; EUE quantifies expected magnitude; CVaR quantifies upper-tail severity. A single aggregate should not replace the vector.
+
+CVaR V0.2 is a weighted finite-scenario tail statistic, not a Monte Carlo confidence interval. It does not itself establish the statistical uncertainty of the estimated tail. A future sequential sampler must report sample count, seed, standard error/confidence interval, tail effective sample size, convergence diagnostics and sensitivity to extreme-weather representation.
+
+## 4B. External industry baseline: NLR PRAS v0.9.0
+
+The National Laboratory of the Rockies' Probabilistic Resource Adequacy Suite (PRAS) released v0.9.0 in October 2026. Its current documentation explicitly adds LOLD and unserved-energy CVaR and describes high-performance sequential Monte Carlo for multi-region composite reliability, including energy-limited storage. PRAS should be an independent benchmark engine, not a subsystem Symtropy attempts to replace. [PRAS v0.9 documentation](https://natlabrockies.github.io/PRAS/stable/) [Multi-metric tutorial](https://natlabrockies.github.io/PRAS/stable/examples/pras_adequacy_metrics/) [NLR PRAS overview](https://www.nlr.gov/analysis/pras).
+
+### Metric crosswalk
+
+| Symtropy V0.2 | PRAS v0.9 | Conditions for a valid comparison |
+|---|---|---|
+| `LossOfLoadPeriods` | `LOLE` | Identical interval timestamps, resolution, region aggregation and zero-shortfall convention |
+| `LossOfLoadDays` | `LOLD` | Identical calendar-day boundaries/timezone and study horizon |
+| `ExpectedUnservedEnergyMwh` | `EUE` | Identical region scope, units, timestep durations and scenario/sample weights |
+| `UpperTailUnservedEnergyCvar { alpha }` | `CVAR(:energy, ShortfallSamples, alpha)` | Identical sample-level EUE distribution, weights, tail convention and alpha |
+| Single-zone added-load search | PRAS capacity-credit/ELCC workflow | Same reference system, load increment shape, risk criterion, portfolio and operating assumptions |
+
+The elapsed-hours metric is retained as a companion duration measure. It should not be substituted for PRAS LOLE at sub-hourly resolution.
+
+### Interchange strategy
+
+PRAS uses Julia and a versioned HDF5 `.pras` SystemModel representation. The HDF5 model declares the data version, simulation start, timestep count/length/units, power and energy units, regions, and generation/storage/demand-response and transmission groups. This format is suitable for a benchmark adapter without introducing Julia into the production Rust runtime. [PRAS HDF5 SystemModel specification](https://natlabrockies.github.io/PRAS/stable/SystemModel_HDF5_spec/) [PRAS source repository](https://github.com/NatLabRockies/PRAS).
+
+The adapter should:
+1. Keep Symtropy's frozen scenario/input manifest in a language-neutral, digest-pinned schema.
+2. Export matched bulk-system cases to PRAS `.pras` HDF5 using an explicitly pinned PRAS data version and Julia environment.
+3. Run PRAS `SequentialMonteCarlo` with recorded seeds and enough samples for pre-registered precision.
+4. Request `ShortfallSamples()` and calculate LOLE, LOLD, EUE and `CVAR(:energy, ...)`; request flow results when testing deliverability.
+5. Compare Symtropy and PRAS only on a common scenario/time/region basis, preserving a discrepancy report rather than tuning one model to silently match the other.
+
+PRAS's demand-response model has borrowed-load capacity, payback capacity, energy capacity, allowable payback period and failure/repair probabilities. This is a useful comparator for aggregate deferrable load, but it does not encode per-job deadlines, model semantics or service-level obligations. The Symtropy schedule verifier must remain the authority for useful compute service; a PRAS demand-response representation is an external system-adequacy abstraction, not proof of workload feasibility. [PRAS HDF5 demand-response schema](https://natlabrockies.github.io/PRAS/stable/SystemModel_HDF5_spec/).
+
+### What Symtropy adds around PRAS
+
+PRAS supplies a mature bulk-system probabilistic adequacy engine. Symtropy's differentiation should be the evidence-qualified data-centre resource model: verified workload contracts, independent service-equivalence replay, stateful battery/thermal trajectories, signed PCC response and rebound, event-response qualification, and receipts that can be translated into a grid study. The final capacity value still must be validated using a network-aware adequacy model such as PRAS and, for South Africa, reconciled with NTCSA's system study.
 
 ## 5. Paradigm shifts for V0.2–V1.0
 
