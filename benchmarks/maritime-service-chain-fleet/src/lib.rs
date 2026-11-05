@@ -1793,6 +1793,32 @@ mod tests {
     }
 
     #[test]
+    fn independent_fleet_enumerator_matches_frontier_with_speed_tradeoffs() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        let workload = fleet_workload(vec![first, second]);
+        let production =
+            exact_fleet_oracle(&workload, 500_000).expect("valid frozen fleet workload");
+        assert_eq!(
+            production.termination,
+            SearchTermination::ExhaustiveComplete
+        );
+        let reference = independent_reference_frontier(&workload);
+        assert!(!production.frontier.is_empty());
+        assert_eq!(production.frontier, reference);
+        assert!(production.frontier.iter().any(|plan| {
+            plan.selections
+                .iter()
+                .any(|selection| selection.alternative_id == "fast-high-energy")
+        }));
+        assert!(production.frontier.iter().any(|plan| {
+            plan.selections
+                .iter()
+                .any(|selection| selection.alternative_id == "slow-low-energy")
+        }));
+    }
+
+    #[test]
     fn multi_demand_oracle_schedules_two_vessels_when_lock_slots_are_sequential() {
         let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
         first
