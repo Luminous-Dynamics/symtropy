@@ -12,8 +12,6 @@
 use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
 
-const TOLERANCE: f64 = 1e-12;
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Participant {
     pub id: String,
@@ -113,10 +111,10 @@ impl DeliberationSession {
         if self.resource_budget == 0 {
             return Err(DeliberationError::ZeroResourceBudget);
         }
-        if let Some(ConsensusRule::MinimumEndorsementFraction(value)) = self.consensus_rule {
-            if !value.is_finite() || !(0.0..=1.0).contains(&value) {
-                return Err(DeliberationError::InvalidConsensusThreshold(value));
-            }
+        if let Some(ConsensusRule::MinimumEndorsementFraction(value)) = self.consensus_rule
+            && (!value.is_finite() || !(0.0..=1.0).contains(&value))
+        {
+            return Err(DeliberationError::InvalidConsensusThreshold(value));
         }
         if self.participants.len() < 2 {
             return Err(DeliberationError::TooFewParticipants(
