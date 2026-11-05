@@ -525,6 +525,18 @@ impl OwnerOfferReservationLedger {
             return Err(OwnerFlexibilityError::OfferAlreadyReserved(offer.offer_id.clone()));
         }
 
+        // A policy revision cannot silently reinterpret capacity already
+        // committed for an overlapping interval. Wait for the prior interval
+        // to end or explicitly release/cancel the older reservation.
+        for existing in &self.reservations {
+            let overlaps = existing.portfolio_id == offer.portfolio_id
+                && existing.valid_from_unix_seconds < offer.valid_until_unix_seconds
+                && offer.valid_from_unix_seconds < existing.valid_until_unix_seconds;
+            if overlaps && existing.policy_snapshot != *policy {
+                return Err(OwnerFlexibilityError::ConcurrentPolicySnapshotMismatch);
+            }
+        }
+
         let mut change_points = vec![offer.valid_from_unix_seconds];
         for existing in &self.reservations {
             if existing.portfolio_id != offer.portfolio_id
@@ -1185,6 +1197,7 @@ pub enum OwnerFlexibilityError {
     OfferAlreadyReserved(String),
     ReservationLedgerCapacityExceeded,
     InvalidPersistedReservation,
+    ConcurrentPolicySnapshotMismatch,
     InvalidPersistedReplayState,
     SharedCapacityOvercommitted { observed_kw: f64, maximum_kw: f64 },
     DirectionalCapacityOvercommitted {
@@ -1215,6 +1228,7 @@ impl fmt::Display for OwnerFlexibilityError {
             Self::OfferAlreadyReserved(id) => write!(f, "offer {id} is already reserved"),
             Self::ReservationLedgerCapacityExceeded => write!(f, "reservation ledger is at its configured capacity"),
             Self::InvalidPersistedReservation => write!(f, "persisted reservation does not match its policy or offer invariants"),
+            Self::ConcurrentPolicySnapshotMismatch => write!(f, "overlapping reservations use different owner policy snapshots"),
             Self::InvalidPersistedReplayState => write!(f, "persisted replay state is inconsistent or exceeds configured bounds"),
             Self::SharedCapacityOvercommitted { observed_kw, maximum_kw } => write!(f, "overlapping offers reserve {observed_kw} kW against shared budget {maximum_kw} kW"),
             Self::DirectionalCapacityOvercommitted { direction, observed_kw, maximum_kw } => write!(f, "{direction:?} offers reserve {observed_kw} kW against directional budget {maximum_kw} kW"),
@@ -1340,6 +1354,40 @@ mod tests {
             &policy(),
         );
         assert!(matches!(second, Err(OwnerFlexibilityError::SharedCapacityOvercommitted { .. })));
+    }
+
+    #[test]
+    fn overlapping_reservations_cannot_mix_owner_policy_snapshots() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let original_policy = policy();
+        let original = offer(
+            "offer-original", "reserve-product", GridFlexDirection::ReduceGridImport,
+            40.0, 1_000, 2_000,
+        );
+        ledger.reserve_offer(&original, &original_policy).expect("original reservation");
+
+        let revised_policy = OwnerFlexibilityPolicy::new(
+            "owner-policy-1", "v2", "site-1", "pcc-1", "portfolio-1",
+            vec!["reserve-product".to_string(), "local-congestion".to_string()],
+            vec!["market-key-1".to_string()],
+            100.0, 80.0, 60.0, 30, 3_600, 20.0, 50.0,
+            120, 2, 30,
+        ).expect("revised policy with same budgets");
+
+        let overlapping = offer(
+            "offer-revised", "local-congestion", GridFlexDirection::ReduceGridImport,
+            30.0, 1_500, 2_500,
+        );
+        assert!(matches!(
+            ledger.reserve_offer(&overlapping, &revised_policy),
+            Err(OwnerFlexibilityError::ConcurrentPolicySnapshotMismatch)
+        ));
+
+        let non_overlapping = offer(
+            "offer-revised-later", "local-congestion", GridFlexDirection::ReduceGridImport,
+            80.0, 2_000, 3_000,
+        );
+        assert!(ledger.reserve_offer(&non_overlapping, &revised_policy).is_ok());
     }
 
     #[test]
