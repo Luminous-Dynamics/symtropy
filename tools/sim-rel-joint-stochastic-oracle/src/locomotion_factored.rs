@@ -1119,7 +1119,7 @@ fn compile_intervention_scopes(
     Ok(compiled)
 }
 
-fn checked_domain_product(values: impl Iterator<Item = usize>) -> Result<usize, FactorError> {
+fn checked_domain_product(mut values: impl Iterator<Item = usize>) -> Result<usize, FactorError> {
     values.try_fold(1_usize, |product, value| {
         product
             .checked_mul(value)
@@ -1192,7 +1192,7 @@ fn multiply_tables(
         })
         .collect();
 
-    let mut entries = BTreeMap::new();
+    let mut entries: BTreeMap<Vec<usize>, Rational> = BTreeMap::new();
     for (left_assignment, left_probability) in &left.entries {
         for (right_assignment, right_probability) in &right.entries {
             let mut merged = vec![None; scope.len()];
@@ -1270,7 +1270,7 @@ fn sum_out_variable(factor: &FactorTable, variable: usize) -> Result<FactorTable
         .enumerate()
         .filter_map(|(index, value)| (index != position).then_some(*value))
         .collect();
-    let mut entries = BTreeMap::new();
+    let mut entries: BTreeMap<Vec<usize>, Rational> = BTreeMap::new();
 
     for (assignment, probability) in &factor.entries {
         let reduced: Vec<usize> = assignment
