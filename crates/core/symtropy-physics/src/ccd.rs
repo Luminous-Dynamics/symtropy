@@ -18,7 +18,7 @@
 use nalgebra::SVector;
 
 /// Result of a continuous collision detection query.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CcdHit<const D: usize> {
     /// Time of impact in seconds within the current timestep: [0, dt].
     /// 0 = start of step, dt = end of step.
@@ -480,7 +480,7 @@ mod tests {
         assert!((hit.toi - 0.075).abs() < 1e-12);
         assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
         assert!((hit.normal[1] - 1.0).abs() < 1e-12);
-        assert!(hit.point.norm() < 1e-12);
+        assert!((hit.point[1] - 2.0).abs() < 1e-12);
     }
 
     #[test]
