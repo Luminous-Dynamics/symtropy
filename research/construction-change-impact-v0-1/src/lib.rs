@@ -251,7 +251,8 @@ impl EvidenceGraph {
                 || self
                     .closure_authority_ref
                     .as_deref()
-                    .is_none_or(str::is_empty))
+                    .is_none_or(str::is_empty)
+                || self.closure_valid_until_unix.is_none())
         {
             return Err(ImpactError::InvalidGraph(
                 "complete_closure_requires_manifest_and_authority",
@@ -296,7 +297,7 @@ impl EvidenceGraph {
 
             let mut covered = BTreeSet::new();
             for kind in &edge.covered_change_kinds {
-                if !covered.insert(kind) {
+                if !covered.insert(kind.clone()) {
                     return Err(ImpactError::DuplicateCoveredChangeKind {
                         edge_id: edge.edge_id.clone(),
                     });
@@ -447,11 +448,11 @@ pub fn evaluate_change(
         .map(|node| (node.node_id.clone(), DecisionAccumulator::default()))
         .collect();
 
-    let mut subject_acc = accumulators
+    accumulators
         .get_mut(&event.subject_node_id)
-        .expect("subject was validated");
-    subject_acc.reasons.insert("changed_subject".to_owned());
-    drop(subject_acc);
+        .expect("subject was validated")
+        .reasons
+        .insert("changed_subject".to_owned());
 
     let mut global_unknown_reasons = Vec::new();
     if !graph.closure_complete
@@ -762,6 +763,11 @@ fn propagate_unknown(
     reason: &str,
 ) {
     let outgoing = outgoing_edges(graph);
+    let source_node_id = seed
+        .node_path
+        .first()
+        .cloned()
+        .unwrap_or_else(|| seed.node_id.clone());
     let mut queue = VecDeque::new();
     queue.push_back(seed);
     let mut visited = BTreeSet::new();
@@ -775,17 +781,15 @@ fn propagate_unknown(
         };
 
         for edge in edges {
-            if scope_intersects(&ScopeSelector::Global, &edge.scope) == ScopeMatch::Disjoint {
-                continue;
-            }
-
+            // Once an upstream path is unknown, conservatively mark all graph descendants.
+            // Scope narrowing cannot prove safety after a dependency rule itself is unknown.
             let mut node_path = state.node_path.clone();
             node_path.push(edge.to_node_id.clone());
             let mut edge_path = state.edge_path.clone();
             edge_path.push(edge.edge_id.clone());
 
             let witness = ImpactWitness {
-                source_node_id: seed.node_path[0].clone(),
+                source_node_id: source_node_id.clone(),
                 target_node_id: edge.to_node_id.clone(),
                 node_path: node_path.clone(),
                 edge_path: edge_path.clone(),
@@ -827,22 +831,32 @@ fn witness_order(left: &ImpactWitness, right: &ImpactWitness) -> std::cmp::Order
 }
 
 fn evaluation_identity(graph: &EvidenceGraph, event: &ChangeEvent) -> String {
-    let fields = [
-        graph.graph_id.as_str(),
-        graph.graph_revision.as_str(),
-        graph.rule_set_digest.as_str(),
-        event.event_id.as_str(),
-        event.subject_node_id.as_str(),
-        event.prior_revision_id.as_str(),
-        event.new_revision_id.as_str(),
-        event.prior_digest.as_str(),
-        event.new_digest.as_str(),
+    let fields = vec![
+        graph.graph_id.clone(),
+        graph.graph_revision.clone(),
+        graph.rule_set_digest.clone(),
+        graph.closure_manifest_ref.clone().unwrap_or_default(),
+        graph.closure_authority_ref.clone().unwrap_or_default(),
+        graph.closure_valid_until_unix.map_or_else(String::new, |v| v.to_string()),
+        event.event_id.clone(),
+        event.subject_node_id.clone(),
+        event.prior_revision_id.clone(),
+        event.new_revision_id.clone(),
+        event.prior_digest.clone(),
+        event.new_digest.clone(),
+        format!("{:?}", event.change_kind),
+        format!("{:?}", event.scope),
+        event.effective_at_unix.to_string(),
+        event.authority_ref.clone().unwrap_or_default(),
+        event.source_evidence_ref.clone(),
+        event.semantic_delta_known.to_string(),
+        event.semantic_equivalence_ref.clone().unwrap_or_default(),
     ];
     let mut output = String::from("impact:");
     for field in fields {
         output.push_str(&field.len().to_string());
         output.push(':');
-        output.push_str(field);
+        output.push_str(&field);
         output.push(':');
     }
     output
@@ -1237,17 +1251,26 @@ mod tests {
             edge(
                 "e2",
                 "source",
-                "task",
+                "execution",
                 vec![kind.clone()],
                 vec![rule("r2", kind.clone(), Some(ImpactAction::Revalidate), false)],
                 ScopeSelector::Global,
             ),
+            edge(
+                "e3",
+                "execution",
+                "task",
+                vec![kind.clone()],
+                vec![rule("r3", kind.clone(), Some(ImpactAction::Rebuild), false)],
+                ScopeSelector::Global,
+            ),
         ]);
-        // Contradictory duplicate rules are rejected by graph validation.
-        assert!(matches!(
-            graph.validate(),
-            Err(ImpactError::DuplicateRule { .. })
-        ));
+        let report = evaluate_change(&graph, &event(kind, ScopeSelector::Global)).unwrap();
+        assert_eq!(status(&report, "task"), DecisionStatus::ReviewRequired);
+        assert!(decision(&report, "task")
+            .actions
+            .contains(&ImpactAction::ReviewRequired));
+        assert!(decision(&report, "task").actions.contains(&ImpactAction::Rebuild));
     }
 
     #[test]
@@ -1550,6 +1573,29 @@ mod tests {
             ScopeSelector::Global,
         )]);
         assert!(matches!(graph.validate(), Err(ImpactError::DuplicateRule { .. })));
+    }
+
+    #[test]
+    fn complete_closure_requires_expiry() {
+        let mut graph = graph(Vec::new());
+        graph.closure_valid_until_unix = None;
+        assert_eq!(
+            graph.validate(),
+            Err(ImpactError::InvalidGraph(
+                "complete_closure_requires_manifest_and_authority"
+            ))
+        );
+    }
+
+    #[test]
+    fn report_identity_binds_authority_and_event_scope() {
+        let graph = graph(Vec::new());
+        let first = event(ChangeKind::DesignGeometryChanged, scope(Some("site-a")));
+        let mut second = first.clone();
+        second.authority_ref = Some("different-authority".to_owned());
+        let a = evaluate_change(&graph, &first).unwrap();
+        let b = evaluate_change(&graph, &second).unwrap();
+        assert_ne!(a.evaluation_id, b.evaluation_id);
     }
 
     #[test]
