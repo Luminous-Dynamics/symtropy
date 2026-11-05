@@ -116,8 +116,11 @@ pub fn sphere_sphere<const D: usize>(
     }
 
     let clearance_squared = radius_squared - closest_distance_squared;
-    let roundoff_tolerance =
-        32.0 * f64::EPSILON * radius_squared.abs().max(closest_distance_squared.abs()).max(f64::MIN_POSITIVE);
+    let roundoff_scale = radius_squared
+        .abs()
+        .max(closest_distance_squared.abs())
+        .max(f64::MIN_POSITIVE);
+    let roundoff_tolerance = 32.0 * f64::EPSILON * roundoff_scale;
     if clearance_squared < -roundoff_tolerance {
         return None;
     }
@@ -150,8 +153,10 @@ pub fn sphere_sphere<const D: usize>(
 
 /// Swept sphere vs half-space (infinite plane): find time of impact.
 ///
-/// Solve for t where `normal · (pos + vel*t) - offset = radius`.
-/// This is linear: `t = (radius + offset - normal · pos) / (normal · vel)`.
+/// Solve for the earliest t where the sphere center reaches one radius
+/// from the plane. The plane is `n · x = offset`; both are normalized by
+/// `|n|`, so radius and time remain in world units even for non-unit normals.
+
 pub fn sphere_halfspace<const D: usize>(
     pos: &SVector<f64, D>,
     vel: &SVector<f64, D>,
