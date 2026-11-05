@@ -280,6 +280,21 @@ impl EvidenceGraph {
             if edge.edge_id.trim().is_empty() || edge.dependency_kind.trim().is_empty() {
                 return Err(ImpactError::InvalidGraph("incomplete_edge_identity"));
             }
+            if let ScopeSelector::Exact(scope) = &edge.scope {
+                if scope.project_id.trim().is_empty()
+                    || [
+                        scope.site_id.as_deref(),
+                        scope.work_package_id.as_deref(),
+                        scope.frame_id.as_deref(),
+                        scope.odd_id.as_deref(),
+                    ]
+                    .into_iter()
+                    .flatten()
+                    .any(str::is_empty)
+                {
+                    return Err(ImpactError::InvalidGraph("incomplete_edge_scope"));
+                }
+            }
             if !edge_ids.insert(edge.edge_id.as_str()) {
                 return Err(ImpactError::DuplicateEdgeId(edge.edge_id.clone()));
             }
@@ -339,10 +354,10 @@ impl EvidenceGraph {
             .iter()
             .map(|node| (node.node_id.as_str(), 0))
             .collect();
-        let mut outgoing: BTreeMap<&str, BTreeSet<&str>> = self
+        let mut outgoing: BTreeMap<&str, Vec<&str>> = self
             .nodes
             .iter()
-            .map(|node| (node.node_id.as_str(), BTreeSet::new()))
+            .map(|node| (node.node_id.as_str(), Vec::new()))
             .collect();
 
         for edge in &self.edges {
@@ -352,7 +367,10 @@ impl EvidenceGraph {
             outgoing
                 .get_mut(edge.from_node_id.as_str())
                 .ok_or_else(|| ImpactError::MissingNode(edge.from_node_id.clone()))?
-                .insert(edge.to_node_id.as_str());
+                .push(edge.to_node_id.as_str());
+        }
+        for children in outgoing.values_mut() {
+            children.sort_unstable();
         }
 
         let mut ready: BTreeSet<&str> = indegree
@@ -405,6 +423,21 @@ pub fn evaluate_change(
         || event.new_digest.trim().is_empty()
     {
         return Err(ImpactError::InvalidChangeEvent("incomplete_event_identity"));
+    }
+    if let ScopeSelector::Exact(scope) = &event.scope {
+        if scope.project_id.trim().is_empty()
+            || [
+                scope.site_id.as_deref(),
+                scope.work_package_id.as_deref(),
+                scope.frame_id.as_deref(),
+                scope.odd_id.as_deref(),
+            ]
+            .into_iter()
+            .flatten()
+            .any(str::is_empty)
+        {
+            return Err(ImpactError::InvalidChangeEvent("incomplete_event_scope"));
+        }
     }
     if event.graph_revision != graph.graph_revision {
         return Err(ImpactError::StaleInput("graph_revision_mismatch"));
@@ -770,11 +803,20 @@ fn propagate_unknown(
         .unwrap_or_else(|| seed.node_id.clone());
     let mut queue = VecDeque::new();
     queue.push_back(seed);
-    let mut visited = BTreeSet::new();
+    let mut explored = 0_usize;
 
     while let Some(state) = queue.pop_front() {
-        if !visited.insert(state.node_id.clone()) {
-            continue;
+        explored += 1;
+        if explored > 100_000 {
+            for (node_id, accumulator) in accumulators.iter_mut() {
+                if node_id != &source_node_id {
+                    accumulator.unknown = true;
+                    accumulator
+                        .reasons
+                        .insert("unknown_path_exploration_limit_exceeded".to_owned());
+                }
+            }
+            break;
         }
         let Some(edges) = outgoing.get(state.node_id.as_str()) else {
             continue;
@@ -1340,6 +1382,49 @@ mod tests {
             graph.validate(),
             Err(ImpactError::DependencyCycle(_))
         ));
+    }
+
+    #[test]
+    fn parallel_dependency_edges_do_not_create_a_false_cycle() {
+        let kind = ChangeKind::DesignGeometryChanged;
+        let graph = graph(vec![
+            edge(
+                "e1",
+                "source",
+                "task",
+                vec![kind.clone()],
+                vec![rule("r1", kind.clone(), Some(ImpactAction::Rebuild), false)],
+                ScopeSelector::Global,
+            ),
+            edge(
+                "e2",
+                "source",
+                "task",
+                vec![kind.clone()],
+                vec![rule("r2", kind.clone(), Some(ImpactAction::Revalidate), false)],
+                ScopeSelector::Global,
+            ),
+        ]);
+        assert!(graph.validate().is_ok());
+        let report = evaluate_change(&graph, &event(kind, ScopeSelector::Global)).unwrap();
+        assert_eq!(
+            decision(&report, "task").actions,
+            vec![ImpactAction::Rebuild, ImpactAction::Revalidate]
+        );
+    }
+
+    #[test]
+    fn multiple_unknown_paths_are_retained_at_convergent_claim() {
+        let kind = ChangeKind::DesignGeometryChanged;
+        let graph = graph(vec![
+            edge("e1", "source", "task", vec![], vec![], ScopeSelector::Global),
+            edge("e2", "source", "execution", vec![], vec![], ScopeSelector::Global),
+            edge("e3", "task", "claim", vec![], vec![], ScopeSelector::Global),
+            edge("e4", "execution", "claim", vec![], vec![], ScopeSelector::Global),
+        ]);
+        let report = evaluate_change(&graph, &event(kind, ScopeSelector::Global)).unwrap();
+        assert_eq!(status(&report, "claim"), DecisionStatus::UnknownImpact);
+        assert_eq!(decision(&report, "claim").witnesses.len(), 2);
     }
 
     #[test]
