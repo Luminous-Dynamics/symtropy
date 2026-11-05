@@ -420,16 +420,10 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
                 string_field(pcc_value, "i_sc_method_id", "$.profile.pcc")?;
                 string_field(pcc_value, "i_l_definition_id", "$.profile.pcc")?;
                 string_field(pcc_value, "i_l_reference_period_id", "$.profile.pcc")?;
-                let isc_digest = string_field(
-                    pcc_value,
-                    "i_sc_source_artifact_sha256",
-                    "$.profile.pcc",
-                )?;
-                let il_digest = string_field(
-                    pcc_value,
-                    "i_l_source_artifact_sha256",
-                    "$.profile.pcc",
-                )?;
+                let isc_digest =
+                    string_field(pcc_value, "i_sc_source_artifact_sha256", "$.profile.pcc")?;
+                let il_digest =
+                    string_field(pcc_value, "i_l_source_artifact_sha256", "$.profile.pcc")?;
                 if !valid_sha256(isc_digest) || !valid_sha256(il_digest) {
                     return Err(fail(
                         "$.profile.pcc",
@@ -462,10 +456,8 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
                 };
                 if network_type != "PUBLIC_LOW_VOLTAGE" || !in_current_scope || !in_voltage_scope {
                     ProfileApplicability::NotApplicable
-                } else if (phase_count == 1
-                    && (grid_frequency != 50.0 || nominal_voltage != 230.0))
-                    || (phase_count == 3
-                        && (grid_frequency != 50.0 || nominal_voltage != 400.0))
+                } else if (phase_count == 1 && (grid_frequency != 50.0 || nominal_voltage != 230.0))
+                    || (phase_count == 3 && (grid_frequency != 50.0 || nominal_voltage != 400.0))
                 {
                     ProfileApplicability::ScopeOnlyLimitDomainNotCovered
                 } else {
@@ -690,10 +682,7 @@ mod tests {
         run["profile"]["assessment_boundary"] = Value::String("EQUIPMENT_TERMINAL".into());
         run["profile"]["pcc"] = Value::Null;
         let report = evaluate_run(&run).unwrap();
-        assert_eq!(
-            report.applicability,
-            ProfileApplicability::NotApplicable
-        );
+        assert_eq!(report.applicability, ProfileApplicability::NotApplicable);
         assert!(report.tdd_through_order_percent.is_none());
     }
 
@@ -741,10 +730,7 @@ mod tests {
             Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
         run["measurement"]["measurement_class"] = Value::String("EQUIPMENT_TEST".into());
         let report = evaluate_run(&run).unwrap();
-        assert_eq!(
-            report.applicability,
-            ProfileApplicability::NotApplicable
-        );
+        assert_eq!(report.applicability, ProfileApplicability::NotApplicable);
     }
 
     #[test]
@@ -854,10 +840,7 @@ mod tests {
             Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
         run["measurement"]["measurement_class"] = Value::String("EQUIPMENT_TEST".into());
         let report = evaluate_run(&run).unwrap();
-        assert_eq!(
-            report.applicability,
-            ProfileApplicability::NotApplicable
-        );
+        assert_eq!(report.applicability, ProfileApplicability::NotApplicable);
     }
 
     #[test]
