@@ -418,6 +418,38 @@ fn main() {
         consensus: "",
         consensus_conflict: "",
     });
+
+    let mut reordered = baseline.clone();
+    reordered.session_id = "synthetic_option_order_position_bias".into();
+    reordered.option_labels = vec![
+        "charity_c".into(),
+        "charity_b".into(),
+        "charity_a".into(),
+    ];
+    for member in &mut reordered.participants {
+        member.preferences.reverse();
+    }
+    for proposal in &mut reordered.proposals {
+        proposal.option_index = 2 - proposal.option_index;
+    }
+    reordered.final_allocation = vec![5, 35, 60];
+    let order_difference = compare_option_order_variants(&baseline, &reordered)
+        .expect("option order pair must preserve semantic inputs");
+    let order_shift = order_difference.allocation_l1_shift_units.to_string();
+    let order_reallocated = fmt(order_difference.reallocated_units);
+    row(AuditRow {
+        record_type: "option_order_pair",
+        session_id: &baseline.session_id,
+        metric: "semantic_option_order_sensitivity",
+        subject: &reordered.session_id,
+        value: &order_reallocated,
+        unit: "units",
+        allocation: "",
+        shift: &order_shift,
+        reallocated: &order_reallocated,
+        consensus: "",
+        consensus_conflict: "",
+    });
 }
 
 #[cfg(test)]
