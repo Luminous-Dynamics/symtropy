@@ -1,0 +1,341 @@
+name: PHYS-EVID-01D1H SHA-256 Dependency Hydration
+
+on:
+  push:
+    branches:
+      - ci/sha256-dependency-hydration-v0.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hydrate-sha256-dependency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      D0_SHA: bdb5781ae49dbf2e3967876d31677fc2cb4f1dff
+      SHA2_VERSION: 0.11.0
+      SHA2_CHECKSUM: 446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4
+      DIRECT_REQUIREMENT: =0.11.0
+      REGISTRY_SOURCE: registry+https://github.com/rust-lang/crates.io-index
+
+    steps:
+      - name: Checkout exact D0 subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.D0_SHA }}
+          fetch-depth: 0
+
+      - name: Install pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@1.96.0
+
+      - name: Capture immutable pre-hydration state outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$D0_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          H="$RUNNER_TEMP/phys-evid-01d1h-hydration"
+          rm -rf "$H"
+          mkdir -p "$H"
+          cp Cargo.toml "$H/Cargo.toml.before"
+          cp Cargo.lock "$H/Cargo.lock.before"
+          sha256sum Cargo.toml | awk '{print $1}' > "$H/manifest-before.sha256"
+          sha256sum Cargo.lock | awk '{print $1}' > "$H/lock-before.sha256"
+          rustc --version --verbose > "$H/rustc-version.txt"
+          cargo --version --verbose > "$H/cargo-version.txt"
+          cargo metadata --locked --format-version 1 > "$H/metadata-before.json"
+
+      - name: Cargo-generate exact SHA-256 dependency delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo add 'sha2@=0.11.0' --package symtropy-launcher --no-default-features
+
+          mapfile -t changed < <(git diff --name-only | sort)
+          expected=(Cargo.lock Cargo.toml)
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "2"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+          python3 - <<'PY'
+          import copy
+          import os
+          import tomllib
+          from pathlib import Path
+
+          h = Path(os.environ['RUNNER_TEMP']) / 'phys-evid-01d1h-hydration'
+          before = tomllib.loads((h / 'Cargo.toml.before').read_text())
+          after = tomllib.loads(Path('Cargo.toml').read_text())
+          dep = after['dependencies']['sha2']
+          assert isinstance(dep, dict), dep
+          assert dep.get('version') == '=0.11.0', dep
+          assert dep.get('default-features') is False, dep
+          assert dep.get('optional', False) is False, dep
+          assert set(dep) <= {'version', 'default-features'}, dep
+
+          without_sha2 = copy.deepcopy(after)
+          del without_sha2['dependencies']['sha2']
+          assert without_sha2 == before, 'manifest semantics changed outside direct sha2 addition'
+          print('exact direct dependency + manifest semantic isolation: PASS')
+          PY
+
+      - name: Capture post-hydration metadata and prove locked build
+        shell: bash
+        run: |
+          set -euo pipefail
+          H="$RUNNER_TEMP/phys-evid-01d1h-hydration"
+          cargo metadata --locked --format-version 1 > "$H/metadata-after.json"
+          cargo check -p symtropy-launcher --lib --locked
+          cargo tree -p 'sha2@0.11.0' --edges normal > "$H/sha2-tree.txt"
+          cargo tree -p symtropy-launcher -e features --invert 'sha2@0.11.0' > "$H/sha2-feature-inverse.txt"
+
+      - name: Prove no unrelated lock churn and exact source closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import tomllib
+          from pathlib import Path
+
+          h = Path(os.environ['RUNNER_TEMP']) / 'phys-evid-01d1h-hydration'
+          before_lock = tomllib.loads((h / 'Cargo.lock.before').read_text())
+          after_lock = tomllib.loads(Path('Cargo.lock').read_text())
+          after_meta = json.loads((h / 'metadata-after.json').read_text())
+          registry_source = os.environ['REGISTRY_SOURCE']
+
+          def identity(pkg):
+              return (
+                  pkg['name'],
+                  pkg['version'],
+                  pkg.get('source'),
+                  pkg.get('checksum'),
+              )
+
+          before_packages = {identity(pkg): pkg for pkg in before_lock['package']}
+          after_packages = {identity(pkg): pkg for pkg in after_lock['package']}
+          before = set(before_packages)
+          after = set(after_packages)
+          removed = sorted(before - after, key=lambda x: (x[0], x[1], str(x[2])))
+          added = sorted(after - before, key=lambda x: (x[0], x[1], str(x[2])))
+
+          assert not removed, f'pre-existing package identities changed/removed: {removed}'
+          assert added, 'expected a non-empty SHA-256 dependency closure'
+
+          sha2 = [pkg for pkg in added if pkg[0] == 'sha2']
+          assert sha2 == [(
+              'sha2',
+              os.environ['SHA2_VERSION'],
+              registry_source,
+              os.environ['SHA2_CHECKSUM'],
+          )], sha2
+
+          roots_before = [
+              (ident, pkg) for ident, pkg in before_packages.items()
+              if pkg['name'] == 'symtropy-launcher'
+          ]
+          roots_after = [
+              (ident, pkg) for ident, pkg in after_packages.items()
+              if pkg['name'] == 'symtropy-launcher'
+          ]
+          assert len(roots_before) == 1 and len(roots_after) == 1
+          root_id_before, root_before = roots_before[0]
+          root_id_after, root_after = roots_after[0]
+          assert root_id_before == root_id_after
+
+          for ident, before_pkg in before_packages.items():
+              if ident == root_id_before:
+                  continue
+              assert after_packages[ident] == before_pkg, (
+                  'pre-existing lock entry changed', ident,
+                  before_pkg, after_packages[ident]
+              )
+
+          root_before_core = {k: v for k, v in root_before.items() if k != 'dependencies'}
+          root_after_core = {k: v for k, v in root_after.items() if k != 'dependencies'}
+          assert root_before_core == root_after_core, 'root lock fields changed beyond dependencies'
+          root_before_deps = set(root_before.get('dependencies', []))
+          root_after_deps = set(root_after.get('dependencies', []))
+          assert root_before_deps <= root_after_deps, 'root dependency edge removed/rewritten'
+          root_added_edges = sorted(root_after_deps - root_before_deps)
+          assert len(root_added_edges) == 1, root_added_edges
+
+          packages = {pkg['id']: pkg for pkg in after_meta['packages']}
+          nodes = {node['id']: node for node in after_meta['resolve']['nodes']}
+          sha2_ids = [
+              pid for pid, pkg in packages.items()
+              if pkg['name'] == 'sha2'
+              and pkg['version'] == os.environ['SHA2_VERSION']
+              and pkg.get('source') == registry_source
+          ]
+          assert len(sha2_ids) == 1, sha2_ids
+          sha2_id = sha2_ids[0]
+
+          stack = [sha2_id]
+          reachable = set()
+          while stack:
+              pid = stack.pop()
+              if pid in reachable:
+                  continue
+              reachable.add(pid)
+              stack.extend(dep['pkg'] for dep in nodes[pid]['deps'])
+
+          reachable_identity = {
+              (
+                  packages[pid]['name'],
+                  packages[pid]['version'],
+                  packages[pid].get('source'),
+              )
+              for pid in reachable
+          }
+          for name, version, source, checksum in added:
+              assert source == registry_source, (
+                  'new package from unexpected registry/source',
+                  name, version, source,
+              )
+              assert checksum, (name, version)
+              assert (name, version, source) in reachable_identity, (
+                  'new package outside exact-source sha2 closure',
+                  name, version, source,
+              )
+
+          root_meta_ids = [
+              pid for pid, pkg in packages.items()
+              if pkg['name'] == 'symtropy-launcher' and pkg.get('source') is None
+          ]
+          assert len(root_meta_ids) == 1, root_meta_ids
+          root_node = nodes[root_meta_ids[0]]
+          root_sha2_edges = [dep for dep in root_node['deps'] if dep['name'] == 'sha2']
+          assert len(root_sha2_edges) == 1, root_sha2_edges
+          assert root_sha2_edges[0]['pkg'] == sha2_id, root_sha2_edges[0]
+
+          receipt = {
+              'theorem': 'PHYS-EVID-01D1H Cargo-generated SHA-256 dependency hydration capsule',
+              'd0_subject_sha': os.environ['D0_SHA'],
+              'direct_requirement': os.environ['DIRECT_REQUIREMENT'],
+              'default_features': False,
+              'registry_source': registry_source,
+              'sha2_version': os.environ['SHA2_VERSION'],
+              'sha2_checksum': os.environ['SHA2_CHECKSUM'],
+              'manifest_semantics_unchanged_except_sha2': True,
+              'new_packages': [
+                  {
+                      'name': p[0],
+                      'version': p[1],
+                      'source': p[2],
+                      'checksum': p[3],
+                  }
+                  for p in added
+              ],
+              'changed_existing_package_identities': [],
+              'removed_packages': [],
+              'other_pre_existing_lock_entries_unchanged': True,
+              'root_added_dependency_edges': root_added_edges,
+              'root_sha2_edge_target': f'sha2 {os.environ["SHA2_VERSION"]}',
+              'new_packages_exact_source_reachable_from_sha2': True,
+              'cargo_check_locked_passed': True,
+              'capsule_emitted_outside_checkout': True,
+              'semantic_digest_correctness_claimed': False,
+              'authentication_claimed': False,
+              'issuer_authority_claimed': False,
+              'replay_or_action_authority_claimed': False,
+          }
+          (h / 'package-delta.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          print(json.dumps(receipt, indent=2, sort_keys=True))
+          PY
+
+      - name: Freeze generated patch and hashes outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          H="$RUNNER_TEMP/phys-evid-01d1h-hydration"
+          cp Cargo.toml "$H/Cargo.toml.after"
+          cp Cargo.lock "$H/Cargo.lock.after"
+          sha256sum Cargo.toml | awk '{print $1}' > "$H/manifest-after.sha256"
+          sha256sum Cargo.lock | awk '{print $1}' > "$H/lock-after.sha256"
+          git diff --binary -- Cargo.toml Cargo.lock > "$H/sha256-dependency-hydration.patch"
+          test -s "$H/sha256-dependency-hydration.patch"
+          sha256sum "$H/sha256-dependency-hydration.patch" | awk '{print $1}' > "$H/sha256-dependency-hydration.patch.sha256"
+
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          h = Path(os.environ['RUNNER_TEMP']) / 'phys-evid-01d1h-hydration'
+          receipt = json.loads((h / 'package-delta.json').read_text())
+          receipt.update({
+              'manifest_before_sha256': (h / 'manifest-before.sha256').read_text().strip(),
+              'manifest_after_sha256': (h / 'manifest-after.sha256').read_text().strip(),
+              'lock_before_sha256': (h / 'lock-before.sha256').read_text().strip(),
+              'lock_after_sha256': (h / 'lock-after.sha256').read_text().strip(),
+              'generated_patch_sha256': (h / 'sha256-dependency-hydration.patch.sha256').read_text().strip(),
+              'rustc_version': (h / 'rustc-version.txt').read_text().splitlines()[0],
+              'cargo_version': (h / 'cargo-version.txt').read_text().splitlines()[0],
+          })
+          (h / 'phys-evid-01d1h-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Final exact checkout and capsule gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$D0_SHA"
+
+          mapfile -t changed < <(git diff --name-only | sort)
+          expected_changed=(Cargo.lock Cargo.toml)
+          mapfile -t expected_changed_sorted < <(printf '%s\n' "${expected_changed[@]}" | sort)
+          test "${#changed[@]}" = "2"
+          diff -u <(printf '%s\n' "${expected_changed_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+          mapfile -t status_lines < <(git status --porcelain --untracked-files=all | sort)
+          expected_status=(' M Cargo.lock' ' M Cargo.toml')
+          mapfile -t expected_status_sorted < <(printf '%s\n' "${expected_status[@]}" | sort)
+          printf '%s\n' "${status_lines[@]}"
+          test "${#status_lines[@]}" = "2"
+          diff -u <(printf '%s\n' "${expected_status_sorted[@]}") <(printf '%s\n' "${status_lines[@]}")
+
+          H="$RUNNER_TEMP/phys-evid-01d1h-hydration"
+          mapfile -t capsule_files < <(find "$H" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort)
+          expected_capsule=(
+            Cargo.lock.after
+            Cargo.lock.before
+            Cargo.toml.after
+            Cargo.toml.before
+            cargo-version.txt
+            lock-after.sha256
+            lock-before.sha256
+            manifest-after.sha256
+            manifest-before.sha256
+            metadata-after.json
+            metadata-before.json
+            package-delta.json
+            phys-evid-01d1h-receipt.json
+            rustc-version.txt
+            sha2-feature-inverse.txt
+            sha2-tree.txt
+            sha256-dependency-hydration.patch
+            sha256-dependency-hydration.patch.sha256
+          )
+          mapfile -t expected_capsule_sorted < <(printf '%s\n' "${expected_capsule[@]}" | sort)
+          test "${#capsule_files[@]}" = "${#expected_capsule_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_capsule_sorted[@]}") <(printf '%s\n' "${capsule_files[@]}")
+          test -z "$(find "$H" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+
+          for file in "${expected_capsule[@]}"; do
+            test -s "$H/$file"
+          done
+
+      - name: Upload hydration capsule
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-evid-01d1h-sha256-dependency-hydration
+          path: ${{ runner.temp }}/phys-evid-01d1h-hydration/
+          if-no-files-found: error
