@@ -338,8 +338,8 @@ fn oracle_best_frontier_is_not_assumed_to_equal_a_greedy_policy() {
     let p = profile();
     let requests = vec![request("a", 30, 30, 40, 100), request("b", 10, 0, 10, 50)];
     let frontier = exact_frontier(&p, &requests);
-    let fcfs = schedule(&p, &requests, SchedulingPolicy::FirstComeFirstServed)
-        .expect("profile is valid");
+    let fcfs =
+        schedule(&p, &requests, SchedulingPolicy::FirstComeFirstServed).expect("profile is valid");
 
     assert!(
         frontier
