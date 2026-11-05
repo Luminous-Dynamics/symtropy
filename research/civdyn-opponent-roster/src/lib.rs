@@ -85,20 +85,16 @@ impl MetaGame {
         self.validate()?;
         let count = self.strategy_names.len();
         let mut edges = Vec::new();
-        let mut adjacency = vec![vec![false; count]; count];
-
-        for left in 0..count {
-            for right in (left + 1)..count {
-                let left_advantage = self.payoffs[left][right] - self.payoffs[right][left];
+        for (left, left_row) in self.payoffs.iter().enumerate() {
+            for (right, right_row) in self.payoffs.iter().enumerate().skip(left + 1) {
+                let left_advantage = left_row[right] - right_row[left];
                 if left_advantage > TOLERANCE {
-                    adjacency[left][right] = true;
                     edges.push(InvasionEdge {
                         winner: left,
                         loser: right,
                         net_advantage: left_advantage,
                     });
                 } else if left_advantage < -TOLERANCE {
-                    adjacency[right][left] = true;
                     edges.push(InvasionEdge {
                         winner: right,
                         loser: left,
@@ -108,23 +104,22 @@ impl MetaGame {
             }
         }
 
+        let mut adjacency = vec![vec![false; count]; count];
+        for edge in &edges {
+            adjacency[edge.winner][edge.loser] = true;
+        }
+
         let mut three_cycles = Vec::new();
-        for first in 0..count {
-            for second in (first + 1)..count {
-                for third in (second + 1)..count {
-                    if adjacency[first][second]
-                        && adjacency[second][third]
-                        && adjacency[third][first]
-                    {
+        for (first, first_row) in adjacency.iter().enumerate() {
+            for (second, first_to_second) in first_row.iter().enumerate().skip(first + 1) {
+                for (third, first_to_third) in first_row.iter().enumerate().skip(second + 1) {
+                    if *first_to_second && adjacency[second][third] && adjacency[third][first] {
                         three_cycles.push(ThreeCycle {
                             strategies: [first, second, third],
                             orientation: CycleOrientation::Forward,
                         });
                     }
-                    if adjacency[first][third]
-                        && adjacency[third][second]
-                        && adjacency[second][first]
-                    {
+                    if *first_to_third && adjacency[third][second] && adjacency[second][first] {
                         three_cycles.push(ThreeCycle {
                             strategies: [first, second, third],
                             orientation: CycleOrientation::Reverse,
