@@ -453,6 +453,11 @@ mod tests {
             "switch_event": {
                 "mapping_kind": "CHARGE_FLUX_CONSISTENT",
                 "mapping_sha256": DIGEST_C,
+                "tolerance_policy_sha256": DIGEST_E,
+                "port_energy_receipt_sha256": DIGEST_A,
+                "switch_work_receipt_sha256": DIGEST_B,
+                "dissipation_receipt_sha256": DIGEST_C,
+                "state_mapping_receipt_sha256": DIGEST_F,
                 "source_state_dimension": 2,
                 "target_state_dimension": 2,
                 "switch_work_net_j": switch_work_j,
