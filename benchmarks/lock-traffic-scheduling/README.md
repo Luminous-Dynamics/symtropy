@@ -17,10 +17,13 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.t
 - Every request declares a service-unit label that must exactly match the profile's
   label; unlike units (for example tonnes and TEU) are not compared or scheduled
   within one profile.
-- The participant least-served policy rotates toward the participant with the lowest
-  accumulated delivered service units. It is an auditable fairness-oriented baseline,
-  not a max-min guarantee across heterogeneous goods, an equity proof, or a
-  reproduction of published FSR.
+- The participant least-fulfilled policy rotates toward the participant with
+  the lowest delivered/requested share of upstream-eligible service units. It uses
+  an exact integer-ratio comparison (no floating-point rounding); ties break by
+  oldest pending request and stable participant/request IDs. It is a fairness-
+  oriented baseline, not a max-min guarantee, an equity proof, or a reproduction
+  of published FSR. Requests that later fail resource/deadline checks remain part
+  of the initial eligible-demand denominator, which is reported through outcomes.
 - Least-slack ordering includes the request's worst-case arrival bound, authorized
   latest-start time, maximum-wait limit, completion deadline, service duration,
   direction-switch delay, lock downtime and planning window.
