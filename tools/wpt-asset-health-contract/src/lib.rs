@@ -220,6 +220,14 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
     }
 
     if let Some(array) = value.as_array() {
+        if schema.get("uniqueItems") == Some(&Value::Bool(true)) {
+            for index in 0..array.len() {
+                if array[..index].contains(&array[index]) {
+                    return Err(fail(path, "array items must be unique"));
+                }
+            }
+        }
+
         if let Some(item_schema) = schema.get("items") {
             for (index, item) in array.iter().enumerate() {
                 validate_schema_node(item_schema, item, &format!("{path}[{index}]"))?;
@@ -243,6 +251,7 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
         "minimum",
         "maximum",
         "exclusiveMinimum",
+        "uniqueItems",
         "pattern",
         "format",
     ];
@@ -274,6 +283,19 @@ pub fn validate_observation(schema: &Value, observation: &Value) -> Result<(), S
     validate_schema_node(schema, observation, "$")?;
 
     let evidence_kind = string_field(observation, "evidence_kind", "$")?;
+    let exposure = object_field(observation, "exposure", "$")?;
+    if let (Some(minimum), Some(maximum)) = (
+        exposure.get("ambient_min_c").and_then(Value::as_f64),
+        exposure.get("ambient_max_c").and_then(Value::as_f64),
+    ) {
+        if minimum > maximum {
+            return Err(fail(
+                "$.exposure",
+                "ambient_min_c cannot exceed ambient_max_c",
+            ));
+        }
+    }
+
     let quality_flags = object_field(observation, "quality_flags", "$")?
         .as_array()
         .ok_or_else(|| fail("$.quality_flags", "must be an array"))?;
@@ -418,7 +440,55 @@ mod tests {
             example["evidence_kind"],
             Value::String("SYNTHETIC_KNOWN_TRUTH".into())
         );
-        assert_eq!(scenarios["cases"].as_array().unwrap().len(), 15);
+        assert_eq!(scenarios["cases"].as_array().unwrap().len(), 16);
+    }
+
+    #[test]
+    fn duplicate_quality_flags_are_rejected_by_unique_items_keyword() {
+        let (schema, mut example, _) = bundled_fixtures().unwrap();
+        example["quality_flags"] = Value::Array(vec![
+            Value::String("SYNTHETIC_ONLY".into()),
+            Value::String("SYNTHETIC_ONLY".into()),
+        ]);
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("array items must be unique")
+        );
+    }
+
+    #[test]
+    fn validator_fails_closed_on_unimplemented_schema_keywords() {
+        let (mut schema, example, _) = bundled_fixtures().unwrap();
+        schema["properties"]["record_id"]["minItems"] = Value::from(1);
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("unsupported schema keyword minItems")
+        );
+    }
+
+    #[test]
+    fn impossible_utc_calendar_date_is_rejected() {
+        let (schema, mut example, _) = bundled_fixtures().unwrap();
+        example["observed_at_utc"] = Value::String("2026-02-30T00:00:00Z".into());
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("timestamp must be UTC")
+        );
+    }
+
+    #[test]
+    fn ambient_temperature_minimum_cannot_exceed_maximum() {
+        let (schema, mut example, _) = bundled_fixtures().unwrap();
+        example["exposure"]["ambient_min_c"] = Value::from(30);
+        example["exposure"]["ambient_max_c"] = Value::from(20);
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("ambient_min_c cannot exceed ambient_max_c")
+        );
     }
 
     #[test]
