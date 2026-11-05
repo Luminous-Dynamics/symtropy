@@ -18,10 +18,10 @@
 use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Direction is defined at the declared PCC grid-import boundary.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 pub enum GridFlexDirection {
     /// Reduce site grid import (upward system response in the common convention).
     ReduceGridImport,
@@ -29,7 +29,7 @@ pub enum GridFlexDirection {
     IncreaseGridImport,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum OwnerGuardStatus {
     Ready,
     Blocked,
@@ -37,7 +37,7 @@ pub enum OwnerGuardStatus {
 }
 
 /// Local readiness snapshot supplied by the site-local trusted agent.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub struct OwnerLocalReadiness {
     last_pcc_telemetry_unix_seconds: i64,
     scheduler_guard: OwnerGuardStatus,
@@ -66,7 +66,7 @@ impl OwnerLocalReadiness {
 }
 
 /// Owner policy: allowed products, commitment budgets and message bounds.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct OwnerFlexibilityPolicy {
     policy_id: String,
     policy_version: String,
@@ -184,7 +184,7 @@ impl OwnerFlexibilityPolicy {
 ///
 /// Qualification receipt identifiers are pinned but not authenticated here.
 /// The offer is a promise envelope, not an execution command.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct OwnerFlexibilityOffer {
     offer_id: String,
     portfolio_id: String,
@@ -280,12 +280,12 @@ impl OwnerFlexibilityOffer {
 
 /// Owner-local ledger prevents overlapping product offers from reserving the
 /// same shared portfolio MW more than once.
-#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
 pub struct OwnerOfferReservationLedger {
     reservations: Vec<OwnerOfferReservation>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct OwnerOfferReservation {
     pub offer_id: String,
     pub portfolio_id: String,
@@ -398,7 +398,7 @@ impl OwnerOfferReservationLedger {
 }
 
 /// Typed dispatch request: no arbitrary script, setpoint, or equipment address.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct OwnerDispatchRequest {
     dispatch_id: String,
     offer_id: String,
@@ -531,16 +531,16 @@ pub trait DispatchSignatureVerifier {
 
 /// Monotonic replay ledger. Persist it across agent restarts in a trusted store;
 /// an in-memory instance protects only the lifetime of that process.
-#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
 pub struct DispatchReplayLedger {
     per_offer: BTreeMap<String, DispatchReplayState>,
+    seen_key_nonces: BTreeSet<(String, String)>,
+    seen_dispatch_ids: BTreeSet<String>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
 struct DispatchReplayState {
     highest_sequence_number: u64,
-    nonces: BTreeSet<String>,
-    dispatch_ids: BTreeSet<String>,
 }
 
 impl DispatchReplayLedger {
@@ -549,15 +549,16 @@ impl DispatchReplayLedger {
         if request.sequence_number <= state.highest_sequence_number {
             return Err(DispatchReplayViolation::NonIncreasingSequence);
         }
-        if state.nonces.contains(&request.nonce) {
+        let nonce_key = (request.signing_key_id.clone(), request.nonce.clone());
+        if self.seen_key_nonces.contains(&nonce_key) {
             return Err(DispatchReplayViolation::ReusedNonce);
         }
-        if state.dispatch_ids.contains(&request.dispatch_id) {
+        if self.seen_dispatch_ids.contains(&request.dispatch_id) {
             return Err(DispatchReplayViolation::ReusedDispatchId);
         }
         state.highest_sequence_number = request.sequence_number;
-        state.nonces.insert(request.nonce.clone());
-        state.dispatch_ids.insert(request.dispatch_id.clone());
+        self.seen_key_nonces.insert(nonce_key);
+        self.seen_dispatch_ids.insert(request.dispatch_id.clone());
         Ok(())
     }
 }
@@ -569,7 +570,7 @@ enum DispatchReplayViolation {
     ReusedDispatchId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum OwnerDispatchRejectionReason {
     OfferNotReserved,
     UnauthorizedSigningKey,
@@ -578,6 +579,7 @@ pub enum OwnerDispatchRejectionReason {
     DispatchIssuedInFuture,
     DispatchExpired,
     DispatchTtlExceeded,
+    ResponseDeadlineMissed,
     OfferOutsideValidityWindow,
     ProductNotAllowed,
     OfferIdentityMismatch,
@@ -593,7 +595,7 @@ pub enum OwnerDispatchRejectionReason {
     LocalControllerNotReady,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct OwnerDispatchAuthorizationReceipt {
     pub dispatch_id: String,
     pub offer_id: String,
@@ -616,7 +618,7 @@ pub struct OwnerDispatchAuthorizationReceipt {
     pub actuator_command_emitted: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum OwnerDispatchDecision {
     Authorized(OwnerDispatchAuthorizationReceipt),
     Rejected {
@@ -666,6 +668,9 @@ pub fn authorize_owner_dispatch(
     }
     if now_unix_seconds > request.expires_at_unix_seconds {
         return reject(OwnerDispatchRejectionReason::DispatchExpired);
+    }
+    if now_unix_seconds > request.response_deadline_unix_seconds {
+        return reject(OwnerDispatchRejectionReason::ResponseDeadlineMissed);
     }
     if request.expires_at_unix_seconds
         .saturating_sub(request.issued_at_unix_seconds)
@@ -937,11 +942,11 @@ mod tests {
     fn prevents_overlapping_double_sale_across_products() {
         let mut ledger = OwnerOfferReservationLedger::default();
         ledger.reserve_offer(
-            &offer("offer-a", "reserve-product", GridFlexDirection::ReduceGridImport, 60.0, 1_000, 2_000),
+            &offer("offer-a", "reserve-product", GridFlexDirection::ReduceGridImport, 70.0, 1_000, 2_000),
             &policy(),
         ).expect("first reservation");
         let second = ledger.reserve_offer(
-            &offer("offer-b", "local-congestion", GridFlexDirection::ReduceGridImport, 30.0, 1_500, 2_500),
+            &offer("offer-b", "local-congestion", GridFlexDirection::ReduceGridImport, 40.0, 1_500, 2_500),
             &policy(),
         );
         assert!(matches!(second, Err(OwnerFlexibilityError::SharedCapacityOvercommitted { .. })));
@@ -1122,6 +1127,52 @@ mod tests {
         );
         assert!(matches!(decision, OwnerDispatchDecision::Rejected {
             reason: OwnerDispatchRejectionReason::LocalControllerNotReady, ..
+        }));
+    }
+
+    #[test]
+    fn same_signer_nonce_cannot_be_reused_across_different_offers() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let offer_a = offer("offer-a", "reserve-product", GridFlexDirection::ReduceGridImport, 30.0, 900, 2_000);
+        let offer_b = offer("offer-b", "local-congestion", GridFlexDirection::ReduceGridImport, 30.0, 900, 2_000);
+        ledger.reserve_offer(&offer_a, &policy()).expect("reserve A");
+        ledger.reserve_offer(&offer_b, &policy()).expect("reserve B");
+        let mut replay = DispatchReplayLedger::default();
+        let request_a = OwnerDispatchRequest::new(
+            "dispatch-a", "offer-a", "reserve-product", "site-1", "pcc-1",
+            GridFlexDirection::ReduceGridImport, 20.0, 600, 5.0, 10.0,
+            1_000, 1_060, 1_010, 1, "shared-nonce", "market-key-1", b"test-signature".to_vec(),
+        ).expect("request A");
+        let request_b = OwnerDispatchRequest::new(
+            "dispatch-b", "offer-b", "local-congestion", "site-1", "pcc-1",
+            GridFlexDirection::ReduceGridImport, 20.0, 600, 5.0, 10.0,
+            1_000, 1_060, 1_010, 1, "shared-nonce", "market-key-1", b"test-signature".to_vec(),
+        ).expect("request B");
+        let first = authorize_owner_dispatch(
+            &request_a, &offer_a, &policy(), &ledger, &mut replay,
+            readiness(990), 1_005, &AcceptSignature,
+        );
+        assert!(matches!(first, OwnerDispatchDecision::Authorized(_)));
+        let second = authorize_owner_dispatch(
+            &request_b, &offer_b, &policy(), &ledger, &mut replay,
+            readiness(990), 1_005, &AcceptSignature,
+        );
+        assert!(matches!(second, OwnerDispatchDecision::Rejected {
+            reason: OwnerDispatchRejectionReason::ReplayedDispatch, ..
+        }));
+    }
+
+    #[test]
+    fn missed_response_deadline_is_rejected_even_before_message_expiry() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let o = reserve_default(&mut ledger);
+        let mut replay = DispatchReplayLedger::default();
+        let decision = authorize_owner_dispatch(
+            &request("dispatch-late-response", "offer-1", 1, 1_000, 1_060, 990),
+            &o, &policy(), &ledger, &mut replay, readiness(990), 1_020, &AcceptSignature,
+        );
+        assert!(matches!(decision, OwnerDispatchDecision::Rejected {
+            reason: OwnerDispatchRejectionReason::ResponseDeadlineMissed, ..
         }));
     }
 
