@@ -544,18 +544,45 @@ fn verify_decisions<'a>(
         if !tick_actor.insert((decision.tick, decision.actor_id.as_str())) {
             return Err(HandoffError::DuplicateDecisionTickActor);
         }
-        if receipts.insert(decision.decision_receipt_id.as_str(), decision).is_some() {
+        if receipts
+            .insert(decision.decision_receipt_id.as_str(), decision)
+            .is_some()
+        {
             return Err(HandoffError::DuplicateDecisionReceipt);
         }
     }
 
-    let mut verified = Vec::with_capacity(branch.decisions.len());
-    for decision in &branch.decisions {
+    let mut ordered: Vec<_> = branch.decisions.iter().collect();
+    ordered.sort_by(|a, b| (a.tick, &a.actor_id).cmp(&(b.tick, &b.actor_id)));
+    let mut verified = Vec::with_capacity(ordered.len());
+
+    for decision in ordered {
         let policy = policies[decision.actor_id.as_str()];
         let mut visible = BTreeSet::new();
-        let mut history = blake3::Hasher::new_derive_key(
-            "Symtropy EGCI permitted policy history v0.1",
-        );
+        let mut expected_visible: Vec<_> = cues
+            .values()
+            .filter(|cue| {
+                cue.recipient_actor_id == decision.actor_id
+                    && cue.disposition == ObservationDisposition::Delivered
+                    && cue.delivered_tick.is_some_and(|tick| tick <= decision.tick)
+            })
+            .collect();
+        expected_visible.sort_by_key(|cue| (cue.delivered_tick.unwrap(), cue.delivery_sequence));
+        if expected_visible
+            .iter()
+            .map(|cue| cue.cue_id.as_str())
+            .collect::<Vec<_>>()
+            != decision
+                .visible_cue_ids
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+        {
+            return Err(HandoffError::CueNotDelivered);
+        }
+
+        let mut history =
+            blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.1");
         hash_str(&mut history, &decision.actor_id);
         hash_u64(&mut history, decision.tick);
         hash_str(&mut history, &decision.prior_policy_state_digest);
@@ -582,6 +609,7 @@ fn verify_decisions<'a>(
             hash_u64(&mut history, cue.observed_tick);
             hash_u64(&mut history, cue.generated_tick);
             hash_u64(&mut history, delivered_tick);
+            hash_u64(&mut history, cue.delivery_sequence);
             hash_str(&mut history, &cue.visibility_profile_digest);
         }
 
@@ -592,6 +620,29 @@ fn verify_decisions<'a>(
             }
         }
 
+        let mut expected_prior: Vec<_> = branch
+            .decisions
+            .iter()
+            .filter(|prior| {
+                prior.actor_id == decision.actor_id
+                    && prior.tick < decision.tick
+                    && prior.disposition == DecisionDisposition::Completed
+            })
+            .collect();
+        expected_prior.sort_by_key(|prior| prior.tick);
+        if expected_prior
+            .iter()
+            .map(|prior| prior.decision_receipt_id.as_str())
+            .collect::<Vec<_>>()
+            != decision
+                .prior_action_receipt_ids
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+        {
+            return Err(HandoffError::MissingPriorAction);
+        }
+
         hash_len(&mut history, decision.prior_action_receipt_ids.len());
         for prior_id in &decision.prior_action_receipt_ids {
             let prior = receipts
@@ -600,10 +651,20 @@ fn verify_decisions<'a>(
             if prior.actor_id != decision.actor_id {
                 return Err(HandoffError::PriorActionWrongActor);
             }
-            if prior.tick >= decision.tick {
+            if prior.tick >= decision.tick
+                || prior.disposition != DecisionDisposition::Completed
+            {
                 return Err(HandoffError::PriorActionNotEarlier);
             }
             hash_str(&mut history, prior_id);
+        }
+
+        let expected_prior_state = expected_prior
+            .last()
+            .and_then(|prior| prior.next_policy_state_digest.as_deref())
+            .unwrap_or(policy.initial_policy_state_digest.as_str());
+        if decision.prior_policy_state_digest != expected_prior_state {
+            return Err(HandoffError::PolicyMismatch);
         }
 
         let history_digest = hex(history.finalize().as_bytes());
@@ -613,7 +674,8 @@ fn verify_decisions<'a>(
 
         let complete_action = decision.action_id.is_some()
             && decision.action_payload_digest.is_some()
-            && decision.command_latch_tick.is_some();
+            && decision.command_latch_tick.is_some()
+            && decision.next_policy_state_digest.is_some();
         match decision.disposition {
             DecisionDisposition::Completed => {
                 if !complete_action
@@ -635,9 +697,11 @@ fn verify_decisions<'a>(
         if let Some(payload) = &decision.action_payload_digest {
             require(payload, "action_payload_digest")?;
         }
+        if let Some(next_state) = &decision.next_policy_state_digest {
+            require(next_state, "next_policy_state_digest")?;
+        }
 
         verified.push(VerifiedDecision {
-            receipt_id: decision.decision_receipt_id.clone(),
             actor_id: decision.actor_id.clone(),
             tick: decision.tick,
             history_digest,
