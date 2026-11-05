@@ -20,20 +20,20 @@ The current #3532 reciprocal policy loop is still a specification. The fixture i
 1. The target policy digest binds the complete actor-policy portfolio, configuration and initial policy-state identities.
 2. The context digest binds scenario/ODD, initial world snapshot, physics/execution profile, observation schedule, action domain, units and tick rate.
 3. Each per-policy permitted-history digest is reconstructed from the policy's initial/prior state, its observation-profile identity, delivered cue payload digests and prior own-action receipt IDs.
-4. A cue must be generated and delivered before the decision that can see or consume it. The recipient must be the policy actor. Consumed cues must be a subset of visible cues.
-5. Every SAM step is built from the complete joint action vector at that tick; marginal actor/action coverage is never substituted for joint-path coverage.
-6. Alternative correspondence hypotheses remain separate SAM query envelopes. Their draw-bundle digests must match independently supplied anchor values.
+4. A cue must be generated and delivered before the decision that can see or consume it. The recipient and visibility profile must match the policy. All delivered cues in the allow-listed channel must appear in the decision's visible history, with a monotone delivery sequence. Consumed cues must be a subset of visible cues.
+5. Each policy history is re-derived from its prior policy-state digest, exact prior own-action receipts and all delivered observations. Every SAM step is built from the complete joint action vector at that tick; marginal actor/action coverage is never substituted for joint-path coverage. Decision and transition ticks must match exactly, with a contiguous parent/child snapshot chain.
+6. Alternative correspondence hypotheses remain separate SAM query envelopes, each retaining its own correspondence, causal-disposition and projection-input digests. The common branch draw-bundle digest must match an independently supplied branch anchor.
 7. Missing, failed, timed-out, censored or un-replayed execution remains incomplete. A task failure with a complete recorded path is still a complete path observation.
 8. Every branch retains its own receipt root, replay profile and terminal disposition.
 9. The evidence class is fixed to `SimulationGenerated` and eligibility to `FormalConformanceOnly`. This adapter cannot relabel synthetic outcomes as empirical decision evidence.
 
 ## Canonical interchange
 
-The full source episode is emitted as deterministic JSON with canonical branch, policy, observation, decision, transition and correspondence ordering. The episode root is a domain-separated BLAKE3 content commitment over the schema identity and typed source fields, including the branch receipt roots and replay dispositions. The SAM query is serialized separately against the checked-in JSON Schema. Consumers should retain both objects: the full episode for audit/replay, and the reduced SAM query for path-support assessment.
+The full source episode is emitted as deterministic JSON under `schemas/reciprocal-episode-export.v0.1.schema.json`, with canonical branch, policy, observation, decision, transition and correspondence ordering. The episode root is a domain-separated BLAKE3 content commitment over the schema identity and typed source fields, including the branch receipt roots and replay dispositions. The SAM query is serialized separately against `schemas/sam-policy-trajectory-query.v0.1.schema.json`, with a canonical example under `fixtures/`. Consumers should retain both objects: the full episode for audit/replay, and the reduced SAM query for path-support assessment. The conformance fixture includes two branches, distinct branch-level draw-bundle anchors, two correspondence hypotheses per branch, and a censored branch that remains present with `complete=false`.
 
 ## External anchoring
 
-BLAKE3 digests are unkeyed content commitments, not signatures. `ExternalAnchor` represents a separately controlled expected episode root and the expected draw-bundle digest for each branch/hypothesis. The adapter checks equality against those independently supplied values; it does not prove who controlled the anchor, authenticate source evidence, or independently rerun #3743's Philox verifier. A production cross-system deployment must obtain the anchor from an independently controlled evidence registry or signature-verification boundary.
+BLAKE3 digests are unkeyed content commitments, not signatures. `ExternalAnchor` represents a separately controlled expected episode root and one expected #3743 draw-bundle digest per branch. Each branch receipt also retains separate per-hypothesis correspondence, causal-disposition and projection-input digests. The adapter checks equality against those independently supplied values; it does not prove who controlled the anchor, authenticate source evidence, or independently rerun #3743's Philox verifier. A production cross-system deployment must obtain the anchor from an independently controlled evidence registry or signature-verification boundary.
 
 ## Run
 
