@@ -1,0 +1,13 @@
+[package]
+name = "symtropy-trenchless-core"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Evidence-qualified screening contracts for trenchless utility construction methods"
+
+[lib]
+path = "src/lib.rs"
+
+# This first evaluator is intentionally standalone so its deterministic
+# contract and tests can run without the larger Symtropy workspace graph.
+[workspace]
