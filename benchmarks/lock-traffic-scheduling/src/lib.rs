@@ -1440,7 +1440,8 @@ mod tests {
         p.planning_window.start_tick = 20;
         let mut stale = request("stale", 20, Direction::Upstream, 1, 1);
         stale.arrival_evidence.observed_at_tick = 10;
-        let valid = request("valid", 20, Direction::Upstream, 1, 1);
+        let mut valid = request("valid", 20, Direction::Upstream, 1, 1);
+        valid.arrival_evidence.observed_at_tick = 20;
         let plan = schedule(&p, &[stale, valid], SchedulingPolicy::FirstComeFirstServed)
             .expect("valid profile");
         assert_eq!(plan.schedule.len(), 1);
