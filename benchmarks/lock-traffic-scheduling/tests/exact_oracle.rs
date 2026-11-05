@@ -7,7 +7,7 @@
 
 use inland_waterway_lock_operations::{PassageDisposition, PassageEvaluation, TimeInterval};
 use lock_traffic_scheduling::{
-    Direction, LockScheduleProfile, PassageRequest, ScheduleMetrics, SchedulingPolicy, schedule,
+    Direction, LockScheduleProfile, PassageRequest, SchedulingPolicy, schedule,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -348,6 +348,3 @@ fn oracle_best_frontier_is_not_assumed_to_equal_a_greedy_policy() {
     );
 }
 
-// Keep an explicit compile-time witness that oracle and production metrics are
-// distinct types; this helps prevent accidental reuse of production aggregation.
-fn _assert_metrics_are_not_reused(_: &ScheduleMetrics) {}
