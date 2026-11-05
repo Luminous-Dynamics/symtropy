@@ -59,10 +59,7 @@ fn independently_find_start(
     }
 }
 
-fn arrival_evidence_is_eligible(
-    profile: &LockScheduleProfile,
-    request: &PassageRequest,
-) -> bool {
+fn arrival_evidence_is_eligible(profile: &LockScheduleProfile, request: &PassageRequest) -> bool {
     let evidence = &request.arrival_evidence;
     let decision_tick = profile.planning_window.start_tick;
     let has_identity = !evidence.evidence_id.trim().is_empty()
@@ -380,7 +377,11 @@ fn oracle_excludes_stale_or_unvalidated_arrival_intervals() {
     let mut unvalidated = request("unvalidated", 10, 100, 100, 10);
     unvalidated.arrival_evidence.calibration_receipt_id.clear();
     let frontier = exact_frontier(&p, &[stale, unvalidated]);
-    assert!(frontier.iter().all(|candidate| candidate.accepted_ids.is_empty()));
+    assert!(
+        frontier
+            .iter()
+            .all(|candidate| candidate.accepted_ids.is_empty())
+    );
 }
 
 #[test]
@@ -420,3 +421,4 @@ fn oracle_best_frontier_is_not_assumed_to_equal_a_greedy_policy() {
             .any(|candidate| candidate.metrics.accepted_count > fcfs.metrics.scheduled_requests)
     );
 }
+
