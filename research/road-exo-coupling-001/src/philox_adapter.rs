@@ -337,18 +337,11 @@ pub fn verify_correspondence_draw_bundle(
             if matching_rules.len() != 1 {
                 return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
             }
-            let left = find_unique_draw(
-                &hypothesis.draws,
-                &bundle.left_branch,
-                &pair.left_event,
-            )
-            .ok_or(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
-            let right = find_unique_draw(
-                &hypothesis.draws,
-                &bundle.right_branch,
-                &pair.right_event,
-            )
-            .ok_or(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
+            let left = find_unique_draw(&hypothesis.draws, &bundle.left_branch, &pair.left_event)
+                .ok_or(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
+            let right =
+                find_unique_draw(&hypothesis.draws, &bundle.right_branch, &pair.right_event)
+                    .ok_or(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
 
             expected_addresses.insert((bundle.left_branch.clone(), pair.left_event.clone()));
             expected_addresses.insert((bundle.right_branch.clone(), pair.right_event.clone()));
