@@ -1234,6 +1234,36 @@ mod tests {
     }
 
     #[test]
+    fn loss_of_load_periods_match_simulation_steps_not_elapsed_hours() {
+        let c = ChronologicalAdequacyContract::new(
+            identity(),
+            ChronologicalAdequacyMetric::LossOfLoadPeriods,
+            0.25,
+            1e-9,
+            1e-9,
+            1.0,
+            1e-6,
+            64,
+        ).expect("contract");
+        let study = ChronologicalAdequacyStudy::new(
+            c,
+            vec![ChronologicalAdequacyScenario::new(
+                "two-quarter-hours",
+                1.0,
+                vec![
+                    interval(0, 100.0, 90.0, 0.0, "period-0"),
+                    interval(0, 100.0, 95.0, 0.0, "period-1"),
+                ],
+            ).expect("scenario")],
+        ).expect("study");
+        let report = evaluate_chronological_adequacy(&study).expect("evaluation");
+        assert_eq!(report.reference_loss_of_load_periods, 2.0);
+        assert_eq!(report.reference_loss_of_load_hours, 0.5);
+        assert_eq!(report.reference_loss_of_load_days, 1.0);
+        assert_eq!(report.reference_metric_value, 2.0);
+    }
+
+    #[test]
     fn loss_of_load_hours_and_days_are_distinct_primary_metrics() {
         let study = ChronologicalAdequacyStudy::new(
             contract(ChronologicalAdequacyMetric::LossOfLoadHours, 10.0),
