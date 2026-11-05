@@ -1,0 +1,135 @@
+{
+  "schema_version": "anima-reference-model-profile/v1",
+  "profile_id": "pugliese-vnc-half-tanh-rate-network",
+  "profile_status": "source-audited; data artifact identities unresolved",
+  "claim_ceiling": "reference-model implementation profile only; no local reproduction or empirical validation claimed",
+  "primary_publication": {
+    "title": "Connectome simulations identify a central pattern generator for fly walking",
+    "journal": "Nature",
+    "publication_date": "2026-10-28",
+    "doi": "10.1038/s41586-026-11195-y",
+    "version_of_record": true
+  },
+  "preprint_reference_in_upstream_readme": {
+    "title": "Connectome simulations identify a central pattern generator circuit for fly walking",
+    "server": "bioRxiv",
+    "doi": "10.1101/2025.09.12.675944",
+    "version": "v2",
+    "note": "Upstream README still points to this preprint, despite the Nature version of record."
+  },
+  "upstream_code": {
+    "repository": "https://github.com/smpuglie/Pugliese_2026",
+    "commit": "10e7661bf414ba7b4c2edf795cd36d0f878c17c0",
+    "commit_title": "new revision and readme update",
+    "files": {
+      "src/simulation/vnc_sim.py": "50ba3201c57001f330818fbd39bec05b99eb4c36",
+      "src/data/data_classes.py": "023c40b5d44bab97c8eb3a77d4304d573eb99c7f",
+      "src/utils/sim_utils.py": "0f46a6fbc08a02a8d6ae0389537d5c278a71acc1",
+      "configs/sim/default.yaml": "337aefceb40fa6b641207484637ac1e099e3a675",
+      "configs/experiment/DNg100_Stim.yaml": "2aa5744599cd133f26d743155e4fb19610be9f82",
+      "configs/experiment/DNg100_Stim_CoreCPG.yaml": "b29af5475c54c04c52dbcd486aa7e480c6986cd8",
+      "configs/experiment/DNg100_Stim_FANC.yaml": "2f196baac854fc27cbf1c6c08715ffa536f2e155",
+      "configs/neuron_params/default.yaml": "bb9d158908d8cfbae12f37e9b0780498ebd4b491",
+      "README.md": "6198dce417ac852bafc9a865e52b7d40e72a8db6",
+      "environment.yaml": "a541dfabf6178bc97945d67a342e1f6bdf623b3d",
+      "pyproject.toml": "d7a3b57bd234436ae88e5abdc421a417589ab21b"
+    },
+    "runtime_stack": {
+      "framework": "JAX/JIT",
+      "ode_library": "Diffrax 0.7.0",
+      "solver": "Dopri5",
+      "precision": "float32 configured by src/run_hydra.py",
+      "environment_file": "environment.yaml"
+    }
+  },
+  "model_equations": {
+    "state": "R_i(t): firing-rate state of neuron i",
+    "weighted_connectivity": "W_eff = exc_multiplier * max(transpose(W), 0) + inh_multiplier * min(transpose(W), 0)",
+    "input": "I_i(t) = input_i * 1[pulse_start <= t <= pulse_end]",
+    "total_input": "u(t) = I(t) + W_eff * R(t)",
+    "activation": "A_i(t) = max(fr_cap_i * tanh((a_i / fr_cap_i) * (u_i(t) - threshold_i)), 0)",
+    "derivative": "dR_i(t)/dt = (A_i(t) - R_i(t)) / tau_i",
+    "initial_state": "R_i(0) = 0",
+    "source_notes": [
+      "The RHS receives noise_stdv but the random input-noise term is commented out; noiseStdv has no effect on this RHS in the inspected implementation.",
+      "The separate weight-noise path perturbs W before the RHS; do not conflate that with input noise.",
+      "The connectivity matrix is transposed before sign-based excitatory/inhibitory reweighting."
+    ]
+  },
+  "default_dng100_experiment": {
+    "experiment_config": "configs/experiment/DNg100_Stim.yaml",
+    "stim_neuron_index": [
+      31
+    ],
+    "stimulus_current": [
+      250
+    ],
+    "parameter_replicates": 1024,
+    "seed": 1,
+    "network_artifacts": {
+      "connectivity_path": "manc t1 connectome data/W_20250813_DNtoMN_unsorted.csv",
+      "neuron_table_path": "manc t1 connectome data/wTable_20250813_DNtoMN_unsorted_withModules.csv",
+      "included_in_git_repository": false,
+      "identity_join_required": true,
+      "cryptographic_digests": "unavailable; must be obtained from materialized files before reproduction"
+    }
+  },
+  "default_simulation": {
+    "sim_config": "configs/sim/default.yaml",
+    "total_time_seconds": 2,
+    "requested_initial_step_seconds": 0.001,
+    "pulse_start_seconds": 0.02,
+    "pulse_end_seconds": 1.999,
+    "save_grid": "jnp.arange(0, T + dt/2, dt), sorted, clipped to [0,T], unique",
+    "expected_save_points": 2001,
+    "relative_tolerance": 0.000002,
+    "absolute_tolerance": 5e-9,
+    "maximum_solver_steps": 100000,
+    "throw": false
+  },
+  "default_neuron_parameters": {
+    "config": "configs/neuron_params/default.yaml",
+    "tau_mean_seconds": 0.02,
+    "tau_standard_deviation_seconds": 0.002,
+    "activation_slope_mean": 1,
+    "activation_slope_standard_deviation": 0.1,
+    "threshold_mean": 7.5,
+    "threshold_standard_deviation": 0.6,
+    "firing_rate_cap_mean_hz": 200,
+    "firing_rate_cap_standard_deviation_hz": 10,
+    "excitatory_multiplier": 0.03,
+    "inhibitory_multiplier": 0.03,
+    "distribution": "truncated normal; sample_trunc_normal default lower bound 0",
+    "size_scaling": "a divided by normalized size; threshold multiplied by normalized size; normalization uses median size"
+  },
+  "solver_output_handling": {
+    "nan_inf_event_function_present": true,
+    "nan_inf_event_attached_to_diffeqsolve": false,
+    "diffrax_throw": false,
+    "postprocess_non_finite_values": "replace NaN and Inf with zero",
+    "postprocess_bounds_hz": [
+      0,
+      1000
+    ],
+    "raw_solver_result_preserved_by_run_single_simulation": false,
+    "reproduction_gate": "preserve and audit raw solution.ys, Diffrax result/status, accepted/rejected steps, and transformations before any replacement or clipping",
+    "claim_rule": "a sanitized or clipped trajectory cannot be reported as an unmodified solver result without an explicit transformation receipt"
+  },
+  "data_artifact_reconciliation": {
+    "upstream_readme_zenodo_record": "22260924",
+    "nature_version_of_record_zenodo_record": "22260923",
+    "status": "unresolved",
+    "rule": "Do not assume these records are equivalent. Materialize both manifests, compare files/checksums/roles, and pin the correct record per artifact."
+  },
+  "reproduction_gates": [
+    "pin source commit and all source/config blob SHAs",
+    "resolve Zenodo artifact-role discrepancy and record per-file checksums",
+    "verify matrix row/column identity against the neuron annotation table",
+    "verify neuron parameter sample seeds and array shape",
+    "capture raw Diffrax termination/status and full save-grid completion",
+    "reject or separately record NaN/Inf replacement and clipping",
+    "reproduce DNg100 baseline before any circuit pruning",
+    "compare output distributions, not just a single aggregate score",
+    "only then compare intervention-held-out predictions"
+  ]
+}
