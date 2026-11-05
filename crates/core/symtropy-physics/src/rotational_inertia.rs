@@ -292,7 +292,7 @@ mod tests {
     }
 
     #[test]
-    fn 3d_symmetric_axis_distribution_is_isotropic() {
+    fn three_d_symmetric_axis_distribution_is_isotropic() {
         let inertia = BivectorInertia::<3>::from_point_masses(&symmetric_axis_masses::<3>())
             .unwrap();
 
@@ -308,7 +308,7 @@ mod tests {
     }
 
     #[test]
-    fn 4d_operator_has_six_rotation_plane_components() {
+    fn four_d_operator_has_six_rotation_plane_components() {
         let inertia =
             BivectorInertia::<4>::from_point_masses(&symmetric_axis_masses::<4>()).unwrap();
         assert_eq!(inertia.component_count(), 6);
@@ -375,25 +375,25 @@ mod tests {
             BivectorInertia::<3>::from_matrix(DMatrix::identity(2, 2)),
             Err(BivectorInertiaError::MatrixDimensionMismatch { .. })
         ));
-        assert_eq!(
+        assert!(matches!(
             BivectorInertia::<3>::from_matrix(DMatrix::zeros(3, 3)),
             Err(BivectorInertiaError::MatrixNotPositiveDefinite)
-        );
+        ));
         assert!(matches!(
             BivectorInertia::<3>::from_matrix(DMatrix::from_element(3, 3, f64::NAN)),
             Err(BivectorInertiaError::NonFiniteInput)
         ));
-        assert_eq!(
+        assert!(matches!(
             BivectorInertia::<3>::from_point_masses(&[]),
             Err(BivectorInertiaError::EmptyPointMassSet)
-        );
+        ));
         assert!(matches!(
             BivectorInertia::<3>::from_point_masses(&[(0.0, SVector::zeros())]),
             Err(BivectorInertiaError::InvalidPointMass { index: 0 })
         ));
-        assert_eq!(
+        assert!(matches!(
             BivectorInertia::<1>::isotropic(1.0),
             Err(BivectorInertiaError::UnsupportedSpatialDimension { dimension: 1 })
-        );
+        ));
     }
 }
