@@ -5,7 +5,9 @@
 
 use std::collections::BTreeMap;
 
-use inland_waterway_lock_operations::{PassageDisposition, PassageEvaluation, TimeInterval};
+use inland_waterway_lock_operations::{
+    EvidenceState, PassageDisposition, PassageEvaluation, TimeInterval,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Direction {
@@ -28,9 +30,24 @@ pub struct LockScheduleProfile {
     pub tick_seconds: u64,
     pub service_unit_label: String,
     pub direction_change_ticks: u64,
+    pub maximum_arrival_evidence_age_ticks: u64,
     pub unavailable_windows: Vec<TimeInterval>,
     pub water_budget_ml: u64,
     pub pump_energy_budget_wh: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArrivalWindowEvidence {
+    pub evidence_id: String,
+    pub source_id: String,
+    pub source_revision: String,
+    /// Points to a validation/calibration receipt from the source model owner.
+    pub calibration_receipt_id: String,
+    /// Must identify the operating regime for which the interval is supported.
+    pub operating_regime_id: String,
+    pub observed_at_tick: u64,
+    pub valid_through_tick: Option<u64>,
+    pub state: EvidenceState,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -48,6 +65,7 @@ pub struct PassageRequest {
     /// Earliest and latest possible arrival ticks, inclusive.
     pub arrival_earliest_tick: u64,
     pub arrival_latest_tick: u64,
+    pub arrival_evidence: ArrivalWindowEvidence,
     /// Authorized service-start window, inclusive at both ends.
     pub earliest_start_tick: u64,
     pub latest_start_tick: u64,
@@ -77,6 +95,9 @@ pub enum NotScheduledReason {
     PassageBlocked,
     PassageNeedsReview,
     PassageUnsupported,
+    ArrivalEvidenceInvalid,
+    ArrivalEvidenceNeedsReview,
+    ArrivalEvidenceRevoked,
     LatestStartMissed,
     MaximumWaitExceeded,
     CompletionDeadlineMissed,
@@ -233,6 +254,44 @@ fn validate_profile(
     Ok(unavailable)
 }
 
+fn arrival_evidence_error(
+    profile: &LockScheduleProfile,
+    evidence: &ArrivalWindowEvidence,
+) -> Option<NotScheduledReason> {
+    if !nonempty(&evidence.evidence_id)
+        || !nonempty(&evidence.source_id)
+        || !nonempty(&evidence.source_revision)
+        || !nonempty(&evidence.calibration_receipt_id)
+        || !nonempty(&evidence.operating_regime_id)
+    {
+        return Some(NotScheduledReason::ArrivalEvidenceInvalid);
+    }
+
+    match evidence.state {
+        EvidenceState::Current => {}
+        EvidenceState::Unknown | EvidenceState::Disputed => {
+            return Some(NotScheduledReason::ArrivalEvidenceNeedsReview);
+        }
+        EvidenceState::Revoked => {
+            return Some(NotScheduledReason::ArrivalEvidenceRevoked);
+        }
+    }
+
+    let decision_tick = profile.planning_window.start_tick;
+    if evidence.observed_at_tick > decision_tick {
+        return Some(NotScheduledReason::ArrivalEvidenceInvalid);
+    }
+    if decision_tick - evidence.observed_at_tick
+        > profile.maximum_arrival_evidence_age_ticks
+    {
+        return Some(NotScheduledReason::ArrivalEvidenceNeedsReview);
+    }
+    match evidence.valid_through_tick {
+        Some(valid_through) if valid_through >= decision_tick => None,
+        Some(_) | None => Some(NotScheduledReason::ArrivalEvidenceNeedsReview),
+    }
+}
+
 fn request_error(
     profile: &LockScheduleProfile,
     request: &PassageRequest,
@@ -253,6 +312,10 @@ fn request_error(
 
     if request.lock_id != profile.lock_id || request.lock_revision != profile.lock_revision {
         return Some(NotScheduledReason::LockBindingMismatch);
+    }
+
+    if let Some(reason) = arrival_evidence_error(profile, &request.arrival_evidence) {
+        return Some(reason);
     }
 
     match request.compatibility.disposition {
@@ -810,6 +873,7 @@ mod tests {
             tick_seconds: 60,
             service_unit_label: "tonne".into(),
             direction_change_ticks: 5,
+            maximum_arrival_evidence_age_ticks: 20,
             unavailable_windows: vec![TimeInterval {
                 start_tick: 50,
                 end_tick: 60,
@@ -839,6 +903,16 @@ mod tests {
             direction,
             arrival_earliest_tick: arrival,
             arrival_latest_tick: arrival,
+            arrival_evidence: ArrivalWindowEvidence {
+                evidence_id: format!("arrival-evidence-{request_id}"),
+                source_id: "arrival-model".into(),
+                source_revision: "model-v1".into(),
+                calibration_receipt_id: "calibration-v1".into(),
+                operating_regime_id: "regime-normal".into(),
+                observed_at_tick: 0,
+                valid_through_tick: Some(1_000),
+                state: EvidenceState::Current,
+            },
             earliest_start_tick: arrival,
             latest_start_tick: 900,
             maximum_wait_ticks: 500,
@@ -1198,6 +1272,90 @@ mod tests {
         assert_eq!(plan.metrics.total_direction_change_ticks, 7);
         assert_eq!(plan.metrics.total_occupied_ticks, 27);
         assert_eq!(plan.metrics.comparable_arrival_pairs, 1);
+    }
+
+    #[test]
+    fn stale_arrival_evidence_requires_review() {
+        let mut p = profile();
+        p.maximum_arrival_evidence_age_ticks = 5;
+        let mut stale = request("stale", 0, Direction::Upstream, 1, 1);
+        stale.arrival_evidence.observed_at_tick = 10;
+        // Make the decision time later than the observation to exercise age.
+        p.planning_window.start_tick = 20;
+        stale.arrival_evidence.observed_at_tick = 10;
+        stale.arrival_evidence.valid_through_tick = Some(100);
+        let plan = schedule(
+            &p,
+            &[stale],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(plan.schedule.len(), 0);
+        assert_eq!(
+            plan.outcomes[0].reason,
+            Some(NotScheduledReason::ArrivalEvidenceNeedsReview)
+        );
+    }
+
+    #[test]
+    fn future_dated_arrival_evidence_is_rejected_as_inconsistent() {
+        let mut future = request("future", 0, Direction::Upstream, 1, 1);
+        future.arrival_evidence.observed_at_tick = 1;
+        let plan = schedule(
+            &profile(),
+            &[future],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(
+            plan.outcomes[0].reason,
+            Some(NotScheduledReason::ArrivalEvidenceInvalid)
+        );
+    }
+
+    #[test]
+    fn disputed_and_revoked_arrival_evidence_cannot_be_used() {
+        let mut disputed = request("disputed", 0, Direction::Upstream, 1, 1);
+        disputed.arrival_evidence.state = EvidenceState::Disputed;
+        let mut revoked = request("revoked", 0, Direction::Upstream, 1, 1);
+        revoked.arrival_evidence.state = EvidenceState::Revoked;
+        let plan = schedule(
+            &profile(),
+            &[disputed, revoked],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert!(plan.schedule.is_empty());
+        assert_eq!(
+            plan.outcomes
+                .iter()
+                .find(|outcome| outcome.request_id == "disputed")
+                .and_then(|outcome| outcome.reason),
+            Some(NotScheduledReason::ArrivalEvidenceNeedsReview)
+        );
+        assert_eq!(
+            plan.outcomes
+                .iter()
+                .find(|outcome| outcome.request_id == "revoked")
+                .and_then(|outcome| outcome.reason),
+            Some(NotScheduledReason::ArrivalEvidenceRevoked)
+        );
+    }
+
+    #[test]
+    fn missing_arrival_calibration_receipt_is_not_accepted() {
+        let mut missing = request("missing", 0, Direction::Upstream, 1, 1);
+        missing.arrival_evidence.calibration_receipt_id.clear();
+        let plan = schedule(
+            &profile(),
+            &[missing],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(
+            plan.outcomes[0].reason,
+            Some(NotScheduledReason::ArrivalEvidenceInvalid)
+        );
     }
 
     #[test]
