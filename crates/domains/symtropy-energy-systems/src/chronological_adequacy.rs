@@ -785,8 +785,7 @@ fn weighted_upper_tail_cvar(
         ));
     }
     outcomes.sort_by(|left, right| right.0.total_cmp(&left.0));
-    let tail_mass = total_weight
-        * (1.0 - f64::from(confidence_level_basis_points) / 10_000.0);
+    let tail_mass = 1.0 - f64::from(confidence_level_basis_points) / 10_000.0;
     let mut remaining_mass = tail_mass;
     let mut tail_energy = 0.0_f64;
     for (eue, raw_weight) in outcomes {
@@ -1151,5 +1150,87 @@ mod tests {
         assert_eq!(report.reference_loss_of_load_days, 1.0);
         assert_eq!(report.reference_loss_of_load_hours, 2.0);
     }
+
+
+    #[test]
+    fn weighted_upper_tail_cvar_uses_fractional_probability_mass() {
+        let value = weighted_upper_tail_cvar(
+            &[(0.01, 0.9), (0.03, 0.1)],
+            8_000,
+        ).expect("weighted CVaR");
+        assert!((value - 0.02).abs() < 1e-12);
+    }
+
+    #[test]
+    fn cvar_search_restores_reference_upper_tail_eue() {
+        let study = ChronologicalAdequacyStudy::new(
+            contract(
+                ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar {
+                    confidence_level_basis_points: 9_000,
+                },
+                20.0,
+            ),
+            vec![
+                ChronologicalAdequacyScenario::new(
+                    "high-stress",
+                    0.1,
+                    vec![interval(0, 100.0, 80.0, 10.0, "high-0")],
+                ).expect("high scenario"),
+                ChronologicalAdequacyScenario::new(
+                    "low-stress",
+                    0.9,
+                    vec![interval(0, 100.0, 90.0, 0.0, "low-0")],
+                ).expect("low scenario"),
+            ],
+        ).expect("study");
+        let report = evaluate_chronological_adequacy(&study).expect("evaluation");
+        assert!((report.reference_unserved_energy_cvar_mwh.unwrap() - 0.02).abs() < 1e-12);
+        assert!((report.elcc_like_added_load_kw - 10.0).abs() < 1e-5);
+        assert!((report.augmented_unserved_energy_cvar_mwh.unwrap() - 0.02).abs() < 1e-8);
+        assert!(report.reference_criterion_preserved);
+        assert!(report.search_converged);
+    }
+
+    #[test]
+    fn invalid_cvar_confidence_levels_are_rejected() {
+        for level in [0, 10_000, u16::MAX] {
+            let result = ChronologicalAdequacyContract::new(
+                identity(),
+                ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar {
+                    confidence_level_basis_points: level,
+                },
+                1.0,
+                1e-9,
+                1e-9,
+                20.0,
+                1e-6,
+                64,
+            );
+            assert!(matches!(
+                result,
+                Err(ChronologicalAdequacyError::InvalidCvarConfidenceLevel(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn loss_of_load_hours_and_days_are_distinct_primary_metrics() {
+        let study = ChronologicalAdequacyStudy::new(
+            contract(ChronologicalAdequacyMetric::LossOfLoadHours, 10.0),
+            vec![ChronologicalAdequacyScenario::new(
+                "clustered-shortfall",
+                1.0,
+                vec![
+                    interval(0, 100.0, 90.0, 0.0, "lole-0"),
+                    interval(0, 100.0, 95.0, 0.0, "lole-1"),
+                ],
+            ).expect("scenario")],
+        ).expect("study");
+        let report = evaluate_chronological_adequacy(&study).expect("evaluation");
+        assert_eq!(report.reference_loss_of_load_hours, 2.0);
+        assert_eq!(report.reference_loss_of_load_days, 1.0);
+        assert_eq!(report.reference_metric_value, 2.0);
+    }
+
 
 }
