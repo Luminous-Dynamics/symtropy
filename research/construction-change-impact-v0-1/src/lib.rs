@@ -196,11 +196,25 @@ pub enum ImpactError {
     DuplicateNodeId(String),
     DuplicateEdgeId(String),
     MissingNode(String),
-    MissingEdgeEndpoint { edge_id: String, node_id: String },
-    DuplicateCoveredChangeKind { edge_id: String },
-    DuplicateRule { edge_id: String, change_kind: ChangeKind },
-    RuleNotDeclaredCovered { edge_id: String, change_kind: ChangeKind },
-    NonTriggeringRuleCannotPropagate { edge_id: String, rule_id: String },
+    MissingEdgeEndpoint {
+        edge_id: String,
+        node_id: String,
+    },
+    DuplicateCoveredChangeKind {
+        edge_id: String,
+    },
+    DuplicateRule {
+        edge_id: String,
+        change_kind: ChangeKind,
+    },
+    RuleNotDeclaredCovered {
+        edge_id: String,
+        change_kind: ChangeKind,
+    },
+    NonTriggeringRuleCannotPropagate {
+        edge_id: String,
+        rule_id: String,
+    },
     DependencyCycle(Vec<String>),
     StaleInput(&'static str),
     InvalidChangeEvent(&'static str),
@@ -397,9 +411,7 @@ impl EvidenceGraph {
         if order.len() != self.nodes.len() {
             let cyclic: Vec<String> = indegree
                 .iter()
-                .filter_map(|(node_id, degree)| {
-                    (*degree > 0).then_some((*node_id).to_owned())
-                })
+                .filter_map(|(node_id, degree)| (*degree > 0).then_some((*node_id).to_owned()))
                 .collect();
             return Err(ImpactError::DependencyCycle(cyclic));
         }
@@ -458,7 +470,9 @@ pub fn evaluate_change(
     if subject.revision_id != event.prior_revision_id
         || subject.content_digest != event.prior_digest
     {
-        return Err(ImpactError::StaleInput("subject_prior_revision_or_digest_mismatch"));
+        return Err(ImpactError::StaleInput(
+            "subject_prior_revision_or_digest_mismatch",
+        ));
     }
     if event.new_revision_id == event.prior_revision_id {
         return Err(ImpactError::InvalidChangeEvent("revision_did_not_advance"));
@@ -609,8 +623,9 @@ pub fn evaluate_change(
                                 acc.witnesses.push(witness);
 
                                 if *action == ImpactAction::ReviewRequired {
-                                    acc.reasons
-                                        .insert("authorized_review_required_by_edge_policy".to_owned());
+                                    acc.reasons.insert(
+                                        "authorized_review_required_by_edge_policy".to_owned(),
+                                    );
                                 }
 
                                 if rule.propagate {
@@ -880,7 +895,9 @@ fn evaluation_identity(graph: &EvidenceGraph, event: &ChangeEvent) -> String {
         graph.closure_graph_revision.clone(),
         graph.closure_manifest_ref.clone().unwrap_or_default(),
         graph.closure_authority_ref.clone().unwrap_or_default(),
-        graph.closure_valid_until_unix.map_or_else(String::new, |v| v.to_string()),
+        graph
+            .closure_valid_until_unix
+            .map_or_else(String::new, |v| v.to_string()),
         event.event_id.clone(),
         event.subject_node_id.clone(),
         event.prior_revision_id.clone(),
@@ -1039,13 +1056,21 @@ mod tests {
                 "task",
                 "claim",
                 vec![kind.clone()],
-                vec![rule("r2", kind.clone(), Some(ImpactAction::Revalidate), true)],
+                vec![rule(
+                    "r2",
+                    kind.clone(),
+                    Some(ImpactAction::Revalidate),
+                    true,
+                )],
                 ScopeSelector::Global,
             ),
         ]);
         let report = evaluate_change(&graph, &event(kind, ScopeSelector::Global)).unwrap();
         assert_eq!(status(&report, "task"), DecisionStatus::Affected);
-        assert_eq!(decision(&report, "task").actions, vec![ImpactAction::Rebuild]);
+        assert_eq!(
+            decision(&report, "task").actions,
+            vec![ImpactAction::Rebuild]
+        );
         assert_eq!(status(&report, "claim"), DecisionStatus::Affected);
         assert_eq!(
             decision(&report, "claim").actions,
@@ -1070,9 +1095,12 @@ mod tests {
             decision(&report, "raw").unaffected_closure_ref.as_deref(),
             Some("closure-manifest-1")
         );
-        assert!(decision(&report, "raw").witnesses.iter().any(|w| {
-            w.effect == WitnessEffect::ExplicitlyNonTriggering
-        }));
+        assert!(
+            decision(&report, "raw")
+                .witnesses
+                .iter()
+                .any(|w| { w.effect == WitnessEffect::ExplicitlyNonTriggering })
+        );
     }
 
     #[test]
@@ -1144,7 +1172,10 @@ mod tests {
     #[test]
     fn metadata_only_same_digest_requires_equivalence_attestation() {
         let graph = graph(Vec::new());
-        let mut input = event(ChangeKind::AdministrativeMetadataOnly, ScopeSelector::Global);
+        let mut input = event(
+            ChangeKind::AdministrativeMetadataOnly,
+            ScopeSelector::Global,
+        );
         input.new_digest = input.prior_digest.clone();
         assert_eq!(
             evaluate_change(&graph, &input),
@@ -1161,7 +1192,10 @@ mod tests {
     #[test]
     fn metadata_only_missing_attestation_is_unknown_even_with_new_digest() {
         let graph = graph(Vec::new());
-        let input = event(ChangeKind::AdministrativeMetadataOnly, ScopeSelector::Global);
+        let input = event(
+            ChangeKind::AdministrativeMetadataOnly,
+            ScopeSelector::Global,
+        );
         let report = evaluate_change(&graph, &input).unwrap();
         assert_eq!(status(&report, "task"), DecisionStatus::UnknownImpact);
     }
@@ -1174,7 +1208,12 @@ mod tests {
             "source",
             "task",
             vec![kind.clone()],
-            vec![rule("r1", kind.clone(), Some(ImpactAction::Requalify), true)],
+            vec![rule(
+                "r1",
+                kind.clone(),
+                Some(ImpactAction::Requalify),
+                true,
+            )],
             scope(Some("site-a")),
         )]);
         let report = evaluate_change(&graph, &event(kind, ScopeSelector::Global)).unwrap();
@@ -1189,15 +1228,22 @@ mod tests {
             "source",
             "site-b",
             vec![kind.clone()],
-            vec![rule("r1", kind.clone(), Some(ImpactAction::Requalify), true)],
+            vec![rule(
+                "r1",
+                kind.clone(),
+                Some(ImpactAction::Requalify),
+                true,
+            )],
             scope(Some("site-b")),
         )]);
         let report = evaluate_change(&graph, &event(kind, scope(Some("site-a")))).unwrap();
         assert_eq!(status(&report, "site-b"), DecisionStatus::Unaffected);
-        assert!(decision(&report, "site-b")
-            .witnesses
-            .iter()
-            .any(|w| w.effect == WitnessEffect::ScopeDisjoint));
+        assert!(
+            decision(&report, "site-b")
+                .witnesses
+                .iter()
+                .any(|w| w.effect == WitnessEffect::ScopeDisjoint)
+        );
     }
 
     #[test]
@@ -1209,7 +1255,12 @@ mod tests {
                 "source",
                 "task",
                 vec![kind.clone()],
-                vec![rule("r1", kind.clone(), Some(ImpactAction::Revalidate), true)],
+                vec![rule(
+                    "r1",
+                    kind.clone(),
+                    Some(ImpactAction::Revalidate),
+                    true,
+                )],
                 ScopeSelector::Global,
             ),
             edge(
@@ -1217,7 +1268,12 @@ mod tests {
                 "source",
                 "execution",
                 vec![kind.clone()],
-                vec![rule("r2", kind.clone(), Some(ImpactAction::Remeasure), true)],
+                vec![rule(
+                    "r2",
+                    kind.clone(),
+                    Some(ImpactAction::Remeasure),
+                    true,
+                )],
                 ScopeSelector::Global,
             ),
             edge(
@@ -1225,7 +1281,12 @@ mod tests {
                 "task",
                 "claim",
                 vec![kind.clone()],
-                vec![rule("r3", kind.clone(), Some(ImpactAction::Requalify), false)],
+                vec![rule(
+                    "r3",
+                    kind.clone(),
+                    Some(ImpactAction::Requalify),
+                    false,
+                )],
                 ScopeSelector::Global,
             ),
             edge(
@@ -1240,10 +1301,7 @@ mod tests {
         let report = evaluate_change(&graph, &event(kind, ScopeSelector::Global)).unwrap();
         assert_eq!(
             decision(&report, "claim").actions,
-            vec![
-                ImpactAction::Rebuild,
-                ImpactAction::Requalify
-            ]
+            vec![ImpactAction::Rebuild, ImpactAction::Requalify]
         );
         assert_eq!(decision(&report, "claim").witnesses.len(), 2);
     }
@@ -1296,7 +1354,12 @@ mod tests {
                 "source",
                 "execution",
                 vec![kind.clone()],
-                vec![rule("r2", kind.clone(), Some(ImpactAction::Revalidate), false)],
+                vec![rule(
+                    "r2",
+                    kind.clone(),
+                    Some(ImpactAction::Revalidate),
+                    false,
+                )],
                 ScopeSelector::Global,
             ),
             edge(
@@ -1310,10 +1373,16 @@ mod tests {
         ]);
         let report = evaluate_change(&graph, &event(kind, ScopeSelector::Global)).unwrap();
         assert_eq!(status(&report, "task"), DecisionStatus::ReviewRequired);
-        assert!(decision(&report, "task")
-            .actions
-            .contains(&ImpactAction::ReviewRequired));
-        assert!(decision(&report, "task").actions.contains(&ImpactAction::Rebuild));
+        assert!(
+            decision(&report, "task")
+                .actions
+                .contains(&ImpactAction::ReviewRequired)
+        );
+        assert!(
+            decision(&report, "task")
+                .actions
+                .contains(&ImpactAction::Rebuild)
+        );
     }
 
     #[test]
@@ -1344,12 +1413,7 @@ mod tests {
             "source",
             "task",
             vec![ChangeKind::CostBasisOrRateChanged],
-            vec![rule(
-                "r1",
-                ChangeKind::CostBasisOrRateChanged,
-                None,
-                true,
-            )],
+            vec![rule("r1", ChangeKind::CostBasisOrRateChanged, None, true)],
             ScopeSelector::Global,
         )]);
         assert!(matches!(
@@ -1402,7 +1466,12 @@ mod tests {
                 "source",
                 "task",
                 vec![kind.clone()],
-                vec![rule("r2", kind.clone(), Some(ImpactAction::Revalidate), false)],
+                vec![rule(
+                    "r2",
+                    kind.clone(),
+                    Some(ImpactAction::Revalidate),
+                    false,
+                )],
                 ScopeSelector::Global,
             ),
         ]);
@@ -1418,10 +1487,31 @@ mod tests {
     fn multiple_unknown_paths_are_retained_at_convergent_claim() {
         let kind = ChangeKind::DesignGeometryChanged;
         let graph = graph(vec![
-            edge("e1", "source", "task", vec![], vec![], ScopeSelector::Global),
-            edge("e2", "source", "execution", vec![], vec![], ScopeSelector::Global),
+            edge(
+                "e1",
+                "source",
+                "task",
+                vec![],
+                vec![],
+                ScopeSelector::Global,
+            ),
+            edge(
+                "e2",
+                "source",
+                "execution",
+                vec![],
+                vec![],
+                ScopeSelector::Global,
+            ),
             edge("e3", "task", "claim", vec![], vec![], ScopeSelector::Global),
-            edge("e4", "execution", "claim", vec![], vec![], ScopeSelector::Global),
+            edge(
+                "e4",
+                "execution",
+                "claim",
+                vec![],
+                vec![],
+                ScopeSelector::Global,
+            ),
         ]);
         let report = evaluate_change(&graph, &event(kind, ScopeSelector::Global)).unwrap();
         assert_eq!(status(&report, "claim"), DecisionStatus::UnknownImpact);
@@ -1563,7 +1653,12 @@ mod tests {
             "task",
             "claim",
             vec![kind.clone()],
-            vec![rule("r2", kind.clone(), Some(ImpactAction::Revalidate), false)],
+            vec![rule(
+                "r2",
+                kind.clone(),
+                Some(ImpactAction::Revalidate),
+                false,
+            )],
             ScopeSelector::Global,
         );
         let first = graph(vec![e1.clone(), e2.clone()]);
@@ -1592,7 +1687,12 @@ mod tests {
                 "task",
                 "claim",
                 vec![kind.clone()],
-                vec![rule("r2", kind.clone(), Some(ImpactAction::Revalidate), false)],
+                vec![rule(
+                    "r2",
+                    kind.clone(),
+                    Some(ImpactAction::Revalidate),
+                    false,
+                )],
                 ScopeSelector::Global,
             ),
         ]);
@@ -1615,9 +1715,12 @@ mod tests {
             ScopeSelector::Global,
         )]);
         let report = evaluate_change(&graph, &event(kind, ScopeSelector::Global)).unwrap();
-        assert!(decision(&report, "task").witnesses.iter().any(|w| {
-            w.effect == WitnessEffect::UnknownPolicy
-        }));
+        assert!(
+            decision(&report, "task")
+                .witnesses
+                .iter()
+                .any(|w| { w.effect == WitnessEffect::UnknownPolicy })
+        );
     }
 
     #[test]
@@ -1658,7 +1761,10 @@ mod tests {
             ],
             ScopeSelector::Global,
         )]);
-        assert!(matches!(graph.validate(), Err(ImpactError::DuplicateRule { .. })));
+        assert!(matches!(
+            graph.validate(),
+            Err(ImpactError::DuplicateRule { .. })
+        ));
     }
 
     #[test]
