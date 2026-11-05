@@ -10,8 +10,8 @@ use rand_philox::Philox;
 
 use crate::DrawAddress;
 use crate::coupling_projection::{
-    project_correspondence_addresses, CorrespondenceAddressPlan, EventDrawScope,
-    HypothesisAddressPlan, PlanCompleteness, PlannedAddress, PlannedPresence, SharingStatus,
+    CorrespondenceAddressPlan, EventDrawScope, HypothesisAddressPlan, PlanCompleteness,
+    PlannedAddress, PlannedPresence, SharingStatus, project_correspondence_addresses,
 };
 
 pub const ADDRESS_SCHEMA_ID: &str = "symtropy.road-exo-coupling.draw-address.v0.1";
@@ -368,12 +368,9 @@ pub fn verify_correspondence_draw_bundle(
         .iter()
         .flat_map(|hypothesis| hypothesis.causal_rules.iter().cloned())
         .collect();
-    let rederived = project_correspondence_addresses(
-        &correspondence,
-        &bundle.event_scopes,
-        &causal_rules,
-    )
-    .map_err(|_| CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
+    let rederived =
+        project_correspondence_addresses(&correspondence, &bundle.event_scopes, &causal_rules)
+            .map_err(|_| CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
 
     if rederived.completeness != bundle.completeness
         || rederived.left_events != bundle.left_events
@@ -636,10 +633,7 @@ fn hash_optional_stable_id(hasher: &mut blake3::Hasher, value: &Option<crate::St
     }
 }
 
-fn hash_event_presence(
-    hasher: &mut blake3::Hasher,
-    value: &crate::correspondence::EventPresence,
-) {
+fn hash_event_presence(hasher: &mut blake3::Hasher, value: &crate::correspondence::EventPresence) {
     match value {
         crate::correspondence::EventPresence::Observed { evidence_ref } => {
             hasher.update(&[0]);
@@ -893,9 +887,9 @@ mod tests {
         UnmatchedReason,
     };
     use crate::coupling_projection::{
-        project_correspondence_addresses, CausalDisposition, CorrespondenceAddressPlan,
-        EventDrawScope, PairCausalRule, PlanCompleteness, PlannedAddress, PlannedPresence,
-        SharingStatus, SourceProfile,
+        CausalDisposition, CorrespondenceAddressPlan, EventDrawScope, PairCausalRule,
+        PlanCompleteness, PlannedAddress, PlannedPresence, SharingStatus, SourceProfile,
+        project_correspondence_addresses,
     };
     use crate::{Coupling, EventIdentity, StableId};
 
@@ -983,12 +977,7 @@ mod tests {
         }
     }
 
-    fn event(
-        event_id: &str,
-        actor: &str,
-        slot: &str,
-        presence: EventPresence,
-    ) -> EventOccurrence {
+    fn event(event_id: &str, actor: &str, slot: &str, presence: EventPresence) -> EventOccurrence {
         EventOccurrence {
             event_id: id(event_id),
             event_family: id("crossing-gap-choice"),
@@ -1047,18 +1036,8 @@ mod tests {
                 ),
             ],
             hypotheses: vec![
-                correspondence_hypothesis(
-                    "H-actor",
-                    "R1",
-                    IdentityBasis::Actor,
-                    "R2",
-                ),
-                correspondence_hypothesis(
-                    "H-slot",
-                    "R2",
-                    IdentityBasis::EncounterSlot,
-                    "R1",
-                ),
+                correspondence_hypothesis("H-actor", "R1", IdentityBasis::Actor, "R2"),
+                correspondence_hypothesis("H-slot", "R2", IdentityBasis::EncounterSlot, "R1"),
             ],
             universe_status: CandidateUniverseStatus::ExhaustiveWithinDeclaredScope {
                 evidence_ref: id("fixture-event-universe"),
@@ -1283,7 +1262,9 @@ mod tests {
                 evidence_ref: id("new-left-event-evidence"),
             },
         ));
-        unclassified.event_scopes.push(event_scope("continue", "L2"));
+        unclassified
+            .event_scopes
+            .push(event_scope("continue", "L2"));
         unclassified.event_scopes.sort_by(|left, right| {
             (&left.branch_id, &left.event_id).cmp(&(&right.branch_id, &right.event_id))
         });
