@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use symtropy_pcc_metrology::{
     CalibrationCorrelations, CalibrationParameterUncertainty, ClockAlignmentEvidence,
     LinearPowerCalibration, MeasurementChainIdentity, MeterReading, PairedPowerInterval,
