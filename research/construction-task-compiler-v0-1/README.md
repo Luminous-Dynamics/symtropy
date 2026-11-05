@@ -50,7 +50,7 @@ This package owns only normalized work-graph structure, deterministic dependency
 
 The dependency-free Rust crate now includes a bounded Stage 1 compiler over normalized design elements and an approved method-template contract. It instantiates one task node per design-element/method-step pair, preserves source element and transformation-rule lineage, binds typed properties, resolves declared same-element method dependencies, and feeds the resulting graph into the independent structural validator.
 
-The compiler requires an approved method reference, exact design revision/frame/site epoch, explicit task-family applicability, property names/values/units/source references and versioned transformation rule digests. If source and target units differ, a supplied conversion output and external conversion-evidence reference are required; this module does not perform or authorize conversions. Elements and steps are canonicalized by stable IDs before output, and task identities use length-prefixed element/step pairs to avoid delimiter collisions. The graph identity label binds project, site, work package, model digest, design revision, target frame, site epoch, method revision, compiler version and rule-set digest; it is a deterministic identity label, not a cryptographic digest.
+The compiler requires an approved method reference, exact design revision/frame/site epoch, explicit task-family applicability, property names/values/units/source references and versioned transformation rule digests. If source and target units differ, a supplied conversion output and external conversion-evidence reference are required; this module does not perform or authorize conversions. Elements and steps are canonicalized by stable IDs before output, and task identities use length-prefixed element/step pairs to avoid delimiter collisions. The graph identity label binds project, site, work package, model digest, design revision, target frame, site epoch, method revision, compiler version and rule-set digest; it is a deterministic identity label, not a cryptographic digest. The graph exposes a validated CTG v0.1 canonical byte encoding: nodes and set-valued fields are sorted, all strings/options/lists are length- or tag-prefixed, and the encoding begins with a versioned domain separator. These bytes are reproducible input to an external hash/signature system, but are not themselves a cryptographic digest, signature or approval.
 
 The implementation remains a normalized adapter boundary: arbitrary IFC/AAS parsing, geometry processing, capability matching and Behavior Tree lowering are not part of this stage.
 
@@ -68,7 +68,7 @@ The validator reports structural completeness only. It does not authenticate app
 
 ## Benchmark corpus and target
 
-The structural corpus is in `fixtures/construction-task-compiler-cases-v0.1.json` and defines 45 positive, negative and mutation scenarios. The method-template instantiation corpus is in `fixtures/construction-task-compiler-transform-cases-v0.1.json` and defines 25 cases. The Rust source currently contains 45 tests: 24 graph-validator tests and 21 method-instantiation tests. Fixture expected outcomes are reference targets, not empirical results.
+The structural corpus is in `fixtures/construction-task-compiler-cases-v0.1.json` and defines 45 positive, negative and mutation scenarios. The method-template transformation/canonicalization corpus is in `fixtures/construction-task-compiler-transform-cases-v0.1.json` and defines 33 cases. The Rust source currently contains 52 tests: 31 graph-validator/canonical-serialization tests and 21 method-instantiation tests. Fixture expected outcomes are reference targets, not empirical results.
 
 Prospective targets:
 - zero false executable graph admissions on frozen hard-negative cases;
@@ -83,7 +83,7 @@ Prospective targets:
 
 The Rust library validates graph headers, task source/method/rule lineage, parameter unit/source binding, required capability and evidence lists, dependency references, duplicate/self edges, and DAG acyclicity. It returns sorted diagnostics and a lexicographically tie-broken topological order so input-vector permutations do not change the scheduling order. A unit conversion between different source/target units requires an explicit conversion-evidence reference.
 
-The validator deliberately does not calculate geometry, approve transformations, infer a construction method or produce a cryptographic graph digest. A canonical serializer/digest layer and graph rewrite engine are later stages. Validator diagnostics retain `node_id`; the compiler wraps those separately from design-element and method-step provenance instead of coercing a task-node ID into either source identifier.
+The validator deliberately does not calculate geometry, approve transformations, infer a construction method or produce a cryptographic graph digest. The canonical serializer emits only deterministic bytes; cryptographic hashing, signatures and authority remain external. Validator diagnostics retain `node_id`; the compiler wraps those separately from design-element and method-step provenance instead of coercing a task-node ID into either source identifier.
 
 ## Build and test
 
