@@ -78,3 +78,18 @@ Important separation:
 The output is a typed, versioned v0.2 canonical address byte string. It is not a hash or Philox output. The downstream pinned resolver remains the owner of BLAKE3/Philox. The module has finite fixtures for actor-vs-slot ambiguity, cause-class separation, branch-local invariance, conditional absence, unknown presence, incomplete search, source/version mismatch and sensitivity-only coupling.
 
 No event map is selected as true and no common-random-number variance benefit is assumed.
+
+
+### Pinned Philox resolution for correspondence v0.2
+
+The correspondence projection now feeds the same pinned rand_philox 0.2.1 Philox4x32-10 resolver and blake3 1.8.7 derive-key dependency used by ROAD-PHILOX-ADAPTER-001 (#3582). This adds a v0.2 byte-address entry point; it does not introduce another PRNG or sampling algorithm.
+
+- v0.1 DrawAddress bytes retain the original ROAD-EXO-COUPLING-001 derivation context and receipt schema.
+- Correspondence-projected v0.2 canonical bytes use a distinct ROAD-CORRESPONDENCE-COUPLING-001 KDF context, derivation ID and address schema ID. The canonical bytes are passed unchanged.
+- Each hypothesis plan resolves every retained branch/event address. The returned wrapper retains hypothesis ID, branch ID, event ID, sharing disposition and presence witness beside the raw four-word Philox receipt.
+- The existing 192-bit key/counter collision registry is applied across the entire plan bundle. Repeated branch endpoints of one exact shared address are permitted only when their full 256-bit derivation digests match.
+- Incomplete correspondence sets may retain draws for known hypotheses, but the draw bundle preserves the Incomplete status; resolving a random block does not upgrade identification or completeness.
+
+The resolver emits raw u32 words only. Distribution sampling/transforms remain #3586's separate responsibility. Shared draw alignment is a causal/execution contract; its statistical variance effect is reported independently and can be positive, neutral or negative.
+
+Additional exact tests cover: same Philox words for both endpoints of one justified shared event under a given hypothesis; distinct draws for alternative actor-vs-slot mappings; stable branch-local draws across alternative maps; v0.2 receipt replay from canonical bytes; preservation of incomplete status; and separation of v0.1/v0.2 KDF domains.
