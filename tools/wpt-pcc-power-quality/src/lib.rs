@@ -217,16 +217,15 @@ fn validate_measurement(run: &Value, profile_id: &str) -> Result<(), String> {
         ));
     }
 
-    if profile_id == "IEEE_519_2022" || profile_id == "IEC_61000_4_30_2025" {
-        if method_id != "IEC_61000_4_30_2025"
+    if (profile_id == "IEEE_519_2022" || profile_id == "IEC_61000_4_30_2025")
+        && (method_id != "IEC_61000_4_30_2025"
             || edition != "IEC 61000-4-30:2025 COR1:2026"
-            || !["CLASS_A", "CLASS_S"].contains(&class)
-        {
-            return Err(fail(
-                "$.measurement",
-                "in-situ PCC power-quality assessment requires IEC 61000-4-30:2025 COR1:2026 with Class A or Class S",
-            ));
-        }
+            || !["CLASS_A", "CLASS_S"].contains(&class))
+    {
+        return Err(fail(
+            "$.measurement",
+            "in-situ PCC power-quality assessment requires IEC 61000-4-30:2025 COR1:2026 with Class A or Class S",
+        ));
     }
     if profile_id == "IEC_61000_3_12_2011_AMD1_2021"
         && (method_id != "IEC_61000_4_7_2002_AMD1_2008"
