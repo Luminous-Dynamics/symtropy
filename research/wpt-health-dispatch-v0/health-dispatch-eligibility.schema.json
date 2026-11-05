@@ -87,7 +87,8 @@
         "calibration_method",
         "calibration_status",
         "calibration_horizon_max_hours",
-        "hazard_cif_coherence_verified"
+        "hazard_cif_coherence_verified",
+        "source_locator"
       ],
       "properties": {
         "estimand": {
@@ -160,6 +161,13 @@
         },
         "hazard_cif_coherence_verified": {
           "const": true
+        },
+        "source_locator": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Required when evidence_kind is PUBLISHED_MEASURED."
         }
       }
     },
@@ -314,7 +322,8 @@
         "maximum_target_event_cif",
         "planned_service_horizon_hours",
         "maintenance_lead_time_hours",
-        "decision_mode"
+        "decision_mode",
+        "policy_sha256"
       ],
       "properties": {
         "policy_id": {
@@ -339,6 +348,10 @@
             "SOFT_HEALTH_CONSTRAINT_ONLY",
             "HARD_RISK_CAP"
           ]
+        },
+        "policy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
