@@ -31,7 +31,7 @@ The authorization receipt is permission for a site-local controller to evaluate 
 
 ## Validation status
 
-Twenty-eight Rust unit tests are authored. Fixture JSON was parsed and static source properties were reviewed. No Rust compilation, rustfmt, Clippy or test execution is claimed in this environment.
+Twenty-nine Rust unit tests are authored. Fixture JSON was parsed and static source properties were reviewed. No Rust compilation, rustfmt, Clippy or test execution is claimed in this environment.
 
 ## Deserialization and restore validation
 
@@ -40,3 +40,6 @@ Inbound `OwnerFlexibilityPolicy`, `OwnerFlexibilityOffer` and `OwnerDispatchRequ
 Five additional tests cover invalid policy allowlists, invalid offer windows, empty dispatch IDs, overcommitted restored reservations and inconsistent restored replay ledgers.
 
 The persistence format still requires authenticated, trusted storage. Deserialization validation does not provide integrity, rollback protection or atomic multi-process transaction semantics.
+
+
+- Overlapping reservations using different owner-policy snapshots are rejected even when the new policy has the same capacity numbers. A policy revision cannot silently reinterpret a still-active commitment. A new policy may be used for a non-overlapping interval after the old commitment ends.
