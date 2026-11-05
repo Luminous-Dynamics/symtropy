@@ -13,15 +13,25 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.t
 ## Implemented slice
 
 - Single-lock, single-chamber, deterministic finite scheduling.
-- FCFS, least-wait-slack (aging/fairness-oriented), and bounded directional-batch policies.
+- FCFS, projected least-slack, and bounded directional-batch policies.
+- Least-slack ordering includes the request's worst-case arrival bound, authorized
+  latest-start time, maximum-wait limit, completion deadline, service duration,
+  direction-switch delay, lock downtime and planning window.
 - Passage requests are admitted only when the upstream PassageEvaluation is
   EligibleForSyntheticPassage; unknown, inconsistent, blocked, or unsupported
   inputs are never relaxed into schedulable work.
 - Request windows, arrival uncertainty, maximum wait, deadlines, planned lock
   downtime, direction-change time, water budget, and pump-energy budget are explicit.
-- Emits recommendations and a non-collapsed objective/diagnostic vector:
-  waits, maximum wait, inversions, service, lock occupancy, water and pump energy.
-- Retains an outcome for every request, including requests not scheduled.
+- Retains exactly one reason-coded outcome for each request, including accepted
+  passages and every non-admission.
+- Reports independent metrics, not one opaque score: service units, total and
+  maximum wait, nearest-rank p50/p90/p95/p99 wait distributions, inversions,
+  direction changes, service ticks, water and pump energy. Wait distributions are
+  also reported separately by participant and service group.
+- Includes a separate exhaustive test-only oracle that reimplements tiny
+  scheduling feasibility, enumerates request permutations (at most eight
+  requests), and constructs a non-dominated objective frontier without using
+  production scheduler or metric helpers.
 - Canonical output ordering is independent of request input order.
 
 ## Important limits
@@ -35,9 +45,11 @@ admission layer. The scheduler uses declared synthetic resource envelopes only.
 
 V0 is a single-chamber reference scheduler. Multi-chamber placement, serial-lock
 routing, hydraulic transients, environmental-flow derivation, vessel dynamics,
-and live AIS/LPMS integration remain out of scope. No superiority or SOTA claim
-is made until matched operational data and published baseline formulations are
-reproduced on a frozen held-out corpus.
+and live AIS/LPMS integration remain out of scope. The tiny oracle is not a
+published-algorithm reproduction, and it is not a proof of global optimality for
+larger cases. No superiority or SOTA claim is made until matched operational
+data and published baseline formulations are reproduced on a frozen held-out
+corpus.
 
 All fixtures are synthetic. A schedule recommendation is not operator approval
 or a physical passage.
