@@ -55,11 +55,11 @@ The initial Rust crate is at:
 - `crates/domains/symtropy-trenchless-core/`
 - Issue: https://github.com/Luminous-Dynamics/symtropy/issues/3765
 
-The evaluator receives candidate method/configuration records and evidence-bearing numeric constraints. It checks:
+The evaluator receives candidate method/configuration records bound to a non-empty versioned constraint-profile reference, the full required constraint-ID inventory, and evidence-bearing numeric constraints. It rejects omitted or undeclared checks. Each candidate/requirement side must also declare an explicit evidence policy (AnyKnown or an allowlist); known values outside that policy remain unresolved rather than passing. It checks:
+- exact required-constraint inventory coverage;
 - explicit numeric unit equality;
-- finite numeric values;
-- non-empty source references;
-- unique method and constraint IDs;
+- finite numeric values and non-empty source references;
+- unique method IDs, profile constraint IDs and accepted evidence classes;
 - candidate capability >= required capacity, or candidate predicted impact <= allowed impact;
 - conservative outcome semantics.
 
@@ -68,7 +68,7 @@ Status precedence is:
 - Indeterminate if no known failure exists but one or more facts are unknown/not applicable;
 - Eligible only if every supplied hard constraint is known and passes.
 
-The evaluator does not decide whether a constraint is relevant, invent missing numerical envelopes, compute engineering predictions or rank methods. The upstream adapter must construct the complete, method-specific check set and preserve evidence provenance. An empty constraint set is rejected.
+The evaluator does not authenticate profile/source references, decide whether the authoritative profile is complete, decide whether a constraint is relevant, invent missing numerical envelopes, compute engineering predictions or rank methods. The upstream adapter must construct the complete, method-specific check set and preserve evidence provenance. An empty constraint set is rejected.
 
 ## 5. Required scenario inputs
 
