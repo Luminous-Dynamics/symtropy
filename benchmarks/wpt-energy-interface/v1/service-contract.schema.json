@@ -146,7 +146,8 @@
             "BATTERY_DC",
             "SHAFT_MECHANICAL",
             "PROCESS_HEAT",
-            "OPTICAL_RADIANT"
+            "OPTICAL_RADIANT",
+            "CHEMICAL_PROCESS"
           ]
         },
         "service_quantity": {
@@ -154,7 +155,8 @@
             "ELECTRICAL_DC_ENERGY",
             "MECHANICAL_SHAFT_WORK",
             "THERMAL_PROCESS_ENERGY",
-            "OPTICAL_RADIANT_ENERGY"
+            "OPTICAL_RADIANT_ENERGY",
+            "CHEMICAL_FREE_ENERGY_CHANGE"
           ]
         },
         "service_unit": {
@@ -165,7 +167,8 @@
             "DC_REAL_POWER_INTEGRATION",
             "TORQUE_SPEED_INTEGRATION",
             "CALORIMETRY_OR_ENTHALPY",
-            "OPTICAL_RADIOMETRY"
+            "OPTICAL_RADIOMETRY",
+            "REACTION_EXTENT_AND_CHEMICAL_POTENTIAL"
           ]
         },
         "source_input_boundary_id": {
@@ -296,6 +299,25 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "service_type": {
+                "const": "CHEMICAL_PROCESS"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "service_quantity": {
+                "const": "CHEMICAL_FREE_ENERGY_CHANGE"
+              },
+              "measurement_method": {
+                "const": "REACTION_EXTENT_AND_CHEMICAL_POTENTIAL"
+              }
+            }
+          }
         }
       ]
     },
@@ -359,7 +381,8 @@
             "BATTERY_DC",
             "SHAFT_MECHANICAL",
             "PROCESS_HEAT",
-            "OPTICAL_RADIANT"
+            "OPTICAL_RADIANT",
+            "CHEMICAL_PROCESS"
           ]
         }
       }
