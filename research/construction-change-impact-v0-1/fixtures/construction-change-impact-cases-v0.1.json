@@ -1,0 +1,337 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-change-impact-v0.1",
+  "fixture_class": "synthetic_reference_cases",
+  "cases": [
+    {
+      "id": "ci-001",
+      "scenario": "design_geometry_to_compiled_tasks",
+      "expected": "affected_rebuild",
+      "description": "Geometry change rebuilds dependent compiled task graph and downstream execution evidence."
+    },
+    {
+      "id": "ci-002",
+      "scenario": "metadata_only_with_equivalence",
+      "expected": "unaffected",
+      "description": "Metadata-only change with verified equivalence preserves scoped claims."
+    },
+    {
+      "id": "ci-003",
+      "scenario": "metadata_only_without_equivalence",
+      "expected": "unknown",
+      "description": "Metadata-only label without equivalence receipt is not proof of semantic equivalence."
+    },
+    {
+      "id": "ci-004",
+      "scenario": "site_frame_exact_scope",
+      "expected": "scoped",
+      "description": "Frame change affects only same site/frame dependency paths."
+    },
+    {
+      "id": "ci-005",
+      "scenario": "global_frame_definition",
+      "expected": "global_affected",
+      "description": "Global frame definition change affects every dependent site."
+    },
+    {
+      "id": "ci-006",
+      "scenario": "site_a_epoch_site_b_independent",
+      "expected": "unaffected",
+      "description": "Site A epoch change does not affect independent Site B evidence under complete closure."
+    },
+    {
+      "id": "ci-007",
+      "scenario": "tool_change_capability_calibration",
+      "expected": "affected_requalify",
+      "description": "Tool change requalifies tool-dependent capability and calibration claims."
+    },
+    {
+      "id": "ci-008",
+      "scenario": "firmware_change_software_validation",
+      "expected": "review",
+      "description": "Firmware change requires revalidation and applicable authority review."
+    },
+    {
+      "id": "ci-009",
+      "scenario": "sensor_replacement_measurement_claims",
+      "expected": "affected_remeasure",
+      "description": "Sensor replacement invalidates dependent sensor calibration and visibility evidence."
+    },
+    {
+      "id": "ci-010",
+      "scenario": "material_lot_change",
+      "expected": "scoped",
+      "description": "Material lot change affects dependent material/method/inspection evidence only."
+    },
+    {
+      "id": "ci-011",
+      "scenario": "method_sequence_change",
+      "expected": "affected_rebuild",
+      "description": "Method sequence change rebuilds task graph and execution plan."
+    },
+    {
+      "id": "ci-012",
+      "scenario": "rule_digest_mutation_same_label",
+      "expected": "affected_revalidate",
+      "description": "Changed transformation-rule digest invalidates derived outputs."
+    },
+    {
+      "id": "ci-013",
+      "scenario": "fine_grained_single_element_change",
+      "expected": "minimal_scope",
+      "description": "One element change leaves unrelated element unaffected only with granular closure."
+    },
+    {
+      "id": "ci-014",
+      "scenario": "acceptance_profile_change",
+      "expected": "affected_rebuild",
+      "description": "Acceptance change invalidates derived accepted-output and productivity claims."
+    },
+    {
+      "id": "ci-015",
+      "scenario": "calibration_expiry",
+      "expected": "affected_remeasure",
+      "description": "Expired calibration requires new measurement or review for dependent results."
+    },
+    {
+      "id": "ci-016",
+      "scenario": "survey_control_point_correction",
+      "expected": "scoped",
+      "description": "Control-point correction propagates only through the relevant network/frame."
+    },
+    {
+      "id": "ci-017",
+      "scenario": "source_evidence_revocation",
+      "expected": "affected_requalify",
+      "description": "Revoked source evidence invalidates dependent claims."
+    },
+    {
+      "id": "ci-018",
+      "scenario": "source_evidence_correction",
+      "expected": "supersession",
+      "description": "Corrected source evidence creates a new immutable lineage and evaluation."
+    },
+    {
+      "id": "ci-019",
+      "scenario": "cost_basis_change",
+      "expected": "cost_only",
+      "description": "Cost basis change invalidates cost claims but not physical inspection."
+    },
+    {
+      "id": "ci-020",
+      "scenario": "robot_serial_change",
+      "expected": "review",
+      "description": "Serial change triggers scoped capability/qualification review."
+    },
+    {
+      "id": "ci-021",
+      "scenario": "missing_edge_incomplete_closure",
+      "expected": "unknown",
+      "description": "Missing edge and incomplete closure prohibit unaffected."
+    },
+    {
+      "id": "ci-022",
+      "scenario": "missing_edge_false_complete_closure",
+      "expected": "reject",
+      "description": "A closure manifest inconsistent with dependency records is rejected by an external corpus oracle."
+    },
+    {
+      "id": "ci-023",
+      "scenario": "unknown_change_kind",
+      "expected": "unknown",
+      "description": "Unknown event kind produces UnknownImpact."
+    },
+    {
+      "id": "ci-024",
+      "scenario": "unknown_semantic_delta",
+      "expected": "unknown",
+      "description": "Unknown delta does not yield unaffected."
+    },
+    {
+      "id": "ci-025",
+      "scenario": "missing_authority_for_approval_change",
+      "expected": "review",
+      "description": "Approval-requiring event without authority reference requires review."
+    },
+    {
+      "id": "ci-026",
+      "scenario": "stale_prior_digest",
+      "expected": "stale_input",
+      "description": "Prior revision/digest mismatch is StaleInput."
+    },
+    {
+      "id": "ci-027",
+      "scenario": "duplicate_node_id",
+      "expected": "reject",
+      "description": "Duplicate node identities are rejected."
+    },
+    {
+      "id": "ci-028",
+      "scenario": "contradictory_duplicate_edge",
+      "expected": "reject",
+      "description": "Duplicate edge IDs or contradictory policies are rejected."
+    },
+    {
+      "id": "ci-029",
+      "scenario": "dependency_cycle",
+      "expected": "reject",
+      "description": "Cycle in invalidation edges is rejected with a cycle witness."
+    },
+    {
+      "id": "ci-030",
+      "scenario": "complete_nontriggering_edge",
+      "expected": "unaffected",
+      "description": "Explicit non-triggering edge coverage and complete closure justify unaffected."
+    },
+    {
+      "id": "ci-031",
+      "scenario": "multiple_paths_action_union",
+      "expected": "merge",
+      "description": "Distinct triggered paths retain all required actions."
+    },
+    {
+      "id": "ci-032",
+      "scenario": "parallel_path_witnesses",
+      "expected": "witnesses",
+      "description": "Multiple material paths are retained deterministically."
+    },
+    {
+      "id": "ci-033",
+      "scenario": "event_replay",
+      "expected": "deterministic",
+      "description": "Identical event replay produces identical report."
+    },
+    {
+      "id": "ci-034",
+      "scenario": "rule_set_revision_change",
+      "expected": "distinct_run",
+      "description": "Different policy digest creates a new evaluation identity."
+    },
+    {
+      "id": "ci-035",
+      "scenario": "historical_acceptance_receipt",
+      "expected": "historical",
+      "description": "Old receipt remains immutable but is no longer current for the new profile."
+    },
+    {
+      "id": "ci-036",
+      "scenario": "coarse_aggregate_source",
+      "expected": "conservative",
+      "description": "Coarse granularity prevents unsupported element-level unaffected claim."
+    },
+    {
+      "id": "ci-037",
+      "scenario": "robot_model_digest_change",
+      "expected": "scoped",
+      "description": "Model-bound claims are revalidated; unrelated receipts remain historical."
+    },
+    {
+      "id": "ci-038",
+      "scenario": "odd_contraction",
+      "expected": "requalify",
+      "description": "Contraction invalidates newly out-of-scope operating area."
+    },
+    {
+      "id": "ci-039",
+      "scenario": "odd_expansion",
+      "expected": "review",
+      "description": "ODD expansion does not qualify newly included area."
+    },
+    {
+      "id": "ci-040",
+      "scenario": "odd_evidence_expiry",
+      "expected": "requalify",
+      "description": "Expired ODD evidence triggers requalification."
+    },
+    {
+      "id": "ci-041",
+      "scenario": "safety_permission_revocation",
+      "expected": "block",
+      "description": "Revoked safety/permission receipt blocks dependent execution admission."
+    },
+    {
+      "id": "ci-042",
+      "scenario": "uncertainty_policy_revision",
+      "expected": "revalidate",
+      "description": "Conformity decisions using the old policy are revalidated; raw readings remain."
+    },
+    {
+      "id": "ci-043",
+      "scenario": "roundrobin_reference_correction",
+      "expected": "scoped",
+      "description": "Reference-artifact correction reopens affected lab comparisons."
+    },
+    {
+      "id": "ci-044",
+      "scenario": "cost_credit_change",
+      "expected": "cost_only",
+      "description": "Cost credit/rate does not change accepted physical counts."
+    },
+    {
+      "id": "ci-045",
+      "scenario": "governance_authority_change",
+      "expected": "review",
+      "description": "Approval dependencies are re-evaluated even when content digest remains."
+    },
+    {
+      "id": "ci-046",
+      "scenario": "new_downstream_use",
+      "expected": "new_scope",
+      "description": "New downstream use requires new applicability decision."
+    },
+    {
+      "id": "ci-047",
+      "scenario": "graph_extension",
+      "expected": "stable_unrelated",
+      "description": "New dependent node does not change unrelated prior decisions."
+    },
+    {
+      "id": "ci-048",
+      "scenario": "multi_work_package_scope",
+      "expected": "scoped",
+      "description": "Event applies through declared dependencies, not free-text matching."
+    },
+    {
+      "id": "ci-049",
+      "scenario": "input_order_permutation",
+      "expected": "deterministic",
+      "description": "Permutation of nodes/edges/rules preserves canonical output."
+    },
+    {
+      "id": "ci-050",
+      "scenario": "authority_ref_mutated_same_event_id",
+      "expected": "not_duplicate",
+      "description": "Same event ID with changed authority reference is a different event payload."
+    },
+    {
+      "id": "ci-051",
+      "scenario": "effective_time_outside_validity",
+      "expected": "review",
+      "description": "Out-of-valid-time change event requires review or stale disposition."
+    },
+    {
+      "id": "ci-052",
+      "scenario": "calibration_only_config_change",
+      "expected": "requalify",
+      "description": "Configuration change re-evaluates measurement dependencies."
+    },
+    {
+      "id": "ci-053",
+      "scenario": "compiler_task_identity_change",
+      "expected": "rebuild",
+      "description": "Compiler rebuild explains changed task identities and dependent claims."
+    },
+    {
+      "id": "ci-054",
+      "scenario": "indirect_dependency_chain",
+      "expected": "witnesses",
+      "description": "Indirect path retains shortest/all material dependency witnesses."
+    },
+    {
+      "id": "ci-055",
+      "scenario": "closure_attestation_expired",
+      "expected": "unknown",
+      "description": "Expired closure attestation forbids unaffected decisions."
+    }
+  ]
+}

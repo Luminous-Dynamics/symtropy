@@ -1,0 +1,89 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-change-impact-v0.1",
+  "owner_issue": 3678,
+  "dispositions": [
+    "rebuild",
+    "remeasure",
+    "revalidate",
+    "requalify",
+    "review_required",
+    "unaffected",
+    "unknown_impact",
+    "stale_input"
+  ],
+  "change_kinds": [
+    "design_geometry_changed",
+    "design_semantics_or_material_changed",
+    "method_or_sequence_changed",
+    "transformation_rule_changed",
+    "model_schema_or_mapping_changed",
+    "coordinate_frame_or_control_network_changed",
+    "site_epoch_or_environment_changed",
+    "robot_serial_or_hardware_changed",
+    "sensor_or_tool_changed",
+    "firmware_or_software_or_model_changed",
+    "capability_evidence_expired_or_revised",
+    "calibration_or_measurement_chain_changed",
+    "acceptance_predicate_or_inspection_method_changed",
+    "safety_or_permission_authority_changed",
+    "cost_basis_or_rate_changed",
+    "source_evidence_revoked_or_corrected",
+    "administrative_metadata_only",
+    "unknown"
+  ],
+  "graph_rules": {
+    "duplicate_nodes_or_edges": "reject",
+    "missing_endpoints": "reject",
+    "dependency_cycle": "reject",
+    "missing_change_kind_coverage": "unknown_impact",
+    "explicitly_covered_without_rule": "non_triggering_edge",
+    "contradictory_or_duplicate_rules": "reject",
+    "incomplete_closure": "unaffected_is_forbidden",
+    "graph_closure_authority": "required_for_unaffected",
+    "complete_closure_requires": [
+      "closure_manifest_ref",
+      "closure_authority_ref",
+      "closure_graph_revision",
+      "closure_valid_until_unix"
+    ],
+    "closure_expired_at_event_time": "unknown_impact",
+    "parallel_edges": "supported; indegree and adjacency preserve multigraph multiplicity",
+    "unknown_path_explosion": "fail_closed_unknown_impact",
+    "inadmissible_event_scope": "mark every non-subject node UnknownImpact; never infer Unaffected from absence of a recorded path",
+    "inadmissible_event_reasons": [
+      "missing_or_expired_dependency_closure",
+      "missing_change_authority",
+      "unknown_semantic_delta",
+      "unknown_change_kind",
+      "missing_metadata_equivalence_attestation"
+    ]
+  },
+  "scope_rules": {
+    "global_event": "intersects all edge scopes",
+    "global_edge": "applies to every event scope",
+    "exact_event_and_edge": "intersect when project IDs match and no populated site/work-package/frame/ODD dimension conflicts",
+    "conflicting_dimension": "edge is out of scope only when the differing dimension is explicit on both event and edge",
+    "absent_change_dimension_for_specific_scope": "conservative match when no conflict is proven"
+  },
+  "merge_rules": {
+    "unknown_impact": "dominates affected and review dispositions",
+    "review_required": "dominates action-only dispositions",
+    "actions": "retain the union of all required rebuild/remeasure/revalidate/requalify actions",
+    "witnesses": "retain all deterministic material dependency paths"
+  },
+  "prospective_targets": {
+    "false_unaffected_cases": 0,
+    "witness_coverage": 1,
+    "exact_synthetic_oracle_agreement": 1,
+    "deterministic_replay": 1
+  },
+  "claim_ceiling": "An Unaffected result is valid only within the complete, current, scope-matched, authority-backed dependency closure supplied to the evaluator. No result establishes safety, engineering approval, physical validity, evidence authenticity or motion authority.",
+  "witness_rules": {
+    "retain_all_material_paths": true,
+    "retain_convergent_unknown_paths": true,
+    "deterministic_shortest_first": true,
+    "max_explored_paths": 100000,
+    "overflow_behavior": "mark unresolved graph nodes UnknownImpact"
+  }
+}
