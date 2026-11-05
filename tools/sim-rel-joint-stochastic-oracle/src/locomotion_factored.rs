@@ -434,7 +434,9 @@ impl FactorizedTransitionSpec {
             .variables
             .iter()
             .enumerate()
-            .filter_map(|(index, variable)| (variable.role != VariableRole::Output).then_some(index))
+            .filter_map(|(index, variable)| {
+                (variable.role != VariableRole::Output).then_some(index)
+            })
             .collect();
 
         Ok(CompiledFactorizedTransition {
@@ -980,9 +982,7 @@ fn compile_intervention_scopes(
     let output_indices: BTreeSet<usize> = variables
         .iter()
         .enumerate()
-        .filter_map(|(index, variable)| {
-            (variable.role == VariableRole::Output).then_some(index)
-        })
+        .filter_map(|(index, variable)| (variable.role == VariableRole::Output).then_some(index))
         .collect();
 
     let mut contract_by_action = BTreeMap::new();
@@ -1025,9 +1025,7 @@ fn compile_intervention_scopes(
     let action_variables: Vec<usize> = variables
         .iter()
         .enumerate()
-        .filter_map(|(index, variable)| {
-            (variable.role == VariableRole::Action).then_some(index)
-        })
+        .filter_map(|(index, variable)| (variable.role == VariableRole::Action).then_some(index))
         .collect();
     let mut compiled = Vec::with_capacity(action_variables.len());
 
@@ -1038,7 +1036,10 @@ fn compile_intervention_scopes(
                 variables[action].id
             ))
         })?;
-        let actual_targets = direct_action_targets.get(&action).cloned().unwrap_or_default();
+        let actual_targets = direct_action_targets
+            .get(&action)
+            .cloned()
+            .unwrap_or_default();
         if actual_targets.is_empty() {
             return Err(FactorError::Invalid(format!(
                 "action variable {} does not directly target an output factor",
@@ -1444,14 +1445,8 @@ mod tests {
                     "right_leg_state",
                     &["left_leg_state"],
                     vec![
-                        conditional_row(
-                            &["off"],
-                            vec![outcome("off", 1, 1)],
-                        ),
-                        conditional_row(
-                            &["on"],
-                            vec![outcome("off", 1, 10), outcome("on", 9, 10)],
-                        ),
+                        conditional_row(&["off"], vec![outcome("off", 1, 1)]),
+                        conditional_row(&["on"], vec![outcome("off", 1, 10), outcome("on", 9, 10)]),
                     ],
                 ),
             ],
@@ -1609,10 +1604,7 @@ mod tests {
         let compiled = scoped_action_spec().compile().unwrap();
         assert_eq!(compiled.intervention_scopes.len(), 1);
         let scope = &compiled.intervention_scopes[0];
-        assert_eq!(
-            compiled.variables[scope.action_variable].id,
-            "action"
-        );
+        assert_eq!(compiled.variables[scope.action_variable].id, "action");
         assert_eq!(
             scope
                 .direct_targets
@@ -1646,42 +1638,27 @@ mod tests {
             .iter_mut()
             .find(|factor| factor.target_variable_id == "right_leg_state")
             .unwrap();
-        right.parent_variable_ids = vec![
-            "action".to_owned(),
-            "left_leg_state".to_owned(),
-        ];
+        right.parent_variable_ids = vec!["action".to_owned(), "left_leg_state".to_owned()];
         right.rows = vec![
-            conditional_row(
-                &["activate_left", "off"],
-                vec![outcome("off", 1, 1)],
-            ),
+            conditional_row(&["activate_left", "off"], vec![outcome("off", 1, 1)]),
             conditional_row(
                 &["activate_left", "on"],
                 vec![outcome("off", 1, 10), outcome("on", 9, 10)],
             ),
-            conditional_row(
-                &["idle", "off"],
-                vec![outcome("off", 1, 1)],
-            ),
+            conditional_row(&["idle", "off"], vec![outcome("off", 1, 1)]),
             conditional_row(
                 &["idle", "on"],
                 vec![outcome("off", 1, 10), outcome("on", 9, 10)],
             ),
         ];
-        assert!(matches!(
-            invalid.compile(),
-            Err(FactorError::Invalid(_))
-        ));
+        assert!(matches!(invalid.compile(), Err(FactorError::Invalid(_))));
     }
 
     #[test]
     fn action_variable_without_scope_contract_is_rejected() {
         let mut invalid = scoped_action_spec();
         invalid.intervention_scopes.clear();
-        assert!(matches!(
-            invalid.compile(),
-            Err(FactorError::Invalid(_))
-        ));
+        assert!(matches!(invalid.compile(), Err(FactorError::Invalid(_))));
     }
 
     #[test]
@@ -1689,10 +1666,7 @@ mod tests {
         let mut invalid = scoped_action_spec();
         invalid.intervention_scopes[0].allowed_descendant_output_ids =
             vec!["left_leg_state".to_owned()];
-        assert!(matches!(
-            invalid.compile(),
-            Err(FactorError::Invalid(_))
-        ));
+        assert!(matches!(invalid.compile(), Err(FactorError::Invalid(_))));
     }
 
     #[test]
@@ -1732,16 +1706,14 @@ mod tests {
         assert_eq!(compiled.dense_output_cardinality().unwrap(), 1_073_741_824);
 
         let marginal = compiled
-            .marginal(
-                &input("walking"),
-                &["leg_17".to_owned()],
-                2,
-            )
+            .marginal(&input("walking"), &["leg_17".to_owned()], 2)
             .unwrap();
         assert_eq!(marginal.len(), 2);
-        assert!(marginal
-            .iter()
-            .all(|entry| entry.probability == rational(1, 2)));
+        assert!(
+            marginal
+                .iter()
+                .all(|entry| entry.probability == rational(1, 2))
+        );
     }
 
     #[test]
