@@ -519,6 +519,7 @@ pub enum InferencePowerResponseGateViolation {
     MaximumReboundEnergyExceeded,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum InferenceServiceGateViolation {
     SuccessFractionBelowMinimum,
     UsefulWorkFractionBelowMinimum,
@@ -546,6 +547,12 @@ pub struct InferencePowerFlexibilityReport {
     pub candidate_service: InferenceServiceMetrics,
     pub baseline_boundary_energy_wh: f64,
     pub candidate_boundary_energy_wh: f64,
+    pub baseline_gpu_energy_wh: f64,
+    pub candidate_gpu_energy_wh: f64,
+    pub baseline_cpu_energy_wh: f64,
+    pub candidate_cpu_energy_wh: f64,
+    pub baseline_dram_energy_wh: f64,
+    pub candidate_dram_energy_wh: f64,
     pub baseline_tokens_per_joule: f64,
     pub candidate_tokens_per_joule: f64,
     pub baseline_average_boundary_power_w: f64,
