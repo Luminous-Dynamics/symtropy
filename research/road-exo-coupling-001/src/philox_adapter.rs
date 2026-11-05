@@ -357,7 +357,12 @@ mod tests {
         .expect("fixture address is valid")
     }
 
-    fn correspondence_hypothesis(name: &str, right_event: &str, basis: IdentityBasis, unmatched: &str) -> CorrespondenceHypothesis {
+    fn correspondence_hypothesis(
+        name: &str,
+        right_event: &str,
+        basis: IdentityBasis,
+        unmatched: &str,
+    ) -> CorrespondenceHypothesis {
         CorrespondenceHypothesis {
             hypothesis_id: id(name),
             justification_ref: id(&format!("justification-{name}")),
