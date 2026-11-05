@@ -736,8 +736,7 @@ mod tests {
     fn reconciles_reciprocity_only_when_intervals_overlap() {
         let mut x = basic("reciprocal-overlap");
         x["inductance"]["matrix_h"] = json!([[2e-6, 0.5e-6], [0.5001e-6, 1e-6]]);
-        x["inductance"]["abs_uncertainty_h"] =
-            json!([[1e-12, 1e-10], [1e-10, 1e-12]]);
+        x["inductance"]["abs_uncertainty_h"] = json!([[1e-12, 1e-10], [1e-10, 1e-12]]);
         assert_eq!(disposition(&x), "STORED_ENERGY_DERIVED");
         assert!(
             evaluate(&x)["magnetic_storage"]["reciprocity_max_interval_adjustment"]
