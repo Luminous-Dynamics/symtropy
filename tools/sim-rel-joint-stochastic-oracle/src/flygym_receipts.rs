@@ -69,6 +69,8 @@ pub struct FlyGymRunIdentity {
     /// Preserve the configured decimal spelling (for example "1e-5").
     pub solver_tolerance_decimal: String,
     pub timestep_ns: u64,
+    pub simulation_time_origin_ns: u64,
+    pub world_count: u32,
     pub control_rate_millihz: Option<u64>,
     pub physics_substeps: u32,
     /// Units/sign conventions are explicit model/export metadata, not inferred.
@@ -103,6 +105,7 @@ impl FlyGymRunIdentity {
         if self.mujoco_version.trim().is_empty()
             || tolerance.is_none_or(|value| !value.is_finite() || value <= 0.0)
             || self.timestep_ns == 0
+            || self.world_count == 0
             || self.physics_substeps == 0
             || self.qpos_width == 0
             || self.control_rate_millihz.is_some_and(|rate| rate == 0)
@@ -594,6 +597,8 @@ mod tests {
             backend: FlyGymBackend::WarpGpu,
             solver_tolerance_decimal: "1e-5".into(),
             timestep_ns: 100_000,
+            simulation_time_origin_ns: 0,
+            world_count: 1,
             control_rate_millihz: Some(50_000),
             physics_substeps: 1,
             ground_contact_force_unit: "declared-model-force-unit".into(),
