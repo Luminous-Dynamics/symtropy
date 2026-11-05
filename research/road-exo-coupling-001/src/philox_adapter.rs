@@ -1163,6 +1163,38 @@ mod tests {
     }
 
     #[test]
+    fn reversing_event_and_scope_enumeration_preserves_the_canonical_projection() {
+        let original = correspondence_plan();
+        let mut correspondence = crate::correspondence::CorrespondenceSet {
+            left_branch: original.left_branch.clone(),
+            right_branch: original.right_branch.clone(),
+            left_events: original.left_events.clone(),
+            right_events: original.right_events.clone(),
+            hypotheses: original
+                .hypotheses
+                .iter()
+                .map(|hypothesis| hypothesis.correspondence.clone())
+                .collect(),
+            universe_status: original.universe_status.clone(),
+            hypothesis_set_status: original.hypothesis_set_status.clone(),
+        };
+        correspondence.left_events.reverse();
+        correspondence.right_events.reverse();
+
+        let mut scopes = original.event_scopes.clone();
+        scopes.reverse();
+        let rules: Vec<_> = original
+            .hypotheses
+            .iter()
+            .flat_map(|hypothesis| hypothesis.causal_rules.iter().cloned())
+            .collect();
+
+        let reversed = project_correspondence_addresses(&correspondence, &scopes, &rules)
+            .expect("reversed finite input projects");
+        assert_eq!(reversed, original);
+    }
+
+    #[test]
     fn retained_canonical_address_detects_receipt_or_address_tampering() {
         let seed = [0x3d; 32];
         let plan = correspondence_plan();
