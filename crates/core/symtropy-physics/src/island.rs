@@ -369,18 +369,8 @@ mod fixed_body_island_tests {
     #[test]
     fn shared_static_floor_does_not_merge_independent_dynamic_islands() {
         let bodies = vec![
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(0),
-                Point::new([-2.0, 1.0, 0.0]),
-                0.5,
-                1.0,
-            ),
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(1),
-                Point::new([2.0, 1.0, 0.0]),
-                0.5,
-                1.0,
-            ),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([-2.0, 1.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([2.0, 1.0, 0.0]), 0.5, 1.0),
             RigidBody::<3>::static_body(
                 BodyHandle(2),
                 Point::origin(),
@@ -438,18 +428,8 @@ mod fixed_body_island_tests {
     #[test]
     fn shared_kinematic_platform_does_not_merge_dynamic_solver_islands() {
         let mut bodies = vec![
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(0),
-                Point::new([-1.0, 1.0, 0.0]),
-                0.5,
-                1.0,
-            ),
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(1),
-                Point::new([1.0, 1.0, 0.0]),
-                0.5,
-                1.0,
-            ),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([-1.0, 1.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 1.0, 0.0]), 0.5, 1.0),
             kinematic_body(2),
         ];
         bodies[0].sleeping = true;
@@ -489,18 +469,8 @@ mod fixed_body_island_tests {
     #[test]
     fn dynamic_contact_chains_remain_one_island_with_fixed_endpoints() {
         let bodies = vec![
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(0),
-                Point::new([0.0, 1.0, 0.0]),
-                0.5,
-                1.0,
-            ),
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(1),
-                Point::new([1.0, 1.0, 0.0]),
-                0.5,
-                1.0,
-            ),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([0.0, 1.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 1.0, 0.0]), 0.5, 1.0),
             RigidBody::<3>::static_body(
                 BodyHandle(2),
                 Point::origin(),
@@ -518,24 +488,9 @@ mod fixed_body_island_tests {
     #[test]
     fn islands_are_canonicalized_by_smallest_dynamic_handle() {
         let bodies = vec![
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(10),
-                Point::new([0.0, 0.0, 0.0]),
-                0.5,
-                1.0,
-            ),
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(2),
-                Point::new([10.0, 0.0, 0.0]),
-                0.5,
-                1.0,
-            ),
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(6),
-                Point::new([20.0, 0.0, 0.0]),
-                0.5,
-                1.0,
-            ),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(10), Point::new([0.0, 0.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(2), Point::new([10.0, 0.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(6), Point::new([20.0, 0.0, 0.0]), 0.5, 1.0),
         ];
         let islands = build_islands(&bodies, &[], &[], &handles_for(&bodies));
         let first_handles: Vec<_> = islands
@@ -550,7 +505,10 @@ mod fixed_body_island_tests {
             })
             .collect();
 
-        assert_eq!(first_handles, vec![BodyHandle(2), BodyHandle(6), BodyHandle(10)]);
+        assert_eq!(
+            first_handles,
+            vec![BodyHandle(2), BodyHandle(6), BodyHandle(10)]
+        );
     }
 
     #[test]
@@ -558,18 +516,8 @@ mod fixed_body_island_tests {
         use crate::constraint::DistanceConstraint;
 
         let bodies = vec![
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(0),
-                Point::new([-2.0, 0.0, 0.0]),
-                0.5,
-                1.0,
-            ),
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(1),
-                Point::new([2.0, 0.0, 0.0]),
-                0.5,
-                1.0,
-            ),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([-2.0, 0.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([2.0, 0.0, 0.0]), 0.5, 1.0),
             RigidBody::<3>::static_body(
                 BodyHandle(2),
                 Point::origin(),
@@ -590,12 +538,7 @@ mod fixed_body_island_tests {
                 stiffness: 1.0,
             }),
         ];
-        let islands = build_islands(
-            &bodies,
-            &[],
-            &constraints,
-            &handles_for(&bodies),
-        );
+        let islands = build_islands(&bodies, &[], &constraints, &handles_for(&bodies));
 
         assert_eq!(islands.len(), 2);
         let assigned: Vec<_> = islands
