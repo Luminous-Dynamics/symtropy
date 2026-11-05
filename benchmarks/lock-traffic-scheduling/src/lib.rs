@@ -155,10 +155,13 @@ pub struct ScheduleMetrics {
     pub maximum_wait_ticks: u64,
     pub wait_distribution: WaitDistribution,
     pub total_service_ticks: u128,
+    pub total_direction_change_ticks: u128,
+    pub total_occupied_ticks: u128,
     pub available_service_ticks: u128,
     pub total_water_ml: u128,
     pub total_pump_energy_wh: u128,
     pub direction_changes: u64,
+    pub comparable_arrival_pairs: u64,
     pub inversion_pairs: u64,
     pub by_participant: BTreeMap<String, GroupMetrics>,
     pub by_service_group: BTreeMap<String, GroupMetrics>,
@@ -517,7 +520,11 @@ fn build_metrics(
         metrics.maximum_wait_ticks = metrics
             .maximum_wait_ticks
             .max(passage.waiting_from_earliest_arrival_ticks);
-        metrics.total_service_ticks += u128::from(passage.end_tick - passage.start_tick);
+        let service_ticks = u128::from(passage.end_tick - passage.start_tick);
+        let direction_change_ticks = u128::from(passage.direction_change_before_ticks);
+        metrics.total_service_ticks += service_ticks;
+        metrics.total_direction_change_ticks += direction_change_ticks;
+        metrics.total_occupied_ticks += service_ticks + direction_change_ticks;
         metrics.total_water_ml += u128::from(passage.water_ml);
         metrics.total_pump_energy_wh += u128::from(passage.pump_energy_wh);
         if previous_direction.is_some_and(|direction| direction != passage.direction) {
@@ -562,6 +569,7 @@ fn build_metrics(
         for second in schedule.iter().skip(left + 1) {
             let first_arrival = (first.arrival_earliest_tick, first.request_id.as_str());
             let second_arrival = (second.arrival_earliest_tick, second.request_id.as_str());
+            metrics.comparable_arrival_pairs += 1;
             if first_arrival > second_arrival {
                 metrics.inversion_pairs += 1;
             }
@@ -1195,6 +1203,10 @@ mod tests {
         assert_eq!(plan.schedule[1].start_tick, 17);
         assert_eq!(plan.schedule[1].direction_change_before_ticks, 7);
         assert_eq!(plan.metrics.direction_changes, 1);
+        assert_eq!(plan.metrics.total_service_ticks, 20);
+        assert_eq!(plan.metrics.total_direction_change_ticks, 7);
+        assert_eq!(plan.metrics.total_occupied_ticks, 27);
+        assert_eq!(plan.metrics.comparable_arrival_pairs, 1);
     }
 
     #[test]
