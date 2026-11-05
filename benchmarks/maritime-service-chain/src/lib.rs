@@ -2129,10 +2129,16 @@ mod tests {
 
         let mut slow_only = valid_case();
         slow_only.voyage_alternatives.remove(0);
-        cases.push(("slow voyage alternative remains admissible", slow_only, Ok(())));
+        cases.push((
+            "slow voyage alternative remains admissible",
+            slow_only,
+            Ok(()),
+        ));
 
         let mut arrival_changed = valid_case();
-        arrival_changed.voyage_alternatives[0].arrival_window.end_tick += 1;
+        arrival_changed.voyage_alternatives[0]
+            .arrival_window
+            .end_tick += 1;
         cases.push((
             "arrival window changed without new evidence",
             arrival_changed,
@@ -2237,7 +2243,9 @@ mod tests {
         ));
 
         let mut wrong_arrival_path = valid_case();
-        wrong_arrival_path.voyage_alternatives[0].route_segment_ids.reverse();
+        wrong_arrival_path.voyage_alternatives[0]
+            .route_segment_ids
+            .reverse();
         cases.push((
             "voyage alternative uses different corridor path",
             wrong_arrival_path,
@@ -2257,13 +2265,15 @@ mod tests {
         ));
 
         let mut overlapping_calendar = valid_case();
-        overlapping_calendar.resources[0].availability.push(CapacityWindow {
-            window: TickWindow {
-                start_tick: 10,
-                end_tick: 40,
-            },
-            capacity: 1,
-        });
+        overlapping_calendar.resources[0]
+            .availability
+            .push(CapacityWindow {
+                window: TickWindow {
+                    start_tick: 10,
+                    end_tick: 40,
+                },
+                capacity: 1,
+            });
         cases.push((
             "overlapping resource calendar",
             overlapping_calendar,
@@ -2273,13 +2283,15 @@ mod tests {
         ));
 
         let mut unordered_calendar = valid_case();
-        unordered_calendar.resources[0].availability.push(CapacityWindow {
-            window: TickWindow {
-                start_tick: 0,
-                end_tick: 2,
-            },
-            capacity: 1,
-        });
+        unordered_calendar.resources[0]
+            .availability
+            .push(CapacityWindow {
+                window: TickWindow {
+                    start_tick: 0,
+                    end_tick: 2,
+                },
+                capacity: 1,
+            });
         cases.push((
             "noncanonical resource calendar order",
             unordered_calendar,
