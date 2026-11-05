@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - "docs/research/CIVBENCH_MEASUREMENT_DISTRIBUTION_V0_1.schema.json"
-      - "docs/research/fixtures/HUMSIM_SYNTHETIC_MAD_MANIFEST_V0_1.json"
+      - "docs/research/fixtures/*_MAD_MANIFEST_V0_1.json"
       - "docs/research/validate_civbench_mad_manifest.py"
       - ".github/workflows/civbench-mad-schema.yml"
   push:
