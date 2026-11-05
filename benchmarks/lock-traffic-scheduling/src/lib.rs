@@ -319,7 +319,13 @@ fn select_next(context: &SelectionContext<'_>, policy: SchedulingPolicy) -> Opti
                 return oldest_first(requests, pending);
             };
             if current_batch_count >= max_consecutive {
-                return oldest_first(requests, pending);
+                let opposite_direction: Vec<usize> = pending
+                    .iter()
+                    .copied()
+                    .filter(|index| requests[*index].direction != direction)
+                    .collect();
+                return oldest_first(requests, &opposite_direction)
+                    .or_else(|| oldest_first(requests, pending));
             }
 
             let same_direction: Vec<usize> = pending
@@ -457,10 +463,8 @@ fn build_metrics(
         );
     }
 
-    for left in 0..schedule.len() {
-        for right in (left + 1)..schedule.len() {
-            let first = &schedule[left];
-            let second = &schedule[right];
+    for (left, first) in schedule.iter().enumerate() {
+        for second in schedule.iter().skip(left + 1) {
             let first_arrival = (first.arrival_earliest_tick, first.request_id.as_str());
             let second_arrival = (second.arrival_earliest_tick, second.request_id.as_str());
             if first_arrival > second_arrival {
@@ -877,6 +881,24 @@ mod tests {
         assert_eq!(plan.schedule[0].request_id, "up-a");
         assert_eq!(plan.schedule[1].request_id, "down-a");
         assert_eq!(plan.schedule[2].request_id, "up-b");
+    }
+
+    #[test]
+    fn directional_batch_respects_the_consecutive_passage_limit() {
+        let mut p = profile();
+        p.unavailable_windows.clear();
+        let first = request("up-first", 0, Direction::Upstream, 1, 1);
+        let second = request("up-second", 1, Direction::Upstream, 1, 1);
+        let opposite = request("down", 100, Direction::Downstream, 1, 1);
+        let plan = schedule(
+            &p,
+            &[first, second, opposite],
+            SchedulingPolicy::DirectionalBatch { max_consecutive: 1 },
+        )
+        .expect("valid profile");
+        assert_eq!(plan.schedule[0].request_id, "up-first");
+        assert_eq!(plan.schedule[1].request_id, "down");
+        assert_eq!(plan.schedule[2].request_id, "up-second");
     }
 
     #[test]
