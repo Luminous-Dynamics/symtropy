@@ -1,7 +1,59 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! SPH-based fluid dynamics for Symtropy.
+//! Fluid dynamics primitives for Symtropy.
+//!
+//! The current gameplay/runtime implementation is an early SPH scaffold:
+//! density uses an all-pairs reference loop and pressure/viscosity gradients are
+//! not yet a production solver. [`validation`] is solver-independent,
+//! [`evidence`] binds executable results to exact source/profile subjects,
+//! [`reference`] is a deliberately small CPU continuum solver,
+//! [`convergence`] provides analytical/error measurements,
+//! [`manufactured`] adds a time-dependent manufactured solution,
+//! [`verification_ladder`] preserves strict machine-readable spatial/temporal
+//! refinement and energy evidence, [`falsification`] preserves expected
+//! numerical failures as typed campaign evidence rather than erasing the run,
+//! [`diagnostic_trace`] retains stepwise diagnostics and error evolution,
+//! [`numerical_observability`] measures signed stability margins plus controlled
+//! pressure-projection residual convergence, [`iterative_error`] measures
+//! projection-only solution change on a controlled compressive fixture,
+//! [`verification_regime`] summarizes within-fixture refinement trends without a
+//! promotion verdict, [`manufactured_iterative`] measures pressure-iteration
+//! sensitivity on the exact manufactured Taylor-Green trajectory itself,
+//! [`excess_energy_decay`] measures resolved kinetic-energy loss relative to the
+//! exact passive Taylor-Green viscous decay in the same discrete quadrature,
+//! [`manufactured_update_defect`] measures the one-step discrete operator defect
+//! against the exact forced manufactured trajectory,
+//! [`smooth_scale_separation`] records analytical grid/mode separation for the
+//! smooth Taylor-Green control, [`vorticity_concentration_scale`] measures a
+//! vorticity/enstrophy-palinstrophy gradient length without assigning refinement
+//! or promotion authority, [`concentration_scale_drift`] records same-run
+//! concentration-scale drift together with excess resolved-energy loss and
+//! numerical-health context for the passive Taylor-Green control, and
+//! [`refinement_policy_contract`] defines a non-authoritative typed boundary for
+//! future semantic refinement decisions without embedding renderer/backend load.
+//! None of these modules should be read as a claim that Symtropy currently
+//! reproduces the 2026 singular construction or has a production Earth-water
+//! CFD backend.
+
+pub mod concentration_scale_drift;
+pub mod convergence;
+pub mod diagnostic_trace;
+pub mod evidence;
+pub mod excess_energy_decay;
+pub mod falsification;
+pub mod iterative_error;
+pub mod manufactured;
+pub mod manufactured_iterative;
+pub mod manufactured_update_defect;
+pub mod numerical_observability;
+pub mod reference;
+pub mod refinement_policy_contract;
+pub mod smooth_scale_separation;
+pub mod validation;
+pub mod verification_ladder;
+pub mod verification_regime;
+pub mod vorticity_concentration_scale;
 
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
@@ -94,15 +146,13 @@ impl<const D: usize> FluidSimulation<D> {
     }
 
     fn calculate_forces(&mut self, gravity: &SVector<f64, D>) {
-        let h = self.config.smoothing_radius;
-        // Gradients/Laplacians for pressure/viscosity (placeholders)
-
+        // Gradients/Laplacians for pressure/viscosity remain placeholders.
+        // Keep this explicit until #452 replaces the gameplay scaffold with a
+        // separately qualified local formulation. The #511 reference solver is
+        // deliberately not a drop-in gameplay replacement.
         for i in 0..self.particles.len() {
-            let mut f_press = SVector::<f64, D>::zeros();
-            let mut f_visc = SVector::<f64, D>::zeros();
-
-            // Simplified force calculation (O(N^2) for initial scaffolding)
-            // ... (real gradients would go here)
+            let f_press = SVector::<f64, D>::zeros();
+            let f_visc = SVector::<f64, D>::zeros();
 
             self.particles[i].force = f_press + f_visc + gravity * self.particles[i].density;
         }
