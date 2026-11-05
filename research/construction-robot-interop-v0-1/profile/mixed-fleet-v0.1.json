@@ -1,0 +1,142 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-robot-mixed-fleet-v0.1",
+  "owner_issue": 3644,
+  "applicability": {
+    "environment": "construction_site",
+    "site_scope": "Controlled, project-authorized work area; assess site-specific public-access and industrial-environment scope before applying any external industrial-robot standard.",
+    "robot_classes": [
+      "mobile construction robot",
+      "autonomous piling machine",
+      "robotic layout platform",
+      "material-handling mobile robot",
+      "inspection/mapping robot"
+    ]
+  },
+  "protocol_baselines": [
+    {
+      "name": "VDA_5050",
+      "version": "3.0.0",
+      "role": "Open fleet-control/mobile-robot interface baseline",
+      "scope_note": "Intralogistics-oriented; construction work-package semantics and independent acceptance remain outside this profile's assumptions."
+    },
+    {
+      "name": "ISO_21423",
+      "version": "2026",
+      "role": "Industrial mobile robot communications/interoperability comparator",
+      "scope_note": "Scope is limited to the standard's stated industrial environment; navigation and safety requirements are excluded."
+    },
+    {
+      "name": "MassRobotics_AMR_Interop",
+      "version": "1.0",
+      "role": "Mobile robot state/data-sharing comparator",
+      "scope_note": "Compare public schema semantics; do not infer task-level construction acceptance."
+    }
+  ],
+  "conformance_layers": [
+    "transport_syntax",
+    "semantic_data",
+    "task_lifecycle",
+    "resource_coordination",
+    "evidence_continuity",
+    "authority_separation"
+  ],
+  "task_contract": {
+    "required_fields": [
+      "task_id",
+      "work_package_id",
+      "site_id",
+      "work_zone_id",
+      "task_family",
+      "functional_unit_class",
+      "design_revision_digest",
+      "target_frame_id",
+      "site_epoch",
+      "capability_requirements",
+      "preconditions",
+      "postconditions",
+      "evidence_profile_ref"
+    ],
+    "capability_fields": [
+      "payload",
+      "reach",
+      "tooling",
+      "process",
+      "terrain",
+      "environment",
+      "precision"
+    ],
+    "unit_frame_policy": "explicit_only_no_implicit_conversion",
+    "unsupported_task_policy": "typed_rejection",
+    "acceptance_boundary": "executor_completion_is_not_independent_acceptance"
+  },
+  "message_contract": {
+    "required_fields": [
+      "message_id",
+      "schema_version",
+      "actor_id",
+      "actor_session_id",
+      "task_id",
+      "task_sequence",
+      "idempotency_key",
+      "correlation_id",
+      "source_timestamp",
+      "clock_uncertainty",
+      "receiver_observed_time",
+      "site_epoch",
+      "payload_digest"
+    ],
+    "ordering_scope": "actor_session_task_scoped",
+    "duplicate_policy": "idempotent_same_digest",
+    "conflicting_id_policy": "reject_and_mark_conflict",
+    "clock_policy": "source_time_with_uncertainty_and_receiver_observed_time"
+  },
+  "task_states": [
+    "submitted",
+    "accepted",
+    "queued",
+    "started",
+    "paused",
+    "blocked",
+    "executor_completed",
+    "measurement_pending",
+    "independently_accepted",
+    "independently_rejected",
+    "failed",
+    "cancelled",
+    "revoked_or_stale",
+    "indeterminate"
+  ],
+  "resource_reservation": {
+    "resource_types": [
+      "work_zone",
+      "access_corridor",
+      "crane_or_telehandler_envelope",
+      "material_staging",
+      "charging_or_fueling",
+      "lift_or_hoist",
+      "survey_control_area"
+    ],
+    "expiry_required": true,
+    "site_epoch_binding": true,
+    "exclusive_conflict_policy": "reject",
+    "is_safety_permit": false,
+    "clock_domain_binding": true,
+    "clock_uncertainty_policy": "explicit_project_limit_and_conservative_interval_expansion"
+  },
+  "safety_boundary": {
+    "interop_grants_motion_authority": false,
+    "external_safety_authority_required": true,
+    "safety_hold_overrides_scheduler": true
+  },
+  "targets": {
+    "required_field_preservation_fraction": 1,
+    "silent_field_loss": 0,
+    "implicit_unit_or_frame_conversion": 0,
+    "stale_resume": 0,
+    "exclusive_reservation_conflict": 0,
+    "completion_promoted_without_receipt": 0,
+    "finite_oracle_agreement": 1
+  },
+  "claim_ceiling": "Passing this profile validates only the declared semantic mappings and state transitions for the frozen synthetic corpus and adapters actually tested. It does not establish universal interoperability, navigation compatibility, safety, cybersecurity certification, productivity superiority, field reliability or construction-site suitability."
+}
