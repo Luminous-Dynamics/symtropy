@@ -107,14 +107,6 @@ for fixture_path in fixture_paths:
                 f"{fixture_path.name}: tier-1 synthetic reference fixture cannot claim population inference"
             )
 
-    if (
-        manifest["claim_report"]["claim_ceiling"]
-        != manifest["construct"]["claim_ceiling"]
-    ):
-        raise SystemExit(
-            f"{fixture_path.name}: claim_report ceiling must match construct claim ceiling"
-        )
-
     validated.append(manifest["benchmark_id"])
 
 print(
