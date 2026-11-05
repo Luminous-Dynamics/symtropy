@@ -22,7 +22,8 @@
       "transformation_digest": null,
       "first_sequence": 1,
       "last_sequence": 3,
-      "event_count": 3
+      "event_count": 3,
+      "capture_boundary_evidence_ref": null
     },
     "seal": {
       "algorithm": "sha-256",
