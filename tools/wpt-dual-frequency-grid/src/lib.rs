@@ -681,15 +681,75 @@ mod tests {
             .find(|channel| channel.channel_kind == "RESONANT_CURRENT")
             .unwrap();
 
-        let expected_thd = 0.061644140029689765;
+        let expected_thd_through_order_11 = 0.061644140029689765;
+        let expected_interharmonic_ratio = 0.01;
         let expected_sideband_ratio = 0.032015621187164243;
-        assert!((grid.total_harmonic_distortion.unwrap() - expected_thd).abs() < 1e-12);
+        assert_eq!(grid.maximum_harmonic_order, Some(11));
+        assert!(
+            (grid.thd_through_harmonic_order.unwrap() - expected_thd_through_order_11).abs()
+                < 1e-12
+        );
+        assert!(
+            (grid.interharmonic_to_fundamental_rms_ratio.unwrap()
+                - expected_interharmonic_ratio)
+                .abs()
+                < 1e-12
+        );
         assert!(
             (resonant.sideband_to_carrier_rms_ratio.unwrap() - expected_sideband_ratio).abs()
                 < 1e-12
         );
         assert_eq!(report.nyquist_frequency_hz, 500_000.0);
         assert_eq!(report.native_fourier_resolution_hz, 10.0);
+    }
+
+    #[test]
+    fn rejects_missing_integer_harmonic_bin_within_declared_coverage() {
+        let mut run = fixture();
+        run["channels"][0]["lines"]
+            .as_array_mut()
+            .unwrap()
+            .remove(4); // order 4 at 200 Hz
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("must include every integer harmonic order from 1 through 11")
+        );
+    }
+
+    #[test]
+    fn grid_interharmonics_are_reported_separately_from_thd() {
+        let report = evaluate_run(&fixture()).unwrap();
+        let grid = report
+            .channels
+            .iter()
+            .find(|channel| channel.channel_kind == "GRID_CURRENT")
+            .unwrap();
+        assert_eq!(grid.maximum_harmonic_order, Some(11));
+        assert!((grid.interharmonic_to_fundamental_rms_ratio.unwrap() - 0.01).abs() < 1e-12);
+        assert!((grid.thd_through_harmonic_order.unwrap() - 0.061644140029689765).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rejects_integer_multiple_mislabelled_as_interharmonic() {
+        let mut run = fixture();
+        run["channels"][0]["lines"][3]["frequency_hz"] = Value::from(150.01);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("integer grid harmonic must declare harmonic_order")
+        );
+    }
+
+    #[test]
+    fn rejects_spectral_power_accumulation_overflow() {
+        let mut run = fixture();
+        run["channels"][0]["lines"][1]["rms_amplitude"] = Value::from(1.0e308);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("grid spectral power accumulation overflowed")
+        );
     }
 
     #[test]
