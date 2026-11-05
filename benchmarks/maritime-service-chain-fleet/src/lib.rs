@@ -565,8 +565,7 @@ fn enumerate_segment_placements(
 
         engine.partial.selected_energy.propulsion_wh -=
             u128::from(alternative.energy.propulsion_wh);
-        engine.partial.selected_energy.auxiliary_wh -=
-            u128::from(alternative.energy.auxiliary_wh);
+        engine.partial.selected_energy.auxiliary_wh -= u128::from(alternative.energy.auxiliary_wh);
         engine.partial.selected_energy.shore_power_import_wh -=
             u128::from(alternative.energy.shore_power_import_wh);
         engine.partial.selected_energy.inland_transfer_wh -=
@@ -631,8 +630,7 @@ fn enumerate_segment_placements(
         ) {
             placement.alternative_id = alternative.alternative_id.clone();
             if let Some(previous_end) = previous_end_tick {
-                engine.partial.total_idle_wait_ticks +=
-                    u128::from(start_tick - previous_end);
+                engine.partial.total_idle_wait_ticks += u128::from(start_tick - previous_end);
             }
             placements_for_demand.push(placement.clone());
             engine.partial.operations.push(placement);
@@ -648,8 +646,7 @@ fn enumerate_segment_placements(
             engine.partial.operations.pop();
             placements_for_demand.pop();
             if let Some(previous_end) = previous_end_tick {
-                engine.partial.total_idle_wait_ticks -=
-                    u128::from(start_tick - previous_end);
+                engine.partial.total_idle_wait_ticks -= u128::from(start_tick - previous_end);
             }
             if engine.budget_exhausted {
                 return;
