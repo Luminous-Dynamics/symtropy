@@ -63,8 +63,13 @@ impl fmt::Display for InvarianceError {
         match self {
             Self::NonFiniteChannel => write!(formatter, "quadrant channels must be finite"),
             Self::NegativeChannel => write!(formatter, "quadrant magnitudes must be non-negative"),
-            Self::ZeroTotalSignal => write!(formatter, "quadrant signal must have positive total magnitude"),
-            Self::InvalidThreshold => write!(formatter, "decision threshold must be finite and in (0, 1]"),
+            Self::ZeroTotalSignal => write!(
+                formatter,
+                "quadrant signal must have positive total magnitude"
+            ),
+            Self::InvalidThreshold => {
+                write!(formatter, "decision threshold must be finite and in (0, 1]")
+            }
         }
     }
 }
@@ -110,10 +115,7 @@ pub fn normalize_common_scale(
 ///
 /// The result lies in [0, 1]. It is a generic signature-distance fixture,
 /// not an asserted threshold or the published paper's residual statistic.
-pub fn total_variation_distance(
-    left: NormalizedSignature,
-    right: NormalizedSignature,
-) -> f64 {
+pub fn total_variation_distance(left: NormalizedSignature, right: NormalizedSignature) -> f64 {
     0.5 * left
         .values
         .into_iter()
@@ -199,7 +201,8 @@ mod tests {
     fn object_free_signature_is_invariant_to_primary_common_scaling() {
         let reference = baseline();
         for scale in [0.01, 0.1, 0.5, 2.0, 10.0, 1.0e200] {
-            let sample = QuadrantVector::new([25.0 * scale, 25.0 * scale, 25.0 * scale, 25.0 * scale]);
+            let sample =
+                QuadrantVector::new([25.0 * scale, 25.0 * scale, 25.0 * scale, 25.0 * scale]);
             let normalized = normalize_common_scale(sample).unwrap();
             assert!(total_variation_distance(reference, normalized) <= 1.0e-12);
         }
@@ -209,12 +212,8 @@ mod tests {
     fn object_signature_remains_detectable_under_common_scaling() {
         let reference = baseline();
         for scale in [0.01, 0.5, 1.0, 4.0, 1.0e150] {
-            let sample = QuadrantVector::new([
-                50.0 * scale,
-                25.0 * scale,
-                15.0 * scale,
-                10.0 * scale,
-            ]);
+            let sample =
+                QuadrantVector::new([50.0 * scale, 25.0 * scale, 15.0 * scale, 10.0 * scale]);
             let report = evaluate_signature(reference, sample, HEALTHY, 0.10).unwrap();
             assert_eq!(report.decision, FodDecision::ObjectSignaturePresent);
         }
@@ -248,8 +247,10 @@ mod tests {
 
     #[test]
     fn asymmetric_quadrant_permutation_is_not_silently_canonicalized() {
-        let original = normalize_common_scale(QuadrantVector::new([40.0, 30.0, 20.0, 10.0])).unwrap();
-        let permuted = normalize_common_scale(QuadrantVector::new([10.0, 20.0, 30.0, 40.0])).unwrap();
+        let original =
+            normalize_common_scale(QuadrantVector::new([40.0, 30.0, 20.0, 10.0])).unwrap();
+        let permuted =
+            normalize_common_scale(QuadrantVector::new([10.0, 20.0, 30.0, 40.0])).unwrap();
         assert!(total_variation_distance(original, permuted) > 0.0);
     }
 
@@ -334,8 +335,13 @@ mod tests {
 
     #[test]
     fn normalization_handles_extreme_finite_magnitudes() {
-        let small = normalize_common_scale(QuadrantVector::new([1.0e-250, 2.0e-250, 3.0e-250, 4.0e-250])).unwrap();
-        let large = normalize_common_scale(QuadrantVector::new([1.0e250, 2.0e250, 3.0e250, 4.0e250])).unwrap();
+        let small = normalize_common_scale(QuadrantVector::new([
+            1.0e-250, 2.0e-250, 3.0e-250, 4.0e-250,
+        ]))
+        .unwrap();
+        let large =
+            normalize_common_scale(QuadrantVector::new([1.0e250, 2.0e250, 3.0e250, 4.0e250]))
+                .unwrap();
         assert!(total_variation_distance(small, large) <= 1.0e-12);
     }
 }
