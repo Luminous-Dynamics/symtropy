@@ -49,7 +49,7 @@ fn summary_row(outcome: &RecoveryCapitalOutcome) {
 fn tick_row(path: RecoveryPath, tick: &RecoveryCapitalTick) {
     let unmet = fmt(tick.unmet_water_m3);
     let (first_shock_unmet, recovery_unmet, repeat_shock_unmet) = match tick.phase {
-        RecoveryPhase::FirstShock => (unmet, String::new(), String::new())
+        RecoveryPhase::FirstShock => (unmet, String::new(), String::new()),
         civdyn_cross_scale_resilience::RecoveryPhase::ServiceRecovery => {
             (String::new(), unmet, String::new())
         }
