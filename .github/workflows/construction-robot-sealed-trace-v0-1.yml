@@ -1,0 +1,78 @@
+name: Construction Robot Sealed Trace V0.1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/construction-robot-sealed-trace-v0-1/**"
+      - ".github/workflows/construction-robot-sealed-trace-v0-1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-robot-sealed-trace-v0-1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate trace schema and integrity fixture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.23.0
+      - name: Validate schema and recompute synthetic trace digests
+        run: |
+          python - <<'PY'
+          import base64
+          import hashlib
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/construction-robot-sealed-trace-v0-1")
+          schema = json.loads((root / "schema/construction-robot-trace-v0.1.schema.json").read_text())
+          mutation_schema = json.loads((root / "schema/construction-robot-trace-mutations-v0.1.schema.json").read_text())
+          trace = json.loads((root / "fixtures/trace-synthetic-vda-001.json").read_text())
+          mutations = json.loads((root / "fixtures/trace-mutations-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator.check_schema(mutation_schema)
+          Draft202012Validator(schema).validate(trace)
+          Draft202012Validator(mutation_schema).validate(mutations)
+
+          def jcs(value):
+              return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+
+          def digest(data):
+              return hashlib.sha256(data).hexdigest()
+
+          previous = None
+          events = trace["events"]
+          assert len(events) == trace["manifest"]["capture"]["event_count"]
+          assert [event["capture_sequence"] for event in events] == list(range(1, len(events) + 1))
+          for event in events:
+              assert event["previous_event_digest"] == previous
+              payload_bytes = base64.b64decode(event["payload"]["data"], validate=True)
+              assert digest(payload_bytes) == event["payload"]["sha256"]
+              unsigned = {key: value for key, value in event.items() if key != "event_digest"}
+              computed = digest(b"construction-robot-trace-event-v0.1\\0" + jcs(unsigned))
+              assert computed == event["event_digest"], f"event digest mismatch at sequence {event['capture_sequence']}"
+              previous = computed
+
+          capture = trace["manifest"]["capture"]
+          assert capture["first_sequence"] == events[0]["capture_sequence"]
+          assert capture["last_sequence"] == events[-1]["capture_sequence"]
+          assert capture["capture_completeness"] == "unknown"
+          assert capture["broker_drop_evidence"] == "not_available"
+          root_input = {
+              "manifest": trace["manifest"],
+              "ordered_event_digests": [event["event_digest"] for event in events],
+              "annotations": trace["annotations"],
+          }
+          computed_root = digest(b"construction-robot-trace-root-v0.1\\0" + jcs(root_input))
+          assert computed_root == trace["final_trace_digest"]
+          assert len(mutations["cases"]) >= 16
+          print(f"validated {len(events)} trace events, payload hashes, event chain, root digest and {len(mutations['cases'])} mutation cases")
+          PY
