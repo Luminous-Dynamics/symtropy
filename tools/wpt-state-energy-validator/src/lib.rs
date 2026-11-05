@@ -631,7 +631,10 @@ mod tests {
     const SHA: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     // This test fixture mirrors four independent physical value/uncertainty pairs.
-    #[expect(clippy::too_many_arguments, reason = "keeps the fixture's physical input pairs explicit")]
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "keeps the fixture's physical input pairs explicit"
+    )]
     fn record(
         id: &str,
         l: Value,
