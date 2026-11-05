@@ -281,6 +281,85 @@
         "second_authorized": false,
         "second_rejection": "ReplayedDispatch"
       }
+    },
+    {
+      "case_id": "deserialize-invalid-empty-policy-product-allowlist",
+      "ingress": "OwnerFlexibilityPolicy",
+      "wire": {
+        "allowed_products": [],
+        "authorized_key_ids": [
+          "key-1"
+        ]
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "EmptyPolicyAllowlist"
+      }
+    },
+    {
+      "case_id": "deserialize-invalid-offer-time-window",
+      "ingress": "OwnerFlexibilityOffer",
+      "wire": {
+        "valid_from": 100,
+        "valid_until": 90
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "InvalidOfferEnvelope"
+      }
+    },
+    {
+      "case_id": "deserialize-invalid-empty-dispatch-id",
+      "ingress": "OwnerDispatchRequest",
+      "wire": {
+        "dispatch_id": ""
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "MissingIdentity"
+      }
+    },
+    {
+      "case_id": "restore-overcommitted-reservation-ledger",
+      "stored_reservations": [
+        {
+          "offer_id": "a",
+          "reserved_power_kw": 60,
+          "valid_from": 1000,
+          "valid_until": 2000
+        },
+        {
+          "offer_id": "b",
+          "reserved_power_kw": 30,
+          "valid_from": 1500,
+          "valid_until": 2500
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "rejection": "SharedCapacityOvercommitted"
+      }
+    },
+    {
+      "case_id": "restore-inconsistent-replay-ledger",
+      "stored_replay": {
+        "per_offer": {
+          "offer-1": {
+            "highest_sequence_number": 1
+          }
+        },
+        "seen_key_nonces": [
+          [
+            "key-1",
+            "nonce-1"
+          ]
+        ],
+        "seen_dispatch_ids": []
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "InvalidPersistedReplayState"
+      }
     }
   ],
   "security_invariants": [
@@ -290,6 +369,9 @@
     "global signer nonce and dispatch id replay checks span all offers",
     "offer authorization requires exact reserved power, direction, time, recovery, duration and evidence references",
     "unknown, blocked, stale or future local readiness fails closed",
-    "authorization receipt is not an actuation command"
+    "authorization receipt is not an actuation command",
+    "inbound policy, offer and dispatch deserialization routes through validating constructors",
+    "persisted reservation ledgers are reconstructed and overlap/capacity-checked",
+    "persisted replay ledgers are rejected when nonce/dispatch-id counts or sequence state are inconsistent"
   ]
 }
