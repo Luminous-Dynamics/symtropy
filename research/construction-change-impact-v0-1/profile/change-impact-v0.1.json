@@ -40,7 +40,16 @@
     "explicitly_covered_without_rule": "non_triggering_edge",
     "contradictory_or_duplicate_rules": "reject",
     "incomplete_closure": "unaffected_is_forbidden",
-    "graph_closure_authority": "required_for_unaffected"
+    "graph_closure_authority": "required_for_unaffected",
+    "complete_closure_requires": [
+      "closure_manifest_ref",
+      "closure_authority_ref",
+      "closure_graph_revision",
+      "closure_valid_until_unix"
+    ],
+    "closure_expired_at_event_time": "unknown_impact",
+    "parallel_edges": "supported; indegree and adjacency preserve multigraph multiplicity",
+    "unknown_path_explosion": "fail_closed_unknown_impact"
   },
   "scope_rules": {
     "global_event": "intersects all edge scopes",
@@ -61,5 +70,12 @@
     "exact_synthetic_oracle_agreement": 1,
     "deterministic_replay": 1
   },
-  "claim_ceiling": "An Unaffected result is valid only within the complete, current, scope-matched, authority-backed dependency closure supplied to the evaluator. No result establishes safety, engineering approval, physical validity, evidence authenticity or motion authority."
+  "claim_ceiling": "An Unaffected result is valid only within the complete, current, scope-matched, authority-backed dependency closure supplied to the evaluator. No result establishes safety, engineering approval, physical validity, evidence authenticity or motion authority.",
+  "witness_rules": {
+    "retain_all_material_paths": true,
+    "retain_convergent_unknown_paths": true,
+    "deterministic_shortest_first": true,
+    "max_explored_paths": 100000,
+    "overflow_behavior": "mark unresolved graph nodes UnknownImpact"
+  }
 }
