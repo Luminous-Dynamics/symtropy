@@ -1,0 +1,113 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-task-compiler-v0.1",
+  "owner_issue": 3664,
+  "input_contract": {
+    "design_manifest": "construction-design-manifest-v0.1",
+    "method_template": "construction-method-template-v0.1",
+    "capability_match": "external-receipt-from-1834",
+    "site_admission": "external-evidence-from-3561-and-3569"
+  },
+  "output_contract": {
+    "graph_schema": "construction-task-graph-v0.1",
+    "compile_verdicts": [
+      "CompiledForReview",
+      "RejectedUnsupported",
+      "RejectedInconsistent"
+    ],
+    "execution_authority": false,
+    "acceptance_authority": false,
+    "graph_identity_semantics": "length-prefixed deterministic identity label over all graph context and compiler/rule inputs; not cryptographic and not a content hash",
+    "task_id_semantics": "length_prefixed_design_element_and_method_step_identity",
+    "parameter_conversion": "externally_approved_value_and_evidence_reference_required_when_units_differ",
+    "node_lineage_fields": [
+      "source_element_ids",
+      "task_family",
+      "method_step_id",
+      "transformation_rule_id",
+      "transformation_rule_digest"
+    ],
+    "parameter_lineage_fields": [
+      "source_property",
+      "source_ref",
+      "source_unit",
+      "conversion_evidence_ref"
+    ],
+    "resource_obligations": "required_resources",
+    "graph_identity_fields": [
+      "project_id",
+      "site_id",
+      "work_package_id",
+      "model_digest",
+      "design_revision",
+      "target_frame_id",
+      "site_epoch",
+      "method_template_id",
+      "method_revision_digest",
+      "compiler_version",
+      "rule_set_digest"
+    ],
+    "canonical_encoding": {
+      "format": "CTG-V0.1",
+      "domain_separator": "CTG\\0v1",
+      "string_encoding": "UTF-8 with unsigned 64-bit little-endian byte length prefix",
+      "option_encoding": "one-byte tag (0 none, 1 some) followed by encoded string for some",
+      "node_order": "ascending task_id byte sequence",
+      "set_fields_order": "ascending UTF-8 byte sequence",
+      "parameter_order": "ascending parameter name byte sequence",
+      "cryptographic_digest": false,
+      "signature_or_approval": false
+    }
+  },
+  "invariants": {
+    "source_lineage_required": true,
+    "method_step_lineage_required": true,
+    "transformation_rule_digest_required": true,
+    "explicit_units": true,
+    "explicit_frame": true,
+    "acyclic_dependencies": true,
+    "physical_measurement_is_external": true,
+    "independent_acceptance_is_external": true
+  },
+  "target_thresholds": {
+    "false_executable_admissions": 0,
+    "source_lineage_fraction": 1,
+    "mandatory_obligation_preservation": 1,
+    "oracle_agreement": 1,
+    "implicit_unit_or_frame_inference": 0,
+    "cyclic_graphs_admitted": 0
+  },
+  "claim_ceiling": "The v0.1 validator checks structure and lineage in a normalized synthetic work graph. It does not authenticate authorities, parse arbitrary IFC, approve methods, establish capability, prove physical feasibility, grant motion/safety authority or accept physical construction output.",
+  "implementation_stages": [
+    {
+      "stage": "normalized_graph_validation",
+      "status": "implemented",
+      "claim": "Structural lineage and DAG invariants are checked over a normalized synthetic graph."
+    },
+    {
+      "stage": "method_template_instantiation",
+      "status": "implemented_pending_hosted_validation",
+      "claim": "Approved method steps are instantiated against normalized design properties into a review-only graph."
+    },
+    {
+      "stage": "ifc_aas_adapters",
+      "status": "not_implemented",
+      "claim": "No general IFC/AAS parser or production adapter is included."
+    },
+    {
+      "stage": "behavior_tree_lowering",
+      "status": "not_implemented",
+      "claim": "No target robot behavior tree or controller program is generated."
+    },
+    {
+      "stage": "virtual_commissioning",
+      "status": "not_implemented",
+      "claim": "No simulator or physical evidence is claimed."
+    },
+    {
+      "stage": "canonical_graph_serialization",
+      "status": "implemented_pending_hosted_validation",
+      "claim": "Validated graphs emit versioned deterministic CTG v0.1 bytes; this is not a hash/signature."
+    }
+  ]
+}

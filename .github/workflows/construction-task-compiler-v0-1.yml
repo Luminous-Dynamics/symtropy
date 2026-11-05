@@ -1,0 +1,39 @@
+name: Construction Task Compiler V0.1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/construction-task-compiler-v0-1/**"
+      - ".github/workflows/construction-task-compiler-v0-1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-task-compiler-v0-1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Task graph validator (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Verify package metadata and committed lockfile
+        run: cargo metadata --manifest-path research/construction-task-compiler-v0-1/Cargo.toml --locked --format-version 1
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/construction-task-compiler-v0-1/Cargo.toml -- --check
+      - name: Run graph validation tests
+        run: cargo test --manifest-path research/construction-task-compiler-v0-1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/construction-task-compiler-v0-1/Cargo.toml --locked --all-targets -- -D warnings
