@@ -149,18 +149,10 @@ mod analytic_constraint_qualification_tests {
 
     #[test]
     fn distance_constraint_residual_follows_analytic_stiffness_convergence() {
-        let mut a = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(0),
-            Point::new([0.0, 0.0, 0.0]),
-            0.25,
-            1.0,
-        );
-        let mut b = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(1),
-            Point::new([10.0, 0.0, 0.0]),
-            0.25,
-            1.0,
-        );
+        let mut a =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([0.0, 0.0, 0.0]), 0.25, 1.0);
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([10.0, 0.0, 0.0]), 0.25, 1.0);
         let rest_length = 4.0;
         let stiffness = 0.25;
         let initial_error: f64 = 10.0 - rest_length;
@@ -199,9 +191,9 @@ mod analytic_constraint_qualification_tests {
             0.25,
             mass_b,
         );
-        let center_before =
-            (a.transform.translation.0 * mass_a + b.transform.translation.0 * mass_b)
-                / (mass_a + mass_b);
+        let center_before = (a.transform.translation.0 * mass_a
+            + b.transform.translation.0 * mass_b)
+            / (mass_a + mass_b);
 
         let constraint = DistanceConstraint {
             body_a: BodyHandle(0),
@@ -213,13 +205,10 @@ mod analytic_constraint_qualification_tests {
             constraint.solve(&mut a, &mut b, 1.0 / 60.0);
         }
 
-        let center_after =
-            (a.transform.translation.0 * mass_a + b.transform.translation.0 * mass_b)
-                / (mass_a + mass_b);
+        let center_after = (a.transform.translation.0 * mass_a
+            + b.transform.translation.0 * mass_b)
+            / (mass_a + mass_b);
         assert!((center_after - center_before).norm() < 1e-12);
-        assert!(
-            (a.transform.translation.distance(&b.transform.translation) - 4.0).abs()
-                < 1e-3
-        );
+        assert!((a.transform.translation.distance(&b.transform.translation) - 4.0).abs() < 1e-3);
     }
 }
