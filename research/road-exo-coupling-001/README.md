@@ -61,3 +61,41 @@ The new conformance module deliberately does not:
 - create or generate random values.
 
 Tests cover unique identity, ambiguous actor-vs-slot mappings, directed-role mismatch, conditional event non-realization, missing/unknown events, unmatched events, invalid partitions, duplicate endpoints, incomplete candidate universes and canonical order invariance.
+
+
+## Correspondence-conditioned stochastic address projection (ROAD-CORRESPONDENCE-COUPLING-001)
+
+The new \`coupling_projection\` reference composes the finite correspondence set with causal draw-source dispositions. It is intentionally downstream of #3571 and upstream of the existing #3582 Philox resolver.
+
+Important separation:
+- A correspondence pair says which branch-local events are admitted as counterparts under one declared map.
+- A causal disposition separately says whether a particular stochastic source is invariant, branch-specific, sensitivity-only, not identified, or incomplete.
+- Shared pair addresses require the exact source/mechanism/version/component profile, tick and event-kind to agree across branches.
+- Branch-local addresses are keyed by the branch and local event identity, not by whichever counterpart hypothesis happened to be considered. Thus changing a correspondence hypothesis does not perturb a branch-local random input.
+- An unknown event presence prevents shared addressing. A conditionally non-realized event retains its potential-event address; presence and its condition witness are receipt metadata, not address input.
+- Every admitted correspondence hypothesis produces a separately retained plan. An incomplete event universe or budget-limited hypothesis search marks the overall plan incomplete even when known-hypothesis plans are available.
+
+The output is a typed, versioned v0.2 canonical address byte string. It is not a hash or Philox output. The downstream pinned resolver remains the owner of BLAKE3/Philox. The module has finite fixtures for actor-vs-slot ambiguity, cause-class separation, branch-local invariance, conditional absence, unknown presence, incomplete search, source/version mismatch and sensitivity-only coupling.
+
+No event map is selected as true and no common-random-number variance benefit is assumed.
+
+
+### Pinned Philox resolution for correspondence v0.2
+
+The correspondence projection now feeds the same pinned rand_philox 0.2.1 Philox4x32-10 resolver and blake3 1.8.7 derive-key dependency used by ROAD-PHILOX-ADAPTER-001 (#3582). This adds a v0.2 byte-address entry point; it does not introduce another PRNG or sampling algorithm.
+
+- v0.1 DrawAddress bytes retain the original ROAD-EXO-COUPLING-001 derivation context and receipt schema.
+- Correspondence-projected v0.2 canonical bytes use a distinct ROAD-CORRESPONDENCE-COUPLING-001 KDF context, derivation ID and address schema ID. The canonical bytes are passed unchanged.
+- Each hypothesis plan resolves every retained branch/event address. The returned wrapper retains the exact original correspondence map (paired endpoints, identity bases, hypothesis justification and unmatched-event rationale/evidence references), in addition to each hypothesis ID.
+- Each draw receipt retains branch/event ID, sharing disposition, presence witness, exact canonical address bytes and the raw four-word Philox receipt. Every draw can therefore be replay-verified from the bundle without recovering a separate address plan.
+- The address plan and resolved bundle retain the original candidate-universe and hypothesis-set status objects, including their evidence-reference IDs. These are provenance references supplied by the caller, not independent validation that the referenced evidence is genuine or that the search was scientifically exhaustive.
+- The existing 192-bit key/counter collision registry is applied across the entire plan bundle. Repeated branch endpoints of one exact shared address are permitted only when their full 256-bit derivation digests match.
+- Incomplete correspondence sets may retain draws for known hypotheses, but the draw bundle preserves both Incomplete status and the original universe/search evidence references; resolving a random block does not upgrade identification or completeness.
+- The resolved bundle has a versioned BLAKE3 content digest over the full correspondence maps, per-hypothesis causal-rule manifests, scope/search evidence references, hypothesis/pair and causal-rule justifications, address bytes, presence/sharing labels and raw Philox receipts. Causal disposition remains a first-class inspectable field; consumers do not need to reverse-engineer canonical address bytes.
+- The independent verifier checks the bundle digest, verifies every raw draw against the frozen experiment seed, repeats the bundle-wide Philox collision check, and checks that every correspondence pair has exactly one matching causal rule whose disposition agrees with both branch receipts and their presence states. It also verifies that every paired and unmatched event has exactly one branch-scoped receipt.
+- The digest detects changes relative to an externally retained commitment; it is not a signature, does not authenticate the caller, and does not validate the truth of referenced evidence.
+- Tests replay every returned draw from its retained canonical bytes, reject altered address/receipt values, verify incomplete-scope references survive resolution, exercise bundle-level tampering of search provenance/correspondence/causal justifications/draw outputs, and reject a rehashed bundle whose causal rule contradicts its sharing labels.
+
+The resolver emits raw u32 words only. Distribution sampling/transforms remain #3586's separate responsibility. Shared draw alignment is a causal/execution contract; its statistical variance effect is reported independently and can be positive, neutral or negative.
+
+Additional exact tests cover: same Philox words for both endpoints of one justified shared event under a given hypothesis; distinct draws for alternative actor-vs-slot mappings; stable branch-local draws across alternative maps; v0.2 receipt replay from canonical bytes; preservation of incomplete status; and separation of v0.1/v0.2 KDF domains.

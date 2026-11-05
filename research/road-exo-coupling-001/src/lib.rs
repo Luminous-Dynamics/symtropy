@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
 pub mod correspondence;
+pub mod coupling_projection;
+pub mod philox_adapter;
 
 use std::collections::{BTreeMap, BTreeSet};
 
