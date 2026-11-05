@@ -139,20 +139,20 @@
       "frequency_tolerance_hz": 1,
       "lines": [
         {
-          "frequency_hz": 85000,
-          "rms_amplitude": 20,
-          "phase_deg": 0,
-          "harmonic_order": null,
-          "sideband_offset_hz": null,
-          "expanded_uncertainty": 0.05
-        },
-        {
           "frequency_hz": 84950,
           "rms_amplitude": 0.4,
           "phase_deg": -20,
           "harmonic_order": null,
           "sideband_offset_hz": -50,
           "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 85000,
+          "rms_amplitude": 20,
+          "phase_deg": 0,
+          "harmonic_order": null,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.05
         },
         {
           "frequency_hz": 85050,
