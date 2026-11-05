@@ -485,7 +485,7 @@ fn nonempty(value: &str, field: &'static str) -> Result<(), AdapterError> {
     }
 }
 
-fn valid_sha256(value: &str) -> bool {
+pub(crate) fn valid_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
@@ -525,7 +525,7 @@ fn lookup(
         })
 }
 
-fn validate_source(source: &SourceManifest) -> Result<(), AdapterError> {
+pub(crate) fn validate_source(source: &SourceManifest) -> Result<(), AdapterError> {
     nonempty(&source.id, "source_manifest_id")?;
     nonempty(&source.citation_or_source_uri, "citation_or_source_uri")?;
 
@@ -629,7 +629,7 @@ fn validate_source(source: &SourceManifest) -> Result<(), AdapterError> {
     Ok(())
 }
 
-fn source_supports_claim(source: &SourceManifest, claim: ClaimCeiling) -> bool {
+pub(crate) fn source_supports_claim(source: &SourceManifest, claim: ClaimCeiling) -> bool {
     match claim {
         ClaimCeiling::SyntheticQualification => {
             source.evidence_class == EvidenceClass::SyntheticFixture
