@@ -30,7 +30,10 @@ pub fn nan_zeroed_count() -> u64 {
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
-/// The method is symplectic under its assumptions, but stability and accuracy remain problem- and timestep-dependent; it is not unconditionally stable for every Hamiltonian system.
+/// The undamped, unclamped conservative update is symplectic for a separable
+/// Hamiltonian system. The full engine path also applies damping, contact
+/// correction and velocity clamps, so the whole path is not globally
+/// symplectic. Stability and accuracy remain problem- and timestep-dependent.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
