@@ -370,8 +370,7 @@ mod tests {
         let scaled_normal = SVector::from([0.0, 7.0, 0.0]);
 
         let unit_hit = sphere_halfspace(&pos, &velocity, 0.5, &unit_normal, 2.0, 1.0).unwrap();
-        let scaled_hit =
-            sphere_halfspace(&pos, &velocity, 0.5, &scaled_normal, 14.0, 1.0).unwrap();
+        let scaled_hit = sphere_halfspace(&pos, &velocity, 0.5, &scaled_normal, 14.0, 1.0).unwrap();
 
         assert!((unit_hit.toi - scaled_hit.toi).abs() < 1e-12);
         assert!((unit_hit.point - scaled_hit.point).norm() < 1e-12);
