@@ -57,7 +57,7 @@ jobs:
               payload_bytes = base64.b64decode(event["payload"]["data"], validate=True)
               assert digest(payload_bytes) == event["payload"]["sha256"]
               unsigned = {key: value for key, value in event.items() if key != "event_digest"}
-              computed = digest(b"construction-robot-trace-event-v0.1\\0" + jcs(unsigned))
+              computed = digest(b"construction-robot-trace-event-v0.1\0" + jcs(unsigned))
               assert computed == event["event_digest"], f"event digest mismatch at sequence {event['capture_sequence']}"
               previous = computed
 
@@ -71,7 +71,7 @@ jobs:
               "ordered_event_digests": [event["event_digest"] for event in events],
               "annotations": trace["annotations"],
           }
-          computed_root = digest(b"construction-robot-trace-root-v0.1\\0" + jcs(root_input))
+          computed_root = digest(b"construction-robot-trace-root-v0.1\0" + jcs(root_input))
           assert computed_root == trace["final_trace_digest"]
           assert len(mutations["cases"]) >= 16
           print(f"validated {len(events)} trace events, payload hashes, event chain, root digest and {len(mutations['cases'])} mutation cases")
