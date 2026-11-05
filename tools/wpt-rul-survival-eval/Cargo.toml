@@ -1,0 +1,10 @@
+[package]
+name = "wpt-rul-survival-eval"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Censoring-aware competing-risk survival forecast evaluation for WPT asset lifecycles"
+
+[dependencies]
+serde_json = "1.0"
