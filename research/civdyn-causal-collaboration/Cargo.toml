@@ -1,0 +1,18 @@
+[workspace]
+
+[package]
+name = "civdyn-causal-collaboration"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Evidence-qualified causal collaboration and per-agent contribution metrics"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "causal-collaboration-sweep"
+path = "src/bin/causal_collaboration_sweep.rs"
+
+[dependencies]
