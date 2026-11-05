@@ -531,25 +531,24 @@ pub fn evaluate_change(
     }
 
     if !global_unknown_reasons.is_empty() {
-        let seed = TraversalState {
-            node_id: event.subject_node_id.clone(),
-            node_path: vec![event.subject_node_id.clone()],
-            edge_path: Vec::new(),
-            rule_path: Vec::new(),
-        };
-        for reason in &global_unknown_reasons {
+        // The event itself cannot be trusted or bounded. Without a valid authority,
+        // semantic delta, current closure or equivalence proof, the declared scope
+        // cannot support any downstream Unaffected decision. This is intentionally
+        // more conservative than traversing only currently known dependency edges:
+        // missing/invalid event semantics may be exactly what would expose a missing edge.
+        for node in &graph.nodes {
             let acc = accumulators
-                .get_mut(&event.subject_node_id)
-                .expect("subject accumulator");
+                .get_mut(&node.node_id)
+                .expect("every graph node has an accumulator");
             acc.unknown = true;
-            acc.reasons.insert(reason.clone());
+            if node.node_id == event.subject_node_id {
+                acc.reasons.extend(global_unknown_reasons.iter().cloned());
+            } else {
+                acc.reasons
+                    .insert("change_event_admissibility_or_scope_is_unknown".to_owned());
+                acc.reasons.extend(global_unknown_reasons.iter().cloned());
+            }
         }
-        propagate_unknown(
-            graph,
-            seed,
-            &mut accumulators,
-            "upstream_change_cannot_be_fully_evaluated",
-        );
     } else {
         let mut queue = VecDeque::new();
         queue.push_back(TraversalState {
@@ -1359,7 +1358,7 @@ mod tests {
                     "r2",
                     kind.clone(),
                     Some(ImpactAction::Revalidate),
-                    false,
+                    true,
                 )],
                 ScopeSelector::Global,
             ),
