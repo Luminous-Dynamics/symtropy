@@ -579,15 +579,15 @@ mod tests {
             0.0,
             1000.0,
             BoundaryEnergyFlows {
-                work_in_j: Joules::new(1000.5),
+                work_in_j: Joules::new(1000.4995),
                 ..BoundaryEnergyFlows::default()
             },
         );
         let strict = input
-            .evaluate(EnergyBalanceTolerances::new(Joules::new(0.0), 1e-5))
+            .evaluate(EnergyBalanceTolerances::new(Joules::new(0.0), 1e-7))
             .unwrap();
         let loose = input
-            .evaluate(EnergyBalanceTolerances::new(Joules::new(0.0), 1e-3))
+            .evaluate(EnergyBalanceTolerances::new(Joules::new(0.0), 1e-6))
             .unwrap();
 
         assert_eq!(strict.status, EnergyBalanceStatus::Imbalanced);
