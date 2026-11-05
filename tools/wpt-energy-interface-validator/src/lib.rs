@@ -527,9 +527,11 @@ mod tests {
                 {"requested_input_power_w": 200.0, "time_ns": 0}
             ]
         });
-        assert!(service_profile(&service)
-            .unwrap_err()
-            .contains("requires quantity"));
+        assert!(
+            service_profile(&service)
+                .unwrap_err()
+                .contains("requires quantity")
+        );
     }
 
     #[test]
