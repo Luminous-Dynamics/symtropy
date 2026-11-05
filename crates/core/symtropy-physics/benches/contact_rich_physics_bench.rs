@@ -229,8 +229,7 @@ fn bench_contact_rich_scenes(c: &mut Criterion) {
         // unexpectedly loses all contacts from looking like a speed win.
         let calibration = run_campaign(build_scene(scene), scene);
         let average_points_per_step = calibration.contact_point_steps as f64 / STEPS as f64;
-        let average_manifolds_per_step =
-            calibration.contact_manifold_steps as f64 / STEPS as f64;
+        let average_manifolds_per_step = calibration.contact_manifold_steps as f64 / STEPS as f64;
         let benchmark_name = format!(
             "{}_{}bodies_{:.1}manifolds_{:.1}points_{:.3}m_pen_{}events",
             scene.name(),
