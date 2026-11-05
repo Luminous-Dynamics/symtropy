@@ -33,10 +33,7 @@ fn fail(path: &str, message: impl AsRef<str>) -> String {
     format!("{path}: {}", message.as_ref())
 }
 
-fn object<'a>(
-    value: &'a Value,
-    path: &str,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
     value
         .as_object()
         .ok_or_else(|| fail(path, "must be an object"))
@@ -100,7 +97,12 @@ fn string_set(
         let item = item
             .as_str()
             .filter(|value| !value.trim().is_empty())
-            .ok_or_else(|| fail(&format!("{path}.{key}"), "all items must be non-empty strings"))?;
+            .ok_or_else(|| {
+                fail(
+                    &format!("{path}.{key}"),
+                    "all items must be non-empty strings",
+                )
+            })?;
         if !allowed.contains(&item) {
             return Err(fail(
                 &format!("{path}.{key}"),
@@ -259,8 +261,7 @@ fn parse_subjects(
             _ => return Err(fail(&path, "unknown outcome_kind")),
         }
 
-        let survival_probability =
-            number_field(row, "predicted_survival_probability", &path)?;
+        let survival_probability = number_field(row, "predicted_survival_probability", &path)?;
         if !(0.0..=1.0).contains(&survival_probability) {
             return Err(fail(
                 &path,
@@ -270,7 +271,12 @@ fn parse_subjects(
 
         let cause_rows = field(row, "predicted_cumulative_incidence", &path)?
             .as_array()
-            .ok_or_else(|| fail(&format!("{path}.predicted_cumulative_incidence"), "must be an array"))?;
+            .ok_or_else(|| {
+                fail(
+                    &format!("{path}.predicted_cumulative_incidence"),
+                    "must be an array",
+                )
+            })?;
         if cause_rows.len() != all_codes.len() {
             return Err(fail(
                 &path,
@@ -292,7 +298,10 @@ fn parse_subjects(
             if !(0.0..=1.0).contains(&probability) {
                 return Err(fail(&cause_path, "probability must be within [0, 1]"));
             }
-            if cumulative_incidence.insert(cause.clone(), probability).is_some() {
+            if cumulative_incidence
+                .insert(cause.clone(), probability)
+                .is_some()
+            {
                 return Err(fail(&cause_path, format!("duplicate event cause {cause}")));
             }
         }
@@ -306,18 +315,24 @@ fn parse_subjects(
                 "predicted_cumulative_incidence is missing one or more declared event causes",
             ));
         }
-        let probability_sum = survival_probability
-            + cumulative_incidence.values().sum::<f64>();
+        let probability_sum = survival_probability + cumulative_incidence.values().sum::<f64>();
         if (probability_sum - 1.0).abs() > PROBABILITY_SUM_TOLERANCE {
             return Err(fail(
                 &path,
-                format!("survival plus cumulative incidence probabilities must sum to 1 (got {probability_sum})"),
+                format!(
+                    "survival plus cumulative incidence probabilities must sum to 1 (got {probability_sum})"
+                ),
             ));
         }
 
         let hazard_rows = field(row, "predicted_cause_specific_hazard_rates_per_hour", &path)?
             .as_array()
-            .ok_or_else(|| fail(&format!("{path}.predicted_cause_specific_hazard_rates_per_hour"), "must be an array"))?;
+            .ok_or_else(|| {
+                fail(
+                    &format!("{path}.predicted_cause_specific_hazard_rates_per_hour"),
+                    "must be an array",
+                )
+            })?;
         if hazard_rows.len() != all_codes.len() {
             return Err(fail(
                 &path,
@@ -326,8 +341,13 @@ fn parse_subjects(
         }
         let mut cause_specific_hazard_rates = BTreeMap::new();
         for (hazard_index, hazard_row) in hazard_rows.iter().enumerate() {
-            let hazard_path = format!("{path}.predicted_cause_specific_hazard_rates_per_hour[{hazard_index}]");
-            exact_keys(hazard_row, &["event_code", "rates_per_interval"], &hazard_path)?;
+            let hazard_path =
+                format!("{path}.predicted_cause_specific_hazard_rates_per_hour[{hazard_index}]");
+            exact_keys(
+                hazard_row,
+                &["event_code", "rates_per_interval"],
+                &hazard_path,
+            )?;
             let cause = string_field(hazard_row, "event_code", &hazard_path)?.to_string();
             if !all_codes.contains(&cause) {
                 return Err(fail(
@@ -337,11 +357,18 @@ fn parse_subjects(
             }
             let rates = field(hazard_row, "rates_per_interval", &hazard_path)?
                 .as_array()
-                .ok_or_else(|| fail(&format!("{hazard_path}.rates_per_interval"), "must be an array"))?;
+                .ok_or_else(|| {
+                    fail(
+                        &format!("{hazard_path}.rates_per_interval"),
+                        "must be an array",
+                    )
+                })?;
             if rates.len() != interval_count {
                 return Err(fail(
                     &hazard_path,
-                    format!("rates_per_interval must contain exactly {interval_count} interval rates"),
+                    format!(
+                        "rates_per_interval must contain exactly {interval_count} interval rates"
+                    ),
                 ));
             }
             let mut parsed_rates = Vec::with_capacity(interval_count);
@@ -364,7 +391,10 @@ fn parse_subjects(
                 .insert(cause.clone(), parsed_rates)
                 .is_some()
             {
-                return Err(fail(&hazard_path, format!("duplicate hazard cause {cause}")));
+                return Err(fail(
+                    &hazard_path,
+                    format!("duplicate hazard cause {cause}"),
+                ));
             }
         }
         if cause_specific_hazard_rates.len() != all_codes.len()
@@ -405,9 +435,12 @@ fn parse_hazard_time_edges(run: &Value) -> Result<Vec<f64>, String> {
     }
     let mut edges = Vec::with_capacity(values.len());
     for (index, value) in values.iter().enumerate() {
-        let edge = value
-            .as_f64()
-            .ok_or_else(|| fail(&format!("$.hazard_time_edges_hours[{index}]"), "must be numeric"))?;
+        let edge = value.as_f64().ok_or_else(|| {
+            fail(
+                &format!("$.hazard_time_edges_hours[{index}]"),
+                "must be numeric",
+            )
+        })?;
         if !edge.is_finite() || edge < 0.0 {
             return Err(fail(
                 &format!("$.hazard_time_edges_hours[{index}]"),
@@ -456,8 +489,7 @@ fn cause_specific_hazard_log_score(
             if subject.observed_duration_hours < start {
                 break;
             }
-            let exposure_hours =
-                (subject.observed_duration_hours.min(end) - start).max(0.0);
+            let exposure_hours = (subject.observed_duration_hours.min(end) - start).max(0.0);
             if exposure_hours > 0.0 {
                 let total_hazard_rate = subject
                     .cause_specific_hazard_rates
@@ -527,8 +559,7 @@ fn censoring_survival_left_limit(subjects: &[Subject], time: f64) -> f64 {
     let mut censor_times = subjects
         .iter()
         .filter(|subject| {
-            subject.outcome_kind == "RIGHT_CENSORED"
-                && subject.observed_duration_hours < time
+            subject.outcome_kind == "RIGHT_CENSORED" && subject.observed_duration_hours < time
         })
         .map(|subject| subject.observed_duration_hours)
         .collect::<Vec<_>>();
@@ -617,7 +648,10 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
         ));
     }
     if string_field(run, "evaluation_split", "$")? != "TEST" {
-        return Err(fail("$.evaluation_split", "v0 evaluates a frozen TEST cohort only"));
+        return Err(fail(
+            "$.evaluation_split",
+            "v0 evaluates a frozen TEST cohort only",
+        ));
     }
     if string_field(run, "estimand", "$")? != "COMPETING_RISK_CIF_AT_HORIZON" {
         return Err(fail("$.estimand", "unsupported survival estimand"));
@@ -628,9 +662,7 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
             "NOT_EVALUABLE: v0 requires independent right censoring; conditional/dependent censoring needs a declared conditional censoring model",
         ));
     }
-    if string_field(run, "censoring_estimator", "$")?
-        != "EVALUATION_COHORT_UNCONDITIONAL_KM"
-    {
+    if string_field(run, "censoring_estimator", "$")? != "EVALUATION_COHORT_UNCONDITIONAL_KM" {
         return Err(fail(
             "$.censoring_estimator",
             "v0 supports evaluation-cohort unconditional Kaplan-Meier censoring estimation only",
@@ -639,7 +671,10 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
 
     let horizon = number_field(run, "prediction_horizon_hours", "$")?;
     if horizon <= 0.0 {
-        return Err(fail("$.prediction_horizon_hours", "must be strictly positive"));
+        return Err(fail(
+            "$.prediction_horizon_hours",
+            "must be strictly positive",
+        ));
     }
     let minimum_g = number_field(run, "minimum_censoring_survival", "$")?;
     if !(0.0..=1.0).contains(&minimum_g) || minimum_g == 0.0 {
@@ -706,8 +741,7 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
     let eligible_count = subjects
         .iter()
         .filter(|subject| {
-            subject.outcome_kind != "RIGHT_CENSORED"
-                || subject.observed_duration_hours >= horizon
+            subject.outcome_kind != "RIGHT_CENSORED" || subject.observed_duration_hours >= horizon
         })
         .count();
     let censored_before_horizon_count = subjects.len() - eligible_count;
@@ -718,9 +752,7 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
     for subject in &subjects {
         let has_event_by_horizon =
             subject.has_terminal_event() && subject.observed_duration_hours <= horizon;
-        if subject.outcome_kind == "RIGHT_CENSORED"
-            && subject.observed_duration_hours < horizon
-        {
+        if subject.outcome_kind == "RIGHT_CENSORED" && subject.observed_duration_hours < horizon {
             continue;
         }
 
@@ -729,8 +761,7 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
         } else {
             horizon
         };
-        let censoring_survival =
-            censoring_survival_left_limit(&subjects, query_time);
+        let censoring_survival = censoring_survival_left_limit(&subjects, query_time);
         if !censoring_survival.is_finite() || censoring_survival < minimum_g {
             brier_not_evaluable_reason = Some(format!(
                 "NOT_EVALUABLE: censoring positivity support failed at {} hours (G(t-)={censoring_survival}, required >= {minimum_g})",
@@ -740,8 +771,7 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
         }
         let weight = 1.0 / censoring_survival;
         if !weight.is_finite() {
-            brier_not_evaluable_reason =
-                Some("NOT_EVALUABLE: IPCW weight overflowed".into());
+            brier_not_evaluable_reason = Some("NOT_EVALUABLE: IPCW weight overflowed".into());
             break;
         }
         minimum_g_used = minimum_g_used.min(censoring_survival);
@@ -753,11 +783,8 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
             None
         };
         let event_free_at_horizon = !has_event_by_horizon;
-        let loss = competing_risk_multiclass_loss(
-            subject,
-            observed_event_code,
-            event_free_at_horizon,
-        );
+        let loss =
+            competing_risk_multiclass_loss(subject, observed_event_code, event_free_at_horizon);
         if !loss.is_finite() {
             brier_not_evaluable_reason =
                 Some("NOT_EVALUABLE: competing-risk Brier loss overflowed".into());
@@ -789,7 +816,6 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
     } else {
         None
     };
-
 
     let mut concordant = 0.0_f64;
     let mut comparable_pairs = 0usize;
@@ -866,8 +892,7 @@ mod tests {
         assert_eq!(report.censored_before_horizon_count, 2);
         assert_eq!(report.distinct_cluster_count, 7);
         assert!(
-            (report.ipcw_competing_risk_brier_score.unwrap() - 0.23453571428571426).abs()
-                < 1e-12
+            (report.ipcw_competing_risk_brier_score.unwrap() - 0.23453571428571426).abs() < 1e-12
         );
         assert!((report.minimum_censoring_survival_used.unwrap() - 0.7).abs() < 1e-12);
         assert!((report.maximum_ipcw_weight.unwrap() - 1.0 / 0.7).abs() < 1e-12);
@@ -916,8 +941,8 @@ mod tests {
     #[test]
     fn rejects_zero_hazard_for_an_observed_event_cause() {
         let mut run = fixture();
-        run["subjects"][0]["predicted_cause_specific_hazard_rates_per_hour"][0]["rates_per_interval"][0] =
-            Value::from(0.0);
+        run["subjects"][0]["predicted_cause_specific_hazard_rates_per_hour"][0]["rates_per_interval"]
+            [0] = Value::from(0.0);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
@@ -981,14 +1006,17 @@ mod tests {
         let mut run = fixture();
         let first = run["subjects"][0].clone();
         run["subjects"].as_array_mut().unwrap().push(first);
-        assert!(evaluate_run(&run).unwrap_err().contains("duplicate subject_id"));
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("duplicate subject_id")
+        );
     }
 
     #[test]
     fn rejects_dependent_censoring_when_only_unconditional_km_is_available() {
         let mut run = fixture();
-        run["censoring_assumption"] =
-            Value::String("COVARIATE_DEPENDENT_RIGHT_CENSORING".into());
+        run["censoring_assumption"] = Value::String("COVARIATE_DEPENDENT_RIGHT_CENSORING".into());
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
