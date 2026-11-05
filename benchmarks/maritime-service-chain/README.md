@@ -51,7 +51,11 @@ The crate verifies:
 - a continuous origin-to-destination route graph;
 - each segment's required resource kinds;
 - resource-kind/capacity-unit compatibility and non-overlapping half-open calendars;
-- nonzero, unit-matched resource uses;
+- exact resource-calendar-to-evidence binding (every evidence snapshot must match
+  the precise availability windows and capacities, not only the resource ID);
+- demand origin/destination agreement with the frozen route;
+- nonzero, unit-matched resource uses that cover the full declared handling and
+  inland-transfer amount;
 - vessel cargo capacity at least equal to declared demand and in the same service unit;
 - current, non-future, in-validity evidence at the decision cutoff;
 - owner/role boundaries for engineering, operational, spatial and participant evidence;
