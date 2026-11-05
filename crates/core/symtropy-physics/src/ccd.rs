@@ -368,16 +368,8 @@ mod analytic_qualification_tests {
             let near_x = -(combined_radius * combined_radius - y * y).sqrt();
             let expected_toi = (near_x - start_x) / speed;
 
-            let hit = sphere_sphere(
-                &start,
-                &velocity,
-                0.25,
-                &target,
-                &target_velocity,
-                0.5,
-                dt,
-            )
-            .expect("each swept chord intersects the combined-radius circle");
+            let hit = sphere_sphere(&start, &velocity, 0.25, &target, &target_velocity, 0.5, dt)
+                .expect("each swept chord intersects the combined-radius circle");
 
             assert!(
                 (hit.toi - expected_toi).abs() < 1e-11,
@@ -398,16 +390,8 @@ mod analytic_qualification_tests {
         let start = SVector::from([-2.0, 0.2, 0.0]);
         let velocity = SVector::from([4.0, 0.0, 0.0]);
         let stationary = SVector::zeros();
-        let hit = sphere_sphere(
-            &start,
-            &velocity,
-            0.1,
-            &stationary,
-            &stationary,
-            0.1,
-            1.0,
-        )
-        .expect("a tangent trajectory must report the grazing contact");
+        let hit = sphere_sphere(&start, &velocity, 0.1, &stationary, &stationary, 0.1, 1.0)
+            .expect("a tangent trajectory must report the grazing contact");
 
         assert!((hit.toi - 0.5).abs() < 1e-10);
         assert!(hit.toi.is_finite());
@@ -428,15 +412,8 @@ mod analytic_qualification_tests {
             let start = SVector::from([0.0, start_height, 0.0]);
             let velocity = SVector::from([0.0, -speed, 0.0]);
             let expected_toi = (start_height - plane_offset - radius) / speed;
-            let hit = sphere_halfspace(
-                &start,
-                &velocity,
-                radius,
-                &normal,
-                plane_offset,
-                10.0,
-            )
-            .expect("the falling sphere reaches the plane during the horizon");
+            let hit = sphere_halfspace(&start, &velocity, radius, &normal, plane_offset, 10.0)
+                .expect("the falling sphere reaches the plane during the horizon");
 
             assert!((hit.toi - expected_toi).abs() < 1e-12);
             let center_at_toi = start + velocity * hit.toi;
