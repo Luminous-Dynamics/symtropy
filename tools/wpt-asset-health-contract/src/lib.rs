@@ -308,20 +308,37 @@ pub fn validate_observation(schema: &Value, observation: &Value) -> Result<(), S
         }
     }
 
+    if evidence_kind == "PUBLISHED_MEASURED" {
+        let provenance = object_field(observation, "provenance", "$")?;
+        let locator = object_field(provenance, "source_locator", "$.provenance")?;
+        if locator.as_str().is_none_or(str::is_empty) {
+            return Err(fail(
+                "$.provenance.source_locator",
+                "published-measured evidence requires a source locator",
+            ));
+        }
+    }
+
     let asset_context = object_field(observation, "asset_context", "$")?;
     let frame = asset_context
         .get("coordinate_frame_id")
         .and_then(Value::as_str);
-    if let Some(frame) = frame {
-        for (group, profile) in [
-            ("structural", "spatial_strain_profile"),
-            ("structural", "curvature_profile"),
-            ("thermal", "spatial_temperature_profile"),
-        ] {
-            let group_value = object_field(observation, group, "$")?;
-            let points = object_field(group_value, profile, &format!("$.{group}"))?
-                .as_array()
-                .ok_or_else(|| fail(&format!("$.{group}.{profile}"), "must be an array"))?;
+    for (group, profile) in [
+        ("structural", "spatial_strain_profile"),
+        ("structural", "curvature_profile"),
+        ("thermal", "spatial_temperature_profile"),
+    ] {
+        let group_value = object_field(observation, group, "$")?;
+        let points = object_field(group_value, profile, &format!("$.{group}"))?
+            .as_array()
+            .ok_or_else(|| fail(&format!("$.{group}.{profile}"), "must be an array"))?;
+        if !points.is_empty() && frame.is_none() {
+            return Err(fail(
+                "$.asset_context.coordinate_frame_id",
+                "spatial profiles require a declared asset coordinate frame",
+            ));
+        }
+        if let Some(frame) = frame {
             for (index, point) in points.iter().enumerate() {
                 let point_frame = string_field(
                     point,
