@@ -61,7 +61,10 @@
         "hardware_revision",
         "controller_revision",
         "coordinate_frame_id",
-        "measurement_plane_manifest_digest"
+        "measurement_plane_manifest_digest",
+        "binder_grade",
+        "mixture_design_digest",
+        "sensor_system_revision"
       ],
       "properties": {
         "pavement_type": {
@@ -109,6 +112,26 @@
             "null"
           ],
           "pattern": "^[0-9a-f]{64}$"
+        },
+        "binder_grade": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Superpave binder grade when applicable; do not infer across pavement types."
+        },
+        "mixture_design_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sensor_system_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -125,7 +148,8 @@
         "moisture_state",
         "chloride_exposure_mg_m2",
         "ambient_min_c",
-        "ambient_max_c"
+        "ambient_max_c",
+        "wheel_wander_offset_mm"
       ],
       "properties": {
         "wheel_pass_count": {
@@ -197,6 +221,12 @@
             "number",
             "null"
           ]
+        },
+        "wheel_wander_offset_mm": {
+          "type": [
+            "number",
+            "null"
+          ]
         }
       }
     },
@@ -212,7 +242,9 @@
         "pad_displacement_x_mm",
         "pad_displacement_y_mm",
         "pad_displacement_z_mm",
-        "pad_tilt_deg"
+        "pad_tilt_deg",
+        "spatial_strain_profile",
+        "curvature_profile"
       ],
       "properties": {
         "strain_microstrain": {
@@ -274,6 +306,97 @@
             "number",
             "null"
           ]
+        },
+        "spatial_strain_profile": {
+          "type": "array",
+          "description": "Spatially indexed strain observations. Each point is a separate measurement with its own coordinate frame and measurement method.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sensor_id",
+              "coordinate_frame_id",
+              "x_mm",
+              "y_mm",
+              "depth_mm",
+              "direction",
+              "strain_microstrain",
+              "method_id"
+            ],
+            "properties": {
+              "sensor_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "coordinate_frame_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "x_mm": {
+                "type": "number"
+              },
+              "y_mm": {
+                "type": "number"
+              },
+              "depth_mm": {
+                "type": "number"
+              },
+              "direction": {
+                "enum": [
+                  "LONGITUDINAL",
+                  "TRANSVERSE",
+                  "VERTICAL",
+                  "OTHER"
+                ]
+              },
+              "strain_microstrain": {
+                "type": "number"
+              },
+              "method_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "curvature_profile": {
+          "type": "array",
+          "description": "Spatial curvature measurements, independent of rutting and strain.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sensor_id",
+              "coordinate_frame_id",
+              "x_mm",
+              "y_mm",
+              "curvature_per_m",
+              "method_id"
+            ],
+            "properties": {
+              "sensor_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "coordinate_frame_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "x_mm": {
+                "type": "number"
+              },
+              "y_mm": {
+                "type": "number"
+              },
+              "curvature_per_m": {
+                "type": "number"
+              },
+              "method_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
         }
       }
     },
@@ -285,7 +408,8 @@
         "maximum_pavement_temperature_c",
         "maximum_gradient_c_per_m",
         "thermal_dose_c_hour",
-        "temperature_reference_id"
+        "temperature_reference_id",
+        "spatial_temperature_profile"
       ],
       "properties": {
         "maximum_coil_temperature_c": {
@@ -319,6 +443,49 @@
             "string",
             "null"
           ]
+        },
+        "spatial_temperature_profile": {
+          "type": "array",
+          "description": "Spatially indexed temperature observations; do not collapse localized hot zones into one segment mean.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sensor_id",
+              "coordinate_frame_id",
+              "x_mm",
+              "y_mm",
+              "depth_mm",
+              "temperature_c",
+              "method_id"
+            ],
+            "properties": {
+              "sensor_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "coordinate_frame_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "x_mm": {
+                "type": "number"
+              },
+              "y_mm": {
+                "type": "number"
+              },
+              "depth_mm": {
+                "type": "number"
+              },
+              "temperature_c": {
+                "type": "number"
+              },
+              "method_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
         }
       }
     },
