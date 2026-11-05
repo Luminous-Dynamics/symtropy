@@ -281,6 +281,17 @@ mod tests {
     }
 
     #[test]
+    fn time_of_impact_is_reported_in_seconds_not_normalized_fraction() {
+        let pos = SVector::from([0.0, 10.0, 0.0]);
+        let velocity = SVector::from([0.0, -1.0, 0.0]);
+        let normal = SVector::from([0.0, 1.0, 0.0]);
+
+        let hit = sphere_halfspace(&pos, &velocity, 0.5, &normal, 0.0, 10.0).unwrap();
+        assert!((hit.toi - 9.5).abs() < 1e-12);
+        assert!(hit.toi > 1.0);
+    }
+
+    #[test]
     fn sphere_halfspace_moving_away() {
         let pos = SVector::from([0.0, 5.0, 0.0]);
         let vel = SVector::from([0.0, 10.0, 0.0]); // moving up
