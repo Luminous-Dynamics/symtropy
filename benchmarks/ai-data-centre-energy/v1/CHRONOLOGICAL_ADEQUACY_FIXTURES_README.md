@@ -54,7 +54,7 @@ The protocol now defines a metric crosswalk to NLR PRAS v0.9.0, including event-
 
 ## Fixture E — NTCSA-style contiguous loss-of-load events
 
-The synthetic trace contains two shortage spells. The first begins on day 0 and continues across the day boundary into day 1; the next interval is adequate and closes the event. A later shortage begins a second event. The final interval has 5 kW headroom. The expected result is 2 events, 3 shortfall periods, 3 shortfall hours, 2 days containing shortfall, and 5 kW event-count load-carrying value. This tests the event-spell definition only; it does not reproduce NTCSA's regional dispatch model.
+The synthetic trace contains two shortage spells. The first begins on day 0 and continues across the day boundary into day 1; the next interval is adequate and closes the event. A later shortage begins a second event. The final interval has 5 kW headroom. The expected result is 2 events, 3 shortfall periods, 3 shortfall hours and 2 days containing shortfall. The primary monotonic metric is loss-of-load hours; it returns a 5 kW added-load value. The event count is a companion diagnostic only. This tests the event-spell definition only; it does not reproduce NTCSA's regional dispatch model.
 
 ## Fixture F — upper-tail shortfall-power CVaR
 
@@ -70,3 +70,8 @@ The reference scenario distribution has a 10% high-stress case at 20 kW shortfal
 - **NTCSA CVaR:** tail of shortage power magnitude (MW).
 
 This prototype now represents the two LOLE concepts and two CVaR populations separately. The power CVaR remains a finite-scenario prototype statistic, not a validated replication of the NTCSA report's sampling population.
+
+
+## Why contiguous event count is not used as the capacity search metric
+
+A discrete event count can be non-monotonic in added load: as the system gets worse, a previously adequate interval between two shortage spells may become shortfall, merging two events into one. The event count can therefore decrease even while shortage duration and energy increase. V0.3 reports NTCSA-style contiguous event count, but rejects it as the primary ELCC-like load-search metric. Use a monotonic metric (period count, hours, days, EUE or a monotonic tail-severity statistic) for the one-dimensional search and retain event count as a diagnostic. The negative-control unit test verifies this guard.
