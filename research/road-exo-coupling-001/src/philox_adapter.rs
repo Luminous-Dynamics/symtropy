@@ -10,8 +10,8 @@ use rand_philox::Philox;
 
 use crate::DrawAddress;
 use crate::coupling_projection::{
-    CorrespondenceAddressPlan, HypothesisAddressPlan, PlanCompleteness, PlannedAddress,
-    PlannedPresence, SharingStatus,
+    project_correspondence_addresses, CorrespondenceAddressPlan, EventDrawScope,
+    HypothesisAddressPlan, PlanCompleteness, PlannedAddress, PlannedPresence, SharingStatus,
 };
 
 pub const ADDRESS_SCHEMA_ID: &str = "symtropy.road-exo-coupling.draw-address.v0.1";
@@ -241,6 +241,11 @@ pub struct CorrespondenceDrawBundle {
     pub left_branch: crate::StableId,
     pub right_branch: crate::StableId,
     pub completeness: PlanCompleteness,
+    /// Full branch-local event inventories used to re-assess map partition coverage.
+    pub left_events: Vec<crate::correspondence::EventOccurrence>,
+    pub right_events: Vec<crate::correspondence::EventOccurrence>,
+    /// Exact event scope inputs used to reconstruct canonical address bytes.
+    pub event_scopes: Vec<EventDrawScope>,
     /// Original candidate-universe evidence reference/status from correspondence input.
     pub universe_status: crate::correspondence::CandidateUniverseStatus,
     /// Original hypothesis-search evidence reference/status from correspondence input.
@@ -272,6 +277,18 @@ pub fn correspondence_draw_bundle_digest(bundle: &CorrespondenceDrawBundle) -> [
     hash_stable_id(&mut hasher, &bundle.left_branch);
     hash_stable_id(&mut hasher, &bundle.right_branch);
     hash_completeness(&mut hasher, bundle.completeness);
+    hash_len(&mut hasher, bundle.left_events.len());
+    for event in &bundle.left_events {
+        hash_event_occurrence(&mut hasher, event);
+    }
+    hash_len(&mut hasher, bundle.right_events.len());
+    for event in &bundle.right_events {
+        hash_event_occurrence(&mut hasher, event);
+    }
+    hash_len(&mut hasher, bundle.event_scopes.len());
+    for scope in &bundle.event_scopes {
+        hash_event_scope(&mut hasher, scope);
+    }
     hash_universe_status(&mut hasher, &bundle.universe_status);
     hash_hypothesis_set_status(&mut hasher, &bundle.hypothesis_set_status);
     hash_len(&mut hasher, bundle.hypotheses.len());
@@ -328,6 +345,68 @@ pub fn verify_correspondence_draw_bundle(
             .any(|hypothesis| hypothesis.completeness == PlanCompleteness::Incomplete))
     {
         return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+    }
+
+    // Reconstruct the complete declared correspondence input and derive the
+    // address plan again. A receipt that merely replays from substituted bytes
+    // is not enough: those bytes must follow from the retained event/scope data.
+    let correspondence = crate::correspondence::CorrespondenceSet {
+        left_branch: bundle.left_branch.clone(),
+        right_branch: bundle.right_branch.clone(),
+        left_events: bundle.left_events.clone(),
+        right_events: bundle.right_events.clone(),
+        hypotheses: bundle
+            .hypotheses
+            .iter()
+            .map(|hypothesis| hypothesis.correspondence.clone())
+            .collect(),
+        universe_status: bundle.universe_status.clone(),
+        hypothesis_set_status: bundle.hypothesis_set_status.clone(),
+    };
+    let causal_rules: Vec<_> = bundle
+        .hypotheses
+        .iter()
+        .flat_map(|hypothesis| hypothesis.causal_rules.iter().cloned())
+        .collect();
+    let rederived = project_correspondence_addresses(
+        &correspondence,
+        &bundle.event_scopes,
+        &causal_rules,
+    )
+    .map_err(|_| CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
+
+    if rederived.completeness != bundle.completeness
+        || rederived.left_events != bundle.left_events
+        || rederived.right_events != bundle.right_events
+        || rederived.event_scopes != bundle.event_scopes
+        || rederived.hypotheses.len() != bundle.hypotheses.len()
+    {
+        return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+    }
+
+    for expected in &rederived.hypotheses {
+        let actual = bundle
+            .hypotheses
+            .iter()
+            .find(|hypothesis| hypothesis.hypothesis_id == expected.hypothesis_id)
+            .ok_or(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
+        if actual.completeness != expected.completeness
+            || actual.correspondence != expected.correspondence
+            || actual.causal_rules != expected.causal_rules
+            || actual.draws.len() != expected.addresses.len()
+        {
+            return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+        }
+        for address in &expected.addresses {
+            let receipt = find_unique_draw(&actual.draws, &address.branch_id, &address.event_id)
+                .ok_or(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
+            if receipt.sharing != address.sharing
+                || receipt.presence != address.presence
+                || receipt.canonical_address != address.canonical_bytes
+            {
+                return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+            }
+        }
     }
 
     let mut collision_registry = AddressCollisionRegistry::default();
@@ -545,6 +624,63 @@ fn hash_hypothesis_set_status(
     }
 }
 
+fn hash_optional_stable_id(hasher: &mut blake3::Hasher, value: &Option<crate::StableId>) {
+    match value {
+        Some(id) => {
+            hasher.update(&[1]);
+            hash_stable_id(hasher, id);
+        }
+        None => {
+            hasher.update(&[0]);
+        }
+    }
+}
+
+fn hash_event_presence(
+    hasher: &mut blake3::Hasher,
+    value: &crate::correspondence::EventPresence,
+) {
+    match value {
+        crate::correspondence::EventPresence::Observed { evidence_ref } => {
+            hasher.update(&[0]);
+            hash_stable_id(hasher, evidence_ref);
+        }
+        crate::correspondence::EventPresence::NotRealized { condition_witness } => {
+            hasher.update(&[1]);
+            hash_stable_id(hasher, condition_witness);
+        }
+        crate::correspondence::EventPresence::Unknown { evidence_ref } => {
+            hasher.update(&[2]);
+            hash_stable_id(hasher, evidence_ref);
+        }
+    }
+}
+
+fn hash_event_occurrence(
+    hasher: &mut blake3::Hasher,
+    value: &crate::correspondence::EventOccurrence,
+) {
+    hash_stable_id(hasher, &value.event_id);
+    hash_stable_id(hasher, &value.event_family);
+    hash_optional_stable_id(hasher, &value.actor);
+    hash_optional_stable_id(hasher, &value.initiator);
+    hash_optional_stable_id(hasher, &value.recipient);
+    hash_optional_stable_id(hasher, &value.encounter_slot);
+    hash_event_presence(hasher, &value.presence);
+}
+
+fn hash_event_scope(hasher: &mut blake3::Hasher, value: &EventDrawScope) {
+    hash_stable_id(hasher, &value.world_id);
+    hash_stable_id(hasher, &value.branch_id);
+    hash_stable_id(hasher, &value.event_id);
+    hasher.update(&value.tick.to_le_bytes());
+    hash_stable_id(hasher, &value.event_kind);
+    hash_stable_id(hasher, &value.source.source_id);
+    hash_stable_id(hasher, &value.source.mechanism_id);
+    hash_stable_id(hasher, &value.source.mechanism_version);
+    hash_stable_id(hasher, &value.source.draw_component);
+}
+
 fn hash_correspondence_hypothesis(
     hasher: &mut blake3::Hasher,
     value: &crate::correspondence::CorrespondenceHypothesis,
@@ -694,6 +830,9 @@ pub fn resolve_correspondence_plan(
         left_branch: plan.left_branch.clone(),
         right_branch: plan.right_branch.clone(),
         completeness: plan.completeness,
+        left_events: plan.left_events.clone(),
+        right_events: plan.right_events.clone(),
+        event_scopes: plan.event_scopes.clone(),
         universe_status: plan.universe_status.clone(),
         hypothesis_set_status: plan.hypothesis_set_status.clone(),
         hypotheses,
