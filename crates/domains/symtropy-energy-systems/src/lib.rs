@@ -30,6 +30,7 @@ mod strategy_benchmark;
 mod trace_validation;
 mod workload_schedule;
 mod workload_flexibility_trajectory;
+mod owner_flexibility;
 
 pub use batch_duty_cycle::{
     BatchBoundDutyCycle, BatchBoundDutyCycleResult, BatchDutyCycleError,
@@ -117,6 +118,14 @@ pub use trace_validation::{
     PowerTraceSample, PowerTraceValidationReport, TraceClockType, TraceSite, TraceTimebase,
     TraceWorkloadSession,
 };
+pub use owner_flexibility::{
+    DispatchReplayLedger, DispatchSignatureVerifier, GridFlexDirection,
+    OwnerDispatchAuthorizationReceipt, OwnerDispatchDecision, OwnerDispatchRejectionReason,
+    OwnerDispatchRequest, OwnerFlexibilityError, OwnerFlexibilityOffer,
+    OwnerFlexibilityPolicy, OwnerGuardStatus, OwnerLocalReadiness,
+    OwnerOfferReservation, OwnerOfferReservationLedger, authorize_owner_dispatch,
+};
+
 pub use workload_flexibility_trajectory::{
     WorkloadFlexibilitySlotReceipt, WorkloadFlexibilityTrajectoryError,
     WorkloadFlexibilityTrajectoryIdentity, WorkloadFlexibilityTrajectoryReport,

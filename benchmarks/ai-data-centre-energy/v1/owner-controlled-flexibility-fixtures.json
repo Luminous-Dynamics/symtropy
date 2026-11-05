@@ -1,0 +1,399 @@
+{
+  "schema_version": "symtropy.owner-controlled-flexibility-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "scope": "owner_local_market_offer_reservation_dispatch_authorization",
+  "note": "Synthetic local policy fixtures. No real market credentials, cryptography, OT connection, dispatch actuation, or site telemetry.",
+  "units": {
+    "power": "kW",
+    "energy": "kWh",
+    "time": "Unix seconds"
+  },
+  "policy": {
+    "policy_id": "owner-policy-1",
+    "policy_version": "v1",
+    "site_id": "site-1",
+    "pcc_boundary_id": "pcc-1",
+    "portfolio_id": "portfolio-1",
+    "allowed_products": [
+      "reserve-product",
+      "local-congestion"
+    ],
+    "authorized_key_ids": [
+      "market-key-1"
+    ],
+    "shared_capacity_kw": 100,
+    "reduce_import_capacity_kw": 80,
+    "increase_import_capacity_kw": 60,
+    "maximum_response_latency_seconds": 30,
+    "maximum_sustain_seconds": 3600,
+    "maximum_recovery_power_kw": 20,
+    "maximum_recovery_energy_kwh": 50,
+    "maximum_dispatch_ttl_seconds": 120,
+    "allowed_clock_skew_seconds": 2,
+    "maximum_telemetry_age_seconds": 30
+  },
+  "cases": [
+    {
+      "case_id": "overlapping-reservations-across-products",
+      "existing": [
+        {
+          "id": "offer-a",
+          "product": "reserve-product",
+          "direction": "ReduceGridImport",
+          "power_kw": 70,
+          "from": 1000,
+          "until": 2000
+        }
+      ],
+      "candidate": {
+        "id": "offer-b",
+        "product": "local-congestion",
+        "direction": "ReduceGridImport",
+        "power_kw": 40,
+        "from": 1500,
+        "until": 2500
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "SharedCapacityOvercommitted",
+        "explanation": "110 kW overlapping reserved against 100 kW shared budget."
+      }
+    },
+    {
+      "case_id": "non-overlapping-reservations",
+      "existing": [
+        {
+          "id": "offer-a",
+          "product": "reserve-product",
+          "direction": "ReduceGridImport",
+          "power_kw": 80,
+          "from": 1000,
+          "until": 2000
+        }
+      ],
+      "candidate": {
+        "id": "offer-b",
+        "product": "local-congestion",
+        "direction": "ReduceGridImport",
+        "power_kw": 80,
+        "from": 2000,
+        "until": 3000
+      },
+      "expected": {
+        "accepted": true,
+        "explanation": "Half-open reservation intervals do not overlap at the shared endpoint."
+      }
+    },
+    {
+      "case_id": "valid-owner-authorized-dispatch",
+      "offer": {
+        "id": "offer-1",
+        "product": "reserve-product",
+        "power_kw": 50,
+        "from": 900,
+        "until": 2000,
+        "response_latency_seconds": 20,
+        "sustain_seconds": 1800,
+        "recovery_power_kw": 10,
+        "recovery_energy_kwh": 30,
+        "qualification_receipt_ids": [
+          "qualification-offer-1"
+        ]
+      },
+      "request": {
+        "id": "dispatch-1",
+        "sequence": 1,
+        "power_kw": 40,
+        "sustain_seconds": 600,
+        "issued_at": 1000,
+        "expires_at": 1060,
+        "response_deadline": 1010,
+        "now": 1005,
+        "nonce": "nonce-1",
+        "signing_key_id": "market-key-1"
+      },
+      "readiness": {
+        "pcc_telemetry_at": 990,
+        "scheduler": "Ready",
+        "physical_safety": "Ready",
+        "local_controller": "Ready"
+      },
+      "expected": {
+        "authorized": true,
+        "local_controller_only": true,
+        "actuator_command_emitted": false,
+        "scope": "Owner policy and capability envelope accepted; local controller must re-check and may decline."
+      }
+    },
+    {
+      "case_id": "dispatch-expired-at-inclusive-boundary",
+      "request": {
+        "issued_at": 1000,
+        "expires_at": 1010,
+        "now": 1010
+      },
+      "expected": {
+        "authorized": false,
+        "rejection": "DispatchExpired"
+      }
+    },
+    {
+      "case_id": "response-deadline-missed-before-message-expiry",
+      "request": {
+        "issued_at": 1000,
+        "expires_at": 1060,
+        "response_deadline": 1010,
+        "now": 1020
+      },
+      "expected": {
+        "authorized": false,
+        "rejection": "ResponseDeadlineMissed"
+      }
+    },
+    {
+      "case_id": "stale-pcc-telemetry",
+      "request": {
+        "now": 1005
+      },
+      "readiness": {
+        "pcc_telemetry_at": 900
+      },
+      "expected": {
+        "authorized": false,
+        "rejection": "StalePccTelemetry"
+      }
+    },
+    {
+      "case_id": "unknown-physical-safety-guard",
+      "readiness": {
+        "physical_safety": "Unknown"
+      },
+      "expected": {
+        "authorized": false,
+        "rejection": "PhysicalSafetyGuardNotReady"
+      }
+    },
+    {
+      "case_id": "offer-id-substitution-power",
+      "reserved_offer": {
+        "id": "offer-1",
+        "power_kw": 50
+      },
+      "supplied_offer": {
+        "id": "offer-1",
+        "power_kw": 80
+      },
+      "expected": {
+        "authorized": false,
+        "rejection": "OfferNotReserved"
+      }
+    },
+    {
+      "case_id": "offer-id-substitution-recovery",
+      "reserved_offer": {
+        "id": "offer-1",
+        "power_kw": 50,
+        "recovery_power_kw": 10
+      },
+      "supplied_offer": {
+        "id": "offer-1",
+        "power_kw": 50,
+        "recovery_power_kw": 11
+      },
+      "expected": {
+        "authorized": false,
+        "rejection": "OfferNotReserved"
+      }
+    },
+    {
+      "case_id": "same-signer-nonce-cross-product-replay",
+      "first": {
+        "offer_id": "offer-a",
+        "product": "reserve-product",
+        "nonce": "shared-nonce",
+        "signing_key_id": "market-key-1"
+      },
+      "second": {
+        "offer_id": "offer-b",
+        "product": "local-congestion",
+        "nonce": "shared-nonce",
+        "signing_key_id": "market-key-1"
+      },
+      "expected": {
+        "first_authorized": true,
+        "second_authorized": false,
+        "second_rejection": "ReplayedDispatch"
+      }
+    },
+    {
+      "case_id": "replay-ledger-capacity",
+      "ledger_seen_nonce_count": 65536,
+      "expected": {
+        "authorized": false,
+        "rejection": "ReplayLedgerCapacityExceeded",
+        "sequence_state_advanced": false
+      }
+    },
+    {
+      "case_id": "oversized-signature",
+      "signature_bytes": 4097,
+      "expected": {
+        "constructed": false,
+        "rejection": "InvalidDispatchMessage"
+      }
+    },
+    {
+      "case_id": "same-policy-version-with-different-policy-contents-invalidates-reservation",
+      "reserved_policy": {
+        "policy_id": "owner-policy-1",
+        "policy_version": "v1",
+        "shared_capacity_kw": 100,
+        "reduce_import_capacity_kw": 80
+      },
+      "current_policy": {
+        "policy_id": "owner-policy-1",
+        "policy_version": "v1",
+        "shared_capacity_kw": 90,
+        "reduce_import_capacity_kw": 70
+      },
+      "expected": {
+        "authorized": false,
+        "rejection": "OfferNotReserved",
+        "explanation": "The reservation pins the complete policy snapshot, not only policy ID/version."
+      }
+    },
+    {
+      "case_id": "dispatch-id-reuse-across-signers-is-rejected",
+      "first": {
+        "offer_id": "offer-a",
+        "dispatch_id": "dispatch-global",
+        "signing_key_id": "market-key-1",
+        "nonce": "nonce-a"
+      },
+      "second": {
+        "offer_id": "offer-b",
+        "dispatch_id": "dispatch-global",
+        "signing_key_id": "market-key-2",
+        "nonce": "nonce-b"
+      },
+      "expected": {
+        "first_authorized": true,
+        "second_authorized": false,
+        "second_rejection": "ReplayedDispatch"
+      }
+    },
+    {
+      "case_id": "deserialize-invalid-empty-policy-product-allowlist",
+      "ingress": "OwnerFlexibilityPolicy",
+      "wire": {
+        "allowed_products": [],
+        "authorized_key_ids": [
+          "key-1"
+        ]
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "EmptyPolicyAllowlist"
+      }
+    },
+    {
+      "case_id": "deserialize-invalid-offer-time-window",
+      "ingress": "OwnerFlexibilityOffer",
+      "wire": {
+        "valid_from": 100,
+        "valid_until": 90
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "InvalidOfferEnvelope"
+      }
+    },
+    {
+      "case_id": "deserialize-invalid-empty-dispatch-id",
+      "ingress": "OwnerDispatchRequest",
+      "wire": {
+        "dispatch_id": ""
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "MissingIdentity"
+      }
+    },
+    {
+      "case_id": "restore-overcommitted-reservation-ledger",
+      "stored_reservations": [
+        {
+          "offer_id": "a",
+          "reserved_power_kw": 60,
+          "valid_from": 1000,
+          "valid_until": 2000
+        },
+        {
+          "offer_id": "b",
+          "reserved_power_kw": 30,
+          "valid_from": 1500,
+          "valid_until": 2500
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "rejection": "SharedCapacityOvercommitted"
+      }
+    },
+    {
+      "case_id": "restore-inconsistent-replay-ledger",
+      "stored_replay": {
+        "per_offer": {
+          "offer-1": {
+            "highest_sequence_number": 1
+          }
+        },
+        "seen_key_nonces": [
+          [
+            "key-1",
+            "nonce-1"
+          ]
+        ],
+        "seen_dispatch_ids": []
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "InvalidPersistedReplayState"
+      }
+    },
+    {
+      "case_id": "overlapping-reservation-across-policy-revision",
+      "existing": {
+        "offer_id": "offer-original",
+        "policy_version": "v1",
+        "power_kw": 40,
+        "valid_from": 1000,
+        "valid_until": 2000
+      },
+      "candidate": {
+        "offer_id": "offer-revised",
+        "policy_version": "v2",
+        "power_kw": 30,
+        "valid_from": 1500,
+        "valid_until": 2500
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "ConcurrentPolicySnapshotMismatch",
+        "explanation": "An overlapping portfolio commitment cannot be reinterpreted under a different owner-policy snapshot; release or wait for the old interval to end before creating a new-policy offer."
+      }
+    }
+  ],
+  "security_invariants": [
+    "external dispatch cannot address equipment, scripts, setpoints, SCADA, BMS, EPMS or protection settings",
+    "invalid signature does not consume replay state",
+    "authenticated policy-rejected message consumes its sequence and nonce",
+    "global signer nonce and dispatch id replay checks span all offers",
+    "offer authorization requires exact reserved power, direction, time, recovery, duration and evidence references",
+    "unknown, blocked, stale or future local readiness fails closed",
+    "authorization receipt is not an actuation command",
+    "inbound policy, offer and dispatch deserialization routes through validating constructors",
+    "persisted reservation ledgers are reconstructed and overlap/capacity-checked",
+    "persisted replay ledgers are rejected when nonce/dispatch-id counts or sequence state are inconsistent"
+  ]
+}
