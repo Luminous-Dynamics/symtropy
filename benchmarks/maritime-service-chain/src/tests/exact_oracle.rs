@@ -1,0 +1,384 @@
+//! Independent exhaustive tiny-instance temporal oracle.
+//!
+//! This test-only oracle reimplements segment timing and resource-calendar
+//! feasibility. It is intentionally bounded to tiny finite fixtures and does
+//! not call production scheduling/metric helpers.
+
+use super::*;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SearchTermination {
+    ExhaustiveComplete,
+    BudgetExhausted,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ObjectiveVector {
+    delivery_tick: u64,
+    idle_wait_ticks: u128,
+    energy_wh: u128,
+    water_ml: u128,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct OperationPlacement {
+    segment_id: String,
+    start_tick: u64,
+    end_tick: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct OraclePlan {
+    alternative_id: String,
+    placements: Vec<OperationPlacement>,
+    objective: ObjectiveVector,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct OracleResult {
+    frontier: Vec<OraclePlan>,
+    states_explored: u64,
+    termination: SearchTermination,
+}
+
+fn resource_use_fits(
+    case: &ServiceChainCase,
+    segment_index: usize,
+    start_tick: u64,
+    end_tick: u64,
+) -> bool {
+    let interval = TickWindow {
+        start_tick,
+        end_tick,
+    };
+    case.route_segments[segment_index]
+        .resource_uses
+        .iter()
+        .all(|usage| {
+            case.resources
+                .iter()
+                .find(|resource| resource.resource_id == usage.resource_id)
+                .is_some_and(|resource| {
+                    resource
+                        .availability
+                        .iter()
+                        .any(|window| window.window.covers(interval) && window.capacity >= usage.amount)
+                })
+        })
+}
+
+fn water_use_ml(case: &ServiceChainCase) -> u128 {
+    case.route_segments
+        .iter()
+        .flat_map(|segment| segment.resource_uses.iter())
+        .filter(|usage| usage.unit == ResourceUnit::Millilitres)
+        .map(|usage| u128::from(usage.amount))
+        .sum()
+}
+
+fn enumerate_segment_placements(
+    case: &ServiceChainCase,
+    alternative: &VoyageAlternative,
+    segment_index: usize,
+    previous_end_tick: Option<u64>,
+    placements: &mut Vec<OperationPlacement>,
+    idle_wait_ticks: u128,
+    states_explored: &mut u64,
+    max_states: u64,
+    budget_exhausted: &mut bool,
+    plans: &mut Vec<OraclePlan>,
+) {
+    if *budget_exhausted {
+        return;
+    }
+
+    if segment_index == alternative.operation_timings.len() {
+        let Some(last) = placements.last() else {
+            return;
+        };
+        let delivery_tick = last.end_tick;
+        if delivery_tick < case.demand.delivery_window.start_tick
+            || delivery_tick >= case.demand.delivery_window.end_tick
+        {
+            return;
+        }
+        let objective = ObjectiveVector {
+            delivery_tick,
+            idle_wait_ticks,
+            energy_wh: alternative.energy.total_wh(),
+            water_ml: water_use_ml(case),
+        };
+        plans.push(OraclePlan {
+            alternative_id: alternative.alternative_id.clone(),
+            placements: placements.clone(),
+            objective,
+        });
+        return;
+    }
+
+    let timing = &alternative.operation_timings[segment_index];
+    let Some(segment) = case
+        .route_segments
+        .iter()
+        .position(|segment| segment.segment_id == timing.segment_id)
+    else {
+        return;
+    };
+
+    // The channel transit is anchored at the conservative latest arrival
+    // tick. Subsequent operations may start at any integer tick after the
+    // preceding operation, provided every resource calendar covers the full
+    // half-open interval.
+    let (mut start_tick, maximum_start_tick) = if segment_index == 0 {
+        let Some(arrival_tick) = alternative.arrival_window.end_tick.checked_sub(1) else {
+            return;
+        };
+        let Some(start_tick) = arrival_tick.checked_sub(timing.duration_ticks) else {
+            return;
+        };
+        if start_tick < case.decision_tick {
+            return;
+        }
+        (start_tick, start_tick)
+    } else {
+        let Some(earliest) = previous_end_tick else {
+            return;
+        };
+        let Some(latest) = case
+            .demand
+            .delivery_window
+            .end_tick
+            .checked_sub(timing.duration_ticks)
+            .and_then(|value| value.checked_sub(1))
+        else {
+            return;
+        };
+        if earliest > latest {
+            return;
+        }
+        (earliest, latest)
+    };
+
+    loop {
+        if *states_explored >= max_states {
+            *budget_exhausted = true;
+            return;
+        }
+        *states_explored += 1;
+
+        let Some(end_tick) = start_tick.checked_add(timing.duration_ticks) else {
+            return;
+        };
+        if end_tick < case.demand.delivery_window.end_tick
+            && resource_use_fits(case, segment, start_tick, end_tick)
+        {
+            let idle = previous_end_tick
+                .map(|previous| u128::from(start_tick - previous))
+                .unwrap_or(0);
+            placements.push(OperationPlacement {
+                segment_id: timing.segment_id.clone(),
+                start_tick,
+                end_tick,
+            });
+            enumerate_segment_placements(
+                case,
+                alternative,
+                segment_index + 1,
+                Some(end_tick),
+                placements,
+                idle_wait_ticks + idle,
+                states_explored,
+                max_states,
+                budget_exhausted,
+                plans,
+            );
+            placements.pop();
+            if *budget_exhausted {
+                return;
+            }
+        }
+
+        if start_tick == maximum_start_tick {
+            break;
+        }
+        let Some(next) = start_tick.checked_add(1) else {
+            break;
+        };
+        start_tick = next;
+    }
+}
+
+fn dominates(left: ObjectiveVector, right: ObjectiveVector) -> bool {
+    let no_worse = left.delivery_tick <= right.delivery_tick
+        && left.idle_wait_ticks <= right.idle_wait_ticks
+        && left.energy_wh <= right.energy_wh
+        && left.water_ml <= right.water_ml;
+    let strictly_better = left.delivery_tick < right.delivery_tick
+        || left.idle_wait_ticks < right.idle_wait_ticks
+        || left.energy_wh < right.energy_wh
+        || left.water_ml < right.water_ml;
+    no_worse && strictly_better
+}
+
+fn pareto_frontier(mut candidates: Vec<OraclePlan>) -> Vec<OraclePlan> {
+    candidates.sort_by_key(|plan| {
+        (
+            plan.objective.delivery_tick,
+            plan.objective.idle_wait_ticks,
+            plan.objective.energy_wh,
+            plan.objective.water_ml,
+            plan.alternative_id.clone(),
+            plan.placements.clone(),
+        )
+    });
+    candidates.dedup();
+
+    let mut frontier = Vec::new();
+    for candidate in candidates {
+        if frontier
+            .iter()
+            .any(|existing: &OraclePlan| dominates(existing.objective, candidate.objective))
+        {
+            continue;
+        }
+        frontier.retain(|existing| !dominates(candidate.objective, existing.objective));
+        frontier.push(candidate);
+    }
+    frontier.sort_by_key(|plan| {
+        (
+            plan.objective.delivery_tick,
+            plan.objective.idle_wait_ticks,
+            plan.objective.energy_wh,
+            plan.objective.water_ml,
+            plan.alternative_id.clone(),
+            plan.placements.clone(),
+        )
+    });
+    frontier
+}
+
+/// Exhaustively enumerate tiny time-expanded plans for every declared voyage
+/// alternative. A budget-exhausted result is explicitly non-proven even when
+/// the partial candidates happen to look non-dominated.
+fn exact_temporal_oracle(case: &ServiceChainCase, max_states: u64) -> OracleResult {
+    if validate_case(case).is_err() {
+        return OracleResult {
+            frontier: Vec::new(),
+            states_explored: 0,
+            termination: SearchTermination::ExhaustiveComplete,
+        };
+    }
+
+    let mut states_explored = 0;
+    let mut budget_exhausted = false;
+    let mut candidates = Vec::new();
+
+    for alternative in &case.voyage_alternatives {
+        enumerate_segment_placements(
+            case,
+            alternative,
+            0,
+            None,
+            &mut Vec::new(),
+            0,
+            &mut states_explored,
+            max_states,
+            &mut budget_exhausted,
+            &mut candidates,
+        );
+        if budget_exhausted {
+            break;
+        }
+    }
+
+    OracleResult {
+        frontier: pareto_frontier(candidates),
+        states_explored,
+        termination: if budget_exhausted {
+            SearchTermination::BudgetExhausted
+        } else {
+            SearchTermination::ExhaustiveComplete
+        },
+    }
+}
+
+#[test]
+fn exact_oracle_returns_complete_pareto_frontier_for_synthetic_lock_to_rail_case() {
+    let case = valid_case();
+    let result = exact_temporal_oracle(&case, 10_000);
+
+    assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
+    assert!(result.states_explored > 0);
+    assert_eq!(result.frontier.len(), 2);
+
+    let fast = result
+        .frontier
+        .iter()
+        .find(|plan| plan.alternative_id == "fast-high-energy")
+        .expect("fast alternative is non-dominated");
+    assert_eq!(fast.objective.delivery_tick, 33);
+    assert_eq!(fast.objective.idle_wait_ticks, 3);
+    assert_eq!(fast.objective.energy_wh, 2_800);
+    assert_eq!(fast.objective.water_ml, 4_000);
+
+    let slow = result
+        .frontier
+        .iter()
+        .find(|plan| plan.alternative_id == "slow-low-energy")
+        .expect("slow alternative is non-dominated");
+    assert_eq!(slow.objective.delivery_tick, 35);
+    assert_eq!(slow.objective.idle_wait_ticks, 0);
+    assert_eq!(slow.objective.energy_wh, 2_300);
+    assert_eq!(slow.objective.water_ml, 4_000);
+
+    assert!(result.frontier.iter().all(|plan| {
+        plan.placements
+            .windows(2)
+            .all(|pair| pair[0].end_tick <= pair[1].start_tick)
+    }));
+}
+
+#[test]
+fn oracle_budget_exhaustion_never_claims_proven_frontier() {
+    let result = exact_temporal_oracle(&valid_case(), 1);
+    assert_eq!(result.termination, SearchTermination::BudgetExhausted);
+    assert_eq!(result.states_explored, 1);
+}
+
+#[test]
+fn no_feasible_delivery_window_returns_an_exhaustively_empty_frontier() {
+    let mut case = valid_case();
+    case.demand.delivery_window.end_tick = 30;
+    assert_eq!(validate_case(&case), Ok(()));
+
+    let result = exact_temporal_oracle(&case, 10_000);
+    assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
+    assert!(result.frontier.is_empty());
+}
+
+#[test]
+fn lock_operation_must_fit_both_lock_and_water_quota_windows() {
+    let mut case = valid_case();
+    let water = case
+        .resources
+        .iter_mut()
+        .find(|resource| resource.resource_id == "water-budget-01")
+        .expect("water resource exists");
+    water.availability[0].window.end_tick = 16;
+    let water_evidence = case
+        .evidence
+        .iter_mut()
+        .find(|evidence| evidence.evidence_id == "water-calendar")
+        .expect("water evidence exists");
+    water_evidence
+        .covered_capacity_windows
+        .as_mut()
+        .expect("water capacity snapshot exists")[0]
+        .window
+        .end_tick = 16;
+
+    assert_eq!(validate_case(&case), Ok(()));
+    let result = exact_temporal_oracle(&case, 10_000);
+    assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
+    assert!(result.frontier.is_empty());
+}
