@@ -176,6 +176,7 @@ members = [
     "crates/domains/symtropy-firstlight-catastrophe",
     "tools/wpt-health-dispatch-contract",
     "tools/wpt-proportional-fair-dispatch",
+    "tools/wpt-proportional-fair-dispatch",
 ]
 
 [lints.clippy]
