@@ -390,9 +390,7 @@ fn expected_owner(role: EvidenceRole) -> Option<EvidenceOwner> {
         EvidenceRole::VesselEngineering
         | EvidenceRole::VesselPerformance
         | EvidenceRole::ArrivalWindow => Some(EvidenceOwner::Symthaea),
-        EvidenceRole::SpatialTopology | EvidenceRole::Navigability => {
-            Some(EvidenceOwner::SolAtlas)
-        }
+        EvidenceRole::SpatialTopology | EvidenceRole::Navigability => Some(EvidenceOwner::SolAtlas),
         EvidenceRole::LockCompatibility
         | EvidenceRole::LockCycleWater
         | EvidenceRole::ResourceCapacity => Some(EvidenceOwner::Symtropy),
@@ -439,8 +437,7 @@ fn segment_has_required_resource(segment: SegmentKind, kinds: &BTreeSet<Resource
         }
         SegmentKind::Lockage => kinds.contains(&ResourceKind::Lock),
         SegmentKind::BerthHandling => {
-            kinds.contains(&ResourceKind::Berth)
-                && kinds.contains(&ResourceKind::TerminalHandling)
+            kinds.contains(&ResourceKind::Berth) && kinds.contains(&ResourceKind::TerminalHandling)
         }
         SegmentKind::InlandTransfer => kinds.contains(&ResourceKind::InlandTransfer),
     }
@@ -472,7 +469,11 @@ fn validate_unique_case_ids(case: &ServiceChainCase) -> Result<(), ValidationErr
 
     let mut resources = BTreeSet::new();
     for resource in &case.resources {
-        unique_id(&mut resources, &resource.resource_id, "resource.resource_id")?;
+        unique_id(
+            &mut resources,
+            &resource.resource_id,
+            "resource.resource_id",
+        )?;
     }
 
     let mut evidence = BTreeSet::new();
@@ -520,7 +521,11 @@ fn validate_route(case: &ServiceChainCase) -> Result<(), ValidationError> {
     if case.route_segments.is_empty() {
         return Err(ValidationError::EmptyRoute);
     }
-    let node_ids: BTreeSet<&str> = case.nodes.iter().map(|node| node.node_id.as_str()).collect();
+    let node_ids: BTreeSet<&str> = case
+        .nodes
+        .iter()
+        .map(|node| node.node_id.as_str())
+        .collect();
     if !node_ids.contains(case.origin_node_id.as_str()) {
         return Err(ValidationError::UnknownNode(case.origin_node_id.clone()));
     }
@@ -581,9 +586,7 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
                     resource.resource_id.clone(),
                 ));
             }
-            if index > 0
-                && windows[index - 1].window.end_tick > item.window.start_tick
-            {
+            if index > 0 && windows[index - 1].window.end_tick > item.window.start_tick {
                 return Err(ValidationError::OverlappingCapacityWindows(
                     resource.resource_id.clone(),
                 ));
@@ -695,9 +698,7 @@ fn validate_voyage_alternatives(case: &ServiceChainCase) -> Result<(), Validatio
                 evidence.role,
                 EvidenceRole::VesselEngineering | EvidenceRole::VesselPerformance
             ) {
-                return Err(ValidationError::EvidenceRoleMismatch(
-                    evidence_id.clone(),
-                ));
+                return Err(ValidationError::EvidenceRoleMismatch(evidence_id.clone()));
             }
             validate_expected_owner(evidence, EvidenceOwner::Symthaea)?;
             if evidence.subject_id != alternative.vessel_id {
@@ -745,12 +746,9 @@ fn validate_hard_constraints(case: &ServiceChainCase) -> Result<(), ValidationEr
             ConstraintDisposition::Satisfied => {}
         }
 
-        let evidence_id = constraint
-            .evidence_id
-            .as_deref()
-            .ok_or_else(|| ValidationError::MissingConstraintEvidence(
-                constraint.constraint_id.clone(),
-            ))?;
+        let evidence_id = constraint.evidence_id.as_deref().ok_or_else(|| {
+            ValidationError::MissingConstraintEvidence(constraint.constraint_id.clone())
+        })?;
         let evidence = validate_evidence_use(case, evidence_id)?;
         if constraint.kind == ConstraintKind::ParticipantAuthorization {
             has_participant_authorization = true;
@@ -1354,9 +1352,7 @@ mod tests {
         case.route_segments[2].from_node_id = "origin".into();
         assert_eq!(
             validate_case(&case),
-            Err(ValidationError::DisconnectedRoute(
-                "approach-01".into()
-            ))
+            Err(ValidationError::DisconnectedRoute("approach-01".into()))
         );
     }
 
@@ -1366,9 +1362,7 @@ mod tests {
         case.route_segments[3].resource_uses[1].unit = ResourceUnit::Teu;
         assert_eq!(
             validate_case(&case),
-            Err(ValidationError::ResourceUnitMismatch(
-                "terminal-01".into()
-            ))
+            Err(ValidationError::ResourceUnitMismatch("terminal-01".into()))
         );
     }
 
@@ -1393,9 +1387,7 @@ mod tests {
         zero.resources[0].availability[0].capacity = 0;
         assert_eq!(
             validate_case(&zero),
-            Err(ValidationError::InvalidCapacityWindow(
-                "lock-01".into()
-            ))
+            Err(ValidationError::InvalidCapacityWindow("lock-01".into()))
         );
     }
 
