@@ -1743,6 +1743,120 @@ mod tests {
     }
 
     #[test]
+    fn serde_policy_wire_cannot_bypass_constructor_allowlist_validation() {
+        let wire = OwnerFlexibilityPolicyWire {
+            policy_id: "policy".to_string(),
+            policy_version: "v1".to_string(),
+            site_id: "site".to_string(),
+            pcc_boundary_id: "pcc".to_string(),
+            portfolio_id: "portfolio".to_string(),
+            allowed_product_ids: BTreeSet::new(),
+            authorized_signing_key_ids: ["market-key".to_string()].into_iter().collect(),
+            maximum_concurrent_reserved_kw: 100.0,
+            maximum_reduce_import_reserved_kw: 80.0,
+            maximum_increase_import_reserved_kw: 60.0,
+            maximum_response_latency_seconds: 30,
+            maximum_sustain_seconds: 3_600,
+            maximum_recovery_power_kw: 20.0,
+            maximum_recovery_energy_kwh: 50.0,
+            maximum_dispatch_ttl_seconds: 120,
+            allowed_clock_skew_seconds: 2,
+            maximum_telemetry_age_seconds: 30,
+        };
+        assert!(matches!(
+            OwnerFlexibilityPolicy::try_from(wire),
+            Err(OwnerFlexibilityError::EmptyPolicyAllowlist)
+        ));
+    }
+
+    #[test]
+    fn serde_offer_wire_cannot_bypass_offer_time_and_receipt_validation() {
+        let wire = OwnerFlexibilityOfferWire {
+            offer_id: "offer".to_string(),
+            portfolio_id: "portfolio".to_string(),
+            site_id: "site".to_string(),
+            pcc_boundary_id: "pcc".to_string(),
+            product_id: "product".to_string(),
+            direction: GridFlexDirection::ReduceGridImport,
+            maximum_power_kw: 10.0,
+            maximum_response_latency_seconds: 10,
+            maximum_sustain_seconds: 60,
+            maximum_recovery_power_kw: 2.0,
+            maximum_recovery_energy_kwh: 3.0,
+            valid_from_unix_seconds: 100,
+            valid_until_unix_seconds: 90,
+            qualification_receipt_ids: vec!["receipt".to_string()],
+        };
+        assert!(matches!(
+            OwnerFlexibilityOffer::try_from(wire),
+            Err(OwnerFlexibilityError::InvalidOfferEnvelope)
+        ));
+    }
+
+    #[test]
+    fn serde_dispatch_wire_cannot_bypass_request_identity_validation() {
+        let wire = OwnerDispatchRequestWire {
+            dispatch_id: String::new(),
+            offer_id: "offer".to_string(),
+            product_id: "product".to_string(),
+            site_id: "site".to_string(),
+            pcc_boundary_id: "pcc".to_string(),
+            direction: GridFlexDirection::ReduceGridImport,
+            requested_power_kw: 1.0,
+            requested_sustain_seconds: 10,
+            declared_recovery_power_kw: 0.0,
+            declared_recovery_energy_kwh: 0.0,
+            issued_at_unix_seconds: 100,
+            expires_at_unix_seconds: 110,
+            response_deadline_unix_seconds: 105,
+            sequence_number: 1,
+            nonce: "nonce".to_string(),
+            signing_key_id: "key".to_string(),
+            signature: vec![1],
+        };
+        assert!(matches!(
+            OwnerDispatchRequest::try_from(wire),
+            Err(OwnerFlexibilityError::MissingIdentity { name: "dispatch ID" })
+        ));
+    }
+
+    #[test]
+    fn restored_reservation_ledger_revalidates_capacity_and_policy_invariants() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let first = offer("offer-a", "reserve-product", GridFlexDirection::ReduceGridImport, 60.0, 1_000, 2_000);
+        ledger.reserve_offer(&first, &policy()).expect("reserve first");
+        let mut second = ledger.reservations[0].clone();
+        second.offer_id = "offer-b".to_string();
+        second.reserved_power_kw = 30.0;
+        second.valid_from_unix_seconds = 1_500;
+        second.valid_until_unix_seconds = 2_500;
+        let restored = OwnerOfferReservationLedger::try_from(OwnerOfferReservationLedgerWire {
+            reservations: vec![ledger.reservations[0].clone(), second],
+        });
+        assert!(matches!(
+            restored,
+            Err(OwnerFlexibilityError::SharedCapacityOvercommitted { .. })
+        ));
+    }
+
+    #[test]
+    fn restored_replay_ledger_rejects_inconsistent_nonce_dispatch_counts() {
+        let wire = DispatchReplayLedgerWire {
+            per_offer: [(
+                "offer-1".to_string(),
+                DispatchReplayState { highest_sequence_number: 1 },
+            )].into_iter().collect(),
+            seen_key_nonces: [("market-key-1".to_string(), "nonce-1".to_string())]
+                .into_iter().collect(),
+            seen_dispatch_ids: BTreeSet::new(),
+        };
+        assert!(matches!(
+            DispatchReplayLedger::try_from(wire),
+            Err(OwnerFlexibilityError::InvalidPersistedReplayState)
+        ));
+    }
+
+    #[test]
     fn invalid_message_times_and_nan_values_are_rejected_at_construction() {
         assert!(matches!(
             OwnerDispatchRequest::new(
