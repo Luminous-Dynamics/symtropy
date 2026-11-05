@@ -59,14 +59,16 @@ jobs:
           with path.open(newline="", encoding="utf-8") as handle:
               rows = list(csv.DictReader(handle))
 
-          assert len(rows) == 93, f"expected 93 evidence rows, got {len(rows)}"
+          assert len(rows) == 94, f"expected 94 evidence rows, got {len(rows)}"
           assert all(len(row) == 12 for row in rows)
           session_rows = [row for row in rows if row["record_type"] == "session_metric"]
           member_rows = [row for row in rows if row["record_type"] == "member_metric"]
           pair_rows = [row for row in rows if row["record_type"] == "facilitation_variant_pair"]
+          order_rows = [row for row in rows if row["record_type"] == "option_order_pair"]
           assert len(session_rows) == 44
           assert len(member_rows) == 48
           assert len(pair_rows) == 1
+          assert len(order_rows) == 1
 
           sessions = {row["session_id"] for row in session_rows}
           assert sessions == {
@@ -108,7 +110,13 @@ jobs:
           assert pair["allocation_l1_shift_units"] == "56"
           assert pair["reallocated_units"] == "28.000000"
 
-          print("CIVDYN-DELIB-001 trace audit, proposal omission, unsupported claims, recorded non-endorsement and preference-fixed allocation sensitivity verified.")
+          order_pair = order_rows[0]
+          assert order_pair["metric"] == "semantic_option_order_sensitivity"
+          assert order_pair["allocation_l1_shift_units"] == "56"
+          assert order_pair["reallocated_units"] == "28.000000"
+          assert order_pair["subject"] == "synthetic_option_order_position_bias"
+
+          print("CIVDYN-DELIB-001 trace audit, proposal omission, unsupported claims, endorsement semantics, rhetoric sensitivity and option-order bias verified.")
           PY
 
           {
