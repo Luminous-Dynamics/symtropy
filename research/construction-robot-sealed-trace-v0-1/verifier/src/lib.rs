@@ -47,7 +47,10 @@ impl fmt::Display for VerificationError {
             Self::Shape(message) => write!(f, "invalid trace shape: {message}"),
             Self::DigestMismatch(message) => write!(f, "digest verification failed: {message}"),
             Self::AnchorMismatch { expected, actual } => {
-                write!(f, "external root anchor mismatch: expected {expected}, got {actual}")
+                write!(
+                    f,
+                    "external root anchor mismatch: expected {expected}, got {actual}"
+                )
             }
             Self::UnsupportedNumber => write!(
                 f,
@@ -72,23 +75,51 @@ pub fn verify_trace_bytes(
 
     let root = parse_unique_json(input)?;
     let top = as_object(&root, "trace")?;
-    require_exact_keys(top, &["manifest", "events", "annotations", "final_trace_digest"], &[], "trace")?;
+    require_exact_keys(
+        top,
+        &["manifest", "events", "annotations", "final_trace_digest"],
+        &[],
+        "trace",
+    )?;
 
     let manifest = field(top, "manifest")?;
     let manifest_obj = as_object(manifest, "manifest")?;
-    require_exact_keys(manifest_obj, &["schema_version", "trace_id", "capture", "seal"], &[], "manifest")?;
-    expect_string(field(manifest_obj, "schema_version")?, "manifest.schema_version", "0.1.0")?;
-    let trace_id = non_empty_string(field(manifest_obj, "trace_id")?, "manifest.trace_id")?.to_owned();
+    require_exact_keys(
+        manifest_obj,
+        &["schema_version", "trace_id", "capture", "seal"],
+        &[],
+        "manifest",
+    )?;
+    expect_string(
+        field(manifest_obj, "schema_version")?,
+        "manifest.schema_version",
+        "0.1.0",
+    )?;
+    let trace_id =
+        non_empty_string(field(manifest_obj, "trace_id")?, "manifest.trace_id")?.to_owned();
 
     let capture_obj = as_object(field(manifest_obj, "capture")?, "manifest.capture")?;
     require_exact_keys(
         capture_obj,
         &[
-            "tool", "tool_version", "configuration_digest", "started_at", "ended_at",
-            "protocol_hints", "capture_completeness", "recorder_drop_count",
-            "broker_drop_count", "broker_drop_evidence", "filters_applied",
-            "filter_profile_digest", "redaction_applied", "parent_trace_digest",
-            "transformation_digest", "first_sequence", "last_sequence", "event_count",
+            "tool",
+            "tool_version",
+            "configuration_digest",
+            "started_at",
+            "ended_at",
+            "protocol_hints",
+            "capture_completeness",
+            "recorder_drop_count",
+            "broker_drop_count",
+            "broker_drop_evidence",
+            "filters_applied",
+            "filter_profile_digest",
+            "redaction_applied",
+            "parent_trace_digest",
+            "transformation_digest",
+            "first_sequence",
+            "last_sequence",
+            "event_count",
             "capture_boundary_evidence_ref",
         ],
         &[],
@@ -104,7 +135,10 @@ pub fn verify_trace_bytes(
             return shape(&format!("{key} must be an RFC3339 timestamp"));
         }
     }
-    require_digest(field(capture_obj, "configuration_digest")?, "configuration_digest")?;
+    require_digest(
+        field(capture_obj, "configuration_digest")?,
+        "configuration_digest",
+    )?;
     for hint in as_array(field(capture_obj, "protocol_hints")?, "protocol_hints")? {
         non_empty_string(hint, "protocol_hints[]")?;
     }
@@ -145,7 +179,10 @@ pub fn verify_trace_bytes(
         require_digest(filter_digest, "filter_profile_digest")?;
     }
 
-    let redaction_applied = as_bool(field(capture_obj, "redaction_applied")?, "redaction_applied")?;
+    let redaction_applied = as_bool(
+        field(capture_obj, "redaction_applied")?,
+        "redaction_applied",
+    )?;
     let parent_digest = field(capture_obj, "parent_trace_digest")?;
     let transformation_digest = field(capture_obj, "transformation_digest")?;
     if redaction_applied {
@@ -160,9 +197,12 @@ pub fn verify_trace_bytes(
         }
     }
 
-    let first_sequence = non_negative_integer(field(capture_obj, "first_sequence")?, "first_sequence")?;
-    let last_sequence = non_negative_integer(field(capture_obj, "last_sequence")?, "last_sequence")?;
-    let declared_event_count = non_negative_integer(field(capture_obj, "event_count")?, "event_count")?;
+    let first_sequence =
+        non_negative_integer(field(capture_obj, "first_sequence")?, "first_sequence")?;
+    let last_sequence =
+        non_negative_integer(field(capture_obj, "last_sequence")?, "last_sequence")?;
+    let declared_event_count =
+        non_negative_integer(field(capture_obj, "event_count")?, "event_count")?;
     let boundary_ref = field(capture_obj, "capture_boundary_evidence_ref")?;
     let boundary_ref_present = match boundary_ref {
         Value::String(value) => !value.trim().is_empty(),
@@ -174,8 +214,12 @@ pub fn verify_trace_bytes(
     require_exact_keys(
         seal_obj,
         &[
-            "algorithm", "event_hash_profile", "trace_hash_profile",
-            "canonicalization", "external_anchor", "external_anchor_ref",
+            "algorithm",
+            "event_hash_profile",
+            "trace_hash_profile",
+            "canonicalization",
+            "external_anchor",
+            "external_anchor_ref",
         ],
         &[],
         "manifest.seal",
@@ -191,9 +235,17 @@ pub fn verify_trace_bytes(
         "seal.trace_hash_profile",
         "construction-robot-trace-root-v0.1",
     )?;
-    expect_string(field(seal_obj, "canonicalization")?, "seal.canonicalization", "RFC8785")?;
-    let anchor_claim = non_empty_string(field(seal_obj, "external_anchor")?, "seal.external_anchor")?;
-    if !matches!(anchor_claim, "none" | "detached_signature" | "external_receipt") {
+    expect_string(
+        field(seal_obj, "canonicalization")?,
+        "seal.canonicalization",
+        "RFC8785",
+    )?;
+    let anchor_claim =
+        non_empty_string(field(seal_obj, "external_anchor")?, "seal.external_anchor")?;
+    if !matches!(
+        anchor_claim,
+        "none" | "detached_signature" | "external_receipt"
+    ) {
         return shape("unknown external_anchor claim");
     }
     match field(seal_obj, "external_anchor_ref")? {
@@ -220,15 +272,25 @@ pub fn verify_trace_bytes(
         require_exact_keys(
             event_obj,
             &[
-                "capture_sequence", "direction", "topic", "qos", "retain", "dup",
-                "connection_epoch", "participant", "timestamps", "payload",
-                "previous_event_digest", "event_digest",
+                "capture_sequence",
+                "direction",
+                "topic",
+                "qos",
+                "retain",
+                "dup",
+                "connection_epoch",
+                "participant",
+                "timestamps",
+                "payload",
+                "previous_event_digest",
+                "event_digest",
             ],
             &["packet_id"],
             "events[]",
         )?;
 
-        let sequence = non_negative_integer(field(event_obj, "capture_sequence")?, "capture_sequence")?;
+        let sequence =
+            non_negative_integer(field(event_obj, "capture_sequence")?, "capture_sequence")?;
         if let Some(previous) = previous_sequence {
             if sequence <= previous {
                 return shape("capture_sequence must be strictly increasing");
@@ -257,7 +319,10 @@ pub fn verify_trace_bytes(
         }
 
         let direction = non_empty_string(field(event_obj, "direction")?, "direction")?;
-        if !matches!(direction, "broker_to_client" | "client_to_broker" | "unknown") {
+        if !matches!(
+            direction,
+            "broker_to_client" | "client_to_broker" | "unknown"
+        ) {
             return shape("unknown event direction");
         }
         non_empty_string(field(event_obj, "topic")?, "topic")?;
@@ -279,10 +344,16 @@ pub fn verify_trace_bytes(
         let participant = as_object(field(event_obj, "participant")?, "participant")?;
         require_exact_keys(participant, &["role", "identity_claim"], &[], "participant")?;
         let role = non_empty_string(field(participant, "role")?, "participant.role")?;
-        if !matches!(role, "robot" | "fleet_manager" | "peripheral" | "broker" | "recorder" | "unknown") {
+        if !matches!(
+            role,
+            "robot" | "fleet_manager" | "peripheral" | "broker" | "recorder" | "unknown"
+        ) {
             return shape("unknown participant role");
         }
-        if !matches!(field(participant, "identity_claim")?, Value::String(_) | Value::Null) {
+        if !matches!(
+            field(participant, "identity_claim")?,
+            Value::String(_) | Value::Null
+        ) {
             return shape("identity_claim must be string or null");
         }
 
@@ -300,16 +371,23 @@ pub fn verify_trace_bytes(
                 "timestamp",
             )?;
             let source = non_empty_string(field(timestamp_obj, "source")?, "timestamp.source")?;
-            if !matches!(source, "recorder_received" | "broker_ingress" | "broker_egress" | "robot_reported") {
+            if !matches!(
+                source,
+                "recorder_received" | "broker_ingress" | "broker_egress" | "robot_reported"
+            ) {
                 return shape("unknown timestamp source");
             }
             has_recorder_timestamp |= source == "recorder_received";
-            let time_value = non_empty_string(field(timestamp_obj, "timestamp")?, "timestamp.timestamp")?;
+            let time_value =
+                non_empty_string(field(timestamp_obj, "timestamp")?, "timestamp.timestamp")?;
             if !is_rfc3339(time_value) {
                 return shape("event timestamp must be RFC3339");
             }
             non_empty_string(field(timestamp_obj, "clock_id")?, "timestamp.clock_id")?;
-            non_negative_integer(field(timestamp_obj, "uncertainty_ms")?, "timestamp.uncertainty_ms")?;
+            non_negative_integer(
+                field(timestamp_obj, "uncertainty_ms")?,
+                "timestamp.uncertainty_ms",
+            )?;
         }
         if !has_recorder_timestamp {
             return shape("each event requires a recorder_received timestamp");
@@ -326,7 +404,8 @@ pub fn verify_trace_bytes(
         }
         payload_bytes_total = payload_bytes_total.saturating_add(decoded.len() as u64);
 
-        let declared_event_digest = digest_string(field(event_obj, "event_digest")?, "event_digest")?;
+        let declared_event_digest =
+            digest_string(field(event_obj, "event_digest")?, "event_digest")?;
         let mut unsigned_event = event.clone();
         as_object_mut(&mut unsigned_event, "event")?.remove("event_digest");
         let actual_event_digest = hash_domain(EVENT_DOMAIN, &unsigned_event)?;
@@ -346,19 +425,27 @@ pub fn verify_trace_bytes(
     }
 
     let annotations = as_array(field(top, "annotations")?, "annotations")?;
-    let known_event_digests: BTreeSet<&str> = event_digests.iter().filter_map(Value::as_str).collect();
+    let known_event_digests: BTreeSet<&str> =
+        event_digests.iter().filter_map(Value::as_str).collect();
     for annotation in annotations {
         let annotation_obj = as_object(annotation, "annotations[]")?;
         require_exact_keys(
             annotation_obj,
             &[
-                "source_event_digest", "parser_name", "parser_version", "rule_set_digest",
-                "interpretation_digest", "interpretation",
+                "source_event_digest",
+                "parser_name",
+                "parser_version",
+                "rule_set_digest",
+                "interpretation_digest",
+                "interpretation",
             ],
             &[],
             "annotation",
         )?;
-        let source = digest_string(field(annotation_obj, "source_event_digest")?, "source_event_digest")?;
+        let source = digest_string(
+            field(annotation_obj, "source_event_digest")?,
+            "source_event_digest",
+        )?;
         if !known_event_digests.contains(source) {
             return shape("annotation references an event digest not present in this trace");
         }
@@ -369,16 +456,23 @@ pub fn verify_trace_bytes(
         if !interpretation.is_object() {
             return shape("annotation interpretation must be an object");
         }
-        let expected = digest_string(field(annotation_obj, "interpretation_digest")?, "interpretation_digest")?;
+        let expected = digest_string(
+            field(annotation_obj, "interpretation_digest")?,
+            "interpretation_digest",
+        )?;
         if hash_domain(ANNOTATION_DOMAIN, interpretation)? != expected {
-            return Err(VerificationError::DigestMismatch("annotation interpretation digest mismatch".to_owned()));
+            return Err(VerificationError::DigestMismatch(
+                "annotation interpretation digest mismatch".to_owned(),
+            ));
         }
     }
 
     let actual_root = hash_root(manifest, &event_digests, annotations)?;
     let declared_root = digest_string(field(top, "final_trace_digest")?, "final_trace_digest")?;
     if actual_root != declared_root {
-        return Err(VerificationError::DigestMismatch("final trace root digest mismatch".to_owned()));
+        return Err(VerificationError::DigestMismatch(
+            "final trace root digest mismatch".to_owned(),
+        ));
     }
 
     if let Some(expected) = expected_root_anchor {
@@ -398,12 +492,23 @@ pub fn verify_trace_bytes(
             if !boundary_ref_present {
                 return shape("complete capture requires capture_boundary_evidence_ref");
             }
-            if recorder_drop_count != 0 || broker_drop_evidence != "measured_zero" || broker_drop_count != Some(0) {
-                return shape("complete capture requires zero recorder and broker drops with measured evidence");
+            if recorder_drop_count != 0
+                || broker_drop_evidence != "measured_zero"
+                || broker_drop_count != Some(0)
+            {
+                return shape(
+                    "complete capture requires zero recorder and broker drops with measured evidence",
+                );
             }
             for pair in events.windows(2) {
-                let left = non_negative_integer(field(as_object(&pair[0], "event")?, "capture_sequence")?, "sequence")?;
-                let right = non_negative_integer(field(as_object(&pair[1], "event")?, "capture_sequence")?, "sequence")?;
+                let left = non_negative_integer(
+                    field(as_object(&pair[0], "event")?, "capture_sequence")?,
+                    "sequence",
+                )?;
+                let right = non_negative_integer(
+                    field(as_object(&pair[1], "event")?, "capture_sequence")?,
+                    "sequence",
+                )?;
                 if right != left + 1 {
                     return shape("complete capture cannot contain sequence gaps");
                 }
@@ -440,7 +545,9 @@ fn parse_unique_json(input: &[u8]) -> Result<Value, VerificationError> {
             VerificationError::Json(message)
         }
     })?;
-    deserializer.end().map_err(|error| VerificationError::Json(error.to_string()))?;
+    deserializer
+        .end()
+        .map_err(|error| VerificationError::Json(error.to_string()))?;
     Ok(parsed.0)
 }
 
@@ -594,7 +701,9 @@ fn write_canonical(value: &Value, output: &mut Vec<u8>) -> Result<(), Verificati
                 );
                 output.push(b':');
                 let child = values.get(*key).ok_or_else(|| {
-                    VerificationError::Shape("object key missing during canonicalization".to_owned())
+                    VerificationError::Shape(
+                        "object key missing during canonicalization".to_owned(),
+                    )
                 })?;
                 write_canonical(child, output)?;
             }
@@ -612,7 +721,11 @@ fn hash_domain(domain: &[u8], value: &Value) -> Result<String, VerificationError
     Ok(hex_lower(&hasher.finalize()))
 }
 
-fn hash_root(manifest: &Value, event_digests: &[Value], annotations: &[Value]) -> Result<String, VerificationError> {
+fn hash_root(
+    manifest: &Value,
+    event_digests: &[Value],
+    annotations: &[Value],
+) -> Result<String, VerificationError> {
     let root = serde_json::json!({
         "manifest": manifest,
         "ordered_event_digests": event_digests,
@@ -651,10 +764,14 @@ fn decode_base64(input: &str) -> Result<Vec<u8>, VerificationError> {
         let pad_c = chunk[2] == b'=';
         let pad_d = chunk[3] == b'=';
         if pad_c && !pad_d {
-            return Err(invalid_base64("third-character padding requires fourth-character padding"));
+            return Err(invalid_base64(
+                "third-character padding requires fourth-character padding",
+            ));
         }
         if (pad_c || pad_d) && !final_chunk {
-            return Err(invalid_base64("padding is permitted only in the final quartet"));
+            return Err(invalid_base64(
+                "padding is permitted only in the final quartet",
+            ));
         }
         output.push((a << 2) | (b >> 4));
         if pad_c {
@@ -693,8 +810,14 @@ fn invalid_base64(message: &str) -> VerificationError {
 }
 
 fn validate_digest_text(value: &str, name: &str) -> Result<(), VerificationError> {
-    if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) {
-        return shape(&format!("{name} must be 64 lowercase hexadecimal characters"));
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return shape(&format!(
+            "{name} must be 64 lowercase hexadecimal characters"
+        ));
     }
     Ok(())
 }
@@ -709,20 +832,34 @@ fn require_digest(value: &Value, name: &str) -> Result<(), VerificationError> {
     digest_string(value, name).map(|_| ())
 }
 
-fn as_object<'a>(value: &'a Value, name: &str) -> Result<&'a Map<String, Value>, VerificationError> {
-    value.as_object().ok_or_else(|| VerificationError::Shape(format!("{name} must be an object")))
+fn as_object<'a>(
+    value: &'a Value,
+    name: &str,
+) -> Result<&'a Map<String, Value>, VerificationError> {
+    value
+        .as_object()
+        .ok_or_else(|| VerificationError::Shape(format!("{name} must be an object")))
 }
 
-fn as_object_mut<'a>(value: &'a mut Value, name: &str) -> Result<&'a mut Map<String, Value>, VerificationError> {
-    value.as_object_mut().ok_or_else(|| VerificationError::Shape(format!("{name} must be an object")))
+fn as_object_mut<'a>(
+    value: &'a mut Value,
+    name: &str,
+) -> Result<&'a mut Map<String, Value>, VerificationError> {
+    value
+        .as_object_mut()
+        .ok_or_else(|| VerificationError::Shape(format!("{name} must be an object")))
 }
 
 fn as_array<'a>(value: &'a Value, name: &str) -> Result<&'a Vec<Value>, VerificationError> {
-    value.as_array().ok_or_else(|| VerificationError::Shape(format!("{name} must be an array")))
+    value
+        .as_array()
+        .ok_or_else(|| VerificationError::Shape(format!("{name} must be an array")))
 }
 
 fn as_string<'a>(value: &'a Value, name: &str) -> Result<&'a str, VerificationError> {
-    value.as_str().ok_or_else(|| VerificationError::Shape(format!("{name} must be a string")))
+    value
+        .as_str()
+        .ok_or_else(|| VerificationError::Shape(format!("{name} must be a string")))
 }
 
 fn non_empty_string<'a>(value: &'a Value, name: &str) -> Result<&'a str, VerificationError> {
@@ -743,7 +880,10 @@ fn non_negative_integer(value: &Value, name: &str) -> Result<u64, VerificationEr
     Ok(number)
 }
 
-fn nullable_non_negative_integer(value: &Value, name: &str) -> Result<Option<u64>, VerificationError> {
+fn nullable_non_negative_integer(
+    value: &Value,
+    name: &str,
+) -> Result<Option<u64>, VerificationError> {
     if value.is_null() {
         Ok(None)
     } else {
@@ -752,11 +892,15 @@ fn nullable_non_negative_integer(value: &Value, name: &str) -> Result<Option<u64
 }
 
 fn as_bool(value: &Value, name: &str) -> Result<bool, VerificationError> {
-    value.as_bool().ok_or_else(|| VerificationError::Shape(format!("{name} must be a boolean")))
+    value
+        .as_bool()
+        .ok_or_else(|| VerificationError::Shape(format!("{name} must be a boolean")))
 }
 
 fn field<'a>(object: &'a Map<String, Value>, name: &str) -> Result<&'a Value, VerificationError> {
-    object.get(name).ok_or_else(|| VerificationError::Shape(format!("missing required field {name}")))
+    object
+        .get(name)
+        .ok_or_else(|| VerificationError::Shape(format!("missing required field {name}")))
 }
 
 fn expect_string(value: &Value, name: &str, expected: &str) -> Result<(), VerificationError> {
@@ -801,17 +945,19 @@ fn is_rfc3339(value: &str) -> bool {
             return false;
         }
     }
-    let number = |start: usize, end: usize| -> u32 {
-        value[start..end].parse().unwrap_or(0)
-    };
+    let number = |start: usize, end: usize| -> u32 { value[start..end].parse().unwrap_or(0) };
     let year = number(0, 4);
     let month = number(5, 7);
     let day = number(8, 10);
     let hour = number(11, 13);
     let minute = number(14, 16);
     let second = number(17, 19);
-    if year == 0 || !(1..=12).contains(&month) || !(1..=31).contains(&day)
-        || hour > 23 || minute > 59 || second > 60
+    if year == 0
+        || !(1..=12).contains(&month)
+        || !(1..=31).contains(&day)
+        || hour > 23
+        || minute > 59
+        || second > 60
     {
         return false;
     }
@@ -859,8 +1005,17 @@ mod tests {
     fn reseal(value: &mut Value) {
         let trace = as_object_mut(value, "trace").expect("trace object");
         let manifest = trace.get("manifest").expect("manifest").clone();
-        let annotations = trace.get("annotations").expect("annotations").as_array().expect("array").clone();
-        let events = trace.get_mut("events").expect("events").as_array_mut().expect("array");
+        let annotations = trace
+            .get("annotations")
+            .expect("annotations")
+            .as_array()
+            .expect("array")
+            .clone();
+        let events = trace
+            .get_mut("events")
+            .expect("events")
+            .as_array_mut()
+            .expect("array");
         let mut previous: Option<String> = None;
         let mut digests = Vec::new();
         for event in events {
@@ -871,7 +1026,8 @@ mod tests {
             );
             object.remove("event_digest");
             let digest = hash_domain(EVENT_DOMAIN, event).expect("event digest");
-            as_object_mut(event, "event").expect("event object")
+            as_object_mut(event, "event")
+                .expect("event object")
                 .insert("event_digest".to_owned(), Value::String(digest.clone()));
             previous = Some(digest.clone());
             digests.push(Value::String(digest));
@@ -885,7 +1041,10 @@ mod tests {
         let report = verify_trace_bytes(FIXTURE.as_bytes(), None).expect("valid fixture");
         assert_eq!(report.integrity, "valid");
         assert_eq!(report.completeness, "unknown");
-        assert_eq!(report.external_anchor, "unanchored_internal_consistency_only");
+        assert_eq!(
+            report.external_anchor,
+            "unanchored_internal_consistency_only"
+        );
         assert_eq!(report.event_count, 3);
         assert_eq!(report.verified_payload_bytes, 139);
         assert_eq!(report.final_trace_digest, ROOT);
@@ -893,8 +1052,12 @@ mod tests {
 
     #[test]
     fn externally_supplied_matching_root_is_distinguished_from_internal_digest() {
-        let report = verify_trace_bytes(FIXTURE.as_bytes(), Some(ROOT)).expect("matching root anchor");
-        assert_eq!(report.external_anchor, "externally_supplied_root_digest_matches");
+        let report =
+            verify_trace_bytes(FIXTURE.as_bytes(), Some(ROOT)).expect("matching root anchor");
+        assert_eq!(
+            report.external_anchor,
+            "externally_supplied_root_digest_matches"
+        );
     }
 
     #[test]
@@ -926,7 +1089,10 @@ mod tests {
         reseal(&mut value);
         let bytes = serde_json::to_vec(&value).expect("serialize");
         let report = verify_trace_bytes(&bytes, None).expect("internally consistent rewrite");
-        assert_eq!(report.external_anchor, "unanchored_internal_consistency_only");
+        assert_eq!(
+            report.external_anchor,
+            "unanchored_internal_consistency_only"
+        );
         assert_ne!(report.final_trace_digest, ROOT);
         assert!(verify_trace_bytes(&bytes, Some(ROOT)).is_err());
     }
@@ -934,7 +1100,10 @@ mod tests {
     #[test]
     fn duplicate_json_keys_are_rejected() {
         let bytes = br#"{"manifest":{},"manifest":{},"events":[],"annotations":[],"final_trace_digest":""}"#;
-        assert!(matches!(parse_unique_json(bytes), Err(VerificationError::DuplicateKey(_))));
+        assert!(matches!(
+            parse_unique_json(bytes),
+            Err(VerificationError::DuplicateKey(_))
+        ));
     }
 
     #[test]
@@ -971,15 +1140,24 @@ mod tests {
     fn jcs_property_order_uses_utf16_code_units() {
         let value = parse_unique_json(r#"{"":2,"😀":1}"#.as_bytes()).expect("unicode JSON");
         let canonical = canonical_json(&value).expect("canonicalize");
-        assert_eq!(String::from_utf8(canonical).expect("utf8"), r#"{"😀":1,"":2}"#);
+        assert_eq!(
+            String::from_utf8(canonical).expect("utf8"),
+            r#"{"😀":1,"":2}"#
+        );
     }
 
     #[test]
     fn jcs_profile_rejects_floats_and_unsafe_integer_values() {
         let float = parse_unique_json(br#"{"v":1.5}"#).expect("parse number");
-        assert_eq!(canonical_json(&float), Err(VerificationError::UnsupportedNumber));
+        assert_eq!(
+            canonical_json(&float),
+            Err(VerificationError::UnsupportedNumber)
+        );
         let large = parse_unique_json(br#"{"v":9007199254740992}"#).expect("parse integer");
-        assert_eq!(canonical_json(&large), Err(VerificationError::UnsupportedNumber));
+        assert_eq!(
+            canonical_json(&large),
+            Err(VerificationError::UnsupportedNumber)
+        );
     }
 
     #[test]
