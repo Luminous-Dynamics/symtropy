@@ -766,10 +766,12 @@ mod tests {
         .expect("valid profile");
         assert_eq!(forward, reverse);
         assert_eq!(forward.outcomes.len(), requests.len());
-        assert!(forward
-            .outcomes
-            .iter()
-            .all(|outcome| outcome.scheduled.is_some()));
+        assert!(
+            forward
+                .outcomes
+                .iter()
+                .all(|outcome| outcome.scheduled.is_some())
+        );
         assert_eq!(forward.schedule[0].request_id, "a");
         assert_eq!(forward.schedule[1].request_id, "b");
     }
