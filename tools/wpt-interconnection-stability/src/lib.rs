@@ -125,13 +125,23 @@ pub fn classify(matrix: Matrix2, stability_margin: f64) -> Result<StabilityRepor
 
     let eigenvalues = if discriminant >= 0.0 {
         let root = discriminant.sqrt();
+        // Use the cancellation-resistant quadratic formula. Computing both
+        // roots as (trace +/- root) / 2 can erase the smaller root when the
+        // eigenvalues differ greatly in magnitude.
+        let q = 0.5 * (trace + root.copysign(trace));
+        let mut real_roots = if q == 0.0 {
+            [0.0, 0.0]
+        } else {
+            [q, determinant / q]
+        };
+        real_roots.sort_by(f64::total_cmp);
         [
             Eigenvalue {
-                real: (trace + root) / 2.0,
+                real: real_roots[1],
                 imaginary: 0.0,
             },
             Eigenvalue {
-                real: (trace - root) / 2.0,
+                real: real_roots[0],
                 imaginary: 0.0,
             },
         ]
@@ -215,6 +225,16 @@ mod tests {
                 .iter()
                 .all(|value| value.imaginary == 0.0)
         );
+    }
+
+    #[test]
+    fn widely_separated_real_poles_avoid_quadratic_cancellation() {
+        let matrix = Matrix2::new(-1.0e16, 0.0, 0.0, -1.0);
+        let report = classify(matrix, 0.05).unwrap();
+
+        assert_eq!(report.classification, StabilityClass::StableWithinMargin);
+        assert!((report.eigenvalues[0].real + 1.0).abs() < 1e-12);
+        assert!((report.eigenvalues[1].real + 1.0e16).abs() < 1.0);
     }
 
     #[test]
