@@ -27,6 +27,10 @@ The current #3532 reciprocal policy loop is still a specification. The fixture i
 8. Every branch retains its own receipt root, replay profile and terminal disposition.
 9. The evidence class is fixed to `SimulationGenerated` and eligibility to `FormalConformanceOnly`. This adapter cannot relabel synthetic outcomes as empirical decision evidence.
 
+## Canonical interchange
+
+The full source episode is emitted as deterministic JSON with canonical branch, policy, observation, decision, transition and correspondence ordering. The episode root is a domain-separated BLAKE3 content commitment over the schema identity and typed source fields, including the branch receipt roots and replay dispositions. The SAM query is serialized separately against the checked-in JSON Schema. Consumers should retain both objects: the full episode for audit/replay, and the reduced SAM query for path-support assessment.
+
 ## External anchoring
 
 BLAKE3 digests are unkeyed content commitments, not signatures. `ExternalAnchor` represents a separately controlled expected episode root and the expected draw-bundle digest for each branch/hypothesis. The adapter checks equality against those independently supplied values; it does not prove who controlled the anchor, authenticate source evidence, or independently rerun #3743's Philox verifier. A production cross-system deployment must obtain the anchor from an independently controlled evidence registry or signature-verification boundary.
