@@ -28,7 +28,7 @@ The current module implements parts of planes 2 and 3 and a narrow request bound
 - `OwnerOfferReservationLedger`: prevents a shared portfolio resource from being double-sold across overlapping products/time windows, applies both shared and directional caps, and requires exact offer terms at authorization.
 - `OwnerDispatchRequest`: typed bounded request; it has no arbitrary code, equipment identifier, command string or setpoint. The signed payload uses a stable domain-separated length-prefixed encoding, not JSON whitespace or field order.
 - `DispatchSignatureVerifier`: injected cryptographic verifier. No permissive default exists.
-- `DispatchReplayLedger`: monotonic sequence per offer plus global per-key nonce and global dispatch-ID replay tracking. The serializable ledger can be persisted by the caller. It is bounded and fails closed when full.
+- `DispatchReplayLedger`: monotonic sequence per offer plus global per-key nonce and global dispatch-ID replay tracking. The serializable ledger can be persisted by the caller. It is bounded and fails closed when full. Serde deserialization routes policy, offer and dispatch inputs through constructor validation; persisted reservation/replay ledgers are rebuilt and revalidated before restore.
 - `OwnerLocalReadiness`: timestamped PCC telemetry and scheduler, physical-safety and local-controller guards.
 - `OwnerDispatchAuthorizationReceipt`: carries exact reserved-offer evidence references and policy ID/version, decision scope, canonical signed payload, and the explicit local-controller-only/no-actuator flags.
 
@@ -49,7 +49,7 @@ An authenticated but subsequently rejected request consumes its nonce and sequen
 
 ## 5. Security, privacy and operational limitations
 
-- The replay ledger is in-memory unless the production caller persists its serialized state in a trusted durable store. Reboot-safe monotonicity must be tested.
+- The replay and reservation ledgers are in-memory unless the production caller persists their serialized state in a trusted durable store. Serde restore rechecks the invariants, but authenticated storage, rollback protection, atomic transactions and reboot-safe monotonicity still require production integration and tests.
 - The global nonce/dispatch tracking ceiling is 65,536 entries; once reached, the local agent rejects further requests until a separately designed authenticated checkpoint/rotation operation is performed. No silent ledger reset is allowed.
 - Signature verification, key custody, revocation, hardware-backed protection, message transport, time synchronization, CTS mapping and audit-store integrity are injected/external responsibilities.
 - Qualification receipt IDs are pinned as references; this module does not authenticate or retrieve those receipts.
@@ -88,6 +88,10 @@ Proposed engineering targets, not measured results or regulatory standards:
 - Conformance and fault-injection coverage for duplicate, reordered, delayed, tampered, oversized, expired, wrong-key and time-skewed messages.
 - Measure p50/p95/p99 local decision latency, throughput, replay-store growth and failover under a fixed host and pinned compiler/build.
 - No market participation claim until CTS mapping, settlement receipts, meter integration, counterparty trust and jurisdiction/product rules are independently reviewed.
+
+## 7A. Ingress and persisted-state validation
+
+Direct Serde deserialization must not bypass constructor invariants. Inbound policy, offer and dispatch types use validated `TryFrom` conversions. On restore, reservation terms are reconstructed against their full policy snapshots and the overlap/shared/directional budgets are recomputed; replay state is rejected if its sequence map, signer-nonce set and global dispatch-ID set are inconsistent or exceed configured bounds. This protects against malformed stored state, but it is not a substitute for authenticated, rollback-resistant persistence.
 
 ## 8. Future integration
 
