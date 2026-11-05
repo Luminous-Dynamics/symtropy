@@ -995,7 +995,8 @@ impl LocomotionKernelSpec {
             let target_leg_valid = match action.kind {
                 InterventionKind::ActiveMovementProbe
                 | InterventionKind::PassiveMovementProbe
-                | InterventionKind::DescendingPathwayModulation => action.target_leg.is_some(),
+                | InterventionKind::DescendingPathwayModulation
+                | InterventionKind::ContactLoadPerturbation => action.target_leg.is_some(),
                 _ => action.target_leg.is_none(),
             };
             let presynaptic_target_valid = match action.kind {
@@ -1450,7 +1451,7 @@ mod tests {
                 claim_ceiling: ClaimCeiling::SyntheticQualification,
             },
         ];
-        let physical_states = vec![
+        let mut physical_states = vec![
             PhysicalState {
                 id: "stance-nominal".to_owned(),
                 behavioral_context: BehavioralContext::Walking,
@@ -1458,6 +1459,14 @@ mod tests {
                 contact_state: ContactState::Supported,
                 load_state: LoadState::Nominal,
                 carryover: PhysicalCarryover::Baseline,
+                legs: [
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Swing, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Swing, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Retracting, ActuatorForceBin::High),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Swing, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
+                ],
             },
             PhysicalState {
                 id: "swing-loaded".to_owned(),
@@ -1466,6 +1475,14 @@ mod tests {
                 contact_state: ContactState::Slipping,
                 load_state: LoadState::Elevated,
                 carryover: PhysicalCarryover::Loaded,
+                legs: [
+                    leg_mechanics(GaitPhase::Swing, ContactState::Slipping, LoadState::Elevated, JointPositionBin::Flexed, JointVelocityBin::Retracting, ActuatorForceBin::High),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Swing, ContactState::Unloaded, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Swing, ContactState::Unloaded, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Retracting, ActuatorForceBin::High),
+                ],
             },
             PhysicalState {
                 id: "grooming-supported".to_owned(),
@@ -1474,6 +1491,14 @@ mod tests {
                 contact_state: ContactState::Supported,
                 load_state: LoadState::Nominal,
                 carryover: PhysicalCarryover::Baseline,
+                legs: [
+                    leg_mechanics(GaitPhase::Transition, ContactState::Unloaded, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Transition, ContactState::Unloaded, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Retracting, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                ],
             },
             PhysicalState {
                 id: "grooming-unloaded".to_owned(),
@@ -1482,6 +1507,14 @@ mod tests {
                 contact_state: ContactState::Unloaded,
                 load_state: LoadState::Reduced,
                 carryover: PhysicalCarryover::Loaded,
+                legs: [
+                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Extended, JointVelocityBin::Protracting, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Transition, ContactState::Unloaded, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Retracting, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                ],
             },
             PhysicalState {
                 id: "other-supported".to_owned(),
@@ -1490,6 +1523,14 @@ mod tests {
                 contact_state: ContactState::Supported,
                 load_state: LoadState::Nominal,
                 carryover: PhysicalCarryover::Baseline,
+                legs: [
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                ],
             },
             PhysicalState {
                 id: "other-unloaded".to_owned(),
@@ -1498,8 +1539,31 @@ mod tests {
                 contact_state: ContactState::Airborne,
                 load_state: LoadState::Reduced,
                 carryover: PhysicalCarryover::Loaded,
+                legs: [
+                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
+                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
+                ],
             },
         ];
+        // For each behavioral/physical archetype add a paired fixture in which
+        // only the declared front-left leg's contact, load and actuation differ.
+        let base_physical_states = physical_states.clone();
+        for mut state in base_physical_states {
+            state.id.push_str("-front-left-load-perturbed");
+            state.legs[LegId::FrontLeft.index()] = leg_mechanics(
+                state.legs[LegId::FrontLeft.index()].gait_phase,
+                ContactState::Slipping,
+                LoadState::Elevated,
+                JointPositionBin::Extended,
+                JointVelocityBin::Retracting,
+                ActuatorForceBin::High,
+            );
+            physical_states.push(state);
+        }
         let sensor_states = sensor_states();
         let actions = vec![
             InterventionAction {
@@ -1553,7 +1617,7 @@ mod tests {
                 protocol_id: "protocol-contact-load".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
-                target_leg: None,
+                target_leg: Some(LegId::FrontLeft),
                 presynaptic_inhibition_target: None,
             },
             InterventionAction {
@@ -1770,16 +1834,12 @@ mod tests {
                                 "vibration-perturbed"
                             }
                             InterventionKind::ContactLoadPerturbation => {
-                                next_physical = match physical.id.as_str() {
-                                    "stance-nominal" => "swing-loaded",
-                                    "swing-loaded" => "stance-nominal",
-                                    "grooming-supported" => "grooming-unloaded",
-                                    "grooming-unloaded" => "grooming-supported",
-                                    "other-supported" => "other-unloaded",
-                                    "other-unloaded" => "other-supported",
-                                    _ => unreachable!("fixture physical state IDs are canonical"),
-                                }
-                                .to_owned();
+                                const SUFFIX: &str = "-front-left-load-perturbed";
+                                next_physical = if let Some(base) = physical.id.strip_suffix(SUFFIX) {
+                                    base.to_owned()
+                                } else {
+                                    format!("{}{}", physical.id, SUFFIX)
+                                };
                                 "load-shifted"
                             }
                             InterventionKind::DescendingPathwayModulation => {
