@@ -99,3 +99,19 @@ The correspondence projection now feeds the same pinned rand_philox 0.2.1 Philox
 The resolver emits raw u32 words only. Distribution sampling/transforms remain #3586's separate responsibility. Shared draw alignment is a causal/execution contract; its statistical variance effect is reported independently and can be positive, neutral or negative.
 
 Additional exact tests cover: same Philox words for both endpoints of one justified shared event under a given hypothesis; distinct draws for alternative actor-vs-slot mappings; stable branch-local draws across alternative maps; v0.2 receipt replay from canonical bytes; preservation of incomplete status; and separation of v0.1/v0.2 KDF domains.
+
+
+### Semantic projection closure (ROAD-CORRESPONDENCE-RECEIPT-CLOSURE-001)
+
+The resolved draw bundle now retains the exact finite projection inputs:
+- complete left/right candidate event inventories, including identity fields and presence evidence;
+- the complete branch/event scope table, including world/episode, tick, event kind, source, mechanism version and draw component;
+- the existing correspondence hypotheses, causal rules, canonical addresses and Philox receipts.
+
+The bundle digest commits to these structured inputs as well as the correspondence and draw results. Independent verification reconstructs the declared `CorrespondenceSet`, reruns finite correspondence assessment, reprojects the canonical address plans from the retained scopes and hypothesis-scoped causal rules, and compares every regenerated address and disposition against its receipt before accepting the Philox replay.
+
+This closes the gap between replaying an arbitrary retained byte string and verifying that the byte string follows from the declared event/scope/coupling contract. It also lets the verifier recheck that every candidate event in each retained branch universe is classified exactly once as paired or explicitly unmatched.
+
+The new negative controls mutate a tick, substitute and correctly re-resolve arbitrary address bytes, and add an unclassified candidate event while recomputing the outer content digest. All must fail semantic verification. A stale or contradictory incomplete disposition is likewise rejected.
+
+The retained universe and scope are still caller-supplied inputs. The verifier establishes internal finite self-consistency, not scientific exhaustiveness, authenticity of external evidence references, causal truth, or common-random-number variance reduction.
