@@ -189,7 +189,11 @@ mod tests {
         let acceleration = SVector::from([0.0, -9.81, 0.0]);
         let mut body = RigidBody::<3>::dynamic_sphere(
             BodyHandle(0),
-            Point::new([initial_position[0], initial_position[1], initial_position[2]]),
+            Point::new([
+                initial_position[0],
+                initial_position[1],
+                initial_position[2],
+            ]),
             0.25,
             2.0,
         );
@@ -247,8 +251,9 @@ mod tests {
         assert!((coarse_elapsed - duration).abs() < 1e-14);
         assert!((fine_elapsed - duration).abs() < 1e-14);
 
-        let exact_position =
-            initial_position + initial_velocity * duration + acceleration * (0.5 * duration.powi(2));
+        let exact_position = initial_position
+            + initial_velocity * duration
+            + acceleration * (0.5 * duration.powi(2));
         let exact_velocity = initial_velocity + acceleration * duration;
 
         let coarse_position_error = (coarse.transform.translation.0 - exact_position).norm();
