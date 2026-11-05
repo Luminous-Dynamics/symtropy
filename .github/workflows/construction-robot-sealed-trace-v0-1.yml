@@ -204,3 +204,27 @@ jobs:
           assert len(mutations["cases"]) == 17
           print(f"validated {len(trace['events'])} events and all payload/event/root digests; exercised 17 mutation cases")
           PY
+
+  rust-verifier:
+    name: Rust verifier (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Verify locked package metadata
+        run: cargo metadata --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked --format-version 1
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml -- --check
+      - name: Run Rust verifier tests
+        run: cargo test --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Verify sealed synthetic trace fixture
+        run: cargo run --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked -- verify research/construction-robot-sealed-trace-v0-1/fixtures/trace-synthetic-vda-001.json
