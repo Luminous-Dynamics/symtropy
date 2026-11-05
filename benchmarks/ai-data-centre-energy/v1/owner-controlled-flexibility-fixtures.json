@@ -241,6 +241,46 @@
         "constructed": false,
         "rejection": "InvalidDispatchMessage"
       }
+    },
+    {
+      "case_id": "same-policy-version-with-different-policy-contents-invalidates-reservation",
+      "reserved_policy": {
+        "policy_id": "owner-policy-1",
+        "policy_version": "v1",
+        "shared_capacity_kw": 100,
+        "reduce_import_capacity_kw": 80
+      },
+      "current_policy": {
+        "policy_id": "owner-policy-1",
+        "policy_version": "v1",
+        "shared_capacity_kw": 90,
+        "reduce_import_capacity_kw": 70
+      },
+      "expected": {
+        "authorized": false,
+        "rejection": "OfferNotReserved",
+        "explanation": "The reservation pins the complete policy snapshot, not only policy ID/version."
+      }
+    },
+    {
+      "case_id": "dispatch-id-reuse-across-signers-is-rejected",
+      "first": {
+        "offer_id": "offer-a",
+        "dispatch_id": "dispatch-global",
+        "signing_key_id": "market-key-1",
+        "nonce": "nonce-a"
+      },
+      "second": {
+        "offer_id": "offer-b",
+        "dispatch_id": "dispatch-global",
+        "signing_key_id": "market-key-2",
+        "nonce": "nonce-b"
+      },
+      "expected": {
+        "first_authorized": true,
+        "second_authorized": false,
+        "second_rejection": "ReplayedDispatch"
+      }
     }
   ],
   "security_invariants": [
