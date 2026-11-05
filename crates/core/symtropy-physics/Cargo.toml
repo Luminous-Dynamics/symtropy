@@ -20,9 +20,11 @@ rustdoc-args = ["--cfg", "docsrs"]
 deterministic-net = []
 
 [dependencies]
+blake3 = "1.8.5"
 symtropy-math = { version = "0.2.1", path = "../symtropy-math" }
 nalgebra = { version = "0.34", features = ["serde-serialize"] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 arrayvec = "0.7"
 
 [dev-dependencies]
