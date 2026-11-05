@@ -102,6 +102,24 @@ pub enum NumericEvidence {
     NotApplicable(String),
 }
 
+/// Policy for the evidence classes allowed to support one side of a constraint.
+/// AnyKnown must be chosen explicitly; production profiles should normally use
+/// AllowOnly so vendor declarations, models and field measurements are not conflated.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum EvidencePolicy {
+    AnyKnown,
+    AllowOnly(Vec<EvidenceClass>),
+}
+
+impl EvidencePolicy {
+    fn accepts(&self, class: EvidenceClass) -> bool {
+        match self {
+            Self::AnyKnown => true,
+            Self::AllowOnly(allowed) => allowed.contains(&class),
+        }
+    }
+}
+
 /// The relationship that a method prediction/capability must satisfy.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ConstraintRelation {
@@ -125,6 +143,8 @@ pub struct NumericConstraint {
     pub relation: ConstraintRelation,
     pub candidate: NumericEvidence,
     pub requirement: NumericEvidence,
+    pub candidate_evidence_policy: EvidencePolicy,
+    pub requirement_evidence_policy: EvidencePolicy,
 }
 
 /// One candidate method/configuration and its required hard constraints.
@@ -133,6 +153,10 @@ pub struct MethodCandidate {
     /// Stable identity for the exact method + equipment + tool + configuration.
     pub method_id: String,
     pub method: MethodKind,
+    /// Immutable identifier/digest locator for the method-specific constraint profile.
+    pub constraint_profile_ref: String,
+    /// Complete hard-constraint inventory declared by that profile.
+    pub required_constraint_ids: Vec<String>,
     pub constraints: Vec<NumericConstraint>,
 }
 
@@ -140,6 +164,7 @@ pub struct MethodCandidate {
 pub enum EvidenceGap {
     Unknown(UnknownReason),
     NotApplicable(String),
+    EvidenceClassNotAccepted(EvidenceClass),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -180,6 +205,7 @@ pub enum Eligibility {
 pub struct MethodAssessment {
     pub method_id: String,
     pub method: MethodKind,
+    pub constraint_profile_ref: String,
     pub eligibility: Eligibility,
     /// Sorted by constraint ID for deterministic serialization and review.
     pub constraints: Vec<ConstraintResult>,
@@ -190,7 +216,14 @@ pub enum EvaluationError {
     EmptyPortfolio,
     EmptyMethodId,
     DuplicateMethodId(String),
-    NoConstraints(String),
+    NoRequiredConstraints(String),
+    EmptyConstraintProfileReference(String),
+    EmptyRequiredConstraintId(String),
+    DuplicateRequiredConstraintId { method_id: String, constraint_id: String },
+    MissingRequiredConstraintId { method_id: String, constraint_id: String },
+    UnexpectedConstraintId { method_id: String, constraint_id: String },
+    EmptyEvidencePolicy { method_id: String, constraint_id: String, side: &'static str },
+    DuplicateEvidenceClassInPolicy { method_id: String, constraint_id: String, side: &'static str, class: EvidenceClass },
     EmptyConstraintId(String),
     DuplicateConstraintId { method_id: String, constraint_id: String },
     EmptySourceReference { method_id: String, constraint_id: String, side: &'static str },
@@ -205,7 +238,14 @@ impl fmt::Display for EvaluationError {
             Self::EmptyPortfolio => write!(f, "portfolio contains no method candidates"),
             Self::EmptyMethodId => write!(f, "method candidate has an empty method ID"),
             Self::DuplicateMethodId(id) => write!(f, "duplicate method ID: {id}"),
-            Self::NoConstraints(id) => write!(f, "method candidate {id} has no hard constraints"),
+            Self::NoRequiredConstraints(id) => write!(f, "method candidate {id} has no declared required constraint IDs"),
+            Self::EmptyConstraintProfileReference(id) => write!(f, "method candidate {id} has an empty constraint profile reference"),
+            Self::EmptyRequiredConstraintId(id) => write!(f, "method candidate {id} has an empty required constraint ID"),
+            Self::DuplicateRequiredConstraintId { method_id, constraint_id } => write!(f, "method candidate {method_id} repeats required constraint {constraint_id}"),
+            Self::MissingRequiredConstraintId { method_id, constraint_id } => write!(f, "method candidate {method_id} omits required constraint {constraint_id}"),
+            Self::UnexpectedConstraintId { method_id, constraint_id } => write!(f, "method candidate {method_id} supplies undeclared constraint {constraint_id}"),
+            Self::EmptyEvidencePolicy { method_id, constraint_id, side } => write!(f, "{method_id}/{constraint_id}: {side} evidence policy is empty"),
+            Self::DuplicateEvidenceClassInPolicy { method_id, constraint_id, side, class } => write!(f, "{method_id}/{constraint_id}: {side} evidence policy repeats {class:?}"),
             Self::EmptyConstraintId(method_id) => {
                 write!(f, "method candidate {method_id} has an empty constraint ID")
             }
@@ -267,8 +307,24 @@ pub fn assess_portfolio(
 }
 
 fn assess_candidate(candidate: &MethodCandidate) -> Result<MethodAssessment, EvaluationError> {
-    if candidate.constraints.is_empty() {
-        return Err(EvaluationError::NoConstraints(candidate.method_id.clone()));
+    if candidate.constraint_profile_ref.trim().is_empty() {
+        return Err(EvaluationError::EmptyConstraintProfileReference(candidate.method_id.clone()));
+    }
+    if candidate.required_constraint_ids.is_empty() {
+        return Err(EvaluationError::NoRequiredConstraints(candidate.method_id.clone()));
+    }
+
+    let mut required_ids = BTreeSet::new();
+    for id in &candidate.required_constraint_ids {
+        if id.trim().is_empty() {
+            return Err(EvaluationError::EmptyRequiredConstraintId(candidate.method_id.clone()));
+        }
+        if !required_ids.insert(id.as_str()) {
+            return Err(EvaluationError::DuplicateRequiredConstraintId {
+                method_id: candidate.method_id.clone(),
+                constraint_id: id.clone(),
+            });
+        }
     }
 
     let mut constraint_ids = BTreeSet::new();
@@ -285,6 +341,18 @@ fn assess_candidate(candidate: &MethodCandidate) -> Result<MethodAssessment, Eva
             });
         }
 
+        validate_policy(
+            &candidate.method_id,
+            &constraint.id,
+            "candidate",
+            &constraint.candidate_evidence_policy,
+        )?;
+        validate_policy(
+            &candidate.method_id,
+            &constraint.id,
+            "requirement",
+            &constraint.requirement_evidence_policy,
+        )?;
         validate_evidence(
             &candidate.method_id,
             &constraint.id,
@@ -299,6 +367,19 @@ fn assess_candidate(candidate: &MethodCandidate) -> Result<MethodAssessment, Eva
         )?;
 
         results.push(evaluate_constraint(candidate, constraint)?);
+    }
+
+    if let Some(missing) = required_ids.difference(&constraint_ids).next() {
+        return Err(EvaluationError::MissingRequiredConstraintId {
+            method_id: candidate.method_id.clone(),
+            constraint_id: (*missing).to_owned(),
+        });
+    }
+    if let Some(unexpected) = constraint_ids.difference(&required_ids).next() {
+        return Err(EvaluationError::UnexpectedConstraintId {
+            method_id: candidate.method_id.clone(),
+            constraint_id: (*unexpected).to_owned(),
+        });
     }
 
     results.sort_by(|a, b| a.id.cmp(&b.id));
@@ -319,9 +400,39 @@ fn assess_candidate(candidate: &MethodCandidate) -> Result<MethodAssessment, Eva
     Ok(MethodAssessment {
         method_id: candidate.method_id.clone(),
         method: candidate.method,
+        constraint_profile_ref: candidate.constraint_profile_ref.clone(),
         eligibility,
         constraints: results,
     })
+}
+
+fn validate_policy(
+    method_id: &str,
+    constraint_id: &str,
+    side: &'static str,
+    policy: &EvidencePolicy,
+) -> Result<(), EvaluationError> {
+    if let EvidencePolicy::AllowOnly(allowed) = policy {
+        if allowed.is_empty() {
+            return Err(EvaluationError::EmptyEvidencePolicy {
+                method_id: method_id.to_owned(),
+                constraint_id: constraint_id.to_owned(),
+                side,
+            });
+        }
+        let mut seen = BTreeSet::new();
+        for class in allowed {
+            if !seen.insert(*class) {
+                return Err(EvaluationError::DuplicateEvidenceClassInPolicy {
+                    method_id: method_id.to_owned(),
+                    constraint_id: constraint_id.to_owned(),
+                    side,
+                    class: *class,
+                });
+            }
+        }
+    }
+    Ok(())
 }
 
 fn validate_evidence(
@@ -361,13 +472,25 @@ fn validate_evidence(
     Ok(())
 }
 
-fn evidence_gap(evidence: &NumericEvidence) -> Option<EvidenceGap> {
+fn evidence_gap(evidence: &NumericEvidence, policy: &EvidencePolicy) -> Option<EvidenceGap> {
     match evidence {
-        NumericEvidence::Known(_) => None,
+        NumericEvidence::Known(fact) if policy.accepts(fact.evidence_class) => None,
+        NumericEvidence::Known(fact) => {
+            Some(EvidenceGap::EvidenceClassNotAccepted(fact.evidence_class))
+        }
         NumericEvidence::Unknown(reason) => Some(EvidenceGap::Unknown(*reason)),
         NumericEvidence::NotApplicable(reason) => {
             Some(EvidenceGap::NotApplicable(reason.clone()))
         }
+    }
+}
+
+fn accepted_fact<'a>(evidence: &'a NumericEvidence, policy: &EvidencePolicy) -> Option<&'a NumericFact> {
+    match evidence {
+        NumericEvidence::Known(fact) if policy.accepts(fact.evidence_class) => Some(fact),
+        NumericEvidence::Known(_)
+        | NumericEvidence::Unknown(_)
+        | NumericEvidence::NotApplicable(_) => None,
     }
 }
 
@@ -384,6 +507,8 @@ fn evaluate_constraint(
 ) -> Result<ConstraintResult, EvaluationError> {
     let candidate_fact = known_fact(&constraint.candidate);
     let requirement_fact = known_fact(&constraint.requirement);
+    let accepted_candidate = accepted_fact(&constraint.candidate, &constraint.candidate_evidence_policy);
+    let accepted_requirement = accepted_fact(&constraint.requirement, &constraint.requirement_evidence_policy);
 
     if let (Some(left), Some(right)) = (candidate_fact, requirement_fact) {
         if left.unit != right.unit {
@@ -398,7 +523,7 @@ fn evaluate_constraint(
         .map(|fact| fact.unit)
         .or_else(|| requirement_fact.map(|fact| fact.unit));
 
-    let outcome = match (candidate_fact, requirement_fact) {
+    let outcome = match (accepted_candidate, accepted_requirement) {
         (Some(left), Some(right)) => {
             let satisfied = match constraint.relation {
                 ConstraintRelation::AvailableAtLeastRequired => left.value >= right.value,
@@ -411,8 +536,8 @@ fn evaluate_constraint(
             }
         }
         _ => ConstraintOutcome::Unresolved {
-            candidate: evidence_gap(&constraint.candidate),
-            requirement: evidence_gap(&constraint.requirement),
+            candidate: evidence_gap(&constraint.candidate, &constraint.candidate_evidence_policy),
+            requirement: evidence_gap(&constraint.requirement, &constraint.requirement_evidence_policy),
         },
     };
 
@@ -454,13 +579,18 @@ mod tests {
             relation,
             candidate,
             requirement,
+            candidate_evidence_policy: EvidencePolicy::AnyKnown,
+            requirement_evidence_policy: EvidencePolicy::AnyKnown,
         }
     }
 
     fn candidate(method_id: &str, constraints: Vec<NumericConstraint>) -> MethodCandidate {
+        let required_constraint_ids = constraints.iter().map(|item| item.id.clone()).collect();
         MethodCandidate {
             method_id: method_id.to_owned(),
             method: MethodKind::SlurryMicrotunnelling,
+            constraint_profile_ref: "test-profile:v1".to_owned(),
+            required_constraint_ids,
             constraints,
         }
     }
@@ -488,6 +618,7 @@ mod tests {
         let report = assess_portfolio(&[input]).unwrap();
         assert_eq!(report[0].eligibility, Eligibility::Eligible);
         assert_eq!(report[0].constraints.len(), 2);
+        assert_eq!(report[0].constraint_profile_ref, "test-profile:v1");
         assert_eq!(
             report[0].constraints[0].candidate_evidence_class,
             Some(EvidenceClass::VendorDeclared)
