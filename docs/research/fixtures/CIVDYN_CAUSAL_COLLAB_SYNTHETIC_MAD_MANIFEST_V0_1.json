@@ -1,0 +1,223 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/measurement-distribution/0.1",
+  "schema_version": "0.1.0",
+  "protocol_id": "CIVBENCH-MAD-001",
+  "evaluation_id": "CIVDYN-CAUSAL-COLLAB-SYNTHETIC-TRACE-001",
+  "benchmark_id": "CIVDYN-CAUSAL-COLLAB-001",
+  "construct": {
+    "name": "evidence-qualified causal collaboration contribution",
+    "intended_use": "Verify lower/upper causal contribution bounds, resource-lineage and cross-agent causal edges, message-effectiveness separation, and duplicate action controls on hand-authored traces.",
+    "claim_tier": "tier-1-reference",
+    "claim_ceiling": "Tier 1 synthetic graph-scoring reference only; no verified causal truth, human collaboration validity or agent capability claim."
+  },
+  "units": {
+    "observational_unit": "action record and directed causal-edge record",
+    "resampling_unit": "none",
+    "independent_unit": "One deterministic success trace plus one failure negative control",
+    "dependence_statement": "Actions and causal edges form a single ordered dependency graph; causal ancestry is not treated as independent observations.",
+    "clustered_observations": false,
+    "independence_claimed": false
+  },
+  "sources": [
+    {
+      "source_id": "CIVDYN-CAUSAL-COLLAB-SYNTHETIC-FIXTURE-V0",
+      "epistemic_status": "synthetic-test-fixture",
+      "version": "0.1.0",
+      "retrieved_at": "2026-11-05",
+      "license": "AGPL-3.0-or-later",
+      "content_digest": null,
+      "source_family": "locally-authored-synthetic-fixture",
+      "missingness_semantics": "The deterministic fixture has complete declared cells; absent cells are missing/unsupported, never zero."
+    }
+  ],
+  "evaluation_distribution": {
+    "sampling_frame": "One eight-action successful trace and one failed-task trace with six agent roles, verified/candidate causal edges, messages, resource transfer and repeated action fingerprint.",
+    "factors": [
+      {
+        "factor_id": "task_outcome",
+        "weight_interpretation": "Two authored controls; not a task success prevalence estimate.",
+        "levels": [
+          {
+            "level_id": "success",
+            "target_weight": 0.5,
+            "support_count": 1
+          },
+          {
+            "level_id": "failure",
+            "target_weight": 0.5,
+            "support_count": 1
+          }
+        ]
+      },
+      {
+        "factor_id": "edge_evidence_status",
+        "weight_interpretation": "Designed edge categories within the success trace; not a sampled causal-edge distribution.",
+        "levels": [
+          {
+            "level_id": "verified",
+            "target_weight": 0.5,
+            "support_count": 1
+          },
+          {
+            "level_id": "candidate",
+            "target_weight": 0.5,
+            "support_count": 1
+          }
+        ]
+      }
+    ],
+    "excluded_support": []
+  },
+  "perturbation_families": [
+    {
+      "family_id": "causal-edge-evidence-promotion",
+      "rationale": "Shows how candidate causal edges widen the inclusive upper bound without entering the verified lower bound.",
+      "validity_check": "Recompute CCE lower/upper and cross-agent contribution metrics after changing evidence status; a model-proposed edge cannot be verified by assertion.",
+      "expected_invariants": [
+        "Model-proposed causal edge never enters verified lower bound.",
+        "Candidate-inclusive upper bound is no smaller than verified lower bound.",
+        "Failed-task CCE remains zero even when partial checkpoint progress is present."
+      ],
+      "seed_policy": "Deterministic authored graph; no stochastic seed.",
+      "parameter_range": null
+    }
+  ],
+  "replication_design": {
+    "method": "deterministic-fixture",
+    "replication_count": 1,
+    "independent_unit": "One fixed deterministic design matrix; no stochastic or empirical replication is claimed.",
+    "inference_claimed": false,
+    "dependence_assessment": "Scenario, strategy, participant and condition cells are deterministic benchmark fixtures, not independent draws from a target population.",
+    "sample_size_rationale": "One deterministic execution is sufficient to verify exact code paths and negative controls; it cannot support confidence intervals or population inference.",
+    "seed_manifest_digest": null,
+    "cluster_unit": null
+  },
+  "metrics": [
+    {
+      "metric_id": "cce_verified_lower",
+      "construct_dimension": "verified causal contribution share",
+      "unit": "fraction of actions",
+      "direction": "higher-is-better",
+      "aggregation": "success actions plus verified causal ancestors divided by all actions",
+      "strata": [
+        "task_outcome"
+      ],
+      "uncertainty_method": "none; deterministic graph fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "cce_candidate_upper",
+      "construct_dimension": "candidate-inclusive causal contribution share",
+      "unit": "fraction of actions",
+      "direction": "descriptive-only",
+      "aggregation": "success actions plus verified and candidate causal ancestors divided by all actions",
+      "strata": [
+        "task_outcome"
+      ],
+      "uncertainty_method": "none; deterministic graph fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "cross_agent_causal_edges",
+      "construct_dimension": "cross-agent dependency path count",
+      "unit": "edges",
+      "direction": "descriptive-only",
+      "aggregation": "verified and candidate-inclusive directed edge counts separately",
+      "strata": [
+        "edge_evidence_status"
+      ],
+      "uncertainty_method": "none; deterministic graph fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "message_effectiveness",
+      "construct_dimension": "communication contribution to task success",
+      "unit": "fraction of message actions",
+      "direction": "descriptive-only",
+      "aggregation": "verified and candidate-inclusive contributing message shares separately",
+      "strata": [
+        "task_outcome",
+        "edge_evidence_status"
+      ],
+      "uncertainty_method": "none; deterministic graph fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "duplicate_action_count",
+      "construct_dimension": "redundant repeated action instances",
+      "unit": "actions",
+      "direction": "lower-is-better",
+      "aggregation": "instances beyond first within an identical action fingerprint group",
+      "strata": [
+        "task_outcome"
+      ],
+      "uncertainty_method": "none; deterministic graph fixture",
+      "proper_scoring_rule": null
+    }
+  ],
+  "baselines": [
+    {
+      "baseline_id": "verified_only_lower_bound",
+      "description": "Counts only independently qualified/verified causal edges.",
+      "protocol_matched": true,
+      "source_uri": null
+    },
+    {
+      "baseline_id": "candidate_inclusive_upper_bound",
+      "description": "Adds candidate causal edges as an explicit uncertainty envelope, never as truth.",
+      "protocol_matched": true,
+      "source_uri": null
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "model-proposed-edge",
+      "intervention": "Mark an edge with ModelProposed evidence kind as Verified.",
+      "expected_result": "Validation rejects the trace; model assertion cannot self-certify causal truth.",
+      "must_fail_or_remain_null": "fail"
+    },
+    {
+      "control_id": "failed-task",
+      "intervention": "Provide partial checkpoint progress but no final task success action.",
+      "expected_result": "CCE lower and upper remain zero; partial success is retained as a separate progress metric.",
+      "must_fail_or_remain_null": "remain-unchanged"
+    },
+    {
+      "control_id": "message-is-not-causation",
+      "intervention": "Add communication actions without a verified causal path into success actions.",
+      "expected_result": "Message count rises but verified message effectiveness remains zero.",
+      "must_fail_or_remain_null": "remain-unchanged"
+    }
+  ],
+  "holdouts": [
+    {
+      "holdout_id": "empirical-external-holdout",
+      "dimension": "none",
+      "status": "not-applicable",
+      "leakage_control": "No empirical rows are used; this reference supports no external-generalization claim."
+    }
+  ],
+  "reproduction": {
+    "code_commit": "0756e7264785d92aa86f2c25d85d88f698f0e38d",
+    "configuration_digest": "civdyn-causal-collaboration-v0.1; 8-action success trace; failed-task negative control",
+    "data_manifest_digest": null,
+    "model_identifier": null,
+    "runtime_environment": "Rust edition 2024; deterministic benchmark crate; exact-head GitHub Actions workflow",
+    "command": "cargo run --locked --manifest-path research/civdyn-causal-collaboration/Cargo.toml --bin causal-collaboration-sweep",
+    "humanity_atlas_run_artifact_ref": "Not applicable: synthetic benchmark reference execution; no full Humanity Atlas scenario artifact is claimed."
+  },
+  "claim_report": {
+    "claim_ceiling": "Tier 1 synthetic graph-scoring reference only; no verified causal truth, human collaboration validity or agent capability claim.",
+    "known_limitations": [
+      "Edges are supplied to the scorer; the kernel does not infer causality.",
+      "Evidence references are not authenticated by this fixture.",
+      "Temporal order is necessary for edges but is not sufficient to establish causal truth."
+    ],
+    "unsupported_strata": [
+      "Human teams, live agent populations, real tool execution traces and source-verified causal mechanisms."
+    ],
+    "deviations": [],
+    "failed_controls": []
+  },
+  "composite_score_policy": "no-universal-composite"
+}
