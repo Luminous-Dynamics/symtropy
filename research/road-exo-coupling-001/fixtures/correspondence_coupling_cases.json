@@ -1,5 +1,5 @@
 {
-  "schema": "symtropy.road-correspondence-coupling-fixtures.v0.1",
+  "schema": "symtropy.road-correspondence-coupling-fixtures.v0.2",
   "scope": "finite address-projection conformance only",
   "cases": [
     {
@@ -66,6 +66,11 @@
       "id": "CC-13",
       "case": "unclassified-candidate-event-in-retained-universe",
       "expected": "correspondence-assessment-rejects"
+    },
+    {
+      "id": "CC-14",
+      "case": "unmatched-event-in-different-parent-world",
+      "expected": "reject_mixed_world_scope"
     }
   ],
   "claim_ceiling": "No event map is selected as true; no causal invariance is inferred; no Philox words are generated; no variance reduction, physical validity or vehicle safety is established."
