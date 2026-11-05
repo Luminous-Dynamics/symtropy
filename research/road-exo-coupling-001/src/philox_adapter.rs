@@ -831,7 +831,12 @@ mod tests {
 
     fn correspondence_plan() -> CorrespondenceAddressPlan {
         let shared_pair = b"v0.2:world-17:H-actor:pair-L1-R1".to_vec();
-        let alternative_pair = b"v0.2:world-17:H-slot:pair-L1-R2".to_vec();
+        let alternative_left = b"v0.2:world-17:H-slot:pair-L1-R2:left".to_vec();
+        let alternative_right = b"v0.2:world-17:H-slot:pair-L1-R2:right".to_vec();
+        let actor_unmatched =
+            b"v0.2:world-17:H-actor:unmatched-yield-R2".to_vec();
+        let slot_unmatched =
+            b"v0.2:world-17:H-slot:unmatched-yield-R1".to_vec();
         CorrespondenceAddressPlan {
             left_branch: id("continue"),
             right_branch: id("yield"),
@@ -880,6 +885,15 @@ mod tests {
                                 condition_witness: id("not-observed-after-yield"),
                             },
                         ),
+                        planned_address(
+                            "yield",
+                            "R2",
+                            &actor_unmatched,
+                            SharingStatus::NoCounterpartUnderHypothesis,
+                            PlannedPresence::Observed {
+                                evidence_ref: id("actor-unmatched-evidence"),
+                            },
+                        ),
                     ],
                 },
                 HypothesisAddressPlan {
@@ -901,8 +915,8 @@ mod tests {
                         planned_address(
                             "continue",
                             "L1",
-                            &alternative_pair,
-                            SharingStatus::SharedInvariant,
+                            &alternative_left,
+                            SharingStatus::BranchSpecific,
                             PlannedPresence::Observed {
                                 evidence_ref: id("left-evidence"),
                             },
@@ -910,10 +924,19 @@ mod tests {
                         planned_address(
                             "yield",
                             "R2",
-                            &alternative_pair,
-                            SharingStatus::SharedInvariant,
+                            &alternative_right,
+                            SharingStatus::BranchSpecific,
                             PlannedPresence::Observed {
                                 evidence_ref: id("right-slot-evidence"),
+                            },
+                        ),
+                        planned_address(
+                            "yield",
+                            "R1",
+                            &slot_unmatched,
+                            SharingStatus::NoCounterpartUnderHypothesis,
+                            PlannedPresence::Observed {
+                                evidence_ref: id("slot-unmatched-evidence"),
                             },
                         ),
                     ],
@@ -938,15 +961,15 @@ mod tests {
         let slot = &resolved.hypotheses[1];
         assert_eq!(actor.hypothesis_id, id("H-actor"));
         assert_eq!(slot.hypothesis_id, id("H-slot"));
-        assert_eq!(actor.draws.len(), 2);
-        assert_eq!(slot.draws.len(), 2);
+        assert_eq!(actor.draws.len(), 3);
+        assert_eq!(slot.draws.len(), 3);
 
         assert_eq!(
             actor.draws[0].draw.derivation_digest,
             actor.draws[1].draw.derivation_digest
         );
         assert_eq!(actor.draws[0].draw.words, actor.draws[1].draw.words);
-        assert_eq!(
+        assert_ne!(
             slot.draws[0].draw.derivation_digest,
             slot.draws[1].draw.derivation_digest
         );
