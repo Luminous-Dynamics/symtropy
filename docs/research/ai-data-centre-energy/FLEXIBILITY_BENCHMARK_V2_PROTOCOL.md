@@ -94,6 +94,20 @@ Bind each dataset and split to an immutable digest, source licence, preprocessin
 
 No workload session, site, event or time window may leak across splits. Do not fit a power model or choose a scheduler using the held-out evaluation interval.
 
+### High-resolution accelerator/node trace admission card
+
+The 2026 Scientific Data trace publication (DOI 10.1038/s41597-026-07496-6) describes 32 H100/B200 eight-GPU node sessions and 40 RTX 3060 sessions, with more than 1.8 million samples. Node-scale recording is 20 ms (50 Hz), single-machine recording is nominally 100 ms, and the sessions are 15 minutes long.
+
+Its use in this programme is limited to per-GPU and GPU-sum node workload dynamics:
+- the article states node-scale CPU power and temperature columns are empty because the virtualized host did not expose those sensors;
+- node power is the sum of GPU powers, not facility AC input or a PCC measurement;
+- GPU temperature is present, but ambient conditions and the facility cooling configuration are not;
+- correlated oscillations among eight GPUs executing a shared training job inform intra-node common-mode modeling; they do not establish cross-site fleet correlation;
+- 15-minute samples do not demonstrate a 3-hour flexibility service or post-event queue/thermal recovery.
+
+The data record has a license ambiguity that must be resolved before reuse: the Figshare DOI landing page displays CC BY 4.0, while the companion GitHub repository README points to CC BY-NC-ND 4.0. Until the licensor confirms the applicable data license and permitted use, mark the source `UNRESOLVED_CONFLICT`; do not redistribute raw files, publish adapted dataset artifacts, or infer commercial-use permission. The source software-code license and dataset license must be treated separately.
+
+Do not apply zero-order-hold resampling by default merely because the paper used it to align its two monitoring tools for a measurement comparison. Preserve native timestamps and intervals first; compare at a common resolution only under a declared integration/aggregation model that conserves energy and reports induced uncertainty. The paper's timing evaluation is source-reported validation, not a calibration certificate for any Symtropy meter.
 ## 5. Required metric vector
 
 ### Compute and service
