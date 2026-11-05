@@ -252,7 +252,11 @@ impl Observation {
                 "capability_payload_sha256": capability_payload_sha256,
                 "type_specification_present": type_specification_present
             }),
-            Self::FleetZoneSetReported { map_id, zone_set_id, zones } => json!({
+            Self::FleetZoneSetReported {
+                map_id,
+                zone_set_id,
+                zones,
+            } => json!({
                 "kind": "fleet_zone_set_reported",
                 "map_id": map_id,
                 "zone_set_id": zone_set_id,
@@ -333,10 +337,18 @@ impl fmt::Display for ObserverError {
             Self::Json(message) => write!(f, "invalid JSON: {message}"),
             Self::DuplicateKey(key) => write!(f, "duplicate JSON object key: {key}"),
             Self::UnsupportedTopic(topic) => write!(f, "unsupported VDA topic: {topic}"),
-            Self::UnsupportedVersion(version) => write!(f, "unsupported VDA payload version: {version}"),
-            Self::TopicVersionMismatch(version) => write!(f, "topic major version does not match VDA 3.0: {version}"),
-            Self::TopicIdentityMismatch { field } => write!(f, "topic identity does not match payload {field}"),
-            Self::PayloadTooLarge { actual, maximum } => write!(f, "payload size {actual} exceeds observer limit {maximum}"),
+            Self::UnsupportedVersion(version) => {
+                write!(f, "unsupported VDA payload version: {version}")
+            }
+            Self::TopicVersionMismatch(version) => {
+                write!(f, "topic major version does not match VDA 3.0: {version}")
+            }
+            Self::TopicIdentityMismatch { field } => {
+                write!(f, "topic identity does not match payload {field}")
+            }
+            Self::PayloadTooLarge { actual, maximum } => {
+                write!(f, "payload size {actual} exceeds observer limit {maximum}")
+            }
             Self::Shape(message) => write!(f, "invalid VDA message shape: {message}"),
         }
     }
@@ -392,7 +404,9 @@ struct ParsedTopicPath {
 fn parse_topic_path(path: &str) -> Result<ParsedTopicPath, ObserverError> {
     let segments: Vec<&str> = path.split('/').collect();
     if segments.iter().any(|segment| segment.is_empty()) {
-        return Err(ObserverError::Shape("MQTT topic path contains an empty level".to_owned()));
+        return Err(ObserverError::Shape(
+            "MQTT topic path contains an empty level".to_owned(),
+        ));
     }
     if segments.len() == 5 && segments[1].starts_with('v') {
         if segments[1] != "v3" {
@@ -406,9 +420,9 @@ fn parse_topic_path(path: &str) -> Result<ParsedTopicPath, ObserverError> {
             }),
         });
     }
-    let topic_name = segments.last().ok_or_else(|| {
-        ObserverError::Shape("MQTT topic path is empty".to_owned())
-    })?;
+    let topic_name = segments
+        .last()
+        .ok_or_else(|| ObserverError::Shape("MQTT topic path is empty".to_owned()))?;
     Ok(ParsedTopicPath {
         topic: VdaTopic::parse(topic_name)?,
         identity: None,
@@ -422,18 +436,26 @@ fn merge_and_check_identity(
 ) -> Result<Option<TopicIdentity>, ObserverError> {
     if let Some(identity) = &from_topic {
         if identity.manufacturer != header.manufacturer {
-            return Err(ObserverError::TopicIdentityMismatch { field: "manufacturer" });
+            return Err(ObserverError::TopicIdentityMismatch {
+                field: "manufacturer",
+            });
         }
         if identity.serial_number != header.serial_number {
-            return Err(ObserverError::TopicIdentityMismatch { field: "serialNumber" });
+            return Err(ObserverError::TopicIdentityMismatch {
+                field: "serialNumber",
+            });
         }
     }
     if let Some(identity) = &supplied {
         if identity.manufacturer != header.manufacturer {
-            return Err(ObserverError::TopicIdentityMismatch { field: "manufacturer" });
+            return Err(ObserverError::TopicIdentityMismatch {
+                field: "manufacturer",
+            });
         }
         if identity.serial_number != header.serial_number {
-            return Err(ObserverError::TopicIdentityMismatch { field: "serialNumber" });
+            return Err(ObserverError::TopicIdentityMismatch {
+                field: "serialNumber",
+            });
         }
     }
     if let (Some(path_identity), Some(explicit_identity)) = (&from_topic, &supplied) {
@@ -481,13 +503,15 @@ fn parse_state(root: &Map<String, Value>) -> Result<Observation, ObserverError> 
     let last_node_sequence_id = unsigned(field(root, "lastNodeSequenceId")?, "lastNodeSequenceId")?;
     let nodes = parse_route_nodes(as_array(field(root, "nodeStates")?, "nodeStates")?)?;
     let edges = parse_route_edges(as_array(field(root, "edgeStates")?, "edgeStates")?)?;
-    let action_states = parse_action_states(as_array(field(root, "actionStates")?, "actionStates")?)?;
+    let action_states =
+        parse_action_states(as_array(field(root, "actionStates")?, "actionStates")?)?;
     let instant_action_states = parse_action_states(as_array(
         field(root, "instantActionStates")?,
         "instantActionStates",
     )?)?;
     let driving = boolean(field(root, "driving")?, "driving")?;
-    let operating_mode = non_empty_string(field(root, "operatingMode")?, "operatingMode")?.to_owned();
+    let operating_mode =
+        non_empty_string(field(root, "operatingMode")?, "operatingMode")?.to_owned();
     let errors = as_array(field(root, "errors")?, "errors")?;
     as_object(field(root, "powerSupply")?, "powerSupply")?;
     let safety_state = as_object(field(root, "safetyState")?, "safetyState")?;
@@ -518,12 +542,21 @@ fn parse_state(root: &Map<String, Value>) -> Result<Observation, ObserverError> 
     })
 }
 
-fn parse_factsheet(root: &Map<String, Value>, payload: &[u8]) -> Result<Observation, ObserverError> {
+fn parse_factsheet(
+    root: &Map<String, Value>,
+    payload: &[u8],
+) -> Result<Observation, ObserverError> {
     let type_specification = as_object(field(root, "typeSpecification")?, "typeSpecification")?;
     if type_specification.is_empty() {
         return shape("typeSpecification must not be empty");
     }
-    for key in ["physicalParameters", "protocolLimits", "protocolFeatures", "mobileRobotGeometry", "loadSpecification"] {
+    for key in [
+        "physicalParameters",
+        "protocolLimits",
+        "protocolFeatures",
+        "mobileRobotGeometry",
+        "loadSpecification",
+    ] {
         as_object(field(root, key)?, key)?;
     }
     Ok(Observation::FactsheetCapabilityClaimReported {
@@ -535,7 +568,8 @@ fn parse_factsheet(root: &Map<String, Value>, payload: &[u8]) -> Result<Observat
 fn parse_zone_set(root: &Map<String, Value>) -> Result<Observation, ObserverError> {
     let zone_set = as_object(field(root, "zoneSet")?, "zoneSet")?;
     let map_id = non_empty_string(field(zone_set, "mapId")?, "zoneSet.mapId")?.to_owned();
-    let zone_set_id = non_empty_string(field(zone_set, "zoneSetId")?, "zoneSet.zoneSetId")?.to_owned();
+    let zone_set_id =
+        non_empty_string(field(zone_set, "zoneSetId")?, "zoneSet.zoneSetId")?.to_owned();
     let zones = as_array(field(zone_set, "zones")?, "zoneSet.zones")?;
     let mut parsed = Vec::with_capacity(zones.len());
     for zone in zones {
@@ -543,9 +577,19 @@ fn parse_zone_set(root: &Map<String, Value>) -> Result<Observation, ObserverErro
         let zone_id = non_empty_string(field(zone, "zoneId")?, "zone.zoneId")?.to_owned();
         let zone_type = non_empty_string(field(zone, "zoneType")?, "zone.zoneType")?.to_owned();
         if ![
-            "BLOCKED", "LINE_GUIDED", "RELEASE", "COORDINATED_REPLANNING",
-            "SPEED_LIMIT", "ACTION", "PRIORITY", "PENALTY", "DIRECTED", "BIDIRECTED",
-        ].contains(&zone_type.as_str()) {
+            "BLOCKED",
+            "LINE_GUIDED",
+            "RELEASE",
+            "COORDINATED_REPLANNING",
+            "SPEED_LIMIT",
+            "ACTION",
+            "PRIORITY",
+            "PENALTY",
+            "DIRECTED",
+            "BIDIRECTED",
+        ]
+        .contains(&zone_type.as_str())
+        {
             return shape("zoneType is outside the VDA 5050 v3.0.0 enumeration");
         }
         let vertices = as_array(field(zone, "vertices")?, "zone.vertices")?;
@@ -567,8 +611,11 @@ fn parse_zone_set(root: &Map<String, Value>) -> Result<Observation, ObserverErro
 }
 
 fn parse_connection(root: &Map<String, Value>) -> Result<Observation, ObserverError> {
-    let connection_state = non_empty_string(field(root, "connectionState")?, "connectionState")?.to_owned();
-    if !["ONLINE", "OFFLINE", "HIBERNATING", "CONNECTION_BROKEN"].contains(&connection_state.as_str()) {
+    let connection_state =
+        non_empty_string(field(root, "connectionState")?, "connectionState")?.to_owned();
+    if !["ONLINE", "OFFLINE", "HIBERNATING", "CONNECTION_BROKEN"]
+        .contains(&connection_state.as_str())
+    {
         return shape("connectionState is outside the VDA 5050 v3.0.0 enumeration");
     }
     Ok(Observation::RobotConnectionStateReported { connection_state })
@@ -581,7 +628,8 @@ fn parse_instant_actions(root: &Map<String, Value>) -> Result<Observation, Obser
         let action = as_object(action, "actions[]")?;
         let action_id = non_empty_string(field(action, "actionId")?, "actionId")?.to_owned();
         let action_type = non_empty_string(field(action, "actionType")?, "actionType")?.to_owned();
-        let blocking_type = non_empty_string(field(action, "blockingType")?, "blockingType")?.to_owned();
+        let blocking_type =
+            non_empty_string(field(action, "blockingType")?, "blockingType")?.to_owned();
         if blocking_type != "NONE" {
             return shape("VDA 5050 v3 instantActions blockingType must be NONE");
         }
@@ -645,8 +693,16 @@ fn parse_action_states(values: &[Value]) -> Result<Vec<ActionStateObservation>, 
         let action_id = non_empty_string(field(object, "actionId")?, "actionId")?.to_owned();
         let status = non_empty_string(field(object, "actionStatus")?, "actionStatus")?.to_owned();
         if ![
-            "WAITING", "INITIALIZING", "RUNNING", "PAUSED", "RETRIABLE", "FINISHED", "FAILED",
-        ].contains(&status.as_str()) {
+            "WAITING",
+            "INITIALIZING",
+            "RUNNING",
+            "PAUSED",
+            "RETRIABLE",
+            "FINISHED",
+            "FAILED",
+        ]
+        .contains(&status.as_str())
+        {
             return shape("actionStatus is outside the VDA 5050 v3.0.0 enumeration");
         }
         let action_type = object
@@ -667,10 +723,12 @@ fn parse_zone_requests(values: &[Value]) -> Result<Vec<ZoneRequestObservation>, 
     for value in values {
         let object = as_object(value, "zoneRequests[]")?;
         let request_id = non_empty_string(field(object, "requestId")?, "requestId")?.to_owned();
-        let request_type = non_empty_string(field(object, "requestType")?, "requestType")?.to_owned();
+        let request_type =
+            non_empty_string(field(object, "requestType")?, "requestType")?.to_owned();
         let zone_id = non_empty_string(field(object, "zoneId")?, "zoneId")?.to_owned();
         let zone_set_id = non_empty_string(field(object, "zoneSetId")?, "zoneSetId")?.to_owned();
-        let request_status = non_empty_string(field(object, "requestStatus")?, "requestStatus")?.to_owned();
+        let request_status =
+            non_empty_string(field(object, "requestStatus")?, "requestStatus")?.to_owned();
         if !["ACCESS", "REPLANNING"].contains(&request_type.as_str()) {
             return shape("zone request type is outside the VDA 5050 v3.0.0 enumeration");
         }
@@ -697,7 +755,10 @@ fn parse_navigation_maps(values: &[Value]) -> Result<Vec<NavigationMapObservatio
             .get("mapVersion")
             .map(|value| string(value, "mapVersion").map(str::to_owned))
             .transpose()?;
-        result.push(NavigationMapObservation { map_id, map_version });
+        result.push(NavigationMapObservation {
+            map_id,
+            map_version,
+        });
     }
     Ok(result)
 }
@@ -842,29 +903,52 @@ fn looks_like_rfc3339(value: &str) -> bool {
         && bytes.get(10) == Some(&b'T')
         && bytes.get(13) == Some(&b':')
         && bytes.get(16) == Some(&b':')
-        && bytes.get(0..4).is_some_and(|part| part.iter().all(u8::is_ascii_digit))
-        && bytes.get(5..7).is_some_and(|part| part.iter().all(u8::is_ascii_digit))
-        && bytes.get(8..10).is_some_and(|part| part.iter().all(u8::is_ascii_digit))
-        && bytes.get(11..13).is_some_and(|part| part.iter().all(u8::is_ascii_digit))
-        && bytes.get(14..16).is_some_and(|part| part.iter().all(u8::is_ascii_digit))
-        && bytes.get(17..19).is_some_and(|part| part.iter().all(u8::is_ascii_digit))
-        && (value.ends_with('Z') || value.contains('+') || value.rfind('-').is_some_and(|index| index > 10))
+        && bytes
+            .get(0..4)
+            .is_some_and(|part| part.iter().all(u8::is_ascii_digit))
+        && bytes
+            .get(5..7)
+            .is_some_and(|part| part.iter().all(u8::is_ascii_digit))
+        && bytes
+            .get(8..10)
+            .is_some_and(|part| part.iter().all(u8::is_ascii_digit))
+        && bytes
+            .get(11..13)
+            .is_some_and(|part| part.iter().all(u8::is_ascii_digit))
+        && bytes
+            .get(14..16)
+            .is_some_and(|part| part.iter().all(u8::is_ascii_digit))
+        && bytes
+            .get(17..19)
+            .is_some_and(|part| part.iter().all(u8::is_ascii_digit))
+        && (value.ends_with('Z')
+            || value.contains('+')
+            || value.rfind('-').is_some_and(|index| index > 10))
 }
 
 fn as_object<'a>(value: &'a Value, name: &str) -> Result<&'a Map<String, Value>, ObserverError> {
-    value.as_object().ok_or_else(|| ObserverError::Shape(format!("{name} must be an object")))
+    value
+        .as_object()
+        .ok_or_else(|| ObserverError::Shape(format!("{name} must be an object")))
 }
 
 fn as_array<'a>(value: &'a Value, name: &str) -> Result<&'a [Value], ObserverError> {
-    value.as_array().map(Vec::as_slice).ok_or_else(|| ObserverError::Shape(format!("{name} must be an array")))
+    value
+        .as_array()
+        .map(Vec::as_slice)
+        .ok_or_else(|| ObserverError::Shape(format!("{name} must be an array")))
 }
 
 fn field<'a>(object: &'a Map<String, Value>, name: &str) -> Result<&'a Value, ObserverError> {
-    object.get(name).ok_or_else(|| ObserverError::Shape(format!("missing required field {name}")))
+    object
+        .get(name)
+        .ok_or_else(|| ObserverError::Shape(format!("missing required field {name}")))
 }
 
 fn string<'a>(value: &'a Value, name: &str) -> Result<&'a str, ObserverError> {
-    value.as_str().ok_or_else(|| ObserverError::Shape(format!("{name} must be a string")))
+    value
+        .as_str()
+        .ok_or_else(|| ObserverError::Shape(format!("{name} must be a string")))
 }
 
 fn non_empty_string<'a>(value: &'a Value, name: &str) -> Result<&'a str, ObserverError> {
@@ -876,15 +960,21 @@ fn non_empty_string<'a>(value: &'a Value, name: &str) -> Result<&'a str, Observe
 }
 
 fn unsigned(value: &Value, name: &str) -> Result<u64, ObserverError> {
-    value.as_u64().ok_or_else(|| ObserverError::Shape(format!("{name} must be a non-negative integer")))
+    value
+        .as_u64()
+        .ok_or_else(|| ObserverError::Shape(format!("{name} must be a non-negative integer")))
 }
 
 fn boolean(value: &Value, name: &str) -> Result<bool, ObserverError> {
-    value.as_bool().ok_or_else(|| ObserverError::Shape(format!("{name} must be a boolean")))
+    value
+        .as_bool()
+        .ok_or_else(|| ObserverError::Shape(format!("{name} must be a boolean")))
 }
 
 fn number(value: &Value, name: &str) -> Result<f64, ObserverError> {
-    value.as_f64().ok_or_else(|| ObserverError::Shape(format!("{name} must be a number")))
+    value
+        .as_f64()
+        .ok_or_else(|| ObserverError::Shape(format!("{name} must be a number")))
 }
 
 fn shape<T>(message: &str) -> Result<T, ObserverError> {
@@ -914,7 +1004,10 @@ mod tests {
             Observation::TransportOrderReceived { order_id, order_update_id: 2, .. }
                 if order_id == "transport-1"
         ));
-        assert_eq!(decoded.summary_json()["observation"]["kind"], "transport_order_received");
+        assert_eq!(
+            decoded.summary_json()["observation"]["kind"],
+            "transport_order_received"
+        );
     }
 
     #[test]
@@ -922,9 +1015,13 @@ mod tests {
         let payload = format!("{{{HEADER},"connectionState":"ONLINE"}}");
         assert!(matches!(
             decode_vda_message("vda5050/v3/OTHER/R-01/connection", None, payload.as_bytes()),
-            Err(ObserverError::TopicIdentityMismatch { field: "manufacturer" })
+            Err(ObserverError::TopicIdentityMismatch {
+                field: "manufacturer"
+            })
         ));
-        assert!(decode_vda_message("vda5050/v3/ACME/R-01/connection", None, payload.as_bytes()).is_ok());
+        assert!(
+            decode_vda_message("vda5050/v3/ACME/R-01/connection", None, payload.as_bytes()).is_ok()
+        );
     }
 
     #[test]
@@ -953,7 +1050,11 @@ mod tests {
             r#""orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[{"nodeId":"n0","sequenceId":0,"released":true}],"edgeStates":[],"driving":false,"actionStates":[{"actionId":"a1","actionStatus":"FINISHED"}],"instantActionStates":[],"powerSupply":{"batteryCharge":90},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{"eStop":"NONE","fieldViolation":false}"#,
         );
         match &decoded.observation {
-            Observation::RobotStateReported { action_states, safety_state_reported, .. } => {
+            Observation::RobotStateReported {
+                action_states,
+                safety_state_reported,
+                ..
+            } => {
                 assert_eq!(action_states[0].status, "FINISHED");
                 assert!(*safety_state_reported);
             }
@@ -984,12 +1085,19 @@ mod tests {
             r#""orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[],"edgeStates":[],"driving":false,"actionStates":[],"instantActionStates":[],"powerSupply":{"batteryCharge":90},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{"eStop":"NONE","fieldViolation":false},"maps":[{"mapId":"floor-2","mapVersion":"map-17"}]"#,
         );
         match decoded.observation {
-            Observation::RobotStateReported { navigation_maps, .. } => {
+            Observation::RobotStateReported {
+                navigation_maps, ..
+            } => {
                 assert_eq!(navigation_maps[0].map_version.as_deref(), Some("map-17"));
             }
             other => panic!("unexpected observation: {other:?}"),
         }
-        assert!(!decoded.summary_json().to_string().contains("design_revision"));
+        assert!(
+            !decoded
+                .summary_json()
+                .to_string()
+                .contains("design_revision")
+        );
     }
 
     #[test]
@@ -1000,7 +1108,10 @@ mod tests {
         );
         assert!(matches!(
             decoded.observation,
-            Observation::FactsheetCapabilityClaimReported { type_specification_present: true, .. }
+            Observation::FactsheetCapabilityClaimReported {
+                type_specification_present: true,
+                ..
+            }
         ));
         assert!(!decoded.summary_json().to_string().contains("qualified"));
         assert!(!decoded.summary_json().to_string().contains("authenticated"));
@@ -1016,7 +1127,12 @@ mod tests {
             decoded.observation,
             Observation::FleetZoneSetReported { ref zones, .. } if zones[0].zone_type == "BLOCKED"
         ));
-        assert!(!decoded.summary_json().to_string().contains("safety_authorized"));
+        assert!(
+            !decoded
+                .summary_json()
+                .to_string()
+                .contains("safety_authorized")
+        );
     }
 
     #[test]
@@ -1075,7 +1191,8 @@ mod tests {
 
     #[test]
     fn duplicate_json_keys_are_rejected() {
-        let payload = format!("{{{HEADER},"connectionState":"ONLINE","connectionState":"OFFLINE"}}");
+        let payload =
+            format!("{{{HEADER},"connectionState":"ONLINE","connectionState":"OFFLINE"}}");
         assert!(matches!(
             decode_vda_message("connection", None, payload.as_bytes()),
             Err(ObserverError::DuplicateKey(_))
