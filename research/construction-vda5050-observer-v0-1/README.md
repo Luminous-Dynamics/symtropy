@@ -86,7 +86,7 @@ The fixtures include valid order, state/action-FINISHED, factsheet, zoneSet, con
 - local topic/header identity mismatch and cloud hierarchy identity binding;
 - action FINISHED as executor-only;
 - zone GRANTED and responses GRANTED as fleet traffic only;
-- mapVersion as navigation-only;
+- mapId/mapVersion/mapStatus as navigation-map metadata only (including ENABLED/DISABLED);
 - factsheet as a reported claim;
 - zoneSet geometry/category as fleet information;
 - connection state, instant action request and zone response handling;
