@@ -46,39 +46,55 @@
   ],
   "benchmarks": [
     {
-      "id": "field-nature-25pct-3h",
-      "evidence_class": "SOURCE_REPORTED",
-      "source": "https://doi.org/10.1038/s41560-025-01927-1",
-      "domain": "compute_service_and_pcc_response",
-      "baseline": "256-GPU-class field demonstration; 25% import/power reduction sustained 3h with declared AI QoS",
-      "target": "reproduce under matched workload, hardware class, measurement boundary and QoS; stretch >=30% for 3h",
+      "id": "correlated-fleet-risk",
+      "evidence_class": "TRACE_REPLAY",
+      "source": "AI-DC-FLEX-BENCH-002 / public trace adapters to be pinned",
+      "domain": "correlated_fleet_and_grid",
+      "baseline": "independent-site aggregation versus empirical joint time series and declared factor/state-space alternatives",
+      "target": "calibrated held-out aggregate ramp/variance/tail forecasts; reserve must cover measured common-mode and synchronized-release risk",
       "primary_metrics": [
-        "pcc_reduction_fraction",
-        "sustained_duration_s",
-        "completed_useful_work",
-        "qos_violations",
-        "net_facility_energy_per_work",
-        "rebound_peak"
+        "aggregate_variance_error",
+        "ramp_quantile_error",
+        "tail_coverage",
+        "cross_site_lag_dependence",
+        "reserve_error",
+        "out_of_domain_abstention"
       ],
-      "status": "REFERENCE_REQUIRED"
+      "status": "NOT_IMPLEMENTED"
     },
     {
-      "id": "trace-alibaba-lad-flex",
-      "evidence_class": "SOURCE_REPORTED",
-      "source": "https://doi.org/10.1016/j.ijepes.2026.111940",
-      "domain": "workload_deferral",
-      "baseline": "up to 22% load deferral in one-week trace-based case; >1M task records",
-      "target": "reproduce published filters and windows; stretch >=25% only with no SLA, queue, energy/work or rebound regression",
+      "id": "economics-vs-bess",
+      "evidence_class": "SIMULATION",
+      "source": "https://www.iea.org/reports/powering-artificial-intelligence/executive-summary",
+      "domain": "cost_of_flexibility",
+      "baseline": "compute opportunity cost versus BESS/UPS/thermal storage/generator/network alternative",
+      "target": "publish break-even cost per net delivered MW/MWh with compute value, battery degradation, reserve and grid value included",
       "primary_metrics": [
-        "deferred_load_fraction",
-        "deadline_miss_rate",
-        "p99_latency",
-        "queue_stability",
-        "backlog_clear_time",
-        "facility_energy_per_work",
-        "rebound_peak"
+        "total_cost",
+        "cost_per_delivered_mwh",
+        "foregone_compute_value",
+        "battery_degradation_cost",
+        "avoided_network_cost",
+        "water_and_emissions"
       ],
-      "status": "REFERENCE_REQUIRED"
+      "status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "electrothermal-cooling-flex",
+      "evidence_class": "SIMULATION",
+      "source": "https://www.ashrae.org/technical-resources/topics-and-initiatives/ai-data-center/grid-interactive-design-demand-flexibility",
+      "domain": "cooling_and_thermal_state",
+      "baseline": "cooling-shift/thermal-storage strategy with coolant, temperature, water, auxiliary and recovery constraints",
+      "target": "compare against fixed-parasitic cooling and coupled electro-thermal baselines; no thermal/water violations",
+      "primary_metrics": [
+        "cooling_power_kw",
+        "max_temperature_c",
+        "thermal_margin_c",
+        "water_per_work",
+        "thermal_recovery_s",
+        "auxiliary_energy_wh"
+      ],
+      "status": "NOT_IMPLEMENTED"
     },
     {
       "id": "field-acm-interdc-migration",
@@ -96,6 +112,92 @@
         "read_write_semantics"
       ],
       "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "field-nature-25pct-3h",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.1038/s41560-025-01927-1",
+      "domain": "compute_service_and_pcc_response",
+      "baseline": "256-GPU-class field demonstration; 25% import/power reduction sustained 3h with declared AI QoS",
+      "target": "reproduce under matched workload, hardware class, measurement boundary and QoS; stretch >=30% for 3h",
+      "primary_metrics": [
+        "pcc_reduction_fraction",
+        "sustained_duration_s",
+        "completed_useful_work",
+        "qos_violations",
+        "net_facility_energy_per_work",
+        "rebound_peak"
+      ],
+      "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "grid-dynamic-stability",
+      "evidence_class": "RMS_EMT",
+      "source": "IEEE workload-driven power fluctuation and data-centre interconnection studies; utility profiles to be pinned",
+      "domain": "voltage_frequency_dynamic_performance",
+      "baseline": "no-flexibility, independent-site and correlation-aware load cases; local protection stays authoritative",
+      "target": "no degradation outside operator-approved envelopes; validated RMS/EMT and HIL receipts before any field stability claim",
+      "primary_metrics": [
+        "frequency_nadir_hz",
+        "rocof_hz_per_s",
+        "voltage_deviation_pu",
+        "settling_s",
+        "oscillation_damping",
+        "protection_events"
+      ],
+      "status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "grid-response-delivery",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "source": "PR #3649",
+      "domain": "dispatch_performance",
+      "baseline": "product-specific latency, sustained delivery, ramp, overshoot and signed under-delivery envelope",
+      "target": "repeated-call reliability and product-defined response/stability thresholds; no universal threshold invented",
+      "primary_metrics": [
+        "response_latency_s",
+        "time_to_stabilized_s",
+        "ramp_kw_per_s",
+        "tracking_error",
+        "availability",
+        "rebound_energy_wh",
+        "failed_call_probability"
+      ],
+      "status": "EXISTING_VERIFIER_REQUIRES_EXACT_HEAD_QUALIFICATION"
+    },
+    {
+      "id": "high-resolution-ai-training-traces-2026",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.1038/s41597-026-07496-6",
+      "repository": "https://github.com/Ahmed-Elsayed95/High-resolution-AI-Data-Center-Training-Workloads-Dataset",
+      "dataset_doi": "https://doi.org/10.6084/m9.figshare.31654879.v1",
+      "domain": "accelerator_and_node_workload_dynamics",
+      "baseline": "32 sessions on 8-GPU H100/B200 nodes plus 40 RTX 3060 sessions; >1.8M samples; 15-minute sessions; 20ms node and 100ms single-machine samples",
+      "target": "use for per-GPU and GPU-sum node characterization only after license review; keep H100, B200 and RTX 3060 strata separate; never label GPU-sum node power as PCC",
+      "primary_metrics": [
+        "gpu_power_w",
+        "gpu_utilization",
+        "gpu_memory_utilization",
+        "gpu_temperature_c",
+        "node_gpu_sum_power_w",
+        "within_node_gpu_covariance",
+        "subsecond_ramp_kw_per_s",
+        "power_forecast_error"
+      ],
+      "scope_limits": [
+        "node-scale CPU power and CPU temperature columns are empty because the virtualized environment did not expose required sensors",
+        "reported node power is sum of GPU powers, not facility AC/PCC power",
+        "GPU temperatures are available but ambient and facility cooling configuration are not",
+        "eight GPUs on one training job can evidence intra-node synchronous behavior, not cross-site fleet correlation",
+        "15-minute sessions cannot establish multi-hour field flexibility or event recovery"
+      ],
+      "license_status": "UNRESOLVED_CONFLICT",
+      "license_evidence": {
+        "figshare_record": "CC BY 4.0 displayed on the DOI landing page",
+        "companion_github_readme": "states CC BY-NC-ND 4.0",
+        "action": "obtain author/licensor clarification before commercial use, derivative redistribution or committing dataset-derived artifacts"
+      },
+      "status": "SOURCE_INGESTION_AND_LICENSE_REVIEW_REQUIRED"
     },
     {
       "id": "mlperf-power-efficiency",
@@ -133,24 +235,6 @@
       "status": "IMPLEMENTATION_IN_REVIEW"
     },
     {
-      "id": "grid-response-delivery",
-      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
-      "source": "PR #3649",
-      "domain": "dispatch_performance",
-      "baseline": "product-specific latency, sustained delivery, ramp, overshoot and signed under-delivery envelope",
-      "target": "repeated-call reliability and product-defined response/stability thresholds; no universal threshold invented",
-      "primary_metrics": [
-        "response_latency_s",
-        "time_to_stabilized_s",
-        "ramp_kw_per_s",
-        "tracking_error",
-        "availability",
-        "rebound_energy_wh",
-        "failed_call_probability"
-      ],
-      "status": "EXISTING_VERIFIER_REQUIRES_EXACT_HEAD_QUALIFICATION"
-    },
-    {
       "id": "pras-09-adequacy-interop",
       "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
       "source": "PR #3750",
@@ -170,72 +254,22 @@
       "status": "V0_1_HARNESS_PASSED_NATIVE_CAPACITY_CREDIT_NEXT"
     },
     {
-      "id": "correlated-fleet-risk",
-      "evidence_class": "TRACE_REPLAY",
-      "source": "AI-DC-FLEX-BENCH-002 / public trace adapters to be pinned",
-      "domain": "correlated_fleet_and_grid",
-      "baseline": "independent-site aggregation versus empirical joint time series and declared factor/state-space alternatives",
-      "target": "calibrated held-out aggregate ramp/variance/tail forecasts; reserve must cover measured common-mode and synchronized-release risk",
+      "id": "trace-alibaba-lad-flex",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.1016/j.ijepes.2026.111940",
+      "domain": "workload_deferral",
+      "baseline": "up to 22% load deferral in one-week trace-based case; >1M task records",
+      "target": "reproduce published filters and windows; stretch >=25% only with no SLA, queue, energy/work or rebound regression",
       "primary_metrics": [
-        "aggregate_variance_error",
-        "ramp_quantile_error",
-        "tail_coverage",
-        "cross_site_lag_dependence",
-        "reserve_error",
-        "out_of_domain_abstention"
+        "deferred_load_fraction",
+        "deadline_miss_rate",
+        "p99_latency",
+        "queue_stability",
+        "backlog_clear_time",
+        "facility_energy_per_work",
+        "rebound_peak"
       ],
-      "status": "NOT_IMPLEMENTED"
-    },
-    {
-      "id": "electrothermal-cooling-flex",
-      "evidence_class": "SIMULATION",
-      "source": "https://www.ashrae.org/technical-resources/topics-and-initiatives/ai-data-center/grid-interactive-design-demand-flexibility",
-      "domain": "cooling_and_thermal_state",
-      "baseline": "cooling-shift/thermal-storage strategy with coolant, temperature, water, auxiliary and recovery constraints",
-      "target": "compare against fixed-parasitic cooling and coupled electro-thermal baselines; no thermal/water violations",
-      "primary_metrics": [
-        "cooling_power_kw",
-        "max_temperature_c",
-        "thermal_margin_c",
-        "water_per_work",
-        "thermal_recovery_s",
-        "auxiliary_energy_wh"
-      ],
-      "status": "NOT_IMPLEMENTED"
-    },
-    {
-      "id": "economics-vs-bess",
-      "evidence_class": "SIMULATION",
-      "source": "https://www.iea.org/reports/powering-artificial-intelligence/executive-summary",
-      "domain": "cost_of_flexibility",
-      "baseline": "compute opportunity cost versus BESS/UPS/thermal storage/generator/network alternative",
-      "target": "publish break-even cost per net delivered MW/MWh with compute value, battery degradation, reserve and grid value included",
-      "primary_metrics": [
-        "total_cost",
-        "cost_per_delivered_mwh",
-        "foregone_compute_value",
-        "battery_degradation_cost",
-        "avoided_network_cost",
-        "water_and_emissions"
-      ],
-      "status": "NOT_IMPLEMENTED"
-    },
-    {
-      "id": "grid-dynamic-stability",
-      "evidence_class": "RMS_EMT",
-      "source": "IEEE workload-driven power fluctuation and data-centre interconnection studies; utility profiles to be pinned",
-      "domain": "voltage_frequency_dynamic_performance",
-      "baseline": "no-flexibility, independent-site and correlation-aware load cases; local protection stays authoritative",
-      "target": "no degradation outside operator-approved envelopes; validated RMS/EMT and HIL receipts before any field stability claim",
-      "primary_metrics": [
-        "frequency_nadir_hz",
-        "rocof_hz_per_s",
-        "voltage_deviation_pu",
-        "settling_s",
-        "oscillation_damping",
-        "protection_events"
-      ],
-      "status": "NOT_IMPLEMENTED"
+      "status": "REFERENCE_REQUIRED"
     }
   ],
   "result_requirements": {
