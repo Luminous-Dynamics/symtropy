@@ -158,3 +158,55 @@ A SOTA claim requires:
 - exact-oracle agreement on tractable cases;
 - paired-seed and biological-replicate uncertainty intervals;
 - independent evaluation of all failures and abstentions.
+
+
+## 8. External state-of-the-art and industry comparison
+
+The benchmark must compare the right layer with the right competitor. These are not interchangeable systems:
+
+| External reference | What it already does | Correct Symtropy comparison |
+|---|---|---|
+| COPEx, ICML 2026 | Amortized policy/posterior networks with online scenario-tree lookahead for constrained, multi-step Bayesian experiment design | Experiment count/cost, realized information, regret, hazard feasibility and wall-clock overhead on identical locomotion kernels |
+| Perez-Vieites et al., ICML 2026 | Nested-particle-filter online Bayesian design for partially observed nonlinear state-space models, with EIG/gradient estimators | Sequential parameter/state inference, calibration, predictive log score, particle degeneracy and compute on matched partial-observation locomotion models |
+| improv, Nature Communications 2025 | Modular orchestration of streaming analysis, data collection, live control and adaptive neuroscience pipelines | Integration reliability, data-loss rate, fault recovery, latency, operator burden and reproducibility; do not mislabel it as a particular EIG planner |
+| EmbodiedLab, October 2026 | End-to-end "act to know" evaluation across 30 simulated experiments, five disciplines and 14 apparatus platforms; evaluates knowledge grounded in recorded instrument readings and required physical state | End-to-end task success, experiment-procedure quality, instrument-grounded knowledge, interaction failures and transfer; treat it as an outer benchmark pattern, not a locomotion simulator |
+| FlyGym / NeuroMechFly 2.1.1 | Embodied Drosophila simulation, mechanosensory/contact/actuator access, per-segment contact-force queries, trajectory recording and CPG/rule/hybrid controller examples | Matched-physics controller and observation baseline; compare causal prediction and evidence provenance separately from raw physics performance |
+
+Primary references:
+- COPEx: https://proceedings.mlr.press/v306/guo26g.html
+- Online Bayesian experimental design for partially observed dynamical systems: https://proceedings.mlr.press/v306/perez-vieites26a.html
+- improv: https://www.nature.com/articles/s41467-025-64856-3
+- EmbodiedLab: https://arxiv.org/abs/2610.35385
+- FlyGym 2.1.1 changelog: https://neuromechfly.org/2.1.1/changelog/
+
+The EmbodiedLab authors report that even the strongest evaluated native-control agent succeeds on fewer than half of the tasks, and that apparatus interaction accounts for most failures. This motivates an explicit multi-level scorecard for our future live/simulated instrument interface:
+1. **Interface correctness:** did the agent operate the simulator/apparatus and record the intended sample?
+2. **Scientific correctness:** is the claimed neural/mechanical result supported by the actual recorded evidence?
+3. **Diagnostic correctness:** can the system identify why a run failed, became non-identifiable, or contradicted its model?
+
+A policy must not receive scientific credit for an intended intervention when the delivered intervention or the measurement receipt is invalid.
+
+### What a defensible "better than SOTA" claim requires
+
+A superiority claim must be conditional and lane-specific:
+- **Experiment design:** beat paper-matched COPEx and online-SSM baselines on paired, sealed locomotion tasks in cost-to-target or regret, while preserving calibration, abstention and safety/risk budgets.
+- **Inference:** beat the best matched state-space baseline in held-out intervention log score or calibration, not only in EIG or in-sample fit.
+- **Embodied control:** improve pre-registered gait/contact/disturbance metrics under identical morphology, physics solver, sensors, controller compute, training budget and hardware.
+- **Integration:** improve end-to-end task completion and evidence integrity without increasing missing samples, failed interventions or operator burden.
+- **Scientific validity:** generalize to held-out legs, contexts, sessions and animals, with measured-data claims supported by source-locked biological evidence.
+
+An exact finite-state solution is a correctness oracle for its supplied kernel, not proof of model adequacy. A high-throughput simulator is not evidence of neural mechanism recovery. An improved gait score is not evidence that the connectome explanation is correct. A strong result must pass all applicable lanes without trading away any of these boundaries.
+
+### Proposed matched evaluation report
+
+For every held-out scenario, publish one row per method with:
+- exact source/code/model/asset/solver digests and seed;
+- observation and intervention history, assigned versus delivered protocol, and sample receipt IDs;
+- correct/false identification, abstention and non-identifiability outcome;
+- held-out neural/mechanical predictive score and calibration;
+- experiment cost, regret, hazard and safety status;
+- gait phase/duty factor, per-leg contact/load/force error and disturbance recovery;
+- runtime, memory, simulator steps, data-loss/retry count and operator interventions;
+- paired effect size, 95% confidence interval and worst-stratum regression.
+
+Use paired seeds for synthetic cases and independent animal/preparation/session units for measured cases. Report per-context and per-leg strata, not only pooled means.
