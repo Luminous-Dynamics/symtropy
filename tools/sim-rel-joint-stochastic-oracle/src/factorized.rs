@@ -1393,9 +1393,7 @@ fn validate_action_effect_boundary(
         }
     }
     for descendant in &action.allowed_descendant_variable_ids {
-        let mut frontier = action
-            .target_variable_ids
-            .to_vec();
+        let mut frontier = action.target_variable_ids.to_vec();
         let mut visited = BTreeSet::new();
         let mut reachable = false;
         while let Some(variable) = frontier.pop() {
