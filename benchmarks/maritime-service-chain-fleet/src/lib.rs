@@ -102,6 +102,7 @@ pub enum FleetError {
     UnknownResourcePolicy(String),
     ConflictingResourceSnapshot(String),
     InvalidResourceEvidenceSnapshot(String),
+    ResourceAccountingModeMismatch(String),
     InvalidSearchBudget,
     InvalidCase {
         case_id: String,
@@ -119,6 +120,7 @@ struct ResourceSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct FleetContext {
     resources: BTreeMap<String, ResourceSnapshot>,
+    case_order: Vec<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -227,6 +229,17 @@ fn validate_workload(workload: &FleetWorkload) -> Result<FleetContext, FleetErro
                     resource.resource_id.clone(),
                 ));
             };
+            let expected_mode = match resource.kind {
+                ResourceKind::WaterQuota | ResourceKind::ShorePower => {
+                    ResourceAccountingMode::CumulativeWindowQuota
+                }
+                _ => ResourceAccountingMode::ConcurrentCapacity,
+            };
+            if accounting_mode != expected_mode {
+                return Err(FleetError::ResourceAccountingModeMismatch(
+                    resource.resource_id.clone(),
+                ));
+            }
             let snapshot = ResourceSnapshot {
                 resource: canonical_resource(resource),
                 evidence: resource_evidence_snapshot(case, resource)?,
@@ -252,7 +265,17 @@ fn validate_workload(workload: &FleetWorkload) -> Result<FleetContext, FleetErro
         }
     }
 
-    Ok(FleetContext { resources })
+    let mut case_order: Vec<usize> = (0..workload.cases.len()).collect();
+    case_order.sort_by(|left, right| {
+        workload.cases[*left]
+            .demand
+            .demand_id
+            .cmp(&workload.cases[*right].demand.demand_id)
+    });
+    Ok(FleetContext {
+        resources,
+        case_order,
+    })
 }
 
 fn operation_interval(start_tick: u64, duration_ticks: u64) -> Option<TickWindow> {
@@ -403,7 +426,7 @@ fn candidate_operation_fits(
             return None;
         }
     }
-    let mut placement = OperationPlacement {
+    let placement = OperationPlacement {
         demand_id: case.demand.demand_id.clone(),
         participant_id: case.demand.participant_id.clone(),
         alternative_id: String::new(),
@@ -703,8 +726,11 @@ fn enumerate_demands(
         });
         return;
     }
-    let case = &workload.cases[demand_index];
-    for alternative in &case.voyage_alternatives {
+    let case_index = context.case_order[demand_index];
+    let case = &workload.cases[case_index];
+    let mut alternatives: Vec<&VoyageAlternative> = case.voyage_alternatives.iter().collect();
+    alternatives.sort_by(|left, right| left.alternative_id.cmp(&right.alternative_id));
+    for alternative in alternatives {
         enumerate_segment_placements(
             context,
             case,
