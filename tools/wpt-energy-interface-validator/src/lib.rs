@@ -177,14 +177,14 @@ fn common_evidence(record: &Value) -> Result<(), String> {
     let positioning = record
         .get("positioning")
         .ok_or_else(|| "missing positioning".to_owned())?;
-    if let Some(raw_digest) = positioning.get("position_receipt_sha256") {
-        if !raw_digest.is_null() {
-            let digest = raw_digest
-                .as_str()
-                .ok_or_else(|| "position receipt must be a digest or null".to_owned())?;
-            if !valid_sha256(digest) {
-                return Err("position receipt must be a SHA-256 digest".into());
-            }
+    if let Some(raw_digest) = positioning.get("position_receipt_sha256")
+        && !raw_digest.is_null()
+    {
+        let digest = raw_digest
+            .as_str()
+            .ok_or_else(|| "position receipt must be a digest or null".to_owned())?;
+        if !valid_sha256(digest) {
+            return Err("position receipt must be a SHA-256 digest".into());
         }
     }
     if string_field(positioning, "status", "positioning")? == "CONFIRMED"
@@ -377,10 +377,7 @@ fn evaluate_checked(record: &Value, validator: &mut SessionValidator) -> Result<
     let mut disposition = "ACCEPTED";
     let target_state = match event_type.as_str() {
         "ENERGIZE" => {
-            if prior_state != Some("POSITION_CONFIRMED") {
-                disposition = "REJECTED";
-                current_state
-            } else if energization_gate(record).is_err() {
+            if prior_state != Some("POSITION_CONFIRMED") || energization_gate(record).is_err() {
                 disposition = "REJECTED";
                 current_state
             } else {
