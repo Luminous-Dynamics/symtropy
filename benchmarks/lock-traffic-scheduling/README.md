@@ -21,6 +21,9 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.t
   operating regime, observation time, expiry, and an explicit evidence state.
   Future-dated, stale, missing, disputed or revoked arrival evidence is rejected or
   routed to review; intervals are conservatively scheduled at their latest arrival.
+  The crate checks identifier presence, state, observation time and expiry; it does
+  not authenticate the receipt or independently prove calibration/coverage. Those
+  claims remain with the source owner and its verifier.
 - Passage requests are admitted only when the upstream PassageEvaluation is
   EligibleForSyntheticPassage; unknown, inconsistent, blocked, or unsupported
   inputs are never relaxed into schedulable work.
