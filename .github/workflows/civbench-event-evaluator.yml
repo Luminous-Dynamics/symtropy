@@ -1,0 +1,76 @@
+name: CivBench event evaluator
+
+on:
+  pull_request:
+    paths:
+      - "research/civbench-event-evaluator/**"
+      - ".github/workflows/civbench-event-evaluator.yml"
+  push:
+    paths:
+      - "research/civbench-event-evaluator/**"
+      - ".github/workflows/civbench-event-evaluator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  event-evaluator:
+    name: Test CivBench event evaluator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Validate standalone package and committed lock
+        run: |
+          set -euo pipefail
+          cargo metadata --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --no-deps >/dev/null
+          git diff --exit-code -- research/civbench-event-evaluator/Cargo.lock
+
+      - name: Check formatting
+        id: fmt
+        continue-on-error: true
+        run: cargo fmt --manifest-path research/civbench-event-evaluator/Cargo.toml --all -- --check
+
+      - name: Export rustfmt diagnostic source
+        if: steps.fmt.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path research/civbench-event-evaluator/Cargo.toml --all
+          mkdir -p /tmp/civbench-event-evaluator-rustfmt
+          cp research/civbench-event-evaluator/src/lib.rs /tmp/civbench-event-evaluator-rustfmt/lib.rs
+          cp research/civbench-event-evaluator/src/lib.rs /tmp/civbench-event-evaluator-rustfmt/lib.rs.formatted
+          git diff --no-ext-diff --unified=3 -- research/civbench-event-evaluator/src/lib.rs > /tmp/civbench-event-evaluator-rustfmt/rustfmt.diff
+          test -s /tmp/civbench-event-evaluator-rustfmt/rustfmt.diff
+
+      - name: Upload rustfmt diagnostic source
+        if: steps.fmt.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: civbench-event-evaluator-rustfmt
+          path: /tmp/civbench-event-evaluator-rustfmt/
+          if-no-files-found: error
+
+      - name: Check all targets
+        run: cargo check --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --all-targets
+
+      - name: Run tests
+        run: cargo test --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --all-targets
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --all-targets -- -D warnings
+
+      - name: Build documentation
+        run: cargo doc --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --no-deps
+
+      - name: Require formatting to be committed
+        if: steps.fmt.outcome == 'failure'
+        run: |
+          echo "The rustfmt diagnostic artifact is review-only; commit the formatted source and rerun."
+          exit 1

@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/civbench-jhb-water/cyber_event_fixture.schema.v0.1.json",
+  "title": "CivBench cyber event evaluation synthetic fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "fixture_id",
+    "contract_version",
+    "status",
+    "claim_ceiling",
+    "dataset_lane",
+    "time_basis",
+    "evaluation",
+    "events",
+    "unknown_intervals",
+    "alarms",
+    "expected_semantics"
+  ],
+  "properties": {
+    "fixture_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "contract_version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "synthetic_contract_fixture_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_lane": {
+      "const": "illustrative_synthetic"
+    },
+    "time_basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "clock_uncertainty_ms",
+        "source_time_basis",
+        "window_origin_utc"
+      ],
+      "properties": {
+        "unit": {
+          "const": "milliseconds_from_window_origin"
+        },
+        "clock_uncertainty_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_time_basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "window_origin_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "monitored_duration_ms",
+        "merge_gap_ms",
+        "allowed_lead_ms",
+        "maximum_detection_delay_ms",
+        "late_association_grace_ms",
+        "detection_matching",
+        "classification"
+      ],
+      "properties": {
+        "monitored_duration_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "merge_gap_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "allowed_lead_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_detection_delay_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "late_association_grace_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "detection_matching": {
+          "const": "class_agnostic_one_to_one"
+        },
+        "classification": {
+          "const": "score_after_event_detection_matching"
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id",
+          "scenario_id",
+          "source_id",
+          "class",
+          "truth_status",
+          "onset_ms",
+          "end_ms",
+          "evidence_ref"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "class": {
+            "enum": [
+              "leak",
+              "sensor_fault",
+              "communication_fault",
+              "process_drift",
+              "cyber_compromise"
+            ]
+          },
+          "truth_status": {
+            "const": "confirmed"
+          },
+          "onset_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "evidence_ref": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "unknown_intervals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "interval_id",
+          "scenario_id",
+          "start_ms",
+          "end_ms",
+          "reason",
+          "evidence_ref"
+        ],
+        "properties": {
+          "interval_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "start_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_ref": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "alarms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "alarm_id",
+          "scenario_id",
+          "source_id",
+          "class",
+          "start_ms",
+          "clear_state",
+          "evidence_ref",
+          "clear_ms"
+        ],
+        "properties": {
+          "alarm_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "class": {
+            "enum": [
+              "leak",
+              "sensor_fault",
+              "communication_fault",
+              "process_drift",
+              "cyber_compromise",
+              "unclassified"
+            ]
+          },
+          "start_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "clear_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "evidence_ref": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "clear_state": {
+            "enum": [
+              "closed",
+              "still_open"
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "clear_state": {
+                  "const": "closed"
+                }
+              },
+              "required": [
+                "clear_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "clear_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "clear_ms"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "clear_state": {
+                  "const": "still_open"
+                }
+              },
+              "required": [
+                "clear_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "clear_ms": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "clear_ms"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "expected_semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "merged_alarm_episodes",
+        "timely_detection_event_ids",
+        "late_associated_event_ids",
+        "missed_confirmed_event_ids",
+        "unscorable_episode_ids",
+        "false_alarm_episode_ids",
+        "notes"
+      ],
+      "properties": {
+        "merged_alarm_episodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "episode_id",
+              "constituent_alarm_ids",
+              "scenario_id",
+              "source_id",
+              "start_ms",
+              "end_ms"
+            ],
+            "properties": {
+              "episode_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "constituent_alarm_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "scenario_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "start_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end_ms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "timely_detection_event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "late_associated_event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missed_confirmed_event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "false_alarm_episode_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unscorable_episode_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
