@@ -57,6 +57,8 @@ pub enum CausalDisposition {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PairCausalRule {
+    /// The causal rule is scoped to exactly one admitted correspondence hypothesis.
+    pub hypothesis_id: StableId,
     pub left_event: StableId,
     pub right_event: StableId,
     pub basis: IdentityBasis,
@@ -165,7 +167,7 @@ pub fn project_correspondence_addresses(
                 ))
                 .ok_or(ProjectionError::MissingEventScope)?;
             let rule = pair_rule_index
-                .get(&PairKey::from_pair(pair))
+                .get(&PairKey::from_pair(&hypothesis.hypothesis_id, pair))
                 .ok_or(ProjectionError::MissingPairCausalRule)?;
 
             let presence_unknown = matches!(&left_event.presence, EventPresence::Unknown { .. })
@@ -342,14 +344,16 @@ pub fn project_correspondence_addresses(
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct PairKey {
+    hypothesis_id: StableId,
     left: StableId,
     right: StableId,
     basis: IdentityBasis,
 }
 
 impl PairKey {
-    fn from_pair(pair: &EventPair) -> Self {
+    fn from_pair(hypothesis_id: &StableId, pair: &EventPair) -> Self {
         Self {
+            hypothesis_id: hypothesis_id.clone(),
             left: pair.left_event.clone(),
             right: pair.right_event.clone(),
             basis: pair.basis,
@@ -392,13 +396,14 @@ fn index_pair_rules(
     let mut expected = BTreeSet::new();
     for hypothesis in &correspondence.hypotheses {
         for pair in &hypothesis.pairs {
-            expected.insert(PairKey::from_pair(pair));
+            expected.insert(PairKey::from_pair(&hypothesis.hypothesis_id, pair));
         }
     }
 
     let mut indexed = BTreeMap::new();
     for rule in rules {
         let key = PairKey {
+            hypothesis_id: rule.hypothesis_id.clone(),
             left: rule.left_event.clone(),
             right: rule.right_event.clone(),
             basis: rule.basis,
@@ -697,8 +702,14 @@ mod tests {
         ]
     }
 
-    fn shared_rule(left: &str, right: &str, basis: IdentityBasis) -> PairCausalRule {
+    fn shared_rule(
+        hypothesis: &str,
+        left: &str,
+        right: &str,
+        basis: IdentityBasis,
+    ) -> PairCausalRule {
         PairCausalRule {
+            hypothesis_id: id(hypothesis),
             left_event: id(left),
             right_event: id(right),
             basis,
@@ -713,8 +724,8 @@ mod tests {
     fn actor_and_slot_hypotheses_produce_distinct_retained_address_plans() {
         let correspondence = base_correspondence();
         let rules = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         let plan =
             project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
@@ -745,8 +756,8 @@ mod tests {
     fn shared_invariant_pair_has_identical_bytes_but_branch_specific_pair_does_not() {
         let correspondence = base_correspondence();
         let shared = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         let plan =
             project_correspondence_addresses(&correspondence, &all_scopes(), &shared).unwrap();
@@ -789,8 +800,8 @@ mod tests {
     fn branch_local_address_does_not_depend_on_which_counterpart_hypothesis_was_selected() {
         let correspondence = base_correspondence();
         let mut rules = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         for rule in &mut rules {
             rule.disposition = CausalDisposition::BranchSpecific;
@@ -817,8 +828,8 @@ mod tests {
             evidence_ref: id("tracker-gap"),
         };
         let rules = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         let plan =
             project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
@@ -845,8 +856,8 @@ mod tests {
             condition_witness: id("not-visible-in-yield-branch"),
         };
         let rules = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         let plan =
             project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
@@ -875,8 +886,8 @@ mod tests {
             evidence_ref: id("budget-limited-search"),
         };
         let rules = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         let plan =
             project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
@@ -895,8 +906,8 @@ mod tests {
         let mut scopes = all_scopes();
         scopes[1].source.mechanism_version = id("different-version");
         let rules = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         assert_eq!(
             project_correspondence_addresses(&correspondence, &scopes, &rules),
@@ -922,8 +933,8 @@ mod tests {
     fn pair_identity_justification_is_bound_into_the_shared_address() {
         let correspondence = base_correspondence();
         let rules = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         let original =
             project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
@@ -954,8 +965,8 @@ mod tests {
     fn branch_presentation_order_does_not_change_normalized_shared_pair_address() {
         let correspondence = base_correspondence();
         let rules = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         let original =
             project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
@@ -1028,8 +1039,8 @@ mod tests {
     fn sensitivity_pair_is_shared_only_with_explicit_sensitivity_receipt() {
         let correspondence = base_correspondence();
         let mut rules = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         for rule in &mut rules {
             rule.disposition = CausalDisposition::SensitivityOnly {
@@ -1059,9 +1070,9 @@ mod tests {
     fn duplicate_pair_rules_reject() {
         let correspondence = base_correspondence();
         let rules = vec![
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R1", IdentityBasis::Actor),
-            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            shared_rule("H-slot", "L1", "R2", IdentityBasis::EncounterSlot),
         ];
         assert_eq!(
             project_correspondence_addresses(&correspondence, &all_scopes(), &rules),
