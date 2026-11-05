@@ -333,6 +333,7 @@ pub enum ValidationError {
     EvidenceOwnerMismatch(String),
     EvidenceSubjectMismatch(String),
     ArrivalIntervalEvidenceMismatch(String),
+    ArrivalNodeNotOnRoute(String),
     InvalidVoyageAlternative(String),
     RouteAlternativeMismatch(String),
     SegmentOperationTimingMismatch(String),
@@ -939,6 +940,13 @@ fn validate_voyage_alternatives(case: &ServiceChainCase) -> Result<(), Validatio
         if !arrival_node_exists {
             return Err(ValidationError::UnknownNode(
                 alternative.arrival_node_id.clone(),
+            ));
+        }
+        if !case.route_segments.iter().any(|segment| {
+            segment.to_node_id == alternative.arrival_node_id
+        }) {
+            return Err(ValidationError::ArrivalNodeNotOnRoute(
+                alternative.alternative_id.clone(),
             ));
         }
 
@@ -2710,6 +2718,39 @@ mod tests {
             Err(ValidationError::EvidenceNotCurrent(
                 "depth".into(),
                 EvidenceState::Revoked
+            ))
+        );
+    }
+
+    #[test]
+    fn voyage_operation_timings_must_match_every_route_segment() {
+        let mut missing = valid_case();
+        missing.voyage_alternatives[0].operation_timings.pop();
+        assert_eq!(
+            validate_case(&missing),
+            Err(ValidationError::SegmentOperationTimingMismatch(
+                "fast-high-energy".into()
+            ))
+        );
+
+        let mut zero = valid_case();
+        zero.voyage_alternatives[0].operation_timings[0].duration_ticks = 0;
+        assert_eq!(
+            validate_case(&zero),
+            Err(ValidationError::InvalidSegmentOperationTiming(
+                "fast-high-energy".into()
+            ))
+        );
+    }
+
+    #[test]
+    fn arrival_node_must_be_a_route_node() {
+        let mut case = valid_case();
+        case.voyage_alternatives[0].arrival_node_id = "destination".into();
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::ArrivalIntervalEvidenceMismatch(
+                "fast-high-energy".into()
             ))
         );
     }
