@@ -4,8 +4,8 @@
 //! Synthetic weighted-voting and procedural authority audit sweep.
 
 use civdyn_authority_power::{
-    AuthorityAssignment, AuthorityPolicy, AuthorityRole, ProposalDecisionTrace,
-    WeightedCouncil, analyze_voting_power, audit_authority_topology, audit_decision_trace,
+    AuthorityAssignment, AuthorityPolicy, AuthorityRole, ProposalDecisionTrace, WeightedCouncil,
+    analyze_voting_power, audit_authority_topology, audit_decision_trace,
 };
 
 const CSV_COLUMNS: usize = 12;
@@ -51,17 +51,41 @@ fn emit_council(case_id: &str, weights: &[u64], quota: u64) {
     let report = analyze_voting_power(&council).expect("fixed weighted council must validate");
 
     for (metric, value, unit) in [
-        ("nominal_weight_hhi", fmt(report.nominal_weight_hhi), "index"),
-        ("normalized_banzhaf_hhi", fmt(report.normalized_banzhaf_hhi), "index"),
-        ("nominal_weight_gini", fmt(report.nominal_weight_gini), "index"),
-        ("normalized_banzhaf_gini", fmt(report.normalized_banzhaf_gini), "index"),
-        ("winning_coalition_count", report.winning_coalition_count.to_string(), "count"),
+        (
+            "nominal_weight_hhi",
+            fmt(report.nominal_weight_hhi),
+            "index",
+        ),
+        (
+            "normalized_banzhaf_hhi",
+            fmt(report.normalized_banzhaf_hhi),
+            "index",
+        ),
+        (
+            "nominal_weight_gini",
+            fmt(report.nominal_weight_gini),
+            "index",
+        ),
+        (
+            "normalized_banzhaf_gini",
+            fmt(report.normalized_banzhaf_gini),
+            "index",
+        ),
+        (
+            "winning_coalition_count",
+            report.winning_coalition_count.to_string(),
+            "count",
+        ),
         (
             "minimal_winning_coalition_count",
             report.minimal_winning_coalition_count.to_string(),
             "count",
         ),
-        ("enumerated_coalition_count", report.enumerated_coalition_count.to_string(), "count"),
+        (
+            "enumerated_coalition_count",
+            report.enumerated_coalition_count.to_string(),
+            "count",
+        ),
     ] {
         let mut row = empty_row("council_metric", case_id, "council");
         row[3] = metric.into();
@@ -83,9 +107,7 @@ fn emit_council(case_id: &str, weights: &[u64], quota: u64) {
         row[9] = fmt(actor.shapley_shubik);
         row[10] = format!(
             "veto={};dictator={};removal_winnable={}",
-            actor.veto_player,
-            actor.dictator,
-            actor.council_remains_winnable_after_removal
+            actor.veto_player, actor.dictator, actor.council_remains_winnable_after_removal
         );
         emit(row);
     }
@@ -139,17 +161,28 @@ fn emit_topology(case_id: &str, assignments: &[AuthorityAssignment]) {
     }
 
     for (metric, value) in [
-        ("forbidden_conflict_count", report.forbidden_conflict_count.to_string()),
-        ("advisory_conflict_count", report.advisory_conflict_count.to_string()),
+        (
+            "forbidden_conflict_count",
+            report.forbidden_conflict_count.to_string(),
+        ),
+        (
+            "advisory_conflict_count",
+            report.advisory_conflict_count.to_string(),
+        ),
         (
             "missing_required_role_count",
             report.missing_required_roles.len().to_string(),
         ),
         (
             "appeal_independence",
-            report.appeal_independence.map_or_else(|| "unassessed".into(), |value| value.to_string()),
+            report
+                .appeal_independence
+                .map_or_else(|| "unassessed".into(), |value| value.to_string()),
         ),
-        ("compliant_with_declared_policy", report.compliant_with_declared_policy.to_string()),
+        (
+            "compliant_with_declared_policy",
+            report.compliant_with_declared_policy.to_string(),
+        ),
     ] {
         let mut row = empty_row("topology_metric", case_id, "policy");
         row[3] = metric.into();
@@ -234,8 +267,8 @@ fn emit_decision_trace(case_id: &str, trace: ProposalDecisionTrace) {
         .into_iter()
         .map(str::to_owned)
         .collect::<Vec<_>>();
-    let audit = audit_decision_trace(&trace, &actors)
-        .expect("fixed proposal decision trace must validate");
+    let audit =
+        audit_decision_trace(&trace, &actors).expect("fixed proposal decision trace must validate");
     for conflict in &audit.conflicts {
         let mut row = empty_row("decision_conflict", case_id, &trace.proposal_id);
         row[3] = conflict.name().into();
@@ -296,11 +329,17 @@ mod tests {
 
     #[test]
     fn three_council_fixtures_include_balanced_asymmetric_and_dictatorial_games() {
-        assert_eq!(analyze_voting_power(&WeightedCouncil {
-            actor_ids: (0..5).map(|i| format!("a{i}")).collect(),
-            weights: vec![2, 2, 2, 2, 2],
-            quota: 6,
-        }).unwrap().actors.len(), 5);
+        assert_eq!(
+            analyze_voting_power(&WeightedCouncil {
+                actor_ids: (0..5).map(|i| format!("a{i}")).collect(),
+                weights: vec![2, 2, 2, 2, 2],
+                quota: 6,
+            })
+            .unwrap()
+            .actors
+            .len(),
+            5
+        );
     }
 
     #[test]
@@ -313,7 +352,8 @@ mod tests {
             &actors,
             &safe_assignments(),
             &AuthorityPolicy::public_governance_reference(),
-        ).unwrap();
+        )
+        .unwrap();
         assert!(report.compliant_with_declared_policy);
         assert_eq!(report.appeal_independence, Some(true));
     }
