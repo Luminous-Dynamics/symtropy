@@ -238,6 +238,7 @@ pub enum ContextField {
     TaskId,
     WorkPackageId,
     VdaOrderId,
+    VdaOrderUpdateId,
     DesignRevisionDigest,
     SiteEpoch,
     TargetFrameId,
@@ -263,28 +264,15 @@ pub enum ContextError {
     Mismatch(ContextField),
 }
 
-/// A structurally matching sidecar; it is not an authorization or acceptance receipt.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StructurallyBoundSidecar<'a> {
-    context: &'a ConstructionSidecar<'a>,
-}
-
-impl<'a> StructurallyBoundSidecar<'a> {
-    /// Return the exact sidecar that passed structural equality checks.
-    pub fn context(&self) -> &'a ConstructionSidecar<'a> {
-        self.context
-    }
-}
-
 /// Validate completeness, digest syntax, task/order binding, and current site epoch.
 ///
 /// The caller must independently authenticate the sidecar, the actor, and any
 /// referenced authority/evidence. Success does not grant dispatch or motion authority.
-pub fn validate_sidecar_binding<'a>(
-    expected: &ConstructionSidecar<'a>,
-    presented: Option<&'a ConstructionSidecar<'a>>,
+pub fn validate_sidecar_binding(
+    expected: &ConstructionSidecar<'_>,
+    presented: Option<&ConstructionSidecar<'_>>,
     current_site_epoch: u64,
-) -> Result<StructurallyBoundSidecar<'a>, ContextError> {
+) -> Result<(), ContextError> {
     let presented = presented.ok_or(ContextError::MissingSidecar)?;
     validate_context_shape(expected)?;
     validate_context_shape(presented)?;
@@ -300,7 +288,7 @@ pub fn validate_sidecar_binding<'a>(
         (expected.task_id == presented.task_id, ContextField::TaskId),
         (expected.work_package_id == presented.work_package_id, ContextField::WorkPackageId),
         (expected.vda_order_id == presented.vda_order_id, ContextField::VdaOrderId),
-        (expected.vda_order_update_id == presented.vda_order_update_id, ContextField::VdaOrderId),
+        (expected.vda_order_update_id == presented.vda_order_update_id, ContextField::VdaOrderUpdateId),
         (expected.design_revision_digest == presented.design_revision_digest, ContextField::DesignRevisionDigest),
         (expected.site_epoch == presented.site_epoch, ContextField::SiteEpoch),
         (expected.target_frame_id == presented.target_frame_id, ContextField::TargetFrameId),
@@ -314,11 +302,11 @@ pub fn validate_sidecar_binding<'a>(
         (expected.evidence_profile_ref == presented.evidence_profile_ref, ContextField::EvidenceProfileRef),
         (expected.acceptance_authority_ref == presented.acceptance_authority_ref, ContextField::AcceptanceAuthorityRef),
     ];
-    if let Some((_, field)) = comparisons.iter().find(|(matches, _)| !matches) {
+    if let Some((_, field)) = comparisons.iter().find(|(matches, _)| !*matches) {
         return Err(ContextError::Mismatch(*field));
     }
 
-    Ok(StructurallyBoundSidecar { context: presented })
+    Ok(())
 }
 
 fn validate_context_shape(context: &ConstructionSidecar<'_>) -> Result<(), ContextError> {
@@ -518,9 +506,7 @@ mod tests {
     fn exact_sidecar_is_structurally_bound_not_authorized() {
         let expected = context();
         let presented = context();
-        let bound = validate_sidecar_binding(&expected, Some(&presented), 12)
-            .expect("exact sidecar should structurally bind");
-        assert_eq!(bound.context(), &presented);
+        assert_eq!(validate_sidecar_binding(&expected, Some(&presented), 12), Ok(()));
     }
 
     #[test]
@@ -552,7 +538,7 @@ mod tests {
         presented.vda_order_update_id = 3;
         assert_eq!(
             validate_sidecar_binding(&expected, Some(&presented), 12).err(),
-            Some(ContextError::Mismatch(ContextField::VdaOrderId))
+            Some(ContextError::Mismatch(ContextField::VdaOrderUpdateId))
         );
     }
 
