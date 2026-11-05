@@ -13,7 +13,7 @@ The mechanism hypothesis axis should distinguish, at minimum:
 - reflex-dominant alternatives;
 - mechanics-dominant alternatives.
 
-Do not collapse the physical state and sensor state. The current adapter has coarse whole-animal physical archetypes for walking stance/swing, grooming supported/unloaded, and other supported/unloaded contexts, with contact/load/carryover. It now conditions active-movement presynaptic modulation on Walking/Grooming versus Other. A per-leg physical/contact/kinematic state vector is a follow-on extension, not yet implemented. Sensor state keeps position-, movement-, vibration- and contact-feedback channels distinct, acquisition/instrument state separate, and movement-axon presynaptic inhibition separately represented for each of the six legs. Do not imply that per-leg physical dynamics are already represented merely because per-leg presynaptic state is.
+Do not collapse the physical state and sensor state. The current adapter retains whole-body behavioral context and coarse scenario labels, but now also carries six per-leg mechanical records. Each leg records gait phase, contact state, load, joint-position bin, joint-velocity bin, and actuator-force bin. A targeted contact/load intervention must change only its declared leg; washout must preserve all six leg records. These are bounded synthetic bins rather than calibrated physical units. The current fixture has 18 physical states, 2,048 sensory states, 12 actions and two mechanism hypotheses (884,736 exact joint transition rows). Sensor state keeps position-, movement-, vibration- and contact-feedback channels distinct, acquisition/instrument state separate, and movement-axon presynaptic inhibition separately represented for each of the six legs.
 
 The published FeCO distinctions should stay explicit: position-encoding claw-like afferents, movement-encoding hook-like afferents, and vibration-sensitive club-like afferents. Dallmann et al. report that position-encoding claw axons remain active across behaviours while movement-encoding hook axons are suppressed during walking and grooming by GABAergic presynaptic inhibition with descending input. Their data also distinguish self-generated from passive movements. The adapter's current transitions are synthetic and do not reproduce the measured calcium-imaging distributions.
 
@@ -45,6 +45,9 @@ Source anchor: Dallmann et al., Nature 647, 445–453 (2025), DOI https://doi.or
 
 ### D. Physical carryover versus sensor persistence
 - Persistent acquisition offset can mimic physical gait/contact state.
+- A targeted contact/load intervention changes only its declared per-leg mechanical record, preserving the other five legs and global scenario labels.
+- Washout clears carryover while preserving per-leg kinematics/contact/load/force state.
+- Joint-position, joint-velocity and actuator-force bins remain synthetic abstractions until calibrated against simulator output.
 - Physical load/carryover can persist after an acquisition calibration.
 - Calibration may change acquisition without changing physical state.
 - Washout may clear physical carryover while leaving sensor drift untouched.
@@ -112,6 +115,8 @@ FlyGym already supports mechanosensory feedback and exposes joint/contact/actuat
 - Duplicate sample IDs accepted: target 0.
 - Assignment/delivery mismatch accepted as a valid causal trial: target 0.
 - Non-target physical or acquisition changes under a modality-specific control: target 0.
+- Non-target leg mechanical-state changes under a one-leg intervention: target 0.
+- Per-leg joint/contact/force prediction error and calibration, reported separately from whole-body gait outcome.
 
 ### Systems
 - Experiment count and cost-to-target.
