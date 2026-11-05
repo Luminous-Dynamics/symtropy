@@ -1,0 +1,58 @@
+{
+  "policy_id": "synthetic-layout-input-policy-v0.1",
+  "project_id": "synthetic-project-01",
+  "site_id": "synthetic-site-01",
+  "task_scope": "level-02-multi-trade-layout",
+  "work_package_revision": "wp-layout-r7",
+  "work_zone_id": "level-02-zone-a",
+  "worksite_epoch_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "approved_change_sequence": 12,
+  "source_model_revision": "bim-r17",
+  "source_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "expected_exporter_id": "vdc-layout-exporter",
+  "source_frame_id": "BIM_LOCAL:LEVEL_02",
+  "target_frame_id": "SURVEY_GRID:LEVEL_02",
+  "horizontal_reference": "project-local-grid:LEVEL_02",
+  "vertical_datum": "project-level-datum:01",
+  "coordinate_epoch_required": true,
+  "coordinate_epoch": "2026.75",
+  "units": "millimetres",
+  "axis_order": [
+    "x",
+    "y",
+    "z"
+  ],
+  "handedness": "right_handed",
+  "transform_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "transform_resource_sha256s": [
+    "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  ],
+  "discipline_revisions": [
+    {
+      "discipline_id": "architecture",
+      "revision": "A-17"
+    },
+    {
+      "discipline_id": "electrical",
+      "revision": "E-04"
+    },
+    {
+      "discipline_id": "mechanical",
+      "revision": "M-08"
+    }
+  ],
+  "critical_feature_ids": [
+    "FEAT-001",
+    "FEAT-002",
+    "FEAT-003"
+  ],
+  "minimum_check_points": 3,
+  "maximum_check_points": 32,
+  "minimum_spread_area_m2": 10,
+  "decision_margin_mm": 1,
+  "maximum_u95_to_margin_ratio": 0.3333333333,
+  "source_model_id": "bim-level-02",
+  "approved_source_model_reference": "bim-level-02-approval-ref-r17",
+  "expected_exporter_version": "4.2.0",
+  "expected_exporter_config_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+}

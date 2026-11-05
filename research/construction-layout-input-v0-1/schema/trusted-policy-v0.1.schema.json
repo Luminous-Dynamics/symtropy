@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:construction-layout-input-policy:0.1",
+  "title": "Trusted Construction Layout Input Policy",
+  "description": "Closed policy supplied by the trusted project/site owner. The input manifest cannot supply or alter this policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "policy_id",
+    "project_id",
+    "source_model_id",
+    "site_id",
+    "task_scope",
+    "work_package_revision",
+    "work_zone_id",
+    "worksite_epoch_sha256",
+    "approved_change_sequence",
+    "source_model_revision",
+    "source_model_sha256",
+    "expected_exporter_id",
+    "source_frame_id",
+    "target_frame_id",
+    "horizontal_reference",
+    "vertical_datum",
+    "coordinate_epoch_required",
+    "coordinate_epoch",
+    "units",
+    "axis_order",
+    "handedness",
+    "transform_bundle_sha256",
+    "transform_resource_sha256s",
+    "discipline_revisions",
+    "critical_feature_ids",
+    "minimum_check_points",
+    "maximum_check_points",
+    "minimum_spread_area_m2",
+    "decision_margin_mm",
+    "maximum_u95_to_margin_ratio",
+    "approved_source_model_reference",
+    "expected_exporter_version",
+    "expected_exporter_config_sha256"
+  ],
+  "properties": {
+    "policy_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_model_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "site_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "task_scope": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "work_package_revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "work_zone_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "worksite_epoch_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "approved_change_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_model_revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_model_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "expected_exporter_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_frame_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "target_frame_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "horizontal_reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "vertical_datum": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "coordinate_epoch_required": {
+      "type": "boolean"
+    },
+    "coordinate_epoch": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "units": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "axis_order": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "x",
+          "y",
+          "z",
+          "east",
+          "north",
+          "up",
+          "easting",
+          "northing",
+          "height"
+        ]
+      }
+    },
+    "handedness": {
+      "enum": [
+        "right_handed",
+        "left_handed"
+      ]
+    },
+    "transform_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "transform_resource_sha256s": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "discipline_revisions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "discipline_id",
+          "revision"
+        ],
+        "properties": {
+          "discipline_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "critical_feature_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "minimum_check_points": {
+      "type": "integer",
+      "minimum": 3,
+      "maximum": 128
+    },
+    "maximum_check_points": {
+      "type": "integer",
+      "minimum": 3,
+      "maximum": 128
+    },
+    "minimum_spread_area_m2": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "decision_margin_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "maximum_u95_to_margin_ratio": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "approved_source_model_reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "expected_exporter_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "expected_exporter_config_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
