@@ -116,6 +116,12 @@ pub struct CorrespondenceAddressPlan {
     pub left_branch: StableId,
     pub right_branch: StableId,
     pub completeness: PlanCompleteness,
+    /// Exact source event universe and correspondence hypotheses used to derive this plan.
+    pub source_correspondence: CorrespondenceSet,
+    /// Exact source event scopes used to derive semantic draw addresses.
+    pub source_event_scopes: Vec<EventDrawScope>,
+    /// Exact caller-supplied causal rules, retained separately from derived addresses.
+    pub source_pair_rules: Vec<PairCausalRule>,
     /// Original evidence references for the declared candidate event universe.
     /// These IDs preserve provenance; they do not validate the referenced evidence.
     pub universe_status: CandidateUniverseStatus,
@@ -349,6 +355,21 @@ pub fn project_correspondence_addresses(
     }
 
     hypotheses.sort_by(|a, b| a.hypothesis_id.cmp(&b.hypothesis_id));
+
+    let mut source_event_scopes = event_scopes.to_vec();
+    source_event_scopes.sort_by(|a, b| {
+        (&a.branch_id, &a.event_id).cmp(&(&b.branch_id, &b.event_id))
+    });
+    let mut source_pair_rules = pair_rules.to_vec();
+    source_pair_rules.sort_by(|a, b| {
+        (&a.hypothesis_id, &a.left_event, &a.right_event, a.basis).cmp(&(
+            &b.hypothesis_id,
+            &b.left_event,
+            &b.right_event,
+            b.basis,
+        ))
+    });
+
     Ok(CorrespondenceAddressPlan {
         left_branch: correspondence.left_branch.clone(),
         right_branch: correspondence.right_branch.clone(),
@@ -357,6 +378,9 @@ pub fn project_correspondence_addresses(
         } else {
             PlanCompleteness::Incomplete
         },
+        source_correspondence: correspondence.clone(),
+        source_event_scopes,
+        source_pair_rules,
         universe_status: correspondence.universe_status.clone(),
         hypothesis_set_status: correspondence.hypothesis_set_status.clone(),
         hypotheses,
