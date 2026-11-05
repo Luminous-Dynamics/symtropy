@@ -163,6 +163,8 @@ pub struct ConstraintResult {
     pub requirement_value: Option<f64>,
     pub candidate_source_ref: Option<String>,
     pub requirement_source_ref: Option<String>,
+    pub candidate_evidence_class: Option<EvidenceClass>,
+    pub requirement_evidence_class: Option<EvidenceClass>,
     pub outcome: ConstraintOutcome,
 }
 
@@ -304,7 +306,7 @@ fn assess_candidate(candidate: &MethodCandidate) -> Result<MethodAssessment, Eva
     let has_failure = results.iter().any(|r| r.outcome == ConstraintOutcome::Fail);
     let has_unresolved = results
         .iter()
-        .any(|r| matches!(r.outcome, ConstraintOutcome::Unresolved { .. }));
+        .any(|r| matches!(&r.outcome, ConstraintOutcome::Unresolved { .. }));
 
     let eligibility = if has_failure {
         Eligibility::Ineligible
@@ -422,6 +424,8 @@ fn evaluate_constraint(
         requirement_value: requirement_fact.map(|fact| fact.value),
         candidate_source_ref: candidate_fact.map(|fact| fact.source_ref.clone()),
         requirement_source_ref: requirement_fact.map(|fact| fact.source_ref.clone()),
+        candidate_evidence_class: candidate_fact.map(|fact| fact.evidence_class),
+        requirement_evidence_class: requirement_fact.map(|fact| fact.evidence_class),
         outcome,
     })
 }
@@ -484,6 +488,10 @@ mod tests {
         let report = assess_portfolio(&[input]).unwrap();
         assert_eq!(report[0].eligibility, Eligibility::Eligible);
         assert_eq!(report[0].constraints.len(), 2);
+        assert_eq!(
+            report[0].constraints[0].candidate_evidence_class,
+            Some(EvidenceClass::VendorDeclared)
+        );
     }
 
     #[test]
@@ -518,7 +526,7 @@ mod tests {
         let report = assess_portfolio(&[input]).unwrap();
         assert_eq!(report[0].eligibility, Eligibility::Indeterminate);
         assert!(matches!(
-            report[0].constraints[0].outcome,
+            &report[0].constraints[0].outcome,
             ConstraintOutcome::Unresolved { .. }
         ));
     }
@@ -547,7 +555,7 @@ mod tests {
         assert_eq!(report[0].eligibility, Eligibility::Ineligible);
         assert_eq!(report[0].constraints[0].outcome, ConstraintOutcome::Fail);
         assert!(matches!(
-            report[0].constraints[1].outcome,
+            &report[0].constraints[1].outcome,
             ConstraintOutcome::Unresolved { .. }
         ));
     }
