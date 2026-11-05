@@ -1602,6 +1602,16 @@ mod tests {
             );
             physical_states.push(state);
         }
+        let loaded_physical_states: Vec<_> = physical_states
+            .iter()
+            .filter(|state| state.carryover == PhysicalCarryover::Loaded)
+            .cloned()
+            .collect();
+        for mut state in loaded_physical_states {
+            state.id.push_str("-washout-cleared");
+            state.carryover = PhysicalCarryover::Baseline;
+            physical_states.push(state);
+        }
         let sensor_states = sensor_states();
         let actions = vec![
             InterventionAction {
@@ -1872,11 +1882,22 @@ mod tests {
                                 "vibration-perturbed"
                             }
                             InterventionKind::ContactLoadPerturbation => {
-                                const SUFFIX: &str = "-front-left-load-perturbed";
-                                next_physical = if let Some(base) = physical.id.strip_suffix(SUFFIX) {
+                                const WASHOUT_SUFFIX: &str = "-washout-cleared";
+                                const LEG_SUFFIX: &str = "-front-left-load-perturbed";
+                                let was_washed = physical.id.ends_with(WASHOUT_SUFFIX);
+                                let unwashed_id = physical
+                                    .id
+                                    .strip_suffix(WASHOUT_SUFFIX)
+                                    .unwrap_or(&physical.id);
+                                let toggled_id = if let Some(base) = unwashed_id.strip_suffix(LEG_SUFFIX) {
                                     base.to_owned()
                                 } else {
-                                    format!("{}{}", physical.id, SUFFIX)
+                                    format!("{}{}", unwashed_id, LEG_SUFFIX)
+                                };
+                                next_physical = if was_washed {
+                                    format!("{}{}", toggled_id, WASHOUT_SUFFIX)
+                                } else {
+                                    toggled_id
                                 };
                                 "load-shifted"
                             }
@@ -1900,16 +1921,10 @@ mod tests {
                                 }
                             }
                             InterventionKind::Washout => {
-                                next_physical = if physical.carryover == PhysicalCarryover::Baseline
-                                {
+                                next_physical = if physical.carryover == PhysicalCarryover::Baseline {
                                     physical.id.clone()
                                 } else {
-                                    match physical.behavioral_context {
-                                        BehavioralContext::Walking => "stance-nominal",
-                                        BehavioralContext::Grooming => "grooming-supported",
-                                        BehavioralContext::Other => "other-supported",
-                                    }
-                                    .to_owned()
+                                    format!("{}-washout-cleared", physical.id)
                                 };
                                 "washout-cleared"
                             }
@@ -1997,7 +2012,7 @@ mod tests {
             compiled.source_manifests[0].unknown_endpoints[0].raw_endpoint_id,
             "raw-untyped-endpoint-17"
         );
-        assert_eq!(compiled.kernel.rows.len(), 2 * 6 * 2048 * 12);
+        assert_eq!(compiled.kernel.rows.len(), 2 * 18 * 2048 * 12);
         assert_eq!(compiled.transition_rows.len(), compiled.kernel.rows.len());
         compiled.kernel.validate().unwrap();
     }
@@ -2364,16 +2379,20 @@ mod tests {
     fn washout_preserves_behavioral_context_while_clearing_carryover() {
         let compiled = spec().compile().unwrap();
         for (physical_id, expected_context, expected_state) in [
-            ("swing-loaded", BehavioralContext::Walking, "stance-nominal"),
+            (
+                "swing-loaded",
+                BehavioralContext::Walking,
+                "swing-loaded-washout-cleared",
+            ),
             (
                 "grooming-unloaded",
                 BehavioralContext::Grooming,
-                "grooming-supported",
+                "grooming-unloaded-washout-cleared",
             ),
             (
                 "other-unloaded",
                 BehavioralContext::Other,
-                "other-supported",
+                "other-unloaded-washout-cleared",
             ),
         ] {
             let sensor = compiled
@@ -2405,6 +2424,15 @@ mod tests {
             assert_eq!(next_physical.id, expected_state);
             assert_eq!(next_physical.behavioral_context, expected_context);
             assert_eq!(next_physical.carryover, PhysicalCarryover::Baseline);
+            let current_physical = compiled
+                .physical_states
+                .iter()
+                .find(|state| state.id == physical_id)
+                .unwrap();
+            assert_eq!(next_physical.legs, current_physical.legs);
+            assert_eq!(next_physical.gait_phase, current_physical.gait_phase);
+            assert_eq!(next_physical.contact_state, current_physical.contact_state);
+            assert_eq!(next_physical.load_state, current_physical.load_state);
             assert_eq!(next_sensor, sensor);
         }
     }
@@ -2657,9 +2685,28 @@ mod tests {
         let outcome = &compiled.kernel.rows[row_index].outcomes[0];
         let next_physical = &compiled.physical_states[outcome.next_physical_state];
         let next_sensor = &compiled.sensor_states[outcome.next_sensor_state];
-        assert_eq!(next_physical.id, "swing-loaded");
+        assert_eq!(
+            next_physical.id,
+            "stance-nominal-front-left-load-perturbed"
+        );
         assert_eq!(next_physical.behavioral_context, BehavioralContext::Walking);
-        assert_eq!(next_physical.load_state, LoadState::Elevated);
+        assert_eq!(next_physical.gait_phase, PhysicalState::gait_phase(&compiled.physical_states[0]));
+        assert_eq!(next_physical.contact_state, ContactState::Supported);
+        assert_eq!(next_physical.load_state, LoadState::Nominal);
+        assert_eq!(
+            next_physical.legs[LegId::FrontLeft.index()].load_state,
+            LoadState::Elevated
+        );
+        for leg in LegId::ALL.into_iter().filter(|leg| *leg != LegId::FrontLeft) {
+            assert_eq!(
+                next_physical.legs[leg.index()],
+                compiled.physical_states
+                    .iter()
+                    .find(|state| state.id == "stance-nominal")
+                    .unwrap()
+                    .legs[leg.index()]
+            );
+        }
         assert_eq!(next_sensor.acquisition, AcquisitionState::PositiveOffset);
         assert_eq!(next_sensor, sensor);
     }
