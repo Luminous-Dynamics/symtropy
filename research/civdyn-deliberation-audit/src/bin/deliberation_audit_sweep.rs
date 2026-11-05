@@ -4,8 +4,8 @@
 //! Synthetic deliberation trace audit; no participant data is imported.
 
 use civdyn_deliberation_audit::{
-    DeliberationSession, EvidenceRecord, FacilitatorClaim, Participant, Proposal, TurnEvent,
-    audit_session, compare_facilitation_variants,
+    ConsensusRule, DeliberationSession, EvidenceRecord, FacilitatorClaim, Participant, Proposal,
+    TurnEvent, audit_session, compare_facilitation_variants,
 };
 
 const CSV_COLUMNS: usize = 12;
@@ -117,6 +117,7 @@ fn base_session() -> DeliberationSession {
             evidence_id: Some("verified_budget_record".into()),
         }],
         facilitator_declares_consensus: false,
+        consensus_rule: Some(ConsensusRule::Unanimous),
         final_allocation: vec![34, 33, 33],
     }
 }
