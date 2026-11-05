@@ -1900,13 +1900,24 @@ mod tests {
         let base_physical_states = physical_states.clone();
         for mut state in base_physical_states {
             state.id.push_str("-front-left-load-perturbed");
+            let current_leg = state.legs[LegId::FrontLeft.index()];
+            let toggled_contact = if current_leg.contact_state == ContactState::Slipping {
+                ContactState::Supported
+            } else {
+                ContactState::Slipping
+            };
+            let toggled_load = if current_leg.load_state == LoadState::Elevated {
+                LoadState::Nominal
+            } else {
+                LoadState::Elevated
+            };
             state.legs[LegId::FrontLeft.index()] = leg_mechanics(
-                state.legs[LegId::FrontLeft.index()].gait_phase,
-                ContactState::Slipping,
-                LoadState::Elevated,
-                JointPositionBin::Extended,
-                JointVelocityBin::Retracting,
-                ActuatorForceBin::High,
+                current_leg.gait_phase,
+                toggled_contact,
+                toggled_load,
+                current_leg.joint_position,
+                current_leg.joint_velocity,
+                current_leg.actuator_force,
             );
             physical_states.push(state);
         }
