@@ -199,6 +199,9 @@ impl Rational {
     }
 
     pub fn checked_sub(self, other: Self) -> Result<Self, RationalError> {
+        if self.denominator == 0 || other.denominator == 0 {
+            return Err(RationalError::ZeroDenominator);
+        }
         let common = gcd_u64(self.denominator, other.denominator);
         let left_factor = other.denominator / common;
         let right_factor = self.denominator / common;
@@ -218,6 +221,9 @@ impl Rational {
     }
 
     pub fn checked_add(self, other: Self) -> Result<Self, RationalError> {
+        if self.denominator == 0 || other.denominator == 0 {
+            return Err(RationalError::ZeroDenominator);
+        }
         let common = gcd_u64(self.denominator, other.denominator);
         let left_factor = other.denominator / common;
         let right_factor = self.denominator / common;
@@ -237,6 +243,9 @@ impl Rational {
     }
 
     pub fn cmp_exact(self, other: Self) -> Result<std::cmp::Ordering, RationalError> {
+        if self.denominator == 0 || other.denominator == 0 {
+            return Err(RationalError::ZeroDenominator);
+        }
         let left = i128::from(self.numerator)
             .checked_mul(i128::from(other.denominator))
             .ok_or(RationalError::ArithmeticOverflow)?;
@@ -367,11 +376,22 @@ pub struct StrategySearchSummary {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ChallengeSearchPoint {
+    pub challenge_id: String,
+    pub hypothesis_id: String,
+    pub strategy: ChallengeStrategy,
+    pub budget_units: u64,
+    pub outcome: ChallengeOutcome,
+    pub holdout_manifest_digest: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ChallengeSummary {
     pub required_challenges: usize,
     pub qualified_challenges: usize,
     pub unresolved_challenges: usize,
     pub strategies: Vec<StrategySearchSummary>,
+    pub search_points: Vec<ChallengeSearchPoint>,
     /// Always false: failure to find a counterexample is budgeted non-discovery,
     /// not proof of the absence of an omitted mechanism.
     pub non_discovery_proves_absence: bool,
@@ -1010,6 +1030,7 @@ fn assess_challenges(
 
     let mut comparison_holds: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
     let mut comparison_budgets: BTreeMap<&str, BTreeSet<u64>> = BTreeMap::new();
+    let mut comparison_parents: BTreeMap<&str, BTreeSet<Vec<String>>> = BTreeMap::new();
     for receipt in receipts {
         comparison_holds
             .entry(receipt.hypothesis_id.as_str())
@@ -1019,8 +1040,17 @@ fn assess_challenges(
             .entry(receipt.hypothesis_id.as_str())
             .or_default()
             .insert(receipt.budget_units);
+        let mut parents = receipt.holdout_parent_lineage_digests.clone();
+        parents.sort();
+        parents.dedup();
+        comparison_parents
+            .entry(receipt.hypothesis_id.as_str())
+            .or_default()
+            .insert(parents);
     }
-    if comparison_holds.values().any(|values| values.len() > 1) {
+    if comparison_holds.values().any(|values| values.len() > 1)
+        || comparison_parents.values().any(|values| values.len() > 1)
+    {
         return Err(PortfolioError::ChallengeHoldoutMismatch);
     }
     if comparison_budgets.values().any(|values| values.len() > 1) {
@@ -1031,6 +1061,7 @@ fn assess_challenges(
     let mut qualified = 0usize;
     let mut falsified = false;
     let mut by_strategy: BTreeMap<ChallengeStrategy, StrategySearchSummary> = BTreeMap::new();
+    let mut search_points = Vec::with_capacity(receipts.len());
 
     for requirement in &manifest.challenge_requirements {
         let entry = by_strategy.entry(requirement.strategy).or_insert(StrategySearchSummary {
@@ -1046,6 +1077,14 @@ fn assess_challenges(
             requirement.protocol_digest.as_str(),
         );
         if let Some(receipt) = receipt_map.get(&key) {
+            search_points.push(ChallengeSearchPoint {
+                challenge_id: receipt.challenge_id.clone(),
+                hypothesis_id: receipt.hypothesis_id.clone(),
+                strategy: receipt.strategy,
+                budget_units: receipt.budget_units,
+                outcome: receipt.outcome,
+                holdout_manifest_digest: receipt.holdout_manifest_digest.clone(),
+            });
             entry.attempts += 1;
             entry.total_budget_units = entry
                 .total_budget_units
@@ -1081,6 +1120,7 @@ fn assess_challenges(
             qualified_challenges: qualified,
             unresolved_challenges: unresolved,
             strategies: by_strategy.into_values().collect(),
+            search_points,
             non_discovery_proves_absence: false,
         },
         falsified,
@@ -1470,6 +1510,7 @@ mod tests {
         ];
         for receipt in &mut receipts {
             receipt.holdout_manifest_digest = d("holdout-H-weather");
+            receipt.holdout_parent_lineage_digests = vec![d("holdout-parent-H-weather")];
         }
         for (id, strategy, protocol) in [
             ("random-copy", ChallengeStrategy::Random, "challenge-random-copy"),
@@ -1480,6 +1521,7 @@ mod tests {
             let mut receipt = challenge(id, strategy, protocol, ChallengeOutcome::NonDiscoveryWithinBudget);
             receipt.hypothesis_id = "H-weather-copy".into();
             receipt.holdout_manifest_digest = d("holdout-H-weather-copy");
+            receipt.holdout_parent_lineage_digests = vec![d("holdout-parent-H-weather-copy")];
             receipts.push(receipt);
         }
         receipts
