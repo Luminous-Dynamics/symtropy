@@ -161,31 +161,33 @@ fn emit(fields: Vec<String>) {
     println!("{}", fields.join(","));
 }
 
-fn row(
-    record_type: &str,
-    session_id: &str,
-    metric: &str,
-    subject: &str,
-    value: &str,
-    unit: &str,
-    allocation: &str,
-    shift: &str,
-    reallocated: &str,
-    consensus: &str,
-    unanimity_conflict: &str,
-) {
+struct AuditRow<'a> {
+    record_type: &'a str,
+    session_id: &'a str,
+    metric: &'a str,
+    subject: &'a str,
+    value: &'a str,
+    unit: &'a str,
+    allocation: &'a str,
+    shift: &'a str,
+    reallocated: &'a str,
+    consensus: &'a str,
+    unanimity_conflict: &'a str,
+}
+
+fn row(record: AuditRow<'_>) {
     emit(vec![
-        record_type.into(),
-        session_id.into(),
-        metric.into(),
-        subject.into(),
-        value.into(),
-        unit.into(),
-        allocation.into(),
-        shift.into(),
-        reallocated.into(),
-        consensus.into(),
-        unanimity_conflict.into(),
+        record.record_type.into(),
+        record.session_id.into(),
+        record.metric.into(),
+        record.subject.into(),
+        record.value.into(),
+        record.unit.into(),
+        record.allocation.into(),
+        record.shift.into(),
+        record.reallocated.into(),
+        record.consensus.into(),
+        record.unanimity_conflict.into(),
         "synthetic_fixture".into(),
     ]);
 }
@@ -289,19 +291,19 @@ fn emit_audit(session: &DeliberationSession) {
             "self_report",
         ),
     ] {
-        row(
-            "session_metric",
-            &audit.session_id,
+        row(AuditRow {
+            record_type: "session_metric",
+            session_id: &audit.session_id,
             metric,
-            "all_members",
-            &value,
+            subject: "all_members",
+            value: &value,
             unit,
-            &allocation,
-            &shift,
-            &reallocated,
-            &consensus,
-            &unanimity_conflict,
-        );
+            allocation: &allocation,
+            shift: &shift,
+            reallocated: &reallocated,
+            consensus: &consensus,
+            unanimity_conflict: &unanimity_conflict,
+        });
     }
 
     for member in &audit.members {
@@ -338,19 +340,19 @@ fn emit_audit(session: &DeliberationSession) {
                 "fraction",
             ),
         ] {
-            row(
-                "member_metric",
-                &audit.session_id,
+            row(AuditRow {
+                record_type: "member_metric",
+                session_id: &audit.session_id,
                 metric,
-                &member.participant_id,
-                &value,
+                subject: &member.participant_id,
+                value: &value,
                 unit,
-                &allocation,
-                &shift,
-                &reallocated,
-                &consensus,
-                &unanimity_conflict,
-            );
+                allocation: &allocation,
+                shift: &shift,
+                reallocated: &reallocated,
+                consensus: &consensus,
+                unanimity_conflict: &unanimity_conflict,
+            });
         }
     }
 }
@@ -367,19 +369,21 @@ fn main() {
 
     let difference = compare_rhetoric_only(&baseline, &steered)
         .expect("paired sessions must preserve declared preferences and evidence");
-    row(
-        "rhetoric_only_pair",
-        &baseline.session_id,
-        "allocation_sensitivity",
-        &steered.session_id,
-        &fmt(difference.reallocated_units),
-        "units",
-        "",
-        &difference.allocation_l1_shift_units.to_string(),
-        &fmt(difference.reallocated_units),
-        "",
-        "",
-    );
+    let pair_shift = difference.allocation_l1_shift_units.to_string();
+    let pair_reallocated = fmt(difference.reallocated_units);
+    row(AuditRow {
+        record_type: "rhetoric_only_pair",
+        session_id: &baseline.session_id,
+        metric: "allocation_sensitivity",
+        subject: &steered.session_id,
+        value: &pair_reallocated,
+        unit: "units",
+        allocation: "",
+        shift: &pair_shift,
+        reallocated: &pair_reallocated,
+        consensus: "",
+        unanimity_conflict: "",
+    });
 }
 
 #[cfg(test)]
