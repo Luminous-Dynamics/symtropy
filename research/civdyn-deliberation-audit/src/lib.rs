@@ -24,6 +24,8 @@ pub struct Participant {
     pub satisfaction_after: Option<f64>,
     pub trust_before: Option<f64>,
     pub trust_after: Option<f64>,
+    /// Explicit post-deliberation endorsement of the final decision; None means unrecorded.
+    pub consensus_endorsement: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -304,7 +306,7 @@ pub enum DeliberationError {
         expected: u32,
         actual: u32,
     },
-    RhetoricPairMismatch(&'static str),
+    FacilitationPairMismatch(&'static str),
 }
 
 impl fmt::Display for DeliberationError {
@@ -393,7 +395,7 @@ impl fmt::Display for DeliberationError {
             Self::BudgetNotExhausted { expected, actual } => {
                 write!(f, "allocation uses {actual} units; budget is {expected}")
             }
-            Self::RhetoricPairMismatch(field) => {
+            Self::FacilitationPairMismatch(field) => {
                 write!(
                     f,
                     "rhetoric-only comparison changed non-rhetorical input: {field}"
@@ -422,6 +424,7 @@ pub struct MemberAudit {
     pub satisfaction_after: Option<f64>,
     pub trust_before: Option<f64>,
     pub trust_after: Option<f64>,
+    pub consensus_endorsement: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -448,9 +451,12 @@ pub struct SessionAudit {
     pub unsupported_facilitator_claim_count: usize,
     pub facilitator_declares_consensus: bool,
     /// Fraction of members whose highest-weight option is the most common group choice.
-    pub preference_consensus_share: f64,
-    /// A consensus claim despite disagreement in stated first choices.
-    pub unanimity_claim_conflicts_with_top_preferences: bool,
+    pub modal_top_preference_share: f64,
+    pub consensus_endorsement_count: usize,
+    pub consensus_non_endorsement_count: usize,
+    pub consensus_unrecorded_count: usize,
+    /// True only if at least one participant explicitly did not endorse the final decision.
+    pub consensus_claim_contradicted_by_recorded_non_endorsement: bool,
     pub mean_satisfaction_before: Option<f64>,
     pub mean_satisfaction_after: Option<f64>,
     pub mean_trust_before: Option<f64>,
@@ -459,7 +465,7 @@ pub struct SessionAudit {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct RhetoricOnlyDifference {
+pub struct FacilitationVariantDifference {
     pub allocation_l1_shift_units: u32,
     pub reallocated_units: f64,
 }
@@ -580,9 +586,24 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         session.resource_budget,
     );
 
-    let preference_consensus_share = preference_consensus_share(session);
-    let unanimity_claim_conflicts_with_top_preferences =
-        session.facilitator_declares_consensus && preference_consensus_share < 1.0 - TOLERANCE;
+    let modal_top_preference_share = modal_top_preference_share(session);
+    let consensus_endorsement_count = session
+        .participants
+        .iter()
+        .filter(|participant| participant.consensus_endorsement == Some(true))
+        .count();
+    let consensus_non_endorsement_count = session
+        .participants
+        .iter()
+        .filter(|participant| participant.consensus_endorsement == Some(false))
+        .count();
+    let consensus_unrecorded_count = session
+        .participants
+        .iter()
+        .filter(|participant| participant.consensus_endorsement.is_none())
+        .count();
+    let consensus_claim_contradicted_by_recorded_non_endorsement =
+        session.facilitator_declares_consensus && consensus_non_endorsement_count > 0;
 
     let total_speaking_time = speaking_time_by_member.iter().sum::<u64>();
     let members = session
@@ -612,6 +633,7 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
                 satisfaction_after: participant.satisfaction_after,
                 trust_before: participant.trust_before,
                 trust_after: participant.trust_after,
+                consensus_endorsement: participant.consensus_endorsement,
             }
         })
         .collect::<Vec<_>>();
@@ -637,8 +659,11 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         verified_facilitator_claim_count,
         unsupported_facilitator_claim_count,
         facilitator_declares_consensus: session.facilitator_declares_consensus,
-        preference_consensus_share,
-        unanimity_claim_conflicts_with_top_preferences,
+        modal_top_preference_share,
+        consensus_endorsement_count,
+        consensus_non_endorsement_count,
+        consensus_unrecorded_count,
+        consensus_claim_contradicted_by_recorded_non_endorsement,
         mean_satisfaction_before: mean_optional(
             session
                 .participants
@@ -667,17 +692,17 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
 /// Compare two recorded sessions that preserve preferences and verified evidence
 /// while allowing facilitation rhetoric/process and the resulting allocation to differ.
 /// This reports sensitivity; it does not attribute a causal effect by itself.
-pub fn compare_rhetoric_only(
+pub fn compare_facilitation_variants(
     baseline: &DeliberationSession,
     perturbed: &DeliberationSession,
-) -> Result<RhetoricOnlyDifference, DeliberationError> {
+) -> Result<FacilitationVariantDifference, DeliberationError> {
     baseline.validate()?;
     perturbed.validate()?;
     if baseline.option_labels != perturbed.option_labels {
-        return Err(DeliberationError::RhetoricPairMismatch("option_labels"));
+        return Err(DeliberationError::FacilitationPairMismatch("option_labels"));
     }
     if baseline.resource_budget != perturbed.resource_budget {
-        return Err(DeliberationError::RhetoricPairMismatch("resource_budget"));
+        return Err(DeliberationError::FacilitationPairMismatch("resource_budget"));
     }
     let baseline_preferences = baseline
         .participants
@@ -690,7 +715,7 @@ pub fn compare_rhetoric_only(
         .map(|member| (member.id.as_str(), member.preferences.as_slice()))
         .collect::<BTreeMap<_, _>>();
     if baseline_preferences != perturbed_preferences {
-        return Err(DeliberationError::RhetoricPairMismatch(
+        return Err(DeliberationError::FacilitationPairMismatch(
             "participant_preferences",
         ));
     }
@@ -705,7 +730,7 @@ pub fn compare_rhetoric_only(
         .map(|evidence| (evidence.evidence_id.as_str(), evidence))
         .collect::<BTreeMap<_, _>>();
     if baseline_evidence != perturbed_evidence {
-        return Err(DeliberationError::RhetoricPairMismatch(
+        return Err(DeliberationError::FacilitationPairMismatch(
             "evidence_catalogue",
         ));
     }
@@ -718,7 +743,7 @@ pub fn compare_rhetoric_only(
             sum.checked_add(value)
                 .ok_or(DeliberationError::AllocationOverflow)
         })?;
-    Ok(RhetoricOnlyDifference {
+    Ok(FacilitationVariantDifference {
         allocation_l1_shift_units: shift,
         reallocated_units: shift as f64 / 2.0,
     })
@@ -778,7 +803,7 @@ fn allocation_alignment(preferences: &[f64], allocation: &[u32], budget: u32) ->
         .sum()
 }
 
-fn preference_consensus_share(session: &DeliberationSession) -> f64 {
+fn modal_top_preference_share(session: &DeliberationSession) -> f64 {
     let mut counts = vec![0usize; session.option_labels.len()];
     for participant in &session.participants {
         let top = participant
@@ -841,6 +866,7 @@ mod tests {
                 satisfaction_after: Some(0.7),
                 trust_before: Some(0.5),
                 trust_after: Some(0.6),
+                consensus_endorsement: Some(true),
             },
             Participant {
                 id: "member_b".into(),
@@ -849,6 +875,7 @@ mod tests {
                 satisfaction_after: Some(0.7),
                 trust_before: Some(0.5),
                 trust_after: Some(0.7),
+                consensus_endorsement: Some(true),
             },
             Participant {
                 id: "member_c".into(),
@@ -857,6 +884,7 @@ mod tests {
                 satisfaction_after: Some(0.7),
                 trust_before: Some(0.5),
                 trust_after: Some(0.8),
+                consensus_endorsement: Some(true),
             },
         ]
     }
@@ -966,6 +994,7 @@ mod tests {
             evidence_id: Some("missing_consensus_source".into()),
         });
         session.facilitator_declares_consensus = true;
+        session.participants[2].consensus_endorsement = Some(false);
         session.final_allocation = vec![60, 35, 5];
         session
     }
@@ -1005,8 +1034,11 @@ mod tests {
         assert_eq!(audit.verified_facilitator_claim_count, 1);
         assert_eq!(audit.unsupported_facilitator_claim_count, 1);
         assert!(audit.facilitator_declares_consensus);
-        assert!(audit.preference_consensus_share < 1.0);
-        assert!(audit.unanimity_claim_conflicts_with_top_preferences);
+        assert!(audit.modal_top_preference_share < 1.0);
+        assert_eq!(audit.consensus_endorsement_count, 2);
+        assert_eq!(audit.consensus_non_endorsement_count, 1);
+        assert_eq!(audit.consensus_unrecorded_count, 0);
+        assert!(audit.consensus_claim_contradicted_by_recorded_non_endorsement);
         assert!(audit.mean_trust_after.unwrap() > audit.mean_trust_before.unwrap());
     }
 
@@ -1014,18 +1046,29 @@ mod tests {
     fn rhetoric_only_comparison_requires_fixed_preferences_and_evidence() {
         let baseline = base_session();
         let steered = steered_session();
-        let difference = compare_rhetoric_only(&baseline, &steered).unwrap();
+        let difference = compare_facilitation_variants(&baseline, &steered).unwrap();
         assert_eq!(difference.allocation_l1_shift_units, 56);
         assert_eq!(difference.reallocated_units, 28.0);
 
         let mut changed_preferences = steered.clone();
         changed_preferences.participants[0].preferences = vec![0.1, 0.8, 0.1];
         assert!(matches!(
-            compare_rhetoric_only(&baseline, &changed_preferences),
-            Err(DeliberationError::RhetoricPairMismatch(
+            compare_facilitation_variants(&baseline, &changed_preferences),
+            Err(DeliberationError::FacilitationPairMismatch(
                 "participant_preferences"
             ))
         ));
+    }
+
+    #[test]
+    fn preference_disagreement_alone_does_not_disprove_consensus() {
+        let mut session = steered_session();
+        session.participants[2].consensus_endorsement = Some(true);
+        let audit = audit_session(&session).unwrap();
+
+        assert!(audit.modal_top_preference_share < 1.0);
+        assert_eq!(audit.consensus_non_endorsement_count, 0);
+        assert!(!audit.consensus_claim_contradicted_by_recorded_non_endorsement);
     }
 
     #[test]
