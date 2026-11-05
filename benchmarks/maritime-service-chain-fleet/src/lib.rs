@@ -426,6 +426,13 @@ fn candidate_operation_fits(
             return None;
         }
     }
+    let mut resource_uses = segment.resource_uses.clone();
+    resource_uses.sort_by(|left, right| {
+        left.resource_id
+            .cmp(&right.resource_id)
+            .then_with(|| left.unit.cmp(&right.unit))
+            .then_with(|| left.amount.cmp(&right.amount))
+    });
     let placement = OperationPlacement {
         demand_id: case.demand.demand_id.clone(),
         participant_id: case.demand.participant_id.clone(),
@@ -433,7 +440,7 @@ fn candidate_operation_fits(
         segment_id: segment.segment_id.clone(),
         start_tick,
         end_tick: interval.end_tick,
-        resource_uses: segment.resource_uses.clone(),
+        resource_uses,
     };
     let mut trial = current_operations.to_vec();
     trial.push(placement.clone());
@@ -953,13 +960,38 @@ mod tests {
             evidence("arrival-slow", EvidenceOwner::Symthaea, EvidenceRole::ArrivalWindow, "lock-approach", Some(arrival_slow)),
             evidence("lock-compatibility", EvidenceOwner::Symtropy, EvidenceRole::LockCompatibility, "lock-01", None),
             evidence("lock-water", EvidenceOwner::Symtropy, EvidenceRole::LockCycleWater, "lock-01", None),
-            capacity_evidence("channel-calendar", "channel-window-01", ResourceUnit::TransitSlots, vec![window(5, 35, 2)]),
-            capacity_evidence("lock-calendar", "lock-01", ResourceUnit::Lockages, vec![window(12, 40, 1)]),
+            capacity_evidence(
+                "channel-calendar",
+                "channel-window-01",
+                ResourceUnit::TransitSlots,
+                vec![
+                    window(10, 12, 2),
+                    window(14, 15, 2),
+                    window(15, 17, 2),
+                    window(19, 20, 2),
+                ],
+            ),
+            capacity_evidence(
+                "lock-calendar",
+                "lock-01",
+                ResourceUnit::Lockages,
+                vec![window(12, 14, 1), window(17, 19, 1)],
+            ),
             capacity_evidence("water-calendar", "water-budget-01", ResourceUnit::Millilitres, vec![window(12, 40, 10_000)]),
-            capacity_evidence("berth-calendar", "berth-01", ResourceUnit::BerthSlots, vec![window(18, 40, 1)]),
+            capacity_evidence(
+                "berth-calendar",
+                "berth-01",
+                ResourceUnit::BerthSlots,
+                vec![window(18, 28, 1), window(28, 38, 1)],
+            ),
             capacity_evidence("shore-calendar", "shore-01", ResourceUnit::WattHours, vec![window(18, 40, 2_000)]),
             capacity_evidence("handling-calendar", "terminal-01", ResourceUnit::Tonnes, vec![window(18, 40, 20)]),
-            capacity_evidence("rail-calendar", "rail-01", ResourceUnit::Tonnes, vec![window(28, 60, 10)]),
+            capacity_evidence(
+                "rail-calendar",
+                "rail-01",
+                ResourceUnit::Tonnes,
+                vec![window(28, 33, 10), window(38, 43, 10)],
+            ),
             evidence("environment", EvidenceOwner::External, EvidenceRole::EnvironmentalWindow, "corridor-01", None),
             evidence("participant-auth", EvidenceOwner::Mycelix, EvidenceRole::ParticipantAuthorization, participant_id, None),
         ];
@@ -978,14 +1010,19 @@ mod tests {
                 resource_id: "channel-window-01".into(),
                 kind: ResourceKind::ChannelWindow,
                 capacity_unit: ResourceUnit::TransitSlots,
-                availability: vec![window(5, 35, 2)],
+                availability: vec![
+                    window(10, 12, 2),
+                    window(14, 15, 2),
+                    window(15, 17, 2),
+                    window(19, 20, 2),
+                ],
                 evidence_ids: vec!["channel-calendar".into()],
             },
             Resource {
                 resource_id: "lock-01".into(),
                 kind: ResourceKind::Lock,
                 capacity_unit: ResourceUnit::Lockages,
-                availability: vec![window(12, 40, 1)],
+                availability: vec![window(12, 14, 1), window(17, 19, 1)],
                 evidence_ids: vec!["lock-calendar".into()],
             },
             Resource {
@@ -999,7 +1036,7 @@ mod tests {
                 resource_id: "berth-01".into(),
                 kind: ResourceKind::Berth,
                 capacity_unit: ResourceUnit::BerthSlots,
-                availability: vec![window(18, 40, 1)],
+                availability: vec![window(18, 28, 1), window(28, 38, 1)],
                 evidence_ids: vec!["berth-calendar".into()],
             },
             Resource {
@@ -1020,7 +1057,7 @@ mod tests {
                 resource_id: "rail-01".into(),
                 kind: ResourceKind::InlandTransfer,
                 capacity_unit: ResourceUnit::Tonnes,
-                availability: vec![window(28, 60, 10)],
+                availability: vec![window(28, 33, 10), window(38, 43, 10)],
                 evidence_ids: vec!["rail-calendar".into()],
             },
         ];
@@ -1205,7 +1242,8 @@ mod tests {
         first.voyage_alternatives.retain(|alternative| alternative.alternative_id == "fast-high-energy");
         let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
         second.voyage_alternatives.retain(|alternative| alternative.alternative_id == "fast-high-energy");
-        second.demand.delivery_window.end_tick = 33;
+        first.demand.delivery_window.end_tick = 43;
+        second.demand.delivery_window.end_tick = 43;
         let workload = fleet_workload(vec![first, second]);
 
         let result = exact_fleet_oracle(&workload, 50_000).expect("valid joint workload");
