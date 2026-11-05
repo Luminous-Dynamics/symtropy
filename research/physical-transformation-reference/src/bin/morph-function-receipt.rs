@@ -266,6 +266,9 @@ fn append_solver_record(
             "\"normalized_force_residual\":{:.17e},",
             "\"normalized_moment_residual\":{:.17e},",
             "\"normalized_free_dof_residual\":{:.17e},",
+            "\"moment_reference_m\":{{\"x\":{:.17e},\"y\":{:.17e}}},",
+            "\"characteristic_length_m\":{:.17e},",
+            "\"normalization_scales\":{{\"force_n\":{:.17e},\"moment_nm\":{:.17e},\"free_dof_n\":{:.17e}}},",
             "\"serviceability_limit_m\":{:.17e}}}"
         ),
         json_escape(suite),
@@ -279,6 +282,12 @@ fn append_solver_record(
         eq.normalized_force_residual,
         eq.normalized_moment_residual,
         eq.normalized_free_dof_residual,
+        eq.moment_reference_x_m,
+        eq.moment_reference_y_m,
+        eq.characteristic_length_m,
+        eq.force_normalization_scale_n,
+        eq.moment_normalization_scale_nm,
+        eq.free_dof_backward_error_scale_n,
         displacement_limit
     ));
     Ok(())
@@ -437,7 +446,7 @@ fn run() -> Result<(), String> {
 
     println!(
         concat!(
-            "{{\"schema_version\":\"morph-function-receipt-v0.1\",",
+            "{{\"schema_version\":\"morph-function-receipt-v0.2\",",
             "\"benchmark_id\":\"MORPH-FUNCTION-001\",",
             "\"source_commit\":\"{}\",\"source_tree_sha\":\"{}\",",
             "\"request_sha256\":\"{}\",\"evidence_class\":\"synthetic\",",
