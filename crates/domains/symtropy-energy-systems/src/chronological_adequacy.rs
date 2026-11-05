@@ -529,7 +529,7 @@ pub fn evaluate_chronological_adequacy(
         return Err(ChronologicalAdequacyError::ProbabilityMassOverflow);
     }
 
-    let reference = aggregate_scenarios(study, probability_sum, 0.0, false)?;
+    let reference = aggregate_scenarios(study, probability_sum, 0.0, false, contract.metric)?;
     let reference_value = reference.adequacy_value(contract.metric);
     if reference_value <= 0.0 {
         return Err(ChronologicalAdequacyError::NoReferenceAdequacyRisk);
@@ -541,7 +541,7 @@ pub fn evaluate_chronological_adequacy(
         ));
     }
 
-    let at_zero = aggregate_scenarios(study, probability_sum, 0.0, true)?;
+    let at_zero = aggregate_scenarios(study, probability_sum, 0.0, true, contract.metric)?;
     let at_zero_value = at_zero.adequacy_value(contract.metric);
     let criterion_at_zero = at_zero_value <= allowed_value;
 
@@ -557,6 +557,7 @@ pub fn evaluate_chronological_adequacy(
             probability_sum,
             contract.maximum_added_load_kw,
             true,
+            contract.metric,
         )?;
         let at_max_value = at_max.adequacy_value(contract.metric);
         if at_max_value <= allowed_value {
@@ -574,7 +575,7 @@ pub fn evaluate_chronological_adequacy(
                 }
                 let midpoint_kw = feasible_kw + (infeasible_kw - feasible_kw) / 2.0;
                 let midpoint_metrics =
-                    aggregate_scenarios(study, probability_sum, midpoint_kw, true)?;
+                    aggregate_scenarios(study, probability_sum, midpoint_kw, true, contract.metric)?;
                 if midpoint_metrics.adequacy_value(contract.metric) <= allowed_value {
                     feasible_kw = midpoint_kw;
                 } else {
@@ -586,7 +587,7 @@ pub fn evaluate_chronological_adequacy(
             }
             estimate_kw = feasible_kw;
             final_metrics =
-                aggregate_scenarios(study, probability_sum, estimate_kw, true)?;
+                aggregate_scenarios(study, probability_sum, estimate_kw, true, contract.metric)?;
         }
     }
 
@@ -667,9 +668,11 @@ pub fn evaluate_chronological_adequacy(
         reference_loss_of_load_days: reference.loss_of_load_days,
         reference_loss_of_load_hours: reference.loss_of_load_hours,
         reference_unserved_energy_mwh: reference.unserved_energy_mwh,
+        reference_unserved_energy_cvar_mwh: cvar_if_selected(contract.metric, reference.unserved_energy_cvar_mwh),
         augmented_loss_of_load_days: final_metrics.loss_of_load_days,
         augmented_loss_of_load_hours: final_metrics.loss_of_load_hours,
         augmented_unserved_energy_mwh: final_metrics.unserved_energy_mwh,
+        augmented_unserved_energy_cvar_mwh: cvar_if_selected(contract.metric, final_metrics.unserved_energy_cvar_mwh),
         augmented_gross_reduction_energy_mwh: final_metrics.gross_reduction_energy_mwh,
         augmented_rebound_energy_mwh: final_metrics.rebound_energy_mwh,
         reference_metric_value: reference_value,
@@ -693,14 +696,17 @@ fn aggregate_scenarios(
     probability_sum: f64,
     added_load_kw: f64,
     apply_flexibility: bool,
+    metric: ChronologicalAdequacyMetric,
 ) -> Result<AggregateMetrics, ChronologicalAdequacyError> {
     let mut aggregate = AggregateMetrics {
         loss_of_load_days: 0.0,
         loss_of_load_hours: 0.0,
         unserved_energy_mwh: 0.0,
+        unserved_energy_cvar_mwh: 0.0,
         gross_reduction_energy_mwh: 0.0,
         rebound_energy_mwh: 0.0,
     };
+    let mut scenario_eue = Vec::with_capacity(study.scenarios.len());
     for scenario in &study.scenarios {
         let weight = scenario.probability_weight / probability_sum;
         let metrics = evaluate_scenario(
@@ -715,11 +721,20 @@ fn aggregate_scenarios(
         aggregate.unserved_energy_mwh += weight * metrics.unserved_energy_mwh;
         aggregate.gross_reduction_energy_mwh += weight * metrics.gross_reduction_energy_mwh;
         aggregate.rebound_energy_mwh += weight * metrics.rebound_energy_mwh;
+        scenario_eue.push((metrics.unserved_energy_mwh, weight));
+    }
+    if let ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar {
+        confidence_level_basis_points,
+    } = metric
+    {
+        aggregate.unserved_energy_cvar_mwh =
+            weighted_upper_tail_cvar(&scenario_eue, confidence_level_basis_points)?;
     }
     if ![
         aggregate.loss_of_load_days,
         aggregate.loss_of_load_hours,
         aggregate.unserved_energy_mwh,
+        aggregate.unserved_energy_cvar_mwh,
         aggregate.gross_reduction_energy_mwh,
         aggregate.rebound_energy_mwh,
     ]
@@ -731,6 +746,74 @@ fn aggregate_scenarios(
         ));
     }
     Ok(aggregate)
+}
+
+fn cvar_if_selected(
+    metric: ChronologicalAdequacyMetric,
+    value: f64,
+) -> Option<f64> {
+    matches!(
+        metric,
+        ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar { .. }
+    )
+    .then_some(value)
+}
+
+/// Weighted mean of the worst (1 - alpha) probability mass of scenario EUE.
+fn weighted_upper_tail_cvar(
+    scenario_eue: &[(f64, f64)],
+    confidence_level_basis_points: u16,
+) -> Result<f64, ChronologicalAdequacyError> {
+    if !(1..10_000).contains(&confidence_level_basis_points) || scenario_eue.is_empty() {
+        return Err(ChronologicalAdequacyError::InvalidCvarConfidenceLevel(
+            confidence_level_basis_points,
+        ));
+    }
+    let mut outcomes = scenario_eue.to_vec();
+    let mut total_weight = 0.0_f64;
+    for (eue, weight) in &outcomes {
+        if !eue.is_finite() || *eue < 0.0 || !weight.is_finite() || *weight <= 0.0 {
+            return Err(ChronologicalAdequacyError::NumericalOverflow(
+                "CVaR input distribution",
+            ));
+        }
+        total_weight += *weight;
+    }
+    if !total_weight.is_finite() || total_weight <= 0.0 {
+        return Err(ChronologicalAdequacyError::NumericalOverflow(
+            "CVaR probability mass",
+        ));
+    }
+    outcomes.sort_by(|left, right| right.0.total_cmp(&left.0));
+    let tail_mass = total_weight
+        * (1.0 - f64::from(confidence_level_basis_points) / 10_000.0);
+    let mut remaining_mass = tail_mass;
+    let mut tail_energy = 0.0_f64;
+    for (eue, raw_weight) in outcomes {
+        let normalized_weight = raw_weight / total_weight;
+        let included_weight = normalized_weight.min(remaining_mass);
+        tail_energy += eue * included_weight;
+        remaining_mass -= included_weight;
+        if remaining_mass <= total_weight * 1e-12 {
+            break;
+        }
+    }
+    if !tail_energy.is_finite()
+        || !tail_mass.is_finite()
+        || tail_mass <= 0.0
+        || remaining_mass > total_weight * 1e-10
+    {
+        return Err(ChronologicalAdequacyError::NumericalOverflow(
+            "weighted upper-tail CVaR",
+        ));
+    }
+    let result = tail_energy / tail_mass;
+    if !result.is_finite() {
+        return Err(ChronologicalAdequacyError::NumericalOverflow(
+            "weighted upper-tail CVaR result",
+        ));
+    }
+    Ok(result)
 }
 
 fn evaluate_scenario(
