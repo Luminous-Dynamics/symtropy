@@ -68,23 +68,44 @@ fn is_sha256(value: &str) -> bool {
 
 fn is_utc_timestamp(value: &str) -> bool {
     let bytes = value.as_bytes();
-    bytes.len() == 20
-        && bytes[4] == b'-'
-        && bytes[7] == b'-'
-        && bytes[10] == b'T'
-        && bytes[13] == b':'
-        && bytes[16] == b':'
-        && bytes[19] == b'Z'
-        && bytes
+    if bytes.len() != 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
+        || !bytes
             .iter()
             .enumerate()
             .all(|(index, byte)| matches!(index, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit())
-        && value[0..4].parse::<u16>().is_ok_and(|year| year > 0)
-        && value[5..7].parse::<u8>().is_ok_and(|month| (1..=12).contains(&month))
-        && value[8..10].parse::<u8>().is_ok_and(|day| (1..=31).contains(&day))
-        && value[11..13].parse::<u8>().is_ok_and(|hour| hour <= 23)
-        && value[14..16].parse::<u8>().is_ok_and(|minute| minute <= 59)
-        && value[17..19].parse::<u8>().is_ok_and(|second| second <= 59)
+    {
+        return false;
+    }
+
+    let year = value[0..4].parse::<u16>().ok();
+    let month = value[5..7].parse::<u8>().ok();
+    let day = value[8..10].parse::<u8>().ok();
+    let hour = value[11..13].parse::<u8>().ok();
+    let minute = value[14..16].parse::<u8>().ok();
+    let second = value[17..19].parse::<u8>().ok();
+    let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) =
+        (year, month, day, hour, minute, second)
+    else {
+        return false;
+    };
+    if year == 0 || !(1..=12).contains(&month) || hour > 23 || minute > 59 || second > 59 {
+        return false;
+    }
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return false,
+    };
+    (1..=days_in_month).contains(&day)
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -322,6 +343,17 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
         if nominal_frequency <= 0.0 || tolerance < 0.0 {
             return Err(fail(&path, "nominal frequency must be positive and tolerance non-negative"));
         }
+        let expected_nominal = match kind {
+            "GRID_CURRENT" => grid_frequency,
+            "RESONANT_CURRENT" => carrier_frequency,
+            _ => unreachable!("channel kind checked above"),
+        };
+        if (nominal_frequency - expected_nominal).abs() > tolerance {
+            return Err(fail(
+                &path,
+                "channel nominal frequency does not match the run-level grid/carrier declaration",
+            ));
+        }
 
         let lines = field(channel, "lines", &path)?
             .as_array()
@@ -393,8 +425,8 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                     }
                 }
                 "RESONANT_CURRENT" => {
-                    if field(line, "harmonic_order", &line_path)?.as_u64().is_some() {
-                        return Err(fail(&line_path, "resonant spectral lines must not carry grid harmonic_order"));
+                    if !field(line, "harmonic_order", &line_path)?.is_null() {
+                        return Err(fail(&line_path, "resonant spectral lines must have null grid harmonic_order"));
                     }
                     let offset_value = field(line, "sideband_offset_hz", &line_path)?;
                     if offset_value.is_null() {
@@ -590,6 +622,39 @@ mod tests {
             evaluate_run(&run)
                 .unwrap_err()
                 .contains("requires one non-zero fundamental")
+        );
+    }
+
+    #[test]
+    fn rejects_impossible_utc_calendar_timestamp() {
+        let mut run = fixture();
+        run["acquisition"]["started_at_utc"] = Value::String("2026-02-30T00:00:00Z".into());
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("must be UTC YYYY-MM-DDTHH:MM:SSZ")
+        );
+    }
+
+    #[test]
+    fn rejects_channel_nominal_frequency_inconsistent_with_run() {
+        let mut run = fixture();
+        run["channels"][1]["nominal_frequency_hz"] = Value::from(84_000.0);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("does not match the run-level grid/carrier declaration")
+        );
+    }
+
+    #[test]
+    fn rejects_grid_harmonic_order_on_resonant_channel() {
+        let mut run = fixture();
+        run["channels"][1]["lines"][0]["harmonic_order"] = Value::from(1);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("must have null grid harmonic_order")
         );
     }
 
