@@ -20,8 +20,8 @@
   "exposure": {
     "wheel_pass_count": 1000,
     "declared_wheel_load_kn": null,
-    "energized_hours": 10,
-    "cumulative_transmitter_input_kwh": 2.5,
+    "energized_hours": 0,
+    "cumulative_transmitter_input_kwh": 0,
     "thermal_cycle_count": 4,
     "freeze_thaw_cycle_count": 0,
     "moisture_state": "DRY",
@@ -76,7 +76,7 @@
   },
   "thermal": {
     "maximum_coil_temperature_c": 40,
-    "maximum_pavement_temperature_c": 32,
+    "maximum_pavement_temperature_c": 44,
     "maximum_gradient_c_per_m": 3,
     "thermal_dose_c_hour": 20,
     "temperature_reference_id": "synthetic-reference-20c",
@@ -99,6 +99,28 @@
         "temperature_c": 44,
         "method_id": "synthetic-thermal-map-v0"
       }
+    ],
+    "spatial_heat_flux_profile": [
+      {
+        "sensor_id": "synthetic-heat-flux-01",
+        "coordinate_frame_id": "synthetic-asset-frame",
+        "x_mm": 0,
+        "y_mm": 0,
+        "depth_mm": 0,
+        "heat_flux_w_m2": 450,
+        "normal_direction": "INTO_PAVEMENT",
+        "method_id": "synthetic-flux-map-v0"
+      },
+      {
+        "sensor_id": "synthetic-heat-flux-02",
+        "coordinate_frame_id": "synthetic-asset-frame",
+        "x_mm": 100,
+        "y_mm": 0,
+        "depth_mm": 0,
+        "heat_flux_w_m2": 180,
+        "normal_direction": "INTO_PAVEMENT",
+        "method_id": "synthetic-flux-map-v0"
+      }
     ]
   },
   "electromagnetic": {
@@ -114,8 +136,8 @@
   },
   "service": {
     "measurement_boundary_id": "synthetic-dc-to-dc",
-    "source_input_energy_wh": 2500,
-    "useful_output_energy_wh": 2300,
+    "source_input_energy_wh": null,
+    "useful_output_energy_wh": null,
     "route_wh_per_km": null,
     "availability_fraction": 0.99
   },
