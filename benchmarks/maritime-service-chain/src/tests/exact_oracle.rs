@@ -415,7 +415,7 @@ fn lock_operation_must_fit_both_lock_and_water_quota_windows() {
         .end_tick = 13;
 
     assert_eq!(validate_case(&case), Ok(()));
-    let result = exact_temporal_oracle(&case, 10_000);
+    let result = exact_temporal_oracle(&case, 10_000).expect("valid frozen case");
     assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
     assert!(result.frontier.is_empty());
 }
