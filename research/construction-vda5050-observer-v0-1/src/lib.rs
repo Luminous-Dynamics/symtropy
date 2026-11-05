@@ -515,7 +515,10 @@ fn parse_state(root: &Map<String, Value>) -> Result<Observation, ObserverError> 
         non_empty_string(field(root, "operatingMode")?, "operatingMode")?.to_owned();
     let errors = as_array(field(root, "errors")?, "errors")?;
     let power_supply = as_object(field(root, "powerSupply")?, "powerSupply")?;
-    let state_of_charge = number(field(power_supply, "stateOfCharge")?, "powerSupply.stateOfCharge")?;
+    let state_of_charge = number(
+        field(power_supply, "stateOfCharge")?,
+        "powerSupply.stateOfCharge",
+    )?;
     if !(0.0..=100.0).contains(&state_of_charge) {
         return shape("powerSupply.stateOfCharge must be in the range 0 to 100");
     }
@@ -528,7 +531,10 @@ fn parse_state(root: &Map<String, Value>) -> Result<Observation, ObserverError> 
     if !["MANUAL", "REMOTE", "NONE"].contains(&active_emergency_stop) {
         return shape("safetyState.activeEmergencyStop is outside the VDA 5050 v3.0.0 enumeration");
     }
-    boolean(field(safety_state, "fieldViolation")?, "safetyState.fieldViolation")?;
+    boolean(
+        field(safety_state, "fieldViolation")?,
+        "safetyState.fieldViolation",
+    )?;
     let zone_requests = match root.get("zoneRequests") {
         Some(value) => parse_zone_requests(as_array(value, "zoneRequests")?)?,
         None => Vec::new(),
@@ -561,29 +567,71 @@ fn parse_factsheet(
     payload: &[u8],
 ) -> Result<Observation, ObserverError> {
     let type_specification = as_object(field(root, "typeSpecification")?, "typeSpecification")?;
-    non_empty_string(field(type_specification, "seriesName")?, "typeSpecification.seriesName")?;
-    non_empty_string(field(type_specification, "mobileRobotKinematic")?, "typeSpecification.mobileRobotKinematic")?;
-    non_empty_string(field(type_specification, "mobileRobotClass")?, "typeSpecification.mobileRobotClass")?;
-    number(field(type_specification, "maximumLoadMass")?, "typeSpecification.maximumLoadMass")?;
-    as_array(field(type_specification, "localizationTypes")?, "typeSpecification.localizationTypes")?;
-    as_array(field(type_specification, "navigationTypes")?, "typeSpecification.navigationTypes")?;
+    non_empty_string(
+        field(type_specification, "seriesName")?,
+        "typeSpecification.seriesName",
+    )?;
+    non_empty_string(
+        field(type_specification, "mobileRobotKinematic")?,
+        "typeSpecification.mobileRobotKinematic",
+    )?;
+    non_empty_string(
+        field(type_specification, "mobileRobotClass")?,
+        "typeSpecification.mobileRobotClass",
+    )?;
+    number(
+        field(type_specification, "maximumLoadMass")?,
+        "typeSpecification.maximumLoadMass",
+    )?;
+    as_array(
+        field(type_specification, "localizationTypes")?,
+        "typeSpecification.localizationTypes",
+    )?;
+    as_array(
+        field(type_specification, "navigationTypes")?,
+        "typeSpecification.navigationTypes",
+    )?;
 
     let physical = as_object(field(root, "physicalParameters")?, "physicalParameters")?;
     for key in [
-        "minimumSpeed", "maximumSpeed", "maximumAcceleration", "maximumDeceleration",
-        "minimumHeight", "maximumHeight", "width", "length",
+        "minimumSpeed",
+        "maximumSpeed",
+        "maximumAcceleration",
+        "maximumDeceleration",
+        "minimumHeight",
+        "maximumHeight",
+        "width",
+        "length",
     ] {
         number(field(physical, key)?, &format!("physicalParameters.{key}"))?;
     }
     let limits = as_object(field(root, "protocolLimits")?, "protocolLimits")?;
-    as_object(field(limits, "maximumStringLengths")?, "protocolLimits.maximumStringLengths")?;
-    as_object(field(limits, "maximumArrayLengths")?, "protocolLimits.maximumArrayLengths")?;
+    as_object(
+        field(limits, "maximumStringLengths")?,
+        "protocolLimits.maximumStringLengths",
+    )?;
+    as_object(
+        field(limits, "maximumArrayLengths")?,
+        "protocolLimits.maximumArrayLengths",
+    )?;
     let timing = as_object(field(limits, "timing")?, "protocolLimits.timing")?;
-    number(field(timing, "minimumOrderInterval")?, "timing.minimumOrderInterval")?;
-    number(field(timing, "minimumStateInterval")?, "timing.minimumStateInterval")?;
+    number(
+        field(timing, "minimumOrderInterval")?,
+        "timing.minimumOrderInterval",
+    )?;
+    number(
+        field(timing, "minimumStateInterval")?,
+        "timing.minimumStateInterval",
+    )?;
     let features = as_object(field(root, "protocolFeatures")?, "protocolFeatures")?;
-    as_array(field(features, "optionalParameters")?, "protocolFeatures.optionalParameters")?;
-    as_array(field(features, "mobileRobotActions")?, "protocolFeatures.mobileRobotActions")?;
+    as_array(
+        field(features, "optionalParameters")?,
+        "protocolFeatures.optionalParameters",
+    )?;
+    as_array(
+        field(features, "mobileRobotActions")?,
+        "protocolFeatures.mobileRobotActions",
+    )?;
     as_object(field(root, "mobileRobotGeometry")?, "mobileRobotGeometry")?;
     as_object(field(root, "loadSpecification")?, "loadSpecification")?;
     Ok(Observation::FactsheetCapabilityClaimReported {
@@ -809,7 +857,8 @@ fn validate_and_count_order_actions(root: &Map<String, Value>) -> Result<usize, 
                 let action = as_object(action, "actions[]")?;
                 non_empty_string(field(action, "actionId")?, "action.actionId")?;
                 non_empty_string(field(action, "actionType")?, "action.actionType")?;
-                let blocking_type = non_empty_string(field(action, "blockingType")?, "action.blockingType")?;
+                let blocking_type =
+                    non_empty_string(field(action, "blockingType")?, "action.blockingType")?;
                 if !["NONE", "SOFT", "SINGLE", "HARD"].contains(&blocking_type) {
                     return shape("action.blockingType is outside the VDA 5050 v3.0.0 enumeration");
                 }
@@ -1217,7 +1266,8 @@ mod tests {
 
     #[test]
     fn non_v3_payload_is_rejected() {
-        let payload = format!(r#"{{{HEADER},"connectionState":"ONLINE"}}"#).replace("3.0.0", "2.1.0");
+        let payload =
+            format!(r#"{{{HEADER},"connectionState":"ONLINE"}}"#).replace("3.0.0", "2.1.0");
         assert!(matches!(
             decode_vda_message("connection", None, payload.as_bytes()),
             Err(ObserverError::UnsupportedVersion(_))
