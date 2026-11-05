@@ -9,8 +9,8 @@
 //! The dense oracle remains the independent reference for small models. This
 //! module never silently materializes a Cartesian state product.
 
-use crate::locomotion::{ClaimCeiling, EvidenceClass, SourceKind, SourceManifest};
 use crate::Rational;
+use crate::locomotion::{ClaimCeiling, EvidenceClass, SourceKind, SourceManifest};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
@@ -169,15 +169,14 @@ impl FactorizedTransitionSpec {
                     .iter()
                     .map(|index| old_values[*index].clone())
                     .collect();
-                row.outcomes.sort_by(|left, right| left.value.cmp(&right.value));
+                row.outcomes
+                    .sort_by(|left, right| left.value.cmp(&right.value));
             }
 
-            factor.rows.sort_by(|left, right| {
-                left.parent_values.cmp(&right.parent_values)
-            });
             factor
-                .source_manifest_ids
-                .sort();
+                .rows
+                .sort_by(|left, right| left.parent_values.cmp(&right.parent_values));
+            factor.source_manifest_ids.sort();
         }
         spec.factors
             .sort_by(|left, right| left.target_variable_id.cmp(&right.target_variable_id));
@@ -362,12 +361,12 @@ impl FactorizedTransitionSpec {
                 }
             }
 
-            total_rows = total_rows
-                .checked_add(compiled_rows.len())
-                .ok_or_else(|| FactorError::ResourceLimit {
+            total_rows = total_rows.checked_add(compiled_rows.len()).ok_or_else(|| {
+                FactorError::ResourceLimit {
                     requested: usize::MAX,
                     limit: MAX_TOTAL_CONDITIONAL_ROWS,
-                })?;
+                }
+            })?;
             if total_rows > MAX_TOTAL_CONDITIONAL_ROWS {
                 return Err(FactorError::ResourceLimit {
                     requested: total_rows,
@@ -410,9 +409,7 @@ impl FactorizedTransitionSpec {
             .variables
             .iter()
             .enumerate()
-            .filter_map(|(index, variable)| {
-                (variable.role == VariableRole::Input).then_some(index)
-            })
+            .filter_map(|(index, variable)| (variable.role == VariableRole::Input).then_some(index))
             .collect();
 
         Ok(CompiledFactorizedTransition {
@@ -535,9 +532,7 @@ impl CompiledFactorizedTransition {
                     .iter()
                     .enumerate()
                     .filter(|(_, parent)| self.variables[**parent].role == VariableRole::Input)
-                    .all(|(position, parent)| {
-                        row.parent_values[position] == input_values[parent]
-                    });
+                    .all(|(position, parent)| row.parent_values[position] == input_values[parent]);
                 if !input_matches {
                     continue;
                 }
@@ -582,11 +577,7 @@ impl CompiledFactorizedTransition {
             .collect();
 
         while !hidden.is_empty() {
-            let variable = choose_elimination_variable(
-                &work,
-                &hidden,
-                &self.variables,
-            )?;
+            let variable = choose_elimination_variable(&work, &hidden, &self.variables)?;
             let mut bucket = Vec::new();
             let mut retained = Vec::new();
             for factor in work {
@@ -605,12 +596,8 @@ impl CompiledFactorizedTransition {
 
             let mut product = bucket.remove(0);
             for factor in bucket {
-                product = multiply_tables(
-                    &product,
-                    &factor,
-                    &self.variables,
-                    max_intermediate_rows,
-                )?;
+                product =
+                    multiply_tables(&product, &factor, &self.variables, max_intermediate_rows)?;
             }
             let reduced = sum_out_variable(&product, variable)?;
             if reduced.entries.len() > max_intermediate_rows {
@@ -633,12 +620,7 @@ impl CompiledFactorizedTransition {
 
         let mut product = work.remove(0);
         for factor in work {
-            product = multiply_tables(
-                &product,
-                &factor,
-                &self.variables,
-                max_intermediate_rows,
-            )?;
+            product = multiply_tables(&product, &factor, &self.variables, max_intermediate_rows)?;
         }
 
         if product.scope.iter().any(|index| !query_set.contains(index))
@@ -913,12 +895,9 @@ fn topological_output_order(
     let output_set: BTreeSet<usize> = variables
         .iter()
         .enumerate()
-        .filter_map(|(index, variable)| {
-            (variable.role == VariableRole::Output).then_some(index)
-        })
+        .filter_map(|(index, variable)| (variable.role == VariableRole::Output).then_some(index))
         .collect();
-    let mut indegree: BTreeMap<usize, usize> =
-        output_set.iter().map(|index| (*index, 0)).collect();
+    let mut indegree: BTreeMap<usize, usize> = output_set.iter().map(|index| (*index, 0)).collect();
     let mut children: BTreeMap<usize, BTreeSet<usize>> = BTreeMap::new();
 
     for factor in factors {
@@ -962,14 +941,14 @@ fn topological_output_order(
     Ok(order)
 }
 
-fn checked_domain_product(
-    values: impl Iterator<Item = usize>,
-) -> Result<usize, FactorError> {
+fn checked_domain_product(values: impl Iterator<Item = usize>) -> Result<usize, FactorError> {
     values.try_fold(1_usize, |product, value| {
-        product.checked_mul(value).ok_or(FactorError::ResourceLimit {
-            requested: usize::MAX,
-            limit: usize::MAX - 1,
-        })
+        product
+            .checked_mul(value)
+            .ok_or(FactorError::ResourceLimit {
+                requested: usize::MAX,
+                limit: usize::MAX - 1,
+            })
     })
 }
 
@@ -1019,12 +998,20 @@ fn multiply_tables(
     let left_positions: Vec<usize> = left
         .scope
         .iter()
-        .map(|variable| scope.binary_search(variable).expect("scope contains left variable"))
+        .map(|variable| {
+            scope
+                .binary_search(variable)
+                .expect("scope contains left variable")
+        })
         .collect();
     let right_positions: Vec<usize> = right
         .scope
         .iter()
-        .map(|variable| scope.binary_search(variable).expect("scope contains right variable"))
+        .map(|variable| {
+            scope
+                .binary_search(variable)
+                .expect("scope contains right variable")
+        })
         .collect();
 
     let mut entries = BTreeMap::new();
@@ -1052,7 +1039,9 @@ fn multiply_tables(
                 .into_iter()
                 .map(|value| {
                     value.ok_or_else(|| {
-                        FactorError::Invalid("factor product left an unassigned variable".to_owned())
+                        FactorError::Invalid(
+                            "factor product left an unassigned variable".to_owned(),
+                        )
                     })
                 })
                 .collect::<Result<_, _>>()?;
@@ -1079,9 +1068,10 @@ fn multiply_tables(
     }
 
     for (position, variable) in scope.iter().enumerate() {
-        if entries.keys().any(|assignment| {
-            assignment[position] >= variables[*variable].domain.len()
-        }) {
+        if entries
+            .keys()
+            .any(|assignment| assignment[position] >= variables[*variable].domain.len())
+        {
             return Err(FactorError::Invalid(
                 "factor product contains a value outside its domain".to_owned(),
             ));
@@ -1090,10 +1080,7 @@ fn multiply_tables(
     Ok(FactorTable { scope, entries })
 }
 
-fn sum_out_variable(
-    factor: &FactorTable,
-    variable: usize,
-) -> Result<FactorTable, FactorError> {
+fn sum_out_variable(factor: &FactorTable, variable: usize) -> Result<FactorTable, FactorError> {
     let position = factor
         .scope
         .iter()
@@ -1151,7 +1138,10 @@ mod tests {
 
     fn conditional_row(parent_values: &[&str], outcomes: Vec<FactorOutcome>) -> ConditionalRow {
         ConditionalRow {
-            parent_values: parent_values.iter().map(|value| (*value).to_owned()).collect(),
+            parent_values: parent_values
+                .iter()
+                .map(|value| (*value).to_owned())
+                .collect(),
             outcomes,
         }
     }
@@ -1288,9 +1278,11 @@ mod tests {
             assert_eq!(Some(&entry.probability), dense.get(&assignment));
         }
         assert_eq!(
-            dense.values().copied().try_fold(Rational::zero(), |sum, value| {
-                sum.checked_add(value)
-            }).unwrap(),
+            dense
+                .values()
+                .copied()
+                .try_fold(Rational::zero(), |sum, value| { sum.checked_add(value) })
+                .unwrap(),
             Rational::one()
         );
     }
@@ -1374,14 +1366,8 @@ mod tests {
     #[test]
     fn non_normalized_conditional_row_fails_closed() {
         let mut invalid = spec();
-        invalid.factors[0].rows[0].outcomes = vec![
-            outcome("off", 1, 3),
-            outcome("on", 1, 3),
-        ];
-        assert!(matches!(
-            invalid.compile(),
-            Err(FactorError::Invalid(_))
-        ));
+        invalid.factors[0].rows[0].outcomes = vec![outcome("off", 1, 3), outcome("on", 1, 3)];
+        assert!(matches!(invalid.compile(), Err(FactorError::Invalid(_))));
     }
 
     #[test]
@@ -1397,10 +1383,7 @@ mod tests {
             conditional_row(&["off"], vec![outcome("off", 1, 2), outcome("on", 1, 2)]),
             conditional_row(&["on"], vec![outcome("off", 1, 2), outcome("on", 1, 2)]),
         ];
-        assert!(matches!(
-            invalid.compile(),
-            Err(FactorError::CycleDetected)
-        ));
+        assert!(matches!(invalid.compile(), Err(FactorError::CycleDetected)));
     }
 
     #[test]
@@ -1448,10 +1431,10 @@ mod tests {
         .unwrap();
         assert_eq!(large.dense_output_cardinality().unwrap(), 65_536);
         assert!(matches!(
-            large.enumerate_dense_outputs(&BTreeMap::from([(
-                "action".to_owned(),
-                "idle".to_owned()
-            )]), 1_024),
+            large.enumerate_dense_outputs(
+                &BTreeMap::from([("action".to_owned(), "idle".to_owned())]),
+                1_024
+            ),
             Err(FactorError::ResourceLimit {
                 requested: 65_536,
                 limit: 1_024
