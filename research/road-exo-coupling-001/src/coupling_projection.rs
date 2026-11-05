@@ -357,9 +357,8 @@ pub fn project_correspondence_addresses(
     hypotheses.sort_by(|a, b| a.hypothesis_id.cmp(&b.hypothesis_id));
 
     let mut source_event_scopes = event_scopes.to_vec();
-    source_event_scopes.sort_by(|a, b| {
-        (&a.branch_id, &a.event_id).cmp(&(&b.branch_id, &b.event_id))
-    });
+    source_event_scopes
+        .sort_by(|a, b| (&a.branch_id, &a.event_id).cmp(&(&b.branch_id, &b.event_id)));
     let mut source_pair_rules = pair_rules.to_vec();
     source_pair_rules.sort_by(|a, b| {
         (&a.hypothesis_id, &a.left_event, &a.right_event, a.basis).cmp(&(
