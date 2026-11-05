@@ -33,6 +33,18 @@ Run formatting, locked unit tests, and strict Clippy using the dedicated workflo
 This oracle is intentionally small and exact. It does not implement particle filters, SMC-squared, approximate posterior inference, continuous states, model-family discovery, or physical safety certification. Its purpose is to make stochastic policy correctness auditable on finite cases before comparing scalable methods. Exactness is conditional on the supplied kernel, initial belief, costs, horizon, and policy class; it does not establish that these describe a real specimen or sensor.
 
 
+## Factorized locomotion transition inference
+
+The separate locomotion_factored module is an experimental dynamic-Bayesian-network representation for leg-local transitions and explicitly declared inter-leg coupling. It does not replace or silently modify the dense SIM-REL-013 JointKernel contract described above.
+
+A factorized transition consists of typed input variables (current state and action), output variables (next state and observations), and one exact-rational conditional probability table per output variable. Each conditional factor carries its own source-manifest IDs and claim ceiling. The compiler canonicalizes semantic IDs, rejects missing or duplicate CPDs, incomplete parent assignments, invalid probability mass, unsupported evidence claims, and cyclic output dependencies.
+
+The inference path performs exact variable elimination over sparse factor tables. Querying a subset of output variables eliminates unrequested variables without constructing the complete Cartesian output state. Dense enumeration is available only behind an explicit cardinality budget, checked before allocation. Intermediate factor tables have their own row budget.
+
+The prototype tests compare factorized marginals against independently enumerated dense joint probabilities on tiny fixtures, demonstrate a planted left-to-right coupling that an independent-leg model misses, and reject malformed CPDs, cycles, missing source references, storage-order changes, and oversized dense materializations.
+
+**Scope boundary:** the first prototype is generic categorical inference with a two-leg synthetic coupling fixture. It is not yet a full six-leg biomechanical simulator, not yet connected to the policy optimizer, and not yet validated against measured fly data. The six-leg per-leg presynaptic state in the locomotion adapter motivates this representation; local joint angles, contact forces, leg-segment state, and real connectome-derived coupling factors remain follow-on work. See LOCO-FACT-001 / issue #3677: https://github.com/Luminous-Dynamics/symtropy/issues/3677.
+
 ## Locomotion domain adapter
 
 The `locomotion` module compiles stable locomotion-domain identifiers into this crate's exact joint kernel. It keeps the latent tuple as mechanism hypothesis × physical state × sensor state, and does not factorize or prematurely marginalize these components.
