@@ -17,3 +17,8 @@ path = "src/bin/cross_scale_resilience_sweep.rs"
 
 [dependencies]
 civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
+
+
+[[bin]]
+name = "recovery-capital-sweep"
+path = "src/bin/recovery_capital_sweep.rs"
