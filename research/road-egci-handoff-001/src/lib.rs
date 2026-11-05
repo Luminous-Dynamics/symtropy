@@ -186,7 +186,7 @@ pub struct EpisodeExport {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DrawBundleAnchor {
     pub branch_id: String,
-    pub hypothesis_id: String,
+    /// One #3743 bundle contains all admitted correspondence hypotheses for this branch.
     pub expected_bundle_digest: String,
 }
 
@@ -420,7 +420,7 @@ pub fn export_to_sam(
         let mut queries = Vec::with_capacity(receipts.len());
         for (hypothesis_id, receipt) in receipts {
             let expected = anchors
-                .get(&(branch.branch_id.clone(), hypothesis_id.clone()))
+                .get(&branch.branch_id)
                 .ok_or(HandoffError::MissingDrawBundleAnchor)?;
             if expected != &receipt.draw_bundle_digest {
                 return Err(HandoffError::DrawBundleAnchorMismatch);
@@ -447,7 +447,7 @@ pub fn export_to_sam(
         });
     }
 
-    if anchors.len() != output.iter().map(|b| b.queries.len()).sum::<usize>() {
+    if anchors.len() != output.len() {
         return Err(HandoffError::MissingDrawBundleAnchor);
     }
 
@@ -901,15 +901,16 @@ fn correspondence_index<'a>(
 
 fn draw_anchor_index(
     anchors: &[DrawBundleAnchor],
-) -> Result<BTreeMap<(String, String), String>, HandoffError> {
+) -> Result<BTreeMap<String, String>, HandoffError> {
     let mut index = BTreeMap::new();
     for anchor in anchors {
         require(&anchor.branch_id, "draw anchor branch_id")?;
-        require(&anchor.hypothesis_id, "draw anchor hypothesis_id")?;
         require(&anchor.expected_bundle_digest, "expected_bundle_digest")?;
-        let key = (anchor.branch_id.clone(), anchor.hypothesis_id.clone());
-        if index.insert(key, anchor.expected_bundle_digest.clone()).is_some() {
-            return Err(HandoffError::DuplicateHypothesis);
+        if index
+            .insert(anchor.branch_id.clone(), anchor.expected_bundle_digest.clone())
+            .is_some()
+        {
+            return Err(HandoffError::DuplicateBranch);
         }
     }
     Ok(index)
@@ -1322,7 +1323,7 @@ mod tests {
                 correspondence_digest: d("map-actor"),
                 causal_dispositions_digest: d("causal-actor"),
                 projection_input_digest: d("projection-actor"),
-                draw_bundle_digest: d("draw-actor"),
+                draw_bundle_digest: d("draw-bundle-continue"),
                 verifier_profile_digest: d("verifier"),
                 verifier_receipt_digest: d("verification-receipt"),
             },
@@ -1331,7 +1332,7 @@ mod tests {
                 correspondence_digest: d("map-slot"),
                 causal_dispositions_digest: d("causal-slot"),
                 projection_input_digest: d("projection-slot"),
-                draw_bundle_digest: d("draw-slot"),
+                draw_bundle_digest: d("draw-bundle-continue"),
                 verifier_profile_digest: d("verifier"),
                 verifier_receipt_digest: d("verification-receipt"),
             },
@@ -1380,8 +1381,10 @@ mod tests {
         };
         let episode_root = episode.episode_root().unwrap();
         let anchors = vec![
-            DrawBundleAnchor { branch_id: "continue-branch".into(), hypothesis_id: "actor-keyed".into(), expected_bundle_digest: d("draw-actor") },
-            DrawBundleAnchor { branch_id: "continue-branch".into(), hypothesis_id: "slot-keyed".into(), expected_bundle_digest: d("draw-slot") },
+            DrawBundleAnchor {
+                branch_id: "continue-branch".into(),
+                expected_bundle_digest: d("draw-bundle-continue"),
+            },
         ];
         let anchor = ExternalAnchor {
             authority_reference: "independent-evaluator:fixture-anchor-001".into(),
