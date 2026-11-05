@@ -189,8 +189,7 @@ mod tests {
     use crate::body::BodyHandle;
 
     fn simulate_harmonic_oscillator(dt: f64, steps: usize) -> (f64, f64) {
-        let mut body =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.1, 1.0);
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.1, 1.0);
         body.linear_damping = 0.0;
         let zero_gravity = SVector::zeros();
         let mut max_abs_position = 1.0_f64;
@@ -207,12 +206,8 @@ mod tests {
 
     #[test]
     fn constant_acceleration_matches_the_exact_discrete_kick_drift_update() {
-        let mut body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(0),
-            Point::new([1.0, 3.0, -2.0]),
-            0.5,
-            2.0,
-        );
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([1.0, 3.0, -2.0]), 0.5, 2.0);
         body.linear_damping = 0.0;
         body.linear_velocity = SVector::from([1.2, -0.4, 0.3]);
 
@@ -265,8 +260,7 @@ mod tests {
                 integrate(&mut body, &gravity, dt);
             }
 
-            let analytical_position =
-                initial_position + 0.5 * gravity[1] * total_time * total_time;
+            let analytical_position = initial_position + 0.5 * gravity[1] * total_time * total_time;
             (body.position()[1] - analytical_position).abs()
         }
 
@@ -288,8 +282,7 @@ mod tests {
     fn harmonic_oscillator_exposes_timestep_dependent_stability() {
         // For this unit-frequency undamped oscillator, omega * dt = 1.5 is
         // inside the semi-implicit Euler stability interval (0, 2).
-        let (stable_max_position, stable_final_velocity) =
-            simulate_harmonic_oscillator(1.5, 1_000);
+        let (stable_max_position, stable_final_velocity) = simulate_harmonic_oscillator(1.5, 1_000);
         assert!(
             stable_max_position < 2.0 && stable_final_velocity < 2.0,
             "inside stability interval should remain bounded: max_x={stable_max_position}, final_v={stable_final_velocity}"
@@ -297,8 +290,7 @@ mod tests {
 
         // omega * dt = 2.1 is outside the linear stability interval; this is
         // a negative control against claims of unconditional stability.
-        let (unstable_max_position, unstable_final_velocity) =
-            simulate_harmonic_oscillator(2.1, 8);
+        let (unstable_max_position, unstable_final_velocity) = simulate_harmonic_oscillator(2.1, 8);
         assert!(
             unstable_max_position > 10.0 && unstable_final_velocity > 10.0,
             "outside stability interval should exhibit growth: max_x={unstable_max_position}, final_v={unstable_final_velocity}"
