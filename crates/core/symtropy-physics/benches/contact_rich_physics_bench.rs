@@ -1,0 +1,235 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
+//! Contact-rich rigid-body workloads.
+//!
+//! Existing step benchmarks mostly measure integration and broadphase because
+//! their bodies are widely separated. These workloads deliberately produce
+//! resting contacts and multi-body contact graphs. The no-contact case is a
+//! control. This establishes a reproducible Symtropy baseline that can later
+//! be matched to Rapier, MuJoCo and Box2D where collision semantics agree.
+
+use criterion::{
+    BatchSize, BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main,
+};
+use nalgebra::SVector;
+use symtropy_math::{HalfSpace, Point};
+use symtropy_physics::{BodyHandle, PhysicsWorld, RigidBody};
+
+const STEPS: usize = 120;
+const DT: f64 = 1.0 / 120.0;
+const STACK_BODIES: usize = 16;
+const BED_SIDE: usize = 8;
+const SPHERE_RADIUS: f64 = 0.5;
+const CONTACT_OVERLAP: f64 = 0.005;
+
+#[derive(Clone, Copy)]
+enum Scene {
+    NoContact64,
+    SphereStack16,
+    SphereBed8x8,
+}
+
+impl Scene {
+    fn name(self) -> &'static str {
+        match self {
+            Self::NoContact64 => "no_contact_64_spheres",
+            Self::SphereStack16 => "resting_sphere_stack_16",
+            Self::SphereBed8x8 => "dense_sphere_bed_8x8",
+        }
+    }
+
+    fn body_count(self) -> usize {
+        match self {
+            Self::NoContact64 => 64,
+            Self::SphereStack16 => STACK_BODIES,
+            Self::SphereBed8x8 => BED_SIDE * BED_SIDE,
+        }
+    }
+
+    fn has_contacts(self) -> bool {
+        !matches!(self, Self::NoContact64)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct CampaignStats {
+    body_steps: u64,
+    contact_manifold_steps: u64,
+    contact_point_steps: u64,
+    collision_events: u64,
+    peak_penetration_m: f64,
+    max_linear_speed_m_per_s: f64,
+    non_finite_body_count: usize,
+}
+
+fn new_world(gravity_y: f64) -> PhysicsWorld<3> {
+    let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, gravity_y, 0.0]));
+    world.solver_iterations = 8;
+    world.sleep_threshold = 0.0;
+    world.sleep_ticks = u32::MAX;
+    world
+}
+
+fn add_ground(world: &mut PhysicsWorld<3>) {
+    let ground = RigidBody::<3>::static_body(
+        // PhysicsWorld::add_body assigns its own stable handle.
+        BodyHandle(0),
+        Point::origin(),
+        Box::new(HalfSpace::<3>::ground(1, 0.0)),
+    );
+    world.add_body(ground);
+}
+
+fn build_scene(scene: Scene) -> PhysicsWorld<3> {
+    match scene {
+        Scene::NoContact64 => {
+            let mut world = new_world(0.0);
+            for index in 0..64 {
+                let x = (index % 8) as f64 * 2.5;
+                let z = (index / 8) as f64 * 2.5;
+                world.add_sphere(Point::new([x, 10.0, z]), SPHERE_RADIUS, 1.0);
+            }
+            world
+        }
+        Scene::SphereStack16 => {
+            let mut world = new_world(-9.81);
+            add_ground(&mut world);
+            let spacing = 2.0 * SPHERE_RADIUS - CONTACT_OVERLAP;
+            for index in 0..STACK_BODIES {
+                world.add_sphere(
+                    Point::new([
+                        0.0,
+                        SPHERE_RADIUS - CONTACT_OVERLAP + index as f64 * spacing,
+                        0.0,
+                    ]),
+                    SPHERE_RADIUS,
+                    1.0,
+                );
+            }
+            world
+        }
+        Scene::SphereBed8x8 => {
+            let mut world = new_world(-9.81);
+            add_ground(&mut world);
+            let spacing = 2.0 * SPHERE_RADIUS - CONTACT_OVERLAP;
+            let origin = -0.5 * (BED_SIDE - 1) as f64 * spacing;
+            for row in 0..BED_SIDE {
+                for column in 0..BED_SIDE {
+                    world.add_sphere(
+                        Point::new([
+                            origin + column as f64 * spacing,
+                            SPHERE_RADIUS - CONTACT_OVERLAP,
+                            origin + row as f64 * spacing,
+                        ]),
+                        SPHERE_RADIUS,
+                        1.0,
+                    );
+                }
+            }
+            world
+        }
+    }
+}
+
+fn run_campaign(mut world: PhysicsWorld<3>, scene: Scene) -> CampaignStats {
+    let mut stats = CampaignStats {
+        body_steps: 0,
+        contact_manifold_steps: 0,
+        contact_point_steps: 0,
+        collision_events: 0,
+        peak_penetration_m: 0.0,
+        max_linear_speed_m_per_s: 0.0,
+        non_finite_body_count: 0,
+    };
+
+    for _ in 0..STEPS {
+        world.step(DT);
+        stats.body_steps += world.body_count() as u64;
+        stats.contact_manifold_steps += world.contacts.len() as u64;
+        stats.contact_point_steps += world
+            .contacts
+            .iter()
+            .map(|manifold| manifold.points.len() as u64)
+            .sum::<u64>();
+        stats.collision_events += world.collision_events.len() as u64;
+        stats.peak_penetration_m = stats.peak_penetration_m.max(
+            world
+                .contacts
+                .iter()
+                .map(|manifold| manifold.depth())
+                .fold(0.0, f64::max),
+        );
+
+        let invariants = world.invariant_snapshot();
+        stats.max_linear_speed_m_per_s = stats
+            .max_linear_speed_m_per_s
+            .max(invariants.max_linear_speed);
+        stats.non_finite_body_count += invariants.non_finite_body_count;
+        assert!(
+            invariants.is_numerically_healthy(1e-8),
+            "{} produced a numerically unhealthy state",
+            scene.name()
+        );
+    }
+
+    if scene.has_contacts() {
+        assert!(
+            stats.contact_point_steps > 0,
+            "{} did not exercise the contact solver",
+            scene.name()
+        );
+    } else {
+        assert_eq!(
+            stats.contact_point_steps, 0,
+            "no-contact control unexpectedly generated contact points"
+        );
+    }
+    assert_eq!(stats.non_finite_body_count, 0);
+    assert!(stats.max_linear_speed_m_per_s.is_finite());
+    stats
+}
+
+fn bench_contact_rich_scenes(c: &mut Criterion) {
+    let mut group = c.benchmark_group("contact_rich_physics_120hz");
+    for scene in [
+        Scene::NoContact64,
+        Scene::SphereStack16,
+        Scene::SphereBed8x8,
+    ] {
+        // Untimed calibration captures actual contact complexity for the run
+        // and embeds it in the benchmark ID. This prevents a scene that
+        // unexpectedly loses all contacts from looking like a speed win.
+        let calibration = run_campaign(build_scene(scene), scene);
+        let average_points_per_step = calibration.contact_point_steps as f64 / STEPS as f64;
+        let average_manifolds_per_step =
+            calibration.contact_manifold_steps as f64 / STEPS as f64;
+        let benchmark_name = format!(
+            "{}_{}bodies_{:.1}manifolds_{:.1}points_{:.3}m_pen_{}events",
+            scene.name(),
+            scene.body_count(),
+            average_manifolds_per_step,
+            average_points_per_step,
+            calibration.peak_penetration_m,
+            calibration.collision_events
+        );
+
+        // Same throughput unit across all scenes: body-steps. Contact
+        // complexity is independently recorded in the benchmark name.
+        group.throughput(Throughput::Elements(calibration.body_steps));
+        group.bench_function(BenchmarkId::new(benchmark_name, STEPS), |bench| {
+            bench.iter_batched(
+                || build_scene(scene),
+                |world| black_box(run_campaign(world, scene)),
+                BatchSize::LargeInput,
+            );
+        });
+
+        // Keep the calibration output observable for future result receipts.
+        black_box(calibration);
+    }
+    group.finish();
+}
+
+criterion_group!(benches, bench_contact_rich_scenes);
+criterion_main!(benches);
