@@ -2765,5 +2765,8 @@ mod tests {
                 "slow-low-energy".into()
             ))
         );
-    }
+        }
+
+    #[path = "tests/exact_oracle.rs"]
+    mod exact_oracle;
 }
