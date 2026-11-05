@@ -840,9 +840,22 @@ fn transitions_complete(branch: &BranchExport, steps: &[SamDecisionStep]) -> boo
     if branch.transitions.is_empty() || steps.len() != branch.transitions.len() {
         return false;
     }
+
+    let mut transitions: Vec<_> = branch.transitions.iter().collect();
+    transitions.sort_by_key(|transition| transition.tick);
+    if transitions.windows(2).any(|pair| pair[0].tick == pair[1].tick) {
+        return false;
+    }
+
+    let transition_ticks: BTreeSet<_> = transitions.iter().map(|transition| transition.tick).collect();
+    let decision_ticks: BTreeSet<_> = branch.decisions.iter().map(|decision| decision.tick).collect();
+    if transition_ticks != decision_ticks {
+        return false;
+    }
+
     let mut prior_child: Option<&str> = None;
     let mut prior_tick = None;
-    for (index, transition) in branch.transitions.iter().enumerate() {
+    for (index, transition) in transitions.iter().enumerate() {
         if transition.disposition != TransitionDisposition::Completed
             || steps.get(index).is_none_or(|step| step.tick != transition.tick)
         {
