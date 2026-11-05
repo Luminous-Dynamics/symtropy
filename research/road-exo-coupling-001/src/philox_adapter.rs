@@ -226,6 +226,8 @@ pub struct CorrespondenceDrawReceipt {
 pub struct CorrespondenceHypothesisDraws {
     pub hypothesis_id: crate::StableId,
     pub completeness: PlanCompleteness,
+    /// Original exact event map, pairing bases, and correspondence evidence references.
+    pub correspondence: crate::correspondence::CorrespondenceHypothesis,
     pub draws: Vec<CorrespondenceDrawReceipt>,
 }
 
@@ -256,6 +258,7 @@ pub fn resolve_correspondence_plan(
         hypotheses.push(CorrespondenceHypothesisDraws {
             hypothesis_id: hypothesis.hypothesis_id.clone(),
             completeness: hypothesis.completeness,
+            correspondence: hypothesis.correspondence.clone(),
             draws,
         });
     }
@@ -316,7 +319,10 @@ pub fn verify_correspondence_receipt(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::correspondence::{CandidateUniverseStatus, HypothesisSetStatus};
+    use crate::correspondence::{
+        CandidateUniverseStatus, CorrespondenceHypothesis, EventPair, HypothesisSetStatus,
+        IdentityBasis, UnmatchedEvent, UnmatchedReason,
+    };
     use crate::coupling_projection::{
         CorrespondenceAddressPlan, HypothesisAddressPlan, PlanCompleteness, PlannedAddress,
         PlannedPresence, SharingStatus,
@@ -349,6 +355,26 @@ mod tests {
             coupling,
         )
         .expect("fixture address is valid")
+    }
+
+    fn correspondence_hypothesis(name: &str, right_event: &str, basis: IdentityBasis, unmatched: &str) -> CorrespondenceHypothesis {
+        CorrespondenceHypothesis {
+            hypothesis_id: id(name),
+            justification_ref: id(&format!("justification-{name}")),
+            pairs: vec![EventPair {
+                left_event: id("L1"),
+                right_event: id(right_event),
+                basis,
+                justification_ref: id(&format!("pairing-{name}")),
+            }],
+            unmatched_left: Vec::new(),
+            unmatched_right: vec![UnmatchedEvent {
+                event_id: id(unmatched),
+                reason: UnmatchedReason::NoCounterpartUnderHypothesis {
+                    rationale_ref: id(&format!("unmatched-{name}")),
+                },
+            }],
+        }
     }
 
     fn planned_address(
@@ -384,6 +410,12 @@ mod tests {
                 HypothesisAddressPlan {
                     hypothesis_id: id("H-actor"),
                     completeness: PlanCompleteness::CompleteWithinDeclaredSets,
+                    correspondence: correspondence_hypothesis(
+                        "H-actor",
+                        "R1",
+                        IdentityBasis::Actor,
+                        "R2",
+                    ),
                     addresses: vec![
                         planned_address(
                             "continue",
@@ -408,6 +440,12 @@ mod tests {
                 HypothesisAddressPlan {
                     hypothesis_id: id("H-slot"),
                     completeness: PlanCompleteness::CompleteWithinDeclaredSets,
+                    correspondence: correspondence_hypothesis(
+                        "H-slot",
+                        "R2",
+                        IdentityBasis::EncounterSlot,
+                        "R1",
+                    ),
                     addresses: vec![
                         planned_address(
                             "continue",
@@ -492,6 +530,10 @@ mod tests {
             assert_eq!(
                 resolved_hypothesis.hypothesis_id,
                 planned_hypothesis.hypothesis_id
+            );
+            assert_eq!(
+                resolved_hypothesis.correspondence,
+                planned_hypothesis.correspondence
             );
             assert_eq!(
                 resolved_hypothesis.draws.len(),
