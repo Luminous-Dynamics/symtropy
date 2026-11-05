@@ -1449,10 +1449,7 @@ mod tests {
             vibration_afferent: ChannelState::Intact,
             contact_feedback: ChannelState::Intact,
             acquisition: AcquisitionState::Calibrated,
-            presynaptic_movement_inhibition: [
-                PresynapticMovementInhibition::Disinhibited;
-                6
-            ],
+            presynaptic_movement_inhibition: [PresynapticMovementInhibition::Disinhibited; 6],
         }
     }
 
