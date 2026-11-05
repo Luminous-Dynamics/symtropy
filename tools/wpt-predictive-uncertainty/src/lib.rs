@@ -372,6 +372,62 @@ pub fn evaluate_decision_gate(
     })
 }
 
+/// Result that combines interval feasibility with operating-regime qualification.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RegimeDecisionGateReport {
+    pub regime_id: String,
+    pub regime_supported: bool,
+    pub decision: GateDecision,
+    pub interval_gate: DecisionGateReport,
+    pub action: String,
+}
+
+/// Evaluate hard constraints only inside a pre-qualified operating regime.
+///
+/// An unsupported regime is NOT_EVALUABLE even when the supplied intervals
+/// appear to pass. A definite interval violation still returns INHIBIT.
+pub fn evaluate_decision_gate_for_regime(
+    regime_id: &str,
+    qualified_regimes: &[String],
+    constraints: &[DecisionConstraint],
+) -> Result<RegimeDecisionGateReport, String> {
+    if regime_id.trim().is_empty() || qualified_regimes.is_empty() {
+        return Err("current regime and qualified regime set must be non-empty".into());
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    for qualified in qualified_regimes {
+        if qualified.trim().is_empty() || !seen.insert(qualified) {
+            return Err("qualified regime IDs must be non-empty and unique".into());
+        }
+    }
+    let regime_supported = seen.contains(regime_id);
+    let mut interval_gate = evaluate_decision_gate(constraints)?;
+    let decision = if interval_gate.decision == GateDecision::Inhibit {
+        GateDecision::Inhibit
+    } else if !regime_supported || interval_gate.decision == GateDecision::NotEvaluable {
+        GateDecision::NotEvaluable
+    } else {
+        GateDecision::Eligible
+    };
+    interval_gate.decision = decision;
+    interval_gate.action = match decision {
+        GateDecision::Eligible => {
+            "ELIGIBLE_FOR_INDEPENDENT_INTERLOCK_AND_AUTHORIZATION_CHECKS"
+        }
+        GateDecision::Inhibit => "INHIBIT_OR_ENTER_DECLARED_SAFE_STATE",
+        GateDecision::NotEvaluable => "DO_NOT_INCREASE_POWER; DERATE_OR_RAMP_DOWN",
+    }
+    .to_string();
+    let action = interval_gate.action.clone();
+    Ok(RegimeDecisionGateReport {
+        regime_id: regime_id.to_string(),
+        regime_supported,
+        decision,
+        interval_gate,
+        action,
+    })
+}
+
 #[cfg(test)]
 mod decision_gate_tests {
     use super::*;
