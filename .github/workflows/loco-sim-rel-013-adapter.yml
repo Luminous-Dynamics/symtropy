@@ -2,12 +2,12 @@ name: LOCO-SIM-REL-001 locomotion joint-kernel adapter
 
 on:
   push:
-    branches: ["research/loco-sim-rel-013-adapter-v0"]
+    branches: ["research/loco-sim-rel-013-adapter-v0", "research/loco-flygym-receipts-v0"]
     paths:
       - "tools/sim-rel-joint-stochastic-oracle/**"
       - ".github/workflows/loco-sim-rel-013-adapter.yml"
   pull_request:
-    branches: ["main", "research/sim-rel-014-eig-baselines"]
+    branches: ["main", "research/sim-rel-014-eig-baselines", "research/loco-sim-rel-013-adapter-v0"]
     paths:
       - "tools/sim-rel-joint-stochastic-oracle/**"
       - ".github/workflows/loco-sim-rel-013-adapter.yml"
