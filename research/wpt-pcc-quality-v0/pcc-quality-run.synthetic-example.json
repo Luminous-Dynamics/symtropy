@@ -34,9 +34,29 @@
     "fundamental_rms_a": 100,
     "harmonics": [
       {
+        "harmonic_order": 2,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 3,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 4,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
         "harmonic_order": 5,
         "rms_current_a": 4,
         "expanded_uncertainty_a": 0.05
+      },
+      {
+        "harmonic_order": 6,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
       },
       {
         "harmonic_order": 7,
@@ -44,9 +64,29 @@
         "expanded_uncertainty_a": 0.05
       },
       {
+        "harmonic_order": 8,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 9,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 10,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
         "harmonic_order": 11,
         "rms_current_a": 2,
         "expanded_uncertainty_a": 0.03
+      },
+      {
+        "harmonic_order": 12,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
       },
       {
         "harmonic_order": 13,
@@ -54,11 +94,192 @@
         "expanded_uncertainty_a": 0.03
       },
       {
+        "harmonic_order": 14,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 15,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 16,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
         "harmonic_order": 17,
         "rms_current_a": 0.5,
         "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 18,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 19,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 20,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 21,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 22,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 23,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 24,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 25,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 26,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 27,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 28,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 29,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 30,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 31,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 32,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 33,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 34,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 35,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 36,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 37,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 38,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 39,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 40,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 41,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 42,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 43,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 44,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 45,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 46,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 47,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 48,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 49,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 50,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
       }
-    ]
+    ],
+    "maximum_harmonic_order": 50
   },
   "quality_flags": [
     "SYNTHETIC_ONLY"
