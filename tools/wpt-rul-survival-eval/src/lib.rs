@@ -1,0 +1,769 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//! Censoring-aware, competing-risk forecast evaluation for WPT asset lifecycles.
+//!
+//! v0 is deliberately a synthetic known-truth evaluator. It computes a
+//! horizon-specific multicause IPCW Brier score under unconditional independent
+//! right censoring, estimates the censoring survival function with a
+//! reverse-Kaplan-Meier product-limit estimator on the evaluation cohort, and
+//! reports an auxiliary all-cause Harrell C-index. It does not fit predictors,
+//! claim conditional independent censoring, estimate calibration curves,
+//! implement A-calibration / D-calibration, or issue field RUL claims.
+
+use serde_json::Value;
+use std::collections::{BTreeMap, BTreeSet};
+
+const TARGET_EVENT_CODES: &[&str] = &[
+    "STRUCTURAL_CRACK_LIMIT",
+    "RUTTING_LIMIT",
+    "INSULATION_RESISTANCE_LIMIT",
+    "COIL_OPEN_CIRCUIT",
+    "THERMAL_LIMIT",
+    "SERVICE_AVAILABILITY_LIMIT",
+    "OTHER",
+];
+const COMPETING_EVENT_CODES: &[&str] = &[
+    "PLANNED_REPLACEMENT",
+    "UNRELATED_ASSET_FAILURE",
+    "ROAD_RECONSTRUCTION",
+];
+const SYNTHETIC_FLAG: &str = "SYNTHETIC_ONLY";
+const PROBABILITY_SUM_TOLERANCE: f64 = 1e-9;
+
+fn fail(path: &str, message: impl AsRef<str>) -> String {
+    format!("{path}: {}", message.as_ref())
+}
+
+fn object<'a>(
+    value: &'a Value,
+    path: &str,
+) -> Result<&'a serde_json::Map<String, Value>, String> {
+    value
+        .as_object()
+        .ok_or_else(|| fail(path, "must be an object"))
+}
+
+fn exact_keys(value: &Value, allowed: &[&str], path: &str) -> Result<(), String> {
+    let map = object(value, path)?;
+    for key in map.keys() {
+        if !allowed.contains(&key.as_str()) {
+            return Err(fail(path, format!("unknown property {key}")));
+        }
+    }
+    Ok(())
+}
+
+fn field<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a Value, String> {
+    value
+        .as_object()
+        .and_then(|map| map.get(key))
+        .ok_or_else(|| fail(path, format!("missing property {key}")))
+}
+
+fn string_field<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a str, String> {
+    field(value, key, path)?
+        .as_str()
+        .filter(|item| !item.trim().is_empty())
+        .ok_or_else(|| fail(&format!("{path}.{key}"), "must be a non-empty string"))
+}
+
+fn number_field(value: &Value, key: &str, path: &str) -> Result<f64, String> {
+    let number = field(value, key, path)?
+        .as_f64()
+        .ok_or_else(|| fail(&format!("{path}.{key}"), "must be numeric"))?;
+    if !number.is_finite() {
+        return Err(fail(&format!("{path}.{key}"), "must be finite"));
+    }
+    Ok(number)
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn string_set(
+    value: &Value,
+    key: &str,
+    path: &str,
+    allowed: &[&str],
+) -> Result<BTreeSet<String>, String> {
+    let values = field(value, key, path)?
+        .as_array()
+        .ok_or_else(|| fail(&format!("{path}.{key}"), "must be an array"))?;
+    if values.is_empty() {
+        return Err(fail(&format!("{path}.{key}"), "must not be empty"));
+    }
+    let mut result = BTreeSet::new();
+    for item in values {
+        let item = item
+            .as_str()
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| fail(&format!("{path}.{key}"), "all items must be non-empty strings"))?;
+        if !allowed.contains(&item) {
+            return Err(fail(
+                &format!("{path}.{key}"),
+                format!("unsupported event code {item}"),
+            ));
+        }
+        if !result.insert(item.to_string()) {
+            return Err(fail(
+                &format!("{path}.{key}"),
+                format!("duplicate event code {item}"),
+            ));
+        }
+    }
+    Ok(result)
+}
+
+#[derive(Debug, Clone)]
+struct Subject {
+    subject_id: String,
+    cluster_id: String,
+    observed_duration_hours: f64,
+    outcome_kind: String,
+    event_code: Option<String>,
+    survival_probability: f64,
+    cumulative_incidence: BTreeMap<String, f64>,
+}
+
+impl Subject {
+    fn has_terminal_event(&self) -> bool {
+        self.outcome_kind != "RIGHT_CENSORED"
+    }
+
+    fn risk_score(&self) -> f64 {
+        1.0 - self.survival_probability
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SurvivalEvaluation {
+    pub run_id: String,
+    pub horizon_hours: f64,
+    pub subject_count: usize,
+    pub eligible_subject_count: usize,
+    pub censored_before_horizon_count: usize,
+    pub distinct_cluster_count: usize,
+    /// Multicause IPCW Brier score divided by the total evaluation-cohort size.
+    pub ipcw_competing_risk_brier_score: f64,
+    /// Smallest censoring-survival value used by an eligible score contribution.
+    pub minimum_censoring_survival_used: f64,
+    /// Largest inverse-probability-of-censoring weight used by an eligible subject.
+    pub maximum_ipcw_weight: f64,
+    /// Auxiliary ranking metric for any first terminal event, not a cause-specific C-index.
+    pub all_cause_harrell_c_index: Option<f64>,
+    pub all_cause_comparable_pairs: usize,
+    pub censoring_estimator: &'static str,
+    pub censoring_assumption: &'static str,
+    pub claim_ceiling: &'static str,
+}
+
+fn parse_subjects(
+    run: &Value,
+    target_codes: &BTreeSet<String>,
+    competing_codes: &BTreeSet<String>,
+    all_codes: &BTreeSet<String>,
+) -> Result<Vec<Subject>, String> {
+    let rows = field(run, "subjects", "$")?
+        .as_array()
+        .ok_or_else(|| fail("$.subjects", "must be an array"))?;
+    if rows.is_empty() {
+        return Err(fail("$.subjects", "at least one subject is required"));
+    }
+
+    let mut subjects = Vec::with_capacity(rows.len());
+    let mut subject_ids = BTreeSet::new();
+
+    for (index, row) in rows.iter().enumerate() {
+        let path = format!("$.subjects[{index}]");
+        exact_keys(
+            row,
+            &[
+                "subject_id",
+                "cluster_id",
+                "observed_duration_hours",
+                "outcome_kind",
+                "event_code",
+                "predicted_survival_probability",
+                "predicted_cumulative_incidence",
+            ],
+            &path,
+        )?;
+        let subject_id = string_field(row, "subject_id", &path)?.to_string();
+        if !subject_ids.insert(subject_id.clone()) {
+            return Err(fail(&path, format!("duplicate subject_id {subject_id}")));
+        }
+        let cluster_id = string_field(row, "cluster_id", &path)?.to_string();
+        let observed_duration_hours = number_field(row, "observed_duration_hours", &path)?;
+        if observed_duration_hours <= 0.0 {
+            return Err(fail(
+                &path,
+                "observed_duration_hours must be strictly positive",
+            ));
+        }
+
+        let outcome_kind = string_field(row, "outcome_kind", &path)?.to_string();
+        let event_value = field(row, "event_code", &path)?;
+        let event_code = if event_value.is_null() {
+            None
+        } else {
+            Some(
+                event_value
+                    .as_str()
+                    .filter(|value| !value.trim().is_empty())
+                    .ok_or_else(|| fail(&format!("{path}.event_code"), "must be a string or null"))?
+                    .to_string(),
+            )
+        };
+        match outcome_kind.as_str() {
+            "TARGET_FAILURE" => {
+                let code = event_code
+                    .as_ref()
+                    .ok_or_else(|| fail(&path, "target failure requires an event_code"))?;
+                if !target_codes.contains(code) {
+                    return Err(fail(
+                        &path,
+                        format!("event code {code} is not in target_event_codes"),
+                    ));
+                }
+            }
+            "COMPETING_EVENT" => {
+                let code = event_code
+                    .as_ref()
+                    .ok_or_else(|| fail(&path, "competing event requires an event_code"))?;
+                if !competing_codes.contains(code) {
+                    return Err(fail(
+                        &path,
+                        format!("event code {code} is not in competing_event_codes"),
+                    ));
+                }
+            }
+            "RIGHT_CENSORED" => {
+                if event_code.is_some() {
+                    return Err(fail(
+                        &path,
+                        "right-censored subject must not carry an event_code",
+                    ));
+                }
+            }
+            _ => return Err(fail(&path, "unknown outcome_kind")),
+        }
+
+        let survival_probability =
+            number_field(row, "predicted_survival_probability", &path)?;
+        if !(0.0..=1.0).contains(&survival_probability) {
+            return Err(fail(
+                &path,
+                "predicted_survival_probability must be within [0, 1]",
+            ));
+        }
+
+        let cause_rows = field(row, "predicted_cumulative_incidence", &path)?
+            .as_array()
+            .ok_or_else(|| fail(&format!("{path}.predicted_cumulative_incidence"), "must be an array"))?;
+        if cause_rows.len() != all_codes.len() {
+            return Err(fail(
+                &path,
+                "predicted_cumulative_incidence must contain every declared event cause exactly once",
+            ));
+        }
+        let mut cumulative_incidence = BTreeMap::new();
+        for (cause_index, cause_row) in cause_rows.iter().enumerate() {
+            let cause_path = format!("{path}.predicted_cumulative_incidence[{cause_index}]");
+            exact_keys(cause_row, &["event_code", "probability"], &cause_path)?;
+            let cause = string_field(cause_row, "event_code", &cause_path)?.to_string();
+            if !all_codes.contains(&cause) {
+                return Err(fail(
+                    &cause_path,
+                    format!("event cause {cause} is not declared by this run"),
+                ));
+            }
+            let probability = number_field(cause_row, "probability", &cause_path)?;
+            if !(0.0..=1.0).contains(&probability) {
+                return Err(fail(&cause_path, "probability must be within [0, 1]"));
+            }
+            if cumulative_incidence.insert(cause.clone(), probability).is_some() {
+                return Err(fail(&cause_path, format!("duplicate event cause {cause}")));
+            }
+        }
+        if cumulative_incidence.keys().cloned().collect::<BTreeSet<_>>() != *all_codes {
+            return Err(fail(
+                &path,
+                "predicted_cumulative_incidence is missing one or more declared event causes",
+            ));
+        }
+        let probability_sum = survival_probability
+            + cumulative_incidence.values().sum::<f64>();
+        if (probability_sum - 1.0).abs() > PROBABILITY_SUM_TOLERANCE {
+            return Err(fail(
+                &path,
+                format!("survival plus cumulative incidence probabilities must sum to 1 (got {probability_sum})"),
+            ));
+        }
+
+        subjects.push(Subject {
+            subject_id,
+            cluster_id,
+            observed_duration_hours,
+            outcome_kind,
+            event_code,
+            survival_probability,
+            cumulative_incidence,
+        });
+    }
+
+    Ok(subjects)
+}
+
+/// Estimate P(C >= t) immediately before t using a reverse-Kaplan-Meier
+/// product limit on right-censoring times in the evaluation cohort.
+///
+/// Terminal events are treated as observations of the censoring process at
+/// their terminal-event time. Ties use the pre-time risk set, and only censor
+/// times strictly less than t enter the left-limit product.
+fn censoring_survival_left_limit(subjects: &[Subject], time: f64) -> f64 {
+    let mut censor_times = subjects
+        .iter()
+        .filter(|subject| {
+            subject.outcome_kind == "RIGHT_CENSORED"
+                && subject.observed_duration_hours < time
+        })
+        .map(|subject| subject.observed_duration_hours)
+        .collect::<Vec<_>>();
+    censor_times.sort_by(f64::total_cmp);
+    censor_times.dedup_by(|left, right| *left == *right);
+
+    let mut survival = 1.0;
+    for censor_time in censor_times {
+        let at_risk = subjects
+            .iter()
+            .filter(|subject| subject.observed_duration_hours >= censor_time)
+            .count();
+        let censored_here = subjects
+            .iter()
+            .filter(|subject| {
+                subject.outcome_kind == "RIGHT_CENSORED"
+                    && subject.observed_duration_hours == censor_time
+            })
+            .count();
+        if at_risk == 0 || censored_here > at_risk {
+            return 0.0;
+        }
+        survival *= 1.0 - censored_here as f64 / at_risk as f64;
+    }
+    survival
+}
+
+fn competing_risk_multiclass_loss(
+    subject: &Subject,
+    event_code: Option<&str>,
+    event_free_at_horizon: bool,
+) -> f64 {
+    let survival_target = if event_free_at_horizon { 1.0 } else { 0.0 };
+    let mut loss = (subject.survival_probability - survival_target).powi(2);
+    for (cause, prediction) in &subject.cumulative_incidence {
+        let target = f64::from(event_code == Some(cause.as_str()));
+        loss += (prediction - target).powi(2);
+    }
+    loss
+}
+
+/// Evaluate one fixed-horizon competing-risk forecast.
+///
+/// The IPCW Brier score uses an unconditional reverse-KM censoring estimator
+/// fitted to this evaluation cohort. It is only admitted when independent
+/// right censoring is explicitly declared. Subjects censored before the
+/// horizon are excluded; target and competing events before the horizon are
+/// scored against their own cause-specific outcome category. The divisor is
+/// the full test-cohort size, as in the standard IPCW Brier construction.
+pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
+    exact_keys(
+        run,
+        &[
+            "schema_version",
+            "run_id",
+            "evidence_kind",
+            "evaluation_split",
+            "estimand",
+            "censoring_assumption",
+            "censoring_estimator",
+            "prediction_horizon_hours",
+            "minimum_censoring_survival",
+            "target_event_codes",
+            "competing_event_codes",
+            "prediction_model_sha256",
+            "outcome_data_sha256",
+            "subjects",
+            "quality_flags",
+        ],
+        "$",
+    )?;
+
+    if string_field(run, "schema_version", "$")? != "wpt-rul-survival-eval-v0" {
+        return Err(fail("$.schema_version", "unsupported schema version"));
+    }
+    let run_id = string_field(run, "run_id", "$")?.to_string();
+    if string_field(run, "evidence_kind", "$")? != "SYNTHETIC_KNOWN_TRUTH" {
+        return Err(fail(
+            "$.evidence_kind",
+            "v0 admits synthetic known-truth evaluation runs only",
+        ));
+    }
+    if string_field(run, "evaluation_split", "$")? != "TEST" {
+        return Err(fail("$.evaluation_split", "v0 evaluates a frozen TEST cohort only"));
+    }
+    if string_field(run, "estimand", "$")? != "COMPETING_RISK_CIF_AT_HORIZON" {
+        return Err(fail("$.estimand", "unsupported survival estimand"));
+    }
+    if string_field(run, "censoring_assumption", "$")? != "INDEPENDENT_RIGHT_CENSORING" {
+        return Err(fail(
+            "$.censoring_assumption",
+            "NOT_EVALUABLE: v0 requires independent right censoring; conditional/dependent censoring needs a declared conditional censoring model",
+        ));
+    }
+    if string_field(run, "censoring_estimator", "$")?
+        != "EVALUATION_COHORT_UNCONDITIONAL_KM"
+    {
+        return Err(fail(
+            "$.censoring_estimator",
+            "v0 supports evaluation-cohort unconditional Kaplan-Meier censoring estimation only",
+        ));
+    }
+
+    let horizon = number_field(run, "prediction_horizon_hours", "$")?;
+    if horizon <= 0.0 {
+        return Err(fail("$.prediction_horizon_hours", "must be strictly positive"));
+    }
+    let minimum_g = number_field(run, "minimum_censoring_survival", "$")?;
+    if !(0.0..=1.0).contains(&minimum_g) || minimum_g == 0.0 {
+        return Err(fail(
+            "$.minimum_censoring_survival",
+            "must be within (0, 1]",
+        ));
+    }
+
+    for digest_field in ["prediction_model_sha256", "outcome_data_sha256"] {
+        let digest = string_field(run, digest_field, "$")?;
+        if !valid_sha256(digest) {
+            return Err(fail(
+                &format!("$.{digest_field}"),
+                "must be lowercase SHA-256 hex",
+            ));
+        }
+    }
+
+    let flags = field(run, "quality_flags", "$")?
+        .as_array()
+        .ok_or_else(|| fail("$.quality_flags", "must be an array"))?;
+    if flags.len() != 1 || flags[0].as_str() != Some(SYNTHETIC_FLAG) {
+        return Err(fail(
+            "$.quality_flags",
+            "v0 synthetic runs must carry exactly SYNTHETIC_ONLY",
+        ));
+    }
+
+    let target_codes = string_set(run, "target_event_codes", "$", TARGET_EVENT_CODES)?;
+    let competing_codes = string_set(run, "competing_event_codes", "$", COMPETING_EVENT_CODES)?;
+    if !target_codes.is_disjoint(&competing_codes) {
+        return Err(fail(
+            "$",
+            "target_event_codes and competing_event_codes must be disjoint",
+        ));
+    }
+    let all_codes = target_codes
+        .union(&competing_codes)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let subjects = parse_subjects(run, &target_codes, &competing_codes, &all_codes)?;
+
+    let mut brier_weighted_sum = 0.0;
+    let mut eligible_count = 0usize;
+    let mut censored_before_horizon_count = 0usize;
+    let mut minimum_g_used = 1.0_f64;
+    let mut maximum_weight = 0.0_f64;
+
+    for subject in &subjects {
+        let has_event_by_horizon =
+            subject.has_terminal_event() && subject.observed_duration_hours <= horizon;
+        if subject.outcome_kind == "RIGHT_CENSORED"
+            && subject.observed_duration_hours < horizon
+        {
+            censored_before_horizon_count += 1;
+            continue;
+        }
+
+        let query_time = if has_event_by_horizon {
+            subject.observed_duration_hours
+        } else {
+            horizon
+        };
+        let censoring_survival =
+            censoring_survival_left_limit(&subjects, query_time);
+        if !censoring_survival.is_finite() || censoring_survival < minimum_g {
+            return Err(fail(
+                "$.subjects",
+                format!(
+                    "NOT_EVALUABLE: censoring positivity support failed at {} hours (G(t-)={censoring_survival}, required >= {minimum_g})",
+                    query_time
+                ),
+            ));
+        }
+        let weight = 1.0 / censoring_survival;
+        if !weight.is_finite() {
+            return Err(fail("$.subjects", "NOT_EVALUABLE: IPCW weight overflowed"));
+        }
+        minimum_g_used = minimum_g_used.min(censoring_survival);
+        maximum_weight = maximum_weight.max(weight);
+
+        let observed_event_code = if has_event_by_horizon {
+            subject.event_code.as_deref()
+        } else {
+            None
+        };
+        let event_free_at_horizon = !has_event_by_horizon;
+        let loss = competing_risk_multiclass_loss(
+            subject,
+            observed_event_code,
+            event_free_at_horizon,
+        );
+        if !loss.is_finite() {
+            return Err(fail("$.subjects", "competing-risk Brier loss overflowed"));
+        }
+        brier_weighted_sum += weight * loss;
+        if !brier_weighted_sum.is_finite() {
+            return Err(fail("$.subjects", "IPCW Brier accumulation overflowed"));
+        }
+        eligible_count += 1;
+    }
+
+    if eligible_count == 0 {
+        return Err(fail(
+            "$.subjects",
+            "NOT_EVALUABLE: no subjects have known event status at the declared horizon",
+        ));
+    }
+
+    let brier_score = brier_weighted_sum / subjects.len() as f64;
+    if !brier_score.is_finite() {
+        return Err(fail("$.subjects", "IPCW Brier score is not finite"));
+    }
+
+    let mut concordant = 0.0_f64;
+    let mut comparable_pairs = 0usize;
+    for (left_index, left) in subjects.iter().enumerate() {
+        if !left.has_terminal_event() {
+            continue;
+        }
+        for (right_index, right) in subjects.iter().enumerate() {
+            if left_index == right_index
+                || left.observed_duration_hours >= right.observed_duration_hours
+            {
+                continue;
+            }
+            comparable_pairs += 1;
+            match left.risk_score().total_cmp(&right.risk_score()) {
+                std::cmp::Ordering::Greater => concordant += 1.0,
+                std::cmp::Ordering::Equal => concordant += 0.5,
+                std::cmp::Ordering::Less => {}
+            }
+        }
+    }
+    let c_index = if comparable_pairs == 0 {
+        None
+    } else {
+        Some(concordant / comparable_pairs as f64)
+    };
+
+    let distinct_cluster_count = subjects
+        .iter()
+        .map(|subject| subject.cluster_id.as_str())
+        .collect::<BTreeSet<_>>()
+        .len();
+
+    Ok(SurvivalEvaluation {
+        run_id,
+        horizon_hours: horizon,
+        subject_count: subjects.len(),
+        eligible_subject_count: eligible_count,
+        censored_before_horizon_count,
+        distinct_cluster_count,
+        ipcw_competing_risk_brier_score: brier_score,
+        minimum_censoring_survival_used: minimum_g_used,
+        maximum_ipcw_weight: maximum_weight,
+        all_cause_harrell_c_index: c_index,
+        all_cause_comparable_pairs: comparable_pairs,
+        censoring_estimator: "EVALUATION_COHORT_UNCONDITIONAL_KM",
+        censoring_assumption: "INDEPENDENT_RIGHT_CENSORING",
+        claim_ceiling: "Synthetic known-truth, fixed-horizon competing-risk scoring only. No field RUL accuracy, conditional-censoring validity, calibration test, safety or standards claim.",
+    })
+}
+
+pub fn bundled_fixture() -> Result<Value, String> {
+    serde_json::from_str(include_str!(
+        "../../../research/wpt-rul-survival-v0/survival-prediction-run.synthetic-example.json"
+    ))
+    .map_err(|error| format!("synthetic survival fixture JSON: {error}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixture() -> Value {
+        bundled_fixture().unwrap()
+    }
+
+    #[test]
+    fn synthetic_competing_risk_ipcw_score_matches_hand_calculation() {
+        let report = evaluate_run(&fixture()).unwrap();
+        assert_eq!(report.subject_count, 8);
+        assert_eq!(report.eligible_subject_count, 6);
+        assert_eq!(report.censored_before_horizon_count, 2);
+        assert_eq!(report.distinct_cluster_count, 7);
+        assert!((report.ipcw_competing_risk_brier_score - 0.23453571428571426).abs() < 1e-12);
+        assert!((report.minimum_censoring_survival_used - 0.7).abs() < 1e-12);
+        assert!((report.maximum_ipcw_weight - 1.0 / 0.7).abs() < 1e-12);
+        assert_eq!(report.all_cause_comparable_pairs, 15);
+        assert!((report.all_cause_harrell_c_index.unwrap() - 0.9).abs() < 1e-12);
+    }
+
+    #[test]
+    fn right_censored_before_horizon_is_not_relabelled_as_failure() {
+        let report = evaluate_run(&fixture()).unwrap();
+        assert_eq!(report.censored_before_horizon_count, 2);
+        assert_eq!(report.eligible_subject_count, 6);
+    }
+
+    #[test]
+    fn competing_event_is_scored_against_its_own_cause_category() {
+        let mut run = fixture();
+        let road_subject = run["subjects"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|subject| subject["subject_id"] == "asset-d")
+            .unwrap();
+        road_subject["predicted_cumulative_incidence"][2]["probability"] = Value::from(0.9);
+        road_subject["predicted_cumulative_incidence"][0]["probability"] = Value::from(0.0);
+        road_subject["predicted_survival_probability"] = Value::from(0.05);
+        road_subject["predicted_cumulative_incidence"][1]["probability"] = Value::from(0.025);
+        road_subject["predicted_cumulative_incidence"][3]["probability"] = Value::from(0.025);
+        let changed = evaluate_run(&run).unwrap();
+        let baseline = evaluate_run(&fixture()).unwrap();
+        assert!(changed.ipcw_competing_risk_brier_score < baseline.ipcw_competing_risk_brier_score);
+    }
+
+    #[test]
+    fn rejects_probability_vector_that_does_not_sum_to_one() {
+        let mut run = fixture();
+        run["subjects"][0]["predicted_survival_probability"] = Value::from(0.5);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("probabilities must sum to 1")
+        );
+    }
+
+    #[test]
+    fn rejects_missing_declared_cause_probability() {
+        let mut run = fixture();
+        run["subjects"][0]["predicted_cumulative_incidence"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("every declared event cause exactly once")
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_subject_identity() {
+        let mut run = fixture();
+        let first = run["subjects"][0].clone();
+        run["subjects"].as_array_mut().unwrap().push(first);
+        assert!(evaluate_run(&run).unwrap_err().contains("duplicate subject_id"));
+    }
+
+    #[test]
+    fn rejects_dependent_censoring_when_only_unconditional_km_is_available() {
+        let mut run = fixture();
+        run["censoring_assumption"] =
+            Value::String("COVARIATE_DEPENDENT_RIGHT_CENSORING".into());
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("NOT_EVALUABLE: v0 requires independent right censoring")
+        );
+    }
+
+    #[test]
+    fn fails_closed_when_censoring_positivity_floor_is_not_met() {
+        let mut run = fixture();
+        run["minimum_censoring_survival"] = Value::from(0.8);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("NOT_EVALUABLE: censoring positivity support failed")
+        );
+    }
+
+    #[test]
+    fn target_failure_cannot_use_a_competing_event_code() {
+        let mut run = fixture();
+        run["subjects"][0]["event_code"] = Value::String("ROAD_RECONSTRUCTION".into());
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("is not in target_event_codes")
+        );
+    }
+
+    #[test]
+    fn right_censored_subject_must_not_have_an_event_code() {
+        let mut run = fixture();
+        run["subjects"][2]["event_code"] = Value::String("STRUCTURAL_CRACK_LIMIT".into());
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("must not carry an event_code")
+        );
+    }
+
+    #[test]
+    fn all_censored_cohort_has_no_harrell_comparable_pairs() {
+        let mut run = fixture();
+        for subject in run["subjects"].as_array_mut().unwrap() {
+            subject["outcome_kind"] = Value::String("RIGHT_CENSORED".into());
+            subject["event_code"] = Value::Null;
+        }
+        // Keep censoring beyond the horizon so horizon status remains known.
+        for subject in run["subjects"].as_array_mut().unwrap() {
+            subject["observed_duration_hours"] = Value::from(20.0);
+        }
+        let report = evaluate_run(&run).unwrap();
+        assert_eq!(report.all_cause_comparable_pairs, 0);
+        assert_eq!(report.all_cause_harrell_c_index, None);
+    }
+
+    #[test]
+    fn rejects_zero_or_negative_observation_duration() {
+        let mut run = fixture();
+        run["subjects"][0]["observed_duration_hours"] = Value::from(0.0);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("strictly positive")
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_top_level_properties() {
+        let mut run = fixture();
+        run["unreviewed_calibration"] = Value::from(0.99);
+        assert!(evaluate_run(&run).unwrap_err().contains("unknown property"));
+    }
+}
