@@ -16,7 +16,12 @@
       "voltage_kv": 0.4,
       "i_sc_rms_a": 25000,
       "i_l_rms_a": 100,
-      "i_l_definition_id": "synthetic-maximum-demand-current-profile-01"
+      "i_l_definition_id": "synthetic-maximum-demand-current-profile-01",
+      "i_sc_method_id": "synthetic-thevenin-short-circuit-study-v0",
+      "i_sc_source_artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "i_l_window_seconds": 900,
+      "i_l_reference_period_id": "synthetic-maximum-demand-reference-period-12mo",
+      "i_l_source_artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     },
     "nominal_voltage_v": 400
   },
