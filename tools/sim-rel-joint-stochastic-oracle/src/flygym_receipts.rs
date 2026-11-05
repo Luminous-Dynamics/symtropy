@@ -399,21 +399,23 @@ impl SampleClock {
     }
 
     pub fn validate_for(&self, stream: &ObservationStream) -> Result<(), String> {
-        match (stream.is_trajectory(), self) {
-            (
-                true,
-                Self::TrajectoryFrame {
-                    output_fps: clock_fps,
-                    ..
-                },
-            ) if *clock_fps > 0
-                && matches!(stream, ObservationStream::TrajectoryQpos { output_fps, .. } if output_fps == clock_fps)
-                    || (*clock_fps > 0 && matches!(stream, ObservationStream::TrajectoryMocapPosition | ObservationStream::TrajectoryMocapQuaternion)) => Ok(()),
-            (true, _) => Err("trajectory streams require a positive-fps trajectory-frame clock".into()),
-            (false, Self::TrajectoryFrame { .. }) => {
-                Err("non-trajectory streams cannot use a video-frame clock".into())
+        match self {
+            Self::TrajectoryFrame { output_fps, .. } if *output_fps > 0 => match stream {
+                ObservationStream::TrajectoryQpos {
+                    output_fps: stream_fps,
+                    playback_speed_millis,
+                } if stream_fps == output_fps && *playback_speed_millis > 0 => Ok(()),
+                ObservationStream::TrajectoryMocapPosition
+                | ObservationStream::TrajectoryMocapQuaternion => Ok(()),
+                _ => Err("trajectory frame clock does not match the declared trajectory stream".into()),
+            },
+            Self::TrajectoryFrame { .. } => {
+                Err("trajectory frame clock requires positive output_fps".into())
             }
-            (false, Self::PhysicsStep { .. } | Self::DirectGetter { .. }) => Ok(()),
+            Self::PhysicsStep { .. } | Self::DirectGetter { .. } if stream.is_trajectory() => {
+                Err("trajectory streams require a trajectory-frame clock".into())
+            }
+            Self::PhysicsStep { .. } | Self::DirectGetter { .. } => Ok(()),
         }
     }
 }
@@ -452,7 +454,22 @@ impl FlyGymObservationSample {
         if self.sample_id.trim().is_empty() || self.capture_id.trim().is_empty() {
             return Err("sample_id and capture_id are required".into());
         }
+        if self.world_id >= identity.world_count {
+            return Err("sample world_id is outside the pinned run world count".into());
+        }
         self.clock.validate_for(&self.stream)?;
+        if let Some(step) = self.clock.matched_physics_step() {
+            let elapsed = step
+                .checked_mul(identity.timestep_ns)
+                .ok_or_else(|| "physics-step time calculation overflow".to_string())?;
+            let expected_time = identity
+                .simulation_time_origin_ns
+                .checked_add(elapsed)
+                .ok_or_else(|| "simulation-time calculation overflow".to_string())?;
+            if self.simulation_time_ns != expected_time {
+                return Err("sample time does not match its declared physics step and pinned timestep".into());
+            }
+        }
         let expected = self.stream.expected_shape(identity, anatomy)?;
         match &self.payload {
             SamplePayload::Values {
