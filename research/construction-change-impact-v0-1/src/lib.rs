@@ -294,8 +294,8 @@ impl EvidenceGraph {
             if edge.edge_id.trim().is_empty() || edge.dependency_kind.trim().is_empty() {
                 return Err(ImpactError::InvalidGraph("incomplete_edge_identity"));
             }
-            if let ScopeSelector::Exact(scope) = &edge.scope {
-                if scope.project_id.trim().is_empty()
+            if let ScopeSelector::Exact(scope) = &edge.scope
+                && (scope.project_id.trim().is_empty()
                     || [
                         scope.site_id.as_deref(),
                         scope.work_package_id.as_deref(),
@@ -304,10 +304,9 @@ impl EvidenceGraph {
                     ]
                     .into_iter()
                     .flatten()
-                    .any(str::is_empty)
-                {
-                    return Err(ImpactError::InvalidGraph("incomplete_edge_scope"));
-                }
+                    .any(str::is_empty))
+            {
+                return Err(ImpactError::InvalidGraph("incomplete_edge_scope"));
             }
             if !edge_ids.insert(edge.edge_id.as_str()) {
                 return Err(ImpactError::DuplicateEdgeId(edge.edge_id.clone()));
