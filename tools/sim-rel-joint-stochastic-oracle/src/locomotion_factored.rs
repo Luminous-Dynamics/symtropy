@@ -1430,14 +1430,8 @@ mod tests {
                     "left_leg_state",
                     &["action"],
                     vec![
-                        conditional_row(
-                            &["activate_left"],
-                            vec![outcome("on", 1, 1)],
-                        ),
-                        conditional_row(
-                            &["idle"],
-                            vec![outcome("off", 1, 1)],
-                        ),
+                        conditional_row(&["activate_left"], vec![outcome("on", 1, 1)]),
+                        conditional_row(&["idle"], vec![outcome("off", 1, 1)]),
                     ],
                 ),
                 factor(
