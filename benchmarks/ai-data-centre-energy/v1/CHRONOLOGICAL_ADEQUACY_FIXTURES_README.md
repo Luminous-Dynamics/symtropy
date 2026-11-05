@@ -32,13 +32,13 @@ The reference trajectory has two stressed hours: 10 kW unserved in the first and
 - Scenario weights are normalized for aggregation, but this library does not validate their statistical calibration.
 - Scenario paths preserve the joint temporal sequence supplied by the caller. They do not prove that scenarios cover rare weather, common-mode failures, or future distributions.
 - The signed net load reduction field is positive for reduction and negative for rebound/recovery.
-- Loss-of-load periods, hours and days are distinct. A 15-minute interval contributes one period and 0.25 hours; multiple shortfalls on the same calendar day still contribute one loss-of-load day.
+- Loss-of-load events, periods, hours and days are distinct. A contiguous run crossing midnight counts as one event; each shortfall interval counts as one PRAS-style period; elapsed duration is counted in hours; a day with one or more shortfall intervals counts once.
 - A search result at the caller's maximum added-load limit is censored and must be described as a lower bound within the tested search interval.
 - Zero reference risk is rejected because a finite synthetic study with no observed shortage cannot identify a positive ELCC-like increment under this method.
 
 ## Reproduction
 
-The fixtures describe the same known-truth cases covered by unit tests in the chronological adequacy source module. Sixteen test cases are authored in V0.2. A passing Rust build/test result must come from an exact-head CI or local Rust toolchain run; fixture arithmetic and static source inspection are not substitutes for that evidence.
+The fixtures describe the same known-truth cases covered by unit tests in the chronological adequacy source module. Nineteen test cases are authored in V0.3. A passing Rust build/test result must come from an exact-head CI or local Rust toolchain run; fixture arithmetic and static source inspection are not substitutes for that evidence.
 
 ## Fixture C — weighted upper-tail EUE CVaR
 
@@ -51,3 +51,22 @@ Two 15-minute intervals on the same day each contain shortage. They count as two
 ## PRAS comparison target
 
 The protocol now defines a metric crosswalk to NLR PRAS v0.9.0, including event-period LOLE, event-day LOLD, EUE and upper-tail energy CVaR. PRAS is the independent bulk-system engine; Symtropy's value is the service/physical assurance and signed grid-flexibility trajectory supplied to that analysis. Matching metrics is valid only when timebase, regions, probabilities, horizon and tail conventions are aligned.
+
+## Fixture E — NTCSA-style contiguous loss-of-load events
+
+The synthetic trace contains two shortage spells. The first begins on day 0 and continues across the day boundary into day 1; the next interval is adequate and closes the event. A later shortage begins a second event. The final interval has 5 kW headroom. The expected result is 2 events, 3 shortfall periods, 3 shortfall hours, 2 days containing shortfall, and 5 kW event-count load-carrying value. This tests the event-spell definition only; it does not reproduce NTCSA's regional dispatch model.
+
+## Fixture F — upper-tail shortfall-power CVaR
+
+The reference scenario distribution has a 10% high-stress case at 20 kW shortfall and a 90% case at 10 kW. The prototype's interval-level weighted 90% tail mean is 20 kW. A 10 kW flexible reduction in the high-stress case makes both flexible outcomes 10 kW at zero added load; adding 10 kW system load restores the reference power-tail metric. The metric is in kW. It is deliberately separate from the EUE CVaR fixture (MWh), and its interval-weighted sample population is not yet an exact replication of NTCSA's 200-sample annual Monte Carlo distribution.
+
+## Metric definitions: do not conflate the standards
+
+- **NTCSA LOLE:** expected count of discrete contiguous shortage events. Consecutive shortfall intervals spanning midnight remain one event; the event ends once the adequacy requirement is met.
+- **PRAS LOLE:** expected number of simulation periods with shortfall; time-resolution dependent.
+- **NTCSA LOLH:** expected hours with shortfall.
+- **PRAS LOLD:** expected number of days with a shortfall event.
+- **PRAS EUE CVaR:** tail of energy-not-served outcomes (MWh).
+- **NTCSA CVaR:** tail of shortage power magnitude (MW).
+
+This prototype now represents the two LOLE concepts and two CVaR populations separately. The power CVaR remains a finite-scenario prototype statistic, not a validated replication of the NTCSA report's sampling population.
