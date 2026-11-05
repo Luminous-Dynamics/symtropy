@@ -297,6 +297,7 @@ pub enum ValidationError {
     ResourceUnitMismatch(String),
     ResourceKindUnitMismatch(String),
     InvalidResourceUse(String),
+    ResourceUseExceedsDeclaredCapacity(String),
     ResourceMissingEvidence(String),
     ResourceMissingCapacityEvidence(String),
     ResourceCapacityEvidenceMismatch(String),
@@ -838,6 +839,17 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
             }
             if resource.capacity_unit != usage.unit {
                 return Err(ValidationError::ResourceUnitMismatch(
+                    usage.resource_id.clone(),
+                ));
+            }
+            let maximum_declared_capacity = resource
+                .availability
+                .iter()
+                .map(|window| window.capacity)
+                .max()
+                .unwrap_or(0);
+            if usage.amount > maximum_declared_capacity {
+                return Err(ValidationError::ResourceUseExceedsDeclaredCapacity(
                     usage.resource_id.clone(),
                 ));
             }
@@ -1803,6 +1815,33 @@ mod tests {
             Err(ValidationError::MissingSegmentEvidenceRole(
                 "lock-01".into(),
                 EvidenceRole::LockCompatibility
+            ))
+        );
+    }
+
+    #[test]
+    fn resource_use_cannot_exceed_every_declared_capacity_window() {
+        let mut case = valid_case();
+        let shore = case
+            .resources
+            .iter_mut()
+            .find(|resource| resource.resource_id == "shore-01")
+            .expect("shore resource exists");
+        shore.availability[0].capacity = 799;
+        let evidence = case
+            .evidence
+            .iter_mut()
+            .find(|evidence| evidence.evidence_id == "shore-calendar")
+            .expect("shore capacity evidence exists");
+        evidence
+            .covered_capacity_windows
+            .as_mut()
+            .expect("capacity windows are bound")[0]
+            .capacity = 799;
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::ResourceUseExceedsDeclaredCapacity(
+                "shore-01".into()
             ))
         );
     }
