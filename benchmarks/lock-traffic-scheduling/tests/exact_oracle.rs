@@ -5,9 +5,12 @@
 //! test oracle, not a production optimizer. Factorial enumeration is bounded to
 //! tiny fixtures.
 
-use inland_waterway_lock_operations::{PassageDisposition, PassageEvaluation, TimeInterval};
+use inland_waterway_lock_operations::{
+    EvidenceState, PassageDisposition, PassageEvaluation, TimeInterval,
+};
 use lock_traffic_scheduling::{
-    Direction, LockScheduleProfile, PassageRequest, SchedulingPolicy, schedule,
+    ArrivalWindowEvidence, Direction, LockScheduleProfile, PassageRequest, SchedulingPolicy,
+    schedule,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,6 +59,27 @@ fn independently_find_start(
     }
 }
 
+fn arrival_evidence_is_eligible(
+    profile: &LockScheduleProfile,
+    request: &PassageRequest,
+) -> bool {
+    let evidence = &request.arrival_evidence;
+    let decision_tick = profile.planning_window.start_tick;
+    let has_identity = !evidence.evidence_id.trim().is_empty()
+        && !evidence.source_id.trim().is_empty()
+        && !evidence.source_revision.trim().is_empty()
+        && !evidence.calibration_receipt_id.trim().is_empty()
+        && !evidence.operating_regime_id.trim().is_empty();
+    let current = evidence.state == EvidenceState::Current;
+    let not_future = evidence.observed_at_tick <= decision_tick;
+    let fresh = decision_tick.saturating_sub(evidence.observed_at_tick)
+        <= profile.maximum_arrival_evidence_age_ticks;
+    let valid = evidence
+        .valid_through_tick
+        .is_some_and(|expiry| expiry >= decision_tick);
+    has_identity && current && not_future && fresh && valid
+}
+
 fn evaluate_order(
     profile: &LockScheduleProfile,
     requests: &[PassageRequest],
@@ -74,6 +98,7 @@ fn evaluate_order(
             || request.lock_id != profile.lock_id
             || request.lock_revision != profile.lock_revision
             || request.service_duration_ticks == 0
+            || !arrival_evidence_is_eligible(profile, request)
             || request.arrival_earliest_tick > request.arrival_latest_tick
             || request.earliest_start_tick > request.latest_start_tick
         {
@@ -261,6 +286,16 @@ fn request(
         direction: Direction::Upstream,
         arrival_earliest_tick: 0,
         arrival_latest_tick: 0,
+        arrival_evidence: ArrivalWindowEvidence {
+            evidence_id: format!("arrival-evidence-{id}"),
+            source_id: "arrival-model".into(),
+            source_revision: "model-v1".into(),
+            calibration_receipt_id: "calibration-v1".into(),
+            operating_regime_id: "regime-normal".into(),
+            observed_at_tick: 0,
+            valid_through_tick: Some(1_000),
+            state: EvidenceState::Current,
+        },
         earliest_start_tick: 0,
         latest_start_tick: latest_start,
         maximum_wait_ticks: 100,
@@ -283,6 +318,7 @@ fn profile() -> LockScheduleProfile {
         tick_seconds: 60,
         service_unit_label: "tonne".into(),
         direction_change_ticks: 0,
+        maximum_arrival_evidence_age_ticks: 20,
         unavailable_windows: Vec::new(),
         water_budget_ml: 1_000,
         pump_energy_budget_wh: 1_000,
@@ -331,6 +367,20 @@ fn oracle_does_not_admit_unknown_or_blocked_passage_evidence() {
             .iter()
             .all(|candidate| candidate.accepted_ids.is_empty())
     );
+}
+
+#[test]
+fn oracle_excludes_stale_or_unvalidated_arrival_intervals() {
+    let mut p = profile();
+    p.planning_window.start_tick = 50;
+    p.maximum_arrival_evidence_age_ticks = 5;
+    let mut stale = request("stale", 10, 100, 100, 10);
+    stale.arrival_evidence.observed_at_tick = 10;
+    stale.arrival_evidence.valid_through_tick = Some(100);
+    let mut unvalidated = request("unvalidated", 10, 100, 100, 10);
+    unvalidated.arrival_evidence.calibration_receipt_id.clear();
+    let frontier = exact_frontier(&p, &[stale, unvalidated]);
+    assert!(frontier.iter().all(|candidate| candidate.accepted_ids.is_empty()));
 }
 
 #[test]
