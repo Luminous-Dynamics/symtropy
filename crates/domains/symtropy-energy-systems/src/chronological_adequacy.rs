@@ -24,7 +24,11 @@ use serde::Serialize;
 /// The single adequacy criterion used to calculate the ELCC-like result.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum ChronologicalAdequacyMetric {
+    /// Expected number of contiguous shortfall spells. Adjacent shortfall
+    /// intervals remain one event, including across day boundaries.
+    LossOfLoadEvents,
     /// Expected number of simulation intervals containing any positive unserved load.
+    /// This is PRAS-style LOLE and depends on simulation time resolution.
     LossOfLoadPeriods,
     /// Expected duration of intervals with unserved load, in hours.
     LossOfLoadHours,
@@ -35,6 +39,9 @@ pub enum ChronologicalAdequacyMetric {
     /// Upper-tail conditional value at risk of scenario-level EUE.
     /// Confidence level is encoded in basis points (9,500 = 95%).
     UpperTailUnservedEnergyCvar { confidence_level_basis_points: u16 },
+    /// Upper-tail CVaR of interval shortfall power magnitudes across the
+    /// scenario-time distribution, in kW. This is a power statistic, not EUE CVaR.
+    UpperTailShortfallPowerCvarKw { confidence_level_basis_points: u16 },
 }
 
 /// Immutable provenance identity for one frozen adequacy study.
@@ -139,14 +146,18 @@ impl ChronologicalAdequacyContract {
                 });
             }
         }
-        if let ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar {
-            confidence_level_basis_points,
-        } = metric
-        {
-            if !(1..10_000).contains(&confidence_level_basis_points) {
-                return Err(ChronologicalAdequacyError::InvalidCvarConfidenceLevel(
-                    confidence_level_basis_points,
-                ));
+        let cvar_level = match metric {
+            ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar {
+                confidence_level_basis_points,
+            }
+            | ChronologicalAdequacyMetric::UpperTailShortfallPowerCvarKw {
+                confidence_level_basis_points,
+            } => Some(confidence_level_basis_points),
+            _ => None,
+        };
+        if let Some(level) = cvar_level {
+            if !(1..10_000).contains(&level) {
+                return Err(ChronologicalAdequacyError::InvalidCvarConfidenceLevel(level));
             }
         }
         if load_search_tolerance_kw > maximum_added_load_kw {
@@ -361,15 +372,20 @@ pub struct ChronologicalAdequacyScenarioReceipt {
     pub scenario_id: String,
     pub raw_probability_weight: f64,
     pub normalized_probability_weight: f64,
+    pub reference_loss_of_load_events: u32,
     pub reference_loss_of_load_days: u32,
     pub reference_loss_of_load_periods: u32,
     pub reference_loss_of_load_hours: f64,
     pub reference_unserved_energy_mwh: f64,
+    pub reference_maximum_shortfall_kw: f64,
+    pub augmented_loss_of_load_events: u32,
     pub augmented_loss_of_load_days: u32,
     pub augmented_loss_of_load_periods: u32,
     pub augmented_loss_of_load_hours: f64,
     pub augmented_unserved_energy_mwh: f64,
     pub augmented_unserved_energy_cvar_mwh: Option<f64>,
+    pub augmented_shortfall_power_cvar_kw: Option<f64>,
+    pub augmented_loss_of_load_periods: f64,
     pub augmented_gross_reduction_energy_mwh: f64,
     pub augmented_rebound_energy_mwh: f64,
 }
@@ -389,14 +405,18 @@ pub struct ChronologicalAdequacyReport {
     pub raw_probability_weight_sum: f64,
     pub interval_duration_hours: f64,
     pub reference_loss_of_load_days: f64,
+    pub reference_loss_of_load_events: f64,
     pub reference_loss_of_load_periods: f64,
     pub reference_loss_of_load_hours: f64,
     pub reference_unserved_energy_mwh: f64,
     pub reference_unserved_energy_cvar_mwh: Option<f64>,
+    pub reference_shortfall_power_cvar_kw: Option<f64>,
+    pub augmented_loss_of_load_events: f64,
     pub augmented_loss_of_load_days: f64,
     pub augmented_loss_of_load_periods: f64,
     pub augmented_loss_of_load_hours: f64,
     pub augmented_unserved_energy_mwh: f64,
+    pub augmented_maximum_shortfall_kw: f64,
     pub augmented_gross_reduction_energy_mwh: f64,
     pub augmented_rebound_energy_mwh: f64,
     pub reference_metric_value: f64,
@@ -416,21 +436,26 @@ pub struct ChronologicalAdequacyReport {
 
 #[derive(Debug, Clone, Copy)]
 struct ScenarioMetrics {
+    loss_of_load_events: u32,
     loss_of_load_days: u32,
     loss_of_load_periods: u32,
     loss_of_load_hours: f64,
     unserved_energy_mwh: f64,
+    maximum_shortfall_kw: f64,
+    shortfall_power_samples_kw: Vec<f64>,
     gross_reduction_energy_mwh: f64,
     rebound_energy_mwh: f64,
 }
 
 #[derive(Debug, Clone, Copy)]
 struct AggregateMetrics {
+    loss_of_load_events: f64,
     loss_of_load_days: f64,
     loss_of_load_periods: f64,
     loss_of_load_hours: f64,
     unserved_energy_mwh: f64,
     unserved_energy_cvar_mwh: f64,
+    shortfall_power_cvar_kw: f64,
     gross_reduction_energy_mwh: f64,
     rebound_energy_mwh: f64,
 }
@@ -438,12 +463,16 @@ struct AggregateMetrics {
 impl AggregateMetrics {
     fn adequacy_value(self, metric: ChronologicalAdequacyMetric) -> f64 {
         match metric {
+            ChronologicalAdequacyMetric::LossOfLoadEvents => self.loss_of_load_events,
             ChronologicalAdequacyMetric::LossOfLoadPeriods => self.loss_of_load_periods,
             ChronologicalAdequacyMetric::LossOfLoadHours => self.loss_of_load_hours,
             ChronologicalAdequacyMetric::LossOfLoadDays => self.loss_of_load_days,
             ChronologicalAdequacyMetric::ExpectedUnservedEnergyMwh => self.unserved_energy_mwh,
             ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar { .. } => {
                 self.unserved_energy_cvar_mwh
+            }
+            ChronologicalAdequacyMetric::UpperTailShortfallPowerCvarKw { .. } => {
+                self.shortfall_power_cvar_kw
             }
         }
     }
