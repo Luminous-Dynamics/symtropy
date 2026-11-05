@@ -580,6 +580,9 @@ mod tests {
         let seed = [0x92; 32];
         let mut plan = correspondence_plan();
         plan.completeness = PlanCompleteness::Incomplete;
+        for hypothesis in &mut plan.hypotheses {
+            hypothesis.completeness = PlanCompleteness::Incomplete;
+        }
         plan.universe_status = CandidateUniverseStatus::Incomplete {
             evidence_ref: id("truncated-event-candidate-universe"),
         };
