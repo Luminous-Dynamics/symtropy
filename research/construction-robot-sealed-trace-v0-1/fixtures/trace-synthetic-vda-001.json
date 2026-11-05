@@ -1,0 +1,125 @@
+{
+  "manifest": {
+    "schema_version": "0.1.0",
+    "trace_id": "trace-synthetic-vda-001",
+    "capture": {
+      "tool": "construction-trace-fixture-generator",
+      "tool_version": "0.1.0",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "started_at": "2026-11-05T10:00:01+02:00",
+      "ended_at": "2026-11-05T10:00:03+02:00",
+      "protocol_hints": [
+        "VDA-5050/3.0.0"
+      ],
+      "capture_completeness": "unknown",
+      "recorder_drop_count": 0,
+      "broker_drop_count": null,
+      "broker_drop_evidence": "not_available",
+      "filters_applied": false,
+      "filter_profile_digest": null,
+      "redaction_applied": false,
+      "parent_trace_digest": null,
+      "transformation_digest": null,
+      "first_sequence": 1,
+      "last_sequence": 3,
+      "event_count": 3,
+      "capture_boundary_evidence_ref": null
+    },
+    "seal": {
+      "algorithm": "sha-256",
+      "event_hash_profile": "construction-robot-trace-event-v0.1",
+      "trace_hash_profile": "construction-robot-trace-root-v0.1",
+      "canonicalization": "RFC8785",
+      "external_anchor": "none",
+      "external_anchor_ref": null
+    }
+  },
+  "events": [
+    {
+      "capture_sequence": 1,
+      "direction": "broker_to_client",
+      "topic": "logistics/order",
+      "qos": 1,
+      "retain": false,
+      "dup": false,
+      "connection_epoch": "session-001",
+      "participant": {
+        "role": "unknown",
+        "identity_claim": "robot-claim-R01"
+      },
+      "timestamps": [
+        {
+          "source": "recorder_received",
+          "timestamp": "2026-11-05T10:00:01+02:00",
+          "clock_id": "capture-clock-A",
+          "uncertainty_ms": 2
+        }
+      ],
+      "payload": {
+        "encoding": "base64",
+        "data": "eyJvcmRlcklkIjoidHJhbnNwb3J0LTAxIiwib3JkZXJVcGRhdGVJZCI6MH0=",
+        "sha256": "fdd43b551a130198341f5dcf7f8183fb1dfc67da729c0125cd561f851e00b308"
+      },
+      "previous_event_digest": null,
+      "event_digest": "43dc85a2d3b33b460be91c0ef5b7d8dd030ac39d101449c541fa4e2c00e01a05"
+    },
+    {
+      "capture_sequence": 2,
+      "direction": "client_to_broker",
+      "topic": "logistics/state",
+      "qos": 0,
+      "retain": false,
+      "dup": false,
+      "connection_epoch": "session-001",
+      "participant": {
+        "role": "unknown",
+        "identity_claim": "robot-claim-R01"
+      },
+      "timestamps": [
+        {
+          "source": "recorder_received",
+          "timestamp": "2026-11-05T10:00:02+02:00",
+          "clock_id": "capture-clock-A",
+          "uncertainty_ms": 2
+        }
+      ],
+      "payload": {
+        "encoding": "base64",
+        "data": "eyJvcmRlcklkIjoidHJhbnNwb3J0LTAxIiwibGFzdE5vZGVJZCI6Im4wIn0=",
+        "sha256": "b43b12aaaa3e3fbf4a9c216ce9026d73ae1a509c4d20470b947d25d7d5420901"
+      },
+      "previous_event_digest": "43dc85a2d3b33b460be91c0ef5b7d8dd030ac39d101449c541fa4e2c00e01a05",
+      "event_digest": "cc711dbacedb12fa614df892f684677c9dd1e222a47545816f97b12a9e052f66"
+    },
+    {
+      "capture_sequence": 3,
+      "direction": "client_to_broker",
+      "topic": "logistics/state",
+      "qos": 0,
+      "retain": false,
+      "dup": false,
+      "connection_epoch": "session-001",
+      "participant": {
+        "role": "unknown",
+        "identity_claim": "robot-claim-R01"
+      },
+      "timestamps": [
+        {
+          "source": "recorder_received",
+          "timestamp": "2026-11-05T10:00:03+02:00",
+          "clock_id": "capture-clock-A",
+          "uncertainty_ms": 2
+        }
+      ],
+      "payload": {
+        "encoding": "base64",
+        "data": "eyJvcmRlcklkIjoidHJhbnNwb3J0LTAxIiwiYWN0aW9uU3RhdGUiOiJGSU5JU0hFRCJ9",
+        "sha256": "1b8bf2353fd519e584d496993c3a27d4f06face0ba30b8e77d66111990ee14f1"
+      },
+      "previous_event_digest": "cc711dbacedb12fa614df892f684677c9dd1e222a47545816f97b12a9e052f66",
+      "event_digest": "0131a16c08c8457f0143d295413fd1e4bc441c6e9cd48f14c341437b3b3885ca"
+    }
+  ],
+  "annotations": [],
+  "final_trace_digest": "6812602182c7eceeceadf06d82424a069351acbbba7c4e17eb36d4ccf69e73a1"
+}
