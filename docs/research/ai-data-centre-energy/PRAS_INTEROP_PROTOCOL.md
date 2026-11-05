@@ -163,6 +163,21 @@ The frozen fixture corpus in `benchmarks/ai-data-centre-energy/v1/pras-interop-f
 
 The fixture values are synthetic arithmetic controls. They are not a PRAS execution result, an NTCSA reproduction or field evidence.
 
+## 12. Native capacity-credit qualification (v0.2)
+
+V0.2 should exercise PRAS's native `ELCC{EUE}` (and subsequently `EFC{EUE}`) methods rather than treating an integer load sweep as equivalent to a native capacity-credit calculation.
+
+Requirements:
+- pass paired baseline and augmented SystemModels with matching region identities, timestamps, resource counts and generator failure/repair transition arrays wherever practical;
+- use the same explicit Monte Carlo seed and sample count through the native bisection workflow; PRAS uses matched seeds to reduce the difference noise when resource identity/order and reliability parameters remain consistent;
+- return and persist both lower and upper MW bounds, target baseline EUE/LOLE, each bisection capacity/metric pair, sample count, seed, region allocation, `capacity_gap` and `p_value` stopping threshold;
+- retain PRAS's statistical-power early-stop warning. A wide bracket caused by insufficient significance is an unresolved result, not an achieved point estimate;
+- report ELCC's added-load region allocation. In a multi-region model, different allocations can produce different values; the choice must match the stated question;
+- do not average per-weather-year ELCC values and label that the pooled ELCC. Run per-year distributions and apply an explicit weighted-mixture method to the underlying risk distribution if a pooled mixture is required;
+- keep PRAS native EUE/LOLE ELCC distinct from power-CVaR capacity value unless a separate, validated metric method exists.
+
+The new `pras-native-eue-elcc-matched-seed` synthetic fixture has a 10 MW analytical ELCC and exercises PRAS's native EUE-based bisection with probabilistic generator availability. Its bound and repeatability outputs are execution assertions, not a field result.
+
 ## 11. Acceptance gates
 
 Proposed engineering gates, not standards or achieved results:

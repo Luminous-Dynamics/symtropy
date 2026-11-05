@@ -271,6 +271,59 @@ end
         ))
     end
 
+    @testset "native PRAS EUE-based ELCC and matched Monte Carlo bounds" begin
+        case = fixture_case("pras-native-eue-elcc-matched-seed")
+        baseline = one_region_system(
+            Int.(case.baseline_load_mw),
+            Int.(case.generation.capacity_mw_by_interval);
+            failure_probability=Float64.(case.generation.failure_probability),
+            repair_probability=Float64.(case.generation.repair_probability),
+        )
+        flexible = one_region_system(
+            Int.(case.flexible_load_mw),
+            Int.(case.generation.capacity_mw_by_interval);
+            failure_probability=Float64.(case.generation.failure_probability),
+            repair_probability=Float64.(case.generation.repair_probability),
+        )
+        simulation = SequentialMonteCarlo(
+            samples=Int(case.simulation.samples),
+            seed=Int(case.simulation.seed),
+            threaded=false,
+        )
+        method = ELCC{EUE}(
+            Int(case.capacity_credit.capacity_max_mw),
+            String(case.capacity_credit.load_region);
+            capacity_gap=Int(case.capacity_credit.capacity_gap_mw),
+            p_value=Float64(case.capacity_credit.p_value),
+            verbose=false,
+        )
+        elcc = assess(baseline, flexible, method, simulation)
+        lower_mw, upper_mw = extrema(elcc)
+
+        @test lower_mw == Int(case.expected.elcc_lower_bound_mw)
+        @test upper_mw == Int(case.expected.elcc_upper_bound_mw)
+        @test upper_mw - lower_mw <= Int(case.capacity_credit.capacity_gap_mw)
+        @test val(elcc.target_metric) > 0.0
+        @test lower_mw <= Int(case.expected.analytical_elcc_mw) <= upper_mw
+
+        # A second exact-seed replay must reproduce the same bisection bounds.
+        replay = assess(baseline, flexible, method, simulation)
+        @test extrema(replay) == (lower_mw, upper_mw)
+
+        push_result!("pras-native-eue-elcc-matched-seed", Dict(
+            "target_baseline_eue_mwh" => val(elcc.target_metric),
+            "target_baseline_eue_standard_error_mwh" => stderror(elcc.target_metric),
+            "elcc_lower_bound_mw" => lower_mw,
+            "elcc_upper_bound_mw" => upper_mw,
+            "elcc_bound_gap_mw" => upper_mw - lower_mw,
+            "analytical_known_truth_elcc_mw" => Int(case.expected.analytical_elcc_mw),
+            "sample_count_per_assessment" => Int(case.simulation.samples),
+            "seed" => Int(case.simulation.seed),
+            "p_value_stopping_threshold" => Float64(case.capacity_credit.p_value),
+            "method" => "native_PRAS_ELCC_EUE",
+            "matched_seed_replay_bounds_equal" => true,
+        ))
+    end
     @testset "full-horizon rebound trap" begin
         case = fixture_case("pras-rebound-worsens-shortfall")
         baseline = one_region_system([100, 100], [90, 80])
