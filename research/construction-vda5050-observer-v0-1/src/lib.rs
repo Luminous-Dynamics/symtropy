@@ -1070,7 +1070,7 @@ mod tests {
 
     #[test]
     fn cloud_topic_hierarchy_is_supported_with_explicit_identity() {
-        let payload = format!("{{{HEADER},"connectionState":"ONLINE"}}");
+        let payload = format!(r#"{{{HEADER},"connectionState":"ONLINE"}}"#);
         let identity = TopicIdentity {
             manufacturer: "ACME".to_owned(),
             serial_number: "R-01".to_owned(),
@@ -1226,7 +1226,7 @@ mod tests {
 
     #[test]
     fn topic_major_version_mismatch_is_rejected() {
-        let payload = format!("{{{HEADER},"connectionState":"ONLINE"}}");
+        let payload = format!(r#"{{{HEADER},"connectionState":"ONLINE"}}"#);
         assert!(matches!(
             decode_vda_message("vda5050/v2/ACME/R-01/connection", None, payload.as_bytes()),
             Err(ObserverError::TopicVersionMismatch(_))
