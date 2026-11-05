@@ -732,7 +732,13 @@ pub fn evaluate_inference_power_flexibility(
                 && current_sustained_duration_ms >= contract.response.minimum_sustained_duration_ms
                 && stabilized_response_elapsed_ms.is_none()
             {
-                stabilized_response_elapsed_ms = Some(current_segment_start_ms);
+                stabilized_response_elapsed_ms = Some(
+                    base.start_elapsed_ms.checked_add(base.duration_ms).ok_or(
+                        InferencePowerFlexibilityError::NumericalOverflow(
+                            "stabilized response timestamp",
+                        ),
+                    )?
+                );
             }
         } else {
             consecutive = 0;
@@ -807,6 +813,12 @@ pub fn evaluate_inference_power_flexibility(
         candidate_service,
         baseline_boundary_energy_wh,
         candidate_boundary_energy_wh,
+        baseline_gpu_energy_wh,
+        candidate_gpu_energy_wh,
+        baseline_cpu_energy_wh,
+        candidate_cpu_energy_wh,
+        baseline_dram_energy_wh,
+        candidate_dram_energy_wh,
         baseline_tokens_per_joule,
         candidate_tokens_per_joule,
         baseline_average_boundary_power_w: baseline_average_power,
@@ -919,9 +931,11 @@ fn calculate_service_metrics(
         if result.succeeded {
             successful_request_count += 1;
         }
-        completed_useful_tokens = completed_useful_tokens.checked_add(
-            result.output_tokens.min(obligation.expected_output_tokens)
-        ).ok_or(InferencePowerFlexibilityError::NumericalOverflow("completed useful token count"))?;
+        if result.succeeded {
+            completed_useful_tokens = completed_useful_tokens.checked_add(
+                result.output_tokens.min(obligation.expected_output_tokens)
+            ).ok_or(InferencePowerFlexibilityError::NumericalOverflow("completed useful token count"))?;
+        }
         total_output_tokens = total_output_tokens.checked_add(result.output_tokens)
             .ok_or(InferencePowerFlexibilityError::NumericalOverflow("output token count"))?;
         if result.succeeded {
@@ -988,13 +1002,13 @@ fn service_violations(
     if metrics.useful_work_fraction < contract.minimum_useful_work_fraction {
         reasons.push(InferenceServiceGateViolation::UsefulWorkFractionBelowMinimum);
     }
-    if metrics.tokens_per_second < contract.minimum_tokens_per_second {
+    if metrics.useful_tokens_per_second < contract.minimum_tokens_per_second {
         reasons.push(InferenceServiceGateViolation::TokensPerSecondBelowMinimum);
     }
     if let Some(base) = baseline {
-        let required_throughput = base.tokens_per_second
+        let required_throughput = base.useful_tokens_per_second
             * contract.minimum_throughput_retention_fraction;
-        if metrics.tokens_per_second < required_throughput {
+        if metrics.useful_tokens_per_second < required_throughput {
             reasons.push(InferenceServiceGateViolation::ThroughputRetentionBelowMinimum);
         }
     }
@@ -1132,7 +1146,7 @@ mod tests {
         ).expect("paired measurement");
         assert!(report.service_equivalent);
         assert!(report.power_response_qualified);
-        assert_eq!(report.stabilized_response_elapsed_ms, Some(100));
+        assert_eq!(report.stabilized_response_elapsed_ms, Some(400));
         assert_eq!(report.maximum_sampled_reduction_w, 20.0);
         assert!((report.gross_reduction_energy_wh - 20.0 * 0.4 / 3_600.0).abs() < 1e-12);
         assert_eq!(report.rebound_energy_wh, 0.0);
@@ -1268,7 +1282,7 @@ mod tests {
         ).expect("measurement");
         assert_eq!(report.baseline_average_boundary_power_w, 100.0);
         assert_eq!(report.candidate_average_boundary_power_w, 90.0);
-        assert!((report.baseline_tokens_per_joule - 4_000.0 / (100.0 * 0.5)).abs() < 1e-9);
+        assert!((report.baseline_tokens_per_joule - 400.0 / (100.0 * 0.5)).abs() < 1e-9);
     }
 
     #[test]
