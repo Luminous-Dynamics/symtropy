@@ -486,7 +486,10 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                     let harmonic_value = field(line, "harmonic_order", &line_path)?;
                     if let Some(harmonic) = harmonic_value.as_u64() {
                         if harmonic == 0 {
-                            return Err(fail(&line_path, "grid harmonic order must be at least one"));
+                            return Err(fail(
+                                &line_path,
+                                "grid harmonic order must be at least one",
+                            ));
                         }
                         if !seen_harmonic_orders.insert(harmonic) {
                             return Err(fail(
@@ -528,7 +531,10 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                         ));
                     }
                     if !harmonic_square_sum.is_finite() || !interharmonic_square_sum.is_finite() {
-                        return Err(fail(&line_path, "grid spectral power accumulation overflowed"));
+                        return Err(fail(
+                            &line_path,
+                            "grid spectral power accumulation overflowed",
+                        ));
                     }
                 }
                 "RESONANT_CURRENT" => {
@@ -581,7 +587,8 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
         let (thd_order, thd, interharmonic_ratio, sideband_ratio) = match kind {
             "GRID_CURRENT" => {
                 saw_grid = true;
-                let maximum = maximum_harmonic_order.expect("grid channel declared harmonic coverage");
+                let maximum =
+                    maximum_harmonic_order.expect("grid channel declared harmonic coverage");
                 let expected_orders = (1..=maximum).collect::<BTreeSet<_>>();
                 if seen_harmonic_orders != expected_orders {
                     return Err(fail(
@@ -613,12 +620,7 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                     .ok_or_else(|| {
                         fail(&path, "resonant spectrum requires one non-zero carrier")
                     })?;
-                (
-                    None,
-                    None,
-                    None,
-                    Some(sideband_square_sum.sqrt() / carrier),
-                )
+                (None, None, None, Some(sideband_square_sum.sqrt() / carrier))
             }
             _ => unreachable!("channel kind checked above"),
         };
@@ -629,10 +631,7 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
             ("resonant sideband ratio", sideband_ratio),
         ] {
             if metric_value.is_some_and(|value| !value.is_finite()) {
-                return Err(fail(
-                    &path,
-                    format!("{metric_name} calculation overflowed"),
-                ));
+                return Err(fail(&path, format!("{metric_name} calculation overflowed")));
             }
         }
 
@@ -710,8 +709,7 @@ mod tests {
                 < 1e-12
         );
         assert!(
-            (grid.interharmonic_to_fundamental_rms_ratio.unwrap()
-                - expected_interharmonic_ratio)
+            (grid.interharmonic_to_fundamental_rms_ratio.unwrap() - expected_interharmonic_ratio)
                 .abs()
                 < 1e-12
         );
