@@ -563,9 +563,11 @@ mod tests {
                 {"requested_input_power_w": 200.0, "time_ns": 0}
             ]
         });
-        assert!(service_profile(&service)
-            .unwrap_err()
-            .contains("STORED or RELEASED"));
+        assert!(
+            service_profile(&service)
+                .unwrap_err()
+                .contains("STORED or RELEASED")
+        );
     }
 
     #[test]
@@ -584,9 +586,11 @@ mod tests {
                 {"requested_input_power_w": 200.0, "time_ns": 0}
             ]
         });
-        assert!(service_profile(&service)
-            .unwrap_err()
-            .contains("chemical_energy_mode"));
+        assert!(
+            service_profile(&service)
+                .unwrap_err()
+                .contains("chemical_energy_mode")
+        );
     }
 
     #[test]
