@@ -292,8 +292,13 @@ pub struct OwnerOfferReservation {
     pub product_id: String,
     pub direction: GridFlexDirection,
     pub reserved_power_kw: f64,
+    pub maximum_response_latency_seconds: u64,
+    pub maximum_sustain_seconds: u64,
+    pub maximum_recovery_power_kw: f64,
+    pub maximum_recovery_energy_kwh: f64,
     pub valid_from_unix_seconds: i64,
     pub valid_until_unix_seconds: i64,
+    pub qualification_receipt_ids: Vec<String>,
 }
 
 impl OwnerOfferReservationLedger {
@@ -375,8 +380,13 @@ impl OwnerOfferReservationLedger {
             product_id: offer.product_id.clone(),
             direction: offer.direction,
             reserved_power_kw: offer.maximum_power_kw,
+            maximum_response_latency_seconds: offer.maximum_response_latency_seconds,
+            maximum_sustain_seconds: offer.maximum_sustain_seconds,
+            maximum_recovery_power_kw: offer.maximum_recovery_power_kw,
+            maximum_recovery_energy_kwh: offer.maximum_recovery_energy_kwh,
             valid_from_unix_seconds: offer.valid_from_unix_seconds,
             valid_until_unix_seconds: offer.valid_until_unix_seconds,
+            qualification_receipt_ids: offer.qualification_receipt_ids.clone(),
         };
         self.reservations.push(reservation.clone());
         Ok(reservation)
@@ -400,8 +410,13 @@ impl OwnerOfferReservationLedger {
                 && reservation.product_id == offer.product_id
                 && reservation.direction == offer.direction
                 && reservation.reserved_power_kw.to_bits() == offer.maximum_power_kw.to_bits()
+                && reservation.maximum_response_latency_seconds == offer.maximum_response_latency_seconds
+                && reservation.maximum_sustain_seconds == offer.maximum_sustain_seconds
+                && reservation.maximum_recovery_power_kw.to_bits() == offer.maximum_recovery_power_kw.to_bits()
+                && reservation.maximum_recovery_energy_kwh.to_bits() == offer.maximum_recovery_energy_kwh.to_bits()
                 && reservation.valid_from_unix_seconds == offer.valid_from_unix_seconds
                 && reservation.valid_until_unix_seconds == offer.valid_until_unix_seconds
+                && reservation.qualification_receipt_ids == offer.qualification_receipt_ids
         })
     }
 
@@ -613,6 +628,9 @@ pub struct OwnerDispatchAuthorizationReceipt {
     pub dispatch_id: String,
     pub offer_id: String,
     pub product_id: String,
+    pub policy_id: String,
+    pub policy_version: String,
+    pub qualification_receipt_ids: Vec<String>,
     pub site_id: String,
     pub pcc_boundary_id: String,
     pub direction: GridFlexDirection,
@@ -679,7 +697,7 @@ pub fn authorize_owner_dispatch(
     {
         return reject(OwnerDispatchRejectionReason::DispatchIssuedInFuture);
     }
-    if now_unix_seconds > request.expires_at_unix_seconds {
+    if now_unix_seconds >= request.expires_at_unix_seconds {
         return reject(OwnerDispatchRejectionReason::DispatchExpired);
     }
     if now_unix_seconds > request.response_deadline_unix_seconds {
@@ -760,6 +778,9 @@ pub fn authorize_owner_dispatch(
         dispatch_id: request.dispatch_id.clone(),
         offer_id: request.offer_id.clone(),
         product_id: request.product_id.clone(),
+        policy_id: policy.policy_id.clone(),
+        policy_version: policy.policy_version.clone(),
+        qualification_receipt_ids: offer.qualification_receipt_ids.clone(),
         site_id: request.site_id.clone(),
         pcc_boundary_id: request.pcc_boundary_id.clone(),
         direction: request.direction,
