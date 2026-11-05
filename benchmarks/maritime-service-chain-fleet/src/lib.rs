@@ -41,7 +41,7 @@ pub enum SearchTermination {
     BudgetExhausted,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OperationPlacement {
     pub demand_id: String,
     pub participant_id: String,
