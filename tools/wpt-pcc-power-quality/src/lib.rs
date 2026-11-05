@@ -439,9 +439,9 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
                 if network_type != "PUBLIC_LOW_VOLTAGE" || !in_current_scope || !in_voltage_scope {
                     ProfileApplicability::NotApplicable
                 } else if (phase_count == 1
-                    && (grid_frequency != 50.0 || (nominal_voltage - 230.0).abs() > 1.0))
+                    && (grid_frequency != 50.0 || nominal_voltage != 230.0))
                     || (phase_count == 3
-                        && (grid_frequency != 50.0 || (nominal_voltage - 400.0).abs() > 2.0))
+                        && (grid_frequency != 50.0 || nominal_voltage != 400.0))
                 {
                     ProfileApplicability::ScopeOnlyLimitDomainNotCovered
                 } else {
