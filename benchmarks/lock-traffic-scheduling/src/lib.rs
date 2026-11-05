@@ -1788,6 +1788,66 @@ mod tests {
     }
 
     #[test]
+    fn participant_metrics_distinguish_submitted_eligible_and_delivered_demand() {
+        let mut invalid = request("invalid", 0, Direction::Upstream, 1, 1);
+        invalid.service_duration_ticks = 0;
+        let mut budget_rejected = request("budget", 1, Direction::Upstream, 1, 1);
+        budget_rejected.water_requirement_ml = 2_000;
+        let valid = request("valid", 2, Direction::Upstream, 1, 1);
+        let requests = vec![invalid, budget_rejected, valid];
+
+        let plan = schedule(
+            &profile(),
+            &requests,
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+
+        let invalid_metrics = &plan.metrics.by_participant["participant-invalid"];
+        assert_eq!(invalid_metrics.requests, 1);
+        assert_eq!(invalid_metrics.eligible_requests, 0);
+        assert_eq!(invalid_metrics.requested_service_units, 10);
+        assert_eq!(invalid_metrics.eligible_service_units, 0);
+        assert_eq!(invalid_metrics.service_units, 0);
+
+        let budget_metrics = &plan.metrics.by_participant["participant-budget"];
+        assert_eq!(budget_metrics.requests, 1);
+        assert_eq!(budget_metrics.eligible_requests, 1);
+        assert_eq!(budget_metrics.requested_service_units, 10);
+        assert_eq!(budget_metrics.eligible_service_units, 10);
+        assert_eq!(budget_metrics.service_units, 0);
+
+        let valid_metrics = &plan.metrics.by_participant["participant-valid"];
+        assert_eq!(valid_metrics.eligible_requests, 1);
+        assert_eq!(valid_metrics.eligible_service_units, 10);
+        assert_eq!(valid_metrics.service_units, 10);
+    }
+
+    #[test]
+    fn fulfilment_ratio_comparison_matches_exact_cross_products_for_small_values() {
+        for left_delivered in 0_u128..=32 {
+            for left_requested in 1_u128..=32 {
+                for right_delivered in 0_u128..=32 {
+                    for right_requested in 1_u128..=32 {
+                        let expected = (left_delivered * right_requested)
+                            .cmp(&(right_delivered * left_requested));
+                        assert_eq!(
+                            compare_fulfilment_ratio(
+                                left_delivered,
+                                left_requested,
+                                right_delivered,
+                                right_requested,
+                            ),
+                            expected,
+                            "{left_delivered}/{left_requested} vs {right_delivered}/{right_requested}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn inversion_metric_detects_a_policy_order_reversal() {
         let mut early = request("early", 0, Direction::Upstream, 1, 1);
         early.maximum_wait_ticks = 100;
