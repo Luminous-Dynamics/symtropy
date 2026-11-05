@@ -1,0 +1,12 @@
+version = 4
+
+[[package]]
+name = "inland-waterway-lock-operations"
+version = "0.1.0"
+
+[[package]]
+name = "lock-traffic-scheduling"
+version = "0.1.0"
+dependencies = [
+ "inland-waterway-lock-operations",
+]
