@@ -3,8 +3,9 @@
 
 //! Synthetic service-versus-reserve recovery portfolio.
 
-use civdyn_cross_scale_resilience::{
-    RecoveryCapitalOutcome, RecoveryCapitalTick, run_recovery_capital_portfolio,
+use civdyn_cross_scale_resilience::recovery_capital::{
+    RecoveryCapitalOutcome, RecoveryCapitalTick, RecoveryPath, RecoveryPhase,
+    run_recovery_capital_portfolio,
 };
 
 const CSV_COLUMNS: usize = 16;
@@ -48,7 +49,7 @@ fn summary_row(outcome: &RecoveryCapitalOutcome) {
 fn tick_row(path: RecoveryPath, tick: &RecoveryCapitalTick) {
     let unmet = fmt(tick.unmet_water_m3);
     let (first_shock_unmet, recovery_unmet, repeat_shock_unmet) = match tick.phase {
-        civdyn_cross_scale_resilience::RecoveryPhase::FirstShock => {
+        RecoveryPhase::FirstShock => {
             (unmet, String::new(), String::new())
         }
         civdyn_cross_scale_resilience::RecoveryPhase::ServiceRecovery => {
@@ -98,7 +99,6 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use civdyn_cross_scale_resilience::RecoveryPath;
 
     #[test]
     fn two_paths_emit_two_summary_rows_and_all_ticks() {
