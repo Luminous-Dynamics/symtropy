@@ -228,6 +228,8 @@ pub struct CorrespondenceHypothesisDraws {
     pub completeness: PlanCompleteness,
     /// Original exact event map, pairing bases, and correspondence evidence references.
     pub correspondence: crate::correspondence::CorrespondenceHypothesis,
+    /// Original causal invariance / branch-locality rules for each mapped pair.
+    pub causal_rules: Vec<crate::coupling_projection::PairCausalRule>,
     pub draws: Vec<CorrespondenceDrawReceipt>,
 }
 
@@ -276,6 +278,10 @@ pub fn correspondence_draw_bundle_digest(bundle: &CorrespondenceDrawBundle) -> [
         hash_stable_id(&mut hasher, &hypothesis.hypothesis_id);
         hash_completeness(&mut hasher, hypothesis.completeness);
         hash_correspondence_hypothesis(&mut hasher, &hypothesis.correspondence);
+        hash_len(&mut hasher, hypothesis.causal_rules.len());
+        for rule in &hypothesis.causal_rules {
+            hash_pair_causal_rule(&mut hasher, rule);
+        }
         hash_len(&mut hasher, hypothesis.draws.len());
         for receipt in &hypothesis.draws {
             hash_stable_id(&mut hasher, &receipt.hypothesis_id);
@@ -417,6 +423,47 @@ fn hash_correspondence_hypothesis(
     }
 }
 
+fn hash_pair_causal_rule(
+    hasher: &mut blake3::Hasher,
+    value: &crate::coupling_projection::PairCausalRule,
+) {
+    hash_stable_id(hasher, &value.hypothesis_id);
+    hash_stable_id(hasher, &value.left_event);
+    hash_stable_id(hasher, &value.right_event);
+    hasher.update(&[match value.basis {
+        crate::correspondence::IdentityBasis::Actor => 0,
+        crate::correspondence::IdentityBasis::DirectedDyad => 1,
+        crate::correspondence::IdentityBasis::EncounterSlot => 2,
+    }]);
+    match &value.disposition {
+        crate::coupling_projection::CausalDisposition::SharedInvariant {
+            equivalence_group,
+            justification,
+        } => {
+            hasher.update(&[0]);
+            hash_stable_id(hasher, equivalence_group);
+            hash_stable_id(hasher, justification);
+        }
+        crate::coupling_projection::CausalDisposition::BranchSpecific => {
+            hasher.update(&[1]);
+        }
+        crate::coupling_projection::CausalDisposition::SensitivityOnly {
+            sensitivity_id,
+            justification,
+        } => {
+            hasher.update(&[2]);
+            hash_stable_id(hasher, sensitivity_id);
+            hash_stable_id(hasher, justification);
+        }
+        crate::coupling_projection::CausalDisposition::NotIdentified => {
+            hasher.update(&[3]);
+        }
+        crate::coupling_projection::CausalDisposition::Incomplete => {
+            hasher.update(&[4]);
+        }
+    }
+}
+
 fn hash_sharing_status(hasher: &mut blake3::Hasher, value: SharingStatus) {
     hasher.update(&[match value {
         SharingStatus::SharedInvariant => 0,
@@ -476,6 +523,7 @@ pub fn resolve_correspondence_plan(
             hypothesis_id: hypothesis.hypothesis_id.clone(),
             completeness: hypothesis.completeness,
             correspondence: hypothesis.correspondence.clone(),
+            causal_rules: hypothesis.causal_rules.clone(),
             draws,
         });
     }
@@ -545,8 +593,8 @@ mod tests {
         IdentityBasis, UnmatchedEvent, UnmatchedReason,
     };
     use crate::coupling_projection::{
-        CorrespondenceAddressPlan, HypothesisAddressPlan, PlanCompleteness, PlannedAddress,
-        PlannedPresence, SharingStatus,
+        CausalDisposition, CorrespondenceAddressPlan, HypothesisAddressPlan, PairCausalRule,
+        PlanCompleteness, PlannedAddress, PlannedPresence, SharingStatus,
     };
     use crate::{Coupling, EventIdentity, StableId};
 
@@ -576,6 +624,21 @@ mod tests {
             coupling,
         )
         .expect("fixture address is valid")
+    }
+
+    fn pair_causal_rule(
+        hypothesis: &str,
+        right_event: &str,
+        basis: IdentityBasis,
+        disposition: CausalDisposition,
+    ) -> PairCausalRule {
+        PairCausalRule {
+            hypothesis_id: id(hypothesis),
+            left_event: id("L1"),
+            right_event: id(right_event),
+            basis,
+            disposition,
+        }
     }
 
     fn correspondence_hypothesis(
@@ -642,6 +705,15 @@ mod tests {
                         IdentityBasis::Actor,
                         "R2",
                     ),
+                    causal_rules: vec![pair_causal_rule(
+                        "H-actor",
+                        "R1",
+                        IdentityBasis::Actor,
+                        CausalDisposition::SharedInvariant {
+                            equivalence_group: id("crossing-weather"),
+                            justification: id("scm:weather-v1"),
+                        },
+                    )],
                     addresses: vec![
                         planned_address(
                             "continue",
@@ -672,6 +744,12 @@ mod tests {
                         IdentityBasis::EncounterSlot,
                         "R1",
                     ),
+                    causal_rules: vec![pair_causal_rule(
+                        "H-slot",
+                        "R2",
+                        IdentityBasis::EncounterSlot,
+                        CausalDisposition::BranchSpecific,
+                    )],
                     addresses: vec![
                         planned_address(
                             "continue",
@@ -760,6 +838,10 @@ mod tests {
             assert_eq!(
                 resolved_hypothesis.correspondence,
                 planned_hypothesis.correspondence
+            );
+            assert_eq!(
+                resolved_hypothesis.causal_rules,
+                planned_hypothesis.causal_rules
             );
             assert_eq!(
                 resolved_hypothesis.draws.len(),
