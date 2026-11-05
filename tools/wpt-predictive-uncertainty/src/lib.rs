@@ -488,6 +488,31 @@ mod decision_gate_tests {
         assert_eq!(result.decision, GateDecision::Inhibit);
     }
 
+
+    #[test]
+    fn unsupported_regime_blocks_otherwise_eligible_intervals() {
+        let result = evaluate_decision_gate_for_regime(
+            "hot_misaligned",
+            &["aligned_cold".to_string()],
+            &[constraint("maximum_temperature", ConstraintSense::Maximum, 80.0, 70.0, 75.0)],
+        )
+        .unwrap();
+        assert!(!result.regime_supported);
+        assert_eq!(result.decision, GateDecision::NotEvaluable);
+    }
+
+    #[test]
+    fn definite_violation_still_inhibits_in_unsupported_regime() {
+        let result = evaluate_decision_gate_for_regime(
+            "unknown",
+            &["aligned_cold".to_string()],
+            &[constraint("maximum_temperature", ConstraintSense::Maximum, 80.0, 82.0, 85.0)],
+        )
+        .unwrap();
+        assert_eq!(result.decision, GateDecision::Inhibit);
+    }
+
+
     #[test]
     fn malformed_gate_inputs_fail_closed() {
         assert!(evaluate_decision_gate(&[]).is_err());
