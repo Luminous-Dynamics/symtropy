@@ -126,6 +126,9 @@ impl ChronologicalAdequacyContract {
         load_search_tolerance_kw: f64,
         maximum_search_iterations: usize,
     ) -> Result<Self, ChronologicalAdequacyError> {
+        if metric == ChronologicalAdequacyMetric::LossOfLoadEvents {
+            return Err(ChronologicalAdequacyError::NonMonotoneAdequacyMetric);
+        }
         for (name, value) in [
             ("interval duration hours", interval_duration_hours),
             ("maximum added load kW", maximum_added_load_kw),
@@ -487,6 +490,7 @@ pub enum ChronologicalAdequacyError {
     InvalidNonNegativeQuantity { name: &'static str, value: f64 },
     InvalidScenarioProbability { scenario_id: String, probability_weight: f64 },
     InvalidCvarConfidenceLevel(u16),
+    NonMonotoneAdequacyMetric,
     InvalidSearchIterationCount(usize),
     SearchToleranceExceedsRange { tolerance_kw: f64, maximum_added_load_kw: f64 },
     EmptyScenarioSet,
@@ -522,6 +526,10 @@ impl fmt::Display for ChronologicalAdequacyError {
             ),
             Self::InvalidCvarConfidenceLevel(level) => write!(
                 f, "CVaR confidence level must be between 1 and 9999 basis points; got {level}"
+            ),
+            Self::NonMonotoneAdequacyMetric => write!(
+                f,
+                "contiguous loss-of-load event count is diagnostic only because event merging can make it non-monotonic in added load"
             ),
             Self::InvalidSearchIterationCount(count) => write!(
                 f, "search iteration count must be between 1 and 128; got {count}"
@@ -1391,7 +1399,7 @@ mod tests {
     #[test]
     fn ntcsa_style_loss_of_load_events_merge_across_midnight_and_split_after_recovery() {
         let study = ChronologicalAdequacyStudy::new(
-            contract(ChronologicalAdequacyMetric::LossOfLoadEvents, 20.0),
+            contract(ChronologicalAdequacyMetric::LossOfLoadHours, 20.0),
             vec![ChronologicalAdequacyScenario::new(
                 "event-spells",
                 1.0,
@@ -1412,6 +1420,24 @@ mod tests {
         assert!((report.elcc_like_added_load_kw - 5.0).abs() < 1e-5);
         assert!(report.reference_criterion_preserved);
         assert!(report.search_converged);
+    }
+
+    #[test]
+    fn contiguous_event_count_is_rejected_as_primary_credit_metric() {
+        let result = ChronologicalAdequacyContract::new(
+            identity(),
+            ChronologicalAdequacyMetric::LossOfLoadEvents,
+            1.0,
+            1e-9,
+            1e-9,
+            20.0,
+            1e-6,
+            64,
+        );
+        assert!(matches!(
+            result,
+            Err(ChronologicalAdequacyError::NonMonotoneAdequacyMetric)
+        ));
     }
 
     #[test]
