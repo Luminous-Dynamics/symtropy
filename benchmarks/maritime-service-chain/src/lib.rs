@@ -963,7 +963,7 @@ mod tests {
                 "channel-calendar",
                 EvidenceOwner::Symtropy,
                 EvidenceRole::ResourceCapacity,
-                "channel-01",
+                "channel-window-01",
                 None,
             ),
             evidence(
@@ -1369,7 +1369,7 @@ mod tests {
     #[test]
     fn resource_windows_must_be_valid_non_overlapping_and_positive() {
         let mut overlap = valid_case();
-        overlap.resources[0].availability.push(CapacityWindow {
+        overlap.resources[1].availability.push(CapacityWindow {
             window: TickWindow {
                 start_tick: 30,
                 end_tick: 45,
@@ -1384,7 +1384,7 @@ mod tests {
         );
 
         let mut zero = valid_case();
-        zero.resources[0].availability[0].capacity = 0;
+        zero.resources[1].availability[0].capacity = 0;
         assert_eq!(
             validate_case(&zero),
             Err(ValidationError::InvalidCapacityWindow("lock-01".into()))
