@@ -9,8 +9,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::StableId;
 use super::correspondence::{
-    CorrespondenceDisposition, CorrespondenceError, CorrespondenceSet,
-    EventOccurrence, EventPair, EventPresence, IdentityBasis, UnmatchedReason,
+    CorrespondenceDisposition, CorrespondenceError, CorrespondenceSet, EventOccurrence, EventPair,
+    EventPresence, IdentityBasis, UnmatchedReason,
 };
 
 const DOMAIN: &[u8] = b"symtropy.road-correspondence-coupling.address.v0.2\0";
@@ -138,8 +138,7 @@ pub fn project_correspondence_addresses(
     pair_rules: &[PairCausalRule],
 ) -> Result<CorrespondenceAddressPlan, ProjectionError> {
     let assessment = correspondence.assess()?;
-    let global_complete =
-        assessment.disposition != CorrespondenceDisposition::Incomplete;
+    let global_complete = assessment.disposition != CorrespondenceDisposition::Incomplete;
 
     let scopes = index_scopes(correspondence, event_scopes)?;
     let pair_rule_index = index_pair_rules(correspondence, pair_rules)?;
@@ -157,7 +156,10 @@ pub fn project_correspondence_addresses(
                 .get(&(correspondence.left_branch.clone(), pair.left_event.clone()))
                 .ok_or(ProjectionError::MissingEventScope)?;
             let right_scope = scopes
-                .get(&(correspondence.right_branch.clone(), pair.right_event.clone()))
+                .get(&(
+                    correspondence.right_branch.clone(),
+                    pair.right_event.clone(),
+                ))
                 .ok_or(ProjectionError::MissingEventScope)?;
             let rule = pair_rule_index
                 .get(&PairKey::from_pair(pair))
@@ -284,7 +286,10 @@ pub fn project_correspondence_addresses(
             let event = find_event(&correspondence.left_events, &unmatched.event_id)
                 .ok_or(ProjectionError::MissingEventScope)?;
             let scope = scopes
-                .get(&(correspondence.left_branch.clone(), unmatched.event_id.clone()))
+                .get(&(
+                    correspondence.left_branch.clone(),
+                    unmatched.event_id.clone(),
+                ))
                 .ok_or(ProjectionError::MissingEventScope)?;
             let sharing = unmatched_status(&unmatched.reason, &event.presence);
             addresses.push(local_address(event, scope, sharing));
@@ -294,7 +299,10 @@ pub fn project_correspondence_addresses(
             let event = find_event(&correspondence.right_events, &unmatched.event_id)
                 .ok_or(ProjectionError::MissingEventScope)?;
             let scope = scopes
-                .get(&(correspondence.right_branch.clone(), unmatched.event_id.clone()))
+                .get(&(
+                    correspondence.right_branch.clone(),
+                    unmatched.event_id.clone(),
+                ))
                 .ok_or(ProjectionError::MissingEventScope)?;
             let sharing = unmatched_status(&unmatched.reason, &event.presence);
             addresses.push(local_address(event, scope, sharing));
@@ -594,12 +602,7 @@ mod tests {
         StableId::new(value).expect("valid fixture id")
     }
 
-    fn event(
-        event_id: &str,
-        actor: &str,
-        slot: &str,
-        presence: EventPresence,
-    ) -> EventOccurrence {
+    fn event(event_id: &str, actor: &str, slot: &str, presence: EventPresence) -> EventOccurrence {
         EventOccurrence {
             event_id: id(event_id),
             event_family: id("crossing-gap-choice"),
@@ -704,15 +707,18 @@ mod tests {
             universe_status: CandidateUniverseStatus::ExhaustiveWithinDeclaredScope {
                 evidence_ref: id("event-universe"),
             },
-            hypothesis_set_status:
-                HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily {
-                    evidence_ref: id("hypothesis-search"),
-                },
+            hypothesis_set_status: HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily {
+                evidence_ref: id("hypothesis-search"),
+            },
         }
     }
 
     fn all_scopes() -> Vec<EventDrawScope> {
-        vec![scope("continue", "L1"), scope("yield", "R1"), scope("yield", "R2")]
+        vec![
+            scope("continue", "L1"),
+            scope("yield", "R1"),
+            scope("yield", "R2"),
+        ]
     }
 
     fn shared_rule(left: &str, right: &str, basis: IdentityBasis) -> PairCausalRule {
@@ -737,7 +743,10 @@ mod tests {
         let plan =
             project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
 
-        assert_eq!(plan.completeness, PlanCompleteness::CompleteWithinDeclaredSets);
+        assert_eq!(
+            plan.completeness,
+            PlanCompleteness::CompleteWithinDeclaredSets
+        );
         assert_eq!(plan.hypotheses.len(), 2);
         let actor = &plan.hypotheses[0];
         let slot = &plan.hypotheses[1];
@@ -763,10 +772,19 @@ mod tests {
             shared_rule("L1", "R1", IdentityBasis::Actor),
             shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
         ];
-        let plan = project_correspondence_addresses(&correspondence, &all_scopes(), &shared).unwrap();
+        let plan =
+            project_correspondence_addresses(&correspondence, &all_scopes(), &shared).unwrap();
         for hypothesis in &plan.hypotheses {
-            let left = hypothesis.addresses.iter().find(|a| a.branch_id == id("continue")).unwrap();
-            let right = hypothesis.addresses.iter().find(|a| a.branch_id == id("yield") && a.sharing == SharingStatus::SharedInvariant).unwrap();
+            let left = hypothesis
+                .addresses
+                .iter()
+                .find(|a| a.branch_id == id("continue"))
+                .unwrap();
+            let right = hypothesis
+                .addresses
+                .iter()
+                .find(|a| a.branch_id == id("yield") && a.sharing == SharingStatus::SharedInvariant)
+                .unwrap();
             assert_eq!(left.canonical_bytes, right.canonical_bytes);
         }
 
@@ -774,10 +792,20 @@ mod tests {
         for rule in &mut branch_specific {
             rule.disposition = CausalDisposition::BranchSpecific;
         }
-        let local_plan = project_correspondence_addresses(&correspondence, &all_scopes(), &branch_specific).unwrap();
+        let local_plan =
+            project_correspondence_addresses(&correspondence, &all_scopes(), &branch_specific)
+                .unwrap();
         let hypothesis = &local_plan.hypotheses[0];
-        let left = hypothesis.addresses.iter().find(|a| a.branch_id == id("continue")).unwrap();
-        let right = hypothesis.addresses.iter().find(|a| a.branch_id == id("yield") && a.event_id == id("R1")).unwrap();
+        let left = hypothesis
+            .addresses
+            .iter()
+            .find(|a| a.branch_id == id("continue"))
+            .unwrap();
+        let right = hypothesis
+            .addresses
+            .iter()
+            .find(|a| a.branch_id == id("yield") && a.event_id == id("R1"))
+            .unwrap();
         assert_ne!(left.canonical_bytes, right.canonical_bytes);
     }
 
@@ -791,9 +819,18 @@ mod tests {
         for rule in &mut rules {
             rule.disposition = CausalDisposition::BranchSpecific;
         }
-        let plan = project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
-        let left_actor = plan.hypotheses[0].addresses.iter().find(|a| a.branch_id == id("continue")).unwrap();
-        let left_slot = plan.hypotheses[1].addresses.iter().find(|a| a.branch_id == id("continue")).unwrap();
+        let plan =
+            project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
+        let left_actor = plan.hypotheses[0]
+            .addresses
+            .iter()
+            .find(|a| a.branch_id == id("continue"))
+            .unwrap();
+        let left_slot = plan.hypotheses[1]
+            .addresses
+            .iter()
+            .find(|a| a.branch_id == id("continue"))
+            .unwrap();
         assert_eq!(left_actor.canonical_bytes, left_slot.canonical_bytes);
     }
 
@@ -807,11 +844,22 @@ mod tests {
             shared_rule("L1", "R1", IdentityBasis::Actor),
             shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
         ];
-        let plan = project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
+        let plan =
+            project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
         assert_eq!(plan.completeness, PlanCompleteness::Incomplete);
         let actor = &plan.hypotheses[0];
-        assert!(actor.addresses.iter().all(|a| a.sharing != SharingStatus::SharedInvariant));
-        assert!(actor.addresses.iter().any(|a| a.sharing == SharingStatus::NotIdentified));
+        assert!(
+            actor
+                .addresses
+                .iter()
+                .all(|a| a.sharing != SharingStatus::SharedInvariant)
+        );
+        assert!(
+            actor
+                .addresses
+                .iter()
+                .any(|a| a.sharing == SharingStatus::NotIdentified)
+        );
     }
 
     #[test]
@@ -824,29 +872,45 @@ mod tests {
             shared_rule("L1", "R1", IdentityBasis::Actor),
             shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
         ];
-        let plan = project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
+        let plan =
+            project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
         let actor = &plan.hypotheses[0];
-        let left = actor.addresses.iter().find(|a| a.branch_id == id("continue")).unwrap();
-        let right = actor.addresses.iter().find(|a| a.branch_id == id("yield") && a.event_id == id("R1")).unwrap();
+        let left = actor
+            .addresses
+            .iter()
+            .find(|a| a.branch_id == id("continue"))
+            .unwrap();
+        let right = actor
+            .addresses
+            .iter()
+            .find(|a| a.branch_id == id("yield") && a.event_id == id("R1"))
+            .unwrap();
         assert_eq!(left.canonical_bytes, right.canonical_bytes);
-        assert!(matches!(right.presence, PlannedPresence::NotRealized { .. }));
+        assert!(matches!(
+            right.presence,
+            PlannedPresence::NotRealized { .. }
+        ));
     }
 
     #[test]
     fn incomplete_hypothesis_search_retains_known_plans_but_marks_them_incomplete() {
         let mut correspondence = base_correspondence();
-        correspondence.hypothesis_set_status =
-            HypothesisSetStatus::IncompleteOrBudgetLimited {
-                evidence_ref: id("budget-limited-search"),
-            };
+        correspondence.hypothesis_set_status = HypothesisSetStatus::IncompleteOrBudgetLimited {
+            evidence_ref: id("budget-limited-search"),
+        };
         let rules = vec![
             shared_rule("L1", "R1", IdentityBasis::Actor),
             shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
         ];
-        let plan = project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
+        let plan =
+            project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
         assert_eq!(plan.completeness, PlanCompleteness::Incomplete);
         assert_eq!(plan.hypotheses.len(), 2);
-        assert!(plan.hypotheses.iter().all(|h| h.completeness == PlanCompleteness::Incomplete));
+        assert!(
+            plan.hypotheses
+                .iter()
+                .all(|h| h.completeness == PlanCompleteness::Incomplete)
+        );
     }
 
     #[test]
@@ -884,10 +948,19 @@ mod tests {
                 justification: id("declared-alternative-coupling"),
             };
         }
-        let plan = project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
+        let plan =
+            project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
         for hypothesis in &plan.hypotheses {
-            let left = hypothesis.addresses.iter().find(|a| a.branch_id == id("continue")).unwrap();
-            let right = hypothesis.addresses.iter().find(|a| a.branch_id == id("yield") && a.sharing == SharingStatus::SensitivityOnly).unwrap();
+            let left = hypothesis
+                .addresses
+                .iter()
+                .find(|a| a.branch_id == id("continue"))
+                .unwrap();
+            let right = hypothesis
+                .addresses
+                .iter()
+                .find(|a| a.branch_id == id("yield") && a.sharing == SharingStatus::SensitivityOnly)
+                .unwrap();
             assert_eq!(left.canonical_bytes, right.canonical_bytes);
             assert_eq!(left.sharing, SharingStatus::SensitivityOnly);
         }
