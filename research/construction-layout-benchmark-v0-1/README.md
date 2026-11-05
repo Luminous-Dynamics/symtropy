@@ -6,12 +6,17 @@
 
 Interior construction layout gives a bounded physical output that can be independently surveyed: partition lines, grid lines, MEP points, sleeves and hanger locations. This makes it a better first field demonstrator than a generic multi-robot site-wide programme.
 
-Current supplier specifications are useful starting baselines but remain supplier claims:
-- Dusty FieldPrinter 2: ±1.6 mm under its stated surveyed-control conditions: https://www.dustyrobotics.com/support/fieldprinter-2-specs
-- HP SitePrint: ±2 mm tolerance and ±0.8 mm average under a specified high-accuracy configuration and total-station/prism setup: https://siteprint.hp.com/
-- A 2025 peer-reviewed single-project study reported 68% fewer labour hours and 18% fewer days for a Dusty deployment compared with an estimated manual baseline; it is not a multi-vendor randomized trial and should not be generalized as a universal causal estimate: https://doi.org/10.1007/s41693-025-00162-6
+## Current industry baseline and comparison gap
 
-The study also illustrates why total-workflow accounting matters: model coordination, file preparation, survey/control setup, line-of-sight, obstructions, weather, supervision, inspection and rework all affect the result.
+**Dusty FieldPrinter 2.** Its manufacturer specification, updated 21 September 2026, states ±1/16 in (±1.6 mm) print accuracy given accurate surveyed control, 0.75 m/s continuous line print speed, and a Leica Absolute Laser Tracker positioning architecture. This is configuration-bound manufacturer data, not an independent P95/P99 field result. Source: https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs
+
+**HP SitePrint.** HP publishes layout tolerance ±3/32 in (±2 mm) and floor-level accuracy ±1/32 in (±0.8 mm) on average only under a defined high-accuracy setup: HP SMR prism, High Accuracy Print Mode and a 1-inch total station at 5–30 m. HP's headline "up to 30%" productivity improvement is relative to its previous software version; its official footnote lists 8% for interior-wall layouts. Do not compare that number to a manual workflow saving. Source: https://www.hp.com/us-en/printers/site-print/layout-robot.html
+
+**Published field evidence.** A peer-reviewed 2025 case study of an 8-floor medical office building reported 68% fewer total labour hours, 18% fewer layout days, 99% less physically straining work and rework estimates of 6.42% versus 0.25%. The authors explicitly state that traditional-method impacts were estimated rather than directly observed. The study also reports 204 additional VDC coordination/file-preparation hours in the robotic workflow and 393 robot print-hours. This is valuable real-world evidence, but not a randomized or multi-vendor matched trial. Source: https://doi.org/10.1007/s41693-025-00163-z
+
+**Our competitive challenge.** We should beat the published case-study figures only under a stronger comparison: direct measurement of the manual baseline, same geometry/revision/frame/tolerance, blind independent physical inspection, and all VDC preparation, setup, survey, operation, inspection, blocked work and rework included. The stretch challenge is 70% fewer total workflow crew-hours, 20% shorter elapsed layout duration and 90% fewer rework crew-hours than a directly measured manual baseline. These are ambitious research hypotheses, not achieved results, universal standards or automatic acceptance thresholds.
+
+The benchmark measures total workflow and independently accepted physical output—not robot print speed alone.
 
 ## Non-negotiable benchmark design
 
