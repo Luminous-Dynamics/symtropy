@@ -1312,6 +1312,53 @@ mod tests {
     }
 
     #[test]
+    fn participant_least_fulfilled_uses_share_not_raw_service_units() {
+        let mut p = profile();
+        p.unavailable_windows.clear();
+        let mut p1_large = request("p1-large", 0, Direction::Upstream, 1, 1);
+        p1_large.participant_id = "participant-1".into();
+        p1_large.service_units = 50;
+        let mut p1_small = request("p1-small", 2, Direction::Upstream, 1, 1);
+        p1_small.participant_id = "participant-1".into();
+        p1_small.service_units = 10;
+        let mut p2_first = request("p2-first", 1, Direction::Upstream, 1, 1);
+        p2_first.participant_id = "participant-2".into();
+        p2_first.service_units = 100;
+        let mut p2_second = request("p2-second", 3, Direction::Upstream, 1, 1);
+        p2_second.participant_id = "participant-2".into();
+        p2_second.service_units = 100;
+        let plan = schedule(
+            &p,
+            &[p1_large, p1_small, p2_first, p2_second],
+            SchedulingPolicy::ParticipantLeastFulfilled,
+        )
+        .expect("valid profile");
+
+        assert_eq!(
+            plan.schedule
+                .iter()
+                .map(|passage| passage.request_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["p1-large", "p2-first", "p2-second", "p1-small"]
+        );
+        assert_eq!(plan.metrics.by_participant["participant-1"].service_units, 60);
+        assert_eq!(plan.metrics.by_participant["participant-2"].service_units, 200);
+    }
+
+    #[test]
+    fn fulfilment_ratio_comparison_avoids_u128_cross_product_overflow() {
+        assert_eq!(
+            compare_fulfilment_ratio(
+                u128::MAX - 1,
+                u128::MAX,
+                u128::MAX - 2,
+                u128::MAX - 1
+            ),
+            Ordering::Greater
+        );
+    }
+
+    #[test]
     fn participant_least_served_is_input_order_independent() {
         let mut p = profile();
         p.unavailable_windows.clear();
