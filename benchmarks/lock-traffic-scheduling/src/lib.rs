@@ -43,6 +43,9 @@ pub struct ArrivalWindowEvidence {
     pub source_revision: String,
     /// Points to a validation/calibration receipt from the source model owner.
     pub calibration_receipt_id: String,
+    /// Exact arrival interval covered by the calibration/validation receipt.
+    pub interval_earliest_tick: u64,
+    pub interval_latest_tick: u64,
     /// Must identify the operating regime for which the interval is supported.
     pub operating_regime_id: String,
     pub observed_at_tick: u64,
@@ -256,8 +259,14 @@ fn validate_profile(
 
 fn arrival_evidence_error(
     profile: &LockScheduleProfile,
-    evidence: &ArrivalWindowEvidence,
+    request: &PassageRequest,
 ) -> Option<NotScheduledReason> {
+    let evidence = &request.arrival_evidence;
+    if evidence.interval_earliest_tick != request.arrival_earliest_tick
+        || evidence.interval_latest_tick != request.arrival_latest_tick
+    {
+        return Some(NotScheduledReason::ArrivalEvidenceInvalid);
+    }
     if !nonempty(&evidence.evidence_id)
         || !nonempty(&evidence.source_id)
         || !nonempty(&evidence.source_revision)
@@ -312,7 +321,7 @@ fn request_error(
         return Some(NotScheduledReason::LockBindingMismatch);
     }
 
-    if let Some(reason) = arrival_evidence_error(profile, &request.arrival_evidence) {
+    if let Some(reason) = arrival_evidence_error(profile, request) {
         return Some(reason);
     }
 
@@ -906,6 +915,8 @@ mod tests {
                 source_id: "arrival-model".into(),
                 source_revision: "model-v1".into(),
                 calibration_receipt_id: "calibration-v1".into(),
+                interval_earliest_tick: arrival,
+                interval_latest_tick: arrival,
                 operating_regime_id: "regime-normal".into(),
                 observed_at_tick: 0,
                 valid_through_tick: Some(1_000),
@@ -1221,6 +1232,7 @@ mod tests {
         p.unavailable_windows.clear();
         let mut uncertain = request("uncertain", 0, Direction::Upstream, 1, 1);
         uncertain.arrival_latest_tick = 20;
+        uncertain.arrival_evidence.interval_latest_tick = 20;
         let plan = schedule(&p, &[uncertain], SchedulingPolicy::FirstComeFirstServed)
             .expect("valid profile");
         assert_eq!(plan.schedule[0].start_tick, 20);
@@ -1288,6 +1300,22 @@ mod tests {
         assert_eq!(
             plan.outcomes[0].reason,
             Some(NotScheduledReason::ArrivalEvidenceNeedsReview)
+        );
+    }
+
+    #[test]
+    fn changed_arrival_interval_without_matching_evidence_is_rejected() {
+        let mut changed = request("changed", 0, Direction::Upstream, 1, 1);
+        changed.arrival_latest_tick = 5;
+        let plan = schedule(
+            &profile(),
+            &[changed],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(
+            plan.outcomes[0].reason,
+            Some(NotScheduledReason::ArrivalEvidenceInvalid)
         );
     }
 
