@@ -62,20 +62,36 @@ impl MeasurementChainIdentity {
             ("site ID", identity.site_id.as_str()),
             ("PCC ID", identity.pcc_id.as_str()),
             ("meter ID", identity.meter_id.as_str()),
-            ("configuration digest", identity.configuration_digest.as_str()),
+            (
+                "configuration digest",
+                identity.configuration_digest.as_str(),
+            ),
             ("calibration ID", identity.calibration_id.as_str()),
-            ("calibration certificate digest", identity.calibration_certificate_digest.as_str()),
+            (
+                "calibration certificate digest",
+                identity.calibration_certificate_digest.as_str(),
+            ),
         ] {
             require_id(field, value)?;
         }
         Ok(identity)
     }
 
-    pub fn site_id(&self) -> &str { &self.site_id }
-    pub fn pcc_id(&self) -> &str { &self.pcc_id }
-    pub fn meter_id(&self) -> &str { &self.meter_id }
-    pub fn configuration_digest(&self) -> &str { &self.configuration_digest }
-    pub fn calibration_id(&self) -> &str { &self.calibration_id }
+    pub fn site_id(&self) -> &str {
+        &self.site_id
+    }
+    pub fn pcc_id(&self) -> &str {
+        &self.pcc_id
+    }
+    pub fn meter_id(&self) -> &str {
+        &self.meter_id
+    }
+    pub fn configuration_digest(&self) -> &str {
+        &self.configuration_digest
+    }
+    pub fn calibration_id(&self) -> &str {
+        &self.calibration_id
+    }
     pub fn calibration_certificate_digest(&self) -> &str {
         &self.calibration_certificate_digest
     }
@@ -108,21 +124,28 @@ impl CalibrationCorrelations {
                 return Err(PccMetrologyError::InvalidCorrelation { field, value });
             }
         }
-        let determinant =
-            1.0 + 2.0 * raw_offset * raw_gain * offset_gain
-                - raw_offset.powi(2)
-                - raw_gain.powi(2)
-                - offset_gain.powi(2);
+        let determinant = 1.0 + 2.0 * raw_offset * raw_gain * offset_gain
+            - raw_offset.powi(2)
+            - raw_gain.powi(2)
+            - offset_gain.powi(2);
         if determinant < -COVARIANCE_TOLERANCE {
-            return Err(PccMetrologyError::NonPositiveSemidefiniteCalibrationCovariance {
-                determinant,
-            });
+            return Err(
+                PccMetrologyError::NonPositiveSemidefiniteCalibrationCovariance { determinant },
+            );
         }
-        Ok(Self { raw_offset, raw_gain, offset_gain })
+        Ok(Self {
+            raw_offset,
+            raw_gain,
+            offset_gain,
+        })
     }
 
     pub const fn independent() -> Self {
-        Self { raw_offset: 0.0, raw_gain: 0.0, offset_gain: 0.0 }
+        Self {
+            raw_offset: 0.0,
+            raw_gain: 0.0,
+            offset_gain: 0.0,
+        }
     }
 }
 
@@ -199,13 +222,22 @@ impl LinearPowerCalibration {
         let calibration_id = calibration_id.into();
         require_id("calibration ID", &calibration_id)?;
         if !gain.is_finite() || gain <= 0.0 {
-            return Err(PccMetrologyError::InvalidQuantity { field: "calibration gain", value: gain });
+            return Err(PccMetrologyError::InvalidQuantity {
+                field: "calibration gain",
+                value: gain,
+            });
         }
         if !offset_w.is_finite() {
-            return Err(PccMetrologyError::InvalidQuantity { field: "calibration offset", value: offset_w });
+            return Err(PccMetrologyError::InvalidQuantity {
+                field: "calibration offset",
+                value: offset_w,
+            });
         }
         if valid_from_ns >= valid_until_ns {
-            return Err(PccMetrologyError::InvalidCalibrationWindow { valid_from_ns, valid_until_ns });
+            return Err(PccMetrologyError::InvalidCalibrationWindow {
+                valid_from_ns,
+                valid_until_ns,
+            });
         }
         if !minimum_raw_power_w.is_finite()
             || !maximum_raw_power_w.is_finite()
@@ -228,11 +260,21 @@ impl LinearPowerCalibration {
         })
     }
 
-    pub fn calibration_id(&self) -> &str { &self.calibration_id }
-    pub const fn gain(&self) -> f64 { self.gain }
-    pub const fn offset_w(&self) -> f64 { self.offset_w }
-    pub const fn valid_from_ns(&self) -> u64 { self.valid_from_ns }
-    pub const fn valid_until_ns(&self) -> u64 { self.valid_until_ns }
+    pub fn calibration_id(&self) -> &str {
+        &self.calibration_id
+    }
+    pub const fn gain(&self) -> f64 {
+        self.gain
+    }
+    pub const fn offset_w(&self) -> f64 {
+        self.offset_w
+    }
+    pub const fn valid_from_ns(&self) -> u64 {
+        self.valid_from_ns
+    }
+    pub const fn valid_until_ns(&self) -> u64 {
+        self.valid_until_ns
+    }
 
     fn correct(
         &self,
@@ -256,19 +298,17 @@ impl LinearPowerCalibration {
 
         // First-order propagation for P = (raw - offset) × gain:
         // Var(P) = J Σ Jᵀ, retaining all declared covariance terms.
-        let variance =
-            gain.powi(2) * u_raw.powi(2)
-                + gain.powi(2) * u_offset.powi(2)
-                + difference.powi(2) * u_gain.powi(2)
-                - 2.0 * gain.powi(2) * corr.raw_offset * u_raw * u_offset
-                + 2.0 * gain * difference * corr.raw_gain * u_raw * u_gain
-                - 2.0 * gain * difference * corr.offset_gain * u_offset * u_gain;
+        let variance = gain.powi(2) * u_raw.powi(2)
+            + gain.powi(2) * u_offset.powi(2)
+            + difference.powi(2) * u_gain.powi(2)
+            - 2.0 * gain.powi(2) * corr.raw_offset * u_raw * u_offset
+            + 2.0 * gain * difference * corr.raw_gain * u_raw * u_gain
+            - 2.0 * gain * difference * corr.offset_gain * u_offset * u_gain;
 
-        let scale = (
-            gain.powi(2) * u_raw.powi(2)
-                + gain.powi(2) * u_offset.powi(2)
-                + difference.powi(2) * u_gain.powi(2)
-        ).max(1.0);
+        let scale = (gain.powi(2) * u_raw.powi(2)
+            + gain.powi(2) * u_offset.powi(2)
+            + difference.powi(2) * u_gain.powi(2))
+        .max(1.0);
         if !variance.is_finite() || variance < -COVARIANCE_TOLERANCE * scale {
             return Err(PccMetrologyError::InvalidPropagatedVariance { variance });
         }
@@ -327,10 +367,15 @@ impl MeterReading {
         evidence_id: impl Into<String>,
     ) -> Result<Self, PccMetrologyError> {
         if interval_duration_ns == 0 {
-            return Err(PccMetrologyError::InvalidIntervalDuration { interval_duration_ns });
+            return Err(PccMetrologyError::InvalidIntervalDuration {
+                interval_duration_ns,
+            });
         }
         if !raw_power_w.is_finite() {
-            return Err(PccMetrologyError::InvalidQuantity { field: "raw power", value: raw_power_w });
+            return Err(PccMetrologyError::InvalidQuantity {
+                field: "raw power",
+                value: raw_power_w,
+            });
         }
         if !raw_standard_uncertainty_w.is_finite() || raw_standard_uncertainty_w < 0.0 {
             return Err(PccMetrologyError::InvalidQuantity {
@@ -340,7 +385,8 @@ impl MeterReading {
         }
         let evidence_id = evidence_id.into();
         require_id("meter reading evidence ID", &evidence_id)?;
-        interval_start_ns.checked_add(interval_duration_ns)
+        interval_start_ns
+            .checked_add(interval_duration_ns)
             .ok_or(PccMetrologyError::TimestampOverflow)?;
         Ok(Self {
             interval_start_ns,
@@ -352,11 +398,21 @@ impl MeterReading {
         })
     }
 
-    pub const fn interval_start_ns(&self) -> u64 { self.interval_start_ns }
-    pub const fn interval_duration_ns(&self) -> u64 { self.interval_duration_ns }
-    pub const fn raw_power_w(&self) -> f64 { self.raw_power_w }
-    pub const fn quality(&self) -> ReadingQuality { self.quality }
-    pub fn evidence_id(&self) -> &str { &self.evidence_id }
+    pub const fn interval_start_ns(&self) -> u64 {
+        self.interval_start_ns
+    }
+    pub const fn interval_duration_ns(&self) -> u64 {
+        self.interval_duration_ns
+    }
+    pub const fn raw_power_w(&self) -> f64 {
+        self.raw_power_w
+    }
+    pub const fn quality(&self) -> ReadingQuality {
+        self.quality
+    }
+    pub fn evidence_id(&self) -> &str {
+        &self.evidence_id
+    }
 }
 
 /// A baseline/candidate pair with explicit correlation of corrected-power
@@ -387,7 +443,11 @@ impl PairedPowerInterval {
                 evidence_id: baseline.evidence_id.clone(),
             });
         }
-        Ok(Self { baseline, candidate, corrected_error_correlation })
+        Ok(Self {
+            baseline,
+            candidate,
+            corrected_error_correlation,
+        })
     }
 }
 
@@ -410,7 +470,8 @@ impl ClockAlignmentEvidence {
     ) -> Result<Self, PccMetrologyError> {
         let alignment_model_id = alignment_model_id.into();
         require_id("clock alignment model ID", &alignment_model_id)?;
-        baseline_clock_uncertainty_ns.checked_add(candidate_clock_uncertainty_ns)
+        baseline_clock_uncertainty_ns
+            .checked_add(candidate_clock_uncertainty_ns)
             .ok_or(PccMetrologyError::TimestampOverflow)?;
         Ok(Self {
             baseline_clock_uncertainty_ns,
@@ -424,7 +485,9 @@ impl ClockAlignmentEvidence {
         self.baseline_clock_uncertainty_ns + self.candidate_clock_uncertainty_ns
     }
 
-    pub fn alignment_model_id(&self) -> &str { &self.alignment_model_id }
+    pub fn alignment_model_id(&self) -> &str {
+        &self.alignment_model_id
+    }
 }
 
 /// Product/evidence-specific metrology acceptance policy.
@@ -452,8 +515,14 @@ impl PccMetrologyContract {
         for (field, value) in [
             ("coverage factor", coverage_factor),
             ("minimum response", minimum_response_w),
-            ("maximum relative expanded uncertainty", maximum_relative_expanded_uncertainty),
-            ("minimum qualifying interval fraction", minimum_qualifying_interval_fraction),
+            (
+                "maximum relative expanded uncertainty",
+                maximum_relative_expanded_uncertainty,
+            ),
+            (
+                "minimum qualifying interval fraction",
+                minimum_qualifying_interval_fraction,
+            ),
         ] {
             if !value.is_finite() || value <= 0.0 {
                 return Err(PccMetrologyError::InvalidQuantity { field, value });
@@ -464,7 +533,8 @@ impl PccMetrologyContract {
         {
             return Err(PccMetrologyError::InvalidFraction {
                 field: "metrology contract fraction",
-                value: maximum_relative_expanded_uncertainty.max(minimum_qualifying_interval_fraction),
+                value: maximum_relative_expanded_uncertainty
+                    .max(minimum_qualifying_interval_fraction),
             });
         }
         Ok(Self {
@@ -476,8 +546,12 @@ impl PccMetrologyContract {
         })
     }
 
-    pub const fn coverage_factor(&self) -> f64 { self.coverage_factor }
-    pub const fn minimum_response_w(&self) -> f64 { self.minimum_response_w }
+    pub const fn coverage_factor(&self) -> f64 {
+        self.coverage_factor
+    }
+    pub const fn minimum_response_w(&self) -> f64 {
+        self.minimum_response_w
+    }
 }
 
 /// Interval-level corrected values, uncertainty and signed energy receipt.
@@ -532,17 +606,41 @@ pub struct PccMetrologyReport {
 /// Fail-closed input or evaluation errors.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PccMetrologyError {
-    MissingIdentity { field: &'static str },
-    InvalidQuantity { field: &'static str, value: f64 },
-    InvalidFraction { field: &'static str, value: f64 },
-    InvalidCorrelation { field: &'static str, value: f64 },
-    NonPositiveSemidefiniteCalibrationCovariance { determinant: f64 },
-    InvalidCalibrationWindow { valid_from_ns: u64, valid_until_ns: u64 },
-    InvalidOperatingRange { minimum_raw_power_w: f64, maximum_raw_power_w: f64 },
-    InvalidIntervalDuration { interval_duration_ns: u64 },
+    MissingIdentity {
+        field: &'static str,
+    },
+    InvalidQuantity {
+        field: &'static str,
+        value: f64,
+    },
+    InvalidFraction {
+        field: &'static str,
+        value: f64,
+    },
+    InvalidCorrelation {
+        field: &'static str,
+        value: f64,
+    },
+    NonPositiveSemidefiniteCalibrationCovariance {
+        determinant: f64,
+    },
+    InvalidCalibrationWindow {
+        valid_from_ns: u64,
+        valid_until_ns: u64,
+    },
+    InvalidOperatingRange {
+        minimum_raw_power_w: f64,
+        maximum_raw_power_w: f64,
+    },
+    InvalidIntervalDuration {
+        interval_duration_ns: u64,
+    },
     InvalidIntervalCount,
     EmptyTrace,
-    CalibrationIdMismatch { chain_calibration_id: String, model_calibration_id: String },
+    CalibrationIdMismatch {
+        chain_calibration_id: String,
+        model_calibration_id: String,
+    },
     CalibrationNotValid {
         interval_start_ns: u64,
         interval_end_ns: u64,
@@ -554,9 +652,17 @@ pub enum PccMetrologyError {
         minimum_raw_power_w: f64,
         maximum_raw_power_w: f64,
     },
-    ReadingIneligible { evidence_id: String, quality: ReadingQuality },
-    InvalidPropagatedVariance { variance: f64 },
-    ClockUncertaintyExceedsContract { combined_uncertainty_ns: u64, maximum_ns: u64 },
+    ReadingIneligible {
+        evidence_id: String,
+        quality: ReadingQuality,
+    },
+    InvalidPropagatedVariance {
+        variance: f64,
+    },
+    ClockUncertaintyExceedsContract {
+        combined_uncertainty_ns: u64,
+        maximum_ns: u64,
+    },
     PairedTimestampMismatch {
         index: usize,
         baseline_start_ns: u64,
@@ -564,8 +670,14 @@ pub enum PccMetrologyError {
         baseline_duration_ns: u64,
         candidate_duration_ns: u64,
     },
-    NonContiguousIntervals { index: usize, expected_start_ns: u64, observed_start_ns: u64 },
-    EvidenceReferenceCollision { evidence_id: String },
+    NonContiguousIntervals {
+        index: usize,
+        expected_start_ns: u64,
+        observed_start_ns: u64,
+    },
+    EvidenceReferenceCollision {
+        evidence_id: String,
+    },
     TimestampOverflow,
     NumericalOverflow(&'static str),
 }
@@ -574,24 +686,109 @@ impl fmt::Display for PccMetrologyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingIdentity { field } => write!(f, "{field} must not be empty"),
-            Self::InvalidQuantity { field, value } => write!(f, "{field} must be finite and positive/in-range; got {value}"),
-            Self::InvalidFraction { field, value } => write!(f, "{field} must be in [0, 1]; got {value}"),
-            Self::InvalidCorrelation { field, value } => write!(f, "{field} must be in [-1, 1]; got {value}"),
-            Self::NonPositiveSemidefiniteCalibrationCovariance { determinant } => write!(f, "calibration correlation matrix is not positive semidefinite (determinant {determinant})"),
-            Self::InvalidCalibrationWindow { valid_from_ns, valid_until_ns } => write!(f, "invalid calibration validity window [{valid_from_ns}, {valid_until_ns})"),
-            Self::InvalidOperatingRange { minimum_raw_power_w, maximum_raw_power_w } => write!(f, "invalid calibration operating range [{minimum_raw_power_w}, {maximum_raw_power_w}] W"),
-            Self::InvalidIntervalDuration { interval_duration_ns } => write!(f, "interval duration must be nonzero; got {interval_duration_ns} ns"),
-            Self::InvalidIntervalCount => write!(f, "minimum qualifying interval count cannot be represented"),
-            Self::EmptyTrace => write!(f, "PCC metrology evaluation requires at least one paired interval"),
-            Self::CalibrationIdMismatch { chain_calibration_id, model_calibration_id } => write!(f, "chain calibration ID {chain_calibration_id} does not match model calibration ID {model_calibration_id}"),
-            Self::CalibrationNotValid { interval_start_ns, interval_end_ns, valid_from_ns, valid_until_ns } => write!(f, "calibration valid [{valid_from_ns}, {valid_until_ns}) does not cover reading interval [{interval_start_ns}, {interval_end_ns})"),
-            Self::OutsideCalibrationOperatingRange { raw_power_w, minimum_raw_power_w, maximum_raw_power_w } => write!(f, "raw power {raw_power_w} W is outside calibrated range [{minimum_raw_power_w}, {maximum_raw_power_w}] W"),
-            Self::ReadingIneligible { evidence_id, quality } => write!(f, "reading {evidence_id} is ineligible due to quality state {quality:?}"),
-            Self::InvalidPropagatedVariance { variance } => write!(f, "propagated variance is invalid: {variance}"),
-            Self::ClockUncertaintyExceedsContract { combined_uncertainty_ns, maximum_ns } => write!(f, "combined paired clock uncertainty {combined_uncertainty_ns} ns exceeds contract maximum {maximum_ns} ns"),
-            Self::PairedTimestampMismatch { index, baseline_start_ns, candidate_start_ns, baseline_duration_ns, candidate_duration_ns } => write!(f, "paired interval {index} time boundaries differ: baseline {baseline_start_ns}+{baseline_duration_ns} ns, candidate {candidate_start_ns}+{candidate_duration_ns} ns"),
-            Self::NonContiguousIntervals { index, expected_start_ns, observed_start_ns } => write!(f, "interval {index} starts at {observed_start_ns} ns; contiguous chronology requires {expected_start_ns} ns"),
-            Self::EvidenceReferenceCollision { evidence_id } => write!(f, "baseline and candidate reuse evidence ID {evidence_id}"),
+            Self::InvalidQuantity { field, value } => write!(
+                f,
+                "{field} must be finite and positive/in-range; got {value}"
+            ),
+            Self::InvalidFraction { field, value } => {
+                write!(f, "{field} must be in [0, 1]; got {value}")
+            }
+            Self::InvalidCorrelation { field, value } => {
+                write!(f, "{field} must be in [-1, 1]; got {value}")
+            }
+            Self::NonPositiveSemidefiniteCalibrationCovariance { determinant } => write!(
+                f,
+                "calibration correlation matrix is not positive semidefinite (determinant {determinant})"
+            ),
+            Self::InvalidCalibrationWindow {
+                valid_from_ns,
+                valid_until_ns,
+            } => write!(
+                f,
+                "invalid calibration validity window [{valid_from_ns}, {valid_until_ns})"
+            ),
+            Self::InvalidOperatingRange {
+                minimum_raw_power_w,
+                maximum_raw_power_w,
+            } => write!(
+                f,
+                "invalid calibration operating range [{minimum_raw_power_w}, {maximum_raw_power_w}] W"
+            ),
+            Self::InvalidIntervalDuration {
+                interval_duration_ns,
+            } => write!(
+                f,
+                "interval duration must be nonzero; got {interval_duration_ns} ns"
+            ),
+            Self::InvalidIntervalCount => {
+                write!(f, "minimum qualifying interval count cannot be represented")
+            }
+            Self::EmptyTrace => write!(
+                f,
+                "PCC metrology evaluation requires at least one paired interval"
+            ),
+            Self::CalibrationIdMismatch {
+                chain_calibration_id,
+                model_calibration_id,
+            } => write!(
+                f,
+                "chain calibration ID {chain_calibration_id} does not match model calibration ID {model_calibration_id}"
+            ),
+            Self::CalibrationNotValid {
+                interval_start_ns,
+                interval_end_ns,
+                valid_from_ns,
+                valid_until_ns,
+            } => write!(
+                f,
+                "calibration valid [{valid_from_ns}, {valid_until_ns}) does not cover reading interval [{interval_start_ns}, {interval_end_ns})"
+            ),
+            Self::OutsideCalibrationOperatingRange {
+                raw_power_w,
+                minimum_raw_power_w,
+                maximum_raw_power_w,
+            } => write!(
+                f,
+                "raw power {raw_power_w} W is outside calibrated range [{minimum_raw_power_w}, {maximum_raw_power_w}] W"
+            ),
+            Self::ReadingIneligible {
+                evidence_id,
+                quality,
+            } => write!(
+                f,
+                "reading {evidence_id} is ineligible due to quality state {quality:?}"
+            ),
+            Self::InvalidPropagatedVariance { variance } => {
+                write!(f, "propagated variance is invalid: {variance}")
+            }
+            Self::ClockUncertaintyExceedsContract {
+                combined_uncertainty_ns,
+                maximum_ns,
+            } => write!(
+                f,
+                "combined paired clock uncertainty {combined_uncertainty_ns} ns exceeds contract maximum {maximum_ns} ns"
+            ),
+            Self::PairedTimestampMismatch {
+                index,
+                baseline_start_ns,
+                candidate_start_ns,
+                baseline_duration_ns,
+                candidate_duration_ns,
+            } => write!(
+                f,
+                "paired interval {index} time boundaries differ: baseline {baseline_start_ns}+{baseline_duration_ns} ns, candidate {candidate_start_ns}+{candidate_duration_ns} ns"
+            ),
+            Self::NonContiguousIntervals {
+                index,
+                expected_start_ns,
+                observed_start_ns,
+            } => write!(
+                f,
+                "interval {index} starts at {observed_start_ns} ns; contiguous chronology requires {expected_start_ns} ns"
+            ),
+            Self::EvidenceReferenceCollision { evidence_id } => {
+                write!(f, "baseline and candidate reuse evidence ID {evidence_id}")
+            }
             Self::TimestampOverflow => write!(f, "timestamp arithmetic overflow"),
             Self::NumericalOverflow(field) => write!(f, "numerical overflow computing {field}"),
         }
@@ -660,7 +857,8 @@ pub fn evaluate_pcc_metrology(
                 });
             }
         }
-        let interval_end_ns = baseline.interval_start_ns
+        let interval_end_ns = baseline
+            .interval_start_ns
             .checked_add(baseline.interval_duration_ns)
             .ok_or(PccMetrologyError::TimestampOverflow)?;
         previous_end_ns = Some(interval_end_ns);
@@ -684,27 +882,21 @@ pub fn evaluate_pcc_metrology(
             }
         }
 
-        let baseline_corrected = calibration.correct(
-            baseline.raw_power_w,
-            baseline.raw_standard_uncertainty_w,
-        )?;
-        let candidate_corrected = calibration.correct(
-            candidate.raw_power_w,
-            candidate.raw_standard_uncertainty_w,
-        )?;
+        let baseline_corrected =
+            calibration.correct(baseline.raw_power_w, baseline.raw_standard_uncertainty_w)?;
+        let candidate_corrected =
+            calibration.correct(candidate.raw_power_w, candidate.raw_standard_uncertainty_w)?;
 
         let measured_reduction_w = baseline_corrected.power_w - candidate_corrected.power_w;
-        let response_variance =
-            baseline_corrected.standard_uncertainty_w.powi(2)
-                + candidate_corrected.standard_uncertainty_w.powi(2)
-                - 2.0
-                    * pair.corrected_error_correlation
-                    * baseline_corrected.standard_uncertainty_w
-                    * candidate_corrected.standard_uncertainty_w;
-        let variance_scale = (
-            baseline_corrected.standard_uncertainty_w.powi(2)
-                + candidate_corrected.standard_uncertainty_w.powi(2)
-        ).max(1.0);
+        let response_variance = baseline_corrected.standard_uncertainty_w.powi(2)
+            + candidate_corrected.standard_uncertainty_w.powi(2)
+            - 2.0
+                * pair.corrected_error_correlation
+                * baseline_corrected.standard_uncertainty_w
+                * candidate_corrected.standard_uncertainty_w;
+        let variance_scale = (baseline_corrected.standard_uncertainty_w.powi(2)
+            + candidate_corrected.standard_uncertainty_w.powi(2))
+        .max(1.0);
         if !response_variance.is_finite()
             || response_variance < -COVARIANCE_TOLERANCE * variance_scale
         {
@@ -713,10 +905,8 @@ pub fn evaluate_pcc_metrology(
             });
         }
         let reduction_standard_uncertainty_w = response_variance.max(0.0).sqrt();
-        let expanded_uncertainty_w =
-            contract.coverage_factor * reduction_standard_uncertainty_w;
-        let conservative_reduction_lower_bound_w =
-            measured_reduction_w - expanded_uncertainty_w;
+        let expanded_uncertainty_w = contract.coverage_factor * reduction_standard_uncertainty_w;
+        let conservative_reduction_lower_bound_w = measured_reduction_w - expanded_uncertainty_w;
         let relative_expanded_uncertainty = if measured_reduction_w.abs() > f64::EPSILON {
             expanded_uncertainty_w / measured_reduction_w.abs()
         } else {
@@ -734,7 +924,8 @@ pub fn evaluate_pcc_metrology(
             measured_reduction_w * duration / WATT_NANOSECONDS_PER_WATT_HOUR;
         let lower_bound_reduction_energy_wh =
             conservative_reduction_lower_bound_w * duration / WATT_NANOSECONDS_PER_WATT_HOUR;
-        if !measured_reduction_energy_wh.is_finite() || !lower_bound_reduction_energy_wh.is_finite() {
+        if !measured_reduction_energy_wh.is_finite() || !lower_bound_reduction_energy_wh.is_finite()
+        {
             return Err(PccMetrologyError::NumericalOverflow("interval energy"));
         }
         if measured_reduction_energy_wh >= 0.0 {
@@ -768,8 +959,7 @@ pub fn evaluate_pcc_metrology(
         });
     }
 
-    let qualifying_interval_fraction =
-        qualifying_interval_count as f64 / intervals.len() as f64;
+    let qualifying_interval_fraction = qualifying_interval_count as f64 / intervals.len() as f64;
     Ok(PccMetrologyReport {
         identity: identity.clone(),
         calibration_id: calibration.calibration_id.clone(),
