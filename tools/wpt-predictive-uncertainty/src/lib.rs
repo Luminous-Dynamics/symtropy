@@ -145,6 +145,9 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
         covered += if hit { 1 } else { 0 };
         width_sum += width;
         interval_score_sum += interval_score;
+        if !width_sum.is_finite() || !interval_score_sum.is_finite() {
+            return Err("aggregate interval metric overflow".into());
+        }
         let entry = regimes
             .entry(record.regime_id.clone())
             .or_insert((0, 0, 0.0, 0.0, 0.0));
@@ -153,6 +156,9 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
         entry.2 += width;
         entry.3 += interval_score;
         entry.4 = record.nominal_coverage;
+        if !entry.2.is_finite() || !entry.3.is_finite() {
+            return Err(format!("{}: regime aggregate metric overflow", record.regime_id));
+        }
     }
 
     let nominal = nominal.expect("non-empty records establish nominal coverage");
