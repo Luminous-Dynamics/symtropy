@@ -14,9 +14,11 @@ cargo run --manifest-path tools/wpt-predictive-uncertainty/Cargo.toml -- benchma
 - A record is one prediction/observation pair for one declared physical quantity, unit, model, calibration set, test set, trajectory group and operating regime.
 - Coverage is inclusive: lower <= observed <= upper.
 - Sharpness is mean interval width in the record's declared unit. Do not compare widths across unlike quantities or units.
+- The mean Winkler interval score penalizes misses in addition to width; lower is better. For nominal coverage `1 - alpha`, a miss below/above the interval incurs `2 / alpha` times its distance beyond the relevant bound.
 - Reports stratify by regime. Aggregate coverage must never conceal a weak regime.
+- One report is restricted to one model digest, calibration-set digest, test-set digest, physical quantity kind and unit. Mixed experiments must be evaluated separately.
 - This v1 evaluator requires one nominal coverage level per report.
-- It rejects calibration records, duplicate IDs, invalid intervals and non-finite values.
+- It rejects calibration records, duplicate IDs, mixed model/calibration/test/quantity/unit metadata, invalid intervals and non-finite values.
 
 ## Interpretation limits
 
