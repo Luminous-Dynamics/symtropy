@@ -1395,6 +1395,7 @@ mod tests {
         let mut at_tick: Vec<_> = decisions.iter().filter(|d| d.tick == tick).collect();
         at_tick.sort_by(|a, b| a.actor_id.cmp(&b.actor_id));
         let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI joint action receipt v0.1");
+        hash_len(&mut h, at_tick.len());
         for decision in at_tick {
             hash_str(&mut h, &decision.actor_id);
             hash_str(&mut h, decision.action_id.as_deref().unwrap());
