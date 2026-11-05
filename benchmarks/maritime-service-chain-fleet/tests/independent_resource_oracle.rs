@@ -181,7 +181,7 @@ fn concurrent_event_sweep_matches_independent_tick_sweep_for_all_tiny_pairs() {
         }
     }
 
-    for (left_index, left) in cases.iter().copied().enumerate() {
+    for left in cases.iter().copied() {
         for right in cases.iter().copied() {
             let operations = vec![
                 operation("left", left, ResourceUnit::Lockages),
@@ -199,7 +199,6 @@ fn concurrent_event_sweep_matches_independent_tick_sweep_for_all_tiny_pairs() {
                 right.amount
             );
         }
-        assert!(left_index < cases.len());
     }
 }
 
@@ -249,7 +248,7 @@ fn event_sweep_matches_reference_when_one_operation_repeats_the_same_resource() 
     let resource = resource(
         ResourceKind::Lock,
         ResourceUnit::Lockages,
-        &[(0, 5, 3)],
+        &[(0, 5, 2)],
     );
     let operations = vec![
         operation_with_two_uses("a", 1, 3, 1, 1, ResourceUnit::Lockages),
