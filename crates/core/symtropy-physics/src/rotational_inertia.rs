@@ -57,9 +57,7 @@ pub struct BivectorInertia<const D: usize> {
 impl<const D: usize> BivectorInertia<D> {
     fn supported_pairs() -> Result<Vec<(usize, usize)>, BivectorInertiaError> {
         if !(2..=9).contains(&D) {
-            return Err(BivectorInertiaError::UnsupportedSpatialDimension {
-                dimension: D,
-            });
+            return Err(BivectorInertiaError::UnsupportedSpatialDimension { dimension: D });
         }
         let mut pairs = Vec::with_capacity(D * (D - 1) / 2);
         for i in 0..D {
@@ -93,9 +91,7 @@ impl<const D: usize> BivectorInertia<D> {
         let symmetry_tolerance = 1e-12 * scale;
         for row in 0..expected {
             for column in (row + 1)..expected {
-                if (matrix[(row, column)] - matrix[(column, row)]).abs()
-                    > symmetry_tolerance
-                {
+                if (matrix[(row, column)] - matrix[(column, row)]).abs() > symmetry_tolerance {
                     return Err(BivectorInertiaError::MatrixNotSymmetric { row, column });
                 }
             }
@@ -293,8 +289,8 @@ mod tests {
 
     #[test]
     fn three_d_symmetric_axis_distribution_is_isotropic() {
-        let inertia = BivectorInertia::<3>::from_point_masses(&symmetric_axis_masses::<3>())
-            .unwrap();
+        let inertia =
+            BivectorInertia::<3>::from_point_masses(&symmetric_axis_masses::<3>()).unwrap();
 
         assert_eq!(inertia.basis_pairs(), &[(0, 1), (0, 2), (1, 2)]);
         for index in 0..3 {
@@ -383,7 +379,8 @@ mod tests {
         omega_body.set(0, 1, 0.4);
         omega_body.set(0, 2, -0.8);
         omega_body.set(1, 2, 1.1);
-        let omega_matrix = rotation.to_matrix() * omega_body.to_matrix() * rotation.to_matrix().transpose();
+        let omega_matrix =
+            rotation.to_matrix() * omega_body.to_matrix() * rotation.to_matrix().transpose();
         let omega_world = Bivector::<3>::from_matrix(&omega_matrix);
 
         assert!(
@@ -444,10 +441,7 @@ mod tests {
             Err(BivectorInertiaError::InvalidPointMass { index: 0 })
         ));
         assert!(matches!(
-            BivectorInertia::<3>::from_point_masses(&[(
-                1.0,
-                SVector::from([f64::NAN, 0.0, 0.0])
-            )]),
+            BivectorInertia::<3>::from_point_masses(&[(1.0, SVector::from([f64::NAN, 0.0, 0.0]))]),
             Err(BivectorInertiaError::NonFinitePointPosition { index: 0 })
         ));
         assert!(matches!(
