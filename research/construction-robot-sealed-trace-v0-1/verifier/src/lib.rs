@@ -27,7 +27,6 @@ pub struct VerificationReport {
     pub verified_payload_bytes: u64,
     pub final_trace_digest: String,
 }
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VerificationError {
     Json(String),
@@ -995,7 +994,8 @@ fn shape<T>(message: &str) -> Result<T, VerificationError> {
 mod tests {
     #[cfg(test)]
     fn encode_base64(bytes: &[u8]) -> String {
-        const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        const TABLE: &[u8; 64] =
+            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
         let mut output = String::new();
         for chunk in bytes.chunks(3) {
             let a = chunk[0];
@@ -1016,7 +1016,7 @@ mod tests {
         }
         output
     }
-    
+
     use super::*;
 
     const FIXTURE: &str = include_str!("../../fixtures/trace-synthetic-vda-001.json");
