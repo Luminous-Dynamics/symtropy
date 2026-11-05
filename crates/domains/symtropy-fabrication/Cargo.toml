@@ -1,0 +1,13 @@
+[package]
+name = "symtropy-fabrication"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Deterministic fabrication identity, matter bindings, interfaces, joints, and process evidence for Symtropy."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+symtropy-game-state = { path = "../symtropy-game-state" }
+
+[dev-dependencies]
+serde_json = "1.0"
