@@ -259,3 +259,15 @@ The simulation engine should be separable from Bevy rendering so headless batch 
 - Do not call a result SOTA without a named baseline, matched task, matched data, matched compute budget, and independent reproduction.
 
 **CivBench v0 succeeds when a researcher can reproduce a result, inspect its evidence, run the baselines, and identify the conditions under which the model fails.**
+
+
+## 11. Frozen empirical comparison tracks for human behaviour and collaboration
+
+CivBench separates four non-interchangeable empirical comparisons:
+
+- **SOUL-PAPER-23-v1:** reproduce OdysSim's published 23-task SOUL-Index. The paper reports OSim-8B 64.6 (8/23 best/tied-best) and Claude Opus 4.7 65.5. The current OdysSim repository README describes a 27-task evaluation script; keep this as a separate pinned protocol and never mix its denominator with the published 23-task paper table.
+- **HumanStudy-Bench:** 12 complete experiment protocols and 6,000+ trials; reproduce original PAS/ECS and treatment-effect analyses. See [issue #3786](https://github.com/Luminous-Dynamics/symtropy/issues/3786).
+- **Naturalistic action traces:** the 2026 shopping-session study uses 31,865 sessions / 230,965 actions and reports 11.86% prompt-only next-action accuracy vs 17.26% after task-specific Qwen2.5-7B tuning. Its task scope is e-commerce, not generic human behaviour.
+- **AgentWorld:** 100 human-annotated tasks + 100 variants, role-asymmetric teams of 3–20, 25–55 rounds; best reported main-set success is 52.0%. The independent CCE audit is planned under [issue #3785](https://github.com/Luminous-Dynamics/symtropy/issues/3785).
+
+The 2026 papers report judge-based reward hacking, text-only limitations, naturalistic action-trace gaps and long-horizon coordination failures. CivBench must reproduce the paper's own metrics for comparability while retaining independent, evidence-qualified metric vectors and claim ceilings.
