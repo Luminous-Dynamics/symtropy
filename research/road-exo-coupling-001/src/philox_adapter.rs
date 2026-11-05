@@ -131,10 +131,6 @@ fn resolve_canonical_address(
     }
 }
 
-fn derive_address_digest(experiment_seed: &[u8; 32], address: &[u8]) -> [u8; 32] {
-    derive_address_digest_with_context(experiment_seed, address, DERIVATION_CONTEXT)
-}
-
 fn derive_address_digest_with_context(
     experiment_seed: &[u8; 32],
     address: &[u8],
@@ -598,7 +594,7 @@ mod tests {
         assert_eq!(&material[40..48], &[3, 0, 0, 0, 0, 0, 0, 0]);
         assert_eq!(&material[48..], &address);
         assert_eq!(
-            derive_address_digest(&seed, &address),
+            derive_address_digest_with_context(&seed, &address, DERIVATION_CONTEXT),
             blake3::derive_key(DERIVATION_CONTEXT, &material)
         );
     }
