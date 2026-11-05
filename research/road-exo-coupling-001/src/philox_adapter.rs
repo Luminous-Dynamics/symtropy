@@ -1352,12 +1352,15 @@ mod tests {
     fn incomplete_correspondence_keeps_an_incomplete_draw_bundle() {
         let seed = [0x88; 32];
         let mut plan = correspondence_plan();
-        plan.completeness = PlanCompleteness::Incomplete;
-        plan.hypotheses[0].completeness = PlanCompleteness::Incomplete;
-        plan.universe_status = CandidateUniverseStatus::Incomplete {
+        plan.source_correspondence.universe_status = CandidateUniverseStatus::Incomplete {
             evidence_ref: id("bounded-universe-search"),
         };
-        plan.source_correspondence.universe_status = plan.universe_status.clone();
+        plan = project_correspondence_addresses(
+            &plan.source_correspondence,
+            &plan.source_event_scopes,
+            &plan.source_pair_rules,
+        )
+        .expect("incomplete source contract still yields known address plans");
 
         let resolved = resolve_correspondence_plan(&seed, &plan).expect("known plans can resolve");
         assert_eq!(resolved.completeness, PlanCompleteness::Incomplete);
