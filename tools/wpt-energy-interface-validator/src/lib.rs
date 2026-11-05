@@ -103,6 +103,12 @@ fn service_profile(service: &Value) -> Result<(), String> {
             expected.0, expected.1
         ));
     }
+    if service_type == "CHEMICAL_PROCESS" {
+        let mode = string_field(service, "chemical_energy_mode", "service")?;
+        if mode != "STORED" && mode != "RELEASED" {
+            return Err("chemical_energy_mode must be STORED or RELEASED".into());
+        }
+    }
     let requested = finite_field(service, "requested_useful_energy_j", "service")?;
     let minimum = finite_field(service, "minimum_useful_energy_j", "service")?;
     let maximum_input = finite_field(service, "maximum_input_power_w", "service")?;
@@ -497,6 +503,7 @@ mod tests {
             "service_type": "CHEMICAL_PROCESS",
             "service_quantity": "CHEMICAL_FREE_ENERGY_CHANGE",
             "measurement_method": "REACTION_EXTENT_AND_CHEMICAL_POTENTIAL",
+            "chemical_energy_mode": "STORED",
             "service_unit": "J",
             "requested_useful_energy_j": 500.0,
             "minimum_useful_energy_j": 450.0,
@@ -517,6 +524,7 @@ mod tests {
             "service_type": "CHEMICAL_PROCESS",
             "service_quantity": "CHEMICAL_FREE_ENERGY_CHANGE",
             "measurement_method": "DC_REAL_POWER_INTEGRATION",
+            "chemical_energy_mode": "STORED",
             "service_unit": "J",
             "requested_useful_energy_j": 500.0,
             "minimum_useful_energy_j": 450.0,
@@ -532,6 +540,27 @@ mod tests {
                 .unwrap_err()
                 .contains("requires quantity")
         );
+    }
+
+    #[test]
+    fn rejects_chemical_service_without_explicit_free_energy_sign_mode() {
+        let service = serde_json::json!({
+            "service_type": "CHEMICAL_PROCESS",
+            "service_quantity": "CHEMICAL_FREE_ENERGY_CHANGE",
+            "measurement_method": "REACTION_EXTENT_AND_CHEMICAL_POTENTIAL",
+            "service_unit": "J",
+            "requested_useful_energy_j": 500.0,
+            "minimum_useful_energy_j": 450.0,
+            "maximum_input_power_w": 250.0,
+            "source_input_boundary_id": "transmitter-dc-input",
+            "useful_output_boundary_id": "chemical-state-output",
+            "power_profile": [
+                {"requested_input_power_w": 200.0, "time_ns": 0}
+            ]
+        });
+        assert!(service_profile(&service)
+            .unwrap_err()
+            .contains("chemical_energy_mode"));
     }
 
     #[test]
