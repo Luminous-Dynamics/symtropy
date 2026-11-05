@@ -43,6 +43,40 @@
           "event_code": "PLANNED_REPLACEMENT",
           "probability": 0.1
         }
+      ],
+      "predicted_cause_specific_hazard_rates": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.01,
+            0.01,
+            0.01
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.008,
+            0.008,
+            0.008
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.005,
+            0.005,
+            0.005
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.004,
+            0.004,
+            0.004
+          ]
+        }
       ]
     },
     {
@@ -68,6 +102,40 @@
         {
           "event_code": "PLANNED_REPLACEMENT",
           "probability": 0.1
+        }
+      ],
+      "predicted_cause_specific_hazard_rates": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.01,
+            0.01,
+            0.01
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.008,
+            0.008,
+            0.008
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.005,
+            0.005,
+            0.005
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.004,
+            0.004,
+            0.004
+          ]
         }
       ]
     },
@@ -95,6 +163,40 @@
           "event_code": "PLANNED_REPLACEMENT",
           "probability": 0.1
         }
+      ],
+      "predicted_cause_specific_hazard_rates": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.01,
+            0.01,
+            0.01
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.008,
+            0.008,
+            0.008
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.005,
+            0.005,
+            0.005
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.004,
+            0.004,
+            0.004
+          ]
+        }
       ]
     },
     {
@@ -120,6 +222,40 @@
         {
           "event_code": "PLANNED_REPLACEMENT",
           "probability": 0.05
+        }
+      ],
+      "predicted_cause_specific_hazard_rates": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.01,
+            0.01,
+            0.01
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.008,
+            0.008,
+            0.008
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.005,
+            0.005,
+            0.005
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.004,
+            0.004,
+            0.004
+          ]
         }
       ]
     },
@@ -147,6 +283,40 @@
           "event_code": "PLANNED_REPLACEMENT",
           "probability": 0.05
         }
+      ],
+      "predicted_cause_specific_hazard_rates": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.01,
+            0.01,
+            0.01
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.008,
+            0.008,
+            0.008
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.005,
+            0.005,
+            0.005
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.004,
+            0.004,
+            0.004
+          ]
+        }
       ]
     },
     {
@@ -172,6 +342,40 @@
         {
           "event_code": "PLANNED_REPLACEMENT",
           "probability": 0.4
+        }
+      ],
+      "predicted_cause_specific_hazard_rates": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.01,
+            0.01,
+            0.01
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.008,
+            0.008,
+            0.008
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.005,
+            0.005,
+            0.005
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.004,
+            0.004,
+            0.004
+          ]
         }
       ]
     },
@@ -199,6 +403,40 @@
           "event_code": "PLANNED_REPLACEMENT",
           "probability": 0.03
         }
+      ],
+      "predicted_cause_specific_hazard_rates": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.01,
+            0.01,
+            0.01
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.008,
+            0.008,
+            0.008
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.005,
+            0.005,
+            0.005
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.004,
+            0.004,
+            0.004
+          ]
+        }
       ]
     },
     {
@@ -225,10 +463,50 @@
           "event_code": "PLANNED_REPLACEMENT",
           "probability": 0.03
         }
+      ],
+      "predicted_cause_specific_hazard_rates": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.01,
+            0.01,
+            0.01
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.008,
+            0.008,
+            0.008
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.005,
+            0.005,
+            0.005
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.004,
+            0.004,
+            0.004
+          ]
+        }
       ]
     }
   ],
   "quality_flags": [
     "SYNTHETIC_ONLY"
+  ],
+  "hazard_time_edges_hours": [
+    0,
+    5,
+    10,
+    20
   ]
 }
