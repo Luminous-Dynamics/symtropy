@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-contact-rich-physics-v0",
+  "status": "baseline_measurement_only_no_performance_claim",
+  "source_target": "crates/core/symtropy-physics/benches/contact_rich_physics_bench.rs",
+  "solver": {
+    "dimension": 3,
+    "integrator": "semi_implicit_euler",
+    "solver_iterations": 8,
+    "timestep_seconds": 0.008333333333333333,
+    "steps": 120,
+    "gravity_m_per_s2": [
+      0,
+      -9.81,
+      0
+    ],
+    "contact_overlap_m": 0.005,
+    "sleep_threshold": 0,
+    "sleep_ticks": 4294967295
+  },
+  "scenarios": [
+    {
+      "scenario_id": "no-contact-64-spheres-v0",
+      "body_count": 64,
+      "shape": "sphere",
+      "radius_m": 0.5,
+      "mass_kg": 1,
+      "layout": "8x8 x/z grid, spacing=2.5m, y=10m",
+      "gravity_m_per_s2": [
+        0,
+        0,
+        0
+      ],
+      "ground": false,
+      "expected_contact_points": 0,
+      "role": "integration_and_broadphase_control"
+    },
+    {
+      "scenario_id": "resting-sphere-stack-16-v0",
+      "body_count": 16,
+      "shape": "sphere",
+      "radius_m": 0.5,
+      "mass_kg": 1,
+      "layout": "single vertical chain, center spacing=0.995m, base center y=0.495m",
+      "gravity_m_per_s2": [
+        0,
+        -9.81,
+        0
+      ],
+      "ground": true,
+      "role": "sustained_pair_contact_and_warm_start"
+    },
+    {
+      "scenario_id": "multi-point-box-stack-3-v0",
+      "body_count": 3,
+      "shape": "axis_aligned_hyperbox",
+      "half_extents_m": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "mass_kg": 1,
+      "layout": "vertical chain, center spacing=0.995m, base center y=0.5m",
+      "inertia_model": "uniform_solid_cube_diagonal_m*s^2/6",
+      "gravity_m_per_s2": [
+        0,
+        -9.81,
+        0
+      ],
+      "ground": true,
+      "role": "multi_point_manifold_and_solver"
+    },
+    {
+      "scenario_id": "dense-sphere-bed-8x8-v0",
+      "body_count": 64,
+      "shape": "sphere",
+      "radius_m": 0.5,
+      "mass_kg": 1,
+      "layout": "8x8 x/z grid, spacing=0.995m, center y=0.495m",
+      "gravity_m_per_s2": [
+        0,
+        -9.81,
+        0
+      ],
+      "ground": true,
+      "role": "dense_broadphase_and_contact_throughput"
+    },
+    {
+      "body_count": 10,
+      "shape": "axis_aligned_hyperbox",
+      "half_extents_m": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "mass_kg": 1,
+      "layout": "vertical chain, center spacing=0.99m, base center y=0.5m",
+      "inertia_model": "uniform_solid_cube_diagonal_m*s^2/6",
+      "gravity_m_per_s2": [
+        0,
+        -9.81,
+        0
+      ],
+      "ground": true,
+      "timestep_seconds": 0.016666666666666666,
+      "steps": 1800,
+      "duration_seconds": 30,
+      "status": "known_unqualified_measurement_only",
+      "expected_settled_center_heights_m": [
+        0.5,
+        1.5,
+        2.5,
+        3.5,
+        4.5,
+        5.5,
+        6.5,
+        7.5,
+        8.5,
+        9.5
+      ],
+      "metrics": [
+        "final_max_vertical_center_position_error_m",
+        "peak_linear_speed_m_per_s",
+        "peak_penetration_m",
+        "contact_point_steps"
+      ],
+      "claim_limits": {
+        "settled_stack_pass": false,
+        "physical_validation": false
+      },
+      "scenario_id": "known-unqualified-ten-box-stack-8-iterations-v0",
+      "solver_iterations": 8
+    },
+    {
+      "body_count": 10,
+      "shape": "axis_aligned_hyperbox",
+      "half_extents_m": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "mass_kg": 1,
+      "layout": "vertical chain, center spacing=0.99m, base center y=0.5m",
+      "inertia_model": "uniform_solid_cube_diagonal_m*s^2/6",
+      "gravity_m_per_s2": [
+        0,
+        -9.81,
+        0
+      ],
+      "ground": true,
+      "timestep_seconds": 0.016666666666666666,
+      "steps": 1800,
+      "duration_seconds": 30,
+      "status": "known_unqualified_measurement_only",
+      "expected_settled_center_heights_m": [
+        0.5,
+        1.5,
+        2.5,
+        3.5,
+        4.5,
+        5.5,
+        6.5,
+        7.5,
+        8.5,
+        9.5
+      ],
+      "metrics": [
+        "final_max_vertical_center_position_error_m",
+        "peak_linear_speed_m_per_s",
+        "peak_penetration_m",
+        "contact_point_steps"
+      ],
+      "claim_limits": {
+        "settled_stack_pass": false,
+        "physical_validation": false
+      },
+      "scenario_id": "known-unqualified-ten-box-stack-30-iterations-v0",
+      "solver_iterations": 30
+    }
+  ],
+  "outputs": {
+    "criterion_throughput_unit": "body_steps_per_second",
+    "calibration_metrics": [
+      "contact_manifold_steps",
+      "contact_point_steps",
+      "average_manifolds_per_step",
+      "average_points_per_step",
+      "collision_events",
+      "peak_penetration_m",
+      "max_linear_speed_m_per_s",
+      "non_finite_body_count"
+    ],
+    "calibration_is_outside_timed_region": true,
+    "world_build_is_outside_timed_region": true,
+    "timed_region": "120 PhysicsWorld::step calls",
+    "correctness_gate": "all per-step invariant snapshots numerically healthy; contact scenarios must have contact points; no-contact control must have zero"
+  },
+  "comparison_rules": {
+    "pinned_engine_tag_or_commit": true,
+    "same_geometry_and_materials": true,
+    "same_timestep_and_horizon": true,
+    "same_solver_quality_gate": true,
+    "at_least_20_campaigns_for_published_comparison": true,
+    "include_failures_in_denominator": true,
+    "report_latency_and_energy": true
+  },
+  "future_contact_recycling": {
+    "current_contact_cache_role": "warm_start_impulse_reuse",
+    "geometric_manifold_reuse_currently_implemented": false,
+    "candidate_algorithm": "reuse previous manifold while relative pose and feature identity remain within conservative bounds; update separation; fall back to narrowphase otherwise",
+    "required_invalidation": [
+      "rotation",
+      "feature_change",
+      "topology_change",
+      "large_relative_motion",
+      "discontinuous_transform"
+    ],
+    "required_correctness_evidence": [
+      "penetration_residual",
+      "contact_point_churn",
+      "restitution",
+      "friction",
+      "event_order",
+      "replay_determinism"
+    ]
+  },
+  "targets_not_results": {
+    "resting_max_penetration_fraction_of_diameter_median": 0.005,
+    "resting_max_penetration_fraction_of_diameter_p95": 0.01,
+    "contact_pipeline_cpu_improvement_candidate": 0.1,
+    "independent_contact_families_required": 2,
+    "measurement_campaign_repetitions": 20
+  },
+  "claim_limits": {
+    "benchmark_performance_result_reported": false,
+    "cross_engine_speed_claim": false,
+    "experimental_physical_validation": false,
+    "sota_superiority_claim": false
+  }
+}
