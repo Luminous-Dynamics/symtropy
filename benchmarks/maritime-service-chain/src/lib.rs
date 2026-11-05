@@ -81,6 +81,8 @@ pub struct EvidenceRef {
     pub valid_through_tick: Option<u64>,
     /// Arrival-window evidence must bind these exact bounds.
     pub covered_window: Option<TickWindow>,
+    /// Resource-capacity evidence must bind the exact intervals and capacities.
+    pub covered_capacity_windows: Option<Vec<CapacityWindow>>,
     pub state: EvidenceState,
     pub claim_ceiling: String,
 }
@@ -290,6 +292,8 @@ pub enum ValidationError {
     ResourceKindUnitMismatch(String),
     InvalidResourceUse(String),
     ResourceMissingEvidence(String),
+    ResourceMissingCapacityEvidence(String),
+    ResourceCapacityEvidenceMismatch(String),
     MissingRequiredSegmentResource(String),
     SegmentResourceKindMismatch(String),
     VesselCapacityInsufficient(String),
@@ -514,6 +518,15 @@ fn validate_evidence_records(case: &ServiceChainCase) -> Result<(), ValidationEr
         {
             return Err(ValidationError::InvalidWindow("evidence.covered_window"));
         }
+        if evidence.covered_capacity_windows.as_ref().is_some_and(|windows| {
+            windows
+                .iter()
+                .any(|item| !item.window.is_valid() || item.capacity == 0)
+        }) {
+            return Err(ValidationError::InvalidWindow(
+                "evidence.covered_capacity_windows",
+            ));
+        }
     }
     Ok(())
 }
@@ -593,6 +606,7 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
                 ));
             }
         }
+        let mut has_capacity_evidence = false;
         for evidence_id in &resource.evidence_ids {
             let evidence = validate_evidence_use(case, evidence_id)?;
             if evidence.subject_id != resource.resource_id {
@@ -600,6 +614,21 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
                     evidence_id.clone(),
                 ));
             }
+            if evidence.role == EvidenceRole::ResourceCapacity {
+                has_capacity_evidence = true;
+                if evidence.covered_capacity_windows.as_deref()
+                    != Some(resource.availability.as_slice())
+                {
+                    return Err(ValidationError::ResourceCapacityEvidenceMismatch(
+                        resource.resource_id.clone(),
+                    ));
+                }
+            }
+        }
+        if !has_capacity_evidence {
+            return Err(ValidationError::ResourceMissingCapacityEvidence(
+                resource.resource_id.clone(),
+            ));
         }
     }
 
@@ -853,9 +882,26 @@ mod tests {
             valid_from_tick: 0,
             valid_through_tick: Some(100),
             covered_window,
+            covered_capacity_windows: None,
             state: EvidenceState::Current,
             claim_ceiling: "synthetic benchmark fixture only".into(),
         }
+    }
+
+    fn capacity_evidence(
+        id: &str,
+        subject: &str,
+        availability: Vec<CapacityWindow>,
+    ) -> EvidenceRef {
+        let mut evidence = evidence(
+            id,
+            EvidenceOwner::Symtropy,
+            EvidenceRole::ResourceCapacity,
+            subject,
+            None,
+        );
+        evidence.covered_capacity_windows = Some(availability);
+        evidence
     }
 
     fn valid_case() -> ServiceChainCase {
@@ -932,26 +978,49 @@ mod tests {
                 "lock-01",
                 None,
             ),
-            evidence(
+            capacity_evidence(
+                "lock-calendar",
+                "lock-01",
+                vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 15,
+                        end_tick: 35,
+                    },
+                    capacity: 1,
+                }],
+            ),
+            capacity_evidence(
                 "berth-calendar",
-                EvidenceOwner::Symtropy,
-                EvidenceRole::ResourceCapacity,
                 "berth-01",
-                None,
+                vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 25,
+                        end_tick: 50,
+                    },
+                    capacity: 1,
+                }],
             ),
-            evidence(
+            capacity_evidence(
                 "shore-calendar",
-                EvidenceOwner::Symtropy,
-                EvidenceRole::ResourceCapacity,
                 "shore-01",
-                None,
+                vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 25,
+                        end_tick: 40,
+                    },
+                    capacity: 1_000,
+                }],
             ),
-            evidence(
+            capacity_evidence(
                 "rail-calendar",
-                EvidenceOwner::Symtropy,
-                EvidenceRole::ResourceCapacity,
                 "rail-01",
-                None,
+                vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 40,
+                        end_tick: 60,
+                    },
+                    capacity: 10,
+                }],
             ),
             evidence(
                 "environment",
@@ -960,19 +1029,27 @@ mod tests {
                 "corridor-01",
                 None,
             ),
-            evidence(
+            capacity_evidence(
                 "channel-calendar",
-                EvidenceOwner::Symtropy,
-                EvidenceRole::ResourceCapacity,
                 "channel-window-01",
-                None,
+                vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 5,
+                        end_tick: 35,
+                    },
+                    capacity: 1,
+                }],
             ),
-            evidence(
+            capacity_evidence(
                 "handling-calendar",
-                EvidenceOwner::Symtropy,
-                EvidenceRole::ResourceCapacity,
                 "terminal-01",
-                None,
+                vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 25,
+                        end_tick: 40,
+                    },
+                    capacity: 20,
+                }],
             ),
             evidence(
                 "participant-auth",
@@ -1035,7 +1112,7 @@ mod tests {
                     },
                     capacity: 1,
                 }],
-                evidence_ids: vec!["lock-water".into()],
+                evidence_ids: vec!["lock-water".into(), "lock-calendar".into()],
             },
             Resource {
                 resource_id: "berth-01".into(),
@@ -1364,6 +1441,18 @@ mod tests {
         assert_eq!(
             validate_case(&case),
             Err(ValidationError::ResourceUnitMismatch("terminal-01".into()))
+        );
+    }
+
+    #[test]
+    fn resource_calendar_must_match_its_exact_evidence_snapshot() {
+        let mut case = valid_case();
+        case.resources[0].availability[0].capacity += 1;
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::ResourceCapacityEvidenceMismatch(
+                "channel-window-01".into()
+            ))
         );
     }
 
