@@ -1792,7 +1792,7 @@ mod tests {
         let mut invalid = request("invalid", 0, Direction::Upstream, 1, 1);
         invalid.service_duration_ticks = 0;
         let mut budget_rejected = request("budget", 1, Direction::Upstream, 1, 1);
-        budget_rejected.water_requirement_ml = 2_000;
+        budget_rejected.water_requirement_ml = 20_000;
         let valid = request("valid", 2, Direction::Upstream, 1, 1);
         let requests = vec![invalid, budget_rejected, valid];
 
