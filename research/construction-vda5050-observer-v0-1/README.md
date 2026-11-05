@@ -95,6 +95,12 @@ The fixtures include valid order, state/action-FINISHED, factsheet, zoneSet, con
 
 The focused Rust 1.96 workflow runs metadata, formatting, tests and strict Clippy across Ubuntu, Windows and macOS, then exercises the CLI on the fixture messages.
 
+## Upstream authority and known schema discrepancy
+
+The VDA 5050 v3.0.0 PDF is authoritative when the repository JSON artifacts differ. The official document defines the factsheet key as `mobileRobotKinematics` (plural); the pinned repository factsheet schema snapshot has a singular spelling in the `typeSpecification.required` array. The independent schema-validation script therefore applies a transparent, in-memory one-field overlay to align that one required-field typo with the published PDF. It does not edit or relabel the upstream schema. The order/factsheet/visualization JSON trailing-comma issues at the v3.0.0 tag are handled by pinning the upstream corrective snapshot at `ad169568749f3799e3aac72ae814c4167a7677f9`, exactly as recorded in #3704.
+
+The focused workflow validates all seven frozen fixtures against the pinned VDA schema snapshot, then separately runs the Rust parser tests and CLI. A schema check validates payload shape, not semantic correctness, publisher authenticity or interoperability.
+
 ## Upstream authority and limitations
 
 The profile is pinned to VDA 5050 v3.0.0 semantics. The repository's 3.0.0 JSON tag has invalid JSON in three schemas (order, factsheet, visualization); the corrective repository snapshot is pinned separately in the adjacent crosswalk research under #3704. The VDA-published document remains authoritative if the repository schemas differ.
