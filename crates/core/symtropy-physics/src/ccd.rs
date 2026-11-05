@@ -377,9 +377,7 @@ mod tests {
         let normal = SVector::from([0.0, 1.0, 0.0]);
 
         assert!(sphere_halfspace(&pos, &velocity, 0.5, &zero_normal, 0.0, 3.0).is_none());
-        assert!(
-            sphere_halfspace(&pos, &velocity, 0.5, &normal, f64::NAN, 3.0).is_none()
-        );
+        assert!(sphere_halfspace(&pos, &velocity, 0.5, &normal, f64::NAN, 3.0).is_none());
         assert!(sphere_halfspace(&pos, &velocity, -0.5, &normal, 0.0, 3.0).is_none());
         assert!(sphere_halfspace(&pos, &velocity, 0.5, &normal, 0.0, f64::INFINITY).is_none());
         assert!(sphere_sphere(&pos, &velocity, -0.5, &pos, &velocity, 0.5, 3.0).is_none());
