@@ -20,6 +20,8 @@ A deterministic trace auditor for recorded group deliberation. It does not gener
 - A deterministic preference-proportional baseline and final-allocation L1 shift. This is a descriptive counterfactual, not a welfare optimum or prediction of unguided human behaviour.
 - Preference alignment, separately from self-reported satisfaction and trust changes.
 - A paired facilitation-variant comparison that holds option set, budget, declared preferences and evidence catalogue fixed while measuring allocation sensitivity.
+- Option-order sensitivity using stable semantic option IDs: preferences and proposal meanings are remapped across permutations, and allocation shifts are measured after mapping both results back to the same semantic option order. A pure reorder with unchanged semantic allocation must yield zero; a deliberate first-position steering control must be detected.
+
 
 ## Synthetic control
 
