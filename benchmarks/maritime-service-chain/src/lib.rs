@@ -214,6 +214,8 @@ pub struct VoyageAlternative {
     pub vessel_id: String,
     pub vessel_revision: String,
     pub speed_profile_id: String,
+    pub cargo_capacity_amount: u64,
+    pub cargo_capacity_unit: ServiceUnit,
     pub arrival_node_id: String,
     pub arrival_window: TickWindow,
     pub arrival_evidence_id: String,
@@ -285,6 +287,13 @@ pub enum ValidationError {
     EmptyRoute,
     UnknownResource(String),
     ResourceUnitMismatch(String),
+    ResourceKindUnitMismatch(String),
+    InvalidResourceUse(String),
+    ResourceMissingEvidence(String),
+    MissingRequiredSegmentResource(String),
+    SegmentResourceKindMismatch(String),
+    VesselCapacityInsufficient(String),
+    VesselCapacityUnitMismatch(String),
     EmptyResourceAvailability(String),
     InvalidCapacityWindow(String),
     OverlappingCapacityWindows(String),
@@ -370,7 +379,71 @@ fn validate_evidence_use<'a>(
     {
         return Err(ValidationError::EvidenceExpired(evidence_id.to_owned()));
     }
+    if let Some(owner) = expected_owner(evidence.role) {
+        validate_expected_owner(evidence, owner)?;
+    }
     Ok(evidence)
+}
+
+fn expected_owner(role: EvidenceRole) -> Option<EvidenceOwner> {
+    match role {
+        EvidenceRole::VesselEngineering
+        | EvidenceRole::VesselPerformance
+        | EvidenceRole::ArrivalWindow => Some(EvidenceOwner::Symthaea),
+        EvidenceRole::SpatialTopology | EvidenceRole::Navigability => {
+            Some(EvidenceOwner::SolAtlas)
+        }
+        EvidenceRole::LockCompatibility
+        | EvidenceRole::LockCycleWater
+        | EvidenceRole::ResourceCapacity => Some(EvidenceOwner::Symtropy),
+        EvidenceRole::ParticipantAuthorization | EvidenceRole::CargoCustody => {
+            Some(EvidenceOwner::Mycelix)
+        }
+        EvidenceRole::EnvironmentalWindow
+        | EvidenceRole::PortCallObservation
+        | EvidenceRole::ExternalMeasurement => None,
+    }
+}
+
+fn resource_unit_matches_kind(kind: ResourceKind, unit: ResourceUnit) -> bool {
+    match kind {
+        ResourceKind::ChannelWindow => unit == ResourceUnit::TransitSlots,
+        ResourceKind::Lock => unit == ResourceUnit::Lockages,
+        ResourceKind::Berth => unit == ResourceUnit::BerthSlots,
+        ResourceKind::TerminalHandling | ResourceKind::InlandTransfer => matches!(
+            unit,
+            ResourceUnit::Tonnes | ResourceUnit::Teu | ResourceUnit::Passengers
+        ),
+        ResourceKind::ShorePower => unit == ResourceUnit::WattHours,
+    }
+}
+
+fn resource_kind_allowed_for_segment(segment: SegmentKind, resource: ResourceKind) -> bool {
+    match segment {
+        SegmentKind::ChannelTransit | SegmentKind::PortApproach => {
+            resource == ResourceKind::ChannelWindow
+        }
+        SegmentKind::Lockage => resource == ResourceKind::Lock,
+        SegmentKind::BerthHandling => matches!(
+            resource,
+            ResourceKind::Berth | ResourceKind::TerminalHandling | ResourceKind::ShorePower
+        ),
+        SegmentKind::InlandTransfer => resource == ResourceKind::InlandTransfer,
+    }
+}
+
+fn segment_has_required_resource(segment: SegmentKind, kinds: &BTreeSet<ResourceKind>) -> bool {
+    match segment {
+        SegmentKind::ChannelTransit | SegmentKind::PortApproach => {
+            kinds.contains(&ResourceKind::ChannelWindow)
+        }
+        SegmentKind::Lockage => kinds.contains(&ResourceKind::Lock),
+        SegmentKind::BerthHandling => {
+            kinds.contains(&ResourceKind::Berth)
+                && kinds.contains(&ResourceKind::TerminalHandling)
+        }
+        SegmentKind::InlandTransfer => kinds.contains(&ResourceKind::InlandTransfer),
+    }
 }
 
 fn validate_expected_owner(
@@ -485,6 +558,16 @@ fn validate_route(case: &ServiceChainCase) -> Result<(), ValidationError> {
 
 fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
     for resource in &case.resources {
+        if !resource_unit_matches_kind(resource.kind, resource.capacity_unit) {
+            return Err(ValidationError::ResourceKindUnitMismatch(
+                resource.resource_id.clone(),
+            ));
+        }
+        if resource.evidence_ids.is_empty() {
+            return Err(ValidationError::ResourceMissingEvidence(
+                resource.resource_id.clone(),
+            ));
+        }
         if resource.availability.is_empty() {
             return Err(ValidationError::EmptyResourceAvailability(
                 resource.resource_id.clone(),
@@ -520,17 +603,34 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
         for evidence_id in &segment.evidence_ids {
             validate_evidence_use(case, evidence_id)?;
         }
+        let mut used_kinds = BTreeSet::new();
         for usage in &segment.resource_uses {
             let resource = case
                 .resources
                 .iter()
                 .find(|resource| resource.resource_id == usage.resource_id)
                 .ok_or_else(|| ValidationError::UnknownResource(usage.resource_id.clone()))?;
-            if usage.amount == 0 || resource.capacity_unit != usage.unit {
+            if usage.amount == 0 {
+                return Err(ValidationError::InvalidResourceUse(
+                    usage.resource_id.clone(),
+                ));
+            }
+            if resource.capacity_unit != usage.unit {
                 return Err(ValidationError::ResourceUnitMismatch(
                     usage.resource_id.clone(),
                 ));
             }
+            if !resource_kind_allowed_for_segment(segment.kind, resource.kind) {
+                return Err(ValidationError::SegmentResourceKindMismatch(
+                    segment.segment_id.clone(),
+                ));
+            }
+            used_kinds.insert(resource.kind);
+        }
+        if !segment_has_required_resource(segment.kind, &used_kinds) {
+            return Err(ValidationError::MissingRequiredSegmentResource(
+                segment.segment_id.clone(),
+            ));
         }
     }
     Ok(())
@@ -555,6 +655,16 @@ fn validate_voyage_alternatives(case: &ServiceChainCase) -> Result<(), Validatio
             || !alternative.arrival_window.is_valid()
         {
             return Err(ValidationError::InvalidVoyageAlternative(
+                alternative.alternative_id.clone(),
+            ));
+        }
+        if alternative.cargo_capacity_unit != case.demand.service_unit {
+            return Err(ValidationError::VesselCapacityUnitMismatch(
+                alternative.alternative_id.clone(),
+            ));
+        }
+        if alternative.cargo_capacity_amount < case.demand.requested_amount {
+            return Err(ValidationError::VesselCapacityInsufficient(
                 alternative.alternative_id.clone(),
             ));
         }
@@ -651,6 +761,19 @@ fn validate_hard_constraints(case: &ServiceChainCase) -> Result<(), ValidationEr
                 ));
             }
             if evidence.subject_id != case.demand.participant_id {
+                return Err(ValidationError::EvidenceSubjectMismatch(
+                    evidence_id.to_owned(),
+                ));
+            }
+        }
+        if constraint.kind == ConstraintKind::CargoCustody {
+            validate_expected_owner(evidence, EvidenceOwner::Mycelix)?;
+            if evidence.role != EvidenceRole::CargoCustody {
+                return Err(ValidationError::EvidenceRoleMismatch(
+                    evidence_id.to_owned(),
+                ));
+            }
+            if evidence.subject_id != case.demand.demand_id {
                 return Err(ValidationError::EvidenceSubjectMismatch(
                     evidence_id.to_owned(),
                 ));
@@ -839,6 +962,20 @@ mod tests {
                 None,
             ),
             evidence(
+                "channel-calendar",
+                EvidenceOwner::Symtropy,
+                EvidenceRole::ResourceCapacity,
+                "channel-01",
+                None,
+            ),
+            evidence(
+                "handling-calendar",
+                EvidenceOwner::Symtropy,
+                EvidenceRole::ResourceCapacity,
+                "terminal-01",
+                None,
+            ),
+            evidence(
                 "participant-auth",
                 EvidenceOwner::Mycelix,
                 EvidenceRole::ParticipantAuthorization,
@@ -875,6 +1012,19 @@ mod tests {
         ];
 
         let resources = vec![
+            Resource {
+                resource_id: "channel-window-01".into(),
+                kind: ResourceKind::ChannelWindow,
+                capacity_unit: ResourceUnit::TransitSlots,
+                availability: vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 5,
+                        end_tick: 35,
+                    },
+                    capacity: 1,
+                }],
+                evidence_ids: vec!["channel-calendar".into()],
+            },
             Resource {
                 resource_id: "lock-01".into(),
                 kind: ResourceKind::Lock,
@@ -925,7 +1075,7 @@ mod tests {
                     },
                     capacity: 20,
                 }],
-                evidence_ids: vec![],
+                evidence_ids: vec!["handling-calendar".into()],
             },
             Resource {
                 resource_id: "rail-01".into(),
@@ -949,7 +1099,11 @@ mod tests {
                 to_node_id: "lock-approach".into(),
                 kind: SegmentKind::ChannelTransit,
                 evidence_ids: vec!["topology".into(), "depth".into()],
-                resource_uses: vec![],
+                resource_uses: vec![ResourceUse {
+                    resource_id: "channel-window-01".into(),
+                    amount: 1,
+                    unit: ResourceUnit::TransitSlots,
+                }],
             },
             RouteSegment {
                 segment_id: "lock-01".into(),
@@ -969,7 +1123,11 @@ mod tests {
                 to_node_id: "berth".into(),
                 kind: SegmentKind::PortApproach,
                 evidence_ids: vec!["depth".into()],
-                resource_uses: vec![],
+                resource_uses: vec![ResourceUse {
+                    resource_id: "channel-window-01".into(),
+                    amount: 1,
+                    unit: ResourceUnit::TransitSlots,
+                }],
             },
             RouteSegment {
                 segment_id: "turnaround-01".into(),
@@ -1015,6 +1173,8 @@ mod tests {
                 vessel_id: "vessel-01".into(),
                 vessel_revision: "vessel-r1".into(),
                 speed_profile_id: "speed-fast".into(),
+                cargo_capacity_amount: 12,
+                cargo_capacity_unit: ServiceUnit::Tonnes,
                 arrival_node_id: "lock-approach".into(),
                 arrival_window: arrival_fast,
                 arrival_evidence_id: "arrival-fast".into(),
@@ -1032,6 +1192,8 @@ mod tests {
                 vessel_id: "vessel-01".into(),
                 vessel_revision: "vessel-r1".into(),
                 speed_profile_id: "speed-economy".into(),
+                cargo_capacity_amount: 12,
+                cargo_capacity_unit: ServiceUnit::Tonnes,
                 arrival_node_id: "lock-approach".into(),
                 arrival_window: arrival_slow,
                 arrival_evidence_id: "arrival-slow".into(),
