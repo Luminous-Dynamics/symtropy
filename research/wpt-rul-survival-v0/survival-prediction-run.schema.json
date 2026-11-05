@@ -18,6 +18,7 @@
     "competing_event_codes",
     "prediction_model_sha256",
     "outcome_data_sha256",
+    "hazard_time_edges_hours",
     "subjects",
     "quality_flags"
   ],
@@ -102,7 +103,8 @@
           "outcome_kind",
           "event_code",
           "predicted_survival_probability",
-          "predicted_cumulative_incidence"
+          "predicted_cumulative_incidence",
+          "predicted_cause_specific_hazard_rates"
         ],
         "properties": {
           "subject_id": {
@@ -158,6 +160,32 @@
                 }
               }
             }
+          },
+          "predicted_cause_specific_hazard_rates": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_code",
+                "rates_per_interval"
+              ],
+              "properties": {
+                "event_code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "rates_per_interval": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -168,6 +196,16 @@
       "items": {
         "const": "SYNTHETIC_ONLY"
       }
+    },
+    "hazard_time_edges_hours": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "number",
+        "minimum": 0
+      },
+      "description": "Strictly increasing common interval boundaries. Every subject supplies one constant cause-specific hazard rate per cause per interval."
     }
   }
 }
