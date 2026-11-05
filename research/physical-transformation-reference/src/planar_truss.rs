@@ -71,12 +71,23 @@ pub struct EquilibriumSummary {
     /// Applied loads plus support reactions; ideal static equilibrium is zero.
     pub net_force_residual_x_n: f64,
     pub net_force_residual_y_n: f64,
-    /// Moment about the geometry bounding-box center, in N m.
+    /// Moment reference point: center of the input geometry bounding box (metres).
+    pub moment_reference_x_m: f64,
+    pub moment_reference_y_m: f64,
+    /// Geometry bounding-box diagonal used as characteristic length (metres).
+    pub characteristic_length_m: f64,
+    /// Moment about the recorded geometry bounding-box center, in N m.
     pub net_moment_residual_nm: f64,
+    /// Non-cancelling sum of absolute applied and support-reaction force components (N).
+    pub force_normalization_scale_n: f64,
+    /// force_normalization_scale_n * characteristic_length_m (N m).
+    pub moment_normalization_scale_nm: f64,
     pub normalized_force_residual: f64,
     pub normalized_moment_residual: f64,
-    /// Largest |K u - F| at a free degree of freedom.
+    /// Largest |K_ff u_f - F_f| at a free degree of freedom (N).
     pub max_free_dof_residual_n: f64,
+    /// Normwise backward-error denominator (N).
+    pub free_dof_backward_error_scale_n: f64,
     pub normalized_free_dof_residual: f64,
 }
 
@@ -411,10 +422,16 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
         support_reaction_y_n: reaction_sum_y,
         net_force_residual_x_n: net_force_x,
         net_force_residual_y_n: net_force_y,
+        moment_reference_x_m,
+        moment_reference_y_m,
+        characteristic_length_m,
         net_moment_residual_nm: net_moment,
+        force_normalization_scale_n: force_scale,
+        moment_normalization_scale_nm: moment_scale,
         normalized_force_residual,
         normalized_moment_residual,
         max_free_dof_residual_n,
+        free_dof_backward_error_scale_n: free_dof_scale,
         normalized_free_dof_residual,
     };
     for value in [
