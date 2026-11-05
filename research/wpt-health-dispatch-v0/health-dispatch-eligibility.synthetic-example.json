@@ -25,7 +25,25 @@
     "calibration_status": "CALIBRATED",
     "calibration_horizon_max_hours": 1440,
     "hazard_cif_coherence_verified": true,
-    "source_locator": null
+    "source_locator": null,
+    "competing_event_codes": [
+      "ROAD_RECONSTRUCTION",
+      "PLANNED_REPLACEMENT"
+    ],
+    "cause_specific_cumulative_incidence": [
+      {
+        "event_code": "STRUCTURAL_CRACK_LIMIT",
+        "probability": 0.03
+      },
+      {
+        "event_code": "ROAD_RECONSTRUCTION",
+        "probability": 0.04
+      },
+      {
+        "event_code": "PLANNED_REPLACEMENT",
+        "probability": 0.02
+      }
+    ]
   },
   "censoring_support": {
     "assumption": "INDEPENDENT_RIGHT_CENSORING",
