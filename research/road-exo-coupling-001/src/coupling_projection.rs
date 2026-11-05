@@ -1071,8 +1071,7 @@ mod tests {
     #[test]
     fn causal_rules_are_scoped_to_each_correspondence_hypothesis() {
         let mut correspondence = base_correspondence();
-        correspondence.hypotheses[1].pairs[0] =
-            pair("L1", "R1", IdentityBasis::Actor);
+        correspondence.hypotheses[1].pairs[0] = pair("L1", "R1", IdentityBasis::Actor);
         correspondence.hypotheses[1].unmatched_right[0] = UnmatchedEvent {
             event_id: id("R2"),
             reason: UnmatchedReason::NoCounterpartUnderHypothesis {
