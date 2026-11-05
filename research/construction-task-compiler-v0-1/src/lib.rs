@@ -91,7 +91,7 @@ impl TaskGraph {
         }
 
         let mut output = Vec::new();
-        output.extend_from_slice(b"CTG\\0v1");
+        output.extend_from_slice(b"CTG\0v1");
 
         for field in [
             self.graph_id.as_str(),
@@ -597,7 +597,7 @@ mod tests {
         let bytes = graph(vec![node("task-a", &[])])
             .canonical_bytes()
             .expect("valid canonical graph");
-        assert!(bytes.starts_with(b"CTG\\0v1"));
+        assert!(bytes.starts_with(b"CTG\0v1"));
     }
 
     #[test]
