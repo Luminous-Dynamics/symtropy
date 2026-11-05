@@ -57,7 +57,8 @@ The crate verifies:
 - nonzero, unit-matched resource uses that cover the full declared handling and
   inland-transfer amount;
 - vessel cargo capacity at least equal to declared demand and in the same service unit;
-- current, non-future, in-validity evidence at the decision cutoff;
+- current, non-future, in-validity evidence at the decision cutoff and within
+  the case's explicit maximum evidence age;
 - owner/role boundaries for engineering, operational, spatial and participant evidence;
 - exact arrival-window evidence binding;
 - explicit Mycelix ownership for participant authorization and cargo custody;
