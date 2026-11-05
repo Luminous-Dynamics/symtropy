@@ -4,7 +4,7 @@
 //! This module derives one Philox block per canonical DrawAddress; no sequential
 //! stream position or variable-consumption sampling loop is involved.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use rand_philox::Philox;
 
@@ -256,7 +256,9 @@ const CORRESPONDENCE_DRAW_BUNDLE_DERIVATION_CONTEXT: &str =
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CorrespondenceBundleVerificationError {
     BundleDigestMismatch,
+    HypothesisMetadataMismatch,
     DrawReceiptMismatch,
+    AddressCollision,
 }
 
 /// Compute the versioned content digest over the complete draw bundle.
