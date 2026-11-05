@@ -38,7 +38,7 @@ Unserved energy for interval duration Δt hours:
 
 Loss-of-load hours count intervals with U(t) above the configured numerical shortfall threshold. Loss-of-load days count each supplied day index once if any interval on that day has unserved load. Scenario metrics are aggregated using normalized caller-supplied scenario weights.
 
-The user selects exactly one primary adequacy metric for the load search: expected loss-of-load days over the supplied horizon or expected unserved energy over the supplied horizon. The report also returns the secondary metric. The result is the largest tested d (to the configured kW search tolerance) for which the selected augmented metric does not exceed the reference metric plus an explicit numerical/decision tolerance.
+The caller selects exactly one primary adequacy metric for the load search: expected loss-of-load periods, elapsed loss-of-load hours, loss-of-load days, expected unserved energy, or upper-tail EUE CVaR at a declared confidence level. The report also retains the companion occurrence, duration, severity and rebound metrics. The result is the largest tested d (to the configured kW search tolerance) for which the selected augmented metric does not exceed the reference metric plus an explicit numerical/decision tolerance.
 
 The horizon is **not annualized**. A caller may provide complete chronological years, but the engine does not infer that a partial or synthetic trace represents a year. Metrics are expected values over the supplied, aligned trace horizon.
 
