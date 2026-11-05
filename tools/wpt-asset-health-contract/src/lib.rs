@@ -496,6 +496,32 @@ mod tests {
     }
 
     #[test]
+    fn missing_spatial_heat_flux_profile_is_rejected() {
+        let (schema, mut example, _) = bundled_fixtures().unwrap();
+        example["thermal"]
+            .as_object_mut()
+            .unwrap()
+            .remove("spatial_heat_flux_profile");
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("spatial_heat_flux_profile")
+        );
+    }
+
+    #[test]
+    fn heat_flux_profile_coordinate_frame_is_checked() {
+        let (schema, mut example, _) = bundled_fixtures().unwrap();
+        example["thermal"]["spatial_heat_flux_profile"][0]["coordinate_frame_id"] =
+            Value::String("other-frame".into());
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("spatial point frame differs from asset coordinate frame")
+        );
+    }
+
+    #[test]
     fn nonempty_spatial_profile_requires_asset_coordinate_frame() {
         let (schema, mut example, _) = bundled_fixtures().unwrap();
         example["asset_context"]["coordinate_frame_id"] = Value::Null;
