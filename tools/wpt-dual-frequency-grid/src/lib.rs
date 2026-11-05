@@ -390,10 +390,17 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
         let maximum_harmonic_order = match kind {
             "GRID_CURRENT" => {
                 let maximum = integer_field(channel, "maximum_harmonic_order", &path)?;
-                if maximum == 0 {
+                if maximum == 0 || maximum > 4_096 {
                     return Err(fail(
                         &path,
-                        "maximum_harmonic_order must be at least one for grid-current THD",
+                        "maximum_harmonic_order must be between 1 and 4096",
+                    ));
+                }
+                let maximum_resolvable_order = (nyquist / grid_frequency).floor() as u64;
+                if maximum > maximum_resolvable_order {
+                    return Err(fail(
+                        &path,
+                        "maximum_harmonic_order exceeds the acquisition Nyquist coverage",
                     ));
                 }
                 Some(maximum)
@@ -616,6 +623,19 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
             _ => unreachable!("channel kind checked above"),
         };
 
+        for (metric_name, metric_value) in [
+            ("THD", thd),
+            ("interharmonic ratio", interharmonic_ratio),
+            ("resonant sideband ratio", sideband_ratio),
+        ] {
+            if metric_value.is_some_and(|value| !value.is_finite()) {
+                return Err(fail(
+                    &path,
+                    format!("{metric_name} calculation overflowed"),
+                ));
+            }
+        }
+
         channel_metrics.push(ChannelMetrics {
             channel_id,
             channel_kind: kind.to_string(),
@@ -728,6 +748,29 @@ mod tests {
         assert_eq!(grid.maximum_harmonic_order, Some(11));
         assert!((grid.interharmonic_to_fundamental_rms_ratio.unwrap() - 0.01).abs() < 1e-12);
         assert!((grid.thd_through_harmonic_order.unwrap() - 0.061644140029689765).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rejects_harmonic_coverage_above_nyquist() {
+        let mut run = fixture();
+        run["channels"][0]["maximum_harmonic_order"] = Value::from(20_000);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("maximum_harmonic_order must be between 1 and 4096")
+        );
+    }
+
+    #[test]
+    fn rejects_non_finite_derived_interharmonic_ratio() {
+        let mut run = fixture();
+        run["channels"][0]["lines"][3]["rms_amplitude"] = Value::from(1.0e308);
+        run["channels"][0]["lines"][0]["rms_amplitude"] = Value::from(1.0e-320);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("grid spectral power accumulation overflowed")
+        );
     }
 
     #[test]
