@@ -1250,11 +1250,7 @@ mod tests {
     #[test]
     fn option_order_position_bias_is_detected_by_semantic_option_id() {
         let mut reordered = base_session();
-        reordered.option_labels = vec![
-            "charity_c".into(),
-            "charity_b".into(),
-            "charity_a".into(),
-        ];
+        reordered.option_labels = vec!["charity_c".into(), "charity_b".into(), "charity_a".into()];
         for member in &mut reordered.participants {
             member.preferences.reverse();
         }
