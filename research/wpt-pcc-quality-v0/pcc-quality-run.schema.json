@@ -135,7 +135,8 @@
           "type": "number",
           "exclusiveMinimum": 0
         }
-      }
+      },
+      "description": "A pinned standard edition and system profile. IEC 61000-3-12 edition 2011+AMD1:2021 broad equipment scope (public LV, >16 A and <=75 A/phase, <=240 V single phase or <=690 V three phase) is distinct from its stated limit domain, 230/400 V at 50 Hz."
     },
     "measurement": {
       "type": "object",
@@ -236,7 +237,7 @@
           "type": "integer",
           "minimum": 2,
           "maximum": 50,
-          "description": "Maximum integer harmonic order included in reported THD/TDD. Every order 2..N must be present exactly once; unavailable/zero bins are explicit."
+          "description": "Maximum integer harmonic included in the THD/TDD point metrics. v0 requires every integer harmonic bin 2..N exactly once; IEEE 519-2022 PCC TDD requires N=50."
         }
       }
     },
