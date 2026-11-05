@@ -187,6 +187,7 @@ This work package is deliberately thin:
 - #1595 owns shared digital-twin robotics scenarios.
 - #1933 owns underground mine campaign systems.
 - #3305 owns TBM ring-level ground/machine/tool/energy/wear benchmarking.
+- #3767 owns instrumented pipe-jacking measurements, distributed pipe response and lubrication experiments.
 - #3605 owns accepted output and production accounting.
 - #3631 owns lifecycle cost per accepted functional unit.
 - #3566 owns permission-to-evidence chain integrity.
