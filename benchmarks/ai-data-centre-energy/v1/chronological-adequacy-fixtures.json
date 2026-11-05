@@ -202,7 +202,7 @@
     },
     {
       "case_id": "ntcsa-lole-contiguous-spells-known-truth",
-      "metric": "LossOfLoadEvents",
+      "metric": "LossOfLoadHours",
       "interval_duration_hours": 1,
       "shortfall_epsilon_kw": 1e-9,
       "adequacy_metric_tolerance": 1e-9,
@@ -262,7 +262,10 @@
         "reference_maximum_shortfall_kw": 20,
         "elcc_like_added_load_kw": 5,
         "search_converged": true,
-        "explanation": "Two shortage spells; the first spans midnight and remains one event; the later adequate interval closes it, so the next shortage begins a second event. The final 5 kW of headroom sets the event-count load-carrying bound."
+        "explanation": "Two shortage spells; the first spans midnight and remains one event; the later adequate interval closes it, so the next shortage begins a second event. The final 5 kW of headroom sets the event-count load-carrying bound.",
+        "primary_metric": "LossOfLoadHours",
+        "primary_metric_value": 3,
+        "elcc_interpretation": "5 kW is the maximum added load preserving expected loss-of-load hours; the event count is reported only as a companion diagnostic."
       }
     },
     {
