@@ -73,9 +73,9 @@ Do not reduce all of these to a single “realism” number. Do not claim state-
 
 ## Planar truss reference v0.1
 
-The new `planar_truss` module adds a dependency-free, dense-stiffness reference for 2D pin-jointed axial bars under small-displacement linear elasticity. It accepts node coordinates, per-DOF restraints and loads, and bar area/Young's modulus. Results include nodal displacement, signed member axial force/strain/stress, support reactions, normalized force/moment equilibrium residuals, and the maximum free-DOF residual.
+The new `planar_truss` module adds a dependency-free, dense-stiffness reference for 2D pin-jointed axial bars under small-displacement linear elasticity. It accepts node coordinates, per-DOF restraints and loads, and bar area/Young's modulus. Results include nodal displacement, signed member axial force/strain/stress, support reactions, dimensionless force/moment residuals, the normwise free-DOF backward error, and the exact force/moment/free-DOF normalization scales plus moment reference point.
 
-A frozen symmetric two-bar V-truss has an independent closed-form oracle. Further tests cover input-order invariance, load/stiffness scaling, a mechanism/singular reduced stiffness system, duplicated IDs, isolated nodes, coincident endpoints, invalid IDs, non-finite loads and stiffness overflow. A scale-invariance control guards against incorrectly rejecting a valid matrix simply because its stiffness units are numerically small.
+A frozen symmetric two-bar V-truss has an independent closed-form oracle. Further tests cover input-order invariance, joint load/EA scaling over 36 orders of magnitude, geometry scaling, translated-coordinate moment invariance, zero-scale behavior, order-one residual negative controls, a mechanism/singular reduced stiffness system, duplicated IDs, isolated nodes, coincident endpoints, invalid IDs, non-finite loads and stiffness overflow. The pivot test and residual normalization are separate numerical contracts.
 
 The implementation intentionally caps the dense reference at 128 nodes / 512 bars. It is a small benchmark/oracle model, not a large-scale FEM solver; dense assembly and Gaussian elimination are not suitable as the production-scale route. It excludes member bending, buckling, geometric/material nonlinearity, contact, fracture and dynamics. Passing this benchmark qualifies only the named idealized mathematical model—not a real structure or the external SOFiSTiK BE1 benchmark.
 
@@ -84,11 +84,11 @@ The implementation intentionally caps the dense reference at 128 nodes / 512 bar
 Offline research only. This crate cannot authorize or control demolition/construction equipment, certify a structure, interpret building codes, or predict collapse. Real-site decisions require validated physics, qualified engineering review, applicable approvals, and independently assessed hazard controls.
 
 
-## Morphology/function benchmark receipt v0.1
+## Morphology/function benchmark receipt v0.2
 
 The additive `morph-function-receipt` binary computes a request-bound JSON receipt for the synthetic square-truss function benchmark. It reuses the existing planar-truss solver; it does not introduce a second mechanics implementation.
 
-The frozen input contract is `morph_function_request_v0_1.txt` (SHA-256 `18c78aa05c911dcb0b7566ac670565d27774cb73e82b46424fcaf420097a499e`). The receipt contains all per-case displacement vectors, member axial force/stress/strain, normalized equilibrium residuals, serviceability thresholds, and explicit expected mechanism rejections. It enumerates:
+The frozen input contract remains `morph_function_request_v0_1.txt` (SHA-256 `18c78aa05c911dcb0b7566ac670565d27774cb73e82b46424fcaf420097a499e`). The receipt output schema is now `morph-function-receipt-v0.2`: it contains all per-case displacement vectors, member axial force/stress/strain, normalized equilibrium residuals, the bounding-box-center moment reference, characteristic length, all three normalization denominators, serviceability thresholds, and explicit expected mechanism rejections. This is an output-schema version change; the frozen request bytes are unchanged. It enumerates:
 
 - 5 load-envelope cases × (2 braced topologies + 1 unbraced mechanism control) = 15 dispositions;
 - 27 area/modulus/load parameter points × (2 braced topologies + 1 unbraced mechanism control) = 81 dispositions;
@@ -108,4 +108,4 @@ cargo run --locked \
   --source-tree-sha "$source_tree_sha"
 ```
 
-The dedicated workflow checks the frozen request digest, exact source commit/tree, deterministic byte-for-byte replay, case census, per-case dispositions and residual gates. It uploads the receipt as a separate artifact. This benchmark remains limited to a synthetic 2D small-displacement, linear-elastic, pin-jointed axial-truss model; it does not establish physical validation, external benchmark reproduction, building-code compliance, or real-structure safety.
+The dedicated workflow should be updated/reviewed to check the frozen request digest, exact source commit/tree, deterministic byte-for-byte replay, case census, per-case dispositions and residual gates for receipt schema v0.2. The new output includes the reference point and scales so residual values are independently interpretable. It uploads the receipt as a separate artifact. This benchmark remains limited to a synthetic 2D small-displacement, linear-elastic, pin-jointed axial-truss model; it does not establish physical validation, external benchmark reproduction, building-code compliance, or real-structure safety.
