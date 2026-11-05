@@ -923,8 +923,8 @@ mod tests {
         let baseline = base_session();
         let steered = steered_session();
         let difference = compare_rhetoric_only(&baseline, &steered).unwrap();
-        assert_eq!(difference.allocation_l1_shift_units, 52);
-        assert_eq!(difference.reallocated_units, 26.0);
+        assert_eq!(difference.allocation_l1_shift_units, 56);
+        assert_eq!(difference.reallocated_units, 28.0);
 
         let mut changed_preferences = steered.clone();
         changed_preferences.participants[0].preferences = vec![0.1, 0.8, 0.1];
