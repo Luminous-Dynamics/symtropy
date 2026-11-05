@@ -273,18 +273,28 @@ mod tests {
     #[test]
     fn free_fall_3d() {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
         let gravity = SVector::from([0.0, -9.81, 0.0]);
         let dt = 0.01;
+        let steps = 100;
 
-        // Simulate 1 second of free fall (100 steps)
-        for _ in 0..100 {
+        for _ in 0..steps {
             integrate(&mut body, &gravity, dt);
         }
 
-        // After 1s: y ≈ -0.5 * 9.81 * 1² ≈ -4.905 (with damping, less)
-        let y = body.transform.translation.coord(1);
-        assert!(y < -3.0, "y = {y}, expected < -3.0");
-        assert!(y > -6.0, "y = {y}, expected > -6.0 (damping bounds)");
+        // The discrete semi-implicit map is y_N = a*h^2*N*(N+1)/2.
+        let expected_y = -9.81 * dt * dt * (steps as f64) * (steps as f64 + 1.0) / 2.0;
+        let actual_y = body.transform.translation.coord(1);
+        assert!(
+            (actual_y - expected_y).abs() <= 1e-10,
+            "y = {actual_y}, expected discrete value {expected_y}"
+        );
+        assert!(
+            (body.linear_velocity[1] + 9.81).abs() <= 1e-11,
+            "vy = {}, expected -9.81 m/s",
+            body.linear_velocity[1]
+        );
     }
 
     #[test]
