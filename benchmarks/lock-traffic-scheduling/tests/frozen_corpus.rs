@@ -47,6 +47,7 @@ fn request(id: &str) -> PassageRequest {
         lock_revision: "lock-rev-01".into(),
         participant_id: format!("participant-{id}"),
         service_group: "freight".into(),
+        service_unit_label: "tonne".into(),
         direction: Direction::Upstream,
         arrival_earliest_tick: 20,
         arrival_latest_tick: 20,
@@ -239,6 +240,15 @@ fn frozen_arrival_and_eligibility_cases_fail_closed() {
             Some(NotScheduledReason::ArrivalEvidenceInvalid),
         ));
 
+        let mut incomparable_units = request("incomparable-units");
+        incomparable_units.service_unit_label = "TEU".into();
+        cases.push((
+            "service units differ from profile unit",
+            base_profile.clone(),
+            incomparable_units,
+            Some(NotScheduledReason::IncomparableServiceUnit),
+        ));
+
         let mut no_energy = request("no-energy");
         no_energy.pump_energy_requirement_wh = 1_001;
         cases.push((
@@ -252,7 +262,7 @@ fn frozen_arrival_and_eligibility_cases_fail_closed() {
     };
 
     assert!(
-        cases.len() >= 18,
+        cases.len() >= 19,
         "the frozen corpus must not silently shrink"
     );
     for (case_name, case_profile, case_request, expected_reason) in cases {
