@@ -1,4 +1,6 @@
-use physical_transformation_reference::planar_truss::{solve, PlanarTrussInput, TrussBar, TrussNode};
+use physical_transformation_reference::planar_truss::{
+    PlanarTrussInput, TrussBar, TrussNode, solve,
+};
 
 const BASE_AREA_M2: f64 = 1.0e-4;
 const BASE_YOUNGS_MODULUS_PA: f64 = 200.0e9;
@@ -7,13 +9,7 @@ const MAX_DISPLACEMENT_M: f64 = 120.0e-6;
 const DISPLACEMENT_TOLERANCE_M: f64 = 2.0e-12;
 const VARIATION_FACTORS: [f64; 3] = [0.95, 1.0, 1.05];
 
-fn node(
-    id: &str,
-    x_m: f64,
-    y_m: f64,
-    supported: bool,
-    force_y_n: f64,
-) -> TrussNode {
+fn node(id: &str, x_m: f64, y_m: f64, supported: bool, force_y_n: f64) -> TrussNode {
     TrussNode {
         id: id.to_owned(),
         x_m,
@@ -25,13 +21,7 @@ fn node(
     }
 }
 
-fn bar(
-    id: &str,
-    node_i: &str,
-    node_j: &str,
-    area_m2: f64,
-    youngs_modulus_pa: f64,
-) -> TrussBar {
+fn bar(id: &str, node_i: &str, node_j: &str, area_m2: f64, youngs_modulus_pa: f64) -> TrussBar {
     TrussBar {
         id: id.to_owned(),
         node_i: node_i.to_owned(),
@@ -108,10 +98,9 @@ fn analytical_response_and_mechanism_detection_survive_parameter_variation_grid(
                     ("A-D", Some(("A", "D")), 1.0_f64),
                     ("B-C", Some(("B", "C")), -1.0_f64),
                 ] {
-                    let input =
-                        square_truss(diagonal, area_scale, modulus_scale, load_scale);
-                    let result = solve(&input)
-                        .unwrap_or_else(|error| panic!("{topology} {case}: {error}"));
+                    let input = square_truss(diagonal, area_scale, modulus_scale, load_scale);
+                    let result =
+                        solve(&input).unwrap_or_else(|error| panic!("{topology} {case}: {error}"));
                     let c = result
                         .node_results
                         .iter()
@@ -161,9 +150,8 @@ fn analytical_response_and_mechanism_detection_survive_parameter_variation_grid(
                 }
 
                 let unbraced = square_truss(None, area_scale, modulus_scale, load_scale);
-                let error = solve(&unbraced).expect_err(
-                    "unbraced square must remain a mechanism at every parameter point",
-                );
+                let error = solve(&unbraced)
+                    .expect_err("unbraced square must remain a mechanism at every parameter point");
                 assert!(
                     error.contains("singular or numerically unresolved truss stiffness"),
                     "{case}: expected mechanism rejection, got {error}"

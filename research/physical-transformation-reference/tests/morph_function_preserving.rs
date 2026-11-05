@@ -1,5 +1,5 @@
 use physical_transformation_reference::planar_truss::{
-    solve, PlanarTrussInput, PlanarTrussResult, TrussBar, TrussNode,
+    PlanarTrussInput, PlanarTrussResult, TrussBar, TrussNode, solve,
 };
 use std::collections::BTreeSet;
 
@@ -9,13 +9,7 @@ const LOAD_N: f64 = 1_000.0;
 const ANALYTIC_DISPLACEMENT_M: f64 = 5.0e-5;
 const SERVICEABILITY_LIMIT_M: f64 = 1.0e-4;
 
-fn node(
-    id: &str,
-    x_m: f64,
-    y_m: f64,
-    supported: bool,
-    force_y_n: f64,
-) -> TrussNode {
+fn node(id: &str, x_m: f64, y_m: f64, supported: bool, force_y_n: f64) -> TrussNode {
     TrussNode {
         id: id.to_owned(),
         x_m,

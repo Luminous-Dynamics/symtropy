@@ -5,7 +5,7 @@
 //! It does not claim physical validation, code compliance, or safety certification.
 
 use physical_transformation_reference::planar_truss::{
-    solve, PlanarTrussInput, PlanarTrussResult, TrussBar, TrussNode,
+    PlanarTrussInput, PlanarTrussResult, TrussBar, TrussNode, solve,
 };
 use std::env;
 use std::process::ExitCode;
@@ -100,13 +100,7 @@ fn node(
     }
 }
 
-fn bar(
-    id: &str,
-    node_i: &str,
-    node_j: &str,
-    area_m2: f64,
-    youngs_modulus_pa: f64,
-) -> TrussBar {
+fn bar(id: &str, node_i: &str, node_j: &str, area_m2: f64, youngs_modulus_pa: f64) -> TrussBar {
     TrussBar {
         id: id.to_owned(),
         node_i: node_i.to_owned(),
@@ -209,8 +203,7 @@ fn append_solver_record(
     expected: [f64; 4],
     displacement_limit: f64,
 ) -> Result<(), String> {
-    let result =
-        solve(input).map_err(|error| format!("{suite}/{case_id}/{topology}: {error}"))?;
+    let result = solve(input).map_err(|error| format!("{suite}/{case_id}/{topology}: {error}"))?;
     let observed = get_displacements(&result)?;
     for (name, actual, expected_value) in [
         ("Cx", observed[0], expected[0]),
@@ -266,6 +259,9 @@ fn append_solver_record(
             "\"normalized_force_residual\":{:.17e},",
             "\"normalized_moment_residual\":{:.17e},",
             "\"normalized_free_dof_residual\":{:.17e},",
+            "\"moment_reference_m\":{{\"x\":{:.17e},\"y\":{:.17e}}},",
+            "\"characteristic_length_m\":{:.17e},",
+            "\"normalization_scales\":{{\"force_n\":{:.17e},\"moment_nm\":{:.17e},\"free_dof_n\":{:.17e}}},",
             "\"serviceability_limit_m\":{:.17e}}}"
         ),
         json_escape(suite),
@@ -279,6 +275,12 @@ fn append_solver_record(
         eq.normalized_force_residual,
         eq.normalized_moment_residual,
         eq.normalized_free_dof_residual,
+        eq.moment_reference_x_m,
+        eq.moment_reference_y_m,
+        eq.characteristic_length_m,
+        eq.force_normalization_scale_n,
+        eq.moment_normalization_scale_nm,
+        eq.free_dof_backward_error_scale_n,
         displacement_limit
     ));
     Ok(())
@@ -291,7 +293,11 @@ fn append_mechanism_record(
     input: &PlanarTrussInput,
 ) -> Result<(), String> {
     let error = match solve(input) {
-        Ok(_) => return Err(format!("{suite}/{case_id}/none: mechanism unexpectedly solved")),
+        Ok(_) => {
+            return Err(format!(
+                "{suite}/{case_id}/none: mechanism unexpectedly solved"
+            ));
+        }
         Err(error) => error,
     };
     if !error.contains("singular or numerically unresolved truss stiffness") {
@@ -384,9 +390,8 @@ fn run() -> Result<(), String> {
     for area_scale in VARIATION_FACTORS {
         for modulus_scale in VARIATION_FACTORS {
             for load_scale in VARIATION_FACTORS {
-                let case_id = format!(
-                    "area_{area_scale:.2}_modulus_{modulus_scale:.2}_load_{load_scale:.2}"
-                );
+                let case_id =
+                    format!("area_{area_scale:.2}_modulus_{modulus_scale:.2}_load_{load_scale:.2}");
                 let displacement = BASE_LOAD_N * load_scale
                     / (YOUNGS_MODULUS_PA * modulus_scale * AREA_M2 * area_scale);
                 for (topology, diagonal, sign) in [
@@ -437,7 +442,7 @@ fn run() -> Result<(), String> {
 
     println!(
         concat!(
-            "{{\"schema_version\":\"morph-function-receipt-v0.1\",",
+            "{{\"schema_version\":\"morph-function-receipt-v0.2\",",
             "\"benchmark_id\":\"MORPH-FUNCTION-001\",",
             "\"source_commit\":\"{}\",\"source_tree_sha\":\"{}\",",
             "\"request_sha256\":\"{}\",\"evidence_class\":\"synthetic\",",

@@ -1,5 +1,5 @@
 use physical_transformation_reference::planar_truss::{
-    solve, PlanarTrussInput, PlanarTrussResult, TrussBar, TrussNode,
+    PlanarTrussInput, PlanarTrussResult, TrussBar, TrussNode, solve,
 };
 
 const AREA_M2: f64 = 1.0e-4;
@@ -73,12 +73,7 @@ fn close_to(actual: f64, expected: f64, label: &str) {
     );
 }
 
-fn check_solution(
-    result: &PlanarTrussResult,
-    loads: LoadCase,
-    expected: [f64; 4],
-    topology: &str,
-) {
+fn check_solution(result: &PlanarTrussResult, loads: LoadCase, expected: [f64; 4], topology: &str) {
     let c = result
         .node_results
         .iter()
