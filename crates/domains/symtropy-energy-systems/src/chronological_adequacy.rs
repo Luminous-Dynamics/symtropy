@@ -920,6 +920,89 @@ fn weighted_upper_tail_cvar(
     Ok(result)
 }
 
+fn evaluate_scenario(
+    scenario: &ChronologicalAdequacyScenario,
+    interval_duration_hours: f64,
+    shortfall_epsilon_kw: f64,
+    added_load_kw: f64,
+    apply_flexibility: bool,
+) -> Result<ScenarioMetrics, ChronologicalAdequacyError> {
+    let mut loss_days = BTreeSet::new();
+    let mut loss_of_load_events = 0_u32;
+    let mut loss_of_load_periods = 0_u32;
+    let mut in_loss_of_load_event = false;
+    let mut loss_of_load_hours = 0.0_f64;
+    let mut unserved_energy_mwh = 0.0_f64;
+    let mut maximum_shortfall_kw = 0.0_f64;
+    let mut shortfall_power_samples_kw = Vec::with_capacity(scenario.intervals.len());
+    let mut gross_reduction_energy_mwh = 0.0_f64;
+    let mut rebound_energy_mwh = 0.0_f64;
+
+    for interval in &scenario.intervals {
+        let net_reduction_kw = if apply_flexibility {
+            interval.net_load_reduction_kw
+        } else {
+            0.0
+        };
+        let net_load_kw = interval.system_load_kw + added_load_kw - net_reduction_kw;
+        let unserved_kw = (net_load_kw - interval.available_supply_kw).max(0.0);
+        let interval_unserved_mwh = unserved_kw * interval_duration_hours / 1_000.0;
+        let reduction_mwh = net_reduction_kw.max(0.0) * interval_duration_hours / 1_000.0;
+        let rebound_mwh = (-net_reduction_kw).max(0.0) * interval_duration_hours / 1_000.0;
+        let has_shortfall = unserved_kw > shortfall_epsilon_kw;
+
+        shortfall_power_samples_kw.push(unserved_kw);
+        maximum_shortfall_kw = maximum_shortfall_kw.max(unserved_kw);
+        if has_shortfall {
+            loss_of_load_hours += interval_duration_hours;
+            loss_days.insert(interval.day_index);
+            loss_of_load_periods = loss_of_load_periods.checked_add(1).ok_or(
+                ChronologicalAdequacyError::NumericalOverflow("loss-of-load period count"),
+            )?;
+            if !in_loss_of_load_event {
+                loss_of_load_events = loss_of_load_events.checked_add(1).ok_or(
+                    ChronologicalAdequacyError::NumericalOverflow("loss-of-load event count"),
+                )?;
+            }
+        }
+        // Consecutive shortfall intervals stay in one event across day
+        // boundaries. Any non-shortfall interval closes the current event.
+        in_loss_of_load_event = has_shortfall;
+        unserved_energy_mwh += interval_unserved_mwh;
+        gross_reduction_energy_mwh += reduction_mwh;
+        rebound_energy_mwh += rebound_mwh;
+    }
+
+    if ![
+        loss_of_load_hours,
+        unserved_energy_mwh,
+        maximum_shortfall_kw,
+        gross_reduction_energy_mwh,
+        rebound_energy_mwh,
+    ]
+    .iter()
+    .all(|value| value.is_finite())
+    {
+        return Err(ChronologicalAdequacyError::NumericalOverflow(
+            "chronological interval accounting",
+        ));
+    }
+
+    Ok(ScenarioMetrics {
+        loss_of_load_events,
+        loss_of_load_days: u32::try_from(loss_days.len()).map_err(|_| {
+            ChronologicalAdequacyError::NumericalOverflow("loss-of-load day count")
+        })?,
+        loss_of_load_periods,
+        loss_of_load_hours,
+        unserved_energy_mwh,
+        maximum_shortfall_kw,
+        shortfall_power_samples_kw,
+        gross_reduction_energy_mwh,
+        rebound_energy_mwh,
+    })
+}
+
 fn validate_day_index_sequence(
     scenario_id: &str,
     day_indices: &[u32],
