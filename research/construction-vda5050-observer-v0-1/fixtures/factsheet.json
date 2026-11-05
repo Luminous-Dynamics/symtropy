@@ -6,11 +6,38 @@
   "serialNumber": "R-01",
   "typeSpecification": {
     "seriesName": "ACME",
-    "typeName": "AGV"
+    "mobileRobotKinematic": "DIFF",
+    "mobileRobotClass": "CARRIER",
+    "maximumLoadMass": 100,
+    "localizationTypes": [
+      "NATURAL"
+    ],
+    "navigationTypes": [
+      "AUTONOMOUS"
+    ]
   },
-  "physicalParameters": {},
-  "protocolLimits": {},
-  "protocolFeatures": {},
+  "physicalParameters": {
+    "minimumSpeed": 0,
+    "maximumSpeed": 1,
+    "maximumAcceleration": 0.5,
+    "maximumDeceleration": 0.5,
+    "minimumHeight": 0.2,
+    "maximumHeight": 2,
+    "width": 0.8,
+    "length": 1.2
+  },
+  "protocolLimits": {
+    "maximumStringLengths": {},
+    "maximumArrayLengths": {},
+    "timing": {
+      "minimumOrderInterval": 0.1,
+      "minimumStateInterval": 0.1
+    }
+  },
+  "protocolFeatures": {
+    "optionalParameters": [],
+    "mobileRobotActions": []
+  },
   "mobileRobotGeometry": {},
   "loadSpecification": {}
 }
