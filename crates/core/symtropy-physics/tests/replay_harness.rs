@@ -212,7 +212,6 @@ fn malformed_receipt_digest_is_rejected_before_replay() {
     assert!(!verify_replay_evidence(&mut replay_world, &replay_tape, &context, &receipt,).unwrap());
 }
 
-
 fn add_kinematic_actor(world: &mut PhysicsWorld<3>) -> BodyHandle {
     let actor = RigidBody::<3>::new(
         BodyHandle(0),
@@ -429,11 +428,5 @@ fn changed_kinematic_translation_invalidates_old_receipt() {
     let changed_actor = add_kinematic_actor(&mut changed_world);
     let mut changed = ReplayTape::<3>::default();
     changed.push_frame(1.0 / 64.0, vec![state_command(changed_actor, 0.25)]);
-    assert!(!verify_replay_evidence(
-        &mut changed_world,
-        &changed,
-        &context,
-        &receipt,
-    )
-    .unwrap());
+    assert!(!verify_replay_evidence(&mut changed_world, &changed, &context, &receipt,).unwrap());
 }
