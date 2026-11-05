@@ -435,8 +435,8 @@ pub fn evaluate_change(
     {
         return Err(ImpactError::InvalidChangeEvent("incomplete_event_identity"));
     }
-    if let ScopeSelector::Exact(scope) = &event.scope {
-        if scope.project_id.trim().is_empty()
+    if let ScopeSelector::Exact(scope) = &event.scope
+        && (scope.project_id.trim().is_empty()
             || [
                 scope.site_id.as_deref(),
                 scope.work_package_id.as_deref(),
@@ -445,10 +445,9 @@ pub fn evaluate_change(
             ]
             .into_iter()
             .flatten()
-            .any(str::is_empty)
-        {
-            return Err(ImpactError::InvalidChangeEvent("incomplete_event_scope"));
-        }
+            .any(str::is_empty))
+    {
+        return Err(ImpactError::InvalidChangeEvent("incomplete_event_scope"));
     }
     if event.graph_revision != graph.graph_revision {
         return Err(ImpactError::StaleInput("graph_revision_mismatch"));
