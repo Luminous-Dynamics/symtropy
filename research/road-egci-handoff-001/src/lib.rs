@@ -1720,10 +1720,19 @@ mod tests {
         let (episode, anchor) = fixture();
         let handoff = export_to_sam(&episode, &anchor).unwrap();
         let query = &handoff.branches[0].queries[0].query;
-        assert_eq!(query.steps[0].joint_actions[0].action_id, "continue");
-        assert_eq!(query.steps[1].joint_actions[0].action_id, "yield");
-        assert_eq!(query.steps[0].joint_actions[1].action_id, "yield");
-        assert_eq!(query.steps[1].joint_actions[1].action_id, "continue");
+        let action = |tick: usize, actor: &str| {
+            query.steps[tick]
+                .joint_actions
+                .iter()
+                .find(|action| action.actor_id == actor)
+                .unwrap()
+                .action_id
+                .as_str()
+        };
+        assert_eq!(action(0, "ego"), "continue");
+        assert_eq!(action(1, "ego"), "yield");
+        assert_eq!(action(0, "actor-1"), "yield");
+        assert_eq!(action(1, "actor-1"), "continue");
         assert!(episode.branches[0].decisions.iter().any(|decision| {
             decision.actor_id == "ego"
                 && decision.tick == 1
@@ -1808,6 +1817,7 @@ mod tests {
         let mut changed = episode.clone();
         changed.policies[0].policy_digest = d("new-policy");
         changed.branches[0].decisions[0].policy_digest = d("new-policy");
+        changed.manifest.scenario_digest = d("new-scenario");
         let anchor = reanchor(&mut changed, &anchor);
         let updated = export_to_sam(&changed, &anchor).unwrap();
         assert_ne!(
