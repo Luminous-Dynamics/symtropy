@@ -279,6 +279,34 @@ mod tests {
     }
 
     #[test]
+    fn stable_margin_matches_independent_shifted_routh_hurwitz_test() {
+        let cases = [
+            (Matrix2::new(-1.0, 0.0, 0.0, -1.0), 0.05),
+            (Matrix2::new(-1.0, 0.2, 0.3, -2.0), 0.05),
+            (Matrix2::new(-1.0, -2.0, 2.0, -1.0), 0.05),
+            (Matrix2::new(-1.0, 3.0, 3.0, -1.0), 0.05),
+            (Matrix2::new(-1.0, 0.999, 0.999, -1.0), 0.01),
+            (Matrix2::new(-1.0, 100.0, 0.0, -2.0), 0.05),
+            (Matrix2::new(-1.0e16, 0.0, 0.0, -1.0), 0.05),
+        ];
+
+        for (matrix, margin) in cases {
+            let report = classify(matrix, margin).unwrap();
+            let shifted_trace = matrix.a11 + matrix.a22 + 2.0 * margin;
+            let shifted_determinant =
+                (matrix.a11 + margin) * (matrix.a22 + margin)
+                    - matrix.a12 * matrix.a21;
+            let independently_stable =
+                shifted_trace < 0.0 && shifted_determinant > 0.0;
+
+            assert_eq!(
+                report.classification == StabilityClass::StableWithinMargin,
+                independently_stable
+            );
+        }
+    }
+
+    #[test]
     fn rejects_non_finite_matrix_entries() {
         let matrix = Matrix2::new(-1.0, f64::NAN, 0.0, -1.0);
         assert_eq!(
