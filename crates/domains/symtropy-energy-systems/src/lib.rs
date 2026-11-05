@@ -18,6 +18,7 @@ mod batch_evaluation;
 mod duty_cycle;
 mod flexibility_evaluation;
 mod grid_response;
+mod grid_interconnection;
 mod grid_firm_capacity;
 mod chronological_adequacy;
 mod joint_scenario;
@@ -50,6 +51,15 @@ pub use grid_response::{
     GridResponseContract, GridResponseError, GridResponseIdentity, GridResponseReport,
     GridResponseSample, GridResponseSampleReceipt, evaluate_grid_response,
 };
+
+pub use grid_interconnection::{
+    evaluate_grid_interconnection_event, GridInterconnectionContract,
+    GridInterconnectionError, GridInterconnectionIdentity, GridInterconnectionReport,
+    GridInterconnectionSample, GridInterconnectionSampleQuality,
+    GridInterconnectionViolation, GridRideThroughBand,
+};
+
+
 
 pub use chronological_adequacy::{
     ChronologicalAdequacyContract, ChronologicalAdequacyError, ChronologicalAdequacyIdentity,
