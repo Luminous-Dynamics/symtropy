@@ -158,6 +158,48 @@
       "scenario": "target_frame_change_graph_identity",
       "expected": "different_graph_identity",
       "description": "Changing the target coordinate frame changes the graph identity even when model/method/template inputs are otherwise identical."
+    },
+    {
+      "id": "tf-027",
+      "scenario": "canonical_byte_order_permutation",
+      "expected": "identical_bytes",
+      "description": "Reordering nodes and set-valued fields yields identical canonical bytes."
+    },
+    {
+      "id": "tf-028",
+      "scenario": "canonical_site_epoch_change",
+      "expected": "different_bytes",
+      "description": "Site epoch changes canonical graph bytes."
+    },
+    {
+      "id": "tf-029",
+      "scenario": "canonical_target_frame_change",
+      "expected": "different_bytes",
+      "description": "Target frame changes canonical graph bytes."
+    },
+    {
+      "id": "tf-030",
+      "scenario": "canonical_acceptance_evidence_change",
+      "expected": "different_bytes",
+      "description": "Changing an independent acceptance evidence obligation changes canonical bytes."
+    },
+    {
+      "id": "tf-031",
+      "scenario": "canonical_method_revision_change",
+      "expected": "different_bytes",
+      "description": "Changing approved method revision changes canonical bytes."
+    },
+    {
+      "id": "tf-032",
+      "scenario": "canonical_invalid_graph",
+      "expected": "reject_serialization",
+      "description": "A structurally invalid graph cannot be canonically serialized."
+    },
+    {
+      "id": "tf-033",
+      "scenario": "canonical_utf8_and_delimiter_ids",
+      "expected": "unambiguous_bytes",
+      "description": "UTF-8 and delimiter-containing identifiers remain unambiguous under length-prefix encoding."
     }
   ]
 }
