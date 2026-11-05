@@ -149,6 +149,10 @@ pub struct RequestOutcome {
     pub request_id: String,
     pub participant_id: String,
     pub service_group: String,
+    pub requested_service_units: u64,
+    pub service_unit_label: String,
+    /// True means the request passed input/evidence admission before schedule feasibility checks.
+    pub eligible_for_scheduling: bool,
     pub scheduled: Option<ScheduledPassage>,
     pub reason: Option<NotScheduledReason>,
 }
@@ -168,9 +172,17 @@ pub struct WaitDistribution {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct GroupMetrics {
+    /// All submitted requests, including invalid or indeterminate requests.
     pub requests: u64,
+    /// Requests that passed the initial evidence/identity/unit admission gate.
+    pub eligible_requests: u64,
     pub scheduled: u64,
     pub unserved: u64,
+    /// Declared service units across every submitted request.
+    pub requested_service_units: u128,
+    /// Declared service units across initially eligible requests; the fulfillment denominator.
+    pub eligible_service_units: u128,
+    /// Actually scheduled/delivered service units.
     pub service_units: u128,
     pub total_wait_ticks: u128,
     pub maximum_wait_ticks: u64,
@@ -696,6 +708,11 @@ fn add_group_metrics(
 ) {
     let group = groups.entry(key.to_owned()).or_default();
     group.requests += 1;
+    group.requested_service_units += u128::from(outcome.requested_service_units);
+    if outcome.eligible_for_scheduling {
+        group.eligible_requests += 1;
+        group.eligible_service_units += u128::from(outcome.requested_service_units);
+    }
     match &outcome.scheduled {
         Some(passage) => {
             group.scheduled += 1;
@@ -823,6 +840,9 @@ pub fn schedule(
                 request_id: request.request_id.clone(),
                 participant_id: request.participant_id.clone(),
                 service_group: request.service_group.clone(),
+                requested_service_units: request.service_units,
+                service_unit_label: request.service_unit_label.clone(),
+                eligible_for_scheduling: false,
                 scheduled: None,
                 reason: Some(reason),
             }),
@@ -865,6 +885,9 @@ pub fn schedule(
                     request_id: request.request_id.clone(),
                     participant_id: request.participant_id.clone(),
                     service_group: request.service_group.clone(),
+                    requested_service_units: request.service_units,
+                    service_unit_label: request.service_unit_label.clone(),
+                    eligible_for_scheduling: true,
                     scheduled: None,
                     reason: Some(NotScheduledReason::PlanningWindowExhausted),
                 });
@@ -889,6 +912,9 @@ pub fn schedule(
                 request_id: request.request_id.clone(),
                 participant_id: request.participant_id.clone(),
                 service_group: request.service_group.clone(),
+                requested_service_units: request.service_units,
+                service_unit_label: request.service_unit_label.clone(),
+                eligible_for_scheduling: true,
                 scheduled: None,
                 reason: Some(NotScheduledReason::ArithmeticOverflow),
             });
@@ -907,6 +933,9 @@ pub fn schedule(
                 request_id: request.request_id.clone(),
                 participant_id: request.participant_id.clone(),
                 service_group: request.service_group.clone(),
+                requested_service_units: request.service_units,
+                service_unit_label: request.service_unit_label.clone(),
+                eligible_for_scheduling: true,
                 scheduled: None,
                 reason: Some(NotScheduledReason::PlanningWindowExhausted),
             });
@@ -917,6 +946,9 @@ pub fn schedule(
                 request_id: request.request_id.clone(),
                 participant_id: request.participant_id.clone(),
                 service_group: request.service_group.clone(),
+                requested_service_units: request.service_units,
+                service_unit_label: request.service_unit_label.clone(),
+                eligible_for_scheduling: true,
                 scheduled: None,
                 reason: Some(NotScheduledReason::ArithmeticOverflow),
             });
@@ -950,6 +982,9 @@ pub fn schedule(
                 request_id: request.request_id.clone(),
                 participant_id: request.participant_id.clone(),
                 service_group: request.service_group.clone(),
+                requested_service_units: request.service_units,
+                service_unit_label: request.service_unit_label.clone(),
+                eligible_for_scheduling: true,
                 scheduled: None,
                 reason: Some(reason),
             });
@@ -982,6 +1017,9 @@ pub fn schedule(
             request_id: request.request_id.clone(),
             participant_id: request.participant_id.clone(),
             service_group: request.service_group.clone(),
+            requested_service_units: request.service_units,
+            service_unit_label: request.service_unit_label.clone(),
+            eligible_for_scheduling: true,
             scheduled: Some(passage),
             reason: None,
         });
