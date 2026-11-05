@@ -161,7 +161,7 @@
               }
             }
           },
-          "predicted_cause_specific_hazard_rates": {
+          "predicted_cause_specific_hazard_rates_per_hour": {
             "type": "array",
             "minItems": 1,
             "items": {
@@ -182,10 +182,12 @@
                   "items": {
                     "type": "number",
                     "minimum": 0
-                  }
+                  },
+                  "description": "Hazard rate in h^-1 for the corresponding interval in hazard_time_edges_hours."
                 }
               }
-            }
+            },
+            "description": "Piecewise-constant cause-specific hazard rates in inverse hours (h^-1), one rate per declared cause per hazard interval."
           }
         }
       }
@@ -205,7 +207,7 @@
         "type": "number",
         "minimum": 0
       },
-      "description": "Strictly increasing common interval boundaries. Every subject supplies one constant cause-specific hazard rate per cause per interval."
+      "description": "Strictly increasing interval boundaries measured in hours. Cause-specific hazard rates are expressed in h^-1."
     }
   }
 }
