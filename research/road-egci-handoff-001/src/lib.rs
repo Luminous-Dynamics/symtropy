@@ -1622,6 +1622,22 @@ mod tests {
         (episode, anchor)
     }
 
+    fn reanchor(episode: &mut EpisodeExport, anchor: &ExternalAnchor) -> ExternalAnchor {
+        for branch in &mut episode.branches {
+            let payload = branch_payload_root(branch);
+            branch.replay.expected_branch_payload_root = payload.clone();
+            branch.replay.replayed_branch_payload_root = match branch.replay.disposition {
+                ReplayDisposition::ExactSameRuntimeBytes
+                | ReplayDisposition::PortableSemanticEquivalent => Some(payload),
+                ReplayDisposition::NotRun | ReplayDisposition::Failed => None,
+            };
+        }
+        ExternalAnchor {
+            expected_episode_root: episode.episode_root().expect("episode root"),
+            ..anchor.clone()
+        }
+    }
+
     fn joint_action_digest(decisions: &[PolicyDecision], tick: u64) -> String {
         let mut at_tick: Vec<_> = decisions.iter().filter(|d| d.tick == tick).collect();
         at_tick.sort_by(|a, b| a.actor_id.cmp(&b.actor_id));
@@ -1653,6 +1669,133 @@ mod tests {
             assert_eq!(query.query.target_policy_digest.len(), 64);
             assert!(query.query_json.starts_with("{\"target_policy_digest\":"));
         }
+    }
+
+    #[test]
+    fn canonical_episode_artifact_preserves_every_source_layer_and_is_order_independent() {
+        let (episode, anchor) = fixture();
+        let handoff = export_to_sam(&episode, &anchor).unwrap();
+        assert!(handoff.episode_json.contains("\"observation_payload_digest\""));
+        assert!(handoff.episode_json.contains("\"prior_action_receipt_ids\""));
+        assert!(handoff.episode_json.contains("\"correspondence_digest\""));
+        assert!(handoff.episode_json.contains("\"physics_step_receipt_digest\""));
+
+        let mut reordered = episode.clone();
+        reordered.policies.reverse();
+        reordered.branches.reverse();
+        for branch in &mut reordered.branches {
+            branch.correspondences.reverse();
+            branch.observations.reverse();
+            branch.decisions.reverse();
+            branch.transitions.reverse();
+        }
+        assert_eq!(episode.canonical_json().unwrap(), reordered.canonical_json().unwrap());
+        assert_eq!(episode.episode_root().unwrap(), reordered.episode_root().unwrap());
+    }
+
+    #[test]
+    fn both_policies_react_after_the_other_policy_observation_is_delivered() {
+        let (episode, anchor) = fixture();
+        let handoff = export_to_sam(&episode, &anchor).unwrap();
+        let query = &handoff.branches[0].queries[0].query;
+        assert_eq!(query.steps[0].joint_actions[0].action_id, "continue");
+        assert_eq!(query.steps[1].joint_actions[0].action_id, "yield");
+        assert_eq!(query.steps[0].joint_actions[1].action_id, "yield");
+        assert_eq!(query.steps[1].joint_actions[1].action_id, "continue");
+        assert!(episode.branches[0].decisions.iter().any(|decision| {
+            decision.actor_id == "ego"
+                && decision.tick == 1
+                && decision.consumed_cue_ids.contains(&"ego-sees-yield".to_owned())
+        }));
+        assert!(episode.branches[0].decisions.iter().any(|decision| {
+            decision.actor_id == "actor-1"
+                && decision.tick == 1
+                && decision.consumed_cue_ids.contains(&"actor-sees-continue".to_owned())
+        }));
+    }
+
+    #[test]
+    fn delivered_cue_cannot_be_omitted_from_visible_history() {
+        let (mut episode, anchor) = fixture();
+        let decision = episode.branches[0]
+            .decisions
+            .iter_mut()
+            .find(|decision| decision.actor_id == "ego" && decision.tick == 1)
+            .unwrap();
+        decision.visible_cue_ids.retain(|cue| cue != "ego-sees-yield");
+        let anchor = reanchor(&mut episode, &anchor);
+        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::CueNotDelivered));
+    }
+
+    #[test]
+    fn policy_state_chain_rejects_stale_prior_state() {
+        let (mut episode, anchor) = fixture();
+        episode.branches[0]
+            .decisions
+            .iter_mut()
+            .find(|decision| decision.actor_id == "ego" && decision.tick == 1)
+            .unwrap()
+            .prior_policy_state_digest = d("stale-policy-state");
+        let anchor = reanchor(&mut episode, &anchor);
+        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::PolicyMismatch));
+    }
+
+    #[test]
+    fn policy_cannot_import_another_actors_prior_action_into_its_history() {
+        let (mut episode, anchor) = fixture();
+        episode.branches[0]
+            .decisions
+            .iter_mut()
+            .find(|decision| decision.actor_id == "actor-1" && decision.tick == 1)
+            .unwrap()
+            .prior_action_receipt_ids
+            .push(d("decision-ego-0"));
+        let anchor = reanchor(&mut episode, &anchor);
+        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::MissingPriorAction));
+    }
+
+    #[test]
+    fn joint_action_payload_mutation_is_rejected_by_transition_receipt() {
+        let (mut episode, anchor) = fixture();
+        episode.branches[0]
+            .decisions
+            .iter_mut()
+            .find(|decision| decision.actor_id == "ego" && decision.tick == 0)
+            .unwrap()
+            .action_payload_digest = Some(d("tampered-action"));
+        let anchor = reanchor(&mut episode, &anchor);
+        assert_eq!(
+            export_to_sam(&episode, &anchor),
+            Err(HandoffError::JointActionDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn censored_transition_remains_incomplete_even_when_other_receipts_replay() {
+        let (mut episode, anchor) = fixture();
+        episode.branches[0].transitions[1].disposition = TransitionDisposition::Censored;
+        let anchor = reanchor(&mut episode, &anchor);
+        let handoff = export_to_sam(&episode, &anchor).unwrap();
+        assert!(handoff.branches[0].queries.iter().all(|query| !query.query.complete));
+    }
+
+    #[test]
+    fn policy_and_context_changes_rebind_the_sam_query() {
+        let (episode, anchor) = fixture();
+        let baseline = export_to_sam(&episode, &anchor).unwrap();
+        let mut changed = episode.clone();
+        changed.policies[0].policy_digest = d("new-policy");
+        changed.branches[0].decisions[0].policy_digest = d("new-policy");
+        let anchor = reanchor(&mut changed, &anchor);
+        let updated = export_to_sam(&changed, &anchor).unwrap();
+        assert_ne!(
+            baseline.branches[0].queries[0].query.target_policy_digest,
+            updated.branches[0].queries[0].query.target_policy_digest
+        );
+        assert_ne!(
+            baseline.branches[0].queries[0].query.context_digest,
+            updated.branches[0].queries[0].query.context_digest
+        );
     }
 
     #[test]
