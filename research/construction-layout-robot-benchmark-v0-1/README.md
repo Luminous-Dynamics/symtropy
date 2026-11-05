@@ -49,6 +49,22 @@ The robot's own control points must not also be used as the independent survey c
 
 Prospective challenge targets are p95 residual <=1.0 mm, p99 <=2.0 mm, zero omissions of critical features, and at least 20% fewer crew-hours per accepted output than a matched manual baseline. These are aspirational research targets, not achieved product performance, universal tolerances or certification criteria. A qualified metrology setup must resolve the decision margins, and all task-specific safety gates remain independent hard gates.
 
+
+## State-of-the-art challenge and the evidence gap
+
+The 2025 single-project study provides a useful challenge reference, but its baseline must be interpreted carefully. For one 8-floor medical-office building it reported 68% fewer total labour hours, 18% fewer layout days, 99% less physically straining work and rework estimates moving from 6.42% to 0.25%. The authors state that the traditional-method impacts were estimated rather than directly observed. The robotic workflow also used 204 additional hours of VDC coordination and file preparation, alongside 393 robot print-hours. These figures are contextual single-project evidence, not a matched multi-vendor causal estimate.
+
+HP's product page advertises "up to 30%" faster point printing relative to its previous software release; its footnote reports 8% for interior-wall layouts. That is not a 30% improvement over manual layout. Keep software-version uplift, vendor-configured performance and manual-baseline productivity as separate comparisons.
+
+**Prospective SOTA challenge hypotheses (not achieved results):**
+- at least 70% fewer *total workflow crew-hours* per finally accepted unit than a directly measured, matched manual baseline;
+- at least 20% shorter elapsed layout duration under the same matched work package;
+- at least 90% fewer rework crew-hours.
+
+These intentionally seek to exceed the case-study's 68% labour / 18% duration figures under a stronger trial design. They require direct observation of the manual comparator and inclusion of all VDC/model preparation, design coordination, survey/control setup, export/transform QA, robot setup, spotter, inspection, downtime, interruptions, blocked scope and rework. They are research stretch hypotheses, not standards, universal thresholds or claims of achieved performance.
+
+For the confirmatory trial, the independent experimental unit is a matched work-zone/run (not individual printed vertices or repeated measurement frames). Estimate the sample size from a pilot variance and predeclare the practically meaningful effect before unblinding. Preserve every attempted run, failed setup, interruption, invalid/indeterminate output and blocked feature in the report. Use a second site and independent referee replication before transferring the result.
+
 ## Evidence and ownership
 
 - #3505/#3506 own physical validation protocol and ODD/metrology framework.
