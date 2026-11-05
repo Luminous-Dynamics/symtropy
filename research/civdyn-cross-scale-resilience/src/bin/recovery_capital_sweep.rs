@@ -4,7 +4,7 @@
 //! Synthetic service-versus-reserve recovery portfolio.
 
 use civdyn_cross_scale_resilience::{
-    RecoveryCapitalOutcome, RecoveryCapitalTick, RecoveryPath, run_recovery_capital_portfolio,
+    RecoveryCapitalOutcome, RecoveryCapitalTick, run_recovery_capital_portfolio,
 };
 
 const CSV_COLUMNS: usize = 16;
@@ -79,6 +79,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use civdyn_cross_scale_resilience::RecoveryPath;
 
     #[test]
     fn two_paths_emit_two_summary_rows_and_all_ticks() {
