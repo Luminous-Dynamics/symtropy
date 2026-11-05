@@ -387,8 +387,8 @@ mod tests {
     fn gravity_energy_drift_matches_signed_semi_implicit_euler_error() {
         let mass = 2.0;
         let gravity = 9.81;
-        let total_time = 1.0;
-        let initial_height = 100.0;
+        let total_time: f64 = 1.0;
+        let initial_height: f64 = 100.0;
 
         for dt in [1.0 / 30.0, 1.0 / 60.0, 1.0 / 120.0] {
             let steps = (total_time / dt).round() as usize;
