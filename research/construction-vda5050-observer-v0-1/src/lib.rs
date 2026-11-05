@@ -1056,7 +1056,7 @@ mod tests {
 
     #[test]
     fn five_level_topic_identity_must_match_payload_header() {
-        let payload = format!("{{{HEADER},"connectionState":"ONLINE"}}");
+        let payload = format!(r#"{{{HEADER},"connectionState":"ONLINE"}}"#);
         assert!(matches!(
             decode_vda_message("vda5050/v3/OTHER/R-01/connection", None, payload.as_bytes()),
             Err(ObserverError::TopicIdentityMismatch {
@@ -1217,7 +1217,7 @@ mod tests {
 
     #[test]
     fn non_v3_payload_is_rejected() {
-        let payload = format!("{{{HEADER},"connectionState":"ONLINE"}}").replace("3.0.0", "2.1.0");
+        let payload = format!(r#"{{{HEADER},"connectionState":"ONLINE"}}"#).replace("3.0.0", "2.1.0");
         assert!(matches!(
             decode_vda_message("connection", None, payload.as_bytes()),
             Err(ObserverError::UnsupportedVersion(_))
@@ -1236,7 +1236,7 @@ mod tests {
     #[test]
     fn duplicate_json_keys_are_rejected() {
         let payload =
-            format!("{{{HEADER},"connectionState":"ONLINE","connectionState":"OFFLINE"}}");
+            format!(r#"{{{HEADER},"connectionState":"ONLINE","connectionState":"OFFLINE"}}"#);
         assert!(matches!(
             decode_vda_message("connection", None, payload.as_bytes()),
             Err(ObserverError::DuplicateKey(_))
@@ -1246,14 +1246,13 @@ mod tests {
     #[test]
     fn invalid_action_status_is_rejected() {
         let payload = format!(
-            "{{{HEADER},"orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[],"edgeStates":[],"driving":false,"actionStates":[{{"actionId":"a1","actionStatus":"ACCEPTED"}}],"instantActionStates":[],"powerSupply":{{"batteryCharge":90}},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{{"eStop":"NONE","fieldViolation":false}}}}"
+            r#"{{{HEADER},"orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[],"edgeStates":[],"driving":false,"actionStates":[{{"actionId":"a1","actionStatus":"ACCEPTED"}}],"instantActionStates":[],"powerSupply":{{"stateOfCharge":90,"charging":false}},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{{"activeEmergencyStop":"NONE","fieldViolation":false}}}}"#
         );
         assert!(matches!(
             decode_vda_message("state", None, payload.as_bytes()),
             Err(ObserverError::Shape(_))
         ));
     }
-
     #[test]
     fn unsupported_topic_is_typed() {
         assert!(matches!(
@@ -1264,8 +1263,8 @@ mod tests {
 
     #[test]
     fn raw_payload_digest_changes_when_whitespace_changes() {
-        let one = format!("{{{HEADER},"connectionState":"ONLINE"}}");
-        let two = format!("{{ {HEADER},"connectionState":"ONLINE"}}");
+        let one = format!(r#"{{{HEADER},"connectionState":"ONLINE"}}"#);
+        let two = format!(r#"{{ {HEADER},"connectionState":"ONLINE"}}"#);
         let a = decode_vda_message("connection", None, one.as_bytes()).expect("valid");
         let b = decode_vda_message("connection", None, two.as_bytes()).expect("valid");
         assert_ne!(a.payload_sha256, b.payload_sha256);
