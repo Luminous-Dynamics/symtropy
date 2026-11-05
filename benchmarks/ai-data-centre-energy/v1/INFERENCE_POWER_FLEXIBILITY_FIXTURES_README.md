@@ -25,7 +25,7 @@ Power is measured from the explicit boundary meter in watts and integrated over 
 
 ## Validation status
 
-Fourteen Rust unit tests are authored in `inference_power_flexibility.rs`; fixture JSON contains eleven synthetic known-truth/negative-control cases. They are not represented as executed or passing. Rust build, rustfmt, Clippy and tests must be run on the exact PR head using a Rust toolchain.
+Fourteen Rust unit tests are authored in `inference_power_flexibility.rs`; fixture JSON contains fifteen synthetic known-truth/negative-control cases. They are not represented as executed or passing. Rust build, rustfmt, Clippy and tests must be run on the exact PR head using a Rust toolchain.
 
 ## Useful-work and rebound hardening
 
