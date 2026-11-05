@@ -1,0 +1,16 @@
+{
+  "headerId": 17,
+  "timestamp": "2026-11-05T10:00:00.000Z",
+  "version": "3.0.0",
+  "manufacturer": "ACME",
+  "serialNumber": "R-01",
+  "typeSpecification": {
+    "seriesName": "ACME",
+    "typeName": "AGV"
+  },
+  "physicalParameters": {},
+  "protocolLimits": {},
+  "protocolFeatures": {},
+  "mobileRobotGeometry": {},
+  "loadSpecification": {}
+}
