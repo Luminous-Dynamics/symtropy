@@ -24,7 +24,8 @@
     "calibration_method": "A_CALIBRATION",
     "calibration_status": "CALIBRATED",
     "calibration_horizon_max_hours": 1440,
-    "hazard_cif_coherence_verified": true
+    "hazard_cif_coherence_verified": true,
+    "source_locator": null
   },
   "censoring_support": {
     "assumption": "INDEPENDENT_RIGHT_CENSORING",
@@ -60,7 +61,8 @@
     "maximum_target_event_cif": 0.05,
     "planned_service_horizon_hours": 720,
     "maintenance_lead_time_hours": 168,
-    "decision_mode": "SOFT_HEALTH_CONSTRAINT_ONLY"
+    "decision_mode": "SOFT_HEALTH_CONSTRAINT_ONLY",
+    "policy_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
   },
   "quality_flags": [
     "SYNTHETIC_ONLY"
