@@ -119,9 +119,14 @@ Pin exact release versions and match model semantics before comparing:
   model on its own thread pool and documents bit-identical results to a serial
   loop across thread counts. This is the principal deterministic batch
   comparator. Its API supports per-simulation options, observation streams and
-  trajectories. MuJoCo's 3.14 IPC flex-contact mode has a separate replay caveat:
-  contact multipliers are not represented by ordinary state snapshots, so
-  exact replay is unsupported for that mode.
+  trajectories. Important comparison caveats: default batches reuse one
+  `mjData` per worker, so non-state fields/plugins outside the integration
+  state may be shared/stale across simulations; a persistent batch keeps one
+  `mjData` per simulation and is required for sleeping/IPC models. MuJoCo
+  exposes per-simulation status/error results, and a failed simulation retains
+  its previous state while other simulations may complete. Our comparison lane
+  must capture these statuses and select the correct persistence mode, not only
+  compare final state arrays.
 - **Rapier 0.35.3 (28 Aug 2026)** — pin the latest tagged release found for the
   stable external Rust engine lane. Its release notes cover recent contact,
   multibody and solver changes. A Dimforge Q3 2026 report describes a reworked
@@ -134,6 +139,13 @@ Pin exact release versions and match model semantics before comparing:
 - **SUNDIALS 7.9.0** — use as an independent ODE/DAE/multirate numerical-solver
   comparator for matched equations, not as a rigid-body/contact-engine
   comparator.
+- **PhysMark** — the Dimforge physics-engine benchmarking platform pins engine
+  commits, builds each engine, runs identical scenes/timesteps/mass properties
+  in separate processes, warms and synchronizes rollouts, checks physical
+  sanity, and reports performance/memory curves and replay artifacts. Adopt
+  these controls for our external engine lane; keep our analytic scenarios as
+  the correctness oracle because a common renderer or sanity check is not an
+  independent physical truth source.
 - **ASME V&V 20** — use validation-point framing and account for both numerical
   solution uncertainty and experimental data uncertainty. Keep verification,
   validation and calibration separate.
@@ -145,6 +157,7 @@ Official reference links:
 - Dimforge Q3 2026 report: https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/
 - Project Chrono 10.0.0: https://projectchrono.org/news/
 - SUNDIALS release history: https://computing.llnl.gov/projects/sundials/sundials-software
+- PhysMark: https://github.com/dimforge/physmark
 - ASME V&V 20: https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-fluid-dynamics-and-heat-transfer
 
 ## Future scenario families
