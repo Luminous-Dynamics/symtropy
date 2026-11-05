@@ -73,11 +73,21 @@ fn request(id: &str) -> PassageRequest {
 
 #[test]
 fn frozen_arrival_and_eligibility_cases_fail_closed() {
-    let cases: Vec<(&str, LockScheduleProfile, PassageRequest, Option<NotScheduledReason>)> = {
+    let cases: Vec<(
+        &str,
+        LockScheduleProfile,
+        PassageRequest,
+        Option<NotScheduledReason>,
+    )> = {
         let base_profile = profile();
         let mut cases = Vec::new();
 
-        cases.push(("current evidence and eligible vessel", base_profile.clone(), request("current"), None));
+        cases.push((
+            "current evidence and eligible vessel",
+            base_profile.clone(),
+            request("current"),
+            None,
+        ));
 
         let mut expired = request("expired");
         expired.arrival_evidence.valid_through_tick = Some(19);
@@ -134,7 +144,10 @@ fn frozen_arrival_and_eligibility_cases_fail_closed() {
         ));
 
         let mut missing_receipt = request("missing-receipt");
-        missing_receipt.arrival_evidence.calibration_receipt_id.clear();
+        missing_receipt
+            .arrival_evidence
+            .calibration_receipt_id
+            .clear();
         cases.push((
             "missing calibration receipt reference",
             base_profile.clone(),
@@ -161,8 +174,7 @@ fn frozen_arrival_and_eligibility_cases_fail_closed() {
         ));
 
         let mut upstream_unknown = request("upstream-unknown");
-        upstream_unknown.compatibility =
-            compatibility(PassageDisposition::UnknownReviewRequired);
+        upstream_unknown.compatibility = compatibility(PassageDisposition::UnknownReviewRequired);
         cases.push((
             "upstream eligibility unknown",
             base_profile.clone(),
@@ -180,8 +192,7 @@ fn frozen_arrival_and_eligibility_cases_fail_closed() {
         ));
 
         let mut unsupported = request("unsupported");
-        unsupported.compatibility =
-            compatibility(PassageDisposition::UnsupportedOperatingProfile);
+        unsupported.compatibility = compatibility(PassageDisposition::UnsupportedOperatingProfile);
         cases.push((
             "unsupported physical operating profile",
             base_profile.clone(),
@@ -229,7 +240,10 @@ fn frozen_arrival_and_eligibility_cases_fail_closed() {
         cases
     };
 
-    assert!(cases.len() >= 16, "the frozen corpus must not silently shrink");
+    assert!(
+        cases.len() >= 16,
+        "the frozen corpus must not silently shrink"
+    );
     for (case_name, case_profile, case_request, expected_reason) in cases {
         let plan = schedule(
             &case_profile,
@@ -245,10 +259,16 @@ fn frozen_arrival_and_eligibility_cases_fail_closed() {
         match expected_reason {
             None => {
                 assert_eq!(plan.schedule.len(), 1, "{case_name}: expected admission");
-                assert_eq!(plan.outcomes[0].reason, None, "{case_name}: unexpected rejection");
+                assert_eq!(
+                    plan.outcomes[0].reason, None,
+                    "{case_name}: unexpected rejection"
+                );
             }
             Some(reason) => {
-                assert!(plan.schedule.is_empty(), "{case_name}: rejected request was scheduled");
+                assert!(
+                    plan.schedule.is_empty(),
+                    "{case_name}: rejected request was scheduled"
+                );
                 assert_eq!(
                     plan.outcomes[0].reason,
                     Some(reason),
@@ -270,7 +290,9 @@ fn duplicate_identifiers_reject_every_ambiguous_record() {
     .expect("valid fixture profile");
     assert!(plan.schedule.is_empty());
     assert_eq!(plan.outcomes.len(), 2);
-    assert!(plan.outcomes.iter().all(|outcome| {
-        outcome.reason == Some(NotScheduledReason::DuplicateRequestId)
-    }));
+    assert!(
+        plan.outcomes
+            .iter()
+            .all(|outcome| { outcome.reason == Some(NotScheduledReason::DuplicateRequestId) })
+    );
 }
