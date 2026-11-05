@@ -2,7 +2,7 @@ name: Construction VDA5050 Observer V0.1
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, research/construction-vda5050-observer-v0-1]
     paths:
       - "research/construction-vda5050-observer-v0-1/**"
       - ".github/workflows/construction-vda5050-observer-v0-1.yml"
@@ -65,3 +65,22 @@ jobs:
       - name: Validate frozen fixtures against the upstream v3.0.0 schemas
         run: |
           python research/construction-vda5050-observer-v0-1/scripts/validate_vda_fixtures.py vda5050-upstream/json_schemas research/construction-vda5050-observer-v0-1/fixtures
+
+  independent-differential-replay:
+    name: Independent exact-byte differential replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust 1.96 toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+      - name: Install pinned Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the Rust observer
+        run: cargo build --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked
+      - name: Compare the Rust observer with the independent Python oracle
+        run: |
+          python research/construction-vda5050-observer-v0-1/scripts/differential_replay.py \
+            --binary research/construction-vda5050-observer-v0-1/target/debug/vda5050-observe \
+            --fixtures research/construction-vda5050-observer-v0-1/fixtures
