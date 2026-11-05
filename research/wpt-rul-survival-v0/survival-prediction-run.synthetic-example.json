@@ -44,7 +44,7 @@
           "probability": 0.1
         }
       ],
-      "predicted_cause_specific_hazard_rates": [
+      "predicted_cause_specific_hazard_rates_per_hour": [
         {
           "event_code": "STRUCTURAL_CRACK_LIMIT",
           "rates_per_interval": [
@@ -104,7 +104,7 @@
           "probability": 0.1
         }
       ],
-      "predicted_cause_specific_hazard_rates": [
+      "predicted_cause_specific_hazard_rates_per_hour": [
         {
           "event_code": "STRUCTURAL_CRACK_LIMIT",
           "rates_per_interval": [
@@ -164,7 +164,7 @@
           "probability": 0.1
         }
       ],
-      "predicted_cause_specific_hazard_rates": [
+      "predicted_cause_specific_hazard_rates_per_hour": [
         {
           "event_code": "STRUCTURAL_CRACK_LIMIT",
           "rates_per_interval": [
@@ -224,7 +224,7 @@
           "probability": 0.05
         }
       ],
-      "predicted_cause_specific_hazard_rates": [
+      "predicted_cause_specific_hazard_rates_per_hour": [
         {
           "event_code": "STRUCTURAL_CRACK_LIMIT",
           "rates_per_interval": [
@@ -284,7 +284,7 @@
           "probability": 0.05
         }
       ],
-      "predicted_cause_specific_hazard_rates": [
+      "predicted_cause_specific_hazard_rates_per_hour": [
         {
           "event_code": "STRUCTURAL_CRACK_LIMIT",
           "rates_per_interval": [
@@ -344,7 +344,7 @@
           "probability": 0.4
         }
       ],
-      "predicted_cause_specific_hazard_rates": [
+      "predicted_cause_specific_hazard_rates_per_hour": [
         {
           "event_code": "STRUCTURAL_CRACK_LIMIT",
           "rates_per_interval": [
@@ -404,7 +404,7 @@
           "probability": 0.03
         }
       ],
-      "predicted_cause_specific_hazard_rates": [
+      "predicted_cause_specific_hazard_rates_per_hour": [
         {
           "event_code": "STRUCTURAL_CRACK_LIMIT",
           "rates_per_interval": [
@@ -464,7 +464,7 @@
           "probability": 0.03
         }
       ],
-      "predicted_cause_specific_hazard_rates": [
+      "predicted_cause_specific_hazard_rates_per_hour": [
         {
           "event_code": "STRUCTURAL_CRACK_LIMIT",
           "rates_per_interval": [
