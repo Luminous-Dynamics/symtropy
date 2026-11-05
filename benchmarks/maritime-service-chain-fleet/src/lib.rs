@@ -1388,9 +1388,7 @@ mod tests {
     impl IndependentFleetEnumerator {
         fn new(workload: &FleetWorkload) -> Self {
             let mut cases = workload.cases.clone();
-            cases.sort_by(|left, right| {
-                left.demand.demand_id.cmp(&right.demand.demand_id)
-            });
+            cases.sort_by(|left, right| left.demand.demand_id.cmp(&right.demand.demand_id));
             let resources = cases
                 .first()
                 .map(|case| case.resources.clone())
@@ -1412,11 +1410,7 @@ mod tests {
             }
         }
 
-        fn window_containing(
-            resource: &Resource,
-            start_tick: u64,
-            end_tick: u64,
-        ) -> Option<usize> {
+        fn window_containing(resource: &Resource, start_tick: u64, end_tick: u64) -> Option<usize> {
             resource.availability.iter().position(|window| {
                 start_tick < end_tick
                     && start_tick >= window.window.start_tick
@@ -1459,8 +1453,8 @@ mod tests {
                         for (window_index, capacity_window) in
                             resource.availability.iter().enumerate()
                         {
-                            for tick in capacity_window.window.start_tick
-                                ..capacity_window.window.end_tick
+                            for tick in
+                                capacity_window.window.start_tick..capacity_window.window.end_tick
                             {
                                 let mut active = 0_u128;
                                 for (operation_index, operation) in
@@ -1499,18 +1493,18 @@ mod tests {
 
         fn push_alternative_energy(&mut self, alternative: &VoyageAlternative, add: bool) {
             let sign = if add { 1_i128 } else { -1_i128 };
-            self.energy.propulsion_wh =
-                (self.energy.propulsion_wh as i128
-                    + sign * i128::from(alternative.energy.propulsion_wh)) as u128;
-            self.energy.auxiliary_wh =
-                (self.energy.auxiliary_wh as i128
-                    + sign * i128::from(alternative.energy.auxiliary_wh)) as u128;
-            self.energy.shore_power_import_wh =
-                (self.energy.shore_power_import_wh as i128
-                    + sign * i128::from(alternative.energy.shore_power_import_wh)) as u128;
-            self.energy.inland_transfer_wh =
-                (self.energy.inland_transfer_wh as i128
-                    + sign * i128::from(alternative.energy.inland_transfer_wh)) as u128;
+            self.energy.propulsion_wh = (self.energy.propulsion_wh as i128
+                + sign * i128::from(alternative.energy.propulsion_wh))
+                as u128;
+            self.energy.auxiliary_wh = (self.energy.auxiliary_wh as i128
+                + sign * i128::from(alternative.energy.auxiliary_wh))
+                as u128;
+            self.energy.shore_power_import_wh = (self.energy.shore_power_import_wh as i128
+                + sign * i128::from(alternative.energy.shore_power_import_wh))
+                as u128;
+            self.energy.inland_transfer_wh = (self.energy.inland_transfer_wh as i128
+                + sign * i128::from(alternative.energy.inland_transfer_wh))
+                as u128;
         }
 
         fn record_complete_plan(&mut self) {
@@ -1555,9 +1549,7 @@ mod tests {
             }
             let case = self.cases[demand_index].clone();
             let mut alternatives = case.voyage_alternatives.clone();
-            alternatives.sort_by(|left, right| {
-                left.alternative_id.cmp(&right.alternative_id)
-            });
+            alternatives.sort_by(|left, right| left.alternative_id.cmp(&right.alternative_id));
             for alternative in alternatives {
                 self.enumerate_operations(
                     &case,
@@ -1722,8 +1714,7 @@ mod tests {
             right.shore_power_import_wh,
             right.inland_transfer_wh,
         ];
-        lhs.iter().zip(rhs).all(|(a, b)| *a <= b)
-            && lhs.iter().zip(rhs).any(|(a, b)| *a < b)
+        lhs.iter().zip(rhs).all(|(a, b)| *a <= b) && lhs.iter().zip(rhs).any(|(a, b)| *a < b)
     }
 
     fn reference_pareto_frontier(mut plans: Vec<FleetPlan>) -> Vec<FleetPlan> {
@@ -1742,14 +1733,13 @@ mod tests {
         plans.dedup();
         let mut frontier: Vec<FleetPlan> = Vec::new();
         for candidate in plans {
-            if frontier.iter().any(|known| {
-                reference_dominates(known.objective, candidate.objective)
-            }) {
+            if frontier
+                .iter()
+                .any(|known| reference_dominates(known.objective, candidate.objective))
+            {
                 continue;
             }
-            frontier.retain(|known| {
-                !reference_dominates(candidate.objective, known.objective)
-            });
+            frontier.retain(|known| !reference_dominates(candidate.objective, known.objective));
             frontier.push(candidate);
         }
         frontier
@@ -1772,7 +1762,10 @@ mod tests {
         let workload = fleet_workload(vec![first, second]);
         let production =
             exact_fleet_oracle(&workload, 50_000).expect("valid frozen fleet workload");
-        assert_eq!(production.termination, SearchTermination::ExhaustiveComplete);
+        assert_eq!(
+            production.termination,
+            SearchTermination::ExhaustiveComplete
+        );
         let reference = independent_reference_frontier(&workload);
         assert!(!reference.is_empty());
         assert_eq!(production.frontier, reference);
@@ -1793,7 +1786,10 @@ mod tests {
         let workload = fleet_workload(vec![first, second]);
         let production =
             exact_fleet_oracle(&workload, 50_000).expect("valid frozen fleet workload");
-        assert_eq!(production.termination, SearchTermination::ExhaustiveComplete);
+        assert_eq!(
+            production.termination,
+            SearchTermination::ExhaustiveComplete
+        );
         let reference = independent_reference_frontier(&workload);
         assert!(production.frontier.is_empty());
         assert_eq!(production.frontier, reference);
