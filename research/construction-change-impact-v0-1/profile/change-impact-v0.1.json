@@ -49,7 +49,15 @@
     ],
     "closure_expired_at_event_time": "unknown_impact",
     "parallel_edges": "supported; indegree and adjacency preserve multigraph multiplicity",
-    "unknown_path_explosion": "fail_closed_unknown_impact"
+    "unknown_path_explosion": "fail_closed_unknown_impact",
+    "inadmissible_event_scope": "mark every non-subject node UnknownImpact; never infer Unaffected from absence of a recorded path",
+    "inadmissible_event_reasons": [
+      "missing_or_expired_dependency_closure",
+      "missing_change_authority",
+      "unknown_semantic_delta",
+      "unknown_change_kind",
+      "missing_metadata_equivalence_attestation"
+    ]
   },
   "scope_rules": {
     "global_event": "intersects all edge scopes",
