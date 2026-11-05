@@ -150,7 +150,7 @@ pub enum DecisionStatus {
     Unaffected,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WitnessEffect {
     Triggered(ImpactAction),
     ExplicitlyNonTriggering,
@@ -740,17 +740,18 @@ pub fn evaluate_change(
         witnesses.sort_by(witness_order);
         witnesses.dedup();
         let reasons: Vec<String> = acc.reasons.into_iter().collect();
+        let unaffected_closure_ref = if status == DecisionStatus::Unaffected {
+            graph.closure_manifest_ref.clone()
+        } else {
+            None
+        };
         decisions.push(ImpactDecision {
             node_id: node.node_id.clone(),
             status,
             actions: acc.actions.into_iter().collect(),
             witnesses,
             reasons,
-            unaffected_closure_ref: if status == DecisionStatus::Unaffected {
-                graph.closure_manifest_ref.clone()
-            } else {
-                None
-            },
+            unaffected_closure_ref,
         });
     }
     decisions.sort_by(|left, right| left.node_id.cmp(&right.node_id));
