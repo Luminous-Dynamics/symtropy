@@ -1,0 +1,622 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.luminousdynamics.org/civbench/CIVBENCH_MEASUREMENT_DISTRIBUTION_V0_1.schema.json",
+  "title": "CivBench Measurement-as-Distribution Protocol v0.1",
+  "description": "Task-specific evaluation-distribution manifest. Model identity, run bytes, outputs and qualification receipts remain in the existing Humanity Atlas run artifact; this schema references that artifact instead of defining a competing run envelope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "protocol_id",
+    "evaluation_id",
+    "benchmark_id",
+    "construct",
+    "units",
+    "sources",
+    "evaluation_distribution",
+    "perturbation_families",
+    "replication_design",
+    "metrics",
+    "baselines",
+    "negative_controls",
+    "holdouts",
+    "reproduction",
+    "claim_report",
+    "composite_score_policy"
+  ],
+  "properties": {
+    "schema": {
+      "const": "https://schemas.luminousdynamics.org/civbench/measurement-distribution/0.1"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "protocol_id": {
+      "const": "CIVBENCH-MAD-001"
+    },
+    "evaluation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9-]+$"
+    },
+    "construct": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "intended_use",
+        "claim_tier",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intended_use": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_tier": {
+          "enum": [
+            "tier-0-integrity",
+            "tier-1-reference",
+            "tier-2-empirical-distribution",
+            "tier-3-external-generalization",
+            "tier-4-intervention-validity",
+            "tier-5-operational-readiness"
+          ]
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observational_unit",
+        "resampling_unit",
+        "independent_unit",
+        "dependence_statement"
+      ],
+      "properties": {
+        "observational_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resampling_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependence_statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clustered_observations": {
+          "type": "boolean"
+        },
+        "independence_claimed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "epistemic_status",
+          "version",
+          "retrieved_at",
+          "license",
+          "content_digest",
+          "source_family",
+          "missingness_semantics"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "epistemic_status": {
+            "enum": [
+              "observed",
+              "reconstructed",
+              "simulated",
+              "inferred",
+              "hypothetical",
+              "synthetic-test-fixture"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "retrieved_at": {
+            "type": "string",
+            "format": "date"
+          },
+          "license": {
+            "type": "string",
+            "minLength": 1
+          },
+          "content_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "source_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "missingness_semantics": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_uri": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "evaluation_distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sampling_frame",
+        "factors",
+        "excluded_support"
+      ],
+      "properties": {
+        "sampling_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "factors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "factor_id",
+              "levels",
+              "weight_interpretation"
+            ],
+            "properties": {
+              "factor_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "weight_interpretation": {
+                "type": "string",
+                "minLength": 1
+              },
+              "levels": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "level_id",
+                    "target_weight",
+                    "support_count"
+                  ],
+                  "properties": {
+                    "level_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "target_weight": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "support_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "excluded_support": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "perturbation_families": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "family_id",
+          "rationale",
+          "validity_check",
+          "expected_invariants",
+          "seed_policy"
+        ],
+        "properties": {
+          "family_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "validity_check": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_invariants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "seed_policy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parameter_range": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "replication_design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "replication_count",
+        "independent_unit",
+        "inference_claimed",
+        "dependence_assessment",
+        "sample_size_rationale"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "deterministic-fixture",
+            "independent-seeds",
+            "cluster-bootstrap",
+            "paired-resampling",
+            "prospective-repeated-measures",
+            "other"
+          ]
+        },
+        "replication_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "independent_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inference_claimed": {
+          "type": "boolean"
+        },
+        "dependence_assessment": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_size_rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed_manifest_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "cluster_unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "construct_dimension",
+          "unit",
+          "direction",
+          "aggregation",
+          "strata",
+          "uncertainty_method"
+        ],
+        "properties": {
+          "metric_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "construct_dimension": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "direction": {
+            "enum": [
+              "lower-is-better",
+              "higher-is-better",
+              "target-range",
+              "descriptive-only"
+            ]
+          },
+          "aggregation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strata": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "uncertainty_method": {
+            "type": "string",
+            "minLength": 1
+          },
+          "proper_scoring_rule": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "baselines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "baseline_id",
+          "description",
+          "protocol_matched"
+        ],
+        "properties": {
+          "baseline_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "protocol_matched": {
+            "type": "boolean"
+          },
+          "source_uri": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "control_id",
+          "intervention",
+          "expected_result",
+          "must_fail_or_remain_null"
+        ],
+        "properties": {
+          "control_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "intervention": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_result": {
+            "type": "string",
+            "minLength": 1
+          },
+          "must_fail_or_remain_null": {
+            "enum": [
+              "fail",
+              "remain-unchanged",
+              "remain-unknown"
+            ]
+          }
+        }
+      }
+    },
+    "holdouts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "holdout_id",
+          "dimension",
+          "status",
+          "leakage_control"
+        ],
+        "properties": {
+          "holdout_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dimension": {
+            "enum": [
+              "participant",
+              "group",
+              "site",
+              "region",
+              "culture",
+              "period",
+              "source-family",
+              "context",
+              "opponent-roster",
+              "scenario",
+              "none"
+            ]
+          },
+          "status": {
+            "enum": [
+              "frozen",
+              "sealed",
+              "not-applicable",
+              "not-yet-created"
+            ]
+          },
+          "leakage_control": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "reproduction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code_commit",
+        "configuration_digest",
+        "runtime_environment",
+        "command",
+        "humanity_atlas_run_artifact_ref"
+      ],
+      "properties": {
+        "code_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data_manifest_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_identifier": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runtime_environment": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "humanity_atlas_run_artifact_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "claim_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_ceiling",
+        "known_limitations",
+        "unsupported_strata",
+        "deviations",
+        "failed_controls"
+      ],
+      "properties": {
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        },
+        "known_limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unsupported_strata": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deviations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "failed_controls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "composite_score_policy": {
+      "const": "no-universal-composite"
+    }
+  }
+}
