@@ -1011,3 +1011,6 @@ mod tests {
         ));
     }
 }
+
+/// Repeated-shock benchmark separating service recovery from resource reserve recovery.
+pub mod recovery_capital;
