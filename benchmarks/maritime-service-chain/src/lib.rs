@@ -81,7 +81,8 @@ pub struct EvidenceRef {
     pub valid_through_tick: Option<u64>,
     /// Arrival-window evidence must bind these exact bounds.
     pub covered_window: Option<TickWindow>,
-    /// Resource-capacity evidence must bind the exact intervals and capacities.
+    /// Resource-capacity evidence must bind the exact unit, intervals and capacities.
+    pub covered_resource_unit: Option<ResourceUnit>,
     pub covered_capacity_windows: Option<Vec<CapacityWindow>>,
     pub state: EvidenceState,
     pub claim_ceiling: String,
@@ -640,8 +641,9 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
             }
             if evidence.role == EvidenceRole::ResourceCapacity {
                 has_capacity_evidence = true;
-                if evidence.covered_capacity_windows.as_deref()
-                    != Some(resource.availability.as_slice())
+                if evidence.covered_resource_unit != Some(resource.capacity_unit)
+                    || evidence.covered_capacity_windows.as_deref()
+                        != Some(resource.availability.as_slice())
                 {
                     return Err(ValidationError::ResourceCapacityEvidenceMismatch(
                         resource.resource_id.clone(),
@@ -922,6 +924,7 @@ mod tests {
             valid_from_tick: 0,
             valid_through_tick: Some(100),
             covered_window,
+            covered_resource_unit: None,
             covered_capacity_windows: None,
             state: EvidenceState::Current,
             claim_ceiling: "synthetic benchmark fixture only".into(),
@@ -931,6 +934,7 @@ mod tests {
     fn capacity_evidence(
         id: &str,
         subject: &str,
+        unit: ResourceUnit,
         availability: Vec<CapacityWindow>,
     ) -> EvidenceRef {
         let mut evidence = evidence(
@@ -940,6 +944,7 @@ mod tests {
             subject,
             None,
         );
+        evidence.covered_resource_unit = Some(unit);
         evidence.covered_capacity_windows = Some(availability);
         evidence
     }
@@ -1021,6 +1026,7 @@ mod tests {
             capacity_evidence(
                 "lock-calendar",
                 "lock-01",
+                ResourceUnit::Lockages,
                 vec![CapacityWindow {
                     window: TickWindow {
                         start_tick: 15,
@@ -1032,6 +1038,7 @@ mod tests {
             capacity_evidence(
                 "berth-calendar",
                 "berth-01",
+                ResourceUnit::BerthSlots,
                 vec![CapacityWindow {
                     window: TickWindow {
                         start_tick: 25,
@@ -1043,6 +1050,7 @@ mod tests {
             capacity_evidence(
                 "shore-calendar",
                 "shore-01",
+                ResourceUnit::WattHours,
                 vec![CapacityWindow {
                     window: TickWindow {
                         start_tick: 25,
@@ -1054,6 +1062,7 @@ mod tests {
             capacity_evidence(
                 "rail-calendar",
                 "rail-01",
+                ResourceUnit::Tonnes,
                 vec![CapacityWindow {
                     window: TickWindow {
                         start_tick: 40,
@@ -1072,6 +1081,7 @@ mod tests {
             capacity_evidence(
                 "channel-calendar",
                 "channel-window-01",
+                ResourceUnit::TransitSlots,
                 vec![CapacityWindow {
                     window: TickWindow {
                         start_tick: 5,
@@ -1083,6 +1093,7 @@ mod tests {
             capacity_evidence(
                 "handling-calendar",
                 "terminal-01",
+                ResourceUnit::Tonnes,
                 vec![CapacityWindow {
                     window: TickWindow {
                         start_tick: 25,
@@ -1503,7 +1514,19 @@ mod tests {
         );
 
         let mut mismatched = valid_case();
+        let rail = mismatched
+            .resources
+            .iter_mut()
+            .find(|resource| resource.resource_id == "rail-01")
+            .expect("rail resource exists");
+        rail.capacity_unit = ResourceUnit::Teu;
         mismatched.route_segments[4].resource_uses[0].unit = ResourceUnit::Teu;
+        let rail_evidence = mismatched
+            .evidence
+            .iter_mut()
+            .find(|evidence| evidence.evidence_id == "rail-calendar")
+            .expect("rail capacity evidence exists");
+        rail_evidence.covered_resource_unit = Some(ResourceUnit::Teu);
         assert_eq!(
             validate_case(&mismatched),
             Err(ValidationError::DemandResourceUnitMismatch(
