@@ -212,6 +212,245 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
     })
 }
 
+/// Direction of a hard operating-envelope constraint.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ConstraintSense {
+    /// The entire qualified interval must be at or above the threshold.
+    Minimum,
+    /// The entire qualified interval must be at or below the threshold.
+    Maximum,
+}
+
+/// Result for one interval-valued operating constraint.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DecisionConstraint {
+    pub constraint_id: String,
+    pub unit: String,
+    pub sense: ConstraintSense,
+    pub threshold: f64,
+    pub lower: f64,
+    pub upper: f64,
+}
+
+/// Disposition for one constraint.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ConstraintDisposition {
+    Satisfied,
+    Violated,
+    Unresolved,
+}
+
+/// Fail-closed decision from all supplied hard constraints.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum GateDecision {
+    /// Every supplied constraint is satisfied by the complete interval.
+    Eligible,
+    /// At least one complete interval is beyond a hard limit.
+    Inhibit,
+    /// No hard limit is definitely violated, but at least one is unresolved.
+    NotEvaluable,
+}
+
+/// Auditable result for one constraint.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ConstraintCheck {
+    pub constraint_id: String,
+    pub disposition: ConstraintDisposition,
+    pub explanation: String,
+}
+
+/// Aggregate result. ELIGIBLE is not energization authorization: all independent
+/// interlocks, identity, positioning and protection checks still apply.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DecisionGateReport {
+    pub decision: GateDecision,
+    pub checks: Vec<ConstraintCheck>,
+    pub action: String,
+    pub claim_ceiling: String,
+}
+
+/// Evaluate predictive intervals against hard minimum/maximum constraints.
+///
+/// A constraint is satisfied only when its *entire* interval is on the allowed
+/// side of the threshold. Overlap with the threshold is UNRESOLVED, not SAFE.
+/// Empty, malformed, non-finite or duplicate inputs fail closed with an error.
+pub fn evaluate_decision_gate(
+    constraints: &[DecisionConstraint],
+) -> Result<DecisionGateReport, String> {
+    if constraints.is_empty() {
+        return Err("decision gate requires at least one hard constraint".into());
+    }
+
+    let mut seen = std::collections::BTreeSet::new();
+    let mut checks = Vec::with_capacity(constraints.len());
+    for constraint in constraints {
+        if constraint.constraint_id.trim().is_empty()
+            || constraint.unit.trim().is_empty()
+            || !seen.insert(&constraint.constraint_id)
+        {
+            return Err("constraint identity and unit must be non-empty; IDs must be unique".into());
+        }
+        for (name, value) in [
+            ("threshold", constraint.threshold),
+            ("lower", constraint.lower),
+            ("upper", constraint.upper),
+        ] {
+            if !value.is_finite() {
+                return Err(format!("{}: {name} must be finite", constraint.constraint_id));
+            }
+        }
+        if constraint.lower > constraint.upper {
+            return Err(format!(
+                "{}: interval lower bound exceeds upper bound",
+                constraint.constraint_id
+            ));
+        }
+
+        let (disposition, explanation) = match constraint.sense {
+            ConstraintSense::Minimum if constraint.lower >= constraint.threshold => (
+                ConstraintDisposition::Satisfied,
+                "entire interval meets or exceeds the required minimum".to_string(),
+            ),
+            ConstraintSense::Minimum if constraint.upper < constraint.threshold => (
+                ConstraintDisposition::Violated,
+                "entire interval is below the required minimum".to_string(),
+            ),
+            ConstraintSense::Minimum => (
+                ConstraintDisposition::Unresolved,
+                "interval overlaps the required minimum; feasibility is unresolved".to_string(),
+            ),
+            ConstraintSense::Maximum if constraint.upper <= constraint.threshold => (
+                ConstraintDisposition::Satisfied,
+                "entire interval is at or below the permitted maximum".to_string(),
+            ),
+            ConstraintSense::Maximum if constraint.lower > constraint.threshold => (
+                ConstraintDisposition::Violated,
+                "entire interval exceeds the permitted maximum".to_string(),
+            ),
+            ConstraintSense::Maximum => (
+                ConstraintDisposition::Unresolved,
+                "interval overlaps the permitted maximum; feasibility is unresolved".to_string(),
+            ),
+        };
+        checks.push(ConstraintCheck {
+            constraint_id: constraint.constraint_id.clone(),
+            disposition,
+            explanation,
+        });
+    }
+
+    let decision = if checks
+        .iter()
+        .any(|check| check.disposition == ConstraintDisposition::Violated)
+    {
+        GateDecision::Inhibit
+    } else if checks
+        .iter()
+        .any(|check| check.disposition == ConstraintDisposition::Unresolved)
+    {
+        GateDecision::NotEvaluable
+    } else {
+        GateDecision::Eligible
+    };
+    let action = match decision {
+        GateDecision::Eligible => {
+            "ELIGIBLE_FOR_INDEPENDENT_INTERLOCK_AND_AUTHORIZATION_CHECKS"
+        }
+        GateDecision::Inhibit => "INHIBIT_OR_ENTER_DECLARED_SAFE_STATE",
+        GateDecision::NotEvaluable => "DO_NOT_INCREASE_POWER; DERATE_OR_RAMP_DOWN",
+    }
+    .to_string();
+
+    Ok(DecisionGateReport {
+        decision,
+        checks,
+        action,
+        claim_ceiling: "Interval constraint screening only. ELIGIBLE is not permission to energize and does not replace independent protection, identity, positioning, exposure, thermal, foreign-object, communications-freshness or hardware interlocks.".into(),
+    })
+}
+
+#[cfg(test)]
+mod decision_gate_tests {
+    use super::*;
+
+    fn constraint(
+        id: &str,
+        sense: ConstraintSense,
+        threshold: f64,
+        lower: f64,
+        upper: f64,
+    ) -> DecisionConstraint {
+        DecisionConstraint {
+            constraint_id: id.into(),
+            unit: "W".into(),
+            sense,
+            threshold,
+            lower,
+            upper,
+        }
+    }
+
+    #[test]
+    fn complete_intervals_on_allowed_side_are_eligible() {
+        let result = evaluate_decision_gate(&[
+            constraint("minimum_service", ConstraintSense::Minimum, 100.0, 102.0, 108.0),
+            constraint("maximum_temperature", ConstraintSense::Maximum, 80.0, 70.0, 75.0),
+        ])
+        .unwrap();
+        assert_eq!(result.decision, GateDecision::Eligible);
+    }
+
+    #[test]
+    fn threshold_overlap_is_not_silently_accepted() {
+        let result = evaluate_decision_gate(&[
+            constraint("minimum_service", ConstraintSense::Minimum, 100.0, 98.0, 103.0),
+        ])
+        .unwrap();
+        assert_eq!(result.decision, GateDecision::NotEvaluable);
+        assert_eq!(result.checks[0].disposition, ConstraintDisposition::Unresolved);
+    }
+
+    #[test]
+    fn definite_limit_breach_inhibits() {
+        let result = evaluate_decision_gate(&[
+            constraint("maximum_temperature", ConstraintSense::Maximum, 80.0, 82.0, 85.0),
+        ])
+        .unwrap();
+        assert_eq!(result.decision, GateDecision::Inhibit);
+    }
+
+    #[test]
+    fn definite_breach_dominates_other_unresolved_constraints() {
+        let result = evaluate_decision_gate(&[
+            constraint("minimum_service", ConstraintSense::Minimum, 100.0, 98.0, 103.0),
+            constraint("maximum_temperature", ConstraintSense::Maximum, 80.0, 82.0, 85.0),
+        ])
+        .unwrap();
+        assert_eq!(result.decision, GateDecision::Inhibit);
+    }
+
+    #[test]
+    fn malformed_gate_inputs_fail_closed() {
+        assert!(evaluate_decision_gate(&[]).is_err());
+        assert!(evaluate_decision_gate(&[
+            constraint("bad", ConstraintSense::Minimum, 1.0, f64::NAN, 2.0),
+        ])
+        .is_err());
+        assert!(evaluate_decision_gate(&[
+            constraint("bad", ConstraintSense::Minimum, 1.0, 2.0, 1.0),
+        ])
+        .is_err());
+        assert!(evaluate_decision_gate(&[
+            constraint("duplicate", ConstraintSense::Minimum, 1.0, 1.0, 2.0),
+            constraint("duplicate", ConstraintSense::Maximum, 3.0, 1.0, 2.0),
+        ])
+        .is_err());
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
