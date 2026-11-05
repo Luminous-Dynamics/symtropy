@@ -403,8 +403,13 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
                         "pcc_id",
                         "voltage_kv",
                         "i_sc_rms_a",
+                        "i_sc_method_id",
+                        "i_sc_source_artifact_sha256",
                         "i_l_rms_a",
                         "i_l_definition_id",
+                        "i_l_window_seconds",
+                        "i_l_reference_period_id",
+                        "i_l_source_artifact_sha256",
                     ],
                     "$.profile.pcc",
                 )?;
@@ -412,11 +417,30 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
                 let voltage_kv = number_field(pcc_value, "voltage_kv", "$.profile.pcc")?;
                 let isc = number_field(pcc_value, "i_sc_rms_a", "$.profile.pcc")?;
                 let il = number_field(pcc_value, "i_l_rms_a", "$.profile.pcc")?;
+                string_field(pcc_value, "i_sc_method_id", "$.profile.pcc")?;
                 string_field(pcc_value, "i_l_definition_id", "$.profile.pcc")?;
-                if voltage_kv <= 0.0 || isc <= 0.0 || il <= 0.0 {
+                string_field(pcc_value, "i_l_reference_period_id", "$.profile.pcc")?;
+                let isc_digest = string_field(
+                    pcc_value,
+                    "i_sc_source_artifact_sha256",
+                    "$.profile.pcc",
+                )?;
+                let il_digest = string_field(
+                    pcc_value,
+                    "i_l_source_artifact_sha256",
+                    "$.profile.pcc",
+                )?;
+                if !valid_sha256(isc_digest) || !valid_sha256(il_digest) {
                     return Err(fail(
                         "$.profile.pcc",
-                        "PCC voltage, Isc and IL must be positive",
+                        "Isc and IL source artifacts must be lowercase SHA-256 digests",
+                    ));
+                }
+                let il_window = number_field(pcc_value, "i_l_window_seconds", "$.profile.pcc")?;
+                if voltage_kv <= 0.0 || isc <= 0.0 || il <= 0.0 || il_window <= 0.0 {
+                    return Err(fail(
+                        "$.profile.pcc",
+                        "PCC voltage, Isc, IL and IL averaging window must be positive",
                     ));
                 }
                 ProfileApplicability::ApplicableScopeOnly
@@ -636,6 +660,28 @@ mod tests {
         assert!((report.thd_through_order_percent - 5.5).abs() < 1e-12);
         assert!((report.tdd_through_order_percent.unwrap() - 11.0).abs() < 1e-12);
         assert!((report.short_circuit_ratio_isc_over_il.unwrap() - 500.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn ieee_519_rejects_missing_il_source_artifact_digest() {
+        let mut run = fixture();
+        run["profile"]["pcc"]["i_l_source_artifact_sha256"] = Value::String("bad".into());
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("source artifacts must be lowercase SHA-256 digests")
+        );
+    }
+
+    #[test]
+    fn ieee_519_rejects_zero_il_demand_window() {
+        let mut run = fixture();
+        run["profile"]["pcc"]["i_l_window_seconds"] = Value::from(0.0);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("IL averaging window must be positive")
+        );
     }
 
     #[test]
