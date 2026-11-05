@@ -272,6 +272,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
             "calibration_status",
             "calibration_horizon_max_hours",
             "hazard_cif_coherence_verified",
+            "source_locator",
         ],
         "$.forecast",
     )?;
@@ -422,6 +423,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
             "planned_service_horizon_hours",
             "maintenance_lead_time_hours",
             "decision_mode",
+            "policy_sha256",
         ],
         "$.dispatch_policy",
     )?;
@@ -537,6 +539,42 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
 
     let calibration_status = string_field(forecast, "calibration_status", "$.forecast")?;
     let calibration_method = string_field(forecast, "calibration_method", "$.forecast")?;
+    let policy_digest = string_field(policy, "policy_sha256", "$.dispatch_policy")?;
+    if !valid_sha256(policy_digest) {
+        reasons.push("dispatch policy digest is invalid".into());
+        return Ok(report(
+            run_id,
+            asset_id,
+            segment_id,
+            EligibilityState::NotEvaluable,
+            target_cif,
+            maximum_risk,
+            horizon,
+            minimum_g,
+            maximum_weight,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
+    }
+    let source_locator = field(forecast, "source_locator", "$.forecast")?;
+    if evidence_kind == "PUBLISHED_MEASURED"
+        && source_locator.as_str().is_none_or(|value| value.trim().is_empty())
+    {
+        reasons.push("published-measured forecasts require a non-empty source locator".into());
+        return Ok(report(
+            run_id,
+            asset_id,
+            segment_id,
+            EligibilityState::NotEvaluable,
+            target_cif,
+            maximum_risk,
+            horizon,
+            minimum_g,
+            maximum_weight,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
+    }
     if calibration_status != "CALIBRATED"
         || ![
             "A_CALIBRATION",
@@ -590,7 +628,23 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         ));
     }
 
-    let outside_domain = domain_status != "IN_DOMAIN"
+    if domain_status == "UNKNOWN" {
+        reasons.push("operating-domain support is unknown".into());
+        return Ok(report(
+            run_id,
+            asset_id,
+            segment_id,
+            EligibilityState::NotEvaluable,
+            target_cif,
+            maximum_risk,
+            horizon,
+            minimum_g,
+            maximum_weight,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
+    }
+    let outside_domain = domain_status == "OUT_OF_DOMAIN"
         || material != validated_material
         || route != validated_route
         || ambient < min_temperature
@@ -616,7 +670,9 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
 
     let risk_exceeded = target_cif > maximum_risk;
     if risk_exceeded {
-        reasons.push("target-event cumulative incidence exceeds the configured dispatch risk budget".into());
+        reasons.push(format!(
+            "target-event cumulative incidence exceeds the configured dispatch risk budget; maintenance lead time is {maintenance_lead_time} hours"
+        ));
         let action = if decision_mode == "HARD_RISK_CAP" {
             RecommendedAction::ExcludeFromPlannedServiceHorizon
         } else {
@@ -638,7 +694,6 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
     }
 
     reasons.push("forecast evidence gates pass; result may inform supervisory allocation only".into());
-    let _ = maintenance_lead_time;
     Ok(report(
         run_id,
         asset_id,
@@ -817,6 +872,34 @@ mod tests {
         promote_fixture_to_measured_for_policy_unit_test(&mut run);
         run["censoring_support"]["assumption"] =
             Value::String("UNKNOWN_OR_DEPENDENT".into());
+        let report = evaluate_eligibility(&run).unwrap();
+        assert_eq!(report.state, EligibilityState::NotEvaluable);
+    }
+
+    #[test]
+    fn published_measured_forecast_requires_source_locator() {
+        let mut run = fixture();
+        promote_fixture_to_measured_for_policy_unit_test(&mut run);
+        run["evidence_kind"] = Value::String("PUBLISHED_MEASURED".into());
+        run["forecast"]["source_locator"] = Value::Null;
+        let report = evaluate_eligibility(&run).unwrap();
+        assert_eq!(report.state, EligibilityState::NotEvaluable);
+    }
+
+    #[test]
+    fn unknown_domain_support_is_not_evaluable_not_out_of_domain() {
+        let mut run = fixture();
+        promote_fixture_to_measured_for_policy_unit_test(&mut run);
+        run["domain_support"]["support_status"] = Value::String("UNKNOWN".into());
+        let report = evaluate_eligibility(&run).unwrap();
+        assert_eq!(report.state, EligibilityState::NotEvaluable);
+    }
+
+    #[test]
+    fn policy_digest_is_required_for_health_risk_budget() {
+        let mut run = fixture();
+        promote_fixture_to_measured_for_policy_unit_test(&mut run);
+        run["dispatch_policy"]["policy_sha256"] = Value::String("bad".into());
         let report = evaluate_eligibility(&run).unwrap();
         assert_eq!(report.state, EligibilityState::NotEvaluable);
     }
