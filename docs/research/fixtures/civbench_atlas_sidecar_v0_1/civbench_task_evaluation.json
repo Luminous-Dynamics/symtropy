@@ -1,0 +1,143 @@
+{
+  "schema_version": "civbench.task-evaluation.v0.1",
+  "evaluation_id": "CIVBENCH-ATLAS-001-SYNTH-001",
+  "status": "synthetic_fixture",
+  "task": {
+    "benchmark_id": "CIVDYN-OPVAL-001",
+    "benchmark_version": "0.1.0",
+    "task_id": "operational-pattern-comparison-synthetic-control",
+    "task_version": "0.1.0",
+    "track": "operational_pattern_validity",
+    "title": "Synthetic distributional comparison and negative-control fixture"
+  },
+  "run_binding": {
+    "run_id": "civbench-synthetic-run-001",
+    "run_core_projection": "humanity-atlas-run-core.v1",
+    "canonicalization": "RFC8785",
+    "run_core_sha256": "083fb82e4f2284fc0ee69a515cc6bd765963f6897faf3b9cac3e3769a4c540c0"
+  },
+  "protocol": {
+    "protocol_id": "CIVBENCH-ATLAS-001",
+    "protocol_version": "0.1.0",
+    "protocol_sha256": "05c67f7691b8bd196055ab1a3d6080534a27f37f8117eaa5bfd2c05ce5ed96d2",
+    "scoring_code_id": "civbench-sidecar-fixture-validator",
+    "scoring_code_version": "0.1.0",
+    "preregistration_status": "synthetic_fixture"
+  },
+  "model_identity": {
+    "adapter": "civbench-synthetic-adapter",
+    "engine_version": "0.1.0",
+    "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "source_revision": "synthetic-fixture-commit"
+  },
+  "datasets": [
+    {
+      "dataset_id": "CIVBENCH-SYNTHETIC-DATA-001",
+      "version": "0.1.0",
+      "content_sha256": "7c32c509c73680acb66d547326db8db7507783d76f356e9ab8de9dc651b2e901",
+      "license": "generated-synthetic-fixture",
+      "rights_status": "generated_in_repository",
+      "split_id": "synthetic-fixture-only",
+      "split_role": "test_fixture",
+      "holdout_rule": "No external empirical data; this fixture exercises schema and digest contracts only."
+    }
+  ],
+  "scope": {
+    "unit_of_analysis": "simulation_replication",
+    "geography": "synthetic",
+    "temporal_scope": "single synthetic run",
+    "cultural_scope": "not_applicable",
+    "declared_strata": [
+      "all"
+    ]
+  },
+  "metrics": [
+    {
+      "metric_id": "activity_mean",
+      "unit": "posts/day",
+      "direction": "report_only",
+      "statistic": "mean",
+      "value": 12.5,
+      "sample_count": 30,
+      "sample_unit": "simulation_replication",
+      "stratum_id": "all",
+      "uncertainty": {
+        "status": "not_estimable",
+        "method": null,
+        "interval": null,
+        "reason": "Synthetic fixture is not a calibrated empirical comparison."
+      },
+      "result_artifact_ids": []
+    },
+    {
+      "metric_id": "choice_distribution_tvd",
+      "unit": "probability_distance",
+      "direction": "minimize",
+      "statistic": "total_variation_distance",
+      "value": 0.075,
+      "sample_count": 30,
+      "sample_unit": "simulation_replication",
+      "stratum_id": "all",
+      "uncertainty": {
+        "status": "not_estimable",
+        "method": null,
+        "interval": null,
+        "reason": "Synthetic fixture is not an empirical sampling design."
+      },
+      "result_artifact_ids": [
+        "choice-frequency-distribution"
+      ]
+    }
+  ],
+  "baseline_comparisons": [
+    {
+      "comparison_id": "candidate-vs-persistence-synthetic",
+      "candidate_metric_id": "choice_distribution_tvd",
+      "baseline_id": "persistence",
+      "baseline_metric_id": "choice_distribution_tvd",
+      "candidate_value": 0.075,
+      "baseline_value": 0.11,
+      "unit": "probability_distance",
+      "dataset_split_id": "synthetic-fixture-only",
+      "metric_version": "0.1.0",
+      "uncertainty_status": "not_estimable",
+      "same_task_and_split": true,
+      "claim_ceiling": "synthetic_test_only"
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "missing_is_not_zero",
+      "expected_behavior": "A missing stratum must remain marked missing and must not be imputed as a zero measurement.",
+      "observed_behavior": "The validator rejects absent stratum references and preserves null/missing status.",
+      "status": "passed"
+    }
+  ],
+  "data_quality": {
+    "missing_records": [],
+    "unsupported_metrics": [],
+    "failed_runs": 0,
+    "deviations_from_preregistration": []
+  },
+  "artifacts": [
+    {
+      "artifact_id": "choice-frequency-distribution",
+      "role": "distributional_metric_payload",
+      "media_type": "text/csv",
+      "artifact_ref": "choice_frequency_distribution.csv",
+      "artifact_sha256": "58f00d7ac8c87d41e94f12c1203759940c9c54fdfaddc8d92dcbb4579fd6e5aa",
+      "description": "Synthetic observed and simulated choice frequencies by option; not an empirical dataset."
+    }
+  ],
+  "assessment": {
+    "claim_ceiling": "synthetic_test_only",
+    "scientific_status": "not_empirically_validated",
+    "summary": "The fixture validates run-core binding, sidecar schema, artifact digests, metric strata and baseline split consistency only."
+  },
+  "limitations": [
+    "All numeric values and records are synthetic.",
+    "This fixture does not reproduce a published operational-validity benchmark.",
+    "The canonical run-core digest establishes identity binding, not source authenticity or scientific validity.",
+    "No cross-metric composite score is defined."
+  ]
+}
