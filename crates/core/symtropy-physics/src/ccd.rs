@@ -326,14 +326,7 @@ pub fn sphere_halfspace_checked<const D: usize>(
         return Err(CcdInputError::NumericOverflow);
     }
 
-    let hit = sphere_halfspace_impl(
-        pos,
-        vel,
-        radius,
-        &normalized_normal,
-        normalized_offset,
-        dt,
-    );
+    let hit = sphere_halfspace_impl(pos, vel, radius, &normalized_normal, normalized_offset, dt);
     validate_hit(&hit)?;
     Ok(hit)
 }
@@ -404,9 +397,7 @@ mod tests {
         let distance_residual = (center_b_at_toi - center_a_at_toi).norm() - 1.0;
         assert!(distance_residual.abs() < 1e-12);
         assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
-        assert!(
-            (hit.point - (center_a_at_toi + hit.normal * 0.5)).norm() < 1e-12
-        );
+        assert!((hit.point - (center_a_at_toi + hit.normal * 0.5)).norm() < 1e-12);
     }
 
     #[test]
@@ -444,15 +435,7 @@ mod tests {
 
         let nan_position = SVector::from([f64::NAN, 0.0, 0.0]);
         assert_eq!(
-            sphere_sphere_checked(
-                &nan_position,
-                &velocity,
-                0.5,
-                &pos,
-                &velocity,
-                0.5,
-                1.0
-            ),
+            sphere_sphere_checked(&nan_position, &velocity, 0.5, &pos, &velocity, 0.5, 1.0),
             Err(CcdInputError::NonFiniteVector {
                 field: CcdInputField::PositionA
             })
