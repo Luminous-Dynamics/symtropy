@@ -1,0 +1,331 @@
+{
+  "schema_version": "symtropy.chronological-adequacy-fixtures.v3",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "scope": "single_zone_copperplate_chronological_adequacy",
+  "note": "Synthetic one-day trajectories for algorithm verification only. They are not real grid data, annual resource adequacy, or accredited capacity.",
+  "unit_conventions": {
+    "power": "kW",
+    "energy": "MWh",
+    "time_step": "1 hour",
+    "loss_of_load_days": "expected calendar days containing at least one shortage interval; not annualized",
+    "loss_of_load_periods": "expected simulation intervals with shortfall; PRAS-style LOLE and resolution-dependent",
+    "loss_of_load_hours": "expected elapsed hours with shortfall; NTCSA LOLH concept",
+    "loss_of_load_events": "expected contiguous shortage spells; consecutive shortfall intervals spanning a day boundary count once",
+    "shortfall_power_cvar": "weighted upper-tail mean of interval shortfall magnitude in kW; prototype population, not exact NTCSA sample replication"
+  },
+  "cases": [
+    {
+      "case_id": "weighted-two-trajectory-eue-elcc",
+      "metric": "ExpectedUnservedEnergyMwh",
+      "interval_duration_hours": 1,
+      "shortfall_epsilon_kw": 1e-9,
+      "adequacy_metric_tolerance_mwh": 1e-9,
+      "maximum_added_load_kw": 40,
+      "load_search_tolerance_kw": 0.000001,
+      "maximum_search_iterations": 64,
+      "raw_probability_weight_sum": 4,
+      "scenarios": [
+        {
+          "scenario_id": "high-flex",
+          "raw_probability_weight": 3,
+          "intervals": [
+            {
+              "day_index": 0,
+              "system_load_kw": 100,
+              "available_supply_kw": 90,
+              "net_load_reduction_kw": 20,
+              "evidence_id": "synthetic-high-flex-interval-0"
+            }
+          ]
+        },
+        {
+          "scenario_id": "low-flex",
+          "raw_probability_weight": 1,
+          "intervals": [
+            {
+              "day_index": 0,
+              "system_load_kw": 100,
+              "available_supply_kw": 90,
+              "net_load_reduction_kw": 10,
+              "evidence_id": "synthetic-low-flex-interval-0"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "normalized_scenario_weights": {
+          "high-flex": 0.75,
+          "low-flex": 0.25
+        },
+        "reference_loss_of_load_days": 1,
+        "reference_unserved_energy_mwh": 0.01,
+        "elcc_like_added_load_kw": 17.5,
+        "augmented_unserved_energy_mwh": 0.01,
+        "upper_bound_censored": false,
+        "search_converged": true
+      }
+    },
+    {
+      "case_id": "rebound-worsens-adequacy",
+      "metric": "ExpectedUnservedEnergyMwh",
+      "interval_duration_hours": 1,
+      "shortfall_epsilon_kw": 1e-9,
+      "adequacy_metric_tolerance_mwh": 1e-9,
+      "maximum_added_load_kw": 20,
+      "load_search_tolerance_kw": 0.000001,
+      "maximum_search_iterations": 64,
+      "raw_probability_weight_sum": 1,
+      "scenarios": [
+        {
+          "scenario_id": "rebound-year",
+          "raw_probability_weight": 1,
+          "intervals": [
+            {
+              "day_index": 0,
+              "system_load_kw": 100,
+              "available_supply_kw": 90,
+              "net_load_reduction_kw": 20,
+              "evidence_id": "synthetic-rebound-interval-0"
+            },
+            {
+              "day_index": 1,
+              "system_load_kw": 100,
+              "available_supply_kw": 80,
+              "net_load_reduction_kw": -30,
+              "evidence_id": "synthetic-rebound-interval-1"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "reference_unserved_energy_mwh": 0.03,
+        "augmented_unserved_energy_mwh_at_zero_added_load": 0.05,
+        "augmented_rebound_energy_mwh": 0.03,
+        "elcc_like_added_load_kw": 0,
+        "criterion_preserved_at_zero_added_load": false
+      }
+    },
+    {
+      "case_id": "upper-tail-eue-cvar-known-truth",
+      "metric": {
+        "UpperTailUnservedEnergyCvar": {
+          "confidence_level_basis_points": 9000
+        }
+      },
+      "interval_duration_hours": 1,
+      "shortfall_epsilon_kw": 1e-9,
+      "adequacy_metric_tolerance_mwh": 1e-9,
+      "maximum_added_load_kw": 20,
+      "load_search_tolerance_kw": 0.000001,
+      "maximum_search_iterations": 64,
+      "raw_probability_weight_sum": 1,
+      "scenarios": [
+        {
+          "scenario_id": "high-stress",
+          "raw_probability_weight": 0.1,
+          "intervals": [
+            {
+              "day_index": 0,
+              "system_load_kw": 100,
+              "available_supply_kw": 80,
+              "net_load_reduction_kw": 10,
+              "evidence_id": "cvar-high-0"
+            }
+          ]
+        },
+        {
+          "scenario_id": "low-stress",
+          "raw_probability_weight": 0.9,
+          "intervals": [
+            {
+              "day_index": 0,
+              "system_load_kw": 100,
+              "available_supply_kw": 90,
+              "net_load_reduction_kw": 0,
+              "evidence_id": "cvar-low-0"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "normalized_scenario_weights": {
+          "high-stress": 0.1,
+          "low-stress": 0.9
+        },
+        "reference_unserved_energy_cvar_mwh": 0.02,
+        "augmented_unserved_energy_cvar_mwh_at_zero_added_load": 0.01,
+        "elcc_like_added_load_kw": 10,
+        "augmented_unserved_energy_cvar_mwh_at_capacity_value": 0.02,
+        "cvar_confidence_level": 0.9,
+        "upper_bound_censored": false,
+        "search_converged": true
+      }
+    },
+    {
+      "case_id": "subhourly-event-period-vs-hours",
+      "metric": "LossOfLoadPeriods",
+      "interval_duration_hours": 0.25,
+      "shortfall_epsilon_kw": 1e-9,
+      "adequacy_metric_tolerance": 1e-9,
+      "maximum_added_load_kw": 1,
+      "load_search_tolerance_kw": 0.000001,
+      "maximum_search_iterations": 64,
+      "raw_probability_weight_sum": 1,
+      "scenarios": [
+        {
+          "scenario_id": "two-quarter-hours",
+          "raw_probability_weight": 1,
+          "intervals": [
+            {
+              "day_index": 0,
+              "system_load_kw": 100,
+              "available_supply_kw": 90,
+              "net_load_reduction_kw": 0,
+              "evidence_id": "period-0"
+            },
+            {
+              "day_index": 0,
+              "system_load_kw": 100,
+              "available_supply_kw": 95,
+              "net_load_reduction_kw": 0,
+              "evidence_id": "period-1"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "reference_loss_of_load_periods": 2,
+        "reference_loss_of_load_hours": 0.5,
+        "reference_loss_of_load_days": 1,
+        "explanation": "Two 15-minute shortfall intervals count as two event periods, half an hour, and one calendar day."
+      }
+    },
+    {
+      "case_id": "ntcsa-lole-contiguous-spells-known-truth",
+      "metric": "LossOfLoadHours",
+      "interval_duration_hours": 1,
+      "shortfall_epsilon_kw": 1e-9,
+      "adequacy_metric_tolerance": 1e-9,
+      "maximum_added_load_kw": 20,
+      "load_search_tolerance_kw": 0.000001,
+      "maximum_search_iterations": 64,
+      "raw_probability_weight_sum": 1,
+      "scenarios": [
+        {
+          "scenario_id": "event-spells",
+          "raw_probability_weight": 1,
+          "intervals": [
+            {
+              "day_index": 0,
+              "system_load_kw": 100,
+              "available_supply_kw": 80,
+              "net_load_reduction_kw": 0,
+              "evidence_id": "event-0"
+            },
+            {
+              "day_index": 1,
+              "system_load_kw": 100,
+              "available_supply_kw": 80,
+              "net_load_reduction_kw": 0,
+              "evidence_id": "event-1"
+            },
+            {
+              "day_index": 1,
+              "system_load_kw": 100,
+              "available_supply_kw": 100,
+              "net_load_reduction_kw": 0,
+              "evidence_id": "recovery-interval"
+            },
+            {
+              "day_index": 1,
+              "system_load_kw": 100,
+              "available_supply_kw": 90,
+              "net_load_reduction_kw": 0,
+              "evidence_id": "event-2"
+            },
+            {
+              "day_index": 1,
+              "system_load_kw": 100,
+              "available_supply_kw": 105,
+              "net_load_reduction_kw": 0,
+              "evidence_id": "headroom-interval"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "reference_loss_of_load_events": 2,
+        "reference_loss_of_load_periods": 3,
+        "reference_loss_of_load_hours": 3,
+        "reference_loss_of_load_days": 2,
+        "reference_unserved_energy_mwh": 0.05,
+        "reference_maximum_shortfall_kw": 20,
+        "elcc_like_added_load_kw": 5,
+        "search_converged": true,
+        "explanation": "Two shortage spells; the first spans midnight and remains one event; the later adequate interval closes it, so the next shortage begins a second event. The final 5 kW of headroom sets the loss-of-load-hour search bound; event count is diagnostic only.",
+        "primary_metric": "LossOfLoadHours",
+        "primary_metric_value": 3,
+        "elcc_interpretation": "5 kW is the maximum added load preserving expected loss-of-load hours; the event count is reported only as a companion diagnostic."
+      }
+    },
+    {
+      "case_id": "ntcsa-style-shortfall-power-cvar-prototype",
+      "metric": {
+        "UpperTailShortfallPowerCvarKw": {
+          "confidence_level_basis_points": 9000
+        }
+      },
+      "interval_duration_hours": 1,
+      "shortfall_epsilon_kw": 1e-9,
+      "adequacy_metric_tolerance_kw": 1e-9,
+      "maximum_added_load_kw": 20,
+      "load_search_tolerance_kw": 0.000001,
+      "maximum_search_iterations": 64,
+      "raw_probability_weight_sum": 1,
+      "scenarios": [
+        {
+          "scenario_id": "high-power-tail",
+          "raw_probability_weight": 0.1,
+          "intervals": [
+            {
+              "day_index": 0,
+              "system_load_kw": 100,
+              "available_supply_kw": 80,
+              "net_load_reduction_kw": 10,
+              "evidence_id": "power-high"
+            }
+          ]
+        },
+        {
+          "scenario_id": "low-power-tail",
+          "raw_probability_weight": 0.9,
+          "intervals": [
+            {
+              "day_index": 0,
+              "system_load_kw": 100,
+              "available_supply_kw": 90,
+              "net_load_reduction_kw": 0,
+              "evidence_id": "power-low"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "reference_shortfall_power_cvar_kw": 20,
+        "augmented_shortfall_power_cvar_kw_at_zero_added_load": 10,
+        "elcc_like_added_load_kw": 10,
+        "augmented_shortfall_power_cvar_kw_at_capacity_value": 20,
+        "reference_unserved_energy_cvar_mwh": null,
+        "interpretation": "Tail of interval shortfall power magnitudes, including zero-shortfall intervals. This is a finite weighted proxy, not exact NTCSA sample replication."
+      }
+    }
+  ],
+  "negative_controls": [
+    "zero_reference_risk_is_unidentifiable",
+    "non_contiguous_day_indices_rejected",
+    "scenario_time_axes_must_align",
+    "net_reduction_may_not_exceed_reference_load",
+    "invalid_or_non_finite_weights_rejected",
+    "search_cap_must_be_reported_as_censored"
+  ]
+}
