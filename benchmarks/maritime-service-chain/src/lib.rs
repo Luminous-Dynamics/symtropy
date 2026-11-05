@@ -266,6 +266,7 @@ pub struct ServiceChainCase {
     pub name: String,
     pub class: CaseClass,
     pub decision_tick: u64,
+    pub maximum_evidence_age_ticks: u64,
     pub tick_seconds: u64,
     pub corridor_id: String,
     pub origin_node_id: String,
@@ -315,6 +316,7 @@ pub enum ValidationError {
     EvidenceNotCurrent(String, EvidenceState),
     EvidenceFutureDated(String),
     EvidenceNotYetValid(String),
+    EvidenceTooOld(String),
     EvidenceExpired(String),
     EvidenceRoleMismatch(String),
     EvidenceOwnerMismatch(String),
@@ -389,6 +391,9 @@ fn validate_evidence_use<'a>(
     }
     if evidence.observed_at_tick > case.decision_tick {
         return Err(ValidationError::EvidenceFutureDated(evidence_id.to_owned()));
+    }
+    if case.decision_tick - evidence.observed_at_tick > case.maximum_evidence_age_ticks {
+        return Err(ValidationError::EvidenceTooOld(evidence_id.to_owned()));
     }
     if evidence.valid_from_tick > case.decision_tick {
         return Err(ValidationError::EvidenceNotYetValid(evidence_id.to_owned()));
@@ -1592,6 +1597,7 @@ mod tests {
             name: "Synthetic vessel-lock-berth-to-rail handoff".into(),
             class: CaseClass::Synthetic,
             decision_tick: 0,
+            maximum_evidence_age_ticks: 20,
             tick_seconds: 60,
             corridor_id: "corridor-01".into(),
             origin_node_id: "origin".into(),
@@ -1926,6 +1932,17 @@ mod tests {
             Err(ValidationError::ResourceKindUnitMismatch(
                 "channel-window-01".into()
             ))
+        );
+    }
+
+    #[test]
+    fn evidence_older_than_the_declared_freshness_limit_is_rejected() {
+        let mut case = valid_case();
+        case.decision_tick = 10;
+        case.maximum_evidence_age_ticks = 5;
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::EvidenceTooOld("topology".into()))
         );
     }
 
