@@ -8,7 +8,7 @@
     "standard": "VDA 5050",
     "version": "3.0.0",
     "release_date": "2026-03-19",
-    "official_release_page": "https://www.vda.de/en/topics/automotive-industry/vda-5050.",
+    "official_release_page": "https://www.vda.de/en/topics/automotive-industry/vda-5050",
     "upstream_repository": "https://github.com/VDA5050/VDA5050",
     "release_tag": "3.0.0",
     "release_tag_schema_audit": [
