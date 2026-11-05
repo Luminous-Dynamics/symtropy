@@ -325,14 +325,18 @@ impl EpisodeExport {
         let mut policies: Vec<_> = self.policies.iter().collect();
         policies.sort_by(|a, b| a.actor_id.cmp(&b.actor_id));
         for (index, policy) in policies.iter().enumerate() {
-            if index > 0 { output.push(','); }
+            if index > 0 {
+                output.push(',');
+            }
             write_policy_json(&mut output, policy);
         }
         output.push_str("],\"branches\":[");
         let mut branches: Vec<_> = self.branches.iter().collect();
         branches.sort_by(|a, b| a.branch_id.cmp(&b.branch_id));
         for (index, branch) in branches.iter().enumerate() {
-            if index > 0 { output.push(','); }
+            if index > 0 {
+                output.push(',');
+            }
             write_branch_json(&mut output, branch);
         }
         output.push_str("]}");
@@ -400,7 +404,10 @@ pub fn export_to_sam(
     let mut branches: Vec<_> = episode.branches.iter().collect();
     branches.sort_by(|a, b| a.branch_id.cmp(&b.branch_id));
     let mut branch_ids = BTreeSet::new();
-    if branches.iter().any(|branch| !branch_ids.insert(branch.branch_id.as_str())) {
+    if branches
+        .iter()
+        .any(|branch| !branch_ids.insert(branch.branch_id.as_str()))
+    {
         return Err(HandoffError::DuplicateBranch);
     }
     let mut output = Vec::with_capacity(branches.len());
@@ -500,10 +507,19 @@ fn validate_manifest(manifest: &ExperimentManifest) -> Result<(), HandoffError> 
     require(&manifest.experiment_id, "experiment_id")?;
     require(&manifest.scenario_digest, "scenario_digest")?;
     require(&manifest.odd_scope_digest, "odd_scope_digest")?;
-    require(&manifest.initial_world_snapshot_digest, "initial_world_snapshot_digest")?;
+    require(
+        &manifest.initial_world_snapshot_digest,
+        "initial_world_snapshot_digest",
+    )?;
     require(&manifest.physics_profile_digest, "physics_profile_digest")?;
-    require(&manifest.execution_profile_digest, "execution_profile_digest")?;
-    require(&manifest.observation_schedule_digest, "observation_schedule_digest")?;
+    require(
+        &manifest.execution_profile_digest,
+        "execution_profile_digest",
+    )?;
+    require(
+        &manifest.observation_schedule_digest,
+        "observation_schedule_digest",
+    )?;
     require(&manifest.action_domain_digest, "action_domain_digest")?;
     require(&manifest.units_profile_digest, "units_profile_digest")?;
     if manifest.tick_hz_numerator == 0 || manifest.tick_hz_denominator == 0 {
@@ -516,8 +532,14 @@ fn validate_branch_identity(branch: &BranchExport) -> Result<(), HandoffError> {
     require(&branch.branch_id, "branch_id")?;
     require(&branch.parent_snapshot_digest, "parent_snapshot_digest")?;
     require(&branch.intervention_digest, "intervention_digest")?;
-    require(&branch.replay.replay_profile_digest, "replay_profile_digest")?;
-    require(&branch.replay.expected_branch_payload_root, "expected_branch_payload_root")?;
+    require(
+        &branch.replay.replay_profile_digest,
+        "replay_profile_digest",
+    )?;
+    require(
+        &branch.replay.expected_branch_payload_root,
+        "expected_branch_payload_root",
+    )?;
     Ok(())
 }
 
@@ -529,8 +551,14 @@ fn policy_index<'a>(
         require(&policy.actor_id, "actor_id")?;
         require(&policy.policy_digest, "policy_digest")?;
         require(&policy.config_digest, "config_digest")?;
-        require(&policy.initial_policy_state_digest, "initial_policy_state_digest")?;
-        require(&policy.observation_profile_digest, "observation_profile_digest")?;
+        require(
+            &policy.initial_policy_state_digest,
+            "initial_policy_state_digest",
+        )?;
+        require(
+            &policy.observation_profile_digest,
+            "observation_profile_digest",
+        )?;
         require(&policy.action_domain_digest, "action_domain_digest")?;
         if index.insert(policy.actor_id.as_str(), policy).is_some() {
             return Err(HandoffError::DuplicateActor);
@@ -551,7 +579,10 @@ fn observation_index<'a>(
         require(&cue.cue_id, "cue_id")?;
         require(&cue.source_event_id, "source_event_id")?;
         require(&cue.recipient_actor_id, "recipient_actor_id")?;
-        require(&cue.observation_payload_digest, "observation_payload_digest")?;
+        require(
+            &cue.observation_payload_digest,
+            "observation_payload_digest",
+        )?;
         require(&cue.visibility_profile_digest, "visibility_profile_digest")?;
         if cue.observed_tick > cue.generated_tick {
             return Err(HandoffError::InvalidObservationTiming);
@@ -580,7 +611,10 @@ fn observation_index<'a>(
         }
     }
     let mut per_recipient: BTreeMap<&str, Vec<&ObservationDelivery>> = BTreeMap::new();
-    for cue in index.values().filter(|cue| cue.disposition == ObservationDisposition::Delivered) {
+    for cue in index
+        .values()
+        .filter(|cue| cue.disposition == ObservationDisposition::Delivered)
+    {
         per_recipient
             .entry(cue.recipient_actor_id.as_str())
             .or_default()
@@ -588,9 +622,10 @@ fn observation_index<'a>(
     }
     for cues in per_recipient.values_mut() {
         cues.sort_by_key(|cue| cue.delivery_sequence);
-        if cues.windows(2).any(|pair| {
-            pair[0].delivered_tick.unwrap() > pair[1].delivered_tick.unwrap()
-        }) {
+        if cues
+            .windows(2)
+            .any(|pair| pair[0].delivered_tick.unwrap() > pair[1].delivered_tick.unwrap())
+        {
             return Err(HandoffError::NonMonotoneDeliverySequence);
         }
     }
@@ -727,9 +762,7 @@ fn verify_decisions<'a>(
             if prior.actor_id != decision.actor_id {
                 return Err(HandoffError::PriorActionWrongActor);
             }
-            if prior.tick >= decision.tick
-                || prior.disposition != DecisionDisposition::Completed
-            {
+            if prior.tick >= decision.tick || prior.disposition != DecisionDisposition::Completed {
                 return Err(HandoffError::PriorActionNotEarlier);
             }
             hash_str(&mut history, prior_id);
@@ -755,9 +788,9 @@ fn verify_decisions<'a>(
         match decision.disposition {
             DecisionDisposition::Completed => {
                 if !complete_action
-                    || decision.command_latch_tick.is_none_or(|tick| {
-                        tick < decision.tick || tick > decision.deadline_tick
-                    })
+                    || decision
+                        .command_latch_tick
+                        .is_none_or(|tick| tick < decision.tick || tick > decision.deadline_tick)
                 {
                     return Err(HandoffError::InvalidDecisionReceipt);
                 }
@@ -797,15 +830,16 @@ fn build_joint_steps(
 ) -> Result<Vec<SamDecisionStep>, HandoffError> {
     let mut transitions: Vec<_> = branch.transitions.iter().collect();
     transitions.sort_by_key(|transition| transition.tick);
-    if transitions.windows(2).any(|pair| pair[0].tick == pair[1].tick) {
+    if transitions
+        .windows(2)
+        .any(|pair| pair[0].tick == pair[1].tick)
+    {
         return Err(HandoffError::DuplicateTransitionTick);
     }
 
     let mut steps = Vec::new();
     for transition in transitions {
-        require(&transition.parent_snapshot_digest, "transition.parent_snapshot_digest")?;
-        require(&transition.child_snapshot_digest, "transition.child_snapshot_digest")?;
-        require(&transition.joint_action_digest, "transition.joint_action_digest")?;
+
         require(
             &transition.physics_step_receipt_digest,
             "transition.physics_step_receipt_digest",
@@ -894,12 +928,22 @@ fn transitions_complete(branch: &BranchExport, steps: &[SamDecisionStep]) -> boo
 
     let mut transitions: Vec<_> = branch.transitions.iter().collect();
     transitions.sort_by_key(|transition| transition.tick);
-    if transitions.windows(2).any(|pair| pair[0].tick == pair[1].tick) {
+    if transitions
+        .windows(2)
+        .any(|pair| pair[0].tick == pair[1].tick)
+    {
         return false;
     }
 
-    let transition_ticks: BTreeSet<_> = transitions.iter().map(|transition| transition.tick).collect();
-    let decision_ticks: BTreeSet<_> = branch.decisions.iter().map(|decision| decision.tick).collect();
+    let transition_ticks: BTreeSet<_> = transitions
+        .iter()
+        .map(|transition| transition.tick)
+        .collect();
+    let decision_ticks: BTreeSet<_> = branch
+        .decisions
+        .iter()
+        .map(|decision| decision.tick)
+        .collect();
     if transition_ticks != decision_ticks {
         return false;
     }
@@ -908,7 +952,9 @@ fn transitions_complete(branch: &BranchExport, steps: &[SamDecisionStep]) -> boo
     let mut prior_tick = None;
     for (index, transition) in transitions.iter().enumerate() {
         if transition.disposition != TransitionDisposition::Completed
-            || steps.get(index).is_none_or(|step| step.tick != transition.tick)
+            || steps
+                .get(index)
+                .is_none_or(|step| step.tick != transition.tick)
         {
             return false;
         }
@@ -935,12 +981,18 @@ fn correspondence_index<'a>(
     for receipt in receipts {
         require(&receipt.hypothesis_id, "hypothesis_id")?;
         require(&receipt.correspondence_digest, "correspondence_digest")?;
-        require(&receipt.causal_dispositions_digest, "causal_dispositions_digest")?;
+        require(
+            &receipt.causal_dispositions_digest,
+            "causal_dispositions_digest",
+        )?;
         require(&receipt.projection_input_digest, "projection_input_digest")?;
         require(&receipt.draw_bundle_digest, "draw_bundle_digest")?;
         require(&receipt.verifier_profile_digest, "verifier_profile_digest")?;
         require(&receipt.verifier_receipt_digest, "verifier_receipt_digest")?;
-        if index.insert(receipt.hypothesis_id.clone(), receipt).is_some() {
+        if index
+            .insert(receipt.hypothesis_id.clone(), receipt)
+            .is_some()
+        {
             return Err(HandoffError::DuplicateHypothesis);
         }
     }
@@ -958,7 +1010,10 @@ fn draw_anchor_index(
         require(&anchor.branch_id, "draw anchor branch_id")?;
         require(&anchor.expected_bundle_digest, "expected_bundle_digest")?;
         if index
-            .insert(anchor.branch_id.clone(), anchor.expected_bundle_digest.clone())
+            .insert(
+                anchor.branch_id.clone(),
+                anchor.expected_bundle_digest.clone(),
+            )
             .is_some()
         {
             return Err(HandoffError::DuplicateBranch);
@@ -1005,14 +1060,18 @@ fn sam_query_json(query: &SamTrajectoryQuery) -> String {
     output.push_str(if query.complete { "true" } else { "false" });
     output.push_str(",\"steps\":[");
     for (index, step) in query.steps.iter().enumerate() {
-        if index > 0 { output.push(','); }
+        if index > 0 {
+            output.push(',');
+        }
         output.push_str("{\"tick\":");
         output.push_str(&step.tick.to_string());
         output.push_str(",\"history_digest\":");
         json_string(&mut output, &step.history_digest);
         output.push_str(",\"joint_actions\":[");
         for (action_index, action) in step.joint_actions.iter().enumerate() {
-            if action_index > 0 { output.push(','); }
+            if action_index > 0 {
+                output.push(',');
+            }
             output.push_str("{\"actor_id\":");
             json_string(&mut output, &action.actor_id);
             output.push_str(",\"action_id\":");
@@ -1050,34 +1109,53 @@ fn json_string(output: &mut String, value: &str) {
 
 
 fn write_manifest_json(out: &mut String, m: &ExperimentManifest) {
-    out.push_str("{\"experiment_id\":"); json_string(out, &m.experiment_id);
-    out.push_str(",\"scenario_digest\":"); json_string(out, &m.scenario_digest);
-    out.push_str(",\"odd_scope_digest\":"); json_string(out, &m.odd_scope_digest);
-    out.push_str(",\"initial_world_snapshot_digest\":"); json_string(out, &m.initial_world_snapshot_digest);
-    out.push_str(",\"physics_profile_digest\":"); json_string(out, &m.physics_profile_digest);
-    out.push_str(",\"execution_profile_digest\":"); json_string(out, &m.execution_profile_digest);
-    out.push_str(",\"observation_schedule_digest\":"); json_string(out, &m.observation_schedule_digest);
-    out.push_str(",\"action_domain_digest\":"); json_string(out, &m.action_domain_digest);
-    out.push_str(",\"units_profile_digest\":"); json_string(out, &m.units_profile_digest);
-    out.push_str(",\"tick_hz_numerator\":"); out.push_str(&m.tick_hz_numerator.to_string());
-    out.push_str(",\"tick_hz_denominator\":"); out.push_str(&m.tick_hz_denominator.to_string());
+    out.push_str("{\"experiment_id\":");
+    json_string(out, &m.experiment_id);
+    out.push_str(",\"scenario_digest\":");
+    json_string(out, &m.scenario_digest);
+    out.push_str(",\"odd_scope_digest\":");
+    json_string(out, &m.odd_scope_digest);
+    out.push_str(",\"initial_world_snapshot_digest\":");
+    json_string(out, &m.initial_world_snapshot_digest);
+    out.push_str(",\"physics_profile_digest\":");
+    json_string(out, &m.physics_profile_digest);
+    out.push_str(",\"execution_profile_digest\":");
+    json_string(out, &m.execution_profile_digest);
+    out.push_str(",\"observation_schedule_digest\":");
+    json_string(out, &m.observation_schedule_digest);
+    out.push_str(",\"action_domain_digest\":");
+    json_string(out, &m.action_domain_digest);
+    out.push_str(",\"units_profile_digest\":");
+    json_string(out, &m.units_profile_digest);
+    out.push_str(",\"tick_hz_numerator\":");
+    out.push_str(&m.tick_hz_numerator.to_string());
+    out.push_str(",\"tick_hz_denominator\":");
+    out.push_str(&m.tick_hz_denominator.to_string());
     out.push('}');
 }
 
 fn write_policy_json(out: &mut String, p: &PolicyProfile) {
-    out.push_str("{\"actor_id\":"); json_string(out, &p.actor_id);
-    out.push_str(",\"policy_digest\":"); json_string(out, &p.policy_digest);
-    out.push_str(",\"config_digest\":"); json_string(out, &p.config_digest);
-    out.push_str(",\"initial_policy_state_digest\":"); json_string(out, &p.initial_policy_state_digest);
-    out.push_str(",\"observation_profile_digest\":"); json_string(out, &p.observation_profile_digest);
-    out.push_str(",\"action_domain_digest\":"); json_string(out, &p.action_domain_digest);
+    out.push_str("{\"actor_id\":");
+    json_string(out, &p.actor_id);
+    out.push_str(",\"policy_digest\":");
+    json_string(out, &p.policy_digest);
+    out.push_str(",\"config_digest\":");
+    json_string(out, &p.config_digest);
+    out.push_str(",\"initial_policy_state_digest\":");
+    json_string(out, &p.initial_policy_state_digest);
+    out.push_str(",\"observation_profile_digest\":");
+    json_string(out, &p.observation_profile_digest);
+    out.push_str(",\"action_domain_digest\":");
+    json_string(out, &p.action_domain_digest);
     out.push('}');
 }
 
 fn write_string_array(out: &mut String, values: &[String]) {
     out.push('[');
     for (index, value) in values.iter().enumerate() {
-        if index > 0 { out.push(','); }
+        if index > 0 {
+            out.push(',');
+        }
         json_string(out, value);
     }
     out.push(']');
@@ -1098,43 +1176,82 @@ fn write_optional_u64(out: &mut String, value: Option<u64>) {
 }
 
 fn write_branch_json(out: &mut String, b: &BranchExport) {
-    out.push_str("{\"branch_id\":"); json_string(out, &b.branch_id);
-    out.push_str(",\"parent_snapshot_digest\":"); json_string(out, &b.parent_snapshot_digest);
-    out.push_str(",\"intervention_digest\":"); json_string(out, &b.intervention_digest);
-    out.push_str(",\"outcome\":"); json_string(out, branch_outcome_name(b.outcome));
-    out.push_str(",\"candidate_universe\":"); json_string(out, candidate_universe_name(b.candidate_universe));
-    out.push_str(",\"hypothesis_set\":"); json_string(out, hypothesis_set_name(b.hypothesis_set));
+    out.push_str("{\"branch_id\":");
+    json_string(out, &b.branch_id);
+    out.push_str(",\"parent_snapshot_digest\":");
+    json_string(out, &b.parent_snapshot_digest);
+    out.push_str(",\"intervention_digest\":");
+    json_string(out, &b.intervention_digest);
+    out.push_str(",\"outcome\":");
+    json_string(out, branch_outcome_name(b.outcome));
+    out.push_str(",\"candidate_universe\":");
+    json_string(out, candidate_universe_name(b.candidate_universe));
+    out.push_str(",\"hypothesis_set\":");
+    json_string(out, hypothesis_set_name(b.hypothesis_set));
     out.push_str(",\"correspondences\":[");
     let mut correspondences: Vec<_> = b.correspondences.iter().collect();
     correspondences.sort_by(|a, c| a.hypothesis_id.cmp(&c.hypothesis_id));
     for (index, receipt) in correspondences.iter().enumerate() {
-        if index > 0 { out.push(','); }
-        out.push_str("{\"hypothesis_id\":"); json_string(out, &receipt.hypothesis_id);
-        out.push_str(",\"correspondence_digest\":"); json_string(out, &receipt.correspondence_digest);
-        out.push_str(",\"causal_dispositions_digest\":"); json_string(out, &receipt.causal_dispositions_digest);
-        out.push_str(",\"projection_input_digest\":"); json_string(out, &receipt.projection_input_digest);
-        out.push_str(",\"draw_bundle_digest\":"); json_string(out, &receipt.draw_bundle_digest);
-        out.push_str(",\"verifier_profile_digest\":"); json_string(out, &receipt.verifier_profile_digest);
-        out.push_str(",\"verifier_receipt_digest\":"); json_string(out, &receipt.verifier_receipt_digest);
+        if index > 0 {
+            out.push(',');
+        }
+        out.push_str("{\"hypothesis_id\":");
+        json_string(out, &receipt.hypothesis_id);
+        out.push_str(",\"correspondence_digest\":");
+        json_string(out, &receipt.correspondence_digest);
+        out.push_str(",\"causal_dispositions_digest\":");
+        json_string(out, &receipt.causal_dispositions_digest);
+        out.push_str(",\"projection_input_digest\":");
+        json_string(out, &receipt.projection_input_digest);
+        out.push_str(",\"draw_bundle_digest\":");
+        json_string(out, &receipt.draw_bundle_digest);
+        out.push_str(",\"verifier_profile_digest\":");
+        json_string(out, &receipt.verifier_profile_digest);
+        out.push_str(",\"verifier_receipt_digest\":");
+        json_string(out, &receipt.verifier_receipt_digest);
         out.push('}');
     }
 
     out.push_str("],\"observations\":[");
     let mut observations: Vec<_> = b.observations.iter().collect();
-    observations.sort_by(|a, c| (&a.recipient_actor_id, a.delivered_tick, a.delivery_sequence, &a.cue_id)
-        .cmp(&(&c.recipient_actor_id, c.delivered_tick, c.delivery_sequence, &c.cue_id)));
+    observations.sort_by(|a, c| {
+        (
+            &a.recipient_actor_id,
+            a.delivered_tick,
+            a.delivery_sequence,
+            &a.cue_id,
+        )
+            .cmp(&(
+                &c.recipient_actor_id,
+                c.delivered_tick,
+                c.delivery_sequence,
+                &c.cue_id,
+            ))
+    });
     for (index, cue) in observations.iter().enumerate() {
-        if index > 0 { out.push(','); }
-        out.push_str("{\"cue_id\":"); json_string(out, &cue.cue_id);
-        out.push_str(",\"source_event_id\":"); json_string(out, &cue.source_event_id);
-        out.push_str(",\"recipient_actor_id\":"); json_string(out, &cue.recipient_actor_id);
-        out.push_str(",\"observation_payload_digest\":"); json_string(out, &cue.observation_payload_digest);
-        out.push_str(",\"observed_tick\":"); out.push_str(&cue.observed_tick.to_string());
-        out.push_str(",\"generated_tick\":"); out.push_str(&cue.generated_tick.to_string());
-        out.push_str(",\"delivered_tick\":"); write_optional_u64(out, cue.delivered_tick);
-        out.push_str(",\"delivery_sequence\":"); out.push_str(&cue.delivery_sequence.to_string());
-        out.push_str(",\"visibility_profile_digest\":"); json_string(out, &cue.visibility_profile_digest);
-        out.push_str(",\"disposition\":"); json_string(out, observation_disposition_name(cue.disposition));
+        if index > 0 {
+            out.push(',');
+        }
+        out.push_str("{\"cue_id\":");
+        json_string(out, &cue.cue_id);
+        out.push_str(",\"source_event_id\":");
+        json_string(out, &cue.source_event_id);
+        out.push_str(",\"recipient_actor_id\":");
+        json_string(out, &cue.recipient_actor_id);
+        out.push_str(",\"observation_payload_digest\":");
+        json_string(out, &cue.observation_payload_digest);
+        out.push_str(",\"observed_tick\":");
+        out.push_str(&cue.observed_tick.to_string());
+        out.push_str(",\"generated_tick\":");
+        out.push_str(&cue.generated_tick.to_string());
+        out.push_str(",\"delivered_tick\":");
+        write_optional_u64(out, cue.delivered_tick);
+        out.push_str(",\"delivery_sequence\":");
+        out.push_str(&cue.delivery_sequence.to_string());
+        out.push_str(",\"visibility_profile_digest\":");
+        json_string(out, &cue.visibility_profile_digest);
+        out.push_str(",\"disposition\":");
+        json_string(out, observation_disposition_name(cue.disposition));
         out.push('}');
     }
 
@@ -1142,23 +1259,41 @@ fn write_branch_json(out: &mut String, b: &BranchExport) {
     let mut decisions: Vec<_> = b.decisions.iter().collect();
     decisions.sort_by(|a, c| (a.tick, &a.actor_id).cmp(&(c.tick, &c.actor_id)));
     for (index, decision) in decisions.iter().enumerate() {
-        if index > 0 { out.push(','); }
-        out.push_str("{\"decision_receipt_id\":"); json_string(out, &decision.decision_receipt_id);
-        out.push_str(",\"actor_id\":"); json_string(out, &decision.actor_id);
-        out.push_str(",\"tick\":"); out.push_str(&decision.tick.to_string());
-        out.push_str(",\"policy_digest\":"); json_string(out, &decision.policy_digest);
-        out.push_str(",\"config_digest\":"); json_string(out, &decision.config_digest);
-        out.push_str(",\"prior_policy_state_digest\":"); json_string(out, &decision.prior_policy_state_digest);
-        out.push_str(",\"next_policy_state_digest\":"); write_optional_string(out, decision.next_policy_state_digest.as_deref());
-        out.push_str(",\"visible_cue_ids\":"); write_string_array(out, &decision.visible_cue_ids);
-        out.push_str(",\"consumed_cue_ids\":"); write_string_array(out, &decision.consumed_cue_ids);
-        out.push_str(",\"prior_action_receipt_ids\":"); write_string_array(out, &decision.prior_action_receipt_ids);
-        out.push_str(",\"permitted_history_digest\":"); json_string(out, &decision.permitted_history_digest);
-        out.push_str(",\"deadline_tick\":"); out.push_str(&decision.deadline_tick.to_string());
-        out.push_str(",\"command_latch_tick\":"); write_optional_u64(out, decision.command_latch_tick);
-        out.push_str(",\"action_id\":"); write_optional_string(out, decision.action_id.as_deref());
-        out.push_str(",\"action_payload_digest\":"); write_optional_string(out, decision.action_payload_digest.as_deref());
-        out.push_str(",\"disposition\":"); json_string(out, decision_disposition_name(decision.disposition));
+        if index > 0 {
+            out.push(',');
+        }
+        out.push_str("{\"decision_receipt_id\":");
+        json_string(out, &decision.decision_receipt_id);
+        out.push_str(",\"actor_id\":");
+        json_string(out, &decision.actor_id);
+        out.push_str(",\"tick\":");
+        out.push_str(&decision.tick.to_string());
+        out.push_str(",\"policy_digest\":");
+        json_string(out, &decision.policy_digest);
+        out.push_str(",\"config_digest\":");
+        json_string(out, &decision.config_digest);
+        out.push_str(",\"prior_policy_state_digest\":");
+        json_string(out, &decision.prior_policy_state_digest);
+        out.push_str(",\"next_policy_state_digest\":");
+        write_optional_string(out, decision.next_policy_state_digest.as_deref());
+        out.push_str(",\"visible_cue_ids\":");
+        write_string_array(out, &decision.visible_cue_ids);
+        out.push_str(",\"consumed_cue_ids\":");
+        write_string_array(out, &decision.consumed_cue_ids);
+        out.push_str(",\"prior_action_receipt_ids\":");
+        write_string_array(out, &decision.prior_action_receipt_ids);
+        out.push_str(",\"permitted_history_digest\":");
+        json_string(out, &decision.permitted_history_digest);
+        out.push_str(",\"deadline_tick\":");
+        out.push_str(&decision.deadline_tick.to_string());
+        out.push_str(",\"command_latch_tick\":");
+        write_optional_u64(out, decision.command_latch_tick);
+        out.push_str(",\"action_id\":");
+        write_optional_string(out, decision.action_id.as_deref());
+        out.push_str(",\"action_payload_digest\":");
+        write_optional_string(out, decision.action_payload_digest.as_deref());
+        out.push_str(",\"disposition\":");
+        json_string(out, decision_disposition_name(decision.disposition));
         out.push('}');
     }
 
@@ -1166,21 +1301,33 @@ fn write_branch_json(out: &mut String, b: &BranchExport) {
     let mut transitions: Vec<_> = b.transitions.iter().collect();
     transitions.sort_by_key(|transition| transition.tick);
     for (index, transition) in transitions.iter().enumerate() {
-        if index > 0 { out.push(','); }
-        out.push_str("{\"tick\":"); out.push_str(&transition.tick.to_string());
-        out.push_str(",\"parent_snapshot_digest\":"); json_string(out, &transition.parent_snapshot_digest);
-        out.push_str(",\"child_snapshot_digest\":"); json_string(out, &transition.child_snapshot_digest);
-        out.push_str(",\"joint_action_digest\":"); json_string(out, &transition.joint_action_digest);
-        out.push_str(",\"physics_step_receipt_digest\":"); json_string(out, &transition.physics_step_receipt_digest);
-        out.push_str(",\"disposition\":"); json_string(out, transition_disposition_name(transition.disposition));
+        if index > 0 {
+            out.push(',');
+        }
+        out.push_str("{\"tick\":");
+        out.push_str(&transition.tick.to_string());
+        out.push_str(",\"parent_snapshot_digest\":");
+        json_string(out, &transition.parent_snapshot_digest);
+        out.push_str(",\"child_snapshot_digest\":");
+        json_string(out, &transition.child_snapshot_digest);
+        out.push_str(",\"joint_action_digest\":");
+        json_string(out, &transition.joint_action_digest);
+        out.push_str(",\"physics_step_receipt_digest\":");
+        json_string(out, &transition.physics_step_receipt_digest);
+        out.push_str(",\"disposition\":");
+        json_string(out, transition_disposition_name(transition.disposition));
         out.push('}');
     }
 
     out.push_str("],\"replay\":{");
-    out.push_str("\"replay_profile_digest\":"); json_string(out, &b.replay.replay_profile_digest);
-    out.push_str(",\"expected_branch_payload_root\":"); json_string(out, &b.replay.expected_branch_payload_root);
-    out.push_str(",\"replayed_branch_payload_root\":"); write_optional_string(out, b.replay.replayed_branch_payload_root.as_deref());
-    out.push_str(",\"disposition\":"); json_string(out, replay_disposition_name(b.replay.disposition));
+    out.push_str("\"replay_profile_digest\":");
+    json_string(out, &b.replay.replay_profile_digest);
+    out.push_str(",\"expected_branch_payload_root\":");
+    json_string(out, &b.replay.expected_branch_payload_root);
+    out.push_str(",\"replayed_branch_payload_root\":");
+    write_optional_string(out, b.replay.replayed_branch_payload_root.as_deref());
+    out.push_str(",\"disposition\":");
+    json_string(out, replay_disposition_name(b.replay.disposition));
     out.push_str("}}");
 }
 
@@ -1223,14 +1370,18 @@ fn branch_outcome_name(value: BranchOutcome) -> &'static str {
 
 fn candidate_universe_name(value: CandidateUniverseDisposition) -> &'static str {
     match value {
-        CandidateUniverseDisposition::ExhaustiveWithinDeclaredScope => "exhaustive_within_declared_scope",
+        CandidateUniverseDisposition::ExhaustiveWithinDeclaredScope => {
+            "exhaustive_within_declared_scope"
+        }
         CandidateUniverseDisposition::Incomplete => "incomplete",
     }
 }
 
 fn hypothesis_set_name(value: HypothesisSetDisposition) -> &'static str {
     match value {
-        HypothesisSetDisposition::ExhaustiveWithinDeclaredModelFamily => "exhaustive_within_declared_model_family",
+        HypothesisSetDisposition::ExhaustiveWithinDeclaredModelFamily => {
+            "exhaustive_within_declared_model_family"
+        }
         HypothesisSetDisposition::IncompleteOrBudgetLimited => "incomplete_or_budget_limited",
     }
 }
@@ -1273,7 +1424,9 @@ fn branch_payload_root(branch: &BranchExport) -> String {
     }
 
     let mut observations = branch.observations.iter().collect::<Vec<_>>();
-    observations.sort_by(|a, b| (&a.recipient_actor_id, &a.cue_id).cmp(&(&b.recipient_actor_id, &b.cue_id)));
+    observations.sort_by(|a, b| {
+        (&a.recipient_actor_id, &a.cue_id).cmp(&(&b.recipient_actor_id, &b.cue_id))
+    });
     hash_len(&mut h, observations.len());
     for cue in observations {
         hash_str(&mut h, &cue.cue_id);
@@ -1376,7 +1529,9 @@ fn hash_replay(h: &mut blake3::Hasher, r: &ReplayEvidence) {
 
 fn hash_strs(h: &mut blake3::Hasher, values: &[String]) {
     hash_len(h, values.len());
-    for value in values { hash_str(h, value); }
+    for value in values {
+        hash_str(h, value);
+    }
 }
 
 fn hash_str(h: &mut blake3::Hasher, value: &str) {
@@ -1386,15 +1541,25 @@ fn hash_str(h: &mut blake3::Hasher, value: &str) {
 
 fn hash_opt_str(h: &mut blake3::Hasher, value: Option<&str>) {
     match value {
-        Some(value) => { h.update(&[1]); hash_str(h, value); }
-        None => { h.update(&[0]); }
+        Some(value) => {
+            h.update(&[1]);
+            hash_str(h, value);
+        }
+        None => {
+            h.update(&[0]);
+        }
     }
 }
 
 fn hash_opt_u64(h: &mut blake3::Hasher, value: Option<u64>) {
     match value {
-        Some(value) => { h.update(&[1]); hash_u64(h, value); }
-        None => { h.update(&[0]); }
+        Some(value) => {
+            h.update(&[1]);
+            hash_u64(h, value);
+        }
+        None => {
+            h.update(&[0]);
+        }
     }
 }
 
@@ -1485,9 +1650,7 @@ mod tests {
         action: &str,
     ) -> PolicyDecision {
         let policy = policy(actor);
-        let mut h = blake3::Hasher::new_derive_key(
-            "Symtropy EGCI permitted policy history v0.1",
-        );
+        let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.1");
         hash_str(&mut h, actor);
         hash_u64(&mut h, tick);
         hash_str(&mut h, prior_state);
@@ -1505,7 +1668,9 @@ mod tests {
             hash_str(&mut h, &cue.visibility_profile_digest);
         }
         hash_len(&mut h, prior.len());
-        for id in &prior { hash_str(&mut h, id); }
+        for id in &prior {
+            hash_str(&mut h, id);
+        }
         PolicyDecision {
             decision_receipt_id: d(&format!("decision-{actor}-{tick}")),
             actor_id: actor.into(),
@@ -1535,13 +1700,51 @@ mod tests {
             cue("actor-sees-continue", "actor-1", 0, 1, 1),
         ];
         let mut cue_index = BTreeMap::new();
-        for item in &observations { cue_index.insert(item.cue_id.clone(), item.clone()); }
+        for item in &observations {
+            cue_index.insert(item.cue_id.clone(), item.clone());
+        }
 
         let decisions = vec![
-            decision("ego", 0, vec!["ego-sees-actor".into()], vec!["ego-sees-actor".into()], vec![], &cue_index, &d("state-ego"), "continue"),
-            decision("actor-1", 0, vec!["actor-sees-ego".into()], vec!["actor-sees-ego".into()], vec![], &cue_index, &d("state-actor-1"), "yield"),
-            decision("ego", 1, vec!["ego-sees-actor".into(), "ego-sees-yield".into()], vec!["ego-sees-yield".into()], vec![d("decision-ego-0")], &cue_index, &d("next-ego-0"), "yield"),
-            decision("actor-1", 1, vec!["actor-sees-ego".into(), "actor-sees-continue".into()], vec!["actor-sees-continue".into()], vec![d("decision-actor-1-0")], &cue_index, &d("next-actor-1-0"), "continue"),
+            decision(
+                "ego",
+                0,
+                vec!["ego-sees-actor".into()],
+                vec!["ego-sees-actor".into()],
+                vec![],
+                &cue_index,
+                &d("state-ego"),
+                "continue",
+            ),
+            decision(
+                "actor-1",
+                0,
+                vec!["actor-sees-ego".into()],
+                vec!["actor-sees-ego".into()],
+                vec![],
+                &cue_index,
+                &d("state-actor-1"),
+                "yield",
+            ),
+            decision(
+                "ego",
+                1,
+                vec!["ego-sees-actor".into(), "ego-sees-yield".into()],
+                vec!["ego-sees-yield".into()],
+                vec![d("decision-ego-0")],
+                &cue_index,
+                &d("next-ego-0"),
+                "yield",
+            ),
+            decision(
+                "actor-1",
+                1,
+                vec!["actor-sees-ego".into(), "actor-sees-continue".into()],
+                vec!["actor-sees-continue".into()],
+                vec![d("decision-actor-1-0")],
+                &cue_index,
+                &d("next-actor-1-0"),
+                "continue",
+            ),
         ];
 
         let mut transitions = vec![
@@ -1627,12 +1830,10 @@ mod tests {
             branches: vec![branch],
         };
         let episode_root = episode.episode_root().unwrap();
-        let anchors = vec![
-            DrawBundleAnchor {
-                branch_id: "continue-branch".into(),
-                expected_bundle_digest: d("draw-bundle-continue"),
-            },
-        ];
+        let anchors = vec![DrawBundleAnchor {
+            branch_id: "continue-branch".into(),
+            expected_bundle_digest: d("draw-bundle-continue"),
+        }];
         let anchor = ExternalAnchor {
             authority_reference: "independent-evaluator:fixture-anchor-001".into(),
             expected_episode_root: episode_root,
@@ -1665,8 +1866,10 @@ mod tests {
         for receipt in &mut second.correspondences {
             receipt.draw_bundle_digest = d("draw-bundle-yield");
             receipt.correspondence_digest = d(&format!("yield-{}", receipt.hypothesis_id));
-            receipt.causal_dispositions_digest = d(&format!("yield-causal-{}", receipt.hypothesis_id));
-            receipt.projection_input_digest = d(&format!("yield-projection-{}", receipt.hypothesis_id));
+            receipt.causal_dispositions_digest =
+                d(&format!("yield-causal-{}", receipt.hypothesis_id));
+            receipt.projection_input_digest =
+                d(&format!("yield-projection-{}", receipt.hypothesis_id));
         }
         second.outcome = BranchOutcome::Completed;
         episode.branches.push(second);
@@ -1697,7 +1900,10 @@ mod tests {
         let handoff = export_to_sam(&episode, &anchor).unwrap();
         assert_eq!(handoff.query_schema_id, QUERY_SCHEMA);
         assert_eq!(handoff.evidence_class, EvidenceClass::SimulationGenerated);
-        assert_eq!(handoff.eligibility, EvidenceEligibility::FormalConformanceOnly);
+        assert_eq!(
+            handoff.eligibility,
+            EvidenceEligibility::FormalConformanceOnly
+        );
         assert_eq!(handoff.branches.len(), 1);
         assert_eq!(handoff.branches[0].queries.len(), 2);
         assert_ne!(
@@ -1716,10 +1922,22 @@ mod tests {
     fn canonical_episode_artifact_preserves_every_source_layer_and_is_order_independent() {
         let (episode, anchor) = fixture();
         let handoff = export_to_sam(&episode, &anchor).unwrap();
-        assert!(handoff.episode_json.contains("\"observation_payload_digest\""));
-        assert!(handoff.episode_json.contains("\"prior_action_receipt_ids\""));
+        assert!(
+            handoff
+                .episode_json
+                .contains("\"observation_payload_digest\"")
+        );
+        assert!(
+            handoff
+                .episode_json
+                .contains("\"prior_action_receipt_ids\"")
+        );
         assert!(handoff.episode_json.contains("\"correspondence_digest\""));
-        assert!(handoff.episode_json.contains("\"physics_step_receipt_digest\""));
+        assert!(
+            handoff
+                .episode_json
+                .contains("\"physics_step_receipt_digest\"")
+        );
 
         let mut reordered = episode.clone();
         reordered.policies.reverse();
@@ -1730,8 +1948,14 @@ mod tests {
             branch.decisions.reverse();
             branch.transitions.reverse();
         }
-        assert_eq!(episode.canonical_json().unwrap(), reordered.canonical_json().unwrap());
-        assert_eq!(episode.episode_root().unwrap(), reordered.episode_root().unwrap());
+        assert_eq!(
+            episode.canonical_json().unwrap(),
+            reordered.canonical_json().unwrap()
+        );
+        assert_eq!(
+            episode.episode_root().unwrap(),
+            reordered.episode_root().unwrap()
+        );
     }
 
     #[test]
@@ -1755,12 +1979,16 @@ mod tests {
         assert!(episode.branches[0].decisions.iter().any(|decision| {
             decision.actor_id == "ego"
                 && decision.tick == 1
-                && decision.consumed_cue_ids.contains(&"ego-sees-yield".to_owned())
+                && decision
+                    .consumed_cue_ids
+                    .contains(&"ego-sees-yield".to_owned())
         }));
         assert!(episode.branches[0].decisions.iter().any(|decision| {
             decision.actor_id == "actor-1"
                 && decision.tick == 1
-                && decision.consumed_cue_ids.contains(&"actor-sees-continue".to_owned())
+                && decision
+                    .consumed_cue_ids
+                    .contains(&"actor-sees-continue".to_owned())
         }));
     }
 
@@ -1772,9 +2000,14 @@ mod tests {
             .iter_mut()
             .find(|decision| decision.actor_id == "ego" && decision.tick == 1)
             .unwrap();
-        decision.visible_cue_ids.retain(|cue| cue != "ego-sees-yield");
+        decision
+            .visible_cue_ids
+            .retain(|cue| cue != "ego-sees-yield");
         let anchor = reanchor(&mut episode, &anchor);
-        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::CueNotDelivered));
+        assert_eq!(
+            export_to_sam(&episode, &anchor),
+            Err(HandoffError::CueNotDelivered)
+        );
     }
 
     #[test]
@@ -1787,7 +2020,10 @@ mod tests {
             .unwrap()
             .prior_policy_state_digest = d("stale-policy-state");
         let anchor = reanchor(&mut episode, &anchor);
-        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::PolicyMismatch));
+        assert_eq!(
+            export_to_sam(&episode, &anchor),
+            Err(HandoffError::PolicyMismatch)
+        );
     }
 
     #[test]
@@ -1801,7 +2037,10 @@ mod tests {
             .prior_action_receipt_ids
             .push(d("decision-ego-0"));
         let anchor = reanchor(&mut episode, &anchor);
-        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::MissingPriorAction));
+        assert_eq!(
+            export_to_sam(&episode, &anchor),
+            Err(HandoffError::MissingPriorAction)
+        );
     }
 
     #[test]
@@ -1826,7 +2065,12 @@ mod tests {
         episode.branches[0].transitions[1].disposition = TransitionDisposition::Censored;
         let anchor = reanchor(&mut episode, &anchor);
         let handoff = export_to_sam(&episode, &anchor).unwrap();
-        assert!(handoff.branches[0].queries.iter().all(|query| !query.query.complete));
+        assert!(
+            handoff.branches[0]
+                .queries
+                .iter()
+                .all(|query| !query.query.complete)
+        );
     }
 
     #[test]
@@ -1841,7 +2085,9 @@ mod tests {
         let policy_updated = export_to_sam(&changed_policy, &policy_anchor).unwrap();
         assert_ne!(
             baseline.branches[0].queries[0].query.target_policy_digest,
-            policy_updated.branches[0].queries[0].query.target_policy_digest
+            policy_updated.branches[0].queries[0]
+                .query
+                .target_policy_digest
         );
         assert_eq!(
             baseline.branches[0].queries[0].query.context_digest,
@@ -1854,7 +2100,9 @@ mod tests {
         let context_updated = export_to_sam(&changed_context, &context_anchor).unwrap();
         assert_eq!(
             baseline.branches[0].queries[0].query.target_policy_digest,
-            context_updated.branches[0].queries[0].query.target_policy_digest
+            context_updated.branches[0].queries[0]
+                .query
+                .target_policy_digest
         );
         assert_ne!(
             baseline.branches[0].queries[0].query.context_digest,
@@ -1865,7 +2113,9 @@ mod tests {
     #[test]
     fn exports_each_branch_and_preserves_branch_specific_incompleteness() {
         let (mut episode, anchor) = two_branch_fixture();
-        episode.branches.iter_mut()
+        episode
+            .branches
+            .iter_mut()
             .find(|branch| branch.branch_id == "yield-branch")
             .unwrap()
             .transitions[1]
@@ -1874,10 +2124,14 @@ mod tests {
         let handoff = export_to_sam(&episode, &anchor).unwrap();
 
         assert_eq!(handoff.branches.len(), 2);
-        let complete = handoff.branches.iter()
+        let complete = handoff
+            .branches
+            .iter()
             .find(|branch| branch.branch_id == "continue-branch")
             .unwrap();
-        let censored = handoff.branches.iter()
+        let censored = handoff
+            .branches
+            .iter()
             .find(|branch| branch.branch_id == "yield-branch")
             .unwrap();
         assert_eq!(complete.queries.len(), 2);
@@ -1891,7 +2145,10 @@ mod tests {
         let (mut episode, anchor) = two_branch_fixture();
         episode.branches[1].branch_id = episode.branches[0].branch_id.clone();
         let anchor = reanchor(&mut episode, &anchor);
-        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::DuplicateBranch));
+        assert_eq!(
+            export_to_sam(&episode, &anchor),
+            Err(HandoffError::DuplicateBranch)
+        );
     }
 
     #[test]
@@ -1914,22 +2171,38 @@ mod tests {
         episode.branches[0].replay.expected_branch_payload_root = payload.clone();
         episode.branches[0].replay.replayed_branch_payload_root = Some(payload);
         let root = episode.episode_root().unwrap();
-        let anchor = ExternalAnchor { expected_episode_root: root, ..anchor };
-        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::CueNotDelivered));
+        let anchor = ExternalAnchor {
+            expected_episode_root: root,
+            ..anchor
+        };
+        assert_eq!(
+            export_to_sam(&episode, &anchor),
+            Err(HandoffError::CueNotDelivered)
+        );
     }
 
     #[test]
     fn missing_decision_and_incomplete_replay_remain_incomplete() {
         let (mut episode, anchor) = fixture();
-        episode.branches[0].decisions.retain(|d| !(d.tick == 1 && d.actor_id == "actor-1"));
+        episode.branches[0]
+            .decisions
+            .retain(|d| !(d.tick == 1 && d.actor_id == "actor-1"));
         let mut branch = episode.branches[0].clone();
         branch.replay.expected_branch_payload_root = branch_payload_root(&branch);
         branch.replay.replayed_branch_payload_root = None;
         branch.replay.disposition = ReplayDisposition::NotRun;
         episode.branches[0] = branch;
-        let anchor = ExternalAnchor { expected_episode_root: episode.episode_root().unwrap(), ..anchor };
+        let anchor = ExternalAnchor {
+            expected_episode_root: episode.episode_root().unwrap(),
+            ..anchor
+        };
         let handoff = export_to_sam(&episode, &anchor).unwrap();
-        assert!(handoff.branches[0].queries.iter().all(|q| !q.query.complete));
+        assert!(
+            handoff.branches[0]
+                .queries
+                .iter()
+                .all(|q| !q.query.complete)
+        );
     }
 
     #[test]
@@ -1939,9 +2212,17 @@ mod tests {
         let payload = branch_payload_root(&episode.branches[0]);
         episode.branches[0].replay.expected_branch_payload_root = payload.clone();
         episode.branches[0].replay.replayed_branch_payload_root = Some(payload);
-        let anchor = ExternalAnchor { expected_episode_root: episode.episode_root().unwrap(), ..anchor };
+        let anchor = ExternalAnchor {
+            expected_episode_root: episode.episode_root().unwrap(),
+            ..anchor
+        };
         let handoff = export_to_sam(&episode, &anchor).unwrap();
-        assert!(handoff.branches[0].queries.iter().all(|q| !q.query.complete));
+        assert!(
+            handoff.branches[0]
+                .queries
+                .iter()
+                .all(|q| !q.query.complete)
+        );
     }
 
     #[test]
@@ -1949,7 +2230,10 @@ mod tests {
         let (episode, mut anchor) = fixture();
         anchor.draw_bundle_anchors[0].expected_bundle_digest = d("wrong-draw");
         anchor.expected_episode_root = episode.episode_root().unwrap();
-        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::DrawBundleAnchorMismatch));
+        assert_eq!(
+            export_to_sam(&episode, &anchor),
+            Err(HandoffError::DrawBundleAnchorMismatch)
+        );
     }
 
     #[test]
@@ -1957,8 +2241,14 @@ mod tests {
         let (mut episode, anchor) = fixture();
         episode.branches[0].replay.replayed_branch_payload_root = Some(d("replacement-root"));
         let root = episode.episode_root().unwrap();
-        let anchor = ExternalAnchor { expected_episode_root: root, ..anchor };
-        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::ReplayReceiptMismatch));
+        let anchor = ExternalAnchor {
+            expected_episode_root: root,
+            ..anchor
+        };
+        assert_eq!(
+            export_to_sam(&episode, &anchor),
+            Err(HandoffError::ReplayReceiptMismatch)
+        );
     }
 
     #[test]
@@ -1968,7 +2258,10 @@ mod tests {
         let payload = branch_payload_root(&episode.branches[0]);
         episode.branches[0].replay.expected_branch_payload_root = payload.clone();
         episode.branches[0].replay.replayed_branch_payload_root = Some(payload);
-        let anchor = ExternalAnchor { expected_episode_root: episode.episode_root().unwrap(), ..anchor };
+        let anchor = ExternalAnchor {
+            expected_episode_root: episode.episode_root().unwrap(),
+            ..anchor
+        };
         let handoff = export_to_sam(&episode, &anchor).unwrap();
         assert!(handoff.branches[0].queries.iter().all(|q| q.query.complete));
     }
@@ -1983,8 +2276,16 @@ mod tests {
                 tick: 0,
                 history_digest: "history".into(),
                 joint_actions: vec![
-                    SamActorAction { actor_id: "z".into(), action_id: "quote\"".into(), payload_digest: "p".into() },
-                    SamActorAction { actor_id: "a".into(), action_id: "yield".into(), payload_digest: "q".into() },
+                    SamActorAction {
+                        actor_id: "z".into(),
+                        action_id: "quote\"".into(),
+                        payload_digest: "p".into(),
+                    },
+                    SamActorAction {
+                        actor_id: "a".into(),
+                        action_id: "yield".into(),
+                        payload_digest: "q".into(),
+                    },
                 ],
             }],
         };
