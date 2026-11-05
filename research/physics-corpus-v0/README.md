@@ -132,7 +132,13 @@ Pin exact release versions and match model semantics before comparing:
   multibody and solver changes. A Dimforge Q3 2026 report describes a reworked
   parallel architecture with intra-island parallelism, persistent graph
   coloring and parallel broadphase; treat this as a separate commit-pinned
-  development lane, not automatically as the 0.35.3 release baseline.
+  development lane, not automatically as the 0.35.3 release baseline. That
+  vendor report says its then-current Rapier branch was up to 2x faster
+  single-threaded and 4x faster multithreaded than its previous implementation
+  on an M4 Max with 8 workers. It separately reports Nexus simulating 505K
+  rigid bodies in about 14 ms/frame on an RTX 5080. These are vendor-reported
+  results on the report's engine revisions and workloads—not head-to-head
+  measurements against Symtropy or a universal body-count target.
 - **Project Chrono 10.0.0 (27 Mar 2026)** — use for multibody, vehicle, FSI and
   deformable/material scenario families where model assumptions match. It adds
   checkpointing and updated implicit-integrator Jacobian strategies.
@@ -157,6 +163,7 @@ Official reference links:
 - Dimforge Q3 2026 report: https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/
 - Project Chrono 10.0.0: https://projectchrono.org/news/
 - SUNDIALS release history: https://computing.llnl.gov/projects/sundials/sundials-software
+- Dimforge Q3 2026 technical report: https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/
 - PhysMark: https://github.com/dimforge/physmark
 - ASME V&V 20: https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-fluid-dynamics-and-heat-transfer
 
