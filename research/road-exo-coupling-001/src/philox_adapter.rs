@@ -254,9 +254,9 @@ pub struct CorrespondenceDrawBundle {
 }
 
 pub const CORRESPONDENCE_DRAW_BUNDLE_SCHEMA_ID: &str =
-    "symtropy.road-correspondence-coupling.draw-bundle.v0.1";
+    "symtropy.road-correspondence-coupling.draw-bundle.v0.2";
 const CORRESPONDENCE_DRAW_BUNDLE_DERIVATION_CONTEXT: &str =
-    "Symtropy ROAD-CORRESPONDENCE-COUPLING-001 draw bundle commitment v0.1";
+    "Symtropy ROAD-CORRESPONDENCE-COUPLING-001 draw bundle commitment v0.2";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CorrespondenceBundleVerificationError {
