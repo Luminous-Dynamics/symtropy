@@ -55,6 +55,8 @@ pub struct ObservationDelivery {
     pub observed_tick: u64,
     pub generated_tick: u64,
     pub delivered_tick: Option<u64>,
+    /// Monotone within each recipient's delivered observation channel.
+    pub delivery_sequence: u64,
     pub visibility_profile_digest: String,
     pub disposition: ObservationDisposition,
 }
@@ -75,6 +77,7 @@ pub struct PolicyDecision {
     pub policy_digest: String,
     pub config_digest: String,
     pub prior_policy_state_digest: String,
+    pub next_policy_state_digest: Option<String>,
     /// All observation cues admitted into this decision's visible history,
     /// retained in the order actually delivered to the policy.
     pub visible_cue_ids: Vec<String>,
@@ -149,6 +152,9 @@ pub enum HypothesisSetDisposition {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CorrespondenceReceipt {
     pub hypothesis_id: String,
+    pub correspondence_digest: String,
+    pub causal_dispositions_digest: String,
+    pub projection_input_digest: String,
     pub draw_bundle_digest: String,
     pub verifier_profile_digest: String,
     pub verifier_receipt_digest: String,
@@ -756,6 +762,9 @@ fn correspondence_index<'a>(
     let mut index = BTreeMap::new();
     for receipt in receipts {
         require(&receipt.hypothesis_id, "hypothesis_id")?;
+        require(&receipt.correspondence_digest, "correspondence_digest")?;
+        require(&receipt.causal_dispositions_digest, "causal_dispositions_digest")?;
+        require(&receipt.projection_input_digest, "projection_input_digest")?;
         require(&receipt.draw_bundle_digest, "draw_bundle_digest")?;
         require(&receipt.verifier_profile_digest, "verifier_profile_digest")?;
         require(&receipt.verifier_receipt_digest, "verifier_receipt_digest")?;
@@ -886,6 +895,9 @@ fn branch_payload_root(branch: &BranchExport) -> String {
     hash_len(&mut h, correspondences.len());
     for receipt in correspondences {
         hash_str(&mut h, &receipt.hypothesis_id);
+        hash_str(&mut h, &receipt.correspondence_digest);
+        hash_str(&mut h, &receipt.causal_dispositions_digest);
+        hash_str(&mut h, &receipt.projection_input_digest);
         hash_str(&mut h, &receipt.draw_bundle_digest);
         hash_str(&mut h, &receipt.verifier_profile_digest);
         hash_str(&mut h, &receipt.verifier_receipt_digest);
@@ -1085,6 +1097,7 @@ mod tests {
             observed_tick: observed,
             generated_tick: generated,
             delivered_tick: Some(delivered),
+            delivery_sequence: delivered,
             visibility_profile_digest: d(&format!("visibility-{recipient}")),
             disposition: ObservationDisposition::Delivered,
         }
@@ -1117,6 +1130,7 @@ mod tests {
             hash_u64(&mut h, cue.observed_tick);
             hash_u64(&mut h, cue.generated_tick);
             hash_u64(&mut h, cue.delivered_tick.unwrap());
+            hash_u64(&mut h, cue.delivery_sequence);
             hash_str(&mut h, &cue.visibility_profile_digest);
         }
         hash_len(&mut h, prior.len());
@@ -1128,13 +1142,14 @@ mod tests {
             policy_digest: policy.policy_digest,
             config_digest: policy.config_digest,
             prior_policy_state_digest: prior_state.into(),
+            next_policy_state_digest: Some(d(&format!("next-{actor}-{tick}"))),
             visible_cue_ids: visible,
             consumed_cue_ids: consumed,
             prior_action_receipt_ids: prior,
             permitted_history_digest: hex(h.finalize().as_bytes()),
             deadline_tick: tick + 1,
             command_latch_tick: Some(tick),
-            action_id: Some(if actor == "ego" { "continue" } else { "yield" }.into()),
+            action_id: Some(action.into()),
             action_payload_digest: Some(d(&format!("action-{actor}-{tick}"))),
             disposition: DecisionDisposition::Completed,
         }
@@ -1152,10 +1167,10 @@ mod tests {
         for item in &observations { cue_index.insert(item.cue_id.clone(), item.clone()); }
 
         let decisions = vec![
-            decision("ego", 0, vec!["ego-sees-actor".into()], vec!["ego-sees-actor".into()], vec![], &cue_index, &d("ego-state-0"), "continue"),
-            decision("actor-1", 0, vec!["actor-sees-ego".into()], vec!["actor-sees-ego".into()], vec![], &cue_index, &d("actor-state-0"), "yield"),
-            decision("ego", 1, vec!["ego-sees-actor".into(), "ego-sees-yield".into()], vec!["ego-sees-yield".into()], vec![d("decision-ego-0")], &cue_index, &d("ego-state-1"), "continue"),
-            decision("actor-1", 1, vec!["actor-sees-ego".into(), "actor-sees-continue".into()], vec!["actor-sees-continue".into()], vec![d("decision-actor-1-0")], &cue_index, &d("actor-state-1"), "yield"),
+            decision("ego", 0, vec!["ego-sees-actor".into()], vec!["ego-sees-actor".into()], vec![], &cue_index, &d("state-ego"), "continue"),
+            decision("actor-1", 0, vec!["actor-sees-ego".into()], vec!["actor-sees-ego".into()], vec![], &cue_index, &d("state-actor-1"), "yield"),
+            decision("ego", 1, vec!["ego-sees-actor".into(), "ego-sees-yield".into()], vec!["ego-sees-yield".into()], vec![d("decision-ego-0")], &cue_index, &d("next-ego-0"), "yield"),
+            decision("actor-1", 1, vec!["actor-sees-ego".into(), "actor-sees-continue".into()], vec!["actor-sees-continue".into()], vec![d("decision-actor-1-0")], &cue_index, &d("next-actor-1-0"), "continue"),
         ];
 
         let mut transitions = vec![
@@ -1181,12 +1196,18 @@ mod tests {
         let corr = vec![
             CorrespondenceReceipt {
                 hypothesis_id: "actor-keyed".into(),
+                correspondence_digest: d("map-actor"),
+                causal_dispositions_digest: d("causal-actor"),
+                projection_input_digest: d("projection-actor"),
                 draw_bundle_digest: d("draw-actor"),
                 verifier_profile_digest: d("verifier"),
                 verifier_receipt_digest: d("verification-receipt"),
             },
             CorrespondenceReceipt {
                 hypothesis_id: "slot-keyed".into(),
+                correspondence_digest: d("map-slot"),
+                causal_dispositions_digest: d("causal-slot"),
+                projection_input_digest: d("projection-slot"),
                 draw_bundle_digest: d("draw-slot"),
                 verifier_profile_digest: d("verifier"),
                 verifier_receipt_digest: d("verification-receipt"),
@@ -1206,8 +1227,8 @@ mod tests {
             replay: ReplayEvidence {
                 replay_profile_digest: d("fresh-process-replay"),
                 expected_branch_payload_root: String::new(),
-                replayed_branch_payload_root: None,
-                disposition: ReplayDisposition::NotRun,
+                replayed_branch_payload_root: Some(payload_root.clone()),
+                disposition: ReplayDisposition::ExactSameRuntimeBytes,
             },
         };
         let mut branch = branch;
