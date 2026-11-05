@@ -17,6 +17,7 @@ cargo run --manifest-path tools/wpt-predictive-uncertainty/Cargo.toml -- benchma
 - The mean Winkler interval score penalizes misses in addition to width; lower is better. For nominal coverage `1 - alpha`, a miss below/above the interval incurs `2 / alpha` times its distance beyond the relevant bound.
 - Reports stratify by regime. Aggregate coverage must never conceal a weak regime. Reports also count unique trajectory groups so repeated points from one trajectory are visible rather than silently treated as independent trials.
 - One report is restricted to one model digest, calibration-set digest, test-set digest, physical quantity kind and unit. Mixed experiments must be evaluated separately.
+- Model/calibration/test digest fields must be 64-character lowercase SHA-256 hex strings. The evaluator checks digest syntax only; it does not retrieve or authenticate the referenced bytes.
 - This v1 evaluator requires one nominal coverage level per report.
 - It rejects calibration records, duplicate IDs, mixed model/calibration/test/quantity/unit metadata, invalid intervals and non-finite values.
 
