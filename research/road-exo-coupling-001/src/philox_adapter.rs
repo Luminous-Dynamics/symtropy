@@ -234,6 +234,8 @@ pub struct CorrespondenceHypothesisDraws {
 /// A complete or explicitly incomplete bundle of all hypothesis-conditioned draws.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CorrespondenceDrawBundle {
+    pub bundle_schema: &'static str,
+    pub bundle_digest: [u8; 32],
     pub left_branch: crate::StableId,
     pub right_branch: crate::StableId,
     pub completeness: PlanCompleteness,
@@ -244,7 +246,226 @@ pub struct CorrespondenceDrawBundle {
     pub hypotheses: Vec<CorrespondenceHypothesisDraws>,
 }
 
-/// Resolve every address in every retained hypothesis and run the existing
+pub const CORRESPONDENCE_DRAW_BUNDLE_SCHEMA_ID: &str =
+    "symtropy.road-correspondence-coupling.draw-bundle.v0.1";
+const CORRESPONDENCE_DRAW_BUNDLE_DERIVATION_CONTEXT: &str =
+    "Symtropy ROAD-CORRESPONDENCE-COUPLING-001 draw bundle commitment v0.1";
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CorrespondenceBundleVerificationError {
+    BundleDigestMismatch,
+    DrawReceiptMismatch,
+}
+
+/// Compute the versioned content digest over the complete draw bundle.
+///
+/// The digest commits to scope/search evidence references, correspondence maps,
+/// justifications, address bytes, presence/sharing labels and raw draw receipts.
+/// It is a content commitment, not a signature or proof that source evidence is true.
+pub fn correspondence_draw_bundle_digest(bundle: &CorrespondenceDrawBundle) -> [u8; 32] {
+    let mut hasher = blake3::Hasher::new_derive_key(
+        CORRESPONDENCE_DRAW_BUNDLE_DERIVATION_CONTEXT
+    );
+    hash_string(&mut hasher, bundle.bundle_schema);
+    hash_stable_id(&mut hasher, &bundle.left_branch);
+    hash_stable_id(&mut hasher, &bundle.right_branch);
+    hash_completeness(&mut hasher, bundle.completeness);
+    hash_universe_status(&mut hasher, &bundle.universe_status);
+    hash_hypothesis_set_status(&mut hasher, &bundle.hypothesis_set_status);
+    hash_len(&mut hasher, bundle.hypotheses.len());
+
+    for hypothesis in &bundle.hypotheses {
+        hash_stable_id(&mut hasher, &hypothesis.hypothesis_id);
+        hash_completeness(&mut hasher, hypothesis.completeness);
+        hash_correspondence_hypothesis(&mut hasher, &hypothesis.correspondence);
+        hash_len(&mut hasher, hypothesis.draws.len());
+        for receipt in &hypothesis.draws {
+            hash_stable_id(&mut hasher, &receipt.hypothesis_id);
+            hash_stable_id(&mut hasher, &receipt.branch_id);
+            hash_stable_id(&mut hasher, &receipt.event_id);
+            hash_sharing_status(&mut hasher, receipt.sharing);
+            hash_presence(&mut hasher, &receipt.presence);
+            hash_bytes(&mut hasher, &receipt.canonical_address);
+            hash_draw_receipt(&mut hasher, &receipt.draw);
+        }
+    }
+
+    *hasher.finalize().as_bytes()
+}
+
+/// Verify the bundle commitment and independently recompute every Philox receipt.
+///
+/// A caller that stores the digest in an independently controlled evidence record
+/// can detect later changes to either the bundle metadata or its draw outputs.
+pub fn verify_correspondence_draw_bundle(
+    experiment_seed: &[u8; 32],
+    bundle: &CorrespondenceDrawBundle,
+) -> Result<(), CorrespondenceBundleVerificationError> {
+    if bundle.bundle_schema != CORRESPONDENCE_DRAW_BUNDLE_SCHEMA_ID
+        || correspondence_draw_bundle_digest(bundle) != bundle.bundle_digest
+    {
+        return Err(CorrespondenceBundleVerificationError::BundleDigestMismatch);
+    }
+
+    for hypothesis in &bundle.hypotheses {
+        for receipt in &hypothesis.draws {
+            verify_correspondence_receipt(
+                experiment_seed,
+                &receipt.canonical_address,
+                &receipt.draw,
+            )
+            .map_err(|_| CorrespondenceBundleVerificationError::DrawReceiptMismatch)?;
+        }
+    }
+    Ok(())
+}
+
+fn hash_len(hasher: &mut blake3::Hasher, length: usize) {
+    let length = u64::try_from(length).expect("bundle field length must fit u64");
+    hasher.update(&length.to_le_bytes());
+}
+
+fn hash_bytes(hasher: &mut blake3::Hasher, value: &[u8]) {
+    hash_len(hasher, value.len());
+    hasher.update(value);
+}
+
+fn hash_string(hasher: &mut blake3::Hasher, value: &str) {
+    hash_bytes(hasher, value.as_bytes());
+}
+
+fn hash_stable_id(hasher: &mut blake3::Hasher, value: &crate::StableId) {
+    hash_string(hasher, value.as_str());
+}
+
+fn hash_completeness(hasher: &mut blake3::Hasher, value: PlanCompleteness) {
+    hasher.update(&[match value {
+        PlanCompleteness::CompleteWithinDeclaredSets => 0,
+        PlanCompleteness::Incomplete => 1,
+    }]);
+}
+
+fn hash_universe_status(
+    hasher: &mut blake3::Hasher,
+    value: &crate::correspondence::CandidateUniverseStatus,
+) {
+    match value {
+        crate::correspondence::CandidateUniverseStatus::ExhaustiveWithinDeclaredScope {
+            evidence_ref,
+        } => {
+            hasher.update(&[0]);
+            hash_stable_id(hasher, evidence_ref);
+        }
+        crate::correspondence::CandidateUniverseStatus::Incomplete { evidence_ref } => {
+            hasher.update(&[1]);
+            hash_stable_id(hasher, evidence_ref);
+        }
+    }
+}
+
+fn hash_hypothesis_set_status(
+    hasher: &mut blake3::Hasher,
+    value: &crate::correspondence::HypothesisSetStatus,
+) {
+    match value {
+        crate::correspondence::HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily {
+            evidence_ref,
+        } => {
+            hasher.update(&[0]);
+            hash_stable_id(hasher, evidence_ref);
+        }
+        crate::correspondence::HypothesisSetStatus::IncompleteOrBudgetLimited { evidence_ref } => {
+            hasher.update(&[1]);
+            hash_stable_id(hasher, evidence_ref);
+        }
+    }
+}
+
+fn hash_correspondence_hypothesis(
+    hasher: &mut blake3::Hasher,
+    value: &crate::correspondence::CorrespondenceHypothesis,
+) {
+    hash_stable_id(hasher, &value.hypothesis_id);
+    hash_stable_id(hasher, &value.justification_ref);
+    hash_len(hasher, value.pairs.len());
+    for pair in &value.pairs {
+        hash_stable_id(hasher, &pair.left_event);
+        hash_stable_id(hasher, &pair.right_event);
+        hasher.update(&[match pair.basis {
+            crate::correspondence::IdentityBasis::Actor => 0,
+            crate::correspondence::IdentityBasis::DirectedDyad => 1,
+            crate::correspondence::IdentityBasis::EncounterSlot => 2,
+        }]);
+        hash_stable_id(hasher, &pair.justification_ref);
+    }
+
+    for unmatched in [&value.unmatched_left, &value.unmatched_right] {
+        hash_len(hasher, unmatched.len());
+        for event in unmatched {
+            hash_stable_id(hasher, &event.event_id);
+            match &event.reason {
+                crate::correspondence::UnmatchedReason::NoCounterpartUnderHypothesis {
+                    rationale_ref,
+                } => {
+                    hasher.update(&[0]);
+                    hash_stable_id(hasher, rationale_ref);
+                }
+                crate::correspondence::UnmatchedReason::CorrespondenceUnknown {
+                    evidence_ref,
+                } => {
+                    hasher.update(&[1]);
+                    hash_stable_id(hasher, evidence_ref);
+                }
+            }
+        }
+    }
+}
+
+fn hash_sharing_status(hasher: &mut blake3::Hasher, value: SharingStatus) {
+    hasher.update(&[match value {
+        SharingStatus::SharedInvariant => 0,
+        SharingStatus::SensitivityOnly => 1,
+        SharingStatus::BranchSpecific => 2,
+        SharingStatus::NotIdentified => 3,
+        SharingStatus::Incomplete => 4,
+        SharingStatus::NoCounterpartUnderHypothesis => 5,
+    }]);
+}
+
+fn hash_presence(hasher: &mut blake3::Hasher, value: &PlannedPresence) {
+    match value {
+        PlannedPresence::Observed { evidence_ref } => {
+            hasher.update(&[0]);
+            hash_stable_id(hasher, evidence_ref);
+        }
+        PlannedPresence::NotRealized { condition_witness } => {
+            hasher.update(&[1]);
+            hash_stable_id(hasher, condition_witness);
+        }
+        PlannedPresence::Unknown { evidence_ref } => {
+            hasher.update(&[2]);
+            hash_stable_id(hasher, evidence_ref);
+        }
+    }
+}
+
+fn hash_draw_receipt(hasher: &mut blake3::Hasher, value: &DrawReceipt) {
+    hash_string(hasher, value.address_schema);
+    hash_string(hasher, value.derivation_id);
+    hash_string(hasher, value.prng_id);
+    hash_bytes(hasher, &value.derivation_digest);
+    hash_bytes(hasher, &value.collision_tag);
+    for word in value.key {
+        hasher.update(&word.to_le_bytes());
+    }
+    hasher.update(&value.counter.to_le_bytes());
+    hash_len(hasher, value.words.len());
+    for word in value.words {
+        hasher.update(&word.to_le_bytes());
+    }
+}
+
+/// Resolve every address in every retained
 /// collision registry over the whole bundle. Incomplete plans remain incomplete.
 pub fn resolve_correspondence_plan(
     experiment_seed: &[u8; 32],
@@ -263,14 +484,18 @@ pub fn resolve_correspondence_plan(
         });
     }
 
-    Ok(CorrespondenceDrawBundle {
+    let mut bundle = CorrespondenceDrawBundle {
+        bundle_schema: CORRESPONDENCE_DRAW_BUNDLE_SCHEMA_ID,
+        bundle_digest: [0; 32],
         left_branch: plan.left_branch.clone(),
         right_branch: plan.right_branch.clone(),
         completeness: plan.completeness,
         universe_status: plan.universe_status.clone(),
         hypothesis_set_status: plan.hypothesis_set_status.clone(),
         hypotheses,
-    })
+    };
+    bundle.bundle_digest = correspondence_draw_bundle_digest(&bundle);
+    Ok(bundle)
 }
 
 fn resolve_hypothesis_addresses(
@@ -577,6 +802,41 @@ mod tests {
         assert_eq!(
             verify_correspondence_receipt(&seed, &receipt.canonical_address, &altered_draw),
             Err(ReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn bundle_digest_binds_correspondence_provenance_and_each_draw() {
+        let seed = [0x71; 32];
+        let plan = correspondence_plan();
+        let bundle = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
+        assert_eq!(verify_correspondence_draw_bundle(&seed, &bundle), Ok(()));
+
+        let mut changed_scope = bundle.clone();
+        changed_scope.universe_status = CandidateUniverseStatus::Incomplete {
+            evidence_ref: id("replacement-universe-reference"),
+        };
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &changed_scope),
+            Err(CorrespondenceBundleVerificationError::BundleDigestMismatch)
+        );
+
+        let mut changed_map = bundle.clone();
+        changed_map.hypotheses[0].correspondence.justification_ref =
+            id("replacement-correspondence-justification");
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &changed_map),
+            Err(CorrespondenceBundleVerificationError::BundleDigestMismatch)
+        );
+
+        // Even if an outer digest is recomputed, the inner Philox receipt must
+        // still replay from its retained canonical address and frozen seed.
+        let mut changed_draw = bundle.clone();
+        changed_draw.hypotheses[0].draws[0].draw.words[0] ^= 1;
+        changed_draw.bundle_digest = correspondence_draw_bundle_digest(&changed_draw);
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &changed_draw),
+            Err(CorrespondenceBundleVerificationError::DrawReceiptMismatch)
         );
     }
 
