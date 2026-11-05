@@ -1,4 +1,4 @@
-# Chronological Adequacy V0.2 — Known-Truth Fixtures
+# Chronological Adequacy V0.3 — Known-Truth Fixtures
 
 **Fixture class:** synthetic known truth  
 **Scope:** one-zone copperplate, weighted chronological scenario traces  
@@ -38,7 +38,7 @@ The reference trajectory has two stressed hours: 10 kW unserved in the first and
 
 ## Reproduction
 
-The fixtures describe the same known-truth cases covered by unit tests in the chronological adequacy source module. Nineteen test cases are authored in V0.3. A passing Rust build/test result must come from an exact-head CI or local Rust toolchain run; fixture arithmetic and static source inspection are not substitutes for that evidence.
+The fixtures describe the same known-truth cases covered by unit tests in the chronological adequacy source module. Twenty test cases are authored in V0.3. A passing Rust build/test result must come from an exact-head CI or local Rust toolchain run; fixture arithmetic and static source inspection are not substitutes for that evidence.
 
 ## Fixture C — weighted upper-tail EUE CVaR
 
