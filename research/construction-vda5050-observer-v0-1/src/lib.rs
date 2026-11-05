@@ -1091,7 +1091,7 @@ mod tests {
     fn action_finished_is_executor_report_only() {
         let decoded = message(
             "state",
-            r#""orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[{"nodeId":"n0","sequenceId":0,"released":true}],"edgeStates":[],"driving":false,"actionStates":[{"actionId":"a1","actionStatus":"FINISHED"}],"instantActionStates":[],"powerSupply":{"batteryCharge":90},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{"eStop":"NONE","fieldViolation":false}"#,
+            r#""orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[{"nodeId":"n0","sequenceId":0,"released":true}],"edgeStates":[],"driving":false,"actionStates":[{"actionId":"a1","actionStatus":"FINISHED"}],"instantActionStates":[],"powerSupply":{"stateOfCharge":90,"charging":false},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{"activeEmergencyStop":"NONE","fieldViolation":false}"#,
         );
         match &decoded.observation {
             Observation::RobotStateReported {
@@ -1112,7 +1112,7 @@ mod tests {
     fn zone_grant_is_fleet_traffic_observation_only() {
         let decoded = message(
             "state",
-            r#""orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[],"edgeStates":[],"driving":false,"actionStates":[],"instantActionStates":[],"powerSupply":{"batteryCharge":90},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{"eStop":"NONE","fieldViolation":false},"zoneRequests":[{"requestId":"z1","requestType":"ACCESS","zoneId":"zone-1","zoneSetId":"set-1","requestStatus":"GRANTED"}]"#,
+            r#""orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[],"edgeStates":[],"driving":false,"actionStates":[],"instantActionStates":[],"powerSupply":{"stateOfCharge":90,"charging":false},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{"activeEmergencyStop":"NONE","fieldViolation":false},"zoneRequests":[{"requestId":"z1","requestType":"ACCESS","zoneId":"zone-1","zoneSetId":"set-1","requestStatus":"GRANTED"}]"#,
         );
         match decoded.observation {
             Observation::RobotStateReported { zone_requests, .. } => {
@@ -1126,7 +1126,7 @@ mod tests {
     fn map_version_is_navigation_map_only() {
         let decoded = message(
             "state",
-            r#""orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[],"edgeStates":[],"driving":false,"actionStates":[],"instantActionStates":[],"powerSupply":{"batteryCharge":90},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{"eStop":"NONE","fieldViolation":false},"maps":[{"mapId":"floor-2","mapVersion":"map-17"}]"#,
+            r#""orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[],"edgeStates":[],"driving":false,"actionStates":[],"instantActionStates":[],"powerSupply":{"stateOfCharge":90,"charging":false},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{"activeEmergencyStop":"NONE","fieldViolation":false},"maps":[{"mapId":"floor-2","mapVersion":"map-17"}]"#,
         );
         match decoded.observation {
             Observation::RobotStateReported {
@@ -1148,7 +1148,7 @@ mod tests {
     fn factsheet_remains_a_reported_claim() {
         let decoded = message(
             "factsheet",
-            r#""typeSpecification":{"seriesName":"ACME","typeName":"AGV"},"physicalParameters":{},"protocolLimits":{},"protocolFeatures":{},"mobileRobotGeometry":{},"loadSpecification":{}"#,
+            r#""typeSpecification":{"seriesName":"ACME","mobileRobotKinematic":"DIFF","mobileRobotClass":"CARRIER","maximumLoadMass":100.0,"localizationTypes":["NATURAL"],"navigationTypes":["AUTONOMOUS"]},"physicalParameters":{"minimumSpeed":0.0,"maximumSpeed":1.0,"maximumAcceleration":0.5,"maximumDeceleration":0.5,"minimumHeight":0.2,"maximumHeight":2.0,"width":0.8,"length":1.2},"protocolLimits":{"maximumStringLengths":{},"maximumArrayLengths":{},"timing":{"minimumOrderInterval":0.1,"minimumStateInterval":0.1}},"protocolFeatures":{"optionalParameters":[],"mobileRobotActions":[]},"mobileRobotGeometry":{},"loadSpecification":{}}"#,
         );
         assert!(matches!(
             decoded.observation,
