@@ -83,6 +83,33 @@ For a declared source/load partition, define the return-ratio matrix explicitly.
 
 A generalized Nyquist conclusion must include the open-loop right-half-plane pole count and the encirclement convention. A plot without those details is not an independently reproducible stability result.
 
+## 2026 converter-interaction and dual-frequency comparators
+
+Gebremedhin et al., “Impedance-Based Characterisation of Grid-Forming and Grid-Following Converter Interactions in Multi-VSC Systems,” *IET Renewable Power Generation*, first published 28 July 2026, DOI [10.1049/rpg2.70319](https://doi.org/10.1049/rpg2.70319), is a contemporary method comparator. The open-access study evaluates two- and three-converter weak-grid systems using frequency-dependent impedance models, impedance-ratio (IR), eigenvalue impedance-ratio (EIR), eigenvalue and generalized-Nyquist analyses, with time-domain simulation cross-checks. It studies GFL PQ/PV control, GFM converters and converter placement. The authors also note that GFM does not automatically guarantee stability in every condition.
+
+This is general converter-dominated AC-grid research, not a WPT experiment. Use it to expand matched scenarios, not to import its reported numerical regions as WPT safety thresholds.
+
+Add matched cases for:
+- GFL–GFL, GFM–GFL and GFL–GFM–GFL interconnections;
+- central versus edge placement of a GFM unit;
+- weak/strong grid impedance and remote-converter coupling;
+- PQ versus PV GFL outer-loop control;
+- PLL bandwidth, filter resonance and virtual-impedance variation;
+- IR/EIR diagnostic ranking versus generalized-Nyquist and eigenvalue classification;
+- independent time-domain cross-check.
+
+A 2026 experimental study of an electrolytic-capacitorless matrix-converter WPT system also models dual-frequency coupling between a 50 Hz grid-side stage and an 85 kHz resonant stage under non-ideal grid conditions, with harmonic suppression experimentally verified (IEEE Transactions on Power Electronics, DOI [10.1109/TPEL.2025.3616346](https://doi.org/10.1109/TPEL.2025.3616346)).
+
+This motivates a distinct dual-timescale benchmark lane:
+- grid voltage harmonics, unbalance and frequency excursions;
+- resonant-frequency and modulation-sideband interaction;
+- DC-link ripple and capacitor-less energy buffering;
+- grid-current THD and individual harmonic/interharmonic magnitudes;
+- resonant current/voltage stress and ZVS boundaries;
+- phase coupling and harmonic transfer functions.
+
+Use harmonic state-space or another declared linear-periodic model when the operating point is periodically time-varying; a stationary LTI model is not automatically sufficient. Verify frequency-domain predictions against switching/EMT waveforms. Keep grid-current quality, internal resonant stress, stability margin and useful energy as separate scoreboards.
+
 ## 5. Reference methods
 
 Implement independent lanes and report disagreement rather than collapsing them:
