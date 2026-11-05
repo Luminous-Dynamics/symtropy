@@ -199,20 +199,24 @@ fn validate_measurement(run: &Value, profile_id: &str) -> Result<(), String> {
     }
 
     if profile_id == "IEEE_519_2022" || profile_id == "IEC_61000_4_30_2025" {
-        if method_id != "IEC_61000_4_30_2025" || !["CLASS_A", "CLASS_S"].contains(&class) {
+        if method_id != "IEC_61000_4_30_2025"
+            || edition != "IEC 61000-4-30:2025 COR1:2026"
+            || !["CLASS_A", "CLASS_S"].contains(&class)
+        {
             return Err(fail(
                 "$.measurement",
-                "in-situ PCC power-quality assessment requires the declared IEC 61000-4-30 measurement method and class",
+                "in-situ PCC power-quality assessment requires IEC 61000-4-30:2025 COR1:2026 with Class A or Class S",
             ));
         }
     }
     if profile_id == "IEC_61000_3_12_2011_AMD1_2021"
-        && method_id == "IEC_61000_4_30_2025"
-        && class != "EQUIPMENT_TEST"
+        && (method_id != "IEC_61000_4_7_2002_AMD1_2008"
+            || edition != "IEC 61000-4-7:2002+AMD1:2008"
+            || class != "EQUIPMENT_TEST")
     {
         return Err(fail(
             "$.measurement",
-            "IEC 61000-3-12 equipment testing must identify its equipment-test measurement class",
+            "IEC 61000-3-12 equipment testing requires the pinned IEC 61000-4-7:2002+AMD1:2008 equipment-test method",
         ));
     }
     Ok(())
@@ -307,8 +311,31 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
     let standard_id = string_field(profile, "standard_id", "$.profile")?.to_string();
     let edition = string_field(profile, "edition", "$.profile")?;
     let role = string_field(profile, "standard_role", "$.profile")?;
+    if ![
+        "SYSTEM_PCC_LIMITS",
+        "PRODUCT_EMISSION_LIMITS",
+        "MEASUREMENT_METHOD_ONLY",
+    ]
+    .contains(&role)
+    {
+        return Err(fail("$.profile.standard_role", "unknown standard role"));
+    }
     let boundary = string_field(profile, "assessment_boundary", "$.profile")?;
+    if !["SITE_PCC", "EQUIPMENT_TERMINAL"].contains(&boundary) {
+        return Err(fail("$.profile.assessment_boundary", "unknown assessment boundary"));
+    }
     let network_type = string_field(profile, "network_type", "$.profile")?;
+    if ![
+        "PUBLIC_LOW_VOLTAGE",
+        "PRIVATE_LOW_VOLTAGE",
+        "MEDIUM_VOLTAGE",
+        "HIGH_VOLTAGE",
+        "OTHER",
+    ]
+    .contains(&network_type)
+    {
+        return Err(fail("$.profile.network_type", "unknown network type"));
+    }
     let phase_count = integer_field(profile, "phase_count", "$.profile")?;
     let grid_frequency = number_field(profile, "grid_frequency_hz", "$.profile")?;
     let nominal_voltage = number_field(profile, "nominal_voltage_v", "$.profile")?;
@@ -335,11 +362,19 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
             if boundary != "SITE_PCC" {
                 ProfileApplicability::NotApplicable
             } else {
-                let pcc = object(pcc, "$.profile.pcc")?;
-                if string_field(&Value::Object(pcc.clone()), "pcc_id", "$.profile.pcc")? == "" {
-                    return Err(fail("$.profile.pcc.pcc_id", "must be non-empty"));
-                }
                 let pcc_value = field(profile, "pcc", "$.profile")?;
+                exact_keys(
+                    pcc_value,
+                    &[
+                        "pcc_id",
+                        "voltage_kv",
+                        "i_sc_rms_a",
+                        "i_l_rms_a",
+                        "i_l_definition_id",
+                    ],
+                    "$.profile.pcc",
+                )?;
+                string_field(pcc_value, "pcc_id", "$.profile.pcc")?;
                 let voltage_kv = number_field(pcc_value, "voltage_kv", "$.profile.pcc")?;
                 let isc = number_field(pcc_value, "i_sc_rms_a", "$.profile.pcc")?;
                 let il = number_field(pcc_value, "i_l_rms_a", "$.profile.pcc")?;
@@ -395,6 +430,7 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
         .as_array()
         .ok_or_else(|| fail("$.current_spectrum.harmonics", "must be an array"))?;
     let mut seen_orders = BTreeSet::new();
+    let mut previous_order = None::<u64>;
     let mut harmonic_currents = Vec::with_capacity(harmonic_lines.len());
     for (index, line) in harmonic_lines.iter().enumerate() {
         let path = format!("$.current_spectrum.harmonics[{index}]");
@@ -404,9 +440,13 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
             &path,
         )?;
         let order = integer_field(line, "harmonic_order", &path)?;
-        if order < 2 || !seen_orders.insert(order) {
-            return Err(fail(&path, "harmonic orders must be unique integers >= 2"));
+        if order < 2 || order > 1_000 || !seen_orders.insert(order) {
+            return Err(fail(&path, "harmonic orders must be unique integers in 2..=1000"));
         }
+        if previous_order.is_some_and(|previous| order <= previous) {
+            return Err(fail(&path, "harmonic orders must be strictly increasing"));
+        }
+        previous_order = Some(order);
         let current = number_field(line, "rms_current_a", &path)?;
         let uncertainty = number_field(line, "expanded_uncertainty_a", &path)?;
         if current < 0.0 || uncertainty < 0.0 {
