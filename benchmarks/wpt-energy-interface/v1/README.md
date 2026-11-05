@@ -29,7 +29,7 @@ Interoperability is not simply support for a frequency, coil standard or power c
 
 ## Typed output domains
 
-V1 defines four service types: battery DC energy, mechanical shaft work, process thermal energy and optical radiant energy. They are all expressed in joules, but their boundaries and measurement methods are different. The schema binds each service type to one quantity and one method. A battery-side DC measurement cannot be substituted for useful shaft work or delivered process heat.
+V1 defines five service types: battery DC energy, mechanical shaft work, process thermal energy, optical radiant energy and chemical free-energy change. They are expressed in joules, but their boundaries and measurement methods are different. The schema binds each service type to one quantity and one method. A battery-side DC measurement cannot be substituted for useful shaft work, delivered process heat, optical output or chemical free-energy change. The chemical profile requires reaction extent and chemical-potential state measurements under declared temperature, pressure and composition conditions; electrical input energy or nominal reaction yield alone is not accepted.
 
 The type-profile map defines the relevant measurement boundary and excluded substitutions for each domain.
 
@@ -63,7 +63,7 @@ Run the frozen full-session corpus with:
     cargo test --locked -p wpt-energy-interface-validator
     cargo run --locked -p wpt-energy-interface-validator -- benchmarks/wpt-energy-interface/v1/known-truth.jsonl
 
-The corpus contains complete valid sessions for all four end-use profiles, unauthorized/stale/unsafe energization attempts, a service-method mismatch and an unmeasured settlement. Event SHA-256 digests are computed over canonical JSON payloads with the event_digest field omitted; each subsequent event links to the prior event digest.
+The frozen corpus contains complete valid sessions for the original end-use profiles, unauthorized/stale/unsafe energization attempts, a service-method mismatch and an unmeasured settlement. The chemical service profile is additionally exercised by positive and negative service-profile unit tests. Event SHA-256 digests are computed over canonical JSON payloads with the event_digest field omitted; each subsequent event links to the prior event digest.
 
 ## Proposed research benchmark targets
 
