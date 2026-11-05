@@ -55,7 +55,7 @@ All fixture values are synthetic, not a measured installation or a standards-com
 
 ## IEC 61000-3-12: scope versus limit domain
 
-The evaluator keeps two distinct outcomes:
+The evaluator keeps three distinct outcomes:
 
 - `NotApplicable`: outside the equipment/public-LV/current-range scope or the boundary is wrong.
 - `ScopeOnlyLimitDomainNotCovered`: the equipment is in the broad scope (>16 A and <=75 A/phase; single phase up to 240 V or three phase up to 690 V; public low voltage), but the declared nominal system is not the limit system stated for this edition.
@@ -76,3 +76,16 @@ At 400 V and ideal PF=eta=1, illustrative input currents are:
 - 30 kW: 43.30 A/phase.
 
 Actual current increases as power factor and conversion efficiency fall below one. These arithmetic examples do not establish IEC 61000-3-12 applicability for a device: measured/rated AC input current per phase, public-LV connection, voltage, frequency and intended connection are required. In particular, an 11 kW product may fall on either side of 16 A depending on actual input current and operating conditions.
+
+
+## Declared harmonic coverage
+
+The synthetic PCC fixture declares complete harmonic coverage through order 50. Each integer harmonic order 2..50 is present exactly once; orders with no synthetic harmonic energy have an explicit zero RMS amplitude and a non-zero uncertainty field. The evaluator returns `maximum_harmonic_order`, `thd_through_order_percent` and, for an applicable IEEE 519-2022 PCC profile, `tdd_through_order_percent`. It rejects missing harmonic bins and refuses an IEEE 519 TDD result if the run declares less than 50th-order coverage.
+
+## IEC 61000-3-12 limit-domain distinction
+
+The broad equipment/public-LV scope (greater than 16 A and up to 75 A per phase; voltage up to 240 V single-phase or 690 V three-phase; 50/60 Hz) is not identical to the stated limit domain of this edition. The IEC catalogue states that the limits in IEC 61000-3-12:2011+AMD1:2021 apply to 230/400 V, 50 Hz systems. The evaluator therefore returns `ScopeOnlyLimitDomainNotCovered` for an in-scope equipment class connected to 60 Hz or a different nominal system voltage; it does not silently apply 230/400 V, 50 Hz limit tables to those cases.
+
+## Demand-reference provenance
+
+An IEEE 519 TDD report requires (I_L), its definition identity, averaging window, reference period and source digest; (I_{SC}) likewise requires a calculation method and source digest. These identifiers make the benchmark result traceable. They do not prove that the underlying demand study or short-circuit study was technically correct; independent review remains necessary.
