@@ -1,0 +1,239 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/measurement-distribution/0.1",
+  "schema_version": "0.1.0",
+  "protocol_id": "CIVBENCH-MAD-001",
+  "evaluation_id": "CIVDYN-NTG-SYNTHETIC-RPS-ROSTER-001",
+  "benchmark_id": "CIVDYN-NTG-001",
+  "construct": {
+    "name": "opponent-roster-dependent strategy ranking and non-transitive dominance",
+    "intended_use": "Verify roster-conditional scores, directed dominance cycles, rank correlation and a prediction-error regret certificate on exact rock-paper-scissors payoffs.",
+    "claim_tier": "tier-1-reference",
+    "claim_ceiling": "Tier 1 exact synthetic RPS reference only; no 54-agent empirical reproduction or model leaderboard claim."
+  },
+  "units": {
+    "observational_unit": "strategy × explicit opponent roster",
+    "resampling_unit": "none",
+    "independent_unit": "One exact deterministic payoff matrix and four named rosters",
+    "dependence_statement": "All roster outcomes are derived from the same deterministic payoff matrix; roster contrasts are designed scenarios, not independent samples.",
+    "clustered_observations": false,
+    "independence_claimed": false
+  },
+  "sources": [
+    {
+      "source_id": "CIVDYN-NTG-SYNTHETIC-RPS-V0",
+      "epistemic_status": "synthetic-test-fixture",
+      "version": "0.1.0",
+      "retrieved_at": "2026-11-05",
+      "license": "AGPL-3.0-or-later",
+      "content_digest": null,
+      "source_family": "locally-authored-synthetic-fixture",
+      "missingness_semantics": "The deterministic fixture has complete declared cells; absent cells are missing/unsupported, never zero."
+    }
+  ],
+  "evaluation_distribution": {
+    "sampling_frame": "Three strategies evaluated against four fixed 30-opponent rosters: balanced, rock-heavy, paper-heavy and scissors-heavy.",
+    "factors": [
+      {
+        "factor_id": "opponent_roster",
+        "weight_interpretation": "Four designed stress-test rosters; not opponent population prevalence.",
+        "levels": [
+          {
+            "level_id": "balanced",
+            "target_weight": 0.25,
+            "support_count": 3
+          },
+          {
+            "level_id": "rock_heavy",
+            "target_weight": 0.25,
+            "support_count": 3
+          },
+          {
+            "level_id": "paper_heavy",
+            "target_weight": 0.25,
+            "support_count": 3
+          },
+          {
+            "level_id": "scissors_heavy",
+            "target_weight": 0.25,
+            "support_count": 3
+          }
+        ]
+      },
+      {
+        "factor_id": "strategy",
+        "weight_interpretation": "Three symmetric actions in the exact reference game.",
+        "levels": [
+          {
+            "level_id": "rock",
+            "target_weight": 0.3333333333,
+            "support_count": 4
+          },
+          {
+            "level_id": "paper",
+            "target_weight": 0.3333333333,
+            "support_count": 4
+          },
+          {
+            "level_id": "scissors",
+            "target_weight": 0.3333333334,
+            "support_count": 4
+          }
+        ]
+      }
+    ],
+    "excluded_support": []
+  },
+  "perturbation_families": [
+    {
+      "family_id": "opponent-composition",
+      "rationale": "Changes the composition of the evaluation roster while keeping payoff matrix and strategy set fixed.",
+      "validity_check": "Recompute expected payoff and rank under every explicit roster and detect the known RPS cycle.",
+      "expected_invariants": [
+        "Every roster is identified on every reported score.",
+        "Balanced roster has equal expected payoffs.",
+        "Each skewed roster favors the counter-strategy."
+      ],
+      "seed_policy": "Exact deterministic enumeration; no stochastic seed.",
+      "parameter_range": null
+    }
+  ],
+  "replication_design": {
+    "method": "deterministic-fixture",
+    "replication_count": 1,
+    "independent_unit": "One fixed deterministic design matrix; no stochastic or empirical replication is claimed.",
+    "inference_claimed": false,
+    "dependence_assessment": "Scenario, strategy, participant and condition cells are deterministic benchmark fixtures, not independent draws from a target population.",
+    "sample_size_rationale": "One deterministic execution is sufficient to verify exact code paths and negative controls; it cannot support confidence intervals or population inference.",
+    "seed_manifest_digest": null,
+    "cluster_unit": null
+  },
+  "metrics": [
+    {
+      "metric_id": "expected_payoff",
+      "construct_dimension": "roster-conditional strategy payoff",
+      "unit": "RPS payoff units",
+      "direction": "higher-is-better",
+      "aggregation": "expected payoff against the exact declared opponent mixture",
+      "strata": [
+        "opponent_roster",
+        "strategy"
+      ],
+      "uncertainty_method": "none; exact payoff matrix",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "exploitability",
+      "construct_dimension": "best-response gap against declared roster",
+      "unit": "RPS payoff units",
+      "direction": "lower-is-better",
+      "aggregation": "best response payoff minus strategy payoff for the same roster",
+      "strata": [
+        "opponent_roster",
+        "strategy"
+      ],
+      "uncertainty_method": "none; exact payoff matrix",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "three_cycle_count",
+      "construct_dimension": "non-transitive dominance",
+      "unit": "oriented three-cycles",
+      "direction": "descriptive-only",
+      "aggregation": "directed three-cycle count in the payoff dominance graph",
+      "strata": [
+        "opponent_roster"
+      ],
+      "uncertainty_method": "none; exact payoff matrix",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "spearman_rank_correlation",
+      "construct_dimension": "ranking sensitivity to opponent roster",
+      "unit": "correlation",
+      "direction": "descriptive-only",
+      "aggregation": "average-rank Spearman correlation; undefined for constant rankings",
+      "strata": [
+        "roster_pair"
+      ],
+      "uncertainty_method": "none; exact payoff matrix",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "regret_certificate_upper_bound",
+      "construct_dimension": "bounded regret from opponent-distribution prediction error",
+      "unit": "RPS payoff units",
+      "direction": "lower-is-better",
+      "aggregation": "payoff range multiplied by L1 opponent-distribution error; actual regret retained separately",
+      "strata": [
+        "prediction_shift"
+      ],
+      "uncertainty_method": "none; exact payoff matrix",
+      "proper_scoring_rule": null
+    }
+  ],
+  "baselines": [
+    {
+      "baseline_id": "balanced_roster",
+      "description": "Equal rock/paper/scissors mixture.",
+      "protocol_matched": true,
+      "source_uri": null
+    },
+    {
+      "baseline_id": "exact_best_response",
+      "description": "Enumerated best response against the declared opponent distribution.",
+      "protocol_matched": true,
+      "source_uri": null
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "known-rps-cycle",
+      "intervention": "Use exact cyclic RPS payoff matrix.",
+      "expected_result": "Exactly one oriented three-strategy cycle is detected.",
+      "must_fail_or_remain_null": "fail"
+    },
+    {
+      "control_id": "roster-rank-reversal",
+      "intervention": "Change opponent roster from rock-heavy to paper-heavy.",
+      "expected_result": "Winning strategy changes from paper to scissors; balanced ranking correlation remains undefined where all payoffs tie.",
+      "must_fail_or_remain_null": "fail"
+    },
+    {
+      "control_id": "regret-bound",
+      "intervention": "Use actual opponent distribution [0.1,0.8,0.1] and predicted [0.8,0.1,0.1].",
+      "expected_result": "Actual best-response regret is 0.7 and certificate upper bound is 2.8.",
+      "must_fail_or_remain_null": "fail"
+    }
+  ],
+  "holdouts": [
+    {
+      "holdout_id": "empirical-external-holdout",
+      "dimension": "none",
+      "status": "not-applicable",
+      "leakage_control": "No empirical rows are used; this reference supports no external-generalization claim."
+    }
+  ],
+  "reproduction": {
+    "code_commit": "b8671dd0c7373a32de8eb02c14d5e4aec2144a66",
+    "configuration_digest": "civdyn-opponent-roster-v0.1; 3×3 exact RPS payoff; 4 fixed 30-opponent rosters",
+    "data_manifest_digest": null,
+    "model_identifier": null,
+    "runtime_environment": "Rust edition 2024; deterministic benchmark crate; exact-head GitHub Actions workflow",
+    "command": "cargo run --locked --manifest-path research/civdyn-opponent-roster/Cargo.toml --bin opponent-roster-sweep",
+    "humanity_atlas_run_artifact_ref": "Not applicable: synthetic benchmark reference execution; no full Humanity Atlas scenario artifact is claimed."
+  },
+  "claim_report": {
+    "claim_ceiling": "Tier 1 exact synthetic RPS reference only; no 54-agent empirical reproduction or model leaderboard claim.",
+    "known_limitations": [
+      "RPS is an artificial exact control, not an empirical social or strategic game.",
+      "No stochastic tournament, adaptation, memory, learning or model latency is evaluated.",
+      "The regret certificate uses the full payoff-range bound and is not an empirical confidence interval."
+    ],
+    "unsupported_strata": [
+      "Real-world multi-agent model populations, non-RPS tasks, learned policies and empirically estimated payoff matrices."
+    ],
+    "deviations": [],
+    "failed_controls": []
+  },
+  "composite_score_policy": "no-universal-composite"
+}

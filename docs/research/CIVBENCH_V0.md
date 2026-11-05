@@ -277,3 +277,29 @@ The simulation engine should be separable from Bevy rendering so headless batch 
 - Do not call a result SOTA without a named baseline, matched task, matched data, matched compute budget, and independent reproduction.
 
 **CivBench v0 succeeds when a researcher can reproduce a result, inspect its evidence, run the baselines, and identify the conditions under which the model fails.**
+
+
+## 10. Measurement-as-Distribution manifests for executable CivDyn tracks
+
+The CIVBENCH-MAD-001 schema is now being applied to multiple executable suites, not only HUMSIM. Each manifest declares its own observational unit, dependence structure, designed evaluation distribution, perturbation families, metric vector, baselines, negative controls, holdouts, reproduction command and claim ceiling.
+
+Synthetic Tier-1 reference manifests are supplied for:
+
+- CIVDYN-RESILIENCE-001 — three shock families × four policies, separate water/energy service metrics, sustained recovery and conservation controls.
+- CIVDYN-DELIB-001 — speaking/proposal/evidence/consensus/option-order controls, with self-reports kept separate.
+- CIVDYN-NTG-001 — four opponent rosters, ranking reversals, non-transitive cycle and regret certificate.
+- CIVDYN-CAUSAL-COLLAB-001 — verified/candidate causal contribution bounds, message effectiveness and failed-task controls.
+- CIVDYN-HUMSIM-001 — individual, population and cross-context fidelity, already represented by the original fixture.
+
+The validator checks every file matching *_MAD_MANIFEST_V0_1.json in the fixture directory, enforces globally unique evaluation IDs, normalizes factor weights, and rejects synthetic Tier-1 inference claims or any universal composite-score policy.
+
+These manifests are protocol descriptions, not claims that synthetic CSVs are empirical evidence. Model identity, configuration, output bytes and qualification receipts remain bound through the existing Humanity Atlas run-artifact contract; MAD does not define a competing run envelope.
+
+
+## 12. Runtime and interoperability comparison as a conformance problem
+
+[CIVDYN-ENGINE-COMPARE-001 issue #3787](https://github.com/Luminous-Dynamics/symtropy/issues/3787) and [draft PR #3788](https://github.com/Luminous-Dynamics/symtropy/pull/3788) introduce a trace-driven forest-fire reference workload.
+
+The first release specifies a synchronous double-buffer update, fixed-empty boundary, Moore neighbourhood and four cell states; generates a separate precomputed event tape; and provides 20 fixed seed blocks × two grid sizes. All external framework ports must consume the same tape and pass per-tick behavioral equivalence before their runtime or memory numbers are ranked.
+
+The current PR validates only the Rust reference and portable input contract. It does not yet compare Agents.jl, Mesa, mesa-frames, NetLogo, MASON or Ark.jl. Runtime/JIT/startup, stepping, data collection, serialization and peak memory will be reported separately. The engine benchmark's MAD manifest is CIVDYN_ENGINE_COMPARE_SYNTHETIC_MAD_MANIFEST_V0_1.json; it declares paired seed blocks and no inferential or cross-framework performance claim.
