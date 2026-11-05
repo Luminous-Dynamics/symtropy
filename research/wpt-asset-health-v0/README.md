@@ -61,7 +61,7 @@ The machine-readable contract in `asset-observation.schema.json`:
 - records uncertainty and calibration receipts;
 - distinguishes measured, published-measured, simulated, synthetic and inferred evidence.
 
-The scenario manifest includes synthetic known-truth progressions and negative controls for sensor drift, missing calibration, asset leakage across splits, censoring and missing raw evidence. It contains no invented WPT measurement values.
+The scenario manifest includes synthetic known-truth progressions and negative controls for sensor drift, missing calibration, asset leakage across splits, censoring and missing raw evidence. The deterministic equations and hand-recomputable test points are frozen separately in `synthetic-reference-oracle.md`. These are evaluator controls, not material or hardware constitutive laws. The repository contains no invented WPT measurement values.
 
 ## Statistical discipline
 
