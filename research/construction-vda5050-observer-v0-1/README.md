@@ -116,6 +116,14 @@ This decoder validates a bounded subset of each supported message and does not c
 - #3722: independent construction-layout benchmark.
 - #3723: read-only VDA 3.0 observer.
 
+## Independent differential replay
+
+The focused workflow also runs `scripts/differential_replay.py`, a CI-only independent Python standard-library oracle. It parses the same exact fixture files as the Rust CLI, projects the same documented VDA fields independently, and compares the complete normalized output: protocol/version/topic, header, topic identity, raw-payload SHA-256 and observation.
+
+The runner checks all seven message fixtures and includes negative controls for wrong topic, topic/header identity mismatch, duplicate JSON keys and invalid action status. A whitespace-only mutation must preserve semantic output while changing the exact-byte payload digest. The Python code is test infrastructure only; production observer functionality remains Rust.
+
+This establishes independent agreement over a frozen synthetic corpus, not full standard conformance or field interoperability.
+
 ## Claim ceiling
 
 Passing unit tests establishes only that this implementation recognizes the declared VDA 3.0 message subset and preserves the stated semantic boundaries on synthetic inputs. It does not establish MQTT interoperability, VDA certification, supplier conformance, cybersecurity, authenticated identity, safety qualification, construction performance, independent acceptance or field interoperability.
