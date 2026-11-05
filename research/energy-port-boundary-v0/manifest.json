@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-energy-port-boundary-v0",
+  "status": "pure_contract_no_production_instrumentation_claim",
+  "upstream": {
+    "first_law_evaluator": "PHYS-THERMO-SEMANTICS-001",
+    "integration_issue": "PHYS-ENERGY-PORTS-001"
+  },
+  "event": {
+    "identity": "stable_event_id",
+    "amount_type": "Joules",
+    "amount_sign": "non_negative",
+    "direction": "source_reservoir_to_destination_reservoir",
+    "channels": ["work", "heat", "matter"]
+  },
+  "boundary": {
+    "identity": "stable_boundary_id",
+    "membership": "explicit_reservoir_set",
+    "crossing_rule": {
+      "outside_to_inside": "inflow",
+      "inside_to_outside": "outflow",
+      "inside_to_inside": "internal_no_boundary_flow",
+      "outside_to_outside": "not_in_boundary_balance"
+    },
+    "coverage": "explicit_caller_assertion",
+    "incomplete_means": "inconclusive"
+  },
+  "determinism": {
+    "sum_order": "ascending_event_id",
+    "duplicate_event_policy": "reject",
+    "missing_or_uninstrumented_pathway_policy": "coverage_incomplete"
+  },
+  "acceptance_tests": [
+    "internal_heating_not_counted_as_outer_boundary_heat_outflow",
+    "same_transfer_counts_as_subsystem_outflow_at_smaller_boundary",
+    "work_heat_matter_channels_separate",
+    "aggregation_order_independent",
+    "duplicate_event_ids_rejected",
+    "incomplete_coverage_propagates_to_first_law_inconclusive",
+    "negative_and_non_finite_amounts_rejected",
+    "self_transfer_rejected",
+    "empty_boundary_rejected",
+    "sum_overflow_rejected"
+  ],
+  "not_claimed": [
+    "production_coupling_paths_emit_complete_events",
+    "all_entity_energy_budgets_are_calibrated_joules",
+    "impulse_can_be_converted_to_joules_without_state_delta",
+    "caller_boundary_completeness_is_proven",
+    "physical_system_validation"
+  ],
+  "planned_event_count_scales": [100, 10000, 1000000],
+  "metrics": [
+    "aggregation_latency_p50_ns",
+    "aggregation_latency_p95_ns",
+    "allocations_per_aggregation",
+    "events_per_second",
+    "crossing_event_fraction",
+    "residual_joules",
+    "coverage_status"
+  ]
+}
