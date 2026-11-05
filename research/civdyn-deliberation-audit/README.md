@@ -19,7 +19,7 @@ A deterministic trace auditor for recorded group deliberation. It does not gener
 - Declared consensus versus the fraction of participants with the same top stated preference.
 - A deterministic preference-proportional baseline and final-allocation L1 shift. This is a descriptive counterfactual, not a welfare optimum or prediction of unguided human behaviour.
 - Preference alignment, separately from self-reported satisfaction and trust changes.
-- A paired rhetoric-only comparison that holds option set, budget, declared preferences and evidence catalogue fixed while measuring allocation sensitivity.
+- A paired facilitation-variant comparison that holds option set, budget, declared preferences and evidence catalogue fixed while measuring allocation sensitivity.
 
 ## Synthetic control
 
@@ -42,3 +42,8 @@ cargo run --locked --manifest-path research/civdyn-deliberation-audit/Cargo.toml
 The v0.1 kernel measures properties of a supplied event trace. It cannot infer omitted turns, hidden power asymmetries, unrecorded interruptions, participant motivations, or whether the preference-proportional baseline is normatively correct.
 
 A real evaluation requires source-exact study replication, consent and data rights, transparent event coding, blinded transcript annotation, inter-rater reliability, counterbalanced facilitator identity/order, and independent evaluation of factual provenance and appealability. Satisfaction/trust is self-report, not proof of procedural neutrality.
+
+
+## Consensus semantics correction
+
+Top-preference diversity is **not** evidence that a group failed to reach consensus. The audit reports modal top-preference share as a descriptive preference measure, but only flags a facilitator's consensus declaration as contradicted when an explicit participant-level non-endorsement is recorded. Missing endorsement data is counted as unknown, not dissent. This allows a group to reach an informed compromise despite different initial preferences.
