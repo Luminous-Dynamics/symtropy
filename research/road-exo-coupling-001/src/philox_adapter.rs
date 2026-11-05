@@ -310,8 +310,112 @@ pub fn verify_correspondence_draw_bundle(
     {
         return Err(CorrespondenceBundleVerificationError::BundleDigestMismatch);
     }
+    if bundle.left_branch == bundle.right_branch {
+        return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+    }
 
+    let mut collision_registry = AddressCollisionRegistry::default();
     for hypothesis in &bundle.hypotheses {
+        if hypothesis.correspondence.hypothesis_id != hypothesis.hypothesis_id
+            || hypothesis.causal_rules.len() != hypothesis.correspondence.pairs.len()
+        {
+            return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+        }
+
+        let mut expected_addresses = BTreeSet::new();
+        for pair in &hypothesis.correspondence.pairs {
+            let matching_rules: Vec<_> = hypothesis
+                .causal_rules
+                .iter()
+                .filter(|rule| {
+                    rule.hypothesis_id == hypothesis.hypothesis_id
+                        && rule.left_event == pair.left_event
+                        && rule.right_event == pair.right_event
+                        && rule.basis == pair.basis
+                })
+                .collect();
+            if matching_rules.len() != 1 {
+                return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+            }
+            let left = find_unique_draw(
+                &hypothesis.draws,
+                &bundle.left_branch,
+                &pair.left_event,
+            )
+            .ok_or(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
+            let right = find_unique_draw(
+                &hypothesis.draws,
+                &bundle.right_branch,
+                &pair.right_event,
+            )
+            .ok_or(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
+
+            expected_addresses.insert((bundle.left_branch.clone(), pair.left_event.clone()));
+            expected_addresses.insert((bundle.right_branch.clone(), pair.right_event.clone()));
+
+            let unknown_presence = matches!(left.presence, PlannedPresence::Unknown { .. })
+                || matches!(right.presence, PlannedPresence::Unknown { .. });
+            let expected = expected_pair_sharing(&matching_rules[0].disposition, unknown_presence);
+            if left.sharing != expected || right.sharing != expected {
+                return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+            }
+        }
+
+        for rule in &hypothesis.causal_rules {
+            if rule.hypothesis_id != hypothesis.hypothesis_id
+                || !hypothesis.correspondence.pairs.iter().any(|pair| {
+                    pair.left_event == rule.left_event
+                        && pair.right_event == rule.right_event
+                        && pair.basis == rule.basis
+                })
+            {
+                return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+            }
+        }
+
+        for (events, branch, unmatched_left) in [
+            (&hypothesis.correspondence.unmatched_left, &bundle.left_branch, true),
+            (&hypothesis.correspondence.unmatched_right, &bundle.right_branch, false),
+        ] {
+            for unmatched in events {
+                let receipt = find_unique_draw(&hypothesis.draws, branch, &unmatched.event_id)
+                    .ok_or(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)?;
+                expected_addresses.insert((branch.clone(), unmatched.event_id.clone()));
+                let expected = match (&unmatched.reason, &receipt.presence) {
+                    (_, PlannedPresence::Unknown { .. })
+                    | (
+                        crate::correspondence::UnmatchedReason::CorrespondenceUnknown { .. },
+                        _,
+                    ) => SharingStatus::NotIdentified,
+                    (
+                        crate::correspondence::UnmatchedReason::NoCounterpartUnderHypothesis {
+                            ..
+                        },
+                        _,
+                    ) => SharingStatus::NoCounterpartUnderHypothesis,
+                };
+                if receipt.sharing != expected {
+                    return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+                }
+            }
+            let _ = unmatched_left;
+        }
+
+        let actual_addresses: BTreeSet<_> = hypothesis
+            .draws
+            .iter()
+            .map(|receipt| (receipt.branch_id.clone(), receipt.event_id.clone()))
+            .collect();
+        if actual_addresses.len() != hypothesis.draws.len()
+            || actual_addresses != expected_addresses
+            || hypothesis
+                .draws
+                .iter()
+                .any(|receipt| receipt.hypothesis_id != hypothesis.hypothesis_id)
+        {
+            return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+        }
+
         for receipt in &hypothesis.draws {
             verify_correspondence_receipt(
                 experiment_seed,
@@ -319,9 +423,52 @@ pub fn verify_correspondence_draw_bundle(
                 &receipt.draw,
             )
             .map_err(|_| CorrespondenceBundleVerificationError::DrawReceiptMismatch)?;
+            collision_registry
+                .register(&receipt.draw)
+                .map_err(|_| CorrespondenceBundleVerificationError::AddressCollision)?;
         }
     }
     Ok(())
+}
+
+fn find_unique_draw<'a>(
+    draws: &'a [CorrespondenceDrawReceipt],
+    branch_id: &crate::StableId,
+    event_id: &crate::StableId,
+) -> Option<&'a CorrespondenceDrawReceipt> {
+    let mut matches = draws.iter().filter(|receipt| {
+        &receipt.branch_id == branch_id && &receipt.event_id == event_id
+    });
+    let found = matches.next()?;
+    if matches.next().is_some() {
+        None
+    } else {
+        Some(found)
+    }
+}
+
+fn expected_pair_sharing(
+    disposition: &crate::coupling_projection::CausalDisposition,
+    unknown_presence: bool,
+) -> SharingStatus {
+    if unknown_presence {
+        return SharingStatus::NotIdentified;
+    }
+    match disposition {
+        crate::coupling_projection::CausalDisposition::SharedInvariant { .. } => {
+            SharingStatus::SharedInvariant
+        }
+        crate::coupling_projection::CausalDisposition::BranchSpecific => {
+            SharingStatus::BranchSpecific
+        }
+        crate::coupling_projection::CausalDisposition::SensitivityOnly { .. } => {
+            SharingStatus::SensitivityOnly
+        }
+        crate::coupling_projection::CausalDisposition::NotIdentified => {
+            SharingStatus::NotIdentified
+        }
+        crate::coupling_projection::CausalDisposition::Incomplete => SharingStatus::Incomplete,
+    }
 }
 
 fn hash_len(hasher: &mut blake3::Hasher, length: usize) {
@@ -915,6 +1062,20 @@ mod tests {
         assert_eq!(
             verify_correspondence_draw_bundle(&seed, &changed_draw),
             Err(CorrespondenceBundleVerificationError::DrawReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn bundle_verifier_rejects_causal_rule_label_mismatch_after_rehash() {
+        let seed = [0x34; 32];
+        let plan = correspondence_plan();
+        let mut bundle = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
+        bundle.hypotheses[0].causal_rules[0].disposition = CausalDisposition::BranchSpecific;
+        // Recomputing an unkeyed digest cannot legitimize contradictory metadata.
+        bundle.bundle_digest = correspondence_draw_bundle_digest(&bundle);
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &bundle),
+            Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)
         );
     }
 
