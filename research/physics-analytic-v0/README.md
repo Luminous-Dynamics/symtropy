@@ -55,7 +55,7 @@ The 4D rotation tests already in integrator.rs test a one-step exponential-map r
 ## Industry comparison and benchmark framing
 
 - MuJoCo 3.17.0 provides a native deterministic batch API; its changelog notes bit-identical batch results to a plain sequential loop across thread counts. Compare throughput only after matching each model's dynamics and observation contract.
-- Rapier 0.35.3 is a current Rust reference with SIMD solver work and continuing multibody/contact fixes. Pin the precise crate version, feature flags and solver parameters for each comparison.
+- Rapier 0.36.1 (4 Oct 2026) is the latest tagged stable Rust reference found. Rapier 0.36.0 added soft bodies and an experimental FEM solver; 0.36.1 added reduced-coordinate multibody APIs. Dimforge's Q3 report separately describes intra-island parallelism, persistent graph coloring and parallel broadphase on its optimized development revision. Pin the exact crate tag or development commit, feature flags and solver parameters for every comparison.
 - Box2D 3.2 (18 Oct 2026) reports about 3x performance over 3.1 from a bundle of contact recycling, solver refinement, AVX2 dispatch and broadphase changes. Its 2D workload is not directly comparable to Symtropy 3D; the lesson is to isolate each optimization and measure scene-family effects.
 - ASME V&V 20 (2009, reaffirmed 2021) frames validation accuracy at specified points using both numerical-solution and experimental-data uncertainty. Preserve that distinction when physical test data is introduced.
 
