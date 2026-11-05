@@ -528,11 +528,15 @@ fn validate_evidence_records(case: &ServiceChainCase) -> Result<(), ValidationEr
         {
             return Err(ValidationError::InvalidWindow("evidence.covered_window"));
         }
-        if evidence.covered_capacity_windows.as_ref().is_some_and(|windows| {
-            windows
-                .iter()
-                .any(|item| !item.window.is_valid() || item.capacity == 0)
-        }) {
+        if evidence
+            .covered_capacity_windows
+            .as_ref()
+            .is_some_and(|windows| {
+                windows
+                    .iter()
+                    .any(|item| !item.window.is_valid() || item.capacity == 0)
+            })
+        {
             return Err(ValidationError::InvalidWindow(
                 "evidence.covered_capacity_windows",
             ));
@@ -1499,7 +1503,10 @@ mod tests {
     fn demand_endpoints_must_match_the_frozen_route() {
         let mut case = valid_case();
         case.demand.destination_node_id = "berth".into();
-        assert_eq!(validate_case(&case), Err(ValidationError::DemandRouteMismatch));
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::DemandRouteMismatch)
+        );
     }
 
     #[test]
