@@ -105,8 +105,13 @@
             "pcc_id",
             "voltage_kv",
             "i_sc_rms_a",
+            "i_sc_method_id",
+            "i_sc_source_artifact_sha256",
             "i_l_rms_a",
-            "i_l_definition_id"
+            "i_l_definition_id",
+            "i_l_window_seconds",
+            "i_l_reference_period_id",
+            "i_l_source_artifact_sha256"
           ],
           "properties": {
             "pcc_id": {
@@ -128,6 +133,26 @@
             "i_l_definition_id": {
               "type": "string",
               "minLength": 1
+            },
+            "i_sc_method_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "i_sc_source_artifact_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "i_l_window_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "i_l_reference_period_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "i_l_source_artifact_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
