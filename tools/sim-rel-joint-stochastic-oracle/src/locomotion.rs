@@ -1421,6 +1421,53 @@ mod tests {
         }
     }
 
+    fn contract_test_physical_state() -> PhysicalState {
+        let leg = leg_mechanics(
+            GaitPhase::Stance,
+            ContactState::Supported,
+            LoadState::Nominal,
+            JointPositionBin::Neutral,
+            JointVelocityBin::Stationary,
+            ActuatorForceBin::Nominal,
+        );
+        PhysicalState {
+            id: "contract-test".to_owned(),
+            behavioral_context: BehavioralContext::Walking,
+            gait_phase: GaitPhase::Stance,
+            contact_state: ContactState::Supported,
+            load_state: LoadState::Nominal,
+            carryover: PhysicalCarryover::Baseline,
+            legs: [leg; 6],
+        }
+    }
+
+    fn contract_test_sensor_state() -> SensorState {
+        SensorState {
+            id: "contract-test-sensor".to_owned(),
+            position_afferent: ChannelState::Intact,
+            movement_afferent: ChannelState::Intact,
+            vibration_afferent: ChannelState::Intact,
+            contact_feedback: ChannelState::Intact,
+            acquisition: AcquisitionState::Calibrated,
+            presynaptic_movement_inhibition: [
+                PresynapticMovementInhibition::Disinhibited;
+                6
+            ],
+        }
+    }
+
+    fn contract_test_contact_action(target_leg: Option<LegId>) -> InterventionAction {
+        InterventionAction {
+            id: "contract-test-contact-load".to_owned(),
+            kind: InterventionKind::ContactLoadPerturbation,
+            protocol_id: "contract-test-contact-protocol".to_owned(),
+            protocol_source_manifest_id: "synthetic-protocols".to_owned(),
+            cost_units: 1,
+            target_leg,
+            presynaptic_inhibition_target: None,
+        }
+    }
+
     fn sensor_states() -> Vec<SensorState> {
         let channels = [ChannelState::Intact, ChannelState::Gated];
         let vibration = [ChannelState::Intact, ChannelState::Attenuated];
