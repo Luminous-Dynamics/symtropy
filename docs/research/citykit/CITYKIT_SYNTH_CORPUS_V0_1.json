@@ -52,7 +52,8 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": []
       },
       "expected": {
         "disposition": "FeasibleForSyntheticCase",
@@ -83,7 +84,8 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": []
       },
       "expected": {
         "disposition": "Infeasible",
@@ -118,7 +120,8 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": []
       },
       "expected": {
         "disposition": "Unknown",
@@ -155,7 +158,8 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": []
       },
       "expected": {
         "disposition": "Unknown",
@@ -190,7 +194,8 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": []
       },
       "expected": {
         "disposition": "FeasibleForSyntheticCase",
@@ -221,7 +226,8 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": []
       },
       "expected": {
         "disposition": "Infeasible",
@@ -278,7 +284,10 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": [
+          "panel-production"
+        ]
       },
       "expected": {
         "disposition": "FeasibleForSyntheticCase",
@@ -336,7 +345,10 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": [
+          "panel-production"
+        ]
       },
       "expected": {
         "disposition": "Infeasible",
@@ -395,7 +407,10 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": [
+          "panel-production"
+        ]
       },
       "expected": {
         "disposition": "FeasibleForSyntheticCase",
@@ -449,7 +464,11 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": [
+          "capability-a",
+          "capability-b"
+        ]
       },
       "expected": {
         "disposition": "Infeasible",
@@ -495,7 +514,10 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": [
+          "panel-production"
+        ]
       },
       "expected": {
         "disposition": "FeasibleForSyntheticCase",
@@ -574,7 +596,11 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": [
+          "replacement-bracket",
+          "robot-drive-unit"
+        ]
       },
       "expected": {
         "disposition": "FeasibleForSyntheticCase",
@@ -634,7 +660,8 @@
           }
         ],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": []
       },
       "expected": {
         "disposition": "Infeasible",
@@ -712,7 +739,10 @@
             "target_id": "supplier-a"
           }
         ],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": [
+          "panel-production"
+        ]
       },
       "expected": {
         "disposition": "FeasibleForSyntheticCase",
@@ -764,7 +794,10 @@
             "target_id": "supplier-a"
           }
         ],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": [
+          "panel-stock"
+        ]
       },
       "expected": {
         "disposition": "Infeasible",
@@ -801,7 +834,8 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": []
       },
       "expected": {
         "disposition": "Unknown",
@@ -846,7 +880,10 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": [
+          "panel-stock"
+        ]
       },
       "expected": {
         "disposition": "Unknown",
@@ -886,7 +923,8 @@
         "resource_capacities": [],
         "work_packages": [],
         "disruptions": [],
-        "evidence": []
+        "evidence": [],
+        "target_capabilities": []
       },
       "expected": {
         "disposition": "Unsupported",
