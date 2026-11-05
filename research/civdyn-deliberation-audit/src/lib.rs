@@ -484,9 +484,11 @@ pub struct SessionAudit {
     pub consensus_non_endorsement_count: usize,
     pub consensus_unrecorded_count: usize,
     pub consensus_rule_minimum_fraction: Option<f64>,
-    /// Assessed only when the facilitator declares consensus, a rule exists,
-    /// and every participant's endorsement is recorded.
+    /// Assessed from the endorsement record whenever a rule exists and all endorsements are known,
+    /// independent of whether the facilitator declares consensus.
     pub consensus_rule_met: Option<bool>,
+    /// True only when the facilitator declares consensus but the recorded endorsements fail the rule.
+    pub consensus_claim_contradicted_by_recorded_non_endorsement: bool,
     pub mean_satisfaction_before: Option<f64>,
     pub mean_satisfaction_after: Option<f64>,
     pub mean_trust_before: Option<f64>,
@@ -634,15 +636,14 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         .count();
     let consensus_rule_minimum_fraction =
         session.consensus_rule.map(ConsensusRule::minimum_fraction);
-    let consensus_rule_met = match (
-        session.facilitator_declares_consensus,
-        session.consensus_rule,
-    ) {
-        (true, Some(rule)) if consensus_unrecorded_count == 0 => Some(
+    let consensus_rule_met = match session.consensus_rule {
+        Some(rule) if consensus_unrecorded_count == 0 => Some(
             consensus_endorsement_count as f64 / member_count as f64 >= rule.minimum_fraction(),
         ),
         _ => None,
     };
+    let consensus_claim_contradicted_by_recorded_non_endorsement =
+        session.facilitator_declares_consensus && consensus_rule_met == Some(false);
 
     let total_speaking_time = speaking_time_by_member.iter().sum::<u64>();
     let members = session
@@ -704,6 +705,7 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         consensus_unrecorded_count,
         consensus_rule_minimum_fraction,
         consensus_rule_met,
+        consensus_claim_contradicted_by_recorded_non_endorsement,
         mean_satisfaction_before: mean_optional(
             session
                 .participants
@@ -1113,6 +1115,18 @@ mod tests {
         assert!(audit.modal_top_preference_share < 1.0);
         assert_eq!(audit.consensus_non_endorsement_count, 0);
         assert_eq!(audit.consensus_rule_met, Some(true));
+        assert!(!audit.consensus_claim_contradicted_by_recorded_non_endorsement);
+    }
+
+    #[test]
+    fn consensus_rule_is_measured_without_a_facilitator_declaration() {
+        let mut session = base_session();
+        session.participants[2].consensus_endorsement = Some(false);
+        session.facilitator_declares_consensus = false;
+        let audit = audit_session(&session).unwrap();
+
+        assert_eq!(audit.consensus_rule_met, Some(false));
+        assert!(!audit.consensus_claim_contradicted_by_recorded_non_endorsement);
     }
 
     #[test]
@@ -1134,6 +1148,7 @@ mod tests {
 
         assert_eq!(audit.consensus_unrecorded_count, 1);
         assert_eq!(audit.consensus_rule_met, None);
+        assert!(!audit.consensus_claim_contradicted_by_recorded_non_endorsement);
     }
 
     #[test]
