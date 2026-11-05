@@ -2962,6 +2962,55 @@ mod tests {
     }
 
     #[test]
+    fn physical_state_has_six_independent_leg_mechanical_records() {
+        let mut physical = contract_test_physical_state();
+        physical.legs[LegId::FrontLeft.index()].joint_position = JointPositionBin::Extended;
+        physical.legs[LegId::FrontRight.index()].joint_position = JointPositionBin::Flexed;
+        assert_eq!(physical.legs.len(), 6);
+        assert_ne!(
+            physical.legs[LegId::FrontLeft.index()],
+            physical.legs[LegId::FrontRight.index()]
+        );
+    }
+
+    #[test]
+    fn contact_load_action_accepts_one_leg_and_rejects_cross_leg_leakage() {
+        let current = contract_test_physical_state();
+        let sensor = contract_test_sensor_state();
+        let action = contract_test_contact_action(Some(LegId::FrontLeft));
+        let mut one_leg = current.clone();
+        one_leg.legs[LegId::FrontLeft.index()].contact_state = ContactState::Slipping;
+        one_leg.legs[LegId::FrontLeft.index()].load_state = LoadState::Elevated;
+        assert!(validate_action_transition_semantics(
+            &action, &current, &sensor, &one_leg, &sensor
+        ).is_ok());
+
+        let mut two_legs = one_leg.clone();
+        two_legs.legs[LegId::FrontRight.index()].contact_state = ContactState::Slipping;
+        two_legs.legs[LegId::FrontRight.index()].load_state = LoadState::Elevated;
+        assert!(matches!(
+            validate_action_transition_semantics(
+                &action, &current, &sensor, &two_legs, &sensor
+            ),
+            Err(AdapterError::ActionSemanticsViolation { action_id, .. })
+                if action_id == "contract-test-contact-load"
+        ));
+    }
+
+    #[test]
+    fn contact_load_action_requires_an_explicit_target_leg() {
+        let current = contract_test_physical_state();
+        let sensor = contract_test_sensor_state();
+        let mut next = current.clone();
+        next.legs[LegId::FrontLeft.index()].contact_state = ContactState::Slipping;
+        let action = contract_test_contact_action(None);
+        assert!(matches!(
+            validate_action_transition_semantics(&action, &current, &sensor, &next, &sensor),
+            Err(AdapterError::ActionSemanticsViolation { .. })
+        ));
+    }
+
+    #[test]
     fn physical_load_perturbation_does_not_reset_sensor_drift() {
         let compiled = spec().compile().unwrap();
         let sensor = compiled
