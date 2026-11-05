@@ -1,0 +1,225 @@
+name: ECON-04C Reservation Reconciliation Qualification v0.2
+
+on:
+  push:
+    branches:
+      - "ci/econ-reservation-reconciliation-qualification-v0.2"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: econ-reservation-reconciliation-v02-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PRODUCT_HEAD: 8f7c996d4e59018b591e0703ea24f873748d7e07
+  ECON04B_PARENT: c7070735e836cffa1fa7561fc4e4bd0b67b979d9
+
+jobs:
+  qualify:
+    name: Frozen ECON-04C v0.2 / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact subject and ancestry
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${ECON04B_PARENT}" "${PRODUCT_HEAD}"
+          count="$(git rev-list --count "${ECON04B_PARENT}..${PRODUCT_HEAD}")"
+          echo "econ04c_commits_above_parent=${count}"
+          test "${count}" = "10"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-core/src/economic_resolution.rs \
+            crates/core/symtropy-core/src/economic_partition.rs \
+            crates/core/symtropy-core/src/economic_repartition.rs \
+            crates/core/symtropy-core/src/stock_reservation.rs \
+            crates/core/symtropy-core/src/reservation_reconciliation.rs \
+            crates/core/symtropy-core/src/lib.rs \
+            crates/core/symtropy-core/tests/econ_stock_reservation.rs \
+            crates/core/symtropy-core/tests/econ_reservation_reconciliation.rs \
+            crates/core/symtropy-core/ECONOMIC_STOCK_RESERVATION_V01.md \
+            crates/core/symtropy-core/ECONOMIC_RESERVATION_RECONCILIATION_V01.md \
+            > "${RUNNER_TEMP}/econ04c-v02-source-sha256.txt"
+          cat "${RUNNER_TEMP}/econ04c-v02-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check symtropy-core all targets
+        id: check
+        run: cargo check -p symtropy-core --locked --all-targets
+
+      - name: Run ECON-04C public reconciliation corpus
+        id: reservation_reconciliation
+        run: cargo test -p symtropy-core --locked --test econ_reservation_reconciliation
+
+      - name: Run ECON-04B reservation regressions
+        id: reservation_regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-core --locked --lib stock_reservation::tests
+          cargo test -p symtropy-core --locked --test econ_stock_reservation
+
+      - name: Run ECON-04 commodity regressions
+        id: commodity_regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-core --locked --lib commodity::tests
+          cargo test -p symtropy-core --locked --test econ_commodity_identity
+
+      - name: Run prerequisite ECON regressions
+        id: econ_regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-core --locked --lib economic_repartition::tests
+          cargo test -p symtropy-core --locked --lib economic_partition::tests
+          cargo test -p symtropy-core --locked --lib economic_resolution::tests
+          cargo test -p symtropy-core --locked --lib settlement::tests
+          cargo test -p symtropy-core --locked --lib financial::tests
+          cargo test -p symtropy-core --locked --lib economic::tests
+
+      - name: Run complete symtropy-core library regression
+        id: core_tests
+        run: cargo test -p symtropy-core --locked --lib
+
+      - name: Run strict symtropy-core Clippy
+        id: clippy
+        run: cargo clippy -p symtropy-core --locked --all-targets --all-features -- -D warnings
+
+      - name: Audit reconciliation authority surface
+        id: authority_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=crates/core/symtropy-core/src/reservation_reconciliation.rs
+          contract=crates/core/symtropy-core/ECONOMIC_RESERVATION_RECONCILIATION_V01.md
+
+          grep -Fq 'pub struct ReservationConservationManifest' "${source}"
+          grep -Fq 'pub struct ReservationResolutionBinding' "${source}"
+          grep -Fq 'economic_manifest: EconomicConservationManifest' "${source}"
+          grep -Fq 'validate_stock_matches_snapshot' "${source}"
+          grep -Fq 'StockManifestMismatch' "${source}"
+          grep -Fq 'ReservedLotDetailUnavailable' "${source}"
+          grep -Fq 'ResolutionSnapshotIdentityReused' "${source}"
+          grep -Fq 'ResolutionGenerationNotForward' "${source}"
+          grep -Fq 'EconomicManifestChangedDuringResolution' "${source}"
+          grep -Fq 'ReservationChangedDuringResolution' "${source}"
+          grep -Fq 'RepartitionSourceSnapshotMismatch' "${source}"
+          grep -Fq 'economic_manifest_before == economic_manifest_after' "${contract}"
+          grep -Fq 'reservation_manifest_before == reservation_manifest_after' "${contract}"
+          grep -Fq 'target.generation > source.generation' "${contract}"
+          grep -Fq 'source_snapshot_before == source_snapshot_after' "${contract}"
+          grep -Fq 'No independent reservation-placement policy exists in v0.1.' "${contract}"
+
+          if grep -Eq '\b(f32|f64)\b' "${source}"; then
+            echo 'floating-point type found in reconciliation authority' >&2
+            exit 1
+          fi
+          if grep -Eq '\.(reserve|release|release_partial|transact|deplete|split|transfer_ownership|transfer_custody|relocate)\(' "${source}"; then
+            echo 'reconciliation authority directly mutates reservation or stock state' >&2
+            exit 1
+          fi
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT: ${{ steps.subject.outcome }}
+          SOURCE: ${{ steps.source.outcome }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          RECON: ${{ steps.reservation_reconciliation.outcome }}
+          RESERVATION: ${{ steps.reservation_regressions.outcome }}
+          COMMODITY: ${{ steps.commodity_regressions.outcome }}
+          ECON: ${{ steps.econ_regressions.outcome }}
+          CORE: ${{ steps.core_tests.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          AUDIT: ${{ steps.authority_audit.outcome }}
+          POSTFLIGHT: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/econ04c-reservation-reconciliation-v02.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+          keys = ["SUBJECT","SOURCE","FMT","CHECK","RECON","RESERVATION","COMMODITY","ECON","CORE","CLIPPY","AUDIT","POSTFLIGHT"]
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in keys}
+          def version(cmd):
+              try: return subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception: return "unavailable"
+          receipt = {
+              "receipt_version": 2,
+              "qualification": "ECON-04C-reservation-reconciliation-v0.1",
+              "helper_revision": "v0.2",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "econ04b_parent": os.environ["ECON04B_PARENT"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "exact reservation and ECON-03 manifest conservation across forward fidelity lineage and same-instant partition placement only; active claims require retained lot detail at coarse resolution; exact stock must match the bound snapshot",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          cp "${RUNNER_TEMP}/econ04c-v02-source-sha256.txt" "${RUNNER_TEMP}/econ04c-v02-source-sha256-evidence.txt" || true
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: econ04c-reservation-reconciliation-v02-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/econ04c-reservation-reconciliation-v02.json
+            ${{ runner.temp }}/econ04c-reservation-reconciliation-v02.json.sha256
+            ${{ runner.temp }}/econ04c-v02-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
