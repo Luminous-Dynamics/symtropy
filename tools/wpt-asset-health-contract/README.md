@@ -18,7 +18,7 @@
 
 The checked-in observation and lifecycle samples are deliberately synthetic and are not industry measurement data.
 
-The asset contract currently has 23 Rust unit tests, including the original schema-subset checks, duplicate `uniqueItems` rejection, unsupported-keyword fail-closed behaviour, impossible calendar-date rejection, ambient min/max consistency and lifecycle outcome/split tests.
+The asset contract currently has 26 Rust unit tests, including the original schema-subset checks, duplicate `uniqueItems` rejection, unsupported-keyword fail-closed behaviour, impossible calendar-date rejection, ambient min/max consistency and lifecycle outcome/split tests.
 
 ## Important limitation
 
@@ -38,3 +38,6 @@ The validator also checks `asset-lifecycle-outcome.schema.json` using `validate_
 The evaluator recomputes duration from fixed-format UTC start/end timestamps and rejects mismatches. It rejects duplicate assets for this first-event estimand and rejects leakage of asset, segment, material-lot, installation, route or environmental-campaign groups across TRAIN/CALIBRATION/TEST splits. Repeated observations are not independent survival subjects.
 
 The included lifecycle fixture is synthetic and contains one target failure, one right-censored record and one competing event. It is not an observed pavement-lifetime dataset. The custom date parser deliberately supports only fixed UTC `YYYY-MM-DDTHH:MM:SSZ` timestamps with seconds 00–59; it is not a general RFC 3339 parser.
+
+
+Lifecycle evidence provenance is also evidence-class aware: MEASURED outcomes require one or more source-record IDs and a raw artifact SHA-256 digest; PUBLISHED_MEASURED outcomes require source-record IDs and a non-empty source locator. A date and event code alone cannot promote an outcome into measured evidence. The schema-subset integer predicate follows JSON Schema's mathematical semantics and accepts integral values such as `1.0`, while rejecting fractional values such as `1.5`.
