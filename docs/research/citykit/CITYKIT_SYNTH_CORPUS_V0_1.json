@@ -894,9 +894,7 @@
         "import_dependent_targets": [
           "panel-stock"
         ],
-        "unreachable_targets": [
-          "panel-stock"
-        ],
+        "unreachable_targets": [],
         "unknown_evidence": [
           "certified-supplier"
         ]
