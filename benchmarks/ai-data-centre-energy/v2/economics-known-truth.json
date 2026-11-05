@@ -64,8 +64,9 @@
     }
   ],
   "expected_comparison": {
-    "cheapest_eligible_alternative": "cooling-thermal",
-    "compute_break_even_opportunity_cost_per_call_usd": 38,
+    "cheapest_eligible_alternative_by_cost_per_reliable_mwh": "cooling-thermal",
+    "cooling_thermal_cost_per_reliable_delivered_mwh_usd": 133.4780249593055,
+    "compute_break_even_opportunity_cost_per_call_usd": 22.650027129679913,
     "compute_opportunity_cost_per_call_usd": 250,
     "compute_is_least_cost": false
   },
