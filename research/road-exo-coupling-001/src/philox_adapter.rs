@@ -1143,6 +1143,9 @@ mod tests {
         let plan = correspondence_plan();
         let resolved = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
 
+        assert_eq!(resolved.left_events, plan.left_events);
+        assert_eq!(resolved.right_events, plan.right_events);
+        assert_eq!(resolved.event_scopes, plan.event_scopes);
         assert_eq!(resolved.universe_status, plan.universe_status);
         assert_eq!(resolved.hypothesis_set_status, plan.hypothesis_set_status);
         assert_eq!(resolved.hypotheses.len(), plan.hypotheses.len());
@@ -1234,6 +1237,60 @@ mod tests {
         assert_eq!(
             verify_correspondence_draw_bundle(&seed, &changed_draw),
             Err(CorrespondenceBundleVerificationError::DrawReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn semantic_verifier_rejects_rehashed_scope_address_and_unclassified_event_mutations() {
+        let seed = [0x4c; 32];
+        let plan = correspondence_plan();
+        let original = resolve_correspondence_plan(&seed, &plan).expect("fixture draw bundle");
+
+        // Changing a structured scope and recomputing the outer digest must not
+        // authorize the old addresses for the changed experiment input.
+        let mut changed_scope = original.clone();
+        changed_scope.event_scopes[0].tick += 1;
+        changed_scope.bundle_digest = correspondence_draw_bundle_digest(&changed_scope);
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &changed_scope),
+            Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)
+        );
+
+        // Replacing address bytes and correctly regenerating the Philox receipt
+        // still fails because the bytes do not follow from the retained projection.
+        let mut changed_address = original.clone();
+        let canonical_address = {
+            let receipt = &mut changed_address.hypotheses[0].draws[0];
+            receipt.canonical_address.push(0xff);
+            receipt.canonical_address.clone()
+        };
+        changed_address.hypotheses[0].draws[0].draw =
+            resolve_correspondence_address(&seed, &canonical_address);
+        changed_address.bundle_digest = correspondence_draw_bundle_digest(&changed_address);
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &changed_address),
+            Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)
+        );
+
+        // The full candidate universe is retained. An event not classified by
+        // every correspondence hypothesis must fail the reconstructed assessment.
+        let mut unclassified = original;
+        unclassified.left_events.push(event(
+            "L2",
+            "ped-002",
+            "slot-2",
+            EventPresence::Observed {
+                evidence_ref: id("new-left-event-evidence"),
+            },
+        ));
+        unclassified.event_scopes.push(event_scope("continue", "L2"));
+        unclassified.event_scopes.sort_by(|left, right| {
+            (&left.branch_id, &left.event_id).cmp(&(&right.branch_id, &right.event_id))
+        });
+        unclassified.bundle_digest = correspondence_draw_bundle_digest(&unclassified);
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &unclassified),
+            Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)
         );
     }
 
