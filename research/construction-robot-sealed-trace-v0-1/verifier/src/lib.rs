@@ -1193,4 +1193,3 @@ mod tests {
         assert!(decode_base64("YR==").is_err());
     }
 }
-
