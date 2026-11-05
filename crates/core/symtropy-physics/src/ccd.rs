@@ -117,7 +117,7 @@ pub fn sphere_sphere<const D: usize>(
 
     let clearance_squared = radius_squared - closest_distance_squared;
     let roundoff_tolerance =
-        32.0 * f64::EPSILON * radius_squared.abs().max(closest_distance_squared.abs()).max(1.0);
+        32.0 * f64::EPSILON * radius_squared.abs().max(closest_distance_squared.abs()).max(f64::MIN_POSITIVE);
     if clearance_squared < -roundoff_tolerance {
         return None;
     }
@@ -348,14 +348,14 @@ mod tests {
 
     #[test]
     fn sphere_halfspace_is_invariant_to_plane_normal_scaling() {
-        let pos = SVector::from([0.0, 10.0, 0.0]);
+        let pos = SVector::from([0.0, 12.0, 0.0]);
         let velocity = SVector::from([0.0, -100.0, 0.0]);
         let unit_normal = SVector::from([0.0, 1.0, 0.0]);
         let scaled_normal = SVector::from([0.0, 7.0, 0.0]);
 
-        let unit_hit = sphere_halfspace(&pos, &velocity, 0.5, &unit_normal, 0.0, 1.0).unwrap();
+        let unit_hit = sphere_halfspace(&pos, &velocity, 0.5, &unit_normal, 2.0, 1.0).unwrap();
         let scaled_hit =
-            sphere_halfspace(&pos, &velocity, 0.5, &scaled_normal, 0.0, 1.0).unwrap();
+            sphere_halfspace(&pos, &velocity, 0.5, &scaled_normal, 14.0, 1.0).unwrap();
 
         assert!((unit_hit.toi - scaled_hit.toi).abs() < 1e-12);
         assert!((unit_hit.point - scaled_hit.point).norm() < 1e-12);
