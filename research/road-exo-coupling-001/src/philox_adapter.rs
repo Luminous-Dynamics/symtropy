@@ -10,9 +10,11 @@ use rand_philox::Philox;
 
 use crate::DrawAddress;
 use crate::coupling_projection::{
-    CorrespondenceAddressPlan, HypothesisAddressPlan, PlanCompleteness, PlannedAddress,
-    PlannedPresence, SharingStatus,
+    project_correspondence_addresses, CorrespondenceAddressPlan, EventDrawScope,
+    HypothesisAddressPlan, PairCausalRule, PlanCompleteness, PlannedAddress, PlannedPresence,
+    SharingStatus,
 };
+use crate::correspondence::CorrespondenceSet;
 
 pub const ADDRESS_SCHEMA_ID: &str = "symtropy.road-exo-coupling.draw-address.v0.1";
 pub const DERIVATION_CONTEXT: &str =
@@ -241,6 +243,12 @@ pub struct CorrespondenceDrawBundle {
     pub left_branch: crate::StableId,
     pub right_branch: crate::StableId,
     pub completeness: PlanCompleteness,
+    /// Exact candidate universe and all correspondence hypotheses used for projection.
+    pub source_correspondence: CorrespondenceSet,
+    /// Exact canonical event scopes used for projection.
+    pub source_event_scopes: Vec<EventDrawScope>,
+    /// Exact caller-supplied causal source dispositions used for projection.
+    pub source_pair_rules: Vec<PairCausalRule>,
     /// Original candidate-universe evidence reference/status from correspondence input.
     pub universe_status: crate::correspondence::CandidateUniverseStatus,
     /// Original hypothesis-search evidence reference/status from correspondence input.
@@ -256,6 +264,7 @@ const CORRESPONDENCE_DRAW_BUNDLE_DERIVATION_CONTEXT: &str =
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CorrespondenceBundleVerificationError {
     BundleDigestMismatch,
+    SourceProjectionMismatch,
     HypothesisMetadataMismatch,
     DrawReceiptMismatch,
     AddressCollision,
@@ -272,6 +281,46 @@ pub fn correspondence_draw_bundle_digest(bundle: &CorrespondenceDrawBundle) -> [
     hash_stable_id(&mut hasher, &bundle.left_branch);
     hash_stable_id(&mut hasher, &bundle.right_branch);
     hash_completeness(&mut hasher, bundle.completeness);
+    match bundle.source_correspondence.canonical_bytes() {
+        Ok(bytes) => {
+            hasher.update(&[1]);
+            hash_bytes(&mut hasher, &bytes);
+        }
+        Err(_) => {
+            // Invalid source input is rejected by verification; retain a typed
+            // marker here rather than panic while calculating a diagnostic digest.
+            hasher.update(&[0]);
+        }
+    }
+    let mut source_scopes = bundle.source_event_scopes.iter().collect::<Vec<_>>();
+    source_scopes.sort_by(|a, b| {
+        (&a.branch_id, &a.event_id).cmp(&(&b.branch_id, &b.event_id))
+    });
+    hash_len(&mut hasher, source_scopes.len());
+    for scope in source_scopes {
+        hash_stable_id(&mut hasher, &scope.world_id);
+        hash_stable_id(&mut hasher, &scope.branch_id);
+        hash_stable_id(&mut hasher, &scope.event_id);
+        hasher.update(&scope.tick.to_le_bytes());
+        hash_stable_id(&mut hasher, &scope.event_kind);
+        hash_stable_id(&mut hasher, &scope.source.source_id);
+        hash_stable_id(&mut hasher, &scope.source.mechanism_id);
+        hash_stable_id(&mut hasher, &scope.source.mechanism_version);
+        hash_stable_id(&mut hasher, &scope.source.draw_component);
+    }
+    let mut source_rules = bundle.source_pair_rules.iter().collect::<Vec<_>>();
+    source_rules.sort_by(|a, b| {
+        (&a.hypothesis_id, &a.left_event, &a.right_event, a.basis).cmp(&(
+            &b.hypothesis_id,
+            &b.left_event,
+            &b.right_event,
+            b.basis,
+        ))
+    });
+    hash_len(&mut hasher, source_rules.len());
+    for rule in source_rules {
+        hash_pair_causal_rule(&mut hasher, rule);
+    }
     hash_universe_status(&mut hasher, &bundle.universe_status);
     hash_hypothesis_set_status(&mut hasher, &bundle.hypothesis_set_status);
     hash_len(&mut hasher, bundle.hypotheses.len());
@@ -328,6 +377,21 @@ pub fn verify_correspondence_draw_bundle(
             .any(|hypothesis| hypothesis.completeness == PlanCompleteness::Incomplete))
     {
         return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+    }
+
+    // Re-run the full semantic projection from retained source inputs before
+    // accepting any draw. A self-consistent Philox receipt is insufficient if
+    // its canonical address was not produced by the declared event/cause model.
+    let projected = project_correspondence_addresses(
+        &bundle.source_correspondence,
+        &bundle.source_event_scopes,
+        &bundle.source_pair_rules,
+    )
+    .map_err(|_| CorrespondenceBundleVerificationError::SourceProjectionMismatch)?;
+    let expected_bundle = resolve_correspondence_plan(experiment_seed, &projected)
+        .map_err(|_| CorrespondenceBundleVerificationError::AddressCollision)?;
+    if expected_bundle != *bundle {
+        return Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch);
     }
 
     let mut collision_registry = AddressCollisionRegistry::default();
@@ -694,6 +758,9 @@ pub fn resolve_correspondence_plan(
         left_branch: plan.left_branch.clone(),
         right_branch: plan.right_branch.clone(),
         completeness: plan.completeness,
+        source_correspondence: plan.source_correspondence.clone(),
+        source_event_scopes: plan.source_event_scopes.clone(),
+        source_pair_rules: plan.source_pair_rules.clone(),
         universe_status: plan.universe_status.clone(),
         hypothesis_set_status: plan.hypothesis_set_status.clone(),
         hypotheses,
