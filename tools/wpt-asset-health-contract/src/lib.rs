@@ -462,6 +462,8 @@ mod tests {
         let (schema, mut example, _) = bundled_fixtures().unwrap();
         example["evidence_kind"] = Value::String("MEASURED".into());
         example["quality_flags"] = Value::Array(vec![]);
+        example["provenance"]["instrument_ids"] =
+            Value::Array(vec![Value::String("reference-meter-01".into())]);
         example["provenance"]["calibration_receipt_ids"] = Value::Array(vec![]);
         assert!(
             validate_observation(&schema, &example)
