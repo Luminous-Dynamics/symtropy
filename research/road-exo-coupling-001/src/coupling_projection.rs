@@ -9,8 +9,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::StableId;
 use super::correspondence::{
-    CandidateUniverseStatus, CorrespondenceDisposition, CorrespondenceError, CorrespondenceSet,
-    EventOccurrence, EventPair, EventPresence, HypothesisSetStatus, IdentityBasis, UnmatchedReason,
+    CandidateUniverseStatus, CorrespondenceDisposition, CorrespondenceError, CorrespondenceHypothesis,
+    CorrespondenceSet, EventOccurrence, EventPair, EventPresence, HypothesisSetStatus, IdentityBasis,
+    UnmatchedReason,
 };
 
 const DOMAIN: &[u8] = b"symtropy.road-correspondence-coupling.address.v0.2\0";
@@ -103,6 +104,8 @@ pub enum PlanCompleteness {
 pub struct HypothesisAddressPlan {
     pub hypothesis_id: StableId,
     pub completeness: PlanCompleteness,
+    /// Exact correspondence map and its justification/unmatched-event evidence.
+    pub correspondence: CorrespondenceHypothesis,
     pub addresses: Vec<PlannedAddress>,
 }
 
@@ -331,6 +334,7 @@ pub fn project_correspondence_addresses(
             } else {
                 PlanCompleteness::Incomplete
             },
+            correspondence: hypothesis.clone(),
             addresses,
         });
     }
