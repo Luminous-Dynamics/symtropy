@@ -838,7 +838,10 @@ mod tests {
     #[test]
     fn rejects_unsorted_or_duplicate_spectral_lines() {
         let mut run = fixture();
-        run["channels"][0]["lines"][2]["frequency_hz"] = Value::from(140.0);
+        run["channels"][0]["lines"]
+            .as_array_mut()
+            .unwrap()
+            .swap(5, 7);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
