@@ -39,6 +39,7 @@
         "assessment_boundary",
         "network_type",
         "phase_count",
+        "wire_count",
         "grid_frequency_hz",
         "nominal_voltage_v",
         "rated_input_current_a_per_phase",
@@ -159,6 +160,14 @@
         "nominal_voltage_v": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "wire_count": {
+          "enum": [
+            2,
+            3,
+            4
+          ],
+          "description": "Number of current-carrying conductors in the declared system; IEC 61000-3-12 scope permits 2/3-wire single phase and 3/4-wire three phase."
         }
       },
       "description": "A pinned standard edition and system profile. IEC 61000-3-12 edition 2011+AMD1:2021 broad equipment scope (public LV, >16 A and <=75 A/phase, <=240 V single phase or <=690 V three phase) is distinct from its stated limit domain, 230/400 V at 50 Hz."
