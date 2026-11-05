@@ -1,0 +1,83 @@
+# Analytic CCD Qualification V0
+
+This tranche qualifies the swept-sphere query primitives in
+`symtropy-physics::ccd`. It is deliberately a query-level analytic verification
+lane; it does not yet establish full step-loop collision response correctness.
+
+## Geometry contract
+
+- `CcdHit::toi` is measured in seconds and lies within the closed `[0, dt]`
+  interval. It is not a normalized fraction.
+- `sphere_sphere` rejects non-finite position/velocity values, non-finite or
+  negative radii, and non-finite or negative timestep by returning no hit.
+- `sphere_halfspace` accepts a plane equation `n · x = offset`, normalizes
+  both sides of the plane equation, and returns a unit contact normal.
+- Positive scaling of both `n` and `offset` does not alter the represented
+  plane; the TOI/contact point are invariant to such scaling.
+- Zero/non-finite normals, non-finite offsets, invalid radius/timestep and
+  non-finite input state do not manufacture NaN-valued hits.
+
+The existing `Option<CcdHit>` API is retained for compatibility. Invalid input
+and no collision remain indistinguishable at this layer; a future checked API
+may return a typed validation error without breaking existing callers.
+
+## Numerical method
+
+Sphere-sphere TOI solves
+
+```text
+|Δp + Δv t|² = (r_a + r_b)²
+a t² + b t + c = 0
+```
+
+The implementation uses the q-form of the quadratic roots to reduce
+cancellation when the roots have very different magnitudes. It uses fused
+multiply-add for the discriminant expression where supported by Rust's float
+semantics, and rejects non-finite intermediate results.
+
+Sphere-halfspace TOI solves the normalized plane-distance equation:
+
+```text
+n̂ = n / |n|
+d = offset / |n|
+s(t) = n̂ · (p + v t) - d
+t_hit = (s(0) - radius) / (-n̂ · v)
+```
+
+## Analytic acceptance cases
+
+- Head-on sphere-sphere collision with known TOI.
+- Exact grazing/tangent sphere-sphere contact (zero discriminant).
+- TOI exactly at `t = dt` included; the same event just beyond `dt` excluded.
+- Sphere-halfspace closed-form TOI and world-space contact point.
+- Positive scaling invariance of the plane normal representation.
+- Returned plane normal is unit length.
+- Already-penetrating and moving-away cases remain distinct.
+- Negative controls for zero normal, non-finite offset, negative radius,
+  non-finite/negative timestep and invalid sphere parameters.
+
+## Claim boundary
+
+Passing these tests verifies the analytic query primitive for the tested
+geometry. It does not prove:
+- CCD is invoked at the correct place in every PhysicsWorld integration path;
+- a hit is integrated into contact generation/solver response correctly;
+- angular/rotational CCD for arbitrary convex shapes;
+- robust multi-contact behavior, friction or post-impact energy behavior;
+- collision accuracy against physical experiments.
+
+Those belong in end-to-end scenario families in PHYS-VALID-06 #460 and the
+engine-level CCD torture corpus in PHYS-CCD-07 #463.
+
+## External comparisons
+
+Use the same equations, initial states, radii, plane equations, timestep,
+collision event policy and precision for cross-engine comparisons. Compare
+continuous TOI error, contact-point distance error, normal-angle error,
+missed/false-positive rate and latency distributions—not only a Boolean
+collision result. Record the exact engine tag/commit and build flags.
+
+PhysMark is a useful external measurement methodology: it pins upstream engine
+commits, runs identical scenes/timesteps/mass properties, warms and synchronizes
+rollouts, checks physical sanity and reports performance/memory curves. It is a
+comparator protocol, not itself a mathematical oracle.
