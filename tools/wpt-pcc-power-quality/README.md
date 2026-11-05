@@ -51,3 +51,28 @@ All fixture values are synthetic, not a measured installation or a standards-com
 ## Run
 
 `cargo test --locked -p wpt-pcc-power-quality`
+
+
+## IEC 61000-3-12: scope versus limit domain
+
+The evaluator keeps two distinct outcomes:
+
+- `NotApplicable`: outside the equipment/public-LV/current-range scope or the boundary is wrong.
+- `ScopeOnlyLimitDomainNotCovered`: the equipment is in the broad scope (>16 A and <=75 A/phase; single phase up to 240 V or three phase up to 690 V; public low voltage), but the declared nominal system is not the limit system stated for this edition.
+- `ApplicableScopeOnly`: broad scope and the stated 230 V single-phase / 400 V three-phase, 50 Hz limit domain match. This remains scope classification only; no limit comparison is performed.
+
+This distinction follows the IEC catalogue text: although the broad scope describes 50/60 Hz and voltage ranges, the limits in this edition are stated for 230/400 V, 50 Hz systems. A 60 Hz or 480 V case must not silently inherit that limit table.
+
+## Why power class does not determine IEC current applicability
+
+For a balanced three-phase system:
+
+`I = P / (sqrt(3) * V_LL * PF * eta)`.
+
+At 400 V and ideal PF=eta=1, illustrative input currents are:
+- 6 kW: 8.66 A/phase;
+- 11 kW: 15.88 A/phase;
+- 22 kW: 31.75 A/phase;
+- 30 kW: 43.30 A/phase.
+
+Actual current increases as power factor and conversion efficiency fall below one. These arithmetic examples do not establish IEC 61000-3-12 applicability for a device: measured/rated AC input current per phase, public-LV connection, voltage, frequency and intended connection are required. In particular, an 11 kW product may fall on either side of 16 A depending on actual input current and operating conditions.
