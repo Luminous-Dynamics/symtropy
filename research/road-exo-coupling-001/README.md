@@ -61,3 +61,20 @@ The new conformance module deliberately does not:
 - create or generate random values.
 
 Tests cover unique identity, ambiguous actor-vs-slot mappings, directed-role mismatch, conditional event non-realization, missing/unknown events, unmatched events, invalid partitions, duplicate endpoints, incomplete candidate universes and canonical order invariance.
+
+
+## Correspondence-conditioned stochastic address projection (ROAD-CORRESPONDENCE-COUPLING-001)
+
+The new \`coupling_projection\` reference composes the finite correspondence set with causal draw-source dispositions. It is intentionally downstream of #3571 and upstream of the existing #3582 Philox resolver.
+
+Important separation:
+- A correspondence pair says which branch-local events are admitted as counterparts under one declared map.
+- A causal disposition separately says whether a particular stochastic source is invariant, branch-specific, sensitivity-only, not identified, or incomplete.
+- Shared pair addresses require the exact source/mechanism/version/component profile, tick and event-kind to agree across branches.
+- Branch-local addresses are keyed by the branch and local event identity, not by whichever counterpart hypothesis happened to be considered. Thus changing a correspondence hypothesis does not perturb a branch-local random input.
+- An unknown event presence prevents shared addressing. A conditionally non-realized event retains its potential-event address; presence and its condition witness are receipt metadata, not address input.
+- Every admitted correspondence hypothesis produces a separately retained plan. An incomplete event universe or budget-limited hypothesis search marks the overall plan incomplete even when known-hypothesis plans are available.
+
+The output is a typed, versioned v0.2 canonical address byte string. It is not a hash or Philox output. The downstream pinned resolver remains the owner of BLAKE3/Philox. The module has finite fixtures for actor-vs-slot ambiguity, cause-class separation, branch-local invariance, conditional absence, unknown presence, incomplete search, source/version mismatch and sensitivity-only coupling.
+
+No event map is selected as true and no common-random-number variance benefit is assumed.
