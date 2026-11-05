@@ -783,6 +783,42 @@ mod tests {
         assert!(result.equilibrium.normalized_force_residual < 1.0e-12);
         assert!(result.equilibrium.normalized_moment_residual < 1.0e-12);
         assert!(result.equilibrium.normalized_free_dof_residual < 1.0e-12);
+        close(
+            result.equilibrium.moment_reference_x_m,
+            1.0,
+            1.0e-15,
+            "moment reference x",
+        );
+        close(
+            result.equilibrium.moment_reference_y_m,
+            0.5,
+            1.0e-15,
+            "moment reference y",
+        );
+        close(
+            result.equilibrium.characteristic_length_m,
+            5.0_f64.sqrt(),
+            1.0e-15,
+            "characteristic length",
+        );
+        close(
+            result.equilibrium.force_normalization_scale_n,
+            3_000.0,
+            1.0e-8,
+            "force normalization scale",
+        );
+        close(
+            result.equilibrium.moment_normalization_scale_nm,
+            3_000.0 * 5.0_f64.sqrt(),
+            1.0e-8,
+            "moment normalization scale",
+        );
+        close(
+            result.equilibrium.free_dof_backward_error_scale_n,
+            2_000.0,
+            1.0e-6,
+            "free-DOF backward-error scale",
+        );
         assert!(result.claim_ceiling.contains("not member bending/buckling"));
     }
 
