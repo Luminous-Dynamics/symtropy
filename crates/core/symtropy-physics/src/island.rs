@@ -3,9 +3,12 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Island detection: groups connected bodies into independent clusters.
 //!
-//! Bodies connected by contacts or constraints form an "island." Each island
-//! can be solved independently. If ALL bodies in an island are sleeping,
-//! the entire island is skipped — no broadphase, narrowphase, or solver cost.
+//! Dynamic bodies connected by dynamic-dynamic contacts or constraints form
+//! a solver island. Static and kinematic bodies are fixed endpoints: they do
+//! not merge otherwise independent dynamic islands. Kinematics remain wake
+//! sources, so an awake kinematic contact can reactivate a sleeping island.
+//! If all dynamic bodies sleep and no awake kinematic touches the island, the
+//! entire island is skipped by the solver.
 //!
 //! Uses Union-Find (disjoint set) for O(n * alpha(n)) grouping, effectively linear.
 
