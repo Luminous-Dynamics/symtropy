@@ -4,7 +4,7 @@
 //! Synthetic weighted-voting and procedural authority audit sweep.
 
 use civdyn_authority_power::{
-    AuthorityAssignment, AuthorityPolicy, AuthorityRole, ProposalDecisionTrace, RoleSeverity,
+    AuthorityAssignment, AuthorityPolicy, AuthorityRole, ProposalDecisionTrace,
     WeightedCouncil, analyze_voting_power, audit_authority_topology, audit_decision_trace,
 };
 
