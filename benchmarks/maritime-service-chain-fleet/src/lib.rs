@@ -131,6 +131,16 @@ struct PartialState {
     selected_energy: EnergyTotals,
 }
 
+struct SearchEngine<'a> {
+    context: FleetContext,
+    workload: &'a FleetWorkload,
+    partial: PartialState,
+    states_explored: u64,
+    max_states: u64,
+    budget_exhausted: bool,
+    completed_plans: Vec<FleetPlan>,
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct EnergyTotals {
     propulsion_wh: u128,
@@ -522,22 +532,15 @@ fn pareto_frontier(mut plans: Vec<FleetPlan>) -> Vec<FleetPlan> {
 }
 
 fn enumerate_segment_placements(
-    context: &FleetContext,
+    engine: &mut SearchEngine<'_>,
     case: &ServiceChainCase,
     alternative: &VoyageAlternative,
-    demand_index: usize,
-    workload: &FleetWorkload,
     next_demand_index: usize,
     segment_index: usize,
     previous_end_tick: Option<u64>,
     placements_for_demand: &mut Vec<OperationPlacement>,
-    state: &mut PartialState,
-    states_explored: &mut u64,
-    max_states: u64,
-    budget_exhausted: &mut bool,
-    completed_plans: &mut Vec<FleetPlan>,
 ) {
-    if *budget_exhausted {
+    if engine.budget_exhausted {
         return;
     }
     if segment_index == alternative.operation_timings.len() {
@@ -555,27 +558,20 @@ fn enumerate_segment_placements(
             service_amount: case.demand.requested_amount,
             service_unit: case.demand.service_unit,
         };
-        state.selections.push(selection);
-        state.selected_energy.add_alternative(alternative);
+        engine.partial.selections.push(selection);
+        engine.partial.selected_energy.add_alternative(alternative);
 
-        enumerate_demands(
-            context,
-            workload,
-            next_demand_index,
-            state,
-            states_explored,
-            max_states,
-            budget_exhausted,
-            completed_plans,
-        );
+        enumerate_demands(engine, next_demand_index);
 
-        state.selected_energy.propulsion_wh -= u128::from(alternative.energy.propulsion_wh);
-        state.selected_energy.auxiliary_wh -= u128::from(alternative.energy.auxiliary_wh);
-        state.selected_energy.shore_power_import_wh -=
+        engine.partial.selected_energy.propulsion_wh -=
+            u128::from(alternative.energy.propulsion_wh);
+        engine.partial.selected_energy.auxiliary_wh -=
+            u128::from(alternative.energy.auxiliary_wh);
+        engine.partial.selected_energy.shore_power_import_wh -=
             u128::from(alternative.energy.shore_power_import_wh);
-        state.selected_energy.inland_transfer_wh -=
+        engine.partial.selected_energy.inland_transfer_wh -=
             u128::from(alternative.energy.inland_transfer_wh);
-        state.selections.pop();
+        engine.partial.selections.pop();
         return;
     }
 
@@ -619,77 +615,47 @@ fn enumerate_segment_placements(
     };
 
     loop {
-        if *states_explored >= max_states {
-            *budget_exhausted = true;
+        if engine.states_explored >= engine.max_states {
+            engine.budget_exhausted = true;
             return;
         }
-        *states_explored += 1;
+        engine.states_explored += 1;
 
         if let Some(mut placement) = candidate_operation_fits(
-            context,
+            &engine.context,
             case,
             route_index,
             start_tick,
             timing.duration_ticks,
-            &state.operations,
+            &engine.partial.operations,
         ) {
             placement.alternative_id = alternative.alternative_id.clone();
             if let Some(previous_end) = previous_end_tick {
-                state.total_idle_wait_ticks += u128::from(start_tick - previous_end);
-                placements_for_demand.push(placement.clone());
-                state.operations.push(placement);
-                enumerate_segment_placements(
-                    context,
-                    case,
-                    alternative,
-                    demand_index,
-                    workload,
-                    next_demand_index,
-                    segment_index + 1,
-                    Some(start_tick + timing.duration_ticks),
-                    placements_for_demand,
-                    state,
-                    states_explored,
-                    max_states,
-                    budget_exhausted,
-                    completed_plans,
-                );
-                state.operations.pop();
-                placements_for_demand.pop();
-                state.total_idle_wait_ticks -= u128::from(start_tick - previous_end);
-                if *budget_exhausted {
-                    return;
-                }
-                if start_tick == maximum_start_tick {
-                    break;
-                }
-            } else {
-                placements_for_demand.push(placement.clone());
-                state.operations.push(placement);
-                enumerate_segment_placements(
-                    context,
-                    case,
-                    alternative,
-                    demand_index,
-                    workload,
-                    next_demand_index,
-                    segment_index + 1,
-                    Some(start_tick + timing.duration_ticks),
-                    placements_for_demand,
-                    state,
-                    states_explored,
-                    max_states,
-                    budget_exhausted,
-                    completed_plans,
-                );
-                state.operations.pop();
-                placements_for_demand.pop();
-                if *budget_exhausted {
-                    return;
-                }
-                if start_tick == maximum_start_tick {
-                    break;
-                }
+                engine.partial.total_idle_wait_ticks +=
+                    u128::from(start_tick - previous_end);
+            }
+            placements_for_demand.push(placement.clone());
+            engine.partial.operations.push(placement);
+            enumerate_segment_placements(
+                engine,
+                case,
+                alternative,
+                next_demand_index,
+                segment_index + 1,
+                Some(start_tick + timing.duration_ticks),
+                placements_for_demand,
+            );
+            engine.partial.operations.pop();
+            placements_for_demand.pop();
+            if let Some(previous_end) = previous_end_tick {
+                engine.partial.total_idle_wait_ticks -=
+                    u128::from(start_tick - previous_end);
+            }
+            if engine.budget_exhausted {
+                return;
+            }
+            if start_tick == maximum_start_tick {
+                break;
             }
         }
         if start_tick == maximum_start_tick {
@@ -700,52 +666,39 @@ fn enumerate_segment_placements(
         };
         start_tick = next;
     }
-    let _ = demand_index;
 }
 
-fn enumerate_demands(
-    context: &FleetContext,
-    workload: &FleetWorkload,
-    demand_index: usize,
-    state: &mut PartialState,
-    states_explored: &mut u64,
-    max_states: u64,
-    budget_exhausted: &mut bool,
-    completed_plans: &mut Vec<FleetPlan>,
-) {
-    if *budget_exhausted {
+fn enumerate_demands(engine: &mut SearchEngine<'_>, demand_index: usize) {
+    if engine.budget_exhausted {
         return;
     }
-    if demand_index == workload.cases.len() {
-        completed_plans.push(FleetPlan {
-            selections: state.selections.clone(),
-            operations: state.operations.clone(),
-            objective: objective_for(state),
+    if demand_index == engine.workload.cases.len() {
+        engine.completed_plans.push(FleetPlan {
+            selections: engine.partial.selections.clone(),
+            operations: engine.partial.operations.clone(),
+            objective: objective_for(&engine.partial),
         });
         return;
     }
-    let case_index = context.case_order[demand_index];
-    let case = &workload.cases[case_index];
-    let mut alternatives: Vec<&VoyageAlternative> = case.voyage_alternatives.iter().collect();
+
+    // Own the case/alternative fixtures for the recursive call so the mutable
+    // engine can safely carry the budget, partial plan and frontier.
+    let case_index = engine.context.case_order[demand_index];
+    let case = engine.workload.cases[case_index].clone();
+    let mut alternatives = case.voyage_alternatives.clone();
     alternatives.sort_by(|left, right| left.alternative_id.cmp(&right.alternative_id));
+
     for alternative in alternatives {
         enumerate_segment_placements(
-            context,
-            case,
-            alternative,
-            demand_index,
-            workload,
+            engine,
+            &case,
+            &alternative,
             demand_index + 1,
             0,
             None,
             &mut Vec::new(),
-            state,
-            states_explored,
-            max_states,
-            budget_exhausted,
-            completed_plans,
         );
-        if *budget_exhausted {
+        if engine.budget_exhausted {
             return;
         }
     }
@@ -762,29 +715,25 @@ pub fn exact_fleet_oracle(
         return Err(FleetError::InvalidSearchBudget);
     }
     let context = validate_workload(workload)?;
-    let mut state = PartialState {
-        operations: Vec::new(),
-        selections: Vec::new(),
-        total_idle_wait_ticks: 0,
-        selected_energy: EnergyTotals::default(),
-    };
-    let mut states_explored = 0;
-    let mut budget_exhausted = false;
-    let mut plans = Vec::new();
-    enumerate_demands(
-        &context,
+    let mut engine = SearchEngine {
+        context,
         workload,
-        0,
-        &mut state,
-        &mut states_explored,
+        partial: PartialState {
+            operations: Vec::new(),
+            selections: Vec::new(),
+            total_idle_wait_ticks: 0,
+            selected_energy: EnergyTotals::default(),
+        },
+        states_explored: 0,
         max_states,
-        &mut budget_exhausted,
-        &mut plans,
-    );
+        budget_exhausted: false,
+        completed_plans: Vec::new(),
+    };
+    enumerate_demands(&mut engine, 0);
     Ok(FleetResult {
-        frontier: pareto_frontier(plans),
-        states_explored,
-        termination: if budget_exhausted {
+        frontier: pareto_frontier(engine.completed_plans),
+        states_explored: engine.states_explored,
+        termination: if engine.budget_exhausted {
             SearchTermination::BudgetExhausted
         } else {
             SearchTermination::ExhaustiveComplete
