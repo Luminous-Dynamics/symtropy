@@ -55,7 +55,9 @@
   "response_contract": {
     "minimum_sustained_reduction_w": 15,
     "required_consecutive_samples": 3,
-    "minimum_sustained_duration_ms": 300
+    "minimum_sustained_duration_ms": 300,
+    "maximum_rebound_power_w": 10,
+    "maximum_rebound_energy_wh": 0.0005
   },
   "cases": [
     {
@@ -91,7 +93,7 @@
       "expected": {
         "service_equivalent": true,
         "power_response_qualified": true,
-        "stabilized_response_elapsed_ms": 100,
+        "stabilized_response_elapsed_ms": 400,
         "maximum_sampled_reduction_w": 20,
         "maximum_sustained_reduction_duration_ms": 400,
         "gross_reduction_energy_wh": 0.0022222222222222222,
@@ -280,6 +282,74 @@
         "accepted": false,
         "error": "BaselineViolatesServiceContract"
       }
+    },
+    {
+      "case_id": "sustained_response_with_rebound_above_owner_envelope_is_not_qualified",
+      "baseline": {
+        "boundary_power_w": [
+          120,
+          120,
+          120,
+          120,
+          120
+        ],
+        "interval_ms": 100
+      },
+      "candidate": {
+        "boundary_power_w": [
+          120,
+          100,
+          100,
+          100,
+          140
+        ],
+        "interval_ms": 100
+      },
+      "expected": {
+        "service_equivalent": true,
+        "stabilized_response_elapsed_ms": 400,
+        "maximum_sustained_reduction_duration_ms": 300,
+        "maximum_sampled_rebound_w": 20,
+        "rebound_energy_wh": 0.0005555555555555556,
+        "power_response_qualified": false,
+        "violations": [
+          "MaximumReboundPowerExceeded",
+          "MaximumReboundEnergyExceeded"
+        ]
+      }
+    },
+    {
+      "case_id": "partial_output_from_failed_request_is_not_useful_work",
+      "request_manifest": {
+        "expected_output_tokens_each": 100,
+        "count": 4
+      },
+      "candidate": {
+        "requests": [
+          {
+            "success": false,
+            "output_tokens": 100
+          },
+          {
+            "success": true,
+            "output_tokens": 100
+          },
+          {
+            "success": true,
+            "output_tokens": 100
+          },
+          {
+            "success": true,
+            "output_tokens": 100
+          }
+        ]
+      },
+      "expected": {
+        "completed_useful_tokens": 300,
+        "total_output_tokens": 400,
+        "useful_work_fraction": 0.75,
+        "service_equivalent": false
+      }
     }
   ],
   "mandatory_negative_controls": [
@@ -306,6 +376,8 @@
     "gpu_cpu_dram_submeters_are_not_added_to_the_primary_boundary_meter",
     "rack_or_node_power_is_not_facility_or_pcc_power",
     "synthetic_request_manifest_is_not_customer_traffic",
-    "measured_power_response_is_not_grid_market_qualification"
+    "measured_power_response_is_not_grid_market_qualification",
+    "partial tokens from a failed request are diagnostics, not completed useful work",
+    "a sustained reduction can still fail the response envelope because rebound exceeds its separately declared power or energy limit"
   ]
 }
