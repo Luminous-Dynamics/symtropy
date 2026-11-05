@@ -13,8 +13,8 @@ use criterion::{
     BatchSize, BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main,
 };
 use nalgebra::SVector;
-use symtropy_math::{HalfSpace, Point};
-use symtropy_physics::{BodyHandle, PhysicsWorld, RigidBody};
+use symtropy_math::{HalfSpace, HyperBox, Point, Transform};
+use symtropy_physics::{BodyHandle, BodyType, PhysicsWorld, RigidBody};
 
 const STEPS: usize = 120;
 const DT: f64 = 1.0 / 120.0;
@@ -27,6 +27,7 @@ const CONTACT_OVERLAP: f64 = 0.005;
 enum Scene {
     NoContact64,
     SphereStack16,
+    BoxStack3,
     SphereBed8x8,
 }
 
@@ -35,6 +36,7 @@ impl Scene {
         match self {
             Self::NoContact64 => "no_contact_64_spheres",
             Self::SphereStack16 => "resting_sphere_stack_16",
+            Self::BoxStack3 => "multi_point_box_stack_3",
             Self::SphereBed8x8 => "dense_sphere_bed_8x8",
         }
     }
@@ -43,6 +45,7 @@ impl Scene {
         match self {
             Self::NoContact64 => 64,
             Self::SphereStack16 => STACK_BODIES,
+            Self::BoxStack3 => 3,
             Self::SphereBed8x8 => BED_SIDE * BED_SIDE,
         }
     }
@@ -106,6 +109,29 @@ fn build_scene(scene: Scene) -> PhysicsWorld<3> {
                     SPHERE_RADIUS,
                     1.0,
                 );
+            }
+            world
+        }
+        Scene::BoxStack3 => {
+            let mut world = new_world(-9.81);
+            add_ground(&mut world);
+            let side = 1.0;
+            let mass = 1.0;
+            let spacing = side - CONTACT_OVERLAP;
+            for index in 0..3 {
+                let body = RigidBody::new(
+                    BodyHandle(0),
+                    BodyType::Dynamic,
+                    Transform::from_translation(Point::new([
+                        0.0,
+                        0.5 + index as f64 * spacing,
+                        0.0,
+                    ])),
+                    Box::new(HyperBox::<3>::new([0.5, 0.5, 0.5])),
+                    mass,
+                    SVector::from_element(mass * side * side / 6.0),
+                );
+                world.add_body(body);
             }
             world
         }
@@ -195,6 +221,7 @@ fn bench_contact_rich_scenes(c: &mut Criterion) {
     for scene in [
         Scene::NoContact64,
         Scene::SphereStack16,
+        Scene::BoxStack3,
         Scene::SphereBed8x8,
     ] {
         // Untimed calibration captures actual contact complexity for the run
