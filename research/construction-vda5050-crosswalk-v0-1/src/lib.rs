@@ -77,29 +77,169 @@ pub const REQUIRED_CANONICAL_FIELDS: &[&str] = &[
 
 /// Closed reference mapping table. It never claims VDA-native construction acceptance.
 pub const FIELD_MAPPINGS: &[FieldMapping] = &[
-    FieldMapping { canonical_field: "task.id", vda_surface: Some("order.orderId"), class: MappingClass::TransportMetadataOnly, sidecar_required: true, loss_rule: LossRule::KeepTransportIdentityDistinct },
-    FieldMapping { canonical_field: "task.update_revision", vda_surface: Some("order.orderUpdateId"), class: MappingClass::TransportMetadataOnly, sidecar_required: true, loss_rule: LossRule::KeepTransportRevisionDistinct },
-    FieldMapping { canonical_field: "work_package.id", vda_surface: None, class: MappingClass::SidecarRequired, sidecar_required: true, loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing },
-    FieldMapping { canonical_field: "design.revision_digest", vda_surface: None, class: MappingClass::SidecarRequired, sidecar_required: true, loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing },
-    FieldMapping { canonical_field: "site.epoch", vda_surface: None, class: MappingClass::SidecarRequired, sidecar_required: true, loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing },
-    FieldMapping { canonical_field: "spatial.target_frame", vda_surface: Some("order.nodes[].nodePosition"), class: MappingClass::BoundedProjection, sidecar_required: true, loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing },
-    FieldMapping { canonical_field: "spatial.transform_bundle_digest", vda_surface: None, class: MappingClass::SidecarRequired, sidecar_required: true, loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing },
-    FieldMapping { canonical_field: "navigation.map_identity", vda_surface: Some("state.mobileRobotPosition.mapId; state.maps[].mapVersion"), class: MappingClass::BoundedProjection, sidecar_required: true, loss_rule: LossRule::ProjectOnlyAsNavigationData },
-    FieldMapping { canonical_field: "work_zone.id", vda_surface: Some("zoneSet.zones[].zoneId"), class: MappingClass::BoundedProjection, sidecar_required: true, loss_rule: LossRule::ProjectOnlyAsFleetTrafficData },
-    FieldMapping { canonical_field: "robot.capability_profile", vda_surface: Some("factsheet.typeSpecifications"), class: MappingClass::BoundedProjection, sidecar_required: true, loss_rule: LossRule::TreatAsReportedCapabilityOnly },
-    FieldMapping { canonical_field: "robot.configuration_digest", vda_surface: None, class: MappingClass::SidecarRequired, sidecar_required: true, loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing },
-    FieldMapping { canonical_field: "task.family", vda_surface: None, class: MappingClass::SidecarRequired, sidecar_required: true, loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing },
-    FieldMapping { canonical_field: "task.route", vda_surface: Some("order.nodes[]; order.edges[]"), class: MappingClass::BoundedProjection, sidecar_required: true, loss_rule: LossRule::ProjectOnlyAsNavigationData },
-    FieldMapping { canonical_field: "task.robot_actions", vda_surface: Some("order.nodes[].actions[]; order.edges[].actions[]"), class: MappingClass::BoundedProjection, sidecar_required: true, loss_rule: LossRule::ProjectOnlyAsExecutorCommands },
-    FieldMapping { canonical_field: "task.preconditions_postconditions", vda_surface: None, class: MappingClass::SidecarRequired, sidecar_required: true, loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing },
-    FieldMapping { canonical_field: "resource.reservation", vda_surface: Some("zoneSet; state.zoneRequests; responses"), class: MappingClass::BoundedProjection, sidecar_required: true, loss_rule: LossRule::ProjectOnlyAsFleetTrafficData },
-    FieldMapping { canonical_field: "execution.progress", vda_surface: Some("state.nodeStates[]; state.edgeStates[]; state.actionStates[]; state.lastNodeId"), class: MappingClass::BoundedProjection, sidecar_required: true, loss_rule: LossRule::NeverPromoteExecutorEvidence },
-    FieldMapping { canonical_field: "output.physical_evidence", vda_surface: None, class: MappingClass::SidecarRequired, sidecar_required: true, loss_rule: LossRule::RequireExternalEvidenceReceipt },
-    FieldMapping { canonical_field: "inspection.result", vda_surface: None, class: MappingClass::SidecarRequired, sidecar_required: true, loss_rule: LossRule::RequireExternalInspectionReceipt },
-    FieldMapping { canonical_field: "acceptance.independent", vda_surface: None, class: MappingClass::NotRepresentable, sidecar_required: true, loss_rule: LossRule::NeverPromoteToIndependentAcceptance },
-    FieldMapping { canonical_field: "safety.authorization", vda_surface: None, class: MappingClass::NotRepresentable, sidecar_required: true, loss_rule: LossRule::NeverPromoteToSafetyOrMotionAuthority },
-    FieldMapping { canonical_field: "message.event_identity", vda_surface: Some("headerId; orderId; orderUpdateId"), class: MappingClass::TransportMetadataOnly, sidecar_required: true, loss_rule: LossRule::RetainConstructionEventIdentityOutOfBand },
-    FieldMapping { canonical_field: "robot.identity", vda_surface: Some("manufacturer; serialNumber"), class: MappingClass::BoundedProjection, sidecar_required: true, loss_rule: LossRule::TreatAsIdentityClaimNotAuthentication },
+    FieldMapping {
+        canonical_field: "task.id",
+        vda_surface: Some("order.orderId"),
+        class: MappingClass::TransportMetadataOnly,
+        sidecar_required: true,
+        loss_rule: LossRule::KeepTransportIdentityDistinct,
+    },
+    FieldMapping {
+        canonical_field: "task.update_revision",
+        vda_surface: Some("order.orderUpdateId"),
+        class: MappingClass::TransportMetadataOnly,
+        sidecar_required: true,
+        loss_rule: LossRule::KeepTransportRevisionDistinct,
+    },
+    FieldMapping {
+        canonical_field: "work_package.id",
+        vda_surface: None,
+        class: MappingClass::SidecarRequired,
+        sidecar_required: true,
+        loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing,
+    },
+    FieldMapping {
+        canonical_field: "design.revision_digest",
+        vda_surface: None,
+        class: MappingClass::SidecarRequired,
+        sidecar_required: true,
+        loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing,
+    },
+    FieldMapping {
+        canonical_field: "site.epoch",
+        vda_surface: None,
+        class: MappingClass::SidecarRequired,
+        sidecar_required: true,
+        loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing,
+    },
+    FieldMapping {
+        canonical_field: "spatial.target_frame",
+        vda_surface: Some("order.nodes[].nodePosition"),
+        class: MappingClass::BoundedProjection,
+        sidecar_required: true,
+        loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing,
+    },
+    FieldMapping {
+        canonical_field: "spatial.transform_bundle_digest",
+        vda_surface: None,
+        class: MappingClass::SidecarRequired,
+        sidecar_required: true,
+        loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing,
+    },
+    FieldMapping {
+        canonical_field: "navigation.map_identity",
+        vda_surface: Some("state.mobileRobotPosition.mapId; state.maps[].mapVersion"),
+        class: MappingClass::BoundedProjection,
+        sidecar_required: true,
+        loss_rule: LossRule::ProjectOnlyAsNavigationData,
+    },
+    FieldMapping {
+        canonical_field: "work_zone.id",
+        vda_surface: Some("zoneSet.zones[].zoneId"),
+        class: MappingClass::BoundedProjection,
+        sidecar_required: true,
+        loss_rule: LossRule::ProjectOnlyAsFleetTrafficData,
+    },
+    FieldMapping {
+        canonical_field: "robot.capability_profile",
+        vda_surface: Some("factsheet.typeSpecifications"),
+        class: MappingClass::BoundedProjection,
+        sidecar_required: true,
+        loss_rule: LossRule::TreatAsReportedCapabilityOnly,
+    },
+    FieldMapping {
+        canonical_field: "robot.configuration_digest",
+        vda_surface: None,
+        class: MappingClass::SidecarRequired,
+        sidecar_required: true,
+        loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing,
+    },
+    FieldMapping {
+        canonical_field: "task.family",
+        vda_surface: None,
+        class: MappingClass::SidecarRequired,
+        sidecar_required: true,
+        loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing,
+    },
+    FieldMapping {
+        canonical_field: "task.route",
+        vda_surface: Some("order.nodes[]; order.edges[]"),
+        class: MappingClass::BoundedProjection,
+        sidecar_required: true,
+        loss_rule: LossRule::ProjectOnlyAsNavigationData,
+    },
+    FieldMapping {
+        canonical_field: "task.robot_actions",
+        vda_surface: Some("order.nodes[].actions[]; order.edges[].actions[]"),
+        class: MappingClass::BoundedProjection,
+        sidecar_required: true,
+        loss_rule: LossRule::ProjectOnlyAsExecutorCommands,
+    },
+    FieldMapping {
+        canonical_field: "task.preconditions_postconditions",
+        vda_surface: None,
+        class: MappingClass::SidecarRequired,
+        sidecar_required: true,
+        loss_rule: LossRule::RequireExactSidecarAndRejectIfMissing,
+    },
+    FieldMapping {
+        canonical_field: "resource.reservation",
+        vda_surface: Some("zoneSet; state.zoneRequests; responses"),
+        class: MappingClass::BoundedProjection,
+        sidecar_required: true,
+        loss_rule: LossRule::ProjectOnlyAsFleetTrafficData,
+    },
+    FieldMapping {
+        canonical_field: "execution.progress",
+        vda_surface: Some(
+            "state.nodeStates[]; state.edgeStates[]; state.actionStates[]; state.lastNodeId",
+        ),
+        class: MappingClass::BoundedProjection,
+        sidecar_required: true,
+        loss_rule: LossRule::NeverPromoteExecutorEvidence,
+    },
+    FieldMapping {
+        canonical_field: "output.physical_evidence",
+        vda_surface: None,
+        class: MappingClass::SidecarRequired,
+        sidecar_required: true,
+        loss_rule: LossRule::RequireExternalEvidenceReceipt,
+    },
+    FieldMapping {
+        canonical_field: "inspection.result",
+        vda_surface: None,
+        class: MappingClass::SidecarRequired,
+        sidecar_required: true,
+        loss_rule: LossRule::RequireExternalInspectionReceipt,
+    },
+    FieldMapping {
+        canonical_field: "acceptance.independent",
+        vda_surface: None,
+        class: MappingClass::NotRepresentable,
+        sidecar_required: true,
+        loss_rule: LossRule::NeverPromoteToIndependentAcceptance,
+    },
+    FieldMapping {
+        canonical_field: "safety.authorization",
+        vda_surface: None,
+        class: MappingClass::NotRepresentable,
+        sidecar_required: true,
+        loss_rule: LossRule::NeverPromoteToSafetyOrMotionAuthority,
+    },
+    FieldMapping {
+        canonical_field: "message.event_identity",
+        vda_surface: Some("headerId; orderId; orderUpdateId"),
+        class: MappingClass::TransportMetadataOnly,
+        sidecar_required: true,
+        loss_rule: LossRule::RetainConstructionEventIdentityOutOfBand,
+    },
+    FieldMapping {
+        canonical_field: "robot.identity",
+        vda_surface: Some("manufacturer; serialNumber"),
+        class: MappingClass::BoundedProjection,
+        sidecar_required: true,
+        loss_rule: LossRule::TreatAsIdentityClaimNotAuthentication,
+    },
 ];
 
 /// Errors found in the static crosswalk table.
@@ -126,7 +266,10 @@ pub fn validate_mapping_table() -> Result<(), MappingTableError> {
         }
     }
     for required in REQUIRED_CANONICAL_FIELDS {
-        if !FIELD_MAPPINGS.iter().any(|row| row.canonical_field == *required) {
+        if !FIELD_MAPPINGS
+            .iter()
+            .any(|row| row.canonical_field == *required)
+        {
             return Err(MappingTableError::MissingRequiredCanonicalField);
         }
     }
@@ -161,14 +304,31 @@ pub fn mapping_for(canonical_field: &str) -> Option<&'static FieldMapping> {
 /// No variant means construction work is accepted or safety authority is granted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VdaObservation<'a> {
-    OrderReceived { order_id: &'a str, order_update_id: u32 },
-    NodeTraversed { order_id: &'a str, node_id: &'a str, sequence_id: u32 },
-    ActionStateFinished { order_id: &'a str, action_id: &'a str },
-    ZoneAccessGranted { zone_set_id: &'a str, zone_id: &'a str },
-    RobotError { error_type: &'a str },
+    OrderReceived {
+        order_id: &'a str,
+        order_update_id: u32,
+    },
+    NodeTraversed {
+        order_id: &'a str,
+        node_id: &'a str,
+        sequence_id: u32,
+    },
+    ActionStateFinished {
+        order_id: &'a str,
+        action_id: &'a str,
+    },
+    ZoneAccessGranted {
+        zone_set_id: &'a str,
+        zone_id: &'a str,
+    },
+    RobotError {
+        error_type: &'a str,
+    },
     ConnectionLost,
     StateUnavailable,
-    Unrecognized { signal_type: &'a str },
+    Unrecognized {
+        signal_type: &'a str,
+    },
 }
 
 /// Meaning-preserving projection of VDA observations.
@@ -176,35 +336,72 @@ pub enum VdaObservation<'a> {
 /// This enum intentionally has no Completed, Accepted, Authorized, or Safe variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Projection<'a> {
-    TransportOrderReceived { order_id: &'a str, order_update_id: u32 },
-    RouteProgressReported { order_id: &'a str, node_id: &'a str, sequence_id: u32 },
-    ExecutorActionFinishedReported { order_id: &'a str, action_id: &'a str },
-    FleetTrafficAccessReported { zone_set_id: &'a str, zone_id: &'a str },
-    RobotFaultReported { error_type: &'a str },
+    TransportOrderReceived {
+        order_id: &'a str,
+        order_update_id: u32,
+    },
+    RouteProgressReported {
+        order_id: &'a str,
+        node_id: &'a str,
+        sequence_id: u32,
+    },
+    ExecutorActionFinishedReported {
+        order_id: &'a str,
+        action_id: &'a str,
+    },
+    FleetTrafficAccessReported {
+        zone_set_id: &'a str,
+        zone_id: &'a str,
+    },
+    RobotFaultReported {
+        error_type: &'a str,
+    },
     CommunicationUnavailable,
     RobotStateUnavailable,
-    UnclassifiedSignal { signal_type: &'a str },
+    UnclassifiedSignal {
+        signal_type: &'a str,
+    },
 }
 
 /// Project a VDA observation without upgrading its authority or evidence class.
 pub fn project_observation<'a>(observation: VdaObservation<'a>) -> Projection<'a> {
     match observation {
-        VdaObservation::OrderReceived { order_id, order_update_id } => {
-            Projection::TransportOrderReceived { order_id, order_update_id }
-        }
-        VdaObservation::NodeTraversed { order_id, node_id, sequence_id } => {
-            Projection::RouteProgressReported { order_id, node_id, sequence_id }
-        }
-        VdaObservation::ActionStateFinished { order_id, action_id } => {
-            Projection::ExecutorActionFinishedReported { order_id, action_id }
-        }
-        VdaObservation::ZoneAccessGranted { zone_set_id, zone_id } => {
-            Projection::FleetTrafficAccessReported { zone_set_id, zone_id }
-        }
+        VdaObservation::OrderReceived {
+            order_id,
+            order_update_id,
+        } => Projection::TransportOrderReceived {
+            order_id,
+            order_update_id,
+        },
+        VdaObservation::NodeTraversed {
+            order_id,
+            node_id,
+            sequence_id,
+        } => Projection::RouteProgressReported {
+            order_id,
+            node_id,
+            sequence_id,
+        },
+        VdaObservation::ActionStateFinished {
+            order_id,
+            action_id,
+        } => Projection::ExecutorActionFinishedReported {
+            order_id,
+            action_id,
+        },
+        VdaObservation::ZoneAccessGranted {
+            zone_set_id,
+            zone_id,
+        } => Projection::FleetTrafficAccessReported {
+            zone_set_id,
+            zone_id,
+        },
         VdaObservation::RobotError { error_type } => Projection::RobotFaultReported { error_type },
         VdaObservation::ConnectionLost => Projection::CommunicationUnavailable,
         VdaObservation::StateUnavailable => Projection::RobotStateUnavailable,
-        VdaObservation::Unrecognized { signal_type } => Projection::UnclassifiedSignal { signal_type },
+        VdaObservation::Unrecognized { signal_type } => {
+            Projection::UnclassifiedSignal { signal_type }
+        }
     }
 }
 
@@ -285,21 +482,66 @@ pub fn validate_sidecar_binding(
 
     let comparisons = [
         (expected.task_id == presented.task_id, ContextField::TaskId),
-        (expected.work_package_id == presented.work_package_id, ContextField::WorkPackageId),
-        (expected.vda_order_id == presented.vda_order_id, ContextField::VdaOrderId),
-        (expected.vda_order_update_id == presented.vda_order_update_id, ContextField::VdaOrderUpdateId),
-        (expected.design_revision_digest == presented.design_revision_digest, ContextField::DesignRevisionDigest),
-        (expected.site_epoch == presented.site_epoch, ContextField::SiteEpoch),
-        (expected.target_frame_id == presented.target_frame_id, ContextField::TargetFrameId),
-        (expected.transform_bundle_digest == presented.transform_bundle_digest, ContextField::TransformBundleDigest),
-        (expected.robot_configuration_digest == presented.robot_configuration_digest, ContextField::RobotConfigurationDigest),
-        (expected.capability_profile_digest == presented.capability_profile_digest, ContextField::CapabilityProfileDigest),
-        (expected.work_zone_id == presented.work_zone_id, ContextField::WorkZoneId),
-        (expected.resource_reservation_digest == presented.resource_reservation_digest, ContextField::ResourceReservationDigest),
-        (expected.preconditions_digest == presented.preconditions_digest, ContextField::PreconditionsDigest),
-        (expected.postconditions_digest == presented.postconditions_digest, ContextField::PostconditionsDigest),
-        (expected.evidence_profile_ref == presented.evidence_profile_ref, ContextField::EvidenceProfileRef),
-        (expected.acceptance_authority_ref == presented.acceptance_authority_ref, ContextField::AcceptanceAuthorityRef),
+        (
+            expected.work_package_id == presented.work_package_id,
+            ContextField::WorkPackageId,
+        ),
+        (
+            expected.vda_order_id == presented.vda_order_id,
+            ContextField::VdaOrderId,
+        ),
+        (
+            expected.vda_order_update_id == presented.vda_order_update_id,
+            ContextField::VdaOrderUpdateId,
+        ),
+        (
+            expected.design_revision_digest == presented.design_revision_digest,
+            ContextField::DesignRevisionDigest,
+        ),
+        (
+            expected.site_epoch == presented.site_epoch,
+            ContextField::SiteEpoch,
+        ),
+        (
+            expected.target_frame_id == presented.target_frame_id,
+            ContextField::TargetFrameId,
+        ),
+        (
+            expected.transform_bundle_digest == presented.transform_bundle_digest,
+            ContextField::TransformBundleDigest,
+        ),
+        (
+            expected.robot_configuration_digest == presented.robot_configuration_digest,
+            ContextField::RobotConfigurationDigest,
+        ),
+        (
+            expected.capability_profile_digest == presented.capability_profile_digest,
+            ContextField::CapabilityProfileDigest,
+        ),
+        (
+            expected.work_zone_id == presented.work_zone_id,
+            ContextField::WorkZoneId,
+        ),
+        (
+            expected.resource_reservation_digest == presented.resource_reservation_digest,
+            ContextField::ResourceReservationDigest,
+        ),
+        (
+            expected.preconditions_digest == presented.preconditions_digest,
+            ContextField::PreconditionsDigest,
+        ),
+        (
+            expected.postconditions_digest == presented.postconditions_digest,
+            ContextField::PostconditionsDigest,
+        ),
+        (
+            expected.evidence_profile_ref == presented.evidence_profile_ref,
+            ContextField::EvidenceProfileRef,
+        ),
+        (
+            expected.acceptance_authority_ref == presented.acceptance_authority_ref,
+            ContextField::AcceptanceAuthorityRef,
+        ),
     ];
     for (matches, field) in comparisons {
         if !matches {
@@ -317,8 +559,14 @@ fn validate_context_shape(context: &ConstructionSidecar<'_>) -> Result<(), Conte
         (context.vda_order_id, ContextField::VdaOrderId),
         (context.target_frame_id, ContextField::TargetFrameId),
         (context.work_zone_id, ContextField::WorkZoneId),
-        (context.evidence_profile_ref, ContextField::EvidenceProfileRef),
-        (context.acceptance_authority_ref, ContextField::AcceptanceAuthorityRef),
+        (
+            context.evidence_profile_ref,
+            ContextField::EvidenceProfileRef,
+        ),
+        (
+            context.acceptance_authority_ref,
+            ContextField::AcceptanceAuthorityRef,
+        ),
     ];
     for (value, field) in required_strings {
         if value.trim().is_empty() {
@@ -326,13 +574,34 @@ fn validate_context_shape(context: &ConstructionSidecar<'_>) -> Result<(), Conte
         }
     }
     let digests = [
-        (context.design_revision_digest, ContextField::DesignRevisionDigest),
-        (context.transform_bundle_digest, ContextField::TransformBundleDigest),
-        (context.robot_configuration_digest, ContextField::RobotConfigurationDigest),
-        (context.capability_profile_digest, ContextField::CapabilityProfileDigest),
-        (context.resource_reservation_digest, ContextField::ResourceReservationDigest),
-        (context.preconditions_digest, ContextField::PreconditionsDigest),
-        (context.postconditions_digest, ContextField::PostconditionsDigest),
+        (
+            context.design_revision_digest,
+            ContextField::DesignRevisionDigest,
+        ),
+        (
+            context.transform_bundle_digest,
+            ContextField::TransformBundleDigest,
+        ),
+        (
+            context.robot_configuration_digest,
+            ContextField::RobotConfigurationDigest,
+        ),
+        (
+            context.capability_profile_digest,
+            ContextField::CapabilityProfileDigest,
+        ),
+        (
+            context.resource_reservation_digest,
+            ContextField::ResourceReservationDigest,
+        ),
+        (
+            context.preconditions_digest,
+            ContextField::PreconditionsDigest,
+        ),
+        (
+            context.postconditions_digest,
+            ContextField::PostconditionsDigest,
+        ),
     ];
     for (value, field) in digests {
         if !is_lower_hex_digest(value) {
@@ -421,7 +690,10 @@ mod tests {
         let mapping = mapping_for("acceptance.independent").expect("acceptance mapping");
         assert_eq!(mapping.class, MappingClass::NotRepresentable);
         assert_eq!(mapping.vda_surface, None);
-        assert_eq!(mapping.loss_rule, LossRule::NeverPromoteToIndependentAcceptance);
+        assert_eq!(
+            mapping.loss_rule,
+            LossRule::NeverPromoteToIndependentAcceptance
+        );
     }
 
     #[test]
@@ -429,7 +701,10 @@ mod tests {
         let mapping = mapping_for("safety.authorization").expect("safety mapping");
         assert_eq!(mapping.class, MappingClass::NotRepresentable);
         assert_eq!(mapping.vda_surface, None);
-        assert_eq!(mapping.loss_rule, LossRule::NeverPromoteToSafetyOrMotionAuthority);
+        assert_eq!(
+            mapping.loss_rule,
+            LossRule::NeverPromoteToSafetyOrMotionAuthority
+        );
     }
 
     #[test]
@@ -508,7 +783,10 @@ mod tests {
     fn exact_sidecar_is_structurally_bound_not_authorized() {
         let expected = context();
         let presented = context();
-        assert_eq!(validate_sidecar_binding(&expected, Some(&presented), 12), Ok(()));
+        assert_eq!(
+            validate_sidecar_binding(&expected, Some(&presented), 12),
+            Ok(())
+        );
     }
 
     #[test]
@@ -550,7 +828,9 @@ mod tests {
         presented.robot_configuration_digest = "ABC123";
         assert_eq!(
             validate_sidecar_binding(&context(), Some(&presented), 12).err(),
-            Some(ContextError::InvalidDigest(ContextField::RobotConfigurationDigest))
+            Some(ContextError::InvalidDigest(
+                ContextField::RobotConfigurationDigest
+            ))
         );
     }
 
