@@ -463,13 +463,11 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                     "invalid frequency, RMS amplitude, phase or uncertainty",
                 ));
             }
-            if let Some(previous) = previous_frequency {
-                if frequency <= previous {
-                    return Err(fail(
-                        &line_path,
-                        "spectral frequencies must be strictly increasing with no duplicates",
-                    ));
-                }
+            if previous_frequency.is_some_and(|previous| frequency <= previous) {
+                return Err(fail(
+                    &line_path,
+                    "spectral frequencies must be strictly increasing with no duplicates",
+                ));
             }
             previous_frequency = Some(frequency);
             global_max_frequency = global_max_frequency.max(frequency);
