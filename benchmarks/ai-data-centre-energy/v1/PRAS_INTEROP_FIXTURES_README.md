@@ -5,30 +5,32 @@
 **External reference:** NLR PRAS 0.9.0  
 **Parent:** Symtropy #3687
 
-This fixture freezes deterministic arithmetic and mapping expectations before a Julia/PRAS runner is implemented.
-
-## Cases
+The fixture contains six deterministic known-truth cases plus a stochastic sample-level energy-CVAR convention case.
 
 | Case | Main check | Expected result |
 |---|---|---|
-| Hourly single region | Period/day/hour/EUE/CVaR semantics | 3 periods, 1 event-day, 3 hours, 40 MWh |
+| Hourly single region | Period/day/hour/EUE semantics | 3 periods, 1 event-day, 3 hours, 40 MWh |
 | Quarter-hour | Resolution semantics | 2 periods, 1 event-day, 0.5 hours, 5 MWh |
 | Midnight crossing | Calendar-day boundary | 2 periods, 2 event-days, 2 hours, 20 MWh |
-| Paired signed workload | Complete trajectory and EUE-ELCC | 10 MWh baseline EUE, 0 flexible EUE, 5 MW EUE-ELCC |
+| Paired signed workload | Complete trajectory and EUE load restoration | 10 MWh baseline EUE, 0 flexible EUE, 5 MW deterministic EUE restoration |
 | Rebound trap | Full-horizon recovery | 30 MWh baseline EUE, 50 MWh flexible EUE |
 | Two-region location | Interregional deliverability | 5 MW relief at constrained load region improves EUE; relief in surplus region does not |
+| Non-degenerate energy-CVAR | Sample-level tail semantics | CVAR reproduced from the exact PRAS 0.9.0 strict-above-quantile convention |
 
-All cases use idealized deterministic availability. The eventual PRAS runner must first verify initial availability semantics against PRAS 0.9.0 and must fail the test if the emitted shortfall trace differs from the declared fixture. Do not quietly alter fixture values to match observed output.
+## Important metric nuance: PRAS 0.9.0 energy CVAR
 
-## Important interpretation rules
+The upstream 0.9.0 implementation computes the sample EUE quantile and averages only samples **strictly greater than** that quantile. If no samples exceed it, the implementation returns zero. Therefore, an all-identical deterministic sample vector with 40 MWh EUE in every sample returns energy-CVAR 0 MWh.
 
-- PRAS LOLE is event-periods, not a universal hours or contiguous event count.
-- PRAS LOLD counts calendar days containing one or more shortfall periods.
-- PRAS energy CVaR is tail severity of sample-level total EUE.
-- NTCSA contiguous-event LOLE, LOLH and power CVaR require separate definitions and calculations.
-- A workload trajectory is injected at the regional load profile exactly once. The same shift must not also appear as native PRAS demand response or storage.
-- Multi-region PRAS regions are copper-sheet aggregates; no intra-region bus or distribution constraint is implied.
+This is surprising relative to common empirical expected-shortfall conventions that include mass at the VaR threshold. The harness asserts the version-specific PRAS implementation and records a non-degenerate stochastic sample vector. Cross-model comparisons must pin the empirical tail-mass convention rather than equating metrics based only on the name "CVaR".
 
-## Validation status
+## Execution harness
 
-The JSON was authored as a declarative fixture specification. It has not been executed by PRAS, and no Julia or PRAS result is claimed. The next work package is a PRAS 0.9.0 pinned Julia harness that generates/loads native `.pras` models, evaluates these fixtures, saves PRAS result metadata and compares the sample-level results to this file.
+The optional Julia environment and runner live in `benchmarks/ai-data-centre-energy/pras/`:
+- `Project.toml` pins PRAS exactly to 0.9.0 and Julia compatibility to 1.10.
+- `run_pras_interop.jl` runs the tests.
+- `test/runtests.jl` constructs native PRAS models, evaluates metrics, saves/reloads a native HDF5 `.pras` model, and emits a machine-readable execution receipt.
+- `.github/workflows/pras-interop.yml` runs the harness and uploads that receipt.
+
+The time-region test uses non-symmetric 2-region × 3-interval load data so accidental matrix transposition is observable.
+
+All fixture values are synthetic. PRAS/Julia execution results must come from the version-pinned runner; arithmetic checks alone do not establish an executed pass. No official NTCSA model reproduction, substation deliverability, market accreditation or field result is claimed.
