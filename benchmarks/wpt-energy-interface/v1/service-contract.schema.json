@@ -221,6 +221,12 @@
               }
             }
           }
+        },
+        "chemical_energy_mode": {
+          "enum": [
+            "STORED",
+            "RELEASED"
+          ]
         }
       },
       "allOf": [
@@ -315,8 +321,17 @@
               },
               "measurement_method": {
                 "const": "REACTION_EXTENT_AND_CHEMICAL_POTENTIAL"
+              },
+              "chemical_energy_mode": {
+                "enum": [
+                  "STORED",
+                  "RELEASED"
+                ]
               }
-            }
+            },
+            "required": [
+              "chemical_energy_mode"
+            ]
           }
         }
       ]
