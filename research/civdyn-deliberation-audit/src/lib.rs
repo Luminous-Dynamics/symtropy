@@ -873,9 +873,9 @@ pub fn compare_option_order_variants(
             .iter()
             .map(|proposal| {
                 (
-                    proposal.id.as_str(),
-                    proposal.author_id.as_str(),
-                    session.option_labels[proposal.option_index].as_str(),
+                    proposal.id.clone(),
+                    proposal.author_id.clone(),
+                    session.option_labels[proposal.option_index].clone(),
                 )
             })
             .collect::<BTreeSet<_>>()
