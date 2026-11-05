@@ -50,6 +50,12 @@
             5,
             30
           ]
+        },
+        "productivity_claims": {
+          "headline_claim": "up to 30% faster point printing",
+          "comparison_basis": "manufacturer comparison against previous software version, not a manual-layout baseline",
+          "application_footnote": "official product-page footnote reports 8% for interior-wall layouts; other task types vary",
+          "evidence_label": "vendor_reported"
         }
       },
       "comparability": "Configuration-specific. Reproduce the declared prism, print mode, total station and distance range; independently measure output in the common-referee track."
@@ -354,13 +360,38 @@
     "minimum_crew_hour_reduction_vs_matched_manual_baseline_percent": 20,
     "independent_second_site_replication_required": true,
     "status": "aspirational_challenge_targets_not_achieved_results",
-    "qualification_rule": "All task-specific safety and geometry gates must pass before productivity comparisons can be treated as eligible."
+    "qualification_rule": "All task-specific safety and geometry gates must pass before productivity comparisons can be treated as eligible.",
+    "minimum_total_workflow_crew_hour_reduction_vs_directly_measured_matched_manual_baseline_percent": 70,
+    "minimum_elapsed_layout_duration_reduction_vs_directly_measured_matched_manual_baseline_percent": 20,
+    "minimum_rework_crew_hour_reduction_vs_directly_measured_matched_manual_baseline_percent": 90,
+    "target_rationale": "SOTA challenge hypotheses intended to exceed the 2025 single-project comparison (68% total labour-hour reduction and 18% fewer layout days), but under a stronger protocol: directly observed manual baseline, matched geometry and conditions, independent referee and complete VDC/coordination/setup/inspection/rework accounting."
   },
   "claim_limits": [
     "Manufacturer-reported figures are not independently reproduced.",
     "Print accuracy does not establish obstacle detection or physical safety.",
     "A sensor list or ingress-protection rating is not a safety conformity assessment.",
     "No robot is qualified by this profile until actual physical trials are independently measured and adjudicated.",
-    "No composite score may trade away critical safety or geometry failures."
-  ]
+    "No composite score may trade away critical safety or geometry failures.",
+    "The 2025 single-project case study's manual baseline was estimated rather than directly observed; its labour and schedule reductions are contextual evidence, not a universal causal estimate.",
+    "HP's up-to-30% faster-point-printing claim compares against its previous software version; the official product footnote reports 8% for interior-wall layouts. Do not compare it to manual baseline performance.",
+    "SOTA challenge targets of 70% workflow crew-hour reduction, 20% elapsed layout-duration reduction and 90% rework-hour reduction are hypotheses only; direct matched manual measurement and full workflow accounting are mandatory."
+  ],
+  "case_study_reference": {
+    "title": "Comparison of dusty robotics and traditional layout methods",
+    "doi": "10.1007/s41693-025-00163-z",
+    "url": "https://link.springer.com/article/10.1007/s41693-025-00163-z",
+    "publication_date": "2025-09-15",
+    "task_and_site": "single 8-floor medical office building, multi-trade construction layout",
+    "published_comparison": {
+      "total_labour_hours_reduction_percent": 68,
+      "layout_days_reduction_percent": 18,
+      "physically_straining_work_reduction_percent": 99,
+      "rework_estimate_manual_percent": 6.42,
+      "rework_estimate_robot_percent": 0.25,
+      "robot_print_hours": 393,
+      "additional_vdc_coordination_and_file_preparation_hours": 204
+    },
+    "critical_limitation": "Traditional-method impacts were estimated rather than directly observed. Single-project case study; not a randomized, multi-vendor matched comparison.",
+    "use": "Contextual field evidence to motivate prospective targets. Not a directly comparable score or causal universal baseline."
+  }
 }
