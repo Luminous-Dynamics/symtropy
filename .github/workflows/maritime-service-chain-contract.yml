@@ -1,0 +1,36 @@
+name: maritime-service-chain-contract
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "benchmarks/maritime-service-chain/**"
+      - ".github/workflows/maritime-service-chain-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "benchmarks/maritime-service-chain/**"
+      - ".github/workflows/maritime-service-chain-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-service-chain-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/maritime-service-chain/Cargo.toml -- --check
+      - name: Test scenario contract
+        run: cargo test --locked --manifest-path benchmarks/maritime-service-chain/Cargo.toml
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path benchmarks/maritime-service-chain/Cargo.toml --all-targets -- -D warnings
