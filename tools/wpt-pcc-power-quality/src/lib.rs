@@ -108,13 +108,17 @@ pub fn tdd_percent(harmonics_rms_a: &[f64], i_l_rms_a: f64) -> Result<f64, Strin
 
 fn validate_currents(harmonics: &[f64], reference_a: f64, metric: &str) -> Result<(), String> {
     if !reference_a.is_finite() || reference_a <= 0.0 {
-        return Err(format!("{metric} reference current must be finite and positive"));
+        return Err(format!(
+            "{metric} reference current must be finite and positive"
+        ));
     }
     if harmonics
         .iter()
         .any(|current| !current.is_finite() || *current < 0.0)
     {
-        return Err(format!("{metric} harmonic currents must be finite and non-negative"));
+        return Err(format!(
+            "{metric} harmonic currents must be finite and non-negative"
+        ));
     }
     Ok(())
 }
@@ -174,14 +178,23 @@ fn validate_measurement(run: &Value, profile_id: &str) -> Result<(), String> {
     ]
     .contains(&method_id)
     {
-        return Err(fail("$.measurement", "unknown measurement-method identifier"));
+        return Err(fail(
+            "$.measurement",
+            "unknown measurement-method identifier",
+        ));
     }
     if edition.is_empty() {
-        return Err(fail("$.measurement.measurement_edition", "edition must be explicit"));
+        return Err(fail(
+            "$.measurement.measurement_edition",
+            "edition must be explicit",
+        ));
     }
     let class = string_field(measurement, "measurement_class", "$.measurement")?;
     if !["CLASS_A", "CLASS_S", "EQUIPMENT_TEST", "OTHER"].contains(&class) {
-        return Err(fail("$.measurement.measurement_class", "unknown measurement class"));
+        return Err(fail(
+            "$.measurement.measurement_class",
+            "unknown measurement class",
+        ));
     }
     string_field(measurement, "instrument_id", "$.measurement")?;
     string_field(measurement, "calibration_receipt_id", "$.measurement")?;
@@ -244,15 +257,24 @@ fn validate_quality_flags(run: &Value, evidence_kind: &str) -> Result<(), String
         ]
         .contains(&value)
         {
-            return Err(fail("$.quality_flags", format!("unknown quality flag {value}")));
+            return Err(fail(
+                "$.quality_flags",
+                format!("unknown quality flag {value}"),
+            ));
         }
         synthetic |= value == "SYNTHETIC_ONLY";
     }
     if evidence_kind == "SYNTHETIC_KNOWN_TRUTH" && !synthetic {
-        return Err(fail("$.quality_flags", "synthetic evidence requires SYNTHETIC_ONLY"));
+        return Err(fail(
+            "$.quality_flags",
+            "synthetic evidence requires SYNTHETIC_ONLY",
+        ));
     }
     if evidence_kind != "SYNTHETIC_KNOWN_TRUTH" && synthetic {
-        return Err(fail("$.quality_flags", "SYNTHETIC_ONLY cannot label non-synthetic evidence"));
+        return Err(fail(
+            "$.quality_flags",
+            "SYNTHETIC_ONLY cannot label non-synthetic evidence",
+        ));
     }
     Ok(())
 }
@@ -322,7 +344,10 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
     }
     let boundary = string_field(profile, "assessment_boundary", "$.profile")?;
     if !["SITE_PCC", "EQUIPMENT_TERMINAL"].contains(&boundary) {
-        return Err(fail("$.profile.assessment_boundary", "unknown assessment boundary"));
+        return Err(fail(
+            "$.profile.assessment_boundary",
+            "unknown assessment boundary",
+        ));
     }
     let network_type = string_field(profile, "network_type", "$.profile")?;
     if ![
@@ -340,16 +365,19 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
     let grid_frequency = number_field(profile, "grid_frequency_hz", "$.profile")?;
     let nominal_voltage = number_field(profile, "nominal_voltage_v", "$.profile")?;
     if ![1, 3].contains(&phase_count) || grid_frequency <= 0.0 || nominal_voltage <= 0.0 {
-        return Err(fail("$.profile", "invalid phase count, grid frequency or nominal voltage"));
+        return Err(fail(
+            "$.profile",
+            "invalid phase count, grid frequency or nominal voltage",
+        ));
     }
     if ![50.0, 60.0].contains(&grid_frequency) {
-        return Err(fail("$.profile.grid_frequency_hz", "v0 supports 50 Hz or 60 Hz profiles"));
+        return Err(fail(
+            "$.profile.grid_frequency_hz",
+            "v0 supports 50 Hz or 60 Hz profiles",
+        ));
     }
-    let rated_input_current = nullable_number(
-        profile,
-        "rated_input_current_a_per_phase",
-        "$.profile",
-    )?;
+    let rated_input_current =
+        nullable_number(profile, "rated_input_current_a_per_phase", "$.profile")?;
     let pcc = field(profile, "pcc", "$.profile")?;
 
     validate_measurement(run, &standard_id)?;
@@ -380,7 +408,10 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
                 let il = number_field(pcc_value, "i_l_rms_a", "$.profile.pcc")?;
                 string_field(pcc_value, "i_l_definition_id", "$.profile.pcc")?;
                 if voltage_kv <= 0.0 || isc <= 0.0 || il <= 0.0 {
-                    return Err(fail("$.profile.pcc", "PCC voltage, Isc and IL must be positive"));
+                    return Err(fail(
+                        "$.profile.pcc",
+                        "PCC voltage, Isc and IL must be positive",
+                    ));
                 }
                 ProfileApplicability::ApplicableScopeOnly
             }
@@ -392,17 +423,14 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
             if boundary != "EQUIPMENT_TERMINAL" || !pcc.is_null() {
                 ProfileApplicability::NotApplicable
             } else {
-                let in_current_scope = rated_input_current
-                    .is_some_and(|current| current > 16.0 && current <= 75.0);
+                let in_current_scope =
+                    rated_input_current.is_some_and(|current| current > 16.0 && current <= 75.0);
                 let in_voltage_scope = match phase_count {
                     1 => nominal_voltage <= 240.0,
                     3 => nominal_voltage <= 690.0,
                     _ => false,
                 };
-                if network_type != "PUBLIC_LOW_VOLTAGE"
-                    || !in_current_scope
-                    || !in_voltage_scope
-                {
+                if network_type != "PUBLIC_LOW_VOLTAGE" || !in_current_scope || !in_voltage_scope {
                     ProfileApplicability::NotApplicable
                 } else {
                     ProfileApplicability::ApplicableScopeOnly
@@ -410,9 +438,7 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
             }
         }
         "IEC_61000_4_30_2025" => {
-            if edition != "IEC 61000-4-30:2025 COR1:2026"
-                || role != "MEASUREMENT_METHOD_ONLY"
-            {
+            if edition != "IEC 61000-4-30:2025 COR1:2026" || role != "MEASUREMENT_METHOD_ONLY" {
                 return Err(fail("$.profile", "IEC 61000-4-30 edition/role mismatch"));
             }
             ProfileApplicability::MeasurementMethodOnly
@@ -421,10 +447,17 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
     };
 
     let spectrum = field(run, "current_spectrum", "$")?;
-    exact_keys(spectrum, &["fundamental_rms_a", "harmonics"], "$.current_spectrum")?;
+    exact_keys(
+        spectrum,
+        &["fundamental_rms_a", "harmonics"],
+        "$.current_spectrum",
+    )?;
     let fundamental = number_field(spectrum, "fundamental_rms_a", "$.current_spectrum")?;
     if fundamental <= 0.0 {
-        return Err(fail("$.current_spectrum.fundamental_rms_a", "must be positive"));
+        return Err(fail(
+            "$.current_spectrum.fundamental_rms_a",
+            "must be positive",
+        ));
     }
     let harmonic_lines = field(spectrum, "harmonics", "$.current_spectrum")?
         .as_array()
@@ -441,7 +474,10 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
         )?;
         let order = integer_field(line, "harmonic_order", &path)?;
         if order < 2 || order > 1_000 || !seen_orders.insert(order) {
-            return Err(fail(&path, "harmonic orders must be unique integers in 2..=1000"));
+            return Err(fail(
+                &path,
+                "harmonic orders must be unique integers in 2..=1000",
+            ));
         }
         if previous_order.is_some_and(|previous| order <= previous) {
             return Err(fail(&path, "harmonic orders must be strictly increasing"));
@@ -450,13 +486,18 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
         let current = number_field(line, "rms_current_a", &path)?;
         let uncertainty = number_field(line, "expanded_uncertainty_a", &path)?;
         if current < 0.0 || uncertainty < 0.0 {
-            return Err(fail(&path, "harmonic current and uncertainty must be non-negative"));
+            return Err(fail(
+                &path,
+                "harmonic current and uncertainty must be non-negative",
+            ));
         }
         harmonic_currents.push(current);
     }
 
     let thd = thd_percent(&harmonic_currents, fundamental)?;
-    let (tdd, ratio) = if standard_id == "IEEE_519_2022" && applicability == ProfileApplicability::ApplicableScopeOnly {
+    let (tdd, ratio) = if standard_id == "IEEE_519_2022"
+        && applicability == ProfileApplicability::ApplicableScopeOnly
+    {
         let pcc = field(profile, "pcc", "$.profile")?;
         let il = number_field(pcc, "i_l_rms_a", "$.profile.pcc")?;
         let isc = number_field(pcc, "i_sc_rms_a", "$.profile.pcc")?;
@@ -499,7 +540,10 @@ mod tests {
     #[test]
     fn computes_thd_tdd_and_isc_over_il_from_synthetic_pcc_fixture() {
         let report = evaluate_run(&fixture()).unwrap();
-        assert_eq!(report.applicability, ProfileApplicability::ApplicableScopeOnly);
+        assert_eq!(
+            report.applicability,
+            ProfileApplicability::ApplicableScopeOnly
+        );
         assert!((report.thd_percent - 5.5).abs() < 1e-12);
         assert!((report.tdd_percent.unwrap() - 5.5).abs() < 1e-12);
         assert!((report.short_circuit_ratio_isc_over_il.unwrap() - 250.0).abs() < 1e-12);
@@ -521,7 +565,10 @@ mod tests {
         run["profile"]["assessment_boundary"] = Value::String("EQUIPMENT_TERMINAL".into());
         run["profile"]["pcc"] = Value::Null;
         let report = evaluate_run(&run).unwrap();
-        assert_eq!(report.applicability, ProfileApplicability::NotApplicable);
+        assert_eq!(
+            report.applicability,
+            ProfileApplicability::NotApplicable
+        );
         assert!(report.tdd_percent.is_none());
     }
 
@@ -541,11 +588,16 @@ mod tests {
         run["profile"]["assessment_boundary"] = Value::String("EQUIPMENT_TERMINAL".into());
         run["profile"]["rated_input_current_a_per_phase"] = Value::from(30.0);
         run["profile"]["pcc"] = Value::Null;
-        run["measurement"]["measurement_standard_id"] = Value::String("IEC_61000_4_7_2002_AMD1_2008".into());
-        run["measurement"]["measurement_edition"] = Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
+        run["measurement"]["measurement_standard_id"] =
+            Value::String("IEC_61000_4_7_2002_AMD1_2008".into());
+        run["measurement"]["measurement_edition"] =
+            Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
         run["measurement"]["measurement_class"] = Value::String("EQUIPMENT_TEST".into());
         let report = evaluate_run(&run).unwrap();
-        assert_eq!(report.applicability, ProfileApplicability::ApplicableScopeOnly);
+        assert_eq!(
+            report.applicability,
+            ProfileApplicability::ApplicableScopeOnly
+        );
         assert!(report.tdd_percent.is_none());
     }
 
@@ -558,11 +610,16 @@ mod tests {
         run["profile"]["assessment_boundary"] = Value::String("EQUIPMENT_TERMINAL".into());
         run["profile"]["rated_input_current_a_per_phase"] = Value::from(80.0);
         run["profile"]["pcc"] = Value::Null;
-        run["measurement"]["measurement_standard_id"] = Value::String("IEC_61000_4_7_2002_AMD1_2008".into());
-        run["measurement"]["measurement_edition"] = Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
+        run["measurement"]["measurement_standard_id"] =
+            Value::String("IEC_61000_4_7_2002_AMD1_2008".into());
+        run["measurement"]["measurement_edition"] =
+            Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
         run["measurement"]["measurement_class"] = Value::String("EQUIPMENT_TEST".into());
         let report = evaluate_run(&run).unwrap();
-        assert_eq!(report.applicability, ProfileApplicability::NotApplicable);
+        assert_eq!(
+            report.applicability,
+            ProfileApplicability::NotApplicable
+        );
     }
 
     #[test]
@@ -572,7 +629,10 @@ mod tests {
         run["profile"]["edition"] = Value::String("IEC 61000-4-30:2025 COR1:2026".into());
         run["profile"]["standard_role"] = Value::String("MEASUREMENT_METHOD_ONLY".into());
         let report = evaluate_run(&run).unwrap();
-        assert_eq!(report.applicability, ProfileApplicability::MeasurementMethodOnly);
+        assert_eq!(
+            report.applicability,
+            ProfileApplicability::MeasurementMethodOnly
+        );
         assert!(report.tdd_percent.is_none());
     }
 
@@ -580,7 +640,11 @@ mod tests {
     fn rejects_standard_edition_mismatch() {
         let mut run = fixture();
         run["profile"]["edition"] = Value::String("IEEE 519-2014".into());
-        assert!(evaluate_run(&run).unwrap_err().contains("edition/role mismatch"));
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("edition/role mismatch")
+        );
     }
 
     #[test]
@@ -592,11 +656,16 @@ mod tests {
         run["profile"]["assessment_boundary"] = Value::String("EQUIPMENT_TERMINAL".into());
         run["profile"]["rated_input_current_a_per_phase"] = Value::from(16.0);
         run["profile"]["pcc"] = Value::Null;
-        run["measurement"]["measurement_standard_id"] = Value::String("IEC_61000_4_7_2002_AMD1_2008".into());
-        run["measurement"]["measurement_edition"] = Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
+        run["measurement"]["measurement_standard_id"] =
+            Value::String("IEC_61000_4_7_2002_AMD1_2008".into());
+        run["measurement"]["measurement_edition"] =
+            Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
         run["measurement"]["measurement_class"] = Value::String("EQUIPMENT_TEST".into());
         let report = evaluate_run(&run).unwrap();
-        assert_eq!(report.applicability, ProfileApplicability::NotApplicable);
+        assert_eq!(
+            report.applicability,
+            ProfileApplicability::NotApplicable
+        );
     }
 
     #[test]
@@ -613,7 +682,10 @@ mod tests {
     #[test]
     fn rejects_unsorted_harmonic_orders() {
         let mut run = fixture();
-        run["current_spectrum"]["harmonics"].as_array_mut().unwrap().swap(0, 1);
+        run["current_spectrum"]["harmonics"]
+            .as_array_mut()
+            .unwrap()
+            .swap(0, 1);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
