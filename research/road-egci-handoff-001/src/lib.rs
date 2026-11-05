@@ -288,6 +288,8 @@ pub enum EvidenceEligibility {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SamHandoff {
     pub episode_root: String,
+    /// Full canonical source episode artifact; not just the reduced SAM query.
+    pub episode_json: String,
     pub anchor_authority_reference: String,
     pub evidence_class: EvidenceClass,
     pub eligibility: EvidenceEligibility,
@@ -306,6 +308,35 @@ struct VerifiedDecision {
 }
 
 impl EpisodeExport {
+    /// Serialize the complete handoff input with deterministic collection ordering.
+    /// The digest is over typed fields, not claimed to be a signature of this JSON.
+    pub fn canonical_json(&self) -> Result<String, HandoffError> {
+        if self.schema != EPISODE_SCHEMA {
+            return Err(HandoffError::WrongEpisodeSchema);
+        }
+        let mut output = String::new();
+        output.push_str("{\"schema\":");
+        json_string(&mut output, &self.schema);
+        output.push_str(",\"manifest\":");
+        write_manifest_json(&mut output, &self.manifest);
+        output.push_str(",\"policies\":[");
+        let mut policies: Vec<_> = self.policies.iter().collect();
+        policies.sort_by(|a, b| a.actor_id.cmp(&b.actor_id));
+        for (index, policy) in policies.iter().enumerate() {
+            if index > 0 { output.push(','); }
+            write_policy_json(&mut output, policy);
+        }
+        output.push_str("],\"branches\":[");
+        let mut branches: Vec<_> = self.branches.iter().collect();
+        branches.sort_by(|a, b| a.branch_id.cmp(&b.branch_id));
+        for (index, branch) in branches.iter().enumerate() {
+            if index > 0 { output.push(','); }
+            write_branch_json(&mut output, branch);
+        }
+        output.push_str("]}");
+        Ok(output)
+    }
+
     /// Hash the complete episode inputs. This is an unkeyed content commitment,
     /// not a signature and not proof that source evidence is true.
     pub fn episode_root(&self) -> Result<String, HandoffError> {
@@ -453,6 +484,7 @@ pub fn export_to_sam(
 
     Ok(SamHandoff {
         episode_root,
+        episode_json: episode.canonical_json()?,
         anchor_authority_reference: anchor.authority_reference.clone(),
         evidence_class: EvidenceClass::SimulationGenerated,
         eligibility: EvidenceEligibility::FormalConformanceOnly,
@@ -995,6 +1027,202 @@ fn json_string(output: &mut String, value: &str) {
         }
     }
     output.push('"');
+}
+
+
+fn write_manifest_json(out: &mut String, m: &ExperimentManifest) {
+    out.push_str("{\"experiment_id\":"); json_string(out, &m.experiment_id);
+    out.push_str(",\"scenario_digest\":"); json_string(out, &m.scenario_digest);
+    out.push_str(",\"odd_scope_digest\":"); json_string(out, &m.odd_scope_digest);
+    out.push_str(",\"initial_world_snapshot_digest\":"); json_string(out, &m.initial_world_snapshot_digest);
+    out.push_str(",\"physics_profile_digest\":"); json_string(out, &m.physics_profile_digest);
+    out.push_str(",\"execution_profile_digest\":"); json_string(out, &m.execution_profile_digest);
+    out.push_str(",\"observation_schedule_digest\":"); json_string(out, &m.observation_schedule_digest);
+    out.push_str(",\"action_domain_digest\":"); json_string(out, &m.action_domain_digest);
+    out.push_str(",\"units_profile_digest\":"); json_string(out, &m.units_profile_digest);
+    out.push_str(",\"tick_hz_numerator\":"); out.push_str(&m.tick_hz_numerator.to_string());
+    out.push_str(",\"tick_hz_denominator\":"); out.push_str(&m.tick_hz_denominator.to_string());
+    out.push('}');
+}
+
+fn write_policy_json(out: &mut String, p: &PolicyProfile) {
+    out.push_str("{\"actor_id\":"); json_string(out, &p.actor_id);
+    out.push_str(",\"policy_digest\":"); json_string(out, &p.policy_digest);
+    out.push_str(",\"config_digest\":"); json_string(out, &p.config_digest);
+    out.push_str(",\"initial_policy_state_digest\":"); json_string(out, &p.initial_policy_state_digest);
+    out.push_str(",\"observation_profile_digest\":"); json_string(out, &p.observation_profile_digest);
+    out.push_str(",\"action_domain_digest\":"); json_string(out, &p.action_domain_digest);
+    out.push('}');
+}
+
+fn write_string_array(out: &mut String, values: &[String]) {
+    out.push('[');
+    for (index, value) in values.iter().enumerate() {
+        if index > 0 { out.push(','); }
+        json_string(out, value);
+    }
+    out.push(']');
+}
+
+fn write_optional_string(out: &mut String, value: Option<&str>) {
+    match value {
+        Some(value) => json_string(out, value),
+        None => out.push_str("null"),
+    }
+}
+
+fn write_optional_u64(out: &mut String, value: Option<u64>) {
+    match value {
+        Some(value) => out.push_str(&value.to_string()),
+        None => out.push_str("null"),
+    }
+}
+
+fn write_branch_json(out: &mut String, b: &BranchExport) {
+    out.push_str("{\"branch_id\":"); json_string(out, &b.branch_id);
+    out.push_str(",\"parent_snapshot_digest\":"); json_string(out, &b.parent_snapshot_digest);
+    out.push_str(",\"intervention_digest\":"); json_string(out, &b.intervention_digest);
+    out.push_str(",\"outcome\":"); json_string(out, branch_outcome_name(b.outcome));
+    out.push_str(",\"candidate_universe\":"); json_string(out, candidate_universe_name(b.candidate_universe));
+    out.push_str(",\"hypothesis_set\":"); json_string(out, hypothesis_set_name(b.hypothesis_set));
+    out.push_str(",\"correspondences\":[");
+    let mut correspondences: Vec<_> = b.correspondences.iter().collect();
+    correspondences.sort_by(|a, c| a.hypothesis_id.cmp(&c.hypothesis_id));
+    for (index, receipt) in correspondences.iter().enumerate() {
+        if index > 0 { out.push(','); }
+        out.push_str("{\"hypothesis_id\":"); json_string(out, &receipt.hypothesis_id);
+        out.push_str(",\"correspondence_digest\":"); json_string(out, &receipt.correspondence_digest);
+        out.push_str(",\"causal_dispositions_digest\":"); json_string(out, &receipt.causal_dispositions_digest);
+        out.push_str(",\"projection_input_digest\":"); json_string(out, &receipt.projection_input_digest);
+        out.push_str(",\"draw_bundle_digest\":"); json_string(out, &receipt.draw_bundle_digest);
+        out.push_str(",\"verifier_profile_digest\":"); json_string(out, &receipt.verifier_profile_digest);
+        out.push_str(",\"verifier_receipt_digest\":"); json_string(out, &receipt.verifier_receipt_digest);
+        out.push('}');
+    }
+
+    out.push_str("],\"observations\":[");
+    let mut observations: Vec<_> = b.observations.iter().collect();
+    observations.sort_by(|a, c| (&a.recipient_actor_id, a.delivered_tick, a.delivery_sequence, &a.cue_id)
+        .cmp(&(&c.recipient_actor_id, c.delivered_tick, c.delivery_sequence, &c.cue_id)));
+    for (index, cue) in observations.iter().enumerate() {
+        if index > 0 { out.push(','); }
+        out.push_str("{\"cue_id\":"); json_string(out, &cue.cue_id);
+        out.push_str(",\"source_event_id\":"); json_string(out, &cue.source_event_id);
+        out.push_str(",\"recipient_actor_id\":"); json_string(out, &cue.recipient_actor_id);
+        out.push_str(",\"observation_payload_digest\":"); json_string(out, &cue.observation_payload_digest);
+        out.push_str(",\"observed_tick\":"); out.push_str(&cue.observed_tick.to_string());
+        out.push_str(",\"generated_tick\":"); out.push_str(&cue.generated_tick.to_string());
+        out.push_str(",\"delivered_tick\":"); write_optional_u64(out, cue.delivered_tick);
+        out.push_str(",\"delivery_sequence\":"); out.push_str(&cue.delivery_sequence.to_string());
+        out.push_str(",\"visibility_profile_digest\":"); json_string(out, &cue.visibility_profile_digest);
+        out.push_str(",\"disposition\":"); json_string(out, observation_disposition_name(cue.disposition));
+        out.push('}');
+    }
+
+    out.push_str("],\"decisions\":[");
+    let mut decisions: Vec<_> = b.decisions.iter().collect();
+    decisions.sort_by(|a, c| (a.tick, &a.actor_id).cmp(&(c.tick, &c.actor_id)));
+    for (index, decision) in decisions.iter().enumerate() {
+        if index > 0 { out.push(','); }
+        out.push_str("{\"decision_receipt_id\":"); json_string(out, &decision.decision_receipt_id);
+        out.push_str(",\"actor_id\":"); json_string(out, &decision.actor_id);
+        out.push_str(",\"tick\":"); out.push_str(&decision.tick.to_string());
+        out.push_str(",\"policy_digest\":"); json_string(out, &decision.policy_digest);
+        out.push_str(",\"config_digest\":"); json_string(out, &decision.config_digest);
+        out.push_str(",\"prior_policy_state_digest\":"); json_string(out, &decision.prior_policy_state_digest);
+        out.push_str(",\"next_policy_state_digest\":"); write_optional_string(out, decision.next_policy_state_digest.as_deref());
+        out.push_str(",\"visible_cue_ids\":"); write_string_array(out, &decision.visible_cue_ids);
+        out.push_str(",\"consumed_cue_ids\":"); write_string_array(out, &decision.consumed_cue_ids);
+        out.push_str(",\"prior_action_receipt_ids\":"); write_string_array(out, &decision.prior_action_receipt_ids);
+        out.push_str(",\"permitted_history_digest\":"); json_string(out, &decision.permitted_history_digest);
+        out.push_str(",\"deadline_tick\":"); out.push_str(&decision.deadline_tick.to_string());
+        out.push_str(",\"command_latch_tick\":"); write_optional_u64(out, decision.command_latch_tick);
+        out.push_str(",\"action_id\":"); write_optional_string(out, decision.action_id.as_deref());
+        out.push_str(",\"action_payload_digest\":"); write_optional_string(out, decision.action_payload_digest.as_deref());
+        out.push_str(",\"disposition\":"); json_string(out, decision_disposition_name(decision.disposition));
+        out.push('}');
+    }
+
+    out.push_str("],\"transitions\":[");
+    let mut transitions: Vec<_> = b.transitions.iter().collect();
+    transitions.sort_by_key(|transition| transition.tick);
+    for (index, transition) in transitions.iter().enumerate() {
+        if index > 0 { out.push(','); }
+        out.push_str("{\"tick\":"); out.push_str(&transition.tick.to_string());
+        out.push_str(",\"parent_snapshot_digest\":"); json_string(out, &transition.parent_snapshot_digest);
+        out.push_str(",\"child_snapshot_digest\":"); json_string(out, &transition.child_snapshot_digest);
+        out.push_str(",\"joint_action_digest\":"); json_string(out, &transition.joint_action_digest);
+        out.push_str(",\"physics_step_receipt_digest\":"); json_string(out, &transition.physics_step_receipt_digest);
+        out.push_str(",\"disposition\":"); json_string(out, transition_disposition_name(transition.disposition));
+        out.push('}');
+    }
+
+    out.push_str("],\"replay\":{");
+    out.push_str("\"replay_profile_digest\":"); json_string(out, &b.replay.replay_profile_digest);
+    out.push_str(",\"expected_branch_payload_root\":"); json_string(out, &b.replay.expected_branch_payload_root);
+    out.push_str(",\"replayed_branch_payload_root\":"); write_optional_string(out, b.replay.replayed_branch_payload_root.as_deref());
+    out.push_str(",\"disposition\":"); json_string(out, replay_disposition_name(b.replay.disposition));
+    out.push_str("}}");
+}
+
+fn observation_disposition_name(value: ObservationDisposition) -> &'static str {
+    match value {
+        ObservationDisposition::Delivered => "delivered",
+        ObservationDisposition::Occluded => "occluded",
+        ObservationDisposition::Dropped => "dropped",
+        ObservationDisposition::Stale => "stale",
+    }
+}
+
+fn decision_disposition_name(value: DecisionDisposition) -> &'static str {
+    match value {
+        DecisionDisposition::Completed => "completed",
+        DecisionDisposition::TimedOut => "timed_out",
+        DecisionDisposition::Failed => "failed",
+        DecisionDisposition::Missing => "missing",
+    }
+}
+
+fn transition_disposition_name(value: TransitionDisposition) -> &'static str {
+    match value {
+        TransitionDisposition::Completed => "completed",
+        TransitionDisposition::Failed => "failed",
+        TransitionDisposition::Censored => "censored",
+        TransitionDisposition::Missing => "missing",
+    }
+}
+
+fn branch_outcome_name(value: BranchOutcome) -> &'static str {
+    match value {
+        BranchOutcome::Completed => "completed",
+        BranchOutcome::TaskFailed => "task_failed",
+        BranchOutcome::TimedOut => "timed_out",
+        BranchOutcome::ExecutionFailed => "execution_failed",
+        BranchOutcome::Censored => "censored",
+    }
+}
+
+fn candidate_universe_name(value: CandidateUniverseDisposition) -> &'static str {
+    match value {
+        CandidateUniverseDisposition::ExhaustiveWithinDeclaredScope => "exhaustive_within_declared_scope",
+        CandidateUniverseDisposition::Incomplete => "incomplete",
+    }
+}
+
+fn hypothesis_set_name(value: HypothesisSetDisposition) -> &'static str {
+    match value {
+        HypothesisSetDisposition::ExhaustiveWithinDeclaredModelFamily => "exhaustive_within_declared_model_family",
+        HypothesisSetDisposition::IncompleteOrBudgetLimited => "incomplete_or_budget_limited",
+    }
+}
+
+fn replay_disposition_name(value: ReplayDisposition) -> &'static str {
+    match value {
+        ReplayDisposition::ExactSameRuntimeBytes => "exact_same_runtime_bytes",
+        ReplayDisposition::PortableSemanticEquivalent => "portable_semantic_equivalent",
+        ReplayDisposition::NotRun => "not_run",
+        ReplayDisposition::Failed => "failed",
+    }
 }
 
 fn branch_payload_root(branch: &BranchExport) -> String {
