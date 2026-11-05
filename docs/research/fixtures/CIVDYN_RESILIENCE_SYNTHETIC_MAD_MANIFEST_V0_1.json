@@ -174,15 +174,27 @@
       "proper_scoring_rule": null
     },
     {
-      "metric_id": "max_conservation_residual",
-      "construct_dimension": "physical stock-flow integrity",
-      "unit": "native resource unit by commodity",
+      "metric_id": "max_water_conservation_residual_m3",
+      "construct_dimension": "water stock-flow integrity",
+      "unit": "m3",
       "direction": "lower-is-better",
-      "aggregation": "maximum absolute residual, with water and energy separately retained",
+      "aggregation": "maximum absolute water residual across regional ledger records",
       "strata": [
         "shock_kind",
-        "intervention_policy",
-        "resource"
+        "intervention_policy"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "max_energy_conservation_residual_kwh",
+      "construct_dimension": "energy stock-flow integrity",
+      "unit": "kWh",
+      "direction": "lower-is-better",
+      "aggregation": "maximum absolute energy residual across regional ledger records",
+      "strata": [
+        "shock_kind",
+        "intervention_policy"
       ],
       "uncertainty_method": "none; deterministic fixture",
       "proper_scoring_rule": null
