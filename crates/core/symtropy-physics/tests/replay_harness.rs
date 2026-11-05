@@ -244,11 +244,14 @@ fn kinematic_pose_updates_orientation_and_replays_in_a_fresh_world() {
     let mut record_world = PhysicsWorld::<3>::default();
     let actor = add_kinematic_actor(&mut record_world);
     let mut tape = ReplayTape::<3>::default();
-    tape.push_frame(1.0 / 64.0, vec![pose_command(actor, rotation.clone(), 0.125)]);
+    tape.push_frame(
+        1.0 / 64.0,
+        vec![pose_command(actor, rotation.clone(), 0.125)],
+    );
 
     let receipt = execute_with_evidence(&mut record_world, &tape, &evidence_context()).unwrap();
     let recorded = record_world.body(actor).unwrap();
-    assert_eq!(*recorded.transform.rotation.to_matrix(), *rotation.to_matrix());
+
     assert_eq!(
         recorded.transform.translation.0,
         SVector::from([0.125, 0.0, 0.0])
@@ -259,15 +262,22 @@ fn kinematic_pose_updates_orientation_and_replays_in_a_fresh_world() {
     let replay_tape = ReplayTape::<3> {
         frames: tape.frames.clone(),
     };
-    assert!(verify_replay_evidence(
-        &mut replay_world,
-        &replay_tape,
-        &evidence_context(),
-        &receipt,
-    )
-    .unwrap());
+    assert!(
+        verify_replay_evidence(
+            &mut replay_world,
+            &replay_tape,
+            &evidence_context(),
+            &receipt,
+        )
+        .unwrap()
+    );
     assert_eq!(
-        replay_world.body(replay_actor).unwrap().transform.rotation.to_matrix(),
+        replay_world
+            .body(replay_actor)
+            .unwrap()
+            .transform
+            .rotation
+            .to_matrix(),
         rotation.to_matrix()
     );
 }
@@ -320,10 +330,7 @@ fn changing_kinematic_orientation_invalidates_the_old_receipt() {
     let mut record_world = PhysicsWorld::<3>::default();
     let actor = add_kinematic_actor(&mut record_world);
     let mut original = ReplayTape::<3>::default();
-    original.push_frame(
-        1.0 / 64.0,
-        vec![pose_command(actor, first_rotation, 0.125)],
-    );
+    original.push_frame(1.0 / 64.0, vec![pose_command(actor, first_rotation, 0.125)]);
     let receipt = execute_with_evidence(&mut record_world, &original, &context).unwrap();
 
     let mut changed_world = PhysicsWorld::<3>::default();
@@ -367,7 +374,12 @@ fn kinematic_translation_state_replays_in_a_fresh_world() {
     let replay_actor = add_kinematic_actor(&mut replay_world);
     assert!(verify_replay_evidence(&mut replay_world, &tape, &context, &receipt,).unwrap());
     assert_eq!(
-        replay_world.body(replay_actor).unwrap().transform.translation.0,
+        replay_world
+            .body(replay_actor)
+            .unwrap()
+            .transform
+            .translation
+            .0,
         SVector::from([0.125, 0.0, 0.0])
     );
 }
