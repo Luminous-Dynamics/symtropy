@@ -1500,6 +1500,183 @@ mod tests {
     }
 
     #[test]
+    fn workload_requires_at_least_two_demands() {
+        let case = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let error = exact_fleet_oracle(&fleet_workload(vec![case]), 10)
+            .expect_err("single-demand workloads belong to the parent contract");
+        assert_eq!(error, FleetError::FewerThanTwoDemands);
+    }
+
+    #[test]
+    fn workload_requires_a_named_time_basis() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        let mut workload = fleet_workload(vec![first, second]);
+        workload.time_basis_id.clear();
+        let error = exact_fleet_oracle(&workload, 10).expect_err("time basis is mandatory");
+        assert_eq!(error, FleetError::MissingTimeBasis);
+    }
+
+    #[test]
+    fn workload_rejects_different_decision_cutoffs() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        second.decision_tick = 1;
+        let error = exact_fleet_oracle(&fleet_workload(vec![first, second]), 10)
+            .expect_err("all cases share one information cutoff");
+        assert_eq!(error, FleetError::MismatchedDecisionCutoff);
+    }
+
+    #[test]
+    fn workload_rejects_different_tick_resolutions() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        second.tick_seconds = 30;
+        let error = exact_fleet_oracle(&fleet_workload(vec![first, second]), 10)
+            .expect_err("tick resolutions must match");
+        assert_eq!(error, FleetError::MismatchedTickResolution);
+    }
+
+    #[test]
+    fn workload_rejects_duplicate_demand_identifiers() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        second.demand.demand_id = "demand-a".into();
+        let error = exact_fleet_oracle(&fleet_workload(vec![first, second]), 10)
+            .expect_err("demand identity must be unique across the workload");
+        assert_eq!(error, FleetError::DuplicateDemandId("demand-a".into()));
+    }
+
+    #[test]
+    fn workload_rejects_missing_shared_resource_policy() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        let mut workload = fleet_workload(vec![first, second]);
+        workload
+            .resource_policies
+            .retain(|policy| policy.resource_id != "water-budget-01");
+        let error = exact_fleet_oracle(&workload, 10)
+            .expect_err("every shared resource needs an explicit accounting mode");
+        assert_eq!(
+            error,
+            FleetError::MissingResourcePolicy("water-budget-01".into())
+        );
+    }
+
+    #[test]
+    fn workload_rejects_duplicate_resource_policies() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        let mut workload = fleet_workload(vec![first, second]);
+        workload
+            .resource_policies
+            .push(workload.resource_policies[0].clone());
+        let error = exact_fleet_oracle(&workload, 10)
+            .expect_err("duplicate resource policies are ambiguous");
+        assert!(matches!(error, FleetError::DuplicateResourcePolicy(_)));
+    }
+
+    #[test]
+    fn workload_rejects_unknown_resource_policy() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        let mut workload = fleet_workload(vec![first, second]);
+        workload.resource_policies.push(SharedResourcePolicy {
+            resource_id: "not-in-the-workload".into(),
+            accounting_mode: ResourceAccountingMode::ConcurrentCapacity,
+        });
+        let error = exact_fleet_oracle(&workload, 10)
+            .expect_err("orphan resource policies are not accepted");
+        assert_eq!(
+            error,
+            FleetError::UnknownResourcePolicy("not-in-the-workload".into())
+        );
+    }
+
+    #[test]
+    fn zero_search_budget_is_invalid_not_infeasible() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        let error = exact_fleet_oracle(&fleet_workload(vec![first, second]), 0)
+            .expect_err("zero search budget cannot prove anything");
+        assert_eq!(error, FleetError::InvalidSearchBudget);
+    }
+
+    #[test]
+    fn cumulative_quota_allows_exact_capacity_boundary() {
+        let resource = resource(ResourceKind::WaterQuota, ResourceUnit::Millilitres, 5_000);
+        let operations = vec![operation(
+            "demand-a",
+            5,
+            10,
+            5_000,
+            ResourceUnit::Millilitres,
+        )];
+        assert!(check_cumulative_quota(&resource, &operations));
+    }
+
+    #[test]
+    fn two_individually_valid_lock_water_draws_can_exceed_one_shared_quota() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        for case in [&first, &second] {
+            let water = case
+                .resources
+                .iter()
+                .find(|resource| resource.resource_id == "water-budget-01")
+                .unwrap();
+            assert_eq!(water.availability[0].capacity, 10_000);
+        }
+        let mut first = first;
+        for case in [&mut first, &mut second] {
+            case.resources
+                .iter_mut()
+                .find(|resource| resource.resource_id == "water-budget-01")
+                .unwrap()
+                .availability[0]
+                .capacity = 5_000;
+            case.evidence
+                .iter_mut()
+                .find(|item| item.evidence_id == "water-calendar")
+                .unwrap()
+                .covered_capacity_windows
+                .as_mut()
+                .unwrap()[0]
+                .capacity = 5_000;
+        }
+        let result = exact_fleet_oracle(&fleet_workload(vec![first, second]), 50_000)
+            .expect("each one-demand case is valid");
+        assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
+        assert!(result.frontier.is_empty());
+    }
+
+    #[test]
+    fn two_individually_valid_shore_imports_can_exceed_a_shared_energy_quota() {
+        let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        for case in [&mut first, &mut second] {
+            case.resources
+                .iter_mut()
+                .find(|resource| resource.resource_id == "shore-01")
+                .unwrap()
+                .availability[0]
+                .capacity = 1_000;
+            case.evidence
+                .iter_mut()
+                .find(|item| item.evidence_id == "shore-calendar")
+                .unwrap()
+                .covered_capacity_windows
+                .as_mut()
+                .unwrap()[0]
+                .capacity = 1_000;
+        }
+        let result = exact_fleet_oracle(&fleet_workload(vec![first, second]), 50_000)
+            .expect("each one-demand case is valid");
+        assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
+        assert!(result.frontier.is_empty());
+    }
+
+    #[test]
     fn concurrent_capacity_rejects_overlapping_lockages() {
         let resource = resource(ResourceKind::Lock, ResourceUnit::Lockages, 1);
         let operations = vec![
