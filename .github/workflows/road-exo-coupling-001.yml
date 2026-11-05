@@ -1,6 +1,12 @@
 name: Road exogenous-coupling fixtures
 
 on:
+  push:
+    branches:
+      - "research/road-correspondence-replay-001-*"
+    paths:
+      - "research/road-exo-coupling-001/**"
+      - ".github/workflows/road-exo-coupling-001.yml"
   pull_request:
     paths:
       - "research/road-exo-coupling-001/**"
