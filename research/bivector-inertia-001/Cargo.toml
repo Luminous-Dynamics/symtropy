@@ -7,6 +7,9 @@ publish = false
 [dependencies]
 nalgebra = "0.34"
 
+[dev-dependencies]
+proptest = "1.4"
+
 [lib]
 path = "src/lib.rs"
 
