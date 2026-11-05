@@ -1,0 +1,31 @@
+name: Construction Layout Robot Benchmark V0.1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/construction-layout-robot-benchmark-v0-1/**"
+      - ".github/workflows/construction-layout-robot-benchmark-v0-1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-layout-robot-benchmark-v0-1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate matched layout benchmark and adversarial corpus
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.23.0
+      - name: Validate layout profile and frozen adversarial corpus
+        run: python research/construction-layout-robot-benchmark-v0-1/scripts/validate_benchmark.py
