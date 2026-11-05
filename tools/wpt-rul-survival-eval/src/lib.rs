@@ -450,9 +450,9 @@ fn cause_specific_hazard_log_score(
         let mut integrated_total_hazard = 0.0;
         let mut event_hazard = None::<f64>;
 
-        for interval_index in 0..interval_count {
-            let start = interval_edges[interval_index];
-            let end = interval_edges[interval_index + 1];
+        for (interval_index, edge_pair) in interval_edges.windows(2).enumerate() {
+            let start = edge_pair[0];
+            let end = edge_pair[1];
             if subject.observed_duration_hours < start {
                 break;
             }
