@@ -11,7 +11,7 @@
 ## What is checked
 
 - Every observation property and nested spatial point against the subset of JSON Schema keywords actually used by the checked-in contract.
-- Required properties, nullable types, enumerations, numeric bounds, lowercase SHA-256 syntax, UTC timestamp shape, item schemas and closed-object additional-property rules.
+- Required properties, nullable types, enumerations, numeric bounds, lowercase SHA-256 syntax, UTC timestamp shape, item schemas, unique array items and closed-object additional-property rules.
 - Evidence-specific invariants: synthetic records carry SYNTHETIC_ONLY; measured records carry instrument identity, calibration receipts and a raw artifact digest; published-measured records carry a source locator; every observation explicitly classifies its thermal stimulus.
 - All spatial strain, curvature, temperature and heat-flux points use the asset's declared coordinate frame. A nonempty spatial profile requires a declared asset frame.
 - Scenario case identities are unique and evidence classes are recognized.
