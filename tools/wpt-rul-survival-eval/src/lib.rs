@@ -119,12 +119,14 @@ fn string_set(
 
 #[derive(Debug, Clone)]
 struct Subject {
+    subject_id: String,
     cluster_id: String,
     observed_duration_hours: f64,
     outcome_kind: String,
     event_code: Option<String>,
     survival_probability: f64,
     cumulative_incidence: BTreeMap<String, f64>,
+    cause_specific_hazard_rates: BTreeMap<String, Vec<f64>>,
 }
 
 impl Subject {
@@ -147,6 +149,8 @@ pub struct SurvivalEvaluation {
     pub distinct_cluster_count: usize,
     /// Multicause IPCW Brier score divided by the total evaluation-cohort size.
     pub ipcw_competing_risk_brier_score: f64,
+    /// Cause-specific hazard log score; lower is better and censoring G is not estimated.
+    pub cause_specific_hazard_log_score: f64,
     /// Smallest censoring-survival value used by an eligible score contribution.
     pub minimum_censoring_survival_used: f64,
     /// Largest inverse-probability-of-censoring weight used by an eligible subject.
@@ -164,6 +168,7 @@ fn parse_subjects(
     target_codes: &BTreeSet<String>,
     competing_codes: &BTreeSet<String>,
     all_codes: &BTreeSet<String>,
+    interval_count: usize,
 ) -> Result<Vec<Subject>, String> {
     let rows = field(run, "subjects", "$")?
         .as_array()
@@ -187,6 +192,7 @@ fn parse_subjects(
                 "event_code",
                 "predicted_survival_probability",
                 "predicted_cumulative_incidence",
+                "predicted_cause_specific_hazard_rates",
             ],
             &path,
         )?;
@@ -306,17 +312,206 @@ fn parse_subjects(
             ));
         }
 
+        let hazard_rows = field(row, "predicted_cause_specific_hazard_rates", &path)?
+            .as_array()
+            .ok_or_else(|| fail(&format!("{path}.predicted_cause_specific_hazard_rates"), "must be an array"))?;
+        if hazard_rows.len() != all_codes.len() {
+            return Err(fail(
+                &path,
+                "predicted_cause_specific_hazard_rates must contain every declared event cause exactly once",
+            ));
+        }
+        let mut cause_specific_hazard_rates = BTreeMap::new();
+        for (hazard_index, hazard_row) in hazard_rows.iter().enumerate() {
+            let hazard_path = format!("{path}.predicted_cause_specific_hazard_rates[{hazard_index}]");
+            exact_keys(hazard_row, &["event_code", "rates_per_interval"], &hazard_path)?;
+            let cause = string_field(hazard_row, "event_code", &hazard_path)?.to_string();
+            if !all_codes.contains(&cause) {
+                return Err(fail(
+                    &hazard_path,
+                    format!("hazard cause {cause} is not declared by this run"),
+                ));
+            }
+            let rates = field(hazard_row, "rates_per_interval", &hazard_path)?
+                .as_array()
+                .ok_or_else(|| fail(&format!("{hazard_path}.rates_per_interval"), "must be an array"))?;
+            if rates.len() != interval_count {
+                return Err(fail(
+                    &hazard_path,
+                    format!("rates_per_interval must contain exactly {interval_count} interval rates"),
+                ));
+            }
+            let mut parsed_rates = Vec::with_capacity(interval_count);
+            for (rate_index, rate) in rates.iter().enumerate() {
+                let rate = rate.as_f64().ok_or_else(|| {
+                    fail(
+                        &format!("{hazard_path}.rates_per_interval[{rate_index}]"),
+                        "must be numeric",
+                    )
+                })?;
+                if !rate.is_finite() || rate < 0.0 {
+                    return Err(fail(
+                        &format!("{hazard_path}.rates_per_interval[{rate_index}]"),
+                        "hazard rate must be finite and non-negative",
+                    ));
+                }
+                parsed_rates.push(rate);
+            }
+            if cause_specific_hazard_rates
+                .insert(cause.clone(), parsed_rates)
+                .is_some()
+            {
+                return Err(fail(&hazard_path, format!("duplicate hazard cause {cause}")));
+            }
+        }
+        if cause_specific_hazard_rates.len() != all_codes.len()
+            || all_codes
+                .iter()
+                .any(|cause| !cause_specific_hazard_rates.contains_key(cause))
+        {
+            return Err(fail(
+                &path,
+                "predicted_cause_specific_hazard_rates is missing one or more declared event causes",
+            ));
+        }
+
         subjects.push(Subject {
+            subject_id,
             cluster_id,
             observed_duration_hours,
             outcome_kind,
             event_code,
             survival_probability,
             cumulative_incidence,
+            cause_specific_hazard_rates,
         });
     }
 
     Ok(subjects)
+}
+
+fn parse_hazard_time_edges(run: &Value) -> Result<Vec<f64>, String> {
+    let values = field(run, "hazard_time_edges_hours", "$")?
+        .as_array()
+        .ok_or_else(|| fail("$.hazard_time_edges_hours", "must be an array"))?;
+    if values.len() < 2 {
+        return Err(fail(
+            "$.hazard_time_edges_hours",
+            "at least two interval edges are required",
+        ));
+    }
+    let mut edges = Vec::with_capacity(values.len());
+    for (index, value) in values.iter().enumerate() {
+        let edge = value
+            .as_f64()
+            .ok_or_else(|| fail(&format!("$.hazard_time_edges_hours[{index}]"), "must be numeric"))?;
+        if !edge.is_finite() || edge < 0.0 {
+            return Err(fail(
+                &format!("$.hazard_time_edges_hours[{index}]"),
+                "edge must be finite and non-negative",
+            ));
+        }
+        if edges.last().is_some_and(|previous| edge <= *previous) {
+            return Err(fail(
+                "$.hazard_time_edges_hours",
+                "interval edges must be strictly increasing",
+            ));
+        }
+        edges.push(edge);
+    }
+    if edges[0] != 0.0 {
+        return Err(fail(
+            "$.hazard_time_edges_hours",
+            "the first hazard interval must start at hour zero",
+        ));
+    }
+    Ok(edges)
+}
+
+/// Compute the cause-specific censored log score from piecewise-constant hazard
+/// forecasts. The integrated total hazard is charged through each observed
+/// event/censor time; an observed terminal event also receives -log of its
+/// cause-specific hazard in the interval containing that event time.
+///
+/// The score does not estimate G(t) or use IPCW, but properness under random
+/// censoring still relies on independent censoring. Scores are compared only
+/// on the same declared censoring regime.
+fn cause_specific_hazard_log_score(
+    subjects: &[Subject],
+    interval_edges: &[f64],
+) -> Result<f64, String> {
+    let interval_count = interval_edges.len() - 1;
+    let mut total_score = 0.0;
+
+    for subject in subjects {
+        let mut integrated_total_hazard = 0.0;
+        let mut event_hazard = None::<f64>;
+
+        for interval_index in 0..interval_count {
+            let start = interval_edges[interval_index];
+            let end = interval_edges[interval_index + 1];
+            if subject.observed_duration_hours <= start {
+                break;
+            }
+            let exposure_hours = subject.observed_duration_hours.min(end) - start;
+            if exposure_hours <= 0.0 {
+                continue;
+            }
+            let total_hazard_rate = subject
+                .cause_specific_hazard_rates
+                .values()
+                .map(|rates| rates[interval_index])
+                .sum::<f64>();
+            integrated_total_hazard += total_hazard_rate * exposure_hours;
+            if !integrated_total_hazard.is_finite() {
+                return Err("cause-specific integrated hazard overflowed".into());
+            }
+
+            let contains_event_time = subject.has_terminal_event()
+                && subject.observed_duration_hours >= start
+                && (subject.observed_duration_hours < end
+                    || (interval_index + 1 == interval_count
+                        && subject.observed_duration_hours <= end));
+            if contains_event_time {
+                let cause = subject
+                    .event_code
+                    .as_ref()
+                    .expect("validated terminal event has a cause");
+                event_hazard = subject
+                    .cause_specific_hazard_rates
+                    .get(cause)
+                    .map(|rates| rates[interval_index]);
+                break;
+            }
+        }
+
+        let mut subject_score = integrated_total_hazard;
+        if subject.has_terminal_event() {
+            let hazard = event_hazard.ok_or_else(|| {
+                format!(
+                    "subject {} event time is outside the declared hazard intervals",
+                    subject.subject_id
+                )
+            })?;
+            if hazard <= 0.0 {
+                return Err(format!(
+                    "NOT_EVALUABLE: subject {} has zero forecast hazard for observed cause {}",
+                    subject.subject_id,
+                    subject.event_code.as_deref().unwrap_or("UNKNOWN")
+                ));
+            }
+            subject_score -= hazard.ln();
+        }
+        if !subject_score.is_finite() {
+            return Err("cause-specific hazard log score is not finite".into());
+        }
+        total_score += subject_score;
+        if !total_score.is_finite() {
+            return Err("cause-specific hazard score accumulation overflowed".into());
+        }
+    }
+
+    Ok(total_score / subjects.len() as f64)
 }
 
 /// Estimate P(C >= t) immediately before t using a reverse-Kaplan-Meier
@@ -397,6 +592,7 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
             "censoring_estimator",
             "prediction_horizon_hours",
             "minimum_censoring_survival",
+            "hazard_time_edges_hours",
             "target_event_codes",
             "competing_event_codes",
             "prediction_model_sha256",
@@ -482,7 +678,26 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
         .union(&competing_codes)
         .cloned()
         .collect::<BTreeSet<_>>();
-    let subjects = parse_subjects(run, &target_codes, &competing_codes, &all_codes)?;
+    let hazard_time_edges = parse_hazard_time_edges(run)?;
+    let interval_count = hazard_time_edges.len() - 1;
+    let subjects = parse_subjects(
+        run,
+        &target_codes,
+        &competing_codes,
+        &all_codes,
+        interval_count,
+    )?;
+    let maximum_observed_time = subjects
+        .iter()
+        .map(|subject| subject.observed_duration_hours)
+        .fold(0.0_f64, f64::max);
+    if maximum_observed_time > *hazard_time_edges.last().expect("at least two edges") {
+        return Err(fail(
+            "$.hazard_time_edges_hours",
+            "last hazard interval must cover every observed event/censor time",
+        ));
+    }
+    let hazard_log_score = cause_specific_hazard_log_score(&subjects, &hazard_time_edges)?;
 
     let mut brier_weighted_sum = 0.0;
     let mut eligible_count = 0usize;
@@ -596,6 +811,7 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
         censored_before_horizon_count,
         distinct_cluster_count,
         ipcw_competing_risk_brier_score: brier_score,
+        cause_specific_hazard_log_score: hazard_log_score,
         minimum_censoring_survival_used: minimum_g_used,
         maximum_ipcw_weight: maximum_weight,
         all_cause_harrell_c_index: c_index,
@@ -633,6 +849,40 @@ mod tests {
         assert!((report.maximum_ipcw_weight - 1.0 / 0.7).abs() < 1e-12);
         assert_eq!(report.all_cause_comparable_pairs, 15);
         assert!((report.all_cause_harrell_c_index.unwrap() - 0.9).abs() < 1e-12);
+    }
+
+    #[test]
+    fn cause_specific_censored_log_score_matches_piecewise_hazard_calculation() {
+        let report = evaluate_run(&fixture()).unwrap();
+        assert!((report.cause_specific_hazard_log_score - 3.3165540492110956).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rejects_non_monotonic_hazard_interval_edges() {
+        let mut run = fixture();
+        run["hazard_time_edges_hours"] = Value::Array(vec![
+            Value::from(0.0),
+            Value::from(10.0),
+            Value::from(5.0),
+            Value::from(20.0),
+        ]);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("interval edges must be strictly increasing")
+        );
+    }
+
+    #[test]
+    fn rejects_zero_hazard_for_an_observed_event_cause() {
+        let mut run = fixture();
+        run["subjects"][0]["predicted_cause_specific_hazard_rates"][0]["rates_per_interval"][0] =
+            Value::from(0.0);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("zero forecast hazard for observed cause")
+        );
     }
 
     #[test]
