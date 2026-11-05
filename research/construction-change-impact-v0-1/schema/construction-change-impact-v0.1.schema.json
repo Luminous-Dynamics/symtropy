@@ -54,7 +54,26 @@
           "type": "string",
           "minLength": 1
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "exact"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "project_id"
+            ]
+          }
+        }
+      ]
     },
     "node": {
       "type": "object",
@@ -211,7 +230,9 @@
         "closure_manifest_ref",
         "closure_authority_ref",
         "nodes",
-        "edges"
+        "edges",
+        "closure_graph_revision",
+        "closure_valid_until_unix"
       ],
       "properties": {
         "graph_id": {
@@ -253,6 +274,14 @@
           "items": {
             "$ref": "#/$defs/edge"
           }
+        },
+        "closure_graph_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "closure_valid_until_unix": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -273,7 +302,8 @@
         "source_evidence_ref",
         "graph_revision",
         "rule_set_digest",
-        "semantic_equivalence_ref"
+        "semantic_equivalence_ref",
+        "semantic_delta_known"
       ],
       "properties": {
         "event_id": {
@@ -352,6 +382,9 @@
             "string",
             "null"
           ]
+        },
+        "semantic_delta_known": {
+          "type": "boolean"
         }
       }
     }
