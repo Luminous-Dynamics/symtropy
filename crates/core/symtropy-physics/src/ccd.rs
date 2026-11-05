@@ -111,7 +111,7 @@ pub const CCD_SPEED_THRESHOLD: f64 = 5.0;
 ///
 /// Prefer [`sphere_sphere_checked`] when invalid input must be distinguished
 /// from a valid query with no collision.
-fn sphere_sphere_impl<const D: usize>(
+pub fn sphere_sphere<const D: usize>(
     pos_a: &SVector<f64, D>,
     vel_a: &SVector<f64, D>,
     radius_a: f64,
@@ -177,7 +177,7 @@ pub fn sphere_sphere_checked<const D: usize>(
 ///
 /// This is a quadratic in t:
 /// `|Δp + Δv*t|² = r²` where Δp = pos_b - pos_a, Δv = vel_b - vel_a, r = ra + rb.
-pub fn sphere_sphere<const D: usize>(
+fn sphere_sphere_impl<const D: usize>(
     pos_a: &SVector<f64, D>,
     vel_a: &SVector<f64, D>,
     radius_a: f64,
@@ -268,7 +268,7 @@ pub fn sphere_sphere<const D: usize>(
 ///
 /// Prefer [`sphere_halfspace_checked`] when invalid input must be distinguished
 /// from a valid query with no collision.
-fn sphere_halfspace_impl<const D: usize>(
+pub fn sphere_halfspace<const D: usize>(
     pos: &SVector<f64, D>,
     vel: &SVector<f64, D>,
     radius: f64,
@@ -337,7 +337,7 @@ pub fn sphere_halfspace_checked<const D: usize>(
 ///
 /// Solve for t where `normal · (pos + vel*t) - offset = radius`.
 /// This is linear: `t = (radius + offset - normal · pos) / (normal · vel)`.
-pub fn sphere_halfspace<const D: usize>(
+fn sphere_halfspace_impl<const D: usize>(
     pos: &SVector<f64, D>,
     vel: &SVector<f64, D>,
     radius: f64,
