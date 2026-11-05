@@ -37,22 +37,22 @@ An empty frontier is meaningful only when `ExhaustiveComplete` is returned: it m
 
 ## Current qualification
 
-Synthetic tests cover:
+Exact-head synthetic CI currently reports **25 passing tests** (formatting and Clippy also pass). The frozen tests cover:
 
-- overlapping lockage conflict;
-- half-open handoff at a shared capacity boundary;
-- capacity greater than one;
-- cumulative quota overrun across operations;
-- reset between non-overlapping quota windows;
-- rejection of a quota-consuming operation that spans two quota windows;
-- different per-window concurrent capacities;
-- two complete vessel demands sharing a lock, berth, shore-energy and water budget;
-- joint infeasibility under a tight common delivery deadline;
+- overlapping lockage conflict, half-open handoff and capacity greater than one;
+- capacity changes between declared windows;
+- cumulative quota overrun, exact-boundary acceptance, independent accounting windows and a use interval that straddles two windows;
+- two complete vessel demands sharing lock, berth, terminal, shore-energy and water resources;
+- joint infeasibility when the shared water or shore-energy quota is individually feasible for each demand but not for both;
 - conflicting shared-resource snapshots and invalid accounting modes;
-- input permutation replay and explicit search-budget exhaustion.
+- missing, duplicate and orphan resource policies;
+- duplicate demand identity, mismatched decision cutoffs/tick resolutions and missing time basis;
+- input permutation replay, zero-budget rejection and explicit search-budget exhaustion.
 
 ## Deliberate limits
 
 This is an exact tiny-instance reference oracle, not a production optimizer. It requires all demands to be jointly served in a candidate plan; partial-service allocation, participant fairness policies, stochastic arrival/duration distributions, dynamic replanning, multi-chamber vessel packing, hydraulic transients, water-level/tide physics, sediment evolution, AIS/LPMS ingestion, resource reservation and live dispatch remain out of scope.
+
+The implementation is a bounded exhaustive enumerator over its declared finite integer-tick search space. Its test fixtures are hand-checkable but **there is not yet a second, independently implemented fleet oracle** for cross-implementation agreement; that remains a promotion gate. The state budget currently counts operation-start candidate evaluations, not every recursion or memory allocation; future benchmark reports must preserve that exact definition.
 
 The oracle assumes fixed segment durations, fixed capacity windows and one ordered route per demand. It does not establish that upstream evidence is authentic, that a vessel is physically qualified, that a resource operator has authorized use, or that real water/energy availability matches the synthetic profile. It never controls a lock, berth, pump, vessel or shore-power asset.
