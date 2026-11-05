@@ -9,7 +9,7 @@
 //!
 //! Uses Union-Find (disjoint set) for O(n * alpha(n)) grouping, effectively linear.
 
-use crate::body::{BodyHandle, RigidBody};
+use crate::body::{BodyHandle, BodyType, RigidBody};
 use crate::constraint::Constraint;
 use crate::contact::ContactManifold;
 use std::collections::{BTreeMap, HashMap};
@@ -17,13 +17,15 @@ use std::collections::{BTreeMap, HashMap};
 /// A group of connected bodies that can be solved independently.
 #[derive(Debug)]
 pub struct Island {
-    /// Indices into the world's body array.
+    /// Indices of dynamic bodies owned by this solver island. Static and
+    /// kinematic bodies are read-only endpoints and are not island owners.
     pub body_indices: Vec<usize>,
     /// Indices into the world's contact array.
     pub contact_indices: Vec<usize>,
     /// Indices into the world's constraint array.
     pub constraint_indices: Vec<usize>,
-    /// Whether all bodies in this island are sleeping.
+    /// Whether all dynamic bodies sleep and no awake kinematic wake source
+    /// touches this island.
     pub sleeping: bool,
 }
 
@@ -156,8 +158,28 @@ pub fn build_islands<const D: usize>(
             .map(|(i, _)| i)
             .collect();
 
-        // Check if all bodies in the island are sleeping
-        let sleeping = body_indices.iter().all(|&i| bodies[i].sleeping);
+        // Static endpoints do not wake dynamic bodies. An awake kinematic
+        // endpoint does: it is externally prescribed but can collide with or
+        // constrain a sleeping dynamic body. Keep this wake dependency separate
+        // from solver-island connectivity so one platform does not merge stacks.
+        let has_awake_kinematic_wake_source = contact_indices.iter().any(|&contact_index| {
+            let contact = &contacts[contact_index];
+            [contact.body_a, contact.body_b].into_iter().any(|handle| {
+                handle_to_index.get(&handle).is_some_and(|&index| {
+                    bodies[index].body_type == BodyType::Kinematic && !bodies[index].sleeping
+                })
+            })
+        }) || constraint_indices.iter().any(|&constraint_index| {
+            let (body_a, body_b) = constraints[constraint_index].bodies();
+            [body_a, body_b].into_iter().any(|handle| {
+                handle_to_index.get(&handle).is_some_and(|&index| {
+                    bodies[index].body_type == BodyType::Kinematic && !bodies[index].sleeping
+                })
+            })
+        });
+
+        let sleeping = body_indices.iter().all(|&i| bodies[i].sleeping)
+            && !has_awake_kinematic_wake_source;
 
         islands.push(Island {
             body_indices,
@@ -381,8 +403,38 @@ mod fixed_body_island_tests {
     }
 
     #[test]
+    fn static_floor_does_not_wake_sleeping_dynamic_islands() {
+        let mut bodies = vec![
+            RigidBody::<3>::dynamic_sphere(
+                BodyHandle(0),
+                Point::new([-2.0, 1.0, 0.0]),
+                0.5,
+                1.0,
+            ),
+            RigidBody::<3>::dynamic_sphere(
+                BodyHandle(1),
+                Point::new([2.0, 1.0, 0.0]),
+                0.5,
+                1.0,
+            ),
+            RigidBody::<3>::static_body(
+                BodyHandle(2),
+                Point::origin(),
+                Box::new(Sphere::<3>::unit()),
+            ),
+        ];
+        bodies[0].sleeping = true;
+        bodies[1].sleeping = true;
+        let contacts = vec![contact(0, 2), contact(1, 2)];
+        let islands = build_islands(&bodies, &contacts, &[], &handles_for(&bodies));
+
+        assert_eq!(islands.len(), 2);
+        assert!(islands.iter().all(|island| island.sleeping));
+    }
+
+    #[test]
     fn shared_kinematic_platform_does_not_merge_dynamic_solver_islands() {
-        let bodies = vec![
+        let mut bodies = vec![
             RigidBody::<3>::dynamic_sphere(
                 BodyHandle(0),
                 Point::new([-1.0, 1.0, 0.0]),
@@ -397,10 +449,13 @@ mod fixed_body_island_tests {
             ),
             kinematic_body(2),
         ];
+        bodies[0].sleeping = true;
+        bodies[1].sleeping = true;
         let contacts = vec![contact(0, 2), contact(1, 2)];
         let islands = build_islands(&bodies, &contacts, &[], &handles_for(&bodies));
 
         assert_eq!(islands.len(), 2);
+        assert!(islands.iter().all(|island| !island.sleeping));
         assert_eq!(
             islands
                 .iter()
