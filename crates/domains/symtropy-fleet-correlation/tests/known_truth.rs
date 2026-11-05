@@ -193,7 +193,16 @@ fn constant_series_returns_no_undefined_correlation() {
 
 #[test]
 fn minimum_overlap_is_enforced_for_lagged_analysis() {
-    let error = FleetCorrelationContract::new(100, 3, 4, 10.0, 9_500).unwrap_err();
+    let contract = FleetCorrelationContract::new(100, 3, 4, 10.0, 9_500)
+        .expect("contract policy is valid");
+    let error = evaluate_fleet_correlation(
+        &[
+            site("a", &[1.0, 2.0, 3.0], 5),
+            site("b", &[2.0, 3.0, 4.0], 5),
+        ],
+        &contract,
+    )
+    .unwrap_err();
     assert!(matches!(
         error,
         symtropy_fleet_correlation::FleetCorrelationError::NoLagHasMinimumOverlap { .. }
