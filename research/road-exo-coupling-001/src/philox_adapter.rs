@@ -489,8 +489,14 @@ mod tests {
         for (resolved_hypothesis, planned_hypothesis) in
             resolved.hypotheses.iter().zip(&plan.hypotheses)
         {
-            assert_eq!(resolved_hypothesis.hypothesis_id, planned_hypothesis.hypothesis_id);
-            assert_eq!(resolved_hypothesis.draws.len(), planned_hypothesis.addresses.len());
+            assert_eq!(
+                resolved_hypothesis.hypothesis_id,
+                planned_hypothesis.hypothesis_id
+            );
+            assert_eq!(
+                resolved_hypothesis.draws.len(),
+                planned_hypothesis.addresses.len()
+            );
             for (receipt, address) in resolved_hypothesis
                 .draws
                 .iter()
@@ -498,11 +504,7 @@ mod tests {
             {
                 assert_eq!(receipt.canonical_address, address.canonical_bytes);
                 assert_eq!(
-                    verify_correspondence_receipt(
-                        &seed,
-                        &receipt.canonical_address,
-                        &receipt.draw
-                    ),
+                    verify_correspondence_receipt(&seed, &receipt.canonical_address, &receipt.draw),
                     Ok(())
                 );
             }
@@ -552,7 +554,8 @@ mod tests {
             resolved
                 .hypotheses
                 .iter()
-                .all(|hypothesis| hypothesis.completeness == PlanCompleteness::CompleteWithinDeclaredSets)
+                .all(|hypothesis| hypothesis.completeness
+                    == PlanCompleteness::CompleteWithinDeclaredSets)
         );
     }
 
