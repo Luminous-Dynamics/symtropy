@@ -52,7 +52,7 @@ jobs:
 
           def event_digest(event):
               unsigned = {key: value for key, value in event.items() if key != "event_digest"}
-              return digest(b"construction-robot-trace-event-v0.1\\0" + jcs(unsigned))
+              return digest(b"construction-robot-trace-event-v0.1\0" + jcs(unsigned))
 
           def root_digest(candidate):
               root_input = {
@@ -60,7 +60,7 @@ jobs:
                   "ordered_event_digests": [event["event_digest"] for event in candidate["events"]],
                   "annotations": candidate["annotations"],
               }
-              return digest(b"construction-robot-trace-root-v0.1\\0" + jcs(root_input))
+              return digest(b"construction-robot-trace-root-v0.1\0" + jcs(root_input))
 
           def verify(candidate):
               if not validator.is_valid(candidate):
@@ -89,7 +89,7 @@ jobs:
                   if annotation["source_event_digest"] not in event_ids:
                       return False
                   expected_annotation_digest = digest(
-                      b"construction-robot-trace-annotation-v0.1\\0" + jcs(annotation["interpretation"])
+                      b"construction-robot-trace-annotation-v0.1\0" + jcs(annotation["interpretation"])
                   )
                   if annotation["interpretation_digest"] != expected_annotation_digest:
                       return False
@@ -182,7 +182,7 @@ jobs:
               "parser_name": "synthetic-test-parser",
               "parser_version": "0.1.0",
               "rule_set_digest": "a" * 64,
-              "interpretation_digest": digest(b"construction-robot-trace-annotation-v0.1\\0" + jcs(interpretation)),
+              "interpretation_digest": digest(b"construction-robot-trace-annotation-v0.1\0" + jcs(interpretation)),
               "interpretation": interpretation,
           }]
           candidate["final_trace_digest"] = root_digest(candidate)
