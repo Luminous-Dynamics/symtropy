@@ -27,7 +27,10 @@ fn main() {
     let bytes = match fs::read(&args[2]) {
         Ok(bytes) => bytes,
         Err(error) => {
-            eprintln!("{}", json!({"integrity":"rejected","error":error.to_string()}));
+            eprintln!(
+                "{}",
+                json!({"integrity":"rejected","error":error.to_string()})
+            );
             std::process::exit(1);
         }
     };
@@ -48,7 +51,10 @@ fn main() {
             );
         }
         Err(error) => {
-            eprintln!("{}", json!({"integrity":"rejected","error":error.to_string()}));
+            eprintln!(
+                "{}",
+                json!({"integrity":"rejected","error":error.to_string()})
+            );
             std::process::exit(1);
         }
     }
