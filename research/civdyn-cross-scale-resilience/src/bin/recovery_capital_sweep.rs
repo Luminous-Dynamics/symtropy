@@ -50,15 +50,9 @@ fn tick_row(path: RecoveryPath, tick: &RecoveryCapitalTick) {
     let unmet = fmt(tick.unmet_water_m3);
     let (first_shock_unmet, recovery_unmet, repeat_shock_unmet) = match tick.phase {
         RecoveryPhase::FirstShock => (unmet, String::new(), String::new()),
-        RecoveryPhase::ServiceRecovery => {
-            (String::new(), unmet, String::new())
-        }
-        RecoveryPhase::RepeatShock => {
-            (String::new(), String::new(), unmet)
-        }
-        RecoveryPhase::PreShock => {
-            (String::new(), String::new(), String::new())
-        }
+        RecoveryPhase::ServiceRecovery => (String::new(), unmet, String::new()),
+        RecoveryPhase::RepeatShock => (String::new(), String::new(), unmet),
+        RecoveryPhase::PreShock => (String::new(), String::new(), String::new()),
     };
     emit(vec![
         "tick".into(),
