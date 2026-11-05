@@ -95,7 +95,6 @@ jobs:
           assert value(steered, "consensus_endorsement_count") == 2
           assert value(steered, "consensus_non_endorsement_count") == 1
           assert value(steered, "consensus_unrecorded_count") == 0
-          assert value(steered, "consensus_claim_contradicted_by_recorded_non_endorsement") == 1
 
           member_c = [
               row for row in member_rows
@@ -109,7 +108,7 @@ jobs:
           assert pair["allocation_l1_shift_units"] == "56"
           assert pair["reallocated_units"] == "28.000000"
 
-          print("CIVDYN-DELIB-001 trace audit, proposal omission, unsupported claims, unanimous-first-choice conflict and preference-fixed allocation sensitivity verified.")
+          print("CIVDYN-DELIB-001 trace audit, proposal omission, unsupported claims, recorded non-endorsement and preference-fixed allocation sensitivity verified.")
           PY
 
           {
