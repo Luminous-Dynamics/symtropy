@@ -62,8 +62,8 @@ The dependency-free Rust crate:
 - treats a missing rule as UnknownImpact; an edge may be non-triggering only when that change kind is explicitly covered;
 - merges multiple paths without dropping any required action;
 - propagates unknown upstream impact conservatively;
-- permits Unaffected only with complete graph closure and an authority-backed closure manifest;
-- produces stable node/edge/rule path witnesses and deterministic reports.
+- permits Unaffected only with complete graph closure, an authority-backed closure manifest, the exact graph revision and an explicit validity expiry;
+- produces stable node/edge/rule path witnesses and deterministic reports, including parallel dependency edges and convergent unknown paths; a 100,000-path exploration ceiling fails closed by marking unresolved nodes unknown.
 
 The graph identity and report are deterministic source contracts; the evaluator does not authenticate external signatures or verify the truth of an authority reference.
 
