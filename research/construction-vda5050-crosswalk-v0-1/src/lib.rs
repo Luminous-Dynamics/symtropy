@@ -187,7 +187,7 @@ pub enum Projection<'a> {
 }
 
 /// Project a VDA observation without upgrading its authority or evidence class.
-pub fn project_observation(observation: VdaObservation<'_>) -> Projection<'_> {
+pub fn project_observation<'a>(observation: VdaObservation<'a>) -> Projection<'a> {
     match observation {
         VdaObservation::OrderReceived { order_id, order_update_id } => {
             Projection::TransportOrderReceived { order_id, order_update_id }
@@ -301,8 +301,10 @@ pub fn validate_sidecar_binding(
         (expected.evidence_profile_ref == presented.evidence_profile_ref, ContextField::EvidenceProfileRef),
         (expected.acceptance_authority_ref == presented.acceptance_authority_ref, ContextField::AcceptanceAuthorityRef),
     ];
-    if let Some((_, field)) = comparisons.iter().find(|(matches, _)| !*matches) {
-        return Err(ContextError::Mismatch(*field));
+    for (matches, field) in comparisons {
+        if !matches {
+            return Err(ContextError::Mismatch(field));
+        }
     }
 
     Ok(())
@@ -318,8 +320,10 @@ fn validate_context_shape(context: &ConstructionSidecar<'_>) -> Result<(), Conte
         (context.evidence_profile_ref, ContextField::EvidenceProfileRef),
         (context.acceptance_authority_ref, ContextField::AcceptanceAuthorityRef),
     ];
-    if let Some((_, field)) = required_strings.iter().find(|(value, _)| value.trim().is_empty()) {
-        return Err(ContextError::EmptyField(*field));
+    for (value, field) in required_strings {
+        if value.trim().is_empty() {
+            return Err(ContextError::EmptyField(field));
+        }
     }
     let digests = [
         (context.design_revision_digest, ContextField::DesignRevisionDigest),
@@ -330,8 +334,10 @@ fn validate_context_shape(context: &ConstructionSidecar<'_>) -> Result<(), Conte
         (context.preconditions_digest, ContextField::PreconditionsDigest),
         (context.postconditions_digest, ContextField::PostconditionsDigest),
     ];
-    if let Some((_, field)) = digests.iter().find(|(value, _)| !is_lower_hex_digest(value)) {
-        return Err(ContextError::InvalidDigest(*field));
+    for (value, field) in digests {
+        if !is_lower_hex_digest(value) {
+            return Err(ContextError::InvalidDigest(field));
+        }
     }
     Ok(())
 }
