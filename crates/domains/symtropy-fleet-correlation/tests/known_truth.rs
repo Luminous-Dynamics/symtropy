@@ -5,11 +5,7 @@ use symtropy_fleet_correlation::{
     FleetCorrelationContract, FleetSiteSeries, evaluate_fleet_correlation,
 };
 
-fn site(
-    site_id: &str,
-    samples_kw: &[f64],
-    clock_uncertainty_ns: u64,
-) -> FleetSiteSeries {
+fn site(site_id: &str, samples_kw: &[f64], clock_uncertainty_ns: u64) -> FleetSiteSeries {
     FleetSiteSeries::new(
         site_id,
         "region-a",
@@ -59,7 +55,14 @@ fn perfectly_correlated_sites_double_variance_vs_independence() {
     .expect("evaluation succeeds");
 
     assert!((report.variance_ratio_vs_independence.unwrap() - 2.0).abs() < 1e-12);
-    assert!((report.pair_dependence[0].contemporaneous_correlation.unwrap() - 1.0).abs() < 1e-12);
+    assert!(
+        (report.pair_dependence[0]
+            .contemporaneous_correlation
+            .unwrap()
+            - 1.0)
+            .abs()
+            < 1e-12
+    );
 }
 
 #[test]
@@ -75,7 +78,14 @@ fn anti_correlated_sites_cancel_portfolio_variance() {
 
     assert!(report.portfolio_sample_variance_kw2.abs() < 1e-12);
     assert_eq!(report.variance_ratio_vs_independence, Some(0.0));
-    assert!((report.pair_dependence[0].contemporaneous_correlation.unwrap() + 1.0).abs() < 1e-12);
+    assert!(
+        (report.pair_dependence[0]
+            .contemporaneous_correlation
+            .unwrap()
+            + 1.0)
+            .abs()
+            < 1e-12
+    );
 }
 
 #[test]
@@ -193,8 +203,8 @@ fn constant_series_returns_no_undefined_correlation() {
 
 #[test]
 fn minimum_overlap_is_enforced_for_lagged_analysis() {
-    let contract = FleetCorrelationContract::new(100, 3, 4, 10.0, 9_500)
-        .expect("contract policy is valid");
+    let contract =
+        FleetCorrelationContract::new(100, 3, 4, 10.0, 9_500).expect("contract policy is valid");
     let error = evaluate_fleet_correlation(
         &[
             site("a", &[1.0, 2.0, 3.0], 5),
