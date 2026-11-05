@@ -1,0 +1,297 @@
+name: PHYS-EVID-05 Persistent Evidence Session Qualification
+
+on:
+  push:
+    branches:
+      - "ci/persistent-evidence-session-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: persistent-evidence-session-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: 120932a027bb4b0dc638515a9618bd283be2a6fa
+  PRODUCT_PARENT: 453a8f37805924f69e4272f708685cb7fcc05d5a
+
+jobs:
+  qualify:
+    name: Frozen PHYS-EVID-05 session / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact product subject and unchanged dependency authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          test "$(git rev-parse "${PRODUCT_HEAD}^")" = "${PRODUCT_PARENT}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}" | sort)
+          mapfile -t expected < <(printf '%s\n' \
+            docs/release/evidence/PERSISTENCE_SAFE_EVIDENCE_SESSION_V01.md \
+            src/evidence_session.rs \
+            src/lib.rs | sort)
+          test "${#changed[@]}" = "3"
+          test "${changed[*]}" = "${expected[*]}"
+
+          test "$(git rev-parse "${PRODUCT_HEAD}:docs/release/evidence/PERSISTENCE_SAFE_EVIDENCE_SESSION_V01.md")" = \
+            e69c8f7aec479e396831be674045360c65e36bdb
+          test "$(git rev-parse "${PRODUCT_HEAD}:src/evidence_session.rs")" = \
+            68f54475fe4c19908f42e6b18866fdd0e60b5fcb
+          test "$(git rev-parse "${PRODUCT_HEAD}:src/lib.rs")" = \
+            658afb226bfbfc9560cfe25150eddfeaf23119c5
+
+          # Existing dependency authority is byte-identical to #1086.
+          test "$(git rev-parse "${PRODUCT_PARENT}:Cargo.toml")" = 274720e256ba9067fad3d06f71e1b18590b046bd
+          test "$(git rev-parse "${PRODUCT_HEAD}:Cargo.toml")" = 274720e256ba9067fad3d06f71e1b18590b046bd
+          test "$(git rev-parse "${PRODUCT_PARENT}:Cargo.lock")" = db602c9707ecd6143ef36c0243c051544a027141
+          test "$(git rev-parse "${PRODUCT_HEAD}:Cargo.lock")" = db602c9707ecd6143ef36c0243c051544a027141
+
+          # Exact #1086 live evidence semantics remain untouched.
+          test "$(git rev-parse "${PRODUCT_HEAD}:crates/core/symtropy-physics/src/evidence_authority.rs")" = \
+            41e1e203ee107540bc5a2a82ec367c82ee145fe0
+          test "$(git rev-parse "${PRODUCT_HEAD}:crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs")" = \
+            42d24aa8e123d0a8c4c72e3df276079a6aed1ce3
+
+          grep -Fq 'rand = "0.8"' Cargo.toml
+          grep -Fq 'symtropy-physics = { path = "crates/core/symtropy-physics" }' Cargo.toml
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            docs/release/evidence/PERSISTENCE_SAFE_EVIDENCE_SESSION_V01.md \
+            src/evidence_session.rs \
+            src/lib.rs \
+            Cargo.toml \
+            Cargo.lock \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            > "${RUNNER_TEMP}/persistent-evidence-session-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check integration library
+        run: cargo check --locked --package symtropy-launcher --lib
+
+      - name: Run persistent-session theorem corpus
+        run: cargo test --locked --package symtropy-launcher --lib evidence_session::tests
+
+      - name: Run sealed live-evidence regression
+        run: cargo test -p symtropy-physics --locked --test sealed_evidence_authority_v01
+
+      - name: Run strict integration-library Clippy
+        run: cargo clippy --locked --package symtropy-launcher --lib -- -D warnings
+
+      - name: Audit bootstrap, ownership, and non-authentication boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          module = Path('src/evidence_session.rs').read_text()
+          contract = Path('docs/release/evidence/PERSISTENCE_SAFE_EVIDENCE_SESSION_V01.md').read_text()
+          root_lib = Path('src/lib.rs').read_text()
+
+          assert 'pub mod evidence_session;' in root_lib
+          assert 'pub const EVIDENCE_SESSION_ID_LEN: usize = 32;' in module
+          assert 'const ZERO_ID_RETRY_LIMIT: usize = 8;' in module
+          assert 'use rand::{RngCore, rngs::OsRng};' in module
+          assert 'rng.try_fill_bytes(bytes).map_err(|_| ())' in module
+
+          # Session ID is exact bytes with no caller-selected construction authority.
+          id_start = module.index('pub struct EvidenceSessionId')
+          id_end = module.index('\n}\n', id_start) + 2
+          id_block = module[id_start:id_end]
+          assert '[u8; EVIDENCE_SESSION_ID_LEN]' in id_block
+          for line in id_block.splitlines()[1:]:
+              assert not line.lstrip().startswith('pub '), line
+
+          id_impl_start = module.index('impl EvidenceSessionId')
+          id_impl_end = module.index('\n}\n', id_impl_start) + 2
+          id_impl = module[id_impl_start:id_impl_end]
+          public_id_methods = re.findall(r'pub const fn ([a-zA-Z0-9_]+)', id_impl)
+          assert public_id_methods == ['as_bytes', 'to_bytes']
+          assert 'new(' not in id_impl
+          assert 'from_' not in id_impl
+          assert 'parse' not in id_impl
+
+          # Qualified binding fields are private and it is not clone/copy/serde authority.
+          binding_derive = re.search(
+              r'#\[derive\(([^)]*)\)\]\s*pub struct QualifiedEvidenceSessionBinding',
+              module,
+              re.MULTILINE,
+          )
+          assert binding_derive is not None
+          traits = {part.strip() for part in binding_derive.group(1).split(',')}
+          assert {'Debug', 'PartialEq', 'Eq'} <= traits
+          assert 'Clone' not in traits
+          assert 'Copy' not in traits
+          assert 'Serialize' not in traits
+          assert 'Deserialize' not in traits
+
+          binding_start = module.index('pub struct QualifiedEvidenceSessionBinding')
+          binding_end = module.index('\n}\n', binding_start) + 2
+          binding_block = module[binding_start:binding_end]
+          for line in binding_block.splitlines()[1:]:
+              assert not line.lstrip().startswith('pub '), line
+          assert 'session_id: EvidenceSessionId' in binding_block
+          assert 'physical_authority_id: PhysicalAuthorityId' in binding_block
+          assert 'world_generation_id: WorldGenerationId' in binding_block
+          assert 'temporal_incarnation_id: LocalTemporalIncarnationId' in binding_block
+          assert 'profile: EvidenceSessionProfileV1' in binding_block
+
+          # Successful session owns both binding and exact live facade.
+          session_start = module.index('pub struct PersistentEvidenceSession')
+          session_end = module.index('\n}\n', session_start) + 2
+          session_block = module[session_start:session_end]
+          fields = [line.strip() for line in session_block.splitlines()[1:] if ':' in line]
+          assert fields == [
+              'binding: QualifiedEvidenceSessionBinding,',
+              'evidence: LocalEvidencePhysicsAuthorityWorld<D>,',
+          ]
+
+          impl_start = module.index('impl<const D: usize> PersistentEvidenceSession')
+          impl_end = module.index('\nfn mint_session_id_with', impl_start)
+          session_impl = module[impl_start:impl_end]
+          assert 'pub fn bootstrap(' in session_impl
+          bootstrap_sig = session_impl[
+              session_impl.index('pub fn bootstrap('):session_impl.index('{', session_impl.index('pub fn bootstrap('))
+          ]
+          assert 'LocalEvidencePhysicsAuthorityWorld<D>' in bootstrap_sig
+          assert 'EvidenceSessionId' not in bootstrap_sig
+          assert 'pub fn bootstrap_with_fill' not in session_impl
+          assert 'pub const fn evidence_authority(&self) -> &LocalEvidencePhysicsAuthorityWorld<D>' in session_impl
+          assert 'pub fn into_namespace(' in session_impl
+          assert 'into_evidence_authority' not in session_impl
+          assert 'evidence_authority_mut' not in session_impl
+          assert 'DerefMut' not in module
+          assert 'world_mut' not in session_impl
+          assert 'authority_world_mut' not in session_impl
+
+          # Only failed bootstrap may recover the still-unbound live facade.
+          failure_impl_start = module.index('impl<const D: usize> EvidenceSessionBootstrapFailure')
+          failure_impl_end = module.index('\n}\n', failure_impl_start) + 2
+          failure_impl = module[failure_impl_start:failure_impl_end]
+          assert 'into_evidence_authority' in failure_impl
+
+          # Production uniqueness inputs exclude weak clocks/process metadata.
+          forbidden = [
+              'SystemTime',
+              'UNIX_EPOCH',
+              'process::id',
+              'DefaultHasher',
+              'Uuid',
+              '/dev/urandom',
+              'mtime',
+          ]
+          for term in forbidden:
+              assert term not in module
+          assert 'Serialize' not in module
+          assert 'Deserialize' not in module
+
+          assert '#[repr(u32)]' in module
+          assert 'OsCsprngBoundLiveIncarnation = 1' in module
+          assert 'if bytes.iter().any(|byte| *byte != 0)' in module
+          assert 'ZeroSessionIdRetryLimit' in module
+
+          required_tests = [
+              'bootstrap_binds_nonzero_session_id_to_exact_live_incarnation',
+              'stepping_preserves_session_binding_and_live_incarnation',
+              'clean_exit_and_reseal_requires_a_new_live_and_persistent_session',
+              'entropy_failure_returns_the_original_live_facade_without_session',
+              'all_zero_entropy_is_retried_and_never_becomes_a_session_id',
+              'repeated_zero_entropy_fails_closed_without_binding',
+          ]
+          for name in required_tests:
+              assert name in module
+
+          assert 'Why this lives outside `symtropy-physics`' in contract
+          assert 'Ownership instead of detached association' in contract
+          assert 'Authentication boundary' in contract
+          assert 'No mathematical collision impossibility' in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            docs/release/evidence/PERSISTENCE_SAFE_EVIDENCE_SESSION_V01.md \
+            src/evidence_session.rs \
+            src/lib.rs \
+            Cargo.toml \
+            Cargo.lock \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            > "${RUNNER_TEMP}/persistent-evidence-session-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/persistent-evidence-session-source-sha256.txt" \
+            "${RUNNER_TEMP}/persistent-evidence-session-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-EVID-05 persistence-safe evidence session v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'session_id_bits': 256,
+              'production_mint_profile': 'os-csprng-rand-0.8-OsRng',
+              'caller_selected_session_id': False,
+              'successful_session_owns_live_facade': True,
+              'successful_session_inner_evidence_escape': False,
+              'clean_exit_requires_namespace_boundary': True,
+              'fresh_live_incarnation_required_for_next_session': True,
+              'all_zero_session_id_admitted': False,
+              'cargo_dependency_change': False,
+              'cryptographic_authentication_authority': False,
+              'issuer_key_authority': False,
+              'restart_continuity_restoration': False,
+              'canonical_semantic_payload_authority': False,
+              'predecessor_1086_qualification_claimed_by_this_receipt': False,
+              'dwell_arrival_delivery_settlement_authority': False,
+          }
+          Path('persistent-evidence-session-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: persistent-evidence-session-${{ env.PRODUCT_HEAD }}
+          path: |
+            persistent-evidence-session-qualification-receipt.json
+            ${{ runner.temp }}/persistent-evidence-session-source-sha256.txt
+            ${{ runner.temp }}/persistent-evidence-session-source-sha256-post.txt
+          if-no-files-found: error
