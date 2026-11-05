@@ -59,10 +59,9 @@ fn resource_use_fits(
                 .iter()
                 .find(|resource| resource.resource_id == usage.resource_id)
                 .is_some_and(|resource| {
-                    resource
-                        .availability
-                        .iter()
-                        .any(|window| window.window.covers(interval) && window.capacity >= usage.amount)
+                    resource.availability.iter().any(|window| {
+                        window.window.covers(interval) && window.capacity >= usage.amount
+                    })
                 })
         })
 }
