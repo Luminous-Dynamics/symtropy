@@ -323,12 +323,14 @@ def project_maps(values: Any) -> list[dict[str, Any]]:
         raise ValueError("maps must be an array")
     result = []
     for value in values:
-        map_version = value.get("mapVersion")
-        if map_version is not None and not isinstance(map_version, str):
-            raise ValueError("mapVersion must be a string")
+        map_version = nonempty(require(value, "mapVersion"), "mapVersion")
+        map_status = nonempty(require(value, "mapStatus"), "mapStatus")
+        if map_status not in {"ENABLED", "DISABLED"}:
+            raise ValueError("invalid mapStatus")
         result.append({
             "map_id": nonempty(require(value, "mapId"), "mapId"),
             "map_version": map_version,
+            "map_status": map_status,
         })
     return result
 
