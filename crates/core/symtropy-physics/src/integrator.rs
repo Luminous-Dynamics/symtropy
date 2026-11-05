@@ -189,7 +189,12 @@ mod tests {
     use crate::body::BodyHandle;
 
     fn simulate_harmonic_oscillator(dt: f64, steps: usize) -> (f64, f64) {
-        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.1, 1.0);
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([1.0, 0.0, 0.0]),
+            0.1,
+            1.0,
+        );
         body.linear_damping = 0.0;
         let zero_gravity = SVector::zeros();
         let mut max_abs_position = 1.0_f64;
