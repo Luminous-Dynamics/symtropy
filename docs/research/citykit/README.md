@@ -12,6 +12,7 @@ The corpus contains 18 bounded cases covering service capacity/evidence, utility
 
 - A route's `requires` list is conjunctive (AND).
 - Routes under one capability are alternatives (OR).
+- Each case explicitly lists `target_capabilities`; only those targets are required for its capability-closure disposition.
 - A required ID resolves to a declared primitive or another declared capability. A missing required record is Unknown, not unavailable.
 - A primitive has an origin (`local` or `imported`), availability (`available` or `unavailable`) and evidence state.
 - An imported primitive can support operation, but never local reproductive closure.
