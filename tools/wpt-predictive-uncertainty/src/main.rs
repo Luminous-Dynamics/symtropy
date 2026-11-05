@@ -31,7 +31,8 @@ fn main() -> ExitCode {
         }
     }
     match evaluate(&records).and_then(|report| {
-        serde_json::to_string_pretty(&report).map_err(|error| format!("cannot serialize report: {error}"))
+        serde_json::to_string_pretty(&report)
+            .map_err(|error| format!("cannot serialize report: {error}"))
     }) {
         Ok(report) => {
             println!("{report}");
