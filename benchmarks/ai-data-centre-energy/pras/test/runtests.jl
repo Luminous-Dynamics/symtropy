@@ -313,25 +313,33 @@ end
     end
 
     @testset "non-degenerate sample-level energy-CVAR contract" begin
+        case = fixture_case("pras-nondegenerate-energy-cvar-strict-tail")
+        generation = case.generation[1]
+        load_profile = Int.(case.regional_load_mw_by_interval)
         system = one_region_system(
-            fill(110, 8),
-            fill(100, 8);
-            failure_probability=fill(0.35, 8),
-            repair_probability=fill(0.55, 8),
+            load_profile,
+            Int.(generation.capacity_mw_by_interval);
+            failure_probability=Float64.(generation.failure_probability),
+            repair_probability=Float64.(generation.repair_probability),
         )
-        result = measure(system; samples=256, seed=BASE_SEED + 1)
+        result = measure(
+            system;
+            samples=Int(case.simulation.samples),
+            seed=Int(case.simulation.seed),
+        )
         sample_eue = result.sample_eue
-        threshold = quantile(sample_eue, 0.95)
+        alpha = Float64(case.expected.alpha)
+        threshold = quantile(sample_eue, alpha)
         strict_tail = sample_eue[sample_eue .> threshold]
         expected_pras_cvar = isempty(strict_tail) ? 0.0 : mean(strict_tail)
 
-        @test length(unique(sample_eue)) > 1
+        @test length(unique(sample_eue)) >= Int(case.expected.distinct_sample_eue_values_minimum)
         @test result.energy_cvar_95 == expected_pras_cvar
-
         push_result!("pras-nondegenerate-energy-cvar-sample-semantics", Dict(
             "sample_count" => length(sample_eue),
             "sample_eue_mwh" => sample_eue,
             "empirical_quantile_95_mwh" => threshold,
+            "alpha" => alpha,
             "strictly_above_quantile_sample_count" => length(strict_tail),
             "pras_energy_cvar_95_mwh" => result.energy_cvar_95,
             "convention" => "mean of sample EUE values strictly greater than empirical 95th percentile",
