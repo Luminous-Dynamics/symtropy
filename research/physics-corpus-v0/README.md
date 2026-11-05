@@ -61,10 +61,13 @@ Keep the following claims distinct:
    This is what the first implementation test exercises.
 2. **Same-platform replay determinism** — a recorded command tape replayed on
    the same exact binary/config reproduces the per-tick state.
-3. **Cross-platform deterministic profile** — exact equality across CPU
-   architectures/compilers is claimed only when the complete execution path is
-   under an explicitly verified deterministic profile such as
-   `deterministic-net`; it must not be inferred from same-host results.
+3. **Cross-platform determinism** — no cross-platform equality claim is
+   made merely because the `deterministic-net` feature is enabled. That feature
+   is a candidate deterministic profile, not proof. Exact equality may be
+   claimed only after the complete execution path passes an explicit
+   architecture/OS/compiler matrix with identical source/config/input digests.
+   Until then, report the observed cross-platform error distribution and use a
+   declared tolerance only when justified by the numerical method.
 4. **Physical validity** — requires analytic solutions, invariant/constraint
    checks, reference-engine comparison and experimental validation where
    appropriate. Bitwise repeatability alone is not physical validity.
@@ -167,6 +170,38 @@ Official reference links:
 - Dimforge Q3 2026 technical report: https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/
 - PhysMark: https://github.com/dimforge/physmark
 - ASME V&V 20: https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-fluid-dynamics-and-heat-transfer
+
+## Chaotic/contact systems: compare ensembles when trajectories decorrelate
+
+Rigid-body contact trajectories can be highly sensitive to tiny state and
+rounding differences. MuJoCo explicitly notes that small state differences can
+grow significantly under contact and guarantees exact replay only within one
+version on the same architecture, provided all required integration state is
+saved. Therefore, a long-horizon cross-engine trajectory mismatch alone is not
+a sufficient physical-validity verdict.
+
+For systems with strong sensitivity, add an ensemble/observable comparison
+alongside trajectory error:
+
+- Freeze a distribution over initial conditions, material parameters and solver
+  tolerances; bind every sample to a stable ID and digest.
+- Compare distributions of physically meaningful observables: rebound height,
+  settling time, contact impulse, penetration, energy change, support load,
+  failure probability and final pose.
+- Report means, quantiles, tail risk and confidence intervals.
+- Where appropriate, compute a mathematically valid distribution distance
+  (for example 1-Wasserstein on a declared, normalized observable vector).
+  Do not call a scalar absolute prediction error "Wasserstein distance".
+- Preserve failures and outliers; do not trim unstable runs from the ensemble.
+- Separate numerical uncertainty (same model, solver variation) from model
+  uncertainty (friction/restitution/material parameters) and measurement
+  uncertainty (experimental sensor errors).
+
+The acceptance question changes from "did every chaotic trajectory match
+bitwise?" to "does the predicted observable distribution agree with reference
+data within a declared uncertainty budget, while deterministic controls and
+invariants pass?" This is a distinct qualification tier, not a relaxation of
+analytic tests.
 
 ## Future scenario families
 
