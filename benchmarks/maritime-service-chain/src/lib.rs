@@ -508,10 +508,11 @@ fn validate_evidence_records(case: &ServiceChainCase) -> Result<(), ValidationEr
         require_nonempty(&evidence.snapshot_ref, "evidence.snapshot_ref")?;
         require_nonempty(&evidence.subject_id, "evidence.subject_id")?;
         require_nonempty(&evidence.claim_ceiling, "evidence.claim_ceiling")?;
-        if let Some(window) = evidence.covered_window {
-            if !window.is_valid() {
-                return Err(ValidationError::InvalidWindow("evidence.covered_window"));
-            }
+        if evidence
+            .covered_window
+            .is_some_and(|window| !window.is_valid())
+        {
+            return Err(ValidationError::InvalidWindow("evidence.covered_window"));
         }
     }
     Ok(())
