@@ -140,6 +140,7 @@ members = [
     "crates/bridges/symtropy-robotics-bridge-core",
     "crates/bridges/symtropy-rapier3d-bridge",
     "crates/domains/symtropy-physics-gpu",
+    "crates/domains/symtropy-fluid",
     "crates/core/symtropy-core",
     "crates/domains/symtropy-devconsole",
     "crates/core/symtropy-math",
