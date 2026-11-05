@@ -1,0 +1,23 @@
+{
+  "target_policy_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "context_digest": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  "complete": true,
+  "steps": [
+    {
+      "tick": 0,
+      "history_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "joint_actions": [
+        {
+          "actor_id": "ego",
+          "action_id": "continue",
+          "payload_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "actor_id": "actor-1",
+          "action_id": "yield",
+          "payload_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
+    }
+  ]
+}
