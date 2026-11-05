@@ -62,7 +62,10 @@ impl FleetSiteSeries {
         for (field, value) in [
             ("site ID", series.site_id.as_str()),
             ("grid region ID", series.grid_region_id.as_str()),
-            ("measurement boundary ID", series.measurement_boundary_id.as_str()),
+            (
+                "measurement boundary ID",
+                series.measurement_boundary_id.as_str(),
+            ),
             ("source digest", series.source_digest.as_str()),
             ("alignment model ID", series.alignment_model_id.as_str()),
         ] {
@@ -132,7 +135,9 @@ impl FleetCorrelationContract {
         ramp_quantile_basis_points: u16,
     ) -> Result<Self, FleetCorrelationError> {
         if maximum_lag_intervals > isize::MAX as usize {
-            return Err(FleetCorrelationError::InvalidMaximumLag { maximum_lag_intervals });
+            return Err(FleetCorrelationError::InvalidMaximumLag {
+                maximum_lag_intervals,
+            });
         }
         if minimum_overlap_samples < 2 {
             return Err(FleetCorrelationError::InvalidMinimumOverlap {
@@ -224,22 +229,63 @@ pub struct FleetCorrelationReport {
 /// Invalid trace, policy or arithmetic input.
 #[derive(Debug, Clone, PartialEq)]
 pub enum FleetCorrelationError {
-    MissingIdentity { field: &'static str },
+    MissingIdentity {
+        field: &'static str,
+    },
     InvalidIntervalDuration,
-    InvalidMinimumOverlap { minimum_overlap_samples: usize },
-    InvalidMaximumLag { maximum_lag_intervals: usize },
-    InvalidRampQuantile { ramp_quantile_basis_points: u16 },
-    InvalidContractQuantity { field: &'static str, value: f64 },
-    InsufficientSites { observed: usize, required: usize },
-    InsufficientSamples { site_id: String, observed: usize, required: usize },
-    NonFiniteSample { site_id: String, index: usize, value: f64 },
-    DuplicateSiteId { site_id: String },
-    AlignmentModelMismatch { site_id: String },
-    TimestampAxisMismatch { site_id: String },
-    IntervalDurationMismatch { site_id: String },
-    SampleCountMismatch { site_id: String, expected: usize, observed: usize },
-    ClockUncertaintyExceedsContract { observed_ns: u64, maximum_ns: u64 },
-    NoLagHasMinimumOverlap { requested_lag: usize, minimum_overlap_samples: usize, sample_count: usize },
+    InvalidMinimumOverlap {
+        minimum_overlap_samples: usize,
+    },
+    InvalidMaximumLag {
+        maximum_lag_intervals: usize,
+    },
+    InvalidRampQuantile {
+        ramp_quantile_basis_points: u16,
+    },
+    InvalidContractQuantity {
+        field: &'static str,
+        value: f64,
+    },
+    InsufficientSites {
+        observed: usize,
+        required: usize,
+    },
+    InsufficientSamples {
+        site_id: String,
+        observed: usize,
+        required: usize,
+    },
+    NonFiniteSample {
+        site_id: String,
+        index: usize,
+        value: f64,
+    },
+    DuplicateSiteId {
+        site_id: String,
+    },
+    AlignmentModelMismatch {
+        site_id: String,
+    },
+    TimestampAxisMismatch {
+        site_id: String,
+    },
+    IntervalDurationMismatch {
+        site_id: String,
+    },
+    SampleCountMismatch {
+        site_id: String,
+        expected: usize,
+        observed: usize,
+    },
+    ClockUncertaintyExceedsContract {
+        observed_ns: u64,
+        maximum_ns: u64,
+    },
+    NoLagHasMinimumOverlap {
+        requested_lag: usize,
+        minimum_overlap_samples: usize,
+        sample_count: usize,
+    },
     TimestampOverflow,
     NumericalOverflow(&'static str),
 }
@@ -249,20 +295,79 @@ impl fmt::Display for FleetCorrelationError {
         match self {
             Self::MissingIdentity { field } => write!(f, "{field} must not be empty"),
             Self::InvalidIntervalDuration => write!(f, "sample interval duration must be positive"),
-            Self::InvalidMinimumOverlap { minimum_overlap_samples } => write!(f, "minimum lag overlap must be at least 2; got {minimum_overlap_samples}"),
-            Self::InvalidMaximumLag { maximum_lag_intervals } => write!(f, "maximum lag cannot exceed isize::MAX; got {maximum_lag_intervals}"),
-            Self::InvalidRampQuantile { ramp_quantile_basis_points } => write!(f, "ramp quantile must be in 1..=10000 basis points; got {ramp_quantile_basis_points}"),
-            Self::InvalidContractQuantity { field, value } => write!(f, "{field} must be finite; got {value}"),
-            Self::InsufficientSites { observed, required } => write!(f, "fleet requires at least {required} sites; got {observed}"),
-            Self::InsufficientSamples { site_id, observed, required } => write!(f, "site {site_id} has {observed} samples; at least {required} are required"),
-            Self::NonFiniteSample { site_id, index, value } => write!(f, "site {site_id} sample {index} is non-finite: {value}"),
+            Self::InvalidMinimumOverlap {
+                minimum_overlap_samples,
+            } => write!(
+                f,
+                "minimum lag overlap must be at least 2; got {minimum_overlap_samples}"
+            ),
+            Self::InvalidMaximumLag {
+                maximum_lag_intervals,
+            } => write!(
+                f,
+                "maximum lag cannot exceed isize::MAX; got {maximum_lag_intervals}"
+            ),
+            Self::InvalidRampQuantile {
+                ramp_quantile_basis_points,
+            } => write!(
+                f,
+                "ramp quantile must be in 1..=10000 basis points; got {ramp_quantile_basis_points}"
+            ),
+            Self::InvalidContractQuantity { field, value } => {
+                write!(f, "{field} must be finite; got {value}")
+            }
+            Self::InsufficientSites { observed, required } => write!(
+                f,
+                "fleet requires at least {required} sites; got {observed}"
+            ),
+            Self::InsufficientSamples {
+                site_id,
+                observed,
+                required,
+            } => write!(
+                f,
+                "site {site_id} has {observed} samples; at least {required} are required"
+            ),
+            Self::NonFiniteSample {
+                site_id,
+                index,
+                value,
+            } => write!(f, "site {site_id} sample {index} is non-finite: {value}"),
             Self::DuplicateSiteId { site_id } => write!(f, "duplicate fleet site ID: {site_id}"),
-            Self::AlignmentModelMismatch { site_id } => write!(f, "site {site_id} uses a different clock alignment model"),
-            Self::TimestampAxisMismatch { site_id } => write!(f, "site {site_id} start timestamp does not match the fleet time axis"),
-            Self::IntervalDurationMismatch { site_id } => write!(f, "site {site_id} interval duration does not match the fleet time axis"),
-            Self::SampleCountMismatch { site_id, expected, observed } => write!(f, "site {site_id} has {observed} samples; expected {expected}"),
-            Self::ClockUncertaintyExceedsContract { observed_ns, maximum_ns } => write!(f, "maximum pairwise clock uncertainty {observed_ns} ns exceeds contract {maximum_ns} ns"),
-            Self::NoLagHasMinimumOverlap { requested_lag, minimum_overlap_samples, sample_count } => write!(f, "maximum lag {requested_lag} leaves insufficient overlap of {minimum_overlap_samples} samples for trace length {sample_count}"),
+            Self::AlignmentModelMismatch { site_id } => {
+                write!(f, "site {site_id} uses a different clock alignment model")
+            }
+            Self::TimestampAxisMismatch { site_id } => write!(
+                f,
+                "site {site_id} start timestamp does not match the fleet time axis"
+            ),
+            Self::IntervalDurationMismatch { site_id } => write!(
+                f,
+                "site {site_id} interval duration does not match the fleet time axis"
+            ),
+            Self::SampleCountMismatch {
+                site_id,
+                expected,
+                observed,
+            } => write!(
+                f,
+                "site {site_id} has {observed} samples; expected {expected}"
+            ),
+            Self::ClockUncertaintyExceedsContract {
+                observed_ns,
+                maximum_ns,
+            } => write!(
+                f,
+                "maximum pairwise clock uncertainty {observed_ns} ns exceeds contract {maximum_ns} ns"
+            ),
+            Self::NoLagHasMinimumOverlap {
+                requested_lag,
+                minimum_overlap_samples,
+                sample_count,
+            } => write!(
+                f,
+                "maximum lag {requested_lag} leaves insufficient overlap of {minimum_overlap_samples} samples for trace length {sample_count}"
+            ),
             Self::TimestampOverflow => write!(f, "timestamp arithmetic overflow"),
             Self::NumericalOverflow(field) => write!(f, "numerical overflow computing {field}"),
         }
@@ -368,8 +473,16 @@ pub fn evaluate_fleet_correlation(
             mean_power_kw: mean,
             sample_variance_kw2: variance,
             sample_standard_deviation_kw: variance.sqrt(),
-            maximum_power_kw: site.samples_kw.iter().copied().fold(f64::NEG_INFINITY, f64::max),
-            minimum_power_kw: site.samples_kw.iter().copied().fold(f64::INFINITY, f64::min),
+            maximum_power_kw: site
+                .samples_kw
+                .iter()
+                .copied()
+                .fold(f64::NEG_INFINITY, f64::max),
+            minimum_power_kw: site
+                .samples_kw
+                .iter()
+                .copied()
+                .fold(f64::INFINITY, f64::min),
         });
     }
 
@@ -385,8 +498,10 @@ pub fn evaluate_fleet_correlation(
 
     let portfolio_mean_power_kw = mean(&portfolio);
     let portfolio_sample_variance_kw2 = sample_variance(&portfolio, portfolio_mean_power_kw);
-    let independent_site_variance_sum_kw2 =
-        site_moments.iter().map(|site| site.sample_variance_kw2).sum::<f64>();
+    let independent_site_variance_sum_kw2 = site_moments
+        .iter()
+        .map(|site| site.sample_variance_kw2)
+        .sum::<f64>();
     let mut pair_dependence = Vec::new();
     for i in 0..sites.len() {
         for j in (i + 1)..sites.len() {
@@ -414,7 +529,9 @@ pub fn evaluate_fleet_correlation(
         || !covariance_excess_variance_kw2.is_finite()
         || !variance_identity_residual_kw2.is_finite()
     {
-        return Err(FleetCorrelationError::NumericalOverflow("portfolio variance"));
+        return Err(FleetCorrelationError::NumericalOverflow(
+            "portfolio variance",
+        ));
     }
 
     let mut absolute_ramps = Vec::with_capacity(sample_count - 1);
@@ -431,8 +548,8 @@ pub fn evaluate_fleet_correlation(
         absolute_ramps.last().copied().unwrap_or(0.0);
     let quantile_index = ((contract.ramp_quantile_basis_points as usize * absolute_ramps.len())
         .div_ceil(10_000))
-        .saturating_sub(1)
-        .min(absolute_ramps.len() - 1);
+    .saturating_sub(1)
+    .min(absolute_ramps.len() - 1);
     let portfolio_absolute_ramp_quantile_kw_per_second = absolute_ramps[quantile_index];
 
     let threshold_exceedance_count = portfolio
