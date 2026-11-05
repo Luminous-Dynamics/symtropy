@@ -9,9 +9,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::StableId;
 use super::correspondence::{
-    CandidateUniverseStatus, CorrespondenceDisposition, CorrespondenceError, CorrespondenceHypothesis,
-    CorrespondenceSet, EventOccurrence, EventPair, EventPresence, HypothesisSetStatus, IdentityBasis,
-    UnmatchedReason,
+    CandidateUniverseStatus, CorrespondenceDisposition, CorrespondenceError,
+    CorrespondenceHypothesis, CorrespondenceSet, EventOccurrence, EventPair, EventPresence,
+    HypothesisSetStatus, IdentityBasis, UnmatchedReason,
 };
 
 const DOMAIN: &[u8] = b"symtropy.road-correspondence-coupling.address.v0.2\0";
