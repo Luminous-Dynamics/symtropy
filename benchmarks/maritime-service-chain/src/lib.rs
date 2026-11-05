@@ -575,9 +575,7 @@ fn segment_node_kinds_are_valid(case: &ServiceChainCase, segment: &RouteSegment)
         SegmentKind::Lockage => {
             from.kind == NodeKind::LockApproach && to.kind == NodeKind::LockExit
         }
-        SegmentKind::PortApproach => {
-            from.kind == NodeKind::LockExit && to.kind == NodeKind::Berth
-        }
+        SegmentKind::PortApproach => from.kind == NodeKind::LockExit && to.kind == NodeKind::Berth,
         SegmentKind::BerthHandling => {
             from.kind == NodeKind::Berth && to.kind == NodeKind::TransferTerminal
         }
@@ -599,10 +597,7 @@ fn required_segment_evidence_roles(kind: SegmentKind) -> &'static [EvidenceRole]
             EvidenceRole::LockCycleWater,
             EvidenceRole::ResourceCapacity,
         ],
-        SegmentKind::PortApproach => &[
-            EvidenceRole::Navigability,
-            EvidenceRole::ResourceCapacity,
-        ],
+        SegmentKind::PortApproach => &[EvidenceRole::Navigability, EvidenceRole::ResourceCapacity],
         SegmentKind::BerthHandling | SegmentKind::InlandTransfer => {
             &[EvidenceRole::ResourceCapacity]
         }
@@ -709,13 +704,8 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
             ));
         }
         if resource.availability.windows(2).any(|pair| {
-            (
-                pair[0].window.start_tick,
-                pair[0].window.end_tick,
-            ) > (
-                pair[1].window.start_tick,
-                pair[1].window.end_tick,
-            )
+            (pair[0].window.start_tick, pair[0].window.end_tick)
+                > (pair[1].window.start_tick, pair[1].window.end_tick)
         }) {
             return Err(ValidationError::ResourceCalendarNotCanonical(
                 resource.resource_id.clone(),
@@ -809,9 +799,7 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
                     }
                 }
                 _ => {
-                    return Err(ValidationError::EvidenceRoleMismatch(
-                        evidence_id.clone(),
-                    ));
+                    return Err(ValidationError::EvidenceRoleMismatch(evidence_id.clone()));
                 }
             }
         }
@@ -979,8 +967,11 @@ fn validate_hard_constraints(case: &ServiceChainCase) -> Result<(), ValidationEr
         ConstraintKind::BerthCapacity,
         ConstraintKind::DataRights,
     ];
-    let present_constraints: BTreeSet<ConstraintKind> =
-        case.hard_constraints.iter().map(|constraint| constraint.kind).collect();
+    let present_constraints: BTreeSet<ConstraintKind> = case
+        .hard_constraints
+        .iter()
+        .map(|constraint| constraint.kind)
+        .collect();
     for required in required_constraints {
         if !present_constraints.contains(&required) {
             return Err(ValidationError::MissingRequiredConstraint(required));
@@ -1047,8 +1038,7 @@ fn validate_hard_constraints(case: &ServiceChainCase) -> Result<(), ValidationEr
                     && resource.resource_id == evidence.subject_id
             }),
             ConstraintKind::BerthCapacity => case.resources.iter().any(|resource| {
-                resource.kind == ResourceKind::Berth
-                    && resource.resource_id == evidence.subject_id
+                resource.kind == ResourceKind::Berth && resource.resource_id == evidence.subject_id
             }),
             ConstraintKind::ParticipantAuthorization => {
                 evidence.subject_id == case.demand.participant_id
@@ -1478,11 +1468,7 @@ mod tests {
                 from_node_id: "origin".into(),
                 to_node_id: "lock-approach".into(),
                 kind: SegmentKind::ChannelTransit,
-                evidence_ids: vec![
-                    "topology".into(),
-                    "depth".into(),
-                    "channel-calendar".into(),
-                ],
+                evidence_ids: vec!["topology".into(), "depth".into(), "channel-calendar".into()],
                 resource_uses: vec![ResourceUse {
                     resource_id: "channel-window-01".into(),
                     amount: 1,
