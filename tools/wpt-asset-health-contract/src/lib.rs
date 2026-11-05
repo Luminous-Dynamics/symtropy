@@ -278,12 +278,17 @@ pub fn validate_observation(schema: &Value, observation: &Value) -> Result<(), S
         .as_array()
         .ok_or_else(|| fail("$.quality_flags", "must be an array"))?;
 
-    if evidence_kind == "SYNTHETIC_KNOWN_TRUTH"
-        && !quality_flags.iter().any(|flag| flag == "SYNTHETIC_ONLY")
-    {
+    let marked_synthetic = quality_flags.iter().any(|flag| flag == "SYNTHETIC_ONLY");
+    if evidence_kind == "SYNTHETIC_KNOWN_TRUTH" && !marked_synthetic {
         return Err(fail(
             "$.quality_flags",
             "synthetic evidence must carry SYNTHETIC_ONLY",
+        ));
+    }
+    if evidence_kind != "SYNTHETIC_KNOWN_TRUTH" && marked_synthetic {
+        return Err(fail(
+            "$.quality_flags",
+            "SYNTHETIC_ONLY cannot be attached to non-synthetic evidence",
         ));
     }
 
@@ -311,7 +316,7 @@ pub fn validate_observation(schema: &Value, observation: &Value) -> Result<(), S
     if evidence_kind == "PUBLISHED_MEASURED" {
         let provenance = object_field(observation, "provenance", "$")?;
         let locator = object_field(provenance, "source_locator", "$.provenance")?;
-        if locator.as_str().is_none_or(str::is_empty) {
+        if locator.as_str().is_none_or(|value| value.trim().is_empty()) {
             return Err(fail(
                 "$.provenance.source_locator",
                 "published-measured evidence requires a source locator",
@@ -486,6 +491,41 @@ mod tests {
             validate_observation(&schema, &example)
                 .unwrap_err()
                 .contains("calibration_receipt_ids")
+        );
+    }
+
+    #[test]
+    fn nonempty_spatial_profile_requires_asset_coordinate_frame() {
+        let (schema, mut example, _) = bundled_fixtures().unwrap();
+        example["asset_context"]["coordinate_frame_id"] = Value::Null;
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("require a declared asset coordinate frame")
+        );
+    }
+
+    #[test]
+    fn published_measured_evidence_requires_source_locator() {
+        let (schema, mut example, _) = bundled_fixtures().unwrap();
+        example["evidence_kind"] = Value::String("PUBLISHED_MEASURED".into());
+        example["quality_flags"] = Value::Array(vec![]);
+        example["provenance"]["source_locator"] = Value::Null;
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("requires a source locator")
+        );
+    }
+
+    #[test]
+    fn synthetic_only_flag_is_rejected_for_measured_evidence() {
+        let (schema, mut example, _) = bundled_fixtures().unwrap();
+        example["evidence_kind"] = Value::String("PUBLISHED_MEASURED".into());
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("cannot be attached to non-synthetic")
         );
     }
 
