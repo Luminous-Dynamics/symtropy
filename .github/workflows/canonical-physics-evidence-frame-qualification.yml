@@ -1,0 +1,259 @@
+name: PHYS-EVID-02A Canonical Evidence Frame Qualification
+
+on:
+  push:
+    branches:
+      - "ci/canonical-evidence-frame-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: canonical-evidence-frame-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: 4c464ac0fdb794a8d1c055f8da23135727332bf3
+  PRODUCT_PARENT: c9ff0eb980389fd72b876488a7acfbbd5acc4780
+
+jobs:
+  qualify:
+    name: Frozen PHYS-EVID-02A frame / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact one-commit product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          test "$(git rev-parse "${PRODUCT_HEAD}^")" = "${PRODUCT_PARENT}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}" | sort)
+          mapfile -t expected < <(printf '%s\n' \
+            crates/core/symtropy-physics/CANONICAL_PHYSICS_EVIDENCE_FRAME_V01.md \
+            crates/core/symtropy-physics/src/evidence_frame.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/fixtures/physics_evidence_frame_v1_vectors.json \
+            crates/core/symtropy-physics/tests/physics_evidence_frame_v1.rs \
+            crates/core/symtropy-physics/tests/verify_physics_evidence_frame_v1.py | sort)
+          test "${#changed[@]}" = "6"
+          test "${changed[*]}" = "${expected[*]}"
+
+          test "$(git rev-parse "${PRODUCT_HEAD}:crates/core/symtropy-physics/CANONICAL_PHYSICS_EVIDENCE_FRAME_V01.md")" = e54611d29efe0fa21ceaa55a491c53c5c0ede832
+          test "$(git rev-parse "${PRODUCT_HEAD}:crates/core/symtropy-physics/src/evidence_frame.rs")" = 2be4a389d3a511852fd5b456f51485a46e657deb
+          test "$(git rev-parse "${PRODUCT_HEAD}:crates/core/symtropy-physics/src/lib.rs")" = d158e7ec137bb73e7d194eb79997921835c71bdc
+          test "$(git rev-parse "${PRODUCT_HEAD}:crates/core/symtropy-physics/tests/physics_evidence_frame_v1.rs")" = 567ed822293ec23e1865593aa81ee0a59091410e
+          test "$(git rev-parse "${PRODUCT_HEAD}:crates/core/symtropy-physics/tests/fixtures/physics_evidence_frame_v1_vectors.json")" = 0f7d749d2256939e089d39bf899ab24a2226e4d5
+          test "$(git rev-parse "${PRODUCT_HEAD}:crates/core/symtropy-physics/tests/verify_physics_evidence_frame_v1.py")" = 2feebfb11ee64e2508b5817d24f86075c441197c
+
+          # Representation-only main lineage: no live evidence authority modules.
+          test ! -e crates/core/symtropy-physics/src/evidence_authority.rs
+          test ! -e crates/core/symtropy-physics/src/qualified_endpoint.rs
+          test ! -e crates/core/symtropy-physics/src/sampled_presence.rs
+          test ! -e crates/core/symtropy-physics/src/timed_evidence.rs
+          test ! -e crates/core/symtropy-physics/src/fixed_cadence.rs
+          test ! -e crates/core/symtropy-physics/src/timed_sampled_presence.rs
+
+      - name: Run independent Python golden-vector oracle
+        run: python3 crates/core/symtropy-physics/tests/verify_physics_evidence_frame_v1.py
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/CANONICAL_PHYSICS_EVIDENCE_FRAME_V01.md \
+            crates/core/symtropy-physics/src/evidence_frame.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/physics_evidence_frame_v1.rs \
+            crates/core/symtropy-physics/tests/fixtures/physics_evidence_frame_v1_vectors.json \
+            crates/core/symtropy-physics/tests/verify_physics_evidence_frame_v1.py \
+            > "${RUNNER_TEMP}/canonical-evidence-frame-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run canonical frame theorem
+        run: cargo test -p symtropy-physics --locked --test physics_evidence_frame_v1
+
+      - name: Run physics library regression
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit representation and no-promotion boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          module = Path('crates/core/symtropy-physics/src/evidence_frame.rs').read_text()
+          contract = Path('crates/core/symtropy-physics/CANONICAL_PHYSICS_EVIDENCE_FRAME_V01.md').read_text()
+          tests = Path('crates/core/symtropy-physics/tests/physics_evidence_frame_v1.rs').read_text()
+          vectors = json.loads(Path('crates/core/symtropy-physics/tests/fixtures/physics_evidence_frame_v1_vectors.json').read_text())
+          oracle = Path('crates/core/symtropy-physics/tests/verify_physics_evidence_frame_v1.py').read_text()
+
+          assert 'b"symtropy-physics-evidence\\0"' in module
+          assert 'PHYSICS_EVIDENCE_FRAME_V1_VERSION: u32 = 1' in module
+          assert 'PHYSICS_EVIDENCE_FRAME_V1_MAX_PAYLOAD_LEN: usize = 1_048_576' in module
+          assert 'PHYSICS_EVIDENCE_FRAME_V1_MAX_KIND_DOMAIN_LEN: usize = 32' in module
+
+          expected_domains = {
+              'EvidenceSessionBinding': 'evidence-session-binding',
+              'EndpointSample': 'endpoint-sample',
+              'ConsecutiveSampledPresence': 'consecutive-presence',
+              'StepExecutionReceipt': 'step-execution-receipt',
+              'FixedCadenceStepReceipt': 'fixed-cadence-step-receipt',
+              'TimedSampledPresenceTransition': 'timed-sampled-transition',
+          }
+          for variant, domain in expected_domains.items():
+              assert variant in module
+              assert f'b"{domain}"' in module
+          assert len({v['domain'] for v in vectors['vectors']}) == 6
+          assert {v['kind'] for v in vectors['vectors']} == set(expected_domains)
+          assert vectors['magic_hex'] == '73796d74726f70792d706879736963732d65766964656e636500'
+          assert vectors['format_version'] == 1
+          assert vectors['max_payload_len'] == 1_048_576
+
+          encoder_start = module.index('pub fn encode_physics_evidence_frame_v1(')
+          decoder_start = module.index('pub fn decode_physics_evidence_frame_v1(')
+          encoder = module[encoder_start:decoder_start]
+          decoder = module[decoder_start:]
+          assert 'kind: PhysicsEvidenceFrameKindV1' in encoder
+          assert 'payload: &[u8]' in encoder
+          assert 'domain: &' not in encoder.split(') ->', 1)[0]
+          assert 'frame.extend_from_slice(&PHYSICS_EVIDENCE_FRAME_V1_VERSION.to_be_bytes())' in encoder
+          assert 'frame.extend_from_slice(&(payload.len() as u64).to_be_bytes())' in encoder
+
+          decoded_start = module.index('pub struct DecodedPhysicsEvidenceFrameV1')
+          decoded_end = module.index('\n}\n', decoded_start) + 2
+          decoded = module[decoded_start:decoded_end]
+          assert "payload: &'a [u8]" in decoded
+          assert 'kind: PhysicsEvidenceFrameKindV1' in decoded
+          for line in decoded.splitlines()[1:]:
+              assert not line.lstrip().startswith('pub '), line
+
+          oversize = 'if declared_len > PHYSICS_EVIDENCE_FRAME_V1_MAX_PAYLOAD_LEN as u64'
+          conversion = 'let payload_len = declared_len as usize;'
+          assert decoder.index(oversize) < decoder.index(conversion)
+          assert 'payload: &frame[cursor..payload_end]' in decoder
+          assert 'if frame.len() > payload_end' in decoder
+          for alloc in ('Vec<', 'Vec::', '.to_vec()', '.collect'):
+              assert alloc not in decoder
+
+          for name in (
+              'LocalEvidencePhysicsAuthorityWorld',
+              'QualifiedEvidenceSessionBinding',
+              'LocalQualifiedStampedEndpointBoxObservation',
+              'LocalConsecutiveSampledEndpointPresence',
+              'LocalQualifiedStepExecutionReceipt',
+              'LocalFixedCadenceStepReceipt',
+              'LocalExactTimedSampledPresenceTransition',
+              'PhysicsAuthorityWorld',
+          ):
+              assert name not in module
+          assert 'Serialize' not in module and 'Deserialize' not in module
+          assert 'sha256' not in module.lower() and 'signature' not in module.lower()
+
+          for name in (
+              'production_encoder_matches_checked_in_golden_vectors_exactly',
+              'frame_constants_and_kind_domains_are_frozen_and_distinct',
+              'non_utf8_payload_round_trips_without_text_normalization',
+              'decoder_rejects_wrong_or_truncated_magic',
+              'decoder_rejects_missing_or_unknown_kind_domain',
+              'decoder_rejects_version_and_fixed_header_aliases',
+              'decoder_rejects_oversized_declared_length_before_payload_allocation',
+              'decoder_rejects_truncated_payload_and_trailing_bytes',
+              'payload_bound_is_exact_for_encoder_and_decoder',
+          ):
+              assert name in tests
+          assert 'EvidenceSessionBinding' in tests
+          assert 'json.loads' in oracle
+          assert 'EvidenceSessionBinding' in oracle
+          assert 'FORMAT_VERSION.to_bytes(4, "big")' in oracle
+          assert 'len(payload).to_bytes(8, "big")' in oracle
+          assert 'subprocess' not in oracle
+
+          assert 'Framing is not evidence promotion' in contract
+          assert 'evidence-session-binding' in contract
+          assert 'No semantic payload authority yet' in contract
+          assert 'No cryptographic authority' in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            crates/core/symtropy-physics/CANONICAL_PHYSICS_EVIDENCE_FRAME_V01.md \
+            crates/core/symtropy-physics/src/evidence_frame.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/physics_evidence_frame_v1.rs \
+            crates/core/symtropy-physics/tests/fixtures/physics_evidence_frame_v1_vectors.json \
+            crates/core/symtropy-physics/tests/verify_physics_evidence_frame_v1.py \
+            > "${RUNNER_TEMP}/canonical-evidence-frame-source-sha256-post.txt"
+          diff -u "${RUNNER_TEMP}/canonical-evidence-frame-source-sha256.txt" "${RUNNER_TEMP}/canonical-evidence-frame-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          receipt = {
+              'theorem': 'PHYS-EVID-02A canonical physics evidence framing v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'format_version': 1,
+              'application_magic_hex': '73796d74726f70792d706879736963732d65766964656e636500',
+              'closed_kind_registry_size': 6,
+              'evidence_session_binding_domain_reserved': True,
+              'payload_limit_bytes': 1_048_576,
+              'bounded_zero_copy_decoder_payload': True,
+              'attacker_declared_length_allocation': False,
+              'trailing_byte_aliases_admitted': False,
+              'independent_python_golden_oracle': True,
+              'representation_only': True,
+              'canonical_semantic_payload_schema': False,
+              'evidence_session_authority': False,
+              'live_evidence_token_reconstruction': False,
+              'evidence_promotion_authority': False,
+              'cryptographic_authentication_authority': False,
+              'persistent_trust_authority': False,
+          }
+          Path('canonical-evidence-frame-qualification-receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: canonical-evidence-frame-${{ env.PRODUCT_HEAD }}
+          path: |
+            canonical-evidence-frame-qualification-receipt.json
+            ${{ runner.temp }}/canonical-evidence-frame-source-sha256.txt
+            ${{ runner.temp }}/canonical-evidence-frame-source-sha256-post.txt
+          if-no-files-found: error
