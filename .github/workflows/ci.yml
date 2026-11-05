@@ -82,3 +82,6 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT FOD nuisance-invariance oracle
+      run: cargo test --locked -p wpt-fod-invariance-oracle
