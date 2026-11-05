@@ -223,7 +223,8 @@
               "null"
             ],
             "minimum": 1,
-            "description": "For GRID_CURRENT, the evaluator requires every integer harmonic from 1 through this order. Null for RESONANT_CURRENT."
+            "description": "For GRID_CURRENT, the evaluator requires every integer harmonic from 1 through this order. Null for RESONANT_CURRENT.",
+            "maximum": 4096
           }
         }
       }
