@@ -137,14 +137,14 @@ impl DeliberationSession {
                 ("trust_before", participant.trust_before),
                 ("trust_after", participant.trust_after),
             ] {
-                if let Some(value) = value {
-                    if !value.is_finite() || !(0.0..=1.0).contains(&value) {
-                        return Err(DeliberationError::InvalidSelfReport {
-                            participant_id: participant.id.clone(),
-                            field: name,
-                            value,
-                        });
-                    }
+                if let Some(value) = value
+                    && (!value.is_finite() || !(0.0..=1.0).contains(&value))
+                {
+                    return Err(DeliberationError::InvalidSelfReport {
+                        participant_id: participant.id.clone(),
+                        field: name,
+                        value,
+                    });
                 }
             }
         }
@@ -464,7 +464,6 @@ pub struct RhetoricOnlyDifference {
 
 pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, DeliberationError> {
     session.validate()?;
-    let option_count = session.option_labels.len();
     let member_count = session.participants.len();
 
     let mut turns_by_member = vec![0usize; member_count];
