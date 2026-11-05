@@ -297,6 +297,8 @@ pub struct OwnerOfferReservationLedger {
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct OwnerOfferReservation {
     pub offer_id: String,
+    pub owner_policy_id: String,
+    pub owner_policy_version: String,
     pub portfolio_id: String,
     pub product_id: String,
     pub direction: GridFlexDirection,
@@ -385,6 +387,8 @@ impl OwnerOfferReservationLedger {
 
         let reservation = OwnerOfferReservation {
             offer_id: offer.offer_id.clone(),
+            owner_policy_id: policy.policy_id.clone(),
+            owner_policy_version: policy.policy_version.clone(),
             portfolio_id: offer.portfolio_id.clone(),
             product_id: offer.product_id.clone(),
             direction: offer.direction,
@@ -412,9 +416,15 @@ impl OwnerOfferReservationLedger {
     }
 
     /// Checks that authorization is bound to the exact terms that were reserved.
-    pub fn matches_offer(&self, offer: &OwnerFlexibilityOffer) -> bool {
+    pub fn matches_offer(
+        &self,
+        offer: &OwnerFlexibilityOffer,
+        policy: &OwnerFlexibilityPolicy,
+    ) -> bool {
         self.reservations.iter().any(|reservation| {
-            reservation.offer_id == offer.offer_id
+            reservation.owner_policy_id == policy.policy_id
+                && reservation.owner_policy_version == policy.policy_version
+                && reservation.offer_id == offer.offer_id
                 && reservation.portfolio_id == offer.portfolio_id
                 && reservation.product_id == offer.product_id
                 && reservation.direction == offer.direction
@@ -699,7 +709,7 @@ pub fn authorize_owner_dispatch(
         reason,
     };
 
-    if !reservations.matches_offer(offer) {
+    if !reservations.matches_offer(offer, policy) {
         return reject(OwnerDispatchRejectionReason::OfferNotReserved);
     }
     if !policy.authorized_signing_key_ids.contains(&request.signing_key_id) {
@@ -1035,6 +1045,29 @@ mod tests {
             &policy(),
         ).expect("non-overlapping reservation");
         assert_eq!(ledger.reservations().len(), 2);
+    }
+
+    #[test]
+    fn policy_revision_change_invalidates_old_reservation() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let o = reserve_default(&mut ledger);
+        let stricter_policy = OwnerFlexibilityPolicy::new(
+            "owner-policy-1", "v2", "site-1", "pcc-1", "portfolio-1",
+            vec!["reserve-product".to_string()],
+            vec!["market-key-1".to_string()],
+            90.0, 70.0, 60.0, 30, 3_600, 20.0, 50.0,
+            120, 2, 30,
+        ).expect("new policy revision");
+        assert!(!ledger.matches_offer(&o, &stricter_policy));
+        let mut replay = DispatchReplayLedger::default();
+        let decision = authorize_owner_dispatch(
+            &request("dispatch-old-policy", "offer-1", 1, 1_000, 1_060, 990),
+            &o, &stricter_policy, &ledger, &mut replay,
+            readiness(990), 1_005, &AcceptSignature,
+        );
+        assert!(matches!(decision, OwnerDispatchDecision::Rejected {
+            reason: OwnerDispatchRejectionReason::OfferNotReserved, ..
+        }));
     }
 
     #[test]
