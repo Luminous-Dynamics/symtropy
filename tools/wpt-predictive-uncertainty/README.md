@@ -26,3 +26,9 @@ cargo run --manifest-path tools/wpt-predictive-uncertainty/Cargo.toml -- benchma
 The output is descriptive empirical held-out performance, not a distribution-free guarantee. Conformal prediction coverage depends on assumptions such as exchangeability; time-correlated trajectories, hardware changes and distribution shift require dedicated evaluation. OOD detection is not a safety certificate. An unsupported regime must be rejected or handled by a separately qualified fallback.
 
 The initial fixture is synthetic known-truth data only. It is not experimental WPT evidence, a standards conformance result, or permission to energize hardware.
+
+## Interval-aware control gate
+
+The library also exposes `evaluate_decision_gate` for hard operating-envelope constraints. Every predictive interval must lie completely on the permitted side of its threshold: minimum constraints require `lower >= minimum`; maximum constraints require `upper <= maximum`. A threshold-overlapping interval returns `NOT_EVALUABLE`; a definitely out-of-bounds interval returns `INHIBIT`. Empty, malformed, non-finite and duplicate constraints are rejected.
+
+`ELIGIBLE` means only that the supplied interval constraints pass. It is not an energization authorization and does not replace independent identity, positioning, foreign-object, exposure, thermal, communications-freshness or hardware protection interlocks. The action for unresolved intervals is conservative derating or ramp-down, not optimistic continuation.
