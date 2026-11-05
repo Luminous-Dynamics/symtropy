@@ -263,6 +263,8 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         &[
             "estimand",
             "target_event_code",
+            "competing_event_codes",
+            "cause_specific_cumulative_incidence",
             "horizon_hours",
             "target_event_cif",
             "event_free_survival",
@@ -314,7 +316,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         ));
     }
     let target_code = string_field(forecast, "target_event_code", "$.forecast")?;
-    if ![
+    let allowed_target_codes = [
         "STRUCTURAL_CRACK_LIMIT",
         "RUTTING_LIMIT",
         "INSULATION_RESISTANCE_LIMIT",
@@ -322,10 +324,104 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         "THERMAL_LIMIT",
         "SERVICE_AVAILABILITY_LIMIT",
         "OTHER",
-    ]
-    .contains(&target_code)
-    {
+    ];
+    let allowed_competing_codes = [
+        "PLANNED_REPLACEMENT",
+        "UNRELATED_ASSET_FAILURE",
+        "ROAD_RECONSTRUCTION",
+    ];
+    if !allowed_target_codes.contains(&target_code) {
         return Err(fail("$.forecast.target_event_code", "unknown target event code"));
+    }
+
+    let competing_rows = field(forecast, "competing_event_codes", "$.forecast")?
+        .as_array()
+        .ok_or_else(|| fail("$.forecast.competing_event_codes", "must be an array"))?;
+    let mut competing_codes = BTreeSet::new();
+    for (index, row) in competing_rows.iter().enumerate() {
+        let code = row
+            .as_str()
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| fail("$.forecast.competing_event_codes", "all codes must be non-empty strings"))?;
+        if !allowed_competing_codes.contains(&code) {
+            return Err(fail(
+                &format!("$.forecast.competing_event_codes[{index}]"),
+                format!("unknown competing-event code {code}"),
+            ));
+        }
+        if code == target_code {
+            return Err(fail(
+                "$.forecast.competing_event_codes",
+                "target and competing event codes must be disjoint",
+            ));
+        }
+        if !competing_codes.insert(code.to_string()) {
+            return Err(fail(
+                "$.forecast.competing_event_codes",
+                format!("duplicate competing-event code {code}"),
+            ));
+        }
+    }
+
+    let cause_rows = field(
+        forecast,
+        "cause_specific_cumulative_incidence",
+        "$.forecast",
+    )?
+    .as_array()
+    .ok_or_else(|| {
+        fail(
+            "$.forecast.cause_specific_cumulative_incidence",
+            "must be an array",
+        )
+    })?;
+    let mut expected_causes = competing_codes.clone();
+    expected_causes.insert(target_code.to_string());
+    let mut observed_causes = BTreeSet::new();
+    let mut cause_probability_sum = event_free_survival;
+    let mut selected_target_cif = None::<f64>;
+    for (index, row) in cause_rows.iter().enumerate() {
+        let row_path = format!("$.forecast.cause_specific_cumulative_incidence[{index}]");
+        exact_keys(row, &["event_code", "probability"], &row_path)?;
+        let code = string_field(row, "event_code", &row_path)?;
+        if !expected_causes.contains(code) {
+            return Err(fail(
+                &row_path,
+                format!("cause {code} is not declared as target or competing event"),
+            ));
+        }
+        if !observed_causes.insert(code.to_string()) {
+            return Err(fail(&row_path, format!("duplicate cause {code}")));
+        }
+        let probability = number_field(row, "probability", &row_path)?;
+        if !(0.0..=1.0).contains(&probability) {
+            return Err(fail(&row_path, "probability must be within [0, 1]"));
+        }
+        cause_probability_sum += probability;
+        if !cause_probability_sum.is_finite() {
+            return Err(fail(&row_path, "cause probability sum overflowed"));
+        }
+        if code == target_code {
+            selected_target_cif = Some(probability);
+        }
+    }
+    if observed_causes != expected_causes {
+        return Err(fail(
+            "$.forecast.cause_specific_cumulative_incidence",
+            "must include the target event and every declared competing event exactly once",
+        ));
+    }
+    if (cause_probability_sum - 1.0).abs() > 1e-9 {
+        return Err(fail(
+            "$.forecast.cause_specific_cumulative_incidence",
+            format!("event-free survival plus all cause-specific CIFs must sum to 1 (got {cause_probability_sum})"),
+        ));
+    }
+    if (selected_target_cif.unwrap_or(-1.0) - target_cif).abs() > 1e-9 {
+        return Err(fail(
+            "$.forecast.target_event_cif",
+            "target_event_cif must equal the matching cause-specific CIF",
+        ));
     }
 
     let censoring = field(run, "censoring_support", "$")?;
@@ -751,6 +847,55 @@ mod tests {
     fn promote_fixture_to_measured_for_policy_unit_test(run: &mut Value) {
         run["evidence_kind"] = Value::String("MEASURED".into());
         run["quality_flags"] = Value::Array(vec![]);
+    }
+
+    #[test]
+    fn rejects_missing_declared_competing_cause_cif() {
+        let mut run = fixture();
+        run["forecast"]["cause_specific_cumulative_incidence"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert!(
+            evaluate_eligibility(&run)
+                .unwrap_err()
+                .contains("target event and every declared competing event")
+        );
+    }
+
+    #[test]
+    fn rejects_cif_vector_that_does_not_sum_with_survival_to_one() {
+        let mut run = fixture();
+        run["forecast"]["cause_specific_cumulative_incidence"][1]["probability"] =
+            Value::from(0.5);
+        assert!(
+            evaluate_eligibility(&run)
+                .unwrap_err()
+                .contains("must sum to 1")
+        );
+    }
+
+    #[test]
+    fn target_event_cif_must_match_selected_cause_entry() {
+        let mut run = fixture();
+        run["forecast"]["target_event_cif"] = Value::from(0.04);
+        assert!(
+            evaluate_eligibility(&run)
+                .unwrap_err()
+                .contains("must equal the matching cause-specific CIF")
+        );
+    }
+
+    #[test]
+    fn target_and_competing_event_codes_must_be_disjoint() {
+        let mut run = fixture();
+        run["forecast"]["competing_event_codes"] =
+            Value::Array(vec![Value::String("STRUCTURAL_CRACK_LIMIT".into())]);
+        assert!(
+            evaluate_eligibility(&run)
+                .unwrap_err()
+                .contains("must be disjoint")
+        );
     }
 
     #[test]
