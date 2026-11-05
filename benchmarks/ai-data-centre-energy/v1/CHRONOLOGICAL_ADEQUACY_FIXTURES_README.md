@@ -19,7 +19,7 @@ The augmented scenarios have raw weights 3 and 1, normalized to 0.75 and 0.25. T
     0.75 × max(d - 10, 0) / 1000
   + 0.25 × max(d, 0) / 1000
 
-For d above 20 kW this equals (d - 7.5) / 1000 MWh for d at least 10 kW. Setting it equal to reference EUE 0.01 MWh gives d = 17.5 kW. The search should recover approximately 17.5 kW within its configured load tolerance, with the EUE criterion restored.
+For d at least 10 kW this equals (d - 7.5) / 1000 MWh. Setting it equal to reference EUE 0.01 MWh gives d = 17.5 kW. The search should recover approximately 17.5 kW within its configured load tolerance, with the EUE criterion restored.
 
 This is a known-truth arithmetic control—not a claim that 17.5 kW is deliverable or accredited capacity.
 
