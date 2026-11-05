@@ -150,6 +150,13 @@ Do not apply zero-order-hold resampling by default merely because the paper used
 - expected and tail risk under correlated workload/weather/outage scenarios;
 - common-mode dispatch failure, communication loss, repeated-event and recovery performance.
 
+## Economics comparator: cost per reliable net delivered service
+
+Use the companion `benchmarks/ai-data-centre-energy/v2/economics-known-truth.json` fixture and `ECONOMICS_COMPARATOR_PROTOCOL.md` for a frozen v0.1 calculation. Do not compare compute curtailment, a battery and thermal storage by nominal MW or installed $/kW alone.
+
+An alternative is economically comparable only if it passes the same product contract: response latency, ramp, duration, sustained delivery, lower-bound net PCC energy after rebound, minimum availability and local safety/plant reserve. The denominator is expected net delivered MWh using a conservative availability lower bound and measured per-call net energy lower bound. Compute opportunity cost must be separately visible from control/software and recovery cost. Battery cost must include annualized capex, O&M, throughput degradation and recharge energy; thermal cost must include capital/O&M, water, cooling parasitics and recovery.
+
+Publish cost per reliably delivered MWh and the break-even compute opportunity cost per call against the lowest-cost alternative that passes the same contract. If no alternative passes, report no comparable winner. All currency, real-price year, discount rate, lifetime, residual value and tax/subsidy treatment are caller-pinned. The IEA's compute-rental-versus-battery comparison is an industry signal, not a universal price input for this model.
 ## 6. Acceptance ladder
 
 All thresholds below are proposed research targets, not current achievements or universal standards.
