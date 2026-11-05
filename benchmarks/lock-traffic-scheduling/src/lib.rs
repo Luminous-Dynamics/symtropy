@@ -69,6 +69,8 @@ pub struct PassageRequest {
     pub lock_revision: String,
     pub participant_id: String,
     pub service_group: String,
+    /// Must match the schedule profile's comparable service-unit label.
+    pub service_unit_label: String,
     pub direction: Direction,
     /// Earliest and latest possible arrival ticks, inclusive.
     pub arrival_earliest_tick: u64,
@@ -100,6 +102,7 @@ pub enum NotScheduledReason {
     InvalidRequest,
     DuplicateRequestId,
     LockBindingMismatch,
+    IncomparableServiceUnit,
     PassageBlocked,
     PassageNeedsReview,
     PassageUnsupported,
@@ -324,6 +327,9 @@ fn request_error(
 
     if request.lock_id != profile.lock_id || request.lock_revision != profile.lock_revision {
         return Some(NotScheduledReason::LockBindingMismatch);
+    }
+    if request.service_unit_label != profile.service_unit_label {
+        return Some(NotScheduledReason::IncomparableServiceUnit);
     }
 
     if let Some(reason) = arrival_evidence_error(profile, request) {
@@ -984,6 +990,7 @@ mod tests {
             lock_revision: "rev-01".into(),
             participant_id: format!("participant-{request_id}"),
             service_group: "freight".into(),
+            service_unit_label: "tonne".into(),
             direction,
             arrival_earliest_tick: arrival,
             arrival_latest_tick: arrival,
@@ -1061,6 +1068,23 @@ mod tests {
         assert_eq!(
             plan.outcomes[1].reason,
             Some(NotScheduledReason::PassageNeedsReview)
+        );
+    }
+
+    #[test]
+    fn incomparable_service_units_are_not_compared_or_scheduled() {
+        let mut request = request("teu", 0, Direction::Upstream, 1, 1);
+        request.service_unit_label = "TEU".into();
+        let plan = schedule(
+            &profile(),
+            &[request],
+            SchedulingPolicy::ParticipantLeastServed,
+        )
+        .expect("valid profile");
+        assert!(plan.schedule.is_empty());
+        assert_eq!(
+            plan.outcomes[0].reason,
+            Some(NotScheduledReason::IncomparableServiceUnit)
         );
     }
 
