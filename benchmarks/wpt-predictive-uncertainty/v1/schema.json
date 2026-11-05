@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/wpt-predictive-uncertainty-v1.json",
+  "title": "WPT predictive uncertainty evaluation record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "split",
+    "regime_id",
+    "trajectory_group_id",
+    "model_digest",
+    "calibration_set_digest",
+    "test_set_digest",
+    "quantity_kind",
+    "unit",
+    "nominal_coverage",
+    "prediction",
+    "lower",
+    "upper",
+    "observed"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-predictive-uncertainty-v1"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "split": {
+      "const": "test"
+    },
+    "regime_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trajectory_group_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "calibration_set_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "test_set_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "quantity_kind": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nominal_coverage": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 1
+    },
+    "prediction": {
+      "type": "number"
+    },
+    "lower": {
+      "type": "number"
+    },
+    "upper": {
+      "type": "number"
+    },
+    "observed": {
+      "type": "number"
+    }
+  }
+}
