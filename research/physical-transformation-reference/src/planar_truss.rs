@@ -984,12 +984,42 @@ mod tests {
     #[test]
     fn order_one_unbalanced_residual_does_not_pass_at_subunit_or_large_scales() {
         for scale in [1.0e-18, 1.0e-9, 1.0, 1.0e9, 1.0e18] {
+            let normalized = normalized_residual(
+                scale,
+                scale,
+                "synthetic force imbalance",
+            )
+            .expect("positive normalization scale");
             close(
-                normalized_residual(scale, scale, "synthetic force imbalance")
-                    .expect("positive normalization scale"),
+                normalized,
                 1.0,
                 1.0e-15,
                 "100 percent residual remains order one",
+            );
+            assert!(
+                !(normalized < 1.0e-12),
+                "a 100 percent imbalance must never pass the 1e-12 acceptance threshold"
+            );
+        }
+    }
+
+    #[test]
+    fn nonzero_dimensionless_residual_is_invariant_under_common_scale() {
+        let numerator = 3.7e-3_f64;
+        let scale = 4.2e3_f64;
+        let expected = normalized_residual(numerator, scale, "dimensionless fixture")
+            .expect("base normalized value");
+        for factor in [1.0e-18, 1.0e-9, 1.0e9, 1.0e18] {
+            let actual = normalized_residual(
+                numerator * factor,
+                scale * factor,
+                "scaled dimensionless fixture",
+            )
+            .expect("scaled normalized value");
+            let relative_error = (actual - expected).abs() / expected.abs();
+            assert!(
+                relative_error <= 1.0e-12,
+                "normalized residual changed under common scaling: expected={expected:.17e}, actual={actual:.17e}, relative_error={relative_error:.17e}"
             );
         }
     }
@@ -1029,6 +1059,44 @@ mod tests {
             1.0e-12,
             "translation invariant normalized moment residual",
         );
+    }
+
+    #[test]
+    fn characteristic_length_scaling_preserves_dimensionless_equilibrium() {
+        let base_input = symmetric_two_bar_truss();
+        let base = solve(&base_input).expect("base geometry");
+        for scale in [1.0e-6, 1.0e-3, 1.0e3, 1.0e6] {
+            let mut scaled = base_input.clone();
+            for node in &mut scaled.nodes {
+                node.x_m *= scale;
+                node.y_m *= scale;
+            }
+            let result = solve(&scaled).expect("scaled geometry");
+            close(
+                node(&result, "apex").displacement_y_m,
+                node(&base, "apex").displacement_y_m * scale,
+                1.0e-12 * scale,
+                "geometric similarity displacement scale",
+            );
+            close(
+                result.equilibrium.normalized_force_residual,
+                base.equilibrium.normalized_force_residual,
+                1.0e-12,
+                "geometric similarity force residual",
+            );
+            close(
+                result.equilibrium.normalized_moment_residual,
+                base.equilibrium.normalized_moment_residual,
+                1.0e-12,
+                "geometric similarity moment residual",
+            );
+            close(
+                result.equilibrium.normalized_free_dof_residual,
+                base.equilibrium.normalized_free_dof_residual,
+                1.0e-12,
+                "geometric similarity free-DOF residual",
+            );
+        }
     }
 
     #[test]
