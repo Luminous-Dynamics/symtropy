@@ -426,19 +426,26 @@ impl InferenceServiceContract {
 pub struct InferencePowerResponseContract {
     minimum_sustained_reduction_w: f64,
     required_consecutive_samples: usize,
+    minimum_sustained_duration_ms: u64,
 }
 
 impl InferencePowerResponseContract {
     pub fn new(
         minimum_sustained_reduction_w: f64,
         required_consecutive_samples: usize,
+        minimum_sustained_duration_ms: u64,
     ) -> Result<Self, InferencePowerFlexibilityError> {
         if !minimum_sustained_reduction_w.is_finite() || minimum_sustained_reduction_w <= 0.0
             || !(1..=10_000).contains(&required_consecutive_samples)
+            || minimum_sustained_duration_ms == 0
         {
             return Err(InferencePowerFlexibilityError::InvalidPowerResponseContract);
         }
-        Ok(Self { minimum_sustained_reduction_w, required_consecutive_samples })
+        Ok(Self {
+            minimum_sustained_reduction_w,
+            required_consecutive_samples,
+            minimum_sustained_duration_ms,
+        })
     }
 }
 
@@ -528,6 +535,7 @@ pub struct InferencePowerFlexibilityReport {
     pub candidate_average_boundary_power_w: f64,
     pub maximum_sampled_reduction_w: f64,
     pub maximum_sampled_rebound_w: f64,
+    pub maximum_sustained_reduction_duration_ms: u64,
     pub gross_reduction_energy_wh: f64,
     pub rebound_energy_wh: f64,
     pub net_boundary_energy_reduction_wh: f64,
@@ -681,6 +689,9 @@ pub fn evaluate_inference_power_flexibility(
     let mut maximum_sampled_rebound_w = 0.0_f64;
     let mut slot_receipts = Vec::with_capacity(baseline.power_intervals.len());
     let mut consecutive = 0_usize;
+    let mut current_sustained_duration_ms = 0_u64;
+    let mut current_segment_start_ms = 0_u64;
+    let mut maximum_sustained_reduction_duration_ms = 0_u64;
     let mut stabilized_response_elapsed_ms = None;
 
     for (base, flex) in baseline.power_intervals.iter().zip(candidate.power_intervals.iter()) {
@@ -705,17 +716,27 @@ pub fn evaluate_inference_power_flexibility(
         maximum_sampled_rebound_w = maximum_sampled_rebound_w.max(-reduction_w);
 
         if reduction_w >= contract.response.minimum_sustained_reduction_w {
+            if consecutive == 0 {
+                current_segment_start_ms = base.start_elapsed_ms;
+                current_sustained_duration_ms = 0;
+            }
             consecutive += 1;
+            current_sustained_duration_ms = current_sustained_duration_ms
+                .checked_add(base.duration_ms)
+                .ok_or(InferencePowerFlexibilityError::NumericalOverflow(
+                    "sustained response duration",
+                ))?;
+            maximum_sustained_reduction_duration_ms = maximum_sustained_reduction_duration_ms
+                .max(current_sustained_duration_ms);
             if consecutive >= contract.response.required_consecutive_samples
+                && current_sustained_duration_ms >= contract.response.minimum_sustained_duration_ms
                 && stabilized_response_elapsed_ms.is_none()
             {
-                let first_stable_index = slot_receipts.len() + 1
-                    - contract.response.required_consecutive_samples;
-                stabilized_response_elapsed_ms =
-                    Some(baseline.power_intervals[first_stable_index].start_elapsed_ms);
+                stabilized_response_elapsed_ms = Some(current_segment_start_ms);
             }
         } else {
             consecutive = 0;
+            current_sustained_duration_ms = 0;
         }
 
         slot_receipts.push(InferencePowerSlotReceipt {
@@ -770,7 +791,9 @@ pub fn evaluate_inference_power_flexibility(
 
     let power_response_qualified = service_equivalent
         && stabilized_response_elapsed_ms.is_some()
-        && maximum_sampled_reduction_w >= contract.response.minimum_sustained_reduction_w;
+        && maximum_sampled_reduction_w >= contract.response.minimum_sustained_reduction_w
+        && maximum_sustained_reduction_duration_ms
+            >= contract.response.minimum_sustained_duration_ms;
     let claim_ceiling = format!(
         "MEASURED_INFERENCE_POWER_QOS_ENVELOPE_AT_{:?}_BOUNDARY_NOT_GRID_DISPATCH_OR_RESOURCE_ACCREDITATION",
         identity.boundary
@@ -790,6 +813,7 @@ pub fn evaluate_inference_power_flexibility(
         candidate_average_boundary_power_w: candidate_average_power,
         maximum_sampled_reduction_w,
         maximum_sampled_rebound_w,
+        maximum_sustained_reduction_duration_ms,
         gross_reduction_energy_wh,
         rebound_energy_wh,
         net_boundary_energy_reduction_wh,
@@ -1048,7 +1072,7 @@ mod tests {
     }
 
     fn response_contract() -> InferencePowerResponseContract {
-        InferencePowerResponseContract::new(15.0, 3).expect("response contract")
+        InferencePowerResponseContract::new(15.0, 3, 300).expect("response contract")
     }
 
     fn action(id: &str, cap: f64) -> InferenceControlAction {
