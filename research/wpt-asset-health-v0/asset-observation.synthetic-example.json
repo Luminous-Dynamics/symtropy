@@ -42,7 +42,29 @@
     "maximum_pavement_temperature_c": 32,
     "maximum_gradient_c_per_m": 3,
     "thermal_dose_c_hour": 20,
-    "temperature_reference_id": "synthetic-reference-20c"
+    "temperature_reference_id": "synthetic-reference-20c",
+    "spatial_heat_flux_profile": [
+      {
+        "sensor_id": "synthetic-heat-flux-01",
+        "coordinate_frame_id": "synthetic-asset-frame",
+        "x_mm": 0,
+        "y_mm": 0,
+        "depth_mm": 0,
+        "heat_flux_w_m2": 450,
+        "normal_direction": "INTO_PAVEMENT",
+        "method_id": "synthetic-flux-map-v0"
+      },
+      {
+        "sensor_id": "synthetic-heat-flux-02",
+        "coordinate_frame_id": "synthetic-asset-frame",
+        "x_mm": 100,
+        "y_mm": 0,
+        "depth_mm": 0,
+        "heat_flux_w_m2": 180,
+        "normal_direction": "INTO_PAVEMENT",
+        "method_id": "synthetic-flux-map-v0"
+      }
+    ]
   },
   "electromagnetic": {
     "primary_inductance_uh": 100,
