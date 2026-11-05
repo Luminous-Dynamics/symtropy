@@ -26,7 +26,7 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.t
   passages and every non-admission.
 - Reports independent metrics, not one opaque score: service units, total and
   maximum wait, nearest-rank p50/p90/p95/p99 wait distributions, inversions,
-  direction changes, service ticks, water and pump energy. Wait distributions are
+  direction changes, service ticks, direction-change occupancy, total lock-occupied time, comparable arrival pairs and inversion counts, water and pump energy. Wait distributions are
   also reported separately by participant and service group.
 - Includes a separate exhaustive test-only oracle that reimplements tiny
   scheduling feasibility, enumerates request permutations (at most eight
