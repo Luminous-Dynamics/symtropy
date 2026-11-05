@@ -33,6 +33,7 @@ pub struct EvaluationRecord {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct StratumReport {
     pub count: usize,
+    pub trajectory_groups: usize,
     pub covered: usize,
     pub empirical_coverage: f64,
     pub mean_interval_width: f64,
@@ -44,6 +45,7 @@ pub struct StratumReport {
 pub struct EvaluationReport {
     pub schema_version: String,
     pub test_records: usize,
+    pub unique_trajectory_groups: usize,
     pub covered_records: usize,
     pub empirical_coverage: f64,
     pub mean_interval_width: f64,
@@ -61,12 +63,14 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
 
     let reference = &records[0];
     let mut ids = std::collections::BTreeSet::new();
+    let mut trajectory_groups = std::collections::BTreeSet::new();
     let mut count = 0usize;
     let mut covered = 0usize;
     let mut width_sum = 0.0;
     let mut interval_score_sum = 0.0;
     let mut nominal = None::<f64>;
-    let mut regimes = BTreeMap::<String, (usize, usize, f64, f64, f64)>::new();
+    let mut regimes =
+        BTreeMap::<String, (usize, usize, f64, f64, f64, std::collections::BTreeSet<String>)>::new();
 
     for record in records {
         if record.schema_version != SCHEMA_VERSION {
@@ -142,20 +146,22 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
             return Err(format!("{}: interval score overflow", record.record_id));
         }
         count += 1;
+        trajectory_groups.insert(record.trajectory_group_id.clone());
         covered += if hit { 1 } else { 0 };
         width_sum += width;
         interval_score_sum += interval_score;
         if !width_sum.is_finite() || !interval_score_sum.is_finite() {
             return Err("aggregate interval metric overflow".into());
         }
-        let entry = regimes
-            .entry(record.regime_id.clone())
-            .or_insert((0, 0, 0.0, 0.0, 0.0));
+        let entry = regimes.entry(record.regime_id.clone()).or_insert_with(|| {
+            (0, 0, 0.0, 0.0, 0.0, std::collections::BTreeSet::new())
+        });
         entry.0 += 1;
         entry.1 += if hit { 1 } else { 0 };
         entry.2 += width;
         entry.3 += interval_score;
         entry.4 = record.nominal_coverage;
+        entry.5.insert(record.trajectory_group_id.clone());
         if !entry.2.is_finite() || !entry.3.is_finite() {
             return Err(format!("{}: regime aggregate metric overflow", record.regime_id));
         }
@@ -164,11 +170,12 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
     let nominal = nominal.expect("non-empty records establish nominal coverage");
     let by_regime = regimes
         .into_iter()
-        .map(|(regime, (n, hits, widths, score_sum, target))| {
+        .map(|(regime, (n, hits, widths, score_sum, target, groups))| {
             (
                 regime,
                 StratumReport {
                     count: n,
+                    trajectory_groups: groups.len(),
                     covered: hits,
                     empirical_coverage: hits as f64 / n as f64,
                     mean_interval_width: widths / n as f64,
@@ -183,6 +190,7 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
     Ok(EvaluationReport {
         schema_version: SCHEMA_VERSION.into(),
         test_records: count,
+        unique_trajectory_groups: trajectory_groups.len(),
         covered_records: covered,
         empirical_coverage,
         mean_interval_width: width_sum / count as f64,
@@ -226,7 +234,9 @@ mod tests {
             record("c", "misaligned", 5.0, 4.5, 5.5),
         ]).unwrap();
         assert_eq!(report.test_records, 3);
+        assert_eq!(report.unique_trajectory_groups, 3);
         assert_eq!(report.covered_records, 2);
+        assert_eq!(report.by_regime["aligned"].trajectory_groups, 2);
         assert!((report.empirical_coverage - 2.0 / 3.0).abs() < 1e-12);
         assert_eq!(report.by_regime["aligned"].covered, 1);
         assert_eq!(report.by_regime["misaligned"].mean_interval_width, 1.0);
