@@ -374,8 +374,14 @@ pub fn verify_correspondence_draw_bundle(
         }
 
         for (events, branch) in [
-            (&hypothesis.correspondence.unmatched_left, &bundle.left_branch),
-            (&hypothesis.correspondence.unmatched_right, &bundle.right_branch),
+            (
+                &hypothesis.correspondence.unmatched_left,
+                &bundle.left_branch,
+            ),
+            (
+                &hypothesis.correspondence.unmatched_right,
+                &bundle.right_branch,
+            ),
         ] {
             for unmatched in events {
                 let receipt = find_unique_draw(&hypothesis.draws, branch, &unmatched.event_id)
@@ -383,10 +389,9 @@ pub fn verify_correspondence_draw_bundle(
                 expected_addresses.insert((branch.clone(), unmatched.event_id.clone()));
                 let expected = match (&unmatched.reason, &receipt.presence) {
                     (_, PlannedPresence::Unknown { .. })
-                    | (
-                        crate::correspondence::UnmatchedReason::CorrespondenceUnknown { .. },
-                        _,
-                    ) => SharingStatus::NotIdentified,
+                    | (crate::correspondence::UnmatchedReason::CorrespondenceUnknown { .. }, _) => {
+                        SharingStatus::NotIdentified
+                    }
                     (
                         crate::correspondence::UnmatchedReason::NoCounterpartUnderHypothesis {
                             ..
@@ -435,9 +440,9 @@ fn find_unique_draw<'a>(
     branch_id: &crate::StableId,
     event_id: &crate::StableId,
 ) -> Option<&'a CorrespondenceDrawReceipt> {
-    let mut matches = draws.iter().filter(|receipt| {
-        &receipt.branch_id == branch_id && &receipt.event_id == event_id
-    });
+    let mut matches = draws
+        .iter()
+        .filter(|receipt| &receipt.branch_id == branch_id && &receipt.event_id == event_id);
     let found = matches.next()?;
     if matches.next().is_some() {
         None
