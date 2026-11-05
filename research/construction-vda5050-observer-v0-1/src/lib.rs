@@ -375,7 +375,7 @@ fn parse_topic_path(path: &str) -> Result<ParsedTopicPath, ObserverError> {
     if segments.iter().any(|segment| segment.is_empty()) {
         return Err(ObserverError::Shape("MQTT topic path contains an empty level".to_owned()));
     }
-    if segments.len() == 5 {
+    if segments.len() == 5 && segments[1].starts_with('v') {
         if segments[1] != "v3" {
             return Err(ObserverError::TopicVersionMismatch(segments[1].to_owned()));
         }
