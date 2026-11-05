@@ -295,7 +295,6 @@ pub struct SamHandoff {
 
 #[derive(Clone, Debug)]
 struct VerifiedDecision {
-    receipt_id: String,
     actor_id: String,
     tick: u64,
     history_digest: String,
@@ -494,6 +493,7 @@ fn observation_index<'a>(
     observations: &'a [ObservationDelivery],
 ) -> Result<BTreeMap<&'a str, &'a ObservationDelivery>, HandoffError> {
     let mut index = BTreeMap::new();
+    let mut delivery_sequences = BTreeSet::new();
     for cue in observations {
         require(&cue.cue_id, "cue_id")?;
         require(&cue.source_event_id, "source_event_id")?;
@@ -502,6 +502,11 @@ fn observation_index<'a>(
         require(&cue.visibility_profile_digest, "visibility_profile_digest")?;
         if cue.observed_tick > cue.generated_tick {
             return Err(HandoffError::InvalidObservationTiming);
+        }
+        if cue.disposition == ObservationDisposition::Delivered
+            && !delivery_sequences.insert((cue.recipient_actor_id.as_str(), cue.delivery_sequence))
+        {
+            return Err(HandoffError::DuplicateCue);
         }
         match (cue.disposition, cue.delivered_tick) {
             (ObservationDisposition::Delivered, Some(delivered)) => {
@@ -978,6 +983,7 @@ fn branch_payload_root(branch: &BranchExport) -> String {
         hash_u64(&mut h, cue.observed_tick);
         hash_u64(&mut h, cue.generated_tick);
         hash_opt_u64(&mut h, cue.delivered_tick);
+        hash_u64(&mut h, cue.delivery_sequence);
         hash_str(&mut h, &cue.visibility_profile_digest);
         h.update(&[match cue.disposition {
             ObservationDisposition::Delivered => 0,
@@ -997,6 +1003,7 @@ fn branch_payload_root(branch: &BranchExport) -> String {
         hash_str(&mut h, &decision.policy_digest);
         hash_str(&mut h, &decision.config_digest);
         hash_str(&mut h, &decision.prior_policy_state_digest);
+        hash_opt_str(&mut h, decision.next_policy_state_digest.as_deref());
         hash_strs(&mut h, &decision.visible_cue_ids);
         hash_strs(&mut h, &decision.consumed_cue_ids);
         hash_strs(&mut h, &decision.prior_action_receipt_ids);
