@@ -31,14 +31,7 @@ fn calibration(gain: f64, offset_w: f64) -> LinearPowerCalibration {
 }
 
 fn contract(minimum_response_w: f64) -> PccMetrologyContract {
-    PccMetrologyContract::new(
-        2.0,
-        minimum_response_w,
-        100,
-        0.10,
-        1.0,
-    )
-    .expect("valid contract")
+    PccMetrologyContract::new(2.0, minimum_response_w, 100, 0.10, 1.0).expect("valid contract")
 }
 
 fn clock() -> ClockAlignmentEvidence {
@@ -74,8 +67,22 @@ fn pair(
     correlation: f64,
 ) -> PairedPowerInterval {
     PairedPowerInterval::new(
-        reading(start_ns, duration_ns, baseline_w, baseline_u_w, ReadingQuality::Qualified, "baseline-evidence"),
-        reading(start_ns, duration_ns, candidate_w, candidate_u_w, ReadingQuality::Qualified, "candidate-evidence"),
+        reading(
+            start_ns,
+            duration_ns,
+            baseline_w,
+            baseline_u_w,
+            ReadingQuality::Qualified,
+            "baseline-evidence",
+        ),
+        reading(
+            start_ns,
+            duration_ns,
+            candidate_w,
+            candidate_u_w,
+            ReadingQuality::Qualified,
+            "candidate-evidence",
+        ),
         correlation,
     )
     .expect("valid paired interval")
@@ -122,7 +129,10 @@ fn shared_chain_covariance_is_used_but_never_assumed() {
         &[pair(0, 1_000, 1_000.0, 900.0, 2.0, 2.0, 0.0)],
     )
     .expect("independent evaluation");
-    assert!((independent.intervals[0].reduction_standard_uncertainty_w - 2.828_427_124_746_190_3).abs() < 1e-12);
+    assert!(
+        (independent.intervals[0].reduction_standard_uncertainty_w - 2.828_427_124_746_190_3).abs()
+            < 1e-12
+    );
     assert!(!independent.intervals[0].interval_qualified);
 }
 
@@ -138,7 +148,10 @@ fn lower_bound_crossing_the_contract_threshold_does_not_pass() {
     .expect("evaluation succeeds");
 
     assert_eq!(report.intervals[0].measured_reduction_w, 6.0);
-    assert_eq!(report.intervals[0].conservative_reduction_lower_bound_w, 4.0);
+    assert_eq!(
+        report.intervals[0].conservative_reduction_lower_bound_w,
+        4.0
+    );
     assert!(!report.intervals[0].response_threshold_pass);
     assert!(!report.metrology_qualified);
 }
@@ -254,8 +267,22 @@ fn expired_calibration_is_rejected_even_for_otherwise_good_readings() {
 #[test]
 fn clipped_or_missing_reading_is_rejected_without_imputation() {
     let clipped = PairedPowerInterval::new(
-        reading(0, 1_000, 100.0, 0.0, ReadingQuality::Clipped, "baseline-clipped"),
-        reading(0, 1_000, 90.0, 0.0, ReadingQuality::Qualified, "candidate-valid"),
+        reading(
+            0,
+            1_000,
+            100.0,
+            0.0,
+            ReadingQuality::Clipped,
+            "baseline-clipped",
+        ),
+        reading(
+            0,
+            1_000,
+            90.0,
+            0.0,
+            ReadingQuality::Qualified,
+            "candidate-valid",
+        ),
         0.0,
     )
     .expect("pair structure valid");
