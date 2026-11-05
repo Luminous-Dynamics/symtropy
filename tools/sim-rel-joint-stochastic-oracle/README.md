@@ -89,3 +89,25 @@ Compile a `LocomotionKernelSpec` into a `CompiledLocomotionKernel`, then use the
 The baseline module ranks actions by one-step expected information gain about the mechanism, divided by action cost. It integrates the current joint physical/sensor belief through the same transition kernel, and treats a hazard event as an observed terminal outcome. Its score is floating-point and is deliberately separate from the exact rational optimizer.
 
 The calibration fixture is a useful counterexample: neither the measurement nor calibration action has immediate mechanism information, but calibration changes sensor state so that a subsequent measurement becomes identifying. A one-step EIG policy cannot value that enabling sequence; the finite-horizon joint optimizer can.
+
+## Factorized locomotion transition model
+
+The separate `factorized` module is a sparse dynamic Bayesian network over the same kind of finite semantic state variables. It does not replace or silently refactor the dense `JointKernel` contract.
+
+Each action has exactly one conditional probability table for every next-state variable. A CPD declares its parent variables and whether each parent reads the current or next state. Next-state parent links must form a DAG. Intervention definitions declare target variables and allowed descendants; all other variables must be provably identity transitions. Every CPD carries source-manifest references and a claim ceiling.
+
+Marginals are computed with exact-rational sum-product variable elimination. A separate direct product evaluator provides an independent check on selected transitions. Full joint materialization is optional and rejected before allocation when the Cartesian state count exceeds the configured budget. Tiny enumerable models must match direct dense enumeration exactly; approximate particle/SMC inference is a separate future comparison, not part of this exact implementation.
+
+The initial synthetic fixture contains a shared context, a targeted left-leg contact state, and an explicitly coupled right-leg contact descendant. It checks exact left/right marginals, full joint agreement against direct factor-product enumeration, canonicalization invariance, missing CPD coverage, cyclic next-state dependencies, undeclared effects, source claim ceilings and refuse-before-allocation limits.
+
+A six-leg scaling fixture has 20 binary state variables (1,048,576 joint assignments) and now exposes six symmetric per-leg actions. Each action has a local phase → contact → actuator-force chain for its target leg; the other five legs remain exact identity transitions. Paired queries verify the same 11/16 high-force probability on every leg and verify a non-target leg's contact state remains unchanged. The local two-variable query stays within a peak intermediate scope of two variables, while dense joint materialization is rejected by the configured 65,536-cell budget. The separate two-leg coupling fixture tests explicit cross-leg descendants and a no-coupling ablation. The returned inference diagnostics include elimination order, instantiated factor cells, peak intermediate cells/scope, product multiplications and sum-out additions. Output-table cell count and elimination width are reported separately; all counters fail closed on overflow.
+
+A separate mechanism fixture represents the descending excitatory and inhibitory pathways as distinct state variables, both feeding a local 9A-like gate; that gate then controls a hook/movement-gain variable, while claw/position gain remains invariant. A synthetic truth table contrasts the two pathway inputs against a collapsed single-pathway ablation. This fixture is intentionally synthetic: it does not claim the paper's measured synaptic signs, gain values, latency, or exact circuit truth table. The Dallmann evidence motivates retaining the two pathways as distinct variables, not the synthetic CPD values.
+
+## Qualification
+
+Run formatting, locked unit tests, and strict Clippy using the dedicated workflow. It pins Rust 1.96.0, verifies the exact checked-out SHA, and requires a clean tree.
+
+## Scope limits
+
+This oracle is intentionally small and exact. It does not implement particle filters, SMC-squared, approximate posterior inference, continuous states, model-family discovery, or physical safety certification. Its purpose is to make stochastic policy correctness auditable on finite cases before comparing scalable methods. Exactness is conditional on the supplied kernel, initial belief, costs, horizon, and policy class; it does not establish that these describe a real specimen or sensor.
