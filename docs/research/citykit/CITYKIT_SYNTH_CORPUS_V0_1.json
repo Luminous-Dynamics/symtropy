@@ -1,0 +1,903 @@
+{
+  "schema_id": "org.luminousdynamics.citykit.synthetic-corpus",
+  "schema_version": "0.1.0",
+  "corpus_id": "CITYKIT-SYNTH-CORPUS-V0.1",
+  "classification": "synthetic_fixture_only",
+  "units_policy": "Every numeric quantity is synthetic and local to its declared unit; no value is a vendor, site, city, engineering, cost, carbon, or field-performance claim.",
+  "semantics": {
+    "route_logic": "Each route.requires list is conjunctive (AND); routes listed for one capability are alternatives (OR). A required ID may resolve to a primitive or another declared capability.",
+    "capability_origins": [
+      "local",
+      "imported"
+    ],
+    "availability_states": [
+      "available",
+      "unavailable"
+    ],
+    "evidence_states": [
+      "synthetic_current",
+      "unknown",
+      "stale",
+      "revoked"
+    ],
+    "disposition_rules": [
+      "Any verified hard constraint violation yields Infeasible.",
+      "Otherwise, a requested operation outside the evaluator's declared model yields Unsupported.",
+      "Otherwise, missing, stale, revoked or ambiguous required evidence yields Unknown.",
+      "Otherwise, the case may be FeasibleForSyntheticCase within the declared fixture scope only."
+    ],
+    "time_intervals": "Work package intervals are half-open [start_tick,end_tick); overlapping demands on a shared resource are summed.",
+    "resource_balance": "available must be >= allocated + reserve; every amount must use the resource.unit. Optional allocated_unit/reserve_unit fields, when present, must match resource.unit.",
+    "service_capacity": "declared_capacity must be >= peak_demand; all values use service.unit and non-current evidence cannot establish this claim.",
+    "productive_closure": "An imported primitive may support operational reachability, but never local closure. A primitive marked unavailable cannot satisfy a route. Cycles without a reachable primitive seed cannot establish capability."
+  },
+  "cases": [
+    {
+      "case_id": "CK-SVC-001",
+      "description": "Service peak demand is covered by current synthetic capacity.",
+      "input": {
+        "services": [
+          {
+            "id": "water-service",
+            "unit": "m3/day",
+            "peak_demand": 80,
+            "declared_capacity": 100,
+            "evidence_state": "synthetic_current",
+            "required_capabilities": []
+          }
+        ],
+        "resources": [],
+        "primitive_capabilities": [],
+        "capabilities": [],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "FeasibleForSyntheticCase",
+        "reason_codes": [],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": []
+      }
+    },
+    {
+      "case_id": "CK-SVC-002",
+      "description": "Verified declared service capacity is below peak demand.",
+      "input": {
+        "services": [
+          {
+            "id": "water-service",
+            "unit": "m3/day",
+            "peak_demand": 100,
+            "declared_capacity": 80,
+            "evidence_state": "synthetic_current",
+            "required_capabilities": []
+          }
+        ],
+        "resources": [],
+        "primitive_capabilities": [],
+        "capabilities": [],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Infeasible",
+        "reason_codes": [
+          "SERVICE_CAPACITY_BELOW_PEAK_DEMAND"
+        ],
+        "unmet_services": [
+          "water-service"
+        ],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": []
+      }
+    },
+    {
+      "case_id": "CK-SVC-003",
+      "description": "A facility has a capacity assertion but no current capacity evidence.",
+      "input": {
+        "services": [
+          {
+            "id": "clinic-service",
+            "unit": "visits/day",
+            "peak_demand": 40,
+            "declared_capacity": 60,
+            "evidence_state": "unknown",
+            "required_capabilities": []
+          }
+        ],
+        "resources": [],
+        "primitive_capabilities": [],
+        "capabilities": [],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Unknown",
+        "reason_codes": [
+          "SERVICE_CAPACITY_EVIDENCE_UNKNOWN"
+        ],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": [
+          "clinic-service"
+        ]
+      }
+    },
+    {
+      "case_id": "CK-SVC-004",
+      "description": "A service requires an energy capability with no declared capability record.",
+      "input": {
+        "services": [
+          {
+            "id": "clinic-service",
+            "unit": "visits/day",
+            "peak_demand": 40,
+            "declared_capacity": 60,
+            "evidence_state": "synthetic_current",
+            "required_capabilities": [
+              "electrical-service"
+            ]
+          }
+        ],
+        "resources": [],
+        "primitive_capabilities": [],
+        "capabilities": [],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Unknown",
+        "reason_codes": [
+          "REQUIRED_CAPABILITY_RECORD_MISSING"
+        ],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": [
+          "electrical-service"
+        ]
+      }
+    },
+    {
+      "case_id": "CK-RES-001",
+      "description": "Resource supply covers allocations and declared reserve.",
+      "input": {
+        "services": [],
+        "resources": [
+          {
+            "id": "electricity",
+            "unit": "kWh/day",
+            "available": 120,
+            "allocated": 90,
+            "reserve": 20,
+            "evidence_state": "synthetic_current"
+          }
+        ],
+        "primitive_capabilities": [],
+        "capabilities": [],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "FeasibleForSyntheticCase",
+        "reason_codes": [],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": []
+      }
+    },
+    {
+      "case_id": "CK-RES-002",
+      "description": "Allocations exceed a finite declared resource supply.",
+      "input": {
+        "services": [],
+        "resources": [
+          {
+            "id": "electricity",
+            "unit": "kWh/day",
+            "available": 100,
+            "allocated": 110,
+            "reserve": 0,
+            "evidence_state": "synthetic_current"
+          }
+        ],
+        "primitive_capabilities": [],
+        "capabilities": [],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Infeasible",
+        "reason_codes": [
+          "RESOURCE_SUPPLY_OVERCOMMITTED"
+        ],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": []
+      }
+    },
+    {
+      "case_id": "CK-CAP-001",
+      "description": "One route has all required local primitive capabilities (AND prerequisites).",
+      "input": {
+        "services": [],
+        "resources": [],
+        "primitive_capabilities": [
+          {
+            "id": "saw",
+            "origin": "local",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          },
+          {
+            "id": "joiner",
+            "origin": "local",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          },
+          {
+            "id": "metrology",
+            "origin": "local",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "panel-production",
+            "routes": [
+              {
+                "id": "route-local",
+                "requires": [
+                  "saw",
+                  "joiner",
+                  "metrology"
+                ]
+              }
+            ]
+          }
+        ],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "FeasibleForSyntheticCase",
+        "reason_codes": [],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": [],
+        "locally_closed_targets": [
+          "panel-production"
+        ]
+      }
+    },
+    {
+      "case_id": "CK-CAP-002",
+      "description": "A required process capability is explicitly unavailable; the only route cannot operate.",
+      "input": {
+        "services": [],
+        "resources": [],
+        "primitive_capabilities": [
+          {
+            "id": "saw",
+            "origin": "local",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          },
+          {
+            "id": "joiner",
+            "origin": "local",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          },
+          {
+            "id": "metrology",
+            "origin": "local",
+            "availability": "unavailable",
+            "evidence_state": "synthetic_current"
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "panel-production",
+            "routes": [
+              {
+                "id": "route-local",
+                "requires": [
+                  "saw",
+                  "joiner",
+                  "metrology"
+                ]
+              }
+            ]
+          }
+        ],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Infeasible",
+        "reason_codes": [
+          "NO_FEASIBLE_PRODUCTION_ROUTE"
+        ],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [
+          "panel-production"
+        ],
+        "unknown_evidence": []
+      }
+    },
+    {
+      "case_id": "CK-CAP-003",
+      "description": "Routes are OR alternatives; one feasible local route is sufficient.",
+      "input": {
+        "services": [],
+        "resources": [],
+        "primitive_capabilities": [
+          {
+            "id": "saw",
+            "origin": "local",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          },
+          {
+            "id": "metrology",
+            "origin": "local",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "panel-production",
+            "routes": [
+              {
+                "id": "route-a",
+                "requires": [
+                  "saw",
+                  "joiner"
+                ]
+              },
+              {
+                "id": "route-b",
+                "requires": [
+                  "saw",
+                  "metrology"
+                ]
+              }
+            ]
+          }
+        ],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "FeasibleForSyntheticCase",
+        "reason_codes": [],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": [],
+        "locally_closed_targets": [
+          "panel-production"
+        ],
+        "selected_routes": [
+          {
+            "target": "panel-production",
+            "route": "route-b"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CK-CAP-004",
+      "description": "Two capabilities depend only on each other; an unseeded cycle cannot create its own prerequisite.",
+      "input": {
+        "services": [],
+        "resources": [],
+        "primitive_capabilities": [],
+        "capabilities": [
+          {
+            "id": "capability-a",
+            "routes": [
+              {
+                "id": "a-from-b",
+                "requires": [
+                  "capability-b"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "capability-b",
+            "routes": [
+              {
+                "id": "b-from-a",
+                "requires": [
+                  "capability-a"
+                ]
+              }
+            ]
+          }
+        ],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Infeasible",
+        "reason_codes": [
+          "UNSEEDED_CAPABILITY_CYCLE"
+        ],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [
+          "capability-a",
+          "capability-b"
+        ],
+        "unknown_evidence": []
+      }
+    },
+    {
+      "case_id": "CK-CAP-005",
+      "description": "An imported machine supports current operation but is not locally reproducible.",
+      "input": {
+        "services": [],
+        "resources": [],
+        "primitive_capabilities": [
+          {
+            "id": "saw-station",
+            "origin": "imported",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "panel-production",
+            "routes": [
+              {
+                "id": "route-imported",
+                "requires": [
+                  "saw-station"
+                ]
+              }
+            ]
+          }
+        ],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "FeasibleForSyntheticCase",
+        "reason_codes": [],
+        "unmet_services": [],
+        "import_dependent_targets": [
+          "panel-production"
+        ],
+        "unreachable_targets": [],
+        "unknown_evidence": [],
+        "operationally_reachable_targets": [
+          "panel-production"
+        ],
+        "locally_closed_targets": []
+      }
+    },
+    {
+      "case_id": "CK-CAP-006",
+      "description": "A locally producible replacement bracket does not prove imported motor, encoder and controller reproduction.",
+      "input": {
+        "services": [],
+        "resources": [],
+        "primitive_capabilities": [
+          {
+            "id": "local-machining",
+            "origin": "local",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          },
+          {
+            "id": "motor",
+            "origin": "imported",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          },
+          {
+            "id": "encoder",
+            "origin": "imported",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          },
+          {
+            "id": "controller",
+            "origin": "imported",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "replacement-bracket",
+            "routes": [
+              {
+                "id": "bracket-route",
+                "requires": [
+                  "local-machining"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "robot-drive-unit",
+            "routes": [
+              {
+                "id": "drive-route",
+                "requires": [
+                  "replacement-bracket",
+                  "motor",
+                  "encoder",
+                  "controller"
+                ]
+              }
+            ]
+          }
+        ],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "FeasibleForSyntheticCase",
+        "reason_codes": [],
+        "unmet_services": [],
+        "import_dependent_targets": [
+          "robot-drive-unit"
+        ],
+        "unreachable_targets": [],
+        "unknown_evidence": [],
+        "locally_closed_targets": [
+          "replacement-bracket"
+        ],
+        "operationally_reachable_targets": [
+          "replacement-bracket",
+          "robot-drive-unit"
+        ]
+      }
+    },
+    {
+      "case_id": "CK-WP-001",
+      "description": "Two overlapping work packages jointly exceed one workcell's finite capacity.",
+      "input": {
+        "services": [],
+        "resources": [],
+        "primitive_capabilities": [],
+        "capabilities": [],
+        "resource_capacities": [
+          {
+            "id": "panel-cell",
+            "unit": "workcell",
+            "capacity": 1
+          }
+        ],
+        "work_packages": [
+          {
+            "id": "wp-a",
+            "start_tick": 0,
+            "end_tick": 5,
+            "resource_demands": [
+              {
+                "resource_id": "panel-cell",
+                "quantity": 1
+              }
+            ]
+          },
+          {
+            "id": "wp-b",
+            "start_tick": 2,
+            "end_tick": 7,
+            "resource_demands": [
+              {
+                "resource_id": "panel-cell",
+                "quantity": 1
+              }
+            ]
+          }
+        ],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Infeasible",
+        "reason_codes": [
+          "SHARED_RESOURCE_CAPACITY_EXCEEDED"
+        ],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": []
+      }
+    },
+    {
+      "case_id": "CK-DISR-001",
+      "description": "Primary supplier fails but a declared local alternate route remains feasible.",
+      "input": {
+        "services": [],
+        "resources": [],
+        "primitive_capabilities": [
+          {
+            "id": "supplier-a",
+            "origin": "imported",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          },
+          {
+            "id": "local-sawmill",
+            "origin": "local",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          },
+          {
+            "id": "panel-joinery",
+            "origin": "local",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "panel-stock",
+            "routes": [
+              {
+                "id": "route-supplier-a",
+                "requires": [
+                  "supplier-a"
+                ]
+              },
+              {
+                "id": "route-local",
+                "requires": [
+                  "local-sawmill"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "panel-production",
+            "routes": [
+              {
+                "id": "route-assembly",
+                "requires": [
+                  "panel-stock",
+                  "panel-joinery"
+                ]
+              }
+            ]
+          }
+        ],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [
+          {
+            "type": "primitive_unavailable",
+            "target_id": "supplier-a"
+          }
+        ],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "FeasibleForSyntheticCase",
+        "reason_codes": [],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": [],
+        "selected_routes": [
+          {
+            "target": "panel-stock",
+            "route": "route-local"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CK-DISR-002",
+      "description": "Loss of the sole declared supplier leaves no feasible route.",
+      "input": {
+        "services": [],
+        "resources": [],
+        "primitive_capabilities": [
+          {
+            "id": "supplier-a",
+            "origin": "imported",
+            "availability": "available",
+            "evidence_state": "synthetic_current"
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "panel-stock",
+            "routes": [
+              {
+                "id": "route-supplier-a",
+                "requires": [
+                  "supplier-a"
+                ]
+              }
+            ]
+          }
+        ],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [
+          {
+            "type": "primitive_unavailable",
+            "target_id": "supplier-a"
+          }
+        ],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Infeasible",
+        "reason_codes": [
+          "NO_FEASIBLE_ROUTE_AFTER_DISRUPTION"
+        ],
+        "unmet_services": [],
+        "import_dependent_targets": [
+          "panel-stock"
+        ],
+        "unreachable_targets": [
+          "panel-stock"
+        ],
+        "unknown_evidence": []
+      }
+    },
+    {
+      "case_id": "CK-EVID-001",
+      "description": "The only capacity evidence is stale; it cannot support a current service-capacity claim.",
+      "input": {
+        "services": [
+          {
+            "id": "clinic-service",
+            "unit": "visits/day",
+            "peak_demand": 40,
+            "declared_capacity": 60,
+            "evidence_state": "stale",
+            "required_capabilities": []
+          }
+        ],
+        "resources": [],
+        "primitive_capabilities": [],
+        "capabilities": [],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Unknown",
+        "reason_codes": [
+          "SERVICE_CAPACITY_EVIDENCE_STALE"
+        ],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": [
+          "clinic-service"
+        ]
+      }
+    },
+    {
+      "case_id": "CK-EVID-002",
+      "description": "A required supplier/capability credential has been revoked.",
+      "input": {
+        "services": [],
+        "resources": [],
+        "primitive_capabilities": [
+          {
+            "id": "certified-supplier",
+            "origin": "imported",
+            "availability": "available",
+            "evidence_state": "revoked"
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "panel-stock",
+            "routes": [
+              {
+                "id": "route-revoked",
+                "requires": [
+                  "certified-supplier"
+                ]
+              }
+            ]
+          }
+        ],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Unknown",
+        "reason_codes": [
+          "REQUIRED_CAPABILITY_EVIDENCE_REVOKED"
+        ],
+        "unmet_services": [],
+        "import_dependent_targets": [
+          "panel-stock"
+        ],
+        "unreachable_targets": [
+          "panel-stock"
+        ],
+        "unknown_evidence": [
+          "certified-supplier"
+        ]
+      }
+    },
+    {
+      "case_id": "CK-UNITS-001",
+      "description": "One resource record supplies incompatible units for the same balance; no numerical comparison is permitted.",
+      "input": {
+        "services": [],
+        "resources": [
+          {
+            "id": "electricity",
+            "unit": "kWh/day",
+            "available": 100,
+            "allocated": 70,
+            "allocated_unit": "m3/day",
+            "reserve": 10,
+            "evidence_state": "synthetic_current"
+          }
+        ],
+        "primitive_capabilities": [],
+        "capabilities": [],
+        "resource_capacities": [],
+        "work_packages": [],
+        "disruptions": [],
+        "evidence": []
+      },
+      "expected": {
+        "disposition": "Unsupported",
+        "reason_codes": [
+          "INCOMPATIBLE_RESOURCE_UNITS"
+        ],
+        "unmet_services": [],
+        "import_dependent_targets": [],
+        "unreachable_targets": [],
+        "unknown_evidence": []
+      }
+    }
+  ]
+}
