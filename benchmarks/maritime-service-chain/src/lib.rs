@@ -1474,8 +1474,8 @@ mod tests {
                 capacity_unit: ResourceUnit::Lockages,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 15,
-                        end_tick: 35,
+                        start_tick: 12,
+                        end_tick: 40,
                     },
                     capacity: 1,
                 }],
@@ -1487,8 +1487,8 @@ mod tests {
                 capacity_unit: ResourceUnit::Millilitres,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 15,
-                        end_tick: 35,
+                        start_tick: 12,
+                        end_tick: 40,
                     },
                     capacity: 5_000,
                 }],
@@ -1677,7 +1677,7 @@ mod tests {
                 energy: EnergyLedger {
                     propulsion_wh: 1_800,
                     auxiliary_wh: 200,
-                    shore_power_wh: 0,
+                    shore_power_wh: 800,
                     onward_transfer_wh: 0,
                 },
             },
@@ -1718,7 +1718,7 @@ mod tests {
                 energy: EnergyLedger {
                     propulsion_wh: 1_300,
                     auxiliary_wh: 200,
-                    shore_power_wh: 0,
+                    shore_power_wh: 800,
                     onward_transfer_wh: 0,
                 },
             },
