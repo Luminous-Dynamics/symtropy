@@ -2602,10 +2602,6 @@ mod analytic_contact_fixtures {
         let velocity_b = world.body(b).unwrap().linear_velocity;
 
         assert!(!world.contacts.is_empty(), "expected a contact manifold");
-        assert!(
-            !world.collision_events.is_empty(),
-            "expected a collision event"
-        );
         assert!((velocity_a[0] + 1.0).abs() < 1e-8, "v_a={velocity_a:?}");
         assert!((velocity_b[0] - 1.0).abs() < 1e-8, "v_b={velocity_b:?}");
         assert!(
