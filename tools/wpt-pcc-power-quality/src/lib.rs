@@ -329,6 +329,7 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
             "assessment_boundary",
             "network_type",
             "phase_count",
+            "wire_count",
             "grid_frequency_hz",
             "nominal_voltage_v",
             "rated_input_current_a_per_phase",
@@ -368,12 +369,25 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
         return Err(fail("$.profile.network_type", "unknown network type"));
     }
     let phase_count = integer_field(profile, "phase_count", "$.profile")?;
+    let wire_count = integer_field(profile, "wire_count", "$.profile")?;
     let grid_frequency = number_field(profile, "grid_frequency_hz", "$.profile")?;
     let nominal_voltage = number_field(profile, "nominal_voltage_v", "$.profile")?;
-    if ![1, 3].contains(&phase_count) || grid_frequency <= 0.0 || nominal_voltage <= 0.0 {
+    if ![1, 3].contains(&phase_count)
+        || ![2, 3, 4].contains(&wire_count)
+        || grid_frequency <= 0.0
+        || nominal_voltage <= 0.0
+    {
         return Err(fail(
             "$.profile",
-            "invalid phase count, grid frequency or nominal voltage",
+            "invalid phase count, wire count, grid frequency or nominal voltage",
+        ));
+    }
+    if (phase_count == 1 && ![2, 3].contains(&wire_count))
+        || (phase_count == 3 && ![3, 4].contains(&wire_count))
+    {
+        return Err(fail(
+            "$.profile.wire_count",
+            "wire count is inconsistent with the declared phase count",
         ));
     }
     if ![50.0, 60.0].contains(&grid_frequency) {
@@ -822,6 +836,17 @@ mod tests {
         assert_eq!(
             report.applicability,
             ProfileApplicability::ApplicableScopeOnly
+        );
+    }
+
+    #[test]
+    fn rejects_phase_and_wire_count_mismatch() {
+        let mut run = fixture();
+        run["profile"]["wire_count"] = Value::from(2);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("wire count is inconsistent with the declared phase count")
         );
     }
 
