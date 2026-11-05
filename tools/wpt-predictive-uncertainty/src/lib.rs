@@ -76,8 +76,17 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
     let mut width_sum = 0.0;
     let mut interval_score_sum = 0.0;
     let mut nominal = None::<f64>;
-    let mut regimes =
-        BTreeMap::<String, (usize, usize, f64, f64, f64, std::collections::BTreeSet<String>)>::new();
+    let mut regimes = BTreeMap::<
+        String,
+        (
+            usize,
+            usize,
+            f64,
+            f64,
+            f64,
+            std::collections::BTreeSet<String>,
+        ),
+    >::new();
 
     for record in records {
         if record.schema_version != SCHEMA_VERSION {
@@ -95,7 +104,10 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
             );
         }
         if record.split != "test" {
-            return Err(format!("{}: evaluator accepts test records only", record.record_id));
+            return Err(format!(
+                "{}: evaluator accepts test records only",
+                record.record_id
+            ));
         }
         if record.record_id.trim().is_empty()
             || record.regime_id.trim().is_empty()
@@ -110,7 +122,10 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
             || !is_sha256_digest(&record.test_set_digest)
             || !ids.insert(&record.record_id)
         {
-            return Err("record identity, provenance and semantic fields must be non-empty and unique".into());
+            return Err(
+                "record identity, provenance and semantic fields must be non-empty and unique"
+                    .into(),
+            );
         }
         for (name, value) in [
             ("nominal_coverage", record.nominal_coverage),
@@ -128,7 +143,10 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
             || record.prediction < record.lower
             || record.prediction > record.upper
         {
-            return Err(format!("{}: invalid prediction interval or nominal coverage", record.record_id));
+            return Err(format!(
+                "{}: invalid prediction interval or nominal coverage",
+                record.record_id
+            ));
         }
         match nominal {
             Some(value) if (value - record.nominal_coverage).abs() > f64::EPSILON => {
@@ -163,9 +181,9 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
         if !width_sum.is_finite() || !interval_score_sum.is_finite() {
             return Err("aggregate interval metric overflow".into());
         }
-        let entry = regimes.entry(record.regime_id.clone()).or_insert_with(|| {
-            (0, 0, 0.0, 0.0, 0.0, std::collections::BTreeSet::new())
-        });
+        let entry = regimes
+            .entry(record.regime_id.clone())
+            .or_insert_with(|| (0, 0, 0.0, 0.0, 0.0, std::collections::BTreeSet::new()));
         entry.0 += 1;
         entry.1 += if hit { 1 } else { 0 };
         entry.2 += width;
@@ -173,7 +191,10 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
         entry.4 = record.nominal_coverage;
         entry.5.insert(record.trajectory_group_id.clone());
         if !entry.2.is_finite() || !entry.3.is_finite() {
-            return Err(format!("{}: regime aggregate metric overflow", record.regime_id));
+            return Err(format!(
+                "{}: regime aggregate metric overflow",
+                record.regime_id
+            ));
         }
     }
 
@@ -291,7 +312,9 @@ pub fn evaluate_decision_gate(
             || constraint.unit.trim().is_empty()
             || !seen.insert(&constraint.constraint_id)
         {
-            return Err("constraint identity and unit must be non-empty; IDs must be unique".into());
+            return Err(
+                "constraint identity and unit must be non-empty; IDs must be unique".into(),
+            );
         }
         for (name, value) in [
             ("threshold", constraint.threshold),
@@ -299,7 +322,10 @@ pub fn evaluate_decision_gate(
             ("upper", constraint.upper),
         ] {
             if !value.is_finite() {
-                return Err(format!("{}: {name} must be finite", constraint.constraint_id));
+                return Err(format!(
+                    "{}: {name} must be finite",
+                    constraint.constraint_id
+                ));
             }
         }
         if constraint.lower > constraint.upper {
@@ -356,9 +382,7 @@ pub fn evaluate_decision_gate(
         GateDecision::Eligible
     };
     let action = match decision {
-        GateDecision::Eligible => {
-            "ELIGIBLE_FOR_INDEPENDENT_INTERLOCK_AND_AUTHORIZATION_CHECKS"
-        }
+        GateDecision::Eligible => "ELIGIBLE_FOR_INDEPENDENT_INTERLOCK_AND_AUTHORIZATION_CHECKS",
         GateDecision::Inhibit => "INHIBIT_OR_ENTER_DECLARED_SAFE_STATE",
         GateDecision::NotEvaluable => "DO_NOT_INCREASE_POWER; DERATE_OR_RAMP_DOWN",
     }
@@ -411,9 +435,7 @@ pub fn evaluate_decision_gate_for_regime(
     };
     interval_gate.decision = decision;
     interval_gate.action = match decision {
-        GateDecision::Eligible => {
-            "ELIGIBLE_FOR_INDEPENDENT_INTERLOCK_AND_AUTHORIZATION_CHECKS"
-        }
+        GateDecision::Eligible => "ELIGIBLE_FOR_INDEPENDENT_INTERLOCK_AND_AUTHORIZATION_CHECKS",
         GateDecision::Inhibit => "INHIBIT_OR_ENTER_DECLARED_SAFE_STATE",
         GateDecision::NotEvaluable => "DO_NOT_INCREASE_POWER; DERATE_OR_RAMP_DOWN",
     }
@@ -452,8 +474,20 @@ mod decision_gate_tests {
     #[test]
     fn complete_intervals_on_allowed_side_are_eligible() {
         let result = evaluate_decision_gate(&[
-            constraint("minimum_service", ConstraintSense::Minimum, 100.0, 102.0, 108.0),
-            constraint("maximum_temperature", ConstraintSense::Maximum, 80.0, 70.0, 75.0),
+            constraint(
+                "minimum_service",
+                ConstraintSense::Minimum,
+                100.0,
+                102.0,
+                108.0,
+            ),
+            constraint(
+                "maximum_temperature",
+                ConstraintSense::Maximum,
+                80.0,
+                70.0,
+                75.0,
+            ),
         ])
         .unwrap();
         assert_eq!(result.decision, GateDecision::Eligible);
@@ -461,19 +495,30 @@ mod decision_gate_tests {
 
     #[test]
     fn threshold_overlap_is_not_silently_accepted() {
-        let result = evaluate_decision_gate(&[
-            constraint("minimum_service", ConstraintSense::Minimum, 100.0, 98.0, 103.0),
-        ])
+        let result = evaluate_decision_gate(&[constraint(
+            "minimum_service",
+            ConstraintSense::Minimum,
+            100.0,
+            98.0,
+            103.0,
+        )])
         .unwrap();
         assert_eq!(result.decision, GateDecision::NotEvaluable);
-        assert_eq!(result.checks[0].disposition, ConstraintDisposition::Unresolved);
+        assert_eq!(
+            result.checks[0].disposition,
+            ConstraintDisposition::Unresolved
+        );
     }
 
     #[test]
     fn definite_limit_breach_inhibits() {
-        let result = evaluate_decision_gate(&[
-            constraint("maximum_temperature", ConstraintSense::Maximum, 80.0, 82.0, 85.0),
-        ])
+        let result = evaluate_decision_gate(&[constraint(
+            "maximum_temperature",
+            ConstraintSense::Maximum,
+            80.0,
+            82.0,
+            85.0,
+        )])
         .unwrap();
         assert_eq!(result.decision, GateDecision::Inhibit);
     }
@@ -481,8 +526,20 @@ mod decision_gate_tests {
     #[test]
     fn definite_breach_dominates_other_unresolved_constraints() {
         let result = evaluate_decision_gate(&[
-            constraint("minimum_service", ConstraintSense::Minimum, 100.0, 98.0, 103.0),
-            constraint("maximum_temperature", ConstraintSense::Maximum, 80.0, 82.0, 85.0),
+            constraint(
+                "minimum_service",
+                ConstraintSense::Minimum,
+                100.0,
+                98.0,
+                103.0,
+            ),
+            constraint(
+                "maximum_temperature",
+                ConstraintSense::Maximum,
+                80.0,
+                82.0,
+                85.0,
+            ),
         ])
         .unwrap();
         assert_eq!(result.decision, GateDecision::Inhibit);
@@ -523,23 +580,30 @@ mod decision_gate_tests {
         assert_eq!(result.decision, GateDecision::Inhibit);
     }
 
-
     #[test]
     fn malformed_gate_inputs_fail_closed() {
         assert!(evaluate_decision_gate(&[]).is_err());
-        assert!(evaluate_decision_gate(&[
-            constraint("bad", ConstraintSense::Minimum, 1.0, f64::NAN, 2.0),
-        ])
-        .is_err());
-        assert!(evaluate_decision_gate(&[
-            constraint("bad", ConstraintSense::Minimum, 1.0, 2.0, 1.0),
-        ])
-        .is_err());
-        assert!(evaluate_decision_gate(&[
-            constraint("duplicate", ConstraintSense::Minimum, 1.0, 1.0, 2.0),
-            constraint("duplicate", ConstraintSense::Maximum, 3.0, 1.0, 2.0),
-        ])
-        .is_err());
+        assert!(
+            evaluate_decision_gate(&[constraint(
+                "bad",
+                ConstraintSense::Minimum,
+                1.0,
+                f64::NAN,
+                2.0
+            ),])
+            .is_err()
+        );
+        assert!(
+            evaluate_decision_gate(&[constraint("bad", ConstraintSense::Minimum, 1.0, 2.0, 1.0),])
+                .is_err()
+        );
+        assert!(
+            evaluate_decision_gate(&[
+                constraint("duplicate", ConstraintSense::Minimum, 1.0, 1.0, 2.0),
+                constraint("duplicate", ConstraintSense::Maximum, 3.0, 1.0, 2.0),
+            ])
+            .is_err()
+        );
     }
 }
 
@@ -573,7 +637,8 @@ mod tests {
             record("a", "aligned", 5.0, 4.0, 6.0),
             record("b", "aligned", 8.0, 4.0, 6.0),
             record("c", "misaligned", 5.0, 4.5, 5.5),
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_eq!(report.test_records, 3);
         assert_eq!(report.unique_trajectory_groups, 3);
         assert_eq!(report.covered_records, 2);
@@ -593,10 +658,18 @@ mod tests {
     #[test]
     fn rejects_duplicate_ids_and_invalid_intervals() {
         let item = record("a", "aligned", 5.0, 4.0, 6.0);
-        assert!(evaluate(&[item.clone(), item]).unwrap_err().contains("unique"));
+        assert!(
+            evaluate(&[item.clone(), item])
+                .unwrap_err()
+                .contains("unique")
+        );
         let mut bad = record("b", "aligned", 5.0, 6.0, 4.0);
         bad.prediction = 5.0;
-        assert!(evaluate(&[bad]).unwrap_err().contains("invalid prediction interval"));
+        assert!(
+            evaluate(&[bad])
+                .unwrap_err()
+                .contains("invalid prediction interval")
+        );
     }
 
     #[test]
@@ -606,7 +679,11 @@ mod tests {
         assert!(evaluate(&[bad]).unwrap_err().contains("finite"));
         let mut bad = record("b", "aligned", 5.0, 4.0, 6.0);
         bad.nominal_coverage = 1.0;
-        assert!(evaluate(&[bad]).unwrap_err().contains("invalid prediction interval"));
+        assert!(
+            evaluate(&[bad])
+                .unwrap_err()
+                .contains("invalid prediction interval")
+        );
     }
 
     #[test]
@@ -625,23 +702,43 @@ mod tests {
         let baseline = record("a", "aligned", 5.0, 4.0, 6.0);
         let mut mixed_model = record("b", "aligned", 5.0, 4.0, 6.0);
         mixed_model.model_digest = "another-model".into();
-        assert!(evaluate(&[baseline.clone(), mixed_model]).unwrap_err().contains("one model"));
+        assert!(
+            evaluate(&[baseline.clone(), mixed_model])
+                .unwrap_err()
+                .contains("one model")
+        );
 
         let mut mixed_calibration = record("c", "aligned", 5.0, 4.0, 6.0);
         mixed_calibration.calibration_set_digest = "another-calibration".into();
-        assert!(evaluate(&[baseline.clone(), mixed_calibration]).unwrap_err().contains("one model"));
+        assert!(
+            evaluate(&[baseline.clone(), mixed_calibration])
+                .unwrap_err()
+                .contains("one model")
+        );
 
         let mut mixed_unit = record("d", "aligned", 5.0, 4.0, 6.0);
         mixed_unit.unit = "kWh".into();
-        assert!(evaluate(&[baseline.clone(), mixed_unit]).unwrap_err().contains("one model"));
+        assert!(
+            evaluate(&[baseline.clone(), mixed_unit])
+                .unwrap_err()
+                .contains("one model")
+        );
 
         let mut mixed_quantity = record("e", "aligned", 5.0, 4.0, 6.0);
         mixed_quantity.quantity_kind = "USEFUL_AC_ENERGY".into();
-        assert!(evaluate(&[baseline.clone(), mixed_quantity]).unwrap_err().contains("one model"));
+        assert!(
+            evaluate(&[baseline.clone(), mixed_quantity])
+                .unwrap_err()
+                .contains("one model")
+        );
 
         let mut mixed_test = record("f", "aligned", 5.0, 4.0, 6.0);
         mixed_test.test_set_digest = "another-test".into();
-        assert!(evaluate(&[baseline, mixed_test]).unwrap_err().contains("one model"));
+        assert!(
+            evaluate(&[baseline, mixed_test])
+                .unwrap_err()
+                .contains("one model")
+        );
     }
 
     #[test]
@@ -656,7 +753,11 @@ mod tests {
 
         let mut malformed_test = record("c", "aligned", 5.0, 4.0, 6.0);
         malformed_test.test_set_digest = "g".repeat(64);
-        assert!(evaluate(&[malformed_test]).unwrap_err().contains("provenance"));
+        assert!(
+            evaluate(&[malformed_test])
+                .unwrap_err()
+                .contains("provenance")
+        );
     }
 
     #[test]
@@ -664,6 +765,10 @@ mod tests {
         let a = record("a", "aligned", 5.0, 4.0, 6.0);
         let mut b = record("b", "aligned", 5.0, 4.0, 6.0);
         b.nominal_coverage = 0.90;
-        assert!(evaluate(&[a.clone(), b]).unwrap_err().contains("one nominal"));
+        assert!(
+            evaluate(&[a.clone(), b])
+                .unwrap_err()
+                .contains("one nominal")
+        );
     }
 }
