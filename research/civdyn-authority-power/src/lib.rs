@@ -49,7 +49,8 @@ impl WeightedCouncil {
             }
         }
         let total = self.weights.iter().try_fold(0_u64, |sum, weight| {
-            sum.checked_add(*weight).ok_or(AuthorityError::WeightOverflow)
+            sum.checked_add(*weight)
+                .ok_or(AuthorityError::WeightOverflow)
         })?;
         if total == 0 {
             return Err(AuthorityError::ZeroTotalWeight);
@@ -204,8 +205,7 @@ pub fn analyze_voting_power(
                 veto_player: veto_player[index],
                 dictator: council.weights[index] >= council.quota
                     && total_weight - council.weights[index] < council.quota,
-                council_remains_winnable_after_removal: total_weight
-                    - council.weights[index]
+                council_remains_winnable_after_removal: total_weight - council.weights[index]
                     >= council.quota,
             }
         })
@@ -369,25 +369,29 @@ impl AuthorityPolicy {
                     first: AuthorityRole::OriginalAdjudicator,
                     second: AuthorityRole::AppealAdjudicator,
                     severity: RuleSeverity::Forbidden,
-                    rationale: "appeal adjudication must be independent of the original decision".into(),
+                    rationale: "appeal adjudication must be independent of the original decision"
+                        .into(),
                 },
                 RoleCombinationRule {
                     first: AuthorityRole::AgendaController,
                     second: AuthorityRole::Summarizer,
                     severity: RuleSeverity::Advisory,
-                    rationale: "agenda and summary control can jointly shape the public record".into(),
+                    rationale: "agenda and summary control can jointly shape the public record"
+                        .into(),
                 },
                 RoleCombinationRule {
                     first: AuthorityRole::AgendaController,
                     second: AuthorityRole::PublicRecordEditor,
                     severity: RuleSeverity::Advisory,
-                    rationale: "agenda and record-editing concentration warrants independent review".into(),
+                    rationale:
+                        "agenda and record-editing concentration warrants independent review".into(),
                 },
                 RoleCombinationRule {
                     first: AuthorityRole::RuleAmender,
                     second: AuthorityRole::Auditor,
                     severity: RuleSeverity::Advisory,
-                    rationale: "rule amendment and audit concentration warrants independent review".into(),
+                    rationale: "rule amendment and audit concentration warrants independent review"
+                        .into(),
                 },
             ],
         }
@@ -431,7 +435,10 @@ pub fn audit_authority_topology(
     if actor_ids.len() < 2 {
         return Err(AuthorityError::TooFewActors(actor_ids.len()));
     }
-    let actor_set = actor_ids.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    let actor_set = actor_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     if actor_set.len() != actor_ids.len() {
         return Err(AuthorityError::DuplicateActorId("actor list".into()));
     }
@@ -526,11 +533,23 @@ pub fn audit_authority_topology(
     let original = role_coverage
         .iter()
         .find(|coverage| coverage.role == AuthorityRole::OriginalAdjudicator)
-        .map(|coverage| coverage.holder_ids.iter().map(String::as_str).collect::<BTreeSet<_>>());
+        .map(|coverage| {
+            coverage
+                .holder_ids
+                .iter()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>()
+        });
     let appeal = role_coverage
         .iter()
         .find(|coverage| coverage.role == AuthorityRole::AppealAdjudicator)
-        .map(|coverage| coverage.holder_ids.iter().map(String::as_str).collect::<BTreeSet<_>>());
+        .map(|coverage| {
+            coverage
+                .holder_ids
+                .iter()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>()
+        });
     let appeal_independence = match (original, appeal) {
         (Some(original), Some(appeal)) if !original.is_empty() && !appeal.is_empty() => {
             Some(original.is_disjoint(&appeal))
@@ -606,7 +625,10 @@ pub fn audit_decision_trace(
     if trace.proposal_id.trim().is_empty() {
         return Err(AuthorityError::EmptyProposalId);
     }
-    let known = known_actor_ids.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    let known = known_actor_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     let ids = std::iter::once(trace.proposer_id.as_str())
         .chain(trace.approver_id.as_deref())
         .chain(trace.disburser_id.as_deref())
@@ -707,21 +729,31 @@ impl fmt::Display for AuthorityError {
             Self::WeightOverflow => write!(f, "total voting weight overflowed u64"),
             Self::ZeroTotalWeight => write!(f, "total voting weight must be positive"),
             Self::InvalidQuota { quota, total } => {
-                write!(f, "quota {quota} must be between 1 and total weight {total}")
+                write!(
+                    f,
+                    "quota {quota} must be between 1 and total weight {total}"
+                )
             }
             Self::NoCriticalVoters => {
-                write!(f, "weighted voting game has no critical voters; inspect its quota")
+                write!(
+                    f,
+                    "weighted voting game has no critical voters; inspect its quota"
+                )
             }
             Self::TooFewActors(count) => {
                 write!(f, "at least two governance actors required, got {count}")
             }
             Self::UnknownAssignedActor(id) => write!(f, "assignment references unknown actor {id}"),
-            Self::DuplicateAssignment(id) => write!(f, "actor {id} has more than one role assignment"),
+            Self::DuplicateAssignment(id) => {
+                write!(f, "actor {id} has more than one role assignment")
+            }
             Self::DuplicateRole { actor_id, role } => {
                 write!(f, "actor {actor_id} repeats role {}", role.name())
             }
             Self::EmptyProposalId => write!(f, "proposal ID must not be empty"),
-            Self::UnknownTraceActor(id) => write!(f, "decision trace references unknown actor {id}"),
+            Self::UnknownTraceActor(id) => {
+                write!(f, "decision trace references unknown actor {id}")
+            }
         }
     }
 }
@@ -734,7 +766,9 @@ mod tests {
 
     fn council(weights: &[u64], quota: u64) -> WeightedCouncil {
         WeightedCouncil {
-            actor_ids: (0..weights.len()).map(|index| format!("actor_{index}")).collect(),
+            actor_ids: (0..weights.len())
+                .map(|index| format!("actor_{index}"))
+                .collect(),
             weights: weights.to_vec(),
             quota,
         }
@@ -769,18 +803,22 @@ mod tests {
         assert!(report.actors[0].dictator);
         assert!(report.actors[0].veto_player);
         assert_eq!(report.actors[0].normalized_banzhaf, 1.0);
-        assert!(report.actors[1..]
-            .iter()
-            .all(|actor| actor.normalized_banzhaf == 0.0));
+        assert!(
+            report.actors[1..]
+                .iter()
+                .all(|actor| actor.normalized_banzhaf == 0.0)
+        );
     }
 
     #[test]
     fn symmetric_council_has_equal_power_and_zero_gini() {
         let report = analyze_voting_power(&council(&[2, 2, 2, 2, 2], 6)).unwrap();
-        assert!(report
-            .actors
-            .iter()
-            .all(|actor| (actor.normalized_banzhaf - 0.2).abs() < 1e-12));
+        assert!(
+            report
+                .actors
+                .iter()
+                .all(|actor| (actor.normalized_banzhaf - 0.2).abs() < 1e-12)
+        );
         assert!(report.normalized_banzhaf_gini.abs() < 1e-12);
     }
 
@@ -810,10 +848,7 @@ mod tests {
             },
             AuthorityAssignment {
                 actor_id: "carol".into(),
-                roles: vec![
-                    AuthorityRole::AppealAdjudicator,
-                    AuthorityRole::Auditor,
-                ],
+                roles: vec![AuthorityRole::AppealAdjudicator, AuthorityRole::Auditor],
             },
             AuthorityAssignment {
                 actor_id: "dave".into(),
@@ -908,17 +943,40 @@ mod tests {
             appeal_adjudicator_id: Some("carol".into()),
         };
         let audit = audit_decision_trace(&trace, &known).unwrap();
-        assert!(audit.conflicts.contains(&DecisionConflictKind::ProposerApprovesOwnProposal));
-        assert!(audit.conflicts.contains(&DecisionConflictKind::ProposerDisbursesOwnProposal));
-        assert!(audit.conflicts.contains(&DecisionConflictKind::ApproverAlsoDisburses));
-        assert!(audit.conflicts.contains(&DecisionConflictKind::EvidenceIssuerVerifiesOwnEvidence));
-        assert!(audit.conflicts.contains(&DecisionConflictKind::OriginalAdjudicatorHearsOwnAppeal));
+        assert!(
+            audit
+                .conflicts
+                .contains(&DecisionConflictKind::ProposerApprovesOwnProposal)
+        );
+        assert!(
+            audit
+                .conflicts
+                .contains(&DecisionConflictKind::ProposerDisbursesOwnProposal)
+        );
+        assert!(
+            audit
+                .conflicts
+                .contains(&DecisionConflictKind::ApproverAlsoDisburses)
+        );
+        assert!(
+            audit
+                .conflicts
+                .contains(&DecisionConflictKind::EvidenceIssuerVerifiesOwnEvidence)
+        );
+        assert!(
+            audit
+                .conflicts
+                .contains(&DecisionConflictKind::OriginalAdjudicatorHearsOwnAppeal)
+        );
         assert!(!audit.compliant_with_reference_separation);
     }
 
     #[test]
     fn missing_appeal_and_evidence_review_are_visible() {
-        let known = ["alice", "bob"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+        let known = ["alice", "bob"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
         let trace = ProposalDecisionTrace {
             proposal_id: "proposal_002".into(),
             proposer_id: "alice".into(),
@@ -930,8 +988,16 @@ mod tests {
             appeal_adjudicator_id: None,
         };
         let audit = audit_decision_trace(&trace, &known).unwrap();
-        assert!(audit.conflicts.contains(&DecisionConflictKind::MissingEvidenceVerifier));
-        assert!(audit.conflicts.contains(&DecisionConflictKind::MissingAppealAdjudicator));
+        assert!(
+            audit
+                .conflicts
+                .contains(&DecisionConflictKind::MissingEvidenceVerifier)
+        );
+        assert!(
+            audit
+                .conflicts
+                .contains(&DecisionConflictKind::MissingAppealAdjudicator)
+        );
     }
 
     #[test]
