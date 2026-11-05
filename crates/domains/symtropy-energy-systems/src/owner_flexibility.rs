@@ -25,6 +25,7 @@ const MAX_SIGNATURE_BYTES: usize = 4_096;
 const MAX_QUALIFICATION_RECEIPTS: usize = 64;
 const MAX_POLICY_ALLOWLIST_ITEMS: usize = 128;
 const MAX_REPLAY_ENTRIES: usize = 65_536;
+const MAX_RESERVATION_ENTRIES: usize = 65_536;
 
 /// Direction is defined at the declared PCC grid-import boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
@@ -73,6 +74,7 @@ impl OwnerLocalReadiness {
 
 /// Owner policy: allowed products, commitment budgets and message bounds.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "OwnerFlexibilityPolicyWire")]
 pub struct OwnerFlexibilityPolicy {
     policy_id: String,
     policy_version: String,
@@ -91,6 +93,54 @@ pub struct OwnerFlexibilityPolicy {
     maximum_dispatch_ttl_seconds: u64,
     allowed_clock_skew_seconds: u64,
     maximum_telemetry_age_seconds: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OwnerFlexibilityPolicyWire {
+    policy_id: String,
+    policy_version: String,
+    site_id: String,
+    pcc_boundary_id: String,
+    portfolio_id: String,
+    allowed_product_ids: BTreeSet<String>,
+    authorized_signing_key_ids: BTreeSet<String>,
+    maximum_concurrent_reserved_kw: f64,
+    maximum_reduce_import_reserved_kw: f64,
+    maximum_increase_import_reserved_kw: f64,
+    maximum_response_latency_seconds: u64,
+    maximum_sustain_seconds: u64,
+    maximum_recovery_power_kw: f64,
+    maximum_recovery_energy_kwh: f64,
+    maximum_dispatch_ttl_seconds: u64,
+    allowed_clock_skew_seconds: u64,
+    maximum_telemetry_age_seconds: u64,
+}
+
+impl TryFrom<OwnerFlexibilityPolicyWire> for OwnerFlexibilityPolicy {
+    type Error = OwnerFlexibilityError;
+
+    fn try_from(wire: OwnerFlexibilityPolicyWire) -> Result<Self, Self::Error> {
+        Self::new(
+            wire.policy_id,
+            wire.policy_version,
+            wire.site_id,
+            wire.pcc_boundary_id,
+            wire.portfolio_id,
+            wire.allowed_product_ids,
+            wire.authorized_signing_key_ids,
+            wire.maximum_concurrent_reserved_kw,
+            wire.maximum_reduce_import_reserved_kw,
+            wire.maximum_increase_import_reserved_kw,
+            wire.maximum_response_latency_seconds,
+            wire.maximum_sustain_seconds,
+            wire.maximum_recovery_power_kw,
+            wire.maximum_recovery_energy_kwh,
+            wire.maximum_dispatch_ttl_seconds,
+            wire.allowed_clock_skew_seconds,
+            wire.maximum_telemetry_age_seconds,
+        )
+    }
 }
 
 impl OwnerFlexibilityPolicy {
@@ -193,6 +243,7 @@ impl OwnerFlexibilityPolicy {
 /// Qualification receipt identifiers are pinned but not authenticated here.
 /// The offer is a promise envelope, not an execution command.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "OwnerFlexibilityOfferWire")]
 pub struct OwnerFlexibilityOffer {
     offer_id: String,
     portfolio_id: String,
@@ -208,6 +259,48 @@ pub struct OwnerFlexibilityOffer {
     valid_from_unix_seconds: i64,
     valid_until_unix_seconds: i64,
     qualification_receipt_ids: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OwnerFlexibilityOfferWire {
+    offer_id: String,
+    portfolio_id: String,
+    site_id: String,
+    pcc_boundary_id: String,
+    product_id: String,
+    direction: GridFlexDirection,
+    maximum_power_kw: f64,
+    maximum_response_latency_seconds: u64,
+    maximum_sustain_seconds: u64,
+    maximum_recovery_power_kw: f64,
+    maximum_recovery_energy_kwh: f64,
+    valid_from_unix_seconds: i64,
+    valid_until_unix_seconds: i64,
+    qualification_receipt_ids: Vec<String>,
+}
+
+impl TryFrom<OwnerFlexibilityOfferWire> for OwnerFlexibilityOffer {
+    type Error = OwnerFlexibilityError;
+
+    fn try_from(wire: OwnerFlexibilityOfferWire) -> Result<Self, Self::Error> {
+        Self::new(
+            wire.offer_id,
+            wire.portfolio_id,
+            wire.site_id,
+            wire.pcc_boundary_id,
+            wire.product_id,
+            wire.direction,
+            wire.maximum_power_kw,
+            wire.maximum_response_latency_seconds,
+            wire.maximum_sustain_seconds,
+            wire.maximum_recovery_power_kw,
+            wire.maximum_recovery_energy_kwh,
+            wire.valid_from_unix_seconds,
+            wire.valid_until_unix_seconds,
+            wire.qualification_receipt_ids,
+        )
+    }
 }
 
 impl OwnerFlexibilityOffer {
@@ -290,11 +383,13 @@ impl OwnerFlexibilityOffer {
 /// Owner-local ledger prevents overlapping product offers from reserving the
 /// same shared portfolio MW more than once.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "OwnerOfferReservationLedgerWire")]
 pub struct OwnerOfferReservationLedger {
     reservations: Vec<OwnerOfferReservation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "OwnerOfferReservationWire")]
 pub struct OwnerOfferReservation {
     pub offer_id: String,
     pub owner_policy_id: String,
@@ -311,6 +406,112 @@ pub struct OwnerOfferReservation {
     pub valid_from_unix_seconds: i64,
     pub valid_until_unix_seconds: i64,
     pub qualification_receipt_ids: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OwnerOfferReservationWire {
+    offer_id: String,
+    owner_policy_id: String,
+    owner_policy_version: String,
+    policy_snapshot: OwnerFlexibilityPolicy,
+    portfolio_id: String,
+    product_id: String,
+    direction: GridFlexDirection,
+    reserved_power_kw: f64,
+    maximum_response_latency_seconds: u64,
+    maximum_sustain_seconds: u64,
+    maximum_recovery_power_kw: f64,
+    maximum_recovery_energy_kwh: f64,
+    valid_from_unix_seconds: i64,
+    valid_until_unix_seconds: i64,
+    qualification_receipt_ids: Vec<String>,
+}
+
+impl TryFrom<OwnerOfferReservationWire> for OwnerOfferReservation {
+    type Error = OwnerFlexibilityError;
+
+    fn try_from(wire: OwnerOfferReservationWire) -> Result<Self, Self::Error> {
+        let offer = OwnerFlexibilityOffer::new(
+            wire.offer_id.clone(),
+            wire.portfolio_id.clone(),
+            wire.policy_snapshot.site_id.clone(),
+            wire.policy_snapshot.pcc_boundary_id.clone(),
+            wire.product_id.clone(),
+            wire.direction,
+            wire.reserved_power_kw,
+            wire.maximum_response_latency_seconds,
+            wire.maximum_sustain_seconds,
+            wire.maximum_recovery_power_kw,
+            wire.maximum_recovery_energy_kwh,
+            wire.valid_from_unix_seconds,
+            wire.valid_until_unix_seconds,
+            wire.qualification_receipt_ids.clone(),
+        )?;
+        if wire.owner_policy_id != wire.policy_snapshot.policy_id
+            || wire.owner_policy_version != wire.policy_snapshot.policy_version
+        {
+            return Err(OwnerFlexibilityError::InvalidPersistedReservation);
+        }
+        validate_offer_against_policy(&offer, &wire.policy_snapshot)?;
+        Ok(Self {
+            offer_id: wire.offer_id,
+            owner_policy_id: wire.owner_policy_id,
+            owner_policy_version: wire.owner_policy_version,
+            policy_snapshot: wire.policy_snapshot,
+            portfolio_id: wire.portfolio_id,
+            product_id: wire.product_id,
+            direction: wire.direction,
+            reserved_power_kw: wire.reserved_power_kw,
+            maximum_response_latency_seconds: wire.maximum_response_latency_seconds,
+            maximum_sustain_seconds: wire.maximum_sustain_seconds,
+            maximum_recovery_power_kw: wire.maximum_recovery_power_kw,
+            maximum_recovery_energy_kwh: wire.maximum_recovery_energy_kwh,
+            valid_from_unix_seconds: wire.valid_from_unix_seconds,
+            valid_until_unix_seconds: wire.valid_until_unix_seconds,
+            qualification_receipt_ids: wire.qualification_receipt_ids,
+        })
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OwnerOfferReservationLedgerWire {
+    reservations: Vec<OwnerOfferReservation>,
+}
+
+impl TryFrom<OwnerOfferReservationLedgerWire> for OwnerOfferReservationLedger {
+    type Error = OwnerFlexibilityError;
+
+    fn try_from(wire: OwnerOfferReservationLedgerWire) -> Result<Self, Self::Error> {
+        if wire.reservations.len() > MAX_RESERVATION_ENTRIES {
+            return Err(OwnerFlexibilityError::ReservationLedgerCapacityExceeded);
+        }
+        let mut ledger = Self::default();
+        for stored in wire.reservations {
+            let offer = OwnerFlexibilityOffer::new(
+                stored.offer_id.clone(),
+                stored.portfolio_id.clone(),
+                stored.policy_snapshot.site_id.clone(),
+                stored.policy_snapshot.pcc_boundary_id.clone(),
+                stored.product_id.clone(),
+                stored.direction,
+                stored.reserved_power_kw,
+                stored.maximum_response_latency_seconds,
+                stored.maximum_sustain_seconds,
+                stored.maximum_recovery_power_kw,
+                stored.maximum_recovery_energy_kwh,
+                stored.valid_from_unix_seconds,
+                stored.valid_until_unix_seconds,
+                stored.qualification_receipt_ids.clone(),
+            )?;
+            let reconstructed = ledger.reserve_offer(&offer, &stored.policy_snapshot)?;
+            if reconstructed != stored {
+                return Err(OwnerFlexibilityError::InvalidPersistedReservation);
+            }
+        }
+        Ok(ledger)
+    }
 }
 
 impl OwnerOfferReservationLedger {
@@ -386,6 +587,9 @@ impl OwnerOfferReservationLedger {
             }
         }
 
+        if self.reservations.len() >= MAX_RESERVATION_ENTRIES {
+            return Err(OwnerFlexibilityError::ReservationLedgerCapacityExceeded);
+        }
         let reservation = OwnerOfferReservation {
             offer_id: offer.offer_id.clone(),
             owner_policy_id: policy.policy_id.clone(),
@@ -449,6 +653,7 @@ impl OwnerOfferReservationLedger {
 
 /// Typed dispatch request: no arbitrary script, setpoint, or equipment address.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "OwnerDispatchRequestWire")]
 pub struct OwnerDispatchRequest {
     dispatch_id: String,
     offer_id: String,
@@ -467,6 +672,54 @@ pub struct OwnerDispatchRequest {
     nonce: String,
     signing_key_id: String,
     signature: Vec<u8>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OwnerDispatchRequestWire {
+    dispatch_id: String,
+    offer_id: String,
+    product_id: String,
+    site_id: String,
+    pcc_boundary_id: String,
+    direction: GridFlexDirection,
+    requested_power_kw: f64,
+    requested_sustain_seconds: u64,
+    declared_recovery_power_kw: f64,
+    declared_recovery_energy_kwh: f64,
+    issued_at_unix_seconds: i64,
+    expires_at_unix_seconds: i64,
+    response_deadline_unix_seconds: i64,
+    sequence_number: u64,
+    nonce: String,
+    signing_key_id: String,
+    signature: Vec<u8>,
+}
+
+impl TryFrom<OwnerDispatchRequestWire> for OwnerDispatchRequest {
+    type Error = OwnerFlexibilityError;
+
+    fn try_from(wire: OwnerDispatchRequestWire) -> Result<Self, Self::Error> {
+        Self::new(
+            wire.dispatch_id,
+            wire.offer_id,
+            wire.product_id,
+            wire.site_id,
+            wire.pcc_boundary_id,
+            wire.direction,
+            wire.requested_power_kw,
+            wire.requested_sustain_seconds,
+            wire.declared_recovery_power_kw,
+            wire.declared_recovery_energy_kwh,
+            wire.issued_at_unix_seconds,
+            wire.expires_at_unix_seconds,
+            wire.response_deadline_unix_seconds,
+            wire.sequence_number,
+            wire.nonce,
+            wire.signing_key_id,
+            wire.signature,
+        )
+    }
 }
 
 impl OwnerDispatchRequest {
@@ -583,6 +836,7 @@ pub trait DispatchSignatureVerifier {
 /// Monotonic replay ledger. Persist it across agent restarts in a trusted store;
 /// an in-memory instance protects only the lifetime of that process.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "DispatchReplayLedgerWire")]
 pub struct DispatchReplayLedger {
     per_offer: BTreeMap<String, DispatchReplayState>,
     seen_key_nonces: BTreeSet<(String, String)>,
@@ -592,6 +846,52 @@ pub struct DispatchReplayLedger {
 #[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
 struct DispatchReplayState {
     highest_sequence_number: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DispatchReplayLedgerWire {
+    per_offer: BTreeMap<String, DispatchReplayState>,
+    seen_key_nonces: BTreeSet<(String, String)>,
+    seen_dispatch_ids: BTreeSet<String>,
+}
+
+impl TryFrom<DispatchReplayLedgerWire> for DispatchReplayLedger {
+    type Error = OwnerFlexibilityError;
+
+    fn try_from(wire: DispatchReplayLedgerWire) -> Result<Self, Self::Error> {
+        if wire.per_offer.len() > MAX_REPLAY_ENTRIES
+            || wire.seen_key_nonces.len() > MAX_REPLAY_ENTRIES
+            || wire.seen_dispatch_ids.len() > MAX_REPLAY_ENTRIES
+            || wire.seen_key_nonces.len() != wire.seen_dispatch_ids.len()
+            || wire.per_offer.len() > wire.seen_key_nonces.len()
+        {
+            return Err(OwnerFlexibilityError::InvalidPersistedReplayState);
+        }
+        for (offer_id, state) in &wire.per_offer {
+            require_id("replay offer ID", offer_id)?;
+            if state.highest_sequence_number == 0 {
+                return Err(OwnerFlexibilityError::InvalidPersistedReplayState);
+            }
+        }
+        for (key_id, nonce) in &wire.seen_key_nonces {
+            require_id("replay signing key ID", key_id)?;
+            require_id("replay nonce", nonce)?;
+        }
+        for dispatch_id in &wire.seen_dispatch_ids {
+            require_id("replay dispatch ID", dispatch_id)?;
+        }
+        if wire.seen_key_nonces.is_empty() != wire.per_offer.is_empty()
+            || wire.seen_dispatch_ids.is_empty() != wire.per_offer.is_empty()
+        {
+            return Err(OwnerFlexibilityError::InvalidPersistedReplayState);
+        }
+        Ok(Self {
+            per_offer: wire.per_offer,
+            seen_key_nonces: wire.seen_key_nonces,
+            seen_dispatch_ids: wire.seen_dispatch_ids,
+        })
+    }
 }
 
 impl DispatchReplayLedger {
@@ -883,6 +1183,9 @@ pub enum OwnerFlexibilityError {
     ProductNotAllowed(String),
     OfferExceedsOwnerPolicy,
     OfferAlreadyReserved(String),
+    ReservationLedgerCapacityExceeded,
+    InvalidPersistedReservation,
+    InvalidPersistedReplayState,
     SharedCapacityOvercommitted { observed_kw: f64, maximum_kw: f64 },
     DirectionalCapacityOvercommitted {
         direction: GridFlexDirection,
@@ -910,6 +1213,9 @@ impl fmt::Display for OwnerFlexibilityError {
             Self::ProductNotAllowed(product) => write!(f, "product {product} is not allowed by owner policy"),
             Self::OfferExceedsOwnerPolicy => write!(f, "offer exceeds an owner-defined capability or recovery bound"),
             Self::OfferAlreadyReserved(id) => write!(f, "offer {id} is already reserved"),
+            Self::ReservationLedgerCapacityExceeded => write!(f, "reservation ledger is at its configured capacity"),
+            Self::InvalidPersistedReservation => write!(f, "persisted reservation does not match its policy or offer invariants"),
+            Self::InvalidPersistedReplayState => write!(f, "persisted replay state is inconsistent or exceeds configured bounds"),
             Self::SharedCapacityOvercommitted { observed_kw, maximum_kw } => write!(f, "overlapping offers reserve {observed_kw} kW against shared budget {maximum_kw} kW"),
             Self::DirectionalCapacityOvercommitted { direction, observed_kw, maximum_kw } => write!(f, "{direction:?} offers reserve {observed_kw} kW against directional budget {maximum_kw} kW"),
             Self::NumericalOverflow(operation) => write!(f, "non-finite arithmetic during {operation}"),
