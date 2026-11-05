@@ -331,6 +331,7 @@ pub enum ValidationError {
     HardConstraintBlocked(String),
     MissingConstraintEvidence(String),
     MissingRequiredConstraint(ConstraintKind),
+    DuplicateConstraintKind(ConstraintKind),
     ConstraintEvidenceRoleMismatch(String, EvidenceRole),
     ConstraintEvidenceSubjectMismatch(String),
     MissingParticipantCommitment,
@@ -972,11 +973,12 @@ fn validate_hard_constraints(case: &ServiceChainCase) -> Result<(), ValidationEr
         ConstraintKind::BerthCapacity,
         ConstraintKind::DataRights,
     ];
-    let present_constraints: BTreeSet<ConstraintKind> = case
-        .hard_constraints
-        .iter()
-        .map(|constraint| constraint.kind)
-        .collect();
+    let mut present_constraints = BTreeSet::<ConstraintKind>::new();
+    for constraint in &case.hard_constraints {
+        if !present_constraints.insert(constraint.kind) {
+            return Err(ValidationError::DuplicateConstraintKind(constraint.kind));
+        }
+    }
     for required in required_constraints {
         if !present_constraints.contains(&required) {
             return Err(ValidationError::MissingRequiredConstraint(required));
@@ -1801,6 +1803,151 @@ mod tests {
             Err(ValidationError::MissingSegmentEvidenceRole(
                 "lock-01".into(),
                 EvidenceRole::LockCompatibility
+            ))
+        );
+    }
+
+    #[test]
+    fn resource_capacity_calendar_must_be_canonical() {
+        let mut case = valid_case();
+        case.resources[1].availability.push(CapacityWindow {
+            window: TickWindow {
+                start_tick: 5,
+                end_tick: 10,
+            },
+            capacity: 1,
+        });
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::ResourceCalendarNotCanonical(
+                "lock-01".into()
+            ))
+        );
+    }
+
+    #[test]
+    fn segment_cannot_allocate_the_same_resource_twice() {
+        let mut case = valid_case();
+        let duplicated = case.route_segments[0].resource_uses[0].clone();
+        case.route_segments[0].resource_uses.push(duplicated);
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::DuplicateResourceUse(
+                "channel-window-01".into()
+            ))
+        );
+    }
+
+    #[test]
+    fn route_segment_kind_must_match_endpoint_node_kinds() {
+        let mut case = valid_case();
+        let approach = case
+            .nodes
+            .iter_mut()
+            .find(|node| node.node_id == "lock-approach")
+            .expect("lock approach node exists");
+        approach.kind = NodeKind::Berth;
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::SegmentNodeKindMismatch(
+                "channel-01".into()
+            ))
+        );
+    }
+
+    #[test]
+    fn duplicate_hard_constraint_kinds_are_rejected() {
+        let mut case = valid_case();
+        let mut duplicate = case
+            .hard_constraints
+            .iter()
+            .find(|constraint| constraint.kind == ConstraintKind::WaterBudget)
+            .expect("water constraint exists")
+            .clone();
+        duplicate.constraint_id = "constraint-water-duplicate".into();
+        case.hard_constraints.push(duplicate);
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::DuplicateConstraintKind(
+                ConstraintKind::WaterBudget
+            ))
+        );
+    }
+
+    #[test]
+    fn data_rights_gate_is_mandatory_and_source_owned() {
+        let mut missing = valid_case();
+        missing
+            .hard_constraints
+            .retain(|constraint| constraint.kind != ConstraintKind::DataRights);
+        assert_eq!(
+            validate_case(&missing),
+            Err(ValidationError::MissingRequiredConstraint(
+                ConstraintKind::DataRights
+            ))
+        );
+
+        let mut wrong_owner = valid_case();
+        let evidence = wrong_owner
+            .evidence
+            .iter_mut()
+            .find(|evidence| evidence.evidence_id == "data-rights")
+            .expect("data rights evidence exists");
+        evidence.owner = EvidenceOwner::Symtropy;
+        assert_eq!(
+            validate_case(&wrong_owner),
+            Err(ValidationError::EvidenceOwnerMismatch("data-rights".into()))
+        );
+    }
+
+    #[test]
+    fn cargo_custody_requires_mycelix_owned_evidence() {
+        let mut case = valid_case();
+        case.demand.cargo_custody_ref = Some("mycelix-fixture:custody-01".into());
+        case.evidence.push(evidence(
+            "cargo-custody",
+            EvidenceOwner::Mycelix,
+            EvidenceRole::CargoCustody,
+            "demand-01",
+            None,
+        ));
+        case.hard_constraints.push(HardConstraint {
+            constraint_id: "constraint-cargo-custody".into(),
+            kind: ConstraintKind::CargoCustody,
+            disposition: ConstraintDisposition::Satisfied,
+            evidence_id: Some("cargo-custody".into()),
+        });
+        assert_eq!(validate_case(&case), Ok(()));
+
+        let mut revoked = case.clone();
+        revoked
+            .evidence
+            .iter_mut()
+            .find(|evidence| evidence.evidence_id == "cargo-custody")
+            .expect("cargo custody evidence exists")
+            .state = EvidenceState::Revoked;
+        assert_eq!(
+            validate_case(&revoked),
+            Err(ValidationError::EvidenceNotCurrent(
+                "cargo-custody".into(),
+                EvidenceState::Revoked
+            ))
+        );
+    }
+
+    #[test]
+    fn participant_authorization_revocation_invalidates_the_scenario() {
+        let mut case = valid_case();
+        case.evidence
+            .iter_mut()
+            .find(|evidence| evidence.evidence_id == "participant-auth")
+            .expect("participant authorization exists")
+            .state = EvidenceState::Revoked;
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::EvidenceNotCurrent(
+                "participant-auth".into(),
+                EvidenceState::Revoked
             ))
         );
     }
