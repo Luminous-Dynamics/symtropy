@@ -703,8 +703,14 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
     let hazard_log_score = cause_specific_hazard_log_score(&subjects, &hazard_time_edges)?;
 
     let mut brier_weighted_sum = 0.0;
-    let mut eligible_count = 0usize;
-    let mut censored_before_horizon_count = 0usize;
+    let eligible_count = subjects
+        .iter()
+        .filter(|subject| {
+            subject.outcome_kind != "RIGHT_CENSORED"
+                || subject.observed_duration_hours >= horizon
+        })
+        .count();
+    let censored_before_horizon_count = subjects.len() - eligible_count;
     let mut minimum_g_used = 1.0_f64;
     let mut maximum_weight = 0.0_f64;
     let mut brier_not_evaluable_reason = None::<String>;
@@ -715,7 +721,6 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
         if subject.outcome_kind == "RIGHT_CENSORED"
             && subject.observed_duration_hours < horizon
         {
-            censored_before_horizon_count += 1;
             continue;
         }
 
@@ -764,7 +769,6 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
                 Some("NOT_EVALUABLE: IPCW Brier accumulation overflowed".into());
             break;
         }
-        eligible_count += 1;
     }
 
     if brier_not_evaluable_reason.is_none() && eligible_count == 0 {
