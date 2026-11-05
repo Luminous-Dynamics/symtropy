@@ -1200,6 +1200,46 @@ mod tests {
     }
 
     #[test]
+    fn option_order_permutation_is_invariant_when_semantic_allocation_is_unchanged() {
+        let mut reordered = base_session();
+        reordered.option_labels = vec![
+            "charity_c".into(),
+            "charity_b".into(),
+            "charity_a".into(),
+        ];
+        for member in &mut reordered.participants {
+            member.preferences.reverse();
+        }
+        for proposal in &mut reordered.proposals {
+            proposal.option_index = 2 - proposal.option_index;
+        }
+        reordered.final_allocation = vec![33, 33, 34];
+        let difference = compare_option_order_variants(&base_session(), &reordered).unwrap();
+        assert_eq!(difference.allocation_l1_shift_units, 0);
+        assert_eq!(difference.reallocated_units, 0.0);
+    }
+
+    #[test]
+    fn option_order_position_bias_is_detected_by_semantic_option_id() {
+        let mut reordered = base_session();
+        reordered.option_labels = vec![
+            "charity_c".into(),
+            "charity_b".into(),
+            "charity_a".into(),
+        ];
+        for member in &mut reordered.participants {
+            member.preferences.reverse();
+        }
+        for proposal in &mut reordered.proposals {
+            proposal.option_index = 2 - proposal.option_index;
+        }
+        reordered.final_allocation = vec![5, 35, 60];
+        let difference = compare_option_order_variants(&base_session(), &reordered).unwrap();
+        assert_eq!(difference.allocation_l1_shift_units, 56);
+        assert_eq!(difference.reallocated_units, 28.0);
+    }
+
+    #[test]
     fn preference_disagreement_alone_does_not_disprove_consensus() {
         let mut session = steered_session();
         session.participants[2].consensus_endorsement = Some(true);
