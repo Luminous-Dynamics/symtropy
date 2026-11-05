@@ -92,13 +92,12 @@ fn validate_timestep(dt: f64) -> Result<(), CcdInputError> {
 }
 
 fn validate_hit<const D: usize>(hit: &Option<CcdHit<D>>) -> Result<(), CcdInputError> {
-    if let Some(hit) = hit {
-        if !hit.toi.is_finite()
+    if let Some(hit) = hit
+        && (!hit.toi.is_finite()
             || !hit.point.iter().all(|component| component.is_finite())
-            || !hit.normal.iter().all(|component| component.is_finite())
-        {
-            return Err(CcdInputError::NumericOverflow);
-        }
+            || !hit.normal.iter().all(|component| component.is_finite()))
+    {
+        return Err(CcdInputError::NumericOverflow);
     }
     Ok(())
 }
