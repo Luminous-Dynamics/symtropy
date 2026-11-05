@@ -7,7 +7,7 @@ using SHA
 using Statistics
 
 const PRAS_ENV_ROOT = normpath(joinpath(@__DIR__, ".."))
-const FIXTURE_PATH = joinpath(dirname(PRAS_ENV_ROOT), "v1", "pras-interop-fixtures.json")
+const FIXTURE_PATH = normpath(joinpath(@__DIR__, "..", "..", "v1", "pras-interop-fixtures.json"))
 const FIXTURE_DOC = JSON3.read(read(FIXTURE_PATH, String))
 const RESULT_ROWS = Dict{String,Any}[]
 const SAMPLE_COUNT = 16
