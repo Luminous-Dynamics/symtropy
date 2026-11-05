@@ -1,0 +1,337 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/measurement-distribution/0.1",
+  "schema_version": "0.1.0",
+  "protocol_id": "CIVBENCH-MAD-001",
+  "evaluation_id": "CIVDYN-ENGINE-FOREST-FIRE-TRACE-001",
+  "benchmark_id": "CIVDYN-ENGINE-COMPARE-001",
+  "construct": {
+    "name": "cross-framework cellular automaton transition equivalence and runtime scaling",
+    "intended_use": "Provide a portable, trace-driven forest-fire workload and exact Rust reference before adding external framework adapters.",
+    "claim_tier": "tier-1-reference",
+    "claim_ceiling": "Tier 1 Rust reference workload only; no cross-framework speed ranking or general ABM engine superiority claim."
+  },
+  "units": {
+    "observational_unit": "one seed × grid-size × full trajectory",
+    "resampling_unit": "predeclared seed; grid sizes share the same seed and event-tape prefix",
+    "independent_unit": "20 fixed seed groups, each paired across 32×32 and 64×64 grid sizes",
+    "dependence_statement": "The two grid-size runs for a given seed share the deterministic event-tape prefix and are paired. Ticks within a trajectory are serially dependent. No population inference or confidence interval is claimed.",
+    "clustered_observations": true,
+    "independence_claimed": false
+  },
+  "sources": [
+    {
+      "source_id": "CIVDYN-ENGINE-FOREST-FIRE-SYNTHETIC-V0",
+      "epistemic_status": "synthetic-test-fixture",
+      "version": "0.1.0",
+      "retrieved_at": "2026-11-05",
+      "license": "AGPL-3.0-or-later",
+      "content_digest": null,
+      "source_family": "locally-authored-trace-driven-cellular-automaton",
+      "missingness_semantics": "All state cells and event-tape positions are explicitly encoded. Missing tape words or cells fail validation; absent values are never interpreted as zero."
+    }
+  ],
+  "evaluation_distribution": {
+    "sampling_frame": "20 predeclared seeds crossed with two grid sizes (32×32 and 64×64), 40 ticks and a synchronous fixed-boundary Moore-neighborhood forest-fire transition.",
+    "factors": [
+      {
+        "factor_id": "grid_size",
+        "weight_interpretation": "Equal designed workload coverage, not prevalence.",
+        "levels": [
+          {
+            "level_id": "32x32",
+            "target_weight": 0.5,
+            "support_count": 20
+          },
+          {
+            "level_id": "64x64",
+            "target_weight": 0.5,
+            "support_count": 20
+          }
+        ]
+      },
+      {
+        "factor_id": "seed",
+        "weight_interpretation": "Predeclared common-random-number blocks; each seed is paired across both grid sizes.",
+        "levels": [
+          {
+            "level_id": "1",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "2",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "3",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "4",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "5",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "6",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "7",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "8",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "9",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "10",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "11",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "12",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "13",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "14",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "15",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "16",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "17",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "18",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "19",
+            "target_weight": 0.05,
+            "support_count": 2
+          },
+          {
+            "level_id": "20",
+            "target_weight": 0.05,
+            "support_count": 2
+          }
+        ]
+      }
+    ],
+    "excluded_support": []
+  },
+  "perturbation_families": [
+    {
+      "family_id": "synchronous-versus-in-place-update",
+      "rationale": "Scheduler order is part of the model semantics; an in-place port can ignite cells one tick earlier than a double-buffer port.",
+      "validity_check": "Compare every per-tick state count and trajectory fingerprint against the synchronous reference.",
+      "expected_invariants": [
+        "All cells read the previous complete grid during a tick.",
+        "Newly burning cells may only ignite neighbors on the next tick.",
+        "A sequential/in-place port must not be ranked as equivalent if trajectories differ."
+      ],
+      "seed_policy": "All adapters consume the exact same precomputed initial state and u16 event-tape words.",
+      "parameter_range": null
+    },
+    {
+      "family_id": "event-tape-rng-substitution",
+      "rationale": "Framework-native random generators would confound model/runtime comparison with RNG implementation.",
+      "validity_check": "Adapters must report input tape digest and consume exactly one event word per cell per tick.",
+      "expected_invariants": [
+        "The event tape is generated outside the timed stepping loop.",
+        "All frameworks consume identical initial state and tape bytes.",
+        "Tape omission, reordering or replacement fails input conformance."
+      ],
+      "seed_policy": "SplitMix64 generator and stream separation are specified by the versioned reference implementation.",
+      "parameter_range": null
+    }
+  ],
+  "replication_design": {
+    "method": "independent-seeds",
+    "replication_count": 20,
+    "independent_unit": "Fixed seed-level initial state and common-random-number event-tape stream; two grid sizes per seed form a paired block.",
+    "inference_claimed": false,
+    "dependence_assessment": "Twenty deterministic seed blocks provide coverage of software transition paths, not a random sample from a real-world fire process. Ticks are serially dependent; grid-size records are paired by seed.",
+    "sample_size_rationale": "Twenty fixed seeds × two grid sizes establish a reproducible conformance workload. No confidence interval, hazard prevalence or population inference is claimed.",
+    "seed_manifest_digest": null,
+    "cluster_unit": "seed"
+  },
+  "metrics": [
+    {
+      "metric_id": "per_tick_cell_state_counts",
+      "construct_dimension": "transition trajectory",
+      "unit": "cells by state",
+      "direction": "descriptive-only",
+      "aggregation": "empty/tree/burning/ash counts at every tick, retained separately",
+      "strata": [
+        "grid_size",
+        "seed",
+        "tick"
+      ],
+      "uncertainty_method": "none; deterministic fixed tape",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "cell_count_sum_residual",
+      "construct_dimension": "state accounting invariant",
+      "unit": "cells",
+      "direction": "lower-is-better",
+      "aggregation": "empty + tree + burning + ash minus width × height at each tick",
+      "strata": [
+        "grid_size",
+        "seed",
+        "tick"
+      ],
+      "uncertainty_method": "none; exact integer invariant",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "trajectory_fingerprint_fnv64",
+      "construct_dimension": "deterministic state-trajectory equivalence",
+      "unit": "fnv1a64",
+      "direction": "exact-match",
+      "aggregation": "fingerprint of the ordered per-tick state-count trajectory; cross-framework ports must additionally be checked against exact per-cell state where available",
+      "strata": [
+        "grid_size",
+        "seed"
+      ],
+      "uncertainty_method": "none; deterministic",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "run_elapsed_ns",
+      "construct_dimension": "reference runtime diagnostic",
+      "unit": "nanoseconds",
+      "direction": "lower-is-better",
+      "aggregation": "time spent in Rust reference stepping after input/tape generation; startup and serialization are outside this timing",
+      "strata": [
+        "grid_size",
+        "seed"
+      ],
+      "uncertainty_method": "raw per-run only; no cross-framework claim",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "tape_input_fingerprint_fnv64",
+      "construct_dimension": "shared exogenous event input identity",
+      "unit": "fnv1a64",
+      "direction": "exact-match",
+      "aggregation": "fingerprint of row-major, tick-major u16 event tape; binary artifact SHA-256 is also emitted by CI",
+      "strata": [
+        "grid_size",
+        "seed"
+      ],
+      "uncertainty_method": "none; deterministic",
+      "proper_scoring_rule": null
+    }
+  ],
+  "baselines": [
+    {
+      "baseline_id": "synchronous-double-buffer-reference",
+      "description": "Rust implementation reads the complete prior grid and writes a separate next grid for every tick.",
+      "protocol_matched": true,
+      "source_uri": null
+    },
+    {
+      "baseline_id": "no-ignition-negative-control",
+      "description": "A fixture with a forced burning cell and zero ignition threshold; all new tree ignitions must be absent.",
+      "protocol_matched": true,
+      "source_uri": null
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "in-place-update",
+      "intervention": "Change one framework adapter from synchronous double-buffer to sequential in-place mutation.",
+      "expected_result": "Per-tick state trajectories/fingerprints differ; adapter is marked non-equivalent and excluded from runtime ranking.",
+      "must_fail_or_remain_null": "fail"
+    },
+    {
+      "control_id": "native-rng-substitution",
+      "intervention": "Replace supplied event tape with framework-native RNG inside the stepping loop.",
+      "expected_result": "Input tape fingerprint/conformance fails; no direct timing comparison is allowed.",
+      "must_fail_or_remain_null": "fail"
+    },
+    {
+      "control_id": "missing-event-tape-word",
+      "intervention": "Remove one u16 event-tape word.",
+      "expected_result": "Scenario validation fails closed with a tape-length mismatch.",
+      "must_fail_or_remain_null": "fail"
+    },
+    {
+      "control_id": "no-ignition",
+      "intervention": "Force one initial burning cell and set ignition threshold to zero.",
+      "expected_result": "The initial fire becomes ash and no new burning cells appear after tick one.",
+      "must_fail_or_remain_null": "fail"
+    }
+  ],
+  "holdouts": [
+    {
+      "holdout_id": "external-framework-adapters",
+      "dimension": "engine",
+      "status": "not-yet-run",
+      "leakage_control": "No external framework timing is claimed in this reference PR; future adapters must consume the same frozen tape bundle and pass exact equivalence before any performance ranking."
+    }
+  ],
+  "reproduction": {
+    "code_commit": "773c1bac8c5454381cae5bc4151bdc043b736afa",
+    "configuration_digest": "civdyn-engine-compare-v0.1; forest-fire; 32x32 and 64x64; 20 fixed seeds; 40 ticks; synchronous double-buffer; fixed-empty boundary",
+    "data_manifest_digest": null,
+    "model_identifier": null,
+    "runtime_environment": "Rust edition 2024; exact-head GitHub Actions workflow; runtime diagnostics only for Rust reference",
+    "command": "cargo run --locked --manifest-path research/civdyn-engine-compare/Cargo.toml --bin forest-fire-reference -- target/civdyn-engine-evidence",
+    "humanity_atlas_run_artifact_ref": "Not a Humanity Atlas civilizational scenario; benchmark workload and output receipts are produced by the engine comparison CI."
+  },
+  "claim_report": {
+    "claim_ceiling": "Tier 1 Rust reference workload only; no cross-framework speed ranking or general ABM engine superiority claim.",
+    "known_limitations": [
+      "No external framework adapter is implemented in this version.",
+      "FNV fingerprints are non-cryptographic fast checks; CI computes SHA-256 for the binary and CSV artifacts.",
+      "The synthetic fire process is a software workload, not an empirically calibrated fire-spread model.",
+      "Runtime measurements exclude startup/JIT, tape generation and serialization."
+    ],
+    "unsupported_strata": [
+      "Agents.jl, Mesa, mesa-frames, NetLogo, MASON, Ark.jl and BAM Engine performance comparisons remain unrun.",
+      "No natural fire regimes, ecological calibration or real-world hazard claims."
+    ]
+  },
+  "composite_score_policy": "no-universal-composite"
+}
