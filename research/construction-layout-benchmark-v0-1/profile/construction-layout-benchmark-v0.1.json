@@ -345,9 +345,12 @@
       "total_workflow_crew_hours_improvement_vs_matched_baseline_min_percent": 30,
       "rework_crew_hours_reduction_vs_matched_baseline_min_percent": 50,
       "accessible_scope_accepted_min_percent": 95,
-      "fully_scoped_lifecycle_cost_reduction_min_percent": 20
+      "fully_scoped_lifecycle_cost_reduction_min_percent": 20,
+      "sota_challenge_total_workflow_crew_hours_reduction_vs_directly_measured_manual_baseline_min_percent": 70,
+      "sota_challenge_total_duration_reduction_vs_matched_baseline_min_percent": 20,
+      "sota_challenge_rework_crew_hours_reduction_vs_directly_measured_manual_baseline_min_percent": 90
     },
-    "target_interpretation": "These are hypotheses for controlled trials, not attained results, standards, legal requirements, or pre-declared pass thresholds for all field conditions. Results outside the hypotheses remain reportable and useful."
+    "target_interpretation": "These are hypotheses for controlled trials, not attained results, standards, legal requirements, or pre-declared pass thresholds for all field conditions. Results outside the hypotheses remain reportable and useful. SOTA challenge hypotheses aim to exceed the published single-project figures (70% total workflow crew-hour reduction vs its 68%; 20% elapsed-layout-duration reduction vs its 18%; 90% rework-hour reduction). A confirmatory study must directly measure the manual comparator rather than estimate it, and must include all VDC coordination, file preparation, setup, inspection, blocked work and rework. These values are research challenges, not universal pass/fail standards."
   },
   "total_workflow_cost_accounting": [
     "design_coordination_and_model_preparation",
@@ -371,23 +374,23 @@
     {
       "supplier": "Dusty Robotics",
       "product": "FieldPrinter 2",
-      "published_claim": "±1.6 mm positioning accuracy under stated accurate surveyed-control conditions",
+      "published_claim": "2026-09-21 manufacturer specification: ±1/16 in (±1.6 mm) print accuracy given accurate surveyed control; 0.75 m/s continuous line print speed; Leica Absolute Laser Tracker with surveyed control points. This is a product claim, not an independently matched result.",
       "claim_type": "manufacturer_specification",
       "status": "not_independently_matched_by_this_benchmark",
-      "source": "https://www.dustyrobotics.com/support/fieldprinter-2-specs"
+      "source": "https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs"
     },
     {
       "supplier": "HP",
       "product": "SitePrint",
-      "published_claim": "±2 mm tolerance and ±0.8 mm average under a specified high-accuracy configuration with HP SMR prism and total-station conditions",
+      "published_claim": "HP currently publishes layout accuracy tolerance ±3/32 in (±2 mm); floor-level accuracy ±1/32 in (±0.8 mm) on average only in the stated high-accuracy configuration (SMR prism, High Accuracy Print Mode and a 1-inch total station at 5–30 m). Its up-to-30% productivity figure is versus its prior software version; the official footnote lists 8% for interior-wall layouts. Do not present this as a 30% manual-baseline improvement.",
       "claim_type": "manufacturer_specification",
       "status": "not_independently_matched_by_this_benchmark",
-      "source": "https://siteprint.hp.com/"
+      "source": "https://www.hp.com/us-en/printers/site-print/layout-robot.html"
     },
     {
       "supplier": "Published research",
       "product": "2025 Dusty Robotics versus traditional layout case study",
-      "published_claim": "One project reported 68% fewer labour hours and 18% fewer days; manual comparison was estimated and study was single-project",
+      "published_claim": "2025 peer-reviewed single-project study of an 8-floor medical office building reported 68% fewer total labour hours, 18% fewer layout days, 99% less physically straining work and rework estimates of 6.42% vs 0.25%. Manual process impacts were estimated rather than directly observed; robotic deployment added 204 hours of VDC coordination and file preparation. Valuable site-based evidence, not a randomized or matched multi-vendor trial.",
       "claim_type": "peer_reviewed_single_project_case_study",
       "status": "contextual_evidence_not_universal_causal_estimate",
       "source": "https://doi.org/10.1007/s41693-025-00162-6"
