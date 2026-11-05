@@ -26,7 +26,7 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 16,
+      "minItems": 17,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -60,7 +60,8 @@
               "schema_reject",
               "reject_or_anchoring_required",
               "reject_or_annotation_rebind_required",
-              "accept_as_integrity_valid_completeness_unknown"
+              "accept_as_integrity_valid_completeness_unknown",
+              "integrity_valid_but_unanchored_not_authenticated"
             ]
           }
         }
