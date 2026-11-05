@@ -51,3 +51,18 @@ The published abstract describes a symmetrically packaged distributed optical fi
 The observation contract includes optional binder grade and mixture digest, fibre-optic/sensor revision, wheel-wander offset, spatial strain profiles, curvature profiles and spatial temperature profiles. The scenario manifest adds a published-measured binder comparison, synthetic spatial registration, and a cross-sensitivity negative control.
 
 These additions are a schema/benchmark design response to the cited work. They do not claim the papers' raw datasets have been acquired or independently reproduced.
+
+
+## D. Thermal-surrogate equivalence is a separate qualification
+
+A passive heating pad and an energized WPT transmitter may produce the same maximum surface temperature while delivering different spatial heat flux, depth gradients, internal material heating, duty cycles and cooldown histories. Therefore, a peak-temperature match alone is insufficient to transfer a thermo-mechanical result from a surrogate-heating experiment to an active WPT system.
+
+Before calling a surrogate thermally equivalent for a declared pavement response question, compare:
+- spatial heat-flux distribution at the pavement boundary;
+- temperature time histories at multiple depths and lateral positions;
+- peak and gradient location relative to the embedded pad;
+- heating rate, energized duty cycle, dwell and cooldown/recovery;
+- thermal cycle count and ambient/solar background;
+- measurement uncertainty and sensor cross-sensitivity.
+
+The equivalence claim must be limited to a named response quantity and pavement/material regime. A surrogate may be adequate for a specific temperature-strain experiment without reproducing internal WPT coil losses or EMC. If the boundary/time-history match is not established, label it as a thermal-surrogate experiment, not active-WPT validation.
