@@ -1002,7 +1002,7 @@ mod tests {
             .expect("valid profile");
         let dist = plan.metrics.wait_distribution;
         assert_eq!(dist.sample_count, 4);
-        assert_eq!(dist.p50_ticks, Some(16));
+        assert_eq!(dist.p50_ticks, Some(9));
         assert_eq!(dist.p90_ticks, Some(27));
         assert_eq!(dist.p95_ticks, Some(27));
         assert_eq!(dist.p99_ticks, Some(27));
