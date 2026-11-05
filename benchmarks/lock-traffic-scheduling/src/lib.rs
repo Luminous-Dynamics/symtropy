@@ -22,7 +22,9 @@ pub enum SchedulingPolicy {
     /// Greedily serves the participant with the least accumulated comparable service units.
     /// This is a policy baseline, not a universal fairness guarantee.
     ParticipantLeastServed,
-    DirectionalBatch { max_consecutive: usize },
+    DirectionalBatch {
+        max_consecutive: usize,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1185,12 +1187,8 @@ mod tests {
         let mut b_first = request("b-first", 2, Direction::Upstream, 1, 1);
         b_first.participant_id = "participant-b".into();
         let requests = vec![a_first, a_second, b_first];
-        let plan = schedule(
-            &p,
-            &requests,
-            SchedulingPolicy::ParticipantLeastServed,
-        )
-        .expect("valid profile");
+        let plan = schedule(&p, &requests, SchedulingPolicy::ParticipantLeastServed)
+            .expect("valid profile");
         assert_eq!(
             plan.schedule
                 .iter()
@@ -1198,8 +1196,14 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["a-first", "b-first", "a-second"]
         );
-        assert_eq!(plan.metrics.by_participant["participant-a"].service_units, 20);
-        assert_eq!(plan.metrics.by_participant["participant-b"].service_units, 10);
+        assert_eq!(
+            plan.metrics.by_participant["participant-a"].service_units,
+            20
+        );
+        assert_eq!(
+            plan.metrics.by_participant["participant-b"].service_units,
+            10
+        );
     }
 
     #[test]
@@ -1437,12 +1441,8 @@ mod tests {
         let mut stale = request("stale", 20, Direction::Upstream, 1, 1);
         stale.arrival_evidence.observed_at_tick = 10;
         let valid = request("valid", 20, Direction::Upstream, 1, 1);
-        let plan = schedule(
-            &p,
-            &[stale, valid],
-            SchedulingPolicy::FirstComeFirstServed,
-        )
-        .expect("valid profile");
+        let plan = schedule(&p, &[stale, valid], SchedulingPolicy::FirstComeFirstServed)
+            .expect("valid profile");
         assert_eq!(plan.schedule.len(), 1);
         assert_eq!(plan.disposition, PlanDisposition::NeedsReview);
     }
