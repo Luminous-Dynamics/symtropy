@@ -98,6 +98,7 @@ impl FleetSiteSeries {
                     .checked_mul(final_offset)
                     .ok_or(FleetCorrelationError::TimestampOverflow)?,
             )
+            .and_then(|last_start| last_start.checked_add(interval_duration_ns))
             .ok_or(FleetCorrelationError::TimestampOverflow)?;
 
         Ok(series)
@@ -130,6 +131,9 @@ impl FleetCorrelationContract {
         peak_threshold_kw: f64,
         ramp_quantile_basis_points: u16,
     ) -> Result<Self, FleetCorrelationError> {
+        if maximum_lag_intervals > isize::MAX as usize {
+            return Err(FleetCorrelationError::InvalidMaximumLag { maximum_lag_intervals });
+        }
         if minimum_overlap_samples < 2 {
             return Err(FleetCorrelationError::InvalidMinimumOverlap {
                 minimum_overlap_samples,
@@ -178,6 +182,7 @@ pub struct SiteMomentReceipt {
 pub struct PairDependenceReceipt {
     pub site_a_id: String,
     pub site_b_id: String,
+    pub covariance_kw2: f64,
     pub contemporaneous_correlation: Option<f64>,
     pub strongest_positive_correlation: Option<f64>,
     pub strongest_positive_lag_intervals: Option<isize>,
@@ -222,6 +227,7 @@ pub enum FleetCorrelationError {
     MissingIdentity { field: &'static str },
     InvalidIntervalDuration,
     InvalidMinimumOverlap { minimum_overlap_samples: usize },
+    InvalidMaximumLag { maximum_lag_intervals: usize },
     InvalidRampQuantile { ramp_quantile_basis_points: u16 },
     InvalidContractQuantity { field: &'static str, value: f64 },
     InsufficientSites { observed: usize, required: usize },
@@ -244,6 +250,7 @@ impl fmt::Display for FleetCorrelationError {
             Self::MissingIdentity { field } => write!(f, "{field} must not be empty"),
             Self::InvalidIntervalDuration => write!(f, "sample interval duration must be positive"),
             Self::InvalidMinimumOverlap { minimum_overlap_samples } => write!(f, "minimum lag overlap must be at least 2; got {minimum_overlap_samples}"),
+            Self::InvalidMaximumLag { maximum_lag_intervals } => write!(f, "maximum lag cannot exceed isize::MAX; got {maximum_lag_intervals}"),
             Self::InvalidRampQuantile { ramp_quantile_basis_points } => write!(f, "ramp quantile must be in 1..=10000 basis points; got {ramp_quantile_basis_points}"),
             Self::InvalidContractQuantity { field, value } => write!(f, "{field} must be finite; got {value}"),
             Self::InsufficientSites { observed, required } => write!(f, "fleet requires at least {required} sites; got {observed}"),
@@ -318,8 +325,9 @@ pub fn evaluate_fleet_correlation(
         clock_uncertainties.push(site.clock_uncertainty_ns);
     }
     clock_uncertainties.sort_unstable_by(|a, b| b.cmp(a));
-    let maximum_observed_pairwise_clock_uncertainty_ns =
-        clock_uncertainties[0].saturating_add(clock_uncertainties[1]);
+    let maximum_observed_pairwise_clock_uncertainty_ns = clock_uncertainties[0]
+        .checked_add(clock_uncertainties[1])
+        .ok_or(FleetCorrelationError::TimestampOverflow)?;
     if maximum_observed_pairwise_clock_uncertainty_ns
         > contract.maximum_pairwise_clock_uncertainty_ns
     {
@@ -368,7 +376,7 @@ pub fn evaluate_fleet_correlation(
             *total += power;
         }
     }
-    if let Some((index, _)) = portfolio.iter().enumerate().find(|(_, x)| !x.is_finite()) {
+    if portfolio.iter().any(|value| !value.is_finite()) {
         return Err(FleetCorrelationError::NumericalOverflow("portfolio power"));
     }
 
