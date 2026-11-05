@@ -11,7 +11,7 @@ These fixtures distinguish energy efficiency from controllable grid flexibility 
 ## Known-truth cases
 
 - Same four 100-token obligations, five 100 ms intervals, baseline boundary power 120 W and candidate [120, 100, 100, 100, 100] W: 20 W maximum reduction, 400 ms sustained interval from 100 ms, 0.0022222 Wh gross reduction, no rebound. Baseline energy is 0.0166667 Wh and candidate energy 0.0138889 Wh.
-- Same useful requests and QoS yield 400 useful tokens. Tokens/J improve from 6.6667 to 8.0 at the declared boundary; this is an efficiency result separate from the 20 W response envelope.
+- Same useful requests and QoS yield 400 useful tokens. Useful tokens/J improve from 6.6667 to 7.6923 at the declared boundary; this is an efficiency result separate from the 20 W response envelope.
 - A brief 200 ms reduction followed by rebound is reported but does not meet the 300 ms minimum sustained-response duration.
 - A 200 ms reduction followed by 200 ms of rebound yields equal gross and rebound energy and zero net energy reduction. No net efficiency claim is permitted.
 - p99 latency regression and useful-token loss block service equivalence even if boundary power falls.
@@ -34,3 +34,5 @@ Useful tokens/sec and tokens/J use completed useful output tokens, capped at the
 The response contract independently bounds maximum rebound power and rebound energy. A response can meet the minimum reduction, sample-count and sustain-duration requirements yet remain unqualified when its later rebound exceeds either owner-defined limit. The new fixture includes a 300 ms qualified reduction followed by 20 W of rebound over 100 ms; it is measured but rejected by the rebound envelope.
 
 The stabilization timestamp is the time at which the minimum response sample-count and elapsed-duration requirements are first both met, not the start of the qualifying window.
+
+The response contract also includes explicit maximum rebound power and energy. A sustained response followed by excessive rebound is measured but fails power-response qualification. Failed requests may retain partial output tokens in the raw diagnostic count; those tokens are excluded from completed useful work and useful tokens/J.
