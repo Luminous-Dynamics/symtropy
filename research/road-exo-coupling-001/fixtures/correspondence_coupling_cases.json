@@ -2,16 +2,71 @@
   "schema": "symtropy.road-correspondence-coupling-fixtures.v0.1",
   "scope": "finite address-projection conformance only",
   "cases": [
-    {"id":"CC-01","case":"actor-vs-slot-ambiguous-maps","expected":"retain_two_distinct_hypothesis_address_plans"},
-    {"id":"CC-02","case":"same-pair-shared-vs-branch-specific-source","expected":"sharing_requires_separate_causal_disposition"},
-    {"id":"CC-03","case":"alternative-counterpart-mappings","expected":"different_pairing_produces_different_pair_address"},
-    {"id":"CC-04","case":"conditionally-not-realized-event","expected":"same_potential_event_address_presence_is_receipt_metadata"},
-    {"id":"CC-05","case":"unknown-event-presence","expected":"no_shared_address"},
-    {"id":"CC-06","case":"incomplete-hypothesis-search","expected":"known_plans_retained_global_status_incomplete"},
-    {"id":"CC-07","case":"causal-source-or-version-mismatch","expected":"reject_shared_invariance"},
-    {"id":"CC-08","case":"branch-local-address-across-alternative-maps","expected":"same_local_event_keeps_same_local_address"},
-    {"id":"CC-09","case":"sensitivity-only-coupling","expected":"paired_for_sensitivity_not_identified"},
-    {"id":"CC-10","case":"duplicate-pair-causal-rule","expected":"reject"}
+    {
+      "id": "CC-01",
+      "case": "actor-vs-slot-ambiguous-maps",
+      "expected": "retain_two_distinct_hypothesis_address_plans"
+    },
+    {
+      "id": "CC-02",
+      "case": "same-pair-shared-vs-branch-specific-source",
+      "expected": "sharing_requires_separate_causal_disposition"
+    },
+    {
+      "id": "CC-03",
+      "case": "alternative-counterpart-mappings",
+      "expected": "different_pairing_produces_different_pair_address"
+    },
+    {
+      "id": "CC-04",
+      "case": "conditionally-not-realized-event",
+      "expected": "same_potential_event_address_presence_is_receipt_metadata"
+    },
+    {
+      "id": "CC-05",
+      "case": "unknown-event-presence",
+      "expected": "no_shared_address"
+    },
+    {
+      "id": "CC-06",
+      "case": "incomplete-hypothesis-search",
+      "expected": "known_plans_retained_global_status_incomplete"
+    },
+    {
+      "id": "CC-07",
+      "case": "causal-source-or-version-mismatch",
+      "expected": "reject_shared_invariance"
+    },
+    {
+      "id": "CC-08",
+      "case": "branch-local-address-across-alternative-maps",
+      "expected": "same_local_event_keeps_same_local_address"
+    },
+    {
+      "id": "CC-09",
+      "case": "sensitivity-only-coupling",
+      "expected": "paired_for_sensitivity_not_identified"
+    },
+    {
+      "id": "CC-10",
+      "case": "duplicate-pair-causal-rule",
+      "expected": "reject"
+    },
+    {
+      "id": "CC-11",
+      "case": "rehashed-event-scope-mutation",
+      "expected": "semantic-projection-reverification_rejects"
+    },
+    {
+      "id": "CC-12",
+      "case": "rehashed-and-reresolved-address-substitution",
+      "expected": "semantic-projection-reverification_rejects"
+    },
+    {
+      "id": "CC-13",
+      "case": "unclassified-candidate-event-in-retained-universe",
+      "expected": "correspondence-assessment-rejects"
+    }
   ],
   "claim_ceiling": "No event map is selected as true; no causal invariance is inferred; no Philox words are generated; no variance reduction, physical validity or vehicle safety is established."
 }
