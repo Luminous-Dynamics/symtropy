@@ -253,6 +253,13 @@ impl Rational {
         })
     }
 
+    pub fn min(self, other: Self) -> Result<Self, RationalError> {
+        Ok(match self.cmp_exact(other)? {
+            std::cmp::Ordering::Greater => other,
+            _ => self,
+        })
+    }
+
     pub fn is_nonnegative(self) -> bool {
         self.numerator >= 0
     }
@@ -1163,19 +1170,16 @@ fn assess_residual(
         }
     }
 
-    let minimax_regret_actions = if let Some(best) = best_regret {
-        action_regret_bounds
-            .iter()
-            .filter(|bound| {
-                bound.feasibility == FeasibilityDisposition::Guaranteed
-                    && bound.worst_case_regret_upper.cmp_exact(best).ok()
-                        == Some(std::cmp::Ordering::Equal)
-            })
-            .map(|bound| bound.action_id.clone())
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let mut minimax_regret_actions = Vec::new();
+    if let Some(best) = best_regret {
+        for bound in &action_regret_bounds {
+            if bound.feasibility == FeasibilityDisposition::Guaranteed
+                && bound.worst_case_regret_upper.cmp_exact(best)? == std::cmp::Ordering::Equal
+            {
+                minimax_regret_actions.push(bound.action_id.clone());
+            }
+        }
+    }
 
     Ok(ResidualAssessment {
         disposition: ResidualDisposition::BoundedRectangularRelaxation,
@@ -1464,6 +1468,9 @@ mod tests {
             challenge("expert-1", ChallengeStrategy::Expert, "challenge-expert", ChallengeOutcome::NonDiscoveryWithinBudget),
             challenge("rl-1", ChallengeStrategy::ReinforcementLearning, "challenge-rl", ChallengeOutcome::NonDiscoveryWithinBudget),
         ];
+        for receipt in &mut receipts {
+            receipt.holdout_manifest_digest = d("holdout-H-weather");
+        }
         for (id, strategy, protocol) in [
             ("random-copy", ChallengeStrategy::Random, "challenge-random-copy"),
             ("coverage-copy", ChallengeStrategy::CoverageGuided, "challenge-coverage-copy"),
@@ -1692,7 +1699,11 @@ mod tests {
         assert_eq!(report.disposition, PortfolioDisposition::PortfolioIncomplete);
 
         let mut low_budget = challenge_set();
-        low_budget[0].budget_units = 1;
+        for receipt in &mut low_budget {
+            if receipt.hypothesis_id == "H-weather" {
+                receipt.budget_units = 1;
+            }
+        }
         let report = evaluate_portfolio(
             &manifest(),
             &d("odd-city-1"),
@@ -1827,6 +1838,19 @@ mod tests {
         let mut added = hypothesis("H-weather-v2", "structural-scm", "new-training", None);
         added.supersedes_hypothesis_id = Some("H-weather".into());
         current.hypotheses.push(added);
+        for (strategy, protocol) in [
+            (ChallengeStrategy::Random, "challenge-v2-random"),
+            (ChallengeStrategy::CoverageGuided, "challenge-v2-coverage"),
+            (ChallengeStrategy::Expert, "challenge-v2-expert"),
+            (ChallengeStrategy::ReinforcementLearning, "challenge-v2-rl"),
+        ] {
+            current.challenge_requirements.push(ChallengeRequirement {
+                hypothesis_id: "H-weather-v2".into(),
+                strategy,
+                protocol_digest: d(protocol),
+                minimum_budget_units: 100,
+            });
+        }
         PortfolioManifest::validate_append_only_revision(&previous, &current).unwrap();
     }
 
