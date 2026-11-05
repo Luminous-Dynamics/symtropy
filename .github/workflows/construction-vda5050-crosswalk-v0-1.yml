@@ -37,3 +37,14 @@ jobs:
         run: cargo test --manifest-path research/construction-vda5050-crosswalk-v0-1/Cargo.toml --locked
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/construction-vda5050-crosswalk-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+
+  json-syntax:
+    name: Parse profile and fixture JSON
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse all crosswalk JSON artifacts
+        run: |
+          jq empty research/construction-vda5050-crosswalk-v0-1/profile/vda5050-construction-crosswalk-v0.1.json
+          jq empty research/construction-vda5050-crosswalk-v0-1/schema/vda5050-construction-crosswalk-v0.1.schema.json
+          jq empty research/construction-vda5050-crosswalk-v0-1/fixtures/vda5050-crosswalk-cases-v0.1.json
