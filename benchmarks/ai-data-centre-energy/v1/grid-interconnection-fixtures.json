@@ -1,0 +1,248 @@
+{
+  "schema_version": "symtropy.grid-interconnection-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "scope": "single_pcc_voltage_frequency_ride_through_and_post_fault_recovery",
+  "note": "Synthetic PCC traces for verifier arithmetic only. They are not interconnection-agreement values, site measurements, grid-code limits, or IEEE P4200 conformance evidence.",
+  "units": {
+    "time": "milliseconds from event start",
+    "voltage": "per unit",
+    "frequency": "Hz",
+    "active_power": "kW",
+    "reactive_power": "kvar"
+  },
+  "example_contract": {
+    "identity": {
+      "event_id": "event-1",
+      "site_id": "site-1",
+      "pcc_boundary_id": "pcc-1",
+      "agreement_id": "agreement-v1",
+      "envelope_version": "operator-envelope-v1",
+      "measurement_configuration": "meter-chain-v1"
+    },
+    "ride_through_bands": [
+      {
+        "start_ms": 0,
+        "end_ms": 2000,
+        "min_voltage_pu": 0.7,
+        "max_voltage_pu": 1.1,
+        "min_frequency_hz": 48,
+        "max_frequency_hz": 52
+      }
+    ],
+    "baseline_active_power_kw": 100,
+    "baseline_reactive_power_kvar": 10,
+    "active_recovery_tolerance_kw": 2,
+    "reactive_recovery_tolerance_kvar": 1,
+    "max_active_ramp_kw_per_second": 100,
+    "max_reactive_ramp_kvar_per_second": 100,
+    "max_recovery_duration_ms": 5000,
+    "settling_window_ms": 2000,
+    "max_sample_gap_ms": 1000,
+    "max_measurement_uncertainty_ms": 5
+  },
+  "cases": [
+    {
+      "case_id": "clean-ride-through-and-recovery",
+      "samples": [
+        {
+          "t": 0,
+          "v": 0.8,
+          "f": 49,
+          "p": 100,
+          "q": 10,
+          "breaker_closed": true,
+          "quality": "Valid"
+        },
+        {
+          "t": 1000,
+          "v": 0.9,
+          "f": 49.5,
+          "p": 80,
+          "q": 12,
+          "breaker_closed": true,
+          "quality": "Valid"
+        },
+        {
+          "t": 2000,
+          "v": 1,
+          "f": 50,
+          "p": 100,
+          "q": 10,
+          "breaker_closed": true,
+          "quality": "Valid"
+        },
+        {
+          "t": 3000,
+          "v": 1,
+          "f": 50,
+          "p": 100,
+          "q": 10,
+          "breaker_closed": true,
+          "quality": "Valid"
+        },
+        {
+          "t": 4000,
+          "v": 1,
+          "f": 50,
+          "p": 100,
+          "q": 10,
+          "breaker_closed": true,
+          "quality": "Valid"
+        }
+      ],
+      "expected": {
+        "overall_passed": true,
+        "recovery_time_ms": 0,
+        "settled_duration_ms": 2000,
+        "sub_sample_transients_unverified": true
+      }
+    },
+    {
+      "case_id": "breaker-trip-during-disturbance",
+      "mutation": {
+        "sample_index": 1,
+        "breaker_closed": false
+      },
+      "expected": {
+        "overall_passed": false,
+        "breaker_continuity_passed": false,
+        "violation": "BreakerOpened"
+      }
+    },
+    {
+      "case_id": "voltage-and-frequency-outside-operator-envelope",
+      "mutation": {
+        "sample_index": 1,
+        "voltage_pu": 0.6,
+        "frequency_hz": 47
+      },
+      "expected": {
+        "overall_passed": false,
+        "ride_through_passed": false,
+        "violations": [
+          "VoltageOutsideRideThroughBand",
+          "FrequencyOutsideRideThroughBand"
+        ]
+      }
+    },
+    {
+      "case_id": "recovery-after-deadline",
+      "mutation": {
+        "recovery_first_in_band_sample_ms": 8000
+      },
+      "expected": {
+        "overall_passed": false,
+        "recovery_passed": false,
+        "violation": "RecoveryNotCompletedWithinDeadline"
+      }
+    },
+    {
+      "case_id": "oscillatory-recovery-never-settles",
+      "mutation": {
+        "post_event_active_power_kw": [
+          100,
+          110,
+          100,
+          110,
+          100
+        ]
+      },
+      "expected": {
+        "overall_passed": false,
+        "recovery_passed": false
+      }
+    },
+    {
+      "case_id": "active-power-recovery-ramp-exceeded",
+      "mutation": {
+        "max_active_ramp_kw_per_second": 5
+      },
+      "expected": {
+        "overall_passed": false,
+        "recovery_ramp_passed": false,
+        "violation": "ActivePowerRecoveryRampExceeded"
+      }
+    },
+    {
+      "case_id": "stale-meter-sample",
+      "mutation": {
+        "sample_index": 1,
+        "quality": "Stale"
+      },
+      "expected": {
+        "overall_passed": false,
+        "sampling_quality_passed": false
+      }
+    },
+    {
+      "case_id": "measurement-clock-uncertainty",
+      "mutation": {
+        "sample_index": 1,
+        "uncertainty_ms": 6
+      },
+      "expected": {
+        "overall_passed": false,
+        "sampling_quality_passed": false
+      }
+    },
+    {
+      "case_id": "sample-gap-exceeds-envelope-resolution",
+      "samples_at_ms": [
+        0,
+        2000,
+        3000
+      ],
+      "expected": {
+        "evaluation_error": "SampleGapExceeded"
+      }
+    },
+    {
+      "case_id": "non-contiguous-ride-through-time-bands",
+      "bands": [
+        {
+          "start_ms": 0,
+          "end_ms": 1000
+        },
+        {
+          "start_ms": 1500,
+          "end_ms": 2000
+        }
+      ],
+      "expected": {
+        "contract_error": "RideThroughBandGapOrOverlap"
+      }
+    },
+    {
+      "case_id": "non-monotonic-sample-time",
+      "samples_at_ms": [
+        0,
+        0,
+        2000
+      ],
+      "expected": {
+        "evaluation_error": "NonIncreasingSampleTime"
+      }
+    },
+    {
+      "case_id": "too-short-evidence-tail",
+      "samples_at_ms": [
+        0,
+        1000,
+        2000,
+        2500
+      ],
+      "expected": {
+        "overall_passed": false,
+        "recovery_passed": false,
+        "reason": "settling window is not observed"
+      }
+    }
+  ],
+  "explicit_non_claims": [
+    "not IEEE P4200 compliance",
+    "not system frequency or voltage stability assessment",
+    "not relay/protection coordination verification",
+    "not electromagnetic transient or harmonics analysis",
+    "not proof of site-wide resilience beyond the supplied PCC and sample horizon"
+  ]
+}
