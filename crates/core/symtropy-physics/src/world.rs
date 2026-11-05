@@ -620,6 +620,21 @@ impl<const D: usize> PhysicsWorld<D> {
             &self.constraints,
             &self.handle_to_index,
         );
+
+        // An active island owns a dynamic write set. Wake any sleeping dynamic
+        // member before contact/constraint solving so impulses and corrections
+        // are not applied to a body that will be skipped by the next integration
+        // stage. This includes islands activated by an awake kinematic endpoint.
+        for island in &islands {
+            if !island.sleeping {
+                for &body_index in &island.body_indices {
+                    if self.bodies[body_index].sleeping {
+                        self.bodies[body_index].wake();
+                    }
+                }
+            }
+        }
+
         let active_contact_indices: Vec<usize> = islands
             .iter()
             .filter(|island| !island.sleeping)
@@ -2534,6 +2549,61 @@ mod transformed_halfspace_tests {
             manifold.depth()
         );
         assert!(manifold.normal[0] > 0.999);
+    }
+
+    #[test]
+    fn awake_kinematic_contact_wakes_sleeping_dynamic_body_before_solver() {
+        let mut world = PhysicsWorld::<3>::default();
+        let dynamic = world.add_body(RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([0.8, 0.0, 0.0]),
+            0.5,
+            1.0,
+        ));
+        world.body_mut(dynamic).unwrap().sleeping = true;
+
+        let kinematic = RigidBody::new(
+            BodyHandle(1),
+            crate::body::BodyType::Kinematic,
+            Transform::identity(),
+            Box::new(Sphere::<3>::new(Point::origin(), 0.5)),
+            0.0,
+            SVector::zeros(),
+        );
+        world.add_body(kinematic);
+
+        world.step(1.0 / 60.0);
+
+        assert!(
+            !world.body(dynamic).unwrap().sleeping,
+            "an awake kinematic contact must wake a sleeping dynamic endpoint"
+        );
+    }
+
+    #[test]
+    fn static_contact_does_not_wake_sleeping_dynamic_body() {
+        let mut world = PhysicsWorld::<3>::default();
+        let dynamic = world.add_body(RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([0.8, 0.0, 0.0]),
+            0.5,
+            1.0,
+        ));
+        world.body_mut(dynamic).unwrap().sleeping = true;
+
+        let static_body = RigidBody::static_body(
+            BodyHandle(1),
+            Point::origin(),
+            Box::new(Sphere::<3>::unit()),
+        );
+        world.add_body(static_body);
+
+        world.step(1.0 / 60.0);
+
+        assert!(
+            world.body(dynamic).unwrap().sleeping,
+            "a static endpoint alone must not wake a sleeping dynamic body"
+        );
     }
 
     #[test]
