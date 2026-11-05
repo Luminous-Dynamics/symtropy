@@ -119,8 +119,9 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
 
     validate_type(schema, value, path)?;
 
-    if let Some(expected) = schema.get("const") {
-        if value != expected {
+    if let Some(expected) = schema.get("const")
+        && value != expected
+    {
             return Err(fail(path, format!("value must equal const {expected}")));
         }
     }
@@ -135,8 +136,9 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
     }
 
     if let Some(text) = value.as_str() {
-        if let Some(minimum) = schema.get("minLength").and_then(Value::as_u64) {
-            if text.chars().count() < minimum as usize {
+        if let Some(minimum) = schema.get("minLength").and_then(Value::as_u64)
+            && text.chars().count() < minimum as usize
+        {
                 return Err(fail(
                     path,
                     format!("string is shorter than minLength {minimum}"),
@@ -167,18 +169,21 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
     }
 
     if let Some(number) = value.as_f64() {
-        if let Some(minimum) = schema.get("minimum").and_then(Value::as_f64) {
-            if number < minimum {
+        if let Some(minimum) = schema.get("minimum").and_then(Value::as_f64)
+            && number < minimum
+        {
                 return Err(fail(path, format!("number is below minimum {minimum}")));
             }
         }
-        if let Some(maximum) = schema.get("maximum").and_then(Value::as_f64) {
-            if number > maximum {
+        if let Some(maximum) = schema.get("maximum").and_then(Value::as_f64)
+            && number > maximum
+        {
                 return Err(fail(path, format!("number is above maximum {maximum}")));
             }
         }
-        if let Some(minimum) = schema.get("exclusiveMinimum").and_then(Value::as_f64) {
-            if number <= minimum {
+        if let Some(minimum) = schema.get("exclusiveMinimum").and_then(Value::as_f64)
+            && number <= minimum
+        {
                 return Err(fail(path, format!("number must be greater than {minimum}")));
             }
         }
@@ -220,8 +225,9 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
         }
     }
 
-    if let Some(array) = value.as_array() {
-        if let Some(item_schema) = schema.get("items") {
+    if let Some(array) = value.as_array()
+        && let Some(item_schema) = schema.get("items")
+    {
             for (index, item) in array.iter().enumerate() {
                 validate_schema_node(item_schema, item, &format!("{path}[{index}]"))?;
             }
