@@ -237,22 +237,16 @@ pub fn run_recovery_capital_reference(
             TransferPolicy::Unrestricted,
         )?;
 
-        let unmet_water_m3 = report.regions[HOUSEHOLD_A].unmet.water_m3
-            + report.regions[HOUSEHOLD_B].unmet.water_m3;
+        let unmet_water_m3 =
+            report.regions[HOUSEHOLD_A].unmet.water_m3 + report.regions[HOUSEHOLD_B].unmet.water_m3;
         match phase {
             RecoveryPhase::FirstShock => first_shock_unmet_water_m3 += unmet_water_m3,
             RecoveryPhase::ServiceRecovery => {
                 service_recovery_unmet_water_m3 += unmet_water_m3;
-                let all_households_recovered = report.regions[HOUSEHOLD_A]
-                    .coverage
-                    .water
-                    .unwrap_or(0.0)
-                    >= RECOVERY_THRESHOLD
-                    && report.regions[HOUSEHOLD_B]
-                        .coverage
-                        .water
-                        .unwrap_or(0.0)
-                        >= RECOVERY_THRESHOLD;
+                let all_households_recovered =
+                    report.regions[HOUSEHOLD_A].coverage.water.unwrap_or(0.0) >= RECOVERY_THRESHOLD
+                        && report.regions[HOUSEHOLD_B].coverage.water.unwrap_or(0.0)
+                            >= RECOVERY_THRESHOLD;
                 if all_households_recovered {
                     recovery_streak += 1;
                 } else {
@@ -261,9 +255,8 @@ pub fn run_recovery_capital_reference(
                 if service_recovery_after_ticks.is_none()
                     && recovery_streak >= SUSTAINED_RECOVERY_STEPS
                 {
-                    service_recovery_after_ticks = Some(
-                        tick_index + 1 - (PRE_SHOCK_TICKS + FIRST_SHOCK_TICKS),
-                    );
+                    service_recovery_after_ticks =
+                        Some(tick_index + 1 - (PRE_SHOCK_TICKS + FIRST_SHOCK_TICKS));
                 }
             }
             RecoveryPhase::RepeatShock => repeat_shock_unmet_water_m3 += unmet_water_m3,
@@ -288,20 +281,14 @@ pub fn run_recovery_capital_reference(
                     },
                 ));
             }
-            maximum_residual = maximum_residual
-                .max(region.ledger.conservation_residual().water_m3.abs());
+            maximum_residual =
+                maximum_residual.max(region.ledger.conservation_residual().water_m3.abs());
         }
         ticks.push(RecoveryCapitalTick {
             tick: report.tick,
             phase,
-            household_a_coverage: report.regions[HOUSEHOLD_A]
-                .coverage
-                .water
-                .unwrap_or(0.0),
-            household_b_coverage: report.regions[HOUSEHOLD_B]
-                .coverage
-                .water
-                .unwrap_or(0.0),
+            household_a_coverage: report.regions[HOUSEHOLD_A].coverage.water.unwrap_or(0.0),
+            household_b_coverage: report.regions[HOUSEHOLD_B].coverage.water.unwrap_or(0.0),
             unmet_water_m3,
             basin_closing_stock_m3: basin_stock,
             maximum_conservation_residual_m3: maximum_residual,
@@ -318,8 +305,7 @@ pub fn run_recovery_capital_reference(
         reserve_after_first_shock_m3.ok_or(RecoveryCapitalError::MissingRecoveryInterval)?;
     let reserve_at_service_recovery_m3 =
         reserve_at_service_recovery_m3.ok_or(RecoveryCapitalError::MissingRecoveryInterval)?;
-    let reserve_replenishment_m3 =
-        reserve_at_service_recovery_m3 - reserve_after_first_shock_m3;
+    let reserve_replenishment_m3 = reserve_at_service_recovery_m3 - reserve_after_first_shock_m3;
     let maximum_conservation_residual_m3 = ticks
         .iter()
         .map(|tick| tick.maximum_conservation_residual_m3)
@@ -335,16 +321,15 @@ pub fn run_recovery_capital_reference(
         reserve_after_first_shock_m3,
         reserve_at_service_recovery_m3,
         reserve_replenishment_m3,
-        reserve_recovery_ratio: reserve_at_service_recovery_m3
-            / reserve_before_first_shock_m3,
+        reserve_recovery_ratio: reserve_at_service_recovery_m3 / reserve_before_first_shock_m3,
         service_recovery_after_ticks,
         maximum_conservation_residual_m3,
         final_reserve_m3: world.regions()[BASIN].opening_stock.water_m3,
     })
 }
 
-pub fn run_recovery_capital_portfolio(
-) -> Result<Vec<RecoveryCapitalOutcome>, RecoveryCapitalError> {
+pub fn run_recovery_capital_portfolio() -> Result<Vec<RecoveryCapitalOutcome>, RecoveryCapitalError>
+{
     RecoveryPath::ALL
         .into_iter()
         .map(run_recovery_capital_reference)
