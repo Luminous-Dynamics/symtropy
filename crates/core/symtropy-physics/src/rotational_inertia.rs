@@ -322,6 +322,29 @@ mod tests {
     }
 
     #[test]
+    fn two_d_operator_has_one_rotation_plane_degree_of_freedom() {
+        let inertia =
+            BivectorInertia::<2>::from_point_masses(&symmetric_axis_masses::<2>()).unwrap();
+        assert_eq!(inertia.component_count(), 1);
+        assert_eq!(inertia.basis_pairs(), &[(0, 1)]);
+        assert!((inertia.matrix()[(0, 0)] - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn asymmetric_mass_distribution_preserves_cross_plane_coupling() {
+        let mut points = symmetric_axis_masses::<3>();
+        points.push((1.0, SVector::from([1.0, 1.0, 0.0])));
+        points.push((1.0, SVector::from([-1.0, -1.0, 0.0])));
+
+        let inertia = BivectorInertia::<3>::from_point_masses(&points).unwrap();
+        // The tilted pair contributes a non-zero I_(01,02) product term.
+        // A diagonal-per-axis or scalar-average approximation would lose it.
+        assert!((inertia.matrix()[(0, 1)] - 2.0).abs() < 1e-12);
+        assert!((inertia.matrix()[(1, 0)] - 2.0).abs() < 1e-12);
+        assert!((inertia.matrix()[(0, 1)] - inertia.matrix()[(1, 0)]).abs() < 1e-14);
+    }
+
+    #[test]
     fn angular_momentum_solve_and_energy_are_consistent() {
         let inertia =
             BivectorInertia::<4>::from_point_masses(&symmetric_axis_masses::<4>()).unwrap();
