@@ -84,61 +84,6 @@
       ]
     },
     {
-      "case_id": "pras-quarter-hour-period-versus-hour-metric",
-      "description": "Two 15-minute shortfall periods are two event-periods but only half an hour of shortage.",
-      "start_timestamp": "2020-01-01T00:00:00+00:00",
-      "timestep_length": 15,
-      "timestep_unit": "min",
-      "region_names": [
-        "R1"
-      ],
-      "regional_load_mw_by_interval": {
-        "R1": [
-          110,
-          110,
-          100
-        ]
-      },
-      "generation": [
-        {
-          "name": "G1",
-          "region": "R1",
-          "capacity_mw_by_interval": [
-            100,
-            100,
-            100
-          ],
-          "failure_probability": [
-            0,
-            0,
-            0
-          ],
-          "repair_probability": [
-            1,
-            1,
-            1
-          ]
-        }
-      ],
-      "expected": {
-        "shortfall_mw_by_interval": [
-          10,
-          10,
-          0
-        ],
-        "lole_event_periods": 2,
-        "lold_event_days": 1,
-        "lolh_hours": 0.5,
-        "eue_mwh": 5,
-        "energy_cvar_95_mwh": 0
-      },
-      "notes": [
-        "Do not label LOLE=2 as two hours.",
-        "EUE = (10 MW * 0.25 h) + (10 MW * 0.25 h) = 5 MWh.",
-        "PRAS 0.9.0 empirical energy-CVAR uses samples strictly greater than the empirical quantile. In this all-identical deterministic sample fixture, no sample is strictly above VaR and the returned CVAR is zero. This is an implementation-specific tail convention, not a generic expected-shortfall value."
-      ]
-    },
-    {
       "case_id": "pras-midnight-crossing-event-days",
       "description": "A contiguous shortage spans midnight and therefore affects two calendar event-days.",
       "start_timestamp": "2020-01-01T23:00:00+00:00",
@@ -191,6 +136,142 @@
         "PRAS LOLD is event-days, not contiguous shortage spells.",
         "A separate NTCSA-style contiguous event counter would report one event across midnight, not two.",
         "PRAS 0.9.0 empirical energy-CVAR uses samples strictly greater than the empirical quantile. In this all-identical deterministic sample fixture, no sample is strictly above VaR and the returned CVAR is zero. This is an implementation-specific tail convention, not a generic expected-shortfall value."
+      ]
+    },
+    {
+      "case_id": "pras-native-eue-elcc-matched-seed",
+      "description": "Probabilistic generator outage study comparing a frozen reference load with a uniformly reduced load; PRAS native ELCC adds constant load in every interval to recover the base EUE.",
+      "start_timestamp": "2020-01-01T00:00:00+00:00",
+      "timestep_length": 1,
+      "timestep_unit": "h",
+      "region_names": [
+        "R1"
+      ],
+      "baseline_load_mw": [
+        120,
+        120,
+        120,
+        120
+      ],
+      "flexible_load_mw": [
+        110,
+        110,
+        110,
+        110
+      ],
+      "generation": {
+        "name": "G1",
+        "region": "R1",
+        "capacity_mw_by_interval": [
+          100,
+          100,
+          100,
+          100
+        ],
+        "failure_probability": [
+          0.1,
+          0.1,
+          0.1,
+          0.1
+        ],
+        "repair_probability": [
+          0.5,
+          0.5,
+          0.5,
+          0.5
+        ]
+      },
+      "simulation": {
+        "samples": 4096,
+        "seed": 20261107,
+        "threaded": false
+      },
+      "capacity_credit": {
+        "method": "ELCC{EUE}",
+        "capacity_max_mw": 20,
+        "capacity_gap_mw": 1,
+        "p_value": 0.05,
+        "load_region": "R1"
+      },
+      "expected": {
+        "analytical_elcc_mw": 10,
+        "elcc_lower_bound_mw": 9,
+        "elcc_upper_bound_mw": 10,
+        "reasoning": "Every timestep has 10 MW less flexible load than baseline, and the generator capacity/availability transition path is identical. PRAS adds uniform load back in each interval; 9 MW remains below the base EUE and 10 MW restores the baseline EUE."
+      },
+      "notes": [
+        "The same generator identity and transition-probability arrays are present in both systems; native PRAS ELCC reuses the simulation seed across its sequential assessments.",
+        "This synthetic example validates the native ELCC API and bound receipt, not a market accreditation or site-specific capacity value."
+      ]
+    },
+    {
+      "case_id": "pras-nondegenerate-energy-cvar-strict-tail",
+      "description": "Stochastic generator-availability fixture that exercises the non-degenerate sample-level PRAS energy-CVAR calculation.",
+      "start_timestamp": "2020-01-01T00:00:00+00:00",
+      "timestep_length": 1,
+      "timestep_unit": "h",
+      "region_names": [
+        "R1"
+      ],
+      "regional_load_mw_by_interval": [
+        110,
+        110,
+        110,
+        110,
+        110,
+        110,
+        110,
+        110
+      ],
+      "generation": [
+        {
+          "name": "G1",
+          "region": "R1",
+          "capacity_mw_by_interval": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+          ],
+          "failure_probability": [
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35
+          ],
+          "repair_probability": [
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55
+          ]
+        }
+      ],
+      "simulation": {
+        "samples": 256,
+        "seed": 20261106,
+        "threaded": false
+      },
+      "expected": {
+        "method": "quantile = quantile(sample_EUE, 0.95); tail = sample_EUE[sample_EUE > quantile]; CVAR = mean(tail), or 0 when tail is empty",
+        "distinct_sample_eue_values_minimum": 2,
+        "cvar_is_computed_from_sample_level_full_horizon_eue": true,
+        "alpha": 0.95
+      },
+      "notes": [
+        "The exact sample vector and returned CVAR are captured in the execution receipt; this fixture tests the PRAS 0.9.0 strict-above-quantile convention rather than asserting a cross-version random sample vector."
       ]
     },
     {
@@ -250,6 +331,61 @@
         "Use separate baseline and flexible SystemModels with identical supply resources and outage parameters.",
         "The full signed trajectory is applied exactly once to regional load; do not add the same response again as a native PRAS DemandResponse or Storage resource.",
         "This deterministic case is an analytical ELCC fixture, not a market accreditation result."
+      ]
+    },
+    {
+      "case_id": "pras-quarter-hour-period-versus-hour-metric",
+      "description": "Two 15-minute shortfall periods are two event-periods but only half an hour of shortage.",
+      "start_timestamp": "2020-01-01T00:00:00+00:00",
+      "timestep_length": 15,
+      "timestep_unit": "min",
+      "region_names": [
+        "R1"
+      ],
+      "regional_load_mw_by_interval": {
+        "R1": [
+          110,
+          110,
+          100
+        ]
+      },
+      "generation": [
+        {
+          "name": "G1",
+          "region": "R1",
+          "capacity_mw_by_interval": [
+            100,
+            100,
+            100
+          ],
+          "failure_probability": [
+            0,
+            0,
+            0
+          ],
+          "repair_probability": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "expected": {
+        "shortfall_mw_by_interval": [
+          10,
+          10,
+          0
+        ],
+        "lole_event_periods": 2,
+        "lold_event_days": 1,
+        "lolh_hours": 0.5,
+        "eue_mwh": 5,
+        "energy_cvar_95_mwh": 0
+      },
+      "notes": [
+        "Do not label LOLE=2 as two hours.",
+        "EUE = (10 MW * 0.25 h) + (10 MW * 0.25 h) = 5 MWh.",
+        "PRAS 0.9.0 empirical energy-CVAR uses samples strictly greater than the empirical quantile. In this all-identical deterministic sample fixture, no sample is strictly above VaR and the returned CVAR is zero. This is an implementation-specific tail convention, not a generic expected-shortfall value."
       ]
     },
     {
@@ -385,76 +521,6 @@
       "notes": [
         "The adapter must validate actual PRAS interface/line direction conventions against a non-symmetric flow fixture.",
         "This illustrates interregional location dependence only; it does not model intra-region buses or distribution constraints."
-      ]
-    },
-    {
-      "case_id": "pras-nondegenerate-energy-cvar-strict-tail",
-      "description": "Stochastic generator-availability fixture that exercises the non-degenerate sample-level PRAS energy-CVAR calculation.",
-      "start_timestamp": "2020-01-01T00:00:00+00:00",
-      "timestep_length": 1,
-      "timestep_unit": "h",
-      "region_names": [
-        "R1"
-      ],
-      "regional_load_mw_by_interval": [
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110
-      ],
-      "generation": [
-        {
-          "name": "G1",
-          "region": "R1",
-          "capacity_mw_by_interval": [
-            100,
-            100,
-            100,
-            100,
-            100,
-            100,
-            100,
-            100
-          ],
-          "failure_probability": [
-            0.35,
-            0.35,
-            0.35,
-            0.35,
-            0.35,
-            0.35,
-            0.35,
-            0.35
-          ],
-          "repair_probability": [
-            0.55,
-            0.55,
-            0.55,
-            0.55,
-            0.55,
-            0.55,
-            0.55,
-            0.55
-          ]
-        }
-      ],
-      "simulation": {
-        "samples": 256,
-        "seed": 20261106,
-        "threaded": false
-      },
-      "expected": {
-        "method": "quantile = quantile(sample_EUE, 0.95); tail = sample_EUE[sample_EUE > quantile]; CVAR = mean(tail), or 0 when tail is empty",
-        "distinct_sample_eue_values_minimum": 2,
-        "cvar_is_computed_from_sample_level_full_horizon_eue": true,
-        "alpha": 0.95
-      },
-      "notes": [
-        "The exact sample vector and returned CVAR are captured in the execution receipt; this fixture tests the PRAS 0.9.0 strict-above-quantile convention rather than asserting a cross-version random sample vector."
       ]
     }
   ],
