@@ -45,6 +45,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pras-interop-results-${{ github.sha }}
-          path: ${{ runner.temp }}/pras-interop-results.json
+          path: |
+            ${{ runner.temp }}/pras-interop-results.json
+            benchmarks/ai-data-centre-energy/pras/Manifest.toml
           if-no-files-found: warn
           retention-days: 30
