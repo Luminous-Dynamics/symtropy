@@ -431,10 +431,7 @@ impl fmt::Display for DeliberationError {
                 )
             }
             Self::OptionOrderPairMismatch(field) => {
-                write!(
-                    f,
-                    "option-order comparison changed semantic input: {field}"
-                )
+                write!(f, "option-order comparison changed semantic input: {field}")
             }
         }
     }
@@ -816,30 +813,46 @@ pub fn compare_option_order_variants(
     reordered.validate()?;
 
     if baseline.resource_budget != reordered.resource_budget {
-        return Err(DeliberationError::OptionOrderPairMismatch("resource_budget"));
+        return Err(DeliberationError::OptionOrderPairMismatch(
+            "resource_budget",
+        ));
     }
 
     let baseline_labels = baseline.option_labels.iter().collect::<BTreeSet<_>>();
     let reordered_labels = reordered.option_labels.iter().collect::<BTreeSet<_>>();
     if baseline_labels != reordered_labels {
-        return Err(DeliberationError::OptionOrderPairMismatch("semantic_option_set"));
+        return Err(DeliberationError::OptionOrderPairMismatch(
+            "semantic_option_set",
+        ));
     }
 
-    let baseline_positions = baseline.option_labels.iter().enumerate()
+    let baseline_positions = baseline
+        .option_labels
+        .iter()
+        .enumerate()
         .map(|(index, label)| (label.as_str(), index))
         .collect::<BTreeMap<_, _>>();
-    let reordered_positions = reordered.option_labels.iter().enumerate()
+    let reordered_positions = reordered
+        .option_labels
+        .iter()
+        .enumerate()
         .map(|(index, label)| (label.as_str(), index))
         .collect::<BTreeMap<_, _>>();
 
-    let baseline_members = baseline.participants.iter()
+    let baseline_members = baseline
+        .participants
+        .iter()
         .map(|member| (member.id.as_str(), member))
         .collect::<BTreeMap<_, _>>();
-    let reordered_members = reordered.participants.iter()
+    let reordered_members = reordered
+        .participants
+        .iter()
         .map(|member| (member.id.as_str(), member))
         .collect::<BTreeMap<_, _>>();
     if baseline_members.keys().ne(reordered_members.keys()) {
-        return Err(DeliberationError::OptionOrderPairMismatch("participant_set"));
+        return Err(DeliberationError::OptionOrderPairMismatch(
+            "participant_set",
+        ));
     }
     for (participant_id, member) in &baseline_members {
         let other = reordered_members[participant_id];
@@ -855,29 +868,48 @@ pub fn compare_option_order_variants(
     }
 
     let semantic_proposals = |session: &DeliberationSession| {
-        session.proposals.iter().map(|proposal| (
-            proposal.id.as_str(),
-            proposal.author_id.as_str(),
-            session.option_labels[proposal.option_index].as_str(),
-        )).collect::<BTreeMap<_, _>>()
+        session
+            .proposals
+            .iter()
+            .map(|proposal| {
+                (
+                    proposal.id.as_str(),
+                    proposal.author_id.as_str(),
+                    session.option_labels[proposal.option_index].as_str(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>()
     };
     if semantic_proposals(baseline) != semantic_proposals(reordered) {
-        return Err(DeliberationError::OptionOrderPairMismatch("proposal_semantics"));
+        return Err(DeliberationError::OptionOrderPairMismatch(
+            "proposal_semantics",
+        ));
     }
     if baseline.evidence_catalogue != reordered.evidence_catalogue {
-        return Err(DeliberationError::OptionOrderPairMismatch("evidence_catalogue"));
+        return Err(DeliberationError::OptionOrderPairMismatch(
+            "evidence_catalogue",
+        ));
     }
 
-    let reordered_by_label = reordered.option_labels.iter().enumerate()
+    let reordered_by_label = reordered
+        .option_labels
+        .iter()
+        .enumerate()
         .map(|(index, label)| (label.as_str(), reordered.final_allocation[index]))
         .collect::<BTreeMap<_, _>>();
-    let remapped = baseline.option_labels.iter()
+    let remapped = baseline
+        .option_labels
+        .iter()
         .map(|label| reordered_by_label[label.as_str()])
         .collect::<Vec<_>>();
-    let allocation_l1_shift_units = baseline.final_allocation.iter().zip(&remapped)
+    let allocation_l1_shift_units = baseline
+        .final_allocation
+        .iter()
+        .zip(&remapped)
         .map(|(left, right)| left.abs_diff(*right))
         .try_fold(0_u32, |sum, value| {
-            sum.checked_add(value).ok_or(DeliberationError::AllocationOverflow)
+            sum.checked_add(value)
+                .ok_or(DeliberationError::AllocationOverflow)
         })?;
 
     Ok(OptionOrderDifference {
@@ -1202,11 +1234,7 @@ mod tests {
     #[test]
     fn option_order_permutation_is_invariant_when_semantic_allocation_is_unchanged() {
         let mut reordered = base_session();
-        reordered.option_labels = vec![
-            "charity_c".into(),
-            "charity_b".into(),
-            "charity_a".into(),
-        ];
+        reordered.option_labels = vec!["charity_c".into(), "charity_b".into(), "charity_a".into()];
         for member in &mut reordered.participants {
             member.preferences.reverse();
         }
