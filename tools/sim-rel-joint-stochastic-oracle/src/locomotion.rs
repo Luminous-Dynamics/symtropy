@@ -2503,9 +2503,13 @@ mod tests {
             )
             .unwrap();
         let outcome = &compiled.kernel.rows[row_index].outcomes[0];
+        let next_physical = &compiled.physical_states[outcome.next_physical_state];
         let next_sensor = &compiled.sensor_states[outcome.next_sensor_state];
-        assert_eq!(outcome.next_physical_state, 1);
+        assert_eq!(next_physical.id, "swing-loaded");
+        assert_eq!(next_physical.behavioral_context, BehavioralContext::Walking);
+        assert_eq!(next_physical.load_state, LoadState::Elevated);
         assert_eq!(next_sensor.acquisition, AcquisitionState::PositiveOffset);
+        assert_eq!(next_sensor, sensor);
     }
 
     #[test]
