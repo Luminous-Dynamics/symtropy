@@ -423,7 +423,7 @@ pub fn spearman_rank_correlation(
         .collect::<Vec<_>>();
     let left_ranks = average_ranks_descending(&left_values);
     let right_ranks = average_ranks_descending(&right_values);
-    pearson_correlation(&left_ranks, &right_ranks)
+    Ok(pearson_correlation(&left_ranks, &right_ranks))
 }
 
 pub fn regret_certificate(
