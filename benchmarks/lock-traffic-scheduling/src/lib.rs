@@ -832,10 +832,16 @@ pub fn schedule(
     outcomes.sort_by(|left, right| left.request_id.cmp(&right.request_id));
 
     let metrics = build_metrics(profile, &unavailable, &schedule, &outcomes);
-    let disposition = if outcomes
-        .iter()
-        .any(|outcome| outcome.reason == Some(NotScheduledReason::PassageNeedsReview))
-    {
+    let disposition = if outcomes.iter().any(|outcome| {
+        matches!(
+            outcome.reason,
+            Some(
+                NotScheduledReason::PassageNeedsReview
+                    | NotScheduledReason::ArrivalEvidenceNeedsReview
+                    | NotScheduledReason::ArrivalEvidenceInvalid
+            )
+        )
+    }) {
         PlanDisposition::NeedsReview
     } else if metrics.unserved_requests == 0 {
         PlanDisposition::AllRequestsScheduled
@@ -1297,10 +1303,29 @@ mod tests {
         let plan =
             schedule(&p, &[stale], SchedulingPolicy::FirstComeFirstServed).expect("valid profile");
         assert_eq!(plan.schedule.len(), 0);
+        assert_eq!(plan.disposition, PlanDisposition::NeedsReview);
         assert_eq!(
             plan.outcomes[0].reason,
             Some(NotScheduledReason::ArrivalEvidenceNeedsReview)
         );
+    }
+
+    #[test]
+    fn mixed_valid_and_stale_requests_preserve_plan_level_review_status() {
+        let mut p = profile();
+        p.maximum_arrival_evidence_age_ticks = 5;
+        p.planning_window.start_tick = 20;
+        let mut stale = request("stale", 20, Direction::Upstream, 1, 1);
+        stale.arrival_evidence.observed_at_tick = 10;
+        let valid = request("valid", 20, Direction::Upstream, 1, 1);
+        let plan = schedule(
+            &p,
+            &[stale, valid],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(plan.schedule.len(), 1);
+        assert_eq!(plan.disposition, PlanDisposition::NeedsReview);
     }
 
     #[test]
