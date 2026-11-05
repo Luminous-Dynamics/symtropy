@@ -25,12 +25,13 @@
   ],
   "instantActionStates": [],
   "powerSupply": {
-    "batteryCharge": 90
+    "stateOfCharge": 90,
+    "charging": false
   },
   "operatingMode": "AUTOMATIC",
   "errors": [],
   "safetyState": {
-    "eStop": "NONE",
+    "activeEmergencyStop": "NONE",
     "fieldViolation": false
   },
   "zoneRequests": [
