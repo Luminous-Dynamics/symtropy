@@ -76,6 +76,11 @@
       "id": "CC-15",
       "case": "bundle-digest-replacement-without-independent-anchor",
       "expected": "content_commitment_is_not_authentication"
+    },
+    {
+      "id": "CC-16",
+      "case": "unmatched-event-in-different-parent-world",
+      "expected": "reject_mixed_world_scope"
     }
   ],
   "claim_ceiling": "Passing establishes deterministic re-projection and raw Philox receipt conformance for the retained finite inputs. It does not authenticate evidence truth, prove candidate-universe or hypothesis-family exhaustiveness, select the true correspondence or causal model, establish CRN variance reduction, validate real human behaviour or physics, or certify vehicle safety."
