@@ -604,8 +604,7 @@ mod tests {
             resolved
                 .hypotheses
                 .iter()
-                .all(|hypothesis| hypothesis.completeness
-                    == PlanCompleteness::CompleteWithinDeclaredSets)
+                .all(|hypothesis| hypothesis.completeness == PlanCompleteness::Incomplete)
         );
     }
 
