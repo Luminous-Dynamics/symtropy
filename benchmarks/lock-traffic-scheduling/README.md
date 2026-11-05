@@ -17,6 +17,10 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.t
 - Least-slack ordering includes the request's worst-case arrival bound, authorized
   latest-start time, maximum-wait limit, completion deadline, service duration,
   direction-switch delay, lock downtime and planning window.
+- Every arrival interval binds source/model revision, calibration/validation receipt,
+  operating regime, observation time, expiry, and an explicit evidence state.
+  Future-dated, stale, missing, disputed or revoked arrival evidence is rejected or
+  routed to review; intervals are conservatively scheduled at their latest arrival.
 - Passage requests are admitted only when the upstream PassageEvaluation is
   EligibleForSyntheticPassage; unknown, inconsistent, blocked, or unsupported
   inputs are never relaxed into schedulable work.
