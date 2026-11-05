@@ -354,7 +354,7 @@ impl InferenceRun {
 pub struct InferenceServiceContract {
     minimum_success_fraction: f64,
     minimum_useful_work_fraction: f64,
-    minimum_tokens_per_second: f64,
+    minimum_useful_tokens_per_second: f64,
     minimum_throughput_retention_fraction: f64,
     maximum_p95_ttft_ms: f64,
     maximum_p99_ttft_ms: f64,
@@ -369,7 +369,7 @@ impl InferenceServiceContract {
     pub fn new(
         minimum_success_fraction: f64,
         minimum_useful_work_fraction: f64,
-        minimum_tokens_per_second: f64,
+        minimum_useful_tokens_per_second: f64,
         minimum_throughput_retention_fraction: f64,
         maximum_p95_ttft_ms: f64,
         maximum_p99_ttft_ms: f64,
@@ -388,7 +388,7 @@ impl InferenceServiceContract {
             }
         }
         for (name, value) in [
-            ("minimum tokens per second", minimum_tokens_per_second),
+            ("minimum tokens per second", minimum_useful_tokens_per_second),
             ("maximum p95 TTFT ms", maximum_p95_ttft_ms),
             ("maximum p99 TTFT ms", maximum_p99_ttft_ms),
             ("maximum p95 latency ms", maximum_p95_completion_latency_ms),
@@ -409,7 +409,7 @@ impl InferenceServiceContract {
         Ok(Self {
             minimum_success_fraction,
             minimum_useful_work_fraction,
-            minimum_tokens_per_second,
+            minimum_useful_tokens_per_second,
             minimum_throughput_retention_fraction,
             maximum_p95_ttft_ms,
             maximum_p99_ttft_ms,
@@ -427,6 +427,8 @@ pub struct InferencePowerResponseContract {
     minimum_sustained_reduction_w: f64,
     required_consecutive_samples: usize,
     minimum_sustained_duration_ms: u64,
+    maximum_rebound_power_w: f64,
+    maximum_rebound_energy_wh: f64,
 }
 
 impl InferencePowerResponseContract {
@@ -434,10 +436,16 @@ impl InferencePowerResponseContract {
         minimum_sustained_reduction_w: f64,
         required_consecutive_samples: usize,
         minimum_sustained_duration_ms: u64,
+        maximum_rebound_power_w: f64,
+        maximum_rebound_energy_wh: f64,
     ) -> Result<Self, InferencePowerFlexibilityError> {
         if !minimum_sustained_reduction_w.is_finite() || minimum_sustained_reduction_w <= 0.0
             || !(1..=10_000).contains(&required_consecutive_samples)
             || minimum_sustained_duration_ms == 0
+            || !maximum_rebound_power_w.is_finite()
+            || maximum_rebound_power_w < 0.0
+            || !maximum_rebound_energy_wh.is_finite()
+            || maximum_rebound_energy_wh < 0.0
         {
             return Err(InferencePowerFlexibilityError::InvalidPowerResponseContract);
         }
@@ -445,6 +453,8 @@ impl InferencePowerResponseContract {
             minimum_sustained_reduction_w,
             required_consecutive_samples,
             minimum_sustained_duration_ms,
+            maximum_rebound_power_w,
+            maximum_rebound_energy_wh,
         })
     }
 }
@@ -502,6 +512,13 @@ pub struct InferencePowerSlotReceipt {
 
 /// Reasons a candidate fails the declared service envelope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+/// Recovery/rebound envelope failures are distinct from service failures.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum InferencePowerResponseGateViolation {
+    MaximumReboundPowerExceeded,
+    MaximumReboundEnergyExceeded,
+}
+
 pub enum InferenceServiceGateViolation {
     SuccessFractionBelowMinimum,
     UsefulWorkFractionBelowMinimum,
@@ -541,6 +558,7 @@ pub struct InferencePowerFlexibilityReport {
     pub net_boundary_energy_reduction_wh: f64,
     pub stabilized_response_elapsed_ms: Option<u64>,
     pub candidate_service_gate_violations: Vec<InferenceServiceGateViolation>,
+    pub power_response_gate_violations: Vec<InferencePowerResponseGateViolation>,
     pub service_equivalent: bool,
     pub power_response_qualified: bool,
     pub slot_receipts: Vec<InferencePowerSlotReceipt>,
@@ -795,11 +813,23 @@ pub fn evaluate_inference_power_flexibility(
         ));
     }
 
+    let mut power_response_gate_violations = Vec::new();
+    if maximum_sampled_rebound_w > contract.response.maximum_rebound_power_w {
+        power_response_gate_violations.push(
+            InferencePowerResponseGateViolation::MaximumReboundPowerExceeded,
+        );
+    }
+    if rebound_energy_wh > contract.response.maximum_rebound_energy_wh {
+        power_response_gate_violations.push(
+            InferencePowerResponseGateViolation::MaximumReboundEnergyExceeded,
+        );
+    }
     let power_response_qualified = service_equivalent
         && stabilized_response_elapsed_ms.is_some()
         && maximum_sampled_reduction_w >= contract.response.minimum_sustained_reduction_w
         && maximum_sustained_reduction_duration_ms
-            >= contract.response.minimum_sustained_duration_ms;
+            >= contract.response.minimum_sustained_duration_ms
+        && power_response_gate_violations.is_empty();
     let claim_ceiling = format!(
         "MEASURED_INFERENCE_POWER_QOS_ENVELOPE_AT_{:?}_BOUNDARY_NOT_GRID_DISPATCH_OR_RESOURCE_ACCREDITATION",
         identity.boundary
@@ -831,6 +861,7 @@ pub fn evaluate_inference_power_flexibility(
         net_boundary_energy_reduction_wh,
         stabilized_response_elapsed_ms,
         candidate_service_gate_violations: candidate_violations,
+        power_response_gate_violations,
         service_equivalent,
         power_response_qualified,
         slot_receipts,
@@ -1002,7 +1033,7 @@ fn service_violations(
     if metrics.useful_work_fraction < contract.minimum_useful_work_fraction {
         reasons.push(InferenceServiceGateViolation::UsefulWorkFractionBelowMinimum);
     }
-    if metrics.useful_tokens_per_second < contract.minimum_tokens_per_second {
+    if metrics.useful_tokens_per_second < contract.minimum_useful_tokens_per_second {
         reasons.push(InferenceServiceGateViolation::TokensPerSecondBelowMinimum);
     }
     if let Some(base) = baseline {
@@ -1086,7 +1117,7 @@ mod tests {
     }
 
     fn response_contract() -> InferencePowerResponseContract {
-        InferencePowerResponseContract::new(15.0, 3, 300).expect("response contract")
+        InferencePowerResponseContract::new(15.0, 3, 300, 10.0, 0.0005).expect("response contract")
     }
 
     fn action(id: &str, cap: f64) -> InferenceControlAction {
