@@ -420,7 +420,10 @@ impl fmt::Display for DeliberationError {
                 write!(f, "allocation uses {actual} units; budget is {expected}")
             }
             Self::InvalidConsensusThreshold(value) => {
-                write!(f, "consensus endorsement threshold must be finite and in [0,1], got {value}")
+                write!(
+                    f,
+                    "consensus endorsement threshold must be finite and in [0,1], got {value}"
+                )
             }
             Self::FacilitationPairMismatch(field) => {
                 write!(
@@ -633,11 +636,13 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         .count();
     let consensus_rule_minimum_fraction =
         session.consensus_rule.map(ConsensusRule::minimum_fraction);
-    let consensus_rule_met = match (session.facilitator_declares_consensus, session.consensus_rule) {
-        (true, Some(rule)) if consensus_unrecorded_count == 0 => {
-            Some(consensus_endorsement_count as f64 / member_count as f64
-                >= rule.minimum_fraction())
-        }
+    let consensus_rule_met = match (
+        session.facilitator_declares_consensus,
+        session.consensus_rule,
+    ) {
+        (true, Some(rule)) if consensus_unrecorded_count == 0 => Some(
+            consensus_endorsement_count as f64 / member_count as f64 >= rule.minimum_fraction(),
+        ),
         _ => None,
     };
 
@@ -739,7 +744,9 @@ pub fn compare_facilitation_variants(
         return Err(DeliberationError::FacilitationPairMismatch("option_labels"));
     }
     if baseline.resource_budget != perturbed.resource_budget {
-        return Err(DeliberationError::FacilitationPairMismatch("resource_budget"));
+        return Err(DeliberationError::FacilitationPairMismatch(
+            "resource_budget",
+        ));
     }
     let baseline_preferences = baseline
         .participants
