@@ -199,7 +199,7 @@ fn report(
 ///
 /// Order of precedence:
 /// 1. A hard physical/authorization violation always blocks dispatch.
-//// 2. Synthetic-only evidence is never eligible for operational decision support.
+/// 2. Synthetic-only evidence is never eligible for operational decision support.
 /// 3. Missing provenance, calibration, censoring support or incoherent forecasts
 ///    produce NOT_EVALUABLE.
 /// 4. Unsupported materials, routes, temperatures or duty cycles produce
@@ -579,7 +579,8 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         || ![
             "A_CALIBRATION",
             "D_CALIBRATION",
-            "SURVIVALBOOST_SCORE",
+            "CIF_RELIABILITY_CURVE",
+            "CLUSTER_BOOTSTRAP_COVERAGE",
             "OTHER_REVIEWED",
         ]
         .contains(&calibration_method)
