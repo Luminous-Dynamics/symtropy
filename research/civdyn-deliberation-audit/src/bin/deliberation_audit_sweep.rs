@@ -153,7 +153,11 @@ fn fmt(value: f64) -> String {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "deliberation CSV schema must remain fixed");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "deliberation CSV schema must remain fixed"
+    );
     println!("{}", fields.join(","));
 }
 
@@ -202,17 +206,33 @@ fn emit_audit(session: &DeliberationSession) {
     for (metric, value, unit) in [
         ("speaking_time_gini", fmt(audit.speaking_time_gini), "index"),
         ("turn_count_gini", fmt(audit.turn_count_gini), "index"),
-        ("raised_proposal_count", audit.raised_proposal_count.to_string(), "count"),
-        ("summary_proposal_count", audit.summary_proposal_count.to_string(), "count"),
-        ("suppressed_proposal_count", audit.suppressed_proposal_count.to_string(), "count"),
+        (
+            "raised_proposal_count",
+            audit.raised_proposal_count.to_string(),
+            "count",
+        ),
+        (
+            "summary_proposal_count",
+            audit.summary_proposal_count.to_string(),
+            "count",
+        ),
+        (
+            "suppressed_proposal_count",
+            audit.suppressed_proposal_count.to_string(),
+            "count",
+        ),
         (
             "proposal_summary_coverage",
-            audit.proposal_summary_coverage.map_or_else(String::new, fmt),
+            audit
+                .proposal_summary_coverage
+                .map_or_else(String::new, fmt),
             "fraction",
         ),
         (
             "summary_proposal_option_funded_share",
-            audit.summary_proposal_option_funded_share.map_or_else(String::new, fmt),
+            audit
+                .summary_proposal_option_funded_share
+                .map_or_else(String::new, fmt),
             "fraction",
         ),
         (
@@ -285,9 +305,21 @@ fn emit_audit(session: &DeliberationSession) {
     for member in &audit.members {
         for (metric, value, unit) in [
             ("turn_count", member.turns.to_string(), "count"),
-            ("speaking_time_ms", member.speaking_time_ms.to_string(), "ms"),
-            ("speaking_time_share", fmt(member.speaking_time_share), "fraction"),
-            ("proposals_authored", member.proposals_authored.to_string(), "count"),
+            (
+                "speaking_time_ms",
+                member.speaking_time_ms.to_string(),
+                "ms",
+            ),
+            (
+                "speaking_time_share",
+                fmt(member.speaking_time_share),
+                "fraction",
+            ),
+            (
+                "proposals_authored",
+                member.proposals_authored.to_string(),
+                "count",
+            ),
             (
                 "proposals_raised_in_turns",
                 member.proposals_raised_in_turns.to_string(),
