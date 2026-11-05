@@ -1824,10 +1824,8 @@ mod tests {
             ("water-budget-01", "water-calendar", 5_000),
             ("shore-01", "shore-calendar", 1_000),
         ] {
-            let mut first =
-                valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
-            let mut second =
-                valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+            let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+            let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
             for case in [&mut first, &mut second] {
                 case.resources
                     .iter_mut()
