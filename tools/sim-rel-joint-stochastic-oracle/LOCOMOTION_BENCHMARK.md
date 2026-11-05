@@ -190,6 +190,20 @@ The EmbodiedLab authors report that even the strongest evaluated native-control 
 
 A policy must not receive scientific credit for an intended intervention when the delivered intervention or the measurement receipt is invalid.
 
+### Connectome-derived rhythm generation versus closed-loop locomotion
+
+Pugliese et al. (Nature, 28 October 2026; DOI 10.1038/s41586-026-11195-y) establish a strong neural rhythm-generation comparator: their DNg100-driven three-neuron inhibitory/excitatory motif is reported necessary and sufficient for simulated motor rhythms across four connectome datasets, while DNb08 is a distinct pathway with optogenetic confirmation. Treat that as a source-reproduction and neural-dynamics baseline, not as a complete embodied walking controller or proof of tripod coordination.
+
+The benchmark must separate three scorecards:
+
+1. **Neural rhythm generation:** reproduce DNg100/DNb08 source outputs, neuron-level rate trajectories, rhythm frequency, phase and per-dataset circuit identities using the pinned archived data and configs in #3511.
+2. **Inter-leg coordination:** evaluate phase relationships and coordinated multi-leg patterns, including the effect of local FeCO/9A gating and distributed brain-and-cord pathways in #3518/#3519.
+3. **Embodied gait:** evaluate contact timing, load transfer, slip, stability, disturbance recovery and physical trajectories in pinned FlyGym 2.1.1 using #3357.
+
+A model that succeeds on scorecard 1 must not inherit credit on scorecards 2 or 3. Compare at least central-rhythm-only, local-feedback-only, hybrid CPG+local feedback, distributed brain-and-cord, and mechanics/reflex alternatives with matched interventions and compute budgets. Keep the four Pugliese connectome datasets, female BANC brain-and-cord source, and measured FeCO datasets as separately identified source families. Do not pool them into one synthetic "fly" without an explicit population model.
+
+The paper's Nature data-availability text cites Zenodo DOI 10.5281/zenodo.22260923, while the author repository points to record 22260924. Preserve the discrepancy and the issue #3511 custody requirements; do not silently choose one identifier or claim a reproduction before the source materialization and exact run outputs are independently pinned.
+
 ### What a defensible "better than SOTA" claim requires
 
 A superiority claim must be conditional and lane-specific:
