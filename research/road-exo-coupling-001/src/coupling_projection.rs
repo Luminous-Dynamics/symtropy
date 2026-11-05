@@ -106,6 +106,8 @@ pub struct HypothesisAddressPlan {
     pub completeness: PlanCompleteness,
     /// Exact correspondence map and its justification/unmatched-event evidence.
     pub correspondence: CorrespondenceHypothesis,
+    /// Causal sharing/identification rules supplied independently of event matching.
+    pub causal_rules: Vec<PairCausalRule>,
     pub addresses: Vec<PlannedAddress>,
 }
 
@@ -327,6 +329,12 @@ pub fn project_correspondence_addresses(
                 &b.canonical_bytes,
             ))
         });
+        let causal_rules = pair_rule_index
+            .iter()
+            .filter(|(key, _)| key.hypothesis_id == hypothesis.hypothesis_id)
+            .map(|(_, rule)| rule.clone())
+            .collect();
+
         hypotheses.push(HypothesisAddressPlan {
             hypothesis_id: hypothesis.hypothesis_id.clone(),
             completeness: if global_complete {
@@ -335,6 +343,7 @@ pub fn project_correspondence_addresses(
                 PlanCompleteness::Incomplete
             },
             correspondence: hypothesis.clone(),
+            causal_rules,
             addresses,
         });
     }
