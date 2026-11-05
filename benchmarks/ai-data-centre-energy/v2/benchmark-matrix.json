@@ -68,16 +68,18 @@
       "source": "https://www.iea.org/reports/powering-artificial-intelligence/executive-summary",
       "domain": "cost_of_flexibility",
       "baseline": "compute opportunity cost versus BESS/UPS/thermal storage/generator/network alternative",
-      "target": "publish break-even cost per net delivered MW/MWh with compute value, battery degradation, reserve and grid value included",
+      "target": "compare compute, BESS/UPS and thermal alternatives only after service equivalence; use annualized fixed cost, expected variable cost and lower-bound net delivered MWh; publish break-even compute opportunity cost per event",
       "primary_metrics": [
-        "total_cost",
-        "cost_per_delivered_mwh",
-        "foregone_compute_value",
-        "battery_degradation_cost",
-        "avoided_network_cost",
-        "water_and_emissions"
+        "annualized_fixed_cost",
+        "variable_cost_per_call",
+        "compute_opportunity_cost_per_call",
+        "expected_annual_cost",
+        "expected_annual_net_delivered_mwh",
+        "cost_per_reliably_delivered_mwh",
+        "minimum_availability_lower_bound",
+        "break_even_compute_opportunity_cost_per_call"
       ],
-      "status": "NOT_IMPLEMENTED"
+      "status": "COMPARATOR_PROTOCOL_AND_SYNTHETIC_FIXTURE_ADDED"
     },
     {
       "id": "electrothermal-cooling-flex",
