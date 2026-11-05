@@ -100,3 +100,13 @@ This is a schema, benchmark and software research specification. It does not est
 A condition observation is not a survival outcome. The new `asset-lifecycle-outcome.schema.json` defines a separate first-event survival dataset with explicit `TARGET_FAILURE`, `RIGHT_CENSORED` and `COMPETING_EVENT` outcomes. This prevents the end of a study from being converted into a failure and lets the evaluator enforce grouped split isolation across asset, segment, material lot, installation, route and environmental campaign.
 
 The synthetic lifecycle fixture contains no field-lifetime observations. Its times and event labels are known-truth controls only. The Rust contract validator checks timestamp-derived durations, event/censor semantics, duplicate asset identity and cross-split leakage.
+
+
+## Survival outcomes and leakage-resistant evaluation
+
+The contract is now split into two related but distinct record types:
+
+- `asset-observation.schema.json` records a condition measurement at an observation time.
+- `asset-lifecycle-outcome.schema.json` records a time-to-event subject with a target failure, right-censoring or a competing event.
+
+The synthetic example `asset-lifecycle-outcomes.synthetic-example.json` contains one case of each type. The validator verifies event/censor semantics, duration against UTC timestamps, one first-event record per asset, and prevents repeated asset, segment, material-lot, installation, route or environmental-campaign groups from crossing train/calibration/test splits. All lifecycle values are synthetic fixtures; there is no field RUL result.
