@@ -5,10 +5,10 @@
 //! test oracle, not a production optimizer. Factorial enumeration is bounded to
 //! tiny fixtures.
 
+use inland_waterway_lock_operations::{PassageDisposition, PassageEvaluation, TimeInterval};
 use lock_traffic_scheduling::{
     Direction, LockScheduleProfile, PassageRequest, ScheduleMetrics, SchedulingPolicy, schedule,
 };
-use inland_waterway_lock_operations::{PassageDisposition, PassageEvaluation, TimeInterval};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct OracleCandidate {
@@ -42,8 +42,7 @@ fn independently_find_start(
 
         let mut next_available = None;
         for unavailable in &profile.unavailable_windows {
-            let intersects = candidate < unavailable.end_tick
-                && unavailable.start_tick < end;
+            let intersects = candidate < unavailable.end_tick && unavailable.start_tick < end;
             if intersects {
                 next_available = Some(unavailable.end_tick);
                 break;
@@ -95,11 +94,9 @@ fn evaluate_order(
             .max(request.arrival_latest_tick)
             .max(request.earliest_start_tick)
             .max(profile.planning_window.start_tick);
-        let Some(start) = independently_find_start(
-            profile,
-            earliest,
-            request.service_duration_ticks,
-        ) else {
+        let Some(start) =
+            independently_find_start(profile, earliest, request.service_duration_ticks)
+        else {
             continue;
         };
         let Some(end) = start.checked_add(request.service_duration_ticks) else {
@@ -185,7 +182,10 @@ fn exact_frontier(
     profile: &LockScheduleProfile,
     requests: &[PassageRequest],
 ) -> Vec<OracleCandidate> {
-    assert!(requests.len() <= 8, "the exhaustive oracle is only for tiny cases");
+    assert!(
+        requests.len() <= 8,
+        "the exhaustive oracle is only for tiny cases"
+    );
     let mut prefix = Vec::with_capacity(requests.len());
     let mut remaining: Vec<usize> = (0..requests.len()).collect();
     let mut candidates = Vec::new();
@@ -199,9 +199,9 @@ fn exact_frontier(
 
     let mut frontier = Vec::new();
     for candidate in candidates {
-        let dominated = frontier.iter().any(|existing: &OracleCandidate| {
-            dominates(&existing.metrics, &candidate.metrics)
-        });
+        let dominated = frontier
+            .iter()
+            .any(|existing: &OracleCandidate| dominates(&existing.metrics, &candidate.metrics));
         if dominated {
             continue;
         }
@@ -298,8 +298,8 @@ fn exact_oracle_finds_order_that_fcfs_misses() {
     let requests = vec![long, short];
     let p = profile();
 
-    let fcfs = schedule(&p, &requests, SchedulingPolicy::FirstComeFirstServed)
-        .expect("profile is valid");
+    let fcfs =
+        schedule(&p, &requests, SchedulingPolicy::FirstComeFirstServed).expect("profile is valid");
     assert_eq!(fcfs.metrics.scheduled_requests, 1);
 
     let frontier = exact_frontier(&p, &requests);
@@ -326,16 +326,17 @@ fn oracle_does_not_admit_unknown_or_blocked_passage_evidence() {
     let requests = vec![unknown, blocked];
 
     let frontier = exact_frontier(&p, &requests);
-    assert!(frontier.iter().all(|candidate| candidate.accepted_ids.is_empty()));
+    assert!(
+        frontier
+            .iter()
+            .all(|candidate| candidate.accepted_ids.is_empty())
+    );
 }
 
 #[test]
 fn oracle_best_frontier_is_not_assumed_to_equal_a_greedy_policy() {
     let p = profile();
-    let requests = vec![
-        request("a", 30, 30, 40, 100),
-        request("b", 10, 0, 10, 50),
-    ];
+    let requests = vec![request("a", 30, 30, 40, 100), request("b", 10, 0, 10, 50)];
     let frontier = exact_frontier(&p, &requests);
     let fcfs = schedule(&p, &requests, SchedulingPolicy::FirstComeFirstServed)
         .expect("profile is valid");
