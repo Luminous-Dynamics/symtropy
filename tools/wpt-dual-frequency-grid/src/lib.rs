@@ -75,10 +75,9 @@ fn is_utc_timestamp(value: &str) -> bool {
         || bytes[13] != b':'
         || bytes[16] != b':'
         || bytes[19] != b'Z'
-        || !bytes
-            .iter()
-            .enumerate()
-            .all(|(index, byte)| matches!(index, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit())
+        || !bytes.iter().enumerate().all(|(index, byte)| {
+            matches!(index, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit()
+        })
     {
         return false;
     }
@@ -151,16 +150,25 @@ fn validate_quality_flags(run: &Value, evidence_kind: &str) -> Result<(), String
         ]
         .contains(&value)
         {
-            return Err(fail("$.quality_flags", format!("unknown quality flag {value}")));
+            return Err(fail(
+                "$.quality_flags",
+                format!("unknown quality flag {value}"),
+            ));
         }
         synthetic |= value == "SYNTHETIC_ONLY";
     }
 
     if evidence_kind == "SYNTHETIC_KNOWN_TRUTH" && !synthetic {
-        return Err(fail("$.quality_flags", "synthetic evidence requires SYNTHETIC_ONLY"));
+        return Err(fail(
+            "$.quality_flags",
+            "synthetic evidence requires SYNTHETIC_ONLY",
+        ));
     }
     if evidence_kind != "SYNTHETIC_KNOWN_TRUTH" && synthetic {
-        return Err(fail("$.quality_flags", "SYNTHETIC_ONLY cannot label non-synthetic evidence"));
+        return Err(fail(
+            "$.quality_flags",
+            "SYNTHETIC_ONLY cannot label non-synthetic evidence",
+        ));
     }
     Ok(())
 }
@@ -208,7 +216,10 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
 
     let model_class = string_field(run, "analysis_model_class", "$")?;
     if !["LTI", "LTP", "HSS", "SWITCHED_EMT"].contains(&model_class) {
-        return Err(fail("$.analysis_model_class", "unknown analysis model class"));
+        return Err(fail(
+            "$.analysis_model_class",
+            "unknown analysis model class",
+        ));
     }
     let cross_frequency = field(run, "cross_frequency_transfer_claim", "$")?
         .as_bool()
@@ -229,7 +240,10 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
         || min_sideband_separation <= 0.0
         || effective_resolution <= 0.0
     {
-        return Err(fail("$", "declared frequencies and resolutions must be strictly positive"));
+        return Err(fail(
+            "$",
+            "declared frequencies and resolutions must be strictly positive",
+        ));
     }
     if effective_resolution > min_sideband_separation / 2.0 {
         return Err(fail(
@@ -256,28 +270,36 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
     let sample_rate = number_field(acquisition, "sample_rate_hz", "$.acquisition")?;
     let sample_count = integer_field(acquisition, "sample_count", "$.acquisition")?;
     if sample_rate <= 0.0 || sample_count < 2 {
-        return Err(fail("$.acquisition", "sample rate must be positive and sample count >= 2"));
+        return Err(fail(
+            "$.acquisition",
+            "sample rate must be positive and sample count >= 2",
+        ));
     }
     string_field(acquisition, "clock_id", "$.acquisition")?;
     string_field(acquisition, "synchronization_group_id", "$.acquisition")?;
     let started = string_field(acquisition, "started_at_utc", "$.acquisition")?;
     if !is_utc_timestamp(started) {
-        return Err(fail("$.acquisition.started_at_utc", "must be UTC YYYY-MM-DDTHH:MM:SSZ"));
+        return Err(fail(
+            "$.acquisition.started_at_utc",
+            "must be UTC YYYY-MM-DDTHH:MM:SSZ",
+        ));
     }
-    if ![
-        "RECTANGULAR",
-        "HANN",
-        "BLACKMAN",
-        "FLAT_TOP",
-        "OTHER",
-    ]
-    .contains(&string_field(acquisition, "window_function", "$.acquisition")?)
-    {
-        return Err(fail("$.acquisition.window_function", "unknown window function"));
+    if !["RECTANGULAR", "HANN", "BLACKMAN", "FLAT_TOP", "OTHER"].contains(&string_field(
+        acquisition,
+        "window_function",
+        "$.acquisition",
+    )?) {
+        return Err(fail(
+            "$.acquisition.window_function",
+            "unknown window function",
+        ));
     }
     let raw_digest = string_field(acquisition, "raw_waveform_sha256", "$.acquisition")?;
     if !is_sha256(raw_digest) {
-        return Err(fail("$.acquisition.raw_waveform_sha256", "must be lowercase SHA-256 hex"));
+        return Err(fail(
+            "$.acquisition.raw_waveform_sha256",
+            "must be lowercase SHA-256 hex",
+        ));
     }
     string_field(acquisition, "calibration_receipt_id", "$.acquisition")?;
 
@@ -294,7 +316,10 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
         .as_array()
         .ok_or_else(|| fail("$.channels", "must be an array"))?;
     if channels.is_empty() {
-        return Err(fail("$.channels", "at least one spectral channel is required"));
+        return Err(fail(
+            "$.channels",
+            "at least one spectral channel is required",
+        ));
     }
 
     let mut channel_ids = BTreeSet::new();
@@ -341,7 +366,10 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
         let nominal_frequency = number_field(channel, "nominal_frequency_hz", &path)?;
         let tolerance = number_field(channel, "frequency_tolerance_hz", &path)?;
         if nominal_frequency <= 0.0 || tolerance < 0.0 {
-            return Err(fail(&path, "nominal frequency must be positive and tolerance non-negative"));
+            return Err(fail(
+                &path,
+                "nominal frequency must be positive and tolerance non-negative",
+            ));
         }
         let expected_nominal = match kind {
             "GRID_CURRENT" => grid_frequency,
@@ -359,7 +387,10 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
             .as_array()
             .ok_or_else(|| fail(&format!("{path}.lines"), "must be an array"))?;
         if lines.is_empty() {
-            return Err(fail(&format!("{path}.lines"), "at least one spectral line is required"));
+            return Err(fail(
+                &format!("{path}.lines"),
+                "at least one spectral line is required",
+            ));
         }
         let mut previous_frequency = None::<f64>;
         let mut fundamental_amplitude = None::<f64>;
@@ -386,8 +417,15 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
             let amplitude = number_field(line, "rms_amplitude", &line_path)?;
             let phase = number_field(line, "phase_deg", &line_path)?;
             let uncertainty = number_field(line, "expanded_uncertainty", &line_path)?;
-            if frequency <= 0.0 || amplitude < 0.0 || !(-180.0..=180.0).contains(&phase) || uncertainty < 0.0 {
-                return Err(fail(&line_path, "invalid frequency, RMS amplitude, phase or uncertainty"));
+            if frequency <= 0.0
+                || amplitude < 0.0
+                || !(-180.0..=180.0).contains(&phase)
+                || uncertainty < 0.0
+            {
+                return Err(fail(
+                    &line_path,
+                    "invalid frequency, RMS amplitude, phase or uncertainty",
+                ));
             }
             if let Some(previous) = previous_frequency {
                 if frequency <= previous {
@@ -405,15 +443,25 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                 "GRID_CURRENT" => {
                     let harmonic = field(line, "harmonic_order", &line_path)?
                         .as_u64()
-                        .ok_or_else(|| fail(&line_path, "grid-current line requires integer harmonic_order"))?;
+                        .ok_or_else(|| {
+                            fail(
+                                &line_path,
+                                "grid-current line requires integer harmonic_order",
+                            )
+                        })?;
                     if !field(line, "sideband_offset_hz", &line_path)?.is_null() {
-                        return Err(fail(&line_path, "grid harmonics cannot carry resonant sideband offsets"));
+                        return Err(fail(
+                            &line_path,
+                            "grid harmonics cannot carry resonant sideband offsets",
+                        ));
                     }
                     let expected = grid_frequency * harmonic as f64;
                     if (frequency - expected).abs() > tolerance {
                         return Err(fail(
                             &line_path,
-                            format!("frequency does not match harmonic order {harmonic} of the declared grid"),
+                            format!(
+                                "frequency does not match harmonic order {harmonic} of the declared grid"
+                            ),
                         ));
                     }
                     if harmonic == 1 {
@@ -426,25 +474,37 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                 }
                 "RESONANT_CURRENT" => {
                     if !field(line, "harmonic_order", &line_path)?.is_null() {
-                        return Err(fail(&line_path, "resonant spectral lines must have null grid harmonic_order"));
+                        return Err(fail(
+                            &line_path,
+                            "resonant spectral lines must have null grid harmonic_order",
+                        ));
                     }
                     let offset_value = field(line, "sideband_offset_hz", &line_path)?;
                     if offset_value.is_null() {
                         if (frequency - carrier_frequency).abs() > tolerance {
-                            return Err(fail(&line_path, "carrier line does not match resonant_carrier_hz"));
+                            return Err(fail(
+                                &line_path,
+                                "carrier line does not match resonant_carrier_hz",
+                            ));
                         }
                         if carrier_amplitude.replace(amplitude).is_some() {
                             return Err(fail(&line_path, "duplicate resonant carrier line"));
                         }
                     } else {
-                        let offset = offset_value
-                            .as_f64()
-                            .ok_or_else(|| fail(&line_path, "sideband_offset_hz must be numeric or null"))?;
+                        let offset = offset_value.as_f64().ok_or_else(|| {
+                            fail(&line_path, "sideband_offset_hz must be numeric or null")
+                        })?;
                         if !offset.is_finite() || offset.abs() < min_sideband_separation {
-                            return Err(fail(&line_path, "sideband offset is below declared minimum separation"));
+                            return Err(fail(
+                                &line_path,
+                                "sideband offset is below declared minimum separation",
+                            ));
                         }
                         if (frequency - (carrier_frequency + offset)).abs() > tolerance {
-                            return Err(fail(&line_path, "sideband frequency does not equal carrier plus offset"));
+                            return Err(fail(
+                                &line_path,
+                                "sideband frequency does not equal carrier plus offset",
+                            ));
                         }
                         sideband_square_sum += amplitude * amplitude;
                     }
@@ -458,14 +518,21 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                 saw_grid = true;
                 let fundamental = fundamental_amplitude
                     .filter(|amplitude| *amplitude > 0.0)
-                    .ok_or_else(|| fail(&path, "grid-current spectrum requires one non-zero fundamental"))?;
+                    .ok_or_else(|| {
+                        fail(
+                            &path,
+                            "grid-current spectrum requires one non-zero fundamental",
+                        )
+                    })?;
                 (Some(harmonic_square_sum.sqrt() / fundamental), None)
             }
             "RESONANT_CURRENT" => {
                 saw_resonant = true;
                 let carrier = carrier_amplitude
                     .filter(|amplitude| *amplitude > 0.0)
-                    .ok_or_else(|| fail(&path, "resonant spectrum requires one non-zero carrier"))?;
+                    .ok_or_else(|| {
+                        fail(&path, "resonant spectrum requires one non-zero carrier")
+                    })?;
                 (None, Some(sideband_square_sum.sqrt() / carrier))
             }
             _ => unreachable!("channel kind checked above"),
@@ -482,12 +549,17 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
     }
 
     if !saw_grid || !saw_resonant {
-        return Err(fail("$.channels", "v0 requires at least one grid-current and one resonant-current channel"));
+        return Err(fail(
+            "$.channels",
+            "v0 requires at least one grid-current and one resonant-current channel",
+        ));
     }
     if global_max_frequency >= nyquist {
         return Err(fail(
             "$.acquisition.sample_rate_hz",
-            format!("Nyquist frequency {nyquist} Hz does not exceed maximum spectral frequency {global_max_frequency} Hz"),
+            format!(
+                "Nyquist frequency {nyquist} Hz does not exceed maximum spectral frequency {global_max_frequency} Hz"
+            ),
         ));
     }
 
@@ -532,7 +604,10 @@ mod tests {
         let expected_thd = 0.061644140029689765;
         let expected_sideband_ratio = 0.032015621187164243;
         assert!((grid.total_harmonic_distortion.unwrap() - expected_thd).abs() < 1e-12);
-        assert!((resonant.sideband_to_carrier_rms_ratio.unwrap() - expected_sideband_ratio).abs() < 1e-12);
+        assert!(
+            (resonant.sideband_to_carrier_rms_ratio.unwrap() - expected_sideband_ratio).abs()
+                < 1e-12
+        );
         assert_eq!(report.nyquist_frequency_hz, 500_000.0);
         assert_eq!(report.native_fourier_resolution_hz, 10.0);
     }
@@ -674,11 +749,7 @@ mod tests {
     fn rejects_unknown_properties() {
         let mut run = fixture();
         run["unreviewed_confidence"] = Value::from(0.99);
-        assert!(
-            evaluate_run(&run)
-                .unwrap_err()
-                .contains("unknown property")
-        );
+        assert!(evaluate_run(&run).unwrap_err().contains("unknown property"));
     }
 
     #[test]
@@ -700,10 +771,6 @@ mod tests {
         // A single acquisition object is the declared synchronization group;
         // a channel cannot override that group or smuggle a different clock.
         run["channels"][1]["unsynchronized_clock_id"] = Value::String("rogue-clock".into());
-        assert!(
-            evaluate_run(&run)
-                .unwrap_err()
-                .contains("unknown property")
-        );
+        assert!(evaluate_run(&run).unwrap_err().contains("unknown property"));
     }
 }
