@@ -823,6 +823,7 @@ mod tests {
         run["profile"]["standard_role"] = Value::String("PRODUCT_EMISSION_LIMITS".into());
         run["profile"]["assessment_boundary"] = Value::String("EQUIPMENT_TERMINAL".into());
         run["profile"]["phase_count"] = Value::from(1);
+        run["profile"]["wire_count"] = Value::from(2);
         run["profile"]["nominal_voltage_v"] = Value::from(230.0);
         run["profile"]["rated_input_current_a_per_phase"] = Value::from(30.0);
         run["profile"]["pcc"] = Value::Null;
@@ -906,7 +907,7 @@ mod tests {
     #[test]
     fn rejects_duplicate_harmonic_orders() {
         let mut run = fixture();
-        run["current_spectrum"]["harmonics"][1]["harmonic_order"] = Value::from(5);
+        run["current_spectrum"]["harmonics"][1]["harmonic_order"] = Value::from(2);
         assert!(evaluate_run(&run).unwrap_err().contains("unique integers"));
     }
 
