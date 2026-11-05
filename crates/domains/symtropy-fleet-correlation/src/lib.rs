@@ -358,6 +358,9 @@ pub fn evaluate_fleet_correlation(
     for site in sites {
         let mean = mean(&site.samples_kw);
         let variance = sample_variance(&site.samples_kw, mean);
+        if !mean.is_finite() || !variance.is_finite() {
+            return Err(FleetCorrelationError::NumericalOverflow("site moments"));
+        }
         site_moments.push(SiteMomentReceipt {
             site_id: site.site_id.clone(),
             grid_region_id: site.grid_region_id.clone(),
@@ -417,7 +420,11 @@ pub fn evaluate_fleet_correlation(
     let mut absolute_ramps = Vec::with_capacity(sample_count - 1);
     let interval_seconds = interval_duration_ns as f64 / 1_000_000_000.0;
     for pair in portfolio.windows(2) {
-        absolute_ramps.push((pair[1] - pair[0]).abs() / interval_seconds);
+        let ramp = (pair[1] - pair[0]).abs() / interval_seconds;
+        if !ramp.is_finite() {
+            return Err(FleetCorrelationError::NumericalOverflow("portfolio ramp"));
+        }
+        absolute_ramps.push(ramp);
     }
     absolute_ramps.sort_by(f64::total_cmp);
     let maximum_absolute_portfolio_ramp_kw_per_second =
@@ -557,7 +564,8 @@ fn correlation(a: &[f64], b: &[f64]) -> Option<f64> {
     if variance_a <= f64::EPSILON || variance_b <= f64::EPSILON {
         return None;
     }
-    Some((covariance / (variance_a * variance_b).sqrt()).clamp(-1.0, 1.0))
+    let rho = covariance / variance_a.sqrt() / variance_b.sqrt();
+    rho.is_finite().then_some(rho.clamp(-1.0, 1.0))
 }
 
 fn require_id(field: &'static str, value: &str) -> Result<(), FleetCorrelationError> {
