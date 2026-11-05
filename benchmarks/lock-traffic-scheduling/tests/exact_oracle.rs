@@ -421,4 +421,3 @@ fn oracle_best_frontier_is_not_assumed_to_equal_a_greedy_policy() {
             .any(|candidate| candidate.metrics.accepted_count > fcfs.metrics.scheduled_requests)
     );
 }
-
