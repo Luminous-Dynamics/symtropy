@@ -156,6 +156,12 @@ pub struct SurvivalEvaluation {
     pub ipcw_brier_not_evaluable_reason: Option<String>,
     /// Cause-specific hazard log score; lower is better and censoring G is not estimated.
     pub cause_specific_hazard_log_score: f64,
+    /// Empirical Aalen-Johansen event-free survival at the forecast horizon.
+    /// This is an in-cohort descriptive reference, not an independent oracle.
+    pub aalen_johansen_event_free_survival: f64,
+    /// Empirical cause-specific cumulative incidence at the forecast horizon.
+    pub aalen_johansen_cumulative_incidence: BTreeMap<String, f64>,
+    pub aalen_johansen_event_count: usize,
     /// Smallest censoring-survival value used by an eligible score contribution.
     pub minimum_censoring_survival_used: Option<f64>,
     /// Largest inverse-probability-of-censoring weight used by an eligible subject.
@@ -472,6 +478,158 @@ fn parse_hazard_time_edges(run: &Value) -> Result<Vec<f64>, String> {
 /// The score does not estimate G(t) or use IPCW, but properness under random
 /// censoring still relies on independent censoring. Scores are compared only
 /// on the same declared censoring regime.
+/// Reconstruct survival and cause-specific cumulative incidence implied by
+/// piecewise-constant cause-specific hazard forecasts at one horizon.
+fn implied_survival_and_cif(
+    subject: &Subject,
+    interval_edges: &[f64],
+    horizon: f64,
+) -> Result<(f64, BTreeMap<String, f64>), String> {
+    if horizon > *interval_edges.last().expect("hazard intervals validated") {
+        return Err("forecast horizon exceeds declared hazard interval coverage".into());
+    }
+    let mut survival = 1.0_f64;
+    let mut cumulative_incidence = subject
+        .cause_specific_hazard_rates
+        .keys()
+        .map(|cause| (cause.clone(), 0.0_f64))
+        .collect::<BTreeMap<_, _>>();
+
+    for (interval_index, edge_pair) in interval_edges.windows(2).enumerate() {
+        let start = edge_pair[0];
+        let end = edge_pair[1];
+        if start >= horizon {
+            break;
+        }
+        let exposure = (horizon.min(end) - start).max(0.0);
+        if exposure == 0.0 {
+            continue;
+        }
+        let total_rate = subject
+            .cause_specific_hazard_rates
+            .values()
+            .map(|rates| rates[interval_index])
+            .sum::<f64>();
+        if !total_rate.is_finite() {
+            return Err("total cause-specific hazard rate overflowed".into());
+        }
+        if total_rate > 0.0 {
+            let interval_event_mass = 1.0 - (-total_rate * exposure).exp();
+            for (cause, rates) in &subject.cause_specific_hazard_rates {
+                let increment = survival * (rates[interval_index] / total_rate) * interval_event_mass;
+                let value = cumulative_incidence
+                    .get_mut(cause)
+                    .expect("cause keys were constructed from the hazard map");
+                *value += increment;
+                if !value.is_finite() {
+                    return Err("forecast cumulative incidence integration overflowed".into());
+                }
+            }
+            survival *= (-total_rate * exposure).exp();
+            if !survival.is_finite() {
+                return Err("forecast survival integration overflowed".into());
+            }
+        }
+    }
+    Ok((survival, cumulative_incidence))
+}
+
+/// Require the published survival/CIF values and piecewise hazard curves to
+/// describe the same probability distribution at the declared horizon.
+fn validate_forecast_representation_coherence(
+    subjects: &[Subject],
+    interval_edges: &[f64],
+    horizon: f64,
+) -> Result<(), String> {
+    for subject in subjects {
+        let (implied_survival, implied_cif) =
+            implied_survival_and_cif(subject, interval_edges, horizon)?;
+        if (implied_survival - subject.survival_probability).abs() > 1e-8 {
+            return Err(format!(
+                "subject {}: survival probability disagrees with integrated cause-specific hazards (declared {}, implied {})",
+                subject.subject_id, subject.survival_probability, implied_survival
+            ));
+        }
+        for (cause, declared) in &subject.cumulative_incidence {
+            let implied = implied_cif
+                .get(cause)
+                .copied()
+                .ok_or_else(|| format!("subject {}: hazard forecast omits cause {cause}", subject.subject_id))?;
+            if (declared - implied).abs() > 1e-8 {
+                return Err(format!(
+                    "subject {}: cumulative incidence for {cause} disagrees with integrated cause-specific hazards (declared {declared}, implied {implied})",
+                    subject.subject_id
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Empirical Aalen-Johansen event-free survival and cause-specific cumulative
+/// incidence for the evaluation cohort. At tied times, all event/censor rows
+/// remain in the pre-time risk set; event causes are updated before subjects
+/// leave the risk set. Censoring affects later risk sets but does not count as
+/// a failure. This in-cohort curve is descriptive, not held-out calibration.
+fn aalen_johansen_at_horizon(
+    subjects: &[Subject],
+    all_codes: &BTreeSet<String>,
+    horizon: f64,
+) -> Result<(f64, BTreeMap<String, f64>, usize), String> {
+    let mut cumulative_incidence = all_codes
+        .iter()
+        .map(|cause| (cause.clone(), 0.0_f64))
+        .collect::<BTreeMap<_, _>>();
+    let mut survival = 1.0_f64;
+    let mut event_count = 0usize;
+
+    let mut event_times = subjects
+        .iter()
+        .filter(|subject| {
+            subject.has_terminal_event() && subject.observed_duration_hours <= horizon
+        })
+        .map(|subject| subject.observed_duration_hours)
+        .collect::<Vec<_>>();
+    event_times.sort_by(f64::total_cmp);
+    event_times.dedup_by(|left, right| *left == *right);
+
+    for event_time in event_times {
+        let at_risk = subjects
+            .iter()
+            .filter(|subject| subject.observed_duration_hours >= event_time)
+            .count();
+        if at_risk == 0 {
+            return Err("Aalen-Johansen encountered an empty risk set".into());
+        }
+
+        let mut events_by_cause = BTreeMap::<String, usize>::new();
+        for subject in subjects.iter().filter(|subject| {
+            subject.has_terminal_event()
+                && subject.observed_duration_hours == event_time
+        }) {
+            let cause = subject
+                .event_code
+                .as_ref()
+                .expect("validated terminal event must carry event code");
+            *events_by_cause.entry(cause.clone()).or_default() += 1;
+        }
+        let total_events = events_by_cause.values().sum::<usize>();
+        if total_events > at_risk {
+            return Err("Aalen-Johansen event count exceeds the risk set".into());
+        }
+        for (cause, count) in events_by_cause {
+            let increment = survival * count as f64 / at_risk as f64;
+            let value = cumulative_incidence
+                .get_mut(&cause)
+                .ok_or_else(|| format!("Aalen-Johansen encountered undeclared cause {cause}"))?;
+            *value += increment;
+            event_count += count;
+        }
+        survival *= 1.0 - total_events as f64 / at_risk as f64;
+    }
+    Ok((survival, cumulative_incidence, event_count))
+}
+
 fn cause_specific_hazard_log_score(
     subjects: &[Subject],
     interval_edges: &[f64],
@@ -735,7 +893,10 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
             "last hazard interval must cover every observed event/censor time",
         ));
     }
+    validate_forecast_representation_coherence(&subjects, &hazard_time_edges, horizon)?;
     let hazard_log_score = cause_specific_hazard_log_score(&subjects, &hazard_time_edges)?;
+    let (aj_survival, aj_cif, aj_event_count) =
+        aalen_johansen_at_horizon(&subjects, &all_codes, horizon)?;
 
     let mut brier_weighted_sum = 0.0;
     let eligible_count = subjects
@@ -859,6 +1020,9 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
         ipcw_competing_risk_brier_score: brier_score,
         ipcw_brier_not_evaluable_reason: brier_not_evaluable_reason,
         cause_specific_hazard_log_score: hazard_log_score,
+        aalen_johansen_event_free_survival: aj_survival,
+        aalen_johansen_cumulative_incidence: aj_cif,
+        aalen_johansen_event_count: aj_event_count,
         minimum_censoring_survival_used: brier_score.map(|_| minimum_g_used),
         maximum_ipcw_weight: brier_score.map(|_| maximum_weight),
         all_cause_harrell_c_index: c_index,
@@ -899,6 +1063,44 @@ mod tests {
         assert_eq!(report.ipcw_brier_not_evaluable_reason, None);
         assert_eq!(report.all_cause_comparable_pairs, 15);
         assert!((report.all_cause_harrell_c_index.unwrap() - 0.9).abs() < 1e-12);
+    }
+
+    #[test]
+    fn hazard_forecast_must_reproduce_declared_survival_and_cif() {
+        let mut run = fixture();
+        run["subjects"][0]["predicted_cause_specific_hazard_rates_per_hour"][0]["rates_per_interval"][0] =
+            Value::from(0.5);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("survival probability disagrees with integrated cause-specific hazards")
+        );
+    }
+
+    #[test]
+    fn aalen_johansen_reference_matches_hand_calculated_competing_risk_curve() {
+        let report = evaluate_run(&fixture()).unwrap();
+        assert_eq!(report.aalen_johansen_event_count, 3);
+        assert!((report.aalen_johansen_event_free_survival - 15.0 / 28.0).abs() < 1e-12);
+        assert!(
+            (report.aalen_johansen_cumulative_incidence["STRUCTURAL_CRACK_LIMIT"] - 1.0 / 7.0)
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (report.aalen_johansen_cumulative_incidence["INSULATION_RESISTANCE_LIMIT"] - 5.0 / 28.0)
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (report.aalen_johansen_cumulative_incidence["PLANNED_REPLACEMENT"] - 1.0 / 7.0)
+                .abs()
+                < 1e-12
+        );
+        assert_eq!(
+            report.aalen_johansen_cumulative_incidence["ROAD_RECONSTRUCTION"],
+            0.0
+        );
     }
 
     #[test]
