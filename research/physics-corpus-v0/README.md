@@ -127,18 +127,19 @@ Pin exact release versions and match model semantics before comparing:
   its previous state while other simulations may complete. Our comparison lane
   must capture these statuses and select the correct persistence mode, not only
   compare final state arrays.
-- **Rapier 0.35.3 (28 Aug 2026)** — pin the latest tagged release found for the
-  stable external Rust engine lane. Its release notes cover recent contact,
-  multibody and solver changes. A Dimforge Q3 2026 report describes a reworked
-  parallel architecture with intra-island parallelism, persistent graph
-  coloring and parallel broadphase; treat this as a separate commit-pinned
-  development lane, not automatically as the 0.35.3 release baseline. That
-  vendor report says its then-current Rapier branch was up to 2x faster
-  single-threaded and 4x faster multithreaded than its previous implementation
-  on an M4 Max with 8 workers. It separately reports Nexus simulating 505K
-  rigid bodies in about 14 ms/frame on an RTX 5080. These are vendor-reported
-  results on the report's engine revisions and workloads—not head-to-head
-  measurements against Symtropy or a universal body-count target.
+- **Rapier 0.36.1 (4 Oct 2026)** — pin this as the latest tagged stable
+  external Rust-engine release found. Rapier 0.36.0 added soft-body APIs and an
+  experimental FEM solver; 0.36.1 added reduced-coordinate multibody state and
+  motor bindings. The Dimforge Q3 2026 report describes a reworked parallel
+  architecture with intra-island parallelism, persistent graph coloring and
+  parallel broadphase. Keep that report's optimized development revision as a
+  separate commit-pinned lane, not as an automatic property of the 0.36.1 tag.
+  The vendor reports up to 2x single-threaded and 4x multithreaded speedups over
+  its previous Rapier implementation on an M4 Max with 8 workers. It separately
+  reports Nexus simulating 505K rigid bodies in about 14 ms/frame on an RTX
+  5080. These are vendor-reported results for distinct engine revisions and
+  workloads—not head-to-head measurements against Symtropy or universal
+  body-count targets.
 - **Project Chrono 10.0.0 (27 Mar 2026)** — use for multibody, vehicle, FSI and
   deformable/material scenario families where model assumptions match. It adds
   checkpointing and updated implicit-integrator Jacobian strategies.
