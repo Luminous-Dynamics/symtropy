@@ -27,9 +27,16 @@ The independent objective vector minimizes four values separately:
 
 1. delivery tick;
 2. idle waiting ticks;
-3. total declared energy (Wh across propulsion, auxiliary, shore and onward-transfer
-   boundaries);
-4. lock-cycle water (mL).
+3. propulsion energy measured at the vessel propulsion boundary (Wh);
+4. auxiliary / hotel-load energy measured at the vessel load boundary (Wh);
+5. shore-grid energy imported at the shore connection boundary (Wh);
+6. inland-transfer traction energy (Wh);
+7. lock-cycle water (mL).
+
+The four energy measurements remain separate objectives. They must not be summed
+until a typed boundary cut proves that their meter scopes do not overlap; for
+example, shore-grid import may supply the onboard auxiliary load. The contract
+reuses the typed energy-port work in #3615/#3691 as the future aggregation path.
 
 The oracle returns the non-dominated frontier. It does not hide the trade-off in a
 weighted score. The reference fixture intentionally has two non-dominated plans:
