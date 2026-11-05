@@ -1,0 +1,4 @@
+metric_id,stratum_id,bin,observed_frequency,simulated_frequency
+choice_frequency,all,option_a,0.50,0.45
+choice_frequency,all,option_b,0.30,0.35
+choice_frequency,all,option_c,0.20,0.20
