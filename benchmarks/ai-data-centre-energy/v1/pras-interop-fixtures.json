@@ -15,8 +15,8 @@
     "load_reduction_sign": "positive reduces load; negative is rebound and increases load",
     "flexible_load_equation": "flexible_load_mw[t] = baseline_load_mw[t] - net_pcc_import_reduction_mw[t]",
     "generator_availability": {
-      "failure_probability_per_interval": 0.0,
-      "repair_probability_per_interval": 1.0,
+      "failure_probability_per_interval": 0,
+      "repair_probability_per_interval": 1,
       "intent": "deterministically available generator; fixture adapter must confirm initial-state behavior."
     }
   },
@@ -27,32 +27,60 @@
       "start_timestamp": "2020-01-01T00:00:00+00:00",
       "timestep_length": 1,
       "timestep_unit": "h",
-      "region_names": ["R1"],
+      "region_names": [
+        "R1"
+      ],
       "regional_load_mw_by_interval": {
-        "R1": [110, 120, 110, 100]
+        "R1": [
+          110,
+          120,
+          110,
+          100
+        ]
       },
       "generation": [
         {
           "name": "G1",
           "region": "R1",
-          "capacity_mw_by_interval": [100, 100, 100, 100],
-          "failure_probability": [0, 0, 0, 0],
-          "repair_probability": [1, 1, 1, 1]
+          "capacity_mw_by_interval": [
+            100,
+            100,
+            100,
+            100
+          ],
+          "failure_probability": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "repair_probability": [
+            1,
+            1,
+            1,
+            1
+          ]
         }
       ],
       "expected": {
-        "shortfall_mw_by_interval": [10, 20, 10, 0],
+        "shortfall_mw_by_interval": [
+          10,
+          20,
+          10,
+          0
+        ],
         "lole_event_periods": 3,
         "lold_event_days": 1,
         "lolh_hours": 3,
         "eue_mwh": 40,
-        "energy_cvar_95_mwh": 40,
+        "energy_cvar_95_mwh": 0,
         "monte_carlo_standard_error": 0
       },
       "notes": [
         "All samples should be identical if deterministic availability initialization is confirmed.",
         "LOLE is event-periods; this case uses one-hour intervals, so the numerical value happens to equal LOLH hours.",
-        "Energy CVaR is computed over sample-level full-horizon EUE values."
+        "Energy CVaR is computed over sample-level full-horizon EUE values.",
+        "PRAS 0.9.0 empirical energy-CVAR uses samples strictly greater than the empirical quantile. In this all-identical deterministic sample fixture, no sample is strictly above VaR and the returned CVAR is zero. This is an implementation-specific tail convention, not a generic expected-shortfall value."
       ]
     },
     {
@@ -61,30 +89,53 @@
       "start_timestamp": "2020-01-01T00:00:00+00:00",
       "timestep_length": 15,
       "timestep_unit": "min",
-      "region_names": ["R1"],
+      "region_names": [
+        "R1"
+      ],
       "regional_load_mw_by_interval": {
-        "R1": [110, 110, 100]
+        "R1": [
+          110,
+          110,
+          100
+        ]
       },
       "generation": [
         {
           "name": "G1",
           "region": "R1",
-          "capacity_mw_by_interval": [100, 100, 100],
-          "failure_probability": [0, 0, 0],
-          "repair_probability": [1, 1, 1]
+          "capacity_mw_by_interval": [
+            100,
+            100,
+            100
+          ],
+          "failure_probability": [
+            0,
+            0,
+            0
+          ],
+          "repair_probability": [
+            1,
+            1,
+            1
+          ]
         }
       ],
       "expected": {
-        "shortfall_mw_by_interval": [10, 10, 0],
+        "shortfall_mw_by_interval": [
+          10,
+          10,
+          0
+        ],
         "lole_event_periods": 2,
         "lold_event_days": 1,
         "lolh_hours": 0.5,
         "eue_mwh": 5,
-        "energy_cvar_95_mwh": 5
+        "energy_cvar_95_mwh": 0
       },
       "notes": [
         "Do not label LOLE=2 as two hours.",
-        "EUE = (10 MW * 0.25 h) + (10 MW * 0.25 h) = 5 MWh."
+        "EUE = (10 MW * 0.25 h) + (10 MW * 0.25 h) = 5 MWh.",
+        "PRAS 0.9.0 empirical energy-CVAR uses samples strictly greater than the empirical quantile. In this all-identical deterministic sample fixture, no sample is strictly above VaR and the returned CVAR is zero. This is an implementation-specific tail convention, not a generic expected-shortfall value."
       ]
     },
     {
@@ -93,30 +144,53 @@
       "start_timestamp": "2020-01-01T23:00:00+00:00",
       "timestep_length": 1,
       "timestep_unit": "h",
-      "region_names": ["R1"],
+      "region_names": [
+        "R1"
+      ],
       "regional_load_mw_by_interval": {
-        "R1": [110, 110, 100]
+        "R1": [
+          110,
+          110,
+          100
+        ]
       },
       "generation": [
         {
           "name": "G1",
           "region": "R1",
-          "capacity_mw_by_interval": [100, 100, 100],
-          "failure_probability": [0, 0, 0],
-          "repair_probability": [1, 1, 1]
+          "capacity_mw_by_interval": [
+            100,
+            100,
+            100
+          ],
+          "failure_probability": [
+            0,
+            0,
+            0
+          ],
+          "repair_probability": [
+            1,
+            1,
+            1
+          ]
         }
       ],
       "expected": {
-        "shortfall_mw_by_interval": [10, 10, 0],
+        "shortfall_mw_by_interval": [
+          10,
+          10,
+          0
+        ],
         "lole_event_periods": 2,
         "lold_event_days": 2,
         "lolh_hours": 2,
         "eue_mwh": 20,
-        "energy_cvar_95_mwh": 20
+        "energy_cvar_95_mwh": 0
       },
       "notes": [
         "PRAS LOLD is event-days, not contiguous shortage spells.",
-        "A separate NTCSA-style contiguous event counter would report one event across midnight, not two."
+        "A separate NTCSA-style contiguous event counter would report one event across midnight, not two.",
+        "PRAS 0.9.0 empirical energy-CVAR uses samples strictly greater than the empirical quantile. In this all-identical deterministic sample fixture, no sample is strictly above VaR and the returned CVAR is zero. This is an implementation-specific tail convention, not a generic expected-shortfall value."
       ]
     },
     {
@@ -125,22 +199,48 @@
       "start_timestamp": "2020-01-01T00:00:00+00:00",
       "timestep_length": 1,
       "timestep_unit": "h",
-      "region_names": ["R1"],
+      "region_names": [
+        "R1"
+      ],
       "regional_load_mw_by_interval": {
-        "R1": [110, 80, 100]
+        "R1": [
+          110,
+          80,
+          100
+        ]
       },
       "generation": [
         {
           "name": "G1",
           "region": "R1",
-          "capacity_mw_by_interval": [100, 100, 100],
-          "failure_probability": [0, 0, 0],
-          "repair_probability": [1, 1, 1]
+          "capacity_mw_by_interval": [
+            100,
+            100,
+            100
+          ],
+          "failure_probability": [
+            0,
+            0,
+            0
+          ],
+          "repair_probability": [
+            1,
+            1,
+            1
+          ]
         }
       ],
-      "net_pcc_import_reduction_mw_by_interval": [10, -10, 0],
+      "net_pcc_import_reduction_mw_by_interval": [
+        10,
+        -10,
+        0
+      ],
       "expected": {
-        "flexible_load_mw_by_interval": [100, 90, 100],
+        "flexible_load_mw_by_interval": [
+          100,
+          90,
+          100
+        ],
         "baseline_eue_mwh": 10,
         "flexible_eue_mwh": 0,
         "eue_based_elcc_mw": 5,
@@ -158,24 +258,50 @@
       "start_timestamp": "2020-01-01T00:00:00+00:00",
       "timestep_length": 1,
       "timestep_unit": "h",
-      "region_names": ["R1"],
+      "region_names": [
+        "R1"
+      ],
       "regional_load_mw_by_interval": {
-        "R1": [100, 100]
+        "R1": [
+          100,
+          100
+        ]
       },
       "generation": [
         {
           "name": "G1",
           "region": "R1",
-          "capacity_mw_by_interval": [90, 80],
-          "failure_probability": [0, 0],
-          "repair_probability": [1, 1]
+          "capacity_mw_by_interval": [
+            90,
+            80
+          ],
+          "failure_probability": [
+            0,
+            0
+          ],
+          "repair_probability": [
+            1,
+            1
+          ]
         }
       ],
-      "net_pcc_import_reduction_mw_by_interval": [20, -30],
+      "net_pcc_import_reduction_mw_by_interval": [
+        20,
+        -30
+      ],
       "expected": {
-        "flexible_load_mw_by_interval": [80, 130],
-        "baseline_shortfall_mw_by_interval": [10, 20],
-        "flexible_shortfall_mw_by_interval": [0, 50],
+        "flexible_load_mw_by_interval": [
+          80,
+          130
+        ],
+        "baseline_shortfall_mw_by_interval": [
+          10,
+          20
+        ],
+        "flexible_shortfall_mw_by_interval": [
+          0,
+          50
+        ],
         "baseline_eue_mwh": 30,
         "flexible_eue_mwh": 50,
         "interpretation": "The complete trajectory increases EUE by 20 MWh; it earns no positive adequacy credit under this risk criterion."
@@ -187,37 +313,68 @@
       "start_timestamp": "2020-01-01T00:00:00+00:00",
       "timestep_length": 1,
       "timestep_unit": "h",
-      "region_names": ["A", "B"],
+      "region_names": [
+        "A",
+        "B"
+      ],
       "regional_load_mw_by_interval": {
-        "A": [90],
-        "B": [120]
+        "A": [
+          90
+        ],
+        "B": [
+          120
+        ]
       },
       "generation": [
         {
           "name": "GA",
           "region": "A",
-          "capacity_mw_by_interval": [110],
-          "failure_probability": [0],
-          "repair_probability": [1]
+          "capacity_mw_by_interval": [
+            110
+          ],
+          "failure_probability": [
+            0
+          ],
+          "repair_probability": [
+            1
+          ]
         },
         {
           "name": "GB",
           "region": "B",
-          "capacity_mw_by_interval": [100],
-          "failure_probability": [0],
-          "repair_probability": [1]
+          "capacity_mw_by_interval": [
+            100
+          ],
+          "failure_probability": [
+            0
+          ],
+          "repair_probability": [
+            1
+          ]
         }
       ],
       "interface": {
         "region_from": "A",
         "region_to": "B",
-        "forward_transfer_capacity_mw_by_interval": [10],
-        "backward_transfer_capacity_mw_by_interval": [10],
+        "forward_transfer_capacity_mw_by_interval": [
+          10
+        ],
+        "backward_transfer_capacity_mw_by_interval": [
+          10
+        ],
         "line_count": 1,
-        "line_forward_capacity_mw_by_interval": [10],
-        "line_backward_capacity_mw_by_interval": [10],
-        "line_failure_probability": [0],
-        "line_repair_probability": [1]
+        "line_forward_capacity_mw_by_interval": [
+          10
+        ],
+        "line_backward_capacity_mw_by_interval": [
+          10
+        ],
+        "line_failure_probability": [
+          0
+        ],
+        "line_repair_probability": [
+          1
+        ]
       },
       "expected": {
         "baseline_eue_mwh": 10,
@@ -228,6 +385,75 @@
       "notes": [
         "The adapter must validate actual PRAS interface/line direction conventions against a non-symmetric flow fixture.",
         "This illustrates interregional location dependence only; it does not model intra-region buses or distribution constraints."
+      ]
+    },
+    {
+      "case_id": "pras-nondegenerate-energy-cvar-strict-tail",
+      "description": "Stochastic generator-availability fixture that exercises the non-degenerate sample-level PRAS energy-CVAR calculation.",
+      "start_timestamp": "2020-01-01T00:00:00+00:00",
+      "timestep_length": 1,
+      "timestep_unit": "h",
+      "region_names": [
+        "R1"
+      ],
+      "regional_load_mw_by_interval": [
+        110,
+        110,
+        110,
+        110,
+        110,
+        110,
+        110,
+        110
+      ],
+      "generation": [
+        {
+          "name": "G1",
+          "region": "R1",
+          "capacity_mw_by_interval": [
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100,
+            100
+          ],
+          "failure_probability": [
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35,
+            0.35
+          ],
+          "repair_probability": [
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55,
+            0.55
+          ]
+        }
+      ],
+      "simulation": {
+        "samples": 256,
+        "seed": 20261106,
+        "threaded": false
+      },
+      "expected": {
+        "method": "quantile = quantile(sample_EUE, 0.95); tail = sample_EUE[sample_EUE > quantile]; CVAR = mean(tail), or 0 when tail is empty",
+        "distinct_sample_eue_values_minimum": 2,
+        "cvar_is_computed_from_sample_level_full_horizon_eue": true
+      },
+      "notes": [
+        "The exact sample vector and returned CVAR are captured in the execution receipt; this fixture tests the PRAS 0.9.0 strict-above-quantile convention rather than asserting a cross-version random sample vector."
       ]
     }
   ],
