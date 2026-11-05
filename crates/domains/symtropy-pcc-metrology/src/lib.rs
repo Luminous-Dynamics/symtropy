@@ -848,14 +848,14 @@ pub fn evaluate_pcc_metrology(
                 candidate_duration_ns: candidate.interval_duration_ns,
             });
         }
-        if let Some(expected_start_ns) = previous_end_ns {
-            if baseline.interval_start_ns != expected_start_ns {
-                return Err(PccMetrologyError::NonContiguousIntervals {
-                    index,
-                    expected_start_ns,
-                    observed_start_ns: baseline.interval_start_ns,
-                });
-            }
+        if let Some(expected_start_ns) = previous_end_ns
+            && baseline.interval_start_ns != expected_start_ns
+        {
+            return Err(PccMetrologyError::NonContiguousIntervals {
+                index,
+                expected_start_ns,
+                observed_start_ns: baseline.interval_start_ns,
+            });
         }
         let interval_end_ns = baseline
             .interval_start_ns
