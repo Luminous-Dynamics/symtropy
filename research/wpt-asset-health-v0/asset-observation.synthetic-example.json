@@ -1,0 +1,92 @@
+{
+  "schema_version": "wpt-asset-observation-v0",
+  "record_id": "synthetic-example-001",
+  "asset_id": "synthetic-asset-001",
+  "segment_id": "synthetic-segment-001",
+  "observed_at_utc": "2026-01-01T00:00:00Z",
+  "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+  "asset_context": {
+    "pavement_type": "FLEXIBLE_ASPHALT",
+    "material_lot_id": "synthetic-material-lot",
+    "installation_revision": "synthetic-install-0",
+    "hardware_revision": "synthetic-pad-0",
+    "controller_revision": "synthetic-controller-0",
+    "coordinate_frame_id": "synthetic-asset-frame",
+    "measurement_plane_manifest_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "exposure": {
+    "wheel_pass_count": 1000,
+    "declared_wheel_load_kn": null,
+    "energized_hours": 10,
+    "cumulative_transmitter_input_kwh": 2.5,
+    "thermal_cycle_count": 4,
+    "freeze_thaw_cycle_count": 0,
+    "moisture_state": "DRY",
+    "chloride_exposure_mg_m2": null,
+    "ambient_min_c": 15,
+    "ambient_max_c": 25
+  },
+  "structural": {
+    "strain_microstrain": 120,
+    "fwd_deflection_mm": 0.45,
+    "rut_depth_mm": 0.1,
+    "crack_width_mm": null,
+    "interface_condition": "INTACT",
+    "pad_displacement_x_mm": 0.2,
+    "pad_displacement_y_mm": 0.1,
+    "pad_displacement_z_mm": 0.3,
+    "pad_tilt_deg": 0.02
+  },
+  "thermal": {
+    "maximum_coil_temperature_c": 40,
+    "maximum_pavement_temperature_c": 32,
+    "maximum_gradient_c_per_m": 3,
+    "thermal_dose_c_hour": 20,
+    "temperature_reference_id": "synthetic-reference-20c"
+  },
+  "electromagnetic": {
+    "primary_inductance_uh": 100,
+    "secondary_inductance_uh": 100,
+    "mutual_inductance_uh": 18.5,
+    "coupling_coefficient": 0.185,
+    "quality_factor": 500,
+    "equivalent_series_resistance_milliohm": 100,
+    "resonant_frequency_hz": 85000,
+    "insulation_resistance_mohm": 100,
+    "leakage_field_microtesla": 5
+  },
+  "service": {
+    "measurement_boundary_id": "synthetic-dc-to-dc",
+    "source_input_energy_wh": 2500,
+    "useful_output_energy_wh": 2300,
+    "route_wh_per_km": null,
+    "availability_fraction": 0.99
+  },
+  "uncertainty": [
+    {
+      "metric_name": "primary_inductance",
+      "unit": "uH",
+      "expanded_uncertainty": 0.5,
+      "coverage_factor": 2,
+      "method_id": "synthetic-uncertainty-v0"
+    },
+    {
+      "metric_name": "fwd_deflection",
+      "unit": "mm",
+      "expanded_uncertainty": 0.02,
+      "coverage_factor": 2,
+      "method_id": "synthetic-uncertainty-v0"
+    }
+  ],
+  "provenance": {
+    "method_id": "synthetic-reference-oracle-v0",
+    "instrument_ids": [],
+    "calibration_receipt_ids": [],
+    "raw_artifact_sha256": null,
+    "source_locator": null,
+    "review_status": "NOT_APPLICABLE"
+  },
+  "quality_flags": [
+    "SYNTHETIC_ONLY"
+  ]
+}
