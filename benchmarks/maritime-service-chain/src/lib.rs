@@ -1490,8 +1490,8 @@ mod tests {
                 capacity_unit: ResourceUnit::BerthSlots,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
-                        end_tick: 50,
+                        start_tick: 18,
+                        end_tick: 40,
                     },
                     capacity: 1,
                 }],
@@ -1503,7 +1503,7 @@ mod tests {
                 capacity_unit: ResourceUnit::WattHours,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
+                        start_tick: 18,
                         end_tick: 40,
                     },
                     capacity: 1_000,
@@ -1516,7 +1516,7 @@ mod tests {
                 capacity_unit: ResourceUnit::Tonnes,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
+                        start_tick: 18,
                         end_tick: 40,
                     },
                     capacity: 20,
@@ -1529,7 +1529,7 @@ mod tests {
                 capacity_unit: ResourceUnit::Tonnes,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 40,
+                        start_tick: 30,
                         end_tick: 60,
                     },
                     capacity: 10,
