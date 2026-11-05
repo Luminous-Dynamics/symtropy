@@ -178,9 +178,7 @@ fn validate_profile(
     }
     if matches!(
         policy,
-        SchedulingPolicy::DirectionalBatch {
-            max_consecutive: 0
-        }
+        SchedulingPolicy::DirectionalBatch { max_consecutive: 0 }
     ) {
         return Err(ProfileError::InvalidPolicy);
     }
@@ -222,9 +220,7 @@ fn request_error(
 
     match request.compatibility.disposition {
         PassageDisposition::EligibleForSyntheticPassage => None,
-        PassageDisposition::BlockedByHardConstraint => {
-            Some(NotScheduledReason::PassageBlocked)
-        }
+        PassageDisposition::BlockedByHardConstraint => Some(NotScheduledReason::PassageBlocked),
         PassageDisposition::UnknownReviewRequired | PassageDisposition::EvidenceInconsistent => {
             Some(NotScheduledReason::PassageNeedsReview)
         }
@@ -270,8 +266,7 @@ fn least_slack_first(requests: &[PassageRequest], pending: &[usize]) -> Option<u
     pending.iter().copied().min_by_key(|index| {
         let request = &requests[*index];
         (
-            u128::from(request.arrival_earliest_tick)
-                + u128::from(request.maximum_wait_ticks),
+            u128::from(request.arrival_earliest_tick) + u128::from(request.maximum_wait_ticks),
             request.arrival_earliest_tick,
             request.request_id.as_str(),
         )
@@ -289,7 +284,12 @@ fn projected_start(
     let earliest = after_change
         .max(request.arrival_latest_tick)
         .max(request.earliest_start_tick);
-    find_start(profile, unavailable, earliest, request.service_duration_ticks)
+    find_start(
+        profile,
+        unavailable,
+        earliest,
+        request.service_duration_ticks,
+    )
 }
 
 struct SelectionContext<'a> {
@@ -348,8 +348,7 @@ fn select_next(context: &SelectionContext<'_>, policy: SchedulingPolicy) -> Opti
 
             let same = &requests[same_index];
             let opposite = &requests[opposite_index];
-            let Some(same_start) =
-                projected_start(profile, unavailable, cursor_tick, same, 0)
+            let Some(same_start) = projected_start(profile, unavailable, cursor_tick, same, 0)
             else {
                 return oldest_first(requests, pending);
             };
@@ -379,10 +378,7 @@ fn select_next(context: &SelectionContext<'_>, policy: SchedulingPolicy) -> Opti
     }
 }
 
-fn available_service_ticks(
-    profile: &LockScheduleProfile,
-    unavailable: &[TimeInterval],
-) -> u128 {
+fn available_service_ticks(profile: &LockScheduleProfile, unavailable: &[TimeInterval]) -> u128 {
     let mut unavailable_ticks = 0_u128;
     for window in unavailable {
         let start = window.start_tick.max(profile.planning_window.start_tick);
@@ -406,8 +402,7 @@ fn add_group_metrics(
         Some(passage) => {
             group.scheduled += 1;
             group.service_units += u128::from(passage.service_units);
-            group.total_wait_ticks +=
-                u128::from(passage.waiting_from_earliest_arrival_ticks);
+            group.total_wait_ticks += u128::from(passage.waiting_from_earliest_arrival_ticks);
             group.maximum_wait_ticks = group
                 .maximum_wait_ticks
                 .max(passage.waiting_from_earliest_arrival_ticks);
@@ -433,8 +428,7 @@ fn build_metrics(
     for passage in schedule {
         metrics.scheduled_requests += 1;
         metrics.service_units += u128::from(passage.service_units);
-        metrics.total_wait_ticks +=
-            u128::from(passage.waiting_from_earliest_arrival_ticks);
+        metrics.total_wait_ticks += u128::from(passage.waiting_from_earliest_arrival_ticks);
         metrics.maximum_wait_ticks = metrics
             .maximum_wait_ticks
             .max(passage.waiting_from_earliest_arrival_ticks);
@@ -548,13 +542,12 @@ pub fn schedule(
         let index = pending.remove(position);
         let request = &requests[index];
 
-        let direction_change = if current_direction
-            .is_some_and(|direction| direction != request.direction)
-        {
-            profile.direction_change_ticks
-        } else {
-            0
-        };
+        let direction_change =
+            if current_direction.is_some_and(|direction| direction != request.direction) {
+                profile.direction_change_ticks
+            } else {
+                0
+            };
         let Some(after_direction_change) = cursor_tick.checked_add(direction_change) else {
             outcomes.push(RequestOutcome {
                 request_id: request.request_id.clone(),
@@ -853,12 +846,8 @@ mod tests {
         old.maximum_wait_ticks = 100;
         let mut urgent = request("urgent", 10, Direction::Upstream, 1, 1);
         urgent.maximum_wait_ticks = 5;
-        let plan = schedule(
-            &profile(),
-            &[old, urgent],
-            SchedulingPolicy::LeastWaitSlack,
-        )
-        .expect("valid profile");
+        let plan = schedule(&profile(), &[old, urgent], SchedulingPolicy::LeastWaitSlack)
+            .expect("valid profile");
         assert_eq!(plan.schedule[0].request_id, "urgent");
     }
 
@@ -911,9 +900,11 @@ mod tests {
         )
         .expect("valid profile");
         assert!(plan.schedule.is_empty());
-        assert!(plan.outcomes.iter().all(|outcome| {
-            outcome.reason == Some(NotScheduledReason::DuplicateRequestId)
-        }));
+        assert!(
+            plan.outcomes
+                .iter()
+                .all(|outcome| { outcome.reason == Some(NotScheduledReason::DuplicateRequestId) })
+        );
     }
 
     #[test]
