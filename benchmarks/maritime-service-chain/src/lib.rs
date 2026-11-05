@@ -53,6 +53,7 @@ pub enum EvidenceRole {
     CargoCustody,
     PortCallObservation,
     ExternalMeasurement,
+    DataRights,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -230,7 +231,7 @@ pub struct VoyageAlternative {
     pub energy: EnergyLedger,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ConstraintKind {
     Navigability,
     LockEligibility,
@@ -266,6 +267,7 @@ pub struct ServiceChainCase {
     pub class: CaseClass,
     pub decision_tick: u64,
     pub tick_seconds: u64,
+    pub corridor_id: String,
     pub origin_node_id: String,
     pub destination_node_id: String,
     pub demand: Demand,
@@ -298,6 +300,11 @@ pub enum ValidationError {
     ResourceMissingCapacityEvidence(String),
     ResourceCapacityEvidenceMismatch(String),
     MissingRequiredSegmentResource(String),
+    MissingSegmentEvidenceRole(String, EvidenceRole),
+    SegmentEvidenceSubjectMismatch(String, String),
+    SegmentNodeKindMismatch(String),
+    DuplicateResourceUse(String),
+    ResourceCalendarNotCanonical(String),
     SegmentResourceKindMismatch(String),
     VesselCapacityInsufficient(String),
     VesselCapacityUnitMismatch(String),
@@ -321,6 +328,9 @@ pub enum ValidationError {
     HardConstraintUnknown(String),
     HardConstraintBlocked(String),
     MissingConstraintEvidence(String),
+    MissingRequiredConstraint(ConstraintKind),
+    ConstraintEvidenceRoleMismatch(String, EvidenceRole),
+    ConstraintEvidenceSubjectMismatch(String),
     MissingParticipantCommitment,
     MissingCargoCustody,
 }
@@ -409,7 +419,8 @@ fn expected_owner(role: EvidenceRole) -> Option<EvidenceOwner> {
         }
         EvidenceRole::EnvironmentalWindow
         | EvidenceRole::PortCallObservation
-        | EvidenceRole::ExternalMeasurement => None,
+        | EvidenceRole::ExternalMeasurement
+        | EvidenceRole::DataRights => Some(EvidenceOwner::External),
     }
 }
 
@@ -545,7 +556,78 @@ fn validate_evidence_records(case: &ServiceChainCase) -> Result<(), ValidationEr
     Ok(())
 }
 
+fn node_by_id<'a>(case: &'a ServiceChainCase, node_id: &str) -> Option<&'a Node> {
+    case.nodes.iter().find(|node| node.node_id == node_id)
+}
+
+fn segment_node_kinds_are_valid(case: &ServiceChainCase, segment: &RouteSegment) -> bool {
+    let Some(from) = node_by_id(case, &segment.from_node_id) else {
+        return false;
+    };
+    let Some(to) = node_by_id(case, &segment.to_node_id) else {
+        return false;
+    };
+    match segment.kind {
+        SegmentKind::ChannelTransit => {
+            matches!(from.kind, NodeKind::Origin | NodeKind::LockExit)
+                && matches!(to.kind, NodeKind::LockApproach | NodeKind::LockExit)
+        }
+        SegmentKind::Lockage => {
+            from.kind == NodeKind::LockApproach && to.kind == NodeKind::LockExit
+        }
+        SegmentKind::PortApproach => {
+            from.kind == NodeKind::LockExit && to.kind == NodeKind::Berth
+        }
+        SegmentKind::BerthHandling => {
+            from.kind == NodeKind::Berth && to.kind == NodeKind::TransferTerminal
+        }
+        SegmentKind::InlandTransfer => {
+            from.kind == NodeKind::TransferTerminal && to.kind == NodeKind::Destination
+        }
+    }
+}
+
+fn required_segment_evidence_roles(kind: SegmentKind) -> &'static [EvidenceRole] {
+    match kind {
+        SegmentKind::ChannelTransit => &[
+            EvidenceRole::SpatialTopology,
+            EvidenceRole::Navigability,
+            EvidenceRole::ResourceCapacity,
+        ],
+        SegmentKind::Lockage => &[
+            EvidenceRole::LockCompatibility,
+            EvidenceRole::LockCycleWater,
+            EvidenceRole::ResourceCapacity,
+        ],
+        SegmentKind::PortApproach => &[
+            EvidenceRole::Navigability,
+            EvidenceRole::ResourceCapacity,
+        ],
+        SegmentKind::BerthHandling | SegmentKind::InlandTransfer => {
+            &[EvidenceRole::ResourceCapacity]
+        }
+    }
+}
+
+fn constraint_evidence_role(kind: ConstraintKind) -> EvidenceRole {
+    match kind {
+        ConstraintKind::Navigability => EvidenceRole::Navigability,
+        ConstraintKind::LockEligibility => EvidenceRole::LockCompatibility,
+        ConstraintKind::EnvironmentalFlow => EvidenceRole::EnvironmentalWindow,
+        ConstraintKind::WaterBudget => EvidenceRole::LockCycleWater,
+        ConstraintKind::EnergyCapacity | ConstraintKind::BerthCapacity => {
+            EvidenceRole::ResourceCapacity
+        }
+        ConstraintKind::ParticipantAuthorization => EvidenceRole::ParticipantAuthorization,
+        ConstraintKind::CargoCustody => EvidenceRole::CargoCustody,
+        ConstraintKind::DataRights => EvidenceRole::DataRights,
+    }
+}
+
 fn validate_route(case: &ServiceChainCase) -> Result<(), ValidationError> {
+    if !nonempty(&case.corridor_id) {
+        return Err(ValidationError::MissingField("corridor_id"));
+    }
     if case.demand.origin_node_id != case.origin_node_id
         || case.demand.destination_node_id != case.destination_node_id
     {
@@ -578,6 +660,11 @@ fn validate_route(case: &ServiceChainCase) -> Result<(), ValidationError> {
         }
         if segment.from_node_id != expected_from {
             return Err(ValidationError::DisconnectedRoute(
+                segment.segment_id.clone(),
+            ));
+        }
+        if !segment_node_kinds_are_valid(case, segment) {
+            return Err(ValidationError::SegmentNodeKindMismatch(
                 segment.segment_id.clone(),
             ));
         }
@@ -618,6 +705,19 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
         }
         if resource.availability.is_empty() {
             return Err(ValidationError::EmptyResourceAvailability(
+                resource.resource_id.clone(),
+            ));
+        }
+        if resource.availability.windows(2).any(|pair| {
+            (
+                pair[0].window.start_tick,
+                pair[0].window.end_tick,
+            ) > (
+                pair[1].window.start_tick,
+                pair[1].window.end_tick,
+            )
+        }) {
+            return Err(ValidationError::ResourceCalendarNotCanonical(
                 resource.resource_id.clone(),
             ));
         }
@@ -663,11 +763,75 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
     }
 
     for segment in &case.route_segments {
+        let mut seen_evidence = BTreeSet::new();
+        let mut roles_present = BTreeSet::new();
         for evidence_id in &segment.evidence_ids {
-            validate_evidence_use(case, evidence_id)?;
+            if !seen_evidence.insert(evidence_id) {
+                return Err(ValidationError::DuplicateIdentifier(
+                    "segment.evidence_id",
+                    evidence_id.clone(),
+                ));
+            }
+            let evidence = validate_evidence_use(case, evidence_id)?;
+            roles_present.insert(evidence.role);
+            match evidence.role {
+                EvidenceRole::SpatialTopology => {
+                    if evidence.subject_id != case.corridor_id {
+                        return Err(ValidationError::SegmentEvidenceSubjectMismatch(
+                            segment.segment_id.clone(),
+                            evidence_id.clone(),
+                        ));
+                    }
+                }
+                EvidenceRole::Navigability
+                | EvidenceRole::LockCompatibility
+                | EvidenceRole::LockCycleWater => {
+                    if evidence.subject_id != segment.segment_id {
+                        return Err(ValidationError::SegmentEvidenceSubjectMismatch(
+                            segment.segment_id.clone(),
+                            evidence_id.clone(),
+                        ));
+                    }
+                }
+                EvidenceRole::ResourceCapacity => {
+                    let applies_to_segment_resource = segment.resource_uses.iter().any(|usage| {
+                        usage.resource_id == evidence.subject_id
+                            && case.resources.iter().any(|resource| {
+                                resource.resource_id == usage.resource_id
+                                    && resource.evidence_ids.iter().any(|id| id == evidence_id)
+                            })
+                    });
+                    if !applies_to_segment_resource {
+                        return Err(ValidationError::SegmentEvidenceSubjectMismatch(
+                            segment.segment_id.clone(),
+                            evidence_id.clone(),
+                        ));
+                    }
+                }
+                _ => {
+                    return Err(ValidationError::EvidenceRoleMismatch(
+                        evidence_id.clone(),
+                    ));
+                }
+            }
         }
+        for required_role in required_segment_evidence_roles(segment.kind) {
+            if !roles_present.contains(required_role) {
+                return Err(ValidationError::MissingSegmentEvidenceRole(
+                    segment.segment_id.clone(),
+                    *required_role,
+                ));
+            }
+        }
+
         let mut used_kinds = BTreeSet::new();
+        let mut used_resource_ids = BTreeSet::new();
         for usage in &segment.resource_uses {
+            if !used_resource_ids.insert(usage.resource_id.as_str()) {
+                return Err(ValidationError::DuplicateResourceUse(
+                    usage.resource_id.clone(),
+                ));
+            }
             let resource = case
                 .resources
                 .iter()
@@ -806,6 +970,37 @@ fn validate_voyage_alternatives(case: &ServiceChainCase) -> Result<(), Validatio
 }
 
 fn validate_hard_constraints(case: &ServiceChainCase) -> Result<(), ValidationError> {
+    let required_constraints = [
+        ConstraintKind::Navigability,
+        ConstraintKind::LockEligibility,
+        ConstraintKind::EnvironmentalFlow,
+        ConstraintKind::WaterBudget,
+        ConstraintKind::EnergyCapacity,
+        ConstraintKind::BerthCapacity,
+        ConstraintKind::DataRights,
+    ];
+    let present_constraints: BTreeSet<ConstraintKind> =
+        case.hard_constraints.iter().map(|constraint| constraint.kind).collect();
+    for required in required_constraints {
+        if !present_constraints.contains(&required) {
+            return Err(ValidationError::MissingRequiredConstraint(required));
+        }
+    }
+    if case.demand.participant_commitment_ref.is_some()
+        && !present_constraints.contains(&ConstraintKind::ParticipantAuthorization)
+    {
+        return Err(ValidationError::MissingRequiredConstraint(
+            ConstraintKind::ParticipantAuthorization,
+        ));
+    }
+    if case.demand.cargo_custody_ref.is_some()
+        && !present_constraints.contains(&ConstraintKind::CargoCustody)
+    {
+        return Err(ValidationError::MissingRequiredConstraint(
+            ConstraintKind::CargoCustody,
+        ));
+    }
+
     let mut has_participant_authorization = false;
     for constraint in &case.hard_constraints {
         match constraint.disposition {
@@ -826,6 +1021,46 @@ fn validate_hard_constraints(case: &ServiceChainCase) -> Result<(), ValidationEr
             ValidationError::MissingConstraintEvidence(constraint.constraint_id.clone())
         })?;
         let evidence = validate_evidence_use(case, evidence_id)?;
+        let expected_role = constraint_evidence_role(constraint.kind);
+        if evidence.role != expected_role {
+            return Err(ValidationError::ConstraintEvidenceRoleMismatch(
+                constraint.constraint_id.clone(),
+                expected_role,
+            ));
+        }
+        let subject_is_valid = match constraint.kind {
+            ConstraintKind::Navigability => case.route_segments.iter().any(|segment| {
+                matches!(
+                    segment.kind,
+                    SegmentKind::ChannelTransit | SegmentKind::PortApproach
+                ) && segment.segment_id == evidence.subject_id
+            }),
+            ConstraintKind::LockEligibility => case.route_segments.iter().any(|segment| {
+                segment.kind == SegmentKind::Lockage && segment.segment_id == evidence.subject_id
+            }),
+            ConstraintKind::EnvironmentalFlow => evidence.subject_id == case.corridor_id,
+            ConstraintKind::WaterBudget => case.route_segments.iter().any(|segment| {
+                segment.kind == SegmentKind::Lockage && segment.segment_id == evidence.subject_id
+            }),
+            ConstraintKind::EnergyCapacity => case.resources.iter().any(|resource| {
+                resource.kind == ResourceKind::ShorePower
+                    && resource.resource_id == evidence.subject_id
+            }),
+            ConstraintKind::BerthCapacity => case.resources.iter().any(|resource| {
+                resource.kind == ResourceKind::Berth
+                    && resource.resource_id == evidence.subject_id
+            }),
+            ConstraintKind::ParticipantAuthorization => {
+                evidence.subject_id == case.demand.participant_id
+            }
+            ConstraintKind::CargoCustody => evidence.subject_id == case.demand.demand_id,
+            ConstraintKind::DataRights => evidence.subject_id == case.case_id,
+        };
+        if !subject_is_valid {
+            return Err(ValidationError::ConstraintEvidenceSubjectMismatch(
+                constraint.constraint_id.clone(),
+            ));
+        }
         if constraint.kind == ConstraintKind::ParticipantAuthorization {
             has_participant_authorization = true;
             validate_expected_owner(evidence, EvidenceOwner::Mycelix)?;
@@ -983,6 +1218,20 @@ mod tests {
                 EvidenceOwner::SolAtlas,
                 EvidenceRole::Navigability,
                 "channel-01",
+                None,
+            ),
+            evidence(
+                "approach-depth",
+                EvidenceOwner::SolAtlas,
+                EvidenceRole::Navigability,
+                "approach-01",
+                None,
+            ),
+            evidence(
+                "data-rights",
+                EvidenceOwner::External,
+                EvidenceRole::DataRights,
+                "synthetic-lock-to-rail-001",
                 None,
             ),
             evidence(
@@ -1229,7 +1478,11 @@ mod tests {
                 from_node_id: "origin".into(),
                 to_node_id: "lock-approach".into(),
                 kind: SegmentKind::ChannelTransit,
-                evidence_ids: vec!["topology".into(), "depth".into()],
+                evidence_ids: vec![
+                    "topology".into(),
+                    "depth".into(),
+                    "channel-calendar".into(),
+                ],
                 resource_uses: vec![ResourceUse {
                     resource_id: "channel-window-01".into(),
                     amount: 1,
@@ -1241,7 +1494,11 @@ mod tests {
                 from_node_id: "lock-approach".into(),
                 to_node_id: "lock-exit".into(),
                 kind: SegmentKind::Lockage,
-                evidence_ids: vec!["lock-compatibility".into(), "lock-water".into()],
+                evidence_ids: vec![
+                    "lock-compatibility".into(),
+                    "lock-water".into(),
+                    "lock-calendar".into(),
+                ],
                 resource_uses: vec![ResourceUse {
                     resource_id: "lock-01".into(),
                     amount: 1,
@@ -1253,7 +1510,7 @@ mod tests {
                 from_node_id: "lock-exit".into(),
                 to_node_id: "berth".into(),
                 kind: SegmentKind::PortApproach,
-                evidence_ids: vec!["depth".into()],
+                evidence_ids: vec!["approach-depth".into(), "channel-calendar".into()],
                 resource_uses: vec![ResourceUse {
                     resource_id: "channel-window-01".into(),
                     amount: 1,
@@ -1265,7 +1522,11 @@ mod tests {
                 from_node_id: "berth".into(),
                 to_node_id: "railhead".into(),
                 kind: SegmentKind::BerthHandling,
-                evidence_ids: vec!["berth-calendar".into(), "shore-calendar".into()],
+                evidence_ids: vec![
+                    "berth-calendar".into(),
+                    "handling-calendar".into(),
+                    "shore-calendar".into(),
+                ],
                 resource_uses: vec![
                     ResourceUse {
                         resource_id: "berth-01".into(),
@@ -1346,6 +1607,7 @@ mod tests {
             class: CaseClass::Synthetic,
             decision_tick: 0,
             tick_seconds: 60,
+            corridor_id: "corridor-01".into(),
             origin_node_id: "origin".into(),
             destination_node_id: "destination".into(),
             demand: Demand {
@@ -1403,6 +1665,12 @@ mod tests {
                     kind: ConstraintKind::BerthCapacity,
                     disposition: ConstraintDisposition::Satisfied,
                     evidence_id: Some("berth-calendar".into()),
+                },
+                HardConstraint {
+                    constraint_id: "constraint-data-rights".into(),
+                    kind: ConstraintKind::DataRights,
+                    disposition: ConstraintDisposition::Satisfied,
+                    evidence_id: Some("data-rights".into()),
                 },
                 HardConstraint {
                     constraint_id: "constraint-participant".into(),
@@ -1496,6 +1764,52 @@ mod tests {
         assert_eq!(
             validate_case(&case),
             Err(ValidationError::ResourceUnitMismatch("terminal-01".into()))
+        );
+    }
+
+    #[test]
+    fn required_hard_constraints_cannot_be_omitted() {
+        let mut case = valid_case();
+        case.hard_constraints
+            .retain(|constraint| constraint.kind != ConstraintKind::EnvironmentalFlow);
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::MissingRequiredConstraint(
+                ConstraintKind::EnvironmentalFlow
+            ))
+        );
+    }
+
+    #[test]
+    fn hard_constraint_evidence_role_must_match_constraint_kind() {
+        let mut case = valid_case();
+        let navigability = case
+            .hard_constraints
+            .iter_mut()
+            .find(|constraint| constraint.kind == ConstraintKind::Navigability)
+            .expect("navigability constraint exists");
+        navigability.evidence_id = Some("environment".into());
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::ConstraintEvidenceRoleMismatch(
+                "constraint-navigability".into(),
+                EvidenceRole::Navigability
+            ))
+        );
+    }
+
+    #[test]
+    fn every_route_segment_requires_its_semantic_evidence_roles() {
+        let mut case = valid_case();
+        case.route_segments[1]
+            .evidence_ids
+            .retain(|id| id != "lock-compatibility");
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::MissingSegmentEvidenceRole(
+                "lock-01".into(),
+                EvidenceRole::LockCompatibility
+            ))
         );
     }
 
