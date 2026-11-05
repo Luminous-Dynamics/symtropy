@@ -94,7 +94,9 @@ impl DeliberationSession {
             return Err(DeliberationError::ZeroResourceBudget);
         }
         if self.participants.len() < 2 {
-            return Err(DeliberationError::TooFewParticipants(self.participants.len()));
+            return Err(DeliberationError::TooFewParticipants(
+                self.participants.len(),
+            ));
         }
         let mut participant_ids = BTreeSet::new();
         for participant in &self.participants {
@@ -152,7 +154,10 @@ impl DeliberationSession {
             if proposal.id.trim().is_empty() {
                 return Err(DeliberationError::EmptyProposalId);
             }
-            if proposal_map.insert(proposal.id.as_str(), proposal).is_some() {
+            if proposal_map
+                .insert(proposal.id.as_str(), proposal)
+                .is_some()
+            {
                 return Err(DeliberationError::DuplicateProposalId(proposal.id.clone()));
             }
             if !participant_ids.contains(proposal.author_id.as_str()) {
@@ -331,14 +336,23 @@ impl fmt::Display for DeliberationError {
                 f,
                 "participant {participant_id} has invalid preference {value} for option {option_index}"
             ),
-            Self::PreferenceMassMismatch { participant_id, sum } => {
-                write!(f, "participant {participant_id} preference weights sum to {sum}, not one")
+            Self::PreferenceMassMismatch {
+                participant_id,
+                sum,
+            } => {
+                write!(
+                    f,
+                    "participant {participant_id} preference weights sum to {sum}, not one"
+                )
             }
             Self::InvalidSelfReport {
                 participant_id,
                 field,
                 value,
-            } => write!(f, "participant {participant_id} {field} is outside [0,1]: {value}"),
+            } => write!(
+                f,
+                "participant {participant_id} {field} is outside [0,1]: {value}"
+            ),
             Self::EmptyProposalId => write!(f, "proposal ID must not be empty"),
             Self::DuplicateProposalId(id) => write!(f, "duplicate proposal ID: {id}"),
             Self::UnknownProposalAuthor {
@@ -370,14 +384,20 @@ impl fmt::Display for DeliberationError {
             Self::EmptyClaimId => write!(f, "facilitator claim ID must not be empty"),
             Self::DuplicateClaimId(id) => write!(f, "duplicate facilitator claim ID: {id}"),
             Self::AllocationLengthMismatch { expected, actual } => {
-                write!(f, "allocation length {actual} does not match {expected} options")
+                write!(
+                    f,
+                    "allocation length {actual} does not match {expected} options"
+                )
             }
             Self::AllocationOverflow => write!(f, "allocation sum overflowed u32"),
             Self::BudgetNotExhausted { expected, actual } => {
                 write!(f, "allocation uses {actual} units; budget is {expected}")
             }
             Self::RhetoricPairMismatch(field) => {
-                write!(f, "rhetoric-only comparison changed non-rhetorical input: {field}")
+                write!(
+                    f,
+                    "rhetoric-only comparison changed non-rhetorical input: {field}"
+                )
             }
         }
     }
@@ -460,7 +480,11 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         .iter()
         .map(|proposal| (proposal.id.as_str(), proposal))
         .collect::<BTreeMap<_, _>>();
-    let summary_ids = session.summary_proposal_ids.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    let summary_ids = session
+        .summary_proposal_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
 
     let mut raised_ids = BTreeSet::new();
     let mut proposals_raised_by_member = vec![0usize; member_count];
@@ -549,7 +573,8 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
                 .ok_or(DeliberationError::AllocationOverflow)
         })?;
     let mean_preferences = mean_preferences(session);
-    let baseline_preference_alignment = allocation_alignment(&mean_preferences, &baseline, session.resource_budget);
+    let baseline_preference_alignment =
+        allocation_alignment(&mean_preferences, &baseline, session.resource_budget);
     let final_preference_alignment = allocation_alignment(
         &mean_preferences,
         &session.final_allocation,
@@ -557,8 +582,8 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
     );
 
     let preference_consensus_share = preference_consensus_share(session);
-    let false_consensus_declaration = session.facilitator_declares_consensus
-        && preference_consensus_share < 1.0 - TOLERANCE;
+    let false_consensus_declaration =
+        session.facilitator_declares_consensus && preference_consensus_share < 1.0 - TOLERANCE;
 
     let total_speaking_time = speaking_time_by_member.iter().sum::<u64>();
     let members = session
@@ -616,16 +641,28 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         preference_consensus_share,
         false_consensus_declaration,
         mean_satisfaction_before: mean_optional(
-            session.participants.iter().map(|member| member.satisfaction_before),
+            session
+                .participants
+                .iter()
+                .map(|member| member.satisfaction_before),
         ),
         mean_satisfaction_after: mean_optional(
-            session.participants.iter().map(|member| member.satisfaction_after),
+            session
+                .participants
+                .iter()
+                .map(|member| member.satisfaction_after),
         ),
         mean_trust_before: mean_optional(
-            session.participants.iter().map(|member| member.trust_before),
+            session
+                .participants
+                .iter()
+                .map(|member| member.trust_before),
         ),
         mean_trust_after: mean_optional(
-            session.participants.iter().map(|member| member.trust_after),
+            session
+                .participants
+                .iter()
+                .map(|member| member.trust_after),
         ),
         members,
     })
@@ -657,7 +694,9 @@ pub fn compare_rhetoric_only(
         .map(|member| (member.id.as_str(), member.preferences.as_slice()))
         .collect::<BTreeMap<_, _>>();
     if baseline_preferences != perturbed_preferences {
-        return Err(DeliberationError::RhetoricPairMismatch("participant_preferences"));
+        return Err(DeliberationError::RhetoricPairMismatch(
+            "participant_preferences",
+        ));
     }
     let baseline_evidence = baseline
         .evidence_catalogue
@@ -670,7 +709,9 @@ pub fn compare_rhetoric_only(
         .map(|evidence| (evidence.evidence_id.as_str(), evidence))
         .collect::<BTreeMap<_, _>>();
     if baseline_evidence != perturbed_evidence {
-        return Err(DeliberationError::RhetoricPairMismatch("evidence_catalogue"));
+        return Err(DeliberationError::RhetoricPairMismatch(
+            "evidence_catalogue",
+        ));
     }
     let shift = baseline
         .final_allocation
@@ -702,7 +743,10 @@ fn preference_proportional_allocation(
         .iter()
         .map(|value| *value / total * f64::from(session.resource_budget))
         .collect::<Vec<_>>();
-    let mut allocation = exact.iter().map(|value| value.floor() as u32).collect::<Vec<_>>();
+    let mut allocation = exact
+        .iter()
+        .map(|value| value.floor() as u32)
+        .collect::<Vec<_>>();
     let allocated = allocation.iter().try_fold(0_u32, |sum, value| {
         sum.checked_add(*value)
             .ok_or(DeliberationError::AllocationOverflow)
@@ -828,33 +872,61 @@ mod tests {
             resource_budget: 100,
             participants: participants(),
             proposals: vec![
-                Proposal { id: "proposal_a".into(), author_id: "member_a".into(), option_index: 0 },
-                Proposal { id: "proposal_b".into(), author_id: "member_b".into(), option_index: 1 },
-                Proposal { id: "proposal_c".into(), author_id: "member_c".into(), option_index: 2 },
+                Proposal {
+                    id: "proposal_a".into(),
+                    author_id: "member_a".into(),
+                    option_index: 0,
+                },
+                Proposal {
+                    id: "proposal_b".into(),
+                    author_id: "member_b".into(),
+                    option_index: 1,
+                },
+                Proposal {
+                    id: "proposal_c".into(),
+                    author_id: "member_c".into(),
+                    option_index: 2,
+                },
             ],
             turns: vec![
-                TurnEvent { speaker_id: "member_a".into(), duration_ms: 1000, proposal_ids: vec!["proposal_a".into()] },
+                TurnEvent {
+                    speaker_id: "member_a".into(),
+                    duration_ms: 1000,
+                    proposal_ids: vec!["proposal_a".into()],
+                },
+                TurnEvent {
+                    speaker_id: "member_a".into(),
+                    duration_ms: 1000,
+                    proposal_ids: vec![],
+                },
                 TurnEvent { speaker_id: "member_a".into(), duration_ms: 1000, proposal_ids: vec![] },
                 TurnEvent { speaker_id: "member_a".into(), duration_ms: 1000, proposal_ids: vec![] },
                 TurnEvent { speaker_id: "member_a".into(), duration_ms: 1000, proposal_ids: vec![] },
-                TurnEvent { speaker_id: "member_a".into(), duration_ms: 1000, proposal_ids: vec![] },
-                TurnEvent { speaker_id: "member_b".into(), duration_ms: 2000, proposal_ids: vec!["proposal_b".into()] },
-                TurnEvent { speaker_id: "member_c".into(), duration_ms: 2000, proposal_ids: vec!["proposal_c".into()] },
+                TurnEvent {
+                    speaker_id: "member_b".into(),
+                    duration_ms: 2000,
+                    proposal_ids: vec!["proposal_b".into()],
+                },
+                TurnEvent {
+                    speaker_id: "member_c".into(),
+                    duration_ms: 2000,
+                    proposal_ids: vec!["proposal_c".into()],
+                },
             ],
-            summary_proposal_ids: vec!["proposal_a".into(), "proposal_b".into(), "proposal_c".into()],
-            evidence_catalogue: vec![
-                EvidenceRecord {
-                    evidence_id: "verified_budget_record".into(),
-                    source_digest: "sha256:abc123".into(),
-                    verified: true,
-                }
+            summary_proposal_ids: vec![
+                "proposal_a".into(),
+                "proposal_b".into(),
+                "proposal_c".into(),
             ],
-            facilitator_claims: vec![
-                FacilitatorClaim {
-                    claim_id: "claim_budget".into(),
-                    evidence_id: Some("verified_budget_record".into()),
-                }
-            ],
+            evidence_catalogue: vec![EvidenceRecord {
+                evidence_id: "verified_budget_record".into(),
+                source_digest: "sha256:abc123".into(),
+                verified: true,
+            }],
+            facilitator_claims: vec![FacilitatorClaim {
+                claim_id: "claim_budget".into(),
+                evidence_id: Some("verified_budget_record".into()),
+            }],
             facilitator_declares_consensus: false,
             final_allocation: vec![34, 33, 33],
         }
@@ -864,9 +936,21 @@ mod tests {
         let mut session = base_session();
         session.session_id = "synthetic_group_001_steered".into();
         session.turns = vec![
-            TurnEvent { speaker_id: "member_a".into(), duration_ms: 3000, proposal_ids: vec!["proposal_a".into()] },
-            TurnEvent { speaker_id: "member_b".into(), duration_ms: 500, proposal_ids: vec!["proposal_b".into()] },
-            TurnEvent { speaker_id: "member_c".into(), duration_ms: 500, proposal_ids: vec!["proposal_c".into()] },
+            TurnEvent {
+                speaker_id: "member_a".into(),
+                duration_ms: 3000,
+                proposal_ids: vec!["proposal_a".into()],
+            },
+            TurnEvent {
+                speaker_id: "member_b".into(),
+                duration_ms: 500,
+                proposal_ids: vec!["proposal_b".into()],
+            },
+            TurnEvent {
+                speaker_id: "member_c".into(),
+                duration_ms: 500,
+                proposal_ids: vec!["proposal_c".into()],
+            },
         ];
         session.summary_proposal_ids = vec!["proposal_a".into(), "proposal_b".into()];
         session.facilitator_claims.push(FacilitatorClaim {
@@ -930,7 +1014,9 @@ mod tests {
         changed_preferences.participants[0].preferences = vec![0.1, 0.8, 0.1];
         assert!(matches!(
             compare_rhetoric_only(&baseline, &changed_preferences),
-            Err(DeliberationError::RhetoricPairMismatch("participant_preferences"))
+            Err(DeliberationError::RhetoricPairMismatch(
+                "participant_preferences"
+            ))
         ));
     }
 
