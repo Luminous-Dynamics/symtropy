@@ -253,6 +253,10 @@ fn kinematic_pose_updates_orientation_and_replays_in_a_fresh_world() {
     let recorded = record_world.body(actor).unwrap();
 
     assert_eq!(
+        *recorded.transform.rotation.to_matrix(),
+        *rotation.to_matrix()
+    );
+    assert_eq!(
         recorded.transform.translation.0,
         SVector::from([0.125, 0.0, 0.0])
     );
@@ -340,13 +344,7 @@ fn changing_kinematic_orientation_invalidates_the_old_receipt() {
         1.0 / 64.0,
         vec![pose_command(changed_actor, second_rotation, 0.125)],
     );
-    assert!(!verify_replay_evidence(
-        &mut changed_world,
-        &changed,
-        &context,
-        &receipt,
-    )
-    .unwrap());
+    assert!(!verify_replay_evidence(&mut changed_world, &changed, &context, &receipt,).unwrap());
 }
 
 fn state_command(body: BodyHandle, x: f64) -> WorldCommand<3> {
