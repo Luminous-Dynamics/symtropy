@@ -23,7 +23,8 @@
       "i_l_reference_period_id": "synthetic-maximum-demand-reference-period-12mo",
       "i_l_source_artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     },
-    "nominal_voltage_v": 400
+    "nominal_voltage_v": 400,
+    "wire_count": 4
   },
   "measurement": {
     "measurement_standard_id": "IEC_61000_4_30_2025",
