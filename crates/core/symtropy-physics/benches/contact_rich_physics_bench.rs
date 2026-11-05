@@ -84,7 +84,10 @@ impl Scene {
     }
 
     fn is_tall_box_stack(self) -> bool {
-        matches!(self, Self::TenBoxStack8Iterations | Self::TenBoxStack30Iterations)
+        matches!(
+            self,
+            Self::TenBoxStack8Iterations | Self::TenBoxStack30Iterations
+        )
     }
 }
 
