@@ -213,6 +213,7 @@ pub enum HandoffError {
     PolicyMismatch,
     MissingCue,
     WrongCueRecipient,
+    ObservationProfileMismatch,
     CueNotDelivered,
     FutureCueLeak,
     InvalidObservationTiming,
@@ -617,6 +618,9 @@ fn verify_decisions<'a>(
             let cue = cues.get(cue_id.as_str()).ok_or(HandoffError::MissingCue)?;
             if cue.recipient_actor_id != decision.actor_id {
                 return Err(HandoffError::WrongCueRecipient);
+            }
+            if cue.visibility_profile_digest != policy.observation_profile_digest {
+                return Err(HandoffError::ObservationProfileMismatch);
             }
             let delivered_tick = cue.delivered_tick.ok_or(HandoffError::CueNotDelivered)?;
             if cue.disposition != ObservationDisposition::Delivered
@@ -1314,7 +1318,7 @@ mod tests {
             replay: ReplayEvidence {
                 replay_profile_digest: d("fresh-process-replay"),
                 expected_branch_payload_root: String::new(),
-                replayed_branch_payload_root: Some(payload_root.clone()),
+                replayed_branch_payload_root: None,
                 disposition: ReplayDisposition::ExactSameRuntimeBytes,
             },
         };
@@ -1391,6 +1395,9 @@ mod tests {
     fn future_or_undelivered_observation_is_rejected() {
         let (mut episode, anchor) = fixture();
         episode.branches[0].observations[2].delivered_tick = Some(2);
+        let payload = branch_payload_root(&episode.branches[0]);
+        episode.branches[0].replay.expected_branch_payload_root = payload.clone();
+        episode.branches[0].replay.replayed_branch_payload_root = Some(payload);
         let root = episode.episode_root().unwrap();
         let anchor = ExternalAnchor { expected_episode_root: root, ..anchor };
         assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::CueNotDelivered));
@@ -1400,7 +1407,6 @@ mod tests {
     fn missing_decision_and_incomplete_replay_remain_incomplete() {
         let (mut episode, anchor) = fixture();
         episode.branches[0].decisions.retain(|d| !(d.tick == 1 && d.actor_id == "actor-1"));
-        let root = episode.episode_root().unwrap();
         let mut branch = episode.branches[0].clone();
         branch.replay.expected_branch_payload_root = branch_payload_root(&branch);
         branch.replay.replayed_branch_payload_root = None;
