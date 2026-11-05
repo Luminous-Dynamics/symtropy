@@ -441,19 +441,7 @@ pub fn compile_work_graph(
 
     nodes.sort_by(|left, right| left.task_id.cmp(&right.task_id));
     let graph = TaskGraph {
-        graph_id: graph_identity(
-            &manifest.project_id,
-            &manifest.site_id,
-            &manifest.work_package_id,
-            &manifest.model_digest,
-            &manifest.design_revision,
-            &manifest.target_frame_id,
-            &manifest.site_epoch,
-            &method.template_id,
-            &method.revision_digest,
-            compiler_version,
-            rule_set_digest,
-        ),
+        graph_id: graph_identity(manifest, method, compiler_version, rule_set_digest),
         project_id: manifest.project_id.clone(),
         site_id: manifest.site_id.clone(),
         work_package_id: manifest.work_package_id.clone(),
@@ -514,43 +502,32 @@ pub fn task_id(element_id: &str, step_id: &str) -> String {
 /// Combines declared source/compiler identities into a deterministic graph label. It is
 /// not a content hash or tamper-evident receipt; authoritative digests remain upstream.
 fn graph_identity(
-    project_id: &str,
-    site_id: &str,
-    work_package_id: &str,
-    model_digest: &str,
-    design_revision: &str,
-    target_frame_id: &str,
-    site_epoch: &str,
-    method_template_id: &str,
-    method_revision_digest: &str,
+    manifest: &DesignManifest,
+    method: &MethodTemplate,
     compiler_version: &str,
     rule_set_digest: &str,
 ) -> String {
-    format!(
-        "graph:p{}:{}:s{}:{}:w{}:{}:m{}:{}:d{}:{}:f{}:{}:e{}:{}:t{}:{}:r{}:{}:c{}:{}:q{}:{}",
-        project_id.len(),
-        project_id,
-        site_id.len(),
-        site_id,
-        work_package_id.len(),
-        work_package_id,
-        model_digest.len(),
-        model_digest,
-        design_revision.len(),
-        design_revision,
-        target_frame_id.len(),
-        target_frame_id,
-        site_epoch.len(),
-        site_epoch,
-        method_template_id.len(),
-        method_template_id,
-        method_revision_digest.len(),
-        method_revision_digest,
-        compiler_version.len(),
+    let fields = [
+        manifest.project_id.as_str(),
+        manifest.site_id.as_str(),
+        manifest.work_package_id.as_str(),
+        manifest.model_digest.as_str(),
+        manifest.design_revision.as_str(),
+        manifest.target_frame_id.as_str(),
+        manifest.site_epoch.as_str(),
+        method.template_id.as_str(),
+        method.revision_digest.as_str(),
         compiler_version,
-        rule_set_digest.len(),
-        rule_set_digest
-    )
+        rule_set_digest,
+    ];
+    let mut output = String::from("graph:");
+    for field in fields {
+        output.push_str(&field.len().to_string());
+        output.push(':');
+        output.push_str(field);
+        output.push(':');
+    }
+    output
 }
 
 fn compile_diagnostic(
