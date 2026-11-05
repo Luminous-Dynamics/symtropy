@@ -287,6 +287,7 @@ pub enum EvidenceEligibility {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SamHandoff {
+    pub query_schema_id: String,
     pub episode_root: String,
     /// Full canonical source episode artifact; not just the reduced SAM query.
     pub episode_json: String,
@@ -484,6 +485,7 @@ pub fn export_to_sam(
     }
 
     Ok(SamHandoff {
+        query_schema_id: QUERY_SCHEMA.to_owned(),
         episode_root,
         episode_json: episode.canonical_json()?,
         anchor_authority_reference: anchor.authority_reference.clone(),
@@ -1677,6 +1679,7 @@ mod tests {
     fn emits_exact_sam_query_shape_and_preserves_each_correspondence_hypothesis() {
         let (episode, anchor) = fixture();
         let handoff = export_to_sam(&episode, &anchor).unwrap();
+        assert_eq!(handoff.query_schema_id, QUERY_SCHEMA);
         assert_eq!(handoff.evidence_class, EvidenceClass::SimulationGenerated);
         assert_eq!(handoff.eligibility, EvidenceEligibility::FormalConformanceOnly);
         assert_eq!(handoff.branches.len(), 1);
