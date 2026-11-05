@@ -465,7 +465,9 @@ pub struct InferenceServiceMetrics {
     pub successful_request_count: usize,
     pub success_fraction: f64,
     pub useful_work_fraction: f64,
+    pub completed_useful_tokens: u64,
     pub total_output_tokens: u64,
+    pub useful_tokens_per_second: f64,
     pub tokens_per_second: f64,
     pub p95_ttft_ms: Option<f64>,
     pub p99_ttft_ms: Option<f64>,
@@ -740,9 +742,9 @@ pub fn evaluate_inference_power_flexibility(
     let baseline_joules = baseline_boundary_energy_wh * 3_600.0;
     let candidate_joules = candidate_boundary_energy_wh * 3_600.0;
     let baseline_tokens_per_joule =
-        baseline_service.total_output_tokens as f64 / baseline_joules;
+        baseline_service.completed_useful_tokens as f64 / baseline_joules;
     let candidate_tokens_per_joule =
-        candidate_service.total_output_tokens as f64 / candidate_joules;
+        candidate_service.completed_useful_tokens as f64 / candidate_joules;
 
     if ![
         baseline_boundary_energy_wh,
@@ -911,13 +913,16 @@ fn calculate_service_metrics(
     let success_fraction = successful_request_count as f64 / request_count as f64;
     let useful_work_fraction = completed_useful_tokens as f64 / expected_tokens as f64;
     let duration_seconds = duration_ms as f64 / 1_000.0;
+    let useful_tokens_per_second = completed_useful_tokens as f64 / duration_seconds;
     let tokens_per_second = total_output_tokens as f64 / duration_seconds;
     let metrics = InferenceServiceMetrics {
         request_count,
         successful_request_count,
         success_fraction,
         useful_work_fraction,
+        completed_useful_tokens,
         total_output_tokens,
+        useful_tokens_per_second,
         tokens_per_second,
         p95_ttft_ms: nearest_rank_quantile(&ttft_values, 95),
         p99_ttft_ms: nearest_rank_quantile(&ttft_values, 99),
@@ -927,6 +932,7 @@ fn calculate_service_metrics(
     if ![
         metrics.success_fraction,
         metrics.useful_work_fraction,
+        metrics.useful_tokens_per_second,
         metrics.tokens_per_second,
     ].iter().all(|value| value.is_finite()) {
         return Err(InferencePowerFlexibilityError::NumericalOverflow(
