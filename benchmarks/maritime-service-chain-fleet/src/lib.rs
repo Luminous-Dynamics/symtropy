@@ -1635,10 +1635,7 @@ mod tests {
             };
 
             let mut start_tick = first_start;
-            loop {
-                let Some(end_tick) = start_tick.checked_add(timing.duration_ticks) else {
-                    break;
-                };
+            while let Some(end_tick) = start_tick.checked_add(timing.duration_ticks) {
                 if end_tick < case.demand.delivery_window.end_tick {
                     let mut resource_uses = route_segment.resource_uses.clone();
                     resource_uses.sort_by(|left, right| {
