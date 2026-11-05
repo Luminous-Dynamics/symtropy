@@ -1,0 +1,237 @@
+{
+  "schema_version": "wpt-asset-health-scenarios-v0",
+  "claim_ceiling": "All cases in this manifest are test designs or synthetic controls. Published literature values are not copied into the fixtures as if they were raw measurements.",
+  "split_policy": {
+    "grouping_keys": [
+      "asset_id",
+      "segment_id",
+      "material_lot_id",
+      "installation_revision",
+      "route_id",
+      "environmental_campaign_id"
+    ],
+    "prohibition": "No observation from one physical asset/segment/material-lot group may cross train, calibration and test partitions. Repeated time samples are dependent observations.",
+    "censored_data": "An asset that has not crossed a failure threshold by observation end is right-censored, not a failure."
+  },
+  "cases": [
+    {
+      "case_id": "matched-conventional-control",
+      "case_kind": "MATCHED_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "matched-section-a",
+      "arm": "CONVENTIONAL_PAVEMENT",
+      "challenge": "Baseline structural, thermal and environmental observations with no embedded WPT unit.",
+      "expected_disposition": "BASELINE_ONLY",
+      "required_behaviors": [
+        "Preserve null electromagnetic fields as not applicable",
+        "Do not invent a WPT performance result"
+      ]
+    },
+    {
+      "case_id": "matched-embedded-unpowered",
+      "case_kind": "MATCHED_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "matched-section-a",
+      "arm": "EMBEDDED_UNPOWERED",
+      "challenge": "Same pavement/material lineage with embedded hardware but no WPT energization.",
+      "expected_disposition": "CONTROL_ONLY",
+      "required_behaviors": [
+        "Separate structural embedment effects from energization-related heat",
+        "Keep the installation lineage linked to matched control"
+      ]
+    },
+    {
+      "case_id": "matched-embedded-powered",
+      "case_kind": "MATCHED_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "matched-section-a",
+      "arm": "EMBEDDED_ENERGIZED",
+      "challenge": "Matched embedded section with declared energization history.",
+      "expected_disposition": "COMPARABLE_ONLY_WHEN_BOUNDARIES_MATCH",
+      "required_behaviors": [
+        "Account for cumulative energy and energized duty",
+        "Do not compare unlike pavement or meter boundaries"
+      ]
+    },
+    {
+      "case_id": "settlement-to-coupling-drift",
+      "case_kind": "KNOWN_TRUTH",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "asset-settlement-01",
+      "arm": "DAMAGE_PROGRESSION",
+      "challenge": "Declared pad translation and tilt evolve with settlement; synthetic electromagnetic observations are generated from a frozen coupling-response oracle.",
+      "expected_disposition": "DRIFT_DETECTED",
+      "required_behaviors": [
+        "Bind structural and electromagnetic observations to the same asset and time sequence",
+        "Report the declared oracle relationship and uncertainty",
+        "Do not generalize the synthetic transfer function to hardware"
+      ]
+    },
+    {
+      "case_id": "thermal-cycle-resistance-q-drift",
+      "case_kind": "KNOWN_TRUTH",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "asset-thermal-01",
+      "arm": "DAMAGE_PROGRESSION",
+      "challenge": "Synthetic thermal cycling changes conductor resistance and Q under the frozen temperature coefficient; L and C remain fixed so the reference resonant frequency must not drift.",
+      "expected_disposition": "DRIFT_DETECTED",
+      "required_behaviors": [
+        "Retain measured temperature history as separate evidence",
+        "Detect resistance/Q drift against the frozen baseline",
+        "Assert no resonance-frequency change under this oracle's fixed L/C assumptions",
+        "Do not claim material ageing without independent validation"
+      ]
+    },
+    {
+      "case_id": "moisture-insulation-degradation",
+      "case_kind": "KNOWN_TRUTH",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "asset-moisture-01",
+      "arm": "DAMAGE_PROGRESSION",
+      "challenge": "Synthetic moisture exposure coincides with a declared reduction in insulation resistance.",
+      "expected_disposition": "INSPECTION_REQUIRED",
+      "required_behaviors": [
+        "Do not substitute moisture category for insulation measurement",
+        "Do not allow a condition score to override independent protection"
+      ]
+    },
+    {
+      "case_id": "ferrite-damage-quality-factor",
+      "case_kind": "KNOWN_TRUTH",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "asset-ferrite-01",
+      "arm": "DAMAGE_PROGRESSION",
+      "challenge": "Synthetic ferrite damage produces declared Q and loss changes with unchanged asset identity.",
+      "expected_disposition": "DRIFT_DETECTED",
+      "required_behaviors": [
+        "Keep Q, ESR and thermal fields independently inspectable",
+        "Reject missing or mixed measurement units"
+      ]
+    },
+    {
+      "case_id": "sensor-drift-negative-control",
+      "case_kind": "NEGATIVE_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "sensor-drift-01",
+      "arm": "SENSOR_FAULT",
+      "challenge": "A sensor offset is introduced while independent reference measurement remains stable.",
+      "expected_disposition": "NOT_EVALUABLE_OR_SENSOR_FAULT",
+      "required_behaviors": [
+        "Do not classify sensor offset as asset degradation without corroboration",
+        "Propagate calibration and sensor-quality flags"
+      ]
+    },
+    {
+      "case_id": "missing-calibration-negative-control",
+      "case_kind": "NEGATIVE_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "calibration-01",
+      "arm": "EVIDENCE_DEFECT",
+      "challenge": "A nominally complete record lacks a required calibration receipt.",
+      "expected_disposition": "NOT_EVALUABLE",
+      "required_behaviors": [
+        "Fail closed for affected derived metric",
+        "Do not replace missing calibration with default confidence"
+      ]
+    },
+    {
+      "case_id": "cross-split-asset-leakage",
+      "case_kind": "NEGATIVE_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "split-leak-01",
+      "arm": "SPLIT_LEAKAGE",
+      "challenge": "Repeated observations from one physical asset are placed in train and test partitions.",
+      "expected_disposition": "SPLIT_REJECTED",
+      "required_behaviors": [
+        "Reject leakage across asset/segment/material-lot grouping keys",
+        "Count independent groups separately from raw rows"
+      ]
+    },
+    {
+      "case_id": "right-censored-asset",
+      "case_kind": "NEGATIVE_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "censored-01",
+      "arm": "RIGHT_CENSORED",
+      "challenge": "The asset remains in service when observation ends, without a recorded failure threshold crossing.",
+      "expected_disposition": "CENSORED_NOT_FAILED",
+      "required_behaviors": [
+        "Retain censoring time and reason",
+        "Do not convert end-of-record to failure time"
+      ]
+    },
+    {
+      "case_id": "missing-raw-source-negative-control",
+      "case_kind": "NEGATIVE_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "raw-source-01",
+      "arm": "PROVENANCE_DEFECT",
+      "challenge": "A published or measured claim has no raw-source locator or artifact digest.",
+      "expected_disposition": "PROVENANCE_LIMITED",
+      "required_behaviors": [
+        "Mark evidence limitation explicitly",
+        "Do not promote abstract-level summaries to raw measured records"
+      ]
+    },
+    {
+      "case_id": "binder-grade-thermal-strain-stratification",
+      "case_kind": "PUBLISHED_MEASURED_REFERENCE",
+      "evidence_kind": "PUBLISHED_MEASURED",
+      "group_id": "published-appliedthermalengineering-2026-132099",
+      "arm": "BINDER_GRADE_COMPARISON",
+      "challenge": "Preserve the separate PG 64-22 and PG 76-22 experimental arms and their declared 10 C heating condition. The publication reports distinct tensile-strain amplification; do not turn summary percentages into raw sensor observations.",
+      "expected_disposition": "SOURCE_LOCATED_COMPARISON_ONLY",
+      "required_behaviors": [
+        "Retain binder grade and mixture lineage as model inputs",
+        "Keep mean strain amplification and local spatial strain profile distinct",
+        "Record thermal stimulus method as heating-pad surrogate, not active WPT electrical heat",
+        "Do not extrapolate the reported amplification to another mixture, pavement or power level"
+      ]
+    },
+    {
+      "case_id": "distributed-strain-temperature-spatial-registration",
+      "case_kind": "SCHEMA_KNOWN_TRUTH",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "spatial-sensor-01",
+      "arm": "MULTIPARAMETER_SPATIAL_SENSING",
+      "challenge": "Temperature, strain and curvature samples are co-registered in one declared coordinate frame, with a known localized hot-zone/strain peak above a synthetic pad footprint.",
+      "expected_disposition": "SPATIAL_PROFILE_PRESERVED",
+      "required_behaviors": [
+        "Preserve per-point coordinates and depths",
+        "Do not collapse the localized hot zone into a segment mean",
+        "Reject mixed or unresolved coordinate frames",
+        "Keep strain, temperature and curvature as separate quantities"
+      ]
+    },
+    {
+      "case_id": "thermal-sensor-cross-sensitivity-negative-control",
+      "case_kind": "NEGATIVE_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "spatial-sensor-02",
+      "arm": "SENSOR_CROSS_SENSITIVITY",
+      "challenge": "A synthetic multi-parameter fiber sensor has known temperature/strain/curvature cross-sensitivity; decoupled outputs must match a separately declared reference within the fixture tolerance.",
+      "expected_disposition": "DECOUPLED_OR_NOT_EVALUABLE",
+      "required_behaviors": [
+        "Retain raw channel and decoupled outputs separately",
+        "Propagate the calibration and decoupling method digest",
+        "Reject missing decoupling calibration",
+        "Do not treat the sensor algorithm output as independent ground truth"
+      ]
+    },
+    {
+      "case_id": "same-peak-different-thermal-field-negative-control",
+      "case_kind": "NEGATIVE_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "thermal-surrogate-equivalence-01",
+      "arm": "THERMAL_BOUNDARY_MISMATCH",
+      "challenge": "Two synthetic thermal stimuli share the same peak surface temperature but have different spatial heat-flux distributions, depth gradients and cooldown histories.",
+      "expected_disposition": "SURROGATE_NOT_EQUIVALENT",
+      "required_behaviors": [
+        "Do not declare thermal equivalence from peak temperature alone",
+        "Compare spatial heat flux, depth temperature profiles and time history",
+        "Retain ACTIVE_WPT_LOSS versus PASSIVE_THERMAL_SURROGATE distinction",
+        "Require an explicit equivalence tolerance and reference boundary before transferring thermo-mechanical claims"
+      ]
+    }
+  ]
+}

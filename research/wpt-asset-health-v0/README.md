@@ -96,3 +96,19 @@ These are programme targets, not standards or achieved results:
 ## Claim ceiling
 
 This is a schema, benchmark and software research specification. It does not establish field lifetime, hardware safety, standards compliance, predictive maintenance readiness or SOTA superiority. No energized high-power build, public-road operation or unapproved accelerated pavement test is authorized.
+
+## Extended v1 measurement contract
+
+The v1 record and evaluator preserve binder/mixture identity, wheel-wander offset, and spatially registered strain, temperature, curvature and heat-flux observations. Every spatial observation binds to the asset coordinate frame, sensor/method identity, location and depth.
+
+Two recent studies motivate the extension:
+- An August 2026 experiment compared PG 64–22 and PG 76–22 asphalt under up to a 10 °C controlled thermal-surrogate rise and MMLS3 loading. It reports 88% versus 50% mean tensile-strain amplification and about 34% lower tensile strain in the polymer-modified mixture. Its embedded heating pads were electrically passive thermal surrogates, not energized WPT transmitters. [DOI 10.1016/j.applthermaleng.2026.132099](https://doi.org/10.1016/j.applthermaleng.2026.132099).
+- A 1 November 2026 asphalt-sensor study describes distributed measurement of strain, temperature and curvature with decoupling and 2D rut-profile reconstruction. It is a sensing-method reference, not a long-duration WPT roadway field validation. [DOI 10.1016/j.sna.2026.118304](https://doi.org/10.1016/j.sna.2026.118304).
+
+### Thermal-surrogate equivalence is a separate qualification
+
+A passive heating pad and an energized WPT transmitter may produce the same maximum surface temperature while delivering different spatial heat flux, depth gradients, internal material heating, duty cycles and cooldown histories. A peak-temperature match alone is insufficient to transfer a thermo-mechanical result from surrogate heating to an active WPT system.
+
+Before claiming equivalence for a declared pavement response, compare spatial heat-flux distribution, multi-depth temperature histories, heating rate, dwell, duty cycle, cooldown, thermal-cycle count, ambient background and measurement uncertainty. Equivalence must be limited to a named response quantity and material regime. Otherwise retain the result as a thermal-surrogate experiment, not active-WPT validation.
+
+The expanded schema requires spatial strain, curvature, temperature and heat-flux profiles to use one declared asset coordinate frame. Its synthetic example is explicitly tagged SYNTHETIC_ONLY.
