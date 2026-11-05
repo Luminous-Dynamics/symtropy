@@ -671,16 +671,12 @@ fn non_target_leg_mechanics_unchanged(
 
 /// Contact/load protocols may alter only these two fields on the declared leg.
 /// They are not a license to change kinematics or actuator output as a side effect.
-fn contact_load_only_changed(
-    current: LegMechanicalState,
-    next: LegMechanicalState,
-) -> bool {
+fn contact_load_only_changed(current: LegMechanicalState, next: LegMechanicalState) -> bool {
     current.gait_phase == next.gait_phase
         && current.joint_position == next.joint_position
         && current.joint_velocity == next.joint_velocity
         && current.actuator_force == next.actuator_force
-        && (current.contact_state != next.contact_state
-            || current.load_state != next.load_state)
+        && (current.contact_state != next.contact_state || current.load_state != next.load_state)
 }
 
 fn sensor_state_semantic_id(sensor: &SensorState) -> String {
