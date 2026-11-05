@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-layout-benchmark-v0.1.schema.json",
+  "title": "Construction Layout Benchmark Profile v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "owner_issue",
+    "status",
+    "benchmark_intent",
+    "task_scope",
+    "canonical_context",
+    "reference_system",
+    "experimental_design",
+    "scorecard",
+    "total_workflow_cost_accounting",
+    "vendor_claim_register",
+    "south_africa",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "const": "construction-layout-benchmark-v0.1"
+    },
+    "owner_issue": {
+      "const": 3719
+    },
+    "parent_plugfest_issue": {
+      "const": 3706
+    },
+    "status": {
+      "const": "research_benchmark_profile_not_standard"
+    },
+    "benchmark_intent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_scope": {
+      "type": "object",
+      "required": [
+        "initial_domain",
+        "task_families",
+        "excluded_initially",
+        "denominator_policy"
+      ],
+      "properties": {
+        "initial_domain": {
+          "type": "string"
+        },
+        "task_families": {
+          "type": "array",
+          "minItems": 5
+        },
+        "excluded_initially": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "denominator_policy": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "canonical_context": {
+      "type": "object",
+      "required": [
+        "required_fields",
+        "rule",
+        "acceptance_authority"
+      ],
+      "properties": {
+        "required_fields": {
+          "type": "array",
+          "minItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "rule": {
+          "type": "string"
+        },
+        "acceptance_authority": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "reference_system": {
+      "type": "object",
+      "required": [
+        "coordinate_frame",
+        "control_network",
+        "metrology"
+      ],
+      "properties": {
+        "coordinate_frame": {
+          "type": "object"
+        },
+        "control_network": {
+          "type": "object"
+        },
+        "metrology": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "experimental_design": {
+      "type": "object",
+      "required": [
+        "stage_0",
+        "stage_1",
+        "stage_2",
+        "participants_minimum_research_design",
+        "controls",
+        "nuisance_factors_to_record"
+      ],
+      "properties": {
+        "stage_0": {
+          "type": "string"
+        },
+        "stage_1": {
+          "type": "string"
+        },
+        "stage_2": {
+          "type": "string"
+        },
+        "participants_minimum_research_design": {
+          "type": "object"
+        },
+        "controls": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true
+        },
+        "nuisance_factors_to_record": {
+          "type": "array",
+          "minItems": 5
+        }
+      },
+      "additionalProperties": true
+    },
+    "scorecard": {
+      "type": "object",
+      "required": [
+        "metrics",
+        "hard_software_gates",
+        "stretch_hypotheses_not_standards",
+        "target_interpretation"
+      ],
+      "properties": {
+        "metrics": {
+          "type": "array",
+          "minItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "unit"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "report": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "formula": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": true,
+            "oneOf": [
+              {
+                "required": [
+                  "report"
+                ]
+              },
+              {
+                "required": [
+                  "formula"
+                ]
+              }
+            ]
+          }
+        },
+        "hard_software_gates": {
+          "type": "object"
+        },
+        "stretch_hypotheses_not_standards": {
+          "type": "object"
+        },
+        "target_interpretation": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "total_workflow_cost_accounting": {
+      "type": "array",
+      "minItems": 15,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "vendor_claim_register": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "supplier",
+          "product",
+          "published_claim",
+          "claim_type",
+          "status",
+          "source"
+        ],
+        "properties": {
+          "supplier": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "published_claim": {
+            "type": "string"
+          },
+          "claim_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "south_africa": {
+      "type": "object",
+      "required": [
+        "rule",
+        "caution",
+        "contextual_sources"
+      ],
+      "properties": {
+        "rule": {
+          "type": "string"
+        },
+        "caution": {
+          "type": "string"
+        },
+        "contextual_sources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
