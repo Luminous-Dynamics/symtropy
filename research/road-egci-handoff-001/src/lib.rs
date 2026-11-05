@@ -205,6 +205,7 @@ pub enum HandoffError {
     DuplicateActor,
     DuplicateBranch,
     DuplicateCue,
+    NonMonotoneDeliverySequence,
     DuplicateDecisionReceipt,
     DuplicateDecisionTickActor,
     DuplicateTransitionTick,
@@ -576,6 +577,21 @@ fn observation_index<'a>(
         }
         if index.insert(cue.cue_id.as_str(), cue).is_some() {
             return Err(HandoffError::DuplicateCue);
+        }
+    }
+    let mut per_recipient: BTreeMap<&str, Vec<&ObservationDelivery>> = BTreeMap::new();
+    for cue in index.values().filter(|cue| cue.disposition == ObservationDisposition::Delivered) {
+        per_recipient
+            .entry(cue.recipient_actor_id.as_str())
+            .or_default()
+            .push(*cue);
+    }
+    for cues in per_recipient.values_mut() {
+        cues.sort_by_key(|cue| cue.delivery_sequence);
+        if cues.windows(2).any(|pair| {
+            pair[0].delivered_tick.unwrap() > pair[1].delivered_tick.unwrap()
+        }) {
+            return Err(HandoffError::NonMonotoneDeliverySequence);
         }
     }
     Ok(index)
@@ -1863,6 +1879,18 @@ mod tests {
         episode.branches[1].branch_id = episode.branches[0].branch_id.clone();
         let anchor = reanchor(&mut episode, &anchor);
         assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::DuplicateBranch));
+    }
+
+    #[test]
+    fn observation_delivery_sequence_must_follow_delivery_time() {
+        let (mut episode, anchor) = fixture();
+        episode.branches[0].observations[0].delivery_sequence = 2;
+        episode.branches[0].observations[2].delivery_sequence = 1;
+        let anchor = reanchor(&mut episode, &anchor);
+        assert_eq!(
+            export_to_sam(&episode, &anchor),
+            Err(HandoffError::NonMonotoneDeliverySequence)
+        );
     }
 
     #[test]
