@@ -55,6 +55,8 @@ fn request(id: &str) -> PassageRequest {
             source_id: "symthaea-arrival-model".into(),
             source_revision: "model-rev-01".into(),
             calibration_receipt_id: "arrival-calibration-receipt-01".into(),
+            interval_earliest_tick: 20,
+            interval_latest_tick: 20,
             operating_regime_id: "regime-low-flow".into(),
             observed_at_tick: 20,
             valid_through_tick: Some(100),
