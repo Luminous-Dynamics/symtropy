@@ -5,7 +5,7 @@
 
 use civdyn_deliberation_audit::{
     DeliberationSession, EvidenceRecord, FacilitatorClaim, Participant, Proposal, TurnEvent,
-    audit_session, compare_rhetoric_only,
+    audit_session, compare_facilitation_variants,
 };
 
 const CSV_COLUMNS: usize = 12;
@@ -19,6 +19,7 @@ fn base_participants() -> Vec<Participant> {
             satisfaction_after: Some(0.7),
             trust_before: Some(0.5),
             trust_after: Some(0.6),
+            consensus_endorsement: Some(true),
         },
         Participant {
             id: "member_b".into(),
@@ -27,6 +28,7 @@ fn base_participants() -> Vec<Participant> {
             satisfaction_after: Some(0.7),
             trust_before: Some(0.5),
             trust_after: Some(0.7),
+            consensus_endorsement: Some(true),
         },
         Participant {
             id: "member_c".into(),
@@ -35,6 +37,7 @@ fn base_participants() -> Vec<Participant> {
             satisfaction_after: Some(0.7),
             trust_before: Some(0.5),
             trust_after: Some(0.8),
+            consensus_endorsement: Some(true),
         },
     ]
 }
@@ -144,6 +147,7 @@ fn steered_session() -> DeliberationSession {
         evidence_id: Some("missing_consensus_source".into()),
     });
     session.facilitator_declares_consensus = true;
+    session.participants[2].consensus_endorsement = Some(false);
     session.final_allocation = vec![60, 35, 5];
     session
 }
@@ -172,7 +176,7 @@ struct AuditRow<'a> {
     shift: &'a str,
     reallocated: &'a str,
     consensus: &'a str,
-    unanimity_conflict: &'a str,
+    consensus_conflict: &'a str,
 }
 
 fn row(record: AuditRow<'_>) {
@@ -187,7 +191,7 @@ fn row(record: AuditRow<'_>) {
         record.shift.into(),
         record.reallocated.into(),
         record.consensus.into(),
-        record.unanimity_conflict.into(),
+        record.consensus_conflict.into(),
         "synthetic_fixture".into(),
     ]);
 }
@@ -203,8 +207,8 @@ fn emit_audit(session: &DeliberationSession) {
     let shift = audit.allocation_l1_shift_units.to_string();
     let reallocated = fmt(audit.reallocated_units);
     let consensus = audit.facilitator_declares_consensus.to_string();
-    let unanimity_conflict = audit
-        .unanimity_claim_conflicts_with_top_preferences
+    let consensus_conflict = audit
+        .consensus_claim_contradicted_by_recorded_non_endorsement
         .to_string();
 
     for (metric, value, unit) in [
@@ -250,9 +254,29 @@ fn emit_audit(session: &DeliberationSession) {
             "count",
         ),
         (
-            "preference_consensus_share",
-            fmt(audit.preference_consensus_share),
+            "consensus_claim_contradicted_by_recorded_non_endorsement",
+            audit.consensus_claim_contradicted_by_recorded_non_endorsement.to_string(),
+            "boolean",
+        ),
+        (
+            "modal_top_preference_share",
+            fmt(audit.modal_top_preference_share),
             "fraction",
+        ),
+        (
+            "consensus_endorsement_count",
+            audit.consensus_endorsement_count.to_string(),
+            "count",
+        ),
+        (
+            "consensus_non_endorsement_count",
+            audit.consensus_non_endorsement_count.to_string(),
+            "count",
+        ),
+        (
+            "consensus_unrecorded_count",
+            audit.consensus_unrecorded_count.to_string(),
+            "count",
         ),
         (
             "baseline_preference_alignment",
@@ -302,7 +326,7 @@ fn emit_audit(session: &DeliberationSession) {
             shift: &shift,
             reallocated: &reallocated,
             consensus: &consensus,
-            unanimity_conflict: &unanimity_conflict,
+            consensus_conflict: &consensus_conflict,
         });
     }
 
@@ -339,6 +363,11 @@ fn emit_audit(session: &DeliberationSession) {
                 fmt(member.final_preference_alignment),
                 "fraction",
             ),
+            (
+                "consensus_endorsement",
+                member.consensus_endorsement.map_or_else(|| "unrecorded".into(), |value| value.to_string()),
+                "categorical",
+            ),
         ] {
             row(AuditRow {
                 record_type: "member_metric",
@@ -351,7 +380,7 @@ fn emit_audit(session: &DeliberationSession) {
                 shift: &shift,
                 reallocated: &reallocated,
                 consensus: &consensus,
-                unanimity_conflict: &unanimity_conflict,
+                consensus_conflict: &consensus_conflict,
             });
         }
     }
@@ -359,7 +388,7 @@ fn emit_audit(session: &DeliberationSession) {
 
 fn main() {
     println!(
-        "record_type,session_id,metric,subject,value,unit,final_allocation,allocation_l1_shift_units,reallocated_units,facilitator_declares_consensus,unanimity_claim_conflicts_with_top_preferences,source_type"
+        "record_type,session_id,metric,subject,value,unit,final_allocation,allocation_l1_shift_units,reallocated_units,facilitator_declares_consensus,consensus_claim_contradicted_by_recorded_non_endorsement,source_type"
     );
 
     let baseline = base_session();
@@ -367,12 +396,12 @@ fn main() {
     emit_audit(&baseline);
     emit_audit(&steered);
 
-    let difference = compare_rhetoric_only(&baseline, &steered)
+    let difference = compare_facilitation_variants(&baseline, &steered)
         .expect("paired sessions must preserve declared preferences and evidence");
     let pair_shift = difference.allocation_l1_shift_units.to_string();
     let pair_reallocated = fmt(difference.reallocated_units);
     row(AuditRow {
-        record_type: "rhetoric_only_pair",
+        record_type: "facilitation_variant_pair",
         session_id: &baseline.session_id,
         metric: "allocation_sensitivity",
         subject: &steered.session_id,
@@ -382,7 +411,7 @@ fn main() {
         shift: &pair_shift,
         reallocated: &pair_reallocated,
         consensus: "",
-        unanimity_conflict: "",
+        consensus_conflict: "",
     });
 }
 
@@ -396,12 +425,15 @@ mod tests {
         let steered = audit_session(&steered_session()).unwrap();
         assert_eq!(baseline.preference_proportional_baseline, vec![34, 33, 33]);
         assert_eq!(steered.suppressed_proposal_count, 1);
-        assert!(steered.unanimity_claim_conflicts_with_top_preferences);
+        assert_eq!(steered.consensus_endorsement_count, 2);
+        assert_eq!(steered.consensus_non_endorsement_count, 1);
+        assert_eq!(steered.consensus_unrecorded_count, 0);
+        assert!(steered.consensus_claim_contradicted_by_recorded_non_endorsement);
     }
 
     #[test]
-    fn rhetoric_only_pair_reports_fifty_six_l1_units() {
-        let difference = compare_rhetoric_only(&base_session(), &steered_session()).unwrap();
+    fn facilitation_variant_pair_reports_fifty_six_l1_units() {
+        let difference = compare_facilitation_variants(&base_session(), &steered_session()).unwrap();
         assert_eq!(difference.allocation_l1_shift_units, 56);
         assert_eq!(difference.reallocated_units, 28.0);
     }
