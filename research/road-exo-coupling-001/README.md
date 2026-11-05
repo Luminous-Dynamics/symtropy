@@ -91,7 +91,9 @@ The correspondence projection now feeds the same pinned rand_philox 0.2.1 Philox
 - The address plan and resolved bundle retain the original candidate-universe and hypothesis-set status objects, including their evidence-reference IDs. These are provenance references supplied by the caller, not independent validation that the referenced evidence is genuine or that the search was scientifically exhaustive.
 - The existing 192-bit key/counter collision registry is applied across the entire plan bundle. Repeated branch endpoints of one exact shared address are permitted only when their full 256-bit derivation digests match.
 - Incomplete correspondence sets may retain draws for known hypotheses, but the draw bundle preserves both Incomplete status and the original universe/search evidence references; resolving a random block does not upgrade identification or completeness.
-- Tests replay every returned draw from its retained canonical bytes, reject altered address/receipt values, and verify that incomplete-scope evidence references survive resolution.
+- The resolved bundle has a versioned BLAKE3 content digest over the full correspondence maps, scope/search evidence references, hypothesis/pair justifications, address bytes, presence/sharing labels and raw Philox receipts. The independent verifier checks this bundle digest and recomputes every raw draw from the frozen experiment seed.
+- The digest detects changes relative to an externally retained commitment; it is not a signature, does not authenticate the caller, and does not validate the truth of referenced evidence.
+- Tests replay every returned draw from its retained canonical bytes, reject altered address/receipt values, verify incomplete-scope references survive resolution, and exercise bundle-level tampering of search provenance, correspondence justification and draw outputs.
 
 The resolver emits raw u32 words only. Distribution sampling/transforms remain #3586's separate responsibility. Shared draw alignment is a causal/execution contract; its statistical variance effect is reported independently and can be positive, neutral or negative.
 
