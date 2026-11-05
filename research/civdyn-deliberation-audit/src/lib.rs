@@ -412,7 +412,8 @@ pub struct MemberAudit {
     pub speaking_time_ms: u64,
     pub speaking_time_share: f64,
     pub proposals_authored: usize,
-    pub proposals_raised_in_turns: usize,
+    /// Proposal references made by this member while speaking (not authorship).
+    pub proposals_referenced_in_turns: usize,
     pub proposals_in_summary: usize,
     /// Mean of the member's declared preference weights assigned to the final allocation.
     /// This is a descriptive preference-alignment statistic, not a welfare judgement.
@@ -448,7 +449,8 @@ pub struct SessionAudit {
     pub facilitator_declares_consensus: bool,
     /// Fraction of members whose highest-weight option is the most common group choice.
     pub preference_consensus_share: f64,
-    pub false_consensus_declaration: bool,
+    /// A consensus claim despite disagreement in stated first choices.
+    pub unanimity_claim_conflicts_with_top_preferences: bool,
     pub mean_satisfaction_before: Option<f64>,
     pub mean_satisfaction_after: Option<f64>,
     pub mean_trust_before: Option<f64>,
@@ -496,9 +498,7 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
             .ok_or(DeliberationError::AllocationOverflow)?;
         for proposal_id in &turn.proposal_ids {
             if raised_ids.insert(proposal_id.as_str()) {
-                let proposal = proposal_by_id[proposal_id.as_str()];
-                let author_index = member_index[proposal.author_id.as_str()];
-                proposals_raised_by_member[author_index] += 1;
+                proposals_raised_by_member[index] += 1;
             }
         }
     }
@@ -581,7 +581,7 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
     );
 
     let preference_consensus_share = preference_consensus_share(session);
-    let false_consensus_declaration =
+    let unanimity_claim_conflicts_with_top_preferences =
         session.facilitator_declares_consensus && preference_consensus_share < 1.0 - TOLERANCE;
 
     let total_speaking_time = speaking_time_by_member.iter().sum::<u64>();
@@ -601,7 +601,7 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
                 speaking_time_ms: speaking_time_by_member[index],
                 speaking_time_share,
                 proposals_authored: proposals_authored[index],
-                proposals_raised_in_turns: proposals_raised_by_member[index],
+                proposals_referenced_in_turns: proposals_raised_by_member[index],
                 proposals_in_summary: proposals_in_summary_by_member[index],
                 final_preference_alignment: allocation_alignment(
                     &participant.preferences,
@@ -638,7 +638,7 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         unsupported_facilitator_claim_count,
         facilitator_declares_consensus: session.facilitator_declares_consensus,
         preference_consensus_share,
-        false_consensus_declaration,
+        unanimity_claim_conflicts_with_top_preferences,
         mean_satisfaction_before: mean_optional(
             session
                 .participants
@@ -1006,7 +1006,7 @@ mod tests {
         assert_eq!(audit.unsupported_facilitator_claim_count, 1);
         assert!(audit.facilitator_declares_consensus);
         assert!(audit.preference_consensus_share < 1.0);
-        assert!(audit.false_consensus_declaration);
+        assert!(audit.unanimity_claim_conflicts_with_top_preferences);
         assert!(audit.mean_trust_after.unwrap() > audit.mean_trust_before.unwrap());
     }
 
