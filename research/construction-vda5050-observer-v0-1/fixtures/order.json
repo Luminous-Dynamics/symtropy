@@ -19,7 +19,9 @@
       "edgeId": "e0",
       "sequenceId": 1,
       "released": true,
-      "actions": []
+      "actions": [],
+      "startNodeId": "n0",
+      "endNodeId": "n1"
     }
   ]
 }
