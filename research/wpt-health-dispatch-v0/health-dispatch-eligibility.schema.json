@@ -143,7 +143,8 @@
           "enum": [
             "A_CALIBRATION",
             "D_CALIBRATION",
-            "SURVIVALBOOST_SCORE",
+            "CIF_RELIABILITY_CURVE",
+            "CLUSTER_BOOTSTRAP_COVERAGE",
             "OTHER_REVIEWED"
           ]
         },
