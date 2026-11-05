@@ -1,0 +1,120 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "construction-robot-trace-mutations-v0.1",
+  "evidence_class": "synthetic",
+  "base_fixture": "trace-synthetic-vda-001",
+  "cases": [
+    {
+      "case_id": "TRACE-001",
+      "name": "payload-byte-alteration",
+      "target": "events[0].payload.data",
+      "mutation": "change one decoded byte",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-002",
+      "name": "payload-digest-alteration",
+      "target": "events[0].payload.sha256",
+      "mutation": "replace one digest nibble",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-003",
+      "name": "event-reordering",
+      "target": "events",
+      "mutation": "swap events 2 and 3",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-004",
+      "name": "event-removal",
+      "target": "events",
+      "mutation": "remove event 2",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-005",
+      "name": "event-insertion",
+      "target": "events",
+      "mutation": "insert event with reused sequence",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-006",
+      "name": "topic-alteration",
+      "target": "events[1].topic",
+      "mutation": "change topic and leave event digest unchanged",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-007",
+      "name": "qos-alteration",
+      "target": "events[0].qos",
+      "mutation": "change qos and leave event digest unchanged",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-008",
+      "name": "retain-dup-alteration",
+      "target": "events[0].retain",
+      "mutation": "toggle retain and leave event digest unchanged",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-009",
+      "name": "timestamp-provenance-collapse",
+      "target": "events[0].timestamps[0].source",
+      "mutation": "change recorder_received to robot_reported",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-010",
+      "name": "clock-uncertainty-understated",
+      "target": "events[0].timestamps[0].uncertainty_ms",
+      "mutation": "reduce uncertainty without recomputing event and root digests",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-011",
+      "name": "session-boundary-erasure",
+      "target": "events[1].connection_epoch",
+      "mutation": "change connection epoch without recomputing digests",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-012",
+      "name": "previous-digest-break",
+      "target": "events[2].previous_event_digest",
+      "mutation": "replace previous event reference",
+      "expected_verification": "reject"
+    },
+    {
+      "case_id": "TRACE-013",
+      "name": "capture-incompleteness-suppressed",
+      "target": "manifest.capture.capture_completeness",
+      "mutation": "change unknown to complete_with_boundary_evidence without boundary evidence and without re-anchoring",
+      "expected_verification": "reject_or_anchoring_required"
+    },
+    {
+      "case_id": "TRACE-014",
+      "name": "redaction-without-parent",
+      "target": "manifest.capture.redaction_applied",
+      "mutation": "set true but omit parent and transformation digests",
+      "expected_verification": "schema_reject"
+    },
+    {
+      "case_id": "TRACE-015",
+      "name": "annotation-source-substitution",
+      "target": "annotations[0].source_event_digest",
+      "mutation": "point interpretation at another event",
+      "expected_verification": "reject_or_annotation_rebind_required"
+    },
+    {
+      "case_id": "TRACE-016",
+      "name": "valid-observed-trace-with-unknown-completeness",
+      "target": "manifest.capture.capture_completeness",
+      "mutation": "keep unknown even though local recorder reports zero local drops",
+      "expected_verification": "accept_as_integrity_valid_completeness_unknown"
+    }
+  ]
+}
