@@ -46,7 +46,8 @@
   "maps": [
     {
       "mapId": "floor-2",
-      "mapVersion": "map-17"
+      "mapVersion": "map-17",
+      "mapStatus": "ENABLED"
     }
   ]
 }
