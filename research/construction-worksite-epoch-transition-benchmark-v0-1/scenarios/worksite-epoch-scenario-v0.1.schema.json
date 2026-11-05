@@ -1,0 +1,324 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:construction-worksite-epoch-scenario:0.1",
+  "title": "Construction Worksite Epoch Transition Scenario",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "task_scope",
+    "initial_configuration_digest",
+    "timebase_id",
+    "max_context_age_ns",
+    "max_clock_uncertainty_ns",
+    "max_qualification_lease_ns",
+    "expected_final_state",
+    "events"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-worksite-epoch-scenario/0.1"
+    },
+    "scenario_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "task_scope": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "initial_configuration_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timebase_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "max_context_age_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_clock_uncertainty_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_qualification_lease_ns": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "expected_final_state": {
+      "enum": [
+        "awaiting_epoch",
+        "requalification_required",
+        "active",
+        "safe_hold",
+        "context_stale",
+        "context_conflict",
+        "aborted"
+      ]
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event",
+              "revision",
+              "digest",
+              "predecessor_digest",
+              "task_scope",
+              "authenticated",
+              "expected"
+            ],
+            "properties": {
+              "event": {
+                "const": "accept_epoch"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "predecessor_digest": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "task_scope": {
+                "type": "string",
+                "minLength": 1
+              },
+              "authenticated": {
+                "type": "boolean"
+              },
+              "expected": {
+                "enum": [
+                  "accepted",
+                  "rejected"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event",
+              "epoch_digest",
+              "configuration_digest",
+              "task_scope",
+              "evidence_digest",
+              "record_reference",
+              "accepted_by_upstream",
+              "revalidation_generation",
+              "context_observation_reference",
+              "clock_assessment_reference",
+              "timebase_id",
+              "issued_at_monotonic_ns",
+              "valid_until_monotonic_ns",
+              "expected"
+            ],
+            "properties": {
+              "event": {
+                "const": "requalify"
+              },
+              "epoch_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "configuration_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "task_scope": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "record_reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "accepted_by_upstream": {
+                "type": "boolean"
+              },
+              "revalidation_generation": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "context_observation_reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clock_assessment_reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "issued_at_monotonic_ns": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "valid_until_monotonic_ns": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expected": {
+                "enum": [
+                  "activated",
+                  "rejected"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event",
+              "epoch_digest",
+              "configuration_digest",
+              "task_scope",
+              "context_age_ns",
+              "clock_uncertainty_ns",
+              "timebase_id",
+              "now_monotonic_ns",
+              "expected"
+            ],
+            "properties": {
+              "event": {
+                "const": "command"
+              },
+              "epoch_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "configuration_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "task_scope": {
+                "type": "string",
+                "minLength": 1
+              },
+              "context_age_ns": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "clock_uncertainty_ns": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "now_monotonic_ns": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expected": {
+                "enum": [
+                  "authorized",
+                  "denied"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event"
+            ],
+            "properties": {
+              "event": {
+                "const": "communications_lost"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event"
+            ],
+            "properties": {
+              "event": {
+                "const": "communications_restored"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event"
+            ],
+            "properties": {
+              "event": {
+                "const": "operator_acknowledged"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event"
+            ],
+            "properties": {
+              "event": {
+                "const": "mark_context_stale"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event",
+              "new_digest",
+              "expected"
+            ],
+            "properties": {
+              "event": {
+                "const": "configuration_changed"
+              },
+              "new_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "expected": {
+                "enum": [
+                  "accepted",
+                  "rejected"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
