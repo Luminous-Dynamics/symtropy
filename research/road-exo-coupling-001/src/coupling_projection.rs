@@ -25,6 +25,8 @@ pub struct SourceProfile {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EventDrawScope {
+    /// Frozen parent world / episode identity; shared by both counterfactual branches.
+    pub world_id: StableId,
     pub branch_id: StableId,
     pub event_id: StableId,
     pub tick: u64,
@@ -122,6 +124,7 @@ pub enum ProjectionError {
     SharedSourceMismatch,
     SharedTickMismatch,
     SharedEventKindMismatch,
+    SharedWorldMismatch,
 }
 
 impl From<CorrespondenceError> for ProjectionError {
@@ -421,6 +424,9 @@ fn validate_shared_profiles(
     left: &EventDrawScope,
     right: &EventDrawScope,
 ) -> Result<(), ProjectionError> {
+    if left.world_id != right.world_id {
+        return Err(ProjectionError::SharedWorldMismatch);
+    }
     if left.source != right.source {
         return Err(ProjectionError::SharedSourceMismatch);
     }
@@ -477,6 +483,7 @@ fn local_bytes(event: &EventOccurrence, scope: &EventDrawScope) -> Vec<u8> {
     let mut out = Vec::new();
     out.extend_from_slice(DOMAIN);
     out.push(1); // branch-local event address
+    push_id(&mut out, &scope.world_id);
     push_id(&mut out, &scope.branch_id);
     push_id(&mut out, &scope.event_id);
     push_id(&mut out, &event.event_family);
@@ -521,6 +528,7 @@ impl PairAddressContext<'_> {
         let mut out = Vec::new();
         out.extend_from_slice(DOMAIN);
         out.push(2); // hypothesis-conditioned cross-world event pair
+        push_id(&mut out, &self.scope.world_id);
         // Canonicalize endpoint order so reversing branch presentation does not
         // change the pair identity or the resolved raw draw.
         let left_endpoint = (self.left_branch, &self.left_event.event_id);
@@ -539,6 +547,7 @@ impl PairAddressContext<'_> {
             IdentityBasis::DirectedDyad => 2,
             IdentityBasis::EncounterSlot => 3,
         });
+        push_id(&mut out, &self.pair.justification_ref);
         push_id(&mut out, &self.left_event.event_family);
         out.extend_from_slice(&self.scope.tick.to_le_bytes());
         push_id(&mut out, &self.scope.event_kind);
@@ -590,6 +599,7 @@ mod tests {
 
     fn scope(branch: &str, event: &str) -> EventDrawScope {
         EventDrawScope {
+            world_id: id("crossing-world-17"),
             branch_id: id(branch),
             event_id: id(event),
             tick: 40,
