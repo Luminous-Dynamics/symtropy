@@ -146,7 +146,10 @@ impl fmt::Display for WorkloadError {
         match self {
             Self::EmptyWorkloadId => write!(f, "workload ID must not be empty"),
             Self::DimensionsTooSmall { width, height } => {
-                write!(f, "grid dimensions must be at least 2x2, got {width}x{height}")
+                write!(
+                    f,
+                    "grid dimensions must be at least 2x2, got {width}x{height}"
+                )
             }
             Self::ZeroTicks => write!(f, "workload ticks must be greater than zero"),
             Self::DimensionOverflow => write!(f, "grid or tape dimensions overflow usize"),
@@ -202,9 +205,7 @@ impl Scenario {
 
     pub fn encode_record(&self) -> Result<Vec<u8>, WorkloadError> {
         self.validate()?;
-        let mut bytes = Vec::with_capacity(
-            44 + self.initial.len() + self.event_tape.len() * 2,
-        );
+        let mut bytes = Vec::with_capacity(44 + self.initial.len() + self.event_tape.len() * 2);
         bytes.extend_from_slice(&self.spec.width.to_le_bytes_u32());
         bytes.extend_from_slice(&self.spec.height.to_le_bytes_u32());
         bytes.extend_from_slice(&self.spec.ticks.to_le_bytes_u32());
@@ -256,7 +257,9 @@ impl Scenario {
         };
         validate_spec(&spec)?;
         let cells = cell_count(&spec)?;
-        let tape_words = ticks.checked_mul(cells).ok_or(WorkloadError::DimensionOverflow)?;
+        let tape_words = ticks
+            .checked_mul(cells)
+            .ok_or(WorkloadError::DimensionOverflow)?;
         let expected_len = cursor
             .checked_add(cells)
             .and_then(|value| value.checked_add(tape_words.checked_mul(2)?))
@@ -293,13 +296,17 @@ trait U32Bytes {
 
 impl U32Bytes for usize {
     fn to_le_bytes_u32(self) -> [u8; 4] {
-        u32::try_from(self).expect("validated dimensions fit u32").to_le_bytes()
+        u32::try_from(self)
+            .expect("validated dimensions fit u32")
+            .to_le_bytes()
     }
 }
 
 fn take<const N: usize>(bytes: &[u8], cursor: &mut usize) -> Result<[u8; N], WorkloadError> {
     let end = cursor.checked_add(N).ok_or(WorkloadError::TruncatedTape)?;
-    let slice = bytes.get(*cursor..end).ok_or(WorkloadError::TruncatedTape)?;
+    let slice = bytes
+        .get(*cursor..end)
+        .ok_or(WorkloadError::TruncatedTape)?;
     let mut result = [0u8; N];
     result.copy_from_slice(slice);
     *cursor = end;
@@ -387,7 +394,9 @@ pub fn generate_scenario(
     };
     validate_spec(&spec)?;
     let cells = cell_count(&spec)?;
-    let tape_words = ticks.checked_mul(cells).ok_or(WorkloadError::DimensionOverflow)?;
+    let tape_words = ticks
+        .checked_mul(cells)
+        .ok_or(WorkloadError::DimensionOverflow)?;
     let mut random = SplitMix64::new(seed);
     let mut initial = Vec::with_capacity(cells);
     for _ in 0..cells {
@@ -413,7 +422,11 @@ pub fn generate_scenario(
 pub fn run_reference(scenario: &Scenario) -> Result<RunResult, WorkloadError> {
     scenario.validate()?;
     let initial_fingerprint_fnv64 = fnv1a64(
-        &scenario.initial.iter().map(|cell| *cell as u8).collect::<Vec<_>>(),
+        &scenario
+            .initial
+            .iter()
+            .map(|cell| *cell as u8)
+            .collect::<Vec<_>>(),
     );
     let tape_bytes = scenario
         .event_tape
@@ -445,8 +458,12 @@ pub fn run_reference(scenario: &Scenario) -> Result<RunResult, WorkloadError> {
                     }
                 }
                 Cell::Tree => {
-                    if has_burning_neighbor(index, scenario.spec.width, scenario.spec.height, &current)
-                        && tape[index] < scenario.spec.ignition_threshold
+                    if has_burning_neighbor(
+                        index,
+                        scenario.spec.width,
+                        scenario.spec.height,
+                        &current,
+                    ) && tape[index] < scenario.spec.ignition_threshold
                     {
                         Cell::Burning
                     } else {
@@ -486,12 +503,7 @@ pub fn run_reference(scenario: &Scenario) -> Result<RunResult, WorkloadError> {
     })
 }
 
-fn has_burning_neighbor(
-    index: usize,
-    width: usize,
-    height: usize,
-    cells: &[Cell],
-) -> bool {
+fn has_burning_neighbor(index: usize, width: usize, height: usize, cells: &[Cell]) -> bool {
     let x = index % width;
     let y = index / width;
     let y_start = y.saturating_sub(1);
@@ -564,7 +576,9 @@ pub fn decode_tape_bundle(bytes: &[u8]) -> Result<Vec<Scenario>, WorkloadError> 
     for _ in 0..count {
         let length = usize::try_from(take_u64(bytes, &mut cursor)?)
             .map_err(|_| WorkloadError::DimensionOverflow)?;
-        let end = cursor.checked_add(length).ok_or(WorkloadError::TruncatedTape)?;
+        let end = cursor
+            .checked_add(length)
+            .ok_or(WorkloadError::TruncatedTape)?;
         let record = bytes.get(cursor..end).ok_or(WorkloadError::TruncatedTape)?;
         scenarios.push(Scenario::decode_record(WORKLOAD_ID, record)?);
         cursor = end;
@@ -584,8 +598,18 @@ pub fn fnv1a64(bytes: &[u8]) -> u64 {
 pub fn default_scenarios() -> Result<Vec<Scenario>, WorkloadError> {
     let mut scenarios = Vec::new();
     for seed in DEFAULT_SEEDS {
-        scenarios.push(generate_scenario(SMALL_WIDTH, SMALL_HEIGHT, DEFAULT_TICKS, seed)?);
-        scenarios.push(generate_scenario(LARGE_WIDTH, LARGE_HEIGHT, DEFAULT_TICKS, seed)?);
+        scenarios.push(generate_scenario(
+            SMALL_WIDTH,
+            SMALL_HEIGHT,
+            DEFAULT_TICKS,
+            seed,
+        )?);
+        scenarios.push(generate_scenario(
+            LARGE_WIDTH,
+            LARGE_HEIGHT,
+            DEFAULT_TICKS,
+            seed,
+        )?);
     }
     Ok(scenarios)
 }
@@ -599,7 +623,10 @@ mod tests {
         let first = generate_scenario(32, 32, 10, 42).unwrap();
         let second = generate_scenario(32, 32, 10, 42).unwrap();
         assert_eq!(first, second);
-        assert_ne!(first.event_tape, generate_scenario(32, 32, 10, 43).unwrap().event_tape);
+        assert_ne!(
+            first.event_tape,
+            generate_scenario(32, 32, 10, 43).unwrap().event_tape
+        );
     }
 
     #[test]
@@ -618,10 +645,16 @@ mod tests {
         let scenario = generate_scenario(8, 8, 2, 1).unwrap();
         let mut encoded = encode_tape_bundle(&[scenario]).unwrap();
         let truncated = encoded.pop().unwrap();
-        assert!(matches!(decode_tape_bundle(&encoded), Err(WorkloadError::TruncatedTape)));
+        assert!(matches!(
+            decode_tape_bundle(&encoded),
+            Err(WorkloadError::TruncatedTape)
+        ));
         encoded.push(truncated);
         encoded.push(0);
-        assert!(matches!(decode_tape_bundle(&encoded), Err(WorkloadError::TrailingTapeBytes)));
+        assert!(matches!(
+            decode_tape_bundle(&encoded),
+            Err(WorkloadError::TrailingTapeBytes)
+        ));
     }
 
     #[test]
@@ -670,17 +703,26 @@ mod tests {
     #[test]
     fn reference_replay_is_identical_for_the_same_tape() {
         let scenario = generate_scenario(32, 32, 20, 19).unwrap();
-        assert_eq!(run_reference(&scenario).unwrap(), run_reference(&scenario).unwrap());
+        assert_eq!(
+            run_reference(&scenario).unwrap(),
+            run_reference(&scenario).unwrap()
+        );
     }
 
     #[test]
     fn invalid_scenarios_fail_closed() {
         let mut scenario = generate_scenario(8, 8, 2, 1).unwrap();
         scenario.event_tape.pop();
-        assert!(matches!(scenario.validate(), Err(WorkloadError::TapeLengthMismatch { .. })));
+        assert!(matches!(
+            scenario.validate(),
+            Err(WorkloadError::TapeLengthMismatch { .. })
+        ));
         let mut empty = generate_scenario(8, 8, 2, 1).unwrap();
         empty.spec.workload_id.clear();
-        assert!(matches!(empty.validate(), Err(WorkloadError::EmptyWorkloadId)));
+        assert!(matches!(
+            empty.validate(),
+            Err(WorkloadError::EmptyWorkloadId)
+        ));
     }
 
     #[test]
@@ -688,6 +730,9 @@ mod tests {
         for value in 0..=3 {
             assert!(Cell::try_from(value).is_ok());
         }
-        assert!(matches!(Cell::try_from(4), Err(WorkloadError::InvalidCellCode(4))));
+        assert!(matches!(
+            Cell::try_from(4),
+            Err(WorkloadError::InvalidCellCode(4))
+        ));
     }
 }
