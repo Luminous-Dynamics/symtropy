@@ -1,0 +1,32 @@
+name: CivBench Measurement-as-Distribution schema
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/CIVBENCH_MEASUREMENT_DISTRIBUTION_V0_1.schema.json"
+      - "docs/research/fixtures/HUMSIM_SYNTHETIC_MAD_MANIFEST_V0_1.json"
+      - "docs/research/validate_civbench_mad_manifest.py"
+      - ".github/workflows/civbench-mad-schema.yml"
+  push:
+    paths:
+      - "docs/research/CIVBENCH_MEASUREMENT_DISTRIBUTION_V0_1.schema.json"
+      - "docs/research/fixtures/HUMSIM_SYNTHETIC_MAD_MANIFEST_V0_1.json"
+      - "docs/research/validate_civbench_mad_manifest.py"
+      - ".github/workflows/civbench-mad-schema.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schema and synthetic manifest
+        run: python docs/research/validate_civbench_mad_manifest.py
