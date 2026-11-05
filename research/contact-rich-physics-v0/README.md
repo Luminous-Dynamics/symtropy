@@ -9,9 +9,10 @@ This benchmark fills a coverage gap in the original one-step physics benches: wi
 | no_contact_64_spheres | 64 | none | Integration/broadphase control |
 | resting_sphere_stack_16 | 16 | plane + vertical sphere chain | Resting contact, warm-start and long contact graph |
 | multi_point_box_stack_3 | 3 | ground plus multi-point box contacts | Manifold generation and multi-point solver |
+| known_unqualified_ten_box_stack | 10 | ground plus nine box-to-box patches | Solver convergence stress at 8 vs 30 iterations; measurement-only |
 | dense_sphere_bed_8x8 | 64 | ground + dense lateral neighbors | Broadphase candidate density and contact throughput |
 
-All workloads use 120 simulation steps at 120 Hz and eight solver iterations. Contact scenes use a declared 5 mm initial overlap; the no-contact scene is gravity-free and has no plane. The body positions, masses, geometry and solver settings are frozen in `manifests/contact-rich-workloads-v0.json`.
+The first four workloads use 120 simulation steps at 120 Hz and eight solver iterations. The ten-box stress lanes use 1,800 steps at 60 Hz (30 simulated seconds), once at 8 and once at 30 solver iterations to match the existing ignored tall-stack regression. Contact scenes use declared initial overlaps; the no-contact scene is gravity-free and has no plane. The body positions, masses, geometry and solver settings are frozen in `manifests/contact-rich-workloads-v0.json`.
 
 ## Measurement contract
 
@@ -19,6 +20,7 @@ All workloads use 120 simulation steps at 120 Hz and eight solver iterations. Co
 - Setup/build is outside the timed iteration; the timed section runs the full 120-step world campaign.
 - An untimed calibration campaign captures actual average contact manifolds/step, contact points/step, collision-event count, maximum penetration and maximum linear speed; those values are encoded in the Criterion benchmark identity. A scene that unexpectedly loses contacts cannot silently look like a throughput win.
 - Contact scenarios must produce at least one contact point over the campaign; the no-contact control must produce zero contact points.
+- The ten-box stress lanes are **measurement-only / known-unqualified**: record final maximum vertical center-position error against the nominal settled stack and peak speed, but do not mark the scenario physically passed solely because all values remain finite.
 - Every step checks the numerical-health invariant; NaN/Inf and invalid rotation state fail the campaign.
 - Repeat each scenario for at least 20 independent campaigns when publishing comparisons. Report median, p05/p95, dispersion and 95% confidence intervals; include failed or panicked campaigns in the failure denominator.
 - Run identical scene geometry and semantics in every engine. Report both matched solver quality and the achieved quality; don't compare a soft/low-iteration run against a hard/high-iteration run as if equivalent.
@@ -69,6 +71,7 @@ Official references:
 - 0 non-finite bodies and 0 missing contact-work records.
 - Contact-scene benchmark IDs must always expose measured contact-point/manifold counts.
 - Candidate resting-scene target: median maximum penetration below 0.5% of characteristic body diameter after settling, p95 below 1%, and no progressive drift. These are programme targets and require scenario-specific qualification; do not claim them from this benchmark until measured and validated.
+- Tall-stack convergence target: report final stack-height residual, maximum speed and penetration at 8 vs 30 iterations; a higher iteration budget is not an improvement unless residual/error falls enough to justify its added cost. The ten-box case remains unqualified until it meets a declared settled-height and drift envelope.
 - A contact-recycling candidate must reduce median contact-pipeline CPU time by at least 10% on two contact families while keeping penetration, restitution, friction, stability, event ordering and replay outputs within predeclared limits.
 - Publish performance improvements only after at least 20 repeats on a pinned device/compiler/build, with p95 latency and energy included.
 
