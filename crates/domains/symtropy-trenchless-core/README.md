@@ -4,7 +4,7 @@ A dependency-light, standalone Rust contract for evidence-qualified screening of
 
 ## Scope
 
-The crate compares known candidate capabilities/predictions against declared requirements and emits one of:
+The crate compares known candidate capabilities/predictions against a versioned constraint profile and declared requirements. Every candidate supplies the full required constraint-ID inventory; omitted or undeclared checks are rejected. Each side of each numeric constraint also carries an explicit evidence policy (AnyKnown or an allowlist of accepted evidence classes). A known fact that is outside the declared policy remains unresolved.
 
 - Eligible: every supplied hard constraint is known and satisfied.
 - Ineligible: at least one known hard constraint is violated.
@@ -22,4 +22,4 @@ The crate has no external dependencies and declares its own workspace so this fi
 
 ## Evidence boundary
 
-Source references are carried through to results but are not authenticated by this crate. A production composition must bind them to the upstream artifact/custody systems and exact project, model, calibration, method, tool and design revisions.
+Source references and evidence classes are carried through to results but are not authenticated by this crate. The evaluator does not certify that a caller's constraint profile is complete or authoritative; profile provenance and review remain external responsibilities. A production composition must bind them to the upstream artifact/custody systems and exact project, model, calibration, method, tool and design revisions.
