@@ -350,7 +350,7 @@ impl CollaborationTrace {
             }
         }
 
-        if self.task_succeeded != !self.success_action_ids.is_empty() {
+        if self.task_succeeded == self.success_action_ids.is_empty() {
             return Err(CollaborationError::InvalidSuccessActionSet);
         }
         let mut success_ids = BTreeSet::new();
