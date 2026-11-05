@@ -13,7 +13,11 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.t
 ## Implemented slice
 
 - Single-lock, single-chamber, deterministic finite scheduling.
-- FCFS, projected least-slack, and bounded directional-batch policies.
+- FCFS, projected least-slack, participant least-served, and bounded directional-batch policies.
+- The participant least-served policy rotates toward the participant with the lowest
+  accumulated delivered service units (within one declared comparable service-unit
+  label). It is an auditable fairness-oriented baseline, not a max-min guarantee
+  across heterogeneous goods, an equity proof, or a reproduction of published FSR.
 - Least-slack ordering includes the request's worst-case arrival bound, authorized
   latest-start time, maximum-wait limit, completion deadline, service duration,
   direction-switch delay, lock downtime and planning window.
