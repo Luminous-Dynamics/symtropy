@@ -455,7 +455,7 @@ mod tests {
 
         // Presence is preserved separately from the potential event draw identity.
         assert!(matches!(
-            actor.draws[1].presence,
+            &actor.draws[1].presence,
             PlannedPresence::NotRealized { .. }
         ));
         assert_eq!(actor.draws[0].sharing, SharingStatus::SharedInvariant);
