@@ -97,6 +97,20 @@ A quick ecosystem check identifies useful software counterparts for a future ind
 
 The practical implication is that we do not need to invent every protocol endpoint before testing. We can first build a read-only, evidence-preserving bridge to an external VDA 3.0 implementation and replay the same broker trace through a second independently maintained observer. That will prove cross-implementation semantic handling at the software boundary, not vendor/hardware interoperability. A construction-vendor robot and a separately maintained vendor adapter remain necessary for the higher plugfest gates.
 
+## Industry baseline and research gap
+
+VDA 5050 is not merely a paper standard. VDMA's 2025 Mesh-Up reported a fleet manager controlling ten mobile robots of different manufacturers over the open VDA 5050 interface in a production/logistics showcase. This is a strong precedent for mixed-fleet transport interoperability, but it is not evidence of construction work-package semantics, outdoor-site safety, independent physical acceptance or construction productivity. The showcase also predates VDA 5050 v3.0. https://www.vdma.eu/documents/34570/3317035/PI_Mesh-Up_2025_EN.pdf/5525183d-9a5f-294d-aaa9-9f3bdec3f309?t=1740489629327
+
+Construction research shows a different bottleneck. A 2026 systematic review covers 375 construction-robotics studies and highlights barriers to real-world deployment. A separate review of 75 field deployments (2016–2025) codes recurring failure factors including environment (45 cases), system integration (44), hardware limitations (39), scalability/cost (15), and human-robot interaction (14). Those are coded case counts, not universal failure probabilities. Together they support evaluating whole-site integration and environmental robustness—not only robot cycle speed. https://doi.org/10.1016/j.rineng.2026.110406 and https://www.sciencedirect.com/science/article/pii/S2666165925002418
+
+The comparison therefore has three distinct levels:
+
+1. **Transport interoperability:** can robots and fleet managers exchange and act on messages? VDA 5050 has a real mixed-fleet logistics precedent; AMRA-271:2025 is a broader communication candidate including peripheral interactions.
+2. **Construction semantic interoperability:** do independent implementations preserve work-package, revision, spatial, epoch, capability, resource, handoff and acceptance semantics? That remains the new programme's target.
+3. **Outcome interoperability:** can independently inspected, uncertainty-qualified construction output be attributed to a specific task and accepted under a shared profile? Neither transport standard alone supplies that.
+
+The proposed contribution is not to claim we have surpassed commercial robot performance. It is to create a repeatable route to compare heterogeneous systems on the same task, site context, acceptance profile and evidence basis.
+
 ## What the standards layering suggests
 
 Treat protocol adapters as replaceable edge connectors, not as the system of record. Keep a canonical construction contract above one or more robot-management transports. Use IFC/IDS for design-information exchange, VDA 5050 and/or AMRA-271 for robot-management communication, OPC UA for device/condition information where appropriate, AMRA-201 and task-specific metrology for robot/product performance, and separately qualified project safety/acceptance processes for permission and output. The exact applicability of each standard must be determined for the robot type, site, environment, jurisdiction and task.
