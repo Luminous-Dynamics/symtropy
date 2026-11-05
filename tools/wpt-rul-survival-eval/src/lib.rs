@@ -516,7 +516,8 @@ fn implied_survival_and_cif(
         if total_rate > 0.0 {
             let interval_event_mass = 1.0 - (-total_rate * exposure).exp();
             for (cause, rates) in &subject.cause_specific_hazard_rates {
-                let increment = survival * (rates[interval_index] / total_rate) * interval_event_mass;
+                let increment =
+                    survival * (rates[interval_index] / total_rate) * interval_event_mass;
                 let value = cumulative_incidence
                     .get_mut(cause)
                     .expect("cause keys were constructed from the hazard map");
@@ -551,10 +552,12 @@ fn validate_forecast_representation_coherence(
             ));
         }
         for (cause, declared) in &subject.cumulative_incidence {
-            let implied = implied_cif
-                .get(cause)
-                .copied()
-                .ok_or_else(|| format!("subject {}: hazard forecast omits cause {cause}", subject.subject_id))?;
+            let implied = implied_cif.get(cause).copied().ok_or_else(|| {
+                format!(
+                    "subject {}: hazard forecast omits cause {cause}",
+                    subject.subject_id
+                )
+            })?;
             if (declared - implied).abs() > 1e-8 {
                 return Err(format!(
                     "subject {}: cumulative incidence for {cause} disagrees with integrated cause-specific hazards (declared {declared}, implied {implied})",
@@ -604,8 +607,7 @@ fn aalen_johansen_at_horizon(
 
         let mut events_by_cause = BTreeMap::<String, usize>::new();
         for subject in subjects.iter().filter(|subject| {
-            subject.has_terminal_event()
-                && subject.observed_duration_hours == event_time
+            subject.has_terminal_event() && subject.observed_duration_hours == event_time
         }) {
             let cause = subject
                 .event_code
@@ -1068,8 +1070,8 @@ mod tests {
     #[test]
     fn hazard_forecast_must_reproduce_declared_survival_and_cif() {
         let mut run = fixture();
-        run["subjects"][0]["predicted_cause_specific_hazard_rates_per_hour"][0]["rates_per_interval"][0] =
-            Value::from(0.5);
+        run["subjects"][0]["predicted_cause_specific_hazard_rates_per_hour"][0]["rates_per_interval"]
+            [0] = Value::from(0.5);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
@@ -1088,7 +1090,8 @@ mod tests {
                 < 1e-12
         );
         assert!(
-            (report.aalen_johansen_cumulative_incidence["INSULATION_RESISTANCE_LIMIT"] - 5.0 / 28.0)
+            (report.aalen_johansen_cumulative_incidence["INSULATION_RESISTANCE_LIMIT"]
+                - 5.0 / 28.0)
                 .abs()
                 < 1e-12
         );
