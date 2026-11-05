@@ -659,10 +659,7 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
                 .map(|member| member.trust_before),
         ),
         mean_trust_after: mean_optional(
-            session
-                .participants
-                .iter()
-                .map(|member| member.trust_after),
+            session.participants.iter().map(|member| member.trust_after),
         ),
         members,
     })
@@ -899,9 +896,21 @@ mod tests {
                     duration_ms: 1000,
                     proposal_ids: vec![],
                 },
-                TurnEvent { speaker_id: "member_a".into(), duration_ms: 1000, proposal_ids: vec![] },
-                TurnEvent { speaker_id: "member_a".into(), duration_ms: 1000, proposal_ids: vec![] },
-                TurnEvent { speaker_id: "member_a".into(), duration_ms: 1000, proposal_ids: vec![] },
+                TurnEvent {
+                    speaker_id: "member_a".into(),
+                    duration_ms: 1000,
+                    proposal_ids: vec![],
+                },
+                TurnEvent {
+                    speaker_id: "member_a".into(),
+                    duration_ms: 1000,
+                    proposal_ids: vec![],
+                },
+                TurnEvent {
+                    speaker_id: "member_a".into(),
+                    duration_ms: 1000,
+                    proposal_ids: vec![],
+                },
                 TurnEvent {
                     speaker_id: "member_b".into(),
                     duration_ms: 2000,
