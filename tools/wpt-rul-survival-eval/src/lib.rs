@@ -119,7 +119,6 @@ fn string_set(
 
 #[derive(Debug, Clone)]
 struct Subject {
-    subject_id: String,
     cluster_id: String,
     observed_duration_hours: f64,
     outcome_kind: String,
@@ -288,7 +287,11 @@ fn parse_subjects(
                 return Err(fail(&cause_path, format!("duplicate event cause {cause}")));
             }
         }
-        if cumulative_incidence.keys().cloned().collect::<BTreeSet<_>>() != *all_codes {
+        if cumulative_incidence.len() != all_codes.len()
+            || all_codes
+                .iter()
+                .any(|cause| !cumulative_incidence.contains_key(cause))
+        {
             return Err(fail(
                 &path,
                 "predicted_cumulative_incidence is missing one or more declared event causes",
@@ -304,7 +307,6 @@ fn parse_subjects(
         }
 
         subjects.push(Subject {
-            subject_id,
             cluster_id,
             observed_duration_hours,
             outcome_kind,
@@ -364,7 +366,11 @@ fn competing_risk_multiclass_loss(
     let survival_target = if event_free_at_horizon { 1.0 } else { 0.0 };
     let mut loss = (subject.survival_probability - survival_target).powi(2);
     for (cause, prediction) in &subject.cumulative_incidence {
-        let target = f64::from(event_code == Some(cause.as_str()));
+        let target = if event_code == Some(cause.as_str()) {
+            1.0
+        } else {
+            0.0
+        };
         loss += (prediction - target).powi(2);
     }
     loss
@@ -639,17 +645,17 @@ mod tests {
     #[test]
     fn competing_event_is_scored_against_its_own_cause_category() {
         let mut run = fixture();
-        let road_subject = run["subjects"]
+        let planned_replacement = run["subjects"]
             .as_array_mut()
             .unwrap()
             .iter_mut()
-            .find(|subject| subject["subject_id"] == "asset-d")
+            .find(|subject| subject["subject_id"] == "asset-f")
             .unwrap();
-        road_subject["predicted_cumulative_incidence"][2]["probability"] = Value::from(0.9);
-        road_subject["predicted_cumulative_incidence"][0]["probability"] = Value::from(0.0);
-        road_subject["predicted_survival_probability"] = Value::from(0.05);
-        road_subject["predicted_cumulative_incidence"][1]["probability"] = Value::from(0.025);
-        road_subject["predicted_cumulative_incidence"][3]["probability"] = Value::from(0.025);
+        planned_replacement["predicted_survival_probability"] = Value::from(0.05);
+        planned_replacement["predicted_cumulative_incidence"][0]["probability"] = Value::from(0.05);
+        planned_replacement["predicted_cumulative_incidence"][1]["probability"] = Value::from(0.05);
+        planned_replacement["predicted_cumulative_incidence"][2]["probability"] = Value::from(0.05);
+        planned_replacement["predicted_cumulative_incidence"][3]["probability"] = Value::from(0.8);
         let changed = evaluate_run(&run).unwrap();
         let baseline = evaluate_run(&fixture()).unwrap();
         assert!(changed.ipcw_competing_risk_brier_score < baseline.ipcw_competing_risk_brier_score);
