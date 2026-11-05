@@ -216,6 +216,8 @@ pub struct CorrespondenceDrawReceipt {
     pub event_id: crate::StableId,
     pub sharing: SharingStatus,
     pub presence: PlannedPresence,
+    /// Exact canonical bytes used for derivation; retained for self-contained replay.
+    pub canonical_address: Vec<u8>,
     pub draw: DrawReceipt,
 }
 
@@ -233,6 +235,10 @@ pub struct CorrespondenceDrawBundle {
     pub left_branch: crate::StableId,
     pub right_branch: crate::StableId,
     pub completeness: PlanCompleteness,
+    /// Original candidate-universe evidence reference/status from correspondence input.
+    pub universe_status: crate::correspondence::CandidateUniverseStatus,
+    /// Original hypothesis-search evidence reference/status from correspondence input.
+    pub hypothesis_set_status: crate::correspondence::HypothesisSetStatus,
     pub hypotheses: Vec<CorrespondenceHypothesisDraws>,
 }
 
@@ -258,6 +264,8 @@ pub fn resolve_correspondence_plan(
         left_branch: plan.left_branch.clone(),
         right_branch: plan.right_branch.clone(),
         completeness: plan.completeness,
+        universe_status: plan.universe_status.clone(),
+        hypothesis_set_status: plan.hypothesis_set_status.clone(),
         hypotheses,
     })
 }
@@ -287,6 +295,7 @@ fn resolve_planned_address(
         event_id: address.event_id.clone(),
         sharing: address.sharing,
         presence: address.presence.clone(),
+        canonical_address: address.canonical_bytes.clone(),
         draw: resolve_correspondence_address(experiment_seed, &address.canonical_bytes),
     }
 }
@@ -307,6 +316,7 @@ pub fn verify_correspondence_receipt(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::correspondence::{CandidateUniverseStatus, HypothesisSetStatus};
     use crate::coupling_projection::{
         CorrespondenceAddressPlan, HypothesisAddressPlan, PlanCompleteness, PlannedAddress,
         PlannedPresence, SharingStatus,
@@ -364,6 +374,12 @@ mod tests {
             left_branch: id("continue"),
             right_branch: id("yield"),
             completeness: PlanCompleteness::CompleteWithinDeclaredSets,
+            universe_status: CandidateUniverseStatus::ExhaustiveWithinDeclaredScope {
+                evidence_ref: id("fixture-event-universe"),
+            },
+            hypothesis_set_status: HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily {
+                evidence_ref: id("fixture-hypothesis-search"),
+            },
             hypotheses: vec![
                 HypothesisAddressPlan {
                     hypothesis_id: id("H-actor"),
@@ -458,6 +474,86 @@ mod tests {
             PlannedPresence::NotRealized { .. }
         ));
         assert_eq!(actor.draws[0].sharing, SharingStatus::SharedInvariant);
+    }
+
+    #[test]
+    fn resolved_bundle_retains_scope_evidence_and_every_canonical_address() {
+        let seed = [0x6b; 32];
+        let plan = correspondence_plan();
+        let resolved = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
+
+        assert_eq!(resolved.universe_status, plan.universe_status);
+        assert_eq!(resolved.hypothesis_set_status, plan.hypothesis_set_status);
+        assert_eq!(resolved.hypotheses.len(), plan.hypotheses.len());
+
+        for (resolved_hypothesis, planned_hypothesis) in
+            resolved.hypotheses.iter().zip(&plan.hypotheses)
+        {
+            assert_eq!(resolved_hypothesis.hypothesis_id, planned_hypothesis.hypothesis_id);
+            assert_eq!(resolved_hypothesis.draws.len(), planned_hypothesis.addresses.len());
+            for (receipt, address) in resolved_hypothesis
+                .draws
+                .iter()
+                .zip(&planned_hypothesis.addresses)
+            {
+                assert_eq!(receipt.canonical_address, address.canonical_bytes);
+                assert_eq!(
+                    verify_correspondence_receipt(
+                        &seed,
+                        &receipt.canonical_address,
+                        &receipt.draw
+                    ),
+                    Ok(())
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn retained_canonical_address_detects_receipt_or_address_tampering() {
+        let seed = [0x3d; 32];
+        let plan = correspondence_plan();
+        let resolved = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
+        let receipt = &resolved.hypotheses[0].draws[0];
+
+        let mut altered_address = receipt.canonical_address.clone();
+        altered_address.push(0xff);
+        assert_eq!(
+            verify_correspondence_receipt(&seed, &altered_address, &receipt.draw),
+            Err(ReceiptMismatch)
+        );
+
+        let mut altered_draw = receipt.draw.clone();
+        altered_draw.words[0] ^= 1;
+        assert_eq!(
+            verify_correspondence_receipt(&seed, &receipt.canonical_address, &altered_draw),
+            Err(ReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn incomplete_scope_evidence_survives_address_resolution() {
+        let seed = [0x92; 32];
+        let mut plan = correspondence_plan();
+        plan.completeness = PlanCompleteness::Incomplete;
+        plan.universe_status = CandidateUniverseStatus::Incomplete {
+            evidence_ref: id("truncated-event-candidate-universe"),
+        };
+        plan.hypothesis_set_status = HypothesisSetStatus::IncompleteOrBudgetLimited {
+            evidence_ref: id("bounded-hypothesis-search"),
+        };
+        let resolved = resolve_correspondence_plan(&seed, &plan).expect("known draws can resolve");
+
+        assert_eq!(resolved.completeness, PlanCompleteness::Incomplete);
+        assert_eq!(resolved.universe_status, plan.universe_status);
+        assert_eq!(resolved.hypothesis_set_status, plan.hypothesis_set_status);
+        assert_eq!(resolved.hypotheses.len(), plan.hypotheses.len());
+        assert!(
+            resolved
+                .hypotheses
+                .iter()
+                .all(|hypothesis| hypothesis.completeness == PlanCompleteness::CompleteWithinDeclaredSets)
+        );
     }
 
     #[test]
