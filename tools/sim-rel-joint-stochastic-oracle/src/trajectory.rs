@@ -599,6 +599,12 @@ impl CompiledTrajectoryRecordingManifest {
                     id: format!("{}:{}", variable.id, receipt.source_manifest_id),
                 });
             }
+            if !source_supports_claim(source, variable.claim_ceiling) {
+                return Err(TrajectoryError::InvalidClaimCeiling {
+                    subject_id: variable.id.clone(),
+                    claim: variable.claim_ceiling,
+                });
+            }
         }
 
         match source.evidence_class {
@@ -1004,6 +1010,23 @@ mod tests {
         receipt.replication_unit =
             ReplicationUnit::AnimalOrPreparation("animal-or-preparation-1".to_owned());
         assert!(contract.validate_receipt(&receipt).is_ok());
+    }
+
+    #[test]
+    fn trajectory_data_source_must_support_each_variable_claim() {
+        let mut manifest = recording_manifest(
+            simulation_source(),
+            ClaimCeiling::InSilicoReproduction,
+        );
+        manifest.variables[0].claim_ceiling =
+            ClaimCeiling::PeerReviewedMeasuredBehaviourReproduction;
+        assert!(matches!(
+            manifest.compile(),
+            Err(TrajectoryError::InvalidClaimCeiling {
+                subject_id,
+                claim: ClaimCeiling::PeerReviewedMeasuredBehaviourReproduction,
+            }) if subject_id == "front-left-joint-angle"
+        ));
     }
 
     #[test]
