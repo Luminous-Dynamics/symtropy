@@ -75,6 +75,12 @@ For the confirmatory trial, the independent experimental unit is a matched work-
 
 Every physical run should produce a #3522 trial receipt bound to the design revision, robot configuration, site snapshot, ODD, survey artifacts, reference instruments and independent adjudication.
 
+## Frozen adversarial corpus
+
+`fixtures/layout-benchmark-adversarial-v0.1.json` contains 15 synthetic cases. It protects against stale design/site context, frame/transform mismatch, inadequate measurement uncertainty, omitted VDC/preparation time, denominator manipulation by dropping blocked work, substituting vendor tolerance for project tolerance, treating executor FINISHED as independent acceptance, mismatched manual geometry, missing instrument calibration, lossy unit conversion and incomplete lifecycle-cost accounting.
+
+The closed Draft 2020-12 case schema and `scripts/validate_benchmark.py` verify case identity, scorecard coverage, vendor evidence labels and SOTA challenge fields. The focused workflow runs independently of workspace CI. Passing these checks validates benchmark artifact consistency only; it does not report a physical robot result.
+
 ## Non-goals
 
 No universal robot ranking, no cross-task composite, no use of a vendor's own positioning output as independent ground truth, no inference of safety from positioning accuracy, and no claim of standards conformity or certification.
