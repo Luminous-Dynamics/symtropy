@@ -1,0 +1,284 @@
+{
+  "schema_version": "symtropy.ai-datacentre-flex-benchmark.v2",
+  "protocol": "AI-DC-FLEX-BENCH-002",
+  "protocol_version": "0.1",
+  "parent_issue": 3776,
+  "programme_issue": 3435,
+  "claim_classes": [
+    "SYNTHETIC_KNOWN_TRUTH",
+    "SOURCE_REPORTED",
+    "TRACE_REPLAY",
+    "SIMULATION",
+    "RECONSTRUCTED_MODEL",
+    "RMS_EMT",
+    "HIL",
+    "LABORATORY",
+    "FIELD_MEASURED"
+  ],
+  "normalization_rules": [
+    "same_hardware_model_precision_and_quality_for_efficiency_comparisons",
+    "same_useful_work_and_service_contract",
+    "same_grid_event_response_window_and_local_timebase",
+    "same_pcc_measurement_boundary_and_calibration_scope",
+    "same_forecast_issue_times_and_information_set",
+    "same_scenario_distribution_seeds_and_sample_budget",
+    "same_optimizer_compute_budget_and_stopping_tolerance",
+    "time_site_and_hardware_held_out_splits",
+    "never_mix_trace_model_results_with_field_measurements",
+    "never_promote_copperplate_adequacy_to_nodal_deliverability"
+  ],
+  "strategies": [
+    "static_tdp_schedule",
+    "fifo",
+    "earliest_deadline_first",
+    "gpu_clock_power_cap_only",
+    "latency_aware_workload_deferral",
+    "inter_data_centre_migration",
+    "battery_ups_only",
+    "cooling_thermal_storage_only",
+    "rule_based_hybrid",
+    "deterministic_milp",
+    "rolling_horizon_mpc",
+    "sample_average_cvar",
+    "distributionally_robust_cvar",
+    "robust_box",
+    "symtropy_hierarchical_optimizer"
+  ],
+  "benchmarks": [
+    {
+      "id": "field-nature-25pct-3h",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.1038/s41560-025-01927-1",
+      "domain": "compute_service_and_pcc_response",
+      "baseline": "256-GPU-class field demonstration; 25% import/power reduction sustained 3h with declared AI QoS",
+      "target": "reproduce under matched workload, hardware class, measurement boundary and QoS; stretch >=30% for 3h",
+      "primary_metrics": [
+        "pcc_reduction_fraction",
+        "sustained_duration_s",
+        "completed_useful_work",
+        "qos_violations",
+        "net_facility_energy_per_work",
+        "rebound_peak"
+      ],
+      "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "trace-alibaba-lad-flex",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.1016/j.ijepes.2026.111940",
+      "domain": "workload_deferral",
+      "baseline": "up to 22% load deferral in one-week trace-based case; >1M task records",
+      "target": "reproduce published filters and windows; stretch >=25% only with no SLA, queue, energy/work or rebound regression",
+      "primary_metrics": [
+        "deferred_load_fraction",
+        "deadline_miss_rate",
+        "p99_latency",
+        "queue_stability",
+        "backlog_clear_time",
+        "facility_energy_per_work",
+        "rebound_peak"
+      ],
+      "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "field-acm-interdc-migration",
+      "evidence_class": "FIELD_MEASURED",
+      "source": "https://doi.org/10.1145/3765611.3815063",
+      "domain": "inter_site_response",
+      "baseline": "operational cross-data-centre migration; response ordering depends on replication/remote access/on-demand copy, prelaunch and RO/RW semantics",
+      "target": "reproduce response ordering; claim strictest evaluated class only for pre-launched RO variants if measurements support it",
+      "primary_metrics": [
+        "command_to_stabilized_power_s",
+        "service_downtime_s",
+        "data_transfer_s",
+        "destination_capacity_margin",
+        "tracking_error",
+        "read_write_semantics"
+      ],
+      "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "mlperf-power-efficiency",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.1109/MM.2026.3700126",
+      "domain": "compute_efficiency",
+      "baseline": "1841 submissions across 60 systems; tokens/J and samples/J",
+      "target": "first match best eligible result in identical hardware/model/precision/quality stratum; stretch >=5% improvement without quality loss",
+      "primary_metrics": [
+        "tokens_per_joule",
+        "samples_per_joule",
+        "useful_work_per_joule",
+        "quality_score",
+        "p99_latency",
+        "meter_boundary"
+      ],
+      "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "pcc-metrology-known-truth",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "source": "PR #3772",
+      "domain": "measurement_assurance",
+      "baseline": "linear gain-offset correction, covariance propagation, clock/quality/calibration validity and signed interval energy",
+      "target": "zero false passes when lower bound misses threshold; no hidden interpolation; every pass bound to calibration and timebase evidence",
+      "primary_metrics": [
+        "corrected_power_w",
+        "standard_uncertainty_w",
+        "paired_covariance",
+        "lower_bound_w",
+        "relative_expanded_uncertainty",
+        "net_reduction_wh",
+        "abstention_reason"
+      ],
+      "status": "IMPLEMENTATION_IN_REVIEW"
+    },
+    {
+      "id": "grid-response-delivery",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "source": "PR #3649",
+      "domain": "dispatch_performance",
+      "baseline": "product-specific latency, sustained delivery, ramp, overshoot and signed under-delivery envelope",
+      "target": "repeated-call reliability and product-defined response/stability thresholds; no universal threshold invented",
+      "primary_metrics": [
+        "response_latency_s",
+        "time_to_stabilized_s",
+        "ramp_kw_per_s",
+        "tracking_error",
+        "availability",
+        "rebound_energy_wh",
+        "failed_call_probability"
+      ],
+      "status": "EXISTING_VERIFIER_REQUIRES_EXACT_HEAD_QUALIFICATION"
+    },
+    {
+      "id": "pras-09-adequacy-interop",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "source": "PR #3750",
+      "domain": "multi_region_adequacy",
+      "baseline": "PRAS 0.9.0; initial pinned harness 42/42 passing assertions",
+      "target": "native ELCC method, matched seeds, repeated Monte Carlo, weather-year mixture, tail convergence and multi-region deliverability sensitivities",
+      "primary_metrics": [
+        "lole_event_periods",
+        "lold_event_days",
+        "lolh_hours",
+        "eue_mwh",
+        "energy_cvar",
+        "monte_carlo_standard_error",
+        "elcc_bounds_mw",
+        "tail_effective_sample_size"
+      ],
+      "status": "V0_1_HARNESS_PASSED_NATIVE_CAPACITY_CREDIT_NEXT"
+    },
+    {
+      "id": "correlated-fleet-risk",
+      "evidence_class": "TRACE_REPLAY",
+      "source": "AI-DC-FLEX-BENCH-002 / public trace adapters to be pinned",
+      "domain": "correlated_fleet_and_grid",
+      "baseline": "independent-site aggregation versus empirical joint time series and declared factor/state-space alternatives",
+      "target": "calibrated held-out aggregate ramp/variance/tail forecasts; reserve must cover measured common-mode and synchronized-release risk",
+      "primary_metrics": [
+        "aggregate_variance_error",
+        "ramp_quantile_error",
+        "tail_coverage",
+        "cross_site_lag_dependence",
+        "reserve_error",
+        "out_of_domain_abstention"
+      ],
+      "status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "electrothermal-cooling-flex",
+      "evidence_class": "SIMULATION",
+      "source": "https://www.ashrae.org/technical-resources/topics-and-initiatives/ai-data-center/grid-interactive-design-demand-flexibility",
+      "domain": "cooling_and_thermal_state",
+      "baseline": "cooling-shift/thermal-storage strategy with coolant, temperature, water, auxiliary and recovery constraints",
+      "target": "compare against fixed-parasitic cooling and coupled electro-thermal baselines; no thermal/water violations",
+      "primary_metrics": [
+        "cooling_power_kw",
+        "max_temperature_c",
+        "thermal_margin_c",
+        "water_per_work",
+        "thermal_recovery_s",
+        "auxiliary_energy_wh"
+      ],
+      "status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "economics-vs-bess",
+      "evidence_class": "SIMULATION",
+      "source": "https://www.iea.org/reports/powering-artificial-intelligence/executive-summary",
+      "domain": "cost_of_flexibility",
+      "baseline": "compute opportunity cost versus BESS/UPS/thermal storage/generator/network alternative",
+      "target": "publish break-even cost per net delivered MW/MWh with compute value, battery degradation, reserve and grid value included",
+      "primary_metrics": [
+        "total_cost",
+        "cost_per_delivered_mwh",
+        "foregone_compute_value",
+        "battery_degradation_cost",
+        "avoided_network_cost",
+        "water_and_emissions"
+      ],
+      "status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "grid-dynamic-stability",
+      "evidence_class": "RMS_EMT",
+      "source": "IEEE workload-driven power fluctuation and data-centre interconnection studies; utility profiles to be pinned",
+      "domain": "voltage_frequency_dynamic_performance",
+      "baseline": "no-flexibility, independent-site and correlation-aware load cases; local protection stays authoritative",
+      "target": "no degradation outside operator-approved envelopes; validated RMS/EMT and HIL receipts before any field stability claim",
+      "primary_metrics": [
+        "frequency_nadir_hz",
+        "rocof_hz_per_s",
+        "voltage_deviation_pu",
+        "settling_s",
+        "oscillation_damping",
+        "protection_events"
+      ],
+      "status": "NOT_IMPLEMENTED"
+    }
+  ],
+  "result_requirements": {
+    "mandatory_claim_fields": [
+      "claim_class",
+      "model_boundary",
+      "source_digest",
+      "data_split_digest",
+      "hardware_id",
+      "workload_contract_digest",
+      "pcc_boundary_id",
+      "calibration_id",
+      "timebase_id",
+      "scenario_digest",
+      "seed",
+      "sample_count",
+      "software_revision"
+    ],
+    "mandatory_uncertainty": [
+      "point_estimate",
+      "interval_or_standard_error",
+      "coverage_method",
+      "tail_convention",
+      "correlation_assumptions",
+      "abstention_count"
+    ],
+    "mandatory_cost_dimensions": [
+      "compute_opportunity_cost",
+      "storage_degradation",
+      "fuel_or_grid_energy",
+      "network_cost",
+      "cooling_water",
+      "emissions_boundary"
+    ],
+    "hard_gate_policy": "Safety, service, metrology and deliverability failures cannot be offset by improvements in another metric."
+  },
+  "claim_boundaries": [
+    "a trace-model result is not field evidence",
+    "a grid-facing import reduction is not necessarily facility energy efficiency",
+    "a copperplate adequacy pass is not nodal deliverability",
+    "a successful PRAS run is not NTCSA model reproduction",
+    "MLPerf tokens-per-joule is not grid-service qualification",
+    "a k-factor is not a universal confidence level",
+    "a software evaluator does not certify instrument transformers or grid-code compliance"
+  ]
+}
