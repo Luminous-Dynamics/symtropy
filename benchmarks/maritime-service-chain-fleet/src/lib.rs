@@ -8,8 +8,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use maritime_service_chain_contract::{
-    CapacityWindow, EvidenceRef, Resource, ResourceKind, ResourceUnit, ResourceUse,
-    ServiceChainCase, TickWindow, ValidationError, VoyageAlternative, validate_case,
+    EvidenceRef, Resource, ResourceKind, ResourceUnit, ResourceUse, ServiceChainCase, TickWindow,
+    ValidationError, VoyageAlternative, validate_case,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -819,6 +819,7 @@ pub fn check_cumulative_quota(resource: &Resource, operations: &[OperationPlacem
 #[cfg(test)]
 mod tests {
     use super::*;
+    use maritime_service_chain_contract::CapacityWindow;
 
     fn window(start_tick: u64, end_tick: u64, capacity: u64) -> CapacityWindow {
         CapacityWindow {
@@ -914,8 +915,8 @@ mod tests {
     ) -> ServiceChainCase {
         use maritime_service_chain_contract::{
             CaseClass, ConstraintDisposition, ConstraintKind, Demand, EnergyLedger, EvidenceOwner,
-            EvidenceRole, HardConstraint, Node, NodeKind, SegmentKind, SegmentOperationTiming,
-            ServiceUnit,
+            EvidenceRole, HardConstraint, Node, NodeKind, RouteSegment, SegmentKind,
+            SegmentOperationTiming, ServiceUnit,
         };
 
         let arrival_fast = TickWindow {
