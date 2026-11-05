@@ -634,6 +634,8 @@ mod tests {
             Value::from(0.91);
         episode["receivers"][1]["health_receipt"]["forecast"]["cause_specific_cumulative_incidence"][0]["probability"] =
             Value::from(0.03);
+        episode["receivers"][1]["health_receipt"]["forecast"]["cause_specific_cumulative_incidence"][2]["probability"] =
+            Value::from(0.02);
         episode["receivers"][1]["priority_weight"] = Value::from(1.0);
         episode["receivers"][1]["urgency_weight"] = Value::from(1.0);
         let report = evaluate_episode(&episode).unwrap();
