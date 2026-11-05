@@ -71,7 +71,7 @@ pub struct EquilibriumSummary {
     /// Applied loads plus support reactions; ideal static equilibrium is zero.
     pub net_force_residual_x_n: f64,
     pub net_force_residual_y_n: f64,
-    /// Moment about the global origin, in N m.
+    /// Moment about the geometry bounding-box center, in N m.
     pub net_moment_residual_nm: f64,
     pub normalized_force_residual: f64,
     pub normalized_moment_residual: f64,
@@ -176,6 +176,35 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
         }
     }
 
+    // Normalize moments about the center of the geometry's bounding box.
+    // This keeps the moment residual independent of a global coordinate translation.
+    let min_x = nodes
+        .iter()
+        .map(|node| node.x_m)
+        .fold(f64::INFINITY, f64::min);
+    let max_x = nodes
+        .iter()
+        .map(|node| node.x_m)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let min_y = nodes
+        .iter()
+        .map(|node| node.y_m)
+        .fold(f64::INFINITY, f64::min);
+    let max_y = nodes
+        .iter()
+        .map(|node| node.y_m)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let extent_x_m = max_x - min_x;
+    let extent_y_m = max_y - min_y;
+    require_finite(extent_x_m, "truss x extent")?;
+    require_finite(extent_y_m, "truss y extent")?;
+    let moment_reference_x_m = min_x + extent_x_m * 0.5;
+    let moment_reference_y_m = min_y + extent_y_m * 0.5;
+    require_finite(moment_reference_x_m, "moment reference x")?;
+    require_finite(moment_reference_y_m, "moment reference y")?;
+    let characteristic_length_m = extent_x_m.hypot(extent_y_m);
+    require_positive_finite(characteristic_length_m, "truss characteristic length")?;
+
     let dof_count = nodes
         .len()
         .checked_mul(2)
@@ -231,8 +260,6 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
 
     let mut internal = vec![0.0_f64; dof_count];
     let mut max_free_dof_residual_n = 0.0_f64;
-    let mut max_abs_applied_load_n = 0.0_f64;
-    let mut max_abs_internal_force_n = 0.0_f64;
     for row in 0..dof_count {
         let mut total = 0.0_f64;
         for column in 0..dof_count {
@@ -240,8 +267,6 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
         }
         require_finite(total, "global internal nodal force")?;
         internal[row] = total;
-        max_abs_internal_force_n = max_abs_internal_force_n.max(total.abs());
-        max_abs_applied_load_n = max_abs_applied_load_n.max(loads[row].abs());
     }
     for dof in &free_dofs {
         max_free_dof_residual_n = max_free_dof_residual_n.max((internal[*dof] - loads[*dof]).abs());
@@ -251,29 +276,29 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     let mut reaction_sum_x = 0.0_f64;
     let mut reaction_sum_y = 0.0_f64;
     let mut reaction_moment = 0.0_f64;
-    let mut max_abs_reaction_n = 0.0_f64;
-    let mut max_abs_applied_moment_nm = 0.0_f64;
+    let mut sum_abs_applied_force_n = 0.0_f64;
+    let mut sum_abs_reaction_force_n = 0.0_f64;
     let mut applied_sum_x = 0.0_f64;
     let mut applied_sum_y = 0.0_f64;
     let mut applied_moment = 0.0_f64;
-    let mut characteristic_length_m = 1.0_f64;
 
     for (index, node) in nodes.iter().enumerate() {
-        characteristic_length_m = characteristic_length_m
-            .max(node.x_m.abs())
-            .max(node.y_m.abs());
+        sum_abs_applied_force_n += node.force_x_n.abs() + node.force_y_n.abs();
         applied_sum_x += node.force_x_n;
         applied_sum_y += node.force_y_n;
-        let applied_node_moment = node.x_m * node.force_y_n - node.y_m * node.force_x_n;
+        let relative_x_m = node.x_m - moment_reference_x_m;
+        let relative_y_m = node.y_m - moment_reference_y_m;
+        require_finite(relative_x_m, "moment reference-relative x")?;
+        require_finite(relative_y_m, "moment reference-relative y")?;
+        let applied_node_moment =
+            relative_x_m * node.force_y_n - relative_y_m * node.force_x_n;
         require_finite(applied_node_moment, "applied nodal moment")?;
         applied_moment += applied_node_moment;
-        max_abs_applied_moment_nm = max_abs_applied_moment_nm.max(applied_node_moment.abs());
 
         let reaction_x = if node.restrained_x {
             let value = internal[2 * index] - loads[2 * index];
             require_finite(value, "support reaction x")?;
             reaction_sum_x += value;
-            max_abs_reaction_n = max_abs_reaction_n.max(value.abs());
             Some(value)
         } else {
             None
@@ -282,7 +307,6 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
             let value = internal[2 * index + 1] - loads[2 * index + 1];
             require_finite(value, "support reaction y")?;
             reaction_sum_y += value;
-            max_abs_reaction_n = max_abs_reaction_n.max(value.abs());
             Some(value)
         } else {
             None
@@ -290,7 +314,9 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
 
         let reaction_x_value = reaction_x.unwrap_or(0.0);
         let reaction_y_value = reaction_y.unwrap_or(0.0);
-        let reaction_node_moment = node.x_m * reaction_y_value - node.y_m * reaction_x_value;
+        sum_abs_reaction_force_n += reaction_x_value.abs() + reaction_y_value.abs();
+        let reaction_node_moment =
+            relative_x_m * reaction_y_value - relative_y_m * reaction_x_value;
         require_finite(reaction_node_moment, "support reaction moment")?;
         reaction_moment += reaction_node_moment;
 
@@ -309,7 +335,8 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     require_finite(reaction_sum_y, "sum of support y reactions")?;
     require_finite(applied_moment, "sum of applied moments")?;
     require_finite(reaction_moment, "sum of support moments")?;
-    require_finite(max_abs_reaction_n, "maximum support reaction")?;
+    require_finite(sum_abs_applied_force_n, "sum of absolute applied force components")?;
+    require_finite(sum_abs_reaction_force_n, "sum of absolute support reaction components")?;
 
     let net_force_x = applied_sum_x + reaction_sum_x;
     let net_force_y = applied_sum_y + reaction_sum_y;
@@ -317,16 +344,65 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     require_finite(net_force_x, "net x-force residual")?;
     require_finite(net_force_y, "net y-force residual")?;
     require_finite(net_moment, "net moment residual")?;
-    let force_scale = max_abs_applied_load_n
-        .max(max_abs_internal_force_n)
-        .max(max_abs_reaction_n)
-        .max(1.0);
-    let moment_scale = (force_scale * characteristic_length_m)
-        .max(max_abs_applied_moment_nm)
-        .max(reaction_moment.abs())
-        .max(1.0);
-    require_positive_finite(force_scale, "force normalization scale")?;
-    require_positive_finite(moment_scale, "moment normalization scale")?;
+
+    // Sum of absolute component magnitudes is non-cancelling and homogeneous
+    // in force units. No fixed 1 N floor is permitted.
+    let force_scale = sum_abs_applied_force_n + sum_abs_reaction_force_n;
+    require_finite(force_scale, "force normalization scale")?;
+    let normalized_force_residual = normalized_residual(
+        net_force_x.hypot(net_force_y),
+        force_scale,
+        "global force residual",
+    )?;
+
+    // Moment scale is force scale times a geometry-derived characteristic
+    // length. A nonzero scale that underflows to zero is unresolved, not PASS.
+    let moment_scale = force_scale * characteristic_length_m;
+    require_finite(moment_scale, "moment normalization scale")?;
+    if force_scale > 0.0 && moment_scale == 0.0 {
+        return Err("moment normalization scale underflowed; residual is unresolved".to_owned());
+    }
+    let normalized_moment_residual = normalized_residual(
+        net_moment.abs(),
+        moment_scale,
+        "global moment residual",
+    )?;
+
+    // Normwise backward error for K_ff u_f = F_f:
+    // ||K_ff u_f - F_f||_inf / (||K_ff||_inf ||u_f||_inf + ||F_f||_inf).
+    let mut free_stiffness_inf_norm = 0.0_f64;
+    for row in &free_dofs {
+        let mut row_sum = 0.0_f64;
+        for column in &free_dofs {
+            row_sum += stiffness[*row][*column].abs();
+            require_finite(row_sum, "free-DOF stiffness row sum")?;
+        }
+        free_stiffness_inf_norm = free_stiffness_inf_norm.max(row_sum);
+    }
+    let free_displacement_inf_norm = free_dofs
+        .iter()
+        .map(|dof| displacement[*dof].abs())
+        .fold(0.0_f64, f64::max);
+    let free_load_inf_norm = free_dofs
+        .iter()
+        .map(|dof| loads[*dof].abs())
+        .fold(0.0_f64, f64::max);
+    let stiffness_displacement_scale =
+        free_stiffness_inf_norm * free_displacement_inf_norm;
+    require_finite(stiffness_displacement_scale, "free-DOF stiffness-displacement scale")?;
+    if free_stiffness_inf_norm > 0.0
+        && free_displacement_inf_norm > 0.0
+        && stiffness_displacement_scale == 0.0
+    {
+        return Err("free-DOF stiffness-displacement scale underflowed; residual is unresolved".to_owned());
+    }
+    let free_dof_scale = stiffness_displacement_scale + free_load_inf_norm;
+    require_finite(free_dof_scale, "free-DOF backward-error scale")?;
+    let normalized_free_dof_residual = normalized_residual(
+        max_free_dof_residual_n,
+        free_dof_scale,
+        "free-DOF backward error",
+    )?;
 
     let equilibrium = EquilibriumSummary {
         applied_force_x_n: applied_sum_x,
@@ -336,10 +412,10 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
         net_force_residual_x_n: net_force_x,
         net_force_residual_y_n: net_force_y,
         net_moment_residual_nm: net_moment,
-        normalized_force_residual: net_force_x.hypot(net_force_y) / force_scale,
-        normalized_moment_residual: net_moment.abs() / moment_scale,
+        normalized_force_residual,
+        normalized_moment_residual,
         max_free_dof_residual_n,
-        normalized_free_dof_residual: max_free_dof_residual_n / force_scale,
+        normalized_free_dof_residual,
     };
     for value in [
         equilibrium.normalized_force_residual,
@@ -520,6 +596,23 @@ fn require_finite(value: f64, label: &str) -> Check<()> {
     } else {
         Err(format!("{label} must be finite"))
     }
+}
+
+fn normalized_residual(numerator: f64, scale: f64, label: &str) -> Check<f64> {
+    require_finite(numerator, label)?;
+    require_finite(scale, label)?;
+    if numerator < 0.0 || scale < 0.0 {
+        return Err(format!("{label} numerator and scale must be non-negative"));
+    }
+    if scale == 0.0 {
+        if numerator == 0.0 {
+            return Ok(0.0);
+        }
+        return Err(format!("{label} has a nonzero residual with zero normalization scale"));
+    }
+    let normalized = numerator / scale;
+    require_finite(normalized, label)?;
+    Ok(normalized)
 }
 
 fn require_positive_finite(value: f64, label: &str) -> Check<()> {
@@ -837,6 +930,104 @@ mod tests {
             solve(&overflow)
                 .unwrap_err()
                 .contains("bar axial stiffness")
+        );
+    }
+
+    #[test]
+    fn normalized_equilibrium_residuals_are_invariant_under_joint_load_stiffness_scaling() {
+        let base_input = symmetric_two_bar_truss();
+        let base = solve(&base_input).expect("base truss");
+
+        for scale in [1.0e-18, 1.0e-9, 1.0, 1.0e9, 1.0e18] {
+            let mut scaled = base_input.clone();
+            for node in &mut scaled.nodes {
+                node.force_x_n *= scale;
+                node.force_y_n *= scale;
+            }
+            for bar in &mut scaled.bars {
+                bar.youngs_modulus_pa *= scale;
+            }
+            let result = solve(&scaled).expect("jointly scaled load/stiffness truss");
+            close(
+                node(&result, "apex").displacement_x_m,
+                node(&base, "apex").displacement_x_m,
+                1.0e-14,
+                "joint scale invariant apex x",
+            );
+            close(
+                node(&result, "apex").displacement_y_m,
+                node(&base, "apex").displacement_y_m,
+                1.0e-14,
+                "joint scale invariant apex y",
+            );
+            close(
+                result.equilibrium.normalized_force_residual,
+                base.equilibrium.normalized_force_residual,
+                1.0e-12,
+                "joint scale invariant force residual",
+            );
+            close(
+                result.equilibrium.normalized_moment_residual,
+                base.equilibrium.normalized_moment_residual,
+                1.0e-12,
+                "joint scale invariant moment residual",
+            );
+            close(
+                result.equilibrium.normalized_free_dof_residual,
+                base.equilibrium.normalized_free_dof_residual,
+                1.0e-12,
+                "joint scale invariant free-DOF backward error",
+            );
+        }
+    }
+
+    #[test]
+    fn order_one_unbalanced_residual_does_not_pass_at_subunit_or_large_scales() {
+        for scale in [1.0e-18, 1.0e-9, 1.0, 1.0e9, 1.0e18] {
+            close(
+                normalized_residual(scale, scale, "synthetic force imbalance")
+                    .expect("positive normalization scale"),
+                1.0,
+                1.0e-15,
+                "100 percent residual remains order one",
+            );
+        }
+    }
+
+    #[test]
+    fn zero_normalization_scale_is_zero_only_for_zero_residual() {
+        assert_eq!(
+            normalized_residual(0.0, 0.0, "zero force residual").expect("zero case"),
+            0.0
+        );
+        assert!(normalized_residual(1.0e-18, 0.0, "unbalanced zero-scale force").is_err());
+
+        let mut unloaded = symmetric_two_bar_truss();
+        for node in &mut unloaded.nodes {
+            node.force_x_n = 0.0;
+            node.force_y_n = 0.0;
+        }
+        let result = solve(&unloaded).expect("unloaded truss");
+        assert_eq!(result.equilibrium.normalized_force_residual, 0.0);
+        assert_eq!(result.equilibrium.normalized_moment_residual, 0.0);
+        assert_eq!(result.equilibrium.normalized_free_dof_residual, 0.0);
+    }
+
+    #[test]
+    fn moment_residual_is_invariant_under_global_coordinate_translation() {
+        let base_input = symmetric_two_bar_truss();
+        let base = solve(&base_input).expect("base truss");
+        let mut translated = base_input;
+        for node in &mut translated.nodes {
+            node.x_m += 1.0e6;
+            node.y_m -= 5.0e6;
+        }
+        let result = solve(&translated).expect("translated truss");
+        close(
+            result.equilibrium.normalized_moment_residual,
+            base.equilibrium.normalized_moment_residual,
+            1.0e-12,
+            "translation invariant normalized moment residual",
         );
     }
 
