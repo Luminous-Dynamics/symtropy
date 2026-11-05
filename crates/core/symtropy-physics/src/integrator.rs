@@ -297,8 +297,7 @@ mod tests {
         let acceleration = 3.7;
         let initial_velocity = 1.25;
         let mass = 2.0;
-        let mut body =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, mass);
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, mass);
         body.linear_damping = 0.0;
         body.angular_damping = 0.0;
         body.linear_velocity[0] = initial_velocity;
@@ -316,8 +315,8 @@ mod tests {
         let acceleration = 3.7;
         let initial_velocity = 1.25;
         let total_time = 1.0;
-        let exact_position = initial_velocity * total_time
-            + 0.5 * acceleration * total_time * total_time;
+        let exact_position =
+            initial_velocity * total_time + 0.5 * acceleration * total_time * total_time;
         let exact_velocity = initial_velocity + acceleration * total_time;
 
         let coarse_dt = 1.0 / 30.0;
@@ -362,12 +361,8 @@ mod tests {
         let dt = 1.0 / 240.0;
         let steps = (total_time / dt) as usize;
 
-        let mut body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(0),
-            Point(initial_position),
-            0.5,
-            2.0,
-        );
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point(initial_position), 0.5, 2.0);
         body.linear_damping = 0.0;
         body.angular_damping = 0.0;
         body.linear_velocity = initial_velocity;
