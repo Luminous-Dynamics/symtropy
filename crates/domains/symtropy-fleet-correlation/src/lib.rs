@@ -384,17 +384,6 @@ pub fn evaluate_fleet_correlation(
     let portfolio_sample_variance_kw2 = sample_variance(&portfolio, portfolio_mean_power_kw);
     let independent_site_variance_sum_kw2 =
         site_moments.iter().map(|site| site.sample_variance_kw2).sum::<f64>();
-    let covariance_excess_variance_kw2 =
-        portfolio_sample_variance_kw2 - independent_site_variance_sum_kw2;
-    let variance_ratio_vs_independence = if independent_site_variance_sum_kw2 > f64::EPSILON {
-        Some(portfolio_sample_variance_kw2 / independent_site_variance_sum_kw2)
-    } else {
-        None
-    };
-    let variance_identity_residual_kw2 = portfolio_sample_variance_kw2
-        - independent_site_variance_sum_kw2
-        - covariance_excess_variance_kw2;
-
     let mut pair_dependence = Vec::new();
     for i in 0..sites.len() {
         for j in (i + 1)..sites.len() {
@@ -405,6 +394,24 @@ pub fn evaluate_fleet_correlation(
                 contract.minimum_overlap_samples,
             ));
         }
+    }
+    let covariance_excess_variance_kw2 = pair_dependence
+        .iter()
+        .map(|pair| 2.0 * pair.covariance_kw2)
+        .sum::<f64>();
+    let variance_ratio_vs_independence = if independent_site_variance_sum_kw2 > f64::EPSILON {
+        Some(portfolio_sample_variance_kw2 / independent_site_variance_sum_kw2)
+    } else {
+        None
+    };
+    let variance_identity_residual_kw2 = portfolio_sample_variance_kw2
+        - (independent_site_variance_sum_kw2 + covariance_excess_variance_kw2);
+    if !portfolio_sample_variance_kw2.is_finite()
+        || !independent_site_variance_sum_kw2.is_finite()
+        || !covariance_excess_variance_kw2.is_finite()
+        || !variance_identity_residual_kw2.is_finite()
+    {
+        return Err(FleetCorrelationError::NumericalOverflow("portfolio variance"));
     }
 
     let mut absolute_ramps = Vec::with_capacity(sample_count - 1);
@@ -457,6 +464,7 @@ fn pair_dependence_receipt(
     maximum_lag: usize,
     minimum_overlap: usize,
 ) -> PairDependenceReceipt {
+    let covariance_kw2 = sample_covariance(&a.samples_kw, &b.samples_kw).unwrap_or(0.0);
     let contemporaneous_correlation = correlation(&a.samples_kw, &b.samples_kw);
     let mut strongest_positive_correlation: Option<f64> = None;
     let mut strongest_positive_lag_intervals: Option<isize> = None;
@@ -486,6 +494,7 @@ fn pair_dependence_receipt(
     PairDependenceReceipt {
         site_a_id: a.site_id.clone(),
         site_b_id: b.site_id.clone(),
+        covariance_kw2,
         contemporaneous_correlation,
         strongest_positive_correlation,
         strongest_positive_lag_intervals,
@@ -515,6 +524,20 @@ fn sample_variance(values: &[f64], values_mean: f64) -> f64 {
         .map(|value| (value - values_mean).powi(2))
         .sum::<f64>()
         / (values.len() - 1) as f64
+}
+
+fn sample_covariance(a: &[f64], b: &[f64]) -> Option<f64> {
+    if a.len() != b.len() || a.len() < 2 {
+        return None;
+    }
+    let mean_a = mean(a);
+    let mean_b = mean(b);
+    let covariance_sum = a
+        .iter()
+        .zip(b)
+        .map(|(x, y)| (x - mean_a) * (y - mean_b))
+        .sum::<f64>();
+    Some(covariance_sum / (a.len() - 1) as f64)
 }
 
 fn correlation(a: &[f64], b: &[f64]) -> Option<f64> {
