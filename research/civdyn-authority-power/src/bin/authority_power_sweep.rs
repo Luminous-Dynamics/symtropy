@@ -368,7 +368,8 @@ mod tests {
             &actors,
             &capture_assignments(),
             &AuthorityPolicy::public_governance_reference(),
-        ).unwrap();
+        )
+        .unwrap();
         assert!(!report.compliant_with_declared_policy);
         assert!(report.forbidden_conflict_count >= 3);
         assert_eq!(report.appeal_independence, Some(false));
