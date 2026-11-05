@@ -172,6 +172,51 @@
         "Mark evidence limitation explicitly",
         "Do not promote abstract-level summaries to raw measured records"
       ]
+    },
+    {
+      "case_id": "binder-grade-thermal-strain-stratification",
+      "case_kind": "PUBLISHED_MEASURED_REFERENCE",
+      "evidence_kind": "PUBLISHED_MEASURED",
+      "group_id": "published-appliedthermalengineering-2026-132099",
+      "arm": "BINDER_GRADE_COMPARISON",
+      "challenge": "Preserve the separate PG 64-22 and PG 76-22 experimental arms and their declared 10 C heating condition. The publication reports distinct tensile-strain amplification; do not turn summary percentages into raw sensor observations.",
+      "expected_disposition": "SOURCE_LOCATED_COMPARISON_ONLY",
+      "required_behaviors": [
+        "Retain binder grade and mixture lineage as model inputs",
+        "Keep mean strain amplification and local spatial strain profile distinct",
+        "Record thermal stimulus method as heating-pad surrogate, not active WPT electrical heat",
+        "Do not extrapolate the reported amplification to another mixture, pavement or power level"
+      ]
+    },
+    {
+      "case_id": "distributed-strain-temperature-spatial-registration",
+      "case_kind": "SCHEMA_KNOWN_TRUTH",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "spatial-sensor-01",
+      "arm": "MULTIPARAMETER_SPATIAL_SENSING",
+      "challenge": "Temperature, strain and curvature samples are co-registered in one declared coordinate frame, with a known localized hot-zone/strain peak above a synthetic pad footprint.",
+      "expected_disposition": "SPATIAL_PROFILE_PRESERVED",
+      "required_behaviors": [
+        "Preserve per-point coordinates and depths",
+        "Do not collapse the localized hot zone into a segment mean",
+        "Reject mixed or unresolved coordinate frames",
+        "Keep strain, temperature and curvature as separate quantities"
+      ]
+    },
+    {
+      "case_id": "thermal-sensor-cross-sensitivity-negative-control",
+      "case_kind": "NEGATIVE_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "spatial-sensor-02",
+      "arm": "SENSOR_CROSS_SENSITIVITY",
+      "challenge": "A synthetic multi-parameter fiber sensor has known temperature/strain/curvature cross-sensitivity; decoupled outputs must match a separately declared reference within the fixture tolerance.",
+      "expected_disposition": "DECOUPLED_OR_NOT_EVALUABLE",
+      "required_behaviors": [
+        "Retain raw channel and decoupled outputs separately",
+        "Propagate the calibration and decoupling method digest",
+        "Reject missing decoupling calibration",
+        "Do not treat the sensor algorithm output as independent ground truth"
+      ]
     }
   ]
 }
