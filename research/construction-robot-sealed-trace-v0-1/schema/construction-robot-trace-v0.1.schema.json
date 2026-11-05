@@ -1,0 +1,403 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-robot-trace-v0.1.schema.json",
+  "title": "Construction Robot Interoperability Trace v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest",
+    "events",
+    "annotations",
+    "final_trace_digest"
+  ],
+  "properties": {
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "trace_id",
+        "capture",
+        "seal"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0"
+        },
+        "trace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tool",
+            "tool_version",
+            "configuration_digest",
+            "started_at",
+            "ended_at",
+            "protocol_hints",
+            "capture_completeness",
+            "recorder_drop_count",
+            "broker_drop_count",
+            "broker_drop_evidence",
+            "filters_applied",
+            "filter_profile_digest",
+            "redaction_applied",
+            "parent_trace_digest",
+            "transformation_digest",
+            "first_sequence",
+            "last_sequence",
+            "event_count"
+          ],
+          "properties": {
+            "tool": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tool_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "configuration_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "started_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "ended_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "protocol_hints": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "capture_completeness": {
+              "enum": [
+                "complete_with_boundary_evidence",
+                "known_incomplete",
+                "unknown"
+              ]
+            },
+            "recorder_drop_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "broker_drop_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "broker_drop_evidence": {
+              "enum": [
+                "measured_zero",
+                "measured_nonzero",
+                "not_available"
+              ]
+            },
+            "filters_applied": {
+              "type": "boolean"
+            },
+            "filter_profile_digest": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/digest"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "redaction_applied": {
+              "type": "boolean"
+            },
+            "parent_trace_digest": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/digest"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "transformation_digest": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/digest"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "first_sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "last_sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "event_count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "seal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "algorithm",
+            "event_hash_profile",
+            "trace_hash_profile",
+            "canonicalization",
+            "external_anchor",
+            "external_anchor_ref"
+          ],
+          "properties": {
+            "algorithm": {
+              "const": "sha-256"
+            },
+            "event_hash_profile": {
+              "const": "construction-robot-trace-event-v0.1"
+            },
+            "trace_hash_profile": {
+              "const": "construction-robot-trace-root-v0.1"
+            },
+            "canonicalization": {
+              "const": "RFC8785"
+            },
+            "external_anchor": {
+              "enum": [
+                "none",
+                "detached_signature",
+                "external_receipt"
+              ]
+            },
+            "external_anchor_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capture_sequence",
+          "direction",
+          "topic",
+          "qos",
+          "retain",
+          "dup",
+          "connection_epoch",
+          "participant",
+          "timestamps",
+          "payload",
+          "previous_event_digest",
+          "event_digest"
+        ],
+        "properties": {
+          "capture_sequence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "direction": {
+            "enum": [
+              "broker_to_client",
+              "client_to_broker",
+              "unknown"
+            ]
+          },
+          "topic": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "retain": {
+            "type": "boolean"
+          },
+          "dup": {
+            "type": "boolean"
+          },
+          "packet_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "connection_epoch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "participant": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "identity_claim"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  "robot",
+                  "fleet_manager",
+                  "peripheral",
+                  "broker",
+                  "recorder",
+                  "unknown"
+                ]
+              },
+              "identity_claim": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "timestamps": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source",
+                "timestamp",
+                "clock_id",
+                "uncertainty_ms"
+              ],
+              "properties": {
+                "source": {
+                  "enum": [
+                    "recorder_received",
+                    "broker_ingress",
+                    "broker_egress",
+                    "robot_reported"
+                  ]
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "clock_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uncertainty_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "encoding",
+              "data",
+              "sha256"
+            ],
+            "properties": {
+              "encoding": {
+                "const": "base64"
+              },
+              "data": {
+                "type": "string",
+                "contentEncoding": "base64"
+              },
+              "sha256": {
+                "$ref": "#/$defs/digest"
+              }
+            }
+          },
+          "previous_event_digest": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/digest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "event_digest": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    },
+    "annotations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_event_digest",
+          "parser_name",
+          "parser_version",
+          "rule_set_digest",
+          "interpretation_digest",
+          "interpretation"
+        ],
+        "properties": {
+          "source_event_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "parser_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parser_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rule_set_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "interpretation_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "interpretation": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "final_trace_digest": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
