@@ -394,9 +394,9 @@ pub fn evaluate_decision_gate_for_regime(
     if regime_id.trim().is_empty() || qualified_regimes.is_empty() {
         return Err("current regime and qualified regime set must be non-empty".into());
     }
-    let mut seen = std::collections::BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::<String>::new();
     for qualified in qualified_regimes {
-        if qualified.trim().is_empty() || !seen.insert(qualified) {
+        if qualified.trim().is_empty() || !seen.insert(qualified.clone()) {
             return Err("qualified regime IDs must be non-empty and unique".into());
         }
     }
@@ -488,13 +488,18 @@ mod decision_gate_tests {
         assert_eq!(result.decision, GateDecision::Inhibit);
     }
 
-
     #[test]
     fn unsupported_regime_blocks_otherwise_eligible_intervals() {
         let result = evaluate_decision_gate_for_regime(
             "hot_misaligned",
             &["aligned_cold".to_string()],
-            &[constraint("maximum_temperature", ConstraintSense::Maximum, 80.0, 70.0, 75.0)],
+            &[constraint(
+                "maximum_temperature",
+                ConstraintSense::Maximum,
+                80.0,
+                70.0,
+                75.0,
+            )],
         )
         .unwrap();
         assert!(!result.regime_supported);
@@ -506,7 +511,13 @@ mod decision_gate_tests {
         let result = evaluate_decision_gate_for_regime(
             "unknown",
             &["aligned_cold".to_string()],
-            &[constraint("maximum_temperature", ConstraintSense::Maximum, 80.0, 82.0, 85.0)],
+            &[constraint(
+                "maximum_temperature",
+                ConstraintSense::Maximum,
+                80.0,
+                82.0,
+                85.0,
+            )],
         )
         .unwrap();
         assert_eq!(result.decision, GateDecision::Inhibit);
