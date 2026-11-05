@@ -390,7 +390,7 @@ pub fn verify_correspondence_draw_bundle(
     .map_err(|_| CorrespondenceBundleVerificationError::SourceProjectionMismatch)?;
     let expected_bundle = resolve_correspondence_plan(experiment_seed, &projected)
         .map_err(|_| CorrespondenceBundleVerificationError::AddressCollision)?;
-    if expected_bundle != *bundle {
+    if !projection_metadata_matches(&expected_bundle, bundle) {
         return Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch);
     }
 
@@ -506,6 +506,51 @@ pub fn verify_correspondence_draw_bundle(
         }
     }
     Ok(())
+}
+
+/// Compare the source-derived projection metadata without pre-empting the
+/// more specific raw-draw receipt verifier below.
+fn projection_metadata_matches(
+    expected: &CorrespondenceDrawBundle,
+    actual: &CorrespondenceDrawBundle,
+) -> bool {
+    if expected.bundle_schema != actual.bundle_schema
+        || expected.left_branch != actual.left_branch
+        || expected.right_branch != actual.right_branch
+        || expected.completeness != actual.completeness
+        || expected.source_correspondence != actual.source_correspondence
+        || expected.source_event_scopes != actual.source_event_scopes
+        || expected.source_pair_rules != actual.source_pair_rules
+        || expected.universe_status != actual.universe_status
+        || expected.hypothesis_set_status != actual.hypothesis_set_status
+        || expected.hypotheses.len() != actual.hypotheses.len()
+    {
+        return false;
+    }
+
+    expected
+        .hypotheses
+        .iter()
+        .zip(&actual.hypotheses)
+        .all(|(expected_hypothesis, actual_hypothesis)| {
+            expected_hypothesis.hypothesis_id == actual_hypothesis.hypothesis_id
+                && expected_hypothesis.completeness == actual_hypothesis.completeness
+                && expected_hypothesis.correspondence == actual_hypothesis.correspondence
+                && expected_hypothesis.causal_rules == actual_hypothesis.causal_rules
+                && expected_hypothesis.draws.len() == actual_hypothesis.draws.len()
+                && expected_hypothesis
+                    .draws
+                    .iter()
+                    .zip(&actual_hypothesis.draws)
+                    .all(|(expected_draw, actual_draw)| {
+                        expected_draw.hypothesis_id == actual_draw.hypothesis_id
+                            && expected_draw.branch_id == actual_draw.branch_id
+                            && expected_draw.event_id == actual_draw.event_id
+                            && expected_draw.sharing == actual_draw.sharing
+                            && expected_draw.presence == actual_draw.presence
+                            && expected_draw.canonical_address == actual_draw.canonical_address
+                    })
+        })
 }
 
 fn find_unique_draw<'a>(
