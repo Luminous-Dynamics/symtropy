@@ -57,10 +57,17 @@ pub struct CoverageObligation {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExcludedMechanism {
+    pub mechanism_id: String,
+    pub rationale: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Hypothesis {
     pub hypothesis_id: String,
     pub model_family_id: String,
     pub version_digest: String,
+    pub mechanism_class_ids: Vec<String>,
     pub causal_graph_digest: String,
     pub stochastic_contract_digest: String,
     /// All known training, simulator, pretraining and source-data ancestors.
@@ -68,7 +75,7 @@ pub struct Hypothesis {
     /// Hypotheses in the same common-mode group count as one independent family.
     pub common_mode_group: Option<String>,
     pub applicability_scope_digest: String,
-    pub excluded_mechanisms: Vec<String>,
+    pub excluded_mechanisms: Vec<ExcludedMechanism>,
     /// A changed hypothesis is a new identity and must explicitly supersede
     /// an older hypothesis; an existing record is never silently rewritten.
     pub supersedes_hypothesis_id: Option<String>,
@@ -303,6 +310,8 @@ pub struct ActionResidualBound {
     pub action_id: String,
     pub utility_lower: Rational,
     pub utility_upper: Rational,
+    pub evidence_digest: String,
+    pub calibration_protocol_digest: String,
     pub feasibility: FeasibilityDisposition,
 }
 
@@ -373,6 +382,7 @@ pub struct ResidualAssessment {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PortfolioEvaluation {
     pub portfolio_digest: String,
+    pub evaluation_digest: String,
     pub disposition: PortfolioDisposition,
     pub odd_scope_match: bool,
     pub model_family_count: usize,
@@ -505,6 +515,12 @@ impl PortfolioManifest {
             require(&hypothesis.model_family_id, "model_family_id")?;
             require(&hypothesis.version_digest, "version_digest")?;
             require(&hypothesis.causal_graph_digest, "causal_graph_digest")?;
+            if hypothesis.mechanism_class_ids.is_empty() {
+                return Err(PortfolioError::InvalidHypothesisLineage);
+            }
+            for class_id in &hypothesis.mechanism_class_ids {
+                require(class_id, "mechanism_class_id")?;
+            }
             require(
                 &hypothesis.stochastic_contract_digest,
                 "stochastic_contract_digest",
@@ -521,6 +537,10 @@ impl PortfolioManifest {
             }
             if let Some(group) = &hypothesis.common_mode_group {
                 require(group, "common_mode_group")?;
+            }
+            for excluded in &hypothesis.excluded_mechanisms {
+                require(&excluded.mechanism_id, "excluded_mechanism_id")?;
+                require(&excluded.rationale, "excluded_mechanism_rationale")?;
             }
             if let Some(previous) = &hypothesis.supersedes_hypothesis_id {
                 require(previous, "supersedes_hypothesis_id")?;
@@ -617,16 +637,6 @@ impl PortfolioManifest {
 
         for prior in &previous.hypotheses {
             if !current.hypotheses.iter().any(|candidate| candidate == prior) {
-                return Err(PortfolioError::NonAppendOnlyRevision);
-            }
-        }
-        for prior in &previous.coverage_obligations {
-            if !current.coverage_obligations.iter().any(|candidate| candidate == prior) {
-                return Err(PortfolioError::NonAppendOnlyRevision);
-            }
-        }
-        for prior in &previous.challenge_requirements {
-            if !current.challenge_requirements.iter().any(|candidate| candidate == prior) {
                 return Err(PortfolioError::NonAppendOnlyRevision);
             }
         }
@@ -989,6 +999,11 @@ fn assess_residual(
     let mut bounds = BTreeMap::new();
     for bound in &envelope.action_bounds {
         require(&bound.action_id, "residual.action_id")?;
+        if bound.evidence_digest.trim().is_empty()
+            || bound.calibration_protocol_digest.trim().is_empty()
+        {
+            return Ok(unbounded());
+        }
         if bound.utility_lower.cmp_exact(bound.utility_upper)? == std::cmp::Ordering::Greater
             || bounds.insert(bound.action_id.as_str(), bound).is_some()
         {
@@ -1060,6 +1075,9 @@ fn hash_hypothesis(h: &mut blake3::Hasher, value: &Hypothesis) {
     hash_str(h, &value.hypothesis_id);
     hash_str(h, &value.model_family_id);
     hash_str(h, &value.version_digest);
+    let mut mechanism_classes = value.mechanism_class_ids.clone();
+    mechanism_classes.sort();
+    hash_strings(h, &mechanism_classes);
     hash_str(h, &value.causal_graph_digest);
     hash_str(h, &value.stochastic_contract_digest);
     let mut lineage = value.source_lineage_digests.clone();
@@ -1068,8 +1086,12 @@ fn hash_hypothesis(h: &mut blake3::Hasher, value: &Hypothesis) {
     hash_opt_str(h, value.common_mode_group.as_deref());
     hash_str(h, &value.applicability_scope_digest);
     let mut excluded = value.excluded_mechanisms.clone();
-    excluded.sort();
-    hash_strings(h, &excluded);
+    excluded.sort_by(|a, b| a.mechanism_id.cmp(&b.mechanism_id));
+    hash_len(h, excluded.len());
+    for mechanism in excluded {
+        hash_str(h, &mechanism.mechanism_id);
+        hash_str(h, &mechanism.rationale);
+    }
     hash_opt_str(h, value.supersedes_hypothesis_id.as_deref());
 }
 
@@ -1190,6 +1212,7 @@ mod tests {
             hypothesis_id: hypothesis_id.into(),
             model_family_id: model_family.into(),
             version_digest: d(&format!("version-{hypothesis_id}")),
+            mechanism_class_ids: vec!["pedestrian-response".into(), "weather-cause".into()],
             causal_graph_digest: d(&format!("graph-{hypothesis_id}")),
             stochastic_contract_digest: d(&format!("stochastic-{hypothesis_id}")),
             source_lineage_digests: vec![d(lineage)],
@@ -1346,12 +1369,16 @@ mod tests {
                     action_id: "continue".into(),
                     utility_lower: Rational::new(40, 1).unwrap(),
                     utility_upper: Rational::new(60, 1).unwrap(),
+                    evidence_digest: d("continue-residual-evidence"),
+                    calibration_protocol_digest: d("continue-calibration"),
                     feasibility: FeasibilityDisposition::Guaranteed,
                 },
                 ActionResidualBound {
                     action_id: "yield".into(),
                     utility_lower: Rational::new(50, 1).unwrap(),
                     utility_upper: Rational::new(80, 1).unwrap(),
+                    evidence_digest: d("yield-residual-evidence"),
+                    calibration_protocol_digest: d("yield-calibration"),
                     feasibility: FeasibilityDisposition::Guaranteed,
                 },
             ],
