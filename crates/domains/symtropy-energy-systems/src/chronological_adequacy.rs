@@ -744,15 +744,20 @@ fn aggregate_scenarios(
     metric: ChronologicalAdequacyMetric,
 ) -> Result<AggregateMetrics, ChronologicalAdequacyError> {
     let mut aggregate = AggregateMetrics {
+        loss_of_load_events: 0.0,
         loss_of_load_days: 0.0,
         loss_of_load_periods: 0.0,
         loss_of_load_hours: 0.0,
         unserved_energy_mwh: 0.0,
         unserved_energy_cvar_mwh: 0.0,
+        shortfall_power_cvar_kw: 0.0,
+        maximum_shortfall_kw: 0.0,
         gross_reduction_energy_mwh: 0.0,
         rebound_energy_mwh: 0.0,
     };
     let mut scenario_eue = Vec::with_capacity(study.scenarios.len());
+    let mut interval_shortfall_power = Vec::new();
+
     for scenario in &study.scenarios {
         let weight = scenario.probability_weight / probability_sum;
         let metrics = evaluate_scenario(
@@ -762,27 +767,48 @@ fn aggregate_scenarios(
             added_load_kw,
             apply_flexibility,
         )?;
+        aggregate.loss_of_load_events += weight * f64::from(metrics.loss_of_load_events);
         aggregate.loss_of_load_days += weight * f64::from(metrics.loss_of_load_days);
         aggregate.loss_of_load_periods += weight * f64::from(metrics.loss_of_load_periods);
         aggregate.loss_of_load_hours += weight * metrics.loss_of_load_hours;
         aggregate.unserved_energy_mwh += weight * metrics.unserved_energy_mwh;
+        aggregate.maximum_shortfall_kw =
+            aggregate.maximum_shortfall_kw.max(metrics.maximum_shortfall_kw);
         aggregate.gross_reduction_energy_mwh += weight * metrics.gross_reduction_energy_mwh;
         aggregate.rebound_energy_mwh += weight * metrics.rebound_energy_mwh;
         scenario_eue.push((metrics.unserved_energy_mwh, weight));
+
+        let interval_weight = weight / metrics.shortfall_power_samples_kw.len() as f64;
+        for shortfall_kw in metrics.shortfall_power_samples_kw {
+            interval_shortfall_power.push((shortfall_kw, interval_weight));
+        }
     }
-    if let ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar {
-        confidence_level_basis_points,
-    } = metric
-    {
-        aggregate.unserved_energy_cvar_mwh =
-            weighted_upper_tail_cvar(&scenario_eue, confidence_level_basis_points)?;
+
+    match metric {
+        ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar {
+            confidence_level_basis_points,
+        } => {
+            aggregate.unserved_energy_cvar_mwh =
+                weighted_upper_tail_cvar(&scenario_eue, confidence_level_basis_points)?;
+        }
+        ChronologicalAdequacyMetric::UpperTailShortfallPowerCvarKw {
+            confidence_level_basis_points,
+        } => {
+            aggregate.shortfall_power_cvar_kw =
+                weighted_upper_tail_cvar(&interval_shortfall_power, confidence_level_basis_points)?;
+        }
+        _ => {}
     }
+
     if ![
+        aggregate.loss_of_load_events,
         aggregate.loss_of_load_days,
         aggregate.loss_of_load_periods,
         aggregate.loss_of_load_hours,
         aggregate.unserved_energy_mwh,
         aggregate.unserved_energy_cvar_mwh,
+        aggregate.shortfall_power_cvar_kw,
+        aggregate.maximum_shortfall_kw,
         aggregate.gross_reduction_energy_mwh,
         aggregate.rebound_energy_mwh,
     ]
@@ -807,20 +833,33 @@ fn cvar_if_selected(
     .then_some(value)
 }
 
-/// Weighted mean of the worst (1 - alpha) probability mass of scenario EUE.
+fn power_cvar_if_selected(
+    metric: ChronologicalAdequacyMetric,
+    value: f64,
+) -> Option<f64> {
+    matches!(
+        metric,
+        ChronologicalAdequacyMetric::UpperTailShortfallPowerCvarKw { .. }
+    )
+    .then_some(value)
+}
+
+/// Weighted mean of the worst (1 - alpha) probability mass of observations.
+/// The same tail operator is used for scenario EUE and interval shortfall power;
+/// the input population and units are explicitly selected by the caller.
 fn weighted_upper_tail_cvar(
-    scenario_eue: &[(f64, f64)],
+    samples: &[(f64, f64)],
     confidence_level_basis_points: u16,
 ) -> Result<f64, ChronologicalAdequacyError> {
-    if !(1..10_000).contains(&confidence_level_basis_points) || scenario_eue.is_empty() {
+    if !(1..10_000).contains(&confidence_level_basis_points) || samples.is_empty() {
         return Err(ChronologicalAdequacyError::InvalidCvarConfidenceLevel(
             confidence_level_basis_points,
         ));
     }
-    let mut outcomes = scenario_eue.to_vec();
+    let mut outcomes = samples.to_vec();
     let mut total_weight = 0.0_f64;
-    for (eue, weight) in &outcomes {
-        if !eue.is_finite() || *eue < 0.0 || !weight.is_finite() || *weight <= 0.0 {
+    for (value, weight) in &outcomes {
+        if !value.is_finite() || *value < 0.0 || !weight.is_finite() || *weight <= 0.0 {
             return Err(ChronologicalAdequacyError::NumericalOverflow(
                 "CVaR input distribution",
             ));
@@ -835,17 +874,17 @@ fn weighted_upper_tail_cvar(
     outcomes.sort_by(|left, right| right.0.total_cmp(&left.0));
     let tail_mass = 1.0 - f64::from(confidence_level_basis_points) / 10_000.0;
     let mut remaining_mass = tail_mass;
-    let mut tail_energy = 0.0_f64;
-    for (eue, raw_weight) in outcomes {
+    let mut tail_value = 0.0_f64;
+    for (value, raw_weight) in outcomes {
         let normalized_weight = raw_weight / total_weight;
         let included_weight = normalized_weight.min(remaining_mass);
-        tail_energy += eue * included_weight;
+        tail_value += value * included_weight;
         remaining_mass -= included_weight;
         if remaining_mass <= 1e-12 {
             break;
         }
     }
-    if !tail_energy.is_finite()
+    if !tail_value.is_finite()
         || !tail_mass.is_finite()
         || tail_mass <= 0.0
         || remaining_mass > 1e-10
@@ -854,82 +893,13 @@ fn weighted_upper_tail_cvar(
             "weighted upper-tail CVaR",
         ));
     }
-    let result = tail_energy / tail_mass;
+    let result = tail_value / tail_mass;
     if !result.is_finite() {
         return Err(ChronologicalAdequacyError::NumericalOverflow(
             "weighted upper-tail CVaR result",
         ));
     }
     Ok(result)
-}
-
-fn evaluate_scenario(
-    scenario: &ChronologicalAdequacyScenario,
-    interval_duration_hours: f64,
-    shortfall_epsilon_kw: f64,
-    added_load_kw: f64,
-    apply_flexibility: bool,
-) -> Result<ScenarioMetrics, ChronologicalAdequacyError> {
-    let mut loss_days = BTreeSet::new();
-    let mut loss_of_load_periods = 0_u32;
-    let mut loss_of_load_hours = 0.0_f64;
-    let mut unserved_energy_mwh = 0.0_f64;
-    let mut gross_reduction_energy_mwh = 0.0_f64;
-    let mut rebound_energy_mwh = 0.0_f64;
-
-    for interval in &scenario.intervals {
-        let net_reduction_kw = if apply_flexibility {
-            interval.net_load_reduction_kw
-        } else {
-            0.0
-        };
-        let net_load_kw = interval.system_load_kw + added_load_kw - net_reduction_kw;
-        let unserved_kw = (net_load_kw - interval.available_supply_kw).max(0.0);
-        let interval_unserved_mwh = unserved_kw * interval_duration_hours / 1_000.0;
-        let reduction_mwh =
-            net_reduction_kw.max(0.0) * interval_duration_hours / 1_000.0;
-        let rebound_mwh =
-            (-net_reduction_kw).max(0.0) * interval_duration_hours / 1_000.0;
-        loss_of_load_hours += if unserved_kw > shortfall_epsilon_kw {
-            interval_duration_hours
-        } else {
-            0.0
-        };
-        if unserved_kw > shortfall_epsilon_kw {
-            loss_days.insert(interval.day_index);
-            loss_of_load_periods = loss_of_load_periods.checked_add(1).ok_or(
-                ChronologicalAdequacyError::NumericalOverflow("loss-of-load period count"),
-            )?;
-        }
-        unserved_energy_mwh += interval_unserved_mwh;
-        gross_reduction_energy_mwh += reduction_mwh;
-        rebound_energy_mwh += rebound_mwh;
-    }
-
-    if ![
-        loss_of_load_hours,
-        unserved_energy_mwh,
-        gross_reduction_energy_mwh,
-        rebound_energy_mwh,
-    ]
-    .iter()
-    .all(|value| value.is_finite())
-    {
-        return Err(ChronologicalAdequacyError::NumericalOverflow(
-            "chronological interval accounting",
-        ));
-    }
-
-    Ok(ScenarioMetrics {
-        loss_of_load_days: u32::try_from(loss_days.len()).map_err(|_| {
-            ChronologicalAdequacyError::NumericalOverflow("loss-of-load day count")
-        })?,
-        loss_of_load_periods,
-        loss_of_load_hours,
-        unserved_energy_mwh,
-        gross_reduction_energy_mwh,
-        rebound_energy_mwh,
-    })
 }
 
 fn validate_day_index_sequence(
