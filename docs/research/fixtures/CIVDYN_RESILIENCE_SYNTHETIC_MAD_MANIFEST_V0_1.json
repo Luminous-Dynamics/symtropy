@@ -1,0 +1,250 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/measurement-distribution/0.1",
+  "schema_version": "0.1.0",
+  "protocol_id": "CIVBENCH-MAD-001",
+  "evaluation_id": "CIVDYN-RESILIENCE-SYNTHETIC-SHOCK-PORTFOLIO-001",
+  "benchmark_id": "CIVDYN-RESILIENCE-001",
+  "construct": {
+    "name": "cross-scale service resilience under water, energy and compound supply shocks",
+    "intended_use": "Verify deterministic multi-scale transfer, service-deficit, recovery and conservation metrics over a seven-node basin/district/household reference.",
+    "claim_tier": "tier-1-reference",
+    "claim_ceiling": "Tier 1 deterministic reference only; no regional forecast, stochastic resilience inference, ecological recovery or operational-readiness claim."
+  },
+  "units": {
+    "observational_unit": "scenario × intervention-policy × tick",
+    "resampling_unit": "none",
+    "independent_unit": "One deterministic 3-shock × 4-policy portfolio",
+    "dependence_statement": "Ticks within a trajectory are serially dependent. Shock/policy cells are designed contrasts, not independent empirical samples.",
+    "clustered_observations": false,
+    "independence_claimed": false
+  },
+  "sources": [
+    {
+      "source_id": "CIVDYN-RESILIENCE-SYNTHETIC-FIXTURE-V0",
+      "epistemic_status": "synthetic-test-fixture",
+      "version": "0.1.0",
+      "retrieved_at": "2026-11-05",
+      "license": "AGPL-3.0-or-later",
+      "content_digest": null,
+      "source_family": "locally-authored-synthetic-fixture",
+      "missingness_semantics": "The deterministic fixture has complete declared cells; absent cells are missing/unsupported, never zero."
+    }
+  ],
+  "evaluation_distribution": {
+    "sampling_frame": "Three synthetic shock types crossed with four deterministic intervention policies over ten ticks and seven physical inventory nodes.",
+    "factors": [
+      {
+        "factor_id": "shock_kind",
+        "weight_interpretation": "Equal benchmark design coverage, not hazard prevalence.",
+        "levels": [
+          {
+            "level_id": "water_supply",
+            "target_weight": 0.3333333333,
+            "support_count": 4
+          },
+          {
+            "level_id": "energy_supply",
+            "target_weight": 0.3333333333,
+            "support_count": 4
+          },
+          {
+            "level_id": "compound_water_energy",
+            "target_weight": 0.3333333334,
+            "support_count": 4
+          }
+        ]
+      },
+      {
+        "factor_id": "intervention_policy",
+        "weight_interpretation": "Equal design coverage, not policy prevalence.",
+        "levels": [
+          {
+            "level_id": "no_transfer",
+            "target_weight": 0.25,
+            "support_count": 3
+          },
+          {
+            "level_id": "proportional_solidarity",
+            "target_weight": 0.25,
+            "support_count": 3
+          },
+          {
+            "level_id": "deficit_first",
+            "target_weight": 0.25,
+            "support_count": 3
+          },
+          {
+            "level_id": "reserve_protected",
+            "target_weight": 0.25,
+            "support_count": 3
+          }
+        ]
+      }
+    ],
+    "excluded_support": []
+  },
+  "perturbation_families": [
+    {
+      "family_id": "compound-supply-shock",
+      "rationale": "A compound water/energy loss tests coupled service deficits without collapsing physical units.",
+      "validity_check": "Compare water and energy deficits separately against the isolated-shock controls and verify every ledger conservation residual.",
+      "expected_invariants": [
+        "Water-only shock does not create an energy deficit in the proportional reference fixture.",
+        "Energy-only shock does not create a water deficit in the proportional reference fixture.",
+        "Every reported regional stock-flow residual remains below 1e-9 in its native unit."
+      ],
+      "seed_policy": "Deterministic authored fixture; no stochastic seed.",
+      "parameter_range": null
+    }
+  ],
+  "replication_design": {
+    "method": "deterministic-fixture",
+    "replication_count": 1,
+    "independent_unit": "One fixed deterministic design matrix; no stochastic or empirical replication is claimed.",
+    "inference_claimed": false,
+    "dependence_assessment": "Scenario, strategy, participant and condition cells are deterministic benchmark fixtures, not independent draws from a target population.",
+    "sample_size_rationale": "One deterministic execution is sufficient to verify exact code paths and negative controls; it cannot support confidence intervals or population inference.",
+    "seed_manifest_digest": null,
+    "cluster_unit": null
+  },
+  "metrics": [
+    {
+      "metric_id": "total_unmet_water_m3",
+      "construct_dimension": "water service loss",
+      "unit": "m3",
+      "direction": "lower-is-better",
+      "aggregation": "sum within each shock-policy trajectory; retain each cell",
+      "strata": [
+        "shock_kind",
+        "intervention_policy"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "total_unmet_energy_kwh",
+      "construct_dimension": "energy service loss",
+      "unit": "kWh",
+      "direction": "lower-is-better",
+      "aggregation": "sum within each shock-policy trajectory; retain each cell",
+      "strata": [
+        "shock_kind",
+        "intervention_policy"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "minimum_household_water_coverage",
+      "construct_dimension": "worst household water service",
+      "unit": "fraction",
+      "direction": "higher-is-better",
+      "aggregation": "minimum over households and ticks within each trajectory",
+      "strata": [
+        "shock_kind",
+        "intervention_policy"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "minimum_household_energy_coverage",
+      "construct_dimension": "worst household energy service",
+      "unit": "fraction",
+      "direction": "higher-is-better",
+      "aggregation": "minimum over households and ticks within each trajectory",
+      "strata": [
+        "shock_kind",
+        "intervention_policy"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "recovery_after_ticks",
+      "construct_dimension": "sustained service recovery",
+      "unit": "post-shock ticks",
+      "direction": "lower-is-better",
+      "aggregation": "first time all households clear the 0.95 floor for two consecutive ticks; null if never",
+      "strata": [
+        "shock_kind",
+        "intervention_policy"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "max_conservation_residual",
+      "construct_dimension": "physical stock-flow integrity",
+      "unit": "native resource unit by commodity",
+      "direction": "lower-is-better",
+      "aggregation": "maximum absolute residual, with water and energy separately retained",
+      "strata": [
+        "shock_kind",
+        "intervention_policy",
+        "resource"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    }
+  ],
+  "baselines": [
+    {
+      "baseline_id": "no_transfer",
+      "description": "Negative-control controller: basin supply cannot reach households without explicit inter-region transfers.",
+      "protocol_matched": true,
+      "source_uri": null
+    },
+    {
+      "baseline_id": "proportional_solidarity",
+      "description": "Deterministic proportional deficit allocation across district and household levels.",
+      "protocol_matched": true,
+      "source_uri": null
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "no-transfer-communication-break",
+      "intervention": "Disable all inter-region transfers while keeping basin production available.",
+      "expected_result": "Households retain service deficits; no service credit is assigned to inaccessible upstream stock.",
+      "must_fail_or_remain_null": "fail"
+    },
+    {
+      "control_id": "unit-separation",
+      "intervention": "Evaluate water-only, energy-only and compound shocks.",
+      "expected_result": "Water and energy deficit vectors remain separate and isolated shocks do not create cross-unit deficits in the reference fixture.",
+      "must_fail_or_remain_null": "fail"
+    }
+  ],
+  "holdouts": [
+    {
+      "holdout_id": "empirical-external-holdout",
+      "dimension": "none",
+      "status": "not-applicable",
+      "leakage_control": "No empirical rows are used; this reference supports no external-generalization claim."
+    }
+  ],
+  "reproduction": {
+    "code_commit": "da9abeb20e19b5f822e3e4eb239838a4011b0208",
+    "configuration_digest": "civdyn-cross-scale-resilience-v0.1; 3 shocks; 4 policies; 10 ticks; basin-district-household topology",
+    "data_manifest_digest": null,
+    "model_identifier": null,
+    "runtime_environment": "Rust edition 2024; deterministic benchmark crate; exact-head GitHub Actions workflow",
+    "command": "cargo run --locked --manifest-path research/civdyn-cross-scale-resilience/Cargo.toml --bin cross-scale-resilience-sweep",
+    "humanity_atlas_run_artifact_ref": "Not applicable: synthetic benchmark reference execution; no full Humanity Atlas scenario artifact is claimed."
+  },
+  "claim_report": {
+    "claim_ceiling": "Tier 1 deterministic reference only; no regional forecast, stochastic resilience inference, ecological recovery or operational-readiness claim.",
+    "known_limitations": [
+      "All physical quantities and node populations are synthetic.",
+      "A service-recovery pass is not evidence of ecological recovery or sustainable long-run reserves.",
+      "No stochastic, regional-calibrated or predictive inference is performed."
+    ],
+    "unsupported_strata": [
+      "Real basins, municipalities, households, demographic cohorts, climate regimes and utility systems."
+    ],
+    "deviations": [],
+    "failed_controls": []
+  },
+  "composite_score_policy": "no-universal-composite"
+}
