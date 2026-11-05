@@ -360,6 +360,28 @@
         "accepted": false,
         "rejection": "InvalidPersistedReplayState"
       }
+    },
+    {
+      "case_id": "overlapping-reservation-across-policy-revision",
+      "existing": {
+        "offer_id": "offer-original",
+        "policy_version": "v1",
+        "power_kw": 40,
+        "valid_from": 1000,
+        "valid_until": 2000
+      },
+      "candidate": {
+        "offer_id": "offer-revised",
+        "policy_version": "v2",
+        "power_kw": 30,
+        "valid_from": 1500,
+        "valid_until": 2500
+      },
+      "expected": {
+        "accepted": false,
+        "rejection": "ConcurrentPolicySnapshotMismatch",
+        "explanation": "An overlapping portfolio commitment cannot be reinterpreted under a different owner-policy snapshot; release or wait for the old interval to end before creating a new-policy offer."
+      }
     }
   ],
   "security_invariants": [
