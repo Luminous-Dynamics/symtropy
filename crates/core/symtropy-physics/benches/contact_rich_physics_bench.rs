@@ -296,7 +296,7 @@ fn run_campaign(mut world: PhysicsWorld<3>, scene: Scene) -> CampaignStats {
 }
 
 fn bench_contact_rich_scenes(c: &mut Criterion) {
-    let mut group = c.benchmark_group("contact_rich_physics_120hz");
+    let mut group = c.benchmark_group("contact_rich_physics");
     for scene in [
         Scene::NoContact64,
         Scene::SphereStack16,
