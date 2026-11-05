@@ -170,11 +170,13 @@ fn classify_candidate(receiver: &Value, index: usize) -> Result<Candidate, Strin
     if !(0.0..=1.0).contains(&risk_derating) {
         return Err(fail(&path, "risk_derating_factor must be within [0, 1]"));
     }
-    let weight = priority * urgency;
+    // Weight by requested service so equal priority/urgency yields equal
+    // proportional service, not equal kW irrespective of request size.
+    let weight = priority * urgency * requested;
     if !weight.is_finite() || weight <= 0.0 {
         return Err(fail(
             &path,
-            "priority*urgency weight overflowed or is non-positive",
+            "priority*urgency*requested-power weight overflowed or is non-positive",
         ));
     }
 
@@ -619,6 +621,26 @@ mod tests {
         let report = evaluate_episode(&episode).unwrap();
         assert!((allocation_for(&report, "vehicle-01").allocated_power_kw - 3.0).abs() < 1e-7);
         assert!((allocation_for(&report, "vehicle-02").allocated_power_kw - 5.0).abs() < 1e-7);
+    }
+
+    #[test]
+    fn equal_priority_and_urgency_preserve_equal_service_ratios() {
+        let mut episode = fixture();
+        promote_health_receipts_to_measured_style(&mut episode);
+        episode["source_power_limit_kw"] = Value::from(9.0);
+        episode["receivers"][1]["health_receipt"]["forecast"]["target_event_cif"] =
+            Value::from(0.03);
+        episode["receivers"][1]["health_receipt"]["forecast"]["event_free_survival"] =
+            Value::from(0.91);
+        episode["receivers"][1]["health_receipt"]["forecast"]["cause_specific_cumulative_incidence"][0]["probability"] =
+            Value::from(0.03);
+        episode["receivers"][1]["priority_weight"] = Value::from(1.0);
+        episode["receivers"][1]["urgency_weight"] = Value::from(1.0);
+        let report = evaluate_episode(&episode).unwrap();
+        let first = allocation_for(&report, "vehicle-01").service_ratio;
+        let second = allocation_for(&report, "vehicle-02").service_ratio;
+        assert!((first - second).abs() < 1e-7);
+        assert!((first - 0.5).abs() < 1e-7);
     }
 
     #[test]
