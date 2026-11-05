@@ -1,0 +1,309 @@
+{
+  "schema_version": "wpt-proportional-fair-dispatch-v0",
+  "run_id": "synthetic-health-aware-pf-episode-001",
+  "source_power_limit_kw": 8,
+  "grid_pcc_envelope_pass": true,
+  "network_stability_pass": true,
+  "receivers": [
+    {
+      "receiver_id": "vehicle-01",
+      "asset_id": "asset-01",
+      "segment_id": "segment-01",
+      "route_id": "route-01",
+      "requested_power_kw": 8,
+      "minimum_service_power_kw": 2,
+      "priority_weight": 1,
+      "urgency_weight": 1,
+      "risk_derating_factor": 0.5,
+      "health_receipt": {
+        "schema_version": "wpt-health-dispatch-eligibility-v0",
+        "run_id": "synthetic-health-asset-01",
+        "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+        "asset_identity": {
+          "asset_id": "asset-01",
+          "segment_id": "segment-01",
+          "installation_id": "synthetic-installation-01",
+          "route_id": "route-01",
+          "material_lot_id": "synthetic-material-lot-01",
+          "asset_state_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "forecast": {
+          "estimand": "TARGET_EVENT_CIF_AT_HORIZON",
+          "target_event_code": "STRUCTURAL_CRACK_LIMIT",
+          "competing_event_codes": [
+            "ROAD_RECONSTRUCTION",
+            "PLANNED_REPLACEMENT"
+          ],
+          "cause_specific_cumulative_incidence": [
+            {
+              "event_code": "STRUCTURAL_CRACK_LIMIT",
+              "probability": 0.03
+            },
+            {
+              "event_code": "ROAD_RECONSTRUCTION",
+              "probability": 0.04
+            },
+            {
+              "event_code": "PLANNED_REPLACEMENT",
+              "probability": 0.02
+            }
+          ],
+          "horizon_hours": 720,
+          "target_event_cif": 0.03,
+          "event_free_survival": 0.91,
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "outcome_data_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "calibration_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "calibration_population_id": "synthetic-fleet-01",
+          "calibration_stratum_id": "synthetic-pavement-stratum-01",
+          "calibration_method": "A_CALIBRATION",
+          "calibration_status": "CALIBRATED",
+          "calibration_horizon_max_hours": 1440,
+          "hazard_cif_coherence_verified": true,
+          "source_locator": null
+        },
+        "censoring_support": {
+          "assumption": "INDEPENDENT_RIGHT_CENSORING",
+          "estimator_id": "synthetic-km-v0",
+          "minimum_g_observed": 0.72,
+          "minimum_g_required": 0.1,
+          "maximum_ipcw_weight": 1.3888889,
+          "maximum_ipcw_weight_allowed": 5,
+          "support_status": "SUPPORTED"
+        },
+        "domain_support": {
+          "support_status": "IN_DOMAIN",
+          "material_family": "PG76-22",
+          "validated_material_family": "PG76-22",
+          "ambient_temperature_c": 38,
+          "minimum_validated_temperature_c": -5,
+          "maximum_validated_temperature_c": 55,
+          "duty_cycle_percent": 42,
+          "maximum_validated_duty_cycle_percent": 75,
+          "route_class": "urban-freight",
+          "validated_route_class": "urban-freight"
+        },
+        "hard_limits": {
+          "receiver_authorized": true,
+          "electrical_limits_pass": true,
+          "thermal_limits_pass": true,
+          "grid_pcc_envelope_pass": true,
+          "network_stability_pass": true,
+          "segment_handover_safe": true
+        },
+        "dispatch_policy": {
+          "policy_id": "synthetic-policy-v0",
+          "maximum_target_event_cif": 0.05,
+          "planned_service_horizon_hours": 720,
+          "maintenance_lead_time_hours": 168,
+          "decision_mode": "SOFT_HEALTH_CONSTRAINT_ONLY",
+          "policy_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "quality_flags": [
+          "SYNTHETIC_ONLY"
+        ]
+      }
+    },
+    {
+      "receiver_id": "vehicle-02",
+      "asset_id": "asset-02",
+      "segment_id": "segment-02",
+      "route_id": "route-01",
+      "requested_power_kw": 10,
+      "minimum_service_power_kw": 2,
+      "priority_weight": 2,
+      "urgency_weight": 2,
+      "risk_derating_factor": 0.5,
+      "health_receipt": {
+        "schema_version": "wpt-health-dispatch-eligibility-v0",
+        "run_id": "synthetic-health-asset-02",
+        "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+        "asset_identity": {
+          "asset_id": "asset-02",
+          "segment_id": "segment-02",
+          "installation_id": "synthetic-installation-01",
+          "route_id": "route-01",
+          "material_lot_id": "synthetic-material-lot-01",
+          "asset_state_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "forecast": {
+          "estimand": "TARGET_EVENT_CIF_AT_HORIZON",
+          "target_event_code": "STRUCTURAL_CRACK_LIMIT",
+          "competing_event_codes": [
+            "ROAD_RECONSTRUCTION",
+            "PLANNED_REPLACEMENT"
+          ],
+          "cause_specific_cumulative_incidence": [
+            {
+              "event_code": "STRUCTURAL_CRACK_LIMIT",
+              "probability": 0.08
+            },
+            {
+              "event_code": "ROAD_RECONSTRUCTION",
+              "probability": 0.04
+            },
+            {
+              "event_code": "PLANNED_REPLACEMENT",
+              "probability": 0.03
+            }
+          ],
+          "horizon_hours": 720,
+          "target_event_cif": 0.08,
+          "event_free_survival": 0.85,
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "outcome_data_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "calibration_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "calibration_population_id": "synthetic-fleet-01",
+          "calibration_stratum_id": "synthetic-pavement-stratum-01",
+          "calibration_method": "A_CALIBRATION",
+          "calibration_status": "CALIBRATED",
+          "calibration_horizon_max_hours": 1440,
+          "hazard_cif_coherence_verified": true,
+          "source_locator": null
+        },
+        "censoring_support": {
+          "assumption": "INDEPENDENT_RIGHT_CENSORING",
+          "estimator_id": "synthetic-km-v0",
+          "minimum_g_observed": 0.72,
+          "minimum_g_required": 0.1,
+          "maximum_ipcw_weight": 1.3888889,
+          "maximum_ipcw_weight_allowed": 5,
+          "support_status": "SUPPORTED"
+        },
+        "domain_support": {
+          "support_status": "IN_DOMAIN",
+          "material_family": "PG76-22",
+          "validated_material_family": "PG76-22",
+          "ambient_temperature_c": 38,
+          "minimum_validated_temperature_c": -5,
+          "maximum_validated_temperature_c": 55,
+          "duty_cycle_percent": 42,
+          "maximum_validated_duty_cycle_percent": 75,
+          "route_class": "urban-freight",
+          "validated_route_class": "urban-freight"
+        },
+        "hard_limits": {
+          "receiver_authorized": true,
+          "electrical_limits_pass": true,
+          "thermal_limits_pass": true,
+          "grid_pcc_envelope_pass": true,
+          "network_stability_pass": true,
+          "segment_handover_safe": true
+        },
+        "dispatch_policy": {
+          "policy_id": "synthetic-policy-v0",
+          "maximum_target_event_cif": 0.05,
+          "planned_service_horizon_hours": 720,
+          "maintenance_lead_time_hours": 168,
+          "decision_mode": "SOFT_HEALTH_CONSTRAINT_ONLY",
+          "policy_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "quality_flags": [
+          "SYNTHETIC_ONLY"
+        ]
+      }
+    },
+    {
+      "receiver_id": "vehicle-03",
+      "asset_id": "asset-03",
+      "segment_id": "segment-03",
+      "route_id": "route-02",
+      "requested_power_kw": 6,
+      "minimum_service_power_kw": 2,
+      "priority_weight": 1,
+      "urgency_weight": 1,
+      "risk_derating_factor": 0.5,
+      "health_receipt": {
+        "schema_version": "wpt-health-dispatch-eligibility-v0",
+        "run_id": "synthetic-health-asset-03",
+        "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+        "asset_identity": {
+          "asset_id": "asset-03",
+          "segment_id": "segment-03",
+          "installation_id": "synthetic-installation-01",
+          "route_id": "route-02",
+          "material_lot_id": "synthetic-material-lot-01",
+          "asset_state_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "forecast": {
+          "estimand": "TARGET_EVENT_CIF_AT_HORIZON",
+          "target_event_code": "STRUCTURAL_CRACK_LIMIT",
+          "competing_event_codes": [
+            "ROAD_RECONSTRUCTION",
+            "PLANNED_REPLACEMENT"
+          ],
+          "cause_specific_cumulative_incidence": [
+            {
+              "event_code": "STRUCTURAL_CRACK_LIMIT",
+              "probability": 0.02
+            },
+            {
+              "event_code": "ROAD_RECONSTRUCTION",
+              "probability": 0.03
+            },
+            {
+              "event_code": "PLANNED_REPLACEMENT",
+              "probability": 0.01
+            }
+          ],
+          "horizon_hours": 720,
+          "target_event_cif": 0.02,
+          "event_free_survival": 0.94,
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "outcome_data_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "calibration_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "calibration_population_id": "synthetic-fleet-01",
+          "calibration_stratum_id": "synthetic-pavement-stratum-01",
+          "calibration_method": "A_CALIBRATION",
+          "calibration_status": "CALIBRATED",
+          "calibration_horizon_max_hours": 1440,
+          "hazard_cif_coherence_verified": true,
+          "source_locator": null
+        },
+        "censoring_support": {
+          "assumption": "INDEPENDENT_RIGHT_CENSORING",
+          "estimator_id": "synthetic-km-v0",
+          "minimum_g_observed": 0.72,
+          "minimum_g_required": 0.1,
+          "maximum_ipcw_weight": 1.3888889,
+          "maximum_ipcw_weight_allowed": 5,
+          "support_status": "SUPPORTED"
+        },
+        "domain_support": {
+          "support_status": "OUT_OF_DOMAIN",
+          "material_family": "PG76-22",
+          "validated_material_family": "PG76-22",
+          "ambient_temperature_c": 38,
+          "minimum_validated_temperature_c": -5,
+          "maximum_validated_temperature_c": 55,
+          "duty_cycle_percent": 42,
+          "maximum_validated_duty_cycle_percent": 75,
+          "route_class": "urban-freight",
+          "validated_route_class": "urban-freight"
+        },
+        "hard_limits": {
+          "receiver_authorized": true,
+          "electrical_limits_pass": true,
+          "thermal_limits_pass": true,
+          "grid_pcc_envelope_pass": true,
+          "network_stability_pass": true,
+          "segment_handover_safe": true
+        },
+        "dispatch_policy": {
+          "policy_id": "synthetic-policy-v0",
+          "maximum_target_event_cif": 0.05,
+          "planned_service_horizon_hours": 720,
+          "maintenance_lead_time_hours": 168,
+          "decision_mode": "SOFT_HEALTH_CONSTRAINT_ONLY",
+          "policy_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "quality_flags": [
+          "SYNTHETIC_ONLY"
+        ]
+      }
+    }
+  ],
+  "quality_flags": [
+    "SYNTHETIC_ONLY"
+  ]
+}
