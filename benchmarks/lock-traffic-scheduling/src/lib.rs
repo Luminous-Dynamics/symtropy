@@ -544,7 +544,9 @@ pub fn schedule(
         let index = pending.remove(position);
         let request = &requests[index];
 
-        let direction_change = if current_direction.is_some_and(|direction| direction != request.direction) {
+        let direction_change = if current_direction
+            .is_some_and(|direction| direction != request.direction)
+        {
             profile.direction_change_ticks
         } else {
             0
