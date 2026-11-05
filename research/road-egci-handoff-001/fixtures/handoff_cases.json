@@ -95,6 +95,11 @@
       "id": "EH-19",
       "case": "duplicate branch identity",
       "expected": "reject"
+    },
+    {
+      "id": "EH-20",
+      "case": "full source episode interchange",
+      "expected": "canonical episode JSON conforms to reciprocal-episode-export v0.1 schema"
     }
   ],
   "claim_ceiling": "Finite adapter conformance only; no reciprocal simulator, human behaviour, empirical support, physical validity, safety or L4/L5 claim."
