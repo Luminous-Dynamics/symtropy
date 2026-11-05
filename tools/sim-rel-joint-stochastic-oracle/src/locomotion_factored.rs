@@ -265,7 +265,7 @@ impl FactorizedTransitionSpec {
                 parent_variables.push(parent);
                 expected_parent_assignments = expected_parent_assignments
                     .checked_mul(spec.variables[parent].domain.len())
-                    .ok_or_else(|| FactorError::ResourceLimit {
+                    .ok_or(FactorError::ResourceLimit {
                         requested: usize::MAX,
                         limit: MAX_PARENT_ASSIGNMENTS_PER_FACTOR,
                     })?;
@@ -384,12 +384,12 @@ impl FactorizedTransitionSpec {
                 }
             }
 
-            total_rows = total_rows.checked_add(compiled_rows.len()).ok_or_else(|| {
+            total_rows = total_rows.checked_add(compiled_rows.len()).ok_or(
                 FactorError::ResourceLimit {
                     requested: usize::MAX,
                     limit: MAX_TOTAL_CONDITIONAL_ROWS,
-                }
-            })?;
+                },
+            )?;
             if total_rows > MAX_TOTAL_CONDITIONAL_ROWS {
                 return Err(FactorError::ResourceLimit {
                     requested: total_rows,
