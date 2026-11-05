@@ -805,7 +805,7 @@ mod tests {
     #[test]
     fn rejects_sampling_rate_below_nyquist_requirement() {
         let mut run = fixture();
-        run["acquisition"]["sample_rate_hz"] = Value::from(100_000.0);
+        run["acquisition"]["sample_rate_hz"] = Value::from(10_000.0);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
@@ -838,7 +838,7 @@ mod tests {
     #[test]
     fn rejects_unsorted_or_duplicate_spectral_lines() {
         let mut run = fixture();
-        run["channels"][0]["lines"][2]["frequency_hz"] = Value::from(250.0);
+        run["channels"][0]["lines"][2]["frequency_hz"] = Value::from(140.0);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
