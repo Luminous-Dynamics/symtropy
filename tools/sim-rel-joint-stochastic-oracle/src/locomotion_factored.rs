@@ -23,6 +23,7 @@ const MAX_TOTAL_CONDITIONAL_ROWS: usize = 262_144;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum VariableRole {
     Input,
+    Action,
     Output,
 }
 
@@ -58,10 +59,18 @@ pub struct ConditionalFactor {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InterventionScopeContract {
+    pub action_variable_id: String,
+    pub direct_target_output_ids: Vec<String>,
+    pub allowed_descendant_output_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FactorizedTransitionSpec {
     pub source_manifests: Vec<SourceManifest>,
     pub variables: Vec<DiscreteVariable>,
     pub factors: Vec<ConditionalFactor>,
+    pub intervention_scopes: Vec<InterventionScopeContract>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -111,10 +120,18 @@ pub struct CompiledConditionalFactor {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CompiledInterventionScope {
+    pub action_variable: usize,
+    pub direct_targets: Vec<usize>,
+    pub allowed_descendants: Vec<usize>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CompiledFactorizedTransition {
     pub source_manifests: Vec<SourceManifest>,
     pub variables: Vec<DiscreteVariable>,
     pub factors: Vec<CompiledConditionalFactor>,
+    pub intervention_scopes: Vec<CompiledInterventionScope>,
     /// Stable topological order of output variables.
     pub output_order: Vec<usize>,
     pub input_variables: Vec<usize>,
@@ -180,6 +197,12 @@ impl FactorizedTransitionSpec {
         }
         spec.factors
             .sort_by(|left, right| left.target_variable_id.cmp(&right.target_variable_id));
+        for scope in &mut spec.intervention_scopes {
+            scope.direct_target_output_ids.sort();
+            scope.allowed_descendant_output_ids.sort();
+        }
+        spec.intervention_scopes
+            .sort_by(|left, right| left.action_variable_id.cmp(&right.action_variable_id));
 
         validate_spec_shape(&spec)?;
 
@@ -405,17 +428,20 @@ impl FactorizedTransitionSpec {
         }
 
         let output_order = topological_output_order(&spec.variables, &factors)?;
+        let intervention_scopes =
+            compile_intervention_scopes(&spec.variables, &factors, &spec.intervention_scopes)?;
         let input_variables = spec
             .variables
             .iter()
             .enumerate()
-            .filter_map(|(index, variable)| (variable.role == VariableRole::Input).then_some(index))
+            .filter_map(|(index, variable)| (variable.role != VariableRole::Output).then_some(index))
             .collect();
 
         Ok(CompiledFactorizedTransition {
             source_manifests: spec.source_manifests,
             variables: spec.variables,
             factors,
+            intervention_scopes,
             output_order,
             input_variables,
             output_variables,
@@ -447,7 +473,7 @@ impl CompiledFactorizedTransition {
                 .parent_variables
                 .iter()
                 .map(|parent| {
-                    if self.variables[*parent].role == VariableRole::Input {
+                    if self.variables[*parent].role != VariableRole::Output {
                         Ok(input_values[parent])
                     } else {
                         Ok(output_values[parent])
@@ -531,7 +557,7 @@ impl CompiledFactorizedTransition {
                     .parent_variables
                     .iter()
                     .enumerate()
-                    .filter(|(_, parent)| self.variables[**parent].role == VariableRole::Input)
+                    .filter(|(_, parent)| self.variables[**parent].role != VariableRole::Output)
                     .all(|(position, parent)| row.parent_values[position] == input_values[parent]);
                 if !input_matches {
                     continue;
@@ -707,7 +733,7 @@ impl CompiledFactorizedTransition {
             if !self
                 .variables
                 .iter()
-                .any(|variable| variable.role == VariableRole::Input && variable.id == *key)
+                .any(|variable| variable.role != VariableRole::Output && variable.id == *key)
             {
                 return Err(FactorError::Invalid(format!(
                     "input assignment contains non-input variable {key}"
@@ -939,6 +965,157 @@ fn topological_output_order(
         return Err(FactorError::CycleDetected);
     }
     Ok(order)
+}
+
+fn compile_intervention_scopes(
+    variables: &[DiscreteVariable],
+    factors: &[CompiledConditionalFactor],
+    contracts: &[InterventionScopeContract],
+) -> Result<Vec<CompiledInterventionScope>, FactorError> {
+    let variable_indices: BTreeMap<String, usize> = variables
+        .iter()
+        .enumerate()
+        .map(|(index, variable)| (variable.id.clone(), index))
+        .collect();
+    let output_indices: BTreeSet<usize> = variables
+        .iter()
+        .enumerate()
+        .filter_map(|(index, variable)| {
+            (variable.role == VariableRole::Output).then_some(index)
+        })
+        .collect();
+
+    let mut contract_by_action = BTreeMap::new();
+    for contract in contracts {
+        let action_index = *variable_indices
+            .get(&contract.action_variable_id)
+            .ok_or_else(|| FactorError::UnknownVariable(contract.action_variable_id.clone()))?;
+        if variables[action_index].role != VariableRole::Action {
+            return Err(FactorError::Invalid(format!(
+                "intervention scope {} does not reference an action variable",
+                contract.action_variable_id
+            )));
+        }
+        if contract_by_action.insert(action_index, contract).is_some() {
+            return Err(FactorError::DuplicateIdentifier(format!(
+                "intervention scope:{}",
+                contract.action_variable_id
+            )));
+        }
+    }
+
+    let mut children: BTreeMap<usize, BTreeSet<usize>> = BTreeMap::new();
+    let mut direct_action_targets: BTreeMap<usize, BTreeSet<usize>> = BTreeMap::new();
+    for factor in factors {
+        for parent in &factor.parent_variables {
+            if variables[*parent].role == VariableRole::Action {
+                direct_action_targets
+                    .entry(*parent)
+                    .or_default()
+                    .insert(factor.target_variable);
+            } else if output_indices.contains(parent) {
+                children
+                    .entry(*parent)
+                    .or_default()
+                    .insert(factor.target_variable);
+            }
+        }
+    }
+
+    let action_variables: Vec<usize> = variables
+        .iter()
+        .enumerate()
+        .filter_map(|(index, variable)| {
+            (variable.role == VariableRole::Action).then_some(index)
+        })
+        .collect();
+    let mut compiled = Vec::with_capacity(action_variables.len());
+
+    for action in action_variables {
+        let contract = contract_by_action.get(&action).ok_or_else(|| {
+            FactorError::Invalid(format!(
+                "action variable {} has no intervention-scope contract",
+                variables[action].id
+            ))
+        })?;
+        let actual_targets = direct_action_targets.get(&action).cloned().unwrap_or_default();
+        if actual_targets.is_empty() {
+            return Err(FactorError::Invalid(format!(
+                "action variable {} does not directly target an output factor",
+                variables[action].id
+            )));
+        }
+
+        let declared_targets: BTreeSet<usize> = contract
+            .direct_target_output_ids
+            .iter()
+            .map(|id| {
+                let index = *variable_indices
+                    .get(id)
+                    .ok_or_else(|| FactorError::UnknownVariable(id.clone()))?;
+                if !output_indices.contains(&index) {
+                    return Err(FactorError::Invalid(format!(
+                        "direct target {} is not an output variable",
+                        id
+                    )));
+                }
+                Ok(index)
+            })
+            .collect::<Result<_, FactorError>>()?;
+        if declared_targets.len() != contract.direct_target_output_ids.len()
+            || declared_targets != actual_targets
+        {
+            return Err(FactorError::Invalid(format!(
+                "action {} directly affects outputs not matching its declared target set",
+                variables[action].id
+            )));
+        }
+
+        let mut closure = actual_targets.clone();
+        let mut pending: Vec<usize> = actual_targets.iter().copied().collect();
+        while let Some(parent) = pending.pop() {
+            if let Some(next) = children.get(&parent) {
+                for child in next {
+                    if closure.insert(*child) {
+                        pending.push(*child);
+                    }
+                }
+            }
+        }
+
+        let declared_descendants: BTreeSet<usize> = contract
+            .allowed_descendant_output_ids
+            .iter()
+            .map(|id| {
+                let index = *variable_indices
+                    .get(id)
+                    .ok_or_else(|| FactorError::UnknownVariable(id.clone()))?;
+                if !output_indices.contains(&index) {
+                    return Err(FactorError::Invalid(format!(
+                        "allowed descendant {} is not an output variable",
+                        id
+                    )));
+                }
+                Ok(index)
+            })
+            .collect::<Result<_, FactorError>>()?;
+        if declared_descendants.len() != contract.allowed_descendant_output_ids.len()
+            || declared_descendants != closure
+        {
+            return Err(FactorError::Invalid(format!(
+                "action {} has hidden or over-declared downstream effects",
+                variables[action].id
+            )));
+        }
+
+        compiled.push(CompiledInterventionScope {
+            action_variable: action,
+            direct_targets: actual_targets.into_iter().collect(),
+            allowed_descendants: closure.into_iter().collect(),
+        });
+    }
+
+    Ok(compiled)
 }
 
 fn checked_domain_product(values: impl Iterator<Item = usize>) -> Result<usize, FactorError> {
