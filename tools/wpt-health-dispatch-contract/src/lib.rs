@@ -253,6 +253,9 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
     let asset_id = string_field(identity, "asset_id", "$.asset_identity")?.to_string();
     let segment_id =
         string_field(identity, "segment_id", "$.asset_identity")?.to_string();
+    string_field(identity, "installation_id", "$.asset_identity")?;
+    string_field(identity, "route_id", "$.asset_identity")?;
+    string_field(identity, "material_lot_id", "$.asset_identity")?;
 
     let forecast = field(run, "forecast", "$")?;
     exact_keys(
@@ -276,6 +279,14 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         ],
         "$.forecast",
     )?;
+    if string_field(forecast, "estimand", "$.forecast")? != "TARGET_EVENT_CIF_AT_HORIZON" {
+        return Err(fail(
+            "$.forecast.estimand",
+            "unsupported event-risk estimand",
+        ));
+    }
+    string_field(forecast, "calibration_population_id", "$.forecast")?;
+    string_field(forecast, "calibration_stratum_id", "$.forecast")?;
     let horizon = number_field(forecast, "horizon_hours", "$.forecast")?;
     let target_cif = number_field(forecast, "target_event_cif", "$.forecast")?;
     let event_free_survival = number_field(forecast, "event_free_survival", "$.forecast")?;
@@ -340,6 +351,12 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
     let censoring_assumption = string_field(censoring, "assumption", "$.censoring_support")?;
     string_field(censoring, "estimator_id", "$.censoring_support")?;
     let censoring_status = string_field(censoring, "support_status", "$.censoring_support")?;
+    if !["SUPPORTED", "POSITIVITY_FAILURE", "NOT_ESTIMATED"].contains(&censoring_status) {
+        return Err(fail(
+            "$.censoring_support.support_status",
+            "unknown censoring support status",
+        ));
+    }
     if !(0.0..=1.0).contains(&minimum_g)
         || required_g <= 0.0
         || required_g > 1.0
@@ -367,6 +384,12 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         "$.domain_support",
     )?;
     let domain_status = string_field(domain, "support_status", "$.domain_support")?;
+    if !["IN_DOMAIN", "OUT_OF_DOMAIN", "UNKNOWN"].contains(&domain_status) {
+        return Err(fail(
+            "$.domain_support.support_status",
+            "unknown operating-domain support status",
+        ));
+    }
     let material = string_field(domain, "material_family", "$.domain_support")?;
     let validated_material =
         string_field(domain, "validated_material_family", "$.domain_support")?;
@@ -885,6 +908,28 @@ mod tests {
         run["forecast"]["source_locator"] = Value::Null;
         let report = evaluate_eligibility(&run).unwrap();
         assert_eq!(report.state, EligibilityState::NotEvaluable);
+    }
+
+    #[test]
+    fn unrecognized_domain_support_status_fails_closed() {
+        let mut run = fixture();
+        run["domain_support"]["support_status"] = Value::String("MAYBE_SUPPORTED".into());
+        assert!(
+            evaluate_eligibility(&run)
+                .unwrap_err()
+                .contains("unknown operating-domain support status")
+        );
+    }
+
+    #[test]
+    fn missing_calibration_population_id_is_rejected() {
+        let mut run = fixture();
+        run["forecast"]["calibration_population_id"] = Value::String(" ".into());
+        assert!(
+            evaluate_eligibility(&run)
+                .unwrap_err()
+                .contains("must be a non-empty string")
+        );
     }
 
     #[test]
