@@ -37,22 +37,31 @@ An empty frontier is meaningful only when `ExhaustiveComplete` is returned: it m
 
 ## Current qualification
 
-Exact-head synthetic CI currently reports **25 passing tests** (formatting and Clippy also pass). The frozen tests cover:
-
+The Rust unit-test corpus covers:
 - overlapping lockage conflict, half-open handoff and capacity greater than one;
 - capacity changes between declared windows;
 - cumulative quota overrun, exact-boundary acceptance, independent accounting windows and a use interval that straddles two windows;
 - two complete vessel demands sharing lock, berth, terminal, shore-energy and water resources;
-- joint infeasibility when the shared water or shore-energy quota is individually feasible for each demand but not for both;
+- joint infeasibility when shared water or shore-energy quota is individually feasible for each demand but not for both;
 - conflicting shared-resource snapshots and invalid accounting modes;
 - missing, duplicate and orphan resource policies;
 - duplicate demand identity, mismatched decision cutoffs/tick resolutions and missing time basis;
 - input permutation replay, zero-budget rejection and explicit search-budget exhaustion.
 
+The test-only independent fleet enumerator separately explores each demand's alternatives and integer-tick placements, calculates feasibility using per-tick/per-window accounting, reconstructs the objective vector and computes its own Pareto frontier. It is cross-checked against the production frontier on:
+- a feasible two-demand mixed-speed workload;
+- a two-demand workload with speed alternatives and non-dominated trade-offs;
+- a workload that is jointly infeasible under a strict delivery deadline;
+- individually valid demands whose combined water or shore-energy quota is infeasible.
+
+A separate integration-test oracle compares the production concurrent-capacity event sweep with a direct per-tick implementation and compares cumulative quota accounting with independent window sums over exhaustive tiny operation pairs.
+
 ## Deliberate limits
 
 This is an exact tiny-instance reference oracle, not a production optimizer. It requires all demands to be jointly served in a candidate plan; partial-service allocation, participant fairness policies, stochastic arrival/duration distributions, dynamic replanning, multi-chamber vessel packing, hydraulic transients, water-level/tide physics, sediment evolution, AIS/LPMS ingestion, resource reservation and live dispatch remain out of scope.
 
-The implementation is a bounded exhaustive enumerator over its declared finite integer-tick search space. Its test fixtures are hand-checkable but **there is not yet a second, independently implemented fleet oracle** for cross-implementation agreement; that remains a promotion gate. The state budget currently counts operation-start candidate evaluations, not every recursion or memory allocation; future benchmark reports must preserve that exact definition.
+The implementation is a bounded exhaustive enumerator over its declared finite integer-tick search space. A second test-only implementation now cross-checks the complete fleet frontier on a small set of frozen hand-checkable workloads; this is useful differential evidence, not yet a comprehensive independent qualification corpus or a reproduced external MILP/CP-SAT solver. Expand the cross-check to at least 20 tiny cases, then compare larger matched instances against published serial-lock MILP and multi-objective algorithm baselines.
+
+The production search budget counts operation-start candidate evaluations, not every recursive call or memory allocation; future benchmark reports must preserve that exact definition.
 
 The oracle assumes fixed segment durations, fixed capacity windows and one ordered route per demand. It does not establish that upstream evidence is authentic, that a vessel is physically qualified, that a resource operator has authorized use, or that real water/energy availability matches the synthetic profile. It never controls a lock, berth, pump, vessel or shore-power asset.
