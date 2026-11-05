@@ -91,6 +91,10 @@ fn service_profile(service: &Value) -> Result<(), String> {
         "SHAFT_MECHANICAL" => ("MECHANICAL_SHAFT_WORK", "TORQUE_SPEED_INTEGRATION"),
         "PROCESS_HEAT" => ("THERMAL_PROCESS_ENERGY", "CALORIMETRY_OR_ENTHALPY"),
         "OPTICAL_RADIANT" => ("OPTICAL_RADIANT_ENERGY", "OPTICAL_RADIOMETRY"),
+        "CHEMICAL_PROCESS" => (
+            "CHEMICAL_FREE_ENERGY_CHANGE",
+            "REACTION_EXTENT_AND_CHEMICAL_POTENTIAL",
+        ),
         _ => return Err(format!("unsupported service_type {service_type}")),
     };
     if quantity != expected.0 || method != expected.1 {
@@ -458,7 +462,7 @@ pub fn evaluate_record(record: &Value, validator: &mut SessionValidator) -> Valu
 
 #[cfg(test)]
 mod tests {
-    use super::{SessionValidator, evaluate_record};
+    use super::{SessionValidator, evaluate_record, service_profile};
     use serde_json::Value;
 
     const FIXTURE: &str =
@@ -485,6 +489,47 @@ mod tests {
             records >= 60,
             "the frozen corpus must cover full sessions, not isolated schema objects"
         );
+    }
+
+    #[test]
+    fn accepts_chemical_free_energy_service_with_declared_method() {
+        let service = serde_json::json!({
+            "service_type": "CHEMICAL_PROCESS",
+            "service_quantity": "CHEMICAL_FREE_ENERGY_CHANGE",
+            "measurement_method": "REACTION_EXTENT_AND_CHEMICAL_POTENTIAL",
+            "service_unit": "J",
+            "requested_useful_energy_j": 500.0,
+            "minimum_useful_energy_j": 450.0,
+            "maximum_input_power_w": 250.0,
+            "source_input_boundary_id": "transmitter-dc-input",
+            "useful_output_boundary_id": "chemical-state-output",
+            "power_profile": [
+                {"requested_input_power_w": 200.0, "time_ns": 0},
+                {"requested_input_power_w": 225.0, "time_ns": 1_000_000},
+            ]
+        });
+        assert!(service_profile(&service).is_ok());
+    }
+
+    #[test]
+    fn rejects_chemical_service_when_measurement_method_is_electrical_input() {
+        let service = serde_json::json!({
+            "service_type": "CHEMICAL_PROCESS",
+            "service_quantity": "CHEMICAL_FREE_ENERGY_CHANGE",
+            "measurement_method": "DC_REAL_POWER_INTEGRATION",
+            "service_unit": "J",
+            "requested_useful_energy_j": 500.0,
+            "minimum_useful_energy_j": 450.0,
+            "maximum_input_power_w": 250.0,
+            "source_input_boundary_id": "transmitter-dc-input",
+            "useful_output_boundary_id": "chemical-state-output",
+            "power_profile": [
+                {"requested_input_power_w": 200.0, "time_ns": 0}
+            ]
+        });
+        assert!(service_profile(&service)
+            .unwrap_err()
+            .contains("requires quantity"));
     }
 
     #[test]
