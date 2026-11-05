@@ -1,0 +1,48 @@
+name: Construction VDA5050 Observer V0.1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/construction-vda5050-observer-v0-1/**"
+      - ".github/workflows/construction-vda5050-observer-v0-1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-vda5050-observer-v0-1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  observer:
+    name: VDA 3.0 observer (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust 1.96 toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Verify locked package metadata
+        run: cargo metadata --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked --format-version 1
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml -- --check
+      - name: Run observer unit tests
+        run: cargo test --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Exercise read-only CLI on frozen VDA messages
+        run: |
+          cargo run --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked -- decode vda5050/v3/ACME/R-01/order research/construction-vda5050-observer-v0-1/fixtures/order.json
+          cargo run --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked -- decode vda5050/v3/ACME/R-01/state research/construction-vda5050-observer-v0-1/fixtures/state-action-finished.json
+          cargo run --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked -- decode vda5050/v3/ACME/R-01/factsheet research/construction-vda5050-observer-v0-1/fixtures/factsheet.json
+          cargo run --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked -- decode vda5050/v3/ACME/R-01/zoneSet research/construction-vda5050-observer-v0-1/fixtures/zoneSet.json
+          cargo run --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked -- decode vda5050/v3/ACME/R-01/connection research/construction-vda5050-observer-v0-1/fixtures/connection.json
+          cargo run --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked -- decode vda5050/v3/ACME/R-01/instantActions research/construction-vda5050-observer-v0-1/fixtures/instantActions.json
+          cargo run --manifest-path research/construction-vda5050-observer-v0-1/Cargo.toml --locked -- decode vda5050/v3/ACME/R-01/responses research/construction-vda5050-observer-v0-1/fixtures/responses.json
