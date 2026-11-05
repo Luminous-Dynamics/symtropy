@@ -146,7 +146,8 @@
       "name": "unknown-observation-remains-explicit",
       "observation": {
         "kind": "vendor_extension_unknown",
-        "payload_digest": "synthetic"
+        "payload_digest": "synthetic",
+        "signal_type": "vendor_extension_unknown"
       },
       "expected_projection": "unclassified_signal",
       "expected_disposition": "typed_unknown",
