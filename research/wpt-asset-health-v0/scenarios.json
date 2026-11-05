@@ -217,6 +217,21 @@
         "Reject missing decoupling calibration",
         "Do not treat the sensor algorithm output as independent ground truth"
       ]
+    },
+    {
+      "case_id": "same-peak-different-thermal-field-negative-control",
+      "case_kind": "NEGATIVE_CONTROL",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "group_id": "thermal-surrogate-equivalence-01",
+      "arm": "THERMAL_BOUNDARY_MISMATCH",
+      "challenge": "Two synthetic thermal stimuli share the same peak surface temperature but have different spatial heat-flux distributions, depth gradients and cooldown histories.",
+      "expected_disposition": "SURROGATE_NOT_EQUIVALENT",
+      "required_behaviors": [
+        "Do not declare thermal equivalence from peak temperature alone",
+        "Compare spatial heat flux, depth temperature profiles and time history",
+        "Retain ACTIVE_WPT_LOSS versus PASSIVE_THERMAL_SURROGATE distinction",
+        "Require an explicit equivalence tolerance and reference boundary before transferring thermo-mechanical claims"
+      ]
     }
   ]
 }
