@@ -618,6 +618,7 @@ mod tests {
     fn rejects_missing_grid_fundamental() {
         let mut run = fixture();
         run["channels"][0]["lines"][0]["harmonic_order"] = Value::from(3);
+        run["channels"][0]["lines"][0]["frequency_hz"] = Value::from(150.0);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
@@ -683,8 +684,8 @@ mod tests {
     #[test]
     fn rejects_resonant_sideband_below_minimum_declared_separation() {
         let mut run = fixture();
-        run["channels"][1]["lines"][1]["sideband_offset_hz"] = Value::from(-10.0);
-        run["channels"][1]["lines"][1]["frequency_hz"] = Value::from(84_990.0);
+        run["channels"][1]["lines"][1]["sideband_offset_hz"] = Value::from(10.0);
+        run["channels"][1]["lines"][1]["frequency_hz"] = Value::from(85_010.0);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
