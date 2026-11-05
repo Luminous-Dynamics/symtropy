@@ -762,14 +762,14 @@ mod tests {
     }
 
     #[test]
-    fn rejects_non_finite_derived_interharmonic_ratio() {
+    fn rejects_non_finite_derived_thd() {
         let mut run = fixture();
-        run["channels"][0]["lines"][3]["rms_amplitude"] = Value::from(1.0e308);
+        run["channels"][0]["lines"][3]["rms_amplitude"] = Value::from(1.0e-10);
         run["channels"][0]["lines"][0]["rms_amplitude"] = Value::from(1.0e-320);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
-                .contains("grid spectral power accumulation overflowed")
+                .contains("THD calculation overflowed")
         );
     }
 
