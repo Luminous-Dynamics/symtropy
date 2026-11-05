@@ -144,8 +144,9 @@ function fixture_case(case_id::String)
     return FIXTURE_DOC.cases[found]
 end
 
-function push_result!(case_id::String, fields::Dict{String,Any})
-    push!(RESULT_ROWS, merge(Dict("case_id" => case_id), fields))
+function push_result!(case_id::String, fields::AbstractDict{String})
+    normalized_fields = Dict{String,Any}(fields)
+    push!(RESULT_ROWS, merge(Dict{String,Any}("case_id" => case_id), normalized_fields))
     return
 end
 
