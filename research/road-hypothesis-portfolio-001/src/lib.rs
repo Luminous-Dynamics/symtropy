@@ -407,6 +407,8 @@ pub enum PortfolioError {
     DuplicateChallengeReceipt,
     UnrequiredChallengeReceipt,
     InvalidChallengeBudget,
+    ChallengeHoldoutMismatch,
+    ChallengeBudgetMismatch,
     MissingCoverageAxis,
     InvalidCoverageEvidence,
     InvalidNotApplicableRationale,
@@ -756,9 +758,18 @@ pub fn evaluate_portfolio(
         disposition == PortfolioDisposition::PortfolioCompleteForDeclaredScope
             && residual.disposition == ResidualDisposition::BoundedRectangularRelaxation
             && !residual.robust_feasible_actions.is_empty();
+    let evaluation_digest = evaluation_digest(
+        &digest,
+        evaluation_odd_scope_digest,
+        challenge_receipts,
+        residual_envelope,
+        disposition,
+        decision_recommendation_authorized,
+    );
 
     Ok(PortfolioEvaluation {
         portfolio_digest: digest,
+        evaluation_digest,
         disposition,
         odd_scope_match,
         model_family_count,
@@ -901,6 +912,25 @@ fn assess_challenges(
         if receipt_map.insert(key, receipt).is_some() {
             return Err(PortfolioError::DuplicateChallengeReceipt);
         }
+    }
+
+    let mut comparison_holds: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
+    let mut comparison_budgets: BTreeMap<&str, BTreeSet<u64>> = BTreeMap::new();
+    for receipt in receipts {
+        comparison_holds
+            .entry(receipt.hypothesis_id.as_str())
+            .or_default()
+            .insert(receipt.holdout_manifest_digest.as_str());
+        comparison_budgets
+            .entry(receipt.hypothesis_id.as_str())
+            .or_default()
+            .insert(receipt.budget_units);
+    }
+    if comparison_holds.values().any(|values| values.len() > 1) {
+        return Err(PortfolioError::ChallengeHoldoutMismatch);
+    }
+    if comparison_budgets.values().any(|values| values.len() > 1) {
+        return Err(PortfolioError::ChallengeBudgetMismatch);
     }
 
     let mut unresolved = 0usize;
@@ -1325,7 +1355,7 @@ mod tests {
             hypothesis_id: "H-weather".into(),
             strategy,
             protocol_digest: d(protocol),
-            holdout_manifest_digest: d(&format!("holdout-{id}")),
+            holdout_manifest_digest: d(&format!("holdout-{hypothesis_id}")),
             blinded: true,
             sealed_test: true,
             budget_units: 100,
