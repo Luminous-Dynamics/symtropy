@@ -46,7 +46,18 @@
       "method_revision_digest",
       "compiler_version",
       "rule_set_digest"
-    ]
+    ],
+    "canonical_encoding": {
+      "format": "CTG-V0.1",
+      "domain_separator": "CTG\\0v1",
+      "string_encoding": "UTF-8 with unsigned 64-bit little-endian byte length prefix",
+      "option_encoding": "one-byte tag (0 none, 1 some) followed by encoded string for some",
+      "node_order": "ascending task_id byte sequence",
+      "set_fields_order": "ascending UTF-8 byte sequence",
+      "parameter_order": "ascending parameter name byte sequence",
+      "cryptographic_digest": false,
+      "signature_or_approval": false
+    }
   },
   "invariants": {
     "source_lineage_required": true,
@@ -92,6 +103,11 @@
       "stage": "virtual_commissioning",
       "status": "not_implemented",
       "claim": "No simulator or physical evidence is claimed."
+    },
+    {
+      "stage": "canonical_graph_serialization",
+      "status": "implemented_pending_hosted_validation",
+      "claim": "Validated graphs emit versioned deterministic CTG v0.1 bytes; this is not a hash/signature."
     }
   ]
 }
