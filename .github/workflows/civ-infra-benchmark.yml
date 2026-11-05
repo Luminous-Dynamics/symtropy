@@ -1,0 +1,101 @@
+name: CIV-INFRA Synthetic Corridor Benchmark
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-benchmark/**"
+      - ".github/workflows/civ-infra-benchmark.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-benchmark/**"
+      - ".github/workflows/civ-infra-benchmark.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  benchmark:
+    name: Synthetic corridor checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/civ-infra-benchmark/Cargo.toml -- --check
+
+      - name: Run reference and adversarial tests
+        run: cargo test --locked --manifest-path tools/civ-infra-benchmark/Cargo.toml
+
+      - name: Emit and check frozen benchmark report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="tools/civ-infra-benchmark/fixtures/corridor-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/civ-infra-report.json"
+          cargo run --locked --manifest-path tools/civ-infra-benchmark/Cargo.toml -- "$fixture" > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.corridor_report.v0.1" and
+            .input_sha256 == $expected_sha and
+            .claim_ceiling == "synthetic_case_only_not_real_world_qualified" and
+            ([.candidates[].findings[] | select(.code | startswith("drainage_capacity:"))] | length) == 12 and
+            ([.candidates[] | select(.candidate_id == "A-shortest" and .disposition == "infeasible" and
+              .metrics.derived_max_grade_percent == 8 and
+              .metrics.derived_cut_volume_m3 == 3520 and
+              .metrics.derived_fill_volume_m3 == 1760 and
+              .metrics.derived_total_earthworks_m3 == 5280 and
+              .metrics.minimum_drainage_reserve_lps == -70)] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "A-shortest") | .findings[] |
+              select(.code == "grade_limit" and .status == "violation")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "A-shortest") | .findings[] |
+              select(.code == "earthworks_budget" and .status == "violation")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "A-shortest") | .findings[] |
+              select(.code == "drainage_capacity:design-storm-synthetic-01" and .status == "violation")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "A-shortest") | .findings[] |
+              select(.code == "drainage_capacity:low-flow-synthetic-01" and .status == "pass")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "B-low-earthworks" and .disposition == "infeasible" and
+              .metrics.minimum_drainage_reserve_lps == 10)] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "B-low-earthworks") | .findings[] |
+              select(.code == "utility_clearance:power-duct-known" and .status == "violation")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "B-low-earthworks") | .findings[] |
+              select(.code == "drainage_capacity:severe-storm-synthetic-01" and .status == "pass")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "C-reference" and .disposition == "feasible_for_synthetic_case" and
+              .metrics.route_length_m == 1080 and
+              .metrics.derived_max_grade_percent == 3.5 and
+              .metrics.derived_cut_volume_m3 == 2160 and
+              .metrics.derived_fill_volume_m3 == 1620 and
+              .metrics.derived_total_earthworks_m3 == 3780 and
+              .metrics.minimum_drainage_reserve_lps == 10)] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "D-resilient-detour" and .disposition == "feasible_for_synthetic_case" and
+              .metrics.route_length_m == 1200 and
+              .metrics.derived_max_grade_percent == 2.5 and
+              .metrics.derived_cut_volume_m3 == 2400 and
+              .metrics.derived_fill_volume_m3 == 1800 and
+              .metrics.derived_total_earthworks_m3 == 4200 and
+              .metrics.minimum_drainage_reserve_lps == 20)] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "C-reference") | .findings[] |
+              select(.code == "drainage_capacity:severe-storm-synthetic-01" and .status == "pass")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "D-resilient-detour") | .findings[] |
+              select(.code == "drainage_capacity:severe-storm-synthetic-01" and .status == "pass")] | length) == 1 and
+            .pareto_frontier_candidate_ids == ["C-reference", "D-resilient-detour"] and
+            ([.candidates[] | select(.candidate_id == "C-reference") | .findings[] |
+              select(.code == "declared_grade_matches_profile" and .status == "pass")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "C-reference") | .findings[] |
+              select(.code == "declared_earthworks_matches_sections" and .status == "pass")] | length) == 1 and
+            (.resource_schedule_feasible == false) and
+            (.schedule_conflicts | length) == 1 and
+            .schedule_conflicts[0].resource_id == "excavator" and
+            .schedule_conflicts[0].start_tick == 2 and
+            .schedule_conflicts[0].end_tick == 3
+          ' "$report"
