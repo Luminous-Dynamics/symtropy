@@ -197,6 +197,7 @@
       "additionalProperties": false,
       "required": [
         "fundamental_rms_a",
+        "maximum_harmonic_order",
         "harmonics"
       ],
       "properties": {
@@ -230,6 +231,12 @@
               }
             }
           }
+        },
+        "maximum_harmonic_order": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 50,
+          "description": "Maximum integer harmonic order included in reported THD/TDD. Every order 2..N must be present exactly once; unavailable/zero bins are explicit."
         }
       }
     },
