@@ -1,0 +1,188 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/measurement-distribution/0.1",
+  "schema_version": "0.1.0",
+  "protocol_id": "CIVBENCH-MAD-001",
+  "evaluation_id": "HUMSIM-SYNTHETIC-MODE-COLLAPSE-CONTROL-001",
+  "benchmark_id": "CIVDYN-HUMSIM-001",
+  "construct": {
+    "name": "micro, population and cross-context response fidelity",
+    "intended_use": "Validate benchmark metrics and detect mode collapse in a synthetic software fixture.",
+    "claim_tier": "tier-1-reference",
+    "claim_ceiling": "Synthetic software control only; no human-behaviour validity or SOTA claim."
+  },
+  "units": {
+    "observational_unit": "synthetic participant-context-step trial",
+    "resampling_unit": "synthetic participant",
+    "independent_unit": "generated participant identity",
+    "dependence_statement": "Three ordered contexts belong to each participant and are dependent repeated observations; the deterministic fixture makes no inferential independence claim.",
+    "clustered_observations": true,
+    "independence_claimed": false
+  },
+  "sources": [
+    {
+      "source_id": "HUMSIM-SYNTHETIC-FIXTURE-V0",
+      "epistemic_status": "synthetic-test-fixture",
+      "version": "0.1.0",
+      "retrieved_at": "2026-11-05",
+      "license": "AGPL-3.0-or-later",
+      "content_digest": null,
+      "source_family": "locally-authored-synthetic-fixture",
+      "missingness_semantics": "No missing rows in this fixture; a missing participant-context-step must be represented as missing, never as zero.",
+      "source_uri": null
+    }
+  ],
+  "evaluation_distribution": {
+    "sampling_frame": "60 synthetic opaque participants, three ordered contexts, three declared synthetic cohorts, four categorical choices.",
+    "factors": [
+      {
+        "factor_id": "context",
+        "weight_interpretation": "Equal synthetic design weights, not population prevalence.",
+        "levels": [
+          {"level_id": "scenario_0", "target_weight": 0.3333333333, "support_count": 60},
+          {"level_id": "scenario_1", "target_weight": 0.3333333333, "support_count": 60},
+          {"level_id": "scenario_2", "target_weight": 0.3333333334, "support_count": 60}
+        ]
+      },
+      {
+        "factor_id": "declared-cohort",
+        "weight_interpretation": "Equal synthetic design weights, not demographic prevalence.",
+        "levels": [
+          {"level_id": "declared_cohort_0", "target_weight": 0.3333333333, "support_count": 20},
+          {"level_id": "declared_cohort_1", "target_weight": 0.3333333333, "support_count": 20},
+          {"level_id": "declared_cohort_2", "target_weight": 0.3333333334, "support_count": 20}
+        ]
+      }
+    ],
+    "excluded_support": []
+  },
+  "perturbation_families": [
+    {
+      "family_id": "population-mode-collapse",
+      "rationale": "Tests whether aggregate response diversity and tail options are lost when all synthetic agents emit one dominant action.",
+      "validity_check": "Compare generated action frequencies, TVD, Jensen-Shannon divergence, entropy and tail-option coverage against the structured-context fixture.",
+      "expected_invariants": [
+        "Option labels and trial count remain fixed.",
+        "Observed synthetic responses remain unchanged."
+      ],
+      "seed_policy": "Deterministic construction; no stochastic seed.",
+      "parameter_range": null
+    }
+  ],
+  "replication_design": {
+    "method": "deterministic-fixture",
+    "replication_count": 1,
+    "independent_unit": "No independent replication unit is claimed; 60 participant IDs are synthetic rows for software coverage only.",
+    "inference_claimed": false,
+    "dependence_assessment": "Three context steps within each synthetic participant are repeated measures; no confidence intervals or population inference are reported.",
+    "sample_size_rationale": "One deterministic fixture is sufficient for exact schema and negative-control testing, not inferential claims.",
+    "seed_manifest_digest": null,
+    "cluster_unit": "synthetic participant"
+  },
+  "metrics": [
+    {
+      "metric_id": "mean_brier_score",
+      "construct_dimension": "individual predictive probability quality",
+      "unit": "squared-probability-sum per trial",
+      "direction": "lower-is-better",
+      "aggregation": "mean across matched synthetic participant-context trials",
+      "strata": ["all", "context", "declared-cohort"],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": "multiclass Brier score"
+    },
+    {
+      "metric_id": "total_variation",
+      "construct_dimension": "generated population choice distribution",
+      "unit": "probability distance",
+      "direction": "lower-is-better",
+      "aggregation": "half L1 distance between empirical and generated action frequencies",
+      "strata": ["all", "context", "declared-cohort"],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "jensen_shannon_bits",
+      "construct_dimension": "generated population choice distribution",
+      "unit": "bits",
+      "direction": "lower-is-better",
+      "aggregation": "Jensen-Shannon divergence between empirical and generated action frequencies",
+      "strata": ["all", "context", "declared-cohort"],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "trajectory_transition_tvd",
+      "construct_dimension": "ordered cross-context transition fidelity",
+      "unit": "probability distance",
+      "direction": "lower-is-better",
+      "aggregation": "TVD between adjacent-step transition distributions",
+      "strata": ["all"],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    }
+  ],
+  "baselines": [
+    {
+      "baseline_id": "direct-prompt-mode-collapse",
+      "description": "Synthetic negative-control policy that always emits the same option.",
+      "protocol_matched": true,
+      "source_uri": null
+    },
+    {
+      "baseline_id": "structured-context-reference",
+      "description": "Synthetic oracle that reproduces authored observed choice records; software control, not a human or LLM baseline.",
+      "protocol_matched": true,
+      "source_uri": null
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "mode-collapse-must-fail",
+      "intervention": "Replace generated choices with one modal action while retaining valid probability vectors.",
+      "expected_result": "Population TVD/JS and trajectory TVD must increase; tail-option coverage must fall to zero.",
+      "must_fail_or_remain_null": "fail"
+    },
+    {
+      "control_id": "participant-step-mismatch-must-fail",
+      "intervention": "Remove one simulated participant-context-step record.",
+      "expected_result": "Matched-trial validation rejects the dataset instead of silently imputing a prediction.",
+      "must_fail_or_remain_null": "fail"
+    }
+  ],
+  "holdouts": [
+    {
+      "holdout_id": "empirical-participant-holdout",
+      "dimension": "participant",
+      "status": "not-applicable",
+      "leakage_control": "No empirical participants are used; this synthetic fixture supports no generalization claim."
+    },
+    {
+      "holdout_id": "empirical-context-holdout",
+      "dimension": "context",
+      "status": "not-applicable",
+      "leakage_control": "All contexts are synthetic test cases; context transfer is not assessed."
+    }
+  ],
+  "reproduction": {
+    "code_commit": "d433f090014fa1deba9a3da36ed545841c45b78a",
+    "configuration_digest": "synthetic-fixture-v0.1; no external model or dataset",
+    "data_manifest_digest": null,
+    "model_identifier": null,
+    "runtime_environment": "Rust edition 2024; deterministic dependency-free crate; GitHub Actions exact-head run",
+    "command": "cargo run --locked --manifest-path research/civdyn-human-fidelity/Cargo.toml --bin human-fidelity-sweep",
+    "humanity_atlas_run_artifact_ref": "Not applicable: local benchmark-validation fixture, not a full Humanity Atlas scenario run."
+  },
+  "claim_report": {
+    "claim_ceiling": "Tier 1 reference task only. The fixture does not establish fidelity to human observations.",
+    "known_limitations": [
+      "Synthetic responses are authored, not sampled from participants.",
+      "The coverage curve is deterministic prefix sampling, not an inferential estimator.",
+      "No external dataset license or ethics review is applicable because no human data is present."
+    ],
+    "unsupported_strata": [
+      "All real demographic, regional, cultural and language cohorts."
+    ],
+    "deviations": [],
+    "failed_controls": []
+  },
+  "composite_score_policy": "no-universal-composite"
+}
