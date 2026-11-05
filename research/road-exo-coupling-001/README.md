@@ -86,9 +86,11 @@ The correspondence projection now feeds the same pinned rand_philox 0.2.1 Philox
 
 - v0.1 DrawAddress bytes retain the original ROAD-EXO-COUPLING-001 derivation context and receipt schema.
 - Correspondence-projected v0.2 canonical bytes use a distinct ROAD-CORRESPONDENCE-COUPLING-001 KDF context, derivation ID and address schema ID. The canonical bytes are passed unchanged.
-- Each hypothesis plan resolves every retained branch/event address. The returned wrapper retains hypothesis ID, branch ID, event ID, sharing disposition and presence witness beside the raw four-word Philox receipt.
+- Each hypothesis plan resolves every retained branch/event address. The returned wrapper retains hypothesis ID, branch ID, event ID, sharing disposition, presence witness, the exact canonical address bytes and the raw four-word Philox receipt. Each draw can therefore be replay-verified from the bundle without recovering a separate address plan.
+- The address plan and resolved bundle retain the original candidate-universe and hypothesis-set status objects, including their evidence-reference IDs. These are provenance references supplied by the caller, not independent validation that the referenced evidence is genuine or that the search was scientifically exhaustive.
 - The existing 192-bit key/counter collision registry is applied across the entire plan bundle. Repeated branch endpoints of one exact shared address are permitted only when their full 256-bit derivation digests match.
-- Incomplete correspondence sets may retain draws for known hypotheses, but the draw bundle preserves the Incomplete status; resolving a random block does not upgrade identification or completeness.
+- Incomplete correspondence sets may retain draws for known hypotheses, but the draw bundle preserves both Incomplete status and the original universe/search evidence references; resolving a random block does not upgrade identification or completeness.
+- Tests replay every returned draw from its retained canonical bytes, reject altered address/receipt values, and verify that incomplete-scope evidence references survive resolution.
 
 The resolver emits raw u32 words only. Distribution sampling/transforms remain #3586's separate responsibility. Shared draw alignment is a causal/execution contract; its statistical variance effect is reported independently and can be positive, neutral or negative.
 
