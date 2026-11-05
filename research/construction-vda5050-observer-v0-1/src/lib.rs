@@ -137,8 +137,13 @@ pub enum Observation {
         nodes: Vec<RouteNodeObservation>,
         edges: Vec<RouteEdgeObservation>,
         action_states: Vec<ActionStateObservation>,
+        instant_action_states: Vec<ActionStateObservation>,
         zone_requests: Vec<ZoneRequestObservation>,
         navigation_maps: Vec<NavigationMapObservation>,
+        driving: bool,
+        operating_mode: String,
+        error_count: usize,
+        power_supply_reported: bool,
         safety_state_reported: bool,
     },
     FactsheetCapabilityClaimReported {
@@ -188,8 +193,13 @@ impl Observation {
                 nodes,
                 edges,
                 action_states,
+                instant_action_states,
                 zone_requests,
                 navigation_maps,
+                driving,
+                operating_mode,
+                error_count,
+                power_supply_reported,
                 safety_state_reported,
             } => json!({
                 "kind": "robot_state_reported",
@@ -212,6 +222,15 @@ impl Observation {
                     "action_type": item.action_type,
                     "status": item.status
                 })).collect::<Vec<_>>(),
+                "instant_action_states": instant_action_states.iter().map(|item| json!({
+                    "action_id": item.action_id,
+                    "action_type": item.action_type,
+                    "status": item.status
+                })).collect::<Vec<_>>(),
+                "driving": driving,
+                "operating_mode": operating_mode,
+                "error_count": error_count,
+                "power_supply_reported": power_supply_reported,
                 "zone_requests": zone_requests.iter().map(|item| json!({
                     "request_id": item.request_id,
                     "request_type": item.request_type,
@@ -463,6 +482,15 @@ fn parse_state(root: &Map<String, Value>) -> Result<Observation, ObserverError> 
     let nodes = parse_route_nodes(as_array(field(root, "nodeStates")?, "nodeStates")?)?;
     let edges = parse_route_edges(as_array(field(root, "edgeStates")?, "edgeStates")?)?;
     let action_states = parse_action_states(as_array(field(root, "actionStates")?, "actionStates")?)?;
+    let instant_action_states = parse_action_states(as_array(
+        field(root, "instantActionStates")?,
+        "instantActionStates",
+    )?)?;
+    let driving = boolean(field(root, "driving")?, "driving")?;
+    let operating_mode = non_empty_string(field(root, "operatingMode")?, "operatingMode")?.to_owned();
+    let errors = as_array(field(root, "errors")?, "errors")?;
+    as_object(field(root, "powerSupply")?, "powerSupply")?;
+    let safety_state = as_object(field(root, "safetyState")?, "safetyState")?;
     let zone_requests = match root.get("zoneRequests") {
         Some(value) => parse_zone_requests(as_array(value, "zoneRequests")?)?,
         None => Vec::new(),
@@ -479,9 +507,14 @@ fn parse_state(root: &Map<String, Value>) -> Result<Observation, ObserverError> 
         nodes,
         edges,
         action_states,
+        instant_action_states,
         zone_requests,
         navigation_maps,
-        safety_state_reported: root.contains_key("safetyState"),
+        driving,
+        operating_mode,
+        error_count: errors.len(),
+        power_supply_reported: true,
+        safety_state_reported: !safety_state.is_empty() || root.contains_key("safetyState"),
     })
 }
 
@@ -489,6 +522,9 @@ fn parse_factsheet(root: &Map<String, Value>, payload: &[u8]) -> Result<Observat
     let type_specification = as_object(field(root, "typeSpecification")?, "typeSpecification")?;
     if type_specification.is_empty() {
         return shape("typeSpecification must not be empty");
+    }
+    for key in ["physicalParameters", "protocolLimits", "protocolFeatures", "mobileRobotGeometry", "loadSpecification"] {
+        as_object(field(root, key)?, key)?;
     }
     Ok(Observation::FactsheetCapabilityClaimReported {
         capability_payload_sha256: sha256_hex(payload),
@@ -511,6 +547,15 @@ fn parse_zone_set(root: &Map<String, Value>) -> Result<Observation, ObserverErro
             "SPEED_LIMIT", "ACTION", "PRIORITY", "PENALTY", "DIRECTED", "BIDIRECTED",
         ].contains(&zone_type.as_str()) {
             return shape("zoneType is outside the VDA 5050 v3.0.0 enumeration");
+        }
+        let vertices = as_array(field(zone, "vertices")?, "zone.vertices")?;
+        if vertices.len() < 3 {
+            return shape("zone vertices must contain at least three points");
+        }
+        for vertex in vertices {
+            let vertex = as_object(vertex, "zone.vertices[]")?;
+            number(field(vertex, "x")?, "vertex.x")?;
+            number(field(vertex, "y")?, "vertex.y")?;
         }
         parsed.push(FleetZoneObservation { zone_id, zone_type });
     }
@@ -836,6 +881,10 @@ fn unsigned(value: &Value, name: &str) -> Result<u64, ObserverError> {
 
 fn boolean(value: &Value, name: &str) -> Result<bool, ObserverError> {
     value.as_bool().ok_or_else(|| ObserverError::Shape(format!("{name} must be a boolean")))
+}
+
+fn number(value: &Value, name: &str) -> Result<f64, ObserverError> {
+    value.as_f64().ok_or_else(|| ObserverError::Shape(format!("{name} must be a number")))
 }
 
 fn shape<T>(message: &str) -> Result<T, ObserverError> {
