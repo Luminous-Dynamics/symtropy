@@ -73,7 +73,7 @@ jobs:
               and r["subject"] == "dictatorial_five_actor_0"
           )
           assert abs(float(dictator["normalized_banzhaf"]) - 1.0) < 1e-9
-          assert "dictator=True" in dictator["flag_or_rationale"]
+          assert "dictator=true" in dictator["flag_or_rationale"]
           balanced = [r for r in actors if r["case_id"] == "balanced_five"]
           assert all(abs(float(r["normalized_banzhaf"]) - 0.2) < 1e-9 for r in balanced)
 
