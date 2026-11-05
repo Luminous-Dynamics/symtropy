@@ -99,3 +99,26 @@ The correspondence projection now feeds the same pinned rand_philox 0.2.1 Philox
 The resolver emits raw u32 words only. Distribution sampling/transforms remain #3586's separate responsibility. Shared draw alignment is a causal/execution contract; its statistical variance effect is reported independently and can be positive, neutral or negative.
 
 Additional exact tests cover: same Philox words for both endpoints of one justified shared event under a given hypothesis; distinct draws for alternative actor-vs-slot mappings; stable branch-local draws across alternative maps; v0.2 receipt replay from canonical bytes; preservation of incomplete status; and separation of v0.1/v0.2 KDF domains.
+
+
+### Retained-source projection verification (ROAD-CORRESPONDENCE-REPLAY-001 / #3741)
+
+A draw bundle now retains the exact inputs required to reproduce the projection:
+
+- the full `CorrespondenceSet`, including both candidate event universes, event identity fields, event-family and presence evidence, all alternative maps, and both completeness dispositions;
+- every `EventDrawScope`, including world, branch, event, tick, event kind and complete source/mechanism/version/component identity;
+- the exact caller-supplied `PairCausalRule` for every hypothesis/pair/basis.
+
+The independent verifier does not stop at recomputing Philox blocks from stored bytes. It reruns `project_correspondence_addresses` from those retained inputs, resolves the expected per-hypothesis draws again using the supplied frozen experiment seed, and compares the entire expected bundle with the received one. This rejects a re-addressed draw even when the replacement address has a mathematically valid Philox receipt and the attacker recomputes the outer bundle digest.
+
+The input records are retained as replay material, not promoted to truth. Their evidence references and ExhaustiveWithinDeclared* statuses remain caller assertions within their named scope. A verifier can check the declared finite correspondence partition and source-to-address transformation; it cannot prove that the event universe or hypothesis family is scientifically exhaustive.
+
+The BLAKE3 bundle digest remains an unkeyed content commitment. It detects mutation relative to an independently stored commitment; it is not a signature, authentication mechanism, or protection against a party replacing the entire source input and recomputing every downstream artifact. A cross-system consumer such as SAM must anchor the expected source/bundle digest in a separately controlled manifest or signed evidence record.
+
+New adversarial checks cover: a valid-but-substituted address and recomputed Philox receipt, changed source mechanism version, omitted candidate event with retained old correspondence partition, and source projection mismatch after outer-digest recomputation.
+
+### Parent-world scope invariant
+
+Every branch/event scope in one correspondence projection must belong to the same frozen parent world/episode, including unmatched and branch-local events. Pair-local checks alone are insufficient: an unmatched event could otherwise carry a different world identity while the matched pair remains internally consistent.
+
+The projection now rejects a mixed parent-world scope table before address derivation. A focused negative control changes the world identity of an unmatched event and requires rejection. This is an execution-identity invariant, not evidence that the parent world itself is physically valid.

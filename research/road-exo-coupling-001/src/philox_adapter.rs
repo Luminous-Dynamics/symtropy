@@ -9,9 +9,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use rand_philox::Philox;
 
 use crate::DrawAddress;
+use crate::correspondence::CorrespondenceSet;
 use crate::coupling_projection::{
-    CorrespondenceAddressPlan, HypothesisAddressPlan, PlanCompleteness, PlannedAddress,
-    PlannedPresence, SharingStatus,
+    CorrespondenceAddressPlan, EventDrawScope, HypothesisAddressPlan, PairCausalRule,
+    PlanCompleteness, PlannedAddress, PlannedPresence, SharingStatus,
+    project_correspondence_addresses,
 };
 
 pub const ADDRESS_SCHEMA_ID: &str = "symtropy.road-exo-coupling.draw-address.v0.1";
@@ -241,6 +243,12 @@ pub struct CorrespondenceDrawBundle {
     pub left_branch: crate::StableId,
     pub right_branch: crate::StableId,
     pub completeness: PlanCompleteness,
+    /// Exact candidate universe and all correspondence hypotheses used for projection.
+    pub source_correspondence: CorrespondenceSet,
+    /// Exact canonical event scopes used for projection.
+    pub source_event_scopes: Vec<EventDrawScope>,
+    /// Exact caller-supplied causal source dispositions used for projection.
+    pub source_pair_rules: Vec<PairCausalRule>,
     /// Original candidate-universe evidence reference/status from correspondence input.
     pub universe_status: crate::correspondence::CandidateUniverseStatus,
     /// Original hypothesis-search evidence reference/status from correspondence input.
@@ -256,6 +264,7 @@ const CORRESPONDENCE_DRAW_BUNDLE_DERIVATION_CONTEXT: &str =
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CorrespondenceBundleVerificationError {
     BundleDigestMismatch,
+    SourceProjectionMismatch,
     HypothesisMetadataMismatch,
     DrawReceiptMismatch,
     AddressCollision,
@@ -272,6 +281,44 @@ pub fn correspondence_draw_bundle_digest(bundle: &CorrespondenceDrawBundle) -> [
     hash_stable_id(&mut hasher, &bundle.left_branch);
     hash_stable_id(&mut hasher, &bundle.right_branch);
     hash_completeness(&mut hasher, bundle.completeness);
+    match bundle.source_correspondence.canonical_bytes() {
+        Ok(bytes) => {
+            hasher.update(&[1]);
+            hash_bytes(&mut hasher, &bytes);
+        }
+        Err(_) => {
+            // Invalid source input is rejected by verification; retain a typed
+            // marker here rather than panic while calculating a diagnostic digest.
+            hasher.update(&[0]);
+        }
+    }
+    let mut source_scopes = bundle.source_event_scopes.iter().collect::<Vec<_>>();
+    source_scopes.sort_by(|a, b| (&a.branch_id, &a.event_id).cmp(&(&b.branch_id, &b.event_id)));
+    hash_len(&mut hasher, source_scopes.len());
+    for scope in source_scopes {
+        hash_stable_id(&mut hasher, &scope.world_id);
+        hash_stable_id(&mut hasher, &scope.branch_id);
+        hash_stable_id(&mut hasher, &scope.event_id);
+        hasher.update(&scope.tick.to_le_bytes());
+        hash_stable_id(&mut hasher, &scope.event_kind);
+        hash_stable_id(&mut hasher, &scope.source.source_id);
+        hash_stable_id(&mut hasher, &scope.source.mechanism_id);
+        hash_stable_id(&mut hasher, &scope.source.mechanism_version);
+        hash_stable_id(&mut hasher, &scope.source.draw_component);
+    }
+    let mut source_rules = bundle.source_pair_rules.iter().collect::<Vec<_>>();
+    source_rules.sort_by(|a, b| {
+        (&a.hypothesis_id, &a.left_event, &a.right_event, a.basis).cmp(&(
+            &b.hypothesis_id,
+            &b.left_event,
+            &b.right_event,
+            b.basis,
+        ))
+    });
+    hash_len(&mut hasher, source_rules.len());
+    for rule in source_rules {
+        hash_pair_causal_rule(&mut hasher, rule);
+    }
     hash_universe_status(&mut hasher, &bundle.universe_status);
     hash_hypothesis_set_status(&mut hasher, &bundle.hypothesis_set_status);
     hash_len(&mut hasher, bundle.hypotheses.len());
@@ -328,6 +375,21 @@ pub fn verify_correspondence_draw_bundle(
             .any(|hypothesis| hypothesis.completeness == PlanCompleteness::Incomplete))
     {
         return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+    }
+
+    // Re-run the full semantic projection from retained source inputs before
+    // accepting any draw. A self-consistent Philox receipt is insufficient if
+    // its canonical address was not produced by the declared event/cause model.
+    let projected = project_correspondence_addresses(
+        &bundle.source_correspondence,
+        &bundle.source_event_scopes,
+        &bundle.source_pair_rules,
+    )
+    .map_err(|_| CorrespondenceBundleVerificationError::SourceProjectionMismatch)?;
+    let expected_bundle = resolve_correspondence_plan(experiment_seed, &projected)
+        .map_err(|_| CorrespondenceBundleVerificationError::AddressCollision)?;
+    if !projection_metadata_matches(&expected_bundle, bundle) {
+        return Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch);
     }
 
     let mut collision_registry = AddressCollisionRegistry::default();
@@ -442,6 +504,49 @@ pub fn verify_correspondence_draw_bundle(
         }
     }
     Ok(())
+}
+
+/// Compare the source-derived projection metadata without pre-empting the
+/// more specific raw-draw receipt verifier below.
+fn projection_metadata_matches(
+    expected: &CorrespondenceDrawBundle,
+    actual: &CorrespondenceDrawBundle,
+) -> bool {
+    if expected.bundle_schema != actual.bundle_schema
+        || expected.left_branch != actual.left_branch
+        || expected.right_branch != actual.right_branch
+        || expected.completeness != actual.completeness
+        || expected.source_correspondence != actual.source_correspondence
+        || expected.source_event_scopes != actual.source_event_scopes
+        || expected.source_pair_rules != actual.source_pair_rules
+        || expected.universe_status != actual.universe_status
+        || expected.hypothesis_set_status != actual.hypothesis_set_status
+        || expected.hypotheses.len() != actual.hypotheses.len()
+    {
+        return false;
+    }
+
+    expected.hypotheses.iter().zip(&actual.hypotheses).all(
+        |(expected_hypothesis, actual_hypothesis)| {
+            expected_hypothesis.hypothesis_id == actual_hypothesis.hypothesis_id
+                && expected_hypothesis.completeness == actual_hypothesis.completeness
+                && expected_hypothesis.correspondence == actual_hypothesis.correspondence
+                && expected_hypothesis.causal_rules == actual_hypothesis.causal_rules
+                && expected_hypothesis.draws.len() == actual_hypothesis.draws.len()
+                && expected_hypothesis
+                    .draws
+                    .iter()
+                    .zip(&actual_hypothesis.draws)
+                    .all(|(expected_draw, actual_draw)| {
+                        expected_draw.hypothesis_id == actual_draw.hypothesis_id
+                            && expected_draw.branch_id == actual_draw.branch_id
+                            && expected_draw.event_id == actual_draw.event_id
+                            && expected_draw.sharing == actual_draw.sharing
+                            && expected_draw.presence == actual_draw.presence
+                            && expected_draw.canonical_address == actual_draw.canonical_address
+                    })
+        },
+    )
 }
 
 fn find_unique_draw<'a>(
@@ -694,6 +799,9 @@ pub fn resolve_correspondence_plan(
         left_branch: plan.left_branch.clone(),
         right_branch: plan.right_branch.clone(),
         completeness: plan.completeness,
+        source_correspondence: plan.source_correspondence.clone(),
+        source_event_scopes: plan.source_event_scopes.clone(),
+        source_pair_rules: plan.source_pair_rules.clone(),
         universe_status: plan.universe_status.clone(),
         hypothesis_set_status: plan.hypothesis_set_status.clone(),
         hypotheses,
@@ -749,12 +857,14 @@ pub fn verify_correspondence_receipt(
 mod tests {
     use super::*;
     use crate::correspondence::{
-        CandidateUniverseStatus, CorrespondenceHypothesis, EventPair, HypothesisSetStatus,
-        IdentityBasis, UnmatchedEvent, UnmatchedReason,
+        CandidateUniverseStatus, CorrespondenceHypothesis, CorrespondenceSet, EventOccurrence,
+        EventPair, EventPresence, HypothesisSetStatus, IdentityBasis, UnmatchedEvent,
+        UnmatchedReason,
     };
     use crate::coupling_projection::{
-        CausalDisposition, CorrespondenceAddressPlan, HypothesisAddressPlan, PairCausalRule,
-        PlanCompleteness, PlannedAddress, PlannedPresence, SharingStatus,
+        CausalDisposition, CorrespondenceAddressPlan, EventDrawScope, PairCausalRule,
+        PlanCompleteness, PlannedAddress, PlannedPresence, SharingStatus, SourceProfile,
+        project_correspondence_addresses,
     };
     use crate::{Coupling, EventIdentity, StableId};
 
@@ -826,6 +936,34 @@ mod tests {
         }
     }
 
+    fn event(event_id: &str, actor: &str, slot: &str, presence: EventPresence) -> EventOccurrence {
+        EventOccurrence {
+            event_id: id(event_id),
+            event_family: id("crossing-gap-choice"),
+            actor: Some(id(actor)),
+            initiator: Some(id("ego-1")),
+            recipient: Some(id(actor)),
+            encounter_slot: Some(id(slot)),
+            presence,
+        }
+    }
+
+    fn scope(branch: &str, event_id: &str) -> EventDrawScope {
+        EventDrawScope {
+            world_id: id("world-17"),
+            branch_id: id(branch),
+            event_id: id(event_id),
+            tick: 120,
+            event_kind: id("pedestrian-response-noise"),
+            source: SourceProfile {
+                source_id: id("crossing-policy-noise"),
+                mechanism_id: id("actor-response"),
+                mechanism_version: id("policy-noise-v1"),
+                draw_component: id("normal-0"),
+            },
+        }
+    }
+
     fn planned_address(
         branch: &str,
         event: &str,
@@ -843,117 +981,70 @@ mod tests {
     }
 
     fn correspondence_plan() -> CorrespondenceAddressPlan {
-        let shared_pair = b"v0.2:world-17:H-actor:pair-L1-R1".to_vec();
-        let alternative_left = b"v0.2:world-17:H-slot:pair-L1-R2:left".to_vec();
-        let alternative_right = b"v0.2:world-17:H-slot:pair-L1-R2:right".to_vec();
-        let actor_unmatched = b"v0.2:world-17:H-actor:unmatched-yield-R2".to_vec();
-        let slot_unmatched = b"v0.2:world-17:H-slot:unmatched-yield-R1".to_vec();
-        CorrespondenceAddressPlan {
+        let correspondence = CorrespondenceSet {
             left_branch: id("continue"),
             right_branch: id("yield"),
-            completeness: PlanCompleteness::CompleteWithinDeclaredSets,
+            left_events: vec![event(
+                "L1",
+                "ped-004",
+                "encounter-slot-17",
+                EventPresence::Observed {
+                    evidence_ref: id("left-evidence"),
+                },
+            )],
+            right_events: vec![
+                event(
+                    "R1",
+                    "ped-004",
+                    "encounter-slot-17",
+                    EventPresence::NotRealized {
+                        condition_witness: id("not-observed-after-yield"),
+                    },
+                ),
+                event(
+                    "R2",
+                    "ped-009",
+                    "encounter-slot-17",
+                    EventPresence::Observed {
+                        evidence_ref: id("actor-unmatched-evidence"),
+                    },
+                ),
+            ],
+            hypotheses: vec![
+                correspondence_hypothesis("H-actor", "R1", IdentityBasis::Actor, "R2"),
+                correspondence_hypothesis("H-slot", "R2", IdentityBasis::EncounterSlot, "R1"),
+            ],
             universe_status: CandidateUniverseStatus::ExhaustiveWithinDeclaredScope {
                 evidence_ref: id("fixture-event-universe"),
             },
             hypothesis_set_status: HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily {
                 evidence_ref: id("fixture-hypothesis-search"),
             },
-            hypotheses: vec![
-                HypothesisAddressPlan {
-                    hypothesis_id: id("H-actor"),
-                    completeness: PlanCompleteness::CompleteWithinDeclaredSets,
-                    correspondence: correspondence_hypothesis(
-                        "H-actor",
-                        "R1",
-                        IdentityBasis::Actor,
-                        "R2",
-                    ),
-                    causal_rules: vec![pair_causal_rule(
-                        "H-actor",
-                        "R1",
-                        IdentityBasis::Actor,
-                        CausalDisposition::SharedInvariant {
-                            equivalence_group: id("crossing-weather"),
-                            justification: id("scm:weather-v1"),
-                        },
-                    )],
-                    addresses: vec![
-                        planned_address(
-                            "continue",
-                            "L1",
-                            &shared_pair,
-                            SharingStatus::SharedInvariant,
-                            PlannedPresence::Observed {
-                                evidence_ref: id("left-evidence"),
-                            },
-                        ),
-                        planned_address(
-                            "yield",
-                            "R1",
-                            &shared_pair,
-                            SharingStatus::SharedInvariant,
-                            PlannedPresence::NotRealized {
-                                condition_witness: id("not-observed-after-yield"),
-                            },
-                        ),
-                        planned_address(
-                            "yield",
-                            "R2",
-                            &actor_unmatched,
-                            SharingStatus::NoCounterpartUnderHypothesis,
-                            PlannedPresence::Observed {
-                                evidence_ref: id("actor-unmatched-evidence"),
-                            },
-                        ),
-                    ],
+        };
+        let event_scopes = vec![
+            scope("continue", "L1"),
+            scope("yield", "R1"),
+            scope("yield", "R2"),
+        ];
+        let pair_rules = vec![
+            pair_causal_rule(
+                "H-actor",
+                "R1",
+                IdentityBasis::Actor,
+                CausalDisposition::SharedInvariant {
+                    equivalence_group: id("crossing-weather"),
+                    justification: id("scm:weather-v1"),
                 },
-                HypothesisAddressPlan {
-                    hypothesis_id: id("H-slot"),
-                    completeness: PlanCompleteness::CompleteWithinDeclaredSets,
-                    correspondence: correspondence_hypothesis(
-                        "H-slot",
-                        "R2",
-                        IdentityBasis::EncounterSlot,
-                        "R1",
-                    ),
-                    causal_rules: vec![pair_causal_rule(
-                        "H-slot",
-                        "R2",
-                        IdentityBasis::EncounterSlot,
-                        CausalDisposition::BranchSpecific,
-                    )],
-                    addresses: vec![
-                        planned_address(
-                            "continue",
-                            "L1",
-                            &alternative_left,
-                            SharingStatus::BranchSpecific,
-                            PlannedPresence::Observed {
-                                evidence_ref: id("left-evidence"),
-                            },
-                        ),
-                        planned_address(
-                            "yield",
-                            "R2",
-                            &alternative_right,
-                            SharingStatus::BranchSpecific,
-                            PlannedPresence::Observed {
-                                evidence_ref: id("right-slot-evidence"),
-                            },
-                        ),
-                        planned_address(
-                            "yield",
-                            "R1",
-                            &slot_unmatched,
-                            SharingStatus::NoCounterpartUnderHypothesis,
-                            PlannedPresence::Observed {
-                                evidence_ref: id("slot-unmatched-evidence"),
-                            },
-                        ),
-                    ],
-                },
-            ],
-        }
+            ),
+            pair_causal_rule(
+                "H-slot",
+                "R2",
+                IdentityBasis::EncounterSlot,
+                CausalDisposition::BranchSpecific,
+            ),
+        ];
+        project_correspondence_addresses(&correspondence, &event_scopes, &pair_rules)
+            .expect("exact correspondence input projects to a valid address plan")
     }
 
     #[test]
@@ -1007,6 +1098,9 @@ mod tests {
 
         assert_eq!(resolved.universe_status, plan.universe_status);
         assert_eq!(resolved.hypothesis_set_status, plan.hypothesis_set_status);
+        assert_eq!(resolved.source_correspondence, plan.source_correspondence);
+        assert_eq!(resolved.source_event_scopes, plan.source_event_scopes);
+        assert_eq!(resolved.source_pair_rules, plan.source_pair_rules);
         assert_eq!(resolved.hypotheses.len(), plan.hypotheses.len());
 
         for (resolved_hypothesis, planned_hypothesis) in
@@ -1100,6 +1194,49 @@ mod tests {
     }
 
     #[test]
+    fn verifier_rejects_readdressed_draw_even_when_philox_and_outer_digest_are_recomputed() {
+        let seed = [0xa7; 32];
+        let plan = correspondence_plan();
+        let mut bundle = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
+
+        let changed_address = b"attacker-selected-address-not-derived-from-source".to_vec();
+        let receipt = &mut bundle.hypotheses[0].draws[0];
+        receipt.canonical_address = changed_address.clone();
+        receipt.draw = resolve_correspondence_address(&seed, &changed_address);
+        bundle.bundle_digest = correspondence_draw_bundle_digest(&bundle);
+
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &bundle),
+            Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch)
+        );
+    }
+
+    #[test]
+    fn verifier_rejects_source_scope_or_candidate_mutation_after_rehash() {
+        let seed = [0xb8; 32];
+        let plan = correspondence_plan();
+        let original = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
+
+        let mut changed_scope = original.clone();
+        changed_scope.source_event_scopes[0]
+            .source
+            .mechanism_version = id("substituted-mechanism-version");
+        changed_scope.bundle_digest = correspondence_draw_bundle_digest(&changed_scope);
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &changed_scope),
+            Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch)
+        );
+
+        let mut changed_universe = original;
+        changed_universe.source_correspondence.right_events.pop();
+        changed_universe.bundle_digest = correspondence_draw_bundle_digest(&changed_universe);
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &changed_universe),
+            Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch)
+        );
+    }
+
+    #[test]
     fn bundle_verifier_rejects_complete_claim_with_incomplete_search_after_rehash() {
         let seed = [0x6a; 32];
         let plan = correspondence_plan();
@@ -1124,7 +1261,7 @@ mod tests {
         bundle.bundle_digest = correspondence_draw_bundle_digest(&bundle);
         assert_eq!(
             verify_correspondence_draw_bundle(&seed, &bundle),
-            Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)
+            Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch)
         );
     }
 
@@ -1142,6 +1279,8 @@ mod tests {
         plan.hypothesis_set_status = HypothesisSetStatus::IncompleteOrBudgetLimited {
             evidence_ref: id("bounded-hypothesis-search"),
         };
+        plan.source_correspondence.universe_status = plan.universe_status.clone();
+        plan.source_correspondence.hypothesis_set_status = plan.hypothesis_set_status.clone();
         let resolved = resolve_correspondence_plan(&seed, &plan).expect("known draws can resolve");
 
         assert_eq!(resolved.completeness, PlanCompleteness::Incomplete);
@@ -1213,8 +1352,15 @@ mod tests {
     fn incomplete_correspondence_keeps_an_incomplete_draw_bundle() {
         let seed = [0x88; 32];
         let mut plan = correspondence_plan();
-        plan.completeness = PlanCompleteness::Incomplete;
-        plan.hypotheses[0].completeness = PlanCompleteness::Incomplete;
+        plan.source_correspondence.universe_status = CandidateUniverseStatus::Incomplete {
+            evidence_ref: id("bounded-universe-search"),
+        };
+        plan = project_correspondence_addresses(
+            &plan.source_correspondence,
+            &plan.source_event_scopes,
+            &plan.source_pair_rules,
+        )
+        .expect("incomplete source contract still yields known address plans");
 
         let resolved = resolve_correspondence_plan(&seed, &plan).expect("known plans can resolve");
         assert_eq!(resolved.completeness, PlanCompleteness::Incomplete);

@@ -116,6 +116,12 @@ pub struct CorrespondenceAddressPlan {
     pub left_branch: StableId,
     pub right_branch: StableId,
     pub completeness: PlanCompleteness,
+    /// Exact source event universe and correspondence hypotheses used to derive this plan.
+    pub source_correspondence: CorrespondenceSet,
+    /// Exact source event scopes used to derive semantic draw addresses.
+    pub source_event_scopes: Vec<EventDrawScope>,
+    /// Exact caller-supplied causal rules, retained separately from derived addresses.
+    pub source_pair_rules: Vec<PairCausalRule>,
     /// Original evidence references for the declared candidate event universe.
     /// These IDs preserve provenance; they do not validate the referenced evidence.
     pub universe_status: CandidateUniverseStatus,
@@ -138,6 +144,7 @@ pub enum ProjectionError {
     SharedTickMismatch,
     SharedEventKindMismatch,
     SharedWorldMismatch,
+    MixedWorldScope,
 }
 
 impl From<CorrespondenceError> for ProjectionError {
@@ -349,6 +356,20 @@ pub fn project_correspondence_addresses(
     }
 
     hypotheses.sort_by(|a, b| a.hypothesis_id.cmp(&b.hypothesis_id));
+
+    let mut source_event_scopes = event_scopes.to_vec();
+    source_event_scopes
+        .sort_by(|a, b| (&a.branch_id, &a.event_id).cmp(&(&b.branch_id, &b.event_id)));
+    let mut source_pair_rules = pair_rules.to_vec();
+    source_pair_rules.sort_by(|a, b| {
+        (&a.hypothesis_id, &a.left_event, &a.right_event, a.basis).cmp(&(
+            &b.hypothesis_id,
+            &b.left_event,
+            &b.right_event,
+            b.basis,
+        ))
+    });
+
     Ok(CorrespondenceAddressPlan {
         left_branch: correspondence.left_branch.clone(),
         right_branch: correspondence.right_branch.clone(),
@@ -357,6 +378,9 @@ pub fn project_correspondence_addresses(
         } else {
             PlanCompleteness::Incomplete
         },
+        source_correspondence: correspondence.clone(),
+        source_event_scopes,
+        source_pair_rules,
         universe_status: correspondence.universe_status.clone(),
         hypothesis_set_status: correspondence.hypothesis_set_status.clone(),
         hypotheses,
@@ -395,10 +419,18 @@ fn index_scopes(
     }
 
     let mut indexed = BTreeMap::new();
+    let mut parent_world: Option<&StableId> = None;
     for scope in scopes {
         let key = (scope.branch_id.clone(), scope.event_id.clone());
         if !expected.contains(&key) {
             return Err(ProjectionError::WrongBranchScope);
+        }
+        if let Some(world_id) = parent_world {
+            if world_id != &scope.world_id {
+                return Err(ProjectionError::MixedWorldScope);
+            }
+        } else {
+            parent_world = Some(&scope.world_id);
         }
         if indexed.insert(key, scope.clone()).is_some() {
             return Err(ProjectionError::DuplicateEventScope);
@@ -946,7 +978,16 @@ mod tests {
         scopes[1].world_id = id("different-world");
         assert_eq!(
             project_correspondence_addresses(&correspondence, &scopes, &rules),
-            Err(ProjectionError::SharedWorldMismatch)
+            Err(ProjectionError::MixedWorldScope)
+        );
+
+        // R2 is unmatched in the actor hypothesis, but still belongs to
+        // the same frozen parent experiment world as every other event.
+        let mut scopes = all_scopes();
+        scopes[2].world_id = id("unrelated-world");
+        assert_eq!(
+            project_correspondence_addresses(&correspondence, &scopes, &rules),
+            Err(ProjectionError::MixedWorldScope)
         );
     }
 

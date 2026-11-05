@@ -1,17 +1,87 @@
 {
-  "schema": "symtropy.road-correspondence-coupling-fixtures.v0.1",
-  "scope": "finite address-projection conformance only",
+  "schema": "symtropy.road-correspondence-coupling-fixtures.v0.2",
+  "scope": "finite source-to-address projection and Philox receipt replay conformance",
   "cases": [
-    {"id":"CC-01","case":"actor-vs-slot-ambiguous-maps","expected":"retain_two_distinct_hypothesis_address_plans"},
-    {"id":"CC-02","case":"same-pair-shared-vs-branch-specific-source","expected":"sharing_requires_separate_causal_disposition"},
-    {"id":"CC-03","case":"alternative-counterpart-mappings","expected":"different_pairing_produces_different_pair_address"},
-    {"id":"CC-04","case":"conditionally-not-realized-event","expected":"same_potential_event_address_presence_is_receipt_metadata"},
-    {"id":"CC-05","case":"unknown-event-presence","expected":"no_shared_address"},
-    {"id":"CC-06","case":"incomplete-hypothesis-search","expected":"known_plans_retained_global_status_incomplete"},
-    {"id":"CC-07","case":"causal-source-or-version-mismatch","expected":"reject_shared_invariance"},
-    {"id":"CC-08","case":"branch-local-address-across-alternative-maps","expected":"same_local_event_keeps_same_local_address"},
-    {"id":"CC-09","case":"sensitivity-only-coupling","expected":"paired_for_sensitivity_not_identified"},
-    {"id":"CC-10","case":"duplicate-pair-causal-rule","expected":"reject"}
+    {
+      "id": "CC-01",
+      "case": "actor-vs-slot-ambiguous-maps",
+      "expected": "retain_two_distinct_hypothesis_address_plans"
+    },
+    {
+      "id": "CC-02",
+      "case": "same-pair-shared-vs-branch-specific-source",
+      "expected": "sharing_requires_separate_causal_disposition"
+    },
+    {
+      "id": "CC-03",
+      "case": "alternative-counterpart-mappings",
+      "expected": "different_pairing_produces_different_pair_address"
+    },
+    {
+      "id": "CC-04",
+      "case": "conditionally-not-realized-event",
+      "expected": "same_potential_event_address_presence_is_receipt_metadata"
+    },
+    {
+      "id": "CC-05",
+      "case": "unknown-event-presence",
+      "expected": "no_shared_address"
+    },
+    {
+      "id": "CC-06",
+      "case": "incomplete-hypothesis-search",
+      "expected": "known_plans_retained_global_status_incomplete"
+    },
+    {
+      "id": "CC-07",
+      "case": "causal-source-or-version-mismatch",
+      "expected": "reject_shared_invariance"
+    },
+    {
+      "id": "CC-08",
+      "case": "branch-local-address-across-alternative-maps",
+      "expected": "same_local_event_keeps_same_local_address"
+    },
+    {
+      "id": "CC-09",
+      "case": "sensitivity-only-coupling",
+      "expected": "paired_for_sensitivity_not_identified"
+    },
+    {
+      "id": "CC-10",
+      "case": "duplicate-pair-causal-rule",
+      "expected": "reject"
+    },
+    {
+      "id": "CC-11",
+      "case": "readdressed-draw-with-valid-philox-and-recomputed-bundle-digest",
+      "expected": "reject_source_projection_mismatch"
+    },
+    {
+      "id": "CC-12",
+      "case": "source-mechanism-version-changed-after-address-projection",
+      "expected": "reject_source_projection_mismatch"
+    },
+    {
+      "id": "CC-13",
+      "case": "candidate-event-removed-with-old-correspondence-partition",
+      "expected": "reject_structural_projection"
+    },
+    {
+      "id": "CC-14",
+      "case": "caller-supplied-incomplete-source-search",
+      "expected": "preserve_incomplete_after_reprojection"
+    },
+    {
+      "id": "CC-15",
+      "case": "bundle-digest-replacement-without-independent-anchor",
+      "expected": "content_commitment_is_not_authentication"
+    },
+    {
+      "id": "CC-16",
+      "case": "unmatched-event-in-different-parent-world",
+      "expected": "reject_mixed_world_scope"
+    }
   ],
-  "claim_ceiling": "No event map is selected as true; no causal invariance is inferred; no Philox words are generated; no variance reduction, physical validity or vehicle safety is established."
+  "claim_ceiling": "Passing establishes deterministic re-projection and raw Philox receipt conformance for the retained finite inputs. It does not authenticate evidence truth, prove candidate-universe or hypothesis-family exhaustiveness, select the true correspondence or causal model, establish CRN variance reduction, validate real human behaviour or physics, or certify vehicle safety."
 }
