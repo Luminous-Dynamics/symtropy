@@ -98,7 +98,8 @@ pub struct ZoneRequestObservation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NavigationMapObservation {
     pub map_id: String,
-    pub map_version: Option<String>,
+    pub map_version: String,
+    pub map_status: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -240,7 +241,8 @@ impl Observation {
                 })).collect::<Vec<_>>(),
                 "navigation_maps": navigation_maps.iter().map(|item| json!({
                     "map_id": item.map_id,
-                    "map_version": item.map_version
+                    "map_version": item.map_version,
+                    "map_status": item.map_status
                 })).collect::<Vec<_>>(),
                 "safety_state_reported": safety_state_reported
             }),
@@ -458,10 +460,10 @@ fn merge_and_check_identity(
             });
         }
     }
-    if let (Some(path_identity), Some(explicit_identity)) = (&from_topic, &supplied) {
-        if path_identity != explicit_identity {
-            return shape("explicit topic identity differs from five-level MQTT topic identity");
-        }
+    if let (Some(path_identity), Some(explicit_identity)) = (&from_topic, &supplied)
+        && path_identity != explicit_identity
+    {
+        return shape("explicit topic identity differs from five-level MQTT topic identity");
     }
     Ok(supplied.or(from_topic))
 }
@@ -826,13 +828,15 @@ fn parse_navigation_maps(values: &[Value]) -> Result<Vec<NavigationMapObservatio
     for value in values {
         let object = as_object(value, "maps[]")?;
         let map_id = non_empty_string(field(object, "mapId")?, "mapId")?.to_owned();
-        let map_version = object
-            .get("mapVersion")
-            .map(|value| string(value, "mapVersion").map(str::to_owned))
-            .transpose()?;
+        let map_version = non_empty_string(field(object, "mapVersion")?, "mapVersion")?.to_owned();
+        let map_status = non_empty_string(field(object, "mapStatus")?, "mapStatus")?.to_owned();
+        if !["ENABLED", "DISABLED"].contains(&map_status.as_str()) {
+            return shape("mapStatus is outside the VDA 5050 v3.0.0 enumeration");
+        }
         result.push(NavigationMapObservation {
             map_id,
             map_version,
+            map_status,
         });
     }
     Ok(result)
@@ -1094,7 +1098,7 @@ mod tests {
         assert_eq!(decoded.payload_sha256.len(), 64);
         assert!(matches!(
             decoded.observation,
-            Observation::TransportOrderReceived { order_id, order_update_id: 2, .. }
+            Observation::TransportOrderReceived { ref order_id, order_update_id: 2, .. }
                 if order_id == "transport-1"
         ));
         assert_eq!(
@@ -1175,13 +1179,15 @@ mod tests {
     fn map_version_is_navigation_map_only() {
         let decoded = message(
             "state",
-            r#""orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[],"edgeStates":[],"driving":false,"actionStates":[],"instantActionStates":[],"powerSupply":{"stateOfCharge":90,"charging":false},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{"activeEmergencyStop":"NONE","fieldViolation":false},"maps":[{"mapId":"floor-2","mapVersion":"map-17"}]"#,
+            r#""orderId":"transport-1","orderUpdateId":2,"lastNodeId":"n0","lastNodeSequenceId":0,"nodeStates":[],"edgeStates":[],"driving":false,"actionStates":[],"instantActionStates":[],"powerSupply":{"stateOfCharge":90,"charging":false},"operatingMode":"AUTOMATIC","errors":[],"safetyState":{"activeEmergencyStop":"NONE","fieldViolation":false},"maps":[{"mapId":"floor-2","mapVersion":"map-17","mapStatus":"ENABLED"}]"#,
         );
         match decoded.observation {
             Observation::RobotStateReported {
-                navigation_maps, ..
+                ref navigation_maps,
+                ..
             } => {
-                assert_eq!(navigation_maps[0].map_version.as_deref(), Some("map-17"));
+                assert_eq!(navigation_maps[0].map_version, "map-17");
+                assert_eq!(navigation_maps[0].map_status, "ENABLED");
             }
             other => panic!("unexpected observation: {other:?}"),
         }
@@ -1197,7 +1203,7 @@ mod tests {
     fn factsheet_remains_a_reported_claim() {
         let decoded = message(
             "factsheet",
-            r#""typeSpecification":{"seriesName":"ACME","mobileRobotKinematics":"DIFFERENTIAL","mobileRobotClass":"CARRIER","maximumLoadMass":100.0,"localizationTypes":["NATURAL"],"navigationTypes":["AUTONOMOUS"]},"physicalParameters":{"minimumSpeed":0.0,"maximumSpeed":1.0,"maximumAcceleration":0.5,"maximumDeceleration":0.5,"minimumHeight":0.2,"maximumHeight":2.0,"width":0.8,"length":1.2},"protocolLimits":{"maximumStringLengths":{},"maximumArrayLengths":{},"timing":{"minimumOrderInterval":0.1,"minimumStateInterval":0.1}},"protocolFeatures":{"optionalParameters":[],"mobileRobotActions":[]},"mobileRobotGeometry":{},"loadSpecification":{}}"#,
+            r#""typeSpecification":{"seriesName":"ACME","mobileRobotKinematics":"DIFFERENTIAL","mobileRobotClass":"CARRIER","maximumLoadMass":100.0,"localizationTypes":["NATURAL"],"navigationTypes":["AUTONOMOUS"]},"physicalParameters":{"minimumSpeed":0.0,"maximumSpeed":1.0,"maximumAcceleration":0.5,"maximumDeceleration":0.5,"minimumHeight":0.2,"maximumHeight":2.0,"width":0.8,"length":1.2},"protocolLimits":{"maximumStringLengths":{},"maximumArrayLengths":{},"timing":{"minimumOrderInterval":0.1,"minimumStateInterval":0.1}},"protocolFeatures":{"optionalParameters":[],"mobileRobotActions":[]},"mobileRobotGeometry":{},"loadSpecification":{}"#,
         );
         assert!(matches!(
             decoded.observation,

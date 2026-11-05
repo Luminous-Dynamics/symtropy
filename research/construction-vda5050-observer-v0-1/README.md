@@ -86,7 +86,7 @@ The fixtures include valid order, state/action-FINISHED, factsheet, zoneSet, con
 - local topic/header identity mismatch and cloud hierarchy identity binding;
 - action FINISHED as executor-only;
 - zone GRANTED and responses GRANTED as fleet traffic only;
-- mapVersion as navigation-only;
+- mapId/mapVersion/mapStatus as navigation-map metadata only (including ENABLED/DISABLED);
 - factsheet as a reported claim;
 - zoneSet geometry/category as fleet information;
 - connection state, instant action request and zone response handling;
@@ -115,6 +115,14 @@ This decoder validates a bounded subset of each supported message and does not c
 - #3709: byte-preserving sealed trace and Rust verifier.
 - #3722: independent construction-layout benchmark.
 - #3723: read-only VDA 3.0 observer.
+
+## Independent differential replay
+
+The focused workflow also runs `scripts/differential_replay.py`, a CI-only independent Python standard-library oracle. It parses the same exact fixture files as the Rust CLI, projects the same documented VDA fields independently, and compares the complete normalized output: protocol/version/topic, header, topic identity, raw-payload SHA-256 and observation.
+
+The runner checks all seven message fixtures and includes negative controls for wrong topic, topic/header identity mismatch, duplicate JSON keys and invalid action status. A whitespace-only mutation must preserve semantic output while changing the exact-byte payload digest. The Python code is test infrastructure only; production observer functionality remains Rust.
+
+This establishes independent agreement over a frozen synthetic corpus, not full standard conformance or field interoperability.
 
 ## Claim ceiling
 
