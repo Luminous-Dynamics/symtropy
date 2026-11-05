@@ -171,6 +171,8 @@ pub enum ResourceUnit {
     Tonnes,
     Teu,
     Passengers,
+    Vehicles,
+    Containers,
     WattHours,
 }
 
@@ -312,6 +314,9 @@ pub enum ValidationError {
     ArrivalIntervalEvidenceMismatch(String),
     InvalidVoyageAlternative(String),
     RouteAlternativeMismatch(String),
+    DemandRouteMismatch,
+    DemandResourceUnitMismatch(String),
+    DemandResourceShortfall(String),
     HardConstraintUnknown(String),
     HardConstraintBlocked(String),
     MissingConstraintEvidence(String),
@@ -414,7 +419,11 @@ fn resource_unit_matches_kind(kind: ResourceKind, unit: ResourceUnit) -> bool {
         ResourceKind::Berth => unit == ResourceUnit::BerthSlots,
         ResourceKind::TerminalHandling | ResourceKind::InlandTransfer => matches!(
             unit,
-            ResourceUnit::Tonnes | ResourceUnit::Teu | ResourceUnit::Passengers
+            ResourceUnit::Tonnes
+                | ResourceUnit::Teu
+                | ResourceUnit::Passengers
+                | ResourceUnit::Vehicles
+                | ResourceUnit::Containers
         ),
         ResourceKind::ShorePower => unit == ResourceUnit::WattHours,
     }
@@ -532,6 +541,11 @@ fn validate_evidence_records(case: &ServiceChainCase) -> Result<(), ValidationEr
 }
 
 fn validate_route(case: &ServiceChainCase) -> Result<(), ValidationError> {
+    if case.demand.origin_node_id != case.origin_node_id
+        || case.demand.destination_node_id != case.destination_node_id
+    {
+        return Err(ValidationError::DemandRouteMismatch);
+    }
     if case.route_segments.is_empty() {
         return Err(ValidationError::EmptyRoute);
     }
@@ -573,6 +587,16 @@ fn validate_route(case: &ServiceChainCase) -> Result<(), ValidationError> {
         ));
     }
     Ok(())
+}
+
+fn resource_unit_for_service(unit: ServiceUnit) -> ResourceUnit {
+    match unit {
+        ServiceUnit::Tonnes => ResourceUnit::Tonnes,
+        ServiceUnit::Teu => ResourceUnit::Teu,
+        ServiceUnit::Passengers => ResourceUnit::Passengers,
+        ServiceUnit::Vehicles => ResourceUnit::Vehicles,
+        ServiceUnit::Containers => ResourceUnit::Containers,
+    }
 }
 
 fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
@@ -652,6 +676,22 @@ fn validate_resources(case: &ServiceChainCase) -> Result<(), ValidationError> {
                 return Err(ValidationError::ResourceUnitMismatch(
                     usage.resource_id.clone(),
                 ));
+            }
+            if matches!(
+                resource.kind,
+                ResourceKind::TerminalHandling | ResourceKind::InlandTransfer
+            ) {
+                let expected_unit = resource_unit_for_service(case.demand.service_unit);
+                if usage.unit != expected_unit {
+                    return Err(ValidationError::DemandResourceUnitMismatch(
+                        usage.resource_id.clone(),
+                    ));
+                }
+                if usage.amount < case.demand.requested_amount {
+                    return Err(ValidationError::DemandResourceShortfall(
+                        usage.resource_id.clone(),
+                    ));
+                }
             }
             if !resource_kind_allowed_for_segment(segment.kind, resource.kind) {
                 return Err(ValidationError::SegmentResourceKindMismatch(
@@ -1441,6 +1481,34 @@ mod tests {
         assert_eq!(
             validate_case(&case),
             Err(ValidationError::ResourceUnitMismatch("terminal-01".into()))
+        );
+    }
+
+    #[test]
+    fn demand_endpoints_must_match_the_frozen_route() {
+        let mut case = valid_case();
+        case.demand.destination_node_id = "berth".into();
+        assert_eq!(validate_case(&case), Err(ValidationError::DemandRouteMismatch));
+    }
+
+    #[test]
+    fn handling_and_inland_transfer_must_cover_full_demand_in_same_unit() {
+        let mut short = valid_case();
+        short.route_segments[3].resource_uses[1].amount = 9;
+        assert_eq!(
+            validate_case(&short),
+            Err(ValidationError::DemandResourceShortfall(
+                "terminal-01".into()
+            ))
+        );
+
+        let mut mismatched = valid_case();
+        mismatched.route_segments[4].resource_uses[0].unit = ResourceUnit::Teu;
+        assert_eq!(
+            validate_case(&mismatched),
+            Err(ValidationError::DemandResourceUnitMismatch(
+                "rail-01".into()
+            ))
         );
     }
 
