@@ -115,6 +115,13 @@
       "target": "manifest.capture.capture_completeness",
       "mutation": "keep unknown even though local recorder reports zero local drops",
       "expected_verification": "accept_as_integrity_valid_completeness_unknown"
+    },
+    {
+      "case_id": "TRACE-017",
+      "name": "self-consistent-unanchored-rewrite",
+      "target": "entire_trace",
+      "mutation": "change payload and recompute every event/root digest while external_anchor remains none",
+      "expected_verification": "integrity_valid_but_unanchored_not_authenticated"
     }
   ]
 }
