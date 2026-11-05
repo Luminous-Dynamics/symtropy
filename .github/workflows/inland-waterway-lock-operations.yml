@@ -1,0 +1,36 @@
+name: inland-waterway-lock-operations
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "benchmarks/inland-waterway-lock-operations/**"
+      - ".github/workflows/inland-waterway-lock-operations.yml"
+  push:
+    branches: [main]
+    paths:
+      - "benchmarks/inland-waterway-lock-operations/**"
+      - ".github/workflows/inland-waterway-lock-operations.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inland-waterway-lock-operations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-evaluator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/inland-waterway-lock-operations/Cargo.toml -- --check
+      - name: Test lock operations reference evaluator
+        run: cargo test --locked --manifest-path benchmarks/inland-waterway-lock-operations/Cargo.toml
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path benchmarks/inland-waterway-lock-operations/Cargo.toml --all-targets -- -D warnings
