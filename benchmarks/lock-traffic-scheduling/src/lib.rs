@@ -19,6 +19,9 @@ pub enum Direction {
 pub enum SchedulingPolicy {
     FirstComeFirstServed,
     LeastWaitSlack,
+    /// Greedily serves the participant with the least accumulated comparable service units.
+    /// This is a policy baseline, not a universal fairness guarantee.
+    ParticipantLeastServed,
     DirectionalBatch { max_consecutive: usize },
 }
 
@@ -439,6 +442,61 @@ struct SelectionContext<'a> {
     current_direction: Option<Direction>,
     current_batch_count: usize,
     cursor_tick: u64,
+    served_service_units_by_participant: &'a BTreeMap<String, u128>,
+}
+
+fn oldest_request_for_each_participant(
+    requests: &[PassageRequest],
+    pending: &[usize],
+) -> BTreeMap<String, usize> {
+    let mut oldest_by_participant = BTreeMap::<String, usize>::new();
+    for index in pending.iter().copied() {
+        let request = &requests[index];
+        match oldest_by_participant.get(&request.participant_id) {
+            Some(existing_index) => {
+                let existing = &requests[*existing_index];
+                let candidate_key = (
+                    request.arrival_earliest_tick,
+                    request.arrival_latest_tick,
+                    request.request_id.as_str(),
+                );
+                let existing_key = (
+                    existing.arrival_earliest_tick,
+                    existing.arrival_latest_tick,
+                    existing.request_id.as_str(),
+                );
+                if candidate_key < existing_key {
+                    oldest_by_participant.insert(request.participant_id.clone(), index);
+                }
+            }
+            None => {
+                oldest_by_participant.insert(request.participant_id.clone(), index);
+            }
+        }
+    }
+    oldest_by_participant
+}
+
+fn participant_least_service_first(
+    requests: &[PassageRequest],
+    pending: &[usize],
+    served_service_units_by_participant: &BTreeMap<String, u128>,
+) -> Option<usize> {
+    oldest_request_for_each_participant(requests, pending)
+        .into_values()
+        .min_by_key(|index| {
+            let request = &requests[*index];
+            (
+                served_service_units_by_participant
+                    .get(&request.participant_id)
+                    .copied()
+                    .unwrap_or(0),
+                request.arrival_earliest_tick,
+                request.arrival_latest_tick,
+                request.participant_id.as_str(),
+                request.request_id.as_str(),
+            )
+        })
 }
 
 fn select_next(context: &SelectionContext<'_>, policy: SchedulingPolicy) -> Option<usize> {
@@ -459,6 +517,11 @@ fn select_next(context: &SelectionContext<'_>, policy: SchedulingPolicy) -> Opti
             pending,
             current_direction,
             cursor_tick,
+        ),
+        SchedulingPolicy::ParticipantLeastServed => participant_least_service_first(
+            requests,
+            pending,
+            context.served_service_units_by_participant,
         ),
         SchedulingPolicy::DirectionalBatch { max_consecutive } => {
             let Some(direction) = current_direction else {
@@ -685,6 +748,7 @@ pub fn schedule(
     let mut current_batch_count = 0_usize;
     let mut water_used = 0_u128;
     let mut energy_used = 0_u128;
+    let mut served_service_units_by_participant = BTreeMap::<String, u128>::new();
 
     while !pending.is_empty() {
         let selection = SelectionContext {
@@ -695,6 +759,7 @@ pub fn schedule(
             current_direction,
             current_batch_count,
             cursor_tick,
+            served_service_units_by_participant: &served_service_units_by_participant,
         };
         let Some(selected_index) = select_next(&selection, policy) else {
             for index in pending.drain(..) {
@@ -796,6 +861,10 @@ pub fn schedule(
 
         water_used += u128::from(request.water_requirement_ml);
         energy_used += u128::from(request.pump_energy_requirement_wh);
+        let served_units = served_service_units_by_participant
+            .entry(request.participant_id.clone())
+            .or_default();
+        *served_units = served_units.saturating_add(u128::from(request.service_units));
         let passage = ScheduledPassage {
             request_id: request.request_id.clone(),
             vessel_id: request.vessel_id.clone(),
@@ -1103,6 +1172,53 @@ mod tests {
             plan.metrics.by_service_group["freight"].wait_distribution,
             dist
         );
+    }
+
+    #[test]
+    fn participant_least_served_rotates_before_a_second_request_from_same_participant() {
+        let mut p = profile();
+        p.unavailable_windows.clear();
+        let requests = vec![
+            request("a-first", 0, Direction::Upstream, 1, 1),
+            request("a-second", 1, Direction::Upstream, 1, 1),
+            request("b-first", 2, Direction::Upstream, 1, 1),
+        ];
+        let plan = schedule(
+            &p,
+            &requests,
+            SchedulingPolicy::ParticipantLeastServed,
+        )
+        .expect("valid profile");
+        assert_eq!(
+            plan.schedule
+                .iter()
+                .map(|passage| passage.request_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a-first", "b-first", "a-second"]
+        );
+        assert_eq!(plan.metrics.by_participant["participant-a-first"].service_units, 10);
+        assert_eq!(plan.metrics.by_participant["participant-a-second"].service_units, 10);
+        assert_eq!(plan.metrics.by_participant["participant-b-first"].service_units, 10);
+    }
+
+    #[test]
+    fn participant_least_served_is_input_order_independent() {
+        let mut p = profile();
+        p.unavailable_windows.clear();
+        let requests = vec![
+            request("a-first", 0, Direction::Upstream, 1, 1),
+            request("a-second", 1, Direction::Upstream, 1, 1),
+            request("b-first", 2, Direction::Upstream, 1, 1),
+        ];
+        let forward = schedule(&p, &requests, SchedulingPolicy::ParticipantLeastServed)
+            .expect("valid profile");
+        let reverse = schedule(
+            &p,
+            &requests.iter().cloned().rev().collect::<Vec<_>>(),
+            SchedulingPolicy::ParticipantLeastServed,
+        )
+        .expect("valid profile");
+        assert_eq!(forward, reverse);
     }
 
     #[test]
