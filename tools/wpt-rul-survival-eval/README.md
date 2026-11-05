@@ -46,7 +46,7 @@ This is the cause-specific competing-risk extension of the hazard-form log score
 
 Philip Dawid's September 2026 note derives a general proper score for right-censored survival times and shows that the log-type score can be computed without modelling the censoring distribution under independent random censoring. The note also warns that score values depend on the active censoring process. The multi-cause cause-specific hazard form here is a likelihood extension for competing risks; it is not claimed as a verbatim theorem from the single-event note.
 
-The fixture's hand-computed mean cause-specific hazard log score is 3.3165540492. This is reported in addition to, not instead of, the IPCW Brier score.
+The fixture's hand-computed mean cause-specific hazard log score is 2.5669264097. This is reported in addition to, not instead of, the IPCW Brier score.
 
 A secondary all-cause Harrell C-index is reported for ranking any first terminal event against the horizon-specific total event-risk score. It is not a cause-specific concordance measure and is not IPCW-adjusted; it must not be used as the primary competing-risk metric.
 
@@ -66,10 +66,36 @@ At 10 hours:
 - minimum used censoring survival: 0.7;
 - maximum IPCW weight: 1 / 0.7 = 1.4285714;
 - multicause IPCW Brier score: 0.23453571428571426;
-- cause-specific hazard log score: 3.3165540492;
+- cause-specific hazard log score: 2.5669264097;
 - all-cause Harrell C-index: 0.9 from 15 comparable pairs.
 
 All numbers are synthetic known-truth controls. The score is hand-recomputable from the checked-in fixture; no WPT field-lifetime result is implied.
+
+
+
+## Forecast representation coherence
+
+The same TEST record carries survival/CIF probabilities and piecewise-constant cause-specific hazards. These are not allowed to be unrelated prediction heads: the evaluator integrates the cause-specific hazards to the declared forecast horizon and checks that the implied event-free survival and each cause-specific cumulative incidence agree with the published probabilities to an absolute tolerance of 1e-8.
+
+For a constant hazard vector over an interval of length \\(\\Delta t\\), total hazard \\(\\lambda=\\sum_k\\lambda_k\\), and survival at interval start \\(S\\), the cause-k incidence increment is:
+
+`Delta F_k = S * (lambda_k / lambda) * (1 - exp(-lambda * Delta t))`
+
+This makes the two score representations coherent before scoring. It is a stronger admission check than merely requiring the probability vector to sum to one.
+
+## Aalen–Johansen descriptive reference
+
+The evaluator also reports an empirical Aalen–Johansen event-free survival and cause-specific cumulative-incidence vector at the declared horizon. The estimator retains competing events as distinct causes and uses the pre-time risk set for tied terminal/censor observations.
+
+This curve is an **in-cohort descriptive reference**, not an independent known-truth oracle and not a held-out calibration result. It is useful for checking event accounting and illustrating the cohort's observed cause distribution. It must not be compared to the model's TEST forecasts as though it were independent evidence or a causal ground truth.
+
+For the frozen 10-hour fixture:
+- Event-free survival: 15/28 = 0.5357143.
+- Structural-crack cumulative incidence: 1/7 = 0.1428571.
+- Insulation-resistance cumulative incidence: 5/28 = 0.1785714.
+- Planned-replacement cumulative incidence: 1/7 = 0.1428571.
+- Road-reconstruction cumulative incidence: 0.
+- Three terminal events are observed by 10 hours.
 
 ## Research positioning and limits
 
@@ -78,7 +104,7 @@ All numbers are synthetic known-truth controls. The score is hand-recomputable f
 - A 2026 arXiv preprint by Jonkers et al. constructs proper scores for right-censored observed-data laws (including Brier, CRPS and pinball variants) and documents forecast-ranking reversals for some forecast-dependent plug-in weighted scores. It is a preprint and not yet treated as settled field consensus.
 - Dawid's September 2026 arXiv note derives hazard-form proper scores for right-censored survival data without estimating G(t), under independent random censoring. The reported expected score depends on the active censoring regime; this evaluator therefore keeps the hazard log score separate from IPCW Brier and does not compare them numerically.
 - Prince et al. (PLOS ONE 2025) show censoring-distribution estimation choices can matter in covariate-dependent censoring, small samples or noisy settings. v0 therefore records the evaluation-cohort KM policy and refuses to score declared covariate-dependent censoring.
-- Aalen–Johansen cumulative-incidence reference curves, time-dependent AUC, Uno C-index, integrated Brier score, A-/D-calibration, cluster bootstrap intervals and conditional censoring models are not implemented.
+- Aalen–Johansen cumulative incidence is now reported as an in-cohort descriptive reference only. Time-dependent AUC, Uno C-index, integrated Brier score, A-/D-calibration, cluster bootstrap intervals and conditional censoring models are not implemented.
 
 The benchmark must next add dependent-censoring synthetic controls with a separately declared conditional censoring estimator, Aalen–Johansen reference calculations, multi-horizon curves and calibration/uncertainty diagnostics before it can support maintenance decisions.
 
