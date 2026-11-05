@@ -19,7 +19,7 @@ Four planes remain distinct:
 3. **Owner policy plane:** allowed products and counterparties, capacity budgets, workload criticality, safety state, telemetry requirements, maintenance and privacy.
 4. **Local execution plane:** scheduler, battery, cooling, microgrid and facility controllers. These are never directly addressed by a market dispatch message.
 
-The current module implements parts of planes 2 and 3 and a narrow request boundary between planes 1 and 4. It does not implement a CTS wire protocol, market settlement or OT execution.
+The current module implements parts of planes 2 and 3 and a narrow request boundary between planes 1 and 4. It does not implement a CTS wire protocol, market settlement or OT execution. Reservations pin the complete owner-policy snapshot as well as its ID/version; even a caller that accidentally reuses a version string for changed policy contents invalidates the earlier reservation.
 
 ## 3. Implemented typed model
 
@@ -64,7 +64,17 @@ NIST TN 2387 (September 2026) provides the current CTS and transactive market di
 NIST TN 2384's transactive market architecture also provides a useful separation between market operator agents, user agents representing customer assets, and local controllers behind the user-agent boundary:
 https://www.nist.gov/publications/nist-transactive-energy-market-federate-te-market-gridlab-d-co-simulations
 
-## 7. Benchmarks
+## 6A. Standards mapping: preserve distinct roles
+
+The interface should be interoperable by adapters, not by collapsing standards into one internal message:
+
+- **NIST Common Transactive Services (CTS):** local market-agent messaging and transaction semantics for feeder/campus/building-scale coordination. This is the architectural target for local, privacy-preserving market participation; the current typed Rust interface is not CTS-conformant.
+- **OpenADR 3:** event/program/report communications for demand-response programmes. An OpenADR event must be translated into a specific, time-bounded capability request; it must not be treated as an arbitrary device command. The OpenADR Alliance publishes the normative OpenAPI specification and certification programme: https://www.openadr.org/index.php?Itemid=194&id=210%3Aopenadr-3.0&option=com_content&view=article.
+- **IEEE 2030.5-2023:** active smart-energy profile for exchanging demand-response, load-control, price, generation and storage information between service providers, aggregators and customer/premises systems: https://standards.ieee.org/ieee/2030.5/11216/.
+
+The three serve overlapping but distinct layers. The adapter plan is: normalize external messages into an owner-local typed request, run policy and reservation checks, issue a controller-only receipt, and translate response/settlement evidence back to the originating profile. Conformance must be established against the normative schemas and test programmes, not inferred from semantic similarity.
+
+
 
 Proposed engineering targets, not measured results or regulatory standards:
 
