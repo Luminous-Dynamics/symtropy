@@ -59,13 +59,13 @@ jobs:
           with path.open(newline="", encoding="utf-8") as handle:
               rows = list(csv.DictReader(handle))
 
-          assert len(rows) == 79, f"expected 79 evidence rows, got {len(rows)}"
+          assert len(rows) == 93, f"expected 93 evidence rows, got {len(rows)}"
           assert all(len(row) == 12 for row in rows)
           session_rows = [row for row in rows if row["record_type"] == "session_metric"]
           member_rows = [row for row in rows if row["record_type"] == "member_metric"]
-          pair_rows = [row for row in rows if row["record_type"] == "rhetoric_only_pair"]
-          assert len(session_rows) == 36
-          assert len(member_rows) == 42
+          pair_rows = [row for row in rows if row["record_type"] == "facilitation_variant_pair"]
+          assert len(session_rows) == 44
+          assert len(member_rows) == 48
           assert len(pair_rows) == 1
 
           sessions = {row["session_id"] for row in session_rows}
@@ -89,16 +89,21 @@ jobs:
           assert value(steered, "verified_facilitator_claim_count") == 1
           steered_row = next(r for r in session_rows if r["session_id"] == steered)
           assert steered_row["facilitator_declares_consensus"] == "true"
-          assert steered_row["unanimity_claim_conflicts_with_top_preferences"] == "true"
-          assert abs(value(steered, "preference_consensus_share") - (1/3)) < 1e-6
+          assert steered_row["consensus_claim_contradicted_by_recorded_non_endorsement"] == "true"
+          assert abs(value(steered, "modal_top_preference_share") - (1/3)) < 1e-6
           assert value(steered, "mean_trust_after") > value(steered, "mean_trust_before")
+          assert value(steered, "consensus_endorsement_count") == 2
+          assert value(steered, "consensus_non_endorsement_count") == 1
+          assert value(steered, "consensus_unrecorded_count") == 0
+          assert value(steered, "consensus_claim_contradicted_by_recorded_non_endorsement") == 1
 
           member_c = [
               row for row in member_rows
               if row["session_id"] == steered and row["subject"] == "member_c"
           ]
-          assert len(member_c) == 7
+          assert len(member_c) == 8
           assert next(r for r in member_c if r["metric"] == "proposals_in_summary")["value"] == "0"
+          assert next(r for r in member_c if r["metric"] == "consensus_endorsement")["value"] == "false"
 
           pair = pair_rows[0]
           assert pair["allocation_l1_shift_units"] == "56"
