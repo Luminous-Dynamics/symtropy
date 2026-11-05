@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Deterministic identifiers, simulation time, causal events, and hash chains.
 
+pub mod eval_evidence;
+
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fmt};
