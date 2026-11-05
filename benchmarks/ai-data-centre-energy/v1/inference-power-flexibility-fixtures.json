@@ -1,0 +1,311 @@
+{
+  "schema_version": "symtropy.inference-power-flexibility-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "scope": "paired_inference_request_qos_and_measured_boundary_power",
+  "note": "Synthetic measurement fixtures only. No GPU, server, rack or facility telemetry is claimed.",
+  "units": {
+    "power": "W",
+    "energy": "Wh",
+    "time": "ms",
+    "latency": "ms",
+    "throughput": "tokens/s",
+    "efficiency": "useful tokens/J"
+  },
+  "common_identity": {
+    "hardware_id": "NVIDIA-H100",
+    "workload_id": "llm-inference-v1",
+    "model_digest": "model-sha256",
+    "runtime_digest": "runtime-sha256",
+    "request_manifest_digest": "requests-sha256",
+    "condition_stratum_id": "steady-state-stratum",
+    "measurement_boundary_id": "rack-pdu-1",
+    "meter_calibration_id": "meter-cal-1",
+    "boundary": "RackPdu"
+  },
+  "common_request_manifest": [
+    {
+      "request_id": "req-0",
+      "expected_output_tokens": 100
+    },
+    {
+      "request_id": "req-1",
+      "expected_output_tokens": 100
+    },
+    {
+      "request_id": "req-2",
+      "expected_output_tokens": 100
+    },
+    {
+      "request_id": "req-3",
+      "expected_output_tokens": 100
+    }
+  ],
+  "service_contract": {
+    "minimum_success_fraction": 1,
+    "minimum_useful_work_fraction": 0.99,
+    "minimum_tokens_per_second": 10,
+    "minimum_throughput_retention_fraction": 0.9,
+    "maximum_p95_ttft_ms": 100,
+    "maximum_p99_ttft_ms": 150,
+    "maximum_p95_completion_latency_ms": 500,
+    "maximum_p99_completion_latency_ms": 750,
+    "maximum_p99_ttft_degradation_fraction": 0.1,
+    "maximum_p99_latency_degradation_fraction": 0.1
+  },
+  "response_contract": {
+    "minimum_sustained_reduction_w": 15,
+    "required_consecutive_samples": 3,
+    "minimum_sustained_duration_ms": 300
+  },
+  "cases": [
+    {
+      "case_id": "same_useful_requests_qualified_20w_reduction",
+      "baseline": {
+        "boundary_power_w": [
+          120,
+          120,
+          120,
+          120,
+          120
+        ],
+        "interval_ms": 100,
+        "all_requests_succeed": true,
+        "output_tokens_each": 100,
+        "ttft_ms": 20,
+        "completion_latency_ms": 100
+      },
+      "candidate": {
+        "boundary_power_w": [
+          120,
+          100,
+          100,
+          100,
+          100
+        ],
+        "interval_ms": 100,
+        "all_requests_succeed": true,
+        "output_tokens_each": 100,
+        "ttft_ms": 20,
+        "completion_latency_ms": 100
+      },
+      "expected": {
+        "service_equivalent": true,
+        "power_response_qualified": true,
+        "stabilized_response_elapsed_ms": 100,
+        "maximum_sampled_reduction_w": 20,
+        "maximum_sustained_reduction_duration_ms": 400,
+        "gross_reduction_energy_wh": 0.0022222222222222222,
+        "rebound_energy_wh": 0,
+        "baseline_boundary_energy_wh": 0.016666666666666666,
+        "candidate_boundary_energy_wh": 0.013888888888888888,
+        "baseline_tokens_per_joule": 6.666666666666667,
+        "candidate_tokens_per_joule": 8
+      }
+    },
+    {
+      "case_id": "early_power_reduction_with_rebound_preserves_signed_energy",
+      "baseline": {
+        "boundary_power_w": [
+          120,
+          120,
+          120,
+          120,
+          120
+        ],
+        "interval_ms": 100
+      },
+      "candidate": {
+        "boundary_power_w": [
+          100,
+          100,
+          140,
+          140,
+          120
+        ],
+        "interval_ms": 100
+      },
+      "expected": {
+        "maximum_sampled_reduction_w": 20,
+        "maximum_sampled_rebound_w": 20,
+        "gross_reduction_energy_wh": 0.0011111111111111111,
+        "rebound_energy_wh": 0.0011111111111111111,
+        "net_boundary_energy_reduction_wh": 0,
+        "power_response_qualified": false,
+        "maximum_sustained_reduction_duration_ms": 200
+      }
+    },
+    {
+      "case_id": "brief_dip_is_not_sustained_response",
+      "baseline": {
+        "boundary_power_w": [
+          120,
+          120,
+          120,
+          120,
+          120
+        ],
+        "interval_ms": 100
+      },
+      "candidate": {
+        "boundary_power_w": [
+          120,
+          100,
+          100,
+          120,
+          120
+        ],
+        "interval_ms": 100
+      },
+      "expected": {
+        "maximum_sustained_reduction_duration_ms": 200,
+        "stabilized_response_elapsed_ms": null,
+        "power_response_qualified": false
+      }
+    },
+    {
+      "case_id": "p99_latency_violation_blocks_credit",
+      "baseline": {
+        "completion_latency_ms": [
+          100,
+          100,
+          100,
+          100
+        ]
+      },
+      "candidate": {
+        "completion_latency_ms": [
+          100,
+          100,
+          100,
+          900
+        ]
+      },
+      "expected": {
+        "service_equivalent": false,
+        "violation": "P99LatencyAboveMaximum",
+        "power_response_qualified": false
+      }
+    },
+    {
+      "case_id": "useful_work_loss_blocks_credit",
+      "request_manifest": {
+        "expected_output_tokens_each": 100,
+        "count": 4
+      },
+      "candidate": {
+        "output_tokens_each": 50,
+        "success": true
+      },
+      "expected": {
+        "useful_work_fraction": 0.5,
+        "service_equivalent": false,
+        "violation": "UsefulWorkFractionBelowMinimum"
+      }
+    },
+    {
+      "case_id": "boundary_meter_not_component_sum",
+      "baseline": {
+        "boundary_power_w": 100,
+        "gpu_power_w": 70,
+        "cpu_power_w": 20,
+        "dram_power_w": 15
+      },
+      "candidate": {
+        "boundary_power_w": 90,
+        "gpu_power_w": 60,
+        "cpu_power_w": 20,
+        "dram_power_w": 15
+      },
+      "expected": {
+        "boundary_reduction_w": 10,
+        "component_sum_not_used": true
+      }
+    },
+    {
+      "case_id": "request_manifest_mismatch_rejected",
+      "baseline_request_ids": [
+        "req-0",
+        "req-1"
+      ],
+      "candidate_request_ids": [
+        "different",
+        "req-1"
+      ],
+      "expected": {
+        "accepted": false,
+        "error": "RequestManifestMismatch"
+      }
+    },
+    {
+      "case_id": "power_trace_time_axis_mismatch_rejected",
+      "baseline_start_elapsed_ms": [
+        0,
+        100,
+        200
+      ],
+      "candidate_start_elapsed_ms": [
+        0,
+        100,
+        250
+      ],
+      "expected": {
+        "accepted": false,
+        "error": "NonContiguousPowerTrace"
+      }
+    },
+    {
+      "case_id": "duplicate_request_obligation_rejected",
+      "request_ids": [
+        "duplicate",
+        "duplicate"
+      ],
+      "expected": {
+        "accepted": false,
+        "error": "DuplicateRequestId"
+      }
+    },
+    {
+      "case_id": "out_of_range_utilization_rejected",
+      "gpu_utilization_fraction": 1.2,
+      "expected": {
+        "accepted": false,
+        "error": "InvalidUtilization"
+      }
+    },
+    {
+      "case_id": "baseline_must_meet_slo_before_candidate_comparison",
+      "baseline_p99_latency_ms": 900,
+      "maximum_p99_latency_ms": 750,
+      "expected": {
+        "accepted": false,
+        "error": "BaselineViolatesServiceContract"
+      }
+    }
+  ],
+  "mandatory_negative_controls": [
+    "candidate_drops_requests",
+    "candidate_completes_less_useful_work",
+    "p95_or_p99_ttft_violation",
+    "p95_or_p99_completion_latency_violation",
+    "relative_p99_regression_exceeds_tolerance",
+    "throughput_retention_violation",
+    "baseline_slo_invalid",
+    "same_run_id",
+    "same_control_action_id",
+    "missing_request_result",
+    "duplicate_request_result",
+    "power_trace_gap_or_overlap",
+    "boundary_power_non_finite",
+    "component_power_non_finite",
+    "utilization_outside_0_to_1",
+    "non_finite_temperature",
+    "missing_sustained_reduction_window"
+  ],
+  "explicit_claim_boundaries": [
+    "tokens_per_joule_is_not_dispatchable_kw",
+    "gpu_cpu_dram_submeters_are_not_added_to_the_primary_boundary_meter",
+    "rack_or_node_power_is_not_facility_or_pcc_power",
+    "synthetic_request_manifest_is_not_customer_traffic",
+    "measured_power_response_is_not_grid_market_qualification"
+  ]
+}
