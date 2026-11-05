@@ -24,6 +24,8 @@ use serde::Serialize;
 /// The single adequacy criterion used to calculate the ELCC-like result.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum ChronologicalAdequacyMetric {
+    /// Expected number of simulation intervals containing any positive unserved load.
+    LossOfLoadPeriods,
     /// Expected duration of intervals with unserved load, in hours.
     LossOfLoadHours,
     /// Expected number of calendar days with any positive unserved load.
@@ -385,10 +387,12 @@ pub struct ChronologicalAdequacyReport {
     pub raw_probability_weight_sum: f64,
     pub interval_duration_hours: f64,
     pub reference_loss_of_load_days: f64,
+    pub reference_loss_of_load_periods: f64,
     pub reference_loss_of_load_hours: f64,
     pub reference_unserved_energy_mwh: f64,
     pub reference_unserved_energy_cvar_mwh: Option<f64>,
     pub augmented_loss_of_load_days: f64,
+    pub augmented_loss_of_load_periods: f64,
     pub augmented_loss_of_load_hours: f64,
     pub augmented_unserved_energy_mwh: f64,
     pub augmented_gross_reduction_energy_mwh: f64,
@@ -411,6 +415,7 @@ pub struct ChronologicalAdequacyReport {
 #[derive(Debug, Clone, Copy)]
 struct ScenarioMetrics {
     loss_of_load_days: u32,
+    loss_of_load_periods: u32,
     loss_of_load_hours: f64,
     unserved_energy_mwh: f64,
     gross_reduction_energy_mwh: f64,
@@ -420,6 +425,7 @@ struct ScenarioMetrics {
 #[derive(Debug, Clone, Copy)]
 struct AggregateMetrics {
     loss_of_load_days: f64,
+    loss_of_load_periods: f64,
     loss_of_load_hours: f64,
     unserved_energy_mwh: f64,
     unserved_energy_cvar_mwh: f64,
@@ -430,6 +436,7 @@ struct AggregateMetrics {
 impl AggregateMetrics {
     fn adequacy_value(self, metric: ChronologicalAdequacyMetric) -> f64 {
         match metric {
+            ChronologicalAdequacyMetric::LossOfLoadPeriods => self.loss_of_load_periods,
             ChronologicalAdequacyMetric::LossOfLoadHours => self.loss_of_load_hours,
             ChronologicalAdequacyMetric::LossOfLoadDays => self.loss_of_load_days,
             ChronologicalAdequacyMetric::ExpectedUnservedEnergyMwh => self.unserved_energy_mwh,
@@ -595,12 +602,15 @@ pub fn evaluate_chronological_adequacy(
     let residual_delta = achieved_value - reference_value;
     if ![
         reference.loss_of_load_days,
+        reference.loss_of_load_periods,
         reference.loss_of_load_hours,
         reference.unserved_energy_mwh,
         at_zero.loss_of_load_days,
+        at_zero.loss_of_load_periods,
         at_zero.loss_of_load_hours,
         at_zero.unserved_energy_mwh,
         final_metrics.loss_of_load_days,
+        final_metrics.loss_of_load_periods,
         final_metrics.loss_of_load_hours,
         final_metrics.unserved_energy_mwh,
         achieved_value,
@@ -666,10 +676,12 @@ pub fn evaluate_chronological_adequacy(
         raw_probability_weight_sum: probability_sum,
         interval_duration_hours: contract.interval_duration_hours,
         reference_loss_of_load_days: reference.loss_of_load_days,
+        reference_loss_of_load_periods: reference.loss_of_load_periods,
         reference_loss_of_load_hours: reference.loss_of_load_hours,
         reference_unserved_energy_mwh: reference.unserved_energy_mwh,
         reference_unserved_energy_cvar_mwh: cvar_if_selected(contract.metric, reference.unserved_energy_cvar_mwh),
         augmented_loss_of_load_days: final_metrics.loss_of_load_days,
+        augmented_loss_of_load_periods: final_metrics.loss_of_load_periods,
         augmented_loss_of_load_hours: final_metrics.loss_of_load_hours,
         augmented_unserved_energy_mwh: final_metrics.unserved_energy_mwh,
         augmented_unserved_energy_cvar_mwh: cvar_if_selected(contract.metric, final_metrics.unserved_energy_cvar_mwh),
@@ -700,6 +712,7 @@ fn aggregate_scenarios(
 ) -> Result<AggregateMetrics, ChronologicalAdequacyError> {
     let mut aggregate = AggregateMetrics {
         loss_of_load_days: 0.0,
+        loss_of_load_periods: 0.0,
         loss_of_load_hours: 0.0,
         unserved_energy_mwh: 0.0,
         unserved_energy_cvar_mwh: 0.0,
@@ -717,6 +730,7 @@ fn aggregate_scenarios(
             apply_flexibility,
         )?;
         aggregate.loss_of_load_days += weight * f64::from(metrics.loss_of_load_days);
+        aggregate.loss_of_load_periods += weight * f64::from(metrics.loss_of_load_periods);
         aggregate.loss_of_load_hours += weight * metrics.loss_of_load_hours;
         aggregate.unserved_energy_mwh += weight * metrics.unserved_energy_mwh;
         aggregate.gross_reduction_energy_mwh += weight * metrics.gross_reduction_energy_mwh;
@@ -732,6 +746,7 @@ fn aggregate_scenarios(
     }
     if ![
         aggregate.loss_of_load_days,
+        aggregate.loss_of_load_periods,
         aggregate.loss_of_load_hours,
         aggregate.unserved_energy_mwh,
         aggregate.unserved_energy_cvar_mwh,
@@ -823,6 +838,7 @@ fn evaluate_scenario(
     apply_flexibility: bool,
 ) -> Result<ScenarioMetrics, ChronologicalAdequacyError> {
     let mut loss_days = BTreeSet::new();
+    let mut loss_of_load_periods = 0_u32;
     let mut loss_of_load_hours = 0.0_f64;
     let mut unserved_energy_mwh = 0.0_f64;
     let mut gross_reduction_energy_mwh = 0.0_f64;
@@ -848,6 +864,9 @@ fn evaluate_scenario(
         };
         if unserved_kw > shortfall_epsilon_kw {
             loss_days.insert(interval.day_index);
+            loss_of_load_periods = loss_of_load_periods.checked_add(1).ok_or(
+                ChronologicalAdequacyError::NumericalOverflow("loss-of-load period count"),
+            )?;
         }
         unserved_energy_mwh += interval_unserved_mwh;
         gross_reduction_energy_mwh += reduction_mwh;
@@ -872,6 +891,7 @@ fn evaluate_scenario(
         loss_of_load_days: u32::try_from(loss_days.len()).map_err(|_| {
             ChronologicalAdequacyError::NumericalOverflow("loss-of-load day count")
         })?,
+        loss_of_load_periods,
         loss_of_load_hours,
         unserved_energy_mwh,
         gross_reduction_energy_mwh,
