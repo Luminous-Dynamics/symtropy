@@ -480,7 +480,9 @@ fn segment_has_required_resource(segment: SegmentKind, kinds: &BTreeSet<Resource
         SegmentKind::ChannelTransit | SegmentKind::PortApproach => {
             kinds.contains(&ResourceKind::ChannelWindow)
         }
-        SegmentKind::Lockage => kinds.contains(&ResourceKind::Lock),
+        SegmentKind::Lockage => {
+            kinds.contains(&ResourceKind::Lock) && kinds.contains(&ResourceKind::WaterQuota)
+        },
         SegmentKind::BerthHandling => {
             kinds.contains(&ResourceKind::Berth) && kinds.contains(&ResourceKind::TerminalHandling)
         }
@@ -1371,7 +1373,7 @@ mod tests {
                 ResourceUnit::Tonnes,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 30,
+                        start_tick: 28,
                         end_tick: 60,
                     },
                     capacity: 10,
@@ -1529,7 +1531,7 @@ mod tests {
                 capacity_unit: ResourceUnit::Tonnes,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 30,
+                        start_tick: 28,
                         end_tick: 60,
                     },
                     capacity: 10,
