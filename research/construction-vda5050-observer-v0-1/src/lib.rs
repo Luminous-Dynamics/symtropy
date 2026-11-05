@@ -572,8 +572,8 @@ fn parse_factsheet(
         "typeSpecification.seriesName",
     )?;
     non_empty_string(
-        field(type_specification, "mobileRobotKinematic")?,
-        "typeSpecification.mobileRobotKinematic",
+        field(type_specification, "mobileRobotKinematics")?,
+        "typeSpecification.mobileRobotKinematics",
     )?;
     non_empty_string(
         field(type_specification, "mobileRobotClass")?,
@@ -1089,7 +1089,7 @@ mod tests {
     fn order_is_transport_order_not_construction_task() {
         let decoded = message(
             "order",
-            r#""orderId":"transport-1","orderUpdateId":2,"nodes":[{"nodeId":"n0","sequenceId":0,"released":true,"actions":[]}],"edges":[{"edgeId":"e0","sequenceId":1,"released":true,"actions":[]}]"#,
+            r#""orderId":"transport-1","orderUpdateId":2,"nodes":[{"nodeId":"n0","sequenceId":0,"released":true,"actions":[]}],"edges":[{"edgeId":"e0","sequenceId":1,"released":true,"actions":[],"startNodeId":"n0","endNodeId":"n1"}]"#,
         );
         assert_eq!(decoded.payload_sha256.len(), 64);
         assert!(matches!(
