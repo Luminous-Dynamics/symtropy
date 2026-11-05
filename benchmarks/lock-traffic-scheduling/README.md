@@ -13,7 +13,7 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.t
 ## Implemented slice
 
 - Single-lock, single-chamber, deterministic finite scheduling.
-- FCFS, projected least-slack, participant least-served, and bounded directional-batch policies.
+- FCFS, projected least-slack, participant least-fulfilled, and bounded directional-batch policies.
 - Every request declares a service-unit label that must exactly match the profile's
   label; unlike units (for example tonnes and TEU) are not compared or scheduled
   within one profile.
@@ -41,11 +41,14 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.t
 - Request windows, arrival uncertainty, maximum wait, deadlines, planned lock
   downtime, direction-change time, water budget, and pump-energy budget are explicit.
 - Retains exactly one reason-coded outcome for each request, including accepted
-  passages and every non-admission.
-- Reports independent metrics, not one opaque score: service units, total and
-  maximum wait, nearest-rank p50/p90/p95/p99 wait distributions, inversions,
-  direction changes, service ticks, direction-change occupancy, total lock-occupied time, comparable arrival pairs and inversion counts, water and pump energy. Wait distributions are
-  also reported separately by participant and service group.
+  passages and every non-admission. Each outcome preserves its requested service
+  units and whether it passed initial evidence/identity/unit admission.
+- Reports independent metrics, not one opaque score: submitted requested units,
+  initially eligible requested units, actually delivered units, total and maximum
+  wait, nearest-rank p50/p90/p95/p99 wait distributions, inversions, direction
+  changes, service ticks, direction-change occupancy, total lock-occupied time,
+  comparable arrival pairs, water and pump energy. Demand and wait metrics are
+  reported separately by participant and service group.
 - Includes a separate exhaustive test-only oracle that reimplements tiny
   scheduling feasibility, enumerates request permutations (at most eight
   requests), and constructs a non-dominated objective frontier without using
