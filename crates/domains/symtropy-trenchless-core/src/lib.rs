@@ -6,9 +6,10 @@
 //! Those inputs must come from separately qualified owners and retain their
 //! source references and evidence classes.
 //!
-//! A method is eligible only when every supplied hard constraint is known and
-//! satisfied. A known violation makes it ineligible. Missing, stale, conflicting,
-//! out-of-domain, or not-applicable evidence never creates a pass.
+//! A method is eligible only when its declared constraint profile is complete and
+//! every required fact is accepted by that constraint's explicit evidence policy
+//! and satisfies the hard limit. A known violation makes it ineligible. Missing,
+//! stale, conflicting, out-of-domain, or disallowed evidence never creates a pass.
 //!
 //! No method ranking is produced. Economic comparison belongs downstream and
 //! must consume independently accepted functional output and matched lifecycle
@@ -273,8 +274,9 @@ impl std::error::Error for EvaluationError {}
 /// Evaluate a portfolio without ranking it.
 ///
 /// Output is sorted by stable method_id, and each candidate's constraints
-/// are sorted by constraint ID. A candidate is Eligible only when it has at
-/// least one constraint and every constraint is known and satisfied.
+/// are sorted by constraint ID. A candidate is Eligible only when its declared
+/// profile is complete and every fact is accepted by its explicit evidence
+/// policy and satisfies the constraint.
 ///
 /// Status precedence is deliberately conservative:
 /// - any known failed constraint => Ineligible;
@@ -781,11 +783,109 @@ mod tests {
     }
 
     #[test]
-    fn empty_constraint_set_is_rejected() {
-        let input = candidate("no-evidence", vec![]);
+    fn omitted_profile_constraint_is_rejected() {
+        let mut input = candidate(
+            "profile-omission",
+            vec![constraint(
+                "drive-length",
+                ConstraintRelation::AvailableAtLeastRequired,
+                fact(180.0, Unit::Metre, "machine:profile", EvidenceClass::VendorDeclared),
+                fact(150.0, Unit::Metre, "design:drive", EvidenceClass::DesignSpecified),
+            )],
+        );
+        input.required_constraint_ids.push("utility-clearance".to_owned());
+
         assert_eq!(
             assess_portfolio(&[input]).unwrap_err(),
-            EvaluationError::NoConstraints("no-evidence".to_owned())
+            EvaluationError::MissingRequiredConstraintId {
+                method_id: "profile-omission".to_owned(),
+                constraint_id: "utility-clearance".to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn undeclared_constraint_is_rejected() {
+        let mut input = candidate(
+            "unexpected-check",
+            vec![
+                constraint(
+                    "drive-length",
+                    ConstraintRelation::AvailableAtLeastRequired,
+                    fact(180.0, Unit::Metre, "machine:profile", EvidenceClass::VendorDeclared),
+                    fact(150.0, Unit::Metre, "design:drive", EvidenceClass::DesignSpecified),
+                ),
+                constraint(
+                    "unregistered-check",
+                    ConstraintRelation::AvailableAtLeastRequired,
+                    fact(2.0, Unit::Metre, "machine:extra", EvidenceClass::VendorDeclared),
+                    fact(1.0, Unit::Metre, "design:extra", EvidenceClass::DesignSpecified),
+                ),
+            ],
+        );
+        input.required_constraint_ids.pop();
+
+        assert!(matches!(
+            assess_portfolio(&[input]),
+            Err(EvaluationError::UnexpectedConstraintId { .. })
+        ));
+    }
+
+    #[test]
+    fn disallowed_evidence_class_is_indeterminate() {
+        let mut check = constraint(
+            "drive-length",
+            ConstraintRelation::AvailableAtLeastRequired,
+            fact(180.0, Unit::Metre, "machine:declared-envelope", EvidenceClass::VendorDeclared),
+            fact(150.0, Unit::Metre, "design:drive", EvidenceClass::DesignSpecified),
+        );
+        check.candidate_evidence_policy = EvidencePolicy::AllowOnly(vec![EvidenceClass::Measured]);
+        let input = candidate("vendor-only-screen", vec![check]);
+
+        let report = assess_portfolio(&[input]).unwrap();
+        assert_eq!(report[0].eligibility, Eligibility::Indeterminate);
+        assert_eq!(
+            report[0].constraints[0].outcome,
+            ConstraintOutcome::Unresolved {
+                candidate: Some(EvidenceGap::EvidenceClassNotAccepted(EvidenceClass::VendorDeclared)),
+                requirement: None,
+            }
+        );
+    }
+
+    #[test]
+    fn empty_evidence_allowlist_is_rejected() {
+        let mut check = constraint(
+            "capacity",
+            ConstraintRelation::AvailableAtLeastRequired,
+            fact(200.0, Unit::Kilonewton, "machine:capacity", EvidenceClass::Measured),
+            fact(150.0, Unit::Kilonewton, "design:required", EvidenceClass::DesignSpecified),
+        );
+        check.candidate_evidence_policy = EvidencePolicy::AllowOnly(vec![]);
+        let input = candidate("empty-policy", vec![check]);
+
+        assert!(matches!(
+            assess_portfolio(&[input]),
+            Err(EvaluationError::EmptyEvidencePolicy { .. })
+        ));
+    }
+
+    #[test]
+    fn required_profile_without_constraints_is_rejected() {
+        let input = MethodCandidate {
+            method_id: "no-checks".to_owned(),
+            method: MethodKind::SlurryMicrotunnelling,
+            constraint_profile_ref: "profile:v1".to_owned(),
+            required_constraint_ids: vec!["drive-length".to_owned()],
+            constraints: vec![],
+        };
+
+        assert_eq!(
+            assess_portfolio(&[input]).unwrap_err(),
+            EvaluationError::MissingRequiredConstraintId {
+                method_id: "no-checks".to_owned(),
+                constraint_id: "drive-length".to_owned(),
+            }
         );
     }
 
