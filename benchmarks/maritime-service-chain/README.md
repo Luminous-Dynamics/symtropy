@@ -48,6 +48,10 @@ rail connection, waterway, or terminal has these characteristics.
 
 The crate verifies:
 - case and identifier uniqueness;
+- a frozen 30+ case corpus with exact expected admission/rejection outcomes for
+  topology, evidence freshness/expiry, hard-gate coverage, resource calendars,
+  capacity ceilings, unit compatibility, demand fulfillment, vessel payload,
+  participant authority and cargo custody;
 - a continuous origin-to-destination route graph and segment/node-kind agreement;
 - each segment's required evidence roles (topology, navigability, lock compatibility,
   lock water, resource capacity) and required resource kinds;
