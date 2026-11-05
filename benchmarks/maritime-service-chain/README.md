@@ -67,6 +67,14 @@ The crate verifies:
 A failed validation is not repaired by relaxing a gate, imputing a capacity, or
 assigning a default. Missing or stale evidence must be resolved by its owner.
 
+## Benchmark protocol
+
+See [benchmark-protocol.md](benchmark-protocol.md) for the frozen baseline
+families, matched information-cutoff rules, 30+ scenario corpus, full objective
+vector, statistical comparisons, Pareto indicators, reproducibility manifest,
+and promotion gates. It is a protocol, not evidence that any baseline or
+operational dataset has been reproduced yet.
+
 ## Ownership seams
 
 - **Symthaea:** vessel engineering, vessel performance and arrival-window evidence.
