@@ -209,8 +209,7 @@ mod tests {
             let duration = 1.0;
             let steps = (duration / dt).round() as usize;
             let gravity = SVector::from([0.0, -9.81, 0.0]);
-            let mut body =
-                RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.1, 1.0);
+            let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.1, 1.0);
             body.linear_damping = 0.0;
 
             for _ in 0..steps {
@@ -219,7 +218,10 @@ mod tests {
 
             let exact_position = 0.5 * gravity[1] * duration * duration;
             let position_error = (body.transform.translation.coord(1) - exact_position).abs();
-            (position_error, (body.linear_velocity[1] - gravity[1] * duration).abs())
+            (
+                position_error,
+                (body.linear_velocity[1] - gravity[1] * duration).abs(),
+            )
         }
 
         let (error_20_ms, velocity_error_20_ms) = simulate(0.02);
@@ -241,8 +243,7 @@ mod tests {
         let dt = 0.01;
         assert!(angular_frequency * dt < 2.0);
 
-        let mut body =
-            RigidBody::<1>::dynamic_sphere(BodyHandle(0), Point::new([1.0]), 0.1, mass);
+        let mut body = RigidBody::<1>::dynamic_sphere(BodyHandle(0), Point::new([1.0]), 0.1, mass);
         body.linear_damping = 0.0;
         let gravity = SVector::zeros();
         let mut min_energy = f64::INFINITY;
@@ -255,8 +256,7 @@ mod tests {
 
             let position = body.transform.translation.0[0];
             let velocity = body.linear_velocity[0];
-            let energy = 0.5 * mass * velocity * velocity
-                + 0.5 * stiffness * position * position;
+            let energy = 0.5 * mass * velocity * velocity + 0.5 * stiffness * position * position;
             min_energy = min_energy.min(energy);
             max_energy = max_energy.max(energy);
         }
