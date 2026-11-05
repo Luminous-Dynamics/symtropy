@@ -5,7 +5,7 @@
 
 use civdyn_deliberation_audit::{
     ConsensusRule, DeliberationSession, EvidenceRecord, FacilitatorClaim, Participant, Proposal,
-    TurnEvent, audit_session, compare_facilitation_variants,
+    TurnEvent, audit_session, compare_facilitation_variants, compare_option_order_variants,
 };
 
 const CSV_COLUMNS: usize = 12;
