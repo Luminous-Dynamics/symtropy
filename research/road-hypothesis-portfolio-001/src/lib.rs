@@ -395,6 +395,8 @@ pub enum PortfolioError {
     DuplicateCoverageObligation,
     DuplicateChallengeRequirement,
     DuplicateChallengeReceipt,
+    UnrequiredChallengeReceipt,
+    InvalidChallengeBudget,
     MissingCoverageAxis,
     InvalidCoverageEvidence,
     InvalidNotApplicableRationale,
@@ -478,6 +480,9 @@ impl PortfolioManifest {
         require(&self.odd_scope_digest, "odd_scope_digest")?;
         require(&self.utility_scale_id, "utility_scale_id")?;
         require(&self.utility_semantics_id, "utility_semantics_id")?;
+        for root in &self.training_lineage_roots {
+            require(root, "training_lineage_root")?;
+        }
         if self.hypotheses.is_empty()
             || self.action_ids.is_empty()
             || self.coverage_obligations.is_empty()
@@ -551,10 +556,11 @@ impl PortfolioManifest {
         for requirement in &self.challenge_requirements {
             require(&requirement.hypothesis_id, "challenge.hypothesis_id")?;
             require(&requirement.protocol_digest, "challenge.protocol_digest")?;
-            if !hypothesis_ids.contains(requirement.hypothesis_id.as_str())
-                || requirement.minimum_budget_units == 0
-            {
+            if !hypothesis_ids.contains(requirement.hypothesis_id.as_str()) {
                 return Err(PortfolioError::UnknownChallengeHypothesis);
+            }
+            if requirement.minimum_budget_units == 0 {
+                return Err(PortfolioError::InvalidChallengeBudget);
             }
             let key = (
                 requirement.hypothesis_id.as_str(),
@@ -564,6 +570,24 @@ impl PortfolioManifest {
             if !requirement_keys.insert(key) {
                 return Err(PortfolioError::DuplicateChallengeRequirement);
             }
+        }
+        for hypothesis in &self.hypotheses {
+            for strategy in [
+                ChallengeStrategy::Random,
+                ChallengeStrategy::CoverageGuided,
+                ChallengeStrategy::Expert,
+                ChallengeStrategy::ReinforcementLearning,
+            ] {
+                if !self.challenge_requirements.iter().any(|requirement| {
+                    requirement.hypothesis_id == hypothesis.hypothesis_id
+                        && requirement.strategy == strategy
+                }) {
+                    return Err(PortfolioError::UnknownChallengeHypothesis);
+                }
+            }
+        }
+        if let Some(parent) = &self.supersedes_portfolio_digest {
+            require(parent, "supersedes_portfolio_digest")?;
         }
         Ok(())
     }
@@ -578,9 +602,15 @@ impl PortfolioManifest {
         previous.validate()?;
         current.validate()?;
         let previous_digest = previous.portfolio_digest()?;
+        let expected_sequence = previous
+            .revision_sequence
+            .checked_add(1)
+            .ok_or(PortfolioError::InvalidRevisionParent)?;
         if current.supersedes_portfolio_digest.as_deref() != Some(previous_digest.as_str())
-            || current.revision_sequence != previous.revision_sequence.saturating_add(1)
+            || current.revision_sequence != expected_sequence
             || current.portfolio_id != previous.portfolio_id
+            || current.utility_scale_id != previous.utility_scale_id
+            || current.utility_semantics_id != previous.utility_semantics_id
         {
             return Err(PortfolioError::InvalidRevisionParent);
         }
@@ -597,6 +627,16 @@ impl PortfolioManifest {
         }
         for prior in &previous.challenge_requirements {
             if !current.challenge_requirements.iter().any(|candidate| candidate == prior) {
+                return Err(PortfolioError::NonAppendOnlyRevision);
+            }
+        }
+        for prior_action in &previous.action_ids {
+            if !current.action_ids.contains(prior_action) {
+                return Err(PortfolioError::NonAppendOnlyRevision);
+            }
+        }
+        for prior_lineage in &previous.training_lineage_roots {
+            if !current.training_lineage_roots.contains(prior_lineage) {
                 return Err(PortfolioError::NonAppendOnlyRevision);
             }
         }
@@ -630,6 +670,9 @@ fn validate_coverage_obligation(
             require(evidence, "coverage.evidence_manifest_digest")?;
             require(lineage, "coverage.source_lineage_digest")?;
             require(protocol, "coverage.challenge_protocol_digest")?;
+            if obligation.evidence_class.is_none() {
+                return Err(PortfolioError::InvalidCoverageEvidence);
+            }
             if obligation.minimum_independent_units == 0
                 || obligation.independent_unit_count < obligation.minimum_independent_units
             {
@@ -791,6 +834,17 @@ fn assess_challenges(
 
     let mut receipt_map = BTreeMap::new();
     let mut ids = BTreeSet::new();
+    let required_keys: BTreeSet<_> = manifest
+        .challenge_requirements
+        .iter()
+        .map(|requirement| {
+            (
+                requirement.hypothesis_id.as_str(),
+                requirement.strategy,
+                requirement.protocol_digest.as_str(),
+            )
+        })
+        .collect();
     for receipt in receipts {
         require(&receipt.challenge_id, "challenge_id")?;
         require(&receipt.hypothesis_id, "challenge.hypothesis_id")?;
@@ -831,6 +885,9 @@ fn assess_challenges(
             receipt.strategy,
             receipt.protocol_digest.as_str(),
         );
+        if !required_keys.contains(&key) {
+            return Err(PortfolioError::UnrequiredChallengeReceipt);
+        }
         if receipt_map.insert(key, receipt).is_some() {
             return Err(PortfolioError::DuplicateChallengeReceipt);
         }
@@ -1205,6 +1262,30 @@ mod tests {
                     protocol_digest: d("challenge-rl"),
                     minimum_budget_units: 100,
                 },
+                ChallengeRequirement {
+                    hypothesis_id: "H-weather-copy".into(),
+                    strategy: ChallengeStrategy::Random,
+                    protocol_digest: d("challenge-random-copy"),
+                    minimum_budget_units: 100,
+                },
+                ChallengeRequirement {
+                    hypothesis_id: "H-weather-copy".into(),
+                    strategy: ChallengeStrategy::CoverageGuided,
+                    protocol_digest: d("challenge-coverage-copy"),
+                    minimum_budget_units: 100,
+                },
+                ChallengeRequirement {
+                    hypothesis_id: "H-weather-copy".into(),
+                    strategy: ChallengeStrategy::Expert,
+                    protocol_digest: d("challenge-expert-copy"),
+                    minimum_budget_units: 100,
+                },
+                ChallengeRequirement {
+                    hypothesis_id: "H-weather-copy".into(),
+                    strategy: ChallengeStrategy::ReinforcementLearning,
+                    protocol_digest: d("challenge-rl-copy"),
+                    minimum_budget_units: 100,
+                },
             ],
         }
     }
@@ -1233,12 +1314,23 @@ mod tests {
     }
 
     fn challenge_set() -> Vec<ChallengeReceipt> {
-        vec![
+        let mut receipts = vec![
             challenge("random-1", ChallengeStrategy::Random, "challenge-random", ChallengeOutcome::NonDiscoveryWithinBudget),
             challenge("coverage-1", ChallengeStrategy::CoverageGuided, "challenge-coverage", ChallengeOutcome::NonDiscoveryWithinBudget),
             challenge("expert-1", ChallengeStrategy::Expert, "challenge-expert", ChallengeOutcome::NonDiscoveryWithinBudget),
             challenge("rl-1", ChallengeStrategy::ReinforcementLearning, "challenge-rl", ChallengeOutcome::NonDiscoveryWithinBudget),
-        ]
+        ];
+        for (id, strategy, protocol) in [
+            ("random-copy", ChallengeStrategy::Random, "challenge-random-copy"),
+            ("coverage-copy", ChallengeStrategy::CoverageGuided, "challenge-coverage-copy"),
+            ("expert-copy", ChallengeStrategy::Expert, "challenge-expert-copy"),
+            ("rl-copy", ChallengeStrategy::ReinforcementLearning, "challenge-rl-copy"),
+        ] {
+            let mut receipt = challenge(id, strategy, protocol, ChallengeOutcome::NonDiscoveryWithinBudget);
+            receipt.hypothesis_id = "H-weather-copy".into();
+            receipts.push(receipt);
+        }
+        receipts
     }
 
     fn residual() -> ResidualEnvelope {
@@ -1382,8 +1474,9 @@ mod tests {
             report.challenge.non_discovery_proves_absence,
             false
         );
-        assert_eq!(report.challenge.qualified_challenges, 4);
+        assert_eq!(report.challenge.qualified_challenges, 8);
         assert_eq!(report.challenge.unresolved_challenges, 0);
+        assert!(report.challenge.strategies.iter().all(|entry| entry.attempts == 2));
     }
 
     #[test]
