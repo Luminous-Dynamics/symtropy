@@ -23,7 +23,9 @@ Other comparators:
 
 Represent source artifacts, derived task graphs, robot/site/measurement contexts, physical observations, inspection receipts and qualification claims as typed revision-bound nodes. Connect them with scoped dependency edges that declare exactly which change kinds propagate and what action is required.
 
-A change event binds prior/new revision and digest, kind, scope, authority, source evidence, graph revision and policy digest. The evaluator emits:
+A change event binds prior/new revision and digest, kind, scope, authority, source evidence, graph revision and policy digest. An inadmissible or unbounded event (missing authority, unknown semantic delta/kind, stale/expired/incomplete closure, or missing metadata-equivalence proof) marks all non-subject claims in the supplied graph `UnknownImpact`; no disconnected node is declared `Unaffected` merely because a dependency path is absent.
+
+The evaluator emits:
 - Rebuild;
 - Remeasure;
 - Revalidate;
