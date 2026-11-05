@@ -483,7 +483,10 @@ fn validate_replay_tape<const D: usize>(
                         && rotation.to_matrix().iter().all(|value| value.is_finite())
                         && rotation.is_proper_rotation(1.0e-9)
                         && linear_velocity.iter().all(|value| value.is_finite())
-                        && angular_velocity.to_matrix().iter().all(|value| value.is_finite()),
+                        && angular_velocity
+                            .to_matrix()
+                            .iter()
+                            .all(|value| value.is_finite()),
                 ),
                 WorldCommand::Wake { body } => (*body, true),
             };
