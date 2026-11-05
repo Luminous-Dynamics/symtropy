@@ -292,16 +292,25 @@ fn projected_start(
     find_start(profile, unavailable, earliest, request.service_duration_ticks)
 }
 
-fn select_next(
-    profile: &LockScheduleProfile,
-    unavailable: &[TimeInterval],
-    requests: &[PassageRequest],
-    pending: &[usize],
-    policy: SchedulingPolicy,
+struct SelectionContext<'a> {
+    profile: &'a LockScheduleProfile,
+    unavailable: &'a [TimeInterval],
+    requests: &'a [PassageRequest],
+    pending: &'a [usize],
     current_direction: Option<Direction>,
     current_batch_count: usize,
     cursor_tick: u64,
-) -> Option<usize> {
+}
+
+fn select_next(context: &SelectionContext<'_>, policy: SchedulingPolicy) -> Option<usize> {
+    let profile = context.profile;
+    let unavailable = context.unavailable;
+    let requests = context.requests;
+    let pending = context.pending;
+    let current_direction = context.current_direction;
+    let current_batch_count = context.current_batch_count;
+    let cursor_tick = context.cursor_tick;
+
     match policy {
         SchedulingPolicy::FirstComeFirstServed => oldest_first(requests, pending),
         SchedulingPolicy::LeastWaitSlack => least_slack_first(requests, pending),
@@ -506,16 +515,16 @@ pub fn schedule(
     let mut energy_used = 0_u128;
 
     while !pending.is_empty() {
-        let Some(selected_index) = select_next(
+        let selection = SelectionContext {
             profile,
-            &unavailable,
+            unavailable: &unavailable,
             requests,
-            &pending,
-            policy,
+            pending: &pending,
             current_direction,
             current_batch_count,
             cursor_tick,
-        ) else {
+        };
+        let Some(selected_index) = select_next(&selection, policy) else {
             for index in pending.drain(..) {
                 let request = &requests[index];
                 outcomes.push(RequestOutcome {
