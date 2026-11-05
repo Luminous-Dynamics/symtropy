@@ -409,7 +409,12 @@ pub fn generate_scenario(
             Cell::Empty
         });
     }
-    let event_tape = (0..tape_words).map(|_| random.next_u16()).collect();
+    // Keep the event stream independent of grid-size-dependent initial draws.
+    // Same seed therefore yields the same event-tape prefix across grid sizes.
+    let mut event_random = SplitMix64::new(seed ^ 0xD1B54A32D192ED03);
+    let event_tape = (0..tape_words)
+        .map(|_| event_random.next_u16())
+        .collect();
     let scenario = Scenario {
         spec,
         initial,
@@ -572,6 +577,10 @@ pub fn decode_tape_bundle(bytes: &[u8]) -> Result<Vec<Scenario>, WorkloadError> 
         return Err(WorkloadError::UnsupportedTapeVersion(version));
     }
     let count = take_u32(bytes, &mut cursor)? as usize;
+    let minimum_record_headers = bytes.len().saturating_sub(cursor) / 8;
+    if count > minimum_record_headers {
+        return Err(WorkloadError::TruncatedTape);
+    }
     let mut scenarios = Vec::with_capacity(count);
     for _ in 0..count {
         let length = usize::try_from(take_u64(bytes, &mut cursor)?)
@@ -660,9 +669,13 @@ mod tests {
     #[test]
     fn no_ignition_control_does_not_spread_a_fire() {
         let mut scenario = generate_scenario(8, 8, 5, 1).unwrap();
+        scenario.initial.fill(Cell::Tree);
+        scenario.initial[4 * 8 + 4] = Cell::Burning;
         scenario.spec.ignition_threshold = 0;
         let result = run_reference(&scenario).unwrap();
+        assert_eq!(result.trajectory[0].burning, 1);
         assert!(result.trajectory.iter().skip(1).all(|row| row.burning == 0));
+        assert_eq!(result.trajectory[1].ash, 1);
     }
 
     #[test]
@@ -703,9 +716,15 @@ mod tests {
     #[test]
     fn reference_replay_is_identical_for_the_same_tape() {
         let scenario = generate_scenario(32, 32, 20, 19).unwrap();
+        let first = run_reference(&scenario).unwrap();
+        let second = run_reference(&scenario).unwrap();
+        assert_eq!(first.spec, second.spec);
+        assert_eq!(first.trajectory, second.trajectory);
+        assert_eq!(first.initial_fingerprint_fnv64, second.initial_fingerprint_fnv64);
+        assert_eq!(first.tape_fingerprint_fnv64, second.tape_fingerprint_fnv64);
         assert_eq!(
-            run_reference(&scenario).unwrap(),
-            run_reference(&scenario).unwrap()
+            first.trajectory_fingerprint_fnv64,
+            second.trajectory_fingerprint_fnv64
         );
     }
 
