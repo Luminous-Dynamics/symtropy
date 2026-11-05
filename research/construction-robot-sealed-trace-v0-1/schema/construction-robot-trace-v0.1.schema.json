@@ -49,7 +49,8 @@
             "transformation_digest",
             "first_sequence",
             "last_sequence",
-            "event_count"
+            "event_count",
+            "capture_boundary_evidence_ref"
           ],
           "properties": {
             "tool": {
@@ -151,8 +152,135 @@
             "event_count": {
               "type": "integer",
               "minimum": 1
+            },
+            "capture_boundary_evidence_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "capture_completeness": {
+                    "const": "complete_with_boundary_evidence"
+                  }
+                },
+                "required": [
+                  "capture_completeness"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "capture_boundary_evidence_ref": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "redaction_applied": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "redaction_applied"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "parent_trace_digest": {
+                    "$ref": "#/$defs/digest"
+                  },
+                  "transformation_digest": {
+                    "$ref": "#/$defs/digest"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "filters_applied": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "filters_applied"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "filter_profile_digest": {
+                    "$ref": "#/$defs/digest"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "broker_drop_evidence": {
+                    "const": "measured_zero"
+                  }
+                },
+                "required": [
+                  "broker_drop_evidence"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "broker_drop_count": {
+                    "const": 0
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "broker_drop_evidence": {
+                    "const": "measured_nonzero"
+                  }
+                },
+                "required": [
+                  "broker_drop_evidence"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "broker_drop_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "broker_drop_evidence": {
+                    "const": "not_available"
+                  }
+                },
+                "required": [
+                  "broker_drop_evidence"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "broker_drop_count": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
         },
         "seal": {
           "type": "object",
@@ -314,7 +442,19 @@
                   "minimum": 0
                 }
               }
-            }
+            },
+            "contains": {
+              "type": "object",
+              "required": [
+                "source"
+              ],
+              "properties": {
+                "source": {
+                  "const": "recorder_received"
+                }
+              }
+            },
+            "minContains": 1
           },
           "payload": {
             "type": "object",
