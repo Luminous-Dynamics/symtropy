@@ -24,8 +24,9 @@ use serde::Serialize;
 /// The single adequacy criterion used to calculate the ELCC-like result.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum ChronologicalAdequacyMetric {
-    /// Expected number of contiguous shortfall spells. Adjacent shortfall
-    /// intervals remain one event, including across day boundaries.
+    /// Diagnostic count of contiguous shortfall spells. Contract construction
+    /// rejects this as a primary added-load search metric because merging
+    /// separate spells can make event count decrease as load increases.
     LossOfLoadEvents,
     /// Expected number of simulation intervals containing any positive unserved load.
     /// This is PRAS-style LOLE and depends on simulation time resolution.
