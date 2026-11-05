@@ -195,7 +195,7 @@ fn parse_subjects(
                 "event_code",
                 "predicted_survival_probability",
                 "predicted_cumulative_incidence",
-                "predicted_cause_specific_hazard_rates",
+                "predicted_cause_specific_hazard_rates_per_hour",
             ],
             &path,
         )?;
@@ -315,18 +315,18 @@ fn parse_subjects(
             ));
         }
 
-        let hazard_rows = field(row, "predicted_cause_specific_hazard_rates", &path)?
+        let hazard_rows = field(row, "predicted_cause_specific_hazard_rates_per_hour", &path)?
             .as_array()
-            .ok_or_else(|| fail(&format!("{path}.predicted_cause_specific_hazard_rates"), "must be an array"))?;
+            .ok_or_else(|| fail(&format!("{path}.predicted_cause_specific_hazard_rates_per_hour"), "must be an array"))?;
         if hazard_rows.len() != all_codes.len() {
             return Err(fail(
                 &path,
-                "predicted_cause_specific_hazard_rates must contain every declared event cause exactly once",
+                "predicted_cause_specific_hazard_rates_per_hour must contain every declared event cause exactly once",
             ));
         }
         let mut cause_specific_hazard_rates = BTreeMap::new();
         for (hazard_index, hazard_row) in hazard_rows.iter().enumerate() {
-            let hazard_path = format!("{path}.predicted_cause_specific_hazard_rates[{hazard_index}]");
+            let hazard_path = format!("{path}.predicted_cause_specific_hazard_rates_per_hour[{hazard_index}]");
             exact_keys(hazard_row, &["event_code", "rates_per_interval"], &hazard_path)?;
             let cause = string_field(hazard_row, "event_code", &hazard_path)?.to_string();
             if !all_codes.contains(&cause) {
@@ -374,7 +374,7 @@ fn parse_subjects(
         {
             return Err(fail(
                 &path,
-                "predicted_cause_specific_hazard_rates is missing one or more declared event causes",
+                "predicted_cause_specific_hazard_rates_per_hour is missing one or more declared event causes",
             ));
         }
 
@@ -916,7 +916,7 @@ mod tests {
     #[test]
     fn rejects_zero_hazard_for_an_observed_event_cause() {
         let mut run = fixture();
-        run["subjects"][0]["predicted_cause_specific_hazard_rates"][0]["rates_per_interval"][0] =
+        run["subjects"][0]["predicted_cause_specific_hazard_rates_per_hour"][0]["rates_per_interval"][0] =
             Value::from(0.0);
         assert!(
             evaluate_run(&run)
