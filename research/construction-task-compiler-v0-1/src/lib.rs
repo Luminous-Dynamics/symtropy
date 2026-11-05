@@ -78,6 +78,86 @@ impl ValidationReport {
 }
 
 impl TaskGraph {
+    /// Serialize a validated task graph using the versioned canonical CTG v0.1 encoding.
+    ///
+    /// This encoding is deterministic and length-prefixed. It is not a cryptographic
+    /// digest, signature, authenticated approval or proof of physical correctness.
+    /// Lists with set semantics are sorted by their UTF-8 byte representation; nodes
+    /// are sorted by task ID and parameters by target name.
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, ValidationReport> {
+        let report = self.validate();
+        if !report.is_valid() {
+            return Err(report);
+        }
+
+        let mut output = Vec::new();
+        output.extend_from_slice(b"CTG\\0v1");
+
+        for field in [
+            self.graph_id.as_str(),
+            self.project_id.as_str(),
+            self.site_id.as_str(),
+            self.work_package_id.as_str(),
+            self.model_digest.as_str(),
+            self.design_revision.as_str(),
+            self.target_frame_id.as_str(),
+            self.site_epoch.as_str(),
+            self.method_template_id.as_str(),
+            self.method_revision_digest.as_str(),
+            self.method_approval_ref.as_str(),
+            self.compiler_version.as_str(),
+            self.rule_set_digest.as_str(),
+        ] {
+            append_string(&mut output, field);
+        }
+
+        let mut nodes: Vec<&TaskNode> = self.nodes.iter().collect();
+        nodes.sort_by(|left, right| left.task_id.as_bytes().cmp(right.task_id.as_bytes()));
+        append_count(&mut output, nodes.len());
+
+        for node in nodes {
+            for field in [
+                node.task_id.as_str(),
+                node.task_family.as_str(),
+                node.method_step_id.as_str(),
+                node.transformation_rule_id.as_str(),
+                node.transformation_rule_digest.as_str(),
+                node.functional_unit_class.as_str(),
+            ] {
+                append_string(&mut output, field);
+            }
+
+            append_string_list(&mut output, &node.source_element_ids);
+            append_string_list(&mut output, &node.dependencies);
+
+            let mut parameters: Vec<&ParameterBinding> = node.parameters.iter().collect();
+            parameters.sort_by(|left, right| {
+                left.name.as_bytes().cmp(right.name.as_bytes())
+            });
+            append_count(&mut output, parameters.len());
+            for parameter in parameters {
+                append_string(&mut output, &parameter.name);
+                append_string(&mut output, &parameter.source_property);
+                append_string(&mut output, &parameter.value);
+                append_string(&mut output, &parameter.unit);
+                append_string(&mut output, &parameter.source_ref);
+                append_optional_string(&mut output, parameter.source_unit.as_deref());
+                append_optional_string(
+                    &mut output,
+                    parameter.conversion_evidence_ref.as_deref(),
+                );
+            }
+
+            append_string_list(&mut output, &node.required_capabilities);
+            append_string_list(&mut output, &node.required_resources);
+            append_string_list(&mut output, &node.preconditions);
+            append_string_list(&mut output, &node.postconditions);
+            append_string_list(&mut output, &node.required_evidence);
+        }
+
+        Ok(output)
+    }
+
     pub fn validate(&self) -> ValidationReport {
         let mut diagnostics = Vec::new();
 
@@ -160,6 +240,36 @@ impl TaskGraph {
                 diagnostics.push(diagnostic("missing_graph_header_field", None, name));
             }
         }
+    }
+}
+
+fn append_count(output: &mut Vec<u8>, count: usize) {
+    // Rust targets used by this crate have usize no wider than u64.
+    output.extend_from_slice(&(count as u64).to_le_bytes());
+}
+
+fn append_string(output: &mut Vec<u8>, value: &str) {
+    let bytes = value.as_bytes();
+    append_count(output, bytes.len());
+    output.extend_from_slice(bytes);
+}
+
+fn append_optional_string(output: &mut Vec<u8>, value: Option<&str>) {
+    match value {
+        Some(value) => {
+            output.push(1);
+            append_string(output, value);
+        }
+        None => output.push(0),
+    }
+}
+
+fn append_string_list(output: &mut Vec<u8>, values: &[String]) {
+    let mut sorted: Vec<&str> = values.iter().map(String::as_str).collect();
+    sorted.sort_by(|left, right| left.as_bytes().cmp(right.as_bytes()));
+    append_count(output, sorted.len());
+    for value in sorted {
+        append_string(output, value);
     }
 }
 
@@ -435,6 +545,114 @@ mod tests {
             postconditions: vec!["component-installed".to_owned()],
             required_evidence: vec!["independent-as-built-inspection".to_owned()],
         }
+    }
+
+
+    #[test]
+    fn canonical_bytes_are_identical_under_semantically_irrelevant_permutations() {
+        let mut first = graph(vec![
+            node("task-c", &["task-a", "task-b"]),
+            node("task-b", &[]),
+            node("task-a", &[]),
+        ]);
+        first.nodes[0].source_element_ids = vec!["element-z".to_owned(), "element-a".to_owned()];
+        first.nodes[0].required_capabilities =
+            vec!["skill-z".to_owned(), "skill-a".to_owned()];
+        first.nodes[0].required_resources =
+            vec!["resource-z".to_owned(), "resource-a".to_owned()];
+        first.nodes[0].preconditions =
+            vec!["precondition-z".to_owned(), "precondition-a".to_owned()];
+        first.nodes[0].postconditions =
+            vec!["postcondition-z".to_owned(), "postcondition-a".to_owned()];
+        first.nodes[0].required_evidence =
+            vec!["evidence-z".to_owned(), "evidence-a".to_owned()];
+        first.nodes[0].parameters.push(ParameterBinding {
+            name: "another_parameter".to_owned(),
+            source_property: "another_property".to_owned(),
+            value: "value-2".to_owned(),
+            unit: "mm".to_owned(),
+            source_ref: "design.property.another".to_owned(),
+            source_unit: Some("mm".to_owned()),
+            conversion_evidence_ref: None,
+        });
+
+        let mut second = first.clone();
+        second.nodes.reverse();
+        second.nodes[2].source_element_ids.reverse();
+        second.nodes[2].required_capabilities.reverse();
+        second.nodes[2].required_resources.reverse();
+        second.nodes[2].preconditions.reverse();
+        second.nodes[2].postconditions.reverse();
+        second.nodes[2].required_evidence.reverse();
+        second.nodes[2].parameters.reverse();
+
+        assert_eq!(
+            first.canonical_bytes().expect("valid canonical graph"),
+            second.canonical_bytes().expect("valid reordered graph")
+        );
+    }
+
+    #[test]
+    fn canonical_encoding_has_versioned_domain_separator() {
+        let bytes = graph(vec![node("task-a", &[])])
+            .canonical_bytes()
+            .expect("valid canonical graph");
+        assert!(bytes.starts_with(b"CTG\\0v1"));
+    }
+
+    #[test]
+    fn canonical_bytes_change_when_site_epoch_changes() {
+        let first = graph(vec![node("task-a", &[])]);
+        let mut second = first.clone();
+        second.site_epoch = "site-epoch-2".to_owned();
+
+        assert_ne!(
+            first.canonical_bytes().expect("first graph"),
+            second.canonical_bytes().expect("second graph")
+        );
+    }
+
+    #[test]
+    fn canonical_bytes_change_when_target_frame_changes() {
+        let first = graph(vec![node("task-a", &[])]);
+        let mut second = first.clone();
+        second.target_frame_id = "local-frame-2".to_owned();
+
+        assert_ne!(
+            first.canonical_bytes().expect("first graph"),
+            second.canonical_bytes().expect("second graph")
+        );
+    }
+
+    #[test]
+    fn canonical_bytes_change_when_acceptance_evidence_changes() {
+        let first = graph(vec![node("task-a", &[])]);
+        let mut second = first.clone();
+        second.nodes[0].required_evidence[0] = "different-independent-inspection".to_owned();
+
+        assert_ne!(
+            first.canonical_bytes().expect("first graph"),
+            second.canonical_bytes().expect("second graph")
+        );
+    }
+
+    #[test]
+    fn canonical_bytes_change_when_method_revision_changes() {
+        let first = graph(vec![node("task-a", &[])]);
+        let mut second = first.clone();
+        second.method_revision_digest = "sha256:method-revision-2".to_owned();
+
+        assert_ne!(
+            first.canonical_bytes().expect("first graph"),
+            second.canonical_bytes().expect("second graph")
+        );
+    }
+
+    #[test]
+    fn canonical_bytes_reject_invalid_graphs() {
+        let invalid = graph(vec![node("task-a", &["missing-task"])]);
+        let result = invalid.canonical_bytes();
+        assert!(matches!(result, Err(report) if !report.is_valid()));
     }
 
     #[test]
