@@ -2978,9 +2978,10 @@ mod tests {
         let mut one_leg = current.clone();
         one_leg.legs[LegId::FrontLeft.index()].contact_state = ContactState::Slipping;
         one_leg.legs[LegId::FrontLeft.index()].load_state = LoadState::Elevated;
-        assert!(validate_action_transition_semantics(
-            &action, &current, &sensor, &one_leg, &sensor
-        ).is_ok());
+        assert!(
+            validate_action_transition_semantics(&action, &current, &sensor, &one_leg, &sensor)
+                .is_ok()
+        );
 
         let mut two_legs = one_leg.clone();
         two_legs.legs[LegId::FrontRight.index()].contact_state = ContactState::Slipping;
