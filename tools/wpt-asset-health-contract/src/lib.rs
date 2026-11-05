@@ -225,9 +225,16 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
         }
     }
 
-    if let Some(array) = value.as_array()
-        && let Some(item_schema) = schema.get("items")
-    {
+    if let Some(array) = value.as_array() {
+        if schema.get("uniqueItems") == Some(&Value::Bool(true)) {
+            for (index, item) in array.iter().enumerate() {
+                if array[..index].contains(item) {
+                    return Err(fail(path, "array items must be unique"));
+                }
+            }
+        }
+
+        if let Some(item_schema) = schema.get("items") {
             for (index, item) in array.iter().enumerate() {
                 validate_schema_node(item_schema, item, &format!("{path}[{index}]"))?;
             }
@@ -244,6 +251,7 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
         "required",
         "properties",
         "items",
+        "uniqueItems",
         "const",
         "enum",
         "minLength",
@@ -487,6 +495,20 @@ mod tests {
             validate_observation(&schema, &example)
                 .unwrap_err()
                 .contains("above maximum")
+        );
+    }
+
+    #[test]
+    fn duplicate_quality_flags_are_rejected_by_unique_items() {
+        let (schema, mut example, _) = bundled_fixtures().unwrap();
+        example["quality_flags"] = Value::Array(vec![
+            Value::String("SYNTHETIC_ONLY".into()),
+            Value::String("SYNTHETIC_ONLY".into()),
+        ]);
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("array items must be unique")
         );
     }
 
