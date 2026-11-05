@@ -517,7 +517,7 @@ pub fn evaluate_change(
     }
 
     if !global_unknown_reasons.is_empty() {
-        let mut seed = TraversalState {
+        let seed = TraversalState {
             node_id: event.subject_node_id.clone(),
             node_path: vec![event.subject_node_id.clone()],
             edge_path: Vec::new(),
@@ -530,7 +530,6 @@ pub fn evaluate_change(
             acc.unknown = true;
             acc.reasons.insert(reason.clone());
         }
-        seed.node_id = event.subject_node_id.clone();
         propagate_unknown(
             graph,
             seed,
@@ -877,6 +876,8 @@ fn evaluation_identity(graph: &EvidenceGraph, event: &ChangeEvent) -> String {
         graph.graph_id.clone(),
         graph.graph_revision.clone(),
         graph.rule_set_digest.clone(),
+        graph.closure_complete.to_string(),
+        graph.closure_graph_revision.clone(),
         graph.closure_manifest_ref.clone().unwrap_or_default(),
         graph.closure_authority_ref.clone().unwrap_or_default(),
         graph.closure_valid_until_unix.map_or_else(String::new, |v| v.to_string()),
