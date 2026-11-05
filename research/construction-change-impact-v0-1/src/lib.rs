@@ -790,10 +790,10 @@ fn scope_intersects(event: &ScopeSelector, edge: &ScopeSelector) -> ScopeMatch {
                 (&event.frame_id, &edge.frame_id),
                 (&event.odd_id, &edge.odd_id),
             ] {
-                if let (Some(left), Some(right)) = (left, right) {
-                    if left != right {
-                        return ScopeMatch::Disjoint;
-                    }
+                if let (Some(left), Some(right)) = (left, right)
+                    && left != right
+                {
+                    return ScopeMatch::Disjoint;
                 }
             }
             ScopeMatch::Match
