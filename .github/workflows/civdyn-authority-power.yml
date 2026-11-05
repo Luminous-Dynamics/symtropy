@@ -78,7 +78,7 @@ jobs:
           assert all(abs(float(r["normalized_banzhaf"]) - 0.2) < 1e-9 for r in balanced)
 
           topology = {
-              (r["case_id"], r["subject"]): r["value"]
+              (r["case_id"], r["metric"]): r["value"]
               for r in rows if r["record_type"] == "topology_metric"
           }
           assert topology[("separated_roles", "compliant_with_declared_policy")] == "true"
