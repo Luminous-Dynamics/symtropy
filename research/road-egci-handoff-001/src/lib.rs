@@ -1833,19 +1833,32 @@ mod tests {
     fn policy_and_context_changes_rebind_the_sam_query() {
         let (episode, anchor) = fixture();
         let baseline = export_to_sam(&episode, &anchor).unwrap();
-        let mut changed = episode.clone();
-        changed.policies[0].policy_digest = d("new-policy");
-        changed.branches[0].decisions[0].policy_digest = d("new-policy");
-        changed.manifest.scenario_digest = d("new-scenario");
-        let anchor = reanchor(&mut changed, &anchor);
-        let updated = export_to_sam(&changed, &anchor).unwrap();
+
+        let mut changed_policy = episode.clone();
+        changed_policy.policies[0].policy_digest = d("new-policy");
+        changed_policy.branches[0].decisions[0].policy_digest = d("new-policy");
+        let policy_anchor = reanchor(&mut changed_policy, &anchor);
+        let policy_updated = export_to_sam(&changed_policy, &policy_anchor).unwrap();
         assert_ne!(
             baseline.branches[0].queries[0].query.target_policy_digest,
-            updated.branches[0].queries[0].query.target_policy_digest
+            policy_updated.branches[0].queries[0].query.target_policy_digest
+        );
+        assert_eq!(
+            baseline.branches[0].queries[0].query.context_digest,
+            policy_updated.branches[0].queries[0].query.context_digest
+        );
+
+        let mut changed_context = episode.clone();
+        changed_context.manifest.scenario_digest = d("new-scenario");
+        let context_anchor = reanchor(&mut changed_context, &anchor);
+        let context_updated = export_to_sam(&changed_context, &context_anchor).unwrap();
+        assert_eq!(
+            baseline.branches[0].queries[0].query.target_policy_digest,
+            context_updated.branches[0].queries[0].query.target_policy_digest
         );
         assert_ne!(
             baseline.branches[0].queries[0].query.context_digest,
-            updated.branches[0].queries[0].query.context_digest
+            context_updated.branches[0].queries[0].query.context_digest
         );
     }
 
