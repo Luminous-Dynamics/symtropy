@@ -14,6 +14,7 @@
 //! sub-sample transients remain explicitly unverified.
 
 use core::fmt;
+use std::collections::BTreeSet;
 
 use serde::Serialize;
 
@@ -402,6 +403,7 @@ pub enum GridInterconnectionError {
     TimestampOverflow,
     InvalidElectricalSample { voltage_pu: f64, frequency_hz: f64 },
     TooFewSamples(usize),
+    DuplicateSampleEvidenceId { sample_index: usize, evidence_id: String },
     FirstSampleMustStartAtZero,
     NonIncreasingSampleTime { sample_index: usize },
     SampleGapExceeded {
@@ -447,6 +449,9 @@ impl fmt::Display for GridInterconnectionError {
                 write!(f, "invalid electrical sample voltage={voltage_pu} pu, frequency={frequency_hz} Hz")
             }
             Self::TooFewSamples(count) => write!(f, "at least three samples are required; got {count}"),
+            Self::DuplicateSampleEvidenceId { sample_index, evidence_id } => write!(
+                f, "sample evidence ID {evidence_id} is duplicated at sample index {sample_index}"
+            ),
             Self::FirstSampleMustStartAtZero => write!(f, "first disturbance sample must start at elapsed time zero"),
             Self::NonIncreasingSampleTime { sample_index } => {
                 write!(f, "sample time is not strictly increasing at index {sample_index}")
@@ -474,6 +479,15 @@ pub fn evaluate_grid_interconnection_event(
     }
     if samples[0].elapsed_milliseconds != 0 {
         return Err(GridInterconnectionError::FirstSampleMustStartAtZero);
+    }
+    let mut evidence_ids = BTreeSet::new();
+    for (sample_index, sample) in samples.iter().enumerate() {
+        if !evidence_ids.insert(sample.evidence_id.as_str()) {
+            return Err(GridInterconnectionError::DuplicateSampleEvidenceId {
+                sample_index,
+                evidence_id: sample.evidence_id.clone(),
+            });
+        }
     }
     let event_end = contract.ride_through_bands.last()
         .map(|band| band.end_offset_milliseconds)
@@ -881,6 +895,19 @@ mod tests {
                 5_000, 2_000, 500, 5,
             ),
             Err(GridInterconnectionError::RideThroughBandGapOrOverlap { .. })
+        ));
+    }
+
+    #[test]
+    fn duplicate_sample_evidence_ids_are_rejected() {
+        let mut trace = passing_trace();
+        trace[4] = GridInterconnectionSample::new(
+            4_000, 1.0, 50.0, 100.0, 10.0, true, 1,
+            GridInterconnectionSampleQuality::Valid, "sample-3000",
+        ).expect("sample");
+        assert!(matches!(
+            evaluate_grid_interconnection_event(&contract(100.0, 5_000, 2_000), &trace),
+            Err(GridInterconnectionError::DuplicateSampleEvidenceId { .. })
         ));
     }
 
