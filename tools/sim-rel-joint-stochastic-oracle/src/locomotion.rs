@@ -1498,12 +1498,54 @@ mod tests {
                 load_state: LoadState::Nominal,
                 carryover: PhysicalCarryover::Baseline,
                 legs: [
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Swing, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Swing, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Retracting, ActuatorForceBin::High),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Swing, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Extended,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Swing,
+                        ContactState::Airborne,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Protracting,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Swing,
+                        ContactState::Airborne,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Protracting,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Elevated,
+                        JointPositionBin::Extended,
+                        JointVelocityBin::Retracting,
+                        ActuatorForceBin::High,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Swing,
+                        ContactState::Airborne,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Protracting,
+                        ActuatorForceBin::Low,
+                    ),
                 ],
             },
             PhysicalState {
@@ -1514,12 +1556,54 @@ mod tests {
                 load_state: LoadState::Elevated,
                 carryover: PhysicalCarryover::Loaded,
                 legs: [
-                    leg_mechanics(GaitPhase::Swing, ContactState::Slipping, LoadState::Elevated, JointPositionBin::Flexed, JointVelocityBin::Retracting, ActuatorForceBin::High),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Swing, ContactState::Unloaded, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Swing, ContactState::Unloaded, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Retracting, ActuatorForceBin::High),
+                    leg_mechanics(
+                        GaitPhase::Swing,
+                        ContactState::Slipping,
+                        LoadState::Elevated,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Retracting,
+                        ActuatorForceBin::High,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Extended,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Extended,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Swing,
+                        ContactState::Unloaded,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Protracting,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Swing,
+                        ContactState::Unloaded,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Protracting,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Elevated,
+                        JointPositionBin::Extended,
+                        JointVelocityBin::Retracting,
+                        ActuatorForceBin::High,
+                    ),
                 ],
             },
             PhysicalState {
@@ -1530,12 +1614,54 @@ mod tests {
                 load_state: LoadState::Nominal,
                 carryover: PhysicalCarryover::Baseline,
                 legs: [
-                    leg_mechanics(GaitPhase::Transition, ContactState::Unloaded, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Protracting, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Transition, ContactState::Unloaded, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Retracting, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(
+                        GaitPhase::Transition,
+                        ContactState::Unloaded,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Protracting,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Transition,
+                        ContactState::Unloaded,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Retracting,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Elevated,
+                        JointPositionBin::Extended,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Elevated,
+                        JointPositionBin::Extended,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
                 ],
             },
             PhysicalState {
@@ -1546,12 +1672,54 @@ mod tests {
                 load_state: LoadState::Reduced,
                 carryover: PhysicalCarryover::Loaded,
                 legs: [
-                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Extended, JointVelocityBin::Protracting, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Transition, ContactState::Unloaded, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Retracting, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Elevated, JointPositionBin::Extended, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(
+                        GaitPhase::Transition,
+                        ContactState::Airborne,
+                        LoadState::Reduced,
+                        JointPositionBin::Extended,
+                        JointVelocityBin::Protracting,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Transition,
+                        ContactState::Unloaded,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Retracting,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Elevated,
+                        JointPositionBin::Extended,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Elevated,
+                        JointPositionBin::Extended,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
                 ],
             },
             PhysicalState {
@@ -1562,12 +1730,54 @@ mod tests {
                 load_state: LoadState::Nominal,
                 carryover: PhysicalCarryover::Baseline,
                 legs: [
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
-                    leg_mechanics(GaitPhase::Stance, ContactState::Supported, LoadState::Nominal, JointPositionBin::Neutral, JointVelocityBin::Stationary, ActuatorForceBin::Nominal),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Stance,
+                        ContactState::Supported,
+                        LoadState::Nominal,
+                        JointPositionBin::Neutral,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Nominal,
+                    ),
                 ],
             },
             PhysicalState {
@@ -1578,12 +1788,54 @@ mod tests {
                 load_state: LoadState::Reduced,
                 carryover: PhysicalCarryover::Loaded,
                 legs: [
-                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
-                    leg_mechanics(GaitPhase::Transition, ContactState::Airborne, LoadState::Reduced, JointPositionBin::Flexed, JointVelocityBin::Stationary, ActuatorForceBin::Low),
+                    leg_mechanics(
+                        GaitPhase::Transition,
+                        ContactState::Airborne,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Transition,
+                        ContactState::Airborne,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Transition,
+                        ContactState::Airborne,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Transition,
+                        ContactState::Airborne,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Transition,
+                        ContactState::Airborne,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Low,
+                    ),
+                    leg_mechanics(
+                        GaitPhase::Transition,
+                        ContactState::Airborne,
+                        LoadState::Reduced,
+                        JointPositionBin::Flexed,
+                        JointVelocityBin::Stationary,
+                        ActuatorForceBin::Low,
+                    ),
                 ],
             },
         ];
@@ -1889,11 +2141,12 @@ mod tests {
                                     .id
                                     .strip_suffix(WASHOUT_SUFFIX)
                                     .unwrap_or(&physical.id);
-                                let toggled_id = if let Some(base) = unwashed_id.strip_suffix(LEG_SUFFIX) {
-                                    base.to_owned()
-                                } else {
-                                    format!("{}{}", unwashed_id, LEG_SUFFIX)
-                                };
+                                let toggled_id =
+                                    if let Some(base) = unwashed_id.strip_suffix(LEG_SUFFIX) {
+                                        base.to_owned()
+                                    } else {
+                                        format!("{}{}", unwashed_id, LEG_SUFFIX)
+                                    };
                                 next_physical = if was_washed {
                                     format!("{}{}", toggled_id, WASHOUT_SUFFIX)
                                 } else {
@@ -1921,7 +2174,8 @@ mod tests {
                                 }
                             }
                             InterventionKind::Washout => {
-                                next_physical = if physical.carryover == PhysicalCarryover::Baseline {
+                                next_physical = if physical.carryover == PhysicalCarryover::Baseline
+                                {
                                     physical.id.clone()
                                 } else {
                                     format!("{}-washout-cleared", physical.id)
@@ -2685,10 +2939,7 @@ mod tests {
         let outcome = &compiled.kernel.rows[row_index].outcomes[0];
         let next_physical = &compiled.physical_states[outcome.next_physical_state];
         let next_sensor = &compiled.sensor_states[outcome.next_sensor_state];
-        assert_eq!(
-            next_physical.id,
-            "stance-nominal-front-left-load-perturbed"
-        );
+        assert_eq!(next_physical.id, "stance-nominal-front-left-load-perturbed");
         let original_physical = compiled
             .physical_states
             .iter()
@@ -2709,7 +2960,10 @@ mod tests {
             next_physical.legs[LegId::FrontLeft.index()].load_state,
             LoadState::Elevated
         );
-        for leg in LegId::ALL.into_iter().filter(|leg| *leg != LegId::FrontLeft) {
+        for leg in LegId::ALL
+            .into_iter()
+            .filter(|leg| *leg != LegId::FrontLeft)
+        {
             assert_eq!(
                 next_physical.legs[leg.index()],
                 original_physical.legs[leg.index()]
