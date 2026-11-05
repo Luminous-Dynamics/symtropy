@@ -1,0 +1,235 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/measurement-distribution/0.1",
+  "schema_version": "0.1.0",
+  "protocol_id": "CIVBENCH-MAD-001",
+  "evaluation_id": "CIVDYN-DELIB-SYNTHETIC-STEERING-OPTION-ORDER-001",
+  "benchmark_id": "CIVDYN-DELIB-001",
+  "construct": {
+    "name": "procedural participation, proposal traceability and facilitator steering",
+    "intended_use": "Verify that speaking inequality, proposal omission, evidence support, consensus endorsements and allocation perturbations are measured as separate trace properties.",
+    "claim_tier": "tier-1-reference",
+    "claim_ceiling": "Tier 1 synthetic procedural-audit reference only; no human-subject effect, causal facilitation estimate or legitimate-welfare claim."
+  },
+  "units": {
+    "observational_unit": "participant × deliberation-session event",
+    "resampling_unit": "none",
+    "independent_unit": "One deterministic baseline/steering/option-order fixture set",
+    "dependence_statement": "Members, turns, proposals and allocations are nested within the same synthetic sessions; no independent sample or human population is represented.",
+    "clustered_observations": false,
+    "independence_claimed": false
+  },
+  "sources": [
+    {
+      "source_id": "CIVDYN-DELIB-SYNTHETIC-TRACE-V0",
+      "epistemic_status": "synthetic-test-fixture",
+      "version": "0.1.0",
+      "retrieved_at": "2026-11-05",
+      "license": "AGPL-3.0-or-later",
+      "content_digest": null,
+      "source_family": "locally-authored-synthetic-fixture",
+      "missingness_semantics": "The deterministic fixture has complete declared cells; absent cells are missing/unsupported, never zero."
+    }
+  ],
+  "evaluation_distribution": {
+    "sampling_frame": "Two synthetic three-member sessions with recorded preferences, turns, proposals, evidence references, endorsement flags and a fixed 100-unit allocation budget; plus paired rhetoric and option-order controls.",
+    "factors": [
+      {
+        "factor_id": "session_condition",
+        "weight_interpretation": "Two authored software fixtures; equal design coverage, not prevalence.",
+        "levels": [
+          {
+            "level_id": "unfacilitated_reference",
+            "target_weight": 0.5,
+            "support_count": 1
+          },
+          {
+            "level_id": "facilitated_steering_control",
+            "target_weight": 0.5,
+            "support_count": 1
+          }
+        ]
+      },
+      {
+        "factor_id": "option_order_control",
+        "weight_interpretation": "Paired semantic-order tests, not population-weighted observations.",
+        "levels": [
+          {
+            "level_id": "semantic_invariant",
+            "target_weight": 0.5,
+            "support_count": 1
+          },
+          {
+            "level_id": "position_biased",
+            "target_weight": 0.5,
+            "support_count": 1
+          }
+        ]
+      }
+    ],
+    "excluded_support": []
+  },
+  "perturbation_families": [
+    {
+      "family_id": "rhetoric-only-allocation-shift",
+      "rationale": "Tests whether a changed facilitation trace moves allocation while participant preferences and evidence remain fixed.",
+      "validity_check": "Compare semantic input identity, preference vectors and evidence catalogue before interpreting allocation shift.",
+      "expected_invariants": [
+        "Participant preference vectors are identical across paired sessions.",
+        "Evidence catalogue and source digests are identical across paired sessions."
+      ],
+      "seed_policy": "Deterministic authored fixture; no stochastic seed.",
+      "parameter_range": null
+    },
+    {
+      "family_id": "option-display-order",
+      "rationale": "Tests whether position labels or order change allocation after remapping back to semantic option IDs.",
+      "validity_check": "Compare options by stable semantic labels, not array position.",
+      "expected_invariants": [
+        "A pure display permutation with equivalent semantic allocation yields zero shift.",
+        "Deliberate position bias yields a non-zero semantic allocation shift."
+      ],
+      "seed_policy": "Deterministic authored permutation; no stochastic seed.",
+      "parameter_range": null
+    }
+  ],
+  "replication_design": {
+    "method": "deterministic-fixture",
+    "replication_count": 1,
+    "independent_unit": "One fixed deterministic design matrix; no stochastic or empirical replication is claimed.",
+    "inference_claimed": false,
+    "dependence_assessment": "Scenario, strategy, participant and condition cells are deterministic benchmark fixtures, not independent draws from a target population.",
+    "sample_size_rationale": "One deterministic execution is sufficient to verify exact code paths and negative controls; it cannot support confidence intervals or population inference.",
+    "seed_manifest_digest": null,
+    "cluster_unit": null
+  },
+  "metrics": [
+    {
+      "metric_id": "speaking_time_gini",
+      "construct_dimension": "distribution of recorded floor time",
+      "unit": "gini coefficient",
+      "direction": "descriptive-only",
+      "aggregation": "Gini over participant speaking-time totals within each session",
+      "strata": [
+        "session_condition"
+      ],
+      "uncertainty_method": "none; deterministic trace",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "proposal_summary_coverage",
+      "construct_dimension": "proposal representation in facilitator summary",
+      "unit": "fraction",
+      "direction": "higher-is-better",
+      "aggregation": "unique proposals raised in turns that are represented in the summary divided by unique proposals raised",
+      "strata": [
+        "session_condition",
+        "member"
+      ],
+      "uncertainty_method": "none; deterministic trace",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "unsupported_facilitator_claim_count",
+      "construct_dimension": "evidence support of facilitator statements",
+      "unit": "claims",
+      "direction": "lower-is-better",
+      "aggregation": "claims lacking a known evidence ID with a source-declared verified status",
+      "strata": [
+        "session_condition"
+      ],
+      "uncertainty_method": "none; deterministic trace",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "consensus_claim_contradicted_by_recorded_non_endorsement",
+      "construct_dimension": "declared consensus rule versus recorded endorsements",
+      "unit": "boolean",
+      "direction": "descriptive-only",
+      "aggregation": "true only when a facilitator consensus declaration conflicts with an assessed explicit consensus rule; missing endorsement remains unknown",
+      "strata": [
+        "session_condition"
+      ],
+      "uncertainty_method": "none; deterministic trace",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "allocation_l1_shift_units",
+      "construct_dimension": "facilitation and option-order allocation sensitivity",
+      "unit": "L1 allocation units",
+      "direction": "descriptive-only",
+      "aggregation": "L1 over semantic options; reallocated units are L1/2",
+      "strata": [
+        "facilitation_pair",
+        "option_order_pair"
+      ],
+      "uncertainty_method": "none; deterministic trace",
+      "proper_scoring_rule": null
+    }
+  ],
+  "baselines": [
+    {
+      "baseline_id": "unfacilitated_reference",
+      "description": "Recorded baseline session with fixed declared preferences and equal semantic allocation.",
+      "protocol_matched": true,
+      "source_uri": null
+    },
+    {
+      "baseline_id": "preference_proportional",
+      "description": "Deterministic preference-proportional counterfactual; descriptive only, not a welfare optimum.",
+      "protocol_matched": true,
+      "source_uri": null
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "missing-endorsement",
+      "intervention": "Replace a participant consensus endorsement with null.",
+      "expected_result": "Consensus rule status becomes unknown when available endorsements cannot establish the declared threshold; missing is not counted as dissent.",
+      "must_fail_or_remain_null": "remain-unknown"
+    },
+    {
+      "control_id": "display-permutation",
+      "intervention": "Permute option order and remap preferences, proposal meanings and final allocation by stable option labels.",
+      "expected_result": "Pure semantic invariance produces zero allocation shift; the position-biased fixture produces 56 L1 units.",
+      "must_fail_or_remain_null": "remain-unchanged"
+    },
+    {
+      "control_id": "unsupported-claim",
+      "intervention": "Add a facilitator claim referencing an unknown evidence ID.",
+      "expected_result": "The claim is counted unsupported and cannot be represented as evidence-backed.",
+      "must_fail_or_remain_null": "fail"
+    }
+  ],
+  "holdouts": [
+    {
+      "holdout_id": "empirical-external-holdout",
+      "dimension": "none",
+      "status": "not-applicable",
+      "leakage_control": "No empirical rows are used; this reference supports no external-generalization claim."
+    }
+  ],
+  "reproduction": {
+    "code_commit": "750824369cd2f8a64995d120fccba6977ffaf9bc",
+    "configuration_digest": "civdyn-deliberation-audit-v0.1; 3 synthetic members; 3 options; 100-unit budget",
+    "data_manifest_digest": null,
+    "model_identifier": null,
+    "runtime_environment": "Rust edition 2024; deterministic benchmark crate; exact-head GitHub Actions workflow",
+    "command": "cargo run --locked --manifest-path research/civdyn-deliberation-audit/Cargo.toml --bin deliberation-audit-sweep",
+    "humanity_atlas_run_artifact_ref": "Not applicable: synthetic benchmark reference execution; no full Humanity Atlas scenario artifact is claimed."
+  },
+  "claim_report": {
+    "claim_ceiling": "Tier 1 synthetic procedural-audit reference only; no human-subject effect, causal facilitation estimate or legitimate-welfare claim.",
+    "known_limitations": [
+      "Turn durations and proposal references are hand-authored event traces.",
+      "Evidence verification is only a source-declared boolean in this reference; the kernel does not independently authenticate source bytes.",
+      "Preference-proportional allocation is a descriptive counterfactual, not a normative welfare optimum.",
+      "Satisfaction and trust are self-reported synthetic values."
+    ],
+    "unsupported_strata": [
+      "Human deliberation groups, languages, cultures, institutional settings, real facilitators and high-stakes public decisions."
+    ],
+    "deviations": [],
+    "failed_controls": []
+  },
+  "composite_score_policy": "no-universal-composite"
+}
