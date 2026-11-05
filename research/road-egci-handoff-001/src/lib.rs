@@ -344,6 +344,7 @@ impl EpisodeExport {
             return Err(HandoffError::WrongEpisodeSchema);
         }
         let mut h = blake3::Hasher::new_derive_key(HASH_DOMAIN);
+        hash_str(&mut h, &self.schema);
         hash_manifest(&mut h, &self.manifest);
 
         let mut policies: Vec<_> = self.policies.iter().collect();
@@ -1638,6 +1639,27 @@ mod tests {
         }
     }
 
+    fn two_branch_fixture() -> (EpisodeExport, ExternalAnchor) {
+        let (mut episode, mut anchor) = fixture();
+        let mut second = episode.branches[0].clone();
+        second.branch_id = "yield-branch".into();
+        second.intervention_digest = d("yield-intervention");
+        for receipt in &mut second.correspondences {
+            receipt.draw_bundle_digest = d("draw-bundle-yield");
+            receipt.correspondence_digest = d(&format!("yield-{}", receipt.hypothesis_id));
+            receipt.causal_dispositions_digest = d(&format!("yield-causal-{}", receipt.hypothesis_id));
+            receipt.projection_input_digest = d(&format!("yield-projection-{}", receipt.hypothesis_id));
+        }
+        second.outcome = BranchOutcome::Completed;
+        episode.branches.push(second);
+        anchor.draw_bundle_anchors.push(DrawBundleAnchor {
+            branch_id: "yield-branch".into(),
+            expected_bundle_digest: d("draw-bundle-yield"),
+        });
+        let anchor = reanchor(&mut episode, &anchor);
+        (episode, anchor)
+    }
+
     fn joint_action_digest(decisions: &[PolicyDecision], tick: u64) -> String {
         let mut at_tick: Vec<_> = decisions.iter().filter(|d| d.tick == tick).collect();
         at_tick.sort_by(|a, b| a.actor_id.cmp(&b.actor_id));
@@ -1796,6 +1818,38 @@ mod tests {
             baseline.branches[0].queries[0].query.context_digest,
             updated.branches[0].queries[0].query.context_digest
         );
+    }
+
+    #[test]
+    fn exports_each_branch_and_preserves_branch_specific_incompleteness() {
+        let (mut episode, anchor) = two_branch_fixture();
+        episode.branches.iter_mut()
+            .find(|branch| branch.branch_id == "yield-branch")
+            .unwrap()
+            .transitions[1]
+            .disposition = TransitionDisposition::Censored;
+        let anchor = reanchor(&mut episode, &anchor);
+        let handoff = export_to_sam(&episode, &anchor).unwrap();
+
+        assert_eq!(handoff.branches.len(), 2);
+        let complete = handoff.branches.iter()
+            .find(|branch| branch.branch_id == "continue-branch")
+            .unwrap();
+        let censored = handoff.branches.iter()
+            .find(|branch| branch.branch_id == "yield-branch")
+            .unwrap();
+        assert_eq!(complete.queries.len(), 2);
+        assert_eq!(censored.queries.len(), 2);
+        assert!(complete.queries.iter().all(|query| query.query.complete));
+        assert!(censored.queries.iter().all(|query| !query.query.complete));
+    }
+
+    #[test]
+    fn duplicate_branch_identity_is_rejected() {
+        let (mut episode, anchor) = two_branch_fixture();
+        episode.branches[1].branch_id = episode.branches[0].branch_id.clone();
+        let anchor = reanchor(&mut episode, &anchor);
+        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::DuplicateBranch));
     }
 
     #[test]
