@@ -1399,6 +1399,70 @@ mod tests {
                     ],
                 ),
             ],
+            intervention_scopes: vec![],
+        }
+    }
+
+    fn scoped_action_spec() -> FactorizedTransitionSpec {
+        FactorizedTransitionSpec {
+            source_manifests: vec![fixture_source()],
+            variables: vec![
+                DiscreteVariable {
+                    id: "action".to_owned(),
+                    role: VariableRole::Action,
+                    domain: vec!["activate_left".to_owned(), "idle".to_owned()],
+                },
+                DiscreteVariable {
+                    id: "left_leg_state".to_owned(),
+                    role: VariableRole::Output,
+                    domain: vec!["off".to_owned(), "on".to_owned()],
+                },
+                DiscreteVariable {
+                    id: "right_leg_state".to_owned(),
+                    role: VariableRole::Output,
+                    domain: vec!["off".to_owned(), "on".to_owned()],
+                },
+            ],
+            factors: vec![
+                factor(
+                    "left-leg-action-target",
+                    "left_leg_state",
+                    &["action"],
+                    vec![
+                        conditional_row(
+                            &["activate_left"],
+                            vec![outcome("off", 0, 1), outcome("on", 1, 1)],
+                        ),
+                        conditional_row(
+                            &["idle"],
+                            vec![outcome("off", 1, 1), outcome("on", 0, 1)],
+                        ),
+                    ],
+                ),
+                factor(
+                    "right-leg-coupling",
+                    "right_leg_state",
+                    &["left_leg_state"],
+                    vec![
+                        conditional_row(
+                            &["off"],
+                            vec![outcome("off", 1, 1)],
+                        ),
+                        conditional_row(
+                            &["on"],
+                            vec![outcome("off", 1, 10), outcome("on", 9, 10)],
+                        ),
+                    ],
+                ),
+            ],
+            intervention_scopes: vec![InterventionScopeContract {
+                action_variable_id: "action".to_owned(),
+                direct_target_output_ids: vec!["left_leg_state".to_owned()],
+                allowed_descendant_output_ids: vec![
+                    "left_leg_state".to_owned(),
+                    "right_leg_state".to_owned(),
+                ],
+            }],
         }
     }
 
@@ -1541,6 +1605,146 @@ mod tests {
     }
 
     #[test]
+    fn local_action_scope_declares_direct_target_and_coupled_descendant() {
+        let compiled = scoped_action_spec().compile().unwrap();
+        assert_eq!(compiled.intervention_scopes.len(), 1);
+        let scope = &compiled.intervention_scopes[0];
+        assert_eq!(
+            compiled.variables[scope.action_variable].id,
+            "action"
+        );
+        assert_eq!(
+            scope
+                .direct_targets
+                .iter()
+                .map(|index| compiled.variables[*index].id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["left_leg_state"]
+        );
+        assert_eq!(
+            scope
+                .allowed_descendants
+                .iter()
+                .map(|index| compiled.variables[*index].id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["left_leg_state", "right_leg_state"]
+        );
+
+        let inputs = BTreeMap::from([("action".to_owned(), "activate_left".to_owned())]);
+        let outputs = output("on", "on");
+        assert_eq!(
+            compiled.joint_probability(&inputs, &outputs).unwrap(),
+            rational(9, 10)
+        );
+    }
+
+    #[test]
+    fn unannounced_direct_action_effect_on_non_target_leg_is_rejected() {
+        let mut invalid = scoped_action_spec();
+        let right = invalid
+            .factors
+            .iter_mut()
+            .find(|factor| factor.target_variable_id == "right_leg_state")
+            .unwrap();
+        right.parent_variable_ids = vec![
+            "action".to_owned(),
+            "left_leg_state".to_owned(),
+        ];
+        right.rows = vec![
+            conditional_row(
+                &["activate_left", "off"],
+                vec![outcome("off", 1, 1)],
+            ),
+            conditional_row(
+                &["activate_left", "on"],
+                vec![outcome("off", 1, 10), outcome("on", 9, 10)],
+            ),
+            conditional_row(
+                &["idle", "off"],
+                vec![outcome("off", 1, 1)],
+            ),
+            conditional_row(
+                &["idle", "on"],
+                vec![outcome("off", 1, 10), outcome("on", 9, 10)],
+            ),
+        ];
+        assert!(matches!(
+            invalid.compile(),
+            Err(FactorError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn action_variable_without_scope_contract_is_rejected() {
+        let mut invalid = scoped_action_spec();
+        invalid.intervention_scopes.clear();
+        assert!(matches!(
+            invalid.compile(),
+            Err(FactorError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn action_scope_cannot_omit_a_declared_coupling_descendant() {
+        let mut invalid = scoped_action_spec();
+        invalid.intervention_scopes[0].allowed_descendant_output_ids =
+            vec!["left_leg_state".to_owned()];
+        assert!(matches!(
+            invalid.compile(),
+            Err(FactorError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn thirty_binary_local_variables_support_single_leg_marginal_without_dense_expansion() {
+        let variables = std::iter::once(DiscreteVariable {
+            id: "context".to_owned(),
+            role: VariableRole::Input,
+            domain: vec!["walking".to_owned()],
+        })
+        .chain((0..30).map(|index| DiscreteVariable {
+            id: format!("leg_{index:02}"),
+            role: VariableRole::Output,
+            domain: vec!["off".to_owned(), "on".to_owned()],
+        }))
+        .collect();
+        let factors = (0..30)
+            .map(|index| {
+                factor(
+                    &format!("leg-transition-{index:02}"),
+                    &format!("leg_{index:02}"),
+                    &[],
+                    vec![conditional_row(
+                        &[],
+                        vec![outcome("off", 1, 2), outcome("on", 1, 2)],
+                    )],
+                )
+            })
+            .collect();
+        let compiled = FactorizedTransitionSpec {
+            source_manifests: vec![fixture_source()],
+            variables,
+            factors,
+            intervention_scopes: vec![],
+        }
+        .compile()
+        .unwrap();
+        assert_eq!(compiled.dense_output_cardinality().unwrap(), 1_073_741_824);
+
+        let marginal = compiled
+            .marginal(
+                &input("walking"),
+                &["leg_17".to_owned()],
+                2,
+            )
+            .unwrap();
+        assert_eq!(marginal.len(), 2);
+        assert!(marginal
+            .iter()
+            .all(|entry| entry.probability == rational(1, 2)));
+    }
+
+    #[test]
     fn non_normalized_conditional_row_fails_closed() {
         let mut invalid = spec();
         invalid.factors[0].rows[0].outcomes = vec![outcome("off", 1, 3), outcome("on", 1, 3)];
@@ -1603,6 +1807,7 @@ mod tests {
             source_manifests: vec![fixture_source()],
             variables,
             factors,
+            intervention_scopes: vec![],
         }
         .compile()
         .unwrap();
