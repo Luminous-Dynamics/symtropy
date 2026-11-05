@@ -109,7 +109,10 @@ impl Error for StabilityError {}
 /// intermediate result returns an error. The function does not assess
 /// transient amplification, uncertainty, nonlinear behaviour, sampled-data
 /// delay, switching dynamics, or a physical WPT network.
-pub fn classify(matrix: Matrix2, stability_margin: f64) -> Result<StabilityReport, StabilityError> {
+pub fn classify(
+    matrix: Matrix2,
+    stability_margin: f64,
+) -> Result<StabilityReport, StabilityError> {
     if !matrix.is_finite() {
         return Err(StabilityError::NonFiniteMatrix);
     }
