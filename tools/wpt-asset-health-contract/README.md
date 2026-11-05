@@ -23,3 +23,16 @@ The checked-in sample is deliberately synthetic and is not industry measurement 
 This crate implements only the exact JSON Schema subset used by this contract. It is not a general-purpose JSON Schema 2020-12 validator, a standards-certified schema engine, or a condition/RUL estimator. Its date-time check accepts the contract's required UTC YYYY-MM-DDTHH:MM:SSZ shape; it is not a general RFC 3339 parser. A future schema keyword requires an explicit validator implementation and a negative-control test before use.
 
 The cross-field rules are evidence hygiene, not physical safety rules. No condition estimate authorizes energization or overrides local protection, FOD, exposure, stability, identity or metrology gates.
+
+
+## Time-to-event and censored-asset validation
+
+The validator also checks `asset-lifecycle-outcome.schema.json` using `validate_lifecycle_outcomes`. The survival contract records one first-event outcome per physical asset and distinguishes:
+
+- `TARGET_FAILURE`: a declared target failure mode and event time;
+- `RIGHT_CENSORED`: observation ended before the target event, with a censor reason and no event code;
+- `COMPETING_EVENT`: a distinct event such as planned replacement or road reconstruction that prevents observing the target event.
+
+The evaluator recomputes duration from fixed-format UTC start/end timestamps and rejects mismatches. It rejects duplicate assets for this first-event estimand and rejects leakage of asset, segment, material-lot, installation, route or environmental-campaign groups across TRAIN/CALIBRATION/TEST splits. Repeated observations are not independent survival subjects.
+
+The included lifecycle fixture is synthetic and contains one target failure, one right-censored record and one competing event. It is not an observed pavement-lifetime dataset. The custom date parser deliberately supports only fixed UTC `YYYY-MM-DDTHH:MM:SSZ` timestamps with seconds 00–59; it is not a general RFC 3339 parser.
