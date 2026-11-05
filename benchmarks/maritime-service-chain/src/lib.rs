@@ -1813,8 +1813,17 @@ mod tests {
     fn synthetic_vessel_to_rail_case_has_a_valid_composable_contract() {
         let case = valid_case();
         assert_eq!(validate_case(&case), Ok(()));
-        assert_eq!(case.voyage_alternatives[0].energy.total_wh(), 2_000);
-        assert_eq!(case.voyage_alternatives[1].energy.total_wh(), 1_500);
+        let fast = case.voyage_alternatives[0].energy;
+        assert_eq!(fast.propulsion_wh, 1_800);
+        assert_eq!(fast.auxiliary_wh, 200);
+        assert_eq!(fast.shore_power_import_wh, 800);
+        assert_eq!(fast.inland_transfer_wh, 0);
+
+        let slow = case.voyage_alternatives[1].energy;
+        assert_eq!(slow.propulsion_wh, 1_300);
+        assert_eq!(slow.auxiliary_wh, 200);
+        assert_eq!(slow.shore_power_import_wh, 800);
+        assert_eq!(slow.inland_transfer_wh, 0);
     }
 
     #[test]
