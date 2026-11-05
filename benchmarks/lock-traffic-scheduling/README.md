@@ -18,7 +18,8 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.t
   latest-start time, maximum-wait limit, completion deadline, service duration,
   direction-switch delay, lock downtime and planning window.
 - Every arrival interval binds source/model revision, calibration/validation receipt,
-  operating regime, observation time, expiry, and an explicit evidence state.
+  the exact lower/upper interval bounds, operating regime, observation time, expiry,
+  and an explicit evidence state. A bound mismatch invalidates the interval.
   Future-dated, stale, missing, disputed or revoked arrival evidence is rejected or
   routed to review; intervals are conservatively scheduled at their latest arrival.
   The crate checks identifier presence, state, observation time and expiry; it does
