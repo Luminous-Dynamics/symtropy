@@ -260,14 +260,11 @@ fn pareto_frontier(mut candidates: Vec<OraclePlan>) -> Vec<OraclePlan> {
 /// Exhaustively enumerate tiny time-expanded plans for every declared voyage
 /// alternative. A budget-exhausted result is explicitly non-proven even when
 /// the partial candidates happen to look non-dominated.
-fn exact_temporal_oracle(case: &ServiceChainCase, max_states: u64) -> OracleResult {
-    if validate_case(case).is_err() {
-        return OracleResult {
-            frontier: Vec::new(),
-            states_explored: 0,
-            termination: SearchTermination::ExhaustiveComplete,
-        };
-    }
+fn exact_temporal_oracle(
+    case: &ServiceChainCase,
+    max_states: u64,
+) -> Result<OracleResult, ValidationError> {
+    validate_case(case)?;
 
     let mut states_explored = 0;
     let mut budget_exhausted = false;
@@ -291,7 +288,7 @@ fn exact_temporal_oracle(case: &ServiceChainCase, max_states: u64) -> OracleResu
         }
     }
 
-    OracleResult {
+    Ok(OracleResult {
         frontier: pareto_frontier(candidates),
         states_explored,
         termination: if budget_exhausted {
@@ -299,13 +296,13 @@ fn exact_temporal_oracle(case: &ServiceChainCase, max_states: u64) -> OracleResu
         } else {
             SearchTermination::ExhaustiveComplete
         },
-    }
+    })
 }
 
 #[test]
 fn exact_oracle_returns_complete_pareto_frontier_for_synthetic_lock_to_rail_case() {
     let case = valid_case();
-    let result = exact_temporal_oracle(&case, 10_000);
+    let result = exact_temporal_oracle(&case, 10_000).expect("valid frozen case");
 
     assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
     assert!(result.states_explored > 0);
@@ -340,7 +337,7 @@ fn exact_oracle_returns_complete_pareto_frontier_for_synthetic_lock_to_rail_case
 
 #[test]
 fn oracle_budget_exhaustion_never_claims_proven_frontier() {
-    let result = exact_temporal_oracle(&valid_case(), 1);
+    let result = exact_temporal_oracle(&valid_case(), 1).expect("valid frozen case");
     assert_eq!(result.termination, SearchTermination::BudgetExhausted);
     assert_eq!(result.states_explored, 1);
 }
@@ -351,9 +348,26 @@ fn no_feasible_delivery_window_returns_an_exhaustively_empty_frontier() {
     case.demand.delivery_window.end_tick = 30;
     assert_eq!(validate_case(&case), Ok(()));
 
-    let result = exact_temporal_oracle(&case, 10_000);
+    let result = exact_temporal_oracle(&case, 10_000).expect("valid frozen case");
     assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
     assert!(result.frontier.is_empty());
+}
+
+#[test]
+fn invalid_scenario_is_not_misreported_as_infeasible() {
+    let mut case = valid_case();
+    case.evidence
+        .iter_mut()
+        .find(|evidence| evidence.evidence_id == "depth")
+        .expect("depth evidence exists")
+        .state = EvidenceState::Revoked;
+    assert_eq!(
+        exact_temporal_oracle(&case, 10_000),
+        Err(ValidationError::EvidenceNotCurrent(
+            "depth".into(),
+            EvidenceState::Revoked
+        ))
+    );
 }
 
 #[test]
