@@ -687,7 +687,7 @@ mod tests {
                 ActionRecord {
                     action_id: "craft".into(),
                     agent_id: "smith".into(),
-                    sequence: 5,
+                    sequence: 6,
                     round: 3,
                     kind: ActionKind::EnvironmentAction,
                     fingerprint: Some("craft-vanguard".into()),
@@ -696,7 +696,7 @@ mod tests {
                 ActionRecord {
                     action_id: "hint".into(),
                     agent_id: "wizard".into(),
-                    sequence: 6,
+                    sequence: 5,
                     round: 3,
                     kind: ActionKind::Communication,
                     fingerprint: None,
@@ -874,7 +874,12 @@ mod tests {
     #[test]
     fn model_proposed_edge_cannot_be_marked_verified() {
         let mut trace = fixture();
-        trace.causal_edges[1].status = CausalEdgeStatus::Verified;
+        trace
+            .causal_edges
+            .iter_mut()
+            .find(|edge| edge.evidence_kind == CausalEvidenceKind::ModelProposed)
+            .expect("fixture has a model-proposed edge")
+            .status = CausalEdgeStatus::Verified;
         assert!(matches!(
             trace.validate(),
             Err(CollaborationError::ModelProposalMarkedVerified { .. })
