@@ -115,7 +115,7 @@ fn utc_timestamp_seconds(value: &str) -> Option<i64> {
 
     // Howard Hinnant's Gregorian civil-date conversion, with the Unix epoch
     // as day zero. All accepted timestamps use the fixed UTC Z form above.
-    let adjusted_year = year - i64::from(month <= 2);
+    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
     let era = adjusted_year.div_euclid(400);
     let year_of_era = adjusted_year - era * 400;
     let shifted_month = month + if month > 2 { -3 } else { 9 };
