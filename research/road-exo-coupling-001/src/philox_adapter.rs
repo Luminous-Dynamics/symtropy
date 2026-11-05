@@ -1193,7 +1193,8 @@ mod tests {
             resolved.hypotheses[0].completeness,
             PlanCompleteness::Incomplete
         );
-        assert_eq!(resolved.hypotheses[0].draws.len(), 2);
+        assert_eq!(resolved.hypotheses[0].draws.len(), 3);
+        assert_eq!(verify_correspondence_draw_bundle(&seed, &resolved), Ok(()));
     }
 
     #[test]
