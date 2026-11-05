@@ -1214,6 +1214,45 @@ mod tests {
     }
 
     #[test]
+    fn sustained_power_response_with_excessive_rebound_fails_response_envelope() {
+        let baseline = run("baseline-run", action("baseline-action", 250.0),
+            results("b", false), vec![120.0; 5]);
+        let candidate = run("candidate-run", action("candidate-action", 180.0),
+            results("c", false), vec![120.0, 100.0, 100.0, 100.0, 140.0]);
+        let report = evaluate_inference_power_flexibility(
+            identity(), &manifest(), &baseline, &candidate, &contract(),
+        ).expect("paired measurement");
+        assert!(report.service_equivalent);
+        assert_eq!(report.stabilized_response_elapsed_ms, Some(400));
+        assert!(!report.power_response_qualified);
+        assert!(report.power_response_gate_violations.contains(
+            &InferencePowerResponseGateViolation::MaximumReboundPowerExceeded
+        ));
+        assert!(report.power_response_gate_violations.contains(
+            &InferencePowerResponseGateViolation::MaximumReboundEnergyExceeded
+        ));
+    }
+
+    #[test]
+    fn failed_request_partial_tokens_do_not_count_as_completed_useful_work() {
+        let baseline = run("baseline-run", action("baseline-action", 250.0),
+            results("b", false), vec![120.0; 5]);
+        let mut candidate_results = results("c", false);
+        candidate_results[0] = InferenceRequestResult::new(
+            "req-0", false, 100, None, None,
+        ).expect("failed request may retain partial output tokens");
+        let candidate = run("candidate-run", action("candidate-action", 180.0),
+            candidate_results, vec![100.0; 5]);
+        let report = evaluate_inference_power_flexibility(
+            identity(), &manifest(), &baseline, &candidate, &contract(),
+        ).expect("measurement reports service failure");
+        assert_eq!(report.candidate_service.completed_useful_tokens, 300);
+        assert_eq!(report.candidate_service.total_output_tokens, 400);
+        assert_eq!(report.candidate_service.useful_work_fraction, 0.75);
+        assert!(!report.service_equivalent);
+    }
+
+    #[test]
     fn p99_latency_slo_breach_blocks_power_flexibility_credit() {
         let baseline = run("baseline-run", action("baseline-action", 250.0),
             results("b", false), vec![120.0; 5]);
