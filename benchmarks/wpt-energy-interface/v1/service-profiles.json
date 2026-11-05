@@ -37,6 +37,15 @@
       "useful_boundary":"declared optical receiver plane or process aperture",
       "integration":"integral of calibrated radiant optical power across the declared aperture",
       "excluded_substitutions":["laser electrical input energy","unmeasured nominal optical conversion efficiency"]
+    },
+    {
+      "service_type":"CHEMICAL_PROCESS",
+      "service_quantity":"CHEMICAL_FREE_ENERGY_CHANGE",
+      "unit":"J",
+      "measurement_method":"REACTION_EXTENT_AND_CHEMICAL_POTENTIAL",
+      "useful_boundary":"declared chemical process control volume and state boundary",
+      "integration":"integrate the measured reaction chemical-potential change against reaction extent under the declared temperature, pressure and composition conditions",
+      "excluded_substitutions":["electrical input energy alone","nominal reaction yield without a state-function and uncertainty model"]
     }
   ]
 }
