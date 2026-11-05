@@ -1197,7 +1197,7 @@ mod tests {
     fn factsheet_remains_a_reported_claim() {
         let decoded = message(
             "factsheet",
-            r#""typeSpecification":{"seriesName":"ACME","mobileRobotKinematic":"DIFF","mobileRobotClass":"CARRIER","maximumLoadMass":100.0,"localizationTypes":["NATURAL"],"navigationTypes":["AUTONOMOUS"]},"physicalParameters":{"minimumSpeed":0.0,"maximumSpeed":1.0,"maximumAcceleration":0.5,"maximumDeceleration":0.5,"minimumHeight":0.2,"maximumHeight":2.0,"width":0.8,"length":1.2},"protocolLimits":{"maximumStringLengths":{},"maximumArrayLengths":{},"timing":{"minimumOrderInterval":0.1,"minimumStateInterval":0.1}},"protocolFeatures":{"optionalParameters":[],"mobileRobotActions":[]},"mobileRobotGeometry":{},"loadSpecification":{}}"#,
+            r#""typeSpecification":{"seriesName":"ACME","mobileRobotKinematics":"DIFFERENTIAL","mobileRobotClass":"CARRIER","maximumLoadMass":100.0,"localizationTypes":["NATURAL"],"navigationTypes":["AUTONOMOUS"]},"physicalParameters":{"minimumSpeed":0.0,"maximumSpeed":1.0,"maximumAcceleration":0.5,"maximumDeceleration":0.5,"minimumHeight":0.2,"maximumHeight":2.0,"width":0.8,"length":1.2},"protocolLimits":{"maximumStringLengths":{},"maximumArrayLengths":{},"timing":{"minimumOrderInterval":0.1,"minimumStateInterval":0.1}},"protocolFeatures":{"optionalParameters":[],"mobileRobotActions":[]},"mobileRobotGeometry":{},"loadSpecification":{}}"#,
         );
         assert!(matches!(
             decoded.observation,
