@@ -364,7 +364,7 @@ fn lock_operation_must_fit_both_lock_and_water_quota_windows() {
         .iter_mut()
         .find(|resource| resource.resource_id == "water-budget-01")
         .expect("water resource exists");
-    water.availability[0].window.end_tick = 16;
+    water.availability[0].window.end_tick = 13;
     let water_evidence = case
         .evidence
         .iter_mut()
@@ -375,7 +375,7 @@ fn lock_operation_must_fit_both_lock_and_water_quota_windows() {
         .as_mut()
         .expect("water capacity snapshot exists")[0]
         .window
-        .end_tick = 16;
+        .end_tick = 13;
 
     assert_eq!(validate_case(&case), Ok(()));
     let result = exact_temporal_oracle(&case, 10_000);
