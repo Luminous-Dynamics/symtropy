@@ -66,6 +66,18 @@ Source anchor: Dallmann et al., Nature 647, 445–453 (2025), DOI https://doi.or
 - Every transition-likelihood row must have its own source manifest and claim ceiling.
 - Trial assignment, delivered protocol, delivery fidelity, sample ID, animal/preparation ID, session ID, and pre-outcome history digest are independently represented.
 
+### Factorized transition ablation
+
+The factorized CPD / exact variable-elimination implementation is an algorithmic representation baseline, not a controller. Compare it against:
+- direct dense joint enumeration on enumerable tiny kernels;
+- the dense SIM-REL-013 exact DP over the same materialized transition distributions;
+- local-independent-per-leg factorization;
+- explicit ipsilateral, contralateral, tripod and intersegmental coupling graphs.
+
+Require exact conditional-joint and queried-marginal equality to direct enumeration before measuring memory/runtime improvements. Report parent-scope cardinality, factor width, maximum intermediate factor cells/scope, elimination order, instantiated factor cells, product multiplications, sum-out additions, dense materialization refusal, peak memory and total runtime/allocations. The initial six-leg synthetic fixture has 20 binary variables (1,048,576 possible joint assignments); its local front-leg force marginal is expected to require a maximum factor scope of two variables/four cells. This is a known-answer fixture, not a measured memory-speedup result. Do not claim asymptotic superiority from the fixture; the sealed sparse-coupling benchmark must demonstrate the scaling advantage.
+
+The biological factor challenge must preserve parallel descending excitatory and inhibitory inputs as separate variables feeding the local 9A inhibitory gate, then predict movement/hook-channel suppression while preserving position/claw-channel output. Compare the full two-input CPD against a collapsed one-input/unsigned-descending ablation under identical held-out contexts and interventions. The first truth table is synthetic and must not be presented as a reproduction of Dallmann's measured synaptic sign, gain or response timing.
+
 ## 3. Matched algorithmic baselines
 
 Run every method on the same frozen priors, joint likelihoods, source manifests, action sets, observation histories, costs, hazard budgets, stopping rules and seeds:

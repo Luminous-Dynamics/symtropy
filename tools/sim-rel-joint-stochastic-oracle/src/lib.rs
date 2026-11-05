@@ -12,6 +12,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 pub mod baseline;
+pub mod factorized;
 pub mod locomotion;
 
 const MAX_HYPOTHESES: usize = 32;
