@@ -255,7 +255,9 @@ fn emit_audit(session: &DeliberationSession) {
         ),
         (
             "consensus_claim_contradicted_by_recorded_non_endorsement",
-            audit.consensus_claim_contradicted_by_recorded_non_endorsement.to_string(),
+            audit
+                .consensus_claim_contradicted_by_recorded_non_endorsement
+                .to_string(),
             "boolean",
         ),
         (
@@ -365,7 +367,9 @@ fn emit_audit(session: &DeliberationSession) {
             ),
             (
                 "consensus_endorsement",
-                member.consensus_endorsement.map_or_else(|| "unrecorded".into(), |value| value.to_string()),
+                member
+                    .consensus_endorsement
+                    .map_or_else(|| "unrecorded".into(), |value| value.to_string()),
                 "categorical",
             ),
         ] {
@@ -433,7 +437,8 @@ mod tests {
 
     #[test]
     fn facilitation_variant_pair_reports_fifty_six_l1_units() {
-        let difference = compare_facilitation_variants(&base_session(), &steered_session()).unwrap();
+        let difference =
+            compare_facilitation_variants(&base_session(), &steered_session()).unwrap();
         assert_eq!(difference.allocation_l1_shift_units, 56);
         assert_eq!(difference.reallocated_units, 28.0);
     }
