@@ -311,6 +311,10 @@ pub fn verify_correspondence_receipt(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::coupling_projection::{
+        CorrespondenceAddressPlan, HypothesisAddressPlan, PlannedAddress, PlannedPresence,
+        PlanCompleteness, SharingStatus,
+    };
     use crate::{Coupling, EventIdentity, StableId};
 
     fn id(value: &str) -> StableId {
@@ -339,6 +343,203 @@ mod tests {
             coupling,
         )
         .expect("fixture address is valid")
+    }
+
+    fn planned_address(
+        branch: &str,
+        event: &str,
+        bytes: &[u8],
+        sharing: SharingStatus,
+        presence: PlannedPresence,
+    ) -> PlannedAddress {
+        PlannedAddress {
+            branch_id: id(branch),
+            event_id: id(event),
+            canonical_bytes: bytes.to_vec(),
+            presence,
+            sharing,
+        }
+    }
+
+    fn correspondence_plan() -> CorrespondenceAddressPlan {
+        let shared_pair = b"v0.2:world-17:H-actor:pair-L1-R1".to_vec();
+        let alternative_pair = b"v0.2:world-17:H-slot:pair-L1-R2".to_vec();
+        CorrespondenceAddressPlan {
+            left_branch: id("continue"),
+            right_branch: id("yield"),
+            completeness: PlanCompleteness::CompleteWithinDeclaredSets,
+            hypotheses: vec![
+                HypothesisAddressPlan {
+                    hypothesis_id: id("H-actor"),
+                    completeness: PlanCompleteness::CompleteWithinDeclaredSets,
+                    addresses: vec![
+                        planned_address(
+                            "continue",
+                            "L1",
+                            &shared_pair,
+                            SharingStatus::SharedInvariant,
+                            PlannedPresence::Observed {
+                                evidence_ref: id("left-evidence"),
+                            },
+                        ),
+                        planned_address(
+                            "yield",
+                            "R1",
+                            &shared_pair,
+                            SharingStatus::SharedInvariant,
+                            PlannedPresence::NotRealized {
+                                condition_witness: id("not-observed-after-yield"),
+                            },
+                        ),
+                    ],
+                },
+                HypothesisAddressPlan {
+                    hypothesis_id: id("H-slot"),
+                    completeness: PlanCompleteness::CompleteWithinDeclaredSets,
+                    addresses: vec![
+                        planned_address(
+                            "continue",
+                            "L1",
+                            &alternative_pair,
+                            SharingStatus::SharedInvariant,
+                            PlannedPresence::Observed {
+                                evidence_ref: id("left-evidence"),
+                            },
+                        ),
+                        planned_address(
+                            "yield",
+                            "R2",
+                            &alternative_pair,
+                            SharingStatus::SharedInvariant,
+                            PlannedPresence::Observed {
+                                evidence_ref: id("right-slot-evidence"),
+                            },
+                        ),
+                    ],
+                },
+            ],
+        }
+    }
+
+    #[test]
+    fn correspondence_plan_resolves_each_admissible_map_without_collapsing_hypotheses() {
+        let seed = [0x42; 32];
+        let plan = correspondence_plan();
+        let resolved = resolve_correspondence_plan(&seed, &plan).expect("complete draw bundle");
+
+        assert_eq!(resolved.completeness, PlanCompleteness::CompleteWithinDeclaredSets);
+        assert_eq!(resolved.hypotheses.len(), 2);
+
+        let actor = &resolved.hypotheses[0];
+        let slot = &resolved.hypotheses[1];
+        assert_eq!(actor.hypothesis_id, id("H-actor"));
+        assert_eq!(slot.hypothesis_id, id("H-slot"));
+        assert_eq!(actor.draws.len(), 2);
+        assert_eq!(slot.draws.len(), 2);
+
+        assert_eq!(
+            actor.draws[0].draw.derivation_digest,
+            actor.draws[1].draw.derivation_digest
+        );
+        assert_eq!(actor.draws[0].draw.words, actor.draws[1].draw.words);
+        assert_eq!(
+            slot.draws[0].draw.derivation_digest,
+            slot.draws[1].draw.derivation_digest
+        );
+
+        // Different counterpart hypotheses create different cross-world event identities.
+        assert_ne!(
+            actor.draws[0].draw.derivation_digest,
+            slot.draws[0].draw.derivation_digest
+        );
+
+        // Presence is preserved separately from the potential event draw identity.
+        assert!(matches!(
+            actor.draws[1].presence,
+            PlannedPresence::NotRealized { .. }
+        ));
+        assert_eq!(actor.draws[0].sharing, SharingStatus::SharedInvariant);
+    }
+
+    #[test]
+    fn correspondence_receipt_replays_against_v0_2_address_bytes() {
+        let seed = [0x27; 32];
+        let plan = correspondence_plan();
+        let left = &plan.hypotheses[0].addresses[0];
+        let receipt = resolve_correspondence_address(&seed, &left.canonical_bytes);
+        assert_eq!(receipt.address_schema, CORRESPONDENCE_ADDRESS_SCHEMA_ID);
+        assert_eq!(
+            receipt.derivation_id,
+            CORRESPONDENCE_DERIVATION_ID
+        );
+        assert_eq!(verify_correspondence_receipt(&seed, &left.canonical_bytes, &receipt), Ok(()));
+
+        let mut altered = left.canonical_bytes.clone();
+        altered.push(0xff);
+        assert_eq!(
+            verify_correspondence_receipt(&seed, &altered, &receipt),
+            Err(ReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn branch_local_noise_is_stable_across_alternative_correspondence_maps() {
+        let seed = [0x19; 32];
+        let local = b"v0.2:world-17:continue:L1:branch-local".to_vec();
+        let first = planned_address(
+            "continue",
+            "L1",
+            &local,
+            SharingStatus::BranchSpecific,
+            PlannedPresence::Observed {
+                evidence_ref: id("evidence"),
+            },
+        );
+        let second = planned_address(
+            "continue",
+            "L1",
+            &local,
+            SharingStatus::BranchSpecific,
+            PlannedPresence::Observed {
+                evidence_ref: id("evidence"),
+            },
+        );
+        let first_receipt =
+            resolve_planned_address(&seed, &id("H-actor"), &first);
+        let second_receipt =
+            resolve_planned_address(&seed, &id("H-slot"), &second);
+        assert_eq!(
+            first_receipt.draw.derivation_digest,
+            second_receipt.draw.derivation_digest
+        );
+        assert_eq!(first_receipt.branch_id, second_receipt.branch_id);
+        assert_ne!(first_receipt.hypothesis_id, second_receipt.hypothesis_id);
+    }
+
+    #[test]
+    fn incomplete_correspondence_keeps_an_incomplete_draw_bundle() {
+        let seed = [0x88; 32];
+        let mut plan = correspondence_plan();
+        plan.completeness = PlanCompleteness::Incomplete;
+        plan.hypotheses[0].completeness = PlanCompleteness::Incomplete;
+
+        let resolved = resolve_correspondence_plan(&seed, &plan).expect("known plans can resolve");
+        assert_eq!(resolved.completeness, PlanCompleteness::Incomplete);
+        assert_eq!(
+            resolved.hypotheses[0].completeness,
+            PlanCompleteness::Incomplete
+        );
+        assert_eq!(resolved.hypotheses[0].draws.len(), 2);
+    }
+
+    #[test]
+    fn v0_1_and_v0_2_address_schemas_have_separate_kdf_domains() {
+        let seed = [0x55; 32];
+        let v0_1 = resolve_draw(&seed, &actor_address("continue", true));
+        let v0_2 = resolve_correspondence_address(&seed, b"v0.2:otherwise-identical-event");
+        assert_ne!(v0_1.address_schema, v0_2.address_schema);
+        assert_ne!(v0_1.derivation_id, v0_2.derivation_id);
+        assert_ne!(v0_1.derivation_digest, v0_2.derivation_digest);
     }
 
     #[test]
