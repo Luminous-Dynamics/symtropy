@@ -312,7 +312,21 @@ pub fn verify_correspondence_draw_bundle(
     {
         return Err(CorrespondenceBundleVerificationError::BundleDigestMismatch);
     }
-    if bundle.left_branch == bundle.right_branch {
+    if bundle.left_branch == bundle.right_branch || bundle.hypotheses.is_empty() {
+        return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
+    }
+    if bundle.completeness == PlanCompleteness::CompleteWithinDeclaredSets
+        && (!matches!(
+            &bundle.universe_status,
+            crate::correspondence::CandidateUniverseStatus::ExhaustiveWithinDeclaredScope { .. }
+        ) || !matches!(
+            &bundle.hypothesis_set_status,
+            crate::correspondence::HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily { .. }
+        ) || bundle
+            .hypotheses
+            .iter()
+            .any(|hypothesis| hypothesis.completeness == PlanCompleteness::Incomplete))
+    {
         return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
     }
 
@@ -1082,6 +1096,21 @@ mod tests {
         assert_eq!(
             verify_correspondence_draw_bundle(&seed, &changed_draw),
             Err(CorrespondenceBundleVerificationError::DrawReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn bundle_verifier_rejects_complete_claim_with_incomplete_search_after_rehash() {
+        let seed = [0x6a; 32];
+        let plan = correspondence_plan();
+        let mut bundle = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
+        bundle.hypothesis_set_status = HypothesisSetStatus::IncompleteOrBudgetLimited {
+            evidence_ref: id("bounded-hypothesis-search"),
+        };
+        bundle.bundle_digest = correspondence_draw_bundle_digest(&bundle);
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &bundle),
+            Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)
         );
     }
 
