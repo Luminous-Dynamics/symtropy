@@ -48,8 +48,9 @@ rail connection, waterway, or terminal has these characteristics.
 
 The crate verifies:
 - case and identifier uniqueness;
-- a continuous origin-to-destination route graph;
-- each segment's required resource kinds;
+- a continuous origin-to-destination route graph and segment/node-kind agreement;
+- each segment's required evidence roles (topology, navigability, lock compatibility,
+  lock water, resource capacity) and required resource kinds;
 - resource-kind/capacity-unit compatibility and non-overlapping half-open calendars;
 - exact resource-calendar-to-evidence binding (every evidence snapshot must match
   the precise availability windows and capacities, not only the resource ID);
@@ -61,8 +62,13 @@ The crate verifies:
   the case's explicit maximum evidence age;
 - owner/role boundaries for engineering, operational, spatial and participant evidence;
 - exact arrival-window evidence binding;
-- explicit Mycelix ownership for participant authorization and cargo custody;
-- rejection of unknown or blocked non-compensable constraints.
+- explicit Mycelix ownership for participant authorization and cargo custody,
+  including revocation negative controls;
+- a required set of non-compensable constraints with exact evidence-role/subject
+  matching, including an explicit data-rights gate;
+- a declared maximum evidence age at the decision cutoff;
+- rejection of duplicate constraint kinds, unknown/blocked hard constraints,
+  and missing mandatory gates.
 
 A failed validation is not repaired by relaxing a gate, imputing a capacity, or
 assigning a default. Missing or stale evidence must be resolved by its owner.
