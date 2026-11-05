@@ -1,0 +1,38 @@
+name: lock-traffic-scheduling
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "benchmarks/lock-traffic-scheduling/**"
+      - "benchmarks/inland-waterway-lock-operations/**"
+      - ".github/workflows/lock-traffic-scheduling.yml"
+  push:
+    branches: [main]
+    paths:
+      - "benchmarks/lock-traffic-scheduling/**"
+      - "benchmarks/inland-waterway-lock-operations/**"
+      - ".github/workflows/lock-traffic-scheduling.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lock-traffic-scheduling-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-scheduler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/lock-traffic-scheduling/Cargo.toml -- --check
+      - name: Test lock traffic scheduler
+        run: cargo test --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.toml
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduling/Cargo.toml --all-targets -- -D warnings
