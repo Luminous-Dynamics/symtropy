@@ -149,7 +149,8 @@
         "chloride_exposure_mg_m2",
         "ambient_min_c",
         "ambient_max_c",
-        "wheel_wander_offset_mm"
+        "wheel_wander_offset_mm",
+        "thermal_stimulus"
       ],
       "properties": {
         "wheel_pass_count": {
