@@ -172,7 +172,7 @@ fn row(
     shift: &str,
     reallocated: &str,
     consensus: &str,
-    false_consensus: &str,
+    unanimity_conflict: &str,
 ) {
     emit(vec![
         record_type.into(),
@@ -185,7 +185,7 @@ fn row(
         shift.into(),
         reallocated.into(),
         consensus.into(),
-        false_consensus.into(),
+        unanimity_conflict.into(),
         "synthetic_fixture".into(),
     ]);
 }
@@ -201,7 +201,7 @@ fn emit_audit(session: &DeliberationSession) {
     let shift = audit.allocation_l1_shift_units.to_string();
     let reallocated = fmt(audit.reallocated_units);
     let consensus = audit.facilitator_declares_consensus.to_string();
-    let false_consensus = audit.false_consensus_declaration.to_string();
+    let unanimity_conflict = audit.unanimity_claim_conflicts_with_top_preferences.to_string();
 
     for (metric, value, unit) in [
         ("speaking_time_gini", fmt(audit.speaking_time_gini), "index"),
@@ -298,7 +298,7 @@ fn emit_audit(session: &DeliberationSession) {
             &shift,
             &reallocated,
             &consensus,
-            &false_consensus,
+            &unanimity_conflict,
         );
     }
 
@@ -321,8 +321,8 @@ fn emit_audit(session: &DeliberationSession) {
                 "count",
             ),
             (
-                "proposals_raised_in_turns",
-                member.proposals_raised_in_turns.to_string(),
+                "proposals_referenced_in_turns",
+                member.proposals_referenced_in_turns.to_string(),
                 "count",
             ),
             (
@@ -347,7 +347,7 @@ fn emit_audit(session: &DeliberationSession) {
                 &shift,
                 &reallocated,
                 &consensus,
-                &false_consensus,
+                &unanimity_conflict,
             );
         }
     }
@@ -355,7 +355,7 @@ fn emit_audit(session: &DeliberationSession) {
 
 fn main() {
     println!(
-        "record_type,session_id,metric,subject,value,unit,final_allocation,allocation_l1_shift_units,reallocated_units,facilitator_declares_consensus,false_consensus_declaration,source_type"
+        "record_type,session_id,metric,subject,value,unit,final_allocation,allocation_l1_shift_units,reallocated_units,facilitator_declares_consensus,unanimity_claim_conflicts_with_top_preferences,source_type"
     );
 
     let baseline = base_session();
@@ -390,7 +390,7 @@ mod tests {
         let steered = audit_session(&steered_session()).unwrap();
         assert_eq!(baseline.preference_proportional_baseline, vec![34, 33, 33]);
         assert_eq!(steered.suppressed_proposal_count, 1);
-        assert!(steered.false_consensus_declaration);
+        assert!(steered.unanimity_claim_conflicts_with_top_preferences);
     }
 
     #[test]
