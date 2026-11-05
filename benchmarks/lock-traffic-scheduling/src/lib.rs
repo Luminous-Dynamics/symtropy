@@ -304,7 +304,9 @@ fn latest_permitted_start(request: &PassageRequest) -> u128 {
         .map(|deadline| deadline.saturating_sub(request.service_duration_ticks))
         .map(u128::from)
         .unwrap_or(u128::MAX);
-    u128::from(request.latest_start_tick).min(wait_limit).min(deadline_limit)
+    u128::from(request.latest_start_tick)
+        .min(wait_limit)
+        .min(deadline_limit)
 }
 
 fn least_slack_first(
@@ -317,13 +319,12 @@ fn least_slack_first(
 ) -> Option<usize> {
     pending.iter().copied().min_by_key(|index| {
         let request = &requests[*index];
-        let direction_change = if current_direction
-            .is_some_and(|direction| direction != request.direction)
-        {
-            profile.direction_change_ticks
-        } else {
-            0
-        };
+        let direction_change =
+            if current_direction.is_some_and(|direction| direction != request.direction) {
+                profile.direction_change_ticks
+            } else {
+                0
+            };
         let projected = projected_start(
             profile,
             unavailable,
@@ -998,8 +999,8 @@ mod tests {
             request("c", 2, Direction::Upstream, 1, 1),
             request("d", 3, Direction::Upstream, 1, 1),
         ];
-        let plan = schedule(&p, &requests, SchedulingPolicy::FirstComeFirstServed)
-            .expect("valid profile");
+        let plan =
+            schedule(&p, &requests, SchedulingPolicy::FirstComeFirstServed).expect("valid profile");
         let dist = plan.metrics.wait_distribution;
         assert_eq!(dist.sample_count, 4);
         assert_eq!(dist.p50_ticks, Some(9));
@@ -1095,12 +1096,8 @@ mod tests {
         let first = request("first", 0, Direction::Upstream, 1, 1);
         let mut second = request("second", 1, Direction::Upstream, 1, 1);
         second.maximum_wait_ticks = 5;
-        let plan = schedule(
-            &p,
-            &[first, second],
-            SchedulingPolicy::FirstComeFirstServed,
-        )
-        .expect("valid profile");
+        let plan = schedule(&p, &[first, second], SchedulingPolicy::FirstComeFirstServed)
+            .expect("valid profile");
         assert_eq!(plan.schedule.len(), 1);
         assert_eq!(
             plan.outcomes
@@ -1149,12 +1146,8 @@ mod tests {
         p.unavailable_windows.clear();
         let mut uncertain = request("uncertain", 0, Direction::Upstream, 1, 1);
         uncertain.arrival_latest_tick = 20;
-        let plan = schedule(
-            &p,
-            &[uncertain],
-            SchedulingPolicy::FirstComeFirstServed,
-        )
-        .expect("valid profile");
+        let plan = schedule(&p, &[uncertain], SchedulingPolicy::FirstComeFirstServed)
+            .expect("valid profile");
         assert_eq!(plan.schedule[0].start_tick, 20);
         assert_eq!(plan.schedule[0].waiting_from_earliest_arrival_ticks, 20);
     }
@@ -1261,7 +1254,10 @@ mod tests {
                 .len(),
             4
         );
-        assert_eq!(plan.metrics.scheduled_requests + plan.metrics.unserved_requests, 5);
+        assert_eq!(
+            plan.metrics.scheduled_requests + plan.metrics.unserved_requests,
+            5
+        );
     }
 
     #[test]
