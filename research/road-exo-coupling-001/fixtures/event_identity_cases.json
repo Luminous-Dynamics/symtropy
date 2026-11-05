@@ -1,0 +1,18 @@
+{
+  "schema": "symtropy.road-exo-coupling.fixtures.v0.1",
+  "purpose": "Semantic conformance cases, not PRNG test vectors.",
+  "prior_art": {
+    "event_keyed_rng": "https://arxiv.org/abs/2603.11084",
+    "counter_based_rng": "https://doi.org/10.1145/2063384.2063405"
+  },
+  "cases": [
+    {"id":"actor-event-same-across-branches","identity_basis":"actor_event","left":{"actor_id":"ped-004","tick":120,"event_kind":"policy-reaction-noise"},"right":{"actor_id":"ped-004","tick":120,"event_kind":"policy-reaction-noise"},"coupling":"shared_invariant","expected":"same_address"},
+    {"id":"scene-slot-versus-actor-identity","identity_basis_left":"actor_event","identity_basis_right":"scene_slot_event","coupling":"sensitivity_hypotheses","expected":"different_addresses_not_implicitly_matched"},
+    {"id":"directed-pair-role-change","identity_basis":"directed_pair_event","left":{"initiator":"ego-1","recipient":"ped-004","tick":121,"event_kind":"gap-acceptance"},"right":{"initiator":"ped-004","recipient":"ego-1","tick":121,"event_kind":"gap-acceptance"},"coupling":"shared_invariant","expected":"different_addresses"},
+    {"id":"branch-local-policy-draw","identity_basis":"actor_event","left_branch":"continue","right_branch":"yield","coupling":"branch_specific","expected":"different_addresses"},
+    {"id":"conditional-event-not-realized","left_presence":"realized","right_presence":"not_realized_with_causal_condition_witness","expected":"conditional_presence_not_value_mismatch"},
+    {"id":"unreported-counterpart","left_presence":"realized","right_presence":"missing_record","expected":"incomplete"},
+    {"id":"control-flow-insertion","left_extra_policy_draws":0,"right_extra_policy_draws":1,"expected":"unrelated_shared_address_unchanged"},
+    {"id":"endogenous-key-contamination","forbidden_identity_inputs":["action","cue_contents","velocity","current_pose","planner_output","collision_state"],"expected":"reject_by_contract"}
+  ]
+}

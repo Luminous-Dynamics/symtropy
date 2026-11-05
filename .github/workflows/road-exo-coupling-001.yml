@@ -1,0 +1,29 @@
+name: Road exogenous-coupling fixtures
+
+on:
+  pull_request:
+    paths:
+      - "research/road-exo-coupling-001/**"
+      - ".github/workflows/road-exo-coupling-001.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/road-exo-coupling-001/Cargo.toml -- --check
+      - name: Run conformance tests
+        run: cargo test --manifest-path research/road-exo-coupling-001/Cargo.toml --all-targets
+      - name: Run Clippy
+        run: cargo clippy --manifest-path research/road-exo-coupling-001/Cargo.toml --all-targets -- -D warnings
+      - name: Validate machine-readable fixtures
+        run: python3 -c 'import json; json.load(open("research/road-exo-coupling-001/fixtures/event_identity_cases.json", encoding="utf-8"))'
