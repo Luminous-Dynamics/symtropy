@@ -1,0 +1,1607 @@
+#![forbid(unsafe_code)]
+
+//! Finite hypothesis-portfolio coverage, falsification and residual-risk oracle.
+//!
+//! This crate checks declarations and exact finite calculations. It cannot
+//! establish completeness relative to reality, discover unknown mechanisms by
+//! itself, or validate empirical residual bounds. Non-discovery is budgeted
+//! evidence about a search, never proof that a counterexample does not exist.
+
+use std::collections::{BTreeMap, BTreeSet};
+
+const PORTFOLIO_SCHEMA: &str = "symtropy.road-hypothesis-portfolio.v0.1";
+const HASH_DOMAIN: &str = "Symtropy ROAD-HYPOTHESIS-PORTFOLIO-001 v0.1";
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum CoverageAxis {
+    OddRange,
+    BehaviouralCompetency,
+    CausalMechanism,
+    RuleSafety,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CoverageState {
+    Covered,
+    NotCovered,
+    Unknown,
+    NotApplicable,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EvidenceClass {
+    ObservedFactual,
+    ControlledIntervention,
+    QualifiedNaturalExperiment,
+    SimulationGenerated,
+    ModelGenerated,
+    FormalReference,
+    HumanAdjudication,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CoverageObligation {
+    pub obligation_id: String,
+    pub axis: CoverageAxis,
+    /// Exact stratum or interaction-combination identity. A combination such
+    /// as rain x night x occluded crossing is a separate obligation.
+    pub stratum_digest: String,
+    pub state: CoverageState,
+    pub minimum_independent_units: u64,
+    pub independent_unit_count: u64,
+    pub evidence_class: Option<EvidenceClass>,
+    pub evidence_manifest_digest: Option<String>,
+    pub source_lineage_digest: Option<String>,
+    pub challenge_protocol_digest: Option<String>,
+    pub not_applicable_rationale: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Hypothesis {
+    pub hypothesis_id: String,
+    pub model_family_id: String,
+    pub version_digest: String,
+    pub causal_graph_digest: String,
+    pub stochastic_contract_digest: String,
+    /// All known training, simulator, pretraining and source-data ancestors.
+    pub source_lineage_digests: Vec<String>,
+    /// Hypotheses in the same common-mode group count as one independent family.
+    pub common_mode_group: Option<String>,
+    pub applicability_scope_digest: String,
+    pub excluded_mechanisms: Vec<String>,
+    /// A changed hypothesis is a new identity and must explicitly supersede
+    /// an older hypothesis; an existing record is never silently rewritten.
+    pub supersedes_hypothesis_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ChallengeRequirement {
+    pub hypothesis_id: String,
+    pub strategy: ChallengeStrategy,
+    pub protocol_digest: String,
+    pub minimum_budget_units: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum ChallengeStrategy {
+    Random,
+    CoverageGuided,
+    Expert,
+    ReinforcementLearning,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ChallengeOutcome {
+    CounterexampleFound,
+    NonDiscoveryWithinBudget,
+    Incomplete,
+    NotRun,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ChallengeReceipt {
+    pub challenge_id: String,
+    pub hypothesis_id: String,
+    pub strategy: ChallengeStrategy,
+    pub protocol_digest: String,
+    pub holdout_manifest_digest: String,
+    pub blinded: bool,
+    pub sealed_test: bool,
+    pub budget_units: u64,
+    pub holdout_parent_lineage_digests: Vec<String>,
+    pub outcome: ChallengeOutcome,
+    pub counterexample_digest: Option<String>,
+    pub replay_receipt_digest: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PortfolioManifest {
+    pub schema: String,
+    pub portfolio_id: String,
+    pub revision_sequence: u64,
+    pub supersedes_portfolio_digest: Option<String>,
+    pub odd_scope_digest: String,
+    pub utility_scale_id: String,
+    pub utility_semantics_id: String,
+    pub training_lineage_roots: Vec<String>,
+    pub action_ids: Vec<String>,
+    pub hypotheses: Vec<Hypothesis>,
+    pub coverage_obligations: Vec<CoverageObligation>,
+    pub challenge_requirements: Vec<ChallengeRequirement>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PortfolioDisposition {
+    PortfolioCompleteForDeclaredScope,
+    PortfolioIncomplete,
+    PortfolioFalsified,
+    OutOfScope,
+    ResidualRiskUnbounded,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FeasibilityDisposition {
+    Guaranteed,
+    PotentialViolation,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResidualEvidenceClass {
+    ObservedFactual,
+    ControlledIntervention,
+    QualifiedNaturalExperiment,
+    SimulationGenerated,
+    ModelGenerated,
+    FormalReference,
+    HumanAdjudication,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Rational {
+    pub numerator: i64,
+    pub denominator: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RationalError {
+    ZeroDenominator,
+    ArithmeticOverflow,
+}
+
+impl Rational {
+    pub fn new(numerator: i64, denominator: u64) -> Result<Self, RationalError> {
+        if denominator == 0 {
+            return Err(RationalError::ZeroDenominator);
+        }
+        let divisor = gcd_u64(numerator.unsigned_abs(), denominator);
+        let reduced_numerator = i128::from(numerator) / i128::from(divisor);
+        let numerator = i64::try_from(reduced_numerator)
+            .map_err(|_| RationalError::ArithmeticOverflow)?;
+        Ok(Self {
+            numerator,
+            denominator: denominator / divisor,
+        })
+    }
+
+    pub fn zero() -> Self {
+        Self {
+            numerator: 0,
+            denominator: 1,
+        }
+    }
+
+    pub fn checked_sub(self, other: Self) -> Result<Self, RationalError> {
+        let common = gcd_u64(self.denominator, other.denominator);
+        let left_factor = other.denominator / common;
+        let right_factor = self.denominator / common;
+        let left = i128::from(self.numerator)
+            .checked_mul(i128::from(left_factor))
+            .ok_or(RationalError::ArithmeticOverflow)?;
+        let right = i128::from(other.numerator)
+            .checked_mul(i128::from(right_factor))
+            .ok_or(RationalError::ArithmeticOverflow)?;
+        let numerator = left
+            .checked_sub(right)
+            .ok_or(RationalError::ArithmeticOverflow)?;
+        let denominator = u128::from(self.denominator)
+            .checked_mul(u128::from(left_factor))
+            .ok_or(RationalError::ArithmeticOverflow)?;
+        rational_from_i128(numerator, denominator)
+    }
+
+    pub fn checked_add(self, other: Self) -> Result<Self, RationalError> {
+        let common = gcd_u64(self.denominator, other.denominator);
+        let left_factor = other.denominator / common;
+        let right_factor = self.denominator / common;
+        let left = i128::from(self.numerator)
+            .checked_mul(i128::from(left_factor))
+            .ok_or(RationalError::ArithmeticOverflow)?;
+        let right = i128::from(other.numerator)
+            .checked_mul(i128::from(right_factor))
+            .ok_or(RationalError::ArithmeticOverflow)?;
+        let numerator = left
+            .checked_add(right)
+            .ok_or(RationalError::ArithmeticOverflow)?;
+        let denominator = u128::from(self.denominator)
+            .checked_mul(u128::from(left_factor))
+            .ok_or(RationalError::ArithmeticOverflow)?;
+        rational_from_i128(numerator, denominator)
+    }
+
+    pub fn cmp_exact(self, other: Self) -> Result<std::cmp::Ordering, RationalError> {
+        let left = i128::from(self.numerator)
+            .checked_mul(i128::from(other.denominator))
+            .ok_or(RationalError::ArithmeticOverflow)?;
+        let right = i128::from(other.numerator)
+            .checked_mul(i128::from(self.denominator))
+            .ok_or(RationalError::ArithmeticOverflow)?;
+        Ok(left.cmp(&right))
+    }
+
+    pub fn max(self, other: Self) -> Result<Self, RationalError> {
+        Ok(match self.cmp_exact(other)? {
+            std::cmp::Ordering::Less => other,
+            _ => self,
+        })
+    }
+
+    pub fn is_nonnegative(self) -> bool {
+        self.numerator >= 0
+    }
+}
+
+fn rational_from_i128(
+    numerator: i128,
+    denominator: u128,
+) -> Result<Rational, RationalError> {
+    if denominator == 0 {
+        return Err(RationalError::ZeroDenominator);
+    }
+    let divisor = gcd_u128(numerator.unsigned_abs(), denominator);
+    let reduced_num_abs = numerator.unsigned_abs() / divisor;
+    let reduced_den = denominator / divisor;
+    let signed_num = if numerator < 0 {
+        if reduced_num_abs == (i64::MAX as u128) + 1 {
+            i64::MIN
+        } else {
+            let positive = i64::try_from(reduced_num_abs)
+                .map_err(|_| RationalError::ArithmeticOverflow)?;
+            -positive
+        }
+    } else {
+        i64::try_from(reduced_num_abs).map_err(|_| RationalError::ArithmeticOverflow)?
+    };
+    let denominator =
+        u64::try_from(reduced_den).map_err(|_| RationalError::ArithmeticOverflow)?;
+    Ok(Rational {
+        numerator: signed_num,
+        denominator,
+    })
+}
+
+fn gcd_u64(mut a: u64, mut b: u64) -> u64 {
+    while b != 0 {
+        let remainder = a % b;
+        a = b;
+        b = remainder;
+    }
+    a.max(1)
+}
+
+fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
+    while b != 0 {
+        let remainder = a % b;
+        a = b;
+        b = remainder;
+    }
+    a.max(1)
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActionResidualBound {
+    pub action_id: String,
+    pub utility_lower: Rational,
+    pub utility_upper: Rational,
+    pub feasibility: FeasibilityDisposition,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResidualEnvelope {
+    pub utility_scale_id: String,
+    pub utility_semantics_id: String,
+    pub evidence_class: ResidualEvidenceClass,
+    pub evidence_digest: String,
+    pub calibration_protocol_digest: String,
+    /// V0.1 implements the explicitly conservative rectangular relaxation.
+    /// A non-rectangular claim requires a separate joint residual model.
+    pub rectangular_relaxation: bool,
+    pub action_bounds: Vec<ActionResidualBound>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResidualDisposition {
+    BoundedRectangularRelaxation,
+    ResidualRiskUnbounded,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ActionRegretBound {
+    pub action_id: String,
+    pub worst_case_regret_upper: Rational,
+    pub feasibility: FeasibilityDisposition,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AxisCoverageSummary {
+    pub axis: CoverageAxis,
+    pub declared_obligations: usize,
+    pub covered_obligations: usize,
+    pub not_applicable_obligations: usize,
+    pub unresolved_obligations: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StrategySearchSummary {
+    pub strategy: ChallengeStrategy,
+    pub attempts: usize,
+    pub total_budget_units: u64,
+    pub non_discovery_budget_units: u64,
+    pub counterexamples_found: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ChallengeSummary {
+    pub required_challenges: usize,
+    pub qualified_challenges: usize,
+    pub unresolved_challenges: usize,
+    pub strategies: Vec<StrategySearchSummary>,
+    /// Always false: failure to find a counterexample is budgeted non-discovery,
+    /// not proof of the absence of an omitted mechanism.
+    pub non_discovery_proves_absence: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResidualAssessment {
+    pub disposition: ResidualDisposition,
+    pub action_regret_bounds: Vec<ActionRegretBound>,
+    pub robust_feasible_actions: Vec<String>,
+    pub minimax_regret_actions: Vec<String>,
+    pub rectangular_bound_is_attainable_joint_world: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PortfolioEvaluation {
+    pub portfolio_digest: String,
+    pub disposition: PortfolioDisposition,
+    pub odd_scope_match: bool,
+    pub model_family_count: usize,
+    pub effective_independent_hypothesis_family_count: usize,
+    pub axes: Vec<AxisCoverageSummary>,
+    pub challenge: ChallengeSummary,
+    pub residual: ResidualAssessment,
+    pub decision_recommendation_authorized: bool,
+    /// This reference never certifies completeness relative to reality.
+    pub completeness_relative_to_reality_proven: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PortfolioError {
+    WrongSchema,
+    EmptyIdentity(&'static str),
+    EmptyPortfolio,
+    DuplicateAction,
+    DuplicateHypothesis,
+    DuplicateCoverageObligation,
+    DuplicateChallengeRequirement,
+    DuplicateChallengeReceipt,
+    MissingCoverageAxis,
+    InvalidCoverageEvidence,
+    InvalidNotApplicableRationale,
+    InvalidHypothesisLineage,
+    UnknownChallengeHypothesis,
+    MissingChallengeParentLineage,
+    ChallengeNotBlinded,
+    ChallengeLineageLeak,
+    CounterexampleMissingReplay,
+    InvalidResidualBounds,
+    ResidualActionCoverageMismatch,
+    UtilityScaleMismatch,
+    InvalidRevisionParent,
+    NonAppendOnlyRevision,
+    ArithmeticOverflow,
+}
+
+impl From<RationalError> for PortfolioError {
+    fn from(value: RationalError) -> Self {
+        match value {
+            RationalError::ZeroDenominator => Self::InvalidResidualBounds,
+            RationalError::ArithmeticOverflow => Self::ArithmeticOverflow,
+        }
+    }
+}
+
+impl PortfolioManifest {
+    pub fn portfolio_digest(&self) -> Result<String, PortfolioError> {
+        self.validate()?;
+        let mut hasher = blake3::Hasher::new_derive_key(HASH_DOMAIN);
+        hash_str(&mut hasher, &self.schema);
+        hash_str(&mut hasher, &self.portfolio_id);
+        hash_u64(&mut hasher, self.revision_sequence);
+        hash_opt_str(&mut hasher, self.supersedes_portfolio_digest.as_deref());
+        hash_str(&mut hasher, &self.odd_scope_digest);
+        hash_str(&mut hasher, &self.utility_scale_id);
+        hash_str(&mut hasher, &self.utility_semantics_id);
+
+        let mut training = self.training_lineage_roots.clone();
+        training.sort();
+        hash_strings(&mut hasher, &training);
+
+        let mut actions = self.action_ids.clone();
+        actions.sort();
+        hash_strings(&mut hasher, &actions);
+
+        let mut hypotheses: Vec<_> = self.hypotheses.iter().collect();
+        hypotheses.sort_by(|a, b| a.hypothesis_id.cmp(&b.hypothesis_id));
+        hash_len(&mut hasher, hypotheses.len());
+        for hypothesis in hypotheses {
+            hash_hypothesis(&mut hasher, hypothesis);
+        }
+
+        let mut obligations: Vec<_> = self.coverage_obligations.iter().collect();
+        obligations.sort_by(|a, b| a.obligation_id.cmp(&b.obligation_id));
+        hash_len(&mut hasher, obligations.len());
+        for obligation in obligations {
+            hash_coverage(&mut hasher, obligation);
+        }
+
+        let mut requirements: Vec<_> = self.challenge_requirements.iter().collect();
+        requirements.sort_by(|a, b| {
+            (&a.hypothesis_id, a.strategy, &a.protocol_digest)
+                .cmp(&(&b.hypothesis_id, b.strategy, &b.protocol_digest))
+        });
+        hash_len(&mut hasher, requirements.len());
+        for requirement in requirements {
+            hash_str(&mut hasher, &requirement.hypothesis_id);
+            hash_u8(&mut hasher, strategy_tag(requirement.strategy));
+            hash_str(&mut hasher, &requirement.protocol_digest);
+            hash_u64(&mut hasher, requirement.minimum_budget_units);
+        }
+        Ok(hex(hasher.finalize().as_bytes()))
+    }
+
+    pub fn validate(&self) -> Result<(), PortfolioError> {
+        if self.schema != PORTFOLIO_SCHEMA {
+            return Err(PortfolioError::WrongSchema);
+        }
+        require(&self.portfolio_id, "portfolio_id")?;
+        require(&self.odd_scope_digest, "odd_scope_digest")?;
+        require(&self.utility_scale_id, "utility_scale_id")?;
+        require(&self.utility_semantics_id, "utility_semantics_id")?;
+        if self.hypotheses.is_empty()
+            || self.action_ids.is_empty()
+            || self.coverage_obligations.is_empty()
+            || self.challenge_requirements.is_empty()
+        {
+            return Err(PortfolioError::EmptyPortfolio);
+        }
+
+        let mut action_ids = BTreeSet::new();
+        for action in &self.action_ids {
+            require(action, "action_id")?;
+            if !action_ids.insert(action.as_str()) {
+                return Err(PortfolioError::DuplicateAction);
+            }
+        }
+
+        let mut hypothesis_ids = BTreeSet::new();
+        for hypothesis in &self.hypotheses {
+            require(&hypothesis.hypothesis_id, "hypothesis_id")?;
+            require(&hypothesis.model_family_id, "model_family_id")?;
+            require(&hypothesis.version_digest, "version_digest")?;
+            require(&hypothesis.causal_graph_digest, "causal_graph_digest")?;
+            require(
+                &hypothesis.stochastic_contract_digest,
+                "stochastic_contract_digest",
+            )?;
+            require(
+                &hypothesis.applicability_scope_digest,
+                "applicability_scope_digest",
+            )?;
+            if hypothesis.source_lineage_digests.is_empty() {
+                return Err(PortfolioError::InvalidHypothesisLineage);
+            }
+            for lineage in &hypothesis.source_lineage_digests {
+                require(lineage, "source_lineage_digest")?;
+            }
+            if let Some(group) = &hypothesis.common_mode_group {
+                require(group, "common_mode_group")?;
+            }
+            if let Some(previous) = &hypothesis.supersedes_hypothesis_id {
+                require(previous, "supersedes_hypothesis_id")?;
+            }
+            if !hypothesis_ids.insert(hypothesis.hypothesis_id.as_str()) {
+                return Err(PortfolioError::DuplicateHypothesis);
+            }
+        }
+
+        let mut obligation_ids = BTreeSet::new();
+        let mut axes = BTreeSet::new();
+        for obligation in &self.coverage_obligations {
+            require(&obligation.obligation_id, "obligation_id")?;
+            require(&obligation.stratum_digest, "stratum_digest")?;
+            axes.insert(obligation.axis);
+            if !obligation_ids.insert(obligation.obligation_id.as_str()) {
+                return Err(PortfolioError::DuplicateCoverageObligation);
+            }
+            validate_coverage_obligation(obligation)?;
+        }
+        for axis in [
+            CoverageAxis::OddRange,
+            CoverageAxis::BehaviouralCompetency,
+            CoverageAxis::CausalMechanism,
+            CoverageAxis::RuleSafety,
+        ] {
+            if !axes.contains(&axis) {
+                return Err(PortfolioError::MissingCoverageAxis);
+            }
+        }
+
+        let mut requirement_keys = BTreeSet::new();
+        for requirement in &self.challenge_requirements {
+            require(&requirement.hypothesis_id, "challenge.hypothesis_id")?;
+            require(&requirement.protocol_digest, "challenge.protocol_digest")?;
+            if !hypothesis_ids.contains(requirement.hypothesis_id.as_str())
+                || requirement.minimum_budget_units == 0
+            {
+                return Err(PortfolioError::UnknownChallengeHypothesis);
+            }
+            let key = (
+                requirement.hypothesis_id.as_str(),
+                requirement.strategy,
+                requirement.protocol_digest.as_str(),
+            );
+            if !requirement_keys.insert(key) {
+                return Err(PortfolioError::DuplicateChallengeRequirement);
+            }
+        }
+        Ok(())
+    }
+
+    /// Require a new portfolio digest and a strictly append-only hypothesis /
+    /// obligation / challenge contract. An old challenged hypothesis cannot be
+    /// edited in place; the new manifest must preserve it and add a successor.
+    pub fn validate_append_only_revision(
+        previous: &PortfolioManifest,
+        current: &PortfolioManifest,
+    ) -> Result<(), PortfolioError> {
+        previous.validate()?;
+        current.validate()?;
+        let previous_digest = previous.portfolio_digest()?;
+        if current.supersedes_portfolio_digest.as_deref() != Some(previous_digest.as_str())
+            || current.revision_sequence != previous.revision_sequence.saturating_add(1)
+            || current.portfolio_id != previous.portfolio_id
+        {
+            return Err(PortfolioError::InvalidRevisionParent);
+        }
+
+        for prior in &previous.hypotheses {
+            if !current.hypotheses.iter().any(|candidate| candidate == prior) {
+                return Err(PortfolioError::NonAppendOnlyRevision);
+            }
+        }
+        for prior in &previous.coverage_obligations {
+            if !current.coverage_obligations.iter().any(|candidate| candidate == prior) {
+                return Err(PortfolioError::NonAppendOnlyRevision);
+            }
+        }
+        for prior in &previous.challenge_requirements {
+            if !current.challenge_requirements.iter().any(|candidate| candidate == prior) {
+                return Err(PortfolioError::NonAppendOnlyRevision);
+            }
+        }
+
+        let prior_ids: BTreeSet<_> = previous
+            .hypotheses
+            .iter()
+            .map(|hypothesis| hypothesis.hypothesis_id.as_str())
+            .collect();
+        for added in &current.hypotheses {
+            if !prior_ids.contains(added.hypothesis_id.as_str()) {
+                if added.supersedes_hypothesis_id.as_ref().is_some_and(|id| {
+                    !prior_ids.contains(id.as_str())
+                }) {
+                    return Err(PortfolioError::NonAppendOnlyRevision);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn validate_coverage_obligation(
+    obligation: &CoverageObligation,
+) -> Result<(), PortfolioError> {
+    match obligation.state {
+        CoverageState::Covered => {
+            let evidence = obligation.evidence_manifest_digest.as_deref().unwrap_or("");
+            let lineage = obligation.source_lineage_digest.as_deref().unwrap_or("");
+            let protocol = obligation.challenge_protocol_digest.as_deref().unwrap_or("");
+            require(evidence, "coverage.evidence_manifest_digest")?;
+            require(lineage, "coverage.source_lineage_digest")?;
+            require(protocol, "coverage.challenge_protocol_digest")?;
+            if obligation.minimum_independent_units == 0
+                || obligation.independent_unit_count < obligation.minimum_independent_units
+            {
+                return Err(PortfolioError::InvalidCoverageEvidence);
+            }
+            if obligation.not_applicable_rationale.is_some() {
+                return Err(PortfolioError::InvalidCoverageEvidence);
+            }
+        }
+        CoverageState::NotApplicable => {
+            let rationale = obligation.not_applicable_rationale.as_deref().unwrap_or("");
+            require(rationale, "coverage.not_applicable_rationale")?;
+        }
+        CoverageState::NotCovered | CoverageState::Unknown => {}
+    }
+    Ok(())
+}
+
+impl Rational {
+    pub fn checked_regret_upper(
+        rival_upper: Rational,
+        selected_lower: Rational,
+    ) -> Result<Rational, RationalError> {
+        let delta = rival_upper.checked_sub(selected_lower)?;
+        Ok(if delta.is_nonnegative() { delta } else { Rational::zero() })
+    }
+}
+
+pub fn evaluate_portfolio(
+    manifest: &PortfolioManifest,
+    evaluation_odd_scope_digest: &str,
+    challenge_receipts: &[ChallengeReceipt],
+    residual_envelope: Option<&ResidualEnvelope>,
+) -> Result<PortfolioEvaluation, PortfolioError> {
+    manifest.validate()?;
+    require(evaluation_odd_scope_digest, "evaluation_odd_scope_digest")?;
+    let digest = manifest.portfolio_digest()?;
+    let odd_scope_match = evaluation_odd_scope_digest == manifest.odd_scope_digest;
+
+    let model_family_count = manifest
+        .hypotheses
+        .iter()
+        .map(|hypothesis| hypothesis.model_family_id.as_str())
+        .collect::<BTreeSet<_>>()
+        .len();
+    let independent_families = independent_hypothesis_families(&manifest.hypotheses);
+    let axes = coverage_summaries(&manifest.coverage_obligations);
+
+    let (challenge, falsified) = assess_challenges(manifest, challenge_receipts)?;
+    let coverage_complete = axes.iter().all(|summary| {
+        summary.unresolved_obligations == 0
+            && summary.declared_obligations
+                == summary.covered_obligations + summary.not_applicable_obligations
+    });
+    let challenges_complete = challenge.unresolved_challenges == 0;
+
+    let residual = assess_residual(manifest, residual_envelope)?;
+    let disposition = if falsified {
+        PortfolioDisposition::PortfolioFalsified
+    } else if !odd_scope_match {
+        PortfolioDisposition::OutOfScope
+    } else if !coverage_complete || !challenges_complete {
+        PortfolioDisposition::PortfolioIncomplete
+    } else if residual.disposition == ResidualDisposition::ResidualRiskUnbounded {
+        PortfolioDisposition::ResidualRiskUnbounded
+    } else {
+        PortfolioDisposition::PortfolioCompleteForDeclaredScope
+    };
+
+    let decision_recommendation_authorized =
+        disposition == PortfolioDisposition::PortfolioCompleteForDeclaredScope
+            && residual.disposition == ResidualDisposition::BoundedRectangularRelaxation
+            && !residual.robust_feasible_actions.is_empty();
+
+    Ok(PortfolioEvaluation {
+        portfolio_digest: digest,
+        disposition,
+        odd_scope_match,
+        model_family_count,
+        effective_independent_hypothesis_family_count: independent_families.len(),
+        axes,
+        challenge,
+        residual,
+        decision_recommendation_authorized,
+        completeness_relative_to_reality_proven: false,
+    })
+}
+
+fn independent_hypothesis_families(hypotheses: &[Hypothesis]) -> BTreeSet<String> {
+    hypotheses
+        .iter()
+        .map(|hypothesis| {
+            if let Some(group) = &hypothesis.common_mode_group {
+                format!("common-mode:{group}")
+            } else {
+                let mut lineage = hypothesis.source_lineage_digests.clone();
+                lineage.sort();
+                lineage.dedup();
+                let mut h = blake3::Hasher::new_derive_key(
+                    "Symtropy ROAD-HYPOTHESIS-PORTFOLIO lineage family v0.1",
+                );
+                hash_strings(&mut h, &lineage);
+                format!("lineage:{}", hex(h.finalize().as_bytes()))
+            }
+        })
+        .collect()
+}
+
+fn coverage_summaries(obligations: &[CoverageObligation]) -> Vec<AxisCoverageSummary> {
+    [
+        CoverageAxis::OddRange,
+        CoverageAxis::BehaviouralCompetency,
+        CoverageAxis::CausalMechanism,
+        CoverageAxis::RuleSafety,
+    ]
+    .into_iter()
+    .map(|axis| {
+        let matching: Vec<_> = obligations.iter().filter(|o| o.axis == axis).collect();
+        AxisCoverageSummary {
+            axis,
+            declared_obligations: matching.len(),
+            covered_obligations: matching
+                .iter()
+                .filter(|o| o.state == CoverageState::Covered)
+                .count(),
+            not_applicable_obligations: matching
+                .iter()
+                .filter(|o| o.state == CoverageState::NotApplicable)
+                .count(),
+            unresolved_obligations: matching
+                .iter()
+                .filter(|o| {
+                    !matches!(
+                        o.state,
+                        CoverageState::Covered | CoverageState::NotApplicable
+                    )
+                })
+                .count(),
+        }
+    })
+    .collect()
+}
+
+fn assess_challenges(
+    manifest: &PortfolioManifest,
+    receipts: &[ChallengeReceipt],
+) -> Result<(ChallengeSummary, bool), PortfolioError> {
+    let training: BTreeSet<_> = manifest
+        .training_lineage_roots
+        .iter()
+        .map(String::as_str)
+        .chain(
+            manifest
+                .hypotheses
+                .iter()
+                .flat_map(|hypothesis| hypothesis.source_lineage_digests.iter().map(String::as_str)),
+        )
+        .collect();
+
+    let mut receipt_map = BTreeMap::new();
+    let mut ids = BTreeSet::new();
+    for receipt in receipts {
+        require(&receipt.challenge_id, "challenge_id")?;
+        require(&receipt.hypothesis_id, "challenge.hypothesis_id")?;
+        require(&receipt.protocol_digest, "challenge.protocol_digest")?;
+        require(&receipt.holdout_manifest_digest, "challenge.holdout_manifest_digest")?;
+        if !ids.insert(receipt.challenge_id.as_str()) {
+            return Err(PortfolioError::DuplicateChallengeReceipt);
+        }
+        if receipt.holdout_parent_lineage_digests.is_empty() {
+            return Err(PortfolioError::MissingChallengeParentLineage);
+        }
+        for parent in &receipt.holdout_parent_lineage_digests {
+            require(parent, "challenge.holdout_parent_lineage")?;
+            if training.contains(parent.as_str()) {
+                return Err(PortfolioError::ChallengeLineageLeak);
+            }
+        }
+        if !receipt.blinded || !receipt.sealed_test {
+            return Err(PortfolioError::ChallengeNotBlinded);
+        }
+        if receipt.outcome == ChallengeOutcome::CounterexampleFound {
+            require(
+                receipt.counterexample_digest.as_deref().unwrap_or(""),
+                "challenge.counterexample_digest",
+            )?;
+            require(
+                receipt.replay_receipt_digest.as_deref().unwrap_or(""),
+                "challenge.replay_receipt_digest",
+            )?;
+        }
+        if receipt.outcome != ChallengeOutcome::CounterexampleFound
+            && (receipt.counterexample_digest.is_some() || receipt.replay_receipt_digest.is_some())
+        {
+            return Err(PortfolioError::CounterexampleMissingReplay);
+        }
+        let key = (
+            receipt.hypothesis_id.as_str(),
+            receipt.strategy,
+            receipt.protocol_digest.as_str(),
+        );
+        if receipt_map.insert(key, receipt).is_some() {
+            return Err(PortfolioError::DuplicateChallengeReceipt);
+        }
+    }
+
+    let mut unresolved = 0usize;
+    let mut qualified = 0usize;
+    let mut falsified = false;
+    let mut by_strategy: BTreeMap<ChallengeStrategy, StrategySearchSummary> = BTreeMap::new();
+
+    for requirement in &manifest.challenge_requirements {
+        let entry = by_strategy.entry(requirement.strategy).or_insert(StrategySearchSummary {
+            strategy: requirement.strategy,
+            attempts: 0,
+            total_budget_units: 0,
+            non_discovery_budget_units: 0,
+            counterexamples_found: 0,
+        });
+        let key = (
+            requirement.hypothesis_id.as_str(),
+            requirement.strategy,
+            requirement.protocol_digest.as_str(),
+        );
+        if let Some(receipt) = receipt_map.get(&key) {
+            entry.attempts += 1;
+            entry.total_budget_units = entry
+                .total_budget_units
+                .checked_add(receipt.budget_units)
+                .ok_or(PortfolioError::ArithmeticOverflow)?;
+            match receipt.outcome {
+                ChallengeOutcome::CounterexampleFound => {
+                    entry.counterexamples_found += 1;
+                    falsified = true;
+                    qualified += 1;
+                }
+                ChallengeOutcome::NonDiscoveryWithinBudget => {
+                    if receipt.budget_units >= requirement.minimum_budget_units {
+                        entry.non_discovery_budget_units = entry
+                            .non_discovery_budget_units
+                            .checked_add(receipt.budget_units)
+                            .ok_or(PortfolioError::ArithmeticOverflow)?;
+                        qualified += 1;
+                    } else {
+                        unresolved += 1;
+                    }
+                }
+                ChallengeOutcome::Incomplete | ChallengeOutcome::NotRun => unresolved += 1,
+            }
+        } else {
+            unresolved += 1;
+        }
+    }
+
+    Ok((
+        ChallengeSummary {
+            required_challenges: manifest.challenge_requirements.len(),
+            qualified_challenges: qualified,
+            unresolved_challenges: unresolved,
+            strategies: by_strategy.into_values().collect(),
+            non_discovery_proves_absence: false,
+        },
+        falsified,
+    ))
+}
+
+fn assess_residual(
+    manifest: &PortfolioManifest,
+    envelope: Option<&ResidualEnvelope>,
+) -> Result<ResidualAssessment, PortfolioError> {
+    let unbounded = || ResidualAssessment {
+        disposition: ResidualDisposition::ResidualRiskUnbounded,
+        action_regret_bounds: Vec::new(),
+        robust_feasible_actions: Vec::new(),
+        minimax_regret_actions: Vec::new(),
+        rectangular_bound_is_attainable_joint_world: false,
+    };
+    let Some(envelope) = envelope else {
+        return Ok(unbounded());
+    };
+
+    if envelope.utility_scale_id != manifest.utility_scale_id
+        || envelope.utility_semantics_id != manifest.utility_semantics_id
+    {
+        return Err(PortfolioError::UtilityScaleMismatch);
+    }
+    if !envelope.rectangular_relaxation
+        || !matches!(
+            envelope.evidence_class,
+            ResidualEvidenceClass::ObservedFactual
+                | ResidualEvidenceClass::ControlledIntervention
+                | ResidualEvidenceClass::QualifiedNaturalExperiment
+        )
+        || envelope.evidence_digest.trim().is_empty()
+        || envelope.calibration_protocol_digest.trim().is_empty()
+    {
+        return Ok(unbounded());
+    }
+
+    let mut bounds = BTreeMap::new();
+    for bound in &envelope.action_bounds {
+        require(&bound.action_id, "residual.action_id")?;
+        if bound.utility_lower.cmp_exact(bound.utility_upper)? == std::cmp::Ordering::Greater
+            || bounds.insert(bound.action_id.as_str(), bound).is_some()
+        {
+            return Ok(unbounded());
+        }
+    }
+    let declared: BTreeSet<_> = manifest.action_ids.iter().map(String::as_str).collect();
+    if bounds.keys().copied().collect::<BTreeSet<_>>() != declared {
+        return Ok(unbounded());
+    }
+
+    let mut rival_upper = Rational::zero();
+    let mut first = true;
+    for bound in bounds.values() {
+        if first {
+            rival_upper = bound.utility_upper;
+            first = false;
+        } else {
+            rival_upper = rival_upper.max(bound.utility_upper)?;
+        }
+    }
+
+    let mut action_regret_bounds = Vec::with_capacity(bounds.len());
+    let mut robust_feasible_actions = Vec::new();
+    let mut best_regret: Option<Rational> = None;
+    for action_id in &manifest.action_ids {
+        let bound = bounds[action_id.as_str()];
+        let regret = Rational::checked_regret_upper(rival_upper, bound.utility_lower)?;
+        action_regret_bounds.push(ActionRegretBound {
+            action_id: action_id.clone(),
+            worst_case_regret_upper: regret,
+            feasibility: bound.feasibility,
+        });
+        if bound.feasibility == FeasibilityDisposition::Guaranteed {
+            robust_feasible_actions.push(action_id.clone());
+            best_regret = Some(match best_regret {
+                None => regret,
+                Some(current) => current.min(regret)?,
+            });
+        }
+    }
+
+    let minimax_regret_actions = if let Some(best) = best_regret {
+        action_regret_bounds
+            .iter()
+            .filter(|bound| {
+                bound.feasibility == FeasibilityDisposition::Guaranteed
+                    && bound.worst_case_regret_upper.cmp_exact(best).ok()
+                        == Some(std::cmp::Ordering::Equal)
+            })
+            .map(|bound| bound.action_id.clone())
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    Ok(ResidualAssessment {
+        disposition: ResidualDisposition::BoundedRectangularRelaxation,
+        action_regret_bounds,
+        robust_feasible_actions,
+        minimax_regret_actions,
+        rectangular_bound_is_attainable_joint_world: false,
+    })
+}
+
+fn validate_coverage_for_digest(_obligation: &CoverageObligation) {}
+
+fn hash_hypothesis(h: &mut blake3::Hasher, value: &Hypothesis) {
+    hash_str(h, &value.hypothesis_id);
+    hash_str(h, &value.model_family_id);
+    hash_str(h, &value.version_digest);
+    hash_str(h, &value.causal_graph_digest);
+    hash_str(h, &value.stochastic_contract_digest);
+    let mut lineage = value.source_lineage_digests.clone();
+    lineage.sort();
+    hash_strings(h, &lineage);
+    hash_opt_str(h, value.common_mode_group.as_deref());
+    hash_str(h, &value.applicability_scope_digest);
+    let mut excluded = value.excluded_mechanisms.clone();
+    excluded.sort();
+    hash_strings(h, &excluded);
+    hash_opt_str(h, value.supersedes_hypothesis_id.as_deref());
+}
+
+fn hash_coverage(h: &mut blake3::Hasher, value: &CoverageObligation) {
+    hash_str(h, &value.obligation_id);
+    hash_u8(h, match value.axis {
+        CoverageAxis::OddRange => 0,
+        CoverageAxis::BehaviouralCompetency => 1,
+        CoverageAxis::CausalMechanism => 2,
+        CoverageAxis::RuleSafety => 3,
+    });
+    hash_str(h, &value.stratum_digest);
+    hash_u8(h, match value.state {
+        CoverageState::Covered => 0,
+        CoverageState::NotCovered => 1,
+        CoverageState::Unknown => 2,
+        CoverageState::NotApplicable => 3,
+    });
+    hash_u64(h, value.minimum_independent_units);
+    hash_u64(h, value.independent_unit_count);
+    hash_u8(h, value.evidence_class.map(evidence_tag).unwrap_or(u8::MAX));
+    hash_opt_str(h, value.evidence_manifest_digest.as_deref());
+    hash_opt_str(h, value.source_lineage_digest.as_deref());
+    hash_opt_str(h, value.challenge_protocol_digest.as_deref());
+    hash_opt_str(h, value.not_applicable_rationale.as_deref());
+}
+
+fn evidence_tag(value: EvidenceClass) -> u8 {
+    match value {
+        EvidenceClass::ObservedFactual => 0,
+        EvidenceClass::ControlledIntervention => 1,
+        EvidenceClass::QualifiedNaturalExperiment => 2,
+        EvidenceClass::SimulationGenerated => 3,
+        EvidenceClass::ModelGenerated => 4,
+        EvidenceClass::FormalReference => 5,
+        EvidenceClass::HumanAdjudication => 6,
+    }
+}
+
+fn strategy_tag(value: ChallengeStrategy) -> u8 {
+    match value {
+        ChallengeStrategy::Random => 0,
+        ChallengeStrategy::CoverageGuided => 1,
+        ChallengeStrategy::Expert => 2,
+        ChallengeStrategy::ReinforcementLearning => 3,
+    }
+}
+
+fn require(value: &str, field: &'static str) -> Result<(), PortfolioError> {
+    if value.trim().is_empty() {
+        Err(PortfolioError::EmptyIdentity(field))
+    } else {
+        Ok(())
+    }
+}
+
+fn hash_str(h: &mut blake3::Hasher, value: &str) {
+    hash_len(h, value.len());
+    h.update(value.as_bytes());
+}
+
+fn hash_opt_str(h: &mut blake3::Hasher, value: Option<&str>) {
+    match value {
+        Some(value) => {
+            h.update(&[1]);
+            hash_str(h, value);
+        }
+        None => {
+            h.update(&[0]);
+        }
+    }
+}
+
+fn hash_strings(h: &mut blake3::Hasher, values: &[String]) {
+    hash_len(h, values.len());
+    for value in values {
+        hash_str(h, value);
+    }
+}
+
+fn hash_u8(h: &mut blake3::Hasher, value: u8) {
+    h.update(&[value]);
+}
+
+fn hash_u64(h: &mut blake3::Hasher, value: u64) {
+    h.update(&value.to_le_bytes());
+}
+
+fn hash_len(h: &mut blake3::Hasher, value: usize) {
+    let value = u64::try_from(value).expect("finite manifest length must fit u64");
+    h.update(&value.to_le_bytes());
+}
+
+fn hex(bytes: &[u8]) -> String {
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        use std::fmt::Write;
+        let _ = write!(out, "{byte:02x}");
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn d(value: &str) -> String {
+        format!("sha256:{value}")
+    }
+
+    fn hypothesis(
+        hypothesis_id: &str,
+        model_family: &str,
+        lineage: &str,
+        common_mode: Option<&str>,
+    ) -> Hypothesis {
+        Hypothesis {
+            hypothesis_id: hypothesis_id.into(),
+            model_family_id: model_family.into(),
+            version_digest: d(&format!("version-{hypothesis_id}")),
+            causal_graph_digest: d(&format!("graph-{hypothesis_id}")),
+            stochastic_contract_digest: d(&format!("stochastic-{hypothesis_id}")),
+            source_lineage_digests: vec![d(lineage)],
+            common_mode_group: common_mode.map(str::to_owned),
+            applicability_scope_digest: d("odd-city-1"),
+            excluded_mechanisms: Vec::new(),
+            supersedes_hypothesis_id: None,
+        }
+    }
+
+    fn obligation(id: &str, axis: CoverageAxis) -> CoverageObligation {
+        CoverageObligation {
+            obligation_id: id.into(),
+            axis,
+            stratum_digest: d(&format!("stratum-{id}")),
+            state: CoverageState::Covered,
+            minimum_independent_units: 5,
+            independent_unit_count: 5,
+            evidence_class: Some(EvidenceClass::ControlledIntervention),
+            evidence_manifest_digest: Some(d(&format!("evidence-{id}"))),
+            source_lineage_digest: Some(d(&format!("lineage-{id}"))),
+            challenge_protocol_digest: Some(d("challenge-protocol-v1")),
+            not_applicable_rationale: None,
+        }
+    }
+
+    fn manifest() -> PortfolioManifest {
+        PortfolioManifest {
+            schema: PORTFOLIO_SCHEMA.into(),
+            portfolio_id: "road-portfolio-001".into(),
+            revision_sequence: 1,
+            supersedes_portfolio_digest: None,
+            odd_scope_digest: d("odd-city-1"),
+            utility_scale_id: "utility-0-to-100".into(),
+            utility_semantics_id: "higher-is-better-v1".into(),
+            training_lineage_roots: vec![d("training-root")],
+            action_ids: vec!["continue".into(), "yield".into()],
+            hypotheses: vec![
+                hypothesis("H-weather", "structural-scm", "shared-training", Some("weather-common")),
+                hypothesis("H-weather-copy", "learned-twin", "shared-training", Some("weather-common")),
+            ],
+            coverage_obligations: vec![
+                obligation("ODD-rain-night-occluded", CoverageAxis::OddRange),
+                obligation("yielding", CoverageAxis::BehaviouralCompetency),
+                obligation("shared-weather-descendants", CoverageAxis::CausalMechanism),
+                obligation("road-rule-crossing", CoverageAxis::RuleSafety),
+            ],
+            challenge_requirements: vec![
+                ChallengeRequirement {
+                    hypothesis_id: "H-weather".into(),
+                    strategy: ChallengeStrategy::Random,
+                    protocol_digest: d("challenge-random"),
+                    minimum_budget_units: 100,
+                },
+                ChallengeRequirement {
+                    hypothesis_id: "H-weather".into(),
+                    strategy: ChallengeStrategy::CoverageGuided,
+                    protocol_digest: d("challenge-coverage"),
+                    minimum_budget_units: 100,
+                },
+                ChallengeRequirement {
+                    hypothesis_id: "H-weather".into(),
+                    strategy: ChallengeStrategy::Expert,
+                    protocol_digest: d("challenge-expert"),
+                    minimum_budget_units: 100,
+                },
+                ChallengeRequirement {
+                    hypothesis_id: "H-weather".into(),
+                    strategy: ChallengeStrategy::ReinforcementLearning,
+                    protocol_digest: d("challenge-rl"),
+                    minimum_budget_units: 100,
+                },
+            ],
+        }
+    }
+
+    fn challenge(
+        id: &str,
+        strategy: ChallengeStrategy,
+        protocol: &str,
+        outcome: ChallengeOutcome,
+    ) -> ChallengeReceipt {
+        let found = outcome == ChallengeOutcome::CounterexampleFound;
+        ChallengeReceipt {
+            challenge_id: id.into(),
+            hypothesis_id: "H-weather".into(),
+            strategy,
+            protocol_digest: d(protocol),
+            holdout_manifest_digest: d(&format!("holdout-{id}")),
+            blinded: true,
+            sealed_test: true,
+            budget_units: 100,
+            holdout_parent_lineage_digests: vec![d(&format!("holdout-parent-{id}"))],
+            outcome,
+            counterexample_digest: found.then(|| d(&format!("counterexample-{id}"))),
+            replay_receipt_digest: found.then(|| d(&format!("replay-{id}"))),
+        }
+    }
+
+    fn challenge_set() -> Vec<ChallengeReceipt> {
+        vec![
+            challenge("random-1", ChallengeStrategy::Random, "challenge-random", ChallengeOutcome::NonDiscoveryWithinBudget),
+            challenge("coverage-1", ChallengeStrategy::CoverageGuided, "challenge-coverage", ChallengeOutcome::NonDiscoveryWithinBudget),
+            challenge("expert-1", ChallengeStrategy::Expert, "challenge-expert", ChallengeOutcome::NonDiscoveryWithinBudget),
+            challenge("rl-1", ChallengeStrategy::ReinforcementLearning, "challenge-rl", ChallengeOutcome::NonDiscoveryWithinBudget),
+        ]
+    }
+
+    fn residual() -> ResidualEnvelope {
+        ResidualEnvelope {
+            utility_scale_id: "utility-0-to-100".into(),
+            utility_semantics_id: "higher-is-better-v1".into(),
+            evidence_class: ResidualEvidenceClass::ControlledIntervention,
+            evidence_digest: d("residual-evidence"),
+            calibration_protocol_digest: d("residual-calibration"),
+            rectangular_relaxation: true,
+            action_bounds: vec![
+                ActionResidualBound {
+                    action_id: "continue".into(),
+                    utility_lower: Rational::new(40, 1).unwrap(),
+                    utility_upper: Rational::new(60, 1).unwrap(),
+                    feasibility: FeasibilityDisposition::Guaranteed,
+                },
+                ActionResidualBound {
+                    action_id: "yield".into(),
+                    utility_lower: Rational::new(50, 1).unwrap(),
+                    utility_upper: Rational::new(80, 1).unwrap(),
+                    feasibility: FeasibilityDisposition::Guaranteed,
+                },
+            ],
+        }
+    }
+
+    #[test]
+    fn complete_portfolio_requires_all_axes_challenges_and_bounded_residuals() {
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_eq!(
+            report.disposition,
+            PortfolioDisposition::PortfolioCompleteForDeclaredScope
+        );
+        assert_eq!(report.effective_independent_hypothesis_family_count, 1);
+        assert_eq!(report.model_family_count, 2);
+        assert!(report.decision_recommendation_authorized);
+        assert!(!report.completeness_relative_to_reality_proven);
+        assert!(!report.challenge.non_discovery_proves_absence);
+    }
+
+    #[test]
+    fn cloned_models_in_one_common_mode_group_count_once() {
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_eq!(report.model_family_count, 2);
+        assert_eq!(report.effective_independent_hypothesis_family_count, 1);
+    }
+
+    #[test]
+    fn missing_interaction_combination_is_not_covered_by_attribute_marginals() {
+        let mut portfolio = manifest();
+        portfolio.coverage_obligations.push(CoverageObligation {
+            obligation_id: "rain-x-night-x-occluded".into(),
+            axis: CoverageAxis::OddRange,
+            stratum_digest: d("rain-night-occluded-crossing"),
+            state: CoverageState::NotCovered,
+            minimum_independent_units: 10,
+            independent_unit_count: 0,
+            evidence_class: None,
+            evidence_manifest_digest: None,
+            source_lineage_digest: None,
+            challenge_protocol_digest: None,
+            not_applicable_rationale: None,
+        });
+        let report = evaluate_portfolio(
+            &portfolio,
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_eq!(report.disposition, PortfolioDisposition::PortfolioIncomplete);
+        assert!(!report.decision_recommendation_authorized);
+    }
+
+    #[test]
+    fn unknown_coverage_is_not_silently_promoted_to_covered() {
+        let mut portfolio = manifest();
+        portfolio.coverage_obligations[0].state = CoverageState::Unknown;
+        portfolio.coverage_obligations[0].evidence_manifest_digest = None;
+        portfolio.coverage_obligations[0].source_lineage_digest = None;
+        portfolio.coverage_obligations[0].challenge_protocol_digest = None;
+        let report = evaluate_portfolio(
+            &portfolio,
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_eq!(report.disposition, PortfolioDisposition::PortfolioIncomplete);
+    }
+
+    #[test]
+    fn not_applicable_requires_explicit_scope_rationale() {
+        let mut portfolio = manifest();
+        let obligation = &mut portfolio.coverage_obligations[0];
+        obligation.state = CoverageState::NotApplicable;
+        obligation.not_applicable_rationale = Some(
+            "The declared limited-access-highway-only claim excludes urban crossing approaches."
+                .into(),
+        );
+        obligation.evidence_class = None;
+        obligation.evidence_manifest_digest = None;
+        obligation.source_lineage_digest = None;
+        obligation.challenge_protocol_digest = None;
+        let report = evaluate_portfolio(
+            &portfolio,
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_eq!(
+            report.disposition,
+            PortfolioDisposition::PortfolioCompleteForDeclaredScope
+        );
+    }
+
+    #[test]
+    fn budgeted_non_discovery_is_not_a_proof_of_absence() {
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_eq!(
+            report.challenge.non_discovery_proves_absence,
+            false
+        );
+        assert_eq!(report.challenge.qualified_challenges, 4);
+        assert_eq!(report.challenge.unresolved_challenges, 0);
+    }
+
+    #[test]
+    fn blinded_replayable_counterexample_falsifies_the_portfolio() {
+        let mut receipts = challenge_set();
+        receipts[1] = challenge(
+            "coverage-counterexample",
+            ChallengeStrategy::CoverageGuided,
+            "challenge-coverage",
+            ChallengeOutcome::CounterexampleFound,
+        );
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &receipts,
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_eq!(report.disposition, PortfolioDisposition::PortfolioFalsified);
+        assert!(!report.decision_recommendation_authorized);
+    }
+
+    #[test]
+    fn challenge_with_training_parent_leakage_is_rejected() {
+        let mut receipts = challenge_set();
+        receipts[0].holdout_parent_lineage_digests = vec![d("training-root")];
+        assert_eq!(
+            evaluate_portfolio(
+                &manifest(),
+                &d("odd-city-1"),
+                &receipts,
+                Some(&residual()),
+            ),
+            Err(PortfolioError::ChallengeLineageLeak)
+        );
+    }
+
+    #[test]
+    fn non_blinded_challenge_cannot_qualify_a_holdout() {
+        let mut receipts = challenge_set();
+        receipts[0].blinded = false;
+        assert_eq!(
+            evaluate_portfolio(
+                &manifest(),
+                &d("odd-city-1"),
+                &receipts,
+                Some(&residual()),
+            ),
+            Err(PortfolioError::ChallengeNotBlinded)
+        );
+    }
+
+    #[test]
+    fn missing_challenge_or_insufficient_search_budget_keeps_portfolio_incomplete() {
+        let mut receipts = challenge_set();
+        receipts.pop();
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &receipts,
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_eq!(report.disposition, PortfolioDisposition::PortfolioIncomplete);
+
+        let mut low_budget = challenge_set();
+        low_budget[0].budget_units = 1;
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &low_budget,
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_eq!(report.disposition, PortfolioDisposition::PortfolioIncomplete);
+    }
+
+    #[test]
+    fn no_empirical_residual_bound_means_unbounded_risk() {
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(report.disposition, PortfolioDisposition::ResidualRiskUnbounded);
+        assert!(!report.decision_recommendation_authorized);
+    }
+
+    #[test]
+    fn model_dependent_or_uncalibrated_residual_is_unbounded() {
+        let mut envelope = residual();
+        envelope.evidence_class = ResidualEvidenceClass::ModelGenerated;
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&envelope),
+        )
+        .unwrap();
+        assert_eq!(report.residual.disposition, ResidualDisposition::ResidualRiskUnbounded);
+
+        let mut envelope = residual();
+        envelope.calibration_protocol_digest.clear();
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&envelope),
+        )
+        .unwrap();
+        assert_eq!(report.residual.disposition, ResidualDisposition::ResidualRiskUnbounded);
+    }
+
+    #[test]
+    fn rectangular_residual_regret_is_exact_and_labeled_as_relaxation() {
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&residual()),
+        )
+        .unwrap();
+        let continue_bound = report.residual.action_regret_bounds.iter()
+            .find(|bound| bound.action_id == "continue").unwrap();
+        let yield_bound = report.residual.action_regret_bounds.iter()
+            .find(|bound| bound.action_id == "yield").unwrap();
+
+        // max U(b)=80. Regret upper: continue 80-40=40; yield 80-50=30.
+        assert_eq!(continue_bound.worst_case_regret_upper, Rational::new(40, 1).unwrap());
+        assert_eq!(yield_bound.worst_case_regret_upper, Rational::new(30, 1).unwrap());
+        assert_eq!(report.residual.minimax_regret_actions, vec!["yield".to_owned()]);
+        assert!(!report.residual.rectangular_bound_is_attainable_joint_world);
+    }
+
+    #[test]
+    fn unknown_or_potential_violation_excludes_an_action_from_robust_set() {
+        let mut envelope = residual();
+        envelope.action_bounds[0].feasibility = FeasibilityDisposition::Unknown;
+        envelope.action_bounds[1].feasibility = FeasibilityDisposition::PotentialViolation;
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&envelope),
+        )
+        .unwrap();
+        assert!(report.residual.robust_feasible_actions.is_empty());
+        assert!(!report.decision_recommendation_authorized);
+    }
+
+    #[test]
+    fn missing_action_bound_keeps_residual_risk_unbounded() {
+        let mut envelope = residual();
+        envelope.action_bounds.pop();
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&envelope),
+        )
+        .unwrap();
+        assert_eq!(report.residual.disposition, ResidualDisposition::ResidualRiskUnbounded);
+    }
+
+    #[test]
+    fn out_of_scope_is_not_a_successful_portfolio_evaluation() {
+        let report = evaluate_portfolio(
+            &manifest(),
+            &d("different-odd"),
+            &challenge_set(),
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_eq!(report.disposition, PortfolioDisposition::OutOfScope);
+        assert!(!report.decision_recommendation_authorized);
+    }
+
+    #[test]
+    fn append_only_revision_rejects_mutating_an_existing_challenged_hypothesis() {
+        let previous = manifest();
+        let mut current = previous.clone();
+        current.revision_sequence = 2;
+        current.supersedes_portfolio_digest = Some(previous.portfolio_digest().unwrap());
+        current.hypotheses[0].version_digest = d("silently-replaced-version");
+        assert_eq!(
+            PortfolioManifest::validate_append_only_revision(&previous, &current),
+            Err(PortfolioError::NonAppendOnlyRevision)
+        );
+    }
+
+    #[test]
+    fn append_only_revision_accepts_addition_under_new_hypothesis_identity() {
+        let previous = manifest();
+        let mut current = previous.clone();
+        current.revision_sequence = 2;
+        current.supersedes_portfolio_digest = Some(previous.portfolio_digest().unwrap());
+        let mut added = hypothesis("H-weather-v2", "structural-scm", "new-training", None);
+        added.supersedes_hypothesis_id = Some("H-weather".into());
+        current.hypotheses.push(added);
+        PortfolioManifest::validate_append_only_revision(&previous, &current).unwrap();
+    }
+
+    #[test]
+    fn rational_arithmetic_normalizes_and_rejects_zero_denominator() {
+        assert_eq!(Rational::new(6, 8).unwrap(), Rational::new(3, 4).unwrap());
+        assert_eq!(
+            Rational::new(1, 0),
+            Err(RationalError::ZeroDenominator)
+        );
+        assert_eq!(
+            Rational::checked_regret_upper(
+                Rational::new(2, 3).unwrap(),
+                Rational::new(3, 4).unwrap(),
+            )
+            .unwrap(),
+            Rational::zero()
+        );
+    }
+}
