@@ -48,7 +48,7 @@ The unit tests promote an in-memory copy to a measured-style receipt to verify d
 
 ## Validation
 
-20 Rust unit tests cover synthetic rejection, measured-style eligibility, risk-budget actions, hard-limit precedence, censoring support, domain shift, calibration horizon, source/policy provenance, unknown statuses and hazard/CIF coherence receipts.
+24 Rust unit tests cover synthetic rejection, measured-style eligibility, risk-budget actions, hard-limit precedence, censoring support, domain shift, calibration horizon, source/policy provenance, unknown statuses and hazard/CIF coherence receipts.
 
 ## Run
 
@@ -60,3 +60,14 @@ The unit tests promote an in-memory copy to a measured-style receipt to verify d
 The `CALIBRATED` status is not established by a calibration-test p-value alone. The calibration receipt digest must bind the held-out evidence for the intended asset population and stratum, including independent asset/site counts, calibration curves or proper scores, uncertainty intervals and the censoring/support assumptions. A-/D-calibration are tests whose failure to reject is not proof of calibration; they must be paired with reliability analysis and independent validation. The Rust contract verifies the receipt identity and declared status, not the scientific correctness of the external calibration report.
 
 For `PUBLISHED_MEASURED`, a stable source locator is mandatory. For `MEASURED`, the raw asset-state/model/outcome/calibration digests and asset identity must be bound in the receipt. Synthetic and simulated values never pass the operational eligibility gate.
+
+
+## Complete competing-risk forecast vector
+
+The receipt carries the selected target event plus every declared competing event in a cause-specific CIF vector. The validator rejects:
+- omitted or duplicated causes;
+- a target code duplicated in the competing-event list;
+- target-event scalar that differs from its corresponding cause vector entry;
+- event-free survival plus all cause-specific CIFs that do not sum to one.
+
+This prevents a target-only risk threshold from hiding probability mass assigned to planned replacement, unrelated failure or road reconstruction.
