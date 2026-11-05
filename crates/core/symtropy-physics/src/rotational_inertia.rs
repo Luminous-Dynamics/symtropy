@@ -393,6 +393,29 @@ mod tests {
     }
 
     #[test]
+    fn center_of_mass_inertia_is_translation_invariant() {
+        let original = vec![
+            (2.0, SVector::from([1.0, 0.0, 0.0])),
+            (1.0, SVector::from([0.0, 2.0, 0.0])),
+            (3.0, SVector::from([0.0, 0.0, 1.0])),
+            (1.5, SVector::from([-1.0, -1.0, 0.5])),
+        ];
+        let translation = SVector::from([17.0, -8.0, 3.5]);
+        let translated: Vec<_> = original
+            .iter()
+            .map(|(mass, position)| (*mass, *position + translation))
+            .collect();
+
+        let before = BivectorInertia::<3>::from_point_masses(&original).unwrap();
+        let after = BivectorInertia::<3>::from_point_masses(&translated).unwrap();
+
+        assert!(
+            (before.matrix() - after.matrix()).norm() < 1e-10,
+            "translating every point mass must not change center-of-mass inertia"
+        );
+    }
+
+    #[test]
     fn malformed_operators_and_mass_distributions_are_rejected() {
         assert!(matches!(
             BivectorInertia::<3>::from_matrix(DMatrix::identity(2, 2)),
@@ -406,6 +429,12 @@ mod tests {
             BivectorInertia::<3>::from_matrix(DMatrix::from_element(3, 3, f64::NAN)),
             Err(BivectorInertiaError::NonFiniteInput)
         ));
+        let mut nonsymmetric = DMatrix::identity(3, 3);
+        nonsymmetric[(0, 1)] = 0.25;
+        assert!(matches!(
+            BivectorInertia::<3>::from_matrix(nonsymmetric),
+            Err(BivectorInertiaError::MatrixNotSymmetric { row: 0, column: 1 })
+        ));
         assert!(matches!(
             BivectorInertia::<3>::from_point_masses(&[]),
             Err(BivectorInertiaError::EmptyPointMassSet)
@@ -413,6 +442,13 @@ mod tests {
         assert!(matches!(
             BivectorInertia::<3>::from_point_masses(&[(0.0, SVector::zeros())]),
             Err(BivectorInertiaError::InvalidPointMass { index: 0 })
+        ));
+        assert!(matches!(
+            BivectorInertia::<3>::from_point_masses(&[(
+                1.0,
+                SVector::from([f64::NAN, 0.0, 0.0])
+            )]),
+            Err(BivectorInertiaError::NonFinitePointPosition { index: 0 })
         ));
         assert!(matches!(
             BivectorInertia::<1>::isotropic(1.0),
