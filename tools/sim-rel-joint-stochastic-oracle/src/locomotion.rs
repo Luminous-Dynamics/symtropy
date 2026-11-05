@@ -134,14 +134,68 @@ pub enum PhysicalCarryover {
     Adapted,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum JointPositionBin {
+    Flexed,
+    Neutral,
+    Extended,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum JointVelocityBin {
+    Retracting,
+    Stationary,
+    Protracting,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum ActuatorForceBin {
+    Low,
+    Nominal,
+    High,
+}
+
+/// Bounded, typed mechanical state for one anatomical leg. These bins are
+/// benchmark abstractions, not calibrated physical units.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct LegMechanicalState {
+    pub gait_phase: GaitPhase,
+    pub contact_state: ContactState,
+    pub load_state: LoadState,
+    pub joint_position: JointPositionBin,
+    pub joint_velocity: JointVelocityBin,
+    pub actuator_force: ActuatorForceBin,
+}
+
+pub const fn leg_mechanics(
+    gait_phase: GaitPhase,
+    contact_state: ContactState,
+    load_state: LoadState,
+    joint_position: JointPositionBin,
+    joint_velocity: JointVelocityBin,
+    actuator_force: ActuatorForceBin,
+) -> LegMechanicalState {
+    LegMechanicalState {
+        gait_phase,
+        contact_state,
+        load_state,
+        joint_position,
+        joint_velocity,
+        actuator_force,
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PhysicalState {
     pub id: String,
     pub behavioral_context: BehavioralContext,
+    /// Whole-body scenario labels retained for grouping and compatibility.
+    /// Per-leg mechanics in the legs field are authoritative for limb-level dynamics.
     pub gait_phase: GaitPhase,
     pub contact_state: ContactState,
     pub load_state: LoadState,
     pub carryover: PhysicalCarryover,
+    pub legs: [LegMechanicalState; 6],
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
