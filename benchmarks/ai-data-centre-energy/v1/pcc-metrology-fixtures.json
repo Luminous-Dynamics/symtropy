@@ -1,0 +1,151 @@
+{
+  "schema_version": "symtropy.pcc-metrology-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "units": {
+    "power": "W",
+    "energy": "J",
+    "time": "s",
+    "standard_uncertainty": "same as measured quantity"
+  },
+  "cases": [
+    {
+      "case_id": "linear-gain-offset-correction",
+      "raw_power_w": 1020,
+      "offset_correction_w": 20,
+      "gain_correction": 1.02,
+      "corrected_power_equation": "(raw_power_w - offset_correction_w) * gain_correction",
+      "expected_corrected_power_w": 1020,
+      "tolerance_w": 1e-9
+    },
+    {
+      "case_id": "paired-common-mode-covariance",
+      "baseline_power_w": 1000,
+      "candidate_power_w": 900,
+      "baseline_standard_uncertainty_w": 2,
+      "candidate_standard_uncertainty_w": 2,
+      "correlation_coefficient": 0.9,
+      "coverage_factor": 2,
+      "expected": {
+        "measured_reduction_w": 100,
+        "reduction_variance_w2": 0.8,
+        "reduction_standard_uncertainty_w": 0.8944271909999159,
+        "expanded_uncertainty_w": 1.7888543819998317,
+        "lower_bound_w": 98.21114561800017,
+        "passes_minimum_response_98w": true
+      },
+      "negative_control_independent_errors": {
+        "correlation_coefficient": 0,
+        "expected_reduction_standard_uncertainty_w": 2.8284271247461903,
+        "expected_lower_bound_w": 94.34314575050762,
+        "passes_minimum_response_98w": false
+      },
+      "notes": [
+        "The covariance is a fixture input supported by the synthetic shared-chain design; it is not a default assumption for real meters.",
+        "The lower bound shown uses a Gaussian-style k=2 example only to test arithmetic; real receipt coverage must match the validated uncertainty distribution."
+      ]
+    },
+    {
+      "case_id": "uncertainty-crosses-product-threshold",
+      "measured_reduction_w": 6,
+      "standard_uncertainty_w": 1,
+      "coverage_factor": 2,
+      "minimum_response_w": 5,
+      "expected": {
+        "lower_bound_w": 4,
+        "eligible": false,
+        "reason": "expanded_uncertainty_lower_bound_below_minimum_response"
+      }
+    },
+    {
+      "case_id": "clock-offset-near-step",
+      "baseline_sample_offset_ms": 0,
+      "candidate_sample_offset_ms": 100,
+      "maximum_allowed_pair_alignment_error_ms": 20,
+      "candidate_power_step_ms": 500,
+      "expected": {
+        "pair_eligible": false,
+        "reason": "clock_alignment_uncertainty_exceeds_contract"
+      }
+    },
+    {
+      "case_id": "missing-sample-energy-window",
+      "sample_times_s": [0, 1, 3, 4],
+      "expected_interval_boundaries_s": [[0, 1], [1, 2], [2, 3], [3, 4]],
+      "missing_window": [1, 2],
+      "expected": {
+        "energy_result_eligible": false,
+        "reason": "missing_interval_without_validated_reconstruction"
+      }
+    },
+    {
+      "case_id": "expired-calibration",
+      "calibration_expiry": "2026-10-31T23:59:59Z",
+      "measurement_time": "2026-11-01T00:00:00Z",
+      "expected": {
+        "eligible": false,
+        "reason": "calibration_expired"
+      }
+    },
+    {
+      "case_id": "nonlinear-correction-requires-distribution-propagation",
+      "raw_current_a": 400,
+      "correction_curve_id": "synthetic-nonlinear-ct-v1",
+      "correction_model": "nonlinear",
+      "linearized_method_permitted": false,
+      "expected": {
+        "eligible_for_linearized_uncertainty_only": false,
+        "distribution_propagation_required": true
+      }
+    },
+    {
+      "case_id": "shared-pcc-background-load-attribution",
+      "pcc_baseline_power_kw": 1200,
+      "pcc_candidate_power_kw": 1100,
+      "non_data_centre_load_change_kw": -100,
+      "data_centre_power_change_known": false,
+      "expected": {
+        "whole_site_net_reduction_kw": 100,
+        "data_centre_attributed_reduction_eligible": false,
+        "reason": "background_load_change_not_separately_qualified"
+      }
+    },
+    {
+      "case_id": "nested-meter-no-addition",
+      "meter_hierarchy": {
+        "PCC": {"children": ["UPS", "Cooling", "OtherSite"]},
+        "UPS": {"children": ["RackA", "RackB"]},
+        "RackA": {"children": ["GPU-A1", "GPU-A2"]}
+      },
+      "pcc_measured_power_kw": 1000,
+      "nested_readings_kw": {
+        "UPS": 600,
+        "Cooling": 250,
+        "RackA": 300,
+        "GPU-A1": 100,
+        "GPU-A2": 100
+      },
+      "expected": {
+        "authoritative_grid_facing_power_kw": 1000,
+        "sum_nested_readings_permitted": false
+      }
+    }
+  ],
+  "negative_controls": [
+    "unknown_covariance_must_not_assume_cancellation",
+    "phase_mapping_mismatch_rejected",
+    "ct_pt_ratio_revision_mismatch_rejected",
+    "power_factor_outside_calibration_domain_rejected",
+    "frequency_or_harmonic_domain_mismatch_rejected",
+    "clock_drift_exceeds_product_limit_rejected",
+    "duplicate_or_reordered_samples_rejected",
+    "sample_clipping_or_saturation_rejected",
+    "meter_reset_during_interval_rejected",
+    "calibration_certificate_digest_missing_rejected",
+    "reference_traceability_missing_rejected",
+    "meter_firmware_change_invalidates_receipt",
+    "shared_feeder_without_attribution_model_not_dc_only_credit",
+    "nonlinear_model_cannot_use_unjustified_linear_standard_uncertainty",
+    "uncertainty_interval_includes_zero_no_positive_response_credit",
+    "energy_integration_must_conserve_interval_measure"
+  ]
+}
