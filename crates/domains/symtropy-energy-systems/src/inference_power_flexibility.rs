@@ -1139,6 +1139,21 @@ mod tests {
     }
 
     #[test]
+    fn brief_power_dip_does_not_qualify_as_sustained_response() {
+        let baseline = run("baseline-run", action("baseline-action", 250.0),
+            results("b", false), vec![120.0; 5]);
+        let candidate = run("candidate-run", action("candidate-action", 180.0),
+            results("c", false), vec![120.0, 100.0, 100.0, 120.0, 120.0]);
+        let report = evaluate_inference_power_flexibility(
+            identity(), &manifest(), &baseline, &candidate, &contract(),
+        ).expect("paired measurement");
+        assert_eq!(report.maximum_sustained_reduction_duration_ms, 200);
+        assert_eq!(report.stabilized_response_elapsed_ms, None);
+        assert!(!report.power_response_qualified);
+        assert!(report.service_equivalent);
+    }
+
+    #[test]
     fn response_and_recovery_are_both_retained_in_signed_energy() {
         let baseline = run("baseline-run", action("baseline-action", 250.0),
             results("b", false), vec![120.0; 5]);
