@@ -516,6 +516,10 @@ mod tests {
             ]
         });
         assert!(service_profile(&service).is_ok());
+
+        let mut released = service.clone();
+        released["chemical_energy_mode"] = serde_json::json!("RELEASED");
+        assert!(service_profile(&released).is_ok());
     }
 
     #[test]
@@ -540,6 +544,28 @@ mod tests {
                 .unwrap_err()
                 .contains("requires quantity")
         );
+    }
+
+    #[test]
+    fn rejects_unknown_chemical_energy_mode() {
+        let service = serde_json::json!({
+            "service_type": "CHEMICAL_PROCESS",
+            "service_quantity": "CHEMICAL_FREE_ENERGY_CHANGE",
+            "measurement_method": "REACTION_EXTENT_AND_CHEMICAL_POTENTIAL",
+            "chemical_energy_mode": "ABSOLUTE_VALUE",
+            "service_unit": "J",
+            "requested_useful_energy_j": 500.0,
+            "minimum_useful_energy_j": 450.0,
+            "maximum_input_power_w": 250.0,
+            "source_input_boundary_id": "transmitter-dc-input",
+            "useful_output_boundary_id": "chemical-state-output",
+            "power_profile": [
+                {"requested_input_power_w": 200.0, "time_ns": 0}
+            ]
+        });
+        assert!(service_profile(&service)
+            .unwrap_err()
+            .contains("STORED or RELEASED"));
     }
 
     #[test]
