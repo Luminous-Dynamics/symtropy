@@ -82,6 +82,8 @@ The public projection enum deliberately has no variants for work completed, inde
 
 ## Frozen cases and tests
 
+The crosswalk profile and its Draft 2020-12 schema are in `profile/` and `schema/`. The synthetic fixture corpus has its own closed Draft 2020-12 schema (`schema/vda5050-crosswalk-cases-v0.1.schema.json`). The focused CI checks JSON parsing, validates both schemas, validates both data files against their schemas, and compares the Rust canonical mapping set to the profile mapping set.
+
 The synthetic corpus in fixtures/vda5050-crosswalk-cases-v0.1.json covers:
 1. transport order ID != construction task ID;
 2. map version != design revision/site epoch;
