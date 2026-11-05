@@ -116,6 +116,11 @@ pub struct CorrespondenceAddressPlan {
     pub left_branch: StableId,
     pub right_branch: StableId,
     pub completeness: PlanCompleteness,
+    /// Full declared candidate event inventories used for independent re-assessment.
+    pub left_events: Vec<EventOccurrence>,
+    pub right_events: Vec<EventOccurrence>,
+    /// Exact source scopes used to reconstruct every canonical address.
+    pub event_scopes: Vec<EventDrawScope>,
     /// Original evidence references for the declared candidate event universe.
     /// These IDs preserve provenance; they do not validate the referenced evidence.
     pub universe_status: CandidateUniverseStatus,
@@ -357,6 +362,9 @@ pub fn project_correspondence_addresses(
         } else {
             PlanCompleteness::Incomplete
         },
+        left_events: correspondence.left_events.clone(),
+        right_events: correspondence.right_events.clone(),
+        event_scopes: scopes.into_values().collect(),
         universe_status: correspondence.universe_status.clone(),
         hypothesis_set_status: correspondence.hypothesis_set_status.clone(),
         hypotheses,
