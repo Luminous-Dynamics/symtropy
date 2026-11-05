@@ -103,7 +103,7 @@ Additional exact tests cover: same Philox words for both endpoints of one justif
 
 ### Semantic projection closure (ROAD-CORRESPONDENCE-RECEIPT-CLOSURE-001)
 
-The resolved draw bundle now retains the exact finite projection inputs:
+The resolved draw bundle schema is upgraded to v0.2 and retains the exact finite projection inputs:
 - complete left/right candidate event inventories, including identity fields and presence evidence;
 - the complete branch/event scope table, including world/episode, tick, event kind, source, mechanism version and draw component;
 - the existing correspondence hypotheses, causal rules, canonical addresses and Philox receipts.
@@ -112,6 +112,6 @@ The bundle digest commits to these structured inputs as well as the corresponden
 
 This closes the gap between replaying an arbitrary retained byte string and verifying that the byte string follows from the declared event/scope/coupling contract. It also lets the verifier recheck that every candidate event in each retained branch universe is classified exactly once as paired or explicitly unmatched.
 
-The new negative controls mutate a tick, substitute and correctly re-resolve arbitrary address bytes, and add an unclassified candidate event while recomputing the outer content digest. All must fail semantic verification. A stale or contradictory incomplete disposition is likewise rejected.
+The projection now also requires every branch/event scope to share one frozen parent world/episode ID, including unmatched and branch-local events. Candidate event inventories and scope rows are canonically ordered in the retained projection input. The new negative controls mutate a tick, substitute and correctly re-resolve arbitrary address bytes, add an unclassified candidate event, and change the world ID of an unmatched event while recomputing the outer content digest. All must fail semantic verification. A stale or contradictory incomplete disposition is likewise rejected.
 
 The retained universe and scope are still caller-supplied inputs. The verifier establishes internal finite self-consistency, not scientific exhaustiveness, authenticity of external evidence references, causal truth, or common-random-number variance reduction.
