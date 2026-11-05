@@ -678,6 +678,21 @@ mod tests {
     }
 
     #[test]
+    fn measured_lifecycle_outcome_requires_at_least_one_source_record_id() {
+        let (schema, mut dataset) = bundled_lifecycle_fixtures().unwrap();
+        dataset["records"][0]["evidence_kind"] = Value::String("MEASURED".into());
+        dataset["records"][0]["quality_flags"] = Value::Array(vec![]);
+        dataset["records"][0]["source_record_ids"] = Value::Array(vec![]);
+        dataset["records"][0]["raw_artifact_sha256"] =
+            Value::String("d".repeat(64));
+        assert!(
+            validate_lifecycle_outcomes(&schema, &dataset)
+                .unwrap_err()
+                .contains("measured lifecycle outcomes require source_record_ids")
+        );
+    }
+
+    #[test]
     fn published_lifecycle_outcome_requires_source_locator() {
         let (schema, mut dataset) = bundled_lifecycle_fixtures().unwrap();
         dataset["records"][0]["evidence_kind"] = Value::String("PUBLISHED_MEASURED".into());
