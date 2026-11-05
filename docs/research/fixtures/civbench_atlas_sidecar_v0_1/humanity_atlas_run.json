@@ -50,7 +50,7 @@
       "role": "civbench_task_evaluation",
       "media_type": "application/json",
       "artifact_ref": "civbench_task_evaluation.json",
-      "artifact_sha256": "5eccaa7f563f22033c888a2c4bac7f59803ef8aca0f35ac7344607e1f4e1c90c5"
+      "artifact_sha256": "f86fbb99bc941761f6cd0d0449a36e3cd52e43646198b23d42f962299aa2089a"
     },
     {
       "artifact_id": "choice-frequency-distribution",
