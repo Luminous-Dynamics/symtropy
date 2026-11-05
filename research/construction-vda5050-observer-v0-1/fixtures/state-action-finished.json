@@ -1,0 +1,52 @@
+{
+  "headerId": 17,
+  "timestamp": "2026-11-05T10:00:00.000Z",
+  "version": "3.0.0",
+  "manufacturer": "ACME",
+  "serialNumber": "R-01",
+  "orderId": "transport-1",
+  "orderUpdateId": 2,
+  "lastNodeId": "n0",
+  "lastNodeSequenceId": 0,
+  "nodeStates": [
+    {
+      "nodeId": "n0",
+      "sequenceId": 0,
+      "released": true
+    }
+  ],
+  "edgeStates": [],
+  "driving": false,
+  "actionStates": [
+    {
+      "actionId": "a1",
+      "actionStatus": "FINISHED"
+    }
+  ],
+  "instantActionStates": [],
+  "powerSupply": {
+    "stateOfCharge": 90,
+    "charging": false
+  },
+  "operatingMode": "AUTOMATIC",
+  "errors": [],
+  "safetyState": {
+    "activeEmergencyStop": "NONE",
+    "fieldViolation": false
+  },
+  "zoneRequests": [
+    {
+      "requestId": "z1",
+      "requestType": "ACCESS",
+      "zoneId": "zone-1",
+      "zoneSetId": "set-1",
+      "requestStatus": "GRANTED"
+    }
+  ],
+  "maps": [
+    {
+      "mapId": "floor-2",
+      "mapVersion": "map-17"
+    }
+  ]
+}

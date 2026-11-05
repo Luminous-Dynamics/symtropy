@@ -1,0 +1,31 @@
+{
+  "headerId": 17,
+  "timestamp": "2026-11-05T10:00:00.000Z",
+  "version": "3.0.0",
+  "manufacturer": "ACME",
+  "serialNumber": "R-01",
+  "zoneSet": {
+    "mapId": "map-1",
+    "zoneSetId": "set-1",
+    "zones": [
+      {
+        "zoneId": "blocked-1",
+        "zoneType": "BLOCKED",
+        "vertices": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 1
+          }
+        ]
+      }
+    ]
+  }
+}
