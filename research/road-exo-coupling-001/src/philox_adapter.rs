@@ -263,9 +263,7 @@ pub enum CorrespondenceBundleVerificationError {
 /// justifications, address bytes, presence/sharing labels and raw draw receipts.
 /// It is a content commitment, not a signature or proof that source evidence is true.
 pub fn correspondence_draw_bundle_digest(bundle: &CorrespondenceDrawBundle) -> [u8; 32] {
-    let mut hasher = blake3::Hasher::new_derive_key(
-        CORRESPONDENCE_DRAW_BUNDLE_DERIVATION_CONTEXT
-    );
+    let mut hasher = blake3::Hasher::new_derive_key(CORRESPONDENCE_DRAW_BUNDLE_DERIVATION_CONTEXT);
     hash_string(&mut hasher, bundle.bundle_schema);
     hash_stable_id(&mut hasher, &bundle.left_branch);
     hash_stable_id(&mut hasher, &bundle.right_branch);
@@ -410,9 +408,7 @@ fn hash_correspondence_hypothesis(
                     hasher.update(&[0]);
                     hash_stable_id(hasher, rationale_ref);
                 }
-                crate::correspondence::UnmatchedReason::CorrespondenceUnknown {
-                    evidence_ref,
-                } => {
+                crate::correspondence::UnmatchedReason::CorrespondenceUnknown { evidence_ref } => {
                     hasher.update(&[1]);
                     hash_stable_id(hasher, evidence_ref);
                 }
