@@ -6,9 +6,7 @@
 //! CSV files are deterministic apart from elapsed_ns. The tape bundle is a
 //! portable, versioned input artifact for cross-framework adapters.
 
-use civdyn_engine_compare::{
-    RunResult, default_scenarios, encode_tape_bundle, run_reference,
-};
+use civdyn_engine_compare::{RunResult, default_scenarios, encode_tape_bundle, run_reference};
 use std::fs;
 use std::path::PathBuf;
 
@@ -73,8 +71,7 @@ fn main() {
 
     let scenarios = default_scenarios().expect("default scenarios must validate");
     let tape = encode_tape_bundle(&scenarios).expect("tape bundle must encode");
-    fs::write(output_dir.join("forest-fire-event-tapes.bin"), tape)
-        .expect("write tape bundle");
+    fs::write(output_dir.join("forest-fire-event-tapes.bin"), tape).expect("write tape bundle");
 
     let results = scenarios
         .iter()
@@ -100,11 +97,17 @@ mod tests {
         let scenarios = default_scenarios().unwrap();
         assert_eq!(scenarios.len(), 40);
         assert_eq!(
-            scenarios.iter().filter(|scenario| scenario.spec.width == 32).count(),
+            scenarios
+                .iter()
+                .filter(|scenario| scenario.spec.width == 32)
+                .count(),
             20
         );
         assert_eq!(
-            scenarios.iter().filter(|scenario| scenario.spec.width == 64).count(),
+            scenarios
+                .iter()
+                .filter(|scenario| scenario.spec.width == 64)
+                .count(),
             20
         );
     }
@@ -113,9 +116,6 @@ mod tests {
     fn same_seed_uses_same_event_tape_across_grid_sizes_only_for_shared_prefix() {
         let small = civdyn_engine_compare::generate_scenario(32, 32, 5, 1).unwrap();
         let large = civdyn_engine_compare::generate_scenario(64, 64, 5, 1).unwrap();
-        assert_eq!(
-            &small.event_tape[..32 * 32],
-            &large.event_tape[..32 * 32]
-        );
+        assert_eq!(&small.event_tape[..32 * 32], &large.event_tape[..32 * 32]);
     }
 }
