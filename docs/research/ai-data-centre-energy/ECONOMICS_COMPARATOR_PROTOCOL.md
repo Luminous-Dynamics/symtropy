@@ -47,13 +47,15 @@ No alternative may use nominal response MWh as delivered energy. Use a metrology
 
 ## 4. Break-even compute opportunity cost
 
-First find the least-cost alternative among those that pass the same product contract. Let this alternative be `b`.
+First find the alternative with the lowest **cost per reliable delivered MWh** among those that pass the same product contract. Let this alternative be `b`. Do not compare annual invoices alone when success probability or net energy per call differs.
 
 The maximum break-even compute opportunity cost per scheduled call is:
 
-`break_even_compute_opportunity_cost = (annual_cost[b] - compute_fixed_annual_cost - calls_per_year × (compute_variable_cost_per_call + (1 - compute_availability_LB) × compute_failure_penalty_per_call)) / calls_per_year`
+`break_even_compute_opportunity_cost = (cost_per_MWh[b] × compute_annual_delivered_MWh - compute_annual_cost_excluding_opportunity_cost) / calls_per_year`
 
-If actual compute opportunity cost per call is below this threshold, compute flexibility is cheaper under the declared assumptions. If it is above, the comparator is cheaper. A negative threshold means compute is already more expensive even with zero foregone-work value. If there is no eligible alternative or no delivered net MWh, do not publish a cost-per-MWh winner.
+where `compute_annual_delivered_MWh = calls_per_year × compute_availability_LB × compute_net_MWh_LB_per_success`, and `compute_annual_cost_excluding_opportunity_cost` includes fixed annual cost, variable call cost and expected failed-call penalty, but excludes foregone-work value.
+
+This sets compute's cost per reliable net delivered MWh equal to the best eligible alternative. If actual compute opportunity cost per call is below this threshold, compute is cheaper per delivered MWh under the declared assumptions. If it is above, the alternative is cheaper. A negative threshold means compute is already more expensive even with zero foregone-work value. If there is no eligible alternative or no delivered net MWh, do not publish a cost-per-MWh winner.
 
 ## 5. Required provenance and sensitivity
 
@@ -79,8 +81,8 @@ Using the fixture's arbitrary annualized and per-call cost inputs, the evaluator
 - compute annual cost USD 45,800; expected net delivered energy 172.8 MWh; USD 265.0463/MWh;
 - BESS annual cost USD 40,200; expected net delivered energy 194.04 MWh; USD 207.1738/MWh;
 - thermal annual cost USD 24,600; expected net delivered energy 184.3 MWh; USD 133.4770/MWh;
-- cheapest eligible alternative is cooling/thermal;
-- break-even compute opportunity cost is USD 38 per call. With the fixture's USD 250/call, compute is not the least-cost option.
+- cheapest eligible alternative by cost per reliable net delivered MWh is cooling/thermal (USD 133.4780/MWh);
+- compute break-even opportunity cost is USD 22.6500 per scheduled call. With the fixture's USD 250/call, compute is not the least-cost option.
 
 All monetary inputs are invented arithmetic controls. They are not observed battery, thermal, compute, electricity or market prices and must not be cited as economic evidence.
 
