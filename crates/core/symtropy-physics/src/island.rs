@@ -165,24 +165,25 @@ pub fn build_islands<const D: usize>(
         // endpoint does: it is externally prescribed but can collide with or
         // constrain a sleeping dynamic body. Keep this wake dependency separate
         // from solver-island connectivity so one platform does not merge stacks.
-        let has_awake_kinematic_wake_source = contact_indices.iter().any(|&contact_index| {
-            let contact = &contacts[contact_index];
-            [contact.body_a, contact.body_b].into_iter().any(|handle| {
-                handle_to_index.get(&handle).is_some_and(|&index| {
-                    bodies[index].body_type == BodyType::Kinematic && !bodies[index].sleeping
+        let has_awake_kinematic_wake_source =
+            contact_indices.iter().any(|&contact_index| {
+                let contact = &contacts[contact_index];
+                [contact.body_a, contact.body_b].into_iter().any(|handle| {
+                    handle_to_index.get(&handle).is_some_and(|&index| {
+                        bodies[index].body_type == BodyType::Kinematic && !bodies[index].sleeping
+                    })
                 })
-            })
-        }) || constraint_indices.iter().any(|&constraint_index| {
-            let (body_a, body_b) = constraints[constraint_index].bodies();
-            [body_a, body_b].into_iter().any(|handle| {
-                handle_to_index.get(&handle).is_some_and(|&index| {
-                    bodies[index].body_type == BodyType::Kinematic && !bodies[index].sleeping
+            }) || constraint_indices.iter().any(|&constraint_index| {
+                let (body_a, body_b) = constraints[constraint_index].bodies();
+                [body_a, body_b].into_iter().any(|handle| {
+                    handle_to_index.get(&handle).is_some_and(|&index| {
+                        bodies[index].body_type == BodyType::Kinematic && !bodies[index].sleeping
+                    })
                 })
-            })
-        });
+            });
 
-        let sleeping = body_indices.iter().all(|&i| bodies[i].sleeping)
-            && !has_awake_kinematic_wake_source;
+        let sleeping =
+            body_indices.iter().all(|&i| bodies[i].sleeping) && !has_awake_kinematic_wake_source;
 
         islands.push(Island {
             body_indices,
@@ -326,7 +327,6 @@ mod tests {
         assert!(islands.is_empty());
     }
 }
-
 
 #[cfg(test)]
 mod fixed_body_island_tests {
