@@ -301,8 +301,7 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
         let relative_y_m = node.y_m - moment_reference_y_m;
         require_finite(relative_x_m, "moment reference-relative x")?;
         require_finite(relative_y_m, "moment reference-relative y")?;
-        let applied_node_moment =
-            relative_x_m * node.force_y_n - relative_y_m * node.force_x_n;
+        let applied_node_moment = relative_x_m * node.force_y_n - relative_y_m * node.force_x_n;
         require_finite(applied_node_moment, "applied nodal moment")?;
         applied_moment += applied_node_moment;
 
@@ -346,8 +345,14 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     require_finite(reaction_sum_y, "sum of support y reactions")?;
     require_finite(applied_moment, "sum of applied moments")?;
     require_finite(reaction_moment, "sum of support moments")?;
-    require_finite(sum_abs_applied_force_n, "sum of absolute applied force components")?;
-    require_finite(sum_abs_reaction_force_n, "sum of absolute support reaction components")?;
+    require_finite(
+        sum_abs_applied_force_n,
+        "sum of absolute applied force components",
+    )?;
+    require_finite(
+        sum_abs_reaction_force_n,
+        "sum of absolute support reaction components",
+    )?;
 
     let net_force_x = applied_sum_x + reaction_sum_x;
     let net_force_y = applied_sum_y + reaction_sum_y;
@@ -373,11 +378,8 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     if force_scale > 0.0 && moment_scale == 0.0 {
         return Err("moment normalization scale underflowed; residual is unresolved".to_owned());
     }
-    let normalized_moment_residual = normalized_residual(
-        net_moment.abs(),
-        moment_scale,
-        "global moment residual",
-    )?;
+    let normalized_moment_residual =
+        normalized_residual(net_moment.abs(), moment_scale, "global moment residual")?;
 
     // Normwise backward error for K_ff u_f = F_f:
     // ||K_ff u_f - F_f||_inf / (||K_ff||_inf ||u_f||_inf + ||F_f||_inf).
@@ -398,14 +400,18 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
         .iter()
         .map(|dof| loads[*dof].abs())
         .fold(0.0_f64, f64::max);
-    let stiffness_displacement_scale =
-        free_stiffness_inf_norm * free_displacement_inf_norm;
-    require_finite(stiffness_displacement_scale, "free-DOF stiffness-displacement scale")?;
+    let stiffness_displacement_scale = free_stiffness_inf_norm * free_displacement_inf_norm;
+    require_finite(
+        stiffness_displacement_scale,
+        "free-DOF stiffness-displacement scale",
+    )?;
     if free_stiffness_inf_norm > 0.0
         && free_displacement_inf_norm > 0.0
         && stiffness_displacement_scale == 0.0
     {
-        return Err("free-DOF stiffness-displacement scale underflowed; residual is unresolved".to_owned());
+        return Err(
+            "free-DOF stiffness-displacement scale underflowed; residual is unresolved".to_owned(),
+        );
     }
     let free_dof_scale = stiffness_displacement_scale + free_load_inf_norm;
     require_finite(free_dof_scale, "free-DOF backward-error scale")?;
@@ -625,7 +631,9 @@ fn normalized_residual(numerator: f64, scale: f64, label: &str) -> Check<f64> {
         if numerator == 0.0 {
             return Ok(0.0);
         }
-        return Err(format!("{label} has a nonzero residual with zero normalization scale"));
+        return Err(format!(
+            "{label} has a nonzero residual with zero normalization scale"
+        ));
     }
     let normalized = numerator / scale;
     require_finite(normalized, label)?;
@@ -1037,12 +1045,8 @@ mod tests {
     #[test]
     fn order_one_unbalanced_residual_does_not_pass_at_subunit_or_large_scales() {
         for scale in [1.0e-18, 1.0e-9, 1.0, 1.0e9, 1.0e18] {
-            let normalized = normalized_residual(
-                scale,
-                scale,
-                "synthetic force imbalance",
-            )
-            .expect("positive normalization scale");
+            let normalized = normalized_residual(scale, scale, "synthetic force imbalance")
+                .expect("positive normalization scale");
             close(
                 normalized,
                 1.0,
