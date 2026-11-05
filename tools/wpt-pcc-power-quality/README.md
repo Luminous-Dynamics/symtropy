@@ -89,3 +89,8 @@ The broad equipment/public-LV scope (greater than 16 A and up to 75 A per phase;
 ## Demand-reference provenance
 
 An IEEE 519 TDD report requires (I_L), its definition identity, averaging window, reference period and source digest; (I_{SC}) likewise requires a calculation method and source digest. These identifiers make the benchmark result traceable. They do not prove that the underlying demand study or short-circuit study was technically correct; independent review remains necessary.
+
+
+## Phase and conductor configuration
+
+The profile declares both phase count and wire count. The validator permits 1-phase 2/3-wire and 3-phase 3/4-wire combinations, and rejects inconsistent declarations before applying a standards profile. This prevents an incomplete connection description from being treated as a valid applicability result.
