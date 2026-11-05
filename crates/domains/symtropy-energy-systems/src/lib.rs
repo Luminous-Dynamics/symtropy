@@ -31,6 +31,7 @@ mod trace_validation;
 mod workload_schedule;
 mod workload_flexibility_trajectory;
 mod owner_flexibility;
+mod inference_power_flexibility;
 
 pub use batch_duty_cycle::{
     BatchBoundDutyCycle, BatchBoundDutyCycleResult, BatchDutyCycleError,
@@ -118,6 +119,17 @@ pub use trace_validation::{
     PowerTraceSample, PowerTraceValidationReport, TraceClockType, TraceSite, TraceTimebase,
     TraceWorkloadSession,
 };
+pub use inference_power_flexibility::{
+    InferenceControlAction, InferenceFlexibilityIdentity, InferenceMeasurementBoundary,
+    InferencePowerFlexibilityContract, InferencePowerFlexibilityError,
+    InferencePowerFlexibilityReport, InferencePowerInterval,
+    InferencePowerResponseContract, InferencePowerResponseGateViolation,
+    InferencePowerSlotReceipt,
+    InferenceRequestObligation, InferenceRequestResult, InferenceRun,
+    InferenceServiceContract, InferenceServiceGateViolation, InferenceServiceMetrics,
+    evaluate_inference_power_flexibility,
+};
+
 pub use owner_flexibility::{
     DispatchReplayLedger, DispatchSignatureVerifier, GridFlexDirection,
     OwnerDispatchAuthorizationReceipt, OwnerDispatchDecision, OwnerDispatchRejectionReason,
