@@ -1,0 +1,541 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/road-egci-reciprocal-episode-v0.1.schema.json",
+  "title": "Symtropy reciprocal episode export v0.1",
+  "description": "Complete typed episode artifact projected into one SAM #10514 trajectory query per branch and correspondence hypothesis.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "manifest",
+    "policies",
+    "branches"
+  ],
+  "properties": {
+    "schema": {
+      "const": "symtropy.road-egci-reciprocal-episode.v0.1"
+    },
+    "manifest": {
+      "$ref": "#/$defs/manifest"
+    },
+    "policies": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/policy"
+      }
+    },
+    "branches": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/branch"
+      }
+    }
+  },
+  "$defs": {
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "experiment_id",
+        "scenario_digest",
+        "odd_scope_digest",
+        "initial_world_snapshot_digest",
+        "physics_profile_digest",
+        "execution_profile_digest",
+        "observation_schedule_digest",
+        "action_domain_digest",
+        "units_profile_digest",
+        "tick_hz_numerator",
+        "tick_hz_denominator"
+      ],
+      "properties": {
+        "experiment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "odd_scope_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_world_snapshot_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physics_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_schedule_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_domain_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "units_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tick_hz_numerator": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tick_hz_denominator": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_id",
+        "policy_digest",
+        "config_digest",
+        "initial_policy_state_digest",
+        "observation_profile_digest",
+        "action_domain_digest"
+      ],
+      "properties": {
+        "actor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "config_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_policy_state_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_domain_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cue_id",
+        "source_event_id",
+        "recipient_actor_id",
+        "observation_payload_digest",
+        "observed_tick",
+        "generated_tick",
+        "delivered_tick",
+        "delivery_sequence",
+        "visibility_profile_digest",
+        "disposition"
+      ],
+      "properties": {
+        "cue_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recipient_actor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_payload_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "generated_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delivered_tick": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "delivery_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "visibility_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "enum": [
+            "delivered",
+            "occluded",
+            "dropped",
+            "stale"
+          ]
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_receipt_id",
+        "actor_id",
+        "tick",
+        "policy_digest",
+        "config_digest",
+        "prior_policy_state_digest",
+        "next_policy_state_digest",
+        "visible_cue_ids",
+        "consumed_cue_ids",
+        "prior_action_receipt_ids",
+        "permitted_history_digest",
+        "deadline_tick",
+        "command_latch_tick",
+        "action_id",
+        "action_payload_digest",
+        "disposition"
+      ],
+      "properties": {
+        "decision_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "policy_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "config_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prior_policy_state_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "next_policy_state_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "visible_cue_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "consumed_cue_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "prior_action_receipt_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "permitted_history_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deadline_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "command_latch_tick": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "action_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "action_payload_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "completed",
+            "timed_out",
+            "failed",
+            "missing"
+          ]
+        }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tick",
+        "parent_snapshot_digest",
+        "child_snapshot_digest",
+        "joint_action_digest",
+        "physics_step_receipt_digest",
+        "disposition"
+      ],
+      "properties": {
+        "tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parent_snapshot_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "child_snapshot_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_action_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physics_step_receipt_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "enum": [
+            "completed",
+            "failed",
+            "censored",
+            "missing"
+          ]
+        }
+      }
+    },
+    "correspondence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis_id",
+        "correspondence_digest",
+        "causal_dispositions_digest",
+        "projection_input_digest",
+        "draw_bundle_digest",
+        "verifier_profile_digest",
+        "verifier_receipt_digest"
+      ],
+      "properties": {
+        "hypothesis_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "correspondence_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "causal_dispositions_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projection_input_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "draw_bundle_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifier_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifier_receipt_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "replay_profile_digest",
+        "expected_branch_payload_root",
+        "replayed_branch_payload_root",
+        "disposition"
+      ],
+      "properties": {
+        "replay_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_branch_payload_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replayed_branch_payload_root": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "exact_same_runtime_bytes",
+            "portable_semantic_equivalent",
+            "not_run",
+            "failed"
+          ]
+        }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch_id",
+        "parent_snapshot_digest",
+        "intervention_digest",
+        "outcome",
+        "candidate_universe",
+        "hypothesis_set",
+        "correspondences",
+        "observations",
+        "decisions",
+        "transitions",
+        "replay"
+      ],
+      "properties": {
+        "branch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_snapshot_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intervention_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "task_failed",
+            "timed_out",
+            "execution_failed",
+            "censored"
+          ]
+        },
+        "candidate_universe": {
+          "enum": [
+            "exhaustive_within_declared_scope",
+            "incomplete"
+          ]
+        },
+        "hypothesis_set": {
+          "enum": [
+            "exhaustive_within_declared_model_family",
+            "incomplete_or_budget_limited"
+          ]
+        },
+        "correspondences": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/correspondence"
+          }
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decision"
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/transition"
+          }
+        },
+        "replay": {
+          "$ref": "#/$defs/replay"
+        }
+      }
+    }
+  }
+}
