@@ -985,6 +985,7 @@ mod tests {
         }
         let reversed_rules = vec![
             PairCausalRule {
+                hypothesis_id: id("H-actor"),
                 left_event: id("R1"),
                 right_event: id("L1"),
                 basis: IdentityBasis::Actor,
@@ -994,6 +995,7 @@ mod tests {
                 },
             },
             PairCausalRule {
+                hypothesis_id: id("H-slot"),
                 left_event: id("R2"),
                 right_event: id("L1"),
                 basis: IdentityBasis::EncounterSlot,
@@ -1064,6 +1066,73 @@ mod tests {
             assert_eq!(left.canonical_bytes, right.canonical_bytes);
             assert_eq!(left.sharing, SharingStatus::SensitivityOnly);
         }
+    }
+
+    #[test]
+    fn causal_rules_are_scoped_to_each_correspondence_hypothesis() {
+        let mut correspondence = base_correspondence();
+        correspondence.hypotheses[1].pairs[0] =
+            pair("L1", "R1", IdentityBasis::Actor);
+        correspondence.hypotheses[1].unmatched_right[0] = UnmatchedEvent {
+            event_id: id("R2"),
+            reason: UnmatchedReason::NoCounterpartUnderHypothesis {
+                rationale_ref: id("no-counterpart-under-second-hypothesis"),
+            },
+        };
+
+        // The same event pair is shared under H-actor but remains branch-local
+        // under H-slot. A global pair->causal-rule map cannot represent this.
+        let rules = vec![
+            shared_rule("H-actor", "L1", "R1", IdentityBasis::Actor),
+            PairCausalRule {
+                hypothesis_id: id("H-slot"),
+                left_event: id("L1"),
+                right_event: id("R1"),
+                basis: IdentityBasis::Actor,
+                disposition: CausalDisposition::BranchSpecific,
+            },
+        ];
+        let plan =
+            project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
+
+        let actor_hypothesis = plan
+            .hypotheses
+            .iter()
+            .find(|hypothesis| hypothesis.hypothesis_id == id("H-actor"))
+            .unwrap();
+        let slot_hypothesis = plan
+            .hypotheses
+            .iter()
+            .find(|hypothesis| hypothesis.hypothesis_id == id("H-slot"))
+            .unwrap();
+
+        let actor_left = actor_hypothesis
+            .addresses
+            .iter()
+            .find(|address| address.branch_id == id("continue"))
+            .unwrap();
+        let actor_right = actor_hypothesis
+            .addresses
+            .iter()
+            .find(|address| address.branch_id == id("yield") && address.event_id == id("R1"))
+            .unwrap();
+        assert_eq!(actor_left.sharing, SharingStatus::SharedInvariant);
+        assert_eq!(actor_right.sharing, SharingStatus::SharedInvariant);
+        assert_eq!(actor_left.canonical_bytes, actor_right.canonical_bytes);
+
+        let slot_left = slot_hypothesis
+            .addresses
+            .iter()
+            .find(|address| address.branch_id == id("continue"))
+            .unwrap();
+        let slot_right = slot_hypothesis
+            .addresses
+            .iter()
+            .find(|address| address.branch_id == id("yield") && address.event_id == id("R1"))
+            .unwrap();
+        assert_eq!(slot_left.sharing, SharingStatus::BranchSpecific);
+        assert_eq!(slot_right.sharing, SharingStatus::BranchSpecific);
+        assert_ne!(slot_left.canonical_bytes, slot_right.canonical_bytes);
     }
 
     #[test]
