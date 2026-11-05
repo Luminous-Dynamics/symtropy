@@ -1089,6 +1089,182 @@ mod tests {
     }
 
     #[test]
+    fn maximum_wait_is_a_hard_constraint() {
+        let mut p = profile();
+        p.unavailable_windows.clear();
+        let first = request("first", 0, Direction::Upstream, 1, 1);
+        let mut second = request("second", 1, Direction::Upstream, 1, 1);
+        second.maximum_wait_ticks = 5;
+        let plan = schedule(
+            &p,
+            &[first, second],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(plan.schedule.len(), 1);
+        assert_eq!(
+            plan.outcomes
+                .iter()
+                .find(|outcome| outcome.request_id == "second")
+                .and_then(|outcome| outcome.reason),
+            Some(NotScheduledReason::MaximumWaitExceeded)
+        );
+    }
+
+    #[test]
+    fn latest_start_and_completion_deadline_are_hard_constraints() {
+        let mut p = profile();
+        p.unavailable_windows.clear();
+        let first = request("first", 0, Direction::Upstream, 1, 1);
+        let mut late_start = request("late-start", 1, Direction::Upstream, 1, 1);
+        late_start.latest_start_tick = 5;
+        let mut late_completion = request("late-completion", 2, Direction::Upstream, 1, 1);
+        late_completion.completion_deadline_tick = Some(15);
+        let plan = schedule(
+            &p,
+            &[first, late_start, late_completion],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(plan.schedule.len(), 1);
+        assert_eq!(
+            plan.outcomes
+                .iter()
+                .find(|outcome| outcome.request_id == "late-start")
+                .and_then(|outcome| outcome.reason),
+            Some(NotScheduledReason::LatestStartMissed)
+        );
+        assert_eq!(
+            plan.outcomes
+                .iter()
+                .find(|outcome| outcome.request_id == "late-completion")
+                .and_then(|outcome| outcome.reason),
+            Some(NotScheduledReason::CompletionDeadlineMissed)
+        );
+    }
+
+    #[test]
+    fn arrival_uncertainty_is_scheduled_at_the_latest_arrival_bound() {
+        let mut p = profile();
+        p.unavailable_windows.clear();
+        let mut uncertain = request("uncertain", 0, Direction::Upstream, 1, 1);
+        uncertain.arrival_latest_tick = 20;
+        let plan = schedule(
+            &p,
+            &[uncertain],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(plan.schedule[0].start_tick, 20);
+        assert_eq!(plan.schedule[0].waiting_from_earliest_arrival_ticks, 20);
+    }
+
+    #[test]
+    fn a_rejected_budget_request_does_not_consume_the_remaining_budget() {
+        let mut p = profile();
+        p.unavailable_windows.clear();
+        p.water_budget_ml = 5;
+        let mut too_large = request("large", 0, Direction::Upstream, 10, 1);
+        too_large.arrival_earliest_tick = 0;
+        let mut fits = request("small", 1, Direction::Upstream, 5, 1);
+        fits.arrival_earliest_tick = 1;
+        let plan = schedule(
+            &p,
+            &[too_large, fits],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(plan.metrics.scheduled_requests, 1);
+        assert_eq!(plan.schedule[0].request_id, "small");
+        assert_eq!(
+            plan.outcomes
+                .iter()
+                .find(|outcome| outcome.request_id == "large")
+                .and_then(|outcome| outcome.reason),
+            Some(NotScheduledReason::WaterBudgetExceeded)
+        );
+    }
+
+    #[test]
+    fn direction_change_delay_is_included_in_the_next_passage_time() {
+        let mut p = profile();
+        p.unavailable_windows.clear();
+        p.direction_change_ticks = 7;
+        let first = request("up", 0, Direction::Upstream, 1, 1);
+        let second = request("down", 0, Direction::Downstream, 1, 1);
+        let plan = schedule(
+            &p,
+            &[first, second],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(plan.schedule[0].end_tick, 10);
+        assert_eq!(plan.schedule[1].start_tick, 17);
+        assert_eq!(plan.schedule[1].direction_change_before_ticks, 7);
+        assert_eq!(plan.metrics.direction_changes, 1);
+    }
+
+    #[test]
+    fn unknown_and_unsupported_passages_never_become_schedulable() {
+        let mut unknown = request("unknown", 0, Direction::Upstream, 1, 1);
+        unknown.compatibility.disposition = PassageDisposition::EvidenceInconsistent;
+        let mut unsupported = request("unsupported", 0, Direction::Upstream, 1, 1);
+        unsupported.compatibility.disposition = PassageDisposition::UnsupportedOperatingProfile;
+        let plan = schedule(
+            &profile(),
+            &[unknown, unsupported],
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert!(plan.schedule.is_empty());
+        assert_eq!(
+            plan.outcomes
+                .iter()
+                .find(|outcome| outcome.request_id == "unknown")
+                .and_then(|outcome| outcome.reason),
+            Some(NotScheduledReason::PassageNeedsReview)
+        );
+        assert_eq!(
+            plan.outcomes
+                .iter()
+                .find(|outcome| outcome.request_id == "unsupported")
+                .and_then(|outcome| outcome.reason),
+            Some(NotScheduledReason::PassageUnsupported)
+        );
+    }
+
+    #[test]
+    fn every_request_has_exactly_one_final_outcome() {
+        let mut invalid = request("invalid", 0, Direction::Upstream, 1, 1);
+        invalid.service_duration_ticks = 0;
+        let duplicate_a = request("duplicate", 0, Direction::Upstream, 1, 1);
+        let duplicate_b = duplicate_a.clone();
+        let blocked = {
+            let mut request = request("blocked", 0, Direction::Upstream, 1, 1);
+            request.compatibility.disposition = PassageDisposition::BlockedByHardConstraint;
+            request
+        };
+        let valid = request("valid", 0, Direction::Upstream, 1, 1);
+        let requests = vec![invalid, duplicate_a, duplicate_b, blocked, valid];
+        let plan = schedule(
+            &profile(),
+            &requests,
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .expect("valid profile");
+        assert_eq!(plan.outcomes.len(), requests.len());
+        assert_eq!(
+            plan.outcomes
+                .iter()
+                .map(|outcome| outcome.request_id.as_str())
+                .collect::<std::collections::BTreeSet<_>>()
+                .len(),
+            4
+        );
+        assert_eq!(plan.metrics.scheduled_requests + plan.metrics.unserved_requests, 5);
+    }
+
+    #[test]
     fn inversion_metric_detects_a_policy_order_reversal() {
         let mut early = request("early", 0, Direction::Upstream, 1, 1);
         early.maximum_wait_ticks = 100;
