@@ -77,6 +77,8 @@
         "estimand",
         "target_event_code",
         "horizon_hours",
+        "competing_event_codes",
+        "cause_specific_cumulative_incidence",
         "target_event_cif",
         "event_free_survival",
         "model_sha256",
@@ -169,6 +171,50 @@
             "null"
           ],
           "description": "Required when evidence_kind is PUBLISHED_MEASURED."
+        },
+        "competing_event_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "PLANNED_REPLACEMENT",
+              "UNRELATED_ASSET_FAILURE",
+              "ROAD_RECONSTRUCTION"
+            ]
+          }
+        },
+        "cause_specific_cumulative_incidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_code",
+              "probability"
+            ],
+            "properties": {
+              "event_code": {
+                "enum": [
+                  "STRUCTURAL_CRACK_LIMIT",
+                  "RUTTING_LIMIT",
+                  "INSULATION_RESISTANCE_LIMIT",
+                  "COIL_OPEN_CIRCUIT",
+                  "THERMAL_LIMIT",
+                  "SERVICE_AVAILABILITY_LIMIT",
+                  "OTHER",
+                  "PLANNED_REPLACEMENT",
+                  "UNRELATED_ASSET_FAILURE",
+                  "ROAD_RECONSTRUCTION"
+                ]
+              },
+              "probability": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
         }
       }
     },
