@@ -329,6 +329,7 @@ pub enum DeliberationError {
     },
     InvalidConsensusThreshold(f64),
     FacilitationPairMismatch(&'static str),
+    OptionOrderPairMismatch(&'static str),
 }
 
 impl fmt::Display for DeliberationError {
@@ -429,6 +430,12 @@ impl fmt::Display for DeliberationError {
                     "facilitation-variant comparison changed declared input: {field}"
                 )
             }
+            Self::OptionOrderPairMismatch(field) => {
+                write!(
+                    f,
+                    "option-order comparison changed semantic input: {field}"
+                )
+            }
         }
     }
 }
@@ -498,6 +505,12 @@ pub struct SessionAudit {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FacilitationVariantDifference {
+    pub allocation_l1_shift_units: u32,
+    pub reallocated_units: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct OptionOrderDifference {
     pub allocation_l1_shift_units: u32,
     pub reallocated_units: f64,
 }
