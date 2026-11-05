@@ -25,19 +25,11 @@ pub struct Matrix2 {
 impl Matrix2 {
     /// Construct a real 2x2 matrix in row-major order.
     pub const fn new(a11: f64, a12: f64, a21: f64, a22: f64) -> Self {
-        Self {
-            a11,
-            a12,
-            a21,
-            a22,
-        }
+        Self { a11, a12, a21, a22 }
     }
 
     fn is_finite(self) -> bool {
-        self.a11.is_finite()
-            && self.a12.is_finite()
-            && self.a21.is_finite()
-            && self.a22.is_finite()
+        self.a11.is_finite() && self.a12.is_finite() && self.a21.is_finite() && self.a22.is_finite()
     }
 }
 
@@ -85,10 +77,16 @@ impl fmt::Display for StabilityError {
         match self {
             Self::NonFiniteMatrix => write!(formatter, "matrix entries must be finite"),
             Self::InvalidStabilityMargin => {
-                write!(formatter, "stability margin must be finite and strictly positive")
+                write!(
+                    formatter,
+                    "stability margin must be finite and strictly positive"
+                )
             }
             Self::ArithmeticOverflow => {
-                write!(formatter, "matrix invariant or eigenvalue calculation overflowed")
+                write!(
+                    formatter,
+                    "matrix invariant or eigenvalue calculation overflowed"
+                )
             }
         }
     }
@@ -109,10 +107,7 @@ impl Error for StabilityError {}
 /// intermediate result returns an error. The function does not assess
 /// transient amplification, uncertainty, nonlinear behaviour, sampled-data
 /// delay, switching dynamics, or a physical WPT network.
-pub fn classify(
-    matrix: Matrix2,
-    stability_margin: f64,
-) -> Result<StabilityReport, StabilityError> {
+pub fn classify(matrix: Matrix2, stability_margin: f64) -> Result<StabilityReport, StabilityError> {
     if !matrix.is_finite() {
         return Err(StabilityError::NonFiniteMatrix);
     }
@@ -214,7 +209,12 @@ mod tests {
 
         assert_eq!(report.classification, StabilityClass::StableWithinMargin);
         assert!(report.maximum_real_part < -MARGIN);
-        assert!(report.eigenvalues.iter().all(|value| value.imaginary == 0.0));
+        assert!(
+            report
+                .eigenvalues
+                .iter()
+                .all(|value| value.imaginary == 0.0)
+        );
     }
 
     #[test]
