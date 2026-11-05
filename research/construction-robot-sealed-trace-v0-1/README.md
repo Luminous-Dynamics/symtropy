@@ -33,7 +33,7 @@ SHA256(
 )
 ```
 
-The event object includes previous_event_digest and payload SHA-256, as well as all transport metadata and timestamps. The first event has previous_event_digest = null; later events point to the immediately preceding event digest in recorder capture order.
+The event object includes previous_event_digest and payload SHA-256, as well as all transport metadata and timestamps. The first event has previous_event_digest = null; later events point to the immediately preceding event digest in recorder capture order. Each derived parser annotation separately uses `interpretation_digest = SHA256(UTF8("construction-robot-trace-annotation-v0.1") || 0x00 || UTF8(JCS(interpretation)))` and must reference an event digest that exists in the sealed trace.
 
 Root digest:
 
@@ -50,7 +50,7 @@ SHA256(
 
 The manifest includes capture completeness, loss counters, filter/redaction state, first/last sequence and count. The final_trace_digest field itself is excluded from the root input.
 
-A hash chain is not a digital signature and does not stop an editor from modifying a trace and recomputing all hashes. It provides a deterministic integrity check relative to a separately trusted digest anchor. Without a detached signature or external receipt, a self-contained file is internally checkable but not externally authenticated. Even with an external anchor, integrity does not prove that the recorder captured every broker message, that the broker timestamp is true, that clocks are synchronized, or that the participant identity claim is authentic.
+A hash chain is not a digital signature and does not stop an editor from modifying a trace and recomputing all hashes. It provides a deterministic integrity check relative to a separately trusted digest anchor. `complete_with_boundary_evidence` requires an explicit non-empty `capture_boundary_evidence_ref`; setting the status is not itself boundary evidence. A redacted derivative requires both its `parent_trace_digest` and `transformation_digest`, and a filtered trace requires a `filter_profile_digest. Without a detached signature or external receipt, a self-contained file is internally checkable but not externally authenticated. Even with an external anchor, integrity does not prove that the recorder captured every broker message, that the broker timestamp is true, that clocks are synchronized, or that the participant identity claim is authentic.
 
 ## Time semantics
 
@@ -85,7 +85,7 @@ A production verifier must:
 6. leave completeness unknown unless separately supported by recorder and broker boundary evidence;
 7. return typed outcomes (valid_integrity_with_unknown_completeness, valid_integrity_with_known_incompleteness, anchored_integrity_valid, rejected) rather than a single misleading PASS.
 
-The GitHub workflow currently validates schema correctness and the fixture's exact digest chain with a small pinned CI-only Python check. This is not production code; a dependency-policy-compliant Rust verifier and independent implementation comparison are follow-on work under #3707.
+The GitHub workflow currently validates both schemas, the fixture's exact payload/event/root digest chain, and 17 executable positive/adversarial mutations with a small pinned CI-only Python check. One negative control deliberately recomputes every digest after changing a payload: the internally consistent rewrite remains valid but is explicitly unanchored and unauthenticated. This is not production code; a dependency-policy-compliant Rust verifier and independent implementation comparison are follow-on work under #3707.
 
 ## Non-duplication
 
