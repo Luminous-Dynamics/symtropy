@@ -19,11 +19,7 @@ struct UseSpec {
     amount: u64,
 }
 
-fn resource(
-    kind: ResourceKind,
-    unit: ResourceUnit,
-    windows: &[(u64, u64, u64)],
-) -> Resource {
+fn resource(kind: ResourceKind, unit: ResourceUnit, windows: &[(u64, u64, u64)]) -> Resource {
     Resource {
         resource_id: "shared-resource".into(),
         kind,
@@ -103,12 +99,8 @@ fn reference_concurrent(resource: &Resource, operations: &[OperationPlacement]) 
                 continue;
             }
             if usage.unit != resource.capacity_unit
-                || reference_window_for_interval(
-                    resource,
-                    operation.start_tick,
-                    operation.end_tick,
-                )
-                .is_none()
+                || reference_window_for_interval(resource, operation.start_tick, operation.end_tick)
+                    .is_none()
             {
                 return false;
             }
@@ -119,9 +111,7 @@ fn reference_concurrent(resource: &Resource, operations: &[OperationPlacement]) 
         for tick in window.window.start_tick..window.window.end_tick {
             let active: u128 = operations
                 .iter()
-                .filter(|operation| {
-                    operation.start_tick <= tick && tick < operation.end_tick
-                })
+                .filter(|operation| operation.start_tick <= tick && tick < operation.end_tick)
                 .flat_map(|operation| operation.resource_uses.iter())
                 .filter(|usage| usage.resource_id == resource.resource_id)
                 .map(|usage| u128::from(usage.amount))
@@ -146,11 +136,9 @@ fn reference_cumulative(resource: &Resource, operations: &[OperationPlacement]) 
             if usage.unit != resource.capacity_unit {
                 return false;
             }
-            let Some(index) = reference_window_for_interval(
-                resource,
-                operation.start_tick,
-                operation.end_tick,
-            ) else {
+            let Some(index) =
+                reference_window_for_interval(resource, operation.start_tick, operation.end_tick)
+            else {
                 return false;
             };
             used[index] += u128::from(usage.amount);
@@ -245,14 +233,18 @@ fn cumulative_window_sums_match_independent_window_accounting_for_all_tiny_pairs
 
 #[test]
 fn event_sweep_matches_reference_when_one_operation_repeats_the_same_resource() {
-    let resource = resource(
-        ResourceKind::Lock,
-        ResourceUnit::Lockages,
-        &[(0, 5, 2)],
-    );
+    let resource = resource(ResourceKind::Lock, ResourceUnit::Lockages, &[(0, 5, 2)]);
     let operations = vec![
         operation_with_two_uses("a", 1, 3, 1, 1, ResourceUnit::Lockages),
-        operation("b", UseSpec { start: 2, duration: 2, amount: 1 }, ResourceUnit::Lockages),
+        operation(
+            "b",
+            UseSpec {
+                start: 2,
+                duration: 2,
+                amount: 1,
+            },
+            ResourceUnit::Lockages,
+        ),
     ];
     assert_eq!(
         check_concurrent_capacity(&resource, &operations),
