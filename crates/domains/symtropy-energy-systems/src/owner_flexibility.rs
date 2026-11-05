@@ -1072,7 +1072,7 @@ mod tests {
         let future_request = OwnerDispatchRequest::new(
             "dispatch-future-offer", "future-offer", "reserve-product", "site-1", "pcc-1",
             GridFlexDirection::ReduceGridImport, 40.0, 600, 5.0, 10.0,
-            1_100, 1_160, 1_110, 1, "future-offer-nonce", "market-key-1",
+            1_095, 1_155, 1_105, 1, "future-offer-nonce", "market-key-1",
             b"test-signature".to_vec(),
         ).expect("future request");
         let mut replay = DispatchReplayLedger::default();
@@ -1293,6 +1293,88 @@ mod tests {
         assert!(matches!(decision, OwnerDispatchDecision::Rejected {
             reason: OwnerDispatchRejectionReason::ResponseDeadlineMissed, ..
         }));
+    }
+
+    #[test]
+    fn exact_offer_id_does_not_authorize_a_different_recovery_envelope() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let reserved = offer(
+            "offer-1", "reserve-product", GridFlexDirection::ReduceGridImport,
+            50.0, 900, 2_000,
+        );
+        ledger.reserve_offer(&reserved, &policy()).expect("reserve original");
+        let substituted = OwnerFlexibilityOffer::new(
+            "offer-1", "portfolio-1", "site-1", "pcc-1", "reserve-product",
+            GridFlexDirection::ReduceGridImport, 50.0, 20, 1_800, 11.0, 30.0,
+            900, 2_000, vec!["qualification-offer-1".to_string()],
+        ).expect("alternate recovery envelope");
+        let mut replay = DispatchReplayLedger::default();
+        let decision = authorize_owner_dispatch(
+            &request("dispatch-substitute-recovery", "offer-1", 1, 1_000, 1_060, 990),
+            &substituted, &policy(), &ledger, &mut replay,
+            readiness(990), 1_005, &AcceptSignature,
+        );
+        assert!(matches!(decision, OwnerDispatchDecision::Rejected {
+            reason: OwnerDispatchRejectionReason::OfferNotReserved, ..
+        }));
+    }
+
+    #[test]
+    fn expiration_is_exclusive_at_the_expiry_timestamp() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let o = reserve_default(&mut ledger);
+        let mut replay = DispatchReplayLedger::default();
+        let decision = authorize_owner_dispatch(
+            &request("dispatch-expiry-boundary", "offer-1", 1, 1_000, 1_010, 990),
+            &o, &policy(), &ledger, &mut replay, readiness(990), 1_010, &AcceptSignature,
+        );
+        assert!(matches!(decision, OwnerDispatchDecision::Rejected {
+            reason: OwnerDispatchRejectionReason::DispatchExpired, ..
+        }));
+    }
+
+    #[test]
+    fn replay_ledger_capacity_fails_closed_without_accepting_a_new_offer_sequence() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let o = reserve_default(&mut ledger);
+        let mut replay = DispatchReplayLedger::default();
+        for index in 0..MAX_REPLAY_ENTRIES {
+            replay.seen_key_nonces.insert((
+                "retained-market-key".to_string(),
+                format!("retained-nonce-{index}"),
+            ));
+        }
+        let decision = authorize_owner_dispatch(
+            &request("dispatch-at-capacity", "offer-1", 1, 1_000, 1_060, 990),
+            &o, &policy(), &ledger, &mut replay, readiness(990), 1_005, &AcceptSignature,
+        );
+        assert!(matches!(decision, OwnerDispatchDecision::Rejected {
+            reason: OwnerDispatchRejectionReason::ReplayLedgerCapacityExceeded, ..
+        }));
+        assert!(!replay.per_offer.contains_key("offer-1"));
+    }
+
+    #[test]
+    fn oversized_signature_and_identity_are_rejected_at_ingress() {
+        let oversized_signature = OwnerDispatchRequest::new(
+            "dispatch-large-signature", "offer-1", "reserve-product", "site-1", "pcc-1",
+            GridFlexDirection::ReduceGridImport, 40.0, 600, 5.0, 10.0,
+            1_000, 1_060, 1_010, 1, "nonce-large", "market-key-1",
+            vec![0_u8; MAX_SIGNATURE_BYTES + 1],
+        );
+        assert!(matches!(
+            oversized_signature,
+            Err(OwnerFlexibilityError::InvalidDispatchMessage)
+        ));
+        assert!(matches!(
+            OwnerDispatchRequest::new(
+                "x".repeat(MAX_ID_BYTES + 1), "offer-1", "reserve-product", "site-1", "pcc-1",
+                GridFlexDirection::ReduceGridImport, 40.0, 600, 5.0, 10.0,
+                1_000, 1_060, 1_010, 1, "nonce-large-id", "market-key-1",
+                b"test-signature".to_vec(),
+            ),
+            Err(OwnerFlexibilityError::IdentityTooLong { .. })
+        ));
     }
 
     #[test]
