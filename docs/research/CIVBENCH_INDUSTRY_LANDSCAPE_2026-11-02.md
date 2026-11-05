@@ -486,3 +486,64 @@ Three 2026 papers strengthen the argument for a shared measurement standard rath
 The contract distinguishes observation units from resampling units; source families and claim scopes; epistemic, stochastic and measurement uncertainty; valid perturbation families and their construct rationale; and six evidence tiers from executable integrity to operational decision readiness. Thirty replications is not a universal statistical threshold: independence, power and the sampling design determine the correct replication unit and count.
 
 The key design consequence is that model, prompt, context, roster, population, period and intervention form an evaluation distribution. A benchmark result is conditional on that declared distribution and protocol. No global CSS/CivBench score is emitted.
+
+
+## 16. SOTA refresh: behavioural foundation models, study replay and long-horizon collaboration (5 November 2026)
+
+### OdysSim / SOUL-Index: the current human-behaviour foundation-model reference
+
+**Zhou et al., "OdysSim: Building Foundation Models for Human Behavior Simulation" (12 June 2026).**  
+Paper: https://arxiv.org/abs/2606.14199  
+Code: https://github.com/sunnweiwei/OdysSim
+
+The paper defines five axes (CONV, SS, COG, ROLE, EVAL), aligns 62 public sources and 21.4M interactions (~10B tokens), and evaluates 23 tasks. The published unweighted average is OSim-8B 64.6 (best/tied-best on 8/23), Claude Opus 4.7 65.5, GPT-5.5 65.2 and Gemini 3.1 Pro 64.8. OSim-8B's 93.2 vs 93.5 user reaction alignment is on a specific τ-USI task, not a general human-fidelity percentage.
+
+The paper's training recipe combines behaviour-oriented midtraining, per-task GRPO or verbal-feedback RL, and expert distillation. It reports judge manipulation and short-generic-response reward hacking; one detected Sotopia manipulation mode falls from approximately 20–25% to near zero after its detector. The authors acknowledge the text-only / performed-conversation / LLM-judge limitations.
+
+**Protocol warning:** the published paper fixes 23 tasks; the current repository's README describes a newer 27-task evaluation script. Treat these as separate releases. Exact paper score comparison is only against the frozen 23-task list, model IDs, scoring and data snapshot. The 27-task script gets its own protocol ID and no retrospective mixing.
+
+Implementation: [CIVDYN-HUMSIM-001 #3665](https://github.com/Luminous-Dynamics/symtropy/issues/3665), synthetic kernel [PR #3668](https://github.com/Luminous-Dynamics/symtropy/pull/3668).
+
+### HumanStudy-Bench: reproduce experimental inference, not only participant answers
+
+**Liu et al., "HumanStudy-Bench: Towards AI Agent Design for Participant Simulation" (2026).**  
+Paper: https://arxiv.org/abs/2602.00685  
+MIT repository: https://github.com/HumanStudy-Hub/HumanStudy-Bench
+
+The initial suite contains 12 reconstructed human-subject studies and more than 6,000 trials. It replays the original study protocol and analysis procedures and proposes PAS (probability alignment at the scientific-finding level) and ECS (effect consistency in the pattern and magnitude of observed effects).
+
+**CivBench response:** require original-test reproduction and report participant-level R1, population R2, treatment-effect sign/magnitude, uncertainty and study-level conclusion separately. A model can match answer frequencies but fail the experiment's inference.
+
+Implementation plan: [CIVDYN-HUMANSTUDY-REPRO-001 #3786](https://github.com/Luminous-Dynamics/symtropy/issues/3786).
+
+### Naturalistic multi-turn action traces: a simulator must predict what a person does next
+
+**Lu et al., ACL 2026, "Can LLM Agents Simulate Multi-Turn Human Behavior? Evidence from Real Online Customer Behavior Data".**  
+https://aclanthology.org/2026.acl-long.2034/
+
+The study analyzes 31,865 online shopping sessions and 230,965 user actions. Its prompt-only LLM baseline obtains 11.86% next-action accuracy on this particular e-commerce task; its fine-tuned Qwen2.5-7B reaches 17.26% action accuracy and 33.86% final-purchase F1. These are task-specific figures, not a general human-simulation leaderboard.
+
+**CivBench response:** add a privacy- and license-gated naturalistic action lane with session-level holdouts, next-action likelihood, sequence/transition fidelity, terminal-choice F1 and calibrated uncertainty. Preserve low-activity and long-tail trajectories.
+
+### Long-horizon collaboration: test actual contribution under role asymmetry
+
+**Shu et al., COLM 2026, "AgentWorld: Benchmarking Long-Horizon Collaboration of Multi-agent LLMs".**  
+Paper: https://arxiv.org/abs/2609.31590  
+Project: https://agentworld.io/
+
+The paper describes 100 human-annotated tasks plus 100 augmented variants, 3–20 agents with asymmetric roles, and 25–55 maximum rounds. It evaluates SR, PSR and graph-based CCE. The best reported main-set SR is 52.0% (Gemini 3 Flash); the paper's main-set PSR and CCE are 71.5% and 0.320.
+
+CCE's use of judge-mediated causal-enablement decisions is itself an evaluation assumption. CivBench therefore preserves the paper's score for exact reproduction while separately evaluating verified causal lower bounds, candidate upper bounds and human-audited edge precision/recall.
+
+Implementation: [CIVDYN-AGENTWORLD-REPRO-001 #3785](https://github.com/Luminous-Dynamics/symtropy/issues/3785), [causal collaboration PR #3655](https://github.com/Luminous-Dynamics/symtropy/pull/3655).
+
+### What would count as doing better?
+
+1. Reproduce each source protocol before making a leaderboard comparison.
+2. Report per-task/per-study/per-role vectors; keep official macro-averages only for direct comparability.
+3. Win on an external naturalistic action-trace or human-study holdout, not merely the training-aligned SOUL tasks.
+4. Beat the reference without losing behavioural diversity, minority/rare-option coverage, individual consistency or uncertainty calibration.
+5. Demonstrate causal contribution and task success under 50+ round, role-asymmetric collaboration.
+6. Audit judge gaming and outcome-based reward hacking with independent verifiers and blinded human annotation.
+
+No single SOUL/HUMSIM/CCE/CivBench number is a universal intelligence, fairness or civilizational-quality score.
