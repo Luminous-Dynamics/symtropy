@@ -138,7 +138,10 @@ jobs:
                (.normalization_scales.force_n <= 0) or
                (.normalization_scales.moment_nm <= 0) or
                (.normalization_scales.free_dof_n <= 0) or
-               ((.moment_reference_m.x | isnan) or (.moment_reference_m.y | isnan)) or
+               (((.moment_reference_m.x - 0.5) | fabs) > 1e-12) or
+               (((.moment_reference_m.y - 0.5) | fabs) > 1e-12) or
+               ((.characteristic_length_m < 1.4142135623) or
+                (.characteristic_length_m > 1.4142135625)) or
                (((.normalization_scales.moment_nm -
                    (.normalization_scales.force_n * .characteristic_length_m)) | fabs) >
                  (1e-12 * .normalization_scales.moment_nm))))] | length) == 0
