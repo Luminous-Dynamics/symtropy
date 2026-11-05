@@ -331,12 +331,12 @@ pub fn verify_trace_bytes(
         }
         as_bool(field(event_obj, "retain")?, "retain")?;
         as_bool(field(event_obj, "dup")?, "dup")?;
-        if let Some(packet_id) = event_obj.get("packet_id") {
-            if !packet_id.is_null() {
-                let id = non_negative_integer(packet_id, "packet_id")?;
-                if !(1..=65_535).contains(&id) {
-                    return shape("packet_id must be between 1 and 65535");
-                }
+        if let Some(packet_id) = event_obj.get("packet_id")
+            && !packet_id.is_null()
+        {
+            let id = non_negative_integer(packet_id, "packet_id")?;
+            if !(1..=65_535).contains(&id) {
+                return shape("packet_id must be between 1 and 65535");
             }
         }
         non_empty_string(field(event_obj, "connection_epoch")?, "connection_epoch")?;
@@ -752,7 +752,7 @@ fn decode_base64(input: &str) -> Result<Vec<u8>, VerificationError> {
     if input.is_empty() {
         return Ok(Vec::new());
     }
-    if input.len() % 4 != 0 {
+    if !input.len().is_multiple_of(4) {
         return Err(invalid_base64("encoded length must be divisible by four"));
     }
     let bytes = input.as_bytes();
@@ -993,6 +993,30 @@ fn shape<T>(message: &str) -> Result<T, VerificationError> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(test)]
+    fn encode_base64(bytes: &[u8]) -> String {
+        const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut output = String::new();
+        for chunk in bytes.chunks(3) {
+            let a = chunk[0];
+            let b = *chunk.get(1).unwrap_or(&0);
+            let c = *chunk.get(2).unwrap_or(&0);
+            output.push(TABLE[(a >> 2) as usize] as char);
+            output.push(TABLE[(((a & 0x03) << 4) | (b >> 4)) as usize] as char);
+            output.push(if chunk.len() > 1 {
+                TABLE[(((b & 0x0f) << 2) | (c >> 6)) as usize] as char
+            } else {
+                '='
+            });
+            output.push(if chunk.len() > 2 {
+                TABLE[(c & 0x3f) as usize] as char
+            } else {
+                '='
+            });
+        }
+        output
+    }
+    
     use super::*;
 
     const FIXTURE: &str = include_str!("../../fixtures/trace-synthetic-vda-001.json");
@@ -1170,26 +1194,3 @@ mod tests {
     }
 }
 
-#[cfg(test)]
-fn encode_base64(bytes: &[u8]) -> String {
-    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut output = String::new();
-    for chunk in bytes.chunks(3) {
-        let a = chunk[0];
-        let b = *chunk.get(1).unwrap_or(&0);
-        let c = *chunk.get(2).unwrap_or(&0);
-        output.push(TABLE[(a >> 2) as usize] as char);
-        output.push(TABLE[(((a & 0x03) << 4) | (b >> 4)) as usize] as char);
-        output.push(if chunk.len() > 1 {
-            TABLE[(((b & 0x0f) << 2) | (c >> 6)) as usize] as char
-        } else {
-            '='
-        });
-        output.push(if chunk.len() > 2 {
-            TABLE[(c & 0x3f) as usize] as char
-        } else {
-            '='
-        });
-    }
-    output
-}
