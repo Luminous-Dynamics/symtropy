@@ -1,0 +1,67 @@
+{
+  "schema": "symtropy.road-actor-path-adapter-fixtures.v0.1",
+  "scope": "finite straight-route speed-setpoint to kinematic-pose conformance",
+  "cases": [
+    {
+      "id": "PATH-01",
+      "case": "route-heading-with-zero-measured-speed",
+      "expected": "derive_pose_heading_from_route"
+    },
+    {
+      "id": "PATH-02",
+      "case": "acceleration-limited-forward-setpoint",
+      "expected": "record_requested_and_applied_speed"
+    },
+    {
+      "id": "PATH-03",
+      "case": "deceleration-limited-pause",
+      "expected": "record_rate_limited_speed"
+    },
+    {
+      "id": "PATH-04",
+      "case": "setpoint_would_reach_route_end_but_applied_step_does_not",
+      "expected": "typed_imminent_route_end_disposition"
+    },
+    {
+      "id": "PATH-05",
+      "case": "applied_step_reaches_or_crosses_route_end",
+      "expected": "reject_without_clipping_or_extrapolation"
+    },
+    {
+      "id": "PATH-06",
+      "case": "missing_route_profile",
+      "expected": "typed_missing_route_error"
+    },
+    {
+      "id": "PATH-07",
+      "case": "policy_state_has_no_decision_tick",
+      "expected": "typed_missing_decision_error"
+    },
+    {
+      "id": "PATH-08",
+      "case": "negative_measured_forward_speed",
+      "expected": "reject_reverse_motion"
+    },
+    {
+      "id": "PATH-09",
+      "case": "policy_setpoint_exceeds_adapter_motion_bounds",
+      "expected": "reject_speed_out_of_bounds"
+    },
+    {
+      "id": "PATH-10",
+      "case": "degenerate_route_and_zero_tick_clock",
+      "expected": "reject_invalid_geometry_and_clock"
+    },
+    {
+      "id": "PATH-11",
+      "case": "tampered_pose_after_digest_recompute",
+      "expected": "reject_source_projection_mismatch"
+    },
+    {
+      "id": "PATH-12",
+      "case": "f64_time_step_overflow",
+      "expected": "reject_nonfinite_derived_motion"
+    }
+  ],
+  "claim_ceiling": "Finite straight-route reference only; no human-behaviour, physics, safety or driving-capability claim."
+}
