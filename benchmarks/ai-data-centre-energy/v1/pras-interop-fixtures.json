@@ -1,0 +1,254 @@
+{
+  "schema_version": "symtropy.pras-interop-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "external_target": {
+    "software": "NLR PRAS",
+    "version": "0.9.0",
+    "model_format": "native PRAS SystemModel HDF5",
+    "format_version_rule": "Read pras_dataversion from the generated .pras file; do not infer it from the PRAS package version."
+  },
+  "canonical_conventions": {
+    "timestamp": "ISO-8601 with explicit UTC offset",
+    "manifest_array_order": "time-major",
+    "power_unit": "MW",
+    "energy_unit": "MWh",
+    "load_reduction_sign": "positive reduces load; negative is rebound and increases load",
+    "flexible_load_equation": "flexible_load_mw[t] = baseline_load_mw[t] - net_pcc_import_reduction_mw[t]",
+    "generator_availability": {
+      "failure_probability_per_interval": 0.0,
+      "repair_probability_per_interval": 1.0,
+      "intent": "deterministically available generator; fixture adapter must confirm initial-state behavior."
+    }
+  },
+  "cases": [
+    {
+      "case_id": "pras-hourly-single-region-metrics",
+      "description": "One deterministic region with a shortage profile spanning three hourly intervals.",
+      "start_timestamp": "2020-01-01T00:00:00+00:00",
+      "timestep_length": 1,
+      "timestep_unit": "h",
+      "region_names": ["R1"],
+      "regional_load_mw_by_interval": {
+        "R1": [110, 120, 110, 100]
+      },
+      "generation": [
+        {
+          "name": "G1",
+          "region": "R1",
+          "capacity_mw_by_interval": [100, 100, 100, 100],
+          "failure_probability": [0, 0, 0, 0],
+          "repair_probability": [1, 1, 1, 1]
+        }
+      ],
+      "expected": {
+        "shortfall_mw_by_interval": [10, 20, 10, 0],
+        "lole_event_periods": 3,
+        "lold_event_days": 1,
+        "lolh_hours": 3,
+        "eue_mwh": 40,
+        "energy_cvar_95_mwh": 40,
+        "monte_carlo_standard_error": 0
+      },
+      "notes": [
+        "All samples should be identical if deterministic availability initialization is confirmed.",
+        "LOLE is event-periods; this case uses one-hour intervals, so the numerical value happens to equal LOLH hours.",
+        "Energy CVaR is computed over sample-level full-horizon EUE values."
+      ]
+    },
+    {
+      "case_id": "pras-quarter-hour-period-versus-hour-metric",
+      "description": "Two 15-minute shortfall periods are two event-periods but only half an hour of shortage.",
+      "start_timestamp": "2020-01-01T00:00:00+00:00",
+      "timestep_length": 15,
+      "timestep_unit": "min",
+      "region_names": ["R1"],
+      "regional_load_mw_by_interval": {
+        "R1": [110, 110, 100]
+      },
+      "generation": [
+        {
+          "name": "G1",
+          "region": "R1",
+          "capacity_mw_by_interval": [100, 100, 100],
+          "failure_probability": [0, 0, 0],
+          "repair_probability": [1, 1, 1]
+        }
+      ],
+      "expected": {
+        "shortfall_mw_by_interval": [10, 10, 0],
+        "lole_event_periods": 2,
+        "lold_event_days": 1,
+        "lolh_hours": 0.5,
+        "eue_mwh": 5,
+        "energy_cvar_95_mwh": 5
+      },
+      "notes": [
+        "Do not label LOLE=2 as two hours.",
+        "EUE = (10 MW * 0.25 h) + (10 MW * 0.25 h) = 5 MWh."
+      ]
+    },
+    {
+      "case_id": "pras-midnight-crossing-event-days",
+      "description": "A contiguous shortage spans midnight and therefore affects two calendar event-days.",
+      "start_timestamp": "2020-01-01T23:00:00+00:00",
+      "timestep_length": 1,
+      "timestep_unit": "h",
+      "region_names": ["R1"],
+      "regional_load_mw_by_interval": {
+        "R1": [110, 110, 100]
+      },
+      "generation": [
+        {
+          "name": "G1",
+          "region": "R1",
+          "capacity_mw_by_interval": [100, 100, 100],
+          "failure_probability": [0, 0, 0],
+          "repair_probability": [1, 1, 1]
+        }
+      ],
+      "expected": {
+        "shortfall_mw_by_interval": [10, 10, 0],
+        "lole_event_periods": 2,
+        "lold_event_days": 2,
+        "lolh_hours": 2,
+        "eue_mwh": 20,
+        "energy_cvar_95_mwh": 20
+      },
+      "notes": [
+        "PRAS LOLD is event-days, not contiguous shortage spells.",
+        "A separate NTCSA-style contiguous event counter would report one event across midnight, not two."
+      ]
+    },
+    {
+      "case_id": "pras-paired-signed-workload-trajectory-elcc",
+      "description": "A complete signed workload trajectory moves 10 MW from a shortage period into an interval with spare generation. The flexible profile preserves terminal work by contract outside this power-system fixture.",
+      "start_timestamp": "2020-01-01T00:00:00+00:00",
+      "timestep_length": 1,
+      "timestep_unit": "h",
+      "region_names": ["R1"],
+      "regional_load_mw_by_interval": {
+        "R1": [110, 80, 100]
+      },
+      "generation": [
+        {
+          "name": "G1",
+          "region": "R1",
+          "capacity_mw_by_interval": [100, 100, 100],
+          "failure_probability": [0, 0, 0],
+          "repair_probability": [1, 1, 1]
+        }
+      ],
+      "net_pcc_import_reduction_mw_by_interval": [10, -10, 0],
+      "expected": {
+        "flexible_load_mw_by_interval": [100, 90, 100],
+        "baseline_eue_mwh": 10,
+        "flexible_eue_mwh": 0,
+        "eue_based_elcc_mw": 5,
+        "elcc_added_load_contract": "Add a constant x MW to every flexible-system interval in R1; flexible EUE is 2*x MWh, so x=5 MW restores baseline EUE=10 MWh."
+      },
+      "notes": [
+        "Use separate baseline and flexible SystemModels with identical supply resources and outage parameters.",
+        "The full signed trajectory is applied exactly once to regional load; do not add the same response again as a native PRAS DemandResponse or Storage resource.",
+        "This deterministic case is an analytical ELCC fixture, not a market accreditation result."
+      ]
+    },
+    {
+      "case_id": "pras-rebound-worsens-shortfall",
+      "description": "The flexible trajectory removes early shortage but causes larger shortage in the rebound interval.",
+      "start_timestamp": "2020-01-01T00:00:00+00:00",
+      "timestep_length": 1,
+      "timestep_unit": "h",
+      "region_names": ["R1"],
+      "regional_load_mw_by_interval": {
+        "R1": [100, 100]
+      },
+      "generation": [
+        {
+          "name": "G1",
+          "region": "R1",
+          "capacity_mw_by_interval": [90, 80],
+          "failure_probability": [0, 0],
+          "repair_probability": [1, 1]
+        }
+      ],
+      "net_pcc_import_reduction_mw_by_interval": [20, -30],
+      "expected": {
+        "flexible_load_mw_by_interval": [80, 130],
+        "baseline_shortfall_mw_by_interval": [10, 20],
+        "flexible_shortfall_mw_by_interval": [0, 50],
+        "baseline_eue_mwh": 30,
+        "flexible_eue_mwh": 50,
+        "interpretation": "The complete trajectory increases EUE by 20 MWh; it earns no positive adequacy credit under this risk criterion."
+      }
+    },
+    {
+      "case_id": "pras-two-region-location-dependence",
+      "description": "Identical 5 MW relief has different system value depending on which region receives it because interregional transfer is constrained.",
+      "start_timestamp": "2020-01-01T00:00:00+00:00",
+      "timestep_length": 1,
+      "timestep_unit": "h",
+      "region_names": ["A", "B"],
+      "regional_load_mw_by_interval": {
+        "A": [90],
+        "B": [120]
+      },
+      "generation": [
+        {
+          "name": "GA",
+          "region": "A",
+          "capacity_mw_by_interval": [110],
+          "failure_probability": [0],
+          "repair_probability": [1]
+        },
+        {
+          "name": "GB",
+          "region": "B",
+          "capacity_mw_by_interval": [100],
+          "failure_probability": [0],
+          "repair_probability": [1]
+        }
+      ],
+      "interface": {
+        "region_from": "A",
+        "region_to": "B",
+        "forward_transfer_capacity_mw_by_interval": [10],
+        "backward_transfer_capacity_mw_by_interval": [10],
+        "line_count": 1,
+        "line_forward_capacity_mw_by_interval": [10],
+        "line_backward_capacity_mw_by_interval": [10],
+        "line_failure_probability": [0],
+        "line_repair_probability": [1]
+      },
+      "expected": {
+        "baseline_eue_mwh": 10,
+        "eue_after_5mw_relief_in_B_mwh": 5,
+        "eue_after_5mw_relief_in_A_mwh": 10,
+        "interpretation": "A's surplus is already limited by the 10 MW interface. Relief at B directly reduces the local shortage; equal relief at A does not expand the constrained transfer."
+      },
+      "notes": [
+        "The adapter must validate actual PRAS interface/line direction conventions against a non-symmetric flow fixture.",
+        "This illustrates interregional location dependence only; it does not model intra-region buses or distribution constraints."
+      ]
+    }
+  ],
+  "negative_controls": [
+    "reject_mismatched_time_axes",
+    "reject_timezone_or_calendar_day_mismatch",
+    "reject_power_or_energy_unit_mismatch",
+    "reject_non_finite_or_missing_trajectory_values",
+    "reject_flexible_load_below_zero",
+    "reject_trajectory_outside_the_study_horizon",
+    "reject_region_identity_or_order_mismatch",
+    "reject_time_region_matrix_transposition",
+    "reject_missing_or_duplicate_resource_ids",
+    "reject_baseline_flexible_supply_or_outage_parameter_drift",
+    "reject_duplicate_flexibility_as_load_adjustment_and_native_demand_response",
+    "reject_unaccounted_rebound",
+    "reject_invalid_probability_weights",
+    "reject_unpinned_pras_package_or_manifest",
+    "reject_unrecognized_pras_dataversion",
+    "do_not_equate_pras_lole_with_ntcsa_contiguous_event_count",
+    "do_not_equate_energy_cvar_with_power_cvar_or_monte_carlo_standard_error",
+    "do_not_claim_pras_copper_sheet_region_proves_within_region_deliverability"
+  ]
+}
