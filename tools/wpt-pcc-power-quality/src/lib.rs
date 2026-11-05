@@ -149,8 +149,11 @@ pub struct QualityReport {
     pub run_id: String,
     pub standard_id: String,
     pub applicability: ProfileApplicability,
-    pub thd_percent: f64,
-    pub tdd_percent: Option<f64>,
+    pub maximum_harmonic_order: u64,
+    /// THD computed through maximum_harmonic_order; it does not include higher orders.
+    pub thd_through_order_percent: f64,
+    /// TDD uses the same declared harmonic coverage and the PCC I_L reference.
+    pub tdd_through_order_percent: Option<f64>,
     pub short_circuit_ratio_isc_over_il: Option<f64>,
     pub harmonic_components: usize,
     pub claim_ceiling: &'static str,
@@ -458,9 +461,17 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
     let spectrum = field(run, "current_spectrum", "$")?;
     exact_keys(
         spectrum,
-        &["fundamental_rms_a", "harmonics"],
+        &["fundamental_rms_a", "maximum_harmonic_order", "harmonics"],
         "$.current_spectrum",
     )?;
+    let maximum_harmonic_order =
+        integer_field(spectrum, "maximum_harmonic_order", "$.current_spectrum")?;
+    if !(2..=50).contains(&maximum_harmonic_order) {
+        return Err(fail(
+            "$.current_spectrum.maximum_harmonic_order",
+            "v0 requires complete harmonic coverage from order 2 through a maximum of 50",
+        ));
+    }
     let fundamental = number_field(spectrum, "fundamental_rms_a", "$.current_spectrum")?;
     if fundamental <= 0.0 {
         return Err(fail(
@@ -482,10 +493,10 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
             &path,
         )?;
         let order = integer_field(line, "harmonic_order", &path)?;
-        if order < 2 || order > 1_000 || !seen_orders.insert(order) {
+        if order < 2 || order > maximum_harmonic_order || !seen_orders.insert(order) {
             return Err(fail(
                 &path,
-                "harmonic orders must be unique integers in 2..=1000",
+                "harmonic orders must be unique integers within the declared coverage",
             ));
         }
         if previous_order.is_some_and(|previous| order <= previous) {
@@ -502,8 +513,26 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
         }
         harmonic_currents.push(current);
     }
+    let expected_orders = (2..=maximum_harmonic_order).collect::<BTreeSet<_>>();
+    if seen_orders != expected_orders {
+        return Err(fail(
+            "$.current_spectrum.harmonics",
+            format!(
+                "spectrum must include every integer harmonic order from 2 through {maximum_harmonic_order}; represent a measured zero explicitly"
+            ),
+        ));
+    }
 
     let thd = thd_percent(&harmonic_currents, fundamental)?;
+    if standard_id == "IEEE_519_2022"
+        && applicability == ProfileApplicability::ApplicableScopeOnly
+        && maximum_harmonic_order != 50
+    {
+        return Err(fail(
+            "$.current_spectrum.maximum_harmonic_order",
+            "IEEE 519-2022 PCC TDD profile requires complete current-harmonic coverage through order 50",
+        ));
+    }
     let (tdd, ratio) = if standard_id == "IEEE_519_2022"
         && applicability == ProfileApplicability::ApplicableScopeOnly
     {
@@ -523,8 +552,9 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
         run_id,
         standard_id,
         applicability,
-        thd_percent: thd,
-        tdd_percent: tdd,
+        maximum_harmonic_order,
+        thd_through_order_percent: thd,
+        tdd_through_order_percent: tdd,
         short_circuit_ratio_isc_over_il: ratio,
         harmonic_components: harmonic_currents.len(),
         claim_ceiling: "Profile scope and point metrics only. No normative limit tables are loaded and no standards-compliance decision is made.",
@@ -553,9 +583,49 @@ mod tests {
             report.applicability,
             ProfileApplicability::ApplicableScopeOnly
         );
-        assert!((report.thd_percent - 5.5).abs() < 1e-12);
-        assert!((report.tdd_percent.unwrap() - 5.5).abs() < 1e-12);
+        assert!((report.thd_through_order_percent - 5.5).abs() < 1e-12);
+        assert!((report.tdd_through_order_percent.unwrap() - 5.5).abs() < 1e-12);
         assert!((report.short_circuit_ratio_isc_over_il.unwrap() - 250.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rejects_missing_harmonic_bin_within_declared_thd_coverage() {
+        let mut run = fixture();
+        run["current_spectrum"]["harmonics"]
+            .as_array_mut()
+            .unwrap()
+            .remove(0);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("must include every integer harmonic order from 2 through 50")
+        );
+    }
+
+    #[test]
+    fn ieee_519_tdd_rejects_partial_harmonic_coverage() {
+        let mut run = fixture();
+        run["current_spectrum"]["maximum_harmonic_order"] = Value::from(40);
+        run["current_spectrum"]["harmonics"]
+            .as_array_mut()
+            .unwrap()
+            .truncate(39);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("requires complete current-harmonic coverage through order 50")
+        );
+    }
+
+    #[test]
+    fn rejects_undeclared_harmonic_order_above_coverage() {
+        let mut run = fixture();
+        run["current_spectrum"]["maximum_harmonic_order"] = Value::from(40);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("unique integers within the declared coverage")
+        );
     }
 
     #[test]
@@ -563,8 +633,8 @@ mod tests {
         let mut run = fixture();
         run["profile"]["pcc"]["i_l_rms_a"] = Value::from(50.0);
         let report = evaluate_run(&run).unwrap();
-        assert!((report.thd_percent - 5.5).abs() < 1e-12);
-        assert!((report.tdd_percent.unwrap() - 11.0).abs() < 1e-12);
+        assert!((report.thd_through_order_percent - 5.5).abs() < 1e-12);
+        assert!((report.tdd_through_order_percent.unwrap() - 11.0).abs() < 1e-12);
         assert!((report.short_circuit_ratio_isc_over_il.unwrap() - 500.0).abs() < 1e-12);
     }
 
@@ -578,7 +648,7 @@ mod tests {
             report.applicability,
             ProfileApplicability::NotApplicable
         );
-        assert!(report.tdd_percent.is_none());
+        assert!(report.tdd_through_order_percent.is_none());
     }
 
     #[test]
@@ -607,7 +677,7 @@ mod tests {
             report.applicability,
             ProfileApplicability::ApplicableScopeOnly
         );
-        assert!(report.tdd_percent.is_none());
+        assert!(report.tdd_through_order_percent.is_none());
     }
 
     #[test]
@@ -642,7 +712,7 @@ mod tests {
             report.applicability,
             ProfileApplicability::MeasurementMethodOnly
         );
-        assert!(report.tdd_percent.is_none());
+        assert!(report.tdd_through_order_percent.is_none());
     }
 
     #[test]
