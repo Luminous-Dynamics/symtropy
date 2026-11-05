@@ -36,6 +36,7 @@ pub struct StratumReport {
     pub covered: usize,
     pub empirical_coverage: f64,
     pub mean_interval_width: f64,
+    pub mean_interval_score: f64,
     pub nominal_coverage: f64,
 }
 
@@ -46,6 +47,7 @@ pub struct EvaluationReport {
     pub covered_records: usize,
     pub empirical_coverage: f64,
     pub mean_interval_width: f64,
+    pub mean_interval_score: f64,
     pub nominal_coverage: f64,
     pub coverage_error: f64,
     pub by_regime: BTreeMap<String, StratumReport>,
@@ -57,16 +59,29 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
         return Err("evaluation requires at least one record".into());
     }
 
+    let reference = &records[0];
     let mut ids = std::collections::BTreeSet::new();
     let mut count = 0usize;
     let mut covered = 0usize;
     let mut width_sum = 0.0;
+    let mut interval_score_sum = 0.0;
     let mut nominal = None::<f64>;
-    let mut regimes = BTreeMap::<String, (usize, usize, f64, f64)>::new();
+    let mut regimes = BTreeMap::<String, (usize, usize, f64, f64, f64)>::new();
 
     for record in records {
         if record.schema_version != SCHEMA_VERSION {
             return Err(format!("{}: unsupported schema version", record.record_id));
+        }
+        if record.model_digest != reference.model_digest
+            || record.calibration_set_digest != reference.calibration_set_digest
+            || record.test_set_digest != reference.test_set_digest
+            || record.quantity_kind != reference.quantity_kind
+            || record.unit != reference.unit
+        {
+            return Err(
+                "a report must contain one model, calibration set, test set, quantity kind and unit"
+                    .into(),
+            );
         }
         if record.split != "test" {
             return Err(format!("{}: evaluator accepts test records only", record.record_id));
@@ -114,26 +129,49 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
         if !width.is_finite() {
             return Err(format!("{}: interval width overflow", record.record_id));
         }
+        let alpha = 1.0 - record.nominal_coverage;
+        let miss_penalty = if record.observed < record.lower {
+            (2.0 / alpha) * (record.lower - record.observed)
+        } else if record.observed > record.upper {
+            (2.0 / alpha) * (record.observed - record.upper)
+        } else {
+            0.0
+        };
+        let interval_score = width + miss_penalty;
+        if !interval_score.is_finite() {
+            return Err(format!("{}: interval score overflow", record.record_id));
+        }
         count += 1;
         covered += if hit { 1 } else { 0 };
         width_sum += width;
-        let entry = regimes.entry(record.regime_id.clone()).or_insert((0, 0, 0.0, 0.0));
+        interval_score_sum += interval_score;
+        let entry = regimes
+            .entry(record.regime_id.clone())
+            .or_insert((0, 0, 0.0, 0.0, 0.0));
         entry.0 += 1;
         entry.1 += if hit { 1 } else { 0 };
         entry.2 += width;
-        entry.3 = record.nominal_coverage;
+        entry.3 += interval_score;
+        entry.4 = record.nominal_coverage;
     }
 
     let nominal = nominal.expect("non-empty records establish nominal coverage");
-    let by_regime = regimes.into_iter().map(|(regime, (n, hits, widths, target))| {
-        (regime, StratumReport {
-            count: n,
-            covered: hits,
-            empirical_coverage: hits as f64 / n as f64,
-            mean_interval_width: widths / n as f64,
-            nominal_coverage: target,
+    let by_regime = regimes
+        .into_iter()
+        .map(|(regime, (n, hits, widths, score_sum, target))| {
+            (
+                regime,
+                StratumReport {
+                    count: n,
+                    covered: hits,
+                    empirical_coverage: hits as f64 / n as f64,
+                    mean_interval_width: widths / n as f64,
+                    mean_interval_score: score_sum / n as f64,
+                    nominal_coverage: target,
+                },
+            )
         })
-    }).collect();
+        .collect();
 
     let empirical_coverage = covered as f64 / count as f64;
     Ok(EvaluationReport {
@@ -142,6 +180,7 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
         covered_records: covered,
         empirical_coverage,
         mean_interval_width: width_sum / count as f64,
+        mean_interval_score: interval_score_sum / count as f64,
         nominal_coverage: nominal,
         coverage_error: empirical_coverage - nominal,
         by_regime,
@@ -211,6 +250,41 @@ mod tests {
         let mut bad = record("b", "aligned", 5.0, 4.0, 6.0);
         bad.nominal_coverage = 1.0;
         assert!(evaluate(&[bad]).unwrap_err().contains("invalid prediction interval"));
+    }
+
+    #[test]
+    fn interval_score_penalizes_misses_without_rewarding_vacuous_width() {
+        let report = evaluate(&[
+            record("inside", "aligned", 5.0, 4.0, 6.0),
+            record("below", "aligned", 3.0, 4.0, 6.0),
+        ])
+        .unwrap();
+        assert!((report.mean_interval_score - 22.0).abs() < 1e-12);
+        assert!((report.by_regime["aligned"].mean_interval_score - 22.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rejects_mixed_model_calibration_test_or_physical_quantity_metadata() {
+        let baseline = record("a", "aligned", 5.0, 4.0, 6.0);
+        let mut mixed_model = record("b", "aligned", 5.0, 4.0, 6.0);
+        mixed_model.model_digest = "another-model".into();
+        assert!(evaluate(&[baseline.clone(), mixed_model]).unwrap_err().contains("one model"));
+
+        let mut mixed_calibration = record("c", "aligned", 5.0, 4.0, 6.0);
+        mixed_calibration.calibration_set_digest = "another-calibration".into();
+        assert!(evaluate(&[baseline.clone(), mixed_calibration]).unwrap_err().contains("one model"));
+
+        let mut mixed_unit = record("d", "aligned", 5.0, 4.0, 6.0);
+        mixed_unit.unit = "kWh".into();
+        assert!(evaluate(&[baseline.clone(), mixed_unit]).unwrap_err().contains("one model"));
+
+        let mut mixed_quantity = record("e", "aligned", 5.0, 4.0, 6.0);
+        mixed_quantity.quantity_kind = "USEFUL_AC_ENERGY".into();
+        assert!(evaluate(&[baseline.clone(), mixed_quantity]).unwrap_err().contains("one model"));
+
+        let mut mixed_test = record("f", "aligned", 5.0, 4.0, 6.0);
+        mixed_test.test_set_digest = "another-test".into();
+        assert!(evaluate(&[baseline, mixed_test]).unwrap_err().contains("one model"));
     }
 
     #[test]
