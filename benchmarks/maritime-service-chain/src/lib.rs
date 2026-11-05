@@ -2336,14 +2336,14 @@ mod tests {
         ));
 
         let mut missing_resource_evidence = valid_case();
-        missing_resource_evidence.resources[0]
+        missing_resource_evidence.resources[1]
             .evidence_ids
-            .retain(|id| id != "channel-calendar");
+            .retain(|id| id != "lock-calendar");
         cases.push((
             "resource has no capacity evidence",
             missing_resource_evidence,
             Err(ValidationError::ResourceMissingCapacityEvidence(
-                "channel-window-01".into(),
+                "lock-01".into(),
             )),
         ));
 
