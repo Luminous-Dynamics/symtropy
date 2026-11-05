@@ -58,7 +58,7 @@ jobs:
           path = Path("target/civdyn-authority-evidence/authority-power-sweep.csv")
           with path.open(newline="", encoding="utf-8") as handle:
               rows = list(csv.DictReader(handle))
-          assert len(rows) > 100
+          assert len(rows) == 100
           assert all(len(row) == 12 for row in rows)
 
           actors = [r for r in rows if r["record_type"] == "voting_actor"]
