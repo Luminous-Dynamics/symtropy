@@ -603,7 +603,7 @@ mod tests {
     fn kdf_context_is_domain_separated() {
         let seed = [0x31; 32];
         let address = [0x42, 0x43, 0x44];
-        let digest = derive_address_digest(&seed, &address);
+        let digest = derive_address_digest_with_context(&seed, &address, DERIVATION_CONTEXT);
         let mut material = Vec::new();
         push_len(&mut material, seed.len());
         material.extend_from_slice(&seed);
