@@ -683,13 +683,14 @@ mod tests {
     #[test]
     fn deterministic_scale_sweep_preserves_relative_decision() {
         for scale in [1.0e-9, 1.0, 1.0e9, 1.0e15] {
-            let record = event(
+            let mut record = event(
                 &format!("scale-{scale:e}"),
                 scale,
                 scale * 1.1,
                 scale * 0.1,
                 0.0,
             );
+            record["switch_event"]["absolute_tolerance_j"] = json!(scale * 1.0e-6);
             assert_eq!(
                 disposition(&record),
                 "PASSIVE_TRANSITION_CERTIFIED",
