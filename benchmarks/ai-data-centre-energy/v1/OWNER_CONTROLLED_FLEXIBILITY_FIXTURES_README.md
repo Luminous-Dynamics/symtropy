@@ -25,10 +25,10 @@ The fixtures verify the owner-side boundary between a market-facing flexibility 
 
 The module receives a market message, resolves an owner-authorized signing key through policy, calls an injected signature verifier over a deterministic length-prefixed canonical payload, and checks replay and local readiness state. Invalid signatures do not advance replay state. Authenticated but policy-rejected messages do consume their nonce/sequence, preventing later replay after conditions change.
 
-The code deliberately does not ship an "always accept" cryptographic verifier. Production deployments must supply an audited signature implementation, key rotation/revocation, durable authenticated policy storage and durable replay-ledger persistence. The in-memory replay ledger is bounded at 65,536 seen key/nonces and dispatch IDs; once full, it fails closed. Safe compaction/rotation must be designed as an authenticated checkpoint operation, not a silent reset.
+The code deliberately does not ship an "always accept" cryptographic verifier. Production deployments must supply an audited signature implementation, key rotation/revocation, durable authenticated policy storage and durable replay-ledger persistence. The in-memory replay ledger is bounded at 65,536 seen key/nonces and dispatch IDs; once full, it fails closed. Offer reservations also pin the full owner-policy snapshot: reusing a policy ID/version with changed allowlists or capacity limits does not preserve an earlier reservation. Safe compaction/rotation must be designed as an authenticated checkpoint operation, not a silent reset.
 
 The authorization receipt is permission for a site-local controller to evaluate a request. The local controller must independently re-check its real-time state and may decline. No equipment command is represented or emitted by this module.
 
 ## Validation status
 
-Twenty-one Rust unit tests are authored. Fixture JSON was parsed and static source properties were reviewed. No Rust compilation, rustfmt, Clippy or test execution is claimed in this environment.
+Twenty-three Rust unit tests are authored. Fixture JSON was parsed and static source properties were reviewed. No Rust compilation, rustfmt, Clippy or test execution is claimed in this environment.
