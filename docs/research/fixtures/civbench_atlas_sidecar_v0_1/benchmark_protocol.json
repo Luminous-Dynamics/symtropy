@@ -1,0 +1,12 @@
+{
+  "protocol_id": "CIVBENCH-ATLAS-001",
+  "protocol_version": "0.1.0",
+  "benchmark_id": "CIVDYN-OPVAL-001",
+  "benchmark_version": "0.1.0",
+  "task_id": "operational-pattern-comparison-synthetic-control",
+  "task_version": "0.1.0",
+  "scoring_code_id": "civbench-sidecar-fixture-validator",
+  "scoring_code_version": "0.1.0",
+  "preregistration_status": "synthetic_fixture",
+  "description": "Synthetic control for testing Humanity Atlas run-core binding and CivBench sidecar validation."
+}
