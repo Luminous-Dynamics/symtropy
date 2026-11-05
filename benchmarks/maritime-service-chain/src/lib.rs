@@ -1942,7 +1942,7 @@ mod tests {
         case.maximum_evidence_age_ticks = 5;
         assert_eq!(
             validate_case(&case),
-            Err(ValidationError::EvidenceTooOld("topology".into()))
+            Err(ValidationError::EvidenceTooOld("channel-calendar".into()))
         );
     }
 
