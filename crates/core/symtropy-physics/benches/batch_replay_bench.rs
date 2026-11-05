@@ -13,14 +13,14 @@
 //! bound. Criterion reports completed rollouts/second for the fixed campaign.
 
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
+use nalgebra::SVector;
 use rayon::prelude::*;
 use rayon::{ThreadPool, ThreadPoolBuilder};
-use nalgebra::SVector;
 use std::thread;
 use symtropy_math::Point;
 use symtropy_physics::{
-    BatchRolloutSnapshot, PhysicsWorld, ReplayTape, WorldCommand, WorldSnapshot,
-    apply_commands, order_batch_results,
+    BatchRolloutSnapshot, PhysicsWorld, ReplayTape, WorldCommand, WorldSnapshot, apply_commands,
+    order_batch_results,
 };
 
 const ROLLOUTS: usize = 64;
