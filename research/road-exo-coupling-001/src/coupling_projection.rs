@@ -968,7 +968,16 @@ mod tests {
         scopes[1].world_id = id("different-world");
         assert_eq!(
             project_correspondence_addresses(&correspondence, &scopes, &rules),
-            Err(ProjectionError::SharedWorldMismatch)
+            Err(ProjectionError::MixedWorldScope)
+        );
+
+        // The R2 event is unmatched in the actor hypothesis, but it still
+        // belongs to the same parent experiment world as every other scope.
+        let mut scopes = all_scopes();
+        scopes[2].world_id = id("unrelated-world");
+        assert_eq!(
+            project_correspondence_addresses(&correspondence, &scopes, &rules),
+            Err(ProjectionError::MixedWorldScope)
         );
     }
 
