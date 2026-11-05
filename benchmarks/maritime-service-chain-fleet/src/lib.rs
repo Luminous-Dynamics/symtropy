@@ -430,7 +430,6 @@ fn candidate_operation_fits(
     resource_uses.sort_by(|left, right| {
         left.resource_id
             .cmp(&right.resource_id)
-            .then_with(|| left.unit.cmp(&right.unit))
             .then_with(|| left.amount.cmp(&right.amount))
     });
     let placement = OperationPlacement {
