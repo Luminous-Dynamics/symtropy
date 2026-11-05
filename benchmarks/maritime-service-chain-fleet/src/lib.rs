@@ -870,6 +870,395 @@ mod tests {
         }
     }
 
+    fn evidence(
+        id: &str,
+        owner: maritime_service_chain_contract::EvidenceOwner,
+        role: maritime_service_chain_contract::EvidenceRole,
+        subject: &str,
+        covered_window: Option<TickWindow>,
+    ) -> EvidenceRef {
+        EvidenceRef {
+            evidence_id: id.into(),
+            owner,
+            role,
+            source_id: format!("fixture:{id}"),
+            source_revision: "fleet-fixture-v1".into(),
+            snapshot_ref: format!("snapshot:{id}"),
+            subject_id: subject.into(),
+            observed_at_tick: 0,
+            valid_from_tick: 0,
+            valid_through_tick: Some(100),
+            covered_window,
+            covered_resource_unit: None,
+            covered_capacity_windows: None,
+            state: maritime_service_chain_contract::EvidenceState::Current,
+            claim_ceiling: "synthetic fleet fixture only".into(),
+        }
+    }
+
+    fn capacity_evidence(
+        id: &str,
+        subject: &str,
+        unit: ResourceUnit,
+        availability: Vec<CapacityWindow>,
+    ) -> EvidenceRef {
+        let mut item = evidence(
+            id,
+            maritime_service_chain_contract::EvidenceOwner::Symtropy,
+            maritime_service_chain_contract::EvidenceRole::ResourceCapacity,
+            subject,
+            None,
+        );
+        item.covered_resource_unit = Some(unit);
+        item.covered_capacity_windows = Some(availability);
+        item
+    }
+
+    fn valid_fleet_case(
+        case_id: &str,
+        demand_id: &str,
+        participant_id: &str,
+        vessel_id: &str,
+    ) -> ServiceChainCase {
+        use maritime_service_chain_contract::{
+            CaseClass, ConstraintDisposition, ConstraintKind, Demand, EnergyLedger,
+            EvidenceOwner, EvidenceRole, HardConstraint, Node, NodeKind, SegmentKind,
+            SegmentOperationTiming, ServiceUnit,
+        };
+
+        let arrival_fast = TickWindow {
+            start_tick: 10,
+            end_tick: 13,
+        };
+        let arrival_slow = TickWindow {
+            start_tick: 15,
+            end_tick: 18,
+        };
+        let route_ids = vec![
+            "channel-01".to_owned(),
+            "lock-01".to_owned(),
+            "approach-01".to_owned(),
+            "turnaround-01".to_owned(),
+            "rail-01".to_owned(),
+        ];
+
+        let evidence = vec![
+            evidence("topology", EvidenceOwner::SolAtlas, EvidenceRole::SpatialTopology, "corridor-01", None),
+            evidence("depth", EvidenceOwner::SolAtlas, EvidenceRole::Navigability, "channel-01", None),
+            evidence("approach-depth", EvidenceOwner::SolAtlas, EvidenceRole::Navigability, "approach-01", None),
+            evidence("data-rights", EvidenceOwner::External, EvidenceRole::DataRights, case_id, None),
+            evidence(&format!("vessel-capability-{vessel_id}"), EvidenceOwner::Symthaea, EvidenceRole::VesselEngineering, vessel_id, None),
+            evidence(&format!("vessel-performance-{vessel_id}"), EvidenceOwner::Symthaea, EvidenceRole::VesselPerformance, vessel_id, None),
+            evidence("arrival-fast", EvidenceOwner::Symthaea, EvidenceRole::ArrivalWindow, "lock-approach", Some(arrival_fast)),
+            evidence("arrival-slow", EvidenceOwner::Symthaea, EvidenceRole::ArrivalWindow, "lock-approach", Some(arrival_slow)),
+            evidence("lock-compatibility", EvidenceOwner::Symtropy, EvidenceRole::LockCompatibility, "lock-01", None),
+            evidence("lock-water", EvidenceOwner::Symtropy, EvidenceRole::LockCycleWater, "lock-01", None),
+            capacity_evidence("channel-calendar", "channel-window-01", ResourceUnit::TransitSlots, vec![window(5, 35, 2)]),
+            capacity_evidence("lock-calendar", "lock-01", ResourceUnit::Lockages, vec![window(12, 40, 1)]),
+            capacity_evidence("water-calendar", "water-budget-01", ResourceUnit::Millilitres, vec![window(12, 40, 10_000)]),
+            capacity_evidence("berth-calendar", "berth-01", ResourceUnit::BerthSlots, vec![window(18, 40, 1)]),
+            capacity_evidence("shore-calendar", "shore-01", ResourceUnit::WattHours, vec![window(18, 40, 2_000)]),
+            capacity_evidence("handling-calendar", "terminal-01", ResourceUnit::Tonnes, vec![window(18, 40, 20)]),
+            capacity_evidence("rail-calendar", "rail-01", ResourceUnit::Tonnes, vec![window(28, 60, 10)]),
+            evidence("environment", EvidenceOwner::External, EvidenceRole::EnvironmentalWindow, "corridor-01", None),
+            evidence("participant-auth", EvidenceOwner::Mycelix, EvidenceRole::ParticipantAuthorization, participant_id, None),
+        ];
+
+        let nodes = vec![
+            Node { node_id: "origin".into(), kind: NodeKind::Origin },
+            Node { node_id: "lock-approach".into(), kind: NodeKind::LockApproach },
+            Node { node_id: "lock-exit".into(), kind: NodeKind::LockExit },
+            Node { node_id: "berth".into(), kind: NodeKind::Berth },
+            Node { node_id: "railhead".into(), kind: NodeKind::TransferTerminal },
+            Node { node_id: "destination".into(), kind: NodeKind::Destination },
+        ];
+
+        let resources = vec![
+            Resource {
+                resource_id: "channel-window-01".into(),
+                kind: ResourceKind::ChannelWindow,
+                capacity_unit: ResourceUnit::TransitSlots,
+                availability: vec![window(5, 35, 2)],
+                evidence_ids: vec!["channel-calendar".into()],
+            },
+            Resource {
+                resource_id: "lock-01".into(),
+                kind: ResourceKind::Lock,
+                capacity_unit: ResourceUnit::Lockages,
+                availability: vec![window(12, 40, 1)],
+                evidence_ids: vec!["lock-calendar".into()],
+            },
+            Resource {
+                resource_id: "water-budget-01".into(),
+                kind: ResourceKind::WaterQuota,
+                capacity_unit: ResourceUnit::Millilitres,
+                availability: vec![window(12, 40, 10_000)],
+                evidence_ids: vec!["water-calendar".into()],
+            },
+            Resource {
+                resource_id: "berth-01".into(),
+                kind: ResourceKind::Berth,
+                capacity_unit: ResourceUnit::BerthSlots,
+                availability: vec![window(18, 40, 1)],
+                evidence_ids: vec!["berth-calendar".into()],
+            },
+            Resource {
+                resource_id: "shore-01".into(),
+                kind: ResourceKind::ShorePower,
+                capacity_unit: ResourceUnit::WattHours,
+                availability: vec![window(18, 40, 2_000)],
+                evidence_ids: vec!["shore-calendar".into()],
+            },
+            Resource {
+                resource_id: "terminal-01".into(),
+                kind: ResourceKind::TerminalHandling,
+                capacity_unit: ResourceUnit::Tonnes,
+                availability: vec![window(18, 40, 20)],
+                evidence_ids: vec!["handling-calendar".into()],
+            },
+            Resource {
+                resource_id: "rail-01".into(),
+                kind: ResourceKind::InlandTransfer,
+                capacity_unit: ResourceUnit::Tonnes,
+                availability: vec![window(28, 60, 10)],
+                evidence_ids: vec!["rail-calendar".into()],
+            },
+        ];
+
+        let route_segments = vec![
+            RouteSegment {
+                segment_id: "channel-01".into(),
+                from_node_id: "origin".into(),
+                to_node_id: "lock-approach".into(),
+                kind: SegmentKind::ChannelTransit,
+                evidence_ids: vec!["topology".into(), "depth".into(), "channel-calendar".into()],
+                resource_uses: vec![ResourceUse { resource_id: "channel-window-01".into(), amount: 1, unit: ResourceUnit::TransitSlots }],
+            },
+            RouteSegment {
+                segment_id: "lock-01".into(),
+                from_node_id: "lock-approach".into(),
+                to_node_id: "lock-exit".into(),
+                kind: SegmentKind::Lockage,
+                evidence_ids: vec!["lock-compatibility".into(), "lock-water".into(), "lock-calendar".into(), "water-calendar".into()],
+                resource_uses: vec![
+                    ResourceUse { resource_id: "lock-01".into(), amount: 1, unit: ResourceUnit::Lockages },
+                    ResourceUse { resource_id: "water-budget-01".into(), amount: 4_000, unit: ResourceUnit::Millilitres },
+                ],
+            },
+            RouteSegment {
+                segment_id: "approach-01".into(),
+                from_node_id: "lock-exit".into(),
+                to_node_id: "berth".into(),
+                kind: SegmentKind::PortApproach,
+                evidence_ids: vec!["approach-depth".into(), "channel-calendar".into()],
+                resource_uses: vec![ResourceUse { resource_id: "channel-window-01".into(), amount: 1, unit: ResourceUnit::TransitSlots }],
+            },
+            RouteSegment {
+                segment_id: "turnaround-01".into(),
+                from_node_id: "berth".into(),
+                to_node_id: "railhead".into(),
+                kind: SegmentKind::BerthHandling,
+                evidence_ids: vec!["berth-calendar".into(), "handling-calendar".into(), "shore-calendar".into()],
+                resource_uses: vec![
+                    ResourceUse { resource_id: "berth-01".into(), amount: 1, unit: ResourceUnit::BerthSlots },
+                    ResourceUse { resource_id: "terminal-01".into(), amount: 10, unit: ResourceUnit::Tonnes },
+                    ResourceUse { resource_id: "shore-01".into(), amount: 800, unit: ResourceUnit::WattHours },
+                ],
+            },
+            RouteSegment {
+                segment_id: "rail-01".into(),
+                from_node_id: "railhead".into(),
+                to_node_id: "destination".into(),
+                kind: SegmentKind::InlandTransfer,
+                evidence_ids: vec!["rail-calendar".into()],
+                resource_uses: vec![ResourceUse { resource_id: "rail-01".into(), amount: 10, unit: ResourceUnit::Tonnes }],
+            },
+        ];
+
+        let timings = vec![
+            SegmentOperationTiming { segment_id: "channel-01".into(), duration_ticks: 2 },
+            SegmentOperationTiming { segment_id: "lock-01".into(), duration_ticks: 2 },
+            SegmentOperationTiming { segment_id: "approach-01".into(), duration_ticks: 1 },
+            SegmentOperationTiming { segment_id: "turnaround-01".into(), duration_ticks: 10 },
+            SegmentOperationTiming { segment_id: "rail-01".into(), duration_ticks: 5 },
+        ];
+        let alternatives = vec![
+            VoyageAlternative {
+                alternative_id: "fast-high-energy".into(),
+                vessel_id: vessel_id.into(),
+                vessel_revision: "vessel-r1".into(),
+                speed_profile_id: "speed-fast".into(),
+                cargo_capacity_amount: 12,
+                cargo_capacity_unit: ServiceUnit::Tonnes,
+                arrival_node_id: "lock-approach".into(),
+                arrival_window: arrival_fast,
+                arrival_evidence_id: "arrival-fast".into(),
+                evidence_ids: vec![format!("vessel-capability-{vessel_id}"), format!("vessel-performance-{vessel_id}")],
+                route_segment_ids: route_ids.clone(),
+                operation_timings: timings.clone(),
+                energy: EnergyLedger { propulsion_wh: 1_800, auxiliary_wh: 200, shore_power_import_wh: 800, inland_transfer_wh: 0 },
+            },
+            VoyageAlternative {
+                alternative_id: "slow-low-energy".into(),
+                vessel_id: vessel_id.into(),
+                vessel_revision: "vessel-r1".into(),
+                speed_profile_id: "speed-slow".into(),
+                cargo_capacity_amount: 12,
+                cargo_capacity_unit: ServiceUnit::Tonnes,
+                arrival_node_id: "lock-approach".into(),
+                arrival_window: arrival_slow,
+                arrival_evidence_id: "arrival-slow".into(),
+                evidence_ids: vec![format!("vessel-capability-{vessel_id}"), format!("vessel-performance-{vessel_id}")],
+                route_segment_ids: route_ids,
+                operation_timings: timings,
+                energy: EnergyLedger { propulsion_wh: 1_300, auxiliary_wh: 200, shore_power_import_wh: 800, inland_transfer_wh: 0 },
+            },
+        ];
+
+        ServiceChainCase {
+            schema_version: "0.1.0".into(),
+            case_id: case_id.into(),
+            name: format!("Fleet fixture {case_id}"),
+            class: CaseClass::Synthetic,
+            decision_tick: 0,
+            maximum_evidence_age_ticks: 20,
+            tick_seconds: 60,
+            corridor_id: "corridor-01".into(),
+            origin_node_id: "origin".into(),
+            destination_node_id: "destination".into(),
+            demand: Demand {
+                demand_id: demand_id.into(),
+                participant_id: participant_id.into(),
+                origin_node_id: "origin".into(),
+                destination_node_id: "destination".into(),
+                requested_amount: 10,
+                service_unit: ServiceUnit::Tonnes,
+                delivery_window: TickWindow { start_tick: 0, end_tick: 80 },
+                participant_commitment_ref: Some(format!("mycelix:commitment:{demand_id}")),
+                cargo_custody_ref: None,
+            },
+            nodes,
+            route_segments,
+            resources,
+            voyage_alternatives: alternatives,
+            evidence,
+            hard_constraints: vec![
+                HardConstraint { constraint_id: "constraint-navigability".into(), kind: ConstraintKind::Navigability, disposition: ConstraintDisposition::Satisfied, evidence_id: Some("depth".into()) },
+                HardConstraint { constraint_id: "constraint-lock".into(), kind: ConstraintKind::LockEligibility, disposition: ConstraintDisposition::Satisfied, evidence_id: Some("lock-compatibility".into()) },
+                HardConstraint { constraint_id: "constraint-environment".into(), kind: ConstraintKind::EnvironmentalFlow, disposition: ConstraintDisposition::Satisfied, evidence_id: Some("environment".into()) },
+                HardConstraint { constraint_id: "constraint-water".into(), kind: ConstraintKind::WaterBudget, disposition: ConstraintDisposition::Satisfied, evidence_id: Some("lock-water".into()) },
+                HardConstraint { constraint_id: "constraint-energy".into(), kind: ConstraintKind::EnergyCapacity, disposition: ConstraintDisposition::Satisfied, evidence_id: Some("shore-calendar".into()) },
+                HardConstraint { constraint_id: "constraint-berth".into(), kind: ConstraintKind::BerthCapacity, disposition: ConstraintDisposition::Satisfied, evidence_id: Some("berth-calendar".into()) },
+                HardConstraint { constraint_id: "constraint-data-rights".into(), kind: ConstraintKind::DataRights, disposition: ConstraintDisposition::Satisfied, evidence_id: Some("data-rights".into()) },
+                HardConstraint { constraint_id: "constraint-participant".into(), kind: ConstraintKind::ParticipantAuthorization, disposition: ConstraintDisposition::Satisfied, evidence_id: Some("participant-auth".into()) },
+            ],
+            port_call_projection_ref: Some(format!("pco-fixture:{case_id}")),
+        }
+    }
+
+    fn fleet_workload(cases: Vec<ServiceChainCase>) -> FleetWorkload {
+        let policies = cases[0]
+            .resources
+            .iter()
+            .map(|resource| SharedResourcePolicy {
+                resource_id: resource.resource_id.clone(),
+                accounting_mode: match resource.kind {
+                    ResourceKind::WaterQuota | ResourceKind::ShorePower => {
+                        ResourceAccountingMode::CumulativeWindowQuota
+                    }
+                    _ => ResourceAccountingMode::ConcurrentCapacity,
+                },
+            })
+            .collect();
+        FleetWorkload {
+            time_basis_id: "corridor-01-utc-minute-ticks-v1".into(),
+            cases,
+            resource_policies: policies,
+        }
+    }
+
+    #[test]
+    fn multi_demand_oracle_schedules_two_vessels_when_lock_slots_are_sequential() {
+        let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        first.voyage_alternatives.retain(|alternative| alternative.alternative_id == "fast-high-energy");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        second.voyage_alternatives.retain(|alternative| alternative.alternative_id == "slow-low-energy");
+        let workload = fleet_workload(vec![first, second]);
+
+        let result = exact_fleet_oracle(&workload, 50_000).expect("valid joint workload");
+        assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
+        assert!(!result.frontier.is_empty());
+        for plan in &result.frontier {
+            assert_eq!(plan.selections.len(), 2);
+            assert_eq!(
+                plan.selections.iter().map(|selection| selection.demand_id.as_str()).collect::<Vec<_>>(),
+                vec!["demand-a", "demand-b"]
+            );
+            assert!(plan.operations.iter().any(|operation| operation.demand_id == "demand-a"));
+            assert!(plan.operations.iter().any(|operation| operation.demand_id == "demand-b"));
+        }
+    }
+
+    #[test]
+    fn multi_demand_oracle_rejects_joint_lockage_conflict_before_deadline() {
+        let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        first.voyage_alternatives.retain(|alternative| alternative.alternative_id == "fast-high-energy");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        second.voyage_alternatives.retain(|alternative| alternative.alternative_id == "fast-high-energy");
+        second.demand.delivery_window.end_tick = 33;
+        let workload = fleet_workload(vec![first, second]);
+
+        let result = exact_fleet_oracle(&workload, 50_000).expect("valid joint workload");
+        assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
+        assert!(result.frontier.is_empty());
+    }
+
+    #[test]
+    fn multi_demand_oracle_is_input_permutation_independent() {
+        let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        first.voyage_alternatives.retain(|alternative| alternative.alternative_id == "fast-high-energy");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        second.voyage_alternatives.retain(|alternative| alternative.alternative_id == "slow-low-energy");
+        let forward = exact_fleet_oracle(&fleet_workload(vec![first.clone(), second.clone()]), 50_000)
+            .expect("valid joint workload");
+        let reverse = exact_fleet_oracle(&fleet_workload(vec![second, first]), 50_000)
+            .expect("valid joint workload");
+        assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn multi_demand_oracle_rejects_conflicting_resource_snapshots() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        second.resources.iter_mut().find(|resource| resource.resource_id == "lock-01").unwrap().availability[0].capacity = 2;
+        second.evidence.iter_mut().find(|item| item.evidence_id == "lock-calendar").unwrap().covered_capacity_windows.as_mut().unwrap()[0].capacity = 2;
+        let error = exact_fleet_oracle(&fleet_workload(vec![first, second]), 50_000)
+            .expect_err("resource snapshots must be identical");
+        assert_eq!(error, FleetError::ConflictingResourceSnapshot("lock-01".into()));
+    }
+
+    #[test]
+    fn multi_demand_oracle_rejects_semantically_wrong_accounting_mode() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let mut workload = fleet_workload(vec![
+            first.clone(),
+            valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b"),
+        ]);
+        workload.resource_policies.iter_mut().find(|policy| policy.resource_id == "water-budget-01").unwrap().accounting_mode = ResourceAccountingMode::ConcurrentCapacity;
+        let error = exact_fleet_oracle(&workload, 50_000).expect_err("water must be a cumulative quota");
+        assert_eq!(error, FleetError::ResourceAccountingModeMismatch("water-budget-01".into()));
+    }
+
+    #[test]
+    fn multi_demand_oracle_reports_budget_exhaustion_as_unproven() {
+        let first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        let result = exact_fleet_oracle(&fleet_workload(vec![first, second]), 1)
+            .expect("valid joint workload");
+        assert_eq!(result.termination, SearchTermination::BudgetExhausted);
+        assert_eq!(result.states_explored, 1);
+    }
+
     #[test]
     fn concurrent_capacity_rejects_overlapping_lockages() {
         let resource = resource(ResourceKind::Lock, ResourceUnit::Lockages, 1);
