@@ -853,7 +853,7 @@ mod tests {
     #[test]
     fn rejects_grid_harmonic_at_wrong_frequency() {
         let mut run = fixture();
-        run["channels"][0]["lines"][1]["frequency_hz"] = Value::from(260.0);
+        run["channels"][0]["lines"][1]["frequency_hz"] = Value::from(102.0);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
@@ -875,8 +875,7 @@ mod tests {
     #[test]
     fn rejects_missing_grid_fundamental() {
         let mut run = fixture();
-        run["channels"][0]["lines"][0]["harmonic_order"] = Value::from(3);
-        run["channels"][0]["lines"][0]["frequency_hz"] = Value::from(150.0);
+        run["channels"][0]["lines"][0]["rms_amplitude"] = Value::from(0.0);
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
