@@ -1054,7 +1054,7 @@ mod tests {
                 "100 percent residual remains order one",
             );
             assert!(
-                !(normalized < 1.0e-12),
+                normalized >= 1.0e-12,
                 "a 100 percent imbalance must never pass the 1e-12 acceptance threshold"
             );
         }
