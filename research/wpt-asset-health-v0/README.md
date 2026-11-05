@@ -110,3 +110,6 @@ The contract is now split into two related but distinct record types:
 - `asset-lifecycle-outcome.schema.json` records a time-to-event subject with a target failure, right-censoring or a competing event.
 
 The synthetic example `asset-lifecycle-outcomes.synthetic-example.json` contains one case of each type. The validator verifies event/censor semantics, duration against UTC timestamps, one first-event record per asset, and prevents repeated asset, segment, material-lot, installation, route or environmental-campaign groups from crossing train/calibration/test splits. All lifecycle values are synthetic fixtures; there is no field RUL result.
+
+
+Lifecycle outcome provenance is validated separately from condition-observation provenance. A MEASURED time-to-event outcome requires source-record identity and a raw artifact digest; a PUBLISHED_MEASURED outcome requires a source locator. This does not infer the event from incomplete evidence and does not convert censored observations into failures.
