@@ -40,7 +40,7 @@
         "network_type",
         "phase_count",
         "grid_frequency_hz",
-        "nominal_voltage_line_to_line_v",
+        "nominal_voltage_v",
         "rated_input_current_a_per_phase",
         "pcc"
       ],
@@ -88,10 +88,6 @@
           "type": "number",
           "exclusiveMinimum": 0
         },
-        "nominal_voltage_line_to_line_v": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
         "rated_input_current_a_per_phase": {
           "type": [
             "number",
@@ -134,6 +130,10 @@
               "minLength": 1
             }
           }
+        },
+        "nominal_voltage_v": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     },
