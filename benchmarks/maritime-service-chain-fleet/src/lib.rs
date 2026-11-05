@@ -642,34 +642,7 @@ fn enumerate_segment_placements(
             &state.operations,
         ) {
             placement.alternative_id = alternative.alternative_id.clone();
-            let Some(previous_end) = previous_end_tick else {
-                placements_for_demand.push(placement.clone());
-                state.operations.push(placement);
-                enumerate_segment_placements(
-                    context,
-                    case,
-                    alternative,
-                    demand_index,
-                    workload,
-                    next_demand_index,
-                    segment_index + 1,
-                    Some(start_tick + timing.duration_ticks),
-                    placements_for_demand,
-                    state,
-                    states_explored,
-                    max_states,
-                    budget_exhausted,
-                    completed_plans,
-                );
-                state.operations.pop();
-                placements_for_demand.pop();
-                if *budget_exhausted {
-                    return;
-                }
-                if start_tick == maximum_start_tick {
-                    break;
-                }
-            } else {
+            if let Some(previous_end) = previous_end_tick {
                 state.total_idle_wait_ticks += u128::from(start_tick - previous_end);
                 placements_for_demand.push(placement.clone());
                 state.operations.push(placement);
@@ -692,6 +665,33 @@ fn enumerate_segment_placements(
                 state.operations.pop();
                 placements_for_demand.pop();
                 state.total_idle_wait_ticks -= u128::from(start_tick - previous_end);
+                if *budget_exhausted {
+                    return;
+                }
+                if start_tick == maximum_start_tick {
+                    break;
+                }
+            } else {
+                placements_for_demand.push(placement.clone());
+                state.operations.push(placement);
+                enumerate_segment_placements(
+                    context,
+                    case,
+                    alternative,
+                    demand_index,
+                    workload,
+                    next_demand_index,
+                    segment_index + 1,
+                    Some(start_tick + timing.duration_ticks),
+                    placements_for_demand,
+                    state,
+                    states_explored,
+                    max_states,
+                    budget_exhausted,
+                    completed_plans,
+                );
+                state.operations.pop();
+                placements_for_demand.pop();
                 if *budget_exhausted {
                     return;
                 }
