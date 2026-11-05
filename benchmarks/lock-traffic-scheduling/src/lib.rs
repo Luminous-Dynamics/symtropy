@@ -328,13 +328,8 @@ fn least_slack_first(
             } else {
                 0
             };
-        let projected = projected_start(
-            profile,
-            unavailable,
-            cursor_tick,
-            request,
-            direction_change,
-        );
+        let projected =
+            projected_start(profile, unavailable, cursor_tick, request, direction_change);
         let slack = projected
             .map(|start| latest_permitted_start(request).saturating_sub(u128::from(start)))
             .unwrap_or(u128::MAX);
@@ -1193,12 +1188,8 @@ mod tests {
         p.direction_change_ticks = 7;
         let first = request("up", 0, Direction::Upstream, 1, 1);
         let second = request("down", 0, Direction::Downstream, 1, 1);
-        let plan = schedule(
-            &p,
-            &[first, second],
-            SchedulingPolicy::FirstComeFirstServed,
-        )
-        .expect("valid profile");
+        let plan = schedule(&p, &[first, second], SchedulingPolicy::FirstComeFirstServed)
+            .expect("valid profile");
         assert_eq!(plan.schedule[0].end_tick, 10);
         assert_eq!(plan.schedule[1].start_tick, 17);
         assert_eq!(plan.schedule[1].direction_change_before_ticks, 7);
