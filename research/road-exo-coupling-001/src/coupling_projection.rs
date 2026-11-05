@@ -188,16 +188,15 @@ pub fn project_correspondence_addresses(
                     justification,
                 } => {
                     validate_shared_profiles(left_scope, right_scope)?;
-                    let bytes = shared_pair_bytes(
-                        &correspondence.left_branch,
-                        &correspondence.right_branch,
+                    let pair_context = PairAddressContext {
+                        left_branch: &correspondence.left_branch,
+                        right_branch: &correspondence.right_branch,
                         left_event,
                         right_event,
                         pair,
-                        left_scope,
-                        equivalence_group,
-                        justification,
-                    );
+                        scope: left_scope,
+                    };
+                    let bytes = pair_context.shared_bytes(equivalence_group, justification);
                     addresses.push(PlannedAddress {
                         branch_id: correspondence.left_branch.clone(),
                         event_id: pair.left_event.clone(),
@@ -218,16 +217,15 @@ pub fn project_correspondence_addresses(
                     justification,
                 } => {
                     validate_shared_profiles(left_scope, right_scope)?;
-                    let bytes = sensitivity_pair_bytes(
-                        &correspondence.left_branch,
-                        &correspondence.right_branch,
+                    let pair_context = PairAddressContext {
+                        left_branch: &correspondence.left_branch,
+                        right_branch: &correspondence.right_branch,
                         left_event,
                         right_event,
                         pair,
-                        left_scope,
-                        sensitivity_id,
-                        justification,
-                    );
+                        scope: left_scope,
+                    };
+                    let bytes = pair_context.sensitivity_bytes(sensitivity_id, justification);
                     addresses.push(PlannedAddress {
                         branch_id: correspondence.left_branch.clone(),
                         event_id: pair.left_event.clone(),
@@ -488,92 +486,68 @@ fn local_bytes(event: &EventOccurrence, scope: &EventDrawScope) -> Vec<u8> {
     out
 }
 
-fn shared_pair_bytes(
-    left_branch: &StableId,
-    right_branch: &StableId,
-    left_event: &EventOccurrence,
-    right_event: &EventOccurrence,
-    pair: &EventPair,
-    scope: &EventDrawScope,
-    equivalence_group: &StableId,
-    justification: &StableId,
-) -> Vec<u8> {
-    pair_bytes(
-        left_branch,
-        right_branch,
-        left_event,
-        right_event,
-        pair,
-        scope,
-        2,
-        equivalence_group,
-        justification,
-    )
+struct PairAddressContext<'a> {
+    left_branch: &'a StableId,
+    right_branch: &'a StableId,
+    left_event: &'a EventOccurrence,
+    right_event: &'a EventOccurrence,
+    pair: &'a EventPair,
+    scope: &'a EventDrawScope,
 }
 
-fn sensitivity_pair_bytes(
-    left_branch: &StableId,
-    right_branch: &StableId,
-    left_event: &EventOccurrence,
-    right_event: &EventOccurrence,
-    pair: &EventPair,
-    scope: &EventDrawScope,
-    sensitivity_id: &StableId,
-    justification: &StableId,
-) -> Vec<u8> {
-    pair_bytes(
-        left_branch,
-        right_branch,
-        left_event,
-        right_event,
-        pair,
-        scope,
-        3,
-        sensitivity_id,
-        justification,
-    )
-}
+impl PairAddressContext<'_> {
+    fn shared_bytes(
+        &self,
+        equivalence_group: &StableId,
+        justification: &StableId,
+    ) -> Vec<u8> {
+        self.canonical_bytes(2, equivalence_group, justification)
+    }
 
-fn pair_bytes(
-    left_branch: &StableId,
-    right_branch: &StableId,
-    left_event: &EventOccurrence,
-    right_event: &EventOccurrence,
-    pair: &EventPair,
-    scope: &EventDrawScope,
-    coupling_tag: u8,
-    group_or_sensitivity: &StableId,
-    justification: &StableId,
-) -> Vec<u8> {
-    let mut out = Vec::new();
-    out.extend_from_slice(DOMAIN);
-    out.push(2); // hypothesis-conditioned cross-world event pair
-    // Canonicalize endpoint order so reversing branch presentation does not
-    // change the pair identity or the resolved raw draw.
-    let left_endpoint = (left_branch, &left_event.event_id);
-    let right_endpoint = (right_branch, &right_event.event_id);
-    let (first, second) = if left_endpoint <= right_endpoint {
-        (left_endpoint, right_endpoint)
-    } else {
-        (right_endpoint, left_endpoint)
-    };
-    push_id(&mut out, first.0);
-    push_id(&mut out, first.1);
-    push_id(&mut out, second.0);
-    push_id(&mut out, second.1);
-    out.push(match pair.basis {
-        IdentityBasis::Actor => 1,
-        IdentityBasis::DirectedDyad => 2,
-        IdentityBasis::EncounterSlot => 3,
-    });
-    push_id(&mut out, &left_event.event_family);
-    out.extend_from_slice(&scope.tick.to_le_bytes());
-    push_id(&mut out, &scope.event_kind);
-    push_profile(&mut out, &scope.source);
-    out.push(coupling_tag);
-    push_id(&mut out, group_or_sensitivity);
-    push_id(&mut out, justification);
-    out
+    fn sensitivity_bytes(
+        &self,
+        sensitivity_id: &StableId,
+        justification: &StableId,
+    ) -> Vec<u8> {
+        self.canonical_bytes(3, sensitivity_id, justification)
+    }
+
+    fn canonical_bytes(
+        &self,
+        coupling_tag: u8,
+        group_or_sensitivity: &StableId,
+        justification: &StableId,
+    ) -> Vec<u8> {
+        let mut out = Vec::new();
+        out.extend_from_slice(DOMAIN);
+        out.push(2); // hypothesis-conditioned cross-world event pair
+        // Canonicalize endpoint order so reversing branch presentation does not
+        // change the pair identity or the resolved raw draw.
+        let left_endpoint = (self.left_branch, &self.left_event.event_id);
+        let right_endpoint = (self.right_branch, &self.right_event.event_id);
+        let (first, second) = if left_endpoint <= right_endpoint {
+            (left_endpoint, right_endpoint)
+        } else {
+            (right_endpoint, left_endpoint)
+        };
+        push_id(&mut out, first.0);
+        push_id(&mut out, first.1);
+        push_id(&mut out, second.0);
+        push_id(&mut out, second.1);
+        out.push(match self.pair.basis {
+            IdentityBasis::Actor => 1,
+            IdentityBasis::DirectedDyad => 2,
+            IdentityBasis::EncounterSlot => 3,
+        });
+        push_id(&mut out, &self.left_event.event_family);
+        out.extend_from_slice(&self.scope.tick.to_le_bytes());
+        push_id(&mut out, &self.scope.event_kind);
+        push_profile(&mut out, &self.scope.source);
+        out.push(coupling_tag);
+        push_id(&mut out, group_or_sensitivity);
+        push_id(&mut out, justification);
+        out
+    }
 }
 
 fn push_profile(out: &mut Vec<u8>, profile: &SourceProfile) {
