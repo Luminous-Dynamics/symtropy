@@ -61,6 +61,7 @@ pub struct FlyGymRunIdentity {
     pub model_xml_sha256: String,
     pub assets_manifest_sha256: String,
     pub compiled_qpos_layout_sha256: String,
+    pub anatomy_order_sha256: String,
     pub morphology: NeuroMechFlyMorphology,
     pub mujoco_version: String,
     pub mujoco_warp_version: Option<String>,
@@ -70,6 +71,12 @@ pub struct FlyGymRunIdentity {
     pub timestep_ns: u64,
     pub control_rate_millihz: Option<u64>,
     pub physics_substeps: u32,
+    /// Units/sign conventions are explicit model/export metadata, not inferred.
+    pub ground_contact_force_unit: String,
+    pub ground_contact_torque_unit: String,
+    pub body_segment_force_unit: String,
+    pub world_position_unit: String,
+    pub world_frame_id: String,
     pub qpos_width: u32,
     pub mocap_body_count: u32,
 }
@@ -86,16 +93,24 @@ impl FlyGymRunIdentity {
             &self.model_xml_sha256,
             &self.assets_manifest_sha256,
             &self.compiled_qpos_layout_sha256,
+            &self.anatomy_order_sha256,
         ] {
             if !is_hex_digest(digest, 64) {
                 return Err("model and asset digests must be 64-character SHA-256 hex".into());
             }
         }
+        let tolerance = self.solver_tolerance_decimal.parse::<f64>().ok();
         if self.mujoco_version.trim().is_empty()
-            || self.solver_tolerance_decimal.trim().is_empty()
+            || tolerance.is_none_or(|value| !value.is_finite() || value <= 0.0)
             || self.timestep_ns == 0
             || self.physics_substeps == 0
             || self.qpos_width == 0
+            || self.control_rate_millihz.is_some_and(|rate| rate == 0)
+            || self.ground_contact_force_unit.trim().is_empty()
+            || self.ground_contact_torque_unit.trim().is_empty()
+            || self.body_segment_force_unit.trim().is_empty()
+            || self.world_position_unit.trim().is_empty()
+            || self.world_frame_id.trim().is_empty()
         {
             return Err("simulator version, solver identity, timestep, substeps and qpos width are required".into());
         }
@@ -135,6 +150,9 @@ pub struct ActuatorOrder {
     pub actuator_type: String,
     /// Exact order returned by fly.get_actuated_jointdofs_order(actuator_type).
     pub native_dof_names: Vec<String>,
+    /// Explicit model/export units and sign convention; never inferred here.
+    pub force_unit: String,
+    pub sign_convention: String,
 }
 
 /// Exact order manifests are captured from the configured FlyGym model; they
@@ -172,16 +190,20 @@ impl FlyGymAnatomyOrder {
         validate_named_mappings(
             &self.joint_dof_order,
             &self.joint_dof_membership,
+            &symtropy_legs,
             "joint DoF",
         )?;
         validate_named_mappings(
             &self.body_segment_order,
             &self.body_segment_membership,
+            &symtropy_legs,
             "body segment",
         )?;
         let mut actuator_types = BTreeSet::new();
         for actuator in &self.actuator_orders {
             if actuator.actuator_type.trim().is_empty()
+                || actuator.force_unit.trim().is_empty()
+                || actuator.sign_convention.trim().is_empty()
                 || !actuator_types.insert(actuator.actuator_type.clone())
             {
                 return Err("actuator types must be non-empty and unique".into());
@@ -221,6 +243,7 @@ fn validate_unique_names(names: &[String], kind: &str) -> Result<(), String> {
 fn validate_named_mappings(
     exact_order: &[String],
     mappings: &[NamedAnatomicalMapping],
+    valid_legs: &BTreeSet<LegId>,
     kind: &str,
 ) -> Result<(), String> {
     if exact_order.len() != mappings.len() {
@@ -232,8 +255,10 @@ fn validate_named_mappings(
             return Err(format!("unknown or duplicate {kind} mapping: {}", mapping.native_name));
         }
         let mut legs = BTreeSet::new();
-        if mapping.membership.legs.iter().any(|leg| !legs.insert(*leg)) {
-            return Err(format!("{kind} membership contains a duplicate leg"));
+        if mapping.membership.legs.iter().any(|leg| {
+            !valid_legs.contains(leg) || !legs.insert(*leg)
+        }) {
+            return Err(format!("{kind} membership contains a duplicate or undeclared leg"));
         }
         match (mapping.membership.legs.is_empty(), &mapping.membership.unassigned_reason) {
             (true, Some(reason)) if !reason.trim().is_empty() => {}
@@ -285,7 +310,10 @@ impl ObservationStream {
         anatomy: &FlyGymAnatomyOrder,
     ) -> Result<Vec<u32>, String> {
         let width = match self {
-            Self::TrajectoryQpos { output_fps, .. } if *output_fps > 0 => {
+            Self::TrajectoryQpos {
+                output_fps,
+                playback_speed_millis,
+            } if *output_fps > 0 && *playback_speed_millis > 0 => {
                 return Ok(vec![identity.qpos_width]);
             }
             Self::TrajectoryQpos { .. } => return Err("trajectory output_fps must be positive".into()),
@@ -369,7 +397,15 @@ impl SampleClock {
 
     pub fn validate_for(&self, stream: &ObservationStream) -> Result<(), String> {
         match (stream.is_trajectory(), self) {
-            (true, Self::TrajectoryFrame { output_fps, .. }) if *output_fps > 0 => Ok(()),
+            (
+                true,
+                Self::TrajectoryFrame {
+                    output_fps: clock_fps,
+                    ..
+                },
+            ) if *clock_fps > 0
+                && matches!(stream, ObservationStream::TrajectoryQpos { output_fps, .. } if output_fps == clock_fps)
+                    || (*clock_fps > 0 && matches!(stream, ObservationStream::TrajectoryMocapPosition | ObservationStream::TrajectoryMocapQuaternion)) => Ok(()),
             (true, _) => Err("trajectory streams require a positive-fps trajectory-frame clock".into()),
             (false, Self::TrajectoryFrame { .. }) => {
                 Err("non-trajectory streams cannot use a video-frame clock".into())
@@ -551,14 +587,20 @@ mod tests {
             model_xml_sha256: "b".repeat(64),
             assets_manifest_sha256: "c".repeat(64),
             compiled_qpos_layout_sha256: "d".repeat(64),
+            anatomy_order_sha256: "f".repeat(64),
             morphology: NeuroMechFlyMorphology::SeparateTrochanterFemur,
             mujoco_version: "3.16.0".into(),
             mujoco_warp_version: Some("3.16.0".into()),
             backend: FlyGymBackend::WarpGpu,
             solver_tolerance_decimal: "1e-5".into(),
             timestep_ns: 100_000,
-            control_rate_millihz: Some(50_000_000),
+            control_rate_millihz: Some(50_000),
             physics_substeps: 1,
+            ground_contact_force_unit: "declared-model-force-unit".into(),
+            ground_contact_torque_unit: "declared-model-torque-unit".into(),
+            body_segment_force_unit: "declared-model-force-unit".into(),
+            world_position_unit: "declared-model-length-unit".into(),
+            world_frame_id: "mujoco-world".into(),
             qpos_width: 73,
             mocap_body_count: 0,
         }
@@ -579,6 +621,8 @@ mod tests {
         let actuator_orders = vec![ActuatorOrder {
             actuator_type: "motor".into(),
             native_dof_names: joint_dof_order.clone(),
+            force_unit: "declared-model-force-unit".into(),
+            sign_convention: "positive follows native actuator coordinate".into(),
         }];
         let joint_dof_membership = vec![
             NamedAnatomicalMapping {
