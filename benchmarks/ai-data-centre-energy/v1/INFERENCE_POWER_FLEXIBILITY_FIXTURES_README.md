@@ -25,4 +25,12 @@ Power is measured from the explicit boundary meter in watts and integrated over 
 
 ## Validation status
 
-Twelve Rust unit tests are authored in `inference_power_flexibility.rs`; fixture JSON contains eleven synthetic known-truth/negative-control cases. They are not represented as executed or passing. Rust build, rustfmt, Clippy and tests must be run on the exact PR head using a Rust toolchain.
+Fourteen Rust unit tests are authored in `inference_power_flexibility.rs`; fixture JSON contains eleven synthetic known-truth/negative-control cases. They are not represented as executed or passing. Rust build, rustfmt, Clippy and tests must be run on the exact PR head using a Rust toolchain.
+
+## Useful-work and rebound hardening
+
+Useful tokens/sec and tokens/J use completed useful output tokens, capped at the per-request obligation. Output from a failed request remains diagnostic output tokens but contributes zero completed useful work. The minimum-throughput and throughput-retention gates apply to useful tokens/sec, so excess output cannot inflate the service contract.
+
+The response contract independently bounds maximum rebound power and rebound energy. A response can meet the minimum reduction, sample-count and sustain-duration requirements yet remain unqualified when its later rebound exceeds either owner-defined limit. The new fixture includes a 300 ms qualified reduction followed by 20 W of rebound over 100 ms; it is measured but rejected by the rebound envelope.
+
+The stabilization timestamp is the time at which the minimum response sample-count and elapsed-duration requirements are first both met, not the start of the qualifying window.
