@@ -82,10 +82,10 @@ fn anti_correlated_sites_cancel_portfolio_variance() {
 fn lagged_common_mode_is_visible_even_when_contemporaneous_correlation_is_weaker() {
     let report = evaluate_fleet_correlation(
         &[
-            site("a", &[0.0, 1.0, 2.0, 3.0, 4.0, 5.0], 5),
-            site("b", &[0.0, 0.0, 1.0, 2.0, 3.0, 4.0], 5),
+            site("a", &[0.0, 1.0, 0.0, 2.0, 0.0, 3.0, 0.0, 4.0], 5),
+            site("b", &[0.0, 0.0, 1.0, 0.0, 2.0, 0.0, 3.0, 0.0], 5),
         ],
-        &contract(1, 5, 5.0),
+        &contract(1, 7, 5.0),
     )
     .expect("evaluation succeeds");
     let pair = &report.pair_dependence[0];
