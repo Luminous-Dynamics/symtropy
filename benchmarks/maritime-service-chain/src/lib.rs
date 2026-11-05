@@ -163,6 +163,7 @@ pub enum ResourceKind {
     TerminalHandling,
     ShorePower,
     InlandTransfer,
+    WaterQuota,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -176,6 +177,7 @@ pub enum ResourceUnit {
     Vehicles,
     Containers,
     WattHours,
+    Millilitres,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -215,6 +217,12 @@ impl EnergyLedger {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SegmentOperationTiming {
+    pub segment_id: String,
+    pub duration_ticks: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VoyageAlternative {
     pub alternative_id: String,
     pub vessel_id: String,
@@ -228,6 +236,8 @@ pub struct VoyageAlternative {
     pub evidence_ids: Vec<String>,
     /// Ordered route segment IDs; must match the frozen corridor path.
     pub route_segment_ids: Vec<String>,
+    /// One positive-duration operation envelope per route segment, in route order.
+    pub operation_timings: Vec<SegmentOperationTiming>,
     pub energy: EnergyLedger,
 }
 
@@ -325,6 +335,8 @@ pub enum ValidationError {
     ArrivalIntervalEvidenceMismatch(String),
     InvalidVoyageAlternative(String),
     RouteAlternativeMismatch(String),
+    SegmentOperationTimingMismatch(String),
+    InvalidSegmentOperationTiming(String),
     DemandRouteMismatch,
     DemandResourceUnitMismatch(String),
     DemandResourceShortfall(String),
@@ -445,6 +457,7 @@ fn resource_unit_matches_kind(kind: ResourceKind, unit: ResourceUnit) -> bool {
                 | ResourceUnit::Containers
         ),
         ResourceKind::ShorePower => unit == ResourceUnit::WattHours,
+        ResourceKind::WaterQuota => unit == ResourceUnit::Millilitres,
     }
 }
 
@@ -453,7 +466,7 @@ fn resource_kind_allowed_for_segment(segment: SegmentKind, resource: ResourceKin
         SegmentKind::ChannelTransit | SegmentKind::PortApproach => {
             resource == ResourceKind::ChannelWindow
         }
-        SegmentKind::Lockage => resource == ResourceKind::Lock,
+        SegmentKind::Lockage => matches!(resource, ResourceKind::Lock | ResourceKind::WaterQuota),
         SegmentKind::BerthHandling => matches!(
             resource,
             ResourceKind::Berth | ResourceKind::TerminalHandling | ResourceKind::ShorePower
@@ -937,6 +950,25 @@ fn validate_voyage_alternatives(case: &ServiceChainCase) -> Result<(), Validatio
                 alternative.alternative_id.clone(),
             ));
         }
+        let timed_route: Vec<&str> = alternative
+            .operation_timings
+            .iter()
+            .map(|timing| timing.segment_id.as_str())
+            .collect();
+        if timed_route != expected_route {
+            return Err(ValidationError::SegmentOperationTimingMismatch(
+                alternative.alternative_id.clone(),
+            ));
+        }
+        if alternative
+            .operation_timings
+            .iter()
+            .any(|timing| timing.duration_ticks == 0)
+        {
+            return Err(ValidationError::InvalidSegmentOperationTiming(
+                alternative.alternative_id.clone(),
+            ));
+        }
 
         for evidence_id in &alternative.evidence_ids {
             let evidence = validate_evidence_use(case, evidence_id)?;
@@ -1210,8 +1242,8 @@ mod tests {
             end_tick: 13,
         };
         let arrival_slow = TickWindow {
-            start_tick: 14,
-            end_tick: 17,
+            start_tick: 15,
+            end_tick: 18,
         };
 
         let evidence = vec![
@@ -1298,13 +1330,25 @@ mod tests {
                 }],
             ),
             capacity_evidence(
+                "water-calendar",
+                "water-budget-01",
+                ResourceUnit::Millilitres,
+                vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 15,
+                        end_tick: 35,
+                    },
+                    capacity: 5_000,
+                }],
+            ),
+            capacity_evidence(
                 "berth-calendar",
                 "berth-01",
                 ResourceUnit::BerthSlots,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
-                        end_tick: 50,
+                        start_tick: 18,
+                        end_tick: 40,
                     },
                     capacity: 1,
                 }],
@@ -1315,7 +1359,7 @@ mod tests {
                 ResourceUnit::WattHours,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
+                        start_tick: 18,
                         end_tick: 40,
                     },
                     capacity: 1_000,
@@ -1327,7 +1371,7 @@ mod tests {
                 ResourceUnit::Tonnes,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 40,
+                        start_tick: 30,
                         end_tick: 60,
                     },
                     capacity: 10,
@@ -1358,7 +1402,7 @@ mod tests {
                 ResourceUnit::Tonnes,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
+                        start_tick: 18,
                         end_tick: 40,
                     },
                     capacity: 20,
@@ -1426,6 +1470,19 @@ mod tests {
                     capacity: 1,
                 }],
                 evidence_ids: vec!["lock-water".into(), "lock-calendar".into()],
+            },
+            Resource {
+                resource_id: "water-budget-01".into(),
+                kind: ResourceKind::WaterQuota,
+                capacity_unit: ResourceUnit::Millilitres,
+                availability: vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 15,
+                        end_tick: 35,
+                    },
+                    capacity: 5_000,
+                }],
+                evidence_ids: vec!["water-calendar".into()],
             },
             Resource {
                 resource_id: "berth-01".into(),
@@ -1503,12 +1560,20 @@ mod tests {
                     "lock-compatibility".into(),
                     "lock-water".into(),
                     "lock-calendar".into(),
+                    "water-calendar".into(),
                 ],
-                resource_uses: vec![ResourceUse {
-                    resource_id: "lock-01".into(),
-                    amount: 1,
-                    unit: ResourceUnit::Lockages,
-                }],
+                resource_uses: vec![
+                    ResourceUse {
+                        resource_id: "lock-01".into(),
+                        amount: 1,
+                        unit: ResourceUnit::Lockages,
+                    },
+                    ResourceUse {
+                        resource_id: "water-budget-01".into(),
+                        amount: 4_000,
+                        unit: ResourceUnit::Millilitres,
+                    },
+                ],
             },
             RouteSegment {
                 segment_id: "approach-01".into(),
@@ -1577,6 +1642,28 @@ mod tests {
                 arrival_evidence_id: "arrival-fast".into(),
                 evidence_ids: vec!["vessel-capability".into(), "vessel-performance".into()],
                 route_segment_ids: route_segment_ids.clone(),
+                operation_timings: vec![
+                    SegmentOperationTiming {
+                        segment_id: "channel-01".into(),
+                        duration_ticks: 2,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "lock-01".into(),
+                        duration_ticks: 2,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "approach-01".into(),
+                        duration_ticks: 1,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "turnaround-01".into(),
+                        duration_ticks: 10,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "rail-01".into(),
+                        duration_ticks: 5,
+                    },
+                ],
                 energy: EnergyLedger {
                     propulsion_wh: 1_800,
                     auxiliary_wh: 200,
@@ -1596,6 +1683,28 @@ mod tests {
                 arrival_evidence_id: "arrival-slow".into(),
                 evidence_ids: vec!["vessel-capability".into(), "vessel-performance".into()],
                 route_segment_ids: route_segment_ids.clone(),
+                operation_timings: vec![
+                    SegmentOperationTiming {
+                        segment_id: "channel-01".into(),
+                        duration_ticks: 2,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "lock-01".into(),
+                        duration_ticks: 2,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "approach-01".into(),
+                        duration_ticks: 1,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "turnaround-01".into(),
+                        duration_ticks: 10,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "rail-01".into(),
+                        duration_ticks: 5,
+                    },
+                ],
                 energy: EnergyLedger {
                     propulsion_wh: 1_300,
                     auxiliary_wh: 200,
