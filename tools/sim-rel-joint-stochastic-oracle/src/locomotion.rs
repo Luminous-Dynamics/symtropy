@@ -658,6 +658,17 @@ fn source_supports_claim(source: &SourceManifest, claim: ClaimCeiling) -> bool {
     }
 }
 
+fn non_target_leg_mechanics_unchanged(
+    current: &PhysicalState,
+    next: &PhysicalState,
+    target_leg: LegId,
+) -> bool {
+    LegId::ALL
+        .into_iter()
+        .filter(|leg| *leg != target_leg)
+        .all(|leg| current.legs[leg.index()] == next.legs[leg.index()])
+}
+
 fn sensor_state_semantic_id(sensor: &SensorState) -> String {
     format!(
         "p{:?}-m{:?}-v{:?}-c{:?}-a{:?}-i{:?}",
@@ -734,12 +745,15 @@ fn validate_action_transition_semantics(
                 next_sensor.position_afferent,
                 ChannelState::Gated | ChannelState::Attenuated
             );
-            (!perturbed || !preserve_non_target_channels(true, false, false))
+            (!perturbed
+                || !preserve_non_target_channels(true, false, false)
+                || current_physical != next_physical)
                 .then_some("position perturbation must affect the position channel only")
         }
         InterventionKind::MovementAfferentGate => {
             (next_sensor.movement_afferent != ChannelState::Gated
-                || !preserve_non_target_channels(false, true, false))
+                || !preserve_non_target_channels(false, true, false)
+                || current_physical != next_physical)
             .then_some("movement gate must gate movement feedback only")
         }
         InterventionKind::VibrationAfferentPerturbation => {
@@ -747,7 +761,9 @@ fn validate_action_transition_semantics(
                 next_sensor.vibration_afferent,
                 ChannelState::Gated | ChannelState::Attenuated
             );
-            (!perturbed || !preserve_non_target_channels(false, false, true))
+            (!perturbed
+                || !preserve_non_target_channels(false, false, true)
+                || current_physical != next_physical)
                 .then_some("vibration perturbation must affect the vibration channel only")
         }
         InterventionKind::AcquisitionReferenceCalibration => {
@@ -759,17 +775,36 @@ fn validate_action_transition_semantics(
                 )
         }
         InterventionKind::ContactLoadPerturbation => {
-            (!sensor_channels_unchanged(current_sensor, next_sensor)
-                || (current_physical.load_state == next_physical.load_state
-                    && current_physical.contact_state == next_physical.contact_state))
+            let only_target_leg_changed = action.target_leg.is_some_and(|leg| {
+                current_physical.legs[leg.index()] != next_physical.legs[leg.index()]
+                    && non_target_leg_mechanics_unchanged(
+                        current_physical,
+                        next_physical,
+                        leg,
+                    )
+            });
+            (!only_target_leg_changed
+                || current_physical.behavioral_context != next_physical.behavioral_context
+                || current_physical.gait_phase != next_physical.gait_phase
+                || current_physical.contact_state != next_physical.contact_state
+                || current_physical.load_state != next_physical.load_state
+                || current_physical.carryover != next_physical.carryover
+                || !sensor_channels_unchanged(current_sensor, next_sensor))
             .then_some(
-                "contact/load perturbation must change contact or load without changing sensor state",
+                "contact/load perturbation must change only its target leg mechanics, preserve global context and all other legs, and leave sensor state unchanged",
             )
         }
         InterventionKind::Washout => {
             (next_physical.carryover != PhysicalCarryover::Baseline
+                || current_physical.behavioral_context != next_physical.behavioral_context
+                || current_physical.gait_phase != next_physical.gait_phase
+                || current_physical.contact_state != next_physical.contact_state
+                || current_physical.load_state != next_physical.load_state
+                || current_physical.legs != next_physical.legs
                 || !sensor_channels_unchanged(current_sensor, next_sensor))
-            .then_some("washout must clear physical carryover while preserving sensor state")
+            .then_some(
+                "washout must clear physical carryover while preserving leg mechanics, behavioral context and sensor state",
+            )
         }
         InterventionKind::ActiveMovementProbe => {
             let expected = match current_physical.behavioral_context {
@@ -783,6 +818,7 @@ fn validate_action_transition_semantics(
                     && presynaptic_legs_except_unchanged(current_sensor, next_sensor, leg)
             });
             (!target_matches
+                || current_physical != next_physical
                 || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
                 || current_sensor.acquisition != next_sensor.acquisition)
             .then_some(
@@ -796,6 +832,7 @@ fn validate_action_transition_semantics(
                     && presynaptic_legs_except_unchanged(current_sensor, next_sensor, leg)
             });
             (!target_is_disinhibited
+                || current_physical != next_physical
                 || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
                 || current_sensor.acquisition != next_sensor.acquisition)
             .then_some(
@@ -809,6 +846,7 @@ fn validate_action_transition_semantics(
                     && presynaptic_legs_except_unchanged(current_sensor, next_sensor, leg)
             });
             (!target_matches
+                || current_physical != next_physical
                 || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
                 || current_sensor.acquisition != next_sensor.acquisition)
             .then_some(
