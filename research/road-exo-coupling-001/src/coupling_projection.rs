@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::StableId;
 use super::correspondence::{
-    CandidateUniverseStatus, CorrespondenceDisposition, CorrespondenceError, CorrespondenceSet,
+    CorrespondenceDisposition, CorrespondenceError, CorrespondenceSet,
     EventOccurrence, EventPair, EventPresence, IdentityBasis, UnmatchedReason,
 };
 
@@ -163,8 +163,8 @@ pub fn project_correspondence_addresses(
                 .get(&PairKey::from_pair(pair))
                 .ok_or(ProjectionError::MissingPairCausalRule)?;
 
-            let presence_unknown = matches!(left_event.presence, EventPresence::Unknown { .. })
-                || matches!(right_event.presence, EventPresence::Unknown { .. });
+            let presence_unknown = matches!(&left_event.presence, EventPresence::Unknown { .. })
+                || matches!(&right_event.presence, EventPresence::Unknown { .. });
 
             if presence_unknown {
                 addresses.push(local_address(
