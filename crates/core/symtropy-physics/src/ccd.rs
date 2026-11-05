@@ -156,7 +156,6 @@ pub fn sphere_sphere<const D: usize>(
 /// Solve for the earliest t where the sphere center reaches one radius
 /// from the plane. The plane is `n · x = offset`; both are normalized by
 /// `|n|`, so radius and time remain in world units even for non-unit normals.
-
 pub fn sphere_halfspace<const D: usize>(
     pos: &SVector<f64, D>,
     vel: &SVector<f64, D>,
