@@ -76,16 +76,19 @@ The 16 mutation cases cover byte changes, digest changes, event reordering/remov
 
 ## Verification boundaries
 
-A production verifier must:
-1. validate the closed schema;
-2. strictly decode base64 and recompute payload SHA-256;
-3. enforce capture sequence and connection/session rules;
-4. recompute event digests and the root digest using RFC 8785;
-5. compare the root with an independently stored/signature-bound anchor when one exists;
-6. leave completeness unknown unless separately supported by recorder and broker boundary evidence;
-7. return typed outcomes (valid_integrity_with_unknown_completeness, valid_integrity_with_known_incompleteness, anchored_integrity_valid, rejected) rather than a single misleading PASS.
+The standalone Rust verifier is in `verifier/`. It uses a pinned Cargo.lock and exposes both a library API and an offline CLI:
 
-The GitHub workflow currently validates both schemas, the fixture's exact payload/event/root digest chain, and 17 executable positive/adversarial mutations with a small pinned CI-only Python check. One negative control deliberately recomputes every digest after changing a payload: the internally consistent rewrite remains valid but is explicitly unanchored and unauthenticated. This is not production code; a dependency-policy-compliant Rust verifier and independent implementation comparison are follow-on work under #3707.
+```sh
+cargo test --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked
+cargo run --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked -- verify research/construction-robot-sealed-trace-v0-1/fixtures/trace-synthetic-vda-001.json
+cargo run --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked -- verify TRACE.json --expected-root TRUSTED_ROOT_SHA256
+```
+
+The expected root must be obtained independently (for example from a detached signature or separate receipt channel); copying the root from the same trace is not an anchor. The verifier rejects duplicate JSON keys before conversion to a JSON value, checks exact object keys, decodes base64 strictly, recomputes payload SHA-256, verifies sequence/session metadata and previous-event links, checks annotation references, recomputes event and root digests, and distinguishes integrity from completeness and external anchoring.
+
+The v0.1 canonicalization profile uses RFC 8785 JSON Canonicalization Scheme rules over an explicitly restricted I-JSON subset: object keys are ordered by UTF-16 code units, strings are serialized without normalization, and only safe integers (absolute value no greater than 2^53-1) are accepted. Floating-point values and larger integers are rejected, not silently rounded. This restriction is reflected in the schema/README and should be versioned rather than relaxed implicitly.
+
+The Rust CLI has 11 focused unit tests, including duplicate-key rejection, digest tampering, externally supplied anchors, Unicode key ordering, unsafe-number rejection, evidence-dependent completeness/redaction checks and the fully recomputed-but-unanchored rewrite negative control. The CI-only Python harness continues to test the frozen 17-case mutation corpus independently. The focused workflow now runs locked Rust metadata, formatting, tests, strict Clippy and fixture verification on Ubuntu, Windows and macOS, in addition to JSON Schema and mutation checks. These remain synthetic/software tests; the independent second implementation and real broker capture are separate plugfest gates.
 
 ## Non-duplication
 
