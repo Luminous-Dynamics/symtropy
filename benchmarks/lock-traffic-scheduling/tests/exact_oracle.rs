@@ -96,6 +96,7 @@ fn evaluate_order(
         if request.compatibility.disposition != PassageDisposition::EligibleForSyntheticPassage
             || request.lock_id != profile.lock_id
             || request.lock_revision != profile.lock_revision
+            || request.service_unit_label != profile.service_unit_label
             || request.service_duration_ticks == 0
             || !arrival_evidence_is_eligible(profile, request)
             || request.arrival_earliest_tick > request.arrival_latest_tick
@@ -282,6 +283,7 @@ fn request(
         lock_revision: "rev-01".into(),
         participant_id: format!("participant-{id}"),
         service_group: "freight".into(),
+        service_unit_label: "tonne".into(),
         direction: Direction::Upstream,
         arrival_earliest_tick: 0,
         arrival_latest_tick: 0,
