@@ -2767,6 +2767,6 @@ mod tests {
         );
         }
 
-    #[path = "tests/exact_oracle.rs"]
+    #[path = "exact_oracle.rs"]
     mod exact_oracle;
 }
