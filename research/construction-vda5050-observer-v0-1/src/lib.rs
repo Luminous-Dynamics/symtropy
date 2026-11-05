@@ -486,7 +486,8 @@ fn parse_order(root: &Map<String, Value>) -> Result<Observation, ObserverError> 
     let order_update_id = unsigned(field(root, "orderUpdateId")?, "orderUpdateId")?;
     let nodes = parse_route_nodes(as_array(field(root, "nodes")?, "nodes")?)?;
     let edges = parse_route_edges(as_array(field(root, "edges")?, "edges")?)?;
-    let action_count = count_order_actions(root)?;
+    validate_order_edges(field(root, "edges")?)?;
+    let action_count = validate_and_count_order_actions(root)?;
     Ok(Observation::TransportOrderReceived {
         order_id,
         order_update_id,
@@ -513,8 +514,21 @@ fn parse_state(root: &Map<String, Value>) -> Result<Observation, ObserverError> 
     let operating_mode =
         non_empty_string(field(root, "operatingMode")?, "operatingMode")?.to_owned();
     let errors = as_array(field(root, "errors")?, "errors")?;
-    as_object(field(root, "powerSupply")?, "powerSupply")?;
+    let power_supply = as_object(field(root, "powerSupply")?, "powerSupply")?;
+    let state_of_charge = number(field(power_supply, "stateOfCharge")?, "powerSupply.stateOfCharge")?;
+    if !(0.0..=100.0).contains(&state_of_charge) {
+        return shape("powerSupply.stateOfCharge must be in the range 0 to 100");
+    }
+    boolean(field(power_supply, "charging")?, "powerSupply.charging")?;
     let safety_state = as_object(field(root, "safetyState")?, "safetyState")?;
+    let active_emergency_stop = non_empty_string(
+        field(safety_state, "activeEmergencyStop")?,
+        "safetyState.activeEmergencyStop",
+    )?;
+    if !["MANUAL", "REMOTE", "NONE"].contains(&active_emergency_stop) {
+        return shape("safetyState.activeEmergencyStop is outside the VDA 5050 v3.0.0 enumeration");
+    }
+    boolean(field(safety_state, "fieldViolation")?, "safetyState.fieldViolation")?;
     let zone_requests = match root.get("zoneRequests") {
         Some(value) => parse_zone_requests(as_array(value, "zoneRequests")?)?,
         None => Vec::new(),
@@ -547,18 +561,31 @@ fn parse_factsheet(
     payload: &[u8],
 ) -> Result<Observation, ObserverError> {
     let type_specification = as_object(field(root, "typeSpecification")?, "typeSpecification")?;
-    if type_specification.is_empty() {
-        return shape("typeSpecification must not be empty");
-    }
+    non_empty_string(field(type_specification, "seriesName")?, "typeSpecification.seriesName")?;
+    non_empty_string(field(type_specification, "mobileRobotKinematic")?, "typeSpecification.mobileRobotKinematic")?;
+    non_empty_string(field(type_specification, "mobileRobotClass")?, "typeSpecification.mobileRobotClass")?;
+    number(field(type_specification, "maximumLoadMass")?, "typeSpecification.maximumLoadMass")?;
+    as_array(field(type_specification, "localizationTypes")?, "typeSpecification.localizationTypes")?;
+    as_array(field(type_specification, "navigationTypes")?, "typeSpecification.navigationTypes")?;
+
+    let physical = as_object(field(root, "physicalParameters")?, "physicalParameters")?;
     for key in [
-        "physicalParameters",
-        "protocolLimits",
-        "protocolFeatures",
-        "mobileRobotGeometry",
-        "loadSpecification",
+        "minimumSpeed", "maximumSpeed", "maximumAcceleration", "maximumDeceleration",
+        "minimumHeight", "maximumHeight", "width", "length",
     ] {
-        as_object(field(root, key)?, key)?;
+        number(field(physical, key)?, &format!("physicalParameters.{key}"))?;
     }
+    let limits = as_object(field(root, "protocolLimits")?, "protocolLimits")?;
+    as_object(field(limits, "maximumStringLengths")?, "protocolLimits.maximumStringLengths")?;
+    as_object(field(limits, "maximumArrayLengths")?, "protocolLimits.maximumArrayLengths")?;
+    let timing = as_object(field(limits, "timing")?, "protocolLimits.timing")?;
+    number(field(timing, "minimumOrderInterval")?, "timing.minimumOrderInterval")?;
+    number(field(timing, "minimumStateInterval")?, "timing.minimumStateInterval")?;
+    let features = as_object(field(root, "protocolFeatures")?, "protocolFeatures")?;
+    as_array(field(features, "optionalParameters")?, "protocolFeatures.optionalParameters")?;
+    as_array(field(features, "mobileRobotActions")?, "protocolFeatures.mobileRobotActions")?;
+    as_object(field(root, "mobileRobotGeometry")?, "mobileRobotGeometry")?;
+    as_object(field(root, "loadSpecification")?, "loadSpecification")?;
     Ok(Observation::FactsheetCapabilityClaimReported {
         capability_payload_sha256: sha256_hex(payload),
         type_specification_present: true,
@@ -763,14 +790,31 @@ fn parse_navigation_maps(values: &[Value]) -> Result<Vec<NavigationMapObservatio
     Ok(result)
 }
 
-fn count_order_actions(root: &Map<String, Value>) -> Result<usize, ObserverError> {
+fn validate_order_edges(value: &Value) -> Result<(), ObserverError> {
+    for edge in as_array(value, "edges")? {
+        let edge = as_object(edge, "edges[]")?;
+        non_empty_string(field(edge, "startNodeId")?, "edge.startNodeId")?;
+        non_empty_string(field(edge, "endNodeId")?, "edge.endNodeId")?;
+    }
+    Ok(())
+}
+
+fn validate_and_count_order_actions(root: &Map<String, Value>) -> Result<usize, ObserverError> {
     let mut count = 0usize;
     for list_name in ["nodes", "edges"] {
         for value in as_array(field(root, list_name)?, list_name)? {
             let object = as_object(value, list_name)?;
-            if let Some(actions) = object.get("actions") {
-                count = count.saturating_add(as_array(actions, "actions")?.len());
+            let actions = as_array(field(object, "actions")?, "actions")?;
+            for action in actions {
+                let action = as_object(action, "actions[]")?;
+                non_empty_string(field(action, "actionId")?, "action.actionId")?;
+                non_empty_string(field(action, "actionType")?, "action.actionType")?;
+                let blocking_type = non_empty_string(field(action, "blockingType")?, "action.blockingType")?;
+                if !["NONE", "SOFT", "SINGLE", "HARD"].contains(&blocking_type) {
+                    return shape("action.blockingType is outside the VDA 5050 v3.0.0 enumeration");
+                }
             }
+            count = count.saturating_add(actions.len());
         }
     }
     Ok(count)
