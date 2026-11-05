@@ -81,6 +81,8 @@ Run every method on the same frozen priors, joint likelihoods, source manifests,
 
 Do not treat a FlyGym controller as a BED algorithm. FlyGym/NeuroMechFly is the embodied physics/controller baseline, not a substitute for an experimental-design method. The algorithmic and embodied tracks must report separate results.
 
+A contact/load condition is not a generic mechanical reset. Under the LOCO-SIM-REL-001 action contract, it may alter only the declared target leg's contact and/or load variables. Gait phase, joint position, joint velocity and actuator force on that leg are held fixed; all other legs, global context, carryover and sensor/acquisition state are held fixed. A separate actuator, kinematic or perturbation action is required to change those variables.
+
 ## 4. Embodied locomotion baseline
 
 Use a pinned FlyGym/NeuroMechFly version (initial candidate: 2.1.1) and compare under matched morphology, contact solver, timestep, sensor streams, actuation limits, control rate, observation budget, physics fidelity, compute hardware and training/calibration budget.
@@ -115,6 +117,8 @@ FlyGym already supports mechanosensory feedback and exposes joint/contact/actuat
 - Duplicate sample IDs accepted: target 0.
 - Assignment/delivery mismatch accepted as a valid causal trial: target 0.
 - Non-target physical or acquisition changes under a modality-specific control: target 0.
+- Contact/load actions that also alter target-leg gait phase, joint position, joint velocity or actuator force: target 0.
+- Contact/load actions that alter any non-target leg or global behavioural context: target 0.
 - Non-target leg mechanical-state changes under a one-leg intervention: target 0.
 - Per-leg joint/contact/force prediction error and calibration, reported separately from whole-body gait outcome.
 
