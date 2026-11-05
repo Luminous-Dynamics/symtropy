@@ -6,7 +6,6 @@
   "serialNumber": "R-01",
   "typeSpecification": {
     "seriesName": "ACME",
-    "mobileRobotKinematic": "DIFF",
     "mobileRobotClass": "CARRIER",
     "maximumLoadMass": 100,
     "localizationTypes": [
@@ -14,7 +13,8 @@
     ],
     "navigationTypes": [
       "AUTONOMOUS"
-    ]
+    ],
+    "mobileRobotKinematics": "DIFFERENTIAL"
   },
   "physicalParameters": {
     "minimumSpeed": 0,
