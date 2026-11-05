@@ -70,6 +70,31 @@
       "id": "EH-14",
       "case": "simulator outcome presented as empirical decision evidence",
       "expected": "impossible in adapter; fixed FormalConformanceOnly class"
+    },
+    {
+      "id": "EH-15",
+      "case": "two branches with distinct correspondence bundles",
+      "expected": "export both branches without cross-branch receipt aliasing"
+    },
+    {
+      "id": "EH-16",
+      "case": "one branch censored while another is complete",
+      "expected": "preserve both and set complete independently per branch"
+    },
+    {
+      "id": "EH-17",
+      "case": "reordered source collections",
+      "expected": "same canonical episode JSON and episode root"
+    },
+    {
+      "id": "EH-18",
+      "case": "source episode schema identity substitution",
+      "expected": "episode root changes and external anchor rejects"
+    },
+    {
+      "id": "EH-19",
+      "case": "duplicate branch identity",
+      "expected": "reject"
     }
   ],
   "claim_ceiling": "Finite adapter conformance only; no reciprocal simulator, human behaviour, empirical support, physical validity, safety or L4/L5 claim."
