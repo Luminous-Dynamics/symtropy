@@ -383,9 +383,7 @@ pub struct ChronologicalAdequacyScenarioReceipt {
     pub augmented_loss_of_load_periods: u32,
     pub augmented_loss_of_load_hours: f64,
     pub augmented_unserved_energy_mwh: f64,
-    pub augmented_unserved_energy_cvar_mwh: Option<f64>,
-    pub augmented_shortfall_power_cvar_kw: Option<f64>,
-    pub augmented_loss_of_load_periods: f64,
+    pub augmented_maximum_shortfall_kw: f64,
     pub augmented_gross_reduction_energy_mwh: f64,
     pub augmented_rebound_energy_mwh: f64,
 }
@@ -416,6 +414,8 @@ pub struct ChronologicalAdequacyReport {
     pub augmented_loss_of_load_periods: f64,
     pub augmented_loss_of_load_hours: f64,
     pub augmented_unserved_energy_mwh: f64,
+    pub augmented_unserved_energy_cvar_mwh: Option<f64>,
+    pub augmented_shortfall_power_cvar_kw: Option<f64>,
     pub augmented_maximum_shortfall_kw: f64,
     pub augmented_gross_reduction_energy_mwh: f64,
     pub augmented_rebound_energy_mwh: f64,
@@ -434,7 +434,7 @@ pub struct ChronologicalAdequacyReport {
     pub scenario_receipts: Vec<ChronologicalAdequacyScenarioReceipt>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq)]
 struct ScenarioMetrics {
     loss_of_load_events: u32,
     loss_of_load_days: u32,
