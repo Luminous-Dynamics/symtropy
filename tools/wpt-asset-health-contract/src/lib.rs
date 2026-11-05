@@ -30,7 +30,13 @@ fn matches_type(value: &Value, expected: &str) -> bool {
         "array" => value.is_array(),
         "string" => value.is_string(),
         "number" => value.is_number(),
-        "integer" => value.as_i64().is_some() || value.as_u64().is_some(),
+        "integer" => {
+            value.as_i64().is_some()
+                || value.as_u64().is_some()
+                || value
+                    .as_f64()
+                    .is_some_and(|number| number.is_finite() && number.fract() == 0.0)
+        },
         "boolean" => value.is_boolean(),
         "null" => value.is_null(),
         _ => false,
@@ -561,6 +567,42 @@ pub fn validate_lifecycle_outcomes(
         if evidence_kind != "SYNTHETIC_KNOWN_TRUTH" && has_flag("SYNTHETIC_ONLY") {
             return Err(fail(&path, "SYNTHETIC_ONLY cannot be attached to non-synthetic evidence"));
         }
+        let source_records = object_field(record, "source_record_ids", &path)?
+            .as_array()
+            .ok_or_else(|| fail(&path, "source_record_ids must be an array"))?;
+        match evidence_kind {
+            "MEASURED" => {
+                if source_records.is_empty() {
+                    return Err(fail(
+                        &path,
+                        "measured lifecycle outcomes require source_record_ids",
+                    ));
+                }
+                if object_field(record, "raw_artifact_sha256", &path)?.is_null() {
+                    return Err(fail(
+                        &path,
+                        "measured lifecycle outcomes require a raw artifact digest",
+                    ));
+                }
+            }
+            "PUBLISHED_MEASURED" => {
+                if source_records.is_empty() {
+                    return Err(fail(
+                        &path,
+                        "published-measured lifecycle outcomes require source_record_ids",
+                    ));
+                }
+                let locator = object_field(record, "source_locator", &path)?;
+                if locator.as_str().is_none_or(|value| value.trim().is_empty()) {
+                    return Err(fail(
+                        &path,
+                        "published-measured lifecycle outcomes require a source locator",
+                    ));
+                }
+            }
+            "SIMULATED" | "INFERRED" | "SYNTHETIC_KNOWN_TRUTH" => {}
+            _ => return Err(fail(&path, "unknown lifecycle evidence_kind")),
+        }
 
         let split = string_field(record, "split", &path)?.to_string();
         for group_key in [
@@ -614,6 +656,39 @@ pub fn bundled_fixtures() -> Result<(Value, Value, Value), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn json_schema_integer_type_accepts_integral_float_values() {
+        assert!(matches_type(&Value::Null, "null"));
+        assert!(matches_type(&Value::from(1.0), "integer"));
+        assert!(!matches_type(&Value::from(1.5), "integer"));
+    }
+
+    #[test]
+    fn measured_lifecycle_outcome_requires_raw_source_evidence() {
+        let (schema, mut dataset) = bundled_lifecycle_fixtures().unwrap();
+        dataset["records"][0]["evidence_kind"] = Value::String("MEASURED".into());
+        dataset["records"][0]["quality_flags"] = Value::Array(vec![]);
+        dataset["records"][0]["raw_artifact_sha256"] = Value::Null;
+        assert!(
+            validate_lifecycle_outcomes(&schema, &dataset)
+                .unwrap_err()
+                .contains("require a raw artifact digest")
+        );
+    }
+
+    #[test]
+    fn published_lifecycle_outcome_requires_source_locator() {
+        let (schema, mut dataset) = bundled_lifecycle_fixtures().unwrap();
+        dataset["records"][0]["evidence_kind"] = Value::String("PUBLISHED_MEASURED".into());
+        dataset["records"][0]["quality_flags"] = Value::Array(vec![]);
+        dataset["records"][0]["source_locator"] = Value::Null;
+        assert!(
+            validate_lifecycle_outcomes(&schema, &dataset)
+                .unwrap_err()
+                .contains("require a source locator")
+        );
+    }
 
     #[test]
     fn lifecycle_fixture_keeps_failure_censoring_and_competing_risk_distinct() {
