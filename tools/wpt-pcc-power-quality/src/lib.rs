@@ -584,6 +584,44 @@ mod tests {
     }
 
     #[test]
+    fn iec_61000_3_12_16a_boundary_is_not_applicable() {
+        let mut run = fixture();
+        run["profile"]["standard_id"] = Value::String("IEC_61000_3_12_2011_AMD1_2021".into());
+        run["profile"]["edition"] = Value::String("IEC 61000-3-12:2011+AMD1:2021".into());
+        run["profile"]["standard_role"] = Value::String("PRODUCT_EMISSION_LIMITS".into());
+        run["profile"]["assessment_boundary"] = Value::String("EQUIPMENT_TERMINAL".into());
+        run["profile"]["rated_input_current_a_per_phase"] = Value::from(16.0);
+        run["profile"]["pcc"] = Value::Null;
+        run["measurement"]["measurement_standard_id"] = Value::String("IEC_61000_4_7_2002_AMD1_2008".into());
+        run["measurement"]["measurement_edition"] = Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
+        run["measurement"]["measurement_class"] = Value::String("EQUIPMENT_TEST".into());
+        let report = evaluate_run(&run).unwrap();
+        assert_eq!(report.applicability, ProfileApplicability::NotApplicable);
+    }
+
+    #[test]
+    fn rejects_pcc_measurement_method_edition_mismatch() {
+        let mut run = fixture();
+        run["measurement"]["measurement_edition"] = Value::String("IEC 61000-4-30:2015".into());
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("requires IEC 61000-4-30:2025 COR1:2026")
+        );
+    }
+
+    #[test]
+    fn rejects_unsorted_harmonic_orders() {
+        let mut run = fixture();
+        run["current_spectrum"]["harmonics"].as_array_mut().unwrap().swap(0, 1);
+        assert!(
+            evaluate_run(&run)
+                .unwrap_err()
+                .contains("strictly increasing")
+        );
+    }
+
+    #[test]
     fn tdd_rejects_zero_or_non_finite_reference_current() {
         assert!(tdd_percent(&[1.0, 2.0], 0.0).is_err());
         assert!(tdd_percent(&[1.0], f64::NAN).is_err());
