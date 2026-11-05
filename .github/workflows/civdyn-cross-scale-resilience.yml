@@ -163,11 +163,13 @@ jobs:
 
           repeat_service = [
               float(row["repeat_shock_unmet_water_m3"])
-              for row in ticks if row["path"] == "service_only"
+              for row in ticks
+              if row["path"] == "service_only" and row["phase"] == "repeat_shock"
           ]
           repeat_rebuild = [
               float(row["repeat_shock_unmet_water_m3"])
-              for row in ticks if row["path"] == "capital_rebuilding"
+              for row in ticks
+              if row["path"] == "capital_rebuilding" and row["phase"] == "repeat_shock"
           ]
           assert abs(sum(repeat_service) - 50.0) < 1e-12
           assert abs(sum(repeat_rebuild) - 0.0) < 1e-12
