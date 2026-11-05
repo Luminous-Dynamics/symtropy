@@ -1,7 +1,7 @@
 # Chronological Adequacy and ELCC-Like Evaluation for Flexible Data Centres
 
 **Protocol:** GRID-SYSTEM-ELCC-001  
-**Version:** 0.2  
+**Version:** 0.3  
 **Status:** single-zone chronological prototype; not production system accreditation
 
 ## 1. Objective and paradigm shift
