@@ -35,7 +35,9 @@ fn summary_row(outcome: &RecoveryCapitalOutcome) {
         fmt(outcome.reserve_at_service_recovery_m3),
         fmt(outcome.reserve_replenishment_m3),
         fmt(outcome.reserve_recovery_ratio),
-        outcome.service_recovery_after_ticks.map_or_else(String::new, |v| v.to_string()),
+        outcome
+            .service_recovery_after_ticks
+            .map_or_else(String::new, |v| v.to_string()),
         String::new(),
         String::new(),
         fmt(outcome.final_reserve_m3),
@@ -83,7 +85,9 @@ fn main() {
     println!(
         "record_type,path,phase,tick,first_shock_unmet_water_m3,recovery_unmet_water_m3,repeat_shock_unmet_water_m3,reserve_after_first_shock_m3,reserve_at_service_recovery_m3,reserve_replenishment_m3,reserve_recovery_ratio,service_recovery_after_ticks,household_a_coverage,household_b_coverage,basin_reserve_m3,max_conservation_residual_m3"
     );
-    for outcome in run_recovery_capital_portfolio().expect("recovery capital fixtures must validate") {
+    for outcome in
+        run_recovery_capital_portfolio().expect("recovery capital fixtures must validate")
+    {
         summary_row(&outcome);
         for tick in &outcome.ticks {
             tick_row(outcome.path, tick);
