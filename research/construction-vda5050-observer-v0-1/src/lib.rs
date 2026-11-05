@@ -1183,7 +1183,8 @@ mod tests {
         );
         match decoded.observation {
             Observation::RobotStateReported {
-                ref navigation_maps, ..
+                ref navigation_maps,
+                ..
             } => {
                 assert_eq!(navigation_maps[0].map_version, "map-17");
                 assert_eq!(navigation_maps[0].map_status, "ENABLED");
