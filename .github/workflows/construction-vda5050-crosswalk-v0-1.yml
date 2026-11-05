@@ -65,7 +65,7 @@ jobs:
           Draft202012Validator(fixture_schema).validate(fixtures)
 
           rust = (root / "src/lib.rs").read_text()
-          rust_fields = re.findall(r'canonical_field:\\s*"([^"]+)"', rust)
+          rust_fields = re.findall(r'canonical_field: "([^"]+)"', rust)
           profile_fields = [row["canonical_field"] for row in profile["mappings"]]
           assert rust_fields == profile_fields, "Rust mapping order/content differs from profile"
           assert len(profile_fields) == len(set(profile_fields)), "duplicate canonical field in profile"
