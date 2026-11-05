@@ -98,7 +98,7 @@ fn trace(success: bool) -> CollaborationTrace {
             ActionRecord {
                 action_id: "craft".into(),
                 agent_id: "smith".into(),
-                sequence: 5,
+                sequence: 6,
                 round: 3,
                 kind: ActionKind::EnvironmentAction,
                 fingerprint: Some("craft-vanguard".into()),
@@ -107,7 +107,7 @@ fn trace(success: bool) -> CollaborationTrace {
             ActionRecord {
                 action_id: "hint".into(),
                 agent_id: "wizard".into(),
-                sequence: 6,
+                sequence: 5,
                 round: 3,
                 kind: ActionKind::Communication,
                 fingerprint: None,
