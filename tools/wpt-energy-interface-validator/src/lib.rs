@@ -244,7 +244,9 @@ fn energization_gate(record: &Value) -> Result<(), String> {
         .get("source")
         .ok_or_else(|| "missing source".to_owned())?;
     let source_maximum = finite_field(source, "maximum_input_power_w", "source")?;
-    let profile = service.get("power_profile").and_then(Value::as_array)
+    let profile = service
+        .get("power_profile")
+        .and_then(Value::as_array)
         .ok_or_else(|| "missing service power profile".to_owned())?;
     for point in profile {
         let requested = finite_field(point, "requested_input_power_w", "service.power_profile")?;
@@ -343,7 +345,9 @@ fn evaluate_checked(record: &Value, validator: &mut SessionValidator) -> Result<
     match (&prior, previous_digest) {
         (None, Value::Null) if sequence == 0 => {}
         (None, _) => {
-            return Err("first session event must use sequence 0 and a null previous digest".into());
+            return Err(
+                "first session event must use sequence 0 and a null previous digest".into(),
+            );
         }
         (Some(previous), Value::String(digest))
             if previous.sequence.checked_add(1) == Some(sequence)
@@ -396,8 +400,8 @@ fn evaluate_checked(record: &Value, validator: &mut SessionValidator) -> Result<
         }
         "ABORT" => {
             let safety = record
-        .get("safety")
-        .ok_or_else(|| "missing safety".to_owned())?;
+                .get("safety")
+                .ok_or_else(|| "missing safety".to_owned())?;
             if matches!(prior_state, Some("ENERGIZED") | Some("RAMPING_DOWN"))
                 && !bool_field(safety, "safe_state_confirmed", "safety")?
             {
@@ -480,7 +484,10 @@ mod tests {
             );
             records += 1;
         }
-        assert!(records >= 60, "the frozen corpus must cover full sessions, not isolated schema objects");
+        assert!(
+            records >= 60,
+            "the frozen corpus must cover full sessions, not isolated schema objects"
+        );
     }
 
     #[test]
