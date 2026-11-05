@@ -577,7 +577,7 @@ mod tests {
     fn tolerance_is_applied_to_scale_aware_residual() {
         let input = complete_input(
             0.0,
-            1000.0,
+            1000.5,
             BoundaryEnergyFlows {
                 work_in_j: Joules::new(1000.4995),
                 ..BoundaryEnergyFlows::default()
