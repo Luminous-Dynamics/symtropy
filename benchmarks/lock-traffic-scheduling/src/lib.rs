@@ -1200,7 +1200,6 @@ mod tests {
         );
         assert_eq!(plan.metrics.by_participant["participant-a"].service_units, 20);
         assert_eq!(plan.metrics.by_participant["participant-b"].service_units, 10);
-        assert_eq!(plan.metrics.by_participant["participant-b"].service_units, 10);
     }
 
     #[test]
