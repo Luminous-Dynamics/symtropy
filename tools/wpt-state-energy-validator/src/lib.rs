@@ -630,6 +630,8 @@ mod tests {
 
     const SHA: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
+    // This test fixture mirrors four independent physical value/uncertainty pairs.
+    #[expect(clippy::too_many_arguments, reason = "keeps the fixture's physical input pairs explicit")]
     fn record(
         id: &str,
         l: Value,
@@ -644,8 +646,8 @@ mod tests {
         json!({
             "schema_version":"1.0.0", "record_id":id, "mode_id":"LCC_S", "topology_sha256":SHA,
             "model_class":"LINEAR_RECIPROCAL_QUASI_STATIC",
-            "inductance":{"matrix_unit":"H","matrix_h":l,"abs_uncertainty_h":lu,"state_unit":"A","current_a":i,"current_abs_uncertainty_a":iu},
-            "capacitance":{"matrix_unit":"F","matrix_f":c,"abs_uncertainty_f":cu,"state_unit":"V","voltage_v":v,"voltage_abs_uncertainty_v":vu}
+            "inductance":{"matrix_unit":"H","matrix_h":l,"abs_uncertainty_h":lu,"state_unit":"A","current_a":i,"current_abs_uncertainty_a":iu,"matrix_basis_sha256":SHA,"state_basis_sha256":SHA,"matrix_receipt_sha256":SHA,"state_receipt_sha256":SHA,"calibration_receipt_sha256":SHA},
+            "capacitance":{"matrix_unit":"F","matrix_f":c,"abs_uncertainty_f":cu,"state_unit":"V","voltage_v":v,"voltage_abs_uncertainty_v":vu,"matrix_basis_sha256":SHA,"state_basis_sha256":SHA,"matrix_receipt_sha256":SHA,"state_receipt_sha256":SHA,"calibration_receipt_sha256":SHA}
         })
     }
 
