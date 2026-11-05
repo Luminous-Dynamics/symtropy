@@ -443,8 +443,16 @@ impl TrajectoryRecordingManifest {
                     variable_id: variable.id.clone(),
                 });
             }
+            let mut variable_sources = BTreeSet::new();
             let mut source_support = false;
             for source_id in &variable.source_manifest_ids {
+                nonempty(source_id, "variable_source_manifest_id")?;
+                if !variable_sources.insert(source_id.clone()) {
+                    return Err(TrajectoryError::DuplicateIdentifier {
+                        kind: "variable_source_manifest_id",
+                        id: source_id.clone(),
+                    });
+                }
                 let source = manifest
                     .source_manifests
                     .iter()
@@ -596,7 +604,7 @@ impl CompiledTrajectoryRecordingManifest {
         match source.evidence_class {
             EvidenceClass::SyntheticFixture | EvidenceClass::InSilicoGenerated => {
                 if !matches!(
-                    receipt.replication_unit,
+                    &receipt.replication_unit,
                     ReplicationUnit::SimulationInstance(_)
                 ) {
                     return Err(TrajectoryError::ReplicationUnitEvidenceMismatch);
@@ -605,11 +613,19 @@ impl CompiledTrajectoryRecordingManifest {
                     .simulator_profile
                     .as_ref()
                     .ok_or(TrajectoryError::MissingSimulatorProfile)?;
+                if !profile
+                    .simulator_source_manifest_ids
+                    .contains(&receipt.source_manifest_id)
+                {
+                    return Err(TrajectoryError::InvalidSimulatorProfile(
+                        "simulator profile does not bind the trajectory data source",
+                    ));
+                }
                 validate_simulator_profile(profile, &self.manifest.source_manifests)?;
             }
             EvidenceClass::PreprintMeasured | EvidenceClass::PeerReviewedMeasured => {
                 if !matches!(
-                    receipt.replication_unit,
+                    &receipt.replication_unit,
                     ReplicationUnit::AnimalOrPreparation(_)
                 ) {
                     return Err(TrajectoryError::ReplicationUnitEvidenceMismatch);
@@ -821,12 +837,12 @@ mod tests {
         }
     }
 
-    fn action(source_id: &str) -> InterventionAction {
+    fn action(_data_source_id: &str) -> InterventionAction {
         InterventionAction {
             id: "passive-front-left-probe".to_owned(),
             kind: super::super::locomotion::InterventionKind::PassiveMovementProbe,
             protocol_id: "protocol-passive-front-left".to_owned(),
-            protocol_source_manifest_id: source_id.to_owned(),
+            protocol_source_manifest_id: "protocol-source".to_owned(),
             cost_units: 1,
             target_leg: Some(LegId::FrontLeft),
             presynaptic_inhibition_target: None,
@@ -873,6 +889,17 @@ mod tests {
                 expected_sha256: sha256.clone(),
             }]
         }).unwrap_or_default();
+        let protocol_source = SourceManifest {
+            id: "protocol-source".to_owned(),
+            kind: SourceKind::ExperimentalProtocol,
+            evidence_class: EvidenceClass::SyntheticFixture,
+            citation_or_source_uri: "synthetic://trajectory/protocol".to_owned(),
+            dataset_id: None,
+            release_or_materialization: None,
+            sha256: None,
+            unknown_endpoint_inventory_complete: true,
+            unknown_endpoints: vec![],
+        };
         TrajectoryRecordingManifest {
             id: "flygym-front-left-walk-v1".to_owned(),
             frame_rate: FrameRate { numerator: 60, denominator: 1 },
@@ -883,7 +910,7 @@ mod tests {
                 origin_definition: "front-left joint centre".to_owned(),
             }],
             variables: variables(&source_id, claim),
-            source_manifests: vec![source],
+            source_manifests: vec![source, protocol_source],
             source_pins: pins,
             actions: vec![action(&source_id)],
             minimum_delivery_fidelity: Rational::new(9, 10).unwrap(),
