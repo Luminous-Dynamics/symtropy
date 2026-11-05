@@ -460,10 +460,10 @@ fn merge_and_check_identity(
             });
         }
     }
-    if let (Some(path_identity), Some(explicit_identity)) = (&from_topic, &supplied) {
-        if path_identity != explicit_identity {
-            return shape("explicit topic identity differs from five-level MQTT topic identity");
-        }
+    if let (Some(path_identity), Some(explicit_identity)) = (&from_topic, &supplied)
+        && path_identity != explicit_identity
+    {
+        return shape("explicit topic identity differs from five-level MQTT topic identity");
     }
     Ok(supplied.or(from_topic))
 }
