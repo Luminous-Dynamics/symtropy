@@ -10,6 +10,13 @@ use std::collections::BTreeMap;
 
 pub const SCHEMA_VERSION: &str = "wpt-predictive-uncertainty-v1";
 
+fn is_sha256_digest(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EvaluationRecord {
@@ -98,6 +105,9 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
             || record.test_set_digest.trim().is_empty()
             || record.quantity_kind.trim().is_empty()
             || record.unit.trim().is_empty()
+            || !is_sha256_digest(&record.model_digest)
+            || !is_sha256_digest(&record.calibration_set_digest)
+            || !is_sha256_digest(&record.test_set_digest)
             || !ids.insert(&record.record_id)
         {
             return Err("record identity, provenance and semantic fields must be non-empty and unique".into());
@@ -213,9 +223,9 @@ mod tests {
             split: "test".into(),
             regime_id: regime.into(),
             trajectory_group_id: format!("trajectory-{id}"),
-            model_digest: "model-sha256".into(),
-            calibration_set_digest: "calibration-sha256".into(),
-            test_set_digest: "test-sha256".into(),
+            model_digest: "a".repeat(64),
+            calibration_set_digest: "b".repeat(64),
+            test_set_digest: "c".repeat(64),
             quantity_kind: "USEFUL_DC_ENERGY".into(),
             unit: "Wh".into(),
             nominal_coverage: 0.95,
@@ -301,6 +311,21 @@ mod tests {
         let mut mixed_test = record("f", "aligned", 5.0, 4.0, 6.0);
         mixed_test.test_set_digest = "another-test".into();
         assert!(evaluate(&[baseline, mixed_test]).unwrap_err().contains("one model"));
+    }
+
+    #[test]
+    fn rejects_malformed_provenance_digests() {
+        let mut short = record("a", "aligned", 5.0, 4.0, 6.0);
+        short.model_digest = "model-demo".into();
+        assert!(evaluate(&[short]).unwrap_err().contains("provenance"));
+
+        let mut uppercase = record("b", "aligned", 5.0, 4.0, 6.0);
+        uppercase.calibration_set_digest = "A".repeat(64);
+        assert!(evaluate(&[uppercase]).unwrap_err().contains("provenance"));
+
+        let mut malformed_test = record("c", "aligned", 5.0, 4.0, 6.0);
+        malformed_test.test_set_digest = "g".repeat(64);
+        assert!(evaluate(&[malformed_test]).unwrap_err().contains("provenance"));
     }
 
     #[test]
