@@ -35,6 +35,7 @@ pub mod curvature;
 pub mod dimensional_leakage;
 pub mod energy;
 pub mod energy_balance;
+pub mod energy_ports;
 pub mod fep_gradient;
 pub mod harmony_field;
 #[cfg(feature = "consciousness-hdc")]
@@ -61,6 +62,10 @@ pub use energy::EnergyBudget;
 pub use energy_balance::{
     BoundaryCoverage, BoundaryEnergyFlows, EnergyBalanceError, EnergyBalanceField,
     EnergyBalanceInput, EnergyBalanceReport, EnergyBalanceStatus, EnergyBalanceTolerances, Joules,
+};
+pub use energy_ports::{
+    BoundaryId, EnergyPortBoundary, EnergyPortChannel, EnergyPortError, EnergyPortEvent,
+    EnergyPortSummary, ReservoirId, aggregate_boundary_ports,
 };
 pub use harmony_field::HarmonyField;
 pub use macro_bridge::{MacroWorldModifiers, apply_macro_modifiers};
