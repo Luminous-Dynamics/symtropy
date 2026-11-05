@@ -459,6 +459,20 @@ mod tests {
     }
 
     #[test]
+    fn thermal_stimulus_classification_is_required() {
+        let (schema, mut example, _) = bundled_fixtures().unwrap();
+        example["exposure"]
+            .as_object_mut()
+            .unwrap()
+            .remove("thermal_stimulus");
+        assert!(
+            validate_observation(&schema, &example)
+                .unwrap_err()
+                .contains("thermal_stimulus")
+        );
+    }
+
+    #[test]
     fn coupling_coefficient_outside_physical_range_is_rejected() {
         let (schema, mut example, _) = bundled_fixtures().unwrap();
         example["electromagnetic"]["coupling_coefficient"] = Value::from(1.01);
