@@ -1,0 +1,54 @@
+name: Design Qualification
+
+on:
+  push:
+    branches:
+      - "design/**"
+      - "analysis/**"
+    paths:
+      - "crates/domains/symtropy-design/**"
+      - ".github/workflows/design-qualification.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  pull_request:
+    paths:
+      - "crates/domains/symtropy-design/**"
+      - ".github/workflows/design-qualification.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+concurrency:
+  group: design-qualification-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  design-contracts:
+    name: Design Contracts
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check design crate
+        run: cargo check -p symtropy-design --all-targets
+
+      - name: Test design crate
+        run: cargo test -p symtropy-design
+
+      - name: Clippy design crate
+        run: cargo clippy -p symtropy-design --all-targets -- -D warnings

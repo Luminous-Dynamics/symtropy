@@ -1,0 +1,20 @@
+name: D1 Lock Authority Runner (retired)
+
+# The exact lock-only prerequisite was qualified and pushed by run 34627288467.
+# Keep this workflow as historical executable documentation, but do not rerun it
+# on PR updates now that the product branch no longer equals its frozen parent.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retired:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          echo 'D1 lock-only authority completed successfully in run 34627288467.'
+          echo 'Qualified product prerequisite: 36797e6a09833da202d97a27a8aa2dc9ecc66e90'
+          echo 'Exact tree: ca0df84e9041bd7a2f67b6d6aaf73897ccd82511'
+          echo 'No mutation is performed by this retired workflow.'
