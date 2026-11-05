@@ -744,8 +744,22 @@ fn build_joint_steps(
     policies: &BTreeMap<&str, &PolicyProfile>,
     decisions: &[VerifiedDecision],
 ) -> Result<Vec<SamDecisionStep>, HandoffError> {
+    let mut transitions: Vec<_> = branch.transitions.iter().collect();
+    transitions.sort_by_key(|transition| transition.tick);
+    if transitions.windows(2).any(|pair| pair[0].tick == pair[1].tick) {
+        return Err(HandoffError::DuplicateTransitionTick);
+    }
+
     let mut steps = Vec::new();
-    for transition in &branch.transitions {
+    for transition in transitions {
+        require(&transition.parent_snapshot_digest, "transition.parent_snapshot_digest")?;
+        require(&transition.child_snapshot_digest, "transition.child_snapshot_digest")?;
+        require(&transition.joint_action_digest, "transition.joint_action_digest")?;
+        require(
+            &transition.physics_step_receipt_digest,
+            "transition.physics_step_receipt_digest",
+        )?;
+
         let mut at_tick: Vec<_> = decisions
             .iter()
             .filter(|decision| decision.tick == transition.tick)
@@ -753,18 +767,23 @@ fn build_joint_steps(
         at_tick.sort_by(|a, b| a.actor_id.cmp(&b.actor_id));
 
         if at_tick.len() != policies.len()
-            || at_tick.iter().any(|d| d.disposition != DecisionDisposition::Completed)
+            || at_tick
+                .iter()
+                .any(|decision| decision.disposition != DecisionDisposition::Completed)
         {
             continue;
         }
-        if at_tick.iter().any(|d| d.latch_tick != transition.tick) {
+        if at_tick
+            .iter()
+            .any(|decision| decision.latch_tick != transition.tick)
+        {
             return Err(HandoffError::InvalidDecisionReceipt);
         }
 
         let mut actions = Vec::with_capacity(at_tick.len());
-        let mut action_hash = blake3::Hasher::new_derive_key(
-            "Symtropy EGCI joint action receipt v0.1",
-        );
+        let mut action_hash =
+            blake3::Hasher::new_derive_key("Symtropy EGCI joint action receipt v0.1");
+        hash_len(&mut action_hash, at_tick.len());
         for decision in at_tick {
             if !policies.contains_key(decision.actor_id.as_str()) {
                 return Err(HandoffError::MissingPolicy);
