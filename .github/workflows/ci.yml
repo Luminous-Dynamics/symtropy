@@ -88,3 +88,6 @@ jobs:
 
     - name: Test WPT proportional-fair service allocator
       run: cargo test --locked -p wpt-proportional-fair-dispatch
+
+    - name: Test WPT proportional-fair service allocator
+      run: cargo test --locked -p wpt-proportional-fair-dispatch
