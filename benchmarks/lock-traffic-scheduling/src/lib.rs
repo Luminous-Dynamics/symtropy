@@ -514,10 +514,18 @@ fn compare_fulfilment_ratio(
         match (left_delivered == 0, right_delivered == 0) {
             (true, true) => return Ordering::Equal,
             (true, false) => {
-                return if reverse { Ordering::Greater } else { Ordering::Less };
+                return if reverse {
+                    Ordering::Greater
+                } else {
+                    Ordering::Less
+                };
             }
             (false, true) => {
-                return if reverse { Ordering::Less } else { Ordering::Greater };
+                return if reverse {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                };
             }
             (false, false) => {}
         }
@@ -1341,19 +1349,20 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["p1-large", "p2-first", "p2-second", "p1-small"]
         );
-        assert_eq!(plan.metrics.by_participant["participant-1"].service_units, 60);
-        assert_eq!(plan.metrics.by_participant["participant-2"].service_units, 200);
+        assert_eq!(
+            plan.metrics.by_participant["participant-1"].service_units,
+            60
+        );
+        assert_eq!(
+            plan.metrics.by_participant["participant-2"].service_units,
+            200
+        );
     }
 
     #[test]
     fn fulfilment_ratio_comparison_avoids_u128_cross_product_overflow() {
         assert_eq!(
-            compare_fulfilment_ratio(
-                u128::MAX - 1,
-                u128::MAX,
-                u128::MAX - 2,
-                u128::MAX - 1
-            ),
+            compare_fulfilment_ratio(u128::MAX - 1, u128::MAX, u128::MAX - 2, u128::MAX - 1),
             Ordering::Greater
         );
     }
