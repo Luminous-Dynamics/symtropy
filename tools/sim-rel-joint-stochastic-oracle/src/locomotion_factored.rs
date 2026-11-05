@@ -1431,11 +1431,11 @@ mod tests {
                     vec![
                         conditional_row(
                             &["activate_left"],
-                            vec![outcome("off", 0, 1), outcome("on", 1, 1)],
+                            vec![outcome("on", 1, 1)],
                         ),
                         conditional_row(
                             &["idle"],
-                            vec![outcome("off", 1, 1), outcome("on", 0, 1)],
+                            vec![outcome("off", 1, 1)],
                         ),
                     ],
                 ),
