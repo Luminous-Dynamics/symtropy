@@ -390,8 +390,7 @@ mod analytic_integrator_qualification_tests {
     use symtropy_math::Point;
 
     fn simulate_free_fall(dt: f64, steps: usize) -> (f64, f64) {
-        let mut body =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.25, 1.0);
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.25, 1.0);
         body.linear_damping = 0.0;
         body.angular_damping = 0.0;
         let gravity = SVector::from([0.0, -9.81, 0.0]);
@@ -400,10 +399,7 @@ mod analytic_integrator_qualification_tests {
             integrate(&mut body, &gravity, dt);
         }
 
-        (
-            body.transform.translation.0[1],
-            body.linear_velocity[1],
-        )
+        (body.transform.translation.0[1], body.linear_velocity[1])
     }
 
     #[test]
@@ -416,8 +412,7 @@ mod analytic_integrator_qualification_tests {
 
         // v_n = n*g*dt and x_n = g*dt²*n*(n+1)/2 for v_0 = x_0 = 0.
         let expected_velocity = gravity * total_time;
-        let expected_position =
-            gravity * dt * dt * (steps * (steps + 1)) as f64 / 2.0;
+        let expected_position = gravity * dt * dt * (steps * (steps + 1)) as f64 / 2.0;
 
         assert!((velocity - expected_velocity).abs() < 1e-12);
         assert!((position - expected_position).abs() < 1e-11);
