@@ -165,8 +165,7 @@
             "required": [
               "id",
               "name",
-              "unit",
-              "report"
+              "unit"
             ],
             "properties": {
               "id": {
@@ -183,9 +182,25 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "formula": {
+                "type": "string",
+                "minLength": 1
               }
             },
-            "additionalProperties": true
+            "additionalProperties": true,
+            "oneOf": [
+              {
+                "required": [
+                  "report"
+                ]
+              },
+              {
+                "required": [
+                  "formula"
+                ]
+              }
+            ]
           }
         },
         "hard_software_gates": {
