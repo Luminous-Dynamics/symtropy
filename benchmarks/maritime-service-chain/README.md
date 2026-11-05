@@ -110,8 +110,12 @@ or verify that the upstream owner actually performed its promised checks.
   environmental, cargo-custody or participant data is bundled.
 - No voyage/lock/berth optimizer or independent schedule simulator is implemented.
 - No physical hydraulic, sediment, manoeuvring, energy-generation or emissions model is implemented.
-- Energy is expressed in separate declared Wh boundaries. Lifecycle emissions
-  factors and well-to-tank/tank-to-wake/well-to-wake claims are intentionally absent.
+- Energy is expressed in separate declared Wh boundaries (propulsion, auxiliary
+  load, shore-grid import, inland-transfer traction). These meter values are not
+  summed: shore import may supply an auxiliary load, so aggregation can double-count
+  without an evidence-qualified boundary cut. Reuse the typed energy-port contract
+  (#3615/#3691) before computing any total. Lifecycle emissions factors and
+  well-to-tank/tank-to-wake/well-to-wake claims are intentionally absent.
 - Resource calendars are validated structurally; the crate does not choose or
   reserve a time slot.
 - A passing contract test is not physical qualification, operator approval,
