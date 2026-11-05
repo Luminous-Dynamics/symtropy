@@ -144,6 +144,7 @@ pub enum ProjectionError {
     SharedTickMismatch,
     SharedEventKindMismatch,
     SharedWorldMismatch,
+    MixedWorldScope,
 }
 
 impl From<CorrespondenceError> for ProjectionError {
@@ -418,10 +419,18 @@ fn index_scopes(
     }
 
     let mut indexed = BTreeMap::new();
+    let mut parent_world: Option<&StableId> = None;
     for scope in scopes {
         let key = (scope.branch_id.clone(), scope.event_id.clone());
         if !expected.contains(&key) {
             return Err(ProjectionError::WrongBranchScope);
+        }
+        if let Some(world_id) = parent_world {
+            if world_id != &scope.world_id {
+                return Err(ProjectionError::MixedWorldScope);
+            }
+        } else {
+            parent_world = Some(&scope.world_id);
         }
         if indexed.insert(key, scope.clone()).is_some() {
             return Err(ProjectionError::DuplicateEventScope);
@@ -969,7 +978,16 @@ mod tests {
         scopes[1].world_id = id("different-world");
         assert_eq!(
             project_correspondence_addresses(&correspondence, &scopes, &rules),
-            Err(ProjectionError::SharedWorldMismatch)
+            Err(ProjectionError::MixedWorldScope)
+        );
+
+        // R2 is unmatched in the actor hypothesis, but still belongs to
+        // the same frozen parent experiment world as every other event.
+        let mut scopes = all_scopes();
+        scopes[2].world_id = id("unrelated-world");
+        assert_eq!(
+            project_correspondence_addresses(&correspondence, &scopes, &rules),
+            Err(ProjectionError::MixedWorldScope)
         );
     }
 
