@@ -1,0 +1,11 @@
+[package]
+name = "wpt-proportional-fair-dispatch"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Small-instance health-aware weighted proportional-fair WPT service allocator"
+
+[dependencies]
+serde_json = "1.0"
+wpt-health-dispatch-contract = { path = "../wpt-health-dispatch-contract" }
