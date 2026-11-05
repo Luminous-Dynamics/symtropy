@@ -203,12 +203,20 @@ fn summary_row(
         fmt(metrics.cce_verified_lower),
         fmt(metrics.cce_candidate_upper),
         metrics.verified_cross_agent_causal_edges.to_string(),
-        metrics.candidate_inclusive_cross_agent_causal_edges.to_string(),
-        metrics.verified_cross_agent_contributing_actions.to_string(),
-        metrics.candidate_inclusive_cross_agent_contributing_actions.to_string(),
+        metrics
+            .candidate_inclusive_cross_agent_causal_edges
+            .to_string(),
+        metrics
+            .verified_cross_agent_contributing_actions
+            .to_string(),
+        metrics
+            .candidate_inclusive_cross_agent_contributing_actions
+            .to_string(),
         metrics.message_action_count.to_string(),
         metrics.verified_contributing_messages.to_string(),
-        metrics.candidate_inclusive_contributing_messages.to_string(),
+        metrics
+            .candidate_inclusive_contributing_messages
+            .to_string(),
         fmt_opt(metrics.message_effectiveness_verified_lower),
         fmt_opt(metrics.message_effectiveness_candidate_upper),
         metrics.resource_transfer_action_count.to_string(),
