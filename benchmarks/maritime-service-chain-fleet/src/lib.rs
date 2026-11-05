@@ -1366,6 +1366,439 @@ mod tests {
         }
     }
 
+    #[derive(Default)]
+    struct ReferenceEnergy {
+        propulsion_wh: u128,
+        auxiliary_wh: u128,
+        shore_power_import_wh: u128,
+        inland_transfer_wh: u128,
+    }
+
+    struct IndependentFleetEnumerator {
+        cases: Vec<ServiceChainCase>,
+        resources: Vec<Resource>,
+        policies: BTreeMap<String, ResourceAccountingMode>,
+        operations: Vec<OperationPlacement>,
+        selections: Vec<DemandSelection>,
+        idle_wait_ticks: u128,
+        energy: ReferenceEnergy,
+        plans: Vec<FleetPlan>,
+    }
+
+    impl IndependentFleetEnumerator {
+        fn new(workload: &FleetWorkload) -> Self {
+            let mut cases = workload.cases.clone();
+            cases.sort_by(|left, right| {
+                left.demand.demand_id.cmp(&right.demand.demand_id)
+            });
+            let resources = cases
+                .first()
+                .map(|case| case.resources.clone())
+                .unwrap_or_default();
+            let policies = workload
+                .resource_policies
+                .iter()
+                .map(|policy| (policy.resource_id.clone(), policy.accounting_mode))
+                .collect();
+            Self {
+                cases,
+                resources,
+                policies,
+                operations: Vec::new(),
+                selections: Vec::new(),
+                idle_wait_ticks: 0,
+                energy: ReferenceEnergy::default(),
+                plans: Vec::new(),
+            }
+        }
+
+        fn window_containing(
+            resource: &Resource,
+            start_tick: u64,
+            end_tick: u64,
+        ) -> Option<usize> {
+            resource.availability.iter().position(|window| {
+                start_tick < end_tick
+                    && start_tick >= window.window.start_tick
+                    && end_tick <= window.window.end_tick
+            })
+        }
+
+        /// Deliberately direct reference accounting: no endpoint event sweep and
+        /// no call to either production or integration-test accounting helper.
+        fn all_shared_resources_fit(&self) -> bool {
+            for resource in &self.resources {
+                let Some(mode) = self.policies.get(&resource.resource_id).copied() else {
+                    return false;
+                };
+                let mut use_window = BTreeMap::<(usize, usize), u128>::new();
+
+                for (operation_index, operation) in self.operations.iter().enumerate() {
+                    for usage in &operation.resource_uses {
+                        if usage.resource_id != resource.resource_id {
+                            continue;
+                        }
+                        if usage.unit != resource.capacity_unit {
+                            return false;
+                        }
+                        let Some(window_index) = Self::window_containing(
+                            resource,
+                            operation.start_tick,
+                            operation.end_tick,
+                        ) else {
+                            return false;
+                        };
+                        *use_window
+                            .entry((operation_index, window_index))
+                            .or_default() += u128::from(usage.amount);
+                    }
+                }
+
+                match mode {
+                    ResourceAccountingMode::ConcurrentCapacity => {
+                        for (window_index, capacity_window) in
+                            resource.availability.iter().enumerate()
+                        {
+                            for tick in capacity_window.window.start_tick
+                                ..capacity_window.window.end_tick
+                            {
+                                let mut active = 0_u128;
+                                for (operation_index, operation) in
+                                    self.operations.iter().enumerate()
+                                {
+                                    if operation.start_tick <= tick && tick < operation.end_tick {
+                                        active += use_window
+                                            .get(&(operation_index, window_index))
+                                            .copied()
+                                            .unwrap_or(0);
+                                    }
+                                }
+                                if active > u128::from(capacity_window.capacity) {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                    ResourceAccountingMode::CumulativeWindowQuota => {
+                        let mut consumed = vec![0_u128; resource.availability.len()];
+                        for ((_, window_index), amount) in use_window {
+                            consumed[window_index] += amount;
+                        }
+                        if consumed
+                            .iter()
+                            .zip(&resource.availability)
+                            .any(|(amount, window)| *amount > u128::from(window.capacity))
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+            true
+        }
+
+        fn push_alternative_energy(&mut self, alternative: &VoyageAlternative, add: bool) {
+            let sign = if add { 1_i128 } else { -1_i128 };
+            self.energy.propulsion_wh =
+                (self.energy.propulsion_wh as i128
+                    + sign * i128::from(alternative.energy.propulsion_wh)) as u128;
+            self.energy.auxiliary_wh =
+                (self.energy.auxiliary_wh as i128
+                    + sign * i128::from(alternative.energy.auxiliary_wh)) as u128;
+            self.energy.shore_power_import_wh =
+                (self.energy.shore_power_import_wh as i128
+                    + sign * i128::from(alternative.energy.shore_power_import_wh)) as u128;
+            self.energy.inland_transfer_wh =
+                (self.energy.inland_transfer_wh as i128
+                    + sign * i128::from(alternative.energy.inland_transfer_wh)) as u128;
+        }
+
+        fn record_complete_plan(&mut self) {
+            let makespan_tick = self
+                .selections
+                .iter()
+                .map(|selection| selection.delivery_tick)
+                .max()
+                .unwrap_or(0);
+            let total_delivery_ticks = self
+                .selections
+                .iter()
+                .map(|selection| u128::from(selection.delivery_tick))
+                .sum();
+            let water_ml = self
+                .operations
+                .iter()
+                .flat_map(|operation| operation.resource_uses.iter())
+                .filter(|usage| usage.unit == ResourceUnit::Millilitres)
+                .map(|usage| u128::from(usage.amount))
+                .sum();
+            self.plans.push(FleetPlan {
+                selections: self.selections.clone(),
+                operations: self.operations.clone(),
+                objective: FleetObjective {
+                    makespan_tick,
+                    total_delivery_ticks,
+                    total_idle_wait_ticks: self.idle_wait_ticks,
+                    water_ml,
+                    propulsion_wh: self.energy.propulsion_wh,
+                    auxiliary_wh: self.energy.auxiliary_wh,
+                    shore_power_import_wh: self.energy.shore_power_import_wh,
+                    inland_transfer_wh: self.energy.inland_transfer_wh,
+                },
+            });
+        }
+
+        fn enumerate_demands(&mut self, demand_index: usize) {
+            if demand_index == self.cases.len() {
+                self.record_complete_plan();
+                return;
+            }
+            let case = self.cases[demand_index].clone();
+            let mut alternatives = case.voyage_alternatives.clone();
+            alternatives.sort_by(|left, right| {
+                left.alternative_id.cmp(&right.alternative_id)
+            });
+            for alternative in alternatives {
+                self.enumerate_operations(
+                    &case,
+                    &alternative,
+                    demand_index + 1,
+                    0,
+                    None,
+                    &mut Vec::new(),
+                );
+            }
+        }
+
+        fn enumerate_operations(
+            &mut self,
+            case: &ServiceChainCase,
+            alternative: &VoyageAlternative,
+            next_demand_index: usize,
+            segment_index: usize,
+            previous_end_tick: Option<u64>,
+            local_operations: &mut Vec<OperationPlacement>,
+        ) {
+            if segment_index == alternative.operation_timings.len() {
+                let Some(last) = local_operations.last() else {
+                    return;
+                };
+                if last.end_tick < case.demand.delivery_window.start_tick {
+                    return;
+                }
+                self.selections.push(DemandSelection {
+                    demand_id: case.demand.demand_id.clone(),
+                    participant_id: case.demand.participant_id.clone(),
+                    alternative_id: alternative.alternative_id.clone(),
+                    delivery_tick: last.end_tick,
+                    service_amount: case.demand.requested_amount,
+                    service_unit: case.demand.service_unit,
+                });
+                self.push_alternative_energy(alternative, true);
+                self.enumerate_demands(next_demand_index);
+                self.push_alternative_energy(alternative, false);
+                self.selections.pop();
+                return;
+            }
+
+            let timing = &alternative.operation_timings[segment_index];
+            let Some(route_segment) = case
+                .route_segments
+                .iter()
+                .find(|segment| segment.segment_id == timing.segment_id)
+            else {
+                return;
+            };
+
+            let (first_start, last_start) = if segment_index == 0 {
+                let Some(start) = alternative
+                    .arrival_window
+                    .end_tick
+                    .checked_sub(1)
+                    .and_then(|tick| tick.checked_sub(timing.duration_ticks))
+                else {
+                    return;
+                };
+                if start < case.decision_tick {
+                    return;
+                }
+                (start, start)
+            } else {
+                let Some(earliest) = previous_end_tick else {
+                    return;
+                };
+                let Some(latest) = case
+                    .demand
+                    .delivery_window
+                    .end_tick
+                    .checked_sub(timing.duration_ticks)
+                    .and_then(|tick| tick.checked_sub(1))
+                else {
+                    return;
+                };
+                if earliest > latest {
+                    return;
+                }
+                (earliest, latest)
+            };
+
+            let mut start_tick = first_start;
+            loop {
+                let Some(end_tick) = start_tick.checked_add(timing.duration_ticks) else {
+                    break;
+                };
+                if end_tick < case.demand.delivery_window.end_tick {
+                    let mut resource_uses = route_segment.resource_uses.clone();
+                    resource_uses.sort_by(|left, right| {
+                        left.resource_id
+                            .cmp(&right.resource_id)
+                            .then_with(|| left.amount.cmp(&right.amount))
+                    });
+                    let placement = OperationPlacement {
+                        demand_id: case.demand.demand_id.clone(),
+                        participant_id: case.demand.participant_id.clone(),
+                        alternative_id: alternative.alternative_id.clone(),
+                        segment_id: route_segment.segment_id.clone(),
+                        start_tick,
+                        end_tick,
+                        resource_uses,
+                    };
+
+                    self.operations.push(placement.clone());
+                    if self.all_shared_resources_fit() {
+                        let wait = previous_end_tick
+                            .map(|end| u128::from(start_tick - end))
+                            .unwrap_or(0);
+                        self.idle_wait_ticks += wait;
+                        local_operations.push(placement);
+                        self.enumerate_operations(
+                            case,
+                            alternative,
+                            next_demand_index,
+                            segment_index + 1,
+                            Some(end_tick),
+                            local_operations,
+                        );
+                        local_operations.pop();
+                        self.idle_wait_ticks -= wait;
+                    }
+                    self.operations.pop();
+                }
+
+                if start_tick == last_start {
+                    break;
+                }
+                let Some(next_tick) = start_tick.checked_add(1) else {
+                    break;
+                };
+                start_tick = next_tick;
+            }
+        }
+
+        fn into_frontier(mut self) -> Vec<FleetPlan> {
+            self.enumerate_demands(0);
+            reference_pareto_frontier(self.plans)
+        }
+    }
+
+    fn reference_dominates(left: FleetObjective, right: FleetObjective) -> bool {
+        let lhs = [
+            u128::from(left.makespan_tick),
+            left.total_delivery_ticks,
+            left.total_idle_wait_ticks,
+            left.water_ml,
+            left.propulsion_wh,
+            left.auxiliary_wh,
+            left.shore_power_import_wh,
+            left.inland_transfer_wh,
+        ];
+        let rhs = [
+            u128::from(right.makespan_tick),
+            right.total_delivery_ticks,
+            right.total_idle_wait_ticks,
+            right.water_ml,
+            right.propulsion_wh,
+            right.auxiliary_wh,
+            right.shore_power_import_wh,
+            right.inland_transfer_wh,
+        ];
+        lhs.iter().zip(rhs).all(|(a, b)| *a <= b)
+            && lhs.iter().zip(rhs).any(|(a, b)| *a < b)
+    }
+
+    fn reference_pareto_frontier(mut plans: Vec<FleetPlan>) -> Vec<FleetPlan> {
+        plans.sort_by_key(|plan| {
+            (
+                plan.objective.makespan_tick,
+                plan.objective.total_delivery_ticks,
+                plan.objective.total_idle_wait_ticks,
+                plan.objective.water_ml,
+                plan.objective.propulsion_wh,
+                plan.objective.auxiliary_wh,
+                plan.objective.shore_power_import_wh,
+                plan.objective.inland_transfer_wh,
+            )
+        });
+        plans.dedup();
+        let mut frontier: Vec<FleetPlan> = Vec::new();
+        for candidate in plans {
+            if frontier.iter().any(|known| {
+                reference_dominates(known.objective, candidate.objective)
+            }) {
+                continue;
+            }
+            frontier.retain(|known| {
+                !reference_dominates(candidate.objective, known.objective)
+            });
+            frontier.push(candidate);
+        }
+        frontier
+    }
+
+    fn independent_reference_frontier(workload: &FleetWorkload) -> Vec<FleetPlan> {
+        IndependentFleetEnumerator::new(workload).into_frontier()
+    }
+
+    #[test]
+    fn independent_fleet_enumerator_matches_full_production_pareto_frontier() {
+        let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        first
+            .voyage_alternatives
+            .retain(|alternative| alternative.alternative_id == "fast-high-energy");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        second
+            .voyage_alternatives
+            .retain(|alternative| alternative.alternative_id == "slow-low-energy");
+        let workload = fleet_workload(vec![first, second]);
+        let production =
+            exact_fleet_oracle(&workload, 50_000).expect("valid frozen fleet workload");
+        assert_eq!(production.termination, SearchTermination::ExhaustiveComplete);
+        let reference = independent_reference_frontier(&workload);
+        assert!(!reference.is_empty());
+        assert_eq!(production.frontier, reference);
+    }
+
+    #[test]
+    fn independent_fleet_enumerator_matches_complete_joint_infeasibility() {
+        let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        first
+            .voyage_alternatives
+            .retain(|alternative| alternative.alternative_id == "fast-high-energy");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        second
+            .voyage_alternatives
+            .retain(|alternative| alternative.alternative_id == "fast-high-energy");
+        first.demand.delivery_window.end_tick = 43;
+        second.demand.delivery_window.end_tick = 43;
+        let workload = fleet_workload(vec![first, second]);
+        let production =
+            exact_fleet_oracle(&workload, 50_000).expect("valid frozen fleet workload");
+        assert_eq!(production.termination, SearchTermination::ExhaustiveComplete);
+        let reference = independent_reference_frontier(&workload);
+        assert!(production.frontier.is_empty());
+        assert_eq!(production.frontier, reference);
+    }
+
     #[test]
     fn multi_demand_oracle_schedules_two_vessels_when_lock_slots_are_sequential() {
         let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
