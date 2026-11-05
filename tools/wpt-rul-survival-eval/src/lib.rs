@@ -148,13 +148,16 @@ pub struct SurvivalEvaluation {
     pub censored_before_horizon_count: usize,
     pub distinct_cluster_count: usize,
     /// Multicause IPCW Brier score divided by the total evaluation-cohort size.
-    pub ipcw_competing_risk_brier_score: f64,
+    /// None means that horizon failed the censoring-support gate.
+    pub ipcw_competing_risk_brier_score: Option<f64>,
+    /// Machine-readable reason when the horizon-specific IPCW Brier score is not evaluable.
+    pub ipcw_brier_not_evaluable_reason: Option<String>,
     /// Cause-specific hazard log score; lower is better and censoring G is not estimated.
     pub cause_specific_hazard_log_score: f64,
     /// Smallest censoring-survival value used by an eligible score contribution.
-    pub minimum_censoring_survival_used: f64,
+    pub minimum_censoring_survival_used: Option<f64>,
     /// Largest inverse-probability-of-censoring weight used by an eligible subject.
-    pub maximum_ipcw_weight: f64,
+    pub maximum_ipcw_weight: Option<f64>,
     /// Auxiliary ranking metric for any first terminal event, not a cause-specific C-index.
     pub all_cause_harrell_c_index: Option<f64>,
     pub all_cause_comparable_pairs: usize,
@@ -704,6 +707,7 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
     let mut censored_before_horizon_count = 0usize;
     let mut minimum_g_used = 1.0_f64;
     let mut maximum_weight = 0.0_f64;
+    let mut brier_not_evaluable_reason = None::<String>;
 
     for subject in &subjects {
         let has_event_by_horizon =
@@ -723,17 +727,17 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
         let censoring_survival =
             censoring_survival_left_limit(&subjects, query_time);
         if !censoring_survival.is_finite() || censoring_survival < minimum_g {
-            return Err(fail(
-                "$.subjects",
-                format!(
-                    "NOT_EVALUABLE: censoring positivity support failed at {} hours (G(t-)={censoring_survival}, required >= {minimum_g})",
-                    query_time
-                ),
+            brier_not_evaluable_reason = Some(format!(
+                "NOT_EVALUABLE: censoring positivity support failed at {} hours (G(t-)={censoring_survival}, required >= {minimum_g})",
+                query_time
             ));
+            break;
         }
         let weight = 1.0 / censoring_survival;
         if !weight.is_finite() {
-            return Err(fail("$.subjects", "NOT_EVALUABLE: IPCW weight overflowed"));
+            brier_not_evaluable_reason =
+                Some("NOT_EVALUABLE: IPCW weight overflowed".into());
+            break;
         }
         minimum_g_used = minimum_g_used.min(censoring_survival);
         maximum_weight = maximum_weight.max(weight);
@@ -750,26 +754,38 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
             event_free_at_horizon,
         );
         if !loss.is_finite() {
-            return Err(fail("$.subjects", "competing-risk Brier loss overflowed"));
+            brier_not_evaluable_reason =
+                Some("NOT_EVALUABLE: competing-risk Brier loss overflowed".into());
+            break;
         }
         brier_weighted_sum += weight * loss;
         if !brier_weighted_sum.is_finite() {
-            return Err(fail("$.subjects", "IPCW Brier accumulation overflowed"));
+            brier_not_evaluable_reason =
+                Some("NOT_EVALUABLE: IPCW Brier accumulation overflowed".into());
+            break;
         }
         eligible_count += 1;
     }
 
-    if eligible_count == 0 {
-        return Err(fail(
-            "$.subjects",
-            "NOT_EVALUABLE: no subjects have known event status at the declared horizon",
-        ));
+    if brier_not_evaluable_reason.is_none() && eligible_count == 0 {
+        brier_not_evaluable_reason = Some(
+            "NOT_EVALUABLE: no subjects have known event status at the declared horizon".into(),
+        );
     }
 
-    let brier_score = brier_weighted_sum / subjects.len() as f64;
-    if !brier_score.is_finite() {
-        return Err(fail("$.subjects", "IPCW Brier score is not finite"));
-    }
+    let brier_score = if brier_not_evaluable_reason.is_none() {
+        let score = brier_weighted_sum / subjects.len() as f64;
+        if score.is_finite() {
+            Some(score)
+        } else {
+            brier_not_evaluable_reason =
+                Some("NOT_EVALUABLE: IPCW Brier score is not finite".into());
+            None
+        }
+    } else {
+        None
+    };
+
 
     let mut concordant = 0.0_f64;
     let mut comparable_pairs = 0usize;
@@ -811,9 +827,10 @@ pub fn evaluate_run(run: &Value) -> Result<SurvivalEvaluation, String> {
         censored_before_horizon_count,
         distinct_cluster_count,
         ipcw_competing_risk_brier_score: brier_score,
+        ipcw_brier_not_evaluable_reason: brier_not_evaluable_reason,
         cause_specific_hazard_log_score: hazard_log_score,
-        minimum_censoring_survival_used: minimum_g_used,
-        maximum_ipcw_weight: maximum_weight,
+        minimum_censoring_survival_used: brier_score.map(|_| minimum_g_used),
+        maximum_ipcw_weight: brier_score.map(|_| maximum_weight),
         all_cause_harrell_c_index: c_index,
         all_cause_comparable_pairs: comparable_pairs,
         censoring_estimator: "EVALUATION_COHORT_UNCONDITIONAL_KM",
@@ -844,9 +861,13 @@ mod tests {
         assert_eq!(report.eligible_subject_count, 6);
         assert_eq!(report.censored_before_horizon_count, 2);
         assert_eq!(report.distinct_cluster_count, 7);
-        assert!((report.ipcw_competing_risk_brier_score - 0.23453571428571426).abs() < 1e-12);
-        assert!((report.minimum_censoring_survival_used - 0.7).abs() < 1e-12);
-        assert!((report.maximum_ipcw_weight - 1.0 / 0.7).abs() < 1e-12);
+        assert!(
+            (report.ipcw_competing_risk_brier_score.unwrap() - 0.23453571428571426).abs()
+                < 1e-12
+        );
+        assert!((report.minimum_censoring_survival_used.unwrap() - 0.7).abs() < 1e-12);
+        assert!((report.maximum_ipcw_weight.unwrap() - 1.0 / 0.7).abs() < 1e-12);
+        assert_eq!(report.ipcw_brier_not_evaluable_reason, None);
         assert_eq!(report.all_cause_comparable_pairs, 15);
         assert!((report.all_cause_harrell_c_index.unwrap() - 0.9).abs() < 1e-12);
     }
@@ -957,14 +978,19 @@ mod tests {
     }
 
     #[test]
-    fn fails_closed_when_censoring_positivity_floor_is_not_met() {
+    fn reports_ipcw_horizon_as_not_evaluable_but_retains_hazard_score() {
         let mut run = fixture();
         run["minimum_censoring_survival"] = Value::from(0.8);
+        let report = evaluate_run(&run).unwrap();
+        assert_eq!(report.ipcw_competing_risk_brier_score, None);
         assert!(
-            evaluate_run(&run)
-                .unwrap_err()
+            report
+                .ipcw_brier_not_evaluable_reason
+                .as_deref()
+                .unwrap()
                 .contains("NOT_EVALUABLE: censoring positivity support failed")
         );
+        assert!(report.cause_specific_hazard_log_score.is_finite());
     }
 
     #[test]
