@@ -28,6 +28,22 @@ pub struct Participant {
     pub consensus_endorsement: Option<bool>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ConsensusRule {
+    Unanimous,
+    /// Minimum fraction of all participants who explicitly endorse the decision.
+    MinimumEndorsementFraction(f64),
+}
+
+impl ConsensusRule {
+    pub fn minimum_fraction(self) -> f64 {
+        match self {
+            Self::Unanimous => 1.0,
+            Self::MinimumEndorsementFraction(value) => value,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Proposal {
     pub id: String,
@@ -71,6 +87,8 @@ pub struct DeliberationSession {
     pub evidence_catalogue: Vec<EvidenceRecord>,
     pub facilitator_claims: Vec<FacilitatorClaim>,
     pub facilitator_declares_consensus: bool,
+    /// The session's explicit consensus rule; None means no rule was declared.
+    pub consensus_rule: Option<ConsensusRule>,
     /// Final allocation in option-label order; must exhaust the declared budget.
     pub final_allocation: Vec<u32>,
 }
@@ -94,6 +112,11 @@ impl DeliberationSession {
         }
         if self.resource_budget == 0 {
             return Err(DeliberationError::ZeroResourceBudget);
+        }
+        if let Some(ConsensusRule::MinimumEndorsementFraction(value)) = self.consensus_rule {
+            if !value.is_finite() || !(0.0..=1.0).contains(&value) {
+                return Err(DeliberationError::InvalidConsensusThreshold(value));
+            }
         }
         if self.participants.len() < 2 {
             return Err(DeliberationError::TooFewParticipants(
@@ -306,6 +329,7 @@ pub enum DeliberationError {
         expected: u32,
         actual: u32,
     },
+    InvalidConsensusThreshold(f64),
     FacilitationPairMismatch(&'static str),
 }
 
@@ -395,10 +419,13 @@ impl fmt::Display for DeliberationError {
             Self::BudgetNotExhausted { expected, actual } => {
                 write!(f, "allocation uses {actual} units; budget is {expected}")
             }
+            Self::InvalidConsensusThreshold(value) => {
+                write!(f, "consensus endorsement threshold must be finite and in [0,1], got {value}")
+            }
             Self::FacilitationPairMismatch(field) => {
                 write!(
                     f,
-                    "facilitation-variant comparison changed non-rhetorical input: {field}"
+                    "facilitation-variant comparison changed declared input: {field}"
                 )
             }
         }
@@ -455,8 +482,10 @@ pub struct SessionAudit {
     pub consensus_endorsement_count: usize,
     pub consensus_non_endorsement_count: usize,
     pub consensus_unrecorded_count: usize,
-    /// True only if at least one participant explicitly did not endorse the final decision.
-    pub consensus_claim_contradicted_by_recorded_non_endorsement: bool,
+    pub consensus_rule_minimum_fraction: Option<f64>,
+    /// Assessed only when the facilitator declares consensus, a rule exists,
+    /// and every participant's endorsement is recorded.
+    pub consensus_rule_met: Option<bool>,
     pub mean_satisfaction_before: Option<f64>,
     pub mean_satisfaction_after: Option<f64>,
     pub mean_trust_before: Option<f64>,
@@ -602,8 +631,15 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         .iter()
         .filter(|participant| participant.consensus_endorsement.is_none())
         .count();
-    let consensus_claim_contradicted_by_recorded_non_endorsement =
-        session.facilitator_declares_consensus && consensus_non_endorsement_count > 0;
+    let consensus_rule_minimum_fraction =
+        session.consensus_rule.map(ConsensusRule::minimum_fraction);
+    let consensus_rule_met = match (session.facilitator_declares_consensus, session.consensus_rule) {
+        (true, Some(rule)) if consensus_unrecorded_count == 0 => {
+            Some(consensus_endorsement_count as f64 / member_count as f64
+                >= rule.minimum_fraction())
+        }
+        _ => None,
+    };
 
     let total_speaking_time = speaking_time_by_member.iter().sum::<u64>();
     let members = session
@@ -663,7 +699,8 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         consensus_endorsement_count,
         consensus_non_endorsement_count,
         consensus_unrecorded_count,
-        consensus_claim_contradicted_by_recorded_non_endorsement,
+        consensus_rule_minimum_fraction,
+        consensus_rule_met,
         mean_satisfaction_before: mean_optional(
             session
                 .participants
@@ -964,6 +1001,7 @@ mod tests {
                 evidence_id: Some("verified_budget_record".into()),
             }],
             facilitator_declares_consensus: false,
+            consensus_rule: Some(ConsensusRule::Unanimous),
             final_allocation: vec![34, 33, 33],
         }
     }
@@ -1038,7 +1076,8 @@ mod tests {
         assert_eq!(audit.consensus_endorsement_count, 2);
         assert_eq!(audit.consensus_non_endorsement_count, 1);
         assert_eq!(audit.consensus_unrecorded_count, 0);
-        assert!(audit.consensus_claim_contradicted_by_recorded_non_endorsement);
+        assert_eq!(audit.consensus_rule_minimum_fraction, Some(1.0));
+        assert_eq!(audit.consensus_rule_met, Some(false));
         assert!(audit.mean_trust_after.unwrap() > audit.mean_trust_before.unwrap());
     }
 
@@ -1068,7 +1107,38 @@ mod tests {
 
         assert!(audit.modal_top_preference_share < 1.0);
         assert_eq!(audit.consensus_non_endorsement_count, 0);
-        assert!(!audit.consensus_claim_contradicted_by_recorded_non_endorsement);
+        assert_eq!(audit.consensus_rule_met, Some(true));
+    }
+
+    #[test]
+    fn declared_supermajority_rule_can_pass_with_recorded_dissent() {
+        let mut session = steered_session();
+        session.consensus_rule = Some(ConsensusRule::MinimumEndorsementFraction(2.0 / 3.0));
+        let audit = audit_session(&session).unwrap();
+
+        assert_eq!(audit.consensus_endorsement_count, 2);
+        assert_eq!(audit.consensus_non_endorsement_count, 1);
+        assert_eq!(audit.consensus_rule_met, Some(true));
+    }
+
+    #[test]
+    fn missing_endorsement_is_unassessed_not_disagreement() {
+        let mut session = steered_session();
+        session.participants[2].consensus_endorsement = None;
+        let audit = audit_session(&session).unwrap();
+
+        assert_eq!(audit.consensus_unrecorded_count, 1);
+        assert_eq!(audit.consensus_rule_met, None);
+    }
+
+    #[test]
+    fn invalid_consensus_threshold_fails_closed() {
+        let mut session = base_session();
+        session.consensus_rule = Some(ConsensusRule::MinimumEndorsementFraction(f64::NAN));
+        assert!(matches!(
+            session.validate(),
+            Err(DeliberationError::InvalidConsensusThreshold(_))
+        ));
     }
 
     #[test]
