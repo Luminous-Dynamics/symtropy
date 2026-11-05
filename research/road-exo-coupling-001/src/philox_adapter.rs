@@ -353,8 +353,8 @@ pub fn verify_correspondence_draw_bundle(
             expected_addresses.insert((bundle.left_branch.clone(), pair.left_event.clone()));
             expected_addresses.insert((bundle.right_branch.clone(), pair.right_event.clone()));
 
-            let unknown_presence = matches!(left.presence, PlannedPresence::Unknown { .. })
-                || matches!(right.presence, PlannedPresence::Unknown { .. });
+            let unknown_presence = matches!(&left.presence, PlannedPresence::Unknown { .. })
+                || matches!(&right.presence, PlannedPresence::Unknown { .. });
             let expected = expected_pair_sharing(&matching_rules[0].disposition, unknown_presence);
             if left.sharing != expected || right.sharing != expected {
                 return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
@@ -373,9 +373,9 @@ pub fn verify_correspondence_draw_bundle(
             }
         }
 
-        for (events, branch, unmatched_left) in [
-            (&hypothesis.correspondence.unmatched_left, &bundle.left_branch, true),
-            (&hypothesis.correspondence.unmatched_right, &bundle.right_branch, false),
+        for (events, branch) in [
+            (&hypothesis.correspondence.unmatched_left, &bundle.left_branch),
+            (&hypothesis.correspondence.unmatched_right, &bundle.right_branch),
         ] {
             for unmatched in events {
                 let receipt = find_unique_draw(&hypothesis.draws, branch, &unmatched.event_id)
@@ -398,7 +398,6 @@ pub fn verify_correspondence_draw_bundle(
                     return Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch);
                 }
             }
-            let _ = unmatched_left;
         }
 
         let actual_addresses: BTreeSet<_> = hypothesis
