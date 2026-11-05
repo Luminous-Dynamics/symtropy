@@ -2689,10 +2689,22 @@ mod tests {
             next_physical.id,
             "stance-nominal-front-left-load-perturbed"
         );
-        assert_eq!(next_physical.behavioral_context, BehavioralContext::Walking);
-        assert_eq!(next_physical.gait_phase, PhysicalState::gait_phase(&compiled.physical_states[0]));
-        assert_eq!(next_physical.contact_state, ContactState::Supported);
-        assert_eq!(next_physical.load_state, LoadState::Nominal);
+        let original_physical = compiled
+            .physical_states
+            .iter()
+            .find(|state| state.id == "stance-nominal")
+            .unwrap();
+        assert_eq!(
+            next_physical.behavioral_context,
+            original_physical.behavioral_context
+        );
+        assert_eq!(next_physical.gait_phase, original_physical.gait_phase);
+        assert_eq!(next_physical.contact_state, original_physical.contact_state);
+        assert_eq!(next_physical.load_state, original_physical.load_state);
+        assert_ne!(
+            next_physical.legs[LegId::FrontLeft.index()],
+            original_physical.legs[LegId::FrontLeft.index()]
+        );
         assert_eq!(
             next_physical.legs[LegId::FrontLeft.index()].load_state,
             LoadState::Elevated
@@ -2700,11 +2712,7 @@ mod tests {
         for leg in LegId::ALL.into_iter().filter(|leg| *leg != LegId::FrontLeft) {
             assert_eq!(
                 next_physical.legs[leg.index()],
-                compiled.physical_states
-                    .iter()
-                    .find(|state| state.id == "stance-nominal")
-                    .unwrap()
-                    .legs[leg.index()]
+                original_physical.legs[leg.index()]
             );
         }
         assert_eq!(next_sensor.acquisition, AcquisitionState::PositiveOffset);
