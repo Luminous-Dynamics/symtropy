@@ -19,7 +19,7 @@ Four planes remain distinct:
 3. **Owner policy plane:** allowed products and counterparties, capacity budgets, workload criticality, safety state, telemetry requirements, maintenance and privacy.
 4. **Local execution plane:** scheduler, battery, cooling, microgrid and facility controllers. These are never directly addressed by a market dispatch message.
 
-The current module implements parts of planes 2 and 3 and a narrow request boundary between planes 1 and 4. It does not implement a CTS wire protocol, market settlement or OT execution. Reservations pin the complete owner-policy snapshot as well as its ID/version; even a caller that accidentally reuses a version string for changed policy contents invalidates the earlier reservation.
+The current module implements parts of planes 2 and 3 and a narrow request boundary between planes 1 and 4. Overlapping reservations for the same portfolio must share the exact owner-policy snapshot; a policy revision cannot silently reinterpret still-active capacity commitments. Non-overlapping commitments can use the revised policy once the prior interval ends or is explicitly released. It does not implement a CTS wire protocol, market settlement or OT execution. Reservations pin the complete owner-policy snapshot as well as its ID/version; even a caller that accidentally reuses a version string for changed policy contents invalidates the earlier reservation.
 
 ## 3. Implemented typed model
 
