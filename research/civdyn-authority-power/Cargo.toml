@@ -1,0 +1,18 @@
+[workspace]
+
+[package]
+name = "civdyn-authority-power"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Exact weighted-voting power and procedural authority-topology audits"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "authority-power-sweep"
+path = "src/bin/authority_power_sweep.rs"
+
+[dependencies]
