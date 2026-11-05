@@ -299,6 +299,7 @@ pub struct OwnerOfferReservation {
     pub offer_id: String,
     pub owner_policy_id: String,
     pub owner_policy_version: String,
+    policy_snapshot: OwnerFlexibilityPolicy,
     pub portfolio_id: String,
     pub product_id: String,
     pub direction: GridFlexDirection,
@@ -389,6 +390,7 @@ impl OwnerOfferReservationLedger {
             offer_id: offer.offer_id.clone(),
             owner_policy_id: policy.policy_id.clone(),
             owner_policy_version: policy.policy_version.clone(),
+            policy_snapshot: policy.clone(),
             portfolio_id: offer.portfolio_id.clone(),
             product_id: offer.product_id.clone(),
             direction: offer.direction,
@@ -424,6 +426,7 @@ impl OwnerOfferReservationLedger {
         self.reservations.iter().any(|reservation| {
             reservation.owner_policy_id == policy.policy_id
                 && reservation.owner_policy_version == policy.policy_version
+                && reservation.policy_snapshot == *policy
                 && reservation.offer_id == offer.offer_id
                 && reservation.portfolio_id == offer.portfolio_id
                 && reservation.product_id == offer.product_id
@@ -1045,6 +1048,29 @@ mod tests {
             &policy(),
         ).expect("non-overlapping reservation");
         assert_eq!(ledger.reservations().len(), 2);
+    }
+
+    #[test]
+    fn changed_policy_contents_with_reused_version_invalidate_reservation() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let o = reserve_default(&mut ledger);
+        let altered_same_version = OwnerFlexibilityPolicy::new(
+            "owner-policy-1", "v1", "site-1", "pcc-1", "portfolio-1",
+            vec!["reserve-product".to_string()],
+            vec!["market-key-1".to_string()],
+            90.0, 70.0, 60.0, 30, 3_600, 20.0, 50.0,
+            120, 2, 30,
+        ).expect("same-version but altered policy");
+        assert!(!ledger.matches_offer(&o, &altered_same_version));
+        let mut replay = DispatchReplayLedger::default();
+        let decision = authorize_owner_dispatch(
+            &request("dispatch-policy-reuse", "offer-1", 1, 1_000, 1_060, 990),
+            &o, &altered_same_version, &ledger, &mut replay,
+            readiness(990), 1_005, &AcceptSignature,
+        );
+        assert!(matches!(decision, OwnerDispatchDecision::Rejected {
+            reason: OwnerDispatchRejectionReason::OfferNotReserved, ..
+        }));
     }
 
     #[test]
