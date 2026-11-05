@@ -120,6 +120,19 @@ pub struct RequestOutcome {
     pub reason: Option<NotScheduledReason>,
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct WaitDistribution {
+    pub sample_count: u64,
+    /// Nearest-rank median (50th percentile).
+    pub p50_ticks: Option<u64>,
+    /// Nearest-rank 90th percentile.
+    pub p90_ticks: Option<u64>,
+    /// Nearest-rank 95th percentile.
+    pub p95_ticks: Option<u64>,
+    /// Nearest-rank 99th percentile.
+    pub p99_ticks: Option<u64>,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct GroupMetrics {
     pub requests: u64,
@@ -128,6 +141,7 @@ pub struct GroupMetrics {
     pub service_units: u128,
     pub total_wait_ticks: u128,
     pub maximum_wait_ticks: u64,
+    pub wait_distribution: WaitDistribution,
     pub water_ml: u128,
     pub pump_energy_wh: u128,
 }
@@ -139,6 +153,7 @@ pub struct ScheduleMetrics {
     pub service_units: u128,
     pub total_wait_ticks: u128,
     pub maximum_wait_ticks: u64,
+    pub wait_distribution: WaitDistribution,
     pub total_service_ticks: u128,
     pub available_service_ticks: u128,
     pub total_water_ml: u128,
@@ -160,6 +175,25 @@ pub struct SchedulePlan {
 
 fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
+}
+
+/// Compute nearest-rank percentiles without interpolating integer simulation ticks.
+fn wait_distribution(samples: &mut [u64]) -> WaitDistribution {
+    if samples.is_empty() {
+        return WaitDistribution::default();
+    }
+    samples.sort_unstable();
+    let nearest_rank = |percent: usize| {
+        let rank = samples.len().saturating_mul(percent).div_ceil(100);
+        samples[rank.saturating_sub(1)]
+    };
+    WaitDistribution {
+        sample_count: u64::try_from(samples.len()).unwrap_or(u64::MAX),
+        p50_ticks: Some(nearest_rank(50)),
+        p90_ticks: Some(nearest_rank(90)),
+        p95_ticks: Some(nearest_rank(95)),
+        p99_ticks: Some(nearest_rank(99)),
+    }
 }
 
 fn validate_profile(
@@ -262,11 +296,47 @@ fn oldest_first(requests: &[PassageRequest], pending: &[usize]) -> Option<usize>
     })
 }
 
-fn least_slack_first(requests: &[PassageRequest], pending: &[usize]) -> Option<usize> {
+fn latest_permitted_start(request: &PassageRequest) -> u128 {
+    let wait_limit =
+        u128::from(request.arrival_earliest_tick) + u128::from(request.maximum_wait_ticks);
+    let deadline_limit = request
+        .completion_deadline_tick
+        .map(|deadline| deadline.saturating_sub(request.service_duration_ticks))
+        .map(u128::from)
+        .unwrap_or(u128::MAX);
+    u128::from(request.latest_start_tick).min(wait_limit).min(deadline_limit)
+}
+
+fn least_slack_first(
+    profile: &LockScheduleProfile,
+    unavailable: &[TimeInterval],
+    requests: &[PassageRequest],
+    pending: &[usize],
+    current_direction: Option<Direction>,
+    cursor_tick: u64,
+) -> Option<usize> {
     pending.iter().copied().min_by_key(|index| {
         let request = &requests[*index];
+        let direction_change = if current_direction
+            .is_some_and(|direction| direction != request.direction)
+        {
+            profile.direction_change_ticks
+        } else {
+            0
+        };
+        let projected = projected_start(
+            profile,
+            unavailable,
+            cursor_tick,
+            request,
+            direction_change,
+        );
+        let slack = projected
+            .map(|start| latest_permitted_start(request).saturating_sub(u128::from(start)))
+            .unwrap_or(u128::MAX);
         (
-            u128::from(request.arrival_earliest_tick) + u128::from(request.maximum_wait_ticks),
+            slack,
+            latest_permitted_start(request),
             request.arrival_earliest_tick,
             request.request_id.as_str(),
         )
@@ -313,7 +383,14 @@ fn select_next(context: &SelectionContext<'_>, policy: SchedulingPolicy) -> Opti
 
     match policy {
         SchedulingPolicy::FirstComeFirstServed => oldest_first(requests, pending),
-        SchedulingPolicy::LeastWaitSlack => least_slack_first(requests, pending),
+        SchedulingPolicy::LeastWaitSlack => least_slack_first(
+            profile,
+            unavailable,
+            requests,
+            pending,
+            current_direction,
+            cursor_tick,
+        ),
         SchedulingPolicy::DirectionalBatch { max_consecutive } => {
             let Some(direction) = current_direction else {
                 return oldest_first(requests, pending);
@@ -393,6 +470,7 @@ fn available_service_ticks(profile: &LockScheduleProfile, unavailable: &[TimeInt
 
 fn add_group_metrics(
     groups: &mut BTreeMap<String, GroupMetrics>,
+    wait_samples: &mut BTreeMap<String, Vec<u64>>,
     key: &str,
     outcome: &RequestOutcome,
 ) {
@@ -406,6 +484,10 @@ fn add_group_metrics(
             group.maximum_wait_ticks = group
                 .maximum_wait_ticks
                 .max(passage.waiting_from_earliest_arrival_ticks);
+            wait_samples
+                .entry(key.to_owned())
+                .or_default()
+                .push(passage.waiting_from_earliest_arrival_ticks);
             group.water_ml += u128::from(passage.water_ml);
             group.pump_energy_wh += u128::from(passage.pump_energy_wh);
         }
@@ -424,11 +506,13 @@ fn build_metrics(
         ..ScheduleMetrics::default()
     };
 
+    let mut global_wait_samples = Vec::with_capacity(schedule.len());
     let mut previous_direction = None;
     for passage in schedule {
         metrics.scheduled_requests += 1;
         metrics.service_units += u128::from(passage.service_units);
         metrics.total_wait_ticks += u128::from(passage.waiting_from_earliest_arrival_ticks);
+        global_wait_samples.push(passage.waiting_from_earliest_arrival_ticks);
         metrics.maximum_wait_ticks = metrics
             .maximum_wait_ticks
             .max(passage.waiting_from_earliest_arrival_ticks);
@@ -441,20 +525,36 @@ fn build_metrics(
         previous_direction = Some(passage.direction);
     }
 
+    let mut participant_wait_samples = BTreeMap::<String, Vec<u64>>::new();
+    let mut service_wait_samples = BTreeMap::<String, Vec<u64>>::new();
     for outcome in outcomes {
         if outcome.scheduled.is_none() {
             metrics.unserved_requests += 1;
         }
         add_group_metrics(
             &mut metrics.by_participant,
+            &mut participant_wait_samples,
             &outcome.participant_id,
             outcome,
         );
         add_group_metrics(
             &mut metrics.by_service_group,
+            &mut service_wait_samples,
             &outcome.service_group,
             outcome,
         );
+    }
+
+    metrics.wait_distribution = wait_distribution(&mut global_wait_samples);
+    for (key, samples) in &mut participant_wait_samples {
+        if let Some(group) = metrics.by_participant.get_mut(key) {
+            group.wait_distribution = wait_distribution(samples);
+        }
+    }
+    for (key, samples) in &mut service_wait_samples {
+        if let Some(group) = metrics.by_service_group.get_mut(key) {
+            group.wait_distribution = wait_distribution(samples);
+        }
     }
 
     for (left, first) in schedule.iter().enumerate() {
@@ -864,6 +964,52 @@ mod tests {
         let plan = schedule(&profile(), &[old, urgent], SchedulingPolicy::LeastWaitSlack)
             .expect("valid profile");
         assert_eq!(plan.schedule[0].request_id, "urgent");
+    }
+
+    #[test]
+    fn least_slack_policy_accounts_for_completion_deadline_and_service_duration() {
+        let mut relaxed = request("relaxed", 0, Direction::Upstream, 1, 1);
+        relaxed.latest_start_tick = 800;
+        relaxed.maximum_wait_ticks = 500;
+        relaxed.completion_deadline_tick = Some(200);
+
+        let mut urgent = request("urgent", 5, Direction::Upstream, 1, 1);
+        urgent.latest_start_tick = 700;
+        urgent.maximum_wait_ticks = 500;
+        urgent.service_duration_ticks = 20;
+        urgent.completion_deadline_tick = Some(30);
+
+        let plan = schedule(
+            &profile(),
+            &[relaxed, urgent],
+            SchedulingPolicy::LeastWaitSlack,
+        )
+        .expect("valid profile");
+        assert_eq!(plan.schedule[0].request_id, "urgent");
+    }
+
+    #[test]
+    fn wait_distribution_uses_nearest_rank_percentiles() {
+        let mut p = profile();
+        p.unavailable_windows.clear();
+        let requests = vec![
+            request("a", 0, Direction::Upstream, 1, 1),
+            request("b", 1, Direction::Upstream, 1, 1),
+            request("c", 2, Direction::Upstream, 1, 1),
+            request("d", 3, Direction::Upstream, 1, 1),
+        ];
+        let plan = schedule(&p, &requests, SchedulingPolicy::FirstComeFirstServed)
+            .expect("valid profile");
+        let dist = plan.metrics.wait_distribution;
+        assert_eq!(dist.sample_count, 4);
+        assert_eq!(dist.p50_ticks, Some(16));
+        assert_eq!(dist.p90_ticks, Some(27));
+        assert_eq!(dist.p95_ticks, Some(27));
+        assert_eq!(dist.p99_ticks, Some(27));
+        assert_eq!(
+            plan.metrics.by_service_group["freight"].wait_distribution,
+            dist
+        );
     }
 
     #[test]
