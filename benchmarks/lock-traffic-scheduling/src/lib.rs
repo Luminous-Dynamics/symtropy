@@ -1178,11 +1178,13 @@ mod tests {
     fn participant_least_served_rotates_before_a_second_request_from_same_participant() {
         let mut p = profile();
         p.unavailable_windows.clear();
-        let requests = vec![
-            request("a-first", 0, Direction::Upstream, 1, 1),
-            request("a-second", 1, Direction::Upstream, 1, 1),
-            request("b-first", 2, Direction::Upstream, 1, 1),
-        ];
+        let mut a_first = request("a-first", 0, Direction::Upstream, 1, 1);
+        a_first.participant_id = "participant-a".into();
+        let mut a_second = request("a-second", 1, Direction::Upstream, 1, 1);
+        a_second.participant_id = "participant-a".into();
+        let mut b_first = request("b-first", 2, Direction::Upstream, 1, 1);
+        b_first.participant_id = "participant-b".into();
+        let requests = vec![a_first, a_second, b_first];
         let plan = schedule(
             &p,
             &requests,
@@ -1196,20 +1198,22 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["a-first", "b-first", "a-second"]
         );
-        assert_eq!(plan.metrics.by_participant["participant-a-first"].service_units, 10);
-        assert_eq!(plan.metrics.by_participant["participant-a-second"].service_units, 10);
-        assert_eq!(plan.metrics.by_participant["participant-b-first"].service_units, 10);
+        assert_eq!(plan.metrics.by_participant["participant-a"].service_units, 20);
+        assert_eq!(plan.metrics.by_participant["participant-b"].service_units, 10);
+        assert_eq!(plan.metrics.by_participant["participant-b"].service_units, 10);
     }
 
     #[test]
     fn participant_least_served_is_input_order_independent() {
         let mut p = profile();
         p.unavailable_windows.clear();
-        let requests = vec![
-            request("a-first", 0, Direction::Upstream, 1, 1),
-            request("a-second", 1, Direction::Upstream, 1, 1),
-            request("b-first", 2, Direction::Upstream, 1, 1),
-        ];
+        let mut a_first = request("a-first", 0, Direction::Upstream, 1, 1);
+        a_first.participant_id = "participant-a".into();
+        let mut a_second = request("a-second", 1, Direction::Upstream, 1, 1);
+        a_second.participant_id = "participant-a".into();
+        let mut b_first = request("b-first", 2, Direction::Upstream, 1, 1);
+        b_first.participant_id = "participant-b".into();
+        let requests = vec![a_first, a_second, b_first];
         let forward = schedule(&p, &requests, SchedulingPolicy::ParticipantLeastServed)
             .expect("valid profile");
         let reverse = schedule(
