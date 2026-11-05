@@ -201,7 +201,9 @@ fn emit_audit(session: &DeliberationSession) {
     let shift = audit.allocation_l1_shift_units.to_string();
     let reallocated = fmt(audit.reallocated_units);
     let consensus = audit.facilitator_declares_consensus.to_string();
-    let unanimity_conflict = audit.unanimity_claim_conflicts_with_top_preferences.to_string();
+    let unanimity_conflict = audit
+        .unanimity_claim_conflicts_with_top_preferences
+        .to_string();
 
     for (metric, value, unit) in [
         ("speaking_time_gini", fmt(audit.speaking_time_gini), "index"),
