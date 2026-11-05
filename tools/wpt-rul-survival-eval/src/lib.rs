@@ -453,21 +453,21 @@ fn cause_specific_hazard_log_score(
         for interval_index in 0..interval_count {
             let start = interval_edges[interval_index];
             let end = interval_edges[interval_index + 1];
-            if subject.observed_duration_hours <= start {
+            if subject.observed_duration_hours < start {
                 break;
             }
-            let exposure_hours = subject.observed_duration_hours.min(end) - start;
-            if exposure_hours <= 0.0 {
-                continue;
-            }
-            let total_hazard_rate = subject
-                .cause_specific_hazard_rates
-                .values()
-                .map(|rates| rates[interval_index])
-                .sum::<f64>();
-            integrated_total_hazard += total_hazard_rate * exposure_hours;
-            if !integrated_total_hazard.is_finite() {
-                return Err("cause-specific integrated hazard overflowed".into());
+            let exposure_hours =
+                (subject.observed_duration_hours.min(end) - start).max(0.0);
+            if exposure_hours > 0.0 {
+                let total_hazard_rate = subject
+                    .cause_specific_hazard_rates
+                    .values()
+                    .map(|rates| rates[interval_index])
+                    .sum::<f64>();
+                integrated_total_hazard += total_hazard_rate * exposure_hours;
+                if !integrated_total_hazard.is_finite() {
+                    return Err("cause-specific integrated hazard overflowed".into());
+                }
             }
 
             let contains_event_time = subject.has_terminal_event()
@@ -880,6 +880,21 @@ mod tests {
     fn cause_specific_censored_log_score_matches_piecewise_hazard_calculation() {
         let report = evaluate_run(&fixture()).unwrap();
         assert!((report.cause_specific_hazard_log_score - 3.3165540492110956).abs() < 1e-12);
+    }
+
+    #[test]
+    fn event_at_hazard_interval_boundary_uses_the_next_interval() {
+        let baseline = evaluate_run(&fixture()).unwrap();
+        let mut run = fixture();
+        run["subjects"][0]["observed_duration_hours"] = Value::from(5.0);
+        let boundary = evaluate_run(&run).unwrap();
+        assert!(
+            (boundary.cause_specific_hazard_log_score
+                - baseline.cause_specific_hazard_log_score
+                - 0.027 / 8.0)
+                .abs()
+                < 1e-12
+        );
     }
 
     #[test]
