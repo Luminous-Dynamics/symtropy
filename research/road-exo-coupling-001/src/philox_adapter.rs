@@ -1405,7 +1405,7 @@ mod tests {
     }
 
     #[test]
-    fn incomplete_correspondence_keeps_an_incomplete_draw_bundle() {
+    fn bundle_verifier_rejects_partial_incomplete_labels_against_complete_inputs() {
         let seed = [0x88; 32];
         let mut plan = correspondence_plan();
         plan.completeness = PlanCompleteness::Incomplete;
@@ -1418,7 +1418,10 @@ mod tests {
             PlanCompleteness::Incomplete
         );
         assert_eq!(resolved.hypotheses[0].draws.len(), 3);
-        assert_eq!(verify_correspondence_draw_bundle(&seed, &resolved), Ok(()));
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &resolved),
+            Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)
+        );
     }
 
     #[test]
