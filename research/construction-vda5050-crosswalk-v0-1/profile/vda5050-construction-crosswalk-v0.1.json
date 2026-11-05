@@ -1,0 +1,343 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-vda5050-crosswalk-v0.1",
+  "owner_issue": 3703,
+  "parent_interop_issue": 3644,
+  "status": "research_profile_synthetic_projection",
+  "source": {
+    "standard": "VDA 5050",
+    "version": "3.0.0",
+    "release_date": "2026-03-19",
+    "official_release_page": "https://www.vda.de/en/topics/automotive-industry/vda-5050",
+    "upstream_repository": "https://github.com/VDA5050/VDA5050",
+    "release_tag": "3.0.0",
+    "release_tag_schema_audit": [
+      {
+        "path": "json_schemas/order.schema",
+        "git_blob_oid_sha1": "37e096cff712906e2f0ed48ecd7599e7c3284e95",
+        "valid_json": false,
+        "error": "trailing comma; line 315 column 8"
+      },
+      {
+        "path": "json_schemas/factsheet.schema",
+        "git_blob_oid_sha1": "5457bb75b67dc1d8fa6bd1d055043053bf9a4848",
+        "valid_json": false,
+        "error": "trailing comma; line 174 column 17"
+      },
+      {
+        "path": "json_schemas/visualization.schema",
+        "git_blob_oid_sha1": "4d3f8583ea1f13e86c4cf6e6df7381dc5463780c",
+        "valid_json": false,
+        "error": "trailing comma; line 55 column 5"
+      },
+      {
+        "path": "json_schemas/connection.schema",
+        "git_blob_oid_sha1": "ac7b35ffab967040515de276fd6cdb913c02d290",
+        "valid_json": true,
+        "error": null
+      },
+      {
+        "path": "json_schemas/instantActions.schema",
+        "git_blob_oid_sha1": "7b37a2f0b35caeaf8eb583012e7aff3f24ce931a",
+        "valid_json": true,
+        "error": null
+      },
+      {
+        "path": "json_schemas/responses.schema",
+        "git_blob_oid_sha1": "b6d336e6e810a0f6383d79e0d71f3ceabef878ea",
+        "valid_json": true,
+        "error": null
+      },
+      {
+        "path": "json_schemas/state.schema",
+        "git_blob_oid_sha1": "1608f7b116669c6ef8cb708fdc7d814627c0b658",
+        "valid_json": true,
+        "error": null
+      },
+      {
+        "path": "json_schemas/zoneSet.schema",
+        "git_blob_oid_sha1": "747d5380c9867c7fca9741431dabcc9d9a1cbf07",
+        "valid_json": true,
+        "error": null
+      }
+    ],
+    "corrected_upstream_snapshot": {
+      "commit": "ad169568749f3799e3aac72ae814c4167a7677f9",
+      "status": "corrective_repository_snapshot_not_relabelled_as_release_tag",
+      "parse_results": [
+        {
+          "path": "json_schemas/order.schema",
+          "git_blob_oid_sha1": "0dda7eb93a7a27fef660f31d0cddc66eef522fe6",
+          "valid_json": true
+        },
+        {
+          "path": "json_schemas/factsheet.schema",
+          "git_blob_oid_sha1": "eb80a2f718307cebe2cade49cc549eb088dcdbdb",
+          "valid_json": true
+        },
+        {
+          "path": "json_schemas/visualization.schema",
+          "git_blob_oid_sha1": "7f710c9650f7366b79248f732b77db73314d149f",
+          "valid_json": true
+        }
+      ]
+    },
+    "upstream_issue": "https://github.com/VDA5050/VDA5050/issues/660",
+    "authority_note": "The upstream repository states that the published VDA document is authoritative if repository Markdown or JSON schemas differ. A corrected main-branch schema snapshot is not silently treated as an official 3.0.0 release artifact."
+  },
+  "transport_semantics": {
+    "transport": "MQTT",
+    "qos_zero_topics": [
+      "order",
+      "instantActions",
+      "state",
+      "factsheet",
+      "zoneSet",
+      "responses",
+      "visualization"
+    ],
+    "qos_one_topic": "connection",
+    "security": "Broker security must be configured externally; the VDA 5050 guideline does not define protocol security.",
+    "disconnect": "The mobile robot retains order information and fulfills the order up to the last released node after broker disconnection.",
+    "navigation_coordinates": {
+      "frame_kind": "project_specific_coordinate_system",
+      "handedness": "right_handed",
+      "z_axis": "up",
+      "position_unit": "m",
+      "orientation_unit": "rad",
+      "warning": "These navigation coordinates do not establish the exact construction target frame, survey transform, datum, coordinate epoch, or worksite epoch."
+    }
+  },
+  "mappings": [
+    {
+      "canonical_field": "task.id",
+      "vda_surface": "order.orderId",
+      "mapping_class": "transport_metadata_only",
+      "sidecar_required": true,
+      "loss_rule": "keep_transport_identity_distinct",
+      "meaning": "VDA orderId correlates transport order messages; it is not the canonical construction task identifier."
+    },
+    {
+      "canonical_field": "task.update_revision",
+      "vda_surface": "order.orderUpdateId",
+      "mapping_class": "transport_metadata_only",
+      "sidecar_required": true,
+      "loss_rule": "keep_transport_revision_distinct",
+      "meaning": "VDA orderUpdateId versions transport-order updates; it is not a design revision or construction task revision."
+    },
+    {
+      "canonical_field": "work_package.id",
+      "vda_surface": null,
+      "mapping_class": "sidecar_required",
+      "sidecar_required": true,
+      "loss_rule": "require_exact_sidecar_and_reject_if_missing",
+      "meaning": "Construction work-package identity is not defined by the VDA transport-order contract."
+    },
+    {
+      "canonical_field": "design.revision_digest",
+      "vda_surface": null,
+      "mapping_class": "sidecar_required",
+      "sidecar_required": true,
+      "loss_rule": "require_exact_sidecar_and_reject_if_missing",
+      "meaning": "A robot navigation map version or transport-order update cannot substitute for the approved design artifact digest."
+    },
+    {
+      "canonical_field": "site.epoch",
+      "vda_surface": null,
+      "mapping_class": "sidecar_required",
+      "sidecar_required": true,
+      "loss_rule": "require_exact_sidecar_and_reject_if_missing",
+      "meaning": "VDA map versioning does not encode the construction worksite epoch or its invalidation lineage."
+    },
+    {
+      "canonical_field": "spatial.target_frame",
+      "vda_surface": "order.nodes[].nodePosition",
+      "mapping_class": "bounded_projection",
+      "sidecar_required": true,
+      "loss_rule": "require_exact_sidecar_and_reject_if_missing",
+      "meaning": "Node positions use a project-specific navigation coordinate system; the exact named construction frame and transform must travel out of band."
+    },
+    {
+      "canonical_field": "spatial.transform_bundle_digest",
+      "vda_surface": null,
+      "mapping_class": "sidecar_required",
+      "sidecar_required": true,
+      "loss_rule": "require_exact_sidecar_and_reject_if_missing",
+      "meaning": "VDA positions do not carry the exact surveyed transform operation, resource bundle, or independent control evidence."
+    },
+    {
+      "canonical_field": "navigation.map_identity",
+      "vda_surface": "state.mobileRobotPosition.mapId; state.maps[].mapVersion",
+      "mapping_class": "bounded_projection",
+      "sidecar_required": true,
+      "loss_rule": "project_only_as_navigation_data",
+      "meaning": "mapId/mapVersion identify navigation maps only; they are not design revision, site epoch, or survey qualification."
+    },
+    {
+      "canonical_field": "work_zone.id",
+      "vda_surface": "zoneSet.zones[].zoneId",
+      "mapping_class": "bounded_projection",
+      "sidecar_required": true,
+      "loss_rule": "project_only_as_fleet_traffic_data",
+      "meaning": "A VDA zone can constrain robot movement; a project work zone requires an explicit geometry/revision/meaning crosswalk and remains a separate identity."
+    },
+    {
+      "canonical_field": "robot.capability_profile",
+      "vda_surface": "factsheet.typeSpecifications",
+      "mapping_class": "bounded_projection",
+      "sidecar_required": true,
+      "loss_rule": "treat_as_reported_capability_only",
+      "meaning": "Factsheet capability values are robot-reported interface information; project-specific qualification and current configuration remain external."
+    },
+    {
+      "canonical_field": "robot.configuration_digest",
+      "vda_surface": null,
+      "mapping_class": "sidecar_required",
+      "sidecar_required": true,
+      "loss_rule": "require_exact_sidecar_and_reject_if_missing",
+      "meaning": "Manufacturer, serial number and factsheet data do not by themselves establish an attested configuration digest for a task."
+    },
+    {
+      "canonical_field": "task.family",
+      "vda_surface": null,
+      "mapping_class": "sidecar_required",
+      "sidecar_required": true,
+      "loss_rule": "require_exact_sidecar_and_reject_if_missing",
+      "meaning": "Robot actionType denotes an executable robot action, not the construction work-package family or accepted functional unit."
+    },
+    {
+      "canonical_field": "task.route",
+      "vda_surface": "order.nodes[]; order.edges[]",
+      "mapping_class": "bounded_projection",
+      "sidecar_required": true,
+      "loss_rule": "project_only_as_navigation_data",
+      "meaning": "The node-edge graph is a route projection; it is not the construction work graph or dependency graph."
+    },
+    {
+      "canonical_field": "task.robot_actions",
+      "vda_surface": "order.nodes[].actions[]; order.edges[].actions[]",
+      "mapping_class": "bounded_projection",
+      "sidecar_required": true,
+      "loss_rule": "project_only_as_executor_commands",
+      "meaning": "VDA actions describe robot commands/action parameters; they do not carry independently verified construction postconditions."
+    },
+    {
+      "canonical_field": "task.preconditions_postconditions",
+      "vda_surface": null,
+      "mapping_class": "sidecar_required",
+      "sidecar_required": true,
+      "loss_rule": "require_exact_sidecar_and_reject_if_missing",
+      "meaning": "Construction preconditions, measurable postconditions and acceptance tolerances require a separate task contract."
+    },
+    {
+      "canonical_field": "resource.reservation",
+      "vda_surface": "zoneSet; state.zoneRequests; responses",
+      "mapping_class": "bounded_projection",
+      "sidecar_required": true,
+      "loss_rule": "project_only_as_fleet_traffic_data",
+      "meaning": "Zone requests/releases can represent fleet traffic coordination; they do not replace general capacity leases, resource calendars, site permits, or safety authorization."
+    },
+    {
+      "canonical_field": "execution.progress",
+      "vda_surface": "state.nodeStates[]; state.edgeStates[]; state.actionStates[]; state.lastNodeId",
+      "mapping_class": "bounded_projection",
+      "sidecar_required": true,
+      "loss_rule": "never_promote_executor_evidence",
+      "meaning": "Robot state is executor-reported route/action progress. It is not measured output, inspection, or independent acceptance."
+    },
+    {
+      "canonical_field": "output.physical_evidence",
+      "vda_surface": null,
+      "mapping_class": "sidecar_required",
+      "sidecar_required": true,
+      "loss_rule": "require_external_evidence_receipt",
+      "meaning": "Physical quantities, measurement uncertainty, raw artifacts and output identity are external evidence references."
+    },
+    {
+      "canonical_field": "inspection.result",
+      "vda_surface": null,
+      "mapping_class": "sidecar_required",
+      "sidecar_required": true,
+      "loss_rule": "require_external_inspection_receipt",
+      "meaning": "Inspection decision and governing acceptance profile are outside VDA 5050."
+    },
+    {
+      "canonical_field": "acceptance.independent",
+      "vda_surface": null,
+      "mapping_class": "not_representable",
+      "sidecar_required": true,
+      "loss_rule": "never_promote_to_independent_acceptance",
+      "meaning": "No VDA message or robot state is an independently authorized construction acceptance receipt."
+    },
+    {
+      "canonical_field": "safety.authorization",
+      "vda_surface": null,
+      "mapping_class": "not_representable",
+      "sidecar_required": true,
+      "loss_rule": "never_promote_to_safety_or_motion_authority",
+      "meaning": "VDA fleet traffic release is not a site safety permit or safety-rated motion authorization."
+    },
+    {
+      "canonical_field": "message.event_identity",
+      "vda_surface": "headerId; orderId; orderUpdateId",
+      "mapping_class": "transport_metadata_only",
+      "sidecar_required": true,
+      "loss_rule": "retain_construction_event_identity_out_of_band",
+      "meaning": "VDA headerId is topic-scoped and the order identifiers are transport-scoped; construction event identity, replay protection and context binding remain separate."
+    },
+    {
+      "canonical_field": "robot.identity",
+      "vda_surface": "manufacturer; serialNumber",
+      "mapping_class": "bounded_projection",
+      "sidecar_required": true,
+      "loss_rule": "treat_as_identity_claim_not_authentication",
+      "meaning": "VDA manufacturer/serial values are identifiers in the interface, not proof of authenticated actor identity or authority."
+    }
+  ],
+  "required_sidecar_fields": [
+    "task_id",
+    "work_package_id",
+    "vda_order_id",
+    "vda_order_update_id",
+    "design_revision_digest",
+    "site_epoch",
+    "target_frame_id",
+    "transform_bundle_digest",
+    "robot_configuration_digest",
+    "capability_profile_digest",
+    "work_zone_id",
+    "resource_reservation_digest",
+    "preconditions_digest",
+    "postconditions_digest",
+    "evidence_profile_ref",
+    "acceptance_authority_ref"
+  ],
+  "prohibited_promotions": [
+    {
+      "source": "state.actionStates[].FINISHED",
+      "target": "acceptance.independent",
+      "allowed": false
+    },
+    {
+      "source": "state.lastNodeId / nodeStates traversal",
+      "target": "output.physical_evidence",
+      "allowed": false
+    },
+    {
+      "source": "zone RELEASE / GRANTED",
+      "target": "safety.authorization",
+      "allowed": false
+    },
+    {
+      "source": "state.maps[].mapVersion",
+      "target": "design.revision_digest",
+      "allowed": false
+    },
+    {
+      "source": "factsheet.typeSpecifications",
+      "target": "robot.configuration_digest",
+      "allowed": false
+    }
+  ],
+  "claim_ceiling": "Synthetic crosswalk/profile and local projection tests only. No production VDA adapter, vendor conformance, hardware integration, site safety qualification, physical output acceptance, productivity superiority, or ISO conformity is established."
+}
