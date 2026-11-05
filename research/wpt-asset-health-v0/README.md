@@ -54,7 +54,7 @@ Each relationship must be labelled as literature-supported, hypothesized, simula
 
 Use matched conventional-pavement, embedded-unpowered and embedded-energized arms where feasible. Preserve pavement type, material lot, installation and hardware identity.
 
-The machine-readable contract in `asset-observation.schema.json`:
+The machine-readable contract in `asset-observation.schema.json` is illustrated by `asset-observation.synthetic-example.json`, which is explicitly marked SYNTHETIC_KNOWN_TRUTH and SYNTHETIC_ONLY; none of its numeric values are measurements. The contract:
 - uses explicit units and typed measurement fields;
 - permits `null` for unmeasured values rather than silent imputation;
 - binds observations to asset/segment/time and measurement-plane provenance;
