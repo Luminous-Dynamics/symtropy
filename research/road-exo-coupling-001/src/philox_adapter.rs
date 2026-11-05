@@ -9,6 +9,10 @@ use std::collections::BTreeMap;
 use rand_philox::Philox;
 
 use crate::DrawAddress;
+use crate::coupling_projection::{
+    CorrespondenceAddressPlan, HypothesisAddressPlan, PlanCompleteness, PlannedAddress,
+    PlannedPresence, SharingStatus,
+};
 
 pub const ADDRESS_SCHEMA_ID: &str = "symtropy.road-exo-coupling.draw-address.v0.1";
 pub const DERIVATION_CONTEXT: &str =
@@ -16,6 +20,13 @@ pub const DERIVATION_CONTEXT: &str =
 pub const DERIVATION_ID: &str = "BLAKE3-derive-key-256/road-exo-v0.1";
 pub const PRNG_ID: &str = "Philox4x32-10/rand_philox-0.2.1";
 pub const PHILOX_OUTPUT_WORDS: usize = 4;
+
+pub const CORRESPONDENCE_ADDRESS_SCHEMA_ID: &str =
+    "symtropy.road-correspondence-coupling.address.v0.2";
+pub const CORRESPONDENCE_DERIVATION_CONTEXT: &str =
+    "Symtropy ROAD-CORRESPONDENCE-COUPLING-001 Philox4x32-10 address v0.2";
+pub const CORRESPONDENCE_DERIVATION_ID: &str =
+    "BLAKE3-derive-key-256/road-correspondence-coupling-v0.2";
 
 /// Reproducibility receipt for exactly one semantic random draw.
 ///
@@ -44,7 +55,44 @@ pub struct DrawReceipt {
 #[must_use]
 pub fn resolve_draw(experiment_seed: &[u8; 32], address: &DrawAddress) -> DrawReceipt {
     let canonical_address = address.canonical_bytes();
-    let derivation_digest = derive_address_digest(experiment_seed, &canonical_address);
+    resolve_canonical_address(
+        experiment_seed,
+        ADDRESS_SCHEMA_ID,
+        DERIVATION_ID,
+        DERIVATION_CONTEXT,
+        &canonical_address,
+    )
+}
+
+/// Resolve exactly one Philox block from a canonical v0.2 correspondence address.
+///
+/// The correspondence projection and causal disposition must already have
+/// been qualified. This function consumes the unchanged canonical bytes and
+/// uses the same pinned BLAKE3 + Philox versions as the v0.1 resolver, but a
+/// distinct KDF context/version prevents accidental cross-schema reuse.
+#[must_use]
+pub fn resolve_correspondence_address(
+    experiment_seed: &[u8; 32],
+    canonical_address: &[u8],
+) -> DrawReceipt {
+    resolve_canonical_address(
+        experiment_seed,
+        CORRESPONDENCE_ADDRESS_SCHEMA_ID,
+        CORRESPONDENCE_DERIVATION_ID,
+        CORRESPONDENCE_DERIVATION_CONTEXT,
+        canonical_address,
+    )
+}
+
+fn resolve_canonical_address(
+    experiment_seed: &[u8; 32],
+    address_schema: &'static str,
+    derivation_id: &'static str,
+    derivation_context: &str,
+    canonical_address: &[u8],
+) -> DrawReceipt {
+    let derivation_digest =
+        derive_address_digest_with_context(experiment_seed, canonical_address, derivation_context);
 
     let key = [
         u32::from_le_bytes(
@@ -72,8 +120,8 @@ pub fn resolve_draw(experiment_seed: &[u8; 32], address: &DrawAddress) -> DrawRe
     let words = std::array::from_fn(|_| generator.next_u32());
 
     DrawReceipt {
-        address_schema: ADDRESS_SCHEMA_ID,
-        derivation_id: DERIVATION_ID,
+        address_schema,
+        derivation_id,
         prng_id: PRNG_ID,
         derivation_digest,
         collision_tag,
@@ -84,12 +132,20 @@ pub fn resolve_draw(experiment_seed: &[u8; 32], address: &DrawAddress) -> DrawRe
 }
 
 fn derive_address_digest(experiment_seed: &[u8; 32], address: &[u8]) -> [u8; 32] {
+    derive_address_digest_with_context(experiment_seed, address, DERIVATION_CONTEXT)
+}
+
+fn derive_address_digest_with_context(
+    experiment_seed: &[u8; 32],
+    address: &[u8],
+    context: &str,
+) -> [u8; 32] {
     let mut key_material = Vec::with_capacity(8 + experiment_seed.len() + 8 + address.len());
     push_len(&mut key_material, experiment_seed.len());
     key_material.extend_from_slice(experiment_seed);
     push_len(&mut key_material, address.len());
     key_material.extend_from_slice(address);
-    blake3::derive_key(DERIVATION_CONTEXT, &key_material)
+    blake3::derive_key(context, &key_material)
 }
 
 fn push_len(out: &mut Vec<u8>, length: usize) {
@@ -153,6 +209,102 @@ impl AddressCollisionRegistry {
 
     pub fn is_empty(&self) -> bool {
         self.seen.is_empty()
+    }
+}
+
+/// One resolved address with its correspondence and presence metadata retained.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CorrespondenceDrawReceipt {
+    pub hypothesis_id: crate::StableId,
+    pub branch_id: crate::StableId,
+    pub event_id: crate::StableId,
+    pub sharing: SharingStatus,
+    pub presence: PlannedPresence,
+    pub draw: DrawReceipt,
+}
+
+/// Resolved draws for every retained correspondence hypothesis.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CorrespondenceHypothesisDraws {
+    pub hypothesis_id: crate::StableId,
+    pub completeness: PlanCompleteness,
+    pub draws: Vec<CorrespondenceDrawReceipt>,
+}
+
+/// A complete or explicitly incomplete bundle of all hypothesis-conditioned draws.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CorrespondenceDrawBundle {
+    pub left_branch: crate::StableId,
+    pub right_branch: crate::StableId,
+    pub completeness: PlanCompleteness,
+    pub hypotheses: Vec<CorrespondenceHypothesisDraws>,
+}
+
+/// Resolve every address in every retained hypothesis and run the existing
+/// collision registry over the whole bundle. Incomplete plans remain incomplete.
+pub fn resolve_correspondence_plan(
+    experiment_seed: &[u8; 32],
+    plan: &CorrespondenceAddressPlan,
+) -> Result<CorrespondenceDrawBundle, AddressCollision> {
+    let mut registry = AddressCollisionRegistry::default();
+    let mut hypotheses = Vec::with_capacity(plan.hypotheses.len());
+
+    for hypothesis in &plan.hypotheses {
+        let draws = resolve_hypothesis_addresses(experiment_seed, hypothesis, &mut registry)?;
+        hypotheses.push(CorrespondenceHypothesisDraws {
+            hypothesis_id: hypothesis.hypothesis_id.clone(),
+            completeness: hypothesis.completeness,
+            draws,
+        });
+    }
+
+    Ok(CorrespondenceDrawBundle {
+        left_branch: plan.left_branch.clone(),
+        right_branch: plan.right_branch.clone(),
+        completeness: plan.completeness,
+        hypotheses,
+    })
+}
+
+fn resolve_hypothesis_addresses(
+    experiment_seed: &[u8; 32],
+    hypothesis: &HypothesisAddressPlan,
+    registry: &mut AddressCollisionRegistry,
+) -> Result<Vec<CorrespondenceDrawReceipt>, AddressCollision> {
+    let mut draws = Vec::with_capacity(hypothesis.addresses.len());
+    for address in &hypothesis.addresses {
+        let receipt = resolve_planned_address(experiment_seed, &hypothesis.hypothesis_id, address);
+        registry.register(&receipt.draw)?;
+        draws.push(receipt);
+    }
+    Ok(draws)
+}
+
+fn resolve_planned_address(
+    experiment_seed: &[u8; 32],
+    hypothesis_id: &crate::StableId,
+    address: &PlannedAddress,
+) -> CorrespondenceDrawReceipt {
+    CorrespondenceDrawReceipt {
+        hypothesis_id: hypothesis_id.clone(),
+        branch_id: address.branch_id.clone(),
+        event_id: address.event_id.clone(),
+        sharing: address.sharing,
+        presence: address.presence.clone(),
+        draw: resolve_correspondence_address(experiment_seed, &address.canonical_bytes),
+    }
+}
+
+/// Recompute a v0.2 address receipt against the exact canonical bytes and seed.
+pub fn verify_correspondence_receipt(
+    experiment_seed: &[u8; 32],
+    canonical_address: &[u8],
+    receipt: &DrawReceipt,
+) -> Result<(), ReceiptMismatch> {
+    if resolve_correspondence_address(experiment_seed, canonical_address) == *receipt {
+        Ok(())
+    } else {
+        Err(ReceiptMismatch)
     }
 }
 
