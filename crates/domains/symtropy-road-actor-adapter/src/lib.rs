@@ -10,7 +10,9 @@
 
 use blake3::Hasher;
 use std::fmt;
-use symtropy_road_actors::{ActorMode, ActorPolicyState, MotionBounds, ScenarioActorId, ScenarioTick};
+use symtropy_road_actors::{
+    ActorMode, ActorPolicyState, MotionBounds, ScenarioActorId, ScenarioTick,
+};
 
 pub const ROUTE_SCHEMA_ID: &str = "symtropy.road-actor-route.v0.1";
 pub const STEP_SCHEMA_ID: &str = "symtropy.road-actor-path-step.v0.1";
@@ -351,10 +353,7 @@ impl PathStepReceipt {
         push_point(&mut output, self.target.position);
         push_f64(&mut output, self.target.heading_radians);
         push_point(&mut output, self.target.linear_velocity_mps);
-        push_f64(
-            &mut output,
-            self.target.angular_velocity_radians_per_second,
-        );
+        push_f64(&mut output, self.target.angular_velocity_radians_per_second);
         output
     }
 
@@ -509,11 +508,7 @@ pub fn verify_path_step(
 }
 
 fn canonical_zero(value: f64) -> f64 {
-    if value == 0.0 {
-        0.0
-    } else {
-        value
-    }
+    if value == 0.0 { 0.0 } else { value }
 }
 
 fn push_string(output: &mut Vec<u8>, value: &str) {
@@ -623,7 +618,13 @@ mod tests {
             Point2::new(1.0, 12.0).unwrap(),
         )
         .unwrap();
-        let input = input(&actor, Some(&route), policy_state(1.2, Some(ScenarioTick(9))), 0.5, 0.0);
+        let input = input(
+            &actor,
+            Some(&route),
+            policy_state(1.2, Some(ScenarioTick(9))),
+            0.5,
+            0.0,
+        );
         let receipt = plan_path_step(&input).unwrap();
 
         assert!((receipt.target.heading_radians - std::f64::consts::FRAC_PI_2).abs() < 1e-12);
@@ -812,8 +813,7 @@ mod tests {
         );
         request.elapsed_ticks = u64::MAX;
         request.clock = TickClock::new(1).unwrap();
-        request.motion_profile =
-            MotionProfile::new(bounds(), f64::MAX, f64::MAX).unwrap();
+        request.motion_profile = MotionProfile::new(bounds(), f64::MAX, f64::MAX).unwrap();
         assert_eq!(
             plan_path_step(&request),
             Err(AdapterError::NonFiniteDerivedMotion)
