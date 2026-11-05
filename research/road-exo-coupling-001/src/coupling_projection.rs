@@ -503,19 +503,11 @@ struct PairAddressContext<'a> {
 }
 
 impl PairAddressContext<'_> {
-    fn shared_bytes(
-        &self,
-        equivalence_group: &StableId,
-        justification: &StableId,
-    ) -> Vec<u8> {
+    fn shared_bytes(&self, equivalence_group: &StableId, justification: &StableId) -> Vec<u8> {
         self.canonical_bytes(2, equivalence_group, justification)
     }
 
-    fn sensitivity_bytes(
-        &self,
-        sensitivity_id: &StableId,
-        justification: &StableId,
-    ) -> Vec<u8> {
+    fn sensitivity_bytes(&self, sensitivity_id: &StableId, justification: &StableId) -> Vec<u8> {
         self.canonical_bytes(3, sensitivity_id, justification)
     }
 
@@ -975,7 +967,10 @@ mod tests {
             for pair in &mut hypothesis.pairs {
                 std::mem::swap(&mut pair.left_event, &mut pair.right_event);
             }
-            std::mem::swap(&mut hypothesis.unmatched_left, &mut hypothesis.unmatched_right);
+            std::mem::swap(
+                &mut hypothesis.unmatched_left,
+                &mut hypothesis.unmatched_right,
+            );
         }
         let reversed_rules = vec![
             PairCausalRule {
@@ -1000,17 +995,31 @@ mod tests {
         let reversed_plan =
             project_correspondence_addresses(&reversed, &all_scopes(), &reversed_rules).unwrap();
 
-        let original_shared: Vec<Vec<u8>> = original.hypotheses
+        let original_shared: Vec<Vec<u8>> = original
+            .hypotheses
             .iter()
-            .map(|hypothesis| hypothesis.addresses.iter()
-                .find(|address| address.sharing == SharingStatus::SharedInvariant)
-                .unwrap().canonical_bytes.clone())
+            .map(|hypothesis| {
+                hypothesis
+                    .addresses
+                    .iter()
+                    .find(|address| address.sharing == SharingStatus::SharedInvariant)
+                    .unwrap()
+                    .canonical_bytes
+                    .clone()
+            })
             .collect();
-        let reversed_shared: Vec<Vec<u8>> = reversed_plan.hypotheses
+        let reversed_shared: Vec<Vec<u8>> = reversed_plan
+            .hypotheses
             .iter()
-            .map(|hypothesis| hypothesis.addresses.iter()
-                .find(|address| address.sharing == SharingStatus::SharedInvariant)
-                .unwrap().canonical_bytes.clone())
+            .map(|hypothesis| {
+                hypothesis
+                    .addresses
+                    .iter()
+                    .find(|address| address.sharing == SharingStatus::SharedInvariant)
+                    .unwrap()
+                    .canonical_bytes
+                    .clone()
+            })
             .collect();
         assert_eq!(original_shared, reversed_shared);
     }
