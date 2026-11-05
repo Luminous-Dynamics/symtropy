@@ -195,25 +195,24 @@ pub struct Resource {
     pub evidence_ids: Vec<String>,
 }
 
+/// Separate meter boundaries for a synthetic service-chain alternative.
+///
+/// These values are deliberately not summed. Shore power may be the supply for
+/// the vessel auxiliary load, so adding source-side imports to end-use loads can
+/// double-count the same energy. Aggregate energy is unavailable until an
+/// evidence-qualified boundary cut proves the measurements are disjoint. See
+/// Symtropy PHYS-ENERGY-PORTS-001 (#3615) and the typed energy-port contract
+/// (#3691).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct EnergyLedger {
-    /// Ship propulsion boundary, expressed in watt-hours.
+    /// Vessel propulsion energy measured at the propulsion boundary (Wh).
     pub propulsion_wh: u64,
-    /// Ship auxiliary / hotel-load boundary, expressed in watt-hours.
+    /// Vessel auxiliary / hotel-load energy measured at the load boundary (Wh).
     pub auxiliary_wh: u64,
-    /// Shore-power supply boundary, expressed in watt-hours.
-    pub shore_power_wh: u64,
-    /// Onward-transfer energy boundary, expressed in watt-hours.
-    pub onward_transfer_wh: u64,
-}
-
-impl EnergyLedger {
-    pub fn total_wh(self) -> u128 {
-        u128::from(self.propulsion_wh)
-            + u128::from(self.auxiliary_wh)
-            + u128::from(self.shore_power_wh)
-            + u128::from(self.onward_transfer_wh)
-    }
+    /// Shore-grid energy imported at the shore connection boundary (Wh).
+    pub shore_power_import_wh: u64,
+    /// Energy measured at the inland-transfer traction boundary (Wh).
+    pub inland_transfer_wh: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1679,8 +1678,8 @@ mod tests {
                 energy: EnergyLedger {
                     propulsion_wh: 1_800,
                     auxiliary_wh: 200,
-                    shore_power_wh: 800,
-                    onward_transfer_wh: 0,
+                    shore_power_import_wh: 800,
+                    inland_transfer_wh: 0,
                 },
             },
             VoyageAlternative {
@@ -1720,8 +1719,8 @@ mod tests {
                 energy: EnergyLedger {
                     propulsion_wh: 1_300,
                     auxiliary_wh: 200,
-                    shore_power_wh: 800,
-                    onward_transfer_wh: 0,
+                    shore_power_import_wh: 800,
+                    inland_transfer_wh: 0,
                 },
             },
         ];
