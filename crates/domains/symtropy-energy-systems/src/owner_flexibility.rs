@@ -392,6 +392,19 @@ impl OwnerOfferReservationLedger {
         self.reservations.iter().any(|r| r.offer_id == offer_id)
     }
 
+    /// Checks that authorization is bound to the exact terms that were reserved.
+    pub fn matches_offer(&self, offer: &OwnerFlexibilityOffer) -> bool {
+        self.reservations.iter().any(|reservation| {
+            reservation.offer_id == offer.offer_id
+                && reservation.portfolio_id == offer.portfolio_id
+                && reservation.product_id == offer.product_id
+                && reservation.direction == offer.direction
+                && reservation.reserved_power_kw.to_bits() == offer.maximum_power_kw.to_bits()
+                && reservation.valid_from_unix_seconds == offer.valid_from_unix_seconds
+                && reservation.valid_until_unix_seconds == offer.valid_until_unix_seconds
+        })
+    }
+
     pub fn reservations(&self) -> &[OwnerOfferReservation] {
         &self.reservations
     }
@@ -647,7 +660,7 @@ pub fn authorize_owner_dispatch(
         reason,
     };
 
-    if !reservations.contains_offer(&offer.offer_id) {
+    if !reservations.matches_offer(offer) {
         return reject(OwnerDispatchRejectionReason::OfferNotReserved);
     }
     if !policy.authorized_signing_key_ids.contains(&request.signing_key_id) {
@@ -678,7 +691,9 @@ pub fn authorize_owner_dispatch(
     {
         return reject(OwnerDispatchRejectionReason::DispatchTtlExceeded);
     }
-    if request.issued_at_unix_seconds < offer.valid_from_unix_seconds
+    if now_unix_seconds < offer.valid_from_unix_seconds
+        || now_unix_seconds >= offer.valid_until_unix_seconds
+        || request.issued_at_unix_seconds < offer.valid_from_unix_seconds
         || request.expires_at_unix_seconds > offer.valid_until_unix_seconds
     {
         return reject(OwnerDispatchRejectionReason::OfferOutsideValidityWindow);
@@ -964,6 +979,54 @@ mod tests {
             &policy(),
         ).expect("non-overlapping reservation");
         assert_eq!(ledger.reservations().len(), 2);
+    }
+
+    #[test]
+    fn dispatch_cannot_substitute_a_larger_offer_with_the_same_identifier() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let reserved = offer(
+            "offer-1", "reserve-product", GridFlexDirection::ReduceGridImport,
+            50.0, 900, 2_000,
+        );
+        ledger.reserve_offer(&reserved, &policy()).expect("reserve original");
+        let substituted = offer(
+            "offer-1", "reserve-product", GridFlexDirection::ReduceGridImport,
+            80.0, 900, 2_000,
+        );
+        let mut replay = DispatchReplayLedger::default();
+        let decision = authorize_owner_dispatch(
+            &request("dispatch-substitute", "offer-1", 1, 1_000, 1_060, 990),
+            &substituted, &policy(), &ledger, &mut replay,
+            readiness(990), 1_005, &AcceptSignature,
+        );
+        assert!(matches!(decision, OwnerDispatchDecision::Rejected {
+            reason: OwnerDispatchRejectionReason::OfferNotReserved, ..
+        }));
+        assert!(replay.per_offer.is_empty());
+    }
+
+    #[test]
+    fn offer_cannot_be_dispatched_before_its_validity_window() {
+        let mut ledger = OwnerOfferReservationLedger::default();
+        let o = offer(
+            "future-offer", "reserve-product", GridFlexDirection::ReduceGridImport,
+            50.0, 1_100, 2_000,
+        );
+        ledger.reserve_offer(&o, &policy()).expect("reserve future offer");
+        let future_request = OwnerDispatchRequest::new(
+            "dispatch-future-offer", "future-offer", "reserve-product", "site-1", "pcc-1",
+            GridFlexDirection::ReduceGridImport, 40.0, 600, 5.0, 10.0,
+            1_100, 1_160, 1_110, 1, "future-offer-nonce", "market-key-1",
+            b"test-signature".to_vec(),
+        ).expect("future request");
+        let mut replay = DispatchReplayLedger::default();
+        let decision = authorize_owner_dispatch(
+            &future_request, &o, &policy(), &ledger, &mut replay,
+            readiness(1_095), 1_095, &AcceptSignature,
+        );
+        assert!(matches!(decision, OwnerDispatchDecision::Rejected {
+            reason: OwnerDispatchRejectionReason::OfferOutsideValidityWindow, ..
+        }));
     }
 
     #[test]
