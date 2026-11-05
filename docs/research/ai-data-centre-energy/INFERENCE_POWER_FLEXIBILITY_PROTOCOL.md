@@ -61,7 +61,7 @@ Each result reports success/failure, output tokens, time-to-first-token and comp
 - request success fraction;
 - useful-work completion fraction (completed output tokens capped at the manifest obligation);
 - total output tokens and useful tokens;
-- tokens/s and useful tokens/s;
+- useful tokens/s, raw tokens/s and useful tokens/J;
 - nearest-rank p95/p99 TTFT;
 - nearest-rank p95/p99 completion latency.
 
@@ -81,7 +81,7 @@ Boundary energy is integrated as:
 
     E_boundary[Wh] = Σ P_boundary[W] × duration[ms] / 3,600,000
 
-Tokens/J is reported separately from boundary kW flexibility. Tokens/J uses completed useful tokens; raw output tokens, including partial failed outputs, remain a separate diagnostic.
+Useful tokens/J is reported separately from boundary kW flexibility. Useful tokens/J and useful tokens/s use completed useful tokens, capped at each request's obligation; output from failed requests is diagnostic and does not count as completed useful work. Raw output tokens, including partial failed outputs, remain a separate diagnostic. Minimum-throughput and throughput-retention gates use useful tokens/s, not raw output tokens/s.
 
 ### Response and recovery
 
@@ -95,9 +95,10 @@ A response is qualified only when:
 - the reduction exceeds a configured minimum W;
 - it meets the configured consecutive-sample requirement;
 - the same reduction persists for the minimum elapsed sustained duration;
+- total recovery/rebound power and energy remain within explicit owner-defined bounds;
 - candidate service gates pass.
 
-Any post-response rebound remains in the report. A short power dip does not qualify as sustained response.
+Any post-response rebound remains in the report and is checked independently against maximum rebound power and energy. A sustained reduction may still fail the response envelope because recovery is excessive. A short power dip does not qualify as sustained response. The stabilization timestamp is when the response sample-count and duration thresholds are first both met.
 
 ## 4. V0.1 implementation scope
 
