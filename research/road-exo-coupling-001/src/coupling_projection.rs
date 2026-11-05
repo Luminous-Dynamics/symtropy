@@ -143,6 +143,7 @@ pub enum ProjectionError {
     SharedTickMismatch,
     SharedEventKindMismatch,
     SharedWorldMismatch,
+    MixedWorldScope,
 }
 
 impl From<CorrespondenceError> for ProjectionError {
@@ -354,6 +355,11 @@ pub fn project_correspondence_addresses(
     }
 
     hypotheses.sort_by(|a, b| a.hypothesis_id.cmp(&b.hypothesis_id));
+    let mut left_events = correspondence.left_events.clone();
+    left_events.sort_by(|a, b| a.event_id.cmp(&b.event_id));
+    let mut right_events = correspondence.right_events.clone();
+    right_events.sort_by(|a, b| a.event_id.cmp(&b.event_id));
+
     Ok(CorrespondenceAddressPlan {
         left_branch: correspondence.left_branch.clone(),
         right_branch: correspondence.right_branch.clone(),
@@ -362,8 +368,8 @@ pub fn project_correspondence_addresses(
         } else {
             PlanCompleteness::Incomplete
         },
-        left_events: correspondence.left_events.clone(),
-        right_events: correspondence.right_events.clone(),
+        left_events,
+        right_events,
         event_scopes: scopes.into_values().collect(),
         universe_status: correspondence.universe_status.clone(),
         hypothesis_set_status: correspondence.hypothesis_set_status.clone(),
@@ -403,10 +409,18 @@ fn index_scopes(
     }
 
     let mut indexed = BTreeMap::new();
+    let mut parent_world: Option<&StableId> = None;
     for scope in scopes {
         let key = (scope.branch_id.clone(), scope.event_id.clone());
         if !expected.contains(&key) {
             return Err(ProjectionError::WrongBranchScope);
+        }
+        if let Some(world_id) = parent_world {
+            if world_id != &scope.world_id {
+                return Err(ProjectionError::MixedWorldScope);
+            }
+        } else {
+            parent_world = Some(&scope.world_id);
         }
         if indexed.insert(key, scope.clone()).is_some() {
             return Err(ProjectionError::DuplicateEventScope);
