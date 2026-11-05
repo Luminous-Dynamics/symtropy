@@ -1387,4 +1387,92 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn ntcsa_style_loss_of_load_events_merge_across_midnight_and_split_after_recovery() {
+        let study = ChronologicalAdequacyStudy::new(
+            contract(ChronologicalAdequacyMetric::LossOfLoadEvents, 20.0),
+            vec![ChronologicalAdequacyScenario::new(
+                "event-spells",
+                1.0,
+                vec![
+                    interval(0, 100.0, 80.0, 0.0, "event-0"),
+                    interval(1, 100.0, 80.0, 0.0, "event-1"),
+                    interval(1, 100.0, 100.0, 0.0, "recovery-interval"),
+                    interval(1, 100.0, 90.0, 0.0, "event-2"),
+                    interval(1, 100.0, 105.0, 0.0, "headroom-interval"),
+                ],
+            ).expect("scenario")],
+        ).expect("study");
+        let report = evaluate_chronological_adequacy(&study).expect("evaluation");
+        assert_eq!(report.reference_loss_of_load_events, 2.0);
+        assert_eq!(report.reference_loss_of_load_periods, 3.0);
+        assert_eq!(report.reference_loss_of_load_hours, 3.0);
+        assert_eq!(report.reference_loss_of_load_days, 2.0);
+        assert!((report.elcc_like_added_load_kw - 5.0).abs() < 1e-5);
+        assert!(report.reference_criterion_preserved);
+        assert!(report.search_converged);
+    }
+
+    #[test]
+    fn power_shortfall_cvar_is_distinct_from_eue_cvar_and_restores_known_tail() {
+        let study = ChronologicalAdequacyStudy::new(
+            contract(
+                ChronologicalAdequacyMetric::UpperTailShortfallPowerCvarKw {
+                    confidence_level_basis_points: 9_000,
+                },
+                20.0,
+            ),
+            vec![
+                ChronologicalAdequacyScenario::new(
+                    "high-power-tail",
+                    0.1,
+                    vec![interval(0, 100.0, 80.0, 10.0, "power-high")],
+                ).expect("high scenario"),
+                ChronologicalAdequacyScenario::new(
+                    "low-power-tail",
+                    0.9,
+                    vec![interval(0, 100.0, 90.0, 0.0, "power-low")],
+                ).expect("low scenario"),
+            ],
+        ).expect("study");
+        let report = evaluate_chronological_adequacy(&study).expect("evaluation");
+        assert_eq!(report.reference_shortfall_power_cvar_kw, Some(20.0));
+        assert_eq!(report.reference_unserved_energy_cvar_mwh, None);
+        assert!((report.augmented_shortfall_power_cvar_kw.unwrap() - 20.0).abs() < 1e-8);
+        assert_eq!(report.augmented_unserved_energy_cvar_mwh, None);
+        assert!((report.elcc_like_added_load_kw - 10.0).abs() < 1e-5);
+        assert!(report.reference_criterion_preserved);
+        assert!(report.search_converged);
+    }
+
+    #[test]
+    fn invalid_confidence_levels_are_rejected_for_both_cvar_populations() {
+        for level in [0, 10_000, u16::MAX] {
+            for metric in [
+                ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar {
+                    confidence_level_basis_points: level,
+                },
+                ChronologicalAdequacyMetric::UpperTailShortfallPowerCvarKw {
+                    confidence_level_basis_points: level,
+                },
+            ] {
+                let result = ChronologicalAdequacyContract::new(
+                    identity(),
+                    metric,
+                    1.0,
+                    1e-9,
+                    1e-9,
+                    20.0,
+                    1e-6,
+                    64,
+                );
+                assert!(matches!(
+                    result,
+                    Err(ChronologicalAdequacyError::InvalidCvarConfidenceLevel(_))
+                ));
+            }
+        }
+    }
+
 }
