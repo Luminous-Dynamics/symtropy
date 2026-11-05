@@ -46,6 +46,10 @@ The unit tests promote an in-memory copy to a measured-style receipt to verify d
 - Risk thresholds are operator policy parameters, not universal safe values.
 - A decision-support-eligible forecast is not a safety certification, utility approval or authorization to energize hardware.
 
+## Validation
+
+20 Rust unit tests cover synthetic rejection, measured-style eligibility, risk-budget actions, hard-limit precedence, censoring support, domain shift, calibration horizon, source/policy provenance, unknown statuses and hazard/CIF coherence receipts.
+
 ## Run
 
 `cargo test --locked -p wpt-health-dispatch-contract`
