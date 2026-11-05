@@ -77,6 +77,12 @@ The crate verifies:
 A failed validation is not repaired by relaxing a gate, imputing a capacity, or
 assigning a default. Missing or stale evidence must be resolved by its owner.
 
+## Exact temporal oracle
+
+The separate test-only integer-tick temporal oracle and its proof/budget limits are
+documented in [exact-oracle.md](exact-oracle.md). It returns a Pareto frontier for
+tiny cases and marks search-budget exhaustion as not proven.
+
 ## Benchmark protocol
 
 See [benchmark-protocol.md](benchmark-protocol.md) for the frozen baseline
