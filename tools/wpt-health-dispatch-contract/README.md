@@ -49,3 +49,10 @@ The unit tests promote an in-memory copy to a measured-style receipt to verify d
 ## Run
 
 `cargo test --locked -p wpt-health-dispatch-contract`
+
+
+## Calibration receipt interpretation
+
+The `CALIBRATED` status is not established by a calibration-test p-value alone. The calibration receipt digest must bind the held-out evidence for the intended asset population and stratum, including independent asset/site counts, calibration curves or proper scores, uncertainty intervals and the censoring/support assumptions. A-/D-calibration are tests whose failure to reject is not proof of calibration; they must be paired with reliability analysis and independent validation. The Rust contract verifies the receipt identity and declared status, not the scientific correctness of the external calibration report.
+
+For `PUBLISHED_MEASURED`, a stable source locator is mandatory. For `MEASURED`, the raw asset-state/model/outcome/calibration digests and asset identity must be bound in the receipt. Synthetic and simulated values never pass the operational eligibility gate.
