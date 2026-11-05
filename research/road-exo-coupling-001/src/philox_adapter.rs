@@ -822,8 +822,8 @@ mod tests {
     };
     use crate::coupling_projection::{
         project_correspondence_addresses, CausalDisposition, CorrespondenceAddressPlan,
-        EventDrawScope, PairCausalRule, PlanCompleteness, PlannedPresence, SharingStatus,
-        SourceProfile,
+        EventDrawScope, PairCausalRule, PlanCompleteness, PlannedAddress, PlannedPresence,
+        SharingStatus, SourceProfile,
     };
     use crate::{Coupling, EventIdentity, StableId};
 
@@ -925,6 +925,22 @@ mod tests {
                 mechanism_version: id("policy-noise-v1"),
                 draw_component: id("normal-0"),
             },
+        }
+    }
+
+    fn planned_address(
+        branch: &str,
+        event: &str,
+        bytes: &[u8],
+        sharing: SharingStatus,
+        presence: PlannedPresence,
+    ) -> PlannedAddress {
+        PlannedAddress {
+            branch_id: id(branch),
+            event_id: id(event),
+            canonical_bytes: bytes.to_vec(),
+            presence,
+            sharing,
         }
     }
 
@@ -1057,6 +1073,9 @@ mod tests {
 
         assert_eq!(resolved.universe_status, plan.universe_status);
         assert_eq!(resolved.hypothesis_set_status, plan.hypothesis_set_status);
+        assert_eq!(resolved.source_correspondence, plan.source_correspondence);
+        assert_eq!(resolved.source_event_scopes, plan.source_event_scopes);
+        assert_eq!(resolved.source_pair_rules, plan.source_pair_rules);
         assert_eq!(resolved.hypotheses.len(), plan.hypotheses.len());
 
         for (resolved_hypothesis, planned_hypothesis) in
@@ -1150,6 +1169,48 @@ mod tests {
     }
 
     #[test]
+    fn verifier_rejects_readdressed_draw_even_when_philox_and_outer_digest_are_recomputed() {
+        let seed = [0xa7; 32];
+        let plan = correspondence_plan();
+        let mut bundle = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
+
+        let changed_address = b"attacker-selected-address-not-derived-from-source".to_vec();
+        let receipt = &mut bundle.hypotheses[0].draws[0];
+        receipt.canonical_address = changed_address.clone();
+        receipt.draw = resolve_correspondence_address(&seed, &changed_address);
+        bundle.bundle_digest = correspondence_draw_bundle_digest(&bundle);
+
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &bundle),
+            Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch)
+        );
+    }
+
+    #[test]
+    fn verifier_rejects_source_scope_or_candidate_mutation_after_rehash() {
+        let seed = [0xb8; 32];
+        let plan = correspondence_plan();
+        let original = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
+
+        let mut changed_scope = original.clone();
+        changed_scope.source_event_scopes[0].source.mechanism_version =
+            id("substituted-mechanism-version");
+        changed_scope.bundle_digest = correspondence_draw_bundle_digest(&changed_scope);
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &changed_scope),
+            Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch)
+        );
+
+        let mut changed_universe = original;
+        changed_universe.source_correspondence.right_events.pop();
+        changed_universe.bundle_digest = correspondence_draw_bundle_digest(&changed_universe);
+        assert_eq!(
+            verify_correspondence_draw_bundle(&seed, &changed_universe),
+            Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch)
+        );
+    }
+
+    #[test]
     fn bundle_verifier_rejects_complete_claim_with_incomplete_search_after_rehash() {
         let seed = [0x6a; 32];
         let plan = correspondence_plan();
@@ -1174,7 +1235,7 @@ mod tests {
         bundle.bundle_digest = correspondence_draw_bundle_digest(&bundle);
         assert_eq!(
             verify_correspondence_draw_bundle(&seed, &bundle),
-            Err(CorrespondenceBundleVerificationError::HypothesisMetadataMismatch)
+            Err(CorrespondenceBundleVerificationError::SourceProjectionMismatch)
         );
     }
 
@@ -1192,6 +1253,8 @@ mod tests {
         plan.hypothesis_set_status = HypothesisSetStatus::IncompleteOrBudgetLimited {
             evidence_ref: id("bounded-hypothesis-search"),
         };
+        plan.source_correspondence.universe_status = plan.universe_status.clone();
+        plan.source_correspondence.hypothesis_set_status = plan.hypothesis_set_status.clone();
         let resolved = resolve_correspondence_plan(&seed, &plan).expect("known draws can resolve");
 
         assert_eq!(resolved.completeness, PlanCompleteness::Incomplete);
@@ -1265,6 +1328,10 @@ mod tests {
         let mut plan = correspondence_plan();
         plan.completeness = PlanCompleteness::Incomplete;
         plan.hypotheses[0].completeness = PlanCompleteness::Incomplete;
+        plan.universe_status = CandidateUniverseStatus::Incomplete {
+            evidence_ref: id("bounded-universe-search"),
+        };
+        plan.source_correspondence.universe_status = plan.universe_status.clone();
 
         let resolved = resolve_correspondence_plan(&seed, &plan).expect("known plans can resolve");
         assert_eq!(resolved.completeness, PlanCompleteness::Incomplete);
