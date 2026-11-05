@@ -1,0 +1,66 @@
+{
+  "schema_version": "symtropy.workload-flexibility-trajectory-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "scope": "paired_workload_schedule_to_signed_grid_import_delta",
+  "note": "Synthetic two-slot workload shift. No battery, dynamic thermal response, network model, real site measurement or market qualification is represented.",
+  "units": {
+    "power": "kW",
+    "energy": "kWh",
+    "slot_duration": "1 hour",
+    "work": "abstract useful-work units"
+  },
+  "service_contract": {
+    "service_contract_id": "sla-v1",
+    "work_unit_id": "useful-work-v1",
+    "jobs": [
+      {
+        "job_id": "job-1",
+        "release_slot": 0,
+        "deadline_slot_exclusive": 2,
+        "required_work_units": 10,
+        "maximum_work_units_per_slot": 10,
+        "it_power_kw_per_work_unit": 0.5,
+        "cooling_power_kw_per_work_unit": 0.1,
+        "preemption_policy": "Deferrable",
+        "checkpoint_resume_overhead_kwh": 0
+      }
+    ],
+    "slot_contracts": {
+      "base_non_compute_power_kw": 100,
+      "base_cooling_power_kw": 0,
+      "committed_non_grid_supply_kw": 0,
+      "maximum_facility_input_kw": 1000,
+      "maximum_grid_import_kw": 1000,
+      "maximum_cooling_power_kw": 100,
+      "maximum_compute_work_units": 100,
+      "duration_hours": 1
+    }
+  },
+  "baseline_allocations": [
+    {"job_id": "job-1", "slot_index": 0, "work_units": 10}
+  ],
+  "flexible_allocations": [
+    {"job_id": "job-1", "slot_index": 1, "work_units": 10}
+  ],
+  "expected": {
+    "baseline_grid_import_kw_by_slot": [106, 100],
+    "flexible_grid_import_kw_by_slot": [100, 106],
+    "net_grid_import_reduction_kw_by_slot": [6, -6],
+    "gross_reduction_energy_kwh": 6,
+    "rebound_energy_kwh": 6,
+    "net_grid_import_reduction_energy_kwh": 0,
+    "baseline_completed_work_units": 10,
+    "flexible_completed_work_units": 10,
+    "service_equivalent": true,
+    "schedule_verification_passed": true
+  },
+  "negative_controls": [
+    "job_manifest_mismatch_rejected",
+    "slot_contract_mismatch_rejected",
+    "service_contract_mismatch_rejected",
+    "same_schedule_id_rejected",
+    "invalid_schedule_allocation_rejected",
+    "equal_baseline_and_flexible_digests_rejected",
+    "no_credit_without_paired_schedule_verification"
+  ]
+}
