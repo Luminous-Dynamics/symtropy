@@ -31,4 +31,12 @@ The authorization receipt is permission for a site-local controller to evaluate 
 
 ## Validation status
 
-Twenty-three Rust unit tests are authored. Fixture JSON was parsed and static source properties were reviewed. No Rust compilation, rustfmt, Clippy or test execution is claimed in this environment.
+Twenty-eight Rust unit tests are authored. Fixture JSON was parsed and static source properties were reviewed. No Rust compilation, rustfmt, Clippy or test execution is claimed in this environment.
+
+## Deserialization and restore validation
+
+Inbound `OwnerFlexibilityPolicy`, `OwnerFlexibilityOffer` and `OwnerDispatchRequest` types deserialize through `TryFrom` implementations that call the same constructors used by programmatic callers. Persisted reservation and replay ledgers are also reconstructed through validation: offer policy snapshots, exact terms, time overlaps, capacity budgets, replay sequence values, signer nonces and dispatch-ID counts are rechecked before restored state is accepted. This prevents Serde's direct struct construction from bypassing the constructor invariants.
+
+Five additional tests cover invalid policy allowlists, invalid offer windows, empty dispatch IDs, overcommitted restored reservations and inconsistent restored replay ledgers.
+
+The persistence format still requires authenticated, trusted storage. Deserialization validation does not provide integrity, rollback protection or atomic multi-process transaction semantics.
