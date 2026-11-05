@@ -44,6 +44,12 @@ improv integrates flexible data streams, analysis pipelines, real-time model upd
 
 **What Symtropy should do better:** remain a domain-specific causal qualification layer that can be orchestrated by a platform like improv. The model should state why a protocol is valid, what was actually delivered, which historical information conditioned the prediction, and what evidence tier supports each claim.
 
+### Connectome-derived rhythm generation — Pugliese et al. (Nature, 28 October 2026)
+
+Pugliese et al. report a DNg100-driven three-neuron motif for motor rhythm generation, with necessity/sufficiency results across four connectome datasets and a separate optogenetically tested DNb08 pathway. This is now a strong source-grounded rhythm baseline, but its claim must be kept at the neural-motor-rhythm layer. A rhythm result alone does not establish complete tripod coordination, contact adaptation, closed-loop locomotion or an embodied fly.
+
+**What Symtropy should do better:** reproduce the source outputs and graph identities first (#3511), then test whether distinct CPG, local FeCO feedback and distributed brain-and-cord pathways make different held-out predictions under matched interventions. Keep DNg100 and DNb08 separate; keep the four connectome materializations, sex/animal populations and evidence tiers separate; compare neural rhythm, inter-leg coordination and physical gait as distinct outcomes. The paper's reported Zenodo DOI 10.5281/zenodo.22260923 differs from the author-linked record 22260924; #3511 correctly leaves that discrepancy unresolved pending source verification.
+
 ### Whole-cycle autonomous science — Autonomous Science Bench and FIRE-Bench (2026)
 
 Autonomous Science Bench 0.1 evaluates end-to-end laboratory agents on six pilot tasks and measures both campaign progress and delivered result quality. Its published first release has only three trials per task; small leaderboard gaps are therefore not strong evidence. FIRE-Bench tests evidence-backed rediscovery of established scientific insights and reports substantial limitations and run-to-run variance in current agents.
@@ -145,3 +151,4 @@ The next integration should link factorized per-leg mechanics to pinned FlyGym t
 - Autonomous Science Bench 0.1: https://www.autonomous-science-bench.ai/
 - FIRE-Bench, Wang et al., ICML 2026: https://proceedings.mlr.press/v306/wang26d.html
 - FeCO presynaptic inhibition, Dallmann et al., Nature 2025: https://doi.org/10.1038/s41586-025-09554-2
+- Pugliese et al., Nature 2026, DOI: https://doi.org/10.1038/s41586-026-11195-y
