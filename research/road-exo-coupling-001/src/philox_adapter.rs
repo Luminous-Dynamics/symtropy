@@ -832,10 +832,8 @@ mod tests {
         let shared_pair = b"v0.2:world-17:H-actor:pair-L1-R1".to_vec();
         let alternative_left = b"v0.2:world-17:H-slot:pair-L1-R2:left".to_vec();
         let alternative_right = b"v0.2:world-17:H-slot:pair-L1-R2:right".to_vec();
-        let actor_unmatched =
-            b"v0.2:world-17:H-actor:unmatched-yield-R2".to_vec();
-        let slot_unmatched =
-            b"v0.2:world-17:H-slot:unmatched-yield-R1".to_vec();
+        let actor_unmatched = b"v0.2:world-17:H-actor:unmatched-yield-R2".to_vec();
+        let slot_unmatched = b"v0.2:world-17:H-slot:unmatched-yield-R1".to_vec();
         CorrespondenceAddressPlan {
             left_branch: id("continue"),
             right_branch: id("yield"),
