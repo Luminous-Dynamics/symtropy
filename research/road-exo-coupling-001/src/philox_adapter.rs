@@ -888,12 +888,14 @@ pub fn verify_correspondence_receipt(
 mod tests {
     use super::*;
     use crate::correspondence::{
-        CandidateUniverseStatus, CorrespondenceHypothesis, EventPair, HypothesisSetStatus,
-        IdentityBasis, UnmatchedEvent, UnmatchedReason,
+        CandidateUniverseStatus, CorrespondenceHypothesis, CorrespondenceSet, EventOccurrence,
+        EventPair, EventPresence, HypothesisSetStatus, IdentityBasis, UnmatchedEvent,
+        UnmatchedReason,
     };
     use crate::coupling_projection::{
-        CausalDisposition, CorrespondenceAddressPlan, HypothesisAddressPlan, PairCausalRule,
-        PlanCompleteness, PlannedAddress, PlannedPresence, SharingStatus,
+        project_correspondence_addresses, CausalDisposition, CorrespondenceAddressPlan,
+        EventDrawScope, PairCausalRule, PlanCompleteness, PlannedAddress, PlannedPresence,
+        SharingStatus, SourceProfile,
     };
     use crate::{Coupling, EventIdentity, StableId};
 
@@ -981,118 +983,115 @@ mod tests {
         }
     }
 
+    fn event(
+        event_id: &str,
+        actor: &str,
+        slot: &str,
+        presence: EventPresence,
+    ) -> EventOccurrence {
+        EventOccurrence {
+            event_id: id(event_id),
+            event_family: id("crossing-gap-choice"),
+            actor: Some(id(actor)),
+            initiator: Some(id("ego-1")),
+            recipient: Some(id(actor)),
+            encounter_slot: Some(id(slot)),
+            presence,
+        }
+    }
+
+    fn event_scope(branch: &str, event: &str) -> EventDrawScope {
+        EventDrawScope {
+            world_id: id("crossing-world-17"),
+            branch_id: id(branch),
+            event_id: id(event),
+            tick: 40,
+            event_kind: id("pedestrian-response-noise"),
+            source: SourceProfile {
+                source_id: id("policy-noise-v1"),
+                mechanism_id: id("accept-gap-v1"),
+                mechanism_version: id("mechanism-sha"),
+                draw_component: id("normal-0"),
+            },
+        }
+    }
+
     fn correspondence_plan() -> CorrespondenceAddressPlan {
-        let shared_pair = b"v0.2:world-17:H-actor:pair-L1-R1".to_vec();
-        let alternative_left = b"v0.2:world-17:H-slot:pair-L1-R2:left".to_vec();
-        let alternative_right = b"v0.2:world-17:H-slot:pair-L1-R2:right".to_vec();
-        let actor_unmatched = b"v0.2:world-17:H-actor:unmatched-yield-R2".to_vec();
-        let slot_unmatched = b"v0.2:world-17:H-slot:unmatched-yield-R1".to_vec();
-        CorrespondenceAddressPlan {
+        let correspondence = CorrespondenceSet {
             left_branch: id("continue"),
             right_branch: id("yield"),
-            completeness: PlanCompleteness::CompleteWithinDeclaredSets,
+            left_events: vec![event(
+                "L1",
+                "ped-001",
+                "slot-1",
+                EventPresence::Observed {
+                    evidence_ref: id("left-evidence"),
+                },
+            )],
+            right_events: vec![
+                event(
+                    "R1",
+                    "ped-001",
+                    "slot-2",
+                    EventPresence::NotRealized {
+                        condition_witness: id("not-observed-after-yield"),
+                    },
+                ),
+                event(
+                    "R2",
+                    "ped-002",
+                    "slot-1",
+                    EventPresence::Observed {
+                        evidence_ref: id("right-slot-evidence"),
+                    },
+                ),
+            ],
+            hypotheses: vec![
+                correspondence_hypothesis(
+                    "H-actor",
+                    "R1",
+                    IdentityBasis::Actor,
+                    "R2",
+                ),
+                correspondence_hypothesis(
+                    "H-slot",
+                    "R2",
+                    IdentityBasis::EncounterSlot,
+                    "R1",
+                ),
+            ],
             universe_status: CandidateUniverseStatus::ExhaustiveWithinDeclaredScope {
                 evidence_ref: id("fixture-event-universe"),
             },
             hypothesis_set_status: HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily {
                 evidence_ref: id("fixture-hypothesis-search"),
             },
-            hypotheses: vec![
-                HypothesisAddressPlan {
-                    hypothesis_id: id("H-actor"),
-                    completeness: PlanCompleteness::CompleteWithinDeclaredSets,
-                    correspondence: correspondence_hypothesis(
-                        "H-actor",
-                        "R1",
-                        IdentityBasis::Actor,
-                        "R2",
-                    ),
-                    causal_rules: vec![pair_causal_rule(
-                        "H-actor",
-                        "R1",
-                        IdentityBasis::Actor,
-                        CausalDisposition::SharedInvariant {
-                            equivalence_group: id("crossing-weather"),
-                            justification: id("scm:weather-v1"),
-                        },
-                    )],
-                    addresses: vec![
-                        planned_address(
-                            "continue",
-                            "L1",
-                            &shared_pair,
-                            SharingStatus::SharedInvariant,
-                            PlannedPresence::Observed {
-                                evidence_ref: id("left-evidence"),
-                            },
-                        ),
-                        planned_address(
-                            "yield",
-                            "R1",
-                            &shared_pair,
-                            SharingStatus::SharedInvariant,
-                            PlannedPresence::NotRealized {
-                                condition_witness: id("not-observed-after-yield"),
-                            },
-                        ),
-                        planned_address(
-                            "yield",
-                            "R2",
-                            &actor_unmatched,
-                            SharingStatus::NoCounterpartUnderHypothesis,
-                            PlannedPresence::Observed {
-                                evidence_ref: id("actor-unmatched-evidence"),
-                            },
-                        ),
-                    ],
+        };
+        let scopes = vec![
+            event_scope("continue", "L1"),
+            event_scope("yield", "R1"),
+            event_scope("yield", "R2"),
+        ];
+        let rules = vec![
+            pair_causal_rule(
+                "H-actor",
+                "R1",
+                IdentityBasis::Actor,
+                CausalDisposition::SharedInvariant {
+                    equivalence_group: id("crossing-weather"),
+                    justification: id("scm:weather-v1"),
                 },
-                HypothesisAddressPlan {
-                    hypothesis_id: id("H-slot"),
-                    completeness: PlanCompleteness::CompleteWithinDeclaredSets,
-                    correspondence: correspondence_hypothesis(
-                        "H-slot",
-                        "R2",
-                        IdentityBasis::EncounterSlot,
-                        "R1",
-                    ),
-                    causal_rules: vec![pair_causal_rule(
-                        "H-slot",
-                        "R2",
-                        IdentityBasis::EncounterSlot,
-                        CausalDisposition::BranchSpecific,
-                    )],
-                    addresses: vec![
-                        planned_address(
-                            "continue",
-                            "L1",
-                            &alternative_left,
-                            SharingStatus::BranchSpecific,
-                            PlannedPresence::Observed {
-                                evidence_ref: id("left-evidence"),
-                            },
-                        ),
-                        planned_address(
-                            "yield",
-                            "R2",
-                            &alternative_right,
-                            SharingStatus::BranchSpecific,
-                            PlannedPresence::Observed {
-                                evidence_ref: id("right-slot-evidence"),
-                            },
-                        ),
-                        planned_address(
-                            "yield",
-                            "R1",
-                            &slot_unmatched,
-                            SharingStatus::NoCounterpartUnderHypothesis,
-                            PlannedPresence::Observed {
-                                evidence_ref: id("slot-unmatched-evidence"),
-                            },
-                        ),
-                    ],
-                },
-            ],
-        }
+            ),
+            pair_causal_rule(
+                "H-slot",
+                "R2",
+                IdentityBasis::EncounterSlot,
+                CausalDisposition::BranchSpecific,
+            ),
+        ];
+
+        project_correspondence_addresses(&correspondence, &scopes, &rules)
+            .expect("fixture correspondence projects")
     }
 
     #[test]
