@@ -137,6 +137,9 @@ fn checked_square_sum(values: &[f64], metric: &str) -> Result<f64, String> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProfileApplicability {
     ApplicableScopeOnly,
+    /// Equipment/network class is broadly in scope, but this edition does not
+    /// provide limit values for the declared nominal voltage/frequency system.
+    ScopeOnlyLimitDomainNotCovered,
     NotApplicable,
     MeasurementMethodOnly,
 }
@@ -432,6 +435,12 @@ pub fn evaluate_run(run: &Value) -> Result<QualityReport, String> {
                 };
                 if network_type != "PUBLIC_LOW_VOLTAGE" || !in_current_scope || !in_voltage_scope {
                     ProfileApplicability::NotApplicable
+                } else if (phase_count == 1
+                    && (grid_frequency != 50.0 || (nominal_voltage - 230.0).abs() > 1.0))
+                    || (phase_count == 3
+                        && (grid_frequency != 50.0 || (nominal_voltage - 400.0).abs() > 2.0))
+                {
+                    ProfileApplicability::ScopeOnlyLimitDomainNotCovered
                 } else {
                     ProfileApplicability::ApplicableScopeOnly
                 }
@@ -644,6 +653,73 @@ mod tests {
             evaluate_run(&run)
                 .unwrap_err()
                 .contains("edition/role mismatch")
+        );
+    }
+
+    #[test]
+    fn iec_61000_3_12_60hz_public_lv_is_broad_scope_but_limit_domain_not_covered() {
+        let mut run = fixture();
+        run["profile"]["standard_id"] = Value::String("IEC_61000_3_12_2011_AMD1_2021".into());
+        run["profile"]["edition"] = Value::String("IEC 61000-3-12:2011+AMD1:2021".into());
+        run["profile"]["standard_role"] = Value::String("PRODUCT_EMISSION_LIMITS".into());
+        run["profile"]["assessment_boundary"] = Value::String("EQUIPMENT_TERMINAL".into());
+        run["profile"]["rated_input_current_a_per_phase"] = Value::from(30.0);
+        run["profile"]["grid_frequency_hz"] = Value::from(60.0);
+        run["profile"]["pcc"] = Value::Null;
+        run["measurement"]["measurement_standard_id"] =
+            Value::String("IEC_61000_4_7_2002_AMD1_2008".into());
+        run["measurement"]["measurement_edition"] =
+            Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
+        run["measurement"]["measurement_class"] = Value::String("EQUIPMENT_TEST".into());
+        let report = evaluate_run(&run).unwrap();
+        assert_eq!(
+            report.applicability,
+            ProfileApplicability::ScopeOnlyLimitDomainNotCovered
+        );
+    }
+
+    #[test]
+    fn iec_61000_3_12_480v_public_lv_is_not_in_this_editions_limit_domain() {
+        let mut run = fixture();
+        run["profile"]["standard_id"] = Value::String("IEC_61000_3_12_2011_AMD1_2021".into());
+        run["profile"]["edition"] = Value::String("IEC 61000-3-12:2011+AMD1:2021".into());
+        run["profile"]["standard_role"] = Value::String("PRODUCT_EMISSION_LIMITS".into());
+        run["profile"]["assessment_boundary"] = Value::String("EQUIPMENT_TERMINAL".into());
+        run["profile"]["rated_input_current_a_per_phase"] = Value::from(30.0);
+        run["profile"]["nominal_voltage_v"] = Value::from(480.0);
+        run["profile"]["pcc"] = Value::Null;
+        run["measurement"]["measurement_standard_id"] =
+            Value::String("IEC_61000_4_7_2002_AMD1_2008".into());
+        run["measurement"]["measurement_edition"] =
+            Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
+        run["measurement"]["measurement_class"] = Value::String("EQUIPMENT_TEST".into());
+        let report = evaluate_run(&run).unwrap();
+        assert_eq!(
+            report.applicability,
+            ProfileApplicability::ScopeOnlyLimitDomainNotCovered
+        );
+    }
+
+    #[test]
+    fn iec_61000_3_12_single_phase_230v_50hz_is_limit_domain_applicable() {
+        let mut run = fixture();
+        run["profile"]["standard_id"] = Value::String("IEC_61000_3_12_2011_AMD1_2021".into());
+        run["profile"]["edition"] = Value::String("IEC 61000-3-12:2011+AMD1:2021".into());
+        run["profile"]["standard_role"] = Value::String("PRODUCT_EMISSION_LIMITS".into());
+        run["profile"]["assessment_boundary"] = Value::String("EQUIPMENT_TERMINAL".into());
+        run["profile"]["phase_count"] = Value::from(1);
+        run["profile"]["nominal_voltage_v"] = Value::from(230.0);
+        run["profile"]["rated_input_current_a_per_phase"] = Value::from(30.0);
+        run["profile"]["pcc"] = Value::Null;
+        run["measurement"]["measurement_standard_id"] =
+            Value::String("IEC_61000_4_7_2002_AMD1_2008".into());
+        run["measurement"]["measurement_edition"] =
+            Value::String("IEC 61000-4-7:2002+AMD1:2008".into());
+        run["measurement"]["measurement_class"] = Value::String("EQUIPMENT_TEST".into());
+        let report = evaluate_run(&run).unwrap();
+        assert_eq!(
+            report.applicability,
+            ProfileApplicability::ApplicableScopeOnly
         );
     }
 
