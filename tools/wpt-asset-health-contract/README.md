@@ -16,7 +16,9 @@
 - All spatial strain, curvature, temperature and heat-flux points use the asset's declared coordinate frame. A nonempty spatial profile requires a declared asset frame.
 - Scenario case identities are unique and evidence classes are recognized.
 
-The checked-in sample is deliberately synthetic and is not industry measurement data.
+The checked-in observation and lifecycle samples are deliberately synthetic and are not industry measurement data.
+
+The asset contract currently has 23 Rust unit tests, including the original schema-subset checks, duplicate `uniqueItems` rejection, unsupported-keyword fail-closed behaviour, impossible calendar-date rejection, ambient min/max consistency and lifecycle outcome/split tests.
 
 ## Important limitation
 
