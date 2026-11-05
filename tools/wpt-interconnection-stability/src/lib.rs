@@ -294,10 +294,8 @@ mod tests {
             let report = classify(matrix, margin).unwrap();
             let shifted_trace = matrix.a11 + matrix.a22 + 2.0 * margin;
             let shifted_determinant =
-                (matrix.a11 + margin) * (matrix.a22 + margin)
-                    - matrix.a12 * matrix.a21;
-            let independently_stable =
-                shifted_trace < 0.0 && shifted_determinant > 0.0;
+                (matrix.a11 + margin) * (matrix.a22 + margin) - matrix.a12 * matrix.a21;
+            let independently_stable = shifted_trace < 0.0 && shifted_determinant > 0.0;
 
             assert_eq!(
                 report.classification == StabilityClass::StableWithinMargin,
