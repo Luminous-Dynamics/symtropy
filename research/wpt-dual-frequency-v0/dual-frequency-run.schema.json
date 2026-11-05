@@ -128,6 +128,7 @@
           "unit",
           "nominal_frequency_hz",
           "frequency_tolerance_hz",
+          "maximum_harmonic_order",
           "lines"
         ],
         "properties": {
@@ -215,6 +216,14 @@
                 }
               }
             }
+          },
+          "maximum_harmonic_order": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "For GRID_CURRENT, the evaluator requires every integer harmonic from 1 through this order. Null for RESONANT_CURRENT."
           }
         }
       }
