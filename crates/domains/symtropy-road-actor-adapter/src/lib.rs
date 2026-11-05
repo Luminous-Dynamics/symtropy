@@ -628,7 +628,7 @@ mod tests {
 
         assert!((receipt.target.heading_radians - std::f64::consts::FRAC_PI_2).abs() < 1e-12);
         assert_eq!(receipt.target.position.x_m, 1.0);
-        assert!((receipt.target.position.y_m - 2.0225).abs() < 1e-12);
+        assert!((receipt.target.position.y_m - 2.0025).abs() < 1e-12);
         assert!((receipt.applied_forward_speed_mps - 0.05).abs() < 1e-12);
         assert!((receipt.applied_distance_m - 0.0025).abs() < 1e-12);
     }
@@ -669,7 +669,7 @@ mod tests {
             &actor,
             Some(&route),
             policy_state(2.0, Some(ScenarioTick(11))),
-            9.82,
+            9.81,
             1.8,
         );
         let receipt = plan_path_step(&request).unwrap();
