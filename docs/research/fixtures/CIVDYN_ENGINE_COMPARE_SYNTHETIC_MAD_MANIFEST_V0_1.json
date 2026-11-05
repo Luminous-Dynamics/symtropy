@@ -306,8 +306,8 @@
   "holdouts": [
     {
       "holdout_id": "external-framework-adapters",
-      "dimension": "engine",
-      "status": "not-yet-run",
+      "dimension": "none",
+      "status": "not-yet-created",
       "leakage_control": "No external framework timing is claimed in this reference PR; future adapters must consume the same frozen tape bundle and pass exact equivalence before any performance ranking."
     }
   ],
@@ -331,7 +331,9 @@
     "unsupported_strata": [
       "Agents.jl, Mesa, mesa-frames, NetLogo, MASON, Ark.jl and BAM Engine performance comparisons remain unrun.",
       "No natural fire regimes, ecological calibration or real-world hazard claims."
-    ]
+    ],
+    "deviations": [],
+    "failed_controls": []
   },
   "composite_score_policy": "no-universal-composite"
 }
