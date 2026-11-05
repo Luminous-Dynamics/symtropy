@@ -350,12 +350,24 @@ pub fn export_to_sam(
 
     validate_manifest(&episode.manifest)?;
     let policies = policy_index(&episode.policies)?;
+    if episode.branches.is_empty() {
+        return Err(HandoffError::MissingBranchParent);
+    }
+    for policy in policies.values() {
+        if policy.action_domain_digest != episode.manifest.action_domain_digest {
+            return Err(HandoffError::PolicyMismatch);
+        }
+    }
     let target_policy_digest = target_policy_digest(&episode.policies)?;
     let context_digest = context_digest(&episode.manifest, &episode.policies)?;
     let anchors = draw_anchor_index(&anchor.draw_bundle_anchors)?;
 
     let mut branches: Vec<_> = episode.branches.iter().collect();
     branches.sort_by(|a, b| a.branch_id.cmp(&b.branch_id));
+    let mut branch_ids = BTreeSet::new();
+    if branches.iter().any(|branch| !branch_ids.insert(branch.branch_id.as_str())) {
+        return Err(HandoffError::DuplicateBranch);
+    }
     let mut output = Vec::with_capacity(branches.len());
 
     for branch in branches {
@@ -377,7 +389,11 @@ pub fn export_to_sam(
                     return Err(HandoffError::ReplayReceiptMismatch);
                 }
             }
-            ReplayDisposition::NotRun | ReplayDisposition::Failed => {}
+            ReplayDisposition::NotRun | ReplayDisposition::Failed => {
+                if branch.replay.replayed_branch_payload_root.is_some() {
+                    return Err(HandoffError::ReplayReceiptMismatch);
+                }
+            }
         }
 
         let receipts = correspondence_index(&branch.correspondences)?;
@@ -1148,8 +1164,8 @@ mod tests {
             policy_digest: d(&format!("policy-{actor}")),
             config_digest: d(&format!("config-{actor}")),
             initial_policy_state_digest: d(&format!("state-{actor}")),
-            observation_profile_digest: d(&format!("view-{actor}")),
-            action_domain_digest: d("actions-v1"),
+            observation_profile_digest: d(&format!("visibility-{actor}")),
+            action_domain_digest: d("action-domain"),
         }
     }
 
@@ -1377,7 +1393,7 @@ mod tests {
         episode.branches[0].observations[2].delivered_tick = Some(2);
         let root = episode.episode_root().unwrap();
         let anchor = ExternalAnchor { expected_episode_root: root, ..anchor };
-        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::FutureCueLeak));
+        assert_eq!(export_to_sam(&episode, &anchor), Err(HandoffError::CueNotDelivered));
     }
 
     #[test]
