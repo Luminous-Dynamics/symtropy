@@ -20,6 +20,12 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
+const MAX_ID_BYTES: usize = 256;
+const MAX_SIGNATURE_BYTES: usize = 4_096;
+const MAX_QUALIFICATION_RECEIPTS: usize = 64;
+const MAX_POLICY_ALLOWLIST_ITEMS: usize = 128;
+const MAX_REPLAY_ENTRIES: usize = 65_536;
+
 /// Direction is defined at the declared PCC grid-import boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 pub enum GridFlexDirection {
@@ -138,6 +144,8 @@ impl OwnerFlexibilityPolicy {
         }
         if policy.allowed_product_ids.is_empty()
             || policy.authorized_signing_key_ids.is_empty()
+            || policy.allowed_product_ids.len() > MAX_POLICY_ALLOWLIST_ITEMS
+            || policy.authorized_signing_key_ids.len() > MAX_POLICY_ALLOWLIST_ITEMS
             || policy.allowed_product_ids.iter().any(|x| x.trim().is_empty())
             || policy.authorized_signing_key_ids.iter().any(|x| x.trim().is_empty())
         {
@@ -258,7 +266,8 @@ impl OwnerFlexibilityOffer {
             || maximum_sustain_seconds > i64::MAX as u64
             || valid_from_unix_seconds >= valid_until_unix_seconds
             || qualification_receipt_ids.is_empty()
-            || qualification_receipt_ids.iter().any(|id| id.trim().is_empty())
+            || qualification_receipt_ids.len() > MAX_QUALIFICATION_RECEIPTS
+            || qualification_receipt_ids.iter().any(|id| id.trim().is_empty() || id.len() > MAX_ID_BYTES)
         {
             return Err(OwnerFlexibilityError::InvalidOfferEnvelope);
         }
@@ -513,6 +522,7 @@ impl OwnerDispatchRequest {
             || response_deadline_unix_seconds < issued_at_unix_seconds
             || response_deadline_unix_seconds > expires_at_unix_seconds
             || signature.is_empty()
+            || signature.len() > MAX_SIGNATURE_BYTES
         {
             return Err(OwnerFlexibilityError::InvalidDispatchMessage);
         }
@@ -573,8 +583,11 @@ struct DispatchReplayState {
 
 impl DispatchReplayLedger {
     fn observe_authenticated(&mut self, request: &OwnerDispatchRequest) -> Result<(), DispatchReplayViolation> {
-        let state = self.per_offer.entry(request.offer_id.clone()).or_default();
-        if request.sequence_number <= state.highest_sequence_number {
+        let highest_sequence = self
+            .per_offer
+            .get(&request.offer_id)
+            .map_or(0, |state| state.highest_sequence_number);
+        if request.sequence_number <= highest_sequence {
             return Err(DispatchReplayViolation::NonIncreasingSequence);
         }
         let nonce_key = (request.signing_key_id.clone(), request.nonce.clone());
@@ -584,6 +597,12 @@ impl DispatchReplayLedger {
         if self.seen_dispatch_ids.contains(&request.dispatch_id) {
             return Err(DispatchReplayViolation::ReusedDispatchId);
         }
+        if self.seen_key_nonces.len() >= MAX_REPLAY_ENTRIES
+            || self.seen_dispatch_ids.len() >= MAX_REPLAY_ENTRIES
+        {
+            return Err(DispatchReplayViolation::LedgerCapacityExceeded);
+        }
+        let state = self.per_offer.entry(request.offer_id.clone()).or_default();
         state.highest_sequence_number = request.sequence_number;
         self.seen_key_nonces.insert(nonce_key);
         self.seen_dispatch_ids.insert(request.dispatch_id.clone());
@@ -596,6 +615,7 @@ enum DispatchReplayViolation {
     NonIncreasingSequence,
     ReusedNonce,
     ReusedDispatchId,
+    LedgerCapacityExceeded,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -604,6 +624,7 @@ pub enum OwnerDispatchRejectionReason {
     UnauthorizedSigningKey,
     InvalidSignature,
     ReplayedDispatch,
+    ReplayLedgerCapacityExceeded,
     DispatchIssuedInFuture,
     DispatchExpired,
     DispatchTtlExceeded,
@@ -688,8 +709,12 @@ pub fn authorize_owner_dispatch(
     if !verifier.verify(&request.signing_key_id, &canonical_payload, &request.signature) {
         return reject(OwnerDispatchRejectionReason::InvalidSignature);
     }
-    if replay_ledger.observe_authenticated(request).is_err() {
-        return reject(OwnerDispatchRejectionReason::ReplayedDispatch);
+    match replay_ledger.observe_authenticated(request) {
+        Ok(()) => {}
+        Err(DispatchReplayViolation::LedgerCapacityExceeded) => {
+            return reject(OwnerDispatchRejectionReason::ReplayLedgerCapacityExceeded);
+        }
+        Err(_) => return reject(OwnerDispatchRejectionReason::ReplayedDispatch),
     }
 
     if request.issued_at_unix_seconds
@@ -833,6 +858,7 @@ fn validate_offer_against_policy(
 #[derive(Debug, Clone, PartialEq)]
 pub enum OwnerFlexibilityError {
     MissingIdentity { name: &'static str },
+    IdentityTooLong { name: &'static str, maximum_bytes: usize, observed_bytes: usize },
     InvalidQuantity { name: &'static str, value: f64 },
     EmptyPolicyAllowlist,
     InvalidPolicyEnvelope,
@@ -857,6 +883,9 @@ impl fmt::Display for OwnerFlexibilityError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingIdentity { name } => write!(f, "{name} must not be empty"),
+            Self::IdentityTooLong { name, maximum_bytes, observed_bytes } => write!(
+                f, "{name} exceeds {maximum_bytes} bytes; got {observed_bytes}"
+            ),
             Self::InvalidQuantity { name, value } => write!(f, "{name} must be finite and non-negative; got {value}"),
             Self::EmptyPolicyAllowlist => write!(f, "owner policy product and signing-key allowlists must not be empty"),
             Self::InvalidPolicyEnvelope => write!(f, "owner policy envelope is invalid"),
@@ -880,6 +909,12 @@ impl std::error::Error for OwnerFlexibilityError {}
 fn require_id(name: &'static str, value: &str) -> Result<(), OwnerFlexibilityError> {
     if value.trim().is_empty() {
         Err(OwnerFlexibilityError::MissingIdentity { name })
+    } else if value.len() > MAX_ID_BYTES {
+        Err(OwnerFlexibilityError::IdentityTooLong {
+            name,
+            maximum_bytes: MAX_ID_BYTES,
+            observed_bytes: value.len(),
+        })
     } else {
         Ok(())
     }
