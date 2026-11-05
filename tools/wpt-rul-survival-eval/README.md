@@ -82,6 +82,10 @@ All numbers are synthetic known-truth controls. The score is hand-recomputable f
 
 The benchmark must next add dependent-censoring synthetic controls with a separately declared conditional censoring estimator, Aalen–Johansen reference calculations, multi-horizon curves and calibration/uncertainty diagnostics before it can support maintenance decisions.
 
+## Validation
+
+The Rust crate contains 17 unit tests covering hand-computed IPCW and hazard scores, censor-before-horizon treatment, competing-event cause scoring, probability and cause completeness, censoring positivity, independent-censoring assumptions, event/censor semantics, hazard interval boundaries and unsupported forecasts.
+
 ## Run
 
 `cargo test --locked -p wpt-rul-survival-eval`
