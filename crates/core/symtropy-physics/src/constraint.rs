@@ -209,7 +209,7 @@ mod analytic_constraint_qualification_tests {
             rest_length: 4.0,
             stiffness: 0.5,
         };
-        for _ in 0..8 {
+        for _ in 0..16 {
             constraint.solve(&mut a, &mut b, 1.0 / 60.0);
         }
 
