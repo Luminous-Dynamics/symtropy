@@ -101,10 +101,99 @@ jobs:
             echo "- Claim ceiling: deterministic synthetic trajectory fixture"
           } >> "$GITHUB_STEP_SUMMARY"
 
+
+      - name: Execute repeated-shock reserve recovery portfolio
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-resilience-evidence
+          cargo run --locked --manifest-path research/civdyn-cross-scale-resilience/Cargo.toml --bin recovery-capital-sweep \
+            | tee target/civdyn-resilience-evidence/recovery-capital.csv
+
+      - name: Verify service recovery versus reserve recovery under repeat shock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/civdyn-resilience-evidence/recovery-capital.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) == 30, f"expected 2 summary + 28 tick records, got {len(rows)}"
+          assert all(len(row) == 16 for row in rows)
+          summaries = {row["path"]: row for row in rows if row["record_type"] == "summary"}
+          ticks = [row for row in rows if row["record_type"] == "tick"]
+          assert set(summaries) == {"service_only", "capital_rebuilding"}
+          assert len(ticks) == 28
+
+          service = summaries["service_only"]
+          rebuild = summaries["capital_rebuilding"]
+
+          for summary in (service, rebuild):
+              assert float(summary["first_shock_unmet_water_m3"]) == 0.0
+              assert float(summary["recovery_unmet_water_m3"]) == 0.0
+              assert summary["service_recovery_after_ticks"] == "2"
+              assert float(summary["reserve_after_first_shock_m3"]) == 100.0
+              assert float(summary["max_conservation_residual_m3"]) < 1e-9
+
+          assert float(service["reserve_at_service_recovery_m3"]) == 100.0
+          assert float(service["reserve_replenishment_m3"]) == 0.0
+          assert abs(float(service["reserve_recovery_ratio"]) - 0.5) < 1e-12
+          assert float(service["repeat_shock_unmet_water_m3"]) == 50.0
+
+          assert float(rebuild["reserve_at_service_recovery_m3"]) == 150.0
+          assert float(rebuild["reserve_replenishment_m3"]) == 50.0
+          assert abs(float(rebuild["reserve_recovery_ratio"]) - 0.75) < 1e-12
+          assert float(rebuild["repeat_shock_unmet_water_m3"]) == 0.0
+
+          for path_name in summaries:
+              path_ticks = [row for row in ticks if row["path"] == path_name]
+              assert len(path_ticks) == 14
+              phases = [row["phase"] for row in path_ticks]
+              assert phases.count("pre_shock") == 2
+              assert phases.count("first_shock") == 4
+              assert phases.count("service_recovery") == 2
+              assert phases.count("repeat_shock") == 6
+              assert all(float(row["max_conservation_residual_m3"]) < 1e-9 for row in path_ticks)
+              assert all(0.0 <= float(row["household_a_coverage"]) <= 1.0 for row in path_ticks)
+              assert all(0.0 <= float(row["household_b_coverage"]) <= 1.0 for row in path_ticks)
+
+          repeat_service = [
+              float(row["repeat_shock_unmet_water_m3"])
+              for row in ticks if row["path"] == "service_only"
+          ]
+          repeat_rebuild = [
+              float(row["repeat_shock_unmet_water_m3"])
+              for row in ticks if row["path"] == "capital_rebuilding"
+          ]
+          assert abs(sum(repeat_service) - 50.0) < 1e-12
+          assert abs(sum(repeat_rebuild) - 0.0) < 1e-12
+
+          print("CIVDYN-RECOVERY-CAPITAL-001: equal first-shock service/recovery, +50 m3 reserve rebuilding and repeat-shock 50 m3 vs 0 unmet demand verified.")
+          PY
+
+          {
+            echo "## CIVDYN-RECOVERY-CAPITAL-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-resilience-evidence/recovery-capital.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: deterministic synthetic water-reserve recovery reference"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload cross-scale resilience evidence
         uses: actions/upload-artifact@v4
         with:
           name: civdyn-cross-scale-resilience
           path: target/civdyn-resilience-evidence/cross-scale-resilience.csv
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload recovery-capital evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-recovery-capital
+          path: target/civdyn-resilience-evidence/recovery-capital.csv
           if-no-files-found: error
           retention-days: 30
