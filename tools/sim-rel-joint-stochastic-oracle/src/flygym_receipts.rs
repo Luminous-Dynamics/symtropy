@@ -319,7 +319,9 @@ impl ObservationStream {
             } if *output_fps > 0 && *playback_speed_millis > 0 => {
                 return Ok(vec![identity.qpos_width]);
             }
-            Self::TrajectoryQpos { .. } => return Err("trajectory output_fps must be positive".into()),
+            Self::TrajectoryQpos { .. } => {
+                return Err("trajectory output_fps and playback speed must be positive".into());
+            }
             Self::TrajectoryMocapPosition => {
                 if identity.mocap_body_count == 0 {
                     return Err("mocap position stream declared for a model with no mocap bodies".into());
@@ -549,7 +551,7 @@ impl FlyGymObservationBundle {
         for sample_id in sample_ids {
             let sample = self.samples
                 .iter()
-                .find(|sample| sample.sample_id == **sample_id)
+                .find(|sample| sample.sample_id.as_str() == *sample_id)
                 .ok_or_else(|| format!("unknown sample ID: {sample_id}"))?;
             if !seen_streams.insert(stream_discriminator(&sample.stream)) {
                 return Err("a capture join cannot include the same stream twice".into());
@@ -777,6 +779,74 @@ mod tests {
             ],
         };
         assert!(bundle.validate_capture_join(&["qpos-frame-5", "contact-step-10"]).is_ok());
+    }
+
+    #[test]
+    fn trajectory_clock_must_match_recorded_output_fps() {
+        let mut sample = sample(
+            ObservationStream::TrajectoryQpos {
+                output_fps: 25,
+                playback_speed_millis: 200,
+            },
+            SampleClock::TrajectoryFrame {
+                frame_index: 5,
+                output_fps: 30,
+                matched_physics_step: None,
+            },
+            vec![73],
+            73,
+            "qpos-fps-mismatch",
+        );
+        assert!(sample.validate(&identity(), &anatomy()).is_err());
+        sample.clock = SampleClock::TrajectoryFrame {
+            frame_index: 5,
+            output_fps: 25,
+            matched_physics_step: None,
+        };
+        assert!(sample.validate(&identity(), &anatomy()).is_ok());
+    }
+
+    #[test]
+    fn rejects_inconsistent_step_time_and_out_of_range_world() {
+        let mut sample = sample(
+            ObservationStream::JointAnglesRadians,
+            SampleClock::PhysicsStep { step_index: 10 },
+            vec![2],
+            2,
+            "joint-step-time",
+        );
+        sample.simulation_time_ns += 1;
+        assert!(sample.validate(&identity(), &anatomy()).is_err());
+        sample.simulation_time_ns -= 1;
+        sample.world_id = 1;
+        assert!(sample.validate(&identity(), &anatomy()).is_err());
+    }
+
+    #[test]
+    fn actuator_force_receipts_require_a_pinned_type_unit_and_sign_order() {
+        let mut map = anatomy();
+        map.actuator_orders[0].force_unit.clear();
+        assert!(map.validate().is_err());
+        map.actuator_orders[0].force_unit = "declared-model-force-unit".into();
+        map.actuator_orders[0].sign_convention.clear();
+        assert!(map.validate().is_err());
+    }
+
+    #[test]
+    fn shared_and_unassigned_anatomy_are_explicit_not_forced_into_one_leg() {
+        let mut map = anatomy();
+        map.body_segment_membership[2].membership = AnatomicalMembership {
+            legs: vec![LegId::FrontLeft, LegId::FrontRight],
+            unassigned_reason: None,
+        };
+        assert!(map.validate().is_ok());
+        map.body_segment_membership[2].membership = AnatomicalMembership {
+            legs: vec![],
+            unassigned_reason: Some("central shared thorax".into()),
+        };
+        assert!(map.validate().is_ok());
+        map.body_segment_membership[2].membership.unassigned_reason = None;
+        assert!(map.validate().is_err());
     }
 
     #[test]
