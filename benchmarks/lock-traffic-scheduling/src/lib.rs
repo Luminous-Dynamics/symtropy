@@ -281,9 +281,7 @@ fn arrival_evidence_error(
     if evidence.observed_at_tick > decision_tick {
         return Some(NotScheduledReason::ArrivalEvidenceInvalid);
     }
-    if decision_tick - evidence.observed_at_tick
-        > profile.maximum_arrival_evidence_age_ticks
-    {
+    if decision_tick - evidence.observed_at_tick > profile.maximum_arrival_evidence_age_ticks {
         return Some(NotScheduledReason::ArrivalEvidenceNeedsReview);
     }
     match evidence.valid_through_tick {
@@ -1284,12 +1282,8 @@ mod tests {
         p.planning_window.start_tick = 20;
         stale.arrival_evidence.observed_at_tick = 10;
         stale.arrival_evidence.valid_through_tick = Some(100);
-        let plan = schedule(
-            &p,
-            &[stale],
-            SchedulingPolicy::FirstComeFirstServed,
-        )
-        .expect("valid profile");
+        let plan =
+            schedule(&p, &[stale], SchedulingPolicy::FirstComeFirstServed).expect("valid profile");
         assert_eq!(plan.schedule.len(), 0);
         assert_eq!(
             plan.outcomes[0].reason,
