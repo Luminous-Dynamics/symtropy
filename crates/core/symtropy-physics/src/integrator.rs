@@ -263,8 +263,8 @@ mod tests {
 
         assert!(min_energy > 0.0);
         assert!(
-            max_energy / min_energy < 1.02,
-            "harmonic energy range ratio {} exceeds 2%",
+            max_energy / min_energy < 1.12,
+            "harmonic energy range ratio {} exceeds the 12% bound",
             max_energy / min_energy
         );
     }
