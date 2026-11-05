@@ -1096,8 +1096,7 @@ mod tests {
                 < 1e-12
         );
         assert!(
-            (report.aalen_johansen_cumulative_incidence["PLANNED_REPLACEMENT"] - 1.0 / 7.0)
-                .abs()
+            (report.aalen_johansen_cumulative_incidence["PLANNED_REPLACEMENT"] - 1.0 / 7.0).abs()
                 < 1e-12
         );
         assert_eq!(
