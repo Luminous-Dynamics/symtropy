@@ -806,6 +806,86 @@ pub fn compare_facilitation_variants(
     })
 }
 
+/// Compare sessions that differ only in option display order and resulting outputs.
+/// Preferences, semantic option IDs, proposal meanings, budget and evidence are held fixed.
+pub fn compare_option_order_variants(
+    baseline: &DeliberationSession,
+    reordered: &DeliberationSession,
+) -> Result<OptionOrderDifference, DeliberationError> {
+    baseline.validate()?;
+    reordered.validate()?;
+
+    if baseline.resource_budget != reordered.resource_budget {
+        return Err(DeliberationError::OptionOrderPairMismatch("resource_budget"));
+    }
+
+    let baseline_labels = baseline.option_labels.iter().collect::<BTreeSet<_>>();
+    let reordered_labels = reordered.option_labels.iter().collect::<BTreeSet<_>>();
+    if baseline_labels != reordered_labels {
+        return Err(DeliberationError::OptionOrderPairMismatch("semantic_option_set"));
+    }
+
+    let baseline_positions = baseline.option_labels.iter().enumerate()
+        .map(|(index, label)| (label.as_str(), index))
+        .collect::<BTreeMap<_, _>>();
+    let reordered_positions = reordered.option_labels.iter().enumerate()
+        .map(|(index, label)| (label.as_str(), index))
+        .collect::<BTreeMap<_, _>>();
+
+    let baseline_members = baseline.participants.iter()
+        .map(|member| (member.id.as_str(), member))
+        .collect::<BTreeMap<_, _>>();
+    let reordered_members = reordered.participants.iter()
+        .map(|member| (member.id.as_str(), member))
+        .collect::<BTreeMap<_, _>>();
+    if baseline_members.keys().ne(reordered_members.keys()) {
+        return Err(DeliberationError::OptionOrderPairMismatch("participant_set"));
+    }
+    for (participant_id, member) in &baseline_members {
+        let other = reordered_members[participant_id];
+        for label in &baseline.option_labels {
+            let left = member.preferences[baseline_positions[label.as_str()]];
+            let right = other.preferences[reordered_positions[label.as_str()]];
+            if (left - right).abs() > 1e-12 {
+                return Err(DeliberationError::OptionOrderPairMismatch(
+                    "participant_preferences_by_option",
+                ));
+            }
+        }
+    }
+
+    let semantic_proposals = |session: &DeliberationSession| {
+        session.proposals.iter().map(|proposal| (
+            proposal.id.as_str(),
+            proposal.author_id.as_str(),
+            session.option_labels[proposal.option_index].as_str(),
+        )).collect::<BTreeMap<_, _>>()
+    };
+    if semantic_proposals(baseline) != semantic_proposals(reordered) {
+        return Err(DeliberationError::OptionOrderPairMismatch("proposal_semantics"));
+    }
+    if baseline.evidence_catalogue != reordered.evidence_catalogue {
+        return Err(DeliberationError::OptionOrderPairMismatch("evidence_catalogue"));
+    }
+
+    let reordered_by_label = reordered.option_labels.iter().enumerate()
+        .map(|(index, label)| (label.as_str(), reordered.final_allocation[index]))
+        .collect::<BTreeMap<_, _>>();
+    let remapped = baseline.option_labels.iter()
+        .map(|label| reordered_by_label[label.as_str()])
+        .collect::<Vec<_>>();
+    let allocation_l1_shift_units = baseline.final_allocation.iter().zip(&remapped)
+        .map(|(left, right)| left.abs_diff(*right))
+        .try_fold(0_u32, |sum, value| {
+            sum.checked_add(value).ok_or(DeliberationError::AllocationOverflow)
+        })?;
+
+    Ok(OptionOrderDifference {
+        allocation_l1_shift_units,
+        reallocated_units: allocation_l1_shift_units as f64 / 2.0,
+    })
+}
+
 fn preference_proportional_allocation(
     session: &DeliberationSession,
 ) -> Result<Vec<u32>, DeliberationError> {
