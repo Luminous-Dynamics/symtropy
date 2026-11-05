@@ -1,0 +1,37 @@
+name: Interventional Dynamics Identifiability Verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/interventional-dynamics-identifiability-v1/**"
+      - ".github/workflows/interventional-dynamics-identifiability-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: interventional-dynamics-identifiability-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Interventional dynamics identifiability
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/interventional-dynamics-identifiability-v1/Cargo.toml -- --check
+      - name: Run synthetic identifiability tests
+        run: cargo test --manifest-path research/interventional-dynamics-identifiability-v1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/interventional-dynamics-identifiability-v1/Cargo.toml --locked --all-targets -- -D warnings

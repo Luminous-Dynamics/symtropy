@@ -1,0 +1,12 @@
+[package]
+name = "interventional-dynamics-identifiability"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Separate observability, reachability, and experiment-design rank diagnostics for intervention-driven state-space models."
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
