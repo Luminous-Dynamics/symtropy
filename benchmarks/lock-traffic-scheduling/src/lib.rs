@@ -622,7 +622,7 @@ pub fn schedule(
 
         water_used += u128::from(request.water_requirement_ml);
         energy_used += u128::from(request.pump_energy_requirement_wh);
-        schedule.push(ScheduledPassage {
+        let passage = ScheduledPassage {
             request_id: request.request_id.clone(),
             vessel_id: request.vessel_id.clone(),
             participant_id: request.participant_id.clone(),
@@ -636,6 +636,14 @@ pub fn schedule(
             water_ml: request.water_requirement_ml,
             pump_energy_wh: request.pump_energy_requirement_wh,
             direction_change_before_ticks: direction_change,
+        };
+        schedule.push(passage.clone());
+        outcomes.push(RequestOutcome {
+            request_id: request.request_id.clone(),
+            participant_id: request.participant_id.clone(),
+            service_group: request.service_group.clone(),
+            scheduled: Some(passage),
+            reason: None,
         });
         cursor_tick = end_tick;
         if current_direction == Some(request.direction) {
@@ -757,6 +765,11 @@ mod tests {
         )
         .expect("valid profile");
         assert_eq!(forward, reverse);
+        assert_eq!(forward.outcomes.len(), requests.len());
+        assert!(forward
+            .outcomes
+            .iter()
+            .all(|outcome| outcome.scheduled.is_some()));
         assert_eq!(forward.schedule[0].request_id, "a");
         assert_eq!(forward.schedule[1].request_id, "b");
     }
