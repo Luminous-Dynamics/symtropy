@@ -412,9 +412,7 @@ pub fn generate_scenario(
     // Keep the event stream independent of grid-size-dependent initial draws.
     // Same seed therefore yields the same event-tape prefix across grid sizes.
     let mut event_random = SplitMix64::new(seed ^ 0xD1B54A32D192ED03);
-    let event_tape = (0..tape_words)
-        .map(|_| event_random.next_u16())
-        .collect();
+    let event_tape = (0..tape_words).map(|_| event_random.next_u16()).collect();
     let scenario = Scenario {
         spec,
         initial,
@@ -720,7 +718,10 @@ mod tests {
         let second = run_reference(&scenario).unwrap();
         assert_eq!(first.spec, second.spec);
         assert_eq!(first.trajectory, second.trajectory);
-        assert_eq!(first.initial_fingerprint_fnv64, second.initial_fingerprint_fnv64);
+        assert_eq!(
+            first.initial_fingerprint_fnv64,
+            second.initial_fingerprint_fnv64
+        );
         assert_eq!(first.tape_fingerprint_fnv64, second.tape_fingerprint_fnv64);
         assert_eq!(
             first.trajectory_fingerprint_fnv64,
