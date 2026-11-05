@@ -782,6 +782,93 @@ pub fn evaluate_portfolio(
     })
 }
 
+fn evaluation_digest(
+    portfolio_digest: &str,
+    evaluation_odd_scope_digest: &str,
+    receipts: &[ChallengeReceipt],
+    residual: Option<&ResidualEnvelope>,
+    disposition: PortfolioDisposition,
+    recommendation_authorized: bool,
+) -> String {
+    let mut h = blake3::Hasher::new_derive_key(
+        "Symtropy ROAD-HYPOTHESIS-PORTFOLIO evaluation receipt v0.1",
+    );
+    hash_str(&mut h, portfolio_digest);
+    hash_str(&mut h, evaluation_odd_scope_digest);
+    hash_u8(&mut h, match disposition {
+        PortfolioDisposition::PortfolioCompleteForDeclaredScope => 0,
+        PortfolioDisposition::PortfolioIncomplete => 1,
+        PortfolioDisposition::PortfolioFalsified => 2,
+        PortfolioDisposition::OutOfScope => 3,
+        PortfolioDisposition::ResidualRiskUnbounded => 4,
+    });
+    hash_u8(&mut h, u8::from(recommendation_authorized));
+
+    let mut ordered_receipts: Vec<_> = receipts.iter().collect();
+    ordered_receipts.sort_by(|a, b| a.challenge_id.cmp(&b.challenge_id));
+    hash_len(&mut h, ordered_receipts.len());
+    for receipt in ordered_receipts {
+        hash_str(&mut h, &receipt.challenge_id);
+        hash_str(&mut h, &receipt.hypothesis_id);
+        hash_u8(&mut h, strategy_tag(receipt.strategy));
+        hash_str(&mut h, &receipt.protocol_digest);
+        hash_str(&mut h, &receipt.holdout_manifest_digest);
+        hash_u8(&mut h, u8::from(receipt.blinded));
+        hash_u8(&mut h, u8::from(receipt.sealed_test));
+        hash_u64(&mut h, receipt.budget_units);
+        let mut parents = receipt.holdout_parent_lineage_digests.clone();
+        parents.sort();
+        hash_strings(&mut h, &parents);
+        hash_u8(&mut h, match receipt.outcome {
+            ChallengeOutcome::CounterexampleFound => 0,
+            ChallengeOutcome::NonDiscoveryWithinBudget => 1,
+            ChallengeOutcome::Incomplete => 2,
+            ChallengeOutcome::NotRun => 3,
+        });
+        hash_opt_str(&mut h, receipt.counterexample_digest.as_deref());
+        hash_opt_str(&mut h, receipt.replay_receipt_digest.as_deref());
+    }
+
+    match residual {
+        Some(envelope) => {
+            hash_u8(&mut h, 1);
+            hash_str(&mut h, &envelope.utility_scale_id);
+            hash_str(&mut h, &envelope.utility_semantics_id);
+            hash_u8(&mut h, match envelope.evidence_class {
+                ResidualEvidenceClass::ObservedFactual => 0,
+                ResidualEvidenceClass::ControlledIntervention => 1,
+                ResidualEvidenceClass::QualifiedNaturalExperiment => 2,
+                ResidualEvidenceClass::SimulationGenerated => 3,
+                ResidualEvidenceClass::ModelGenerated => 4,
+                ResidualEvidenceClass::FormalReference => 5,
+                ResidualEvidenceClass::HumanAdjudication => 6,
+            });
+            hash_str(&mut h, &envelope.evidence_digest);
+            hash_str(&mut h, &envelope.calibration_protocol_digest);
+            hash_u8(&mut h, u8::from(envelope.rectangular_relaxation));
+            let mut bounds: Vec<_> = envelope.action_bounds.iter().collect();
+            bounds.sort_by(|a, b| a.action_id.cmp(&b.action_id));
+            hash_len(&mut h, bounds.len());
+            for bound in bounds {
+                hash_str(&mut h, &bound.action_id);
+                hash_i64(&mut h, bound.utility_lower.numerator);
+                hash_u64(&mut h, bound.utility_lower.denominator);
+                hash_i64(&mut h, bound.utility_upper.numerator);
+                hash_u64(&mut h, bound.utility_upper.denominator);
+                hash_str(&mut h, &bound.evidence_digest);
+                hash_str(&mut h, &bound.calibration_protocol_digest);
+                hash_u8(&mut h, match bound.feasibility {
+                    FeasibilityDisposition::Guaranteed => 0,
+                    FeasibilityDisposition::PotentialViolation => 1,
+                    FeasibilityDisposition::Unknown => 2,
+                });
+            }
+        }
+        None => hash_u8(&mut h, 0),
+    }
+    hex(h.finalize().as_bytes())
+}
+
 fn independent_hypothesis_families(hypotheses: &[Hypothesis]) -> BTreeSet<String> {
     hypotheses
         .iter()
@@ -1210,6 +1297,10 @@ fn hash_u64(h: &mut blake3::Hasher, value: u64) {
     h.update(&value.to_le_bytes());
 }
 
+fn hash_i64(h: &mut blake3::Hasher, value: i64) {
+    h.update(&value.to_le_bytes());
+}
+
 fn hash_len(h: &mut blake3::Hasher, value: usize) {
     let value = u64::try_from(value).expect("finite manifest length must fit u64");
     h.update(&value.to_le_bytes());
@@ -1355,7 +1446,7 @@ mod tests {
             hypothesis_id: "H-weather".into(),
             strategy,
             protocol_digest: d(protocol),
-            holdout_manifest_digest: d(&format!("holdout-{hypothesis_id}")),
+            holdout_manifest_digest: d(&format!("holdout-{id}")),
             blinded: true,
             sealed_test: true,
             budget_units: 100,
@@ -1381,6 +1472,7 @@ mod tests {
         ] {
             let mut receipt = challenge(id, strategy, protocol, ChallengeOutcome::NonDiscoveryWithinBudget);
             receipt.hypothesis_id = "H-weather-copy".into();
+            receipt.holdout_manifest_digest = d("holdout-H-weather-copy");
             receipts.push(receipt);
         }
         receipts
