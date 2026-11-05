@@ -483,7 +483,7 @@ fn segment_has_required_resource(segment: SegmentKind, kinds: &BTreeSet<Resource
         }
         SegmentKind::Lockage => {
             kinds.contains(&ResourceKind::Lock) && kinds.contains(&ResourceKind::WaterQuota)
-        },
+        }
         SegmentKind::BerthHandling => {
             kinds.contains(&ResourceKind::Berth) && kinds.contains(&ResourceKind::TerminalHandling)
         }
@@ -942,9 +942,11 @@ fn validate_voyage_alternatives(case: &ServiceChainCase) -> Result<(), Validatio
                 alternative.arrival_node_id.clone(),
             ));
         }
-        if !case.route_segments.iter().any(|segment| {
-            segment.to_node_id == alternative.arrival_node_id
-        }) {
+        if !case
+            .route_segments
+            .iter()
+            .any(|segment| segment.to_node_id == alternative.arrival_node_id)
+        {
             return Err(ValidationError::ArrivalNodeNotOnRoute(
                 alternative.alternative_id.clone(),
             ));
@@ -2765,7 +2767,7 @@ mod tests {
                 "slow-low-energy".into()
             ))
         );
-        }
+    }
 
     #[path = "exact_oracle.rs"]
     mod exact_oracle;
