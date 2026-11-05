@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod correspondence;
+pub mod coupling_projection;
 
 use std::collections::{BTreeMap, BTreeSet};
 
