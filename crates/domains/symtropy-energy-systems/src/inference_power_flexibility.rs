@@ -1352,7 +1352,10 @@ mod tests {
         ).expect("measurement");
         assert_eq!(report.baseline_average_boundary_power_w, 100.0);
         assert_eq!(report.candidate_average_boundary_power_w, 90.0);
-        assert!((report.baseline_tokens_per_joule - 400.0 / (100.0 * 0.5)).abs() < 1e-9);
+        assert!((report.baseline_boundary_energy_wh - 60.0 / 3_600.0).abs() < 1e-12);
+        assert!((report.candidate_boundary_energy_wh - 52.0 / 3_600.0).abs() < 1e-12);
+        assert!((report.baseline_tokens_per_joule - 400.0 / 60.0).abs() < 1e-9);
+        assert!((report.candidate_tokens_per_joule - 400.0 / 52.0).abs() < 1e-9);
     }
 
     #[test]
