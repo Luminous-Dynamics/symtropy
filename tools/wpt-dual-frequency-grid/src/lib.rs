@@ -111,9 +111,13 @@ fn is_utc_timestamp(value: &str) -> bool {
 pub struct ChannelMetrics {
     pub channel_id: String,
     pub channel_kind: String,
-    /// Conventional THD = sqrt(sum(h>=2 I_h^2)) / I_1.
-    pub total_harmonic_distortion: Option<f64>,
-    /// sqrt(sum(sideband amplitude^2)) / carrier amplitude.
+    /// Maximum integer grid-harmonic order included in the THD calculation.
+    pub maximum_harmonic_order: Option<u64>,
+    /// THD through the declared maximum integer harmonic order.
+    pub thd_through_harmonic_order: Option<f64>,
+    /// RMS sum of reported grid interharmonics divided by grid fundamental.
+    pub interharmonic_to_fundamental_rms_ratio: Option<f64>,
+    /// RMS sum of reported resonant sidebands divided by resonant carrier.
     pub sideband_to_carrier_rms_ratio: Option<f64>,
     pub line_count: usize,
     pub maximum_expanded_line_uncertainty: f64,
@@ -341,6 +345,7 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                 "unit",
                 "nominal_frequency_hz",
                 "frequency_tolerance_hz",
+                "maximum_harmonic_order",
                 "lines",
             ],
             &path,
@@ -382,6 +387,28 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                 "channel nominal frequency does not match the run-level grid/carrier declaration",
             ));
         }
+        let maximum_harmonic_order = match kind {
+            "GRID_CURRENT" => {
+                let maximum = integer_field(channel, "maximum_harmonic_order", &path)?;
+                if maximum == 0 {
+                    return Err(fail(
+                        &path,
+                        "maximum_harmonic_order must be at least one for grid-current THD",
+                    ));
+                }
+                Some(maximum)
+            }
+            "RESONANT_CURRENT" => {
+                if !field(channel, "maximum_harmonic_order", &path)?.is_null() {
+                    return Err(fail(
+                        &path,
+                        "resonant-current channel must have null maximum_harmonic_order",
+                    ));
+                }
+                None
+            }
+            _ => unreachable!("channel kind checked above"),
+        };
 
         let lines = field(channel, "lines", &path)?
             .as_array()
@@ -394,7 +421,9 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
         }
         let mut previous_frequency = None::<f64>;
         let mut fundamental_amplitude = None::<f64>;
+        let mut seen_harmonic_orders = BTreeSet::<u64>::new();
         let mut harmonic_square_sum = 0.0;
+        let mut interharmonic_square_sum = 0.0;
         let mut carrier_amplitude = None::<f64>;
         let mut sideband_square_sum = 0.0;
         let mut line_uncertainty_max: f64 = 0.0;
@@ -441,35 +470,58 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
 
             match kind {
                 "GRID_CURRENT" => {
-                    let harmonic = field(line, "harmonic_order", &line_path)?
-                        .as_u64()
-                        .ok_or_else(|| {
-                            fail(
-                                &line_path,
-                                "grid-current line requires integer harmonic_order",
-                            )
-                        })?;
                     if !field(line, "sideband_offset_hz", &line_path)?.is_null() {
                         return Err(fail(
                             &line_path,
-                            "grid harmonics cannot carry resonant sideband offsets",
+                            "grid-current lines cannot carry resonant sideband offsets",
                         ));
                     }
-                    let expected = grid_frequency * harmonic as f64;
-                    if (frequency - expected).abs() > tolerance {
+                    let harmonic_value = field(line, "harmonic_order", &line_path)?;
+                    if let Some(harmonic) = harmonic_value.as_u64() {
+                        if harmonic == 0 {
+                            return Err(fail(&line_path, "grid harmonic order must be at least one"));
+                        }
+                        if !seen_harmonic_orders.insert(harmonic) {
+                            return Err(fail(
+                                &line_path,
+                                format!("duplicate grid harmonic order {harmonic}"),
+                            ));
+                        }
+                        let expected = grid_frequency * harmonic as f64;
+                        if (frequency - expected).abs() > tolerance {
+                            return Err(fail(
+                                &line_path,
+                                format!(
+                                    "frequency does not match harmonic order {harmonic} of the declared grid"
+                                ),
+                            ));
+                        }
+                        if harmonic == 1 {
+                            if fundamental_amplitude.replace(amplitude).is_some() {
+                                return Err(fail(&line_path, "duplicate grid fundamental"));
+                            }
+                        } else {
+                            harmonic_square_sum += amplitude * amplitude;
+                        }
+                    } else if harmonic_value.is_null() {
+                        let nearest_order = (frequency / grid_frequency).round();
+                        if nearest_order >= 1.0
+                            && (frequency - nearest_order * grid_frequency).abs() <= tolerance
+                        {
+                            return Err(fail(
+                                &line_path,
+                                "integer grid harmonic must declare harmonic_order",
+                            ));
+                        }
+                        interharmonic_square_sum += amplitude * amplitude;
+                    } else {
                         return Err(fail(
                             &line_path,
-                            format!(
-                                "frequency does not match harmonic order {harmonic} of the declared grid"
-                            ),
+                            "grid harmonic_order must be a positive integer or null for an interharmonic",
                         ));
                     }
-                    if harmonic == 1 {
-                        if fundamental_amplitude.replace(amplitude).is_some() {
-                            return Err(fail(&line_path, "duplicate grid fundamental"));
-                        }
-                    } else {
-                        harmonic_square_sum += amplitude * amplitude;
+                    if !harmonic_square_sum.is_finite() || !interharmonic_square_sum.is_finite() {
+                        return Err(fail(&line_path, "grid spectral power accumulation overflowed"));
                     }
                 }
                 "RESONANT_CURRENT" => {
@@ -507,15 +559,31 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                             ));
                         }
                         sideband_square_sum += amplitude * amplitude;
+                        if !sideband_square_sum.is_finite() {
+                            return Err(fail(
+                                &line_path,
+                                "resonant sideband power accumulation overflowed",
+                            ));
+                        }
                     }
                 }
                 _ => unreachable!("channel kind checked above"),
             }
         }
 
-        let (thd, sideband_ratio) = match kind {
+        let (thd_order, thd, interharmonic_ratio, sideband_ratio) = match kind {
             "GRID_CURRENT" => {
                 saw_grid = true;
+                let maximum = maximum_harmonic_order.expect("grid channel declared harmonic coverage");
+                let expected_orders = (1..=maximum).collect::<BTreeSet<_>>();
+                if seen_harmonic_orders != expected_orders {
+                    return Err(fail(
+                        &path,
+                        format!(
+                            "grid spectrum must include every integer harmonic order from 1 through {maximum}"
+                        ),
+                    ));
+                }
                 let fundamental = fundamental_amplitude
                     .filter(|amplitude| *amplitude > 0.0)
                     .ok_or_else(|| {
@@ -524,7 +592,12 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                             "grid-current spectrum requires one non-zero fundamental",
                         )
                     })?;
-                (Some(harmonic_square_sum.sqrt() / fundamental), None)
+                (
+                    Some(maximum),
+                    Some(harmonic_square_sum.sqrt() / fundamental),
+                    Some(interharmonic_square_sum.sqrt() / fundamental),
+                    None,
+                )
             }
             "RESONANT_CURRENT" => {
                 saw_resonant = true;
@@ -533,7 +606,12 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
                     .ok_or_else(|| {
                         fail(&path, "resonant spectrum requires one non-zero carrier")
                     })?;
-                (None, Some(sideband_square_sum.sqrt() / carrier))
+                (
+                    None,
+                    None,
+                    None,
+                    Some(sideband_square_sum.sqrt() / carrier),
+                )
             }
             _ => unreachable!("channel kind checked above"),
         };
@@ -541,7 +619,9 @@ pub fn evaluate_run(run: &Value) -> Result<RunMetrics, String> {
         channel_metrics.push(ChannelMetrics {
             channel_id,
             channel_kind: kind.to_string(),
-            total_harmonic_distortion: thd,
+            maximum_harmonic_order: thd_order,
+            thd_through_harmonic_order: thd,
+            interharmonic_to_fundamental_rms_ratio: interharmonic_ratio,
             sideband_to_carrier_rms_ratio: sideband_ratio,
             line_count: lines.len(),
             maximum_expanded_line_uncertainty: line_uncertainty_max,
