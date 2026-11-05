@@ -334,6 +334,29 @@ fn oracle_does_not_admit_unknown_or_blocked_passage_evidence() {
 }
 
 #[test]
+fn oracle_preserves_service_vs_water_tradeoffs_on_the_pareto_front() {
+    let mut p = profile();
+    p.water_budget_ml = 10;
+    let mut high_service = request("high-service", 10, 100, 100, 100);
+    high_service.water_requirement_ml = 10;
+    let mut low_water = request("low-water", 10, 100, 100, 50);
+    low_water.water_requirement_ml = 1;
+    let requests = vec![high_service, low_water];
+
+    let frontier = exact_frontier(&p, &requests);
+    assert!(frontier.iter().any(|candidate| {
+        candidate.accepted_ids == vec!["high-service".to_owned()]
+            && candidate.metrics.service_units == 100
+            && candidate.metrics.water_ml == 10
+    }));
+    assert!(frontier.iter().any(|candidate| {
+        candidate.accepted_ids == vec!["low-water".to_owned()]
+            && candidate.metrics.service_units == 50
+            && candidate.metrics.water_ml == 1
+    }));
+}
+
+#[test]
 fn oracle_best_frontier_is_not_assumed_to_equal_a_greedy_policy() {
     let p = profile();
     let requests = vec![request("a", 30, 30, 40, 100), request("b", 10, 0, 10, 50)];
