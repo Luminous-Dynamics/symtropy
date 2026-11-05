@@ -398,7 +398,7 @@ impl fmt::Display for DeliberationError {
             Self::FacilitationPairMismatch(field) => {
                 write!(
                     f,
-                    "rhetoric-only comparison changed non-rhetorical input: {field}"
+                    "facilitation-variant comparison changed non-rhetorical input: {field}"
                 )
             }
         }
@@ -1043,7 +1043,7 @@ mod tests {
     }
 
     #[test]
-    fn rhetoric_only_comparison_requires_fixed_preferences_and_evidence() {
+    fn facilitation_variant_comparison_requires_fixed_preferences_and_evidence() {
         let baseline = base_session();
         let steered = steered_session();
         let difference = compare_facilitation_variants(&baseline, &steered).unwrap();
