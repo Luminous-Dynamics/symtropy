@@ -362,9 +362,11 @@ pub struct ChronologicalAdequacyScenarioReceipt {
     pub raw_probability_weight: f64,
     pub normalized_probability_weight: f64,
     pub reference_loss_of_load_days: u32,
+    pub reference_loss_of_load_periods: u32,
     pub reference_loss_of_load_hours: f64,
     pub reference_unserved_energy_mwh: f64,
     pub augmented_loss_of_load_days: u32,
+    pub augmented_loss_of_load_periods: u32,
     pub augmented_loss_of_load_hours: f64,
     pub augmented_unserved_energy_mwh: f64,
     pub augmented_unserved_energy_cvar_mwh: Option<f64>,
@@ -647,9 +649,11 @@ pub fn evaluate_chronological_adequacy(
             raw_probability_weight: scenario.probability_weight,
             normalized_probability_weight: normalized_weight,
             reference_loss_of_load_days: reference_scenario.loss_of_load_days,
+            reference_loss_of_load_periods: reference_scenario.loss_of_load_periods,
             reference_loss_of_load_hours: reference_scenario.loss_of_load_hours,
             reference_unserved_energy_mwh: reference_scenario.unserved_energy_mwh,
             augmented_loss_of_load_days: augmented_scenario.loss_of_load_days,
+            augmented_loss_of_load_periods: augmented_scenario.loss_of_load_periods,
             augmented_loss_of_load_hours: augmented_scenario.loss_of_load_hours,
             augmented_unserved_energy_mwh: augmented_scenario.unserved_energy_mwh,
             augmented_gross_reduction_energy_mwh: augmented_scenario.gross_reduction_energy_mwh,
@@ -808,14 +812,14 @@ fn weighted_upper_tail_cvar(
         let included_weight = normalized_weight.min(remaining_mass);
         tail_energy += eue * included_weight;
         remaining_mass -= included_weight;
-        if remaining_mass <= total_weight * 1e-12 {
+        if remaining_mass <= 1e-12 {
             break;
         }
     }
     if !tail_energy.is_finite()
         || !tail_mass.is_finite()
         || tail_mass <= 0.0
-        || remaining_mass > total_weight * 1e-10
+        || remaining_mass > 1e-10
     {
         return Err(ChronologicalAdequacyError::NumericalOverflow(
             "weighted upper-tail CVaR",
