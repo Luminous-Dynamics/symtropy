@@ -230,6 +230,15 @@ fn frozen_arrival_and_eligibility_cases_fail_closed() {
             Some(NotScheduledReason::WaterBudgetExceeded),
         ));
 
+        let mut interval_mismatch = request("interval-mismatch");
+        interval_mismatch.arrival_latest_tick = 25;
+        cases.push((
+            "arrival interval changed without matching evidence",
+            base_profile.clone(),
+            interval_mismatch,
+            Some(NotScheduledReason::ArrivalEvidenceInvalid),
+        ));
+
         let mut no_energy = request("no-energy");
         no_energy.pump_energy_requirement_wh = 1_001;
         cases.push((
@@ -243,7 +252,7 @@ fn frozen_arrival_and_eligibility_cases_fail_closed() {
     };
 
     assert!(
-        cases.len() >= 16,
+        cases.len() >= 18,
         "the frozen corpus must not silently shrink"
     );
     for (case_name, case_profile, case_request, expected_reason) in cases {
