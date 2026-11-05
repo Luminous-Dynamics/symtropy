@@ -2562,7 +2562,6 @@ mod transformed_halfspace_tests {
     }
 }
 
-
 #[cfg(test)]
 mod analytic_contact_fixtures {
     use super::*;
@@ -2603,7 +2602,10 @@ mod analytic_contact_fixtures {
         let velocity_b = world.body(b).unwrap().linear_velocity;
 
         assert!(!world.contacts.is_empty(), "expected a contact manifold");
-        assert!(!world.collision_events.is_empty(), "expected a collision event");
+        assert!(
+            !world.collision_events.is_empty(),
+            "expected a collision event"
+        );
         assert!((velocity_a[0] + 1.0).abs() < 1e-8, "v_a={velocity_a:?}");
         assert!((velocity_b[0] - 1.0).abs() < 1e-8, "v_b={velocity_b:?}");
         assert!(
@@ -2639,8 +2641,14 @@ mod analytic_contact_fixtures {
         let velocity_a = world.body(a).unwrap().linear_velocity;
         let velocity_b = world.body(b).unwrap().linear_velocity;
 
-        assert!((velocity_a[0] + restitution).abs() < 1e-8, "v_a={velocity_a:?}");
-        assert!((velocity_b[0] - restitution).abs() < 1e-8, "v_b={velocity_b:?}");
+        assert!(
+            (velocity_a[0] + restitution).abs() < 1e-8,
+            "v_a={velocity_a:?}"
+        );
+        assert!(
+            (velocity_b[0] - restitution).abs() < 1e-8,
+            "v_b={velocity_b:?}"
+        );
         assert!(
             after.linear_momentum.norm() < 1e-8,
             "isolated collision should conserve total linear momentum"
