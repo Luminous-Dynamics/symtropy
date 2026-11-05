@@ -99,9 +99,9 @@
         "gross_reduction_energy_wh": 0.0022222222222222222,
         "rebound_energy_wh": 0,
         "baseline_boundary_energy_wh": 0.016666666666666666,
-        "candidate_boundary_energy_wh": 0.013888888888888888,
+        "candidate_boundary_energy_wh": 0.014444444444444444,
         "baseline_tokens_per_joule": 6.666666666666667,
-        "candidate_tokens_per_joule": 8
+        "candidate_tokens_per_joule": 7.6923076923076925
       }
     },
     {
@@ -350,6 +350,71 @@
         "useful_work_fraction": 0.75,
         "service_equivalent": false
       }
+    },
+    {
+      "case_id": "rebound_limit_rejects_otherwise_sustained_response",
+      "baseline": {
+        "boundary_power_w": [
+          120,
+          120,
+          120,
+          120,
+          120
+        ],
+        "interval_ms": 100
+      },
+      "candidate": {
+        "boundary_power_w": [
+          120,
+          100,
+          100,
+          100,
+          140
+        ],
+        "interval_ms": 100
+      },
+      "expected": {
+        "stabilized_response_elapsed_ms": 400,
+        "maximum_sustained_reduction_duration_ms": 300,
+        "maximum_sampled_rebound_w": 20,
+        "rebound_energy_wh": 0.0005555555555555556,
+        "power_response_qualified": false,
+        "violations": [
+          "MaximumReboundPowerExceeded",
+          "MaximumReboundEnergyExceeded"
+        ]
+      }
+    },
+    {
+      "case_id": "failed_request_partial_output_is_not_completed_useful_work",
+      "request_manifest": {
+        "expected_tokens_per_request": 100,
+        "request_count": 4
+      },
+      "results": [
+        {
+          "succeeded": false,
+          "output_tokens": 100
+        },
+        {
+          "succeeded": true,
+          "output_tokens": 100
+        },
+        {
+          "succeeded": true,
+          "output_tokens": 100
+        },
+        {
+          "succeeded": true,
+          "output_tokens": 100
+        }
+      ],
+      "expected": {
+        "completed_useful_tokens": 300,
+        "total_output_tokens": 400,
+        "useful_work_fraction": 0.75,
+        "service_equivalent": false
+      }
     }
   ],
   "mandatory_negative_controls": [
@@ -378,6 +443,9 @@
     "synthetic_request_manifest_is_not_customer_traffic",
     "measured_power_response_is_not_grid_market_qualification",
     "partial tokens from a failed request are diagnostics, not completed useful work",
-    "a sustained reduction can still fail the response envelope because rebound exceeds its separately declared power or energy limit"
+    "a sustained reduction can still fail the response envelope because rebound exceeds its separately declared power or energy limit",
+    "raw output tokens from failed requests do not count as completed useful work",
+    "useful tokens per second and useful tokens per joule drive service/efficiency gates; raw output tokens remain diagnostic",
+    "rebound power and energy are each independently constrained"
   ]
 }
