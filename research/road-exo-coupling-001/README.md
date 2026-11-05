@@ -116,3 +116,9 @@ The input records are retained as replay material, not promoted to truth. Their 
 The BLAKE3 bundle digest remains an unkeyed content commitment. It detects mutation relative to an independently stored commitment; it is not a signature, authentication mechanism, or protection against a party replacing the entire source input and recomputing every downstream artifact. A cross-system consumer such as SAM must anchor the expected source/bundle digest in a separately controlled manifest or signed evidence record.
 
 New adversarial checks cover: a valid-but-substituted address and recomputed Philox receipt, changed source mechanism version, omitted candidate event with retained old correspondence partition, and source projection mismatch after outer-digest recomputation.
+
+### Parent-world scope invariant
+
+Every branch/event scope in one correspondence projection must belong to the same frozen parent world/episode, including unmatched and branch-local events. Pair-local checks alone are insufficient: an unmatched event could otherwise carry a different world identity while the matched pair remains internally consistent.
+
+The projection now rejects a mixed parent-world scope table before address derivation. A focused negative control changes the world identity of an unmatched event and requires rejection. This is an execution-identity invariant, not evidence that the parent world itself is physically valid.
