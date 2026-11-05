@@ -1366,6 +1366,35 @@ mod tests {
         }
     }
 
+    fn set_resource_capacity(
+        case: &mut ServiceChainCase,
+        resource_id: &str,
+        evidence_id: &str,
+        capacity: u64,
+    ) {
+        let resource = case
+            .resources
+            .iter_mut()
+            .find(|resource| resource.resource_id == resource_id)
+            .expect("resource fixture exists");
+        for window in &mut resource.availability {
+            window.capacity = capacity;
+        }
+
+        let evidence = case
+            .evidence
+            .iter_mut()
+            .find(|evidence| evidence.evidence_id == evidence_id)
+            .expect("capacity evidence fixture exists");
+        for window in evidence
+            .covered_capacity_windows
+            .as_mut()
+            .expect("capacity evidence has windows")
+        {
+            window.capacity = capacity;
+        }
+    }
+
     #[derive(Default)]
     struct ReferenceEnergy {
         propulsion_wh: u128,
@@ -1816,6 +1845,109 @@ mod tests {
                 .iter()
                 .any(|selection| selection.alternative_id == "slow-low-energy")
         }));
+    }
+
+    #[test]
+    fn independent_fleet_enumerator_matches_generated_twenty_case_corpus() {
+        for case_index in 0..20 {
+            let mut first =
+                valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+            let mut second =
+                valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+
+            if case_index % 4 != 0 {
+                let first_alternative = if case_index % 2 == 0 {
+                    "fast-high-energy"
+                } else {
+                    "slow-low-energy"
+                };
+                first.voyage_alternatives.retain(|alternative| {
+                    alternative.alternative_id == first_alternative
+                });
+            }
+            if case_index % 3 != 0 {
+                let second_alternative = if case_index % 3 == 1 {
+                    "fast-high-energy"
+                } else {
+                    "slow-low-energy"
+                };
+                second.voyage_alternatives.retain(|alternative| {
+                    alternative.alternative_id == second_alternative
+                });
+            }
+
+            let capacities = [
+                (
+                    "channel-window-01",
+                    "channel-calendar",
+                    if case_index % 2 == 0 { 1 } else { 2 },
+                ),
+                (
+                    "lock-01",
+                    "lock-calendar",
+                    if case_index % 3 == 0 { 1 } else { 2 },
+                ),
+                (
+                    "water-budget-01",
+                    "water-calendar",
+                    match case_index % 4 {
+                        0 => 4_000,
+                        1 => 5_000,
+                        2 => 8_000,
+                        _ => 10_000,
+                    },
+                ),
+                (
+                    "berth-01",
+                    "berth-calendar",
+                    if case_index % 2 == 0 { 1 } else { 2 },
+                ),
+                (
+                    "shore-01",
+                    "shore-calendar",
+                    match case_index % 4 {
+                        0 => 800,
+                        1 => 1_000,
+                        2 => 1_600,
+                        _ => 2_000,
+                    },
+                ),
+                (
+                    "terminal-01",
+                    "handling-calendar",
+                    if case_index % 2 == 0 { 10 } else { 20 },
+                ),
+                (
+                    "rail-01",
+                    "rail-calendar",
+                    if case_index % 3 == 0 { 10 } else { 20 },
+                ),
+            ];
+
+            for case in [&mut first, &mut second] {
+                for (resource_id, evidence_id, capacity) in capacities {
+                    set_resource_capacity(case, resource_id, evidence_id, capacity);
+                }
+            }
+
+            let deadline = [37, 43, 47, 60][case_index % 4];
+            first.demand.delivery_window.end_tick = deadline;
+            second.demand.delivery_window.end_tick = deadline;
+
+            let workload = fleet_workload(vec![first, second]);
+            let production = exact_fleet_oracle(&workload, 500_000)
+                .expect("generated individual service-chain cases remain valid");
+            assert_eq!(
+                production.termination,
+                SearchTermination::ExhaustiveComplete,
+                "generated case {case_index} must complete its declared search"
+            );
+            let reference = independent_reference_frontier(&workload);
+            assert_eq!(
+                production.frontier, reference,
+                "independent fleet frontier mismatch for generated case {case_index}"
+            );
+        }
     }
 
     #[test]
