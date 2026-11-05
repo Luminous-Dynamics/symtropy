@@ -1,0 +1,506 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/civbench-jhb-water/decision_closure_fixture.schema.v0.1.json",
+  "title": "CivBench decision-to-service closure synthetic fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "fixture_id",
+    "contract_version",
+    "status",
+    "claim_ceiling",
+    "dataset_lane",
+    "common",
+    "decision_episodes"
+  ],
+  "properties": {
+    "fixture_id": {
+      "const": "CIVBENCH-DECISION-CLOSURE-FIXTURE-001"
+    },
+    "contract_version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "synthetic_composition_fixture_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_lane": {
+      "const": "illustrative_synthetic"
+    },
+    "common": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "block_id",
+        "initial_state_ref",
+        "topology_ref",
+        "exogenous_schedule_ref",
+        "model_family_ref",
+        "time_grid_ref",
+        "horizon_ticks",
+        "resource_envelope_ref",
+        "evidence_class"
+      ],
+      "properties": {
+        "block_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_state_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "topology_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exogenous_schedule_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_family_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_grid_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "horizon_ticks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "resource_envelope_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "const": "modelled"
+        }
+      }
+    },
+    "decision_episodes": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decision_episode_id",
+          "case_kind",
+          "control",
+          "candidate",
+          "expected_semantics"
+        ],
+        "properties": {
+          "decision_episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "case_kind": {
+            "enum": [
+              "positive_service_restoration",
+              "no_value_sensor",
+              "false_alarm_overload",
+              "resource_exhaustion",
+              "unverified_repair"
+            ]
+          },
+          "control": {
+            "$ref": "#/$defs/arm"
+          },
+          "candidate": {
+            "$ref": "#/$defs/arm"
+          },
+          "expected_semantics": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "expected_status",
+              "service_effect_claim",
+              "expected_detection_event_ids",
+              "notes"
+            ],
+            "properties": {
+              "expected_status": {
+                "enum": [
+                  "verified_service_outcome",
+                  "no_verified_service_improvement",
+                  "service_regression_from_capacity_contention",
+                  "authorized_but_not_executable",
+                  "unverified_no_service_claim"
+                ]
+              },
+              "service_effect_claim": {
+                "enum": [
+                  "modelled_only",
+                  "no_improvement_modelled",
+                  "worse_modelled_service",
+                  "no_action_no_effect",
+                  "not_measured"
+                ]
+              },
+              "expected_detection_event_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "expected_false_alarm_episodes": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "status"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "derived",
+            "modelled",
+            "not_measured",
+            "unsupported",
+            "withheld",
+            "not_applicable"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "observed",
+                  "derived",
+                  "modelled"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "not_measured",
+                  "unsupported",
+                  "withheld",
+                  "not_applicable"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "essential_shortfall_l",
+        "interruption_service_seconds",
+        "worst_group_service_ppm",
+        "physical_loss_l",
+        "verified_repairs",
+        "whole_life_cost_minor",
+        "recovery_seconds",
+        "safe_fallback_delivery_l",
+        "false_dispatches"
+      ],
+      "properties": {
+        "essential_shortfall_l": {
+          "$ref": "#/$defs/metric"
+        },
+        "interruption_service_seconds": {
+          "$ref": "#/$defs/metric"
+        },
+        "worst_group_service_ppm": {
+          "$ref": "#/$defs/metric",
+          "allOf": [
+            {
+              "properties": {
+                "value": {
+                  "maximum": 1000000
+                }
+              }
+            }
+          ]
+        },
+        "physical_loss_l": {
+          "$ref": "#/$defs/metric"
+        },
+        "verified_repairs": {
+          "$ref": "#/$defs/metric"
+        },
+        "whole_life_cost_minor": {
+          "$ref": "#/$defs/metric"
+        },
+        "recovery_seconds": {
+          "$ref": "#/$defs/metric"
+        },
+        "safe_fallback_delivery_l": {
+          "$ref": "#/$defs/metric"
+        },
+        "false_dispatches": {
+          "$ref": "#/$defs/metric"
+        }
+      }
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid_observation_returned",
+        "decision_changed",
+        "decision_value_status",
+        "decision_value_minor",
+        "acquisition_cost_minor"
+      ],
+      "properties": {
+        "valid_observation_returned": {
+          "type": "boolean"
+        },
+        "decision_changed": {
+          "type": "boolean"
+        },
+        "decision_value_status": {
+          "enum": [
+            "modelled",
+            "observed",
+            "not_measured",
+            "unsupported"
+          ]
+        },
+        "decision_value_minor": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "acquisition_cost_minor": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision_value_status": {
+                "enum": [
+                  "modelled",
+                  "observed"
+                ]
+              }
+            },
+            "required": [
+              "decision_value_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "decision_value_minor": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "decision_value_status": {
+                "enum": [
+                  "not_measured",
+                  "unsupported"
+                ]
+              }
+            },
+            "required": [
+              "decision_value_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "decision_value_minor": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "arm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_ref",
+        "event_evaluator_receipt_ref",
+        "acquisition_receipt_ref",
+        "human_disposition",
+        "feasibility",
+        "resource_ledger_receipt_ref",
+        "workflow_receipt_ref",
+        "verification_receipt_ref",
+        "service_outcome",
+        "acquisition_summary"
+      ],
+      "properties": {
+        "policy_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_evaluator_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acquisition_receipt_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "acquisition_summary": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/acquisition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "human_disposition": {
+          "enum": [
+            "authorized",
+            "rejected",
+            "deferred"
+          ]
+        },
+        "feasibility": {
+          "enum": [
+            "feasible_and_reserved",
+            "rejected_no_capacity",
+            "rejected_missing_part",
+            "rejected_budget",
+            "rejected_energy_or_access",
+            "not_authorized",
+            "deferred",
+            "not_attempted"
+          ]
+        },
+        "resource_ledger_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workflow_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verification_receipt_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "service_outcome": {
+          "$ref": "#/$defs/outcome"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "acquisition_receipt_ref": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "acquisition_receipt_ref"
+            ]
+          },
+          "then": {
+            "properties": {
+              "acquisition_summary": {
+                "$ref": "#/$defs/acquisition"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "acquisition_receipt_ref": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "acquisition_receipt_ref"
+            ]
+          },
+          "then": {
+            "properties": {
+              "acquisition_summary": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,598 @@
+{
+  "fixture_id": "CIVBENCH-DECISION-CLOSURE-FIXTURE-001",
+  "contract_version": "0.1.0",
+  "status": "synthetic_composition_fixture_only",
+  "claim_ceiling": "illustrative matched decision/service semantics; not calibrated hydraulics, field observations, utility outcomes or real operational costs",
+  "dataset_lane": "illustrative_synthetic",
+  "common": {
+    "block_id": "block-closure-001",
+    "initial_state_ref": "fixture:initial-state-001",
+    "topology_ref": "fixture:topology-net-01",
+    "exogenous_schedule_ref": "fixture:shock-schedule-001",
+    "model_family_ref": "fixture:model-family-hydraulic-placeholder-v1",
+    "time_grid_ref": "fixture:time-grid-15m-v1",
+    "horizon_ticks": 96,
+    "resource_envelope_ref": "fixture:resource-envelope-001",
+    "evidence_class": "modelled"
+  },
+  "decision_episodes": [
+    {
+      "decision_episode_id": "positive-service-restoration",
+      "case_kind": "positive_service_restoration",
+      "control": {
+        "policy_ref": "fixture:existing-monitoring-no-extra-acquisition",
+        "event_evaluator_receipt_ref": "fixture:event-receipt-control-positive",
+        "acquisition_receipt_ref": null,
+        "human_disposition": "deferred",
+        "feasibility": "not_attempted",
+        "resource_ledger_receipt_ref": "fixture:ledger-control-positive",
+        "workflow_receipt_ref": "fixture:workflow-control-positive",
+        "verification_receipt_ref": null,
+        "service_outcome": {
+          "essential_shortfall_l": {
+            "value": 120000,
+            "status": "modelled"
+          },
+          "interruption_service_seconds": {
+            "value": 3600000,
+            "status": "modelled"
+          },
+          "worst_group_service_ppm": {
+            "value": 780000,
+            "status": "modelled"
+          },
+          "physical_loss_l": {
+            "value": 90000,
+            "status": "modelled"
+          },
+          "verified_repairs": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "whole_life_cost_minor": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "recovery_seconds": {
+            "value": 3600,
+            "status": "modelled"
+          },
+          "safe_fallback_delivery_l": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "false_dispatches": {
+            "value": 0,
+            "status": "modelled"
+          }
+        },
+        "acquisition_summary": null
+      },
+      "candidate": {
+        "policy_ref": "fixture:targeted-confirmatory-measurement-and-authorized-repair",
+        "event_evaluator_receipt_ref": "fixture:event-receipt-candidate-positive",
+        "acquisition_receipt_ref": "fixture:sol-atlas-voi-result-positive",
+        "acquisition_summary": {
+          "valid_observation_returned": true,
+          "decision_changed": true,
+          "decision_value_status": "modelled",
+          "decision_value_minor": 5000,
+          "acquisition_cost_minor": 500
+        },
+        "human_disposition": "authorized",
+        "feasibility": "feasible_and_reserved",
+        "resource_ledger_receipt_ref": "fixture:ledger-candidate-positive",
+        "workflow_receipt_ref": "fixture:workflow-candidate-positive",
+        "verification_receipt_ref": "fixture:independent-verification-positive",
+        "service_outcome": {
+          "essential_shortfall_l": {
+            "value": 20000,
+            "status": "modelled"
+          },
+          "interruption_service_seconds": {
+            "value": 900000,
+            "status": "modelled"
+          },
+          "worst_group_service_ppm": {
+            "value": 960000,
+            "status": "modelled"
+          },
+          "physical_loss_l": {
+            "value": 15000,
+            "status": "modelled"
+          },
+          "verified_repairs": {
+            "value": 1,
+            "status": "modelled"
+          },
+          "whole_life_cost_minor": {
+            "value": 2500,
+            "status": "modelled"
+          },
+          "recovery_seconds": {
+            "value": 900,
+            "status": "modelled"
+          },
+          "safe_fallback_delivery_l": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "false_dispatches": {
+            "value": 0,
+            "status": "modelled"
+          }
+        }
+      },
+      "expected_semantics": {
+        "expected_status": "verified_service_outcome",
+        "service_effect_claim": "modelled_only",
+        "expected_detection_event_ids": [
+          "event-leak-001"
+        ],
+        "notes": [
+          "Targeted information changes the feasible decision; human authorization, resource reservation, workflow completion and independent verification are distinct references."
+        ]
+      }
+    },
+    {
+      "decision_episode_id": "no-value-sensor",
+      "case_kind": "no_value_sensor",
+      "control": {
+        "policy_ref": "fixture:no-extra-sensor",
+        "event_evaluator_receipt_ref": "fixture:event-receipt-control-no-value",
+        "acquisition_receipt_ref": null,
+        "human_disposition": "deferred",
+        "feasibility": "not_attempted",
+        "resource_ledger_receipt_ref": "fixture:ledger-control-no-value",
+        "workflow_receipt_ref": "fixture:workflow-control-no-value",
+        "verification_receipt_ref": null,
+        "service_outcome": {
+          "essential_shortfall_l": {
+            "value": 50000,
+            "status": "modelled"
+          },
+          "interruption_service_seconds": {
+            "value": 900000,
+            "status": "modelled"
+          },
+          "worst_group_service_ppm": {
+            "value": 900000,
+            "status": "modelled"
+          },
+          "physical_loss_l": {
+            "value": 40000,
+            "status": "modelled"
+          },
+          "verified_repairs": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "whole_life_cost_minor": {
+            "value": 1000,
+            "status": "modelled"
+          },
+          "recovery_seconds": {
+            "value": 1800,
+            "status": "modelled"
+          },
+          "safe_fallback_delivery_l": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "false_dispatches": {
+            "value": 0,
+            "status": "modelled"
+          }
+        },
+        "acquisition_summary": null
+      },
+      "candidate": {
+        "policy_ref": "fixture:extra-pressure-sensor-but-no-crew-capacity",
+        "event_evaluator_receipt_ref": "fixture:event-receipt-candidate-no-value",
+        "acquisition_receipt_ref": "fixture:sol-atlas-voi-result-no-value",
+        "acquisition_summary": {
+          "valid_observation_returned": true,
+          "decision_changed": false,
+          "decision_value_status": "modelled",
+          "decision_value_minor": 0,
+          "acquisition_cost_minor": 2000
+        },
+        "human_disposition": "deferred",
+        "feasibility": "rejected_no_capacity",
+        "resource_ledger_receipt_ref": "fixture:ledger-candidate-no-value",
+        "workflow_receipt_ref": "fixture:workflow-candidate-no-value",
+        "verification_receipt_ref": null,
+        "service_outcome": {
+          "essential_shortfall_l": {
+            "value": 50000,
+            "status": "modelled"
+          },
+          "interruption_service_seconds": {
+            "value": 900000,
+            "status": "modelled"
+          },
+          "worst_group_service_ppm": {
+            "value": 900000,
+            "status": "modelled"
+          },
+          "physical_loss_l": {
+            "value": 40000,
+            "status": "modelled"
+          },
+          "verified_repairs": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "whole_life_cost_minor": {
+            "value": 3000,
+            "status": "modelled"
+          },
+          "recovery_seconds": {
+            "value": 1800,
+            "status": "modelled"
+          },
+          "safe_fallback_delivery_l": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "false_dispatches": {
+            "value": 0,
+            "status": "modelled"
+          }
+        }
+      },
+      "expected_semantics": {
+        "expected_status": "no_verified_service_improvement",
+        "service_effect_claim": "no_improvement_modelled",
+        "expected_detection_event_ids": [
+          "event-leak-002"
+        ],
+        "notes": [
+          "The extra measurement reduces uncertainty but does not alter the safe feasible decision because crew capacity is binding; sensor lifecycle cost makes the candidate no better."
+        ]
+      }
+    },
+    {
+      "decision_episode_id": "false-alarm-capacity-externality",
+      "case_kind": "false_alarm_overload",
+      "control": {
+        "policy_ref": "fixture:fixed-threshold-controlled-dispatch",
+        "event_evaluator_receipt_ref": "fixture:event-receipt-control-overload",
+        "acquisition_receipt_ref": null,
+        "human_disposition": "authorized",
+        "feasibility": "feasible_and_reserved",
+        "resource_ledger_receipt_ref": "fixture:ledger-control-overload",
+        "workflow_receipt_ref": "fixture:workflow-control-overload",
+        "verification_receipt_ref": "fixture:verification-control-overload",
+        "service_outcome": {
+          "essential_shortfall_l": {
+            "value": 70000,
+            "status": "modelled"
+          },
+          "interruption_service_seconds": {
+            "value": 1800000,
+            "status": "modelled"
+          },
+          "worst_group_service_ppm": {
+            "value": 850000,
+            "status": "modelled"
+          },
+          "physical_loss_l": {
+            "value": 50000,
+            "status": "modelled"
+          },
+          "verified_repairs": {
+            "value": 1,
+            "status": "modelled"
+          },
+          "whole_life_cost_minor": {
+            "value": 1800,
+            "status": "modelled"
+          },
+          "recovery_seconds": {
+            "value": 1800,
+            "status": "modelled"
+          },
+          "safe_fallback_delivery_l": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "false_dispatches": {
+            "value": 0,
+            "status": "modelled"
+          }
+        },
+        "acquisition_summary": null
+      },
+      "candidate": {
+        "policy_ref": "fixture:higher-sensitivity-but-unbudgeted-alarm-policy",
+        "event_evaluator_receipt_ref": "fixture:event-receipt-candidate-overload",
+        "acquisition_receipt_ref": "fixture:sol-atlas-voi-result-overload",
+        "acquisition_summary": {
+          "valid_observation_returned": true,
+          "decision_changed": true,
+          "decision_value_status": "modelled",
+          "decision_value_minor": 300,
+          "acquisition_cost_minor": 100
+        },
+        "human_disposition": "authorized",
+        "feasibility": "feasible_and_reserved",
+        "resource_ledger_receipt_ref": "fixture:ledger-candidate-overload",
+        "workflow_receipt_ref": "fixture:workflow-candidate-overload",
+        "verification_receipt_ref": "fixture:verification-candidate-overload",
+        "service_outcome": {
+          "essential_shortfall_l": {
+            "value": 110000,
+            "status": "modelled"
+          },
+          "interruption_service_seconds": {
+            "value": 3600000,
+            "status": "modelled"
+          },
+          "worst_group_service_ppm": {
+            "value": 720000,
+            "status": "modelled"
+          },
+          "physical_loss_l": {
+            "value": 85000,
+            "status": "modelled"
+          },
+          "verified_repairs": {
+            "value": 1,
+            "status": "modelled"
+          },
+          "whole_life_cost_minor": {
+            "value": 2800,
+            "status": "modelled"
+          },
+          "recovery_seconds": {
+            "value": 3600,
+            "status": "modelled"
+          },
+          "safe_fallback_delivery_l": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "false_dispatches": {
+            "value": 2,
+            "status": "modelled"
+          }
+        }
+      },
+      "expected_semantics": {
+        "expected_status": "service_regression_from_capacity_contention",
+        "service_effect_claim": "worse_modelled_service",
+        "expected_detection_event_ids": [
+          "event-leak-003"
+        ],
+        "expected_false_alarm_episodes": 2,
+        "notes": [
+          "The candidate's additional false alarms consume limited dispatch capacity and delay a true incident; an improved detector metric cannot be called a service improvement."
+        ]
+      }
+    },
+    {
+      "decision_episode_id": "resource-exhaustion",
+      "case_kind": "resource_exhaustion",
+      "control": {
+        "policy_ref": "fixture:baseline-no-dispatch",
+        "event_evaluator_receipt_ref": "fixture:event-receipt-control-resource",
+        "acquisition_receipt_ref": null,
+        "human_disposition": "deferred",
+        "feasibility": "not_attempted",
+        "resource_ledger_receipt_ref": "fixture:ledger-control-resource",
+        "workflow_receipt_ref": "fixture:workflow-control-resource",
+        "verification_receipt_ref": null,
+        "service_outcome": {
+          "essential_shortfall_l": {
+            "value": 40000,
+            "status": "modelled"
+          },
+          "interruption_service_seconds": {
+            "value": 800000,
+            "status": "modelled"
+          },
+          "worst_group_service_ppm": {
+            "value": 880000,
+            "status": "modelled"
+          },
+          "physical_loss_l": {
+            "value": 30000,
+            "status": "modelled"
+          },
+          "verified_repairs": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "whole_life_cost_minor": {
+            "value": 500,
+            "status": "modelled"
+          },
+          "recovery_seconds": {
+            "value": 1600,
+            "status": "modelled"
+          },
+          "safe_fallback_delivery_l": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "false_dispatches": {
+            "value": 0,
+            "status": "modelled"
+          }
+        },
+        "acquisition_summary": null
+      },
+      "candidate": {
+        "policy_ref": "fixture:repair-recommendation-with-no-spare-part",
+        "event_evaluator_receipt_ref": "fixture:event-receipt-candidate-resource",
+        "acquisition_receipt_ref": null,
+        "acquisition_summary": null,
+        "human_disposition": "authorized",
+        "feasibility": "rejected_missing_part",
+        "resource_ledger_receipt_ref": "fixture:ledger-candidate-resource",
+        "workflow_receipt_ref": "fixture:workflow-candidate-resource",
+        "verification_receipt_ref": null,
+        "service_outcome": {
+          "essential_shortfall_l": {
+            "value": 40000,
+            "status": "modelled"
+          },
+          "interruption_service_seconds": {
+            "value": 800000,
+            "status": "modelled"
+          },
+          "worst_group_service_ppm": {
+            "value": 880000,
+            "status": "modelled"
+          },
+          "physical_loss_l": {
+            "value": 30000,
+            "status": "modelled"
+          },
+          "verified_repairs": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "whole_life_cost_minor": {
+            "value": 500,
+            "status": "modelled"
+          },
+          "recovery_seconds": {
+            "value": 1600,
+            "status": "modelled"
+          },
+          "safe_fallback_delivery_l": {
+            "value": 0,
+            "status": "modelled"
+          },
+          "false_dispatches": {
+            "value": 0,
+            "status": "modelled"
+          }
+        }
+      },
+      "expected_semantics": {
+        "expected_status": "authorized_but_not_executable",
+        "service_effect_claim": "no_action_no_effect",
+        "expected_detection_event_ids": [
+          "event-leak-004"
+        ],
+        "notes": [
+          "Human authorization does not create a part reservation, dispatch or repair; the resource ledger rejects execution."
+        ]
+      }
+    },
+    {
+      "decision_episode_id": "unverified-repair-unknown-truth",
+      "case_kind": "unverified_repair",
+      "control": {
+        "policy_ref": "fixture:baseline-unresolved",
+        "event_evaluator_receipt_ref": "fixture:event-receipt-control-unresolved",
+        "acquisition_receipt_ref": null,
+        "human_disposition": "deferred",
+        "feasibility": "not_attempted",
+        "resource_ledger_receipt_ref": "fixture:ledger-control-unresolved",
+        "workflow_receipt_ref": "fixture:workflow-control-unresolved",
+        "verification_receipt_ref": null,
+        "service_outcome": {
+          "essential_shortfall_l": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "interruption_service_seconds": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "worst_group_service_ppm": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "physical_loss_l": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "verified_repairs": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "whole_life_cost_minor": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "recovery_seconds": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "safe_fallback_delivery_l": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "false_dispatches": {
+            "value": null,
+            "status": "not_measured"
+          }
+        },
+        "acquisition_summary": null
+      },
+      "candidate": {
+        "policy_ref": "fixture:repair-claim-without-independent-verifier",
+        "event_evaluator_receipt_ref": "fixture:event-receipt-candidate-unresolved",
+        "acquisition_receipt_ref": null,
+        "acquisition_summary": null,
+        "human_disposition": "authorized",
+        "feasibility": "feasible_and_reserved",
+        "resource_ledger_receipt_ref": "fixture:ledger-candidate-unresolved",
+        "workflow_receipt_ref": "fixture:workflow-candidate-unresolved-repair-claim-only",
+        "verification_receipt_ref": null,
+        "service_outcome": {
+          "essential_shortfall_l": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "interruption_service_seconds": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "worst_group_service_ppm": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "physical_loss_l": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "verified_repairs": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "whole_life_cost_minor": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "recovery_seconds": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "safe_fallback_delivery_l": {
+            "value": null,
+            "status": "not_measured"
+          },
+          "false_dispatches": {
+            "value": null,
+            "status": "not_measured"
+          }
+        }
+      },
+      "expected_semantics": {
+        "expected_status": "unverified_no_service_claim",
+        "service_effect_claim": "not_measured",
+        "expected_detection_event_ids": [],
+        "expected_false_alarm_episodes": null,
+        "notes": [
+          "The repair claim does not substitute for a separate verifier. The unknown-truth interval is unscorable, not a false alarm or confirmed negative. All service and verified-repair metrics remain not measured."
+        ]
+      }
+    }
+  ]
+}
