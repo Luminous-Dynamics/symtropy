@@ -22,8 +22,12 @@ pub struct SessionValidator {
 }
 
 fn string_field(value: &Value, key: &str, path: &str) -> Result<String, String> {
-    let item = value.get(key).ok_or_else(|| format!("missing {path}.{key}"))?;
-    let text = item.as_str().ok_or_else(|| format!("{path}.{key} must be a string"))?;
+    let item = value
+        .get(key)
+        .ok_or_else(|| format!("missing {path}.{key}"))?;
+    let text = item
+        .as_str()
+        .ok_or_else(|| format!("{path}.{key} must be a string"))?;
     if text.trim().is_empty() {
         return Err(format!("{path}.{key} must not be empty"));
     }
@@ -31,17 +35,23 @@ fn string_field(value: &Value, key: &str, path: &str) -> Result<String, String> 
 }
 
 fn bool_field(value: &Value, key: &str, path: &str) -> Result<bool, String> {
-    value.get(key).and_then(Value::as_bool)
+    value
+        .get(key)
+        .and_then(Value::as_bool)
         .ok_or_else(|| format!("{path}.{key} must be a boolean"))
 }
 
 fn u64_field(value: &Value, key: &str, path: &str) -> Result<u64, String> {
-    value.get(key).and_then(Value::as_u64)
+    value
+        .get(key)
+        .and_then(Value::as_u64)
         .ok_or_else(|| format!("{path}.{key} must be a nonnegative integer"))
 }
 
 fn finite_field(value: &Value, key: &str, path: &str) -> Result<f64, String> {
-    let number = value.get(key).and_then(Value::as_f64)
+    let number = value
+        .get(key)
+        .and_then(Value::as_f64)
         .ok_or_else(|| format!("{path}.{key} must be a number"))?;
     if !number.is_finite() {
         return Err(format!("{path}.{key} must be finite"));
@@ -50,14 +60,20 @@ fn finite_field(value: &Value, key: &str, path: &str) -> Result<f64, String> {
 }
 
 fn valid_sha256(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
 fn digest_value(value: &Value) -> Result<String, String> {
     let mut payload = value.clone();
-    let object = payload.as_object_mut().ok_or_else(|| "event must be a JSON object".to_owned())?;
+    let object = payload
+        .as_object_mut()
+        .ok_or_else(|| "event must be a JSON object".to_owned())?;
     object.remove("event_digest");
-    let encoded = serde_json::to_vec(&payload).map_err(|error| format!("cannot serialize event for digest: {error}"))?;
+    let encoded = serde_json::to_vec(&payload)
+        .map_err(|error| format!("cannot serialize event for digest: {error}"))?;
     let digest = Sha256::digest(encoded);
     Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
 }
@@ -94,15 +110,23 @@ fn service_profile(service: &Value) -> Result<(), String> {
     {
         return Err("service measurement boundaries must be explicit".into());
     }
-    let profile = service.get("power_profile").and_then(Value::as_array)
+    let profile = service
+        .get("power_profile")
+        .and_then(Value::as_array)
         .ok_or_else(|| "service.power_profile must be an array".to_owned())?;
     if profile.is_empty() {
         return Err("service.power_profile must not be empty".into());
     }
     for (index, point) in profile.iter().enumerate() {
-        let power = finite_field(point, "requested_input_power_w", &format!("service.power_profile[{index}]"))?;
+        let power = finite_field(
+            point,
+            "requested_input_power_w",
+            &format!("service.power_profile[{index}]"),
+        )?;
         if power < 0.0 || power > maximum_input {
-            return Err(format!("service power profile point {index} exceeds its declared envelope"));
+            return Err(format!(
+                "service power profile point {index} exceeds its declared envelope"
+            ));
         }
         let _ = u64_field(point, "time_ns", &format!("service.power_profile[{index}]"))?;
     }
@@ -110,8 +134,12 @@ fn service_profile(service: &Value) -> Result<(), String> {
 }
 
 fn common_evidence(record: &Value) -> Result<(), String> {
-    let source = record.get("source").ok_or_else(|| "missing source".to_owned())?;
-    let receiver = record.get("receiver").ok_or_else(|| "missing receiver".to_owned())?;
+    let source = record
+        .get("source")
+        .ok_or_else(|| "missing source".to_owned())?;
+    let receiver = record
+        .get("receiver")
+        .ok_or_else(|| "missing receiver".to_owned())?;
     for key in ["capability_sha256", "firmware_sha256", "topology_sha256"] {
         let digest = string_field(source, key, "source")?;
         if !valid_sha256(&digest) {
@@ -124,7 +152,9 @@ fn common_evidence(record: &Value) -> Result<(), String> {
             return Err(format!("receiver.{key} must be a SHA-256 digest"));
         }
     }
-    let service = record.get("service").ok_or_else(|| "missing service".to_owned())?;
+    let service = record
+        .get("service")
+        .ok_or_else(|| "missing service".to_owned())?;
     service_profile(service)?;
     let service_type = string_field(service, "service_type", "service")?;
     if string_field(receiver, "supported_service_type", "receiver")? != service_type {
@@ -136,23 +166,32 @@ fn common_evidence(record: &Value) -> Result<(), String> {
         return Err("service input-power envelope exceeds source capability".into());
     }
 
-    let authorization = record.get("authorization").ok_or_else(|| "missing authorization".to_owned())?;
+    let authorization = record
+        .get("authorization")
+        .ok_or_else(|| "missing authorization".to_owned())?;
     for key in ["nonce_sha256", "credential_receipt_sha256"] {
         if !valid_sha256(&string_field(authorization, key, "authorization")?) {
             return Err(format!("authorization.{key} must be a SHA-256 digest"));
         }
     }
-    let positioning = record.get("positioning").ok_or_else(|| "missing positioning".to_owned())?;
+    let positioning = record
+        .get("positioning")
+        .ok_or_else(|| "missing positioning".to_owned())?;
     if let Some(raw_digest) = positioning.get("position_receipt_sha256") {
         if !raw_digest.is_null() {
-            let digest = raw_digest.as_str().ok_or_else(|| "position receipt must be a digest or null".to_owned())?;
+            let digest = raw_digest
+                .as_str()
+                .ok_or_else(|| "position receipt must be a digest or null".to_owned())?;
             if !valid_sha256(digest) {
                 return Err("position receipt must be a SHA-256 digest".into());
             }
         }
     }
     if string_field(positioning, "status", "positioning")? == "CONFIRMED"
-        && positioning.get("position_receipt_sha256").and_then(Value::as_str).is_none()
+        && positioning
+            .get("position_receipt_sha256")
+            .and_then(Value::as_str)
+            .is_none()
     {
         return Err("confirmed positioning requires a position receipt".into());
     }
@@ -161,34 +200,49 @@ fn common_evidence(record: &Value) -> Result<(), String> {
 
 fn energization_gate(record: &Value) -> Result<(), String> {
     let timestamp_ns = u64_field(record, "timestamp_ns", "record")?;
-    let authorization = record.get("authorization").ok_or_else(|| "missing authorization".to_owned())?;
+    let authorization = record
+        .get("authorization")
+        .ok_or_else(|| "missing authorization".to_owned())?;
     if !bool_field(authorization, "authenticated", "authorization")?
         || !bool_field(authorization, "authorized", "authorization")?
         || !bool_field(authorization, "fresh", "authorization")?
     {
-        return Err("energization requires authenticated, authorized and fresh session credentials".into());
+        return Err(
+            "energization requires authenticated, authorized and fresh session credentials".into(),
+        );
     }
     if timestamp_ns >= u64_field(authorization, "expires_ns", "authorization")? {
         return Err("energization authorization has expired".into());
     }
 
-    let positioning = record.get("positioning").ok_or_else(|| "missing positioning".to_owned())?;
+    let positioning = record
+        .get("positioning")
+        .ok_or_else(|| "missing positioning".to_owned())?;
     if string_field(positioning, "status", "positioning")? != "CONFIRMED" {
         return Err("energization requires confirmed receiver positioning".into());
     }
 
-    let safety = record.get("safety").ok_or_else(|| "missing safety".to_owned())?;
+    let safety = record
+        .get("safety")
+        .ok_or_else(|| "missing safety".to_owned())?;
     if !bool_field(safety, "protection_ready", "safety")?
         || !bool_field(safety, "foreign_object_clear", "safety")?
         || !bool_field(safety, "hard_limits_clear", "safety")?
         || string_field(safety, "sensor_health", "safety")? != "HEALTHY"
     {
-        return Err("energization blocked by a protection, foreign-object, sensor or hard-limit gate".into());
+        return Err(
+            "energization blocked by a protection, foreign-object, sensor or hard-limit gate"
+                .into(),
+        );
     }
 
-    let service = record.get("service").ok_or_else(|| "missing service".to_owned())?;
+    let service = record
+        .get("service")
+        .ok_or_else(|| "missing service".to_owned())?;
     let maximum = finite_field(service, "maximum_input_power_w", "service")?;
-    let source = record.get("source").ok_or_else(|| "missing source".to_owned())?;
+    let source = record
+        .get("source")
+        .ok_or_else(|| "missing source".to_owned())?;
     let source_maximum = finite_field(source, "maximum_input_power_w", "source")?;
     let profile = service.get("power_profile").and_then(Value::as_array)
         .ok_or_else(|| "missing service power profile".to_owned())?;
@@ -202,7 +256,9 @@ fn energization_gate(record: &Value) -> Result<(), String> {
 }
 
 fn verify_measurement(record: &Value) -> Result<(), String> {
-    let measurement = record.get("measurement").ok_or_else(|| "missing measurement".to_owned())?;
+    let measurement = record
+        .get("measurement")
+        .ok_or_else(|| "missing measurement".to_owned())?;
     let status = string_field(measurement, "status", "measurement")?;
     if status == "NOT_MEASURED" || status == "UNRESOLVED" {
         return Err("settlement measurement is not available or unresolved".into());
@@ -222,14 +278,22 @@ fn verify_measurement(record: &Value) -> Result<(), String> {
     let accounted_loss = finite_field(measurement, "accounted_loss_energy_j", "measurement")?;
     let residual = finite_field(measurement, "energy_residual_j", "measurement")?;
     let uncertainty = finite_field(measurement, "expanded_uncertainty_j", "measurement")?;
-    if source < 0.0 || useful < 0.0 || auxiliary < 0.0 || accounted_loss < 0.0 || uncertainty < 0.0 {
+    if source < 0.0 || useful < 0.0 || auxiliary < 0.0 || accounted_loss < 0.0 || uncertainty < 0.0
+    {
         return Err("measured energies, losses and uncertainty must be nonnegative".into());
     }
     let closure_residual = source - useful - auxiliary - stored_delta - accounted_loss;
-    if !closure_residual.is_finite() || (closure_residual - residual).abs() > uncertainty || residual.abs() > uncertainty {
-        return Err("source-to-service energy closure is unresolved within the declared uncertainty".into());
+    if !closure_residual.is_finite()
+        || (closure_residual - residual).abs() > uncertainty
+        || residual.abs() > uncertainty
+    {
+        return Err(
+            "source-to-service energy closure is unresolved within the declared uncertainty".into(),
+        );
     }
-    let service = record.get("service").ok_or_else(|| "missing service".to_owned())?;
+    let service = record
+        .get("service")
+        .ok_or_else(|| "missing service".to_owned())?;
     let minimum = finite_field(service, "minimum_useful_energy_j", "service")?;
     if useful < minimum {
         return Err("measured useful energy does not meet the contracted minimum".into());
@@ -251,14 +315,14 @@ fn next_state(event_type: &str, prior: Option<&str>) -> Result<&'static str, Str
         ("DEENERGIZE", Some("RAMPING_DOWN")) => Ok("DEENERGIZED"),
         ("VERIFY", Some("DEENERGIZED")) => Ok("VERIFIED"),
         ("ABORT", Some(state)) if state != "VERIFIED" && state != "ABORTED" => Ok("ABORTED"),
-        _ => Err(format!("invalid event transition: {event_type} from {}", prior.unwrap_or("START"))),
+        _ => Err(format!(
+            "invalid event transition: {event_type} from {}",
+            prior.unwrap_or("START")
+        )),
     }
 }
 
-fn evaluate_checked(
-    record: &Value,
-    validator: &mut SessionValidator,
-) -> Result<String, String> {
+fn evaluate_checked(record: &Value, validator: &mut SessionValidator) -> Result<String, String> {
     let schema_version = string_field(record, "schema_version", "record")?;
     if schema_version != "1.0.0" {
         return Err(format!("unsupported schema_version {schema_version}"));
@@ -272,23 +336,34 @@ fn evaluate_checked(
     if !valid_sha256(&claimed_digest) || digest_value(record)? != claimed_digest {
         return Err(format!("event digest mismatch for {event_id}"));
     }
-    let previous_digest = record.get("previous_event_sha256")
+    let previous_digest = record
+        .get("previous_event_sha256")
         .ok_or_else(|| "missing previous_event_sha256".to_owned())?;
     let prior = validator.sessions.get(&session_id).cloned();
     match (&prior, previous_digest) {
         (None, Value::Null) if sequence == 0 => {}
-        (None, _) => return Err("first session event must use sequence 0 and a null previous digest".into()),
+        (None, _) => {
+            return Err("first session event must use sequence 0 and a null previous digest".into());
+        }
         (Some(previous), Value::String(digest))
             if previous.sequence.checked_add(1) == Some(sequence)
                 && timestamp_ns > previous.timestamp_ns
                 && digest == &previous.event_digest => {}
-        (Some(_), _) => return Err("session event sequence, timestamp or previous digest is not continuous".into()),
+        (Some(_), _) => {
+            return Err(
+                "session event sequence, timestamp or previous digest is not continuous".into(),
+            );
+        }
     }
 
     common_evidence(record)?;
-    let service = record.get("service").ok_or_else(|| "missing service".to_owned())?;
+    let service = record
+        .get("service")
+        .ok_or_else(|| "missing service".to_owned())?;
     let service_type = string_field(service, "service_type", "service")?;
-    let receiver = record.get("receiver").ok_or_else(|| "missing receiver".to_owned())?;
+    let receiver = record
+        .get("receiver")
+        .ok_or_else(|| "missing receiver".to_owned())?;
     if string_field(receiver, "supported_service_type", "receiver")? != service_type {
         return Err("receiver service capability does not match request".into());
     }
@@ -320,7 +395,9 @@ fn evaluate_checked(
             }
         }
         "ABORT" => {
-            let safety = record.get("safety").ok_or_else(|| "missing safety".to_owned())?;
+            let safety = record
+        .get("safety")
+        .ok_or_else(|| "missing safety".to_owned())?;
             if matches!(prior_state, Some("ENERGIZED") | Some("RAMPING_DOWN"))
                 && !bool_field(safety, "safe_state_confirmed", "safety")?
             {
@@ -346,17 +423,24 @@ fn evaluate_checked(
         ));
     }
     let digest = claimed_digest;
-    validator.sessions.insert(session_id, SessionState {
-        sequence,
-        timestamp_ns,
-        event_digest: digest,
-        state: target_state.to_owned(),
-    });
+    validator.sessions.insert(
+        session_id,
+        SessionState {
+            sequence,
+            timestamp_ns,
+            event_digest: digest,
+            state: target_state.to_owned(),
+        },
+    );
     Ok(disposition.to_owned())
 }
 
 pub fn evaluate_record(record: &Value, validator: &mut SessionValidator) -> Value {
-    let event_id = record.get("event_id").and_then(Value::as_str).unwrap_or("unknown").to_owned();
+    let event_id = record
+        .get("event_id")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown")
+        .to_owned();
     match evaluate_checked(record, validator) {
         Ok(disposition) => json!({
             "event_id": event_id,
@@ -373,10 +457,11 @@ pub fn evaluate_record(record: &Value, validator: &mut SessionValidator) -> Valu
 
 #[cfg(test)]
 mod tests {
-    use super::{evaluate_record, SessionValidator};
+    use super::{SessionValidator, evaluate_record};
     use serde_json::Value;
 
-    const FIXTURE: &str = include_str!("../../../benchmarks/wpt-energy-interface/v1/known-truth.jsonl");
+    const FIXTURE: &str =
+        include_str!("../../../benchmarks/wpt-energy-interface/v1/known-truth.jsonl");
 
     #[test]
     fn frozen_service_interface_corpus_matches_known_truth() {
@@ -384,9 +469,15 @@ mod tests {
         let mut records = 0usize;
         for line in FIXTURE.lines().filter(|line| !line.trim().is_empty()) {
             let record: Value = serde_json::from_str(line).expect("valid fixture JSON");
-            let expected = record["expected_disposition"].as_str().expect("expected disposition");
+            let expected = record["expected_disposition"]
+                .as_str()
+                .expect("expected disposition");
             let report = evaluate_record(&record, &mut sessions);
-            assert_eq!(report["disposition"], expected, "event {}", record["event_id"]);
+            assert_eq!(
+                report["disposition"], expected,
+                "event {}",
+                record["event_id"]
+            );
             records += 1;
         }
         assert!(records >= 60, "the frozen corpus must cover full sessions, not isolated schema objects");
@@ -394,7 +485,10 @@ mod tests {
 
     #[test]
     fn rejects_event_payload_tampering_when_digest_is_not_recomputed() {
-        let first = FIXTURE.lines().find(|line| !line.trim().is_empty()).unwrap();
+        let first = FIXTURE
+            .lines()
+            .find(|line| !line.trim().is_empty())
+            .unwrap();
         let mut record: Value = serde_json::from_str(first).unwrap();
         record["service"]["requested_useful_energy_j"] = serde_json::json!(999_999);
         let report = evaluate_record(&record, &mut SessionValidator::default());
