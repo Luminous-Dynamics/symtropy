@@ -90,8 +90,13 @@ impl GridRideThroughBand {
         minimum_frequency_hz: f64,
         maximum_frequency_hz: f64,
     ) -> Result<Self, GridInterconnectionError> {
+        if !minimum_voltage_pu.is_finite() || minimum_voltage_pu < 0.0 {
+            return Err(GridInterconnectionError::InvalidNonNegativeQuantity {
+                name: "minimum voltage pu",
+                value: minimum_voltage_pu,
+            });
+        }
         for (name, value) in [
-            ("minimum voltage pu", minimum_voltage_pu),
             ("maximum voltage pu", maximum_voltage_pu),
             ("minimum frequency Hz", minimum_frequency_hz),
             ("maximum frequency Hz", maximum_frequency_hz),
@@ -205,7 +210,11 @@ impl GridInterconnectionContract {
             .last()
             .map(|band| band.end_offset_milliseconds)
             .ok_or(GridInterconnectionError::InvalidRideThroughBandCount(0))?;
-        if event_end.checked_add(maximum_recovery_duration_milliseconds).is_none() {
+        if event_end
+            .checked_add(maximum_recovery_duration_milliseconds)
+            .and_then(|deadline| deadline.checked_add(settling_window_milliseconds))
+            .is_none()
+        {
             return Err(GridInterconnectionError::TimestampOverflow);
         }
         Ok(Self {
@@ -471,6 +480,7 @@ pub fn evaluate_grid_interconnection_event(
         .ok_or(GridInterconnectionError::InvalidRideThroughBandCount(0))?;
     let horizon_end = event_end
         .checked_add(contract.maximum_recovery_duration_milliseconds)
+        .and_then(|deadline| deadline.checked_add(contract.settling_window_milliseconds))
         .ok_or(GridInterconnectionError::TimestampOverflow)?;
 
     for (index, pair) in samples.windows(2).enumerate() {
@@ -788,7 +798,6 @@ mod tests {
             sample(7_000, 1.0, 50.0, 80.0, 12.0, true),
             sample(8_000, 1.0, 50.0, 100.0, 10.0, true),
             sample(9_000, 1.0, 50.0, 100.0, 10.0, true),
-            sample(10_000, 1.0, 50.0, 100.0, 10.0, true),
         ];
         let report = evaluate_grid_interconnection_event(&contract(100.0, 5_000, 2_000), &trace)
             .expect("report");
