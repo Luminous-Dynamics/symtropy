@@ -136,10 +136,10 @@ pub fn analyze_voting_power(
         if weight >= council.quota {
             winning_coalition_count += 1;
             let mut is_minimal = true;
-            for actor in 0..voter_count {
+            for (actor, is_veto_player) in veto_player.iter_mut().enumerate() {
                 let bit = 1_u64 << actor;
                 if mask & bit == 0 {
-                    veto_player[actor] = false;
+                    *is_veto_player = false;
                 } else if weight - council.weights[actor] >= council.quota {
                     is_minimal = false;
                 }
@@ -1002,7 +1002,7 @@ mod tests {
 
     #[test]
     fn exact_enumeration_fails_closed_above_declared_limit() {
-        let report = council(&vec![1; MAX_EXACT_VOTERS + 1], 2);
+        let report = council(&[1; MAX_EXACT_VOTERS + 1], 2);
         assert!(matches!(
             report.validate(),
             Err(AuthorityError::TooManyVoters { .. })
