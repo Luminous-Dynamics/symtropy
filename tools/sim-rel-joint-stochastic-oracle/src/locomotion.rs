@@ -669,6 +669,20 @@ fn non_target_leg_mechanics_unchanged(
         .all(|leg| current.legs[leg.index()] == next.legs[leg.index()])
 }
 
+/// Contact/load protocols may alter only these two fields on the declared leg.
+/// They are not a license to change kinematics or actuator output as a side effect.
+fn contact_load_only_changed(
+    current: LegMechanicalState,
+    next: LegMechanicalState,
+) -> bool {
+    current.gait_phase == next.gait_phase
+        && current.joint_position == next.joint_position
+        && current.joint_velocity == next.joint_velocity
+        && current.actuator_force == next.actuator_force
+        && (current.contact_state != next.contact_state
+            || current.load_state != next.load_state)
+}
+
 fn sensor_state_semantic_id(sensor: &SensorState) -> String {
     format!(
         "p{:?}-m{:?}-v{:?}-c{:?}-a{:?}-i{:?}",
@@ -776,12 +790,14 @@ fn validate_action_transition_semantics(
         }
         InterventionKind::ContactLoadPerturbation => {
             let only_target_leg_changed = action.target_leg.is_some_and(|leg| {
-                current_physical.legs[leg.index()] != next_physical.legs[leg.index()]
-                    && non_target_leg_mechanics_unchanged(
-                        current_physical,
-                        next_physical,
-                        leg,
-                    )
+                contact_load_only_changed(
+                    current_physical.legs[leg.index()],
+                    next_physical.legs[leg.index()],
+                ) && non_target_leg_mechanics_unchanged(
+                    current_physical,
+                    next_physical,
+                    leg,
+                )
             });
             (!only_target_leg_changed
                 || current_physical.behavioral_context != next_physical.behavioral_context
@@ -2992,6 +3008,59 @@ mod tests {
             ),
             Err(AdapterError::ActionSemanticsViolation { action_id, .. })
                 if action_id == "contract-test-contact-load"
+        ));
+    }
+
+    #[test]
+    fn contact_load_action_rejects_unrelated_kinematic_and_actuator_changes() {
+        let current = contract_test_physical_state();
+        let sensor = contract_test_sensor_state();
+        let action = contract_test_contact_action(Some(LegId::FrontLeft));
+
+        let mut joint_position_changed = current.clone();
+        joint_position_changed.legs[LegId::FrontLeft.index()].contact_state =
+            ContactState::Slipping;
+        joint_position_changed.legs[LegId::FrontLeft.index()].joint_position =
+            JointPositionBin::Extended;
+        assert!(matches!(
+            validate_action_transition_semantics(
+                &action,
+                &current,
+                &sensor,
+                &joint_position_changed,
+                &sensor
+            ),
+            Err(AdapterError::ActionSemanticsViolation { .. })
+        ));
+
+        let mut joint_velocity_changed = current.clone();
+        joint_velocity_changed.legs[LegId::FrontLeft.index()].load_state = LoadState::Elevated;
+        joint_velocity_changed.legs[LegId::FrontLeft.index()].joint_velocity =
+            JointVelocityBin::Protracting;
+        assert!(matches!(
+            validate_action_transition_semantics(
+                &action,
+                &current,
+                &sensor,
+                &joint_velocity_changed,
+                &sensor
+            ),
+            Err(AdapterError::ActionSemanticsViolation { .. })
+        ));
+
+        let mut actuator_force_changed = current.clone();
+        actuator_force_changed.legs[LegId::FrontLeft.index()].load_state = LoadState::Elevated;
+        actuator_force_changed.legs[LegId::FrontLeft.index()].actuator_force =
+            ActuatorForceBin::High;
+        assert!(matches!(
+            validate_action_transition_semantics(
+                &action,
+                &current,
+                &sensor,
+                &actuator_force_changed,
+                &sensor
+            ),
+            Err(AdapterError::ActionSemanticsViolation { .. })
         ));
     }
 
