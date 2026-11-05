@@ -151,7 +151,7 @@ pub struct RouteSegment {
     pub resource_uses: Vec<ResourceUse>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ResourceKind {
     ChannelWindow,
     Lock,
@@ -1412,6 +1412,70 @@ mod tests {
             validate_case(&case),
             Err(ValidationError::EvidenceOwnerMismatch(
                 "participant-auth".into()
+            ))
+        );
+    }
+
+    #[test]
+    fn vessel_cargo_capacity_must_cover_the_declared_demand() {
+        let mut insufficient = valid_case();
+        insufficient.voyage_alternatives[0].cargo_capacity_amount = 9;
+        assert_eq!(
+            validate_case(&insufficient),
+            Err(ValidationError::VesselCapacityInsufficient(
+                "fast-high-energy".into()
+            ))
+        );
+
+        let mut incomparable = valid_case();
+        incomparable.voyage_alternatives[0].cargo_capacity_unit = ServiceUnit::Teu;
+        assert_eq!(
+            validate_case(&incomparable),
+            Err(ValidationError::VesselCapacityUnitMismatch(
+                "fast-high-energy".into()
+            ))
+        );
+    }
+
+    #[test]
+    fn resource_kind_has_a_fixed_capacity_unit() {
+        let mut case = valid_case();
+        case.resources[0].capacity_unit = ResourceUnit::Tonnes;
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::ResourceKindUnitMismatch(
+                "channel-window-01".into()
+            ))
+        );
+    }
+
+    #[test]
+    fn expired_or_revoked_evidence_cannot_be_used() {
+        let mut expired = valid_case();
+        let evidence = expired
+            .evidence
+            .iter_mut()
+            .find(|evidence| evidence.evidence_id == "depth")
+            .expect("fixture evidence exists");
+        evidence.valid_through_tick = Some(0);
+        expired.decision_tick = 1;
+        assert_eq!(
+            validate_case(&expired),
+            Err(ValidationError::EvidenceExpired("depth".into()))
+        );
+
+        let mut revoked = valid_case();
+        let evidence = revoked
+            .evidence
+            .iter_mut()
+            .find(|evidence| evidence.evidence_id == "depth")
+            .expect("fixture evidence exists");
+        evidence.state = EvidenceState::Revoked;
+        assert_eq!(
+            validate_case(&revoked),
+            Err(ValidationError::EvidenceNotCurrent(
+                "depth".into(),
+                EvidenceState::Revoked
             ))
         );
     }
