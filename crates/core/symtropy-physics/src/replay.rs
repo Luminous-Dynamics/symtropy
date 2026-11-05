@@ -239,8 +239,9 @@ pub fn order_batch_results<const D: usize>(
         return Err(BatchResultError::EmptyCampaign);
     }
 
-    let mut slots: Vec<Option<BatchRolloutSnapshot<D>>> =
-        std::iter::repeat_with(|| None).take(expected_rollouts).collect();
+    let mut slots: Vec<Option<BatchRolloutSnapshot<D>>> = std::iter::repeat_with(|| None)
+        .take(expected_rollouts)
+        .collect();
 
     for result in results {
         let index = usize::try_from(result.rollout_id).map_err(|_| {
@@ -273,7 +274,6 @@ pub fn order_batch_results<const D: usize>(
         .collect()
 }
 
-
 #[cfg(test)]
 mod batch_replay_tests {
     use super::{
@@ -282,8 +282,8 @@ mod batch_replay_tests {
     };
     use crate::world::PhysicsWorld;
     use nalgebra::SVector;
-    use rayon::prelude::*;
     use rayon::ThreadPoolBuilder;
+    use rayon::prelude::*;
     use std::sync::Mutex;
     use symtropy_math::Point;
 
@@ -384,7 +384,10 @@ mod batch_replay_tests {
     }
 
     fn run_with_rayon(rollouts: usize, workers: usize) -> Vec<BatchRolloutSnapshot<3>> {
-        let pool = ThreadPoolBuilder::new().num_threads(workers).build().unwrap();
+        let pool = ThreadPoolBuilder::new()
+            .num_threads(workers)
+            .build()
+            .unwrap();
         let completed: Vec<_> = pool.install(|| {
             (0..rollouts)
                 .into_par_iter()
