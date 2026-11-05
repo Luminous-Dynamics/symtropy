@@ -62,6 +62,8 @@ fn independently_find_start(
 fn arrival_evidence_is_eligible(profile: &LockScheduleProfile, request: &PassageRequest) -> bool {
     let evidence = &request.arrival_evidence;
     let decision_tick = profile.planning_window.start_tick;
+    let interval_matches = evidence.interval_earliest_tick == request.arrival_earliest_tick
+        && evidence.interval_latest_tick == request.arrival_latest_tick;
     let has_identity = !evidence.evidence_id.trim().is_empty()
         && !evidence.source_id.trim().is_empty()
         && !evidence.source_revision.trim().is_empty()
@@ -74,7 +76,7 @@ fn arrival_evidence_is_eligible(profile: &LockScheduleProfile, request: &Passage
     let valid = evidence
         .valid_through_tick
         .is_some_and(|expiry| expiry >= decision_tick);
-    has_identity && current && not_future && fresh && valid
+    interval_matches && has_identity && current && not_future && fresh && valid
 }
 
 fn evaluate_order(
@@ -288,6 +290,8 @@ fn request(
             source_id: "arrival-model".into(),
             source_revision: "model-v1".into(),
             calibration_receipt_id: "calibration-v1".into(),
+            interval_earliest_tick: 0,
+            interval_latest_tick: 0,
             operating_regime_id: "regime-normal".into(),
             observed_at_tick: 0,
             valid_through_tick: Some(1_000),
