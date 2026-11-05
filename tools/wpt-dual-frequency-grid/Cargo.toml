@@ -1,0 +1,10 @@
+[package]
+name = "wpt-dual-frequency-grid"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Fail-closed dual-frequency WPT/grid spectral validation and metrics"
+
+[dependencies]
+serde_json = "1.0"
