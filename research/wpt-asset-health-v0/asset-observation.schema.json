@@ -1,0 +1,560 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/wpt-asset-health-v0/asset-observation.schema.json",
+  "title": "WPT Embedded Asset Condition Observation v0",
+  "description": "A versioned observation record for one physical pavement-embedded WPT asset at one observation time. Null means not measured or unavailable; it must never be imputed silently.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "asset_id",
+    "segment_id",
+    "observed_at_utc",
+    "evidence_kind",
+    "asset_context",
+    "exposure",
+    "structural",
+    "thermal",
+    "electromagnetic",
+    "service",
+    "uncertainty",
+    "provenance",
+    "quality_flags"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-asset-observation-v0"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "segment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observed_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence_kind": {
+      "enum": [
+        "MEASURED",
+        "PUBLISHED_MEASURED",
+        "SIMULATED",
+        "SYNTHETIC_KNOWN_TRUTH",
+        "INFERRED"
+      ]
+    },
+    "asset_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pavement_type",
+        "material_lot_id",
+        "installation_revision",
+        "hardware_revision",
+        "controller_revision",
+        "coordinate_frame_id",
+        "measurement_plane_manifest_digest"
+      ],
+      "properties": {
+        "pavement_type": {
+          "enum": [
+            "FLEXIBLE_ASPHALT",
+            "RIGID_CONCRETE",
+            "COMPOSITE",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        },
+        "material_lot_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installation_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "controller_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "coordinate_frame_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "measurement_plane_manifest_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wheel_pass_count",
+        "declared_wheel_load_kn",
+        "energized_hours",
+        "cumulative_transmitter_input_kwh",
+        "thermal_cycle_count",
+        "freeze_thaw_cycle_count",
+        "moisture_state",
+        "chloride_exposure_mg_m2",
+        "ambient_min_c",
+        "ambient_max_c"
+      ],
+      "properties": {
+        "wheel_pass_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "declared_wheel_load_kn": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "energized_hours": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "cumulative_transmitter_input_kwh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "thermal_cycle_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "freeze_thaw_cycle_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "moisture_state": {
+          "enum": [
+            "DRY",
+            "DAMP",
+            "SATURATED",
+            "UNKNOWN",
+            null
+          ]
+        },
+        "chloride_exposure_mg_m2": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ambient_min_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ambient_max_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "structural": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strain_microstrain",
+        "fwd_deflection_mm",
+        "rut_depth_mm",
+        "crack_width_mm",
+        "interface_condition",
+        "pad_displacement_x_mm",
+        "pad_displacement_y_mm",
+        "pad_displacement_z_mm",
+        "pad_tilt_deg"
+      ],
+      "properties": {
+        "strain_microstrain": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fwd_deflection_mm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "rut_depth_mm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "crack_width_mm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "interface_condition": {
+          "enum": [
+            "INTACT",
+            "DEBONDED",
+            "CRACKED",
+            "UNKNOWN",
+            null
+          ]
+        },
+        "pad_displacement_x_mm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pad_displacement_y_mm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pad_displacement_z_mm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pad_tilt_deg": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "thermal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximum_coil_temperature_c",
+        "maximum_pavement_temperature_c",
+        "maximum_gradient_c_per_m",
+        "thermal_dose_c_hour",
+        "temperature_reference_id"
+      ],
+      "properties": {
+        "maximum_coil_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maximum_pavement_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maximum_gradient_c_per_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "thermal_dose_c_hour": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "temperature_reference_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "electromagnetic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_inductance_uh",
+        "secondary_inductance_uh",
+        "mutual_inductance_uh",
+        "coupling_coefficient",
+        "quality_factor",
+        "equivalent_series_resistance_milliohm",
+        "resonant_frequency_hz",
+        "insulation_resistance_mohm",
+        "leakage_field_microtesla"
+      ],
+      "properties": {
+        "primary_inductance_uh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "secondary_inductance_uh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "mutual_inductance_uh": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "coupling_coefficient": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "quality_factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "equivalent_series_resistance_milliohm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "resonant_frequency_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "insulation_resistance_mohm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "leakage_field_microtesla": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_boundary_id",
+        "source_input_energy_wh",
+        "useful_output_energy_wh",
+        "route_wh_per_km",
+        "availability_fraction"
+      ],
+      "properties": {
+        "measurement_boundary_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_input_energy_wh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "useful_output_energy_wh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "route_wh_per_km": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "availability_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_name",
+          "unit",
+          "expanded_uncertainty",
+          "coverage_factor",
+          "method_id"
+        ],
+        "properties": {
+          "metric_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expanded_uncertainty": {
+            "type": "number",
+            "minimum": 0
+          },
+          "coverage_factor": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "method_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method_id",
+        "instrument_ids",
+        "calibration_receipt_ids",
+        "raw_artifact_sha256",
+        "source_locator",
+        "review_status"
+      ],
+      "properties": {
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instrument_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "calibration_receipt_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "raw_artifact_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_locator": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_status": {
+          "enum": [
+            "UNREVIEWED",
+            "DUAL_REVIEWED",
+            "INDEPENDENTLY_VERIFIED",
+            "NOT_APPLICABLE"
+          ]
+        }
+      }
+    },
+    "quality_flags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "CLOCK_UNCERTAIN",
+          "SENSOR_DRIFT_SUSPECTED",
+          "CALIBRATION_MISSING",
+          "RAW_DATA_MISSING",
+          "COORDINATE_FRAME_UNRESOLVED",
+          "ASSET_LINEAGE_UNRESOLVED",
+          "OUT_OF_DOMAIN",
+          "CENSORED",
+          "SYNTHETIC_ONLY"
+        ]
+      }
+    }
+  }
+}
