@@ -9,7 +9,7 @@
 
 This crate implements a transparent baseline to compare against equal split, round-robin, greedy efficiency, proportional fairness and eventually robust MPC. It allocates one supervisory power interval across multiple receivers using a weighted proportional-fair objective:
 
-`maximize sum_i w_i log(p_i / requested_i)`
+`maximize sum_i w_i log(p_i / requested_i)`, with `w_i = priority_i * urgency_i * requested_i`.
 
 subject to the aggregate source budget, per-receiver health-derated capacity and per-receiver minimum service floor.
 
@@ -32,7 +32,7 @@ A soft risk derating that falls below the receiver's declared minimum service fl
 
 Three receivers request 8, 10 and 6 kW. Their health receipts are synthetic; the unit tests promote in-memory copies to measured-style solely to exercise the allocation mathematics. The third receiver is outside its validated domain and is excluded. The second exceeds the 5% target-event CIF budget and is capped at 50% of requested power. The first two have minimum service floors of 2 kW each.
 
-With an 8 kW source budget, priority/urgency weights are 1 and 4. The KKT solution is:
+With an 8 kW source budget, base priority×urgency weights are 1 and 4; effective log-utility weights are 8 and 40 after multiplying by requested kW. The KKT solution is:
 - vehicle-01: 3 kW;
 - vehicle-02: 5 kW;
 - vehicle-03: 0 kW (out of domain).
@@ -48,7 +48,11 @@ This saturates the 8 kW source envelope and respects the 5 kW health-derating ca
 - weighted log-service objective;
 - explicit status: `Allocated`, `NoEligibleReceivers`, `InfeasibleServiceFloors`, `GlobalHardLimitFailure`.
 
-No scalar objective can compensate for a hard-limit failure, unsupported risk input or missed minimum-service floor.
+No scalar objective can compensate for a hard-limit failure, unsupported risk input or missed minimum-service floor. Equal priority and urgency produce equal delivered/requested ratios when neither receiver is capped.
+
+## Validation
+
+13 Rust unit tests cover synthetic-only rejection, health/domain exclusion, soft risk derating, hard risk caps, KKT allocation, equal normalized service for equal priority/urgency, minimum-floor infeasibility, global PCC/stability hard gates, identity mismatch and fail-closed input validation.
 
 ## Limitations and next step
 
