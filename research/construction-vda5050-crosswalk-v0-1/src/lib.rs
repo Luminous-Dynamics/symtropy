@@ -259,7 +259,6 @@ pub enum ContextError {
     MissingSidecar,
     EmptyField(ContextField),
     InvalidDigest(ContextField),
-    ZeroSiteEpoch,
     StaleSiteEpoch { expected: u64, current: u64 },
     Mismatch(ContextField),
 }
@@ -333,9 +332,6 @@ fn validate_context_shape(context: &ConstructionSidecar<'_>) -> Result<(), Conte
     ];
     if let Some((_, field)) = digests.iter().find(|(value, _)| !is_lower_hex_digest(value)) {
         return Err(ContextError::InvalidDigest(*field));
-    }
-    if context.site_epoch == 0 {
-        return Err(ContextError::ZeroSiteEpoch);
     }
     Ok(())
 }
@@ -549,16 +545,6 @@ mod tests {
         assert_eq!(
             validate_sidecar_binding(&context(), Some(&presented), 12).err(),
             Some(ContextError::InvalidDigest(ContextField::RobotConfigurationDigest))
-        );
-    }
-
-    #[test]
-    fn zero_site_epoch_is_rejected() {
-        let mut presented = context();
-        presented.site_epoch = 0;
-        assert_eq!(
-            validate_sidecar_binding(&context(), Some(&presented), 12).err(),
-            Some(ContextError::ZeroSiteEpoch)
         );
     }
 
