@@ -7,7 +7,7 @@
 
 | Product / class | Vendor-published capability | Intended task envelope | Comparability warning |
 |---|---|---|---|
-| HP SitePrint (interior slab layout) | ±2 mm layout tolerance and average ±0.8 mm floor-level marking under stated high-accuracy configuration; Value Pack 3.0 describes depth-camera obstacle mapping, route adjustments and shadowing | Interior BIM/CAD floor layout, floor deviation marking | Accuracy depends on a 1-inch total station, SMR prism, High Accuracy Print Mode and 5–30 m setup. Its up-to-30% faster-point-printing claim compares with an earlier software version in internal tests. |
+| HP SitePrint (interior slab layout) | ±2 mm layout tolerance and average ±0.8 mm floor-level marking under stated high-accuracy configuration; Value Pack 3.0 describes depth-camera obstacle mapping, route adjustments and shadowing | Interior BIM/CAD floor layout, floor deviation marking | Accuracy depends on a 1-inch total station, SMR prism, High Accuracy Print Mode and 5–30 m setup. Its "up to 30%" faster-point-printing claim compares against its previous software release, not a manual layout baseline; the official product-page footnote reports 8% for interior-wall layouts. |
 | Dusty FieldPrinter 2 (interior slab layout) | ±1.6 mm print accuracy with accurate surveyed control; 0.75 m/s solid-line print, 0.50 m/s text/point print, 1.0 m/s navigation; three forward ToF sensors (~0.9 m) and four cliff sensors | Interior slab BIM/VDC layout with dual printheads, text/points/arcs and floor-elevation measurement | Accuracy is conditioned on surveyed control and Leica laser-tracker setup. IP51-equivalent, not rain-safe; cliff sensing has a stated geometry/threshold limitation. |
 | CivDot (GNSS point staking) | Up to 8 points/min and up to 30 mm marking accuracy; vendor FAQ states up to 3,000 points/day and up to 8x faster than manual methods | Large-area earthworks, solar, grading and land-survey point marking | A GNSS staking rover, not an indoor millimetre-level slab printer. Productivity is a vendor claim; accuracy depends on RTK/control and site conditions. |
 | CivDot+ (laser-assisted point staking) | Up to 3 points/min and 8 mm accuracy | Piling, drilling and foundations requiring higher precision than standard GNSS staking | The accuracy/throughput tradeoff differs from CivDot; not directly comparable with continuous line printing. |
@@ -82,3 +82,14 @@ Record which standards are applicable, partially applicable, used as guidance or
 ## 6. Non-negotiable reporting rule
 
 Report all vendors and manual baselines with identical denominators, exact configuration, declared ODD, exclusions, uncertainties and source citations. Safety and evidence validity are non-compensable. A system with better throughput but an unsafe command, missed critical edge or invalid measurement cannot “win” on an aggregate score.
+
+
+## 7. Published field evidence and SOTA challenge
+
+Kam et al., *Comparison of dusty robotics and traditional layout methods* (Construction Robotics, 15 September 2025), studied one 8-floor medical office building. The paper reports 68% fewer total labour hours, 18% fewer days, 99% less physically straining work and rework estimates of 6.42% versus 0.25%. It also reports 393 robot print-hours and 204 additional VDC coordination/file-preparation hours for the robot workflow. The traditional-method impacts were estimated rather than directly observed; the study is not a randomized or multi-vendor matched trial.
+
+Source: https://link.springer.com/article/10.1007/s41693-025-00163-z
+
+Our prospective SOTA challenge hypotheses are at least 70% fewer total workflow crew-hours, 20% shorter elapsed layout duration and 90% fewer rework crew-hours than a directly measured, matched manual baseline. These targets deliberately challenge the case-study's 68%/18% reported figures under a stronger method, not a claim that the current system has achieved them. Count design coordination, VDC/model prep, file conversion, control survey, setup, operator/spotter, robot operation, inspection, interruptions, recovery and rework. Do not infer direct manual-baseline productivity from HP's software-version productivity claims or from the 2025 single-case study.
+
+For confirmatory comparison, predeclare the independent experimental unit (matched zone/run), sample-size rationale from pilot variance, acceptance criteria and analysis before unblinding. Repeated points/vertices in one work zone are measurements within a run, not independent experimental units. Preserve failed setups, invalid/indeterminate results, blocked work and all attempted runs.
