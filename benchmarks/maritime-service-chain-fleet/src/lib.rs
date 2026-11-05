@@ -1819,6 +1819,49 @@ mod tests {
     }
 
     #[test]
+    fn independent_fleet_enumerator_matches_shared_water_and_shore_quota_conflicts() {
+        for (resource_id, evidence_id, capacity) in [
+            ("water-budget-01", "water-calendar", 5_000),
+            ("shore-01", "shore-calendar", 1_000),
+        ] {
+            let mut first =
+                valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+            let mut second =
+                valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+            for case in [&mut first, &mut second] {
+                case.resources
+                    .iter_mut()
+                    .find(|resource| resource.resource_id == resource_id)
+                    .expect("shared resource fixture")
+                    .availability[0]
+                    .capacity = capacity;
+                case.evidence
+                    .iter_mut()
+                    .find(|item| item.evidence_id == evidence_id)
+                    .expect("capacity evidence fixture")
+                    .covered_capacity_windows
+                    .as_mut()
+                    .expect("capacity window metadata")[0]
+                    .capacity = capacity;
+            }
+
+            let workload = fleet_workload(vec![first, second]);
+            let production =
+                exact_fleet_oracle(&workload, 500_000).expect("valid individual cases");
+            assert_eq!(
+                production.termination,
+                SearchTermination::ExhaustiveComplete
+            );
+            assert!(production.frontier.is_empty());
+            assert_eq!(
+                production.frontier,
+                independent_reference_frontier(&workload),
+                "independent fleet oracle mismatch for {resource_id}"
+            );
+        }
+    }
+
+    #[test]
     fn multi_demand_oracle_schedules_two_vessels_when_lock_slots_are_sequential() {
         let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
         first
