@@ -13,8 +13,7 @@ const SCHEMA: &str =
     include_str!("../../../research/wpt-asset-health-v0/asset-observation.schema.json");
 const EXAMPLE: &str =
     include_str!("../../../research/wpt-asset-health-v0/asset-observation.synthetic-example.json");
-const SCENARIOS: &str =
-    include_str!("../../../research/wpt-asset-health-v0/scenarios.json");
+const SCENARIOS: &str = include_str!("../../../research/wpt-asset-health-v0/scenarios.json");
 
 fn fail(path: &str, message: impl AsRef<str>) -> String {
     format!("{path}: {}", message.as_ref())
@@ -41,18 +40,23 @@ fn validate_type(schema: &Value, value: &Value, path: &str) -> Result<(), String
     let matches = if let Some(name) = expected.as_str() {
         matches_type(value, name)
     } else if let Some(names) = expected.as_array() {
-        names.iter().any(|name| {
-            name.as_str()
-                .is_some_and(|name| matches_type(value, name))
-        })
+        names
+            .iter()
+            .any(|name| name.as_str().is_some_and(|name| matches_type(value, name)))
     } else {
-        return Err(fail(path, "schema type must be a string or array of strings"));
+        return Err(fail(
+            path,
+            "schema type must be a string or array of strings",
+        ));
     };
 
     if matches {
         Ok(())
     } else {
-        Err(fail(path, format!("value does not match declared type {expected}")))
+        Err(fail(
+            path,
+            format!("value does not match declared type {expected}"),
+        ))
     }
 }
 
@@ -93,12 +97,7 @@ fn is_utc_timestamp(value: &str) -> bool {
     else {
         return false;
     };
-    if year == 0
-        || !(1..=12).contains(&month)
-        || hour > 23
-        || minute > 59
-        || second > 60
-    {
+    if year == 0 || !(1..=12).contains(&month) || hour > 23 || minute > 59 || second > 60 {
         return false;
     }
 
@@ -138,13 +137,19 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
     if let Some(text) = value.as_str() {
         if let Some(minimum) = schema.get("minLength").and_then(Value::as_u64) {
             if text.chars().count() < minimum as usize {
-                return Err(fail(path, format!("string is shorter than minLength {minimum}")));
+                return Err(fail(
+                    path,
+                    format!("string is shorter than minLength {minimum}"),
+                ));
             }
         }
         if let Some(pattern) = schema.get("pattern").and_then(Value::as_str) {
             if pattern == "^[0-9a-f]{64}$" {
                 if !is_lower_hex_64(text) {
-                    return Err(fail(path, "string must be 64 lowercase hexadecimal characters"));
+                    return Err(fail(
+                        path,
+                        "string must be 64 lowercase hexadecimal characters",
+                    ));
                 }
             } else {
                 return Err(fail(path, format!("unsupported schema pattern {pattern}")));
@@ -210,11 +215,7 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
 
         for (name, property_schema) in &properties {
             if let Some(property_value) = object.get(name) {
-                validate_schema_node(
-                    property_schema,
-                    property_value,
-                    &format!("{path}.{name}"),
-                )?;
+                validate_schema_node(property_schema, property_value, &format!("{path}.{name}"))?;
             }
         }
     }
