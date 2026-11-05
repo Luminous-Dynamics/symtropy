@@ -24,10 +24,15 @@ use serde::Serialize;
 /// The single adequacy criterion used to calculate the ELCC-like result.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum ChronologicalAdequacyMetric {
+    /// Expected duration of intervals with unserved load, in hours.
+    LossOfLoadHours,
     /// Expected number of calendar days with any positive unserved load.
     LossOfLoadDays,
     /// Expected unserved electrical energy over the modeled horizon.
     ExpectedUnservedEnergyMwh,
+    /// Upper-tail conditional value at risk of scenario-level EUE.
+    /// Confidence level is encoded in basis points (9,500 = 95%).
+    UpperTailUnservedEnergyCvar { confidence_level_basis_points: u16 },
 }
 
 /// Immutable provenance identity for one frozen adequacy study.
@@ -130,6 +135,16 @@ impl ChronologicalAdequacyContract {
                     name,
                     value,
                 });
+            }
+        }
+        if let ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar {
+            confidence_level_basis_points,
+        } = metric
+        {
+            if !(1..10_000).contains(&confidence_level_basis_points) {
+                return Err(ChronologicalAdequacyError::InvalidCvarConfidenceLevel(
+                    confidence_level_basis_points,
+                ));
             }
         }
         if load_search_tolerance_kw > maximum_added_load_kw {
@@ -350,6 +365,7 @@ pub struct ChronologicalAdequacyScenarioReceipt {
     pub augmented_loss_of_load_days: u32,
     pub augmented_loss_of_load_hours: f64,
     pub augmented_unserved_energy_mwh: f64,
+    pub augmented_unserved_energy_cvar_mwh: Option<f64>,
     pub augmented_gross_reduction_energy_mwh: f64,
     pub augmented_rebound_energy_mwh: f64,
 }
@@ -371,6 +387,7 @@ pub struct ChronologicalAdequacyReport {
     pub reference_loss_of_load_days: f64,
     pub reference_loss_of_load_hours: f64,
     pub reference_unserved_energy_mwh: f64,
+    pub reference_unserved_energy_cvar_mwh: Option<f64>,
     pub augmented_loss_of_load_days: f64,
     pub augmented_loss_of_load_hours: f64,
     pub augmented_unserved_energy_mwh: f64,
@@ -405,6 +422,7 @@ struct AggregateMetrics {
     loss_of_load_days: f64,
     loss_of_load_hours: f64,
     unserved_energy_mwh: f64,
+    unserved_energy_cvar_mwh: f64,
     gross_reduction_energy_mwh: f64,
     rebound_energy_mwh: f64,
 }
@@ -412,8 +430,12 @@ struct AggregateMetrics {
 impl AggregateMetrics {
     fn adequacy_value(self, metric: ChronologicalAdequacyMetric) -> f64 {
         match metric {
+            ChronologicalAdequacyMetric::LossOfLoadHours => self.loss_of_load_hours,
             ChronologicalAdequacyMetric::LossOfLoadDays => self.loss_of_load_days,
             ChronologicalAdequacyMetric::ExpectedUnservedEnergyMwh => self.unserved_energy_mwh,
+            ChronologicalAdequacyMetric::UpperTailUnservedEnergyCvar { .. } => {
+                self.unserved_energy_cvar_mwh
+            }
         }
     }
 }
@@ -424,6 +446,7 @@ pub enum ChronologicalAdequacyError {
     InvalidQuantity { name: &'static str, value: f64 },
     InvalidNonNegativeQuantity { name: &'static str, value: f64 },
     InvalidScenarioProbability { scenario_id: String, probability_weight: f64 },
+    InvalidCvarConfidenceLevel(u16),
     InvalidSearchIterationCount(usize),
     SearchToleranceExceedsRange { tolerance_kw: f64, maximum_added_load_kw: f64 },
     EmptyScenarioSet,
@@ -456,6 +479,9 @@ impl fmt::Display for ChronologicalAdequacyError {
             }
             Self::InvalidScenarioProbability { scenario_id, probability_weight } => write!(
                 f, "scenario {scenario_id} has invalid probability weight {probability_weight}"
+            ),
+            Self::InvalidCvarConfidenceLevel(level) => write!(
+                f, "CVaR confidence level must be between 1 and 9999 basis points; got {level}"
             ),
             Self::InvalidSearchIterationCount(count) => write!(
                 f, "search iteration count must be between 1 and 128; got {count}"
