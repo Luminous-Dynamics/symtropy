@@ -312,8 +312,8 @@ pub fn verify_correspondence_receipt(
 mod tests {
     use super::*;
     use crate::coupling_projection::{
-        CorrespondenceAddressPlan, HypothesisAddressPlan, PlannedAddress, PlannedPresence,
-        PlanCompleteness, SharingStatus,
+        CorrespondenceAddressPlan, HypothesisAddressPlan, PlanCompleteness, PlannedAddress,
+        PlannedPresence, SharingStatus,
     };
     use crate::{Coupling, EventIdentity, StableId};
 
@@ -427,7 +427,10 @@ mod tests {
         let plan = correspondence_plan();
         let resolved = resolve_correspondence_plan(&seed, &plan).expect("complete draw bundle");
 
-        assert_eq!(resolved.completeness, PlanCompleteness::CompleteWithinDeclaredSets);
+        assert_eq!(
+            resolved.completeness,
+            PlanCompleteness::CompleteWithinDeclaredSets
+        );
         assert_eq!(resolved.hypotheses.len(), 2);
 
         let actor = &resolved.hypotheses[0];
@@ -468,11 +471,11 @@ mod tests {
         let left = &plan.hypotheses[0].addresses[0];
         let receipt = resolve_correspondence_address(&seed, &left.canonical_bytes);
         assert_eq!(receipt.address_schema, CORRESPONDENCE_ADDRESS_SCHEMA_ID);
+        assert_eq!(receipt.derivation_id, CORRESPONDENCE_DERIVATION_ID);
         assert_eq!(
-            receipt.derivation_id,
-            CORRESPONDENCE_DERIVATION_ID
+            verify_correspondence_receipt(&seed, &left.canonical_bytes, &receipt),
+            Ok(())
         );
-        assert_eq!(verify_correspondence_receipt(&seed, &left.canonical_bytes, &receipt), Ok(()));
 
         let mut altered = left.canonical_bytes.clone();
         altered.push(0xff);
@@ -504,10 +507,8 @@ mod tests {
                 evidence_ref: id("evidence"),
             },
         );
-        let first_receipt =
-            resolve_planned_address(&seed, &id("H-actor"), &first);
-        let second_receipt =
-            resolve_planned_address(&seed, &id("H-slot"), &second);
+        let first_receipt = resolve_planned_address(&seed, &id("H-actor"), &first);
+        let second_receipt = resolve_planned_address(&seed, &id("H-slot"), &second);
         assert_eq!(
             first_receipt.draw.derivation_digest,
             second_receipt.draw.derivation_digest
