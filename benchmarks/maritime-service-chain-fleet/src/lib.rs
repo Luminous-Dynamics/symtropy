@@ -1850,10 +1850,8 @@ mod tests {
     #[test]
     fn independent_fleet_enumerator_matches_generated_twenty_case_corpus() {
         for case_index in 0..20 {
-            let mut first =
-                valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
-            let mut second =
-                valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+            let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+            let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
 
             if case_index % 4 != 0 {
                 let first_alternative = if case_index % 2 == 0 {
@@ -1861,9 +1859,9 @@ mod tests {
                 } else {
                     "slow-low-energy"
                 };
-                first.voyage_alternatives.retain(|alternative| {
-                    alternative.alternative_id == first_alternative
-                });
+                first
+                    .voyage_alternatives
+                    .retain(|alternative| alternative.alternative_id == first_alternative);
             }
             if case_index % 3 != 0 {
                 let second_alternative = if case_index % 3 == 1 {
@@ -1871,9 +1869,9 @@ mod tests {
                 } else {
                     "slow-low-energy"
                 };
-                second.voyage_alternatives.retain(|alternative| {
-                    alternative.alternative_id == second_alternative
-                });
+                second
+                    .voyage_alternatives
+                    .retain(|alternative| alternative.alternative_id == second_alternative);
             }
 
             let capacities = [
