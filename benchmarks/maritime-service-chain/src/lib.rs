@@ -2122,6 +2122,434 @@ mod tests {
     }
 
     #[test]
+    fn frozen_30_case_adversarial_corpus_has_explicit_expected_results() {
+        let mut cases: Vec<(&str, ServiceChainCase, Result<(), ValidationError>)> = Vec::new();
+
+        cases.push(("valid corridor", valid_case(), Ok(())));
+
+        let mut slow_only = valid_case();
+        slow_only.voyage_alternatives.remove(0);
+        cases.push(("slow voyage alternative remains admissible", slow_only, Ok(())));
+
+        let mut arrival_changed = valid_case();
+        arrival_changed.voyage_alternatives[0].arrival_window.end_tick += 1;
+        cases.push((
+            "arrival window changed without new evidence",
+            arrival_changed,
+            Err(ValidationError::ArrivalIntervalEvidenceMismatch(
+                "fast-high-energy".into(),
+            )),
+        ));
+
+        let mut stale_depth = valid_case();
+        stale_depth
+            .evidence
+            .iter_mut()
+            .find(|item| item.evidence_id == "depth")
+            .expect("depth evidence exists")
+            .state = EvidenceState::Stale;
+        cases.push((
+            "stale channel-depth evidence",
+            stale_depth,
+            Err(ValidationError::EvidenceNotCurrent(
+                "depth".into(),
+                EvidenceState::Stale,
+            )),
+        ));
+
+        let mut future_topology = valid_case();
+        future_topology
+            .evidence
+            .iter_mut()
+            .find(|item| item.evidence_id == "topology")
+            .expect("topology evidence exists")
+            .observed_at_tick = 1;
+        cases.push((
+            "future-dated topology evidence",
+            future_topology,
+            Err(ValidationError::EvidenceFutureDated("topology".into())),
+        ));
+
+        let mut expired_vessel = valid_case();
+        expired_vessel
+            .evidence
+            .iter_mut()
+            .find(|item| item.evidence_id == "vessel-performance")
+            .expect("vessel performance evidence exists")
+            .valid_through_tick = None;
+        cases.push((
+            "expired vessel performance envelope",
+            expired_vessel,
+            Err(ValidationError::EvidenceExpired(
+                "vessel-performance".into(),
+            )),
+        ));
+
+        let mut too_old = valid_case();
+        too_old.decision_tick = 50;
+        cases.push((
+            "evidence older than declared age bound",
+            too_old,
+            Err(ValidationError::EvidenceTooOld("channel-calendar".into())),
+        ));
+
+        let mut short_payload = valid_case();
+        short_payload.voyage_alternatives[0].cargo_capacity_amount = 9;
+        cases.push((
+            "vessel payload below demand",
+            short_payload,
+            Err(ValidationError::VesselCapacityInsufficient(
+                "fast-high-energy".into(),
+            )),
+        ));
+
+        let mut wrong_vessel_unit = valid_case();
+        wrong_vessel_unit.voyage_alternatives[0].cargo_capacity_unit = ServiceUnit::Teu;
+        cases.push((
+            "vessel payload in unlike unit",
+            wrong_vessel_unit,
+            Err(ValidationError::VesselCapacityUnitMismatch(
+                "fast-high-energy".into(),
+            )),
+        ));
+
+        let mut disconnected = valid_case();
+        disconnected.route_segments[2].from_node_id = "origin".into();
+        cases.push((
+            "disconnected route",
+            disconnected,
+            Err(ValidationError::DisconnectedRoute("approach-01".into())),
+        ));
+
+        let mut wrong_node_kind = valid_case();
+        wrong_node_kind
+            .nodes
+            .iter_mut()
+            .find(|node| node.node_id == "lock-approach")
+            .expect("lock approach node exists")
+            .kind = NodeKind::Berth;
+        cases.push((
+            "segment endpoint has wrong node kind",
+            wrong_node_kind,
+            Err(ValidationError::SegmentNodeKindMismatch(
+                "channel-01".into(),
+            )),
+        ));
+
+        let mut wrong_arrival_path = valid_case();
+        wrong_arrival_path.voyage_alternatives[0].route_segment_ids.reverse();
+        cases.push((
+            "voyage alternative uses different corridor path",
+            wrong_arrival_path,
+            Err(ValidationError::RouteAlternativeMismatch(
+                "fast-high-energy".into(),
+            )),
+        ));
+
+        let mut changed_calendar = valid_case();
+        changed_calendar.resources[0].availability[0].capacity += 1;
+        cases.push((
+            "resource capacity differs from evidence snapshot",
+            changed_calendar,
+            Err(ValidationError::ResourceCapacityEvidenceMismatch(
+                "channel-window-01".into(),
+            )),
+        ));
+
+        let mut overlapping_calendar = valid_case();
+        overlapping_calendar.resources[0].availability.push(CapacityWindow {
+            window: TickWindow {
+                start_tick: 10,
+                end_tick: 40,
+            },
+            capacity: 1,
+        });
+        cases.push((
+            "overlapping resource calendar",
+            overlapping_calendar,
+            Err(ValidationError::OverlappingCapacityWindows(
+                "channel-window-01".into(),
+            )),
+        ));
+
+        let mut unordered_calendar = valid_case();
+        unordered_calendar.resources[0].availability.push(CapacityWindow {
+            window: TickWindow {
+                start_tick: 0,
+                end_tick: 2,
+            },
+            capacity: 1,
+        });
+        cases.push((
+            "noncanonical resource calendar order",
+            unordered_calendar,
+            Err(ValidationError::ResourceCalendarNotCanonical(
+                "channel-window-01".into(),
+            )),
+        ));
+
+        let mut zero_capacity = valid_case();
+        zero_capacity.resources[0].availability[0].capacity = 0;
+        cases.push((
+            "zero channel capacity",
+            zero_capacity,
+            Err(ValidationError::InvalidCapacityWindow(
+                "channel-window-01".into(),
+            )),
+        ));
+
+        let mut energy_shortfall = valid_case();
+        let shore = energy_shortfall
+            .resources
+            .iter_mut()
+            .find(|resource| resource.resource_id == "shore-01")
+            .expect("shore resource exists");
+        shore.availability[0].capacity = 799;
+        let shore_evidence = energy_shortfall
+            .evidence
+            .iter_mut()
+            .find(|item| item.evidence_id == "shore-calendar")
+            .expect("shore evidence exists");
+        shore_evidence
+            .covered_capacity_windows
+            .as_mut()
+            .expect("shore capacity snapshot exists")[0]
+            .capacity = 799;
+        cases.push((
+            "shore-power use exceeds all capacity windows",
+            energy_shortfall,
+            Err(ValidationError::ResourceUseExceedsDeclaredCapacity(
+                "shore-01".into(),
+            )),
+        ));
+
+        let mut missing_resource_evidence = valid_case();
+        missing_resource_evidence.resources[0]
+            .evidence_ids
+            .retain(|id| id != "channel-calendar");
+        cases.push((
+            "resource has no capacity evidence",
+            missing_resource_evidence,
+            Err(ValidationError::ResourceMissingCapacityEvidence(
+                "channel-window-01".into(),
+            )),
+        ));
+
+        let mut duplicate_use = valid_case();
+        let repeated_use = duplicate_use.route_segments[0].resource_uses[0].clone();
+        duplicate_use.route_segments[0]
+            .resource_uses
+            .push(repeated_use);
+        cases.push((
+            "same resource allocated twice in one segment",
+            duplicate_use,
+            Err(ValidationError::DuplicateResourceUse(
+                "channel-window-01".into(),
+            )),
+        ));
+
+        let mut unlike_service_unit = valid_case();
+        let terminal = unlike_service_unit
+            .resources
+            .iter_mut()
+            .find(|resource| resource.resource_id == "terminal-01")
+            .expect("terminal resource exists");
+        terminal.capacity_unit = ResourceUnit::Teu;
+        unlike_service_unit.route_segments[3].resource_uses[1].unit = ResourceUnit::Teu;
+        unlike_service_unit
+            .evidence
+            .iter_mut()
+            .find(|item| item.evidence_id == "handling-calendar")
+            .expect("handling evidence exists")
+            .covered_resource_unit = Some(ResourceUnit::Teu);
+        cases.push((
+            "terminal handling unit differs from demand unit",
+            unlike_service_unit,
+            Err(ValidationError::DemandResourceUnitMismatch(
+                "terminal-01".into(),
+            )),
+        ));
+
+        let mut insufficient_handling = valid_case();
+        insufficient_handling.route_segments[3].resource_uses[1].amount = 9;
+        cases.push((
+            "terminal handling amount below demand",
+            insufficient_handling,
+            Err(ValidationError::DemandResourceShortfall(
+                "terminal-01".into(),
+            )),
+        ));
+
+        let mut missing_lock_role = valid_case();
+        missing_lock_role.route_segments[1]
+            .evidence_ids
+            .retain(|id| id != "lock-compatibility");
+        cases.push((
+            "lockage missing compatibility evidence role",
+            missing_lock_role,
+            Err(ValidationError::MissingSegmentEvidenceRole(
+                "lock-01".into(),
+                EvidenceRole::LockCompatibility,
+            )),
+        ));
+
+        let mut missing_required_gate = valid_case();
+        missing_required_gate
+            .hard_constraints
+            .retain(|constraint| constraint.kind != ConstraintKind::EnvironmentalFlow);
+        cases.push((
+            "environmental flow gate omitted",
+            missing_required_gate,
+            Err(ValidationError::MissingRequiredConstraint(
+                ConstraintKind::EnvironmentalFlow,
+            )),
+        ));
+
+        let mut duplicate_gate = valid_case();
+        let mut duplicate_water = duplicate_gate
+            .hard_constraints
+            .iter()
+            .find(|constraint| constraint.kind == ConstraintKind::WaterBudget)
+            .expect("water constraint exists")
+            .clone();
+        duplicate_water.constraint_id = "constraint-water-duplicate".into();
+        duplicate_gate.hard_constraints.push(duplicate_water);
+        cases.push((
+            "duplicate water gate",
+            duplicate_gate,
+            Err(ValidationError::DuplicateConstraintKind(
+                ConstraintKind::WaterBudget,
+            )),
+        ));
+
+        let mut unknown_environment = valid_case();
+        unknown_environment
+            .hard_constraints
+            .iter_mut()
+            .find(|constraint| constraint.kind == ConstraintKind::EnvironmentalFlow)
+            .expect("environmental constraint exists")
+            .disposition = ConstraintDisposition::Unknown;
+        cases.push((
+            "environmental flow is unknown",
+            unknown_environment,
+            Err(ValidationError::HardConstraintUnknown(
+                "constraint-environment".into(),
+            )),
+        ));
+
+        let mut blocked_berth = valid_case();
+        blocked_berth
+            .hard_constraints
+            .iter_mut()
+            .find(|constraint| constraint.kind == ConstraintKind::BerthCapacity)
+            .expect("berth constraint exists")
+            .disposition = ConstraintDisposition::Blocked;
+        cases.push((
+            "berth capacity is blocked",
+            blocked_berth,
+            Err(ValidationError::HardConstraintBlocked(
+                "constraint-berth".into(),
+            )),
+        ));
+
+        let mut wrong_gate_role = valid_case();
+        wrong_gate_role
+            .hard_constraints
+            .iter_mut()
+            .find(|constraint| constraint.kind == ConstraintKind::Navigability)
+            .expect("navigability constraint exists")
+            .evidence_id = Some("environment".into());
+        cases.push((
+            "navigability gate references environmental role",
+            wrong_gate_role,
+            Err(ValidationError::ConstraintEvidenceRoleMismatch(
+                "constraint-navigability".into(),
+                EvidenceRole::Navigability,
+            )),
+        ));
+
+        let mut missing_rights = valid_case();
+        missing_rights
+            .hard_constraints
+            .retain(|constraint| constraint.kind != ConstraintKind::DataRights);
+        cases.push((
+            "data rights gate omitted",
+            missing_rights,
+            Err(ValidationError::MissingRequiredConstraint(
+                ConstraintKind::DataRights,
+            )),
+        ));
+
+        let mut wrong_rights_owner = valid_case();
+        wrong_rights_owner
+            .evidence
+            .iter_mut()
+            .find(|item| item.evidence_id == "data-rights")
+            .expect("data rights evidence exists")
+            .owner = EvidenceOwner::Symtropy;
+        cases.push((
+            "data rights evidence has wrong owner",
+            wrong_rights_owner,
+            Err(ValidationError::EvidenceOwnerMismatch("data-rights".into())),
+        ));
+
+        let mut revoked_participant = valid_case();
+        revoked_participant
+            .evidence
+            .iter_mut()
+            .find(|item| item.evidence_id == "participant-auth")
+            .expect("participant authority evidence exists")
+            .state = EvidenceState::Revoked;
+        cases.push((
+            "participant authority revoked",
+            revoked_participant,
+            Err(ValidationError::EvidenceNotCurrent(
+                "participant-auth".into(),
+                EvidenceState::Revoked,
+            )),
+        ));
+
+        let mut missing_custody = valid_case();
+        missing_custody.demand.cargo_custody_ref = Some("mycelix:consignment-01".into());
+        cases.push((
+            "cargo custody reference without custody gate",
+            missing_custody,
+            Err(ValidationError::MissingRequiredConstraint(
+                ConstraintKind::CargoCustody,
+            )),
+        ));
+
+        let mut valid_custody = valid_case();
+        valid_custody.demand.cargo_custody_ref = Some("mycelix:consignment-01".into());
+        valid_custody.evidence.push(evidence(
+            "cargo-custody",
+            EvidenceOwner::Mycelix,
+            EvidenceRole::CargoCustody,
+            "demand-01",
+            None,
+        ));
+        valid_custody.hard_constraints.push(HardConstraint {
+            constraint_id: "constraint-cargo-custody".into(),
+            kind: ConstraintKind::CargoCustody,
+            disposition: ConstraintDisposition::Satisfied,
+            evidence_id: Some("cargo-custody".into()),
+        });
+        cases.push(("valid Mycelix cargo custody", valid_custody, Ok(())));
+
+        assert!(
+            cases.len() >= 30,
+            "frozen service-chain corpus must not silently shrink"
+        );
+        for (name, case, expected) in cases {
+            assert_eq!(
+                validate_case(&case),
+                expected,
+                "frozen scenario case: {name}"
+            );
+        }
+    }
+
+    #[test]
     fn evidence_older_than_the_declared_freshness_limit_is_rejected() {
         let mut case = valid_case();
         case.decision_tick = 10;
