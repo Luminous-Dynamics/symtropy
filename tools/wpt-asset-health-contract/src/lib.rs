@@ -332,6 +332,7 @@ pub fn validate_observation(schema: &Value, observation: &Value) -> Result<(), S
         ("structural", "spatial_strain_profile"),
         ("structural", "curvature_profile"),
         ("thermal", "spatial_temperature_profile"),
+        ("thermal", "spatial_heat_flux_profile"),
     ] {
         let group_value = object_field(observation, group, "$")?;
         let points = object_field(group_value, profile, &format!("$.{group}"))?
