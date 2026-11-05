@@ -898,7 +898,7 @@ mod tests {
     }
 
     #[test]
-    fn shared_pair_rejects_source_or_tick_mismatch() {
+    fn shared_pair_rejects_source_or_tick_or_world_mismatch() {
         let correspondence = base_correspondence();
         let mut scopes = all_scopes();
         scopes[1].source.mechanism_version = id("different-version");
@@ -917,6 +917,102 @@ mod tests {
             project_correspondence_addresses(&correspondence, &scopes, &rules),
             Err(ProjectionError::SharedTickMismatch)
         );
+
+        let mut scopes = all_scopes();
+        scopes[1].world_id = id("different-world");
+        assert_eq!(
+            project_correspondence_addresses(&correspondence, &scopes, &rules),
+            Err(ProjectionError::SharedWorldMismatch)
+        );
+    }
+
+    #[test]
+    fn pair_identity_justification_is_bound_into_the_shared_address() {
+        let correspondence = base_correspondence();
+        let rules = vec![
+            shared_rule("L1", "R1", IdentityBasis::Actor),
+            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+        ];
+        let original =
+            project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
+
+        let mut changed = base_correspondence();
+        changed.hypotheses[0].pairs[0].justification_ref = id("different-pairing-justification");
+        let changed_plan =
+            project_correspondence_addresses(&changed, &all_scopes(), &rules).unwrap();
+
+        let original_bytes = original.hypotheses[0]
+            .addresses
+            .iter()
+            .find(|address| address.sharing == SharingStatus::SharedInvariant)
+            .unwrap()
+            .canonical_bytes
+            .clone();
+        let changed_bytes = changed_plan.hypotheses[0]
+            .addresses
+            .iter()
+            .find(|address| address.sharing == SharingStatus::SharedInvariant)
+            .unwrap()
+            .canonical_bytes
+            .clone();
+        assert_ne!(original_bytes, changed_bytes);
+    }
+
+    #[test]
+    fn branch_presentation_order_does_not_change_normalized_shared_pair_address() {
+        let correspondence = base_correspondence();
+        let rules = vec![
+            shared_rule("L1", "R1", IdentityBasis::Actor),
+            shared_rule("L1", "R2", IdentityBasis::EncounterSlot),
+        ];
+        let original =
+            project_correspondence_addresses(&correspondence, &all_scopes(), &rules).unwrap();
+
+        let mut reversed = base_correspondence();
+        std::mem::swap(&mut reversed.left_branch, &mut reversed.right_branch);
+        std::mem::swap(&mut reversed.left_events, &mut reversed.right_events);
+        for hypothesis in &mut reversed.hypotheses {
+            for pair in &mut hypothesis.pairs {
+                std::mem::swap(&mut pair.left_event, &mut pair.right_event);
+            }
+            std::mem::swap(&mut hypothesis.unmatched_left, &mut hypothesis.unmatched_right);
+        }
+        let reversed_rules = vec![
+            PairCausalRule {
+                left_event: id("R1"),
+                right_event: id("L1"),
+                basis: IdentityBasis::Actor,
+                disposition: CausalDisposition::SharedInvariant {
+                    equivalence_group: id("weather-gust-group"),
+                    justification: id("scm-weather-invariant"),
+                },
+            },
+            PairCausalRule {
+                left_event: id("R2"),
+                right_event: id("L1"),
+                basis: IdentityBasis::EncounterSlot,
+                disposition: CausalDisposition::SharedInvariant {
+                    equivalence_group: id("weather-gust-group"),
+                    justification: id("scm-weather-invariant"),
+                },
+            },
+        ];
+        let reversed_plan =
+            project_correspondence_addresses(&reversed, &all_scopes(), &reversed_rules).unwrap();
+
+        let original_shared: Vec<Vec<u8>> = original.hypotheses
+            .iter()
+            .map(|hypothesis| hypothesis.addresses.iter()
+                .find(|address| address.sharing == SharingStatus::SharedInvariant)
+                .unwrap().canonical_bytes.clone())
+            .collect();
+        let reversed_shared: Vec<Vec<u8>> = reversed_plan.hypotheses
+            .iter()
+            .map(|hypothesis| hypothesis.addresses.iter()
+                .find(|address| address.sharing == SharingStatus::SharedInvariant)
+                .unwrap().canonical_bytes.clone())
+            .collect();
+        assert_eq!(original_shared, reversed_shared);
     }
 
     #[test]
