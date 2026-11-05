@@ -468,3 +468,21 @@ Implementation: [CIVDYN-HUMSIM-001 issue #3665](https://github.com/Luminous-Dyna
 [CIVDYN-HUMSIM-001 issue #3665](https://github.com/Luminous-Dynamics/symtropy/issues/3665) now has a first executable reference in [draft PR #3668](https://github.com/Luminous-Dynamics/symtropy/pull/3668). It separates individual Brier/log-loss/accuracy from population TVD/JS/entropy/tail-option coverage, cohort/context slices and adjacent-context transition discrepancy. Its deterministic N={10,20,30,50,60} curve is explicitly a diagnostic, not an inference interval. The synthetic fixture compares a mode-collapse control to a structured-context oracle and uses no human/platform data.
 
 The source motivation includes ReliMap (EMNLP 2026), OmniBehavior (2026) and Context Modeling (Findings EMNLP 2026); see the HUMSIM issue for the exact protocol and data-rights boundaries.
+
+
+## 15. Shared benchmark measurement discipline: Measurement-as-Distribution
+
+Three 2026 papers strengthen the argument for a shared measurement standard rather than further proliferation of simulators:
+
+- **Afli & Frank, Findings EMNLP 2026**, The Benchmark Is Not the Construct: Toward Distribution-Based Evaluation in NLP. https://aclanthology.org/2026.findings-emnlp.1992/  
+  Argues for principled data generation, validated perturbations, repeated evaluation and distributional reporting, with evidence requirements scaling to the breadth of the claim.
+- **Puelma Touzel et al., ICML 2026**, Position: Time to Close The Validation Gap in LLM Social Simulations. https://proceedings.mlr.press/v306/puelma-touzel26a.html  
+  Calls for shared benchmarks, open data and reproducible protocols rather than unvalidated simulation expansion.
+- **Wu et al., ICML 2026**, Position: LLM-Based Social Simulations Require a Boundary. https://proceedings.mlr.press/v306/wu26co.html  
+  Argues that evaluation depth must match the heterogeneity demanded by the research question and that behavioural variance must be measured alongside mean fit.
+
+**CivBench implementation:** [CIVBENCH-MAD-001 issue #3731](https://github.com/Luminous-Dynamics/symtropy/issues/3731).
+
+The contract distinguishes observation units from resampling units; source families and claim scopes; epistemic, stochastic and measurement uncertainty; valid perturbation families and their construct rationale; and six evidence tiers from executable integrity to operational decision readiness. Thirty replications is not a universal statistical threshold: independence, power and the sampling design determine the correct replication unit and count.
+
+The key design consequence is that model, prompt, context, roster, population, period and intervention form an evaluation distribution. A benchmark result is conditional on that declared distribution and protocol. No global CSS/CivBench score is emitted.
