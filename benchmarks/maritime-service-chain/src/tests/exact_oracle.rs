@@ -16,7 +16,10 @@ enum SearchTermination {
 struct ObjectiveVector {
     delivery_tick: u64,
     idle_wait_ticks: u128,
-    energy_wh: u128,
+    propulsion_wh: u128,
+    auxiliary_wh: u128,
+    shore_power_import_wh: u128,
+    inland_transfer_wh: u128,
     water_ml: u128,
 }
 
@@ -104,7 +107,10 @@ fn enumerate_segment_placements(
         let objective = ObjectiveVector {
             delivery_tick,
             idle_wait_ticks,
-            energy_wh: alternative.energy.total_wh(),
+            propulsion_wh: u128::from(alternative.energy.propulsion_wh),
+            auxiliary_wh: u128::from(alternative.energy.auxiliary_wh),
+            shore_power_import_wh: u128::from(alternative.energy.shore_power_import_wh),
+            inland_transfer_wh: u128::from(alternative.energy.inland_transfer_wh),
             water_ml: water_use_ml(case),
         };
         plans.push(OraclePlan {
@@ -210,11 +216,17 @@ fn enumerate_segment_placements(
 fn dominates(left: ObjectiveVector, right: ObjectiveVector) -> bool {
     let no_worse = left.delivery_tick <= right.delivery_tick
         && left.idle_wait_ticks <= right.idle_wait_ticks
-        && left.energy_wh <= right.energy_wh
+        && left.propulsion_wh <= right.propulsion_wh
+        && left.auxiliary_wh <= right.auxiliary_wh
+        && left.shore_power_import_wh <= right.shore_power_import_wh
+        && left.inland_transfer_wh <= right.inland_transfer_wh
         && left.water_ml <= right.water_ml;
     let strictly_better = left.delivery_tick < right.delivery_tick
         || left.idle_wait_ticks < right.idle_wait_ticks
-        || left.energy_wh < right.energy_wh
+        || left.propulsion_wh < right.propulsion_wh
+        || left.auxiliary_wh < right.auxiliary_wh
+        || left.shore_power_import_wh < right.shore_power_import_wh
+        || left.inland_transfer_wh < right.inland_transfer_wh
         || left.water_ml < right.water_ml;
     no_worse && strictly_better
 }
@@ -224,7 +236,10 @@ fn pareto_frontier(mut candidates: Vec<OraclePlan>) -> Vec<OraclePlan> {
         (
             plan.objective.delivery_tick,
             plan.objective.idle_wait_ticks,
-            plan.objective.energy_wh,
+            plan.objective.propulsion_wh,
+            plan.objective.auxiliary_wh,
+            plan.objective.shore_power_import_wh,
+            plan.objective.inland_transfer_wh,
             plan.objective.water_ml,
             plan.alternative_id.clone(),
             plan.placements.clone(),
@@ -247,7 +262,10 @@ fn pareto_frontier(mut candidates: Vec<OraclePlan>) -> Vec<OraclePlan> {
         (
             plan.objective.delivery_tick,
             plan.objective.idle_wait_ticks,
-            plan.objective.energy_wh,
+            plan.objective.propulsion_wh,
+            plan.objective.auxiliary_wh,
+            plan.objective.shore_power_import_wh,
+            plan.objective.inland_transfer_wh,
             plan.objective.water_ml,
             plan.alternative_id.clone(),
             plan.placements.clone(),
@@ -314,7 +332,10 @@ fn exact_oracle_returns_complete_pareto_frontier_for_synthetic_lock_to_rail_case
         .expect("fast alternative is non-dominated");
     assert_eq!(fast.objective.delivery_tick, 33);
     assert_eq!(fast.objective.idle_wait_ticks, 3);
-    assert_eq!(fast.objective.energy_wh, 2_800);
+    assert_eq!(fast.objective.propulsion_wh, 1_800);
+    assert_eq!(fast.objective.auxiliary_wh, 200);
+    assert_eq!(fast.objective.shore_power_import_wh, 800);
+    assert_eq!(fast.objective.inland_transfer_wh, 0);
     assert_eq!(fast.objective.water_ml, 4_000);
 
     let slow = result
@@ -324,7 +345,10 @@ fn exact_oracle_returns_complete_pareto_frontier_for_synthetic_lock_to_rail_case
         .expect("slow alternative is non-dominated");
     assert_eq!(slow.objective.delivery_tick, 35);
     assert_eq!(slow.objective.idle_wait_ticks, 0);
-    assert_eq!(slow.objective.energy_wh, 2_300);
+    assert_eq!(slow.objective.propulsion_wh, 1_300);
+    assert_eq!(slow.objective.auxiliary_wh, 200);
+    assert_eq!(slow.objective.shore_power_import_wh, 800);
+    assert_eq!(slow.objective.inland_transfer_wh, 0);
     assert_eq!(slow.objective.water_ml, 4_000);
 
     assert!(result.frontier.iter().all(|plan| {
