@@ -20,8 +20,8 @@ use nalgebra::SVector;
 /// Result of a continuous collision detection query.
 #[derive(Clone, Debug)]
 pub struct CcdHit<const D: usize> {
-    /// Time of impact [0, 1] within the current timestep.
-    /// 0 = start of step, 1 = end of step.
+    /// Time of impact in seconds within the current timestep: [0, dt].
+    /// 0 = start of step, dt = end of step.
     pub toi: f64,
     /// Hit point in world space at time of impact.
     pub point: SVector<f64, D>,
@@ -317,7 +317,12 @@ pub fn sphere_halfspace_checked<const D: usize>(
 
     let normalized_normal = plane_normal / normal_length;
     let normalized_offset = plane_offset / normal_length;
-    if !normalized_offset.is_finite() {
+    let signed_distance = normalized_normal.dot(pos) - normalized_offset;
+    let velocity_toward_plane = -normalized_normal.dot(vel);
+    if !normalized_offset.is_finite()
+        || !signed_distance.is_finite()
+        || !velocity_toward_plane.is_finite()
+    {
         return Err(CcdInputError::NumericOverflow);
     }
 
@@ -381,6 +386,137 @@ fn sphere_halfspace_impl<const D: usize>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn checked_sphere_sphere_toi_satisfies_analytic_contact_residual() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([10.0, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0, 0.0, 0.0]);
+        let vel_b = SVector::from([-10.0, 0.0, 0.0]);
+
+        let hit = sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .unwrap()
+            .unwrap();
+        assert!((hit.toi - 0.2).abs() < 1e-12);
+
+        let center_a_at_toi = pos_a + vel_a * hit.toi;
+        let center_b_at_toi = pos_b + vel_b * hit.toi;
+        let distance_residual = (center_b_at_toi - center_a_at_toi).norm() - 1.0;
+        assert!(distance_residual.abs() < 1e-12);
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+        assert!(
+            (hit.point - (center_a_at_toi + hit.normal * 0.5)).norm() < 1e-12
+        );
+    }
+
+    #[test]
+    fn checked_sphere_sphere_detects_grazing_tangent_contact() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([10.0, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0, 1.0, 0.0]);
+        let vel_b = SVector::zeros();
+
+        let hit = sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .unwrap()
+            .unwrap();
+        assert!((hit.toi - 0.5).abs() < 1e-12);
+
+        let center_a_at_toi = pos_a + vel_a * hit.toi;
+        let center_b_at_toi = pos_b + vel_b * hit.toi;
+        assert!(((center_b_at_toi - center_a_at_toi).norm() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn checked_queries_distinguish_invalid_inputs_from_no_hit() {
+        let pos = SVector::zeros();
+        let velocity = SVector::from([1.0, 0.0, 0.0]);
+
+        assert_eq!(
+            sphere_sphere_checked(&pos, &velocity, -0.5, &pos, &velocity, 0.5, 1.0),
+            Err(CcdInputError::NegativeRadius {
+                field: CcdInputField::RadiusA
+            })
+        );
+        assert_eq!(
+            sphere_sphere_checked(&pos, &velocity, 0.5, &pos, &velocity, 0.5, -0.1),
+            Err(CcdInputError::NegativeTimeStep)
+        );
+
+        let nan_position = SVector::from([f64::NAN, 0.0, 0.0]);
+        assert_eq!(
+            sphere_sphere_checked(
+                &nan_position,
+                &velocity,
+                0.5,
+                &pos,
+                &velocity,
+                0.5,
+                1.0
+            ),
+            Err(CcdInputError::NonFiniteVector {
+                field: CcdInputField::PositionA
+            })
+        );
+
+        // A valid, non-intersecting path is Ok(None), not an input error.
+        let far = SVector::from([0.0, 10.0, 0.0]);
+        assert_eq!(
+            sphere_sphere_checked(&pos, &velocity, 0.5, &far, &SVector::zeros(), 0.5, 1.0),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    fn checked_halfspace_normalizes_non_unit_plane_normal_and_offset() {
+        let pos = SVector::from([0.0, 10.0, 0.0]);
+        let vel = SVector::from([0.0, -100.0, 0.0]);
+        // 2*y - 4 = 0 describes y=2; normal normalization must divide the
+        // offset by the same magnitude, while radius remains in metres.
+        let normal = SVector::from([0.0, 2.0, 0.0]);
+        let hit = sphere_halfspace_checked(&pos, &vel, 0.5, &normal, 4.0, 1.0)
+            .unwrap()
+            .unwrap();
+
+        assert!((hit.toi - 0.075).abs() < 1e-12);
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+        assert!((hit.normal[1] - 1.0).abs() < 1e-12);
+        assert!(hit.point.norm() < 1e-12);
+    }
+
+    #[test]
+    fn checked_halfspace_rejects_zero_normal_and_non_finite_offset() {
+        let pos = SVector::from([0.0, 2.0, 0.0]);
+        let vel = SVector::from([0.0, -1.0, 0.0]);
+        let zero = SVector::zeros();
+
+        assert_eq!(
+            sphere_halfspace_checked(&pos, &vel, 0.5, &zero, 0.0, 1.0),
+            Err(CcdInputError::ZeroPlaneNormal)
+        );
+
+        let normal = SVector::from([0.0, 1.0, 0.0]);
+        assert_eq!(
+            sphere_halfspace_checked(&pos, &vel, 0.5, &normal, f64::INFINITY, 1.0),
+            Err(CcdInputError::NonFiniteScalar {
+                field: CcdInputField::PlaneOffset
+            })
+        );
+    }
+
+    #[test]
+    fn checked_halfspace_toi_satisfies_signed_distance_residual() {
+        let pos = SVector::from([0.0, 10.0, 0.0]);
+        let vel = SVector::from([0.0, -100.0, 0.0]);
+        let normal = SVector::from([0.0, 3.0, 0.0]);
+        let hit = sphere_halfspace_checked(&pos, &vel, 0.5, &normal, 0.0, 1.0)
+            .unwrap()
+            .unwrap();
+
+        let center_at_toi = pos + vel * hit.toi;
+        let signed_distance_at_toi = hit.normal.dot(&center_at_toi);
+        assert!((signed_distance_at_toi - 0.5).abs() < 1e-12);
+        assert!(hit.point.norm() < 1e-12);
+    }
 
     #[test]
     fn sphere_sphere_head_on() {
