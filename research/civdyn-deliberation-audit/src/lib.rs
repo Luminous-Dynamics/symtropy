@@ -878,7 +878,7 @@ pub fn compare_option_order_variants(
                     session.option_labels[proposal.option_index].as_str(),
                 )
             })
-            .collect::<BTreeMap<_, _>>()
+            .collect::<BTreeSet<_>>()
     };
     if semantic_proposals(baseline) != semantic_proposals(reordered) {
         return Err(DeliberationError::OptionOrderPairMismatch(
