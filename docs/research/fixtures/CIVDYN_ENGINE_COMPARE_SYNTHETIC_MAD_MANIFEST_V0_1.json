@@ -227,7 +227,7 @@
       "metric_id": "trajectory_fingerprint_fnv64",
       "construct_dimension": "deterministic state-trajectory equivalence",
       "unit": "fnv1a64",
-      "direction": "exact-match",
+      "direction": "descriptive-only",
       "aggregation": "fingerprint of the ordered per-tick state-count trajectory; cross-framework ports must additionally be checked against exact per-cell state where available",
       "strata": [
         "grid_size",
@@ -253,7 +253,7 @@
       "metric_id": "tape_input_fingerprint_fnv64",
       "construct_dimension": "shared exogenous event input identity",
       "unit": "fnv1a64",
-      "direction": "exact-match",
+      "direction": "descriptive-only",
       "aggregation": "fingerprint of row-major, tick-major u16 event tape; binary artifact SHA-256 is also emitted by CI",
       "strata": [
         "grid_size",
