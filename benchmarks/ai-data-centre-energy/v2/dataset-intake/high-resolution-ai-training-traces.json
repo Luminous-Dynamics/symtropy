@@ -1,0 +1,71 @@
+{
+  "schema_version": "symtropy.dataset-intake-card.v1",
+  "dataset_id": "high-resolution-ai-training-traces-2026",
+  "evidence_class": "SOURCE_REPORTED",
+  "article": {
+    "title": "Characterization of high-resolution AI data center training workloads on single and multiple GPU nodes",
+    "doi": "10.1038/s41597-026-07496-6",
+    "publication_date": "2026-06-03",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13538459/"
+  },
+  "dataset": {
+    "title": "High-resolution-AI-Data-Center-Training-Workloads-Dataset",
+    "doi": "10.6084/m9.figshare.31654879.v1",
+    "figshare_record_url": "https://figshare.com/articles/dataset/High-resolution-AI-Data-Center-Training-Workloads-Dataset/31654879",
+    "companion_code_repository": "https://github.com/Ahmed-Elsayed95/High-resolution-AI-Data-Center-Training-Workloads-Dataset",
+    "figshare_landing_page_file_size": "199.97 MB",
+    "sessions": {
+      "h100_b200_eight_gpu_node": 32,
+      "rtx_3060_single_machine": 40,
+      "total": 72
+    },
+    "total_samples_lower_bound": 1800000,
+    "recording_duration_per_session_minutes": 15,
+    "nominal_sample_interval_ns": {
+      "node_scale": 20000000,
+      "single_machine": 100000000
+    }
+  },
+  "license_review": {
+    "status": "UNRESOLVED_CONFLICT",
+    "figshare_displayed_license": "CC BY 4.0",
+    "companion_github_repository_readme_license": "CC BY-NC-ND 4.0",
+    "required_action": "obtain written author/licensor clarification before commercial use, derivative redistribution or committing dataset-derived artifacts",
+    "raw_data_committed_to_this_repository": false
+  },
+  "measurement_scope": {
+    "node_power_definition": "sum of GPU power readings; this is not facility AC/PCC",
+    "node_scale_cpu_power_and_temperature": "columns present in output schema but empty in released node CSVs",
+    "temperature_scope": "GPU temperature; no ambient temperature or facility cooling topology",
+    "excluded": [
+      "facility PCC",
+      "UPS",
+      "cooling plant",
+      "ambient conditions",
+      "water",
+      "site grid boundary"
+    ]
+  },
+  "valid_uses_pending_license_review": [
+    "per-GPU sub-second workload trace characterization",
+    "GPU-sum node workload power modeling",
+    "intra-node GPU synchronization and covariance",
+    "native-resolution ramp and periodicity analysis",
+    "per-GPU power prediction on session-held-out splits"
+  ],
+  "prohibited_inferences": [
+    "node GPU-sum power equals facility PCC power",
+    "intra-node GPU covariance establishes cross-site covariance",
+    "15-minute sessions prove multi-hour field service",
+    "GPU temperature proves facility cooling margin",
+    "source-reported timing checks are a Symtropy meter calibration certificate"
+  ],
+  "processing_rules": [
+    "keep H100, B200 and RTX 3060 hardware strata separate",
+    "hold out complete sessions before model fitting",
+    "preserve raw timestamps and source sample intervals",
+    "do not resample or zero-order-hold without declared energy-conserving aggregation and uncertainty",
+    "bind each imported file to source DOI, version, filename, size and SHA-256 digest",
+    "record empty, missing and unsupported sensor columns distinctly; never impute as zero"
+  ]
+}
