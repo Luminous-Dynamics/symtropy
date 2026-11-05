@@ -9,12 +9,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use rand_philox::Philox;
 
 use crate::DrawAddress;
-use crate::coupling_projection::{
-    project_correspondence_addresses, CorrespondenceAddressPlan, EventDrawScope,
-    HypothesisAddressPlan, PairCausalRule, PlanCompleteness, PlannedAddress, PlannedPresence,
-    SharingStatus,
-};
 use crate::correspondence::CorrespondenceSet;
+use crate::coupling_projection::{
+    CorrespondenceAddressPlan, EventDrawScope, HypothesisAddressPlan, PairCausalRule,
+    PlanCompleteness, PlannedAddress, PlannedPresence, SharingStatus,
+    project_correspondence_addresses,
+};
 
 pub const ADDRESS_SCHEMA_ID: &str = "symtropy.road-exo-coupling.draw-address.v0.1";
 pub const DERIVATION_CONTEXT: &str =
@@ -293,9 +293,7 @@ pub fn correspondence_draw_bundle_digest(bundle: &CorrespondenceDrawBundle) -> [
         }
     }
     let mut source_scopes = bundle.source_event_scopes.iter().collect::<Vec<_>>();
-    source_scopes.sort_by(|a, b| {
-        (&a.branch_id, &a.event_id).cmp(&(&b.branch_id, &b.event_id))
-    });
+    source_scopes.sort_by(|a, b| (&a.branch_id, &a.event_id).cmp(&(&b.branch_id, &b.event_id)));
     hash_len(&mut hasher, source_scopes.len());
     for scope in source_scopes {
         hash_stable_id(&mut hasher, &scope.world_id);
@@ -528,11 +526,8 @@ fn projection_metadata_matches(
         return false;
     }
 
-    expected
-        .hypotheses
-        .iter()
-        .zip(&actual.hypotheses)
-        .all(|(expected_hypothesis, actual_hypothesis)| {
+    expected.hypotheses.iter().zip(&actual.hypotheses).all(
+        |(expected_hypothesis, actual_hypothesis)| {
             expected_hypothesis.hypothesis_id == actual_hypothesis.hypothesis_id
                 && expected_hypothesis.completeness == actual_hypothesis.completeness
                 && expected_hypothesis.correspondence == actual_hypothesis.correspondence
@@ -550,7 +545,8 @@ fn projection_metadata_matches(
                             && expected_draw.presence == actual_draw.presence
                             && expected_draw.canonical_address == actual_draw.canonical_address
                     })
-        })
+        },
+    )
 }
 
 fn find_unique_draw<'a>(
@@ -866,9 +862,9 @@ mod tests {
         UnmatchedReason,
     };
     use crate::coupling_projection::{
-        project_correspondence_addresses, CausalDisposition, CorrespondenceAddressPlan,
-        EventDrawScope, PairCausalRule, PlanCompleteness, PlannedAddress, PlannedPresence,
-        SharingStatus, SourceProfile,
+        CausalDisposition, CorrespondenceAddressPlan, EventDrawScope, PairCausalRule,
+        PlanCompleteness, PlannedAddress, PlannedPresence, SharingStatus, SourceProfile,
+        project_correspondence_addresses,
     };
     use crate::{Coupling, EventIdentity, StableId};
 
@@ -940,12 +936,7 @@ mod tests {
         }
     }
 
-    fn event(
-        event_id: &str,
-        actor: &str,
-        slot: &str,
-        presence: EventPresence,
-    ) -> EventOccurrence {
+    fn event(event_id: &str, actor: &str, slot: &str, presence: EventPresence) -> EventOccurrence {
         EventOccurrence {
             event_id: id(event_id),
             event_family: id("crossing-gap-choice"),
@@ -1020,26 +1011,15 @@ mod tests {
                 ),
             ],
             hypotheses: vec![
-                correspondence_hypothesis(
-                    "H-actor",
-                    "R1",
-                    IdentityBasis::Actor,
-                    "R2",
-                ),
-                correspondence_hypothesis(
-                    "H-slot",
-                    "R2",
-                    IdentityBasis::EncounterSlot,
-                    "R1",
-                ),
+                correspondence_hypothesis("H-actor", "R1", IdentityBasis::Actor, "R2"),
+                correspondence_hypothesis("H-slot", "R2", IdentityBasis::EncounterSlot, "R1"),
             ],
             universe_status: CandidateUniverseStatus::ExhaustiveWithinDeclaredScope {
                 evidence_ref: id("fixture-event-universe"),
             },
-            hypothesis_set_status:
-                HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily {
-                    evidence_ref: id("fixture-hypothesis-search"),
-                },
+            hypothesis_set_status: HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily {
+                evidence_ref: id("fixture-hypothesis-search"),
+            },
         };
         let event_scopes = vec![
             scope("continue", "L1"),
@@ -1238,8 +1218,9 @@ mod tests {
         let original = resolve_correspondence_plan(&seed, &plan).expect("draw bundle");
 
         let mut changed_scope = original.clone();
-        changed_scope.source_event_scopes[0].source.mechanism_version =
-            id("substituted-mechanism-version");
+        changed_scope.source_event_scopes[0]
+            .source
+            .mechanism_version = id("substituted-mechanism-version");
         changed_scope.bundle_digest = correspondence_draw_bundle_digest(&changed_scope);
         assert_eq!(
             verify_correspondence_draw_bundle(&seed, &changed_scope),
