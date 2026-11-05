@@ -421,11 +421,7 @@ fn main() {
 
     let mut reordered = baseline.clone();
     reordered.session_id = "synthetic_option_order_position_bias".into();
-    reordered.option_labels = vec![
-        "charity_c".into(),
-        "charity_b".into(),
-        "charity_a".into(),
-    ];
+    reordered.option_labels = vec!["charity_c".into(), "charity_b".into(), "charity_a".into()];
     for member in &mut reordered.participants {
         member.preferences.reverse();
     }
