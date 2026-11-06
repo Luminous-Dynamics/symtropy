@@ -40,7 +40,7 @@ The Rust reference provides:
 - A fixed comparison matrix of random, coverage-guided, expert and RL falsification for every hypothesis.
 - One common holdout manifest and parent-lineage set, equal actual search budgets, blinded/sealed status and minimum budget obligations.
 - Counterexample findings require a replay receipt and an explicit verified-replay flag. Non-discovery is budgeted non-discovery, never proof of absence.
-- Exact rational residual utility bounds with per-action evidence, calibration protocol, source lineage and minimum independent-unit counts. Residual data may not reuse training or sealed challenge lineage.
+- Exact rational residual utility bounds with per-action evidence, calibration protocol, source lineage and minimum independent-unit counts. The residual scope, estimand and independent-unit definition are explicit. Counterfactual residual utility bounds cannot be justified by observational factual records alone: they require a controlled-intervention assignment protocol or a qualified natural-experiment identification package, and the evidence must not reuse training or sealed challenge lineage.
 - Robust feasibility distinct from utility ranking. Unknown or PotentialViolation excludes an action.
 - Conservative rectangular regret upper bound: `max(0, max_b U_upper(b) - L(a))`. It is explicitly a rectangular relaxation, not an attainable joint physical world.
 - Append-only portfolio revisions: prior challenged hypotheses remain byte-identical; a new model/mechanism is a new identity with explicit lineage.
@@ -55,12 +55,14 @@ The Rust reference provides:
 - 100% of search arms share one sealed holdout and lineage set.
 - 100% replay of claimed counterexamples; zero unreplayed counterexamples accepted as falsification receipts.
 - 100% of residual actions carry calibrated evidence references and meet their independent-unit floor.
+- Zero observational factual-only residual bounds used as truth for unexecuted alternate actions.
+- 100% of natural-experiment residual bounds carry a declared identification-assumptions package; controlled-intervention bounds carry an assignment-protocol reference.
 - Zero residual interval inferred from absence of observed failures.
 - Zero robust action when residual safety feasibility is unknown or potentially violated.
 - 100% evaluation-digest change on any challenge or residual evidence mutation.
 - Never emit a completeness-relative-to-reality claim.
 
-These are contract/conformance targets, not measured empirical results.
+These are contract/conformance targets, not measured empirical results. The assignment/identification and calibration digests are declarations bound into the evaluation receipt; this Rust reference does not independently authenticate the external study or re-estimate its causal effects.
 
 ## Comparative research baselines
 
