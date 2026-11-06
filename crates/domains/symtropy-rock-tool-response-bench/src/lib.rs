@@ -295,6 +295,18 @@ fn validate_record(
         }
     }
 
+    if mechanism == Some("ATCP") {
+        if let Some(config) = config {
+            for field in ["axial_waveform_artifact_ref", "torsional_waveform_artifact_ref"] {
+                if let Some(reference) = non_empty_string(config, field) {
+                    if !artifact_map.contains_key(reference) {
+                        push(issues, record_id.clone(), ValidationCode::MissingArtifactReference, format!("method_configuration.{field} references missing artifact {reference}"));
+                    }
+                }
+            }
+        }
+    }
+
     if let Some(observations) = observations {
         for observation in observations {
             let Some(metric_id) = non_empty_string(observation, "metric_id") else {
