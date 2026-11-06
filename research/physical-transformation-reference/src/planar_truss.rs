@@ -1214,6 +1214,121 @@ mod tests {
         }
     }
 
+    fn test_bar_geometry(
+        nodes: &[TrussNode],
+        edges: &[(&str, usize, usize)],
+    ) -> BTreeMap<String, BarGeometry> {
+        let mut geometry = BTreeMap::new();
+        for (id, i, j) in edges {
+            let dx = nodes[*j].x_m - nodes[*i].x_m;
+            let dy = nodes[*j].y_m - nodes[*i].y_m;
+            let length = dx.hypot(dy);
+            geometry.insert(
+                (*id).to_owned(),
+                BarGeometry {
+                    i: *i,
+                    j: *j,
+                    length,
+                    cosine: dx / length,
+                    sine: dy / length,
+                    axial_stiffness: 1.0,
+                },
+            );
+        }
+        geometry
+    }
+
+    fn geometry_test_node(id: &str, x_m: f64, y_m: f64) -> TrussNode {
+        TrussNode {
+            id: id.to_owned(),
+            x_m,
+            y_m,
+            restrained_x: false,
+            restrained_y: false,
+            force_x_n: 0.0,
+            force_y_n: 0.0,
+        }
+    }
+
+    #[test]
+    fn linework_reference_is_rigid_motion_covariant_and_subdivision_invariant() {
+        let nodes = vec![
+            geometry_test_node("A", 0.0, 0.0),
+            geometry_test_node("B", 4.0, 0.0),
+            geometry_test_node("C", 4.0, 1.0),
+            geometry_test_node("D", 0.0, 3.0),
+        ];
+        let edges = [
+            ("AB", 0, 1),
+            ("BC", 1, 2),
+            ("CD", 2, 3),
+            ("DA", 3, 0),
+            ("AC", 0, 2),
+        ];
+        let base_geometry = test_bar_geometry(&nodes, &edges);
+        let (base_x, base_y, base_diameter) =
+            reference_geometry(&nodes, &base_geometry).expect("base linework reference");
+        close(base_diameter, 5.0, 1.0e-12, "asymmetric point-set diameter");
+
+        // The reference point must transform with a rigid rotation and translation.
+        let angle = 37.0_f64.to_radians();
+        let (sin, cos) = angle.sin_cos();
+        let mut transformed_nodes = nodes.clone();
+        for node in &mut transformed_nodes {
+            let x = node.x_m;
+            let y = node.y_m;
+            node.x_m = cos * x - sin * y + 17.0;
+            node.y_m = sin * x + cos * y - 9.0;
+        }
+        let transformed_geometry = test_bar_geometry(&transformed_nodes, &edges);
+        let (transformed_x, transformed_y, transformed_diameter) =
+            reference_geometry(&transformed_nodes, &transformed_geometry)
+                .expect("transformed linework reference");
+        close(
+            transformed_x,
+            cos * base_x - sin * base_y + 17.0,
+            1.0e-12,
+            "rigidly transformed linework centroid x",
+        );
+        close(
+            transformed_y,
+            sin * base_x + cos * base_y - 9.0,
+            1.0e-12,
+            "rigidly transformed linework centroid y",
+        );
+        close(
+            transformed_diameter,
+            base_diameter,
+            1.0e-12,
+            "rigid-motion-invariant asymmetric diameter",
+        );
+
+        // Splitting AB at its midpoint changes node count, not the represented
+        // centerline measure. The length-weighted centroid must therefore stay fixed.
+        let mut split_nodes = nodes.clone();
+        split_nodes.push(geometry_test_node("M", 2.0, 0.0));
+        let split_edges = [
+            ("AM", 0, 4),
+            ("MB", 4, 1),
+            ("BC", 1, 2),
+            ("CD", 2, 3),
+            ("DA", 3, 0),
+            ("AC", 0, 2),
+        ];
+        let split_geometry = test_bar_geometry(&split_nodes, &split_edges);
+        let (split_x, split_y, split_diameter) =
+            reference_geometry(&split_nodes, &split_geometry)
+                .expect("subdivided linework reference");
+        close(split_x, base_x, 1.0e-12, "subdivision-invariant centroid x");
+        close(split_y, base_y, 1.0e-12, "subdivision-invariant centroid y");
+        close(
+            split_diameter,
+            base_diameter,
+            1.0e-12,
+            "subdivision-invariant diameter",
+        );
+    }
+
     #[test]
     fn residual_scales_and_backward_error_are_invariant_under_global_rotation() {
         let base_input = symmetric_two_bar_truss();
