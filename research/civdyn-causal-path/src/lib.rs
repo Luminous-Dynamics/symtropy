@@ -68,7 +68,7 @@ pub struct IndependentOutcomeReceipt {
     pub resource: String,
     pub region_id: String,
     pub tick: u64,
-    /// Exact record identifier from the shared resource ledger output.
+    /// Deterministic row key for the ledger outcome in this run artifact; not a ledger-issued signature.
     pub source_record_id: String,
 }
 
