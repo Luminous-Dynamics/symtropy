@@ -637,22 +637,99 @@
                 },
                 "source_electrical_input_j": {
                   "type": "number",
-                  "exclusiveMinimum": 0
+                  "minimum": 0
                 },
                 "optical_output_energy_j": {
                   "type": "number",
-                  "exclusiveMinimum": 0
+                  "minimum": 0
                 },
                 "workpiece_incident_optical_energy_j": {
                   "type": "number",
-                  "exclusiveMinimum": 0
+                  "minimum": 0
                 },
                 "absorbed_energy_estimate_j": {
                   "type": "number",
-                  "exclusiveMinimum": 0
+                  "minimum": 0
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": false,
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "laser_state": {
+                        "const": "ON"
+                      }
+                    },
+                    "required": [
+                      "laser_state"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "source_electrical_input_j": {
+                        "exclusiveMinimum": 0
+                      },
+                      "workpiece_incident_optical_energy_j": {
+                        "exclusiveMinimum": 0
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "laser_state": {
+                        "const": "OFF_SHAM"
+                      }
+                    },
+                    "required": [
+                      "laser_state"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "source_electrical_input_j": {
+                        "exclusiveMinimum": 0
+                      },
+                      "workpiece_incident_optical_energy_j": {
+                        "const": 0
+                      },
+                      "absorbed_energy_estimate_j": {
+                        "const": 0
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "laser_state": {
+                        "const": "OFF_BASELINE"
+                      }
+                    },
+                    "required": [
+                      "laser_state"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "source_electrical_input_j": {
+                        "const": 0
+                      },
+                      "optical_output_energy_j": {
+                        "const": 0
+                      },
+                      "workpiece_incident_optical_energy_j": {
+                        "const": 0
+                      },
+                      "absorbed_energy_estimate_j": {
+                        "const": 0
+                      }
+                    }
+                  }
+                }
+              ]
             },
             {
               "type": "object",
