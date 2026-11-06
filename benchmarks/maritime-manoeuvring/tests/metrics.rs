@@ -1,7 +1,7 @@
 use maritime_manoeuvring_contract::{
     ContextOfUse, EvidenceRef, EvidenceRole, EvidenceState, ManifestDisposition,
     ManoeuvringManifest, Trajectory, TrajectoryError, TrajectorySample, stopping_metrics,
-    turning_circle_metrics,
+    turning_circle_metrics, zig_zag_metrics, ZigZagCommand,
 };
 
 fn sample(time_s: f64, x_m: f64, y_m: f64, heading_rad: f64) -> TrajectorySample {
@@ -368,5 +368,134 @@ fn manifest_rejects_evidence_bound_to_a_different_case() {
     assert_eq!(
         case.evaluate(),
         Err(maritime_manoeuvring_contract::ManifestError::EvidenceCaseMismatch("e-0".to_owned()))
+    );
+}
+
+fn zig_zag_trajectory() -> Trajectory {
+    let records = [
+        (0.0, 0.0, 3.0),
+        (1.0, 5.0, 3.0),
+        (2.0, 10.0, 2.0),
+        (3.0, 14.0, 1.0),
+        (4.0, 15.0, 0.0),
+        (5.0, 14.0, -1.0),
+        (6.0, 10.0, -2.0),
+        (7.0, 0.0, -3.0),
+        (8.0, -8.0, -3.0),
+        (9.0, -10.0, -2.0),
+        (10.0, -14.0, -1.0),
+        (11.0, -16.0, 0.0),
+        (12.0, -15.0, 1.0),
+        (13.0, -10.0, 2.0),
+    ];
+    let samples = records
+        .iter()
+        .map(|(time_s, heading_deg, yaw_rate_deg_s)| TrajectorySample {
+            time_s: *time_s,
+            x_m: 0.0,
+            y_m: 0.0,
+            heading_rad: heading_deg.to_radians(),
+            surge_mps: 5.0,
+            sway_mps: 0.0,
+            yaw_rate_rad_s: yaw_rate_deg_s.to_radians(),
+        })
+        .collect();
+    Trajectory {
+        vessel_id: "zig-zag-vessel".to_owned(),
+        vessel_length_m: 100.0,
+        samples,
+    }
+}
+
+fn zig_zag_commands() -> [ZigZagCommand; 3] {
+    [
+        ZigZagCommand {
+            time_s: 0.0,
+            rudder_deg: 10.0,
+        },
+        ZigZagCommand {
+            time_s: 2.0,
+            rudder_deg: -10.0,
+        },
+        ZigZagCommand {
+            time_s: 9.0,
+            rudder_deg: 10.0,
+        },
+    ]
+}
+
+#[test]
+fn ten_ten_zig_zag_overshoots_match_hand_checkable_fixture() {
+    let metrics = zig_zag_metrics(&zig_zag_trajectory(), &zig_zag_commands(), 10.0)
+        .expect("valid 10/10 zig-zag");
+    assert!((metrics.first_overshoot_deg - 5.0).abs() < 1.0e-9);
+    assert!((metrics.second_overshoot_deg - 6.0).abs() < 1.0e-9);
+    assert!((metrics.first_peak_time_s - 4.0).abs() < 1.0e-9);
+    assert!((metrics.second_peak_time_s - 11.0).abs() < 1.0e-9);
+}
+
+#[test]
+fn zig_zag_rejects_non_alternating_rudder_commands() {
+    let mut commands = zig_zag_commands();
+    commands[2].rudder_deg = -10.0;
+    assert_eq!(
+        zig_zag_metrics(&zig_zag_trajectory(), &commands, 10.0),
+        Err(TrajectoryError::InvalidRudderSequence)
+    );
+}
+
+#[test]
+fn zig_zag_rejects_reversal_before_heading_target() {
+    let mut commands = zig_zag_commands();
+    commands[1].time_s = 1.0;
+    assert_eq!(
+        zig_zag_metrics(&zig_zag_trajectory(), &commands, 10.0),
+        Err(TrajectoryError::FirstReversalBeforeTarget)
+    );
+}
+
+#[test]
+fn zig_zag_rejects_unobserved_opposite_heading_target() {
+    let mut trajectory = zig_zag_trajectory();
+    trajectory.samples.truncate(7);
+    let commands = [
+        ZigZagCommand {
+            time_s: 0.0,
+            rudder_deg: 10.0,
+        },
+        ZigZagCommand {
+            time_s: 2.0,
+            rudder_deg: -10.0,
+        },
+        ZigZagCommand {
+            time_s: 6.0,
+            rudder_deg: 10.0,
+        },
+    ];
+    assert_eq!(
+        zig_zag_metrics(&trajectory, &commands, 10.0),
+        Err(TrajectoryError::HeadingTargetNotReached(10))
+    );
+}
+
+#[test]
+fn zig_zag_rejects_missing_first_peak() {
+    let mut trajectory = zig_zag_trajectory();
+    for sample in &mut trajectory.samples[3..10] {
+        sample.yaw_rate_rad_s = 1.0;
+    }
+    assert_eq!(
+        zig_zag_metrics(&trajectory, &zig_zag_commands(), 10.0),
+        Err(TrajectoryError::OvershootPeakNotObserved(1))
+    );
+}
+
+#[test]
+fn zig_zag_requires_command_events_to_align_with_trajectory_samples() {
+    let mut commands = zig_zag_commands();
+    commands[1].time_s = 2.5;
+    assert_eq!(
+        zig_zag_metrics(&zig_zag_trajectory(), &commands, 10.0),
+        Err(TrajectoryError::CommandTimeNotSampleAligned)
     );
 }
