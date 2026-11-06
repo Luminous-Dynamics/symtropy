@@ -31,7 +31,7 @@ The crate has no external dependencies and is an isolated workspace so its contr
 
 ## Evidence boundary
 
-A reference string is a locator, not authentication. A comparison profile is the caller's declared scope, not a certification that the profile is complete or authoritative. Results are descriptive and retain the study-design label; even randomized studies require their preregistered analysis before causal claims. Matched-pair profiles must link each baseline specimen to exactly one candidate specimen; method, machine and tool identities remain constant within each arm.
+A reference string is a locator, not authentication. A comparison profile is the caller's declared scope, not a certification that the profile is complete or authoritative. Results are descriptive and retain the study-design label; even randomized studies require their preregistered analysis before causal claims. For matched-pair profiles, each pair must contain exactly one baseline and one candidate specimen, and each arm must keep a stable method/machine/tool configuration. Matched-pair profiles must link each baseline specimen to exactly one candidate specimen; method, machine and tool identities remain constant within each arm.
 
 ## Related work
 
