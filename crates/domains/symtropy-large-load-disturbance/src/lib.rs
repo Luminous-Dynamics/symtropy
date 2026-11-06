@@ -875,6 +875,7 @@ pub fn evaluate_disturbance_conformance(
             && zone_disconnected[index] > maximum_disconnected_duration_ns
         {
             zone_connection[index] = false;
+            unexpected_trip = true;
         }
     }
 
