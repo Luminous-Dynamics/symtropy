@@ -303,6 +303,9 @@ pub fn compare_trials(
         return Err(ValidationErrors(issues));
     }
 
+    baseline.sort_by(|left, right| left.trial_id.cmp(&right.trial_id));
+    candidate.sort_by(|left, right| left.trial_id.cmp(&right.trial_id));
+
     let baseline_metrics = aggregate_arm(&baseline);
     let candidate_metrics = aggregate_arm(&candidate);
 
