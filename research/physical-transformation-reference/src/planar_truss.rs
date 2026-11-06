@@ -1423,6 +1423,186 @@ mod tests {
     }
 
     #[test]
+    fn asymmetric_non_square_geometry_scales_are_rotation_invariant() {
+        let input = PlanarTrussInput {
+            nodes: vec![
+                TrussNode {
+                    id: "A".to_owned(),
+                    x_m: 0.0,
+                    y_m: 0.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+                TrussNode {
+                    id: "B".to_owned(),
+                    x_m: 4.0,
+                    y_m: 0.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+                TrussNode {
+                    id: "C".to_owned(),
+                    x_m: 1.0,
+                    y_m: 1.0,
+                    restrained_x: false,
+                    restrained_y: false,
+                    force_x_n: 200.0,
+                    force_y_n: -500.0,
+                },
+                TrussNode {
+                    id: "D".to_owned(),
+                    x_m: 3.0,
+                    y_m: 2.0,
+                    restrained_x: false,
+                    restrained_y: false,
+                    force_x_n: -100.0,
+                    force_y_n: 250.0,
+                },
+            ],
+            bars: vec![
+                TrussBar {
+                    id: "AB".to_owned(),
+                    node_i: "A".to_owned(),
+                    node_j: "B".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "AC".to_owned(),
+                    node_i: "A".to_owned(),
+                    node_j: "C".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "BC".to_owned(),
+                    node_i: "B".to_owned(),
+                    node_j: "C".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "BD".to_owned(),
+                    node_i: "B".to_owned(),
+                    node_j: "D".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "CD".to_owned(),
+                    node_i: "C".to_owned(),
+                    node_j: "D".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+            ],
+        };
+        let base = solve(&input).expect("asymmetric non-square truss");
+        close(
+            base.equilibrium.characteristic_length_m,
+            4.0,
+            1.0e-12,
+            "asymmetric geometry point-set diameter",
+        );
+
+        let angle = std::f64::consts::FRAC_PI_4;
+        let (sin, cos) = angle.sin_cos();
+        let mut rotated_input = input.clone();
+        for node in &mut rotated_input.nodes {
+            let x = node.x_m;
+            let y = node.y_m;
+            let fx = node.force_x_n;
+            let fy = node.force_y_n;
+            node.x_m = cos * x - sin * y;
+            node.y_m = sin * x + cos * y;
+            node.force_x_n = cos * fx - sin * fy;
+            node.force_y_n = sin * fx + cos * fy;
+        }
+        let rotated = solve(&rotated_input).expect("rotated asymmetric non-square truss");
+
+        let expected_centroid_x = cos * base.equilibrium.moment_reference_x_m
+            - sin * base.equilibrium.moment_reference_y_m;
+        let expected_centroid_y = sin * base.equilibrium.moment_reference_x_m
+            + cos * base.equilibrium.moment_reference_y_m;
+        close(
+            rotated.equilibrium.moment_reference_x_m,
+            expected_centroid_x,
+            1.0e-12,
+            "asymmetric rotated centroid x",
+        );
+        close(
+            rotated.equilibrium.moment_reference_y_m,
+            expected_centroid_y,
+            1.0e-12,
+            "asymmetric rotated centroid y",
+        );
+        for (name, actual, expected) in [
+            (
+                "asymmetric diameter",
+                rotated.equilibrium.characteristic_length_m,
+                base.equilibrium.characteristic_length_m,
+            ),
+            (
+                "asymmetric force scale",
+                rotated.equilibrium.force_normalization_scale_n,
+                base.equilibrium.force_normalization_scale_n,
+            ),
+            (
+                "asymmetric moment scale",
+                rotated.equilibrium.moment_normalization_scale_nm,
+                base.equilibrium.moment_normalization_scale_nm,
+            ),
+            (
+                "asymmetric backward-error scale",
+                rotated.equilibrium.free_dof_backward_error_scale_n,
+                base.equilibrium.free_dof_backward_error_scale_n,
+            ),
+        ] {
+            close(actual, expected, 1.0e-7_f64.max(expected.abs() * 1.0e-10), name);
+        }
+        for (name, actual, expected) in [
+            (
+                "asymmetric force residual",
+                rotated.equilibrium.normalized_force_residual,
+                base.equilibrium.normalized_force_residual,
+            ),
+            (
+                "asymmetric moment residual",
+                rotated.equilibrium.normalized_moment_residual,
+                base.equilibrium.normalized_moment_residual,
+            ),
+            (
+                "asymmetric backward error",
+                rotated.equilibrium.normalized_free_dof_residual,
+                base.equilibrium.normalized_free_dof_residual,
+            ),
+        ] {
+            close(actual, expected, 1.0e-10_f64.max(expected.abs() * 1.0e-8), name);
+        }
+
+        for id in ["C", "D"] {
+            let before = node(&base, id);
+            let after = node(&rotated, id);
+            close(
+                after.displacement_x_m,
+                cos * before.displacement_x_m - sin * before.displacement_y_m,
+                1.0e-12,
+                &format!("{id} rotated displacement x"),
+            );
+            close(
+                after.displacement_y_m,
+                sin * before.displacement_x_m + cos * before.displacement_y_m,
+                1.0e-12,
+                &format!("{id} rotated displacement y"),
+            );
+        }
+    }
+
+    #[test]
     fn uniform_stiffness_and_load_rescaling_does_not_change_displacement() {
         let base_input = symmetric_two_bar_truss();
         let base = solve(&base_input).expect("base truss");
