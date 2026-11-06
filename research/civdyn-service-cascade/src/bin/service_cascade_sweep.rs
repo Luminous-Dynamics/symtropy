@@ -116,8 +116,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn output_schema_has_sixteen_columns() {
-        assert_eq!(CSV_COLUMNS, 16);
+    fn output_schema_has_seventeen_columns() {
+        assert_eq!(CSV_COLUMNS, 17);
     }
 
     #[test]
