@@ -863,3 +863,79 @@ fn dispatch_intervals_cannot_resume_after_recovery_has_started() {
         symtropy_counterfactual_baseline::BaselineQualificationError::DispatchRecoveryPhaseOrderViolation { .. }
     ));
 }
+
+#[test]
+fn baseline_calibration_group_must_be_contiguous() {
+    let mut rows = Vec::new();
+    for i in 0..40 {
+        let group = format!("cal-{i}");
+        rows.push(NoDispatchObservation::new(
+            format!("cal-{i}-a"), &group, "normal", "sha256:calibration",
+            0, i as u64 * 10_000, 1_000, 100.0, 100.0, 0.0,
+            BaselineFold::Calibration, false,
+        ).unwrap());
+        rows.push(NoDispatchObservation::new(
+            format!("cal-{i}-b"), &group, "normal", "sha256:calibration",
+            0, i as u64 * 10_000 + 2_000, 1_000, 100.0, 100.0, 0.0,
+            BaselineFold::Calibration, false,
+        ).unwrap());
+    }
+    for i in 0..20 {
+        rows.push(observation(100 + i, &format!("eval-{i}"), BaselineFold::Evaluation, 100.0, 100.0));
+    }
+    let error = qualify_counterfactual_baseline(&identity(), &contract(), &rows).unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_counterfactual_baseline::BaselineQualificationError::NonContiguousBaselineTrajectory { .. }
+    ));
+}
+
+#[test]
+fn calibration_and_evaluation_groups_must_share_exact_horizon_shape() {
+    let mut rows = Vec::new();
+    for i in 0..40 {
+        let group = format!("cal-{i}");
+        rows.push(NoDispatchObservation::new(
+            format!("cal-{i}-a"), &group, "normal", "sha256:calibration",
+            0, i as u64 * 10_000, 1_000, 100.0, 100.0, 0.0,
+            BaselineFold::Calibration, false,
+        ).unwrap());
+        if i != 0 {
+            rows.push(NoDispatchObservation::new(
+                format!("cal-{i}-b"), &group, "normal", "sha256:calibration",
+                0, i as u64 * 10_000 + 1_000, 1_000, 100.0, 100.0, 0.0,
+                BaselineFold::Calibration, false,
+            ).unwrap());
+        }
+    }
+    for i in 0..20 {
+        rows.push(observation(100 + i, &format!("eval-{i}"), BaselineFold::Evaluation, 100.0, 100.0));
+    }
+    let error = qualify_counterfactual_baseline(&identity(), &contract(), &rows).unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_counterfactual_baseline::BaselineQualificationError::BaselineTrajectoryShapeMismatch { .. }
+    ));
+}
+
+#[test]
+fn event_plus_recovery_must_match_qualified_baseline_trajectory_shape() {
+    let baseline = qualified_report();
+    let points = [
+        DispatchEventPoint::new(
+            "dispatch-1", DispatchEventPhase::Dispatch, "normal", 0, 0, 1_000,
+            100.0, 80.0, 0.0, "pcc-dispatch-1",
+        ).unwrap(),
+        DispatchEventPoint::new(
+            "recovery-1", DispatchEventPhase::Recovery, "normal", 0, 1_000, 1_000,
+            100.0, 100.0, 0.0, "pcc-recovery-1",
+        ).unwrap(),
+    ];
+    let evidence = recovery_evidence(0, 1_000, 2_000, true);
+    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_counterfactual_baseline::BaselineQualificationError::EventTrajectoryShapeMismatch { .. }
+    ));
+}
