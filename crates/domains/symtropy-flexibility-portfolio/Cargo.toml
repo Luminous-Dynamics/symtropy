@@ -1,0 +1,9 @@
+[package]
+name = "symtropy-flexibility-portfolio"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Empirical joint-delivery and common-mode stress evaluation for flexible resource portfolios."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
