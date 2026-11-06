@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "scenario_id": "ballistic-constant-acceleration-v0",
+  "evidence_class": "analytic_code_verification",
+  "status": "test_fixture_not_experimental_validation",
+  "integrator": {
+    "name": "semi_implicit_euler",
+    "update_order": ["velocity", "position"],
+    "known_global_position_order": 1,
+    "velocity_exact_for_constant_acceleration": true
+  },
+  "units": {
+    "position": "m",
+    "velocity": "m/s",
+    "acceleration": "m/s^2",
+    "time": "s",
+    "mass": "kg"
+  },
+  "initial_state": {
+    "position_m": [1.25, 3.0, -2.0],
+    "velocity_m_per_s": [2.5, 1.25, -0.5],
+    "mass_kg": 2.0,
+    "sphere_radius_m": 0.25,
+    "linear_damping": 0.0,
+    "angular_damping": 0.0
+  },
+  "acceleration_m_per_s2": [0.0, -9.81, 0.0],
+  "duration_s": 1.0,
+  "discrete_oracle": {
+    "velocity": "v_N = v_0 + N*a*h",
+    "position": "x_N = x_0 + N*v_0*h + a*h^2*N*(N+1)/2"
+  },
+  "continuous_oracle": {
+    "velocity": "v(T) = v_0 + a*T",
+    "position": "x(T) = x_0 + v_0*T + 0.5*a*T^2"
+  },
+  "convergence_sweep": [
+    {"dt_s": 0.02, "steps": 50},
+    {"dt_s": 0.01, "steps": 100}
+  ],
+  "expected_order": {
+    "position_global": 1,
+    "coarse_error_over_fine_error": 2.0,
+    "ratio_absolute_tolerance": 1e-10,
+    "velocity_error_absolute_tolerance": 1e-11
+  },
+  "negative_controls_required": [
+    "non_finite_force",
+    "non_finite_initial_state",
+    "zero_timestep",
+    "negative_timestep",
+    "non_finite_timestep"
+  ],
+  "physical_validation_claimed": false,
+  "contact_validation_claimed": false,
+  "cross_engine_comparison_claimed": false
+}

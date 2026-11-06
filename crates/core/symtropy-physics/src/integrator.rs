@@ -30,7 +30,10 @@ pub fn nan_zeroed_count() -> u64 {
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+/// The undamped, unclamped conservative update is symplectic for a separable
+/// Hamiltonian system. The full engine path also applies damping, contact
+/// correction and velocity clamps, so the whole path is not globally
+/// symplectic. Stability and accuracy remain problem- and timestep-dependent.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
@@ -180,21 +183,126 @@ mod tests {
     use super::*;
     use crate::body::BodyHandle;
 
+    fn simulate_constant_acceleration(
+        dt: f64,
+        steps: usize,
+    ) -> (RigidBody<3>, SVector<f64, 3>, SVector<f64, 3>, f64) {
+        let initial_position = SVector::from([1.25, 3.0, -2.0]);
+        let initial_velocity = SVector::from([2.5, 1.25, -0.5]);
+        let acceleration = SVector::from([0.0, -9.81, 0.0]);
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([
+                initial_position[0],
+                initial_position[1],
+                initial_position[2],
+            ]),
+            0.25,
+            2.0,
+        );
+        body.linear_velocity = initial_velocity;
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+
+        for _ in 0..steps {
+            integrate(&mut body, &acceleration, dt);
+        }
+
+        (body, initial_position, initial_velocity, dt * steps as f64)
+    }
+
+    #[test]
+    fn semi_implicit_euler_matches_exact_discrete_ballistic_map() {
+        let dt: f64 = 0.01;
+        let steps = 100;
+        let acceleration = SVector::from([0.0, -9.81, 0.0]);
+        let (body, initial_position, initial_velocity, elapsed) =
+            simulate_constant_acceleration(dt, steps);
+
+        // Semi-implicit Euler updates velocity before position:
+        // v_n = v_0 + n*a*h
+        // x_n = x_0 + n*v_0*h + a*h^2*n*(n+1)/2
+        let n = steps as f64;
+        let expected_velocity = initial_velocity + acceleration * elapsed;
+        let expected_position = initial_position
+            + initial_velocity * elapsed
+            + acceleration * (dt * dt * n * (n + 1.0) * 0.5);
+        let position = body.transform.translation.0;
+
+        assert!(
+            (body.linear_velocity - expected_velocity).norm() <= 1e-11,
+            "velocity discrete-map error = {:.3e}",
+            (body.linear_velocity - expected_velocity).norm()
+        );
+        assert!(
+            (position - expected_position).norm() <= 1e-10,
+            "position discrete-map error = {:.3e}",
+            (position - expected_position).norm()
+        );
+    }
+
+    #[test]
+    fn ballistic_position_error_has_first_order_global_convergence() {
+        let duration: f64 = 1.0;
+        let coarse_dt: f64 = 0.02;
+        let fine_dt: f64 = 0.01;
+        let acceleration = SVector::from([0.0, -9.81, 0.0]);
+
+        let (coarse, initial_position, initial_velocity, coarse_elapsed) =
+            simulate_constant_acceleration(coarse_dt, 50);
+        let (fine, _, _, fine_elapsed) = simulate_constant_acceleration(fine_dt, 100);
+        assert!((coarse_elapsed - duration).abs() < 1e-14);
+        assert!((fine_elapsed - duration).abs() < 1e-14);
+
+        let exact_position = initial_position
+            + initial_velocity * duration
+            + acceleration * (0.5 * duration.powi(2));
+        let exact_velocity = initial_velocity + acceleration * duration;
+
+        let coarse_position_error = (coarse.transform.translation.0 - exact_position).norm();
+        let fine_position_error = (fine.transform.translation.0 - exact_position).norm();
+        let convergence_ratio = coarse_position_error / fine_position_error;
+
+        assert!(
+            coarse_position_error > 0.0 && fine_position_error > 0.0,
+            "the selected ballistic fixture must expose non-zero position truncation error"
+        );
+        assert!(
+            (convergence_ratio - 2.0).abs() < 1e-10,
+            "halving dt should halve first-order global position error; ratio={convergence_ratio:.12}"
+        );
+        assert!(
+            (coarse.linear_velocity - exact_velocity).norm() <= 1e-11
+                && (fine.linear_velocity - exact_velocity).norm() <= 1e-11,
+            "constant-acceleration velocity should be exact absent damping/clamps"
+        );
+    }
+
     #[test]
     fn free_fall_3d() {
         let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
         let gravity = SVector::from([0.0, -9.81, 0.0]);
         let dt = 0.01;
+        let steps = 100;
 
-        // Simulate 1 second of free fall (100 steps)
-        for _ in 0..100 {
+        for _ in 0..steps {
             integrate(&mut body, &gravity, dt);
         }
 
-        // After 1s: y ≈ -0.5 * 9.81 * 1² ≈ -4.905 (with damping, less)
-        let y = body.transform.translation.coord(1);
-        assert!(y < -3.0, "y = {y}, expected < -3.0");
-        assert!(y > -6.0, "y = {y}, expected > -6.0 (damping bounds)");
+        // The discrete semi-implicit map is y_N = a*h^2*N*(N+1)/2.
+        let expected_y = -9.81 * dt * dt * (steps as f64) * (steps as f64 + 1.0) / 2.0;
+        let actual_y = body.transform.translation.coord(1);
+        assert!(
+            (actual_y - expected_y).abs() <= 1e-10,
+            "y = {actual_y}, expected discrete value {expected_y}"
+        );
+        assert!(
+            (body.linear_velocity[1] + 9.81).abs() <= 1e-11,
+            "vy = {}, expected -9.81 m/s",
+            body.linear_velocity[1]
+        );
     }
 
     #[test]
