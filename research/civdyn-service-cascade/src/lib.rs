@@ -556,18 +556,29 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioOutcome, CascadeError
             .iter()
             .filter(|service| **service < 0.9 - TOLERANCE)
             .count();
+        // Recovery latency is defined only for a node that was actually
+        // degraded before the recovery window. An unaffected redundant service
+        // has no recovery time and must not be reported as recovering.
+        let experienced_service_loss = levels
+            .iter()
+            .take(scenario.recovery_start_tick)
+            .any(|service| *service < scenario.recovery_threshold);
         let mut recovery_streak = 0usize;
         let mut recovery_after_ticks = None;
-        for (tick_index, service) in levels.iter().enumerate().skip(scenario.recovery_start_tick) {
-            if *service >= scenario.recovery_threshold {
-                recovery_streak += 1;
-            } else {
-                recovery_streak = 0;
-            }
-            if recovery_after_ticks.is_none()
-                && recovery_streak >= scenario.sustained_recovery_steps
+        if experienced_service_loss {
+            for (tick_index, service) in
+                levels.iter().enumerate().skip(scenario.recovery_start_tick)
             {
-                recovery_after_ticks = Some(tick_index + 1 - scenario.recovery_start_tick);
+                if *service >= scenario.recovery_threshold {
+                    recovery_streak += 1;
+                } else {
+                    recovery_streak = 0;
+                }
+                if recovery_after_ticks.is_none()
+                    && recovery_streak >= scenario.sustained_recovery_steps
+                {
+                    recovery_after_ticks = Some(tick_index + 1 - scenario.recovery_start_tick);
+                }
             }
         }
 
@@ -837,6 +848,18 @@ mod tests {
             .position(|node| node.id == "road_access")
             .unwrap();
         assert_eq!(outcome.ticks[1].service_levels[road], 1.0);
+    }
+
+    #[test]
+    fn unaffected_redundant_services_do_not_receive_a_recovery_time() {
+        let scenario = reference_scenario();
+        let outcome = run_scenario(&scenario).unwrap();
+        let fuel = outcome.nodes.iter().find(|node| node.node_id == "fuel").unwrap();
+        let road = outcome.nodes.iter().find(|node| node.node_id == "road_access").unwrap();
+        let hospital = outcome.nodes.iter().find(|node| node.node_id == "hospital").unwrap();
+        assert_eq!(fuel.recovery_after_ticks, None);
+        assert_eq!(road.recovery_after_ticks, None);
+        assert_eq!(hospital.recovery_after_ticks, Some(2));
     }
 
     #[test]
