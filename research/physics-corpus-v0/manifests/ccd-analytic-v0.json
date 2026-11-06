@@ -36,7 +36,9 @@
     {"id":"negative-radius","expected_error":"NegativeRadius"},
     {"id":"negative-timestep","expected_error":"NegativeTimeStep"},
     {"id":"nan-position","expected_error":"NonFiniteInput"},
-    {"id":"zero-halfspace-normal","expected_error":"DegeneratePlaneNormal"}
+    {"id":"zero-halfspace-normal","expected_error":"DegeneratePlaneNormal"},
+    {"id":"underflowed-sweep","expected_error":"NumericalUnderflow"},
+    {"id":"zero-dimension","expected_error":"ZeroDimension"}
   ],
   "global_acceptance": {
     "all_hit_times_finite": true,
