@@ -79,13 +79,7 @@ fn score_rows(game: &MetaGame, roster_id: &str, counts: [usize; 3]) {
     for outcome in &evaluation.outcomes {
         let mut row = empty_row("roster_score", roster_id, evaluation.population_size);
         row[3] = outcome.strategy_name.clone();
-        row[4] = (evaluation
-            .ranked_indices
-            .iter()
-            .position(|index| *index == outcome.strategy_index)
-            .unwrap()
-            + 1)
-        .to_string();
+        row[4] = fmt(evaluation.average_ranks[outcome.strategy_index]);
         row[5] = fmt(outcome.expected_payoff);
         row[6] = fmt(outcome.best_response_payoff);
         row[7] = fmt(outcome.exploitability);
