@@ -620,6 +620,26 @@ impl PortfolioManifest {
                 return Err(PortfolioError::MissingCoverageAxis);
             }
         }
+        let obligations_by_id: BTreeMap<_, _> = self
+            .coverage_obligations
+            .iter()
+            .map(|obligation| (obligation.obligation_id.as_str(), obligation))
+            .collect();
+        let mut superseded_ids = BTreeSet::new();
+        for obligation in &self.coverage_obligations {
+            if let Some(parent_id) = &obligation.supersedes_obligation_id {
+                let parent = obligations_by_id
+                    .get(parent_id.as_str())
+                    .ok_or(PortfolioError::InvalidCoverageEvidence)?;
+                if parent.obligation_id == obligation.obligation_id
+                    || parent.axis != obligation.axis
+                    || parent.stratum_digest != obligation.stratum_digest
+                    || !superseded_ids.insert(parent_id.as_str())
+                {
+                    return Err(PortfolioError::InvalidCoverageEvidence);
+                }
+            }
+        }
 
         let mut requirement_keys = BTreeSet::new();
         let mut required_budgets = BTreeSet::new();
@@ -2350,6 +2370,86 @@ mod tests {
         assert_eq!(
             PortfolioManifest::validate_append_only_revision(&previous, &current),
             Err(PortfolioError::NonAppendOnlyRevision)
+        );
+    }
+
+    #[test]
+    fn coverage_evidence_revision_supersedes_without_rewriting_history() {
+        let mut previous = manifest();
+        let unresolved = &mut previous.coverage_obligations[0];
+        unresolved.state = CoverageState::Unknown;
+        unresolved.evidence_class = None;
+        unresolved.evidence_manifest_digest = None;
+        unresolved.source_lineage_digest = None;
+        unresolved.challenge_protocol_digest = None;
+
+        let mut current = previous.clone();
+        current.revision_sequence = 2;
+        current.supersedes_portfolio_digest = Some(previous.portfolio_digest().unwrap());
+        let parent = previous.coverage_obligations[0].clone();
+        current.coverage_obligations.push(CoverageObligation {
+            obligation_id: "ODD-rain-night-occluded-evidence-v2".into(),
+            axis: parent.axis,
+            stratum_digest: parent.stratum_digest.clone(),
+            state: CoverageState::Covered,
+            minimum_independent_units: 5,
+            independent_unit_count: 8,
+            evidence_class: Some(EvidenceClass::ControlledIntervention),
+            evidence_manifest_digest: Some(d("updated-coverage-evidence")),
+            source_lineage_digest: Some(d("new-independent-drive-lineage")),
+            challenge_protocol_digest: Some(d("updated-coverage-protocol")),
+            not_applicable_rationale: None,
+            supersedes_obligation_id: Some(parent.obligation_id.clone()),
+        });
+
+        PortfolioManifest::validate_append_only_revision(&previous, &current).unwrap();
+        assert_eq!(
+            previous.coverage_obligations[0].state,
+            CoverageState::Unknown
+        );
+        let report = evaluate_portfolio(
+            &current,
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&residual()),
+        )
+        .unwrap();
+        let odd = report.axes.iter()
+            .find(|summary| summary.axis == CoverageAxis::OddRange)
+            .unwrap();
+        assert_eq!(odd.declared_obligations, 1);
+        assert_eq!(odd.covered_obligations, 1);
+        assert_eq!(odd.unresolved_obligations, 0);
+        assert_eq!(
+            report.disposition,
+            PortfolioDisposition::PortfolioCompleteForDeclaredScope
+        );
+    }
+
+    #[test]
+    fn coverage_successor_must_match_parent_stratum_and_cannot_fork() {
+        let mut portfolio = manifest();
+        let parent = portfolio.coverage_obligations[0].clone();
+        let successor = CoverageObligation {
+            obligation_id: "ODD-successor-a".into(),
+            axis: parent.axis,
+            stratum_digest: parent.stratum_digest.clone(),
+            state: CoverageState::Covered,
+            minimum_independent_units: 5,
+            independent_unit_count: 8,
+            evidence_class: Some(EvidenceClass::ControlledIntervention),
+            evidence_manifest_digest: Some(d("evidence-a")),
+            source_lineage_digest: Some(d("lineage-a")),
+            challenge_protocol_digest: Some(d("protocol-a")),
+            not_applicable_rationale: None,
+            supersedes_obligation_id: Some(parent.obligation_id.clone()),
+        };
+        let mut fork = successor.clone();
+        fork.obligation_id = "ODD-successor-b".into();
+        portfolio.coverage_obligations.extend([successor, fork]);
+        assert_eq!(
+            portfolio.validate(),
+            Err(PortfolioError::InvalidCoverageEvidence)
         );
     }
 
