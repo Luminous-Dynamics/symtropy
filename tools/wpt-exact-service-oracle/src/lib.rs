@@ -360,6 +360,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         });
     }
 
+    transfer_links.sort_by_key(|link| link.link_id.clone());
     Ok(Scenario {
         scenario_id,
         interval_count,
@@ -530,6 +531,32 @@ pub struct ReceiverAllocation {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct SegmentSlotAllocation {
+    pub segment_id: String,
+    pub interval_index: usize,
+    pub available_deliverable_energy_mwh: u64,
+    pub allocated_mwh: u64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TransferAllocation {
+    pub link_id: String,
+    pub segment_id: String,
+    pub receiver_id: String,
+    pub interval_index: usize,
+    pub transfer_capacity_mwh: u64,
+    pub allocated_mwh: u64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReceiverSlotAllocation {
+    pub receiver_id: String,
+    pub interval_index: usize,
+    pub max_acceptance_mwh: u64,
+    pub allocated_mwh: u64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct MinCutEdge {
     pub kind: String,
     pub label: String,
@@ -548,6 +575,12 @@ pub struct ServiceOracleReport {
     pub total_shortfall_mwh: u64,
     pub feasible: bool,
     pub receiver_allocations: Vec<ReceiverAllocation>,
+    /// Constructive interval-level use of each segment's deliverable-energy budget.
+    pub segment_allocations: Vec<SegmentSlotAllocation>,
+    /// Constructive energy assignment on each qualified transfer link.
+    pub transfer_allocations: Vec<TransferAllocation>,
+    /// Constructive receiver-side acceptance use in each interval.
+    pub receiver_slot_allocations: Vec<ReceiverSlotAllocation>,
     pub minimum_cut_capacity_mwh: u64,
     pub minimum_cut_edges: Vec<MinCutEdge>,
     pub claim_ceiling: &'static str,
@@ -584,9 +617,13 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     let sink = graph.len();
     graph.push(Vec::new());
     let mut records = Vec::new();
+    let mut segment_edge_records = BTreeMap::new();
+    let mut transfer_edge_records = BTreeMap::new();
+    let mut receiver_slot_edge_records = BTreeMap::new();
 
     for (key, slot) in &scenario.segment_slots {
         let node = segment_nodes[key];
+        let edge_index = graph[source].len();
         add_edge(
             &mut graph,
             &mut records,
@@ -596,32 +633,39 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             "segment_supply",
             format!("{}@{}", slot.segment_id, slot.interval_index),
         );
+        segment_edge_records.insert(key.clone(), (source, edge_index));
     }
 
     for link in &scenario.transfer_links {
         let segment_key = (link.segment_id.clone(), link.interval_index);
         let receiver_key = (link.receiver_id.clone(), link.interval_index);
+        let from = segment_nodes[&segment_key];
+        let edge_index = graph[from].len();
         add_edge(
             &mut graph,
             &mut records,
-            segment_nodes[&segment_key],
+            from,
             receiver_slot_nodes[&receiver_key],
             link.max_deliverable_energy_mwh,
             "transfer_link",
             link.link_id.clone(),
         );
+        transfer_edge_records.insert(link.link_id.clone(), (from, edge_index));
     }
 
     for (key, slot) in &scenario.receiver_slots {
+        let from = receiver_slot_nodes[key];
+        let edge_index = graph[from].len();
         add_edge(
             &mut graph,
             &mut records,
-            receiver_slot_nodes[key],
+            from,
             receiver_demand_nodes[&slot.receiver_id],
             slot.max_acceptance_mwh,
             "receiver_acceptance",
             format!("{}@{}", slot.receiver_id, slot.interval_index),
         );
+        receiver_slot_edge_records.insert(key.clone(), (from, edge_index));
     }
 
     let mut demand_edge_records = BTreeMap::new();
@@ -658,6 +702,51 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             shortfall_mwh: receiver.minimum_service_mwh - delivered_mwh,
         });
     }
+
+    let segment_allocations = scenario
+        .segment_slots
+        .iter()
+        .map(|(key, slot)| {
+            let (from, edge_index) = segment_edge_records[key];
+            SegmentSlotAllocation {
+                segment_id: slot.segment_id.clone(),
+                interval_index: slot.interval_index,
+                available_deliverable_energy_mwh: slot.available_deliverable_energy_mwh,
+                allocated_mwh: slot.available_deliverable_energy_mwh
+                    - graph[from][edge_index].residual_mwh,
+            }
+        })
+        .collect::<Vec<_>>();
+    let transfer_allocations = scenario
+        .transfer_links
+        .iter()
+        .map(|link| {
+            let (from, edge_index) = transfer_edge_records[&link.link_id];
+            TransferAllocation {
+                link_id: link.link_id.clone(),
+                segment_id: link.segment_id.clone(),
+                receiver_id: link.receiver_id.clone(),
+                interval_index: link.interval_index,
+                transfer_capacity_mwh: link.max_deliverable_energy_mwh,
+                allocated_mwh: link.max_deliverable_energy_mwh
+                    - graph[from][edge_index].residual_mwh,
+            }
+        })
+        .collect::<Vec<_>>();
+    let receiver_slot_allocations = scenario
+        .receiver_slots
+        .iter()
+        .map(|(key, slot)| {
+            let (from, edge_index) = receiver_slot_edge_records[key];
+            ReceiverSlotAllocation {
+                receiver_id: slot.receiver_id.clone(),
+                interval_index: slot.interval_index,
+                max_acceptance_mwh: slot.max_acceptance_mwh,
+                allocated_mwh: slot.max_acceptance_mwh
+                    - graph[from][edge_index].residual_mwh,
+            }
+        })
+        .collect::<Vec<_>>();
 
     let feasible = delivered == scenario.total_minimum_service_mwh;
     let total_shortfall_mwh = scenario.total_minimum_service_mwh - delivered;
@@ -697,6 +786,9 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         total_shortfall_mwh,
         feasible,
         receiver_allocations,
+        segment_allocations,
+        transfer_allocations,
+        receiver_slot_allocations,
         minimum_cut_capacity_mwh,
         minimum_cut_edges,
         claim_ceiling: "Synthetic exact feasibility oracle for supplied integer capacities only; no field accuracy, robust uncertainty, fairness optimum, safety, grid-code or energization claim.",
@@ -727,6 +819,33 @@ mod tests {
         assert_eq!(report.total_shortfall_mwh, 0);
         assert_eq!(report.minimum_cut_capacity_mwh, 16);
         assert!(report.receiver_allocations.iter().all(|row| row.shortfall_mwh == 0));
+        assert_eq!(
+            report
+                .segment_allocations
+                .iter()
+                .map(|row| row.allocated_mwh)
+                .sum::<u64>(),
+            16
+        );
+        assert_eq!(
+            report
+                .transfer_allocations
+                .iter()
+                .map(|row| row.allocated_mwh)
+                .sum::<u64>(),
+            16
+        );
+        assert_eq!(
+            report
+                .receiver_slot_allocations
+                .iter()
+                .map(|row| row.allocated_mwh)
+                .sum::<u64>(),
+            16
+        );
+        assert!(report.transfer_allocations.iter().all(|row| {
+            row.allocated_mwh <= row.transfer_capacity_mwh
+        }));
     }
 
     #[test]
