@@ -91,7 +91,25 @@ def semantic_errors(candidate):
     component_by_id = {component["component_id"]: component for component in components}
     component_ids = set(component_by_id)
 
+    if stack["component_digest_canonicalization"] != "sorted-key-value-lines-v1":
+        errors.append("unsupported execution-stack component digest canonicalization")
+
     for component in components:
+        component_fields = {
+            "behavior_affecting": "true" if component["behavior_affecting"] else "false",
+            "component_id": component["component_id"],
+            "notes": component["notes"],
+            "role": component["role"],
+            "version": component["version"],
+        }
+        component_canonical = "\n".join(
+            f"{key}={component_fields[key]}" for key in sorted(component_fields)
+        ).encode("utf-8")
+        component_digest = hashlib.sha256(component_canonical).hexdigest()
+        if component["configuration_digest"] != component_digest:
+            errors.append(
+                f"execution-stack component digest mismatch: {component['component_id']}"
+            )
         if component["behavior_affecting"] and not component["configuration_digest"]:
             errors.append(
                 f"behavior-affecting component {component['component_id']} is not configuration-pinned"
