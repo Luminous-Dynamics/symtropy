@@ -46,3 +46,13 @@ cargo clippy -p symtropy-pcc-metrology --all-targets -- -D warnings
 ```
 
 The package is an independent workspace member to ensure its Rust tests actually compile. It does not depend on the currently unregistered symtropy-energy-systems source directory.
+
+## Clock-time uncertainty
+
+V0.2 extends time alignment beyond a clock-offset pass/fail threshold. When either trace has nonzero time uncertainty, the caller must provide externally validated conservative maximum absolute power-slew bounds for both traces across the complete event window. The evaluator adds a deterministic timing-induced power bound:
+
+`U_time = S_baseline × u_t,baseline + S_candidate × u_t,candidate`
+
+where `S` is the declared maximum absolute power slew in W/s and `u_t` is the clock-time uncertainty in seconds. This bound is added to the expanded electrical measurement-uncertainty allowance rather than combined by Gaussian root-sum-square. The conservative response lower bound therefore includes both electrical measurement uncertainty and worst-case timing sensitivity.
+
+Nonzero clock uncertainty without both slew bounds is an abstention. A zero bound must itself be justified by the upstream evidence; the evaluator does not infer that a trace is flat. These bounds are caller-provided, not estimated from the same finite sample window, so the evaluator does not silently assume that observed sampled ramps bound unobserved sub-interval transients.
