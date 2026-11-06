@@ -2652,27 +2652,25 @@ mod checked_ccd_diagnostic_tests {
             1.0,
         );
         moving.linear_velocity = SVector::from([f64::NAN, 0.0, 0.0]);
-        world.add_body(moving);
+        let moving_handle = world.add_body(moving);
 
-        let obstacle = RigidBody::new(
+        let mut obstacle = RigidBody::dynamic_sphere(
             BodyHandle(101),
-            BodyType::Static,
-            Transform::from_translation(Point::new([10.0, 0.0, 0.0])),
-            Box::new(crate::body::RigidBody::<3>::dynamic_sphere(
-                BodyHandle(102),
-                Point::origin(),
-                0.5,
-                1.0,
-            ).collider),
-            0.0,
-            SVector::zeros(),
+            Point::new([10.0, 0.0, 0.0]),
+            0.5,
+            1.0,
         );
+        obstacle.body_type = BodyType::Static;
         world.add_body(obstacle);
 
-        let positions: Vec<_> = world.bodies.iter().map(RigidBody::position).collect();
+        let positions: Vec<_> = world.bodies.iter().map(|body| body.position()).collect();
         world.run_ccd_pass(&positions, 0.016);
         assert!(!world.ccd_diagnostics().is_empty());
 
+        world
+            .body_mut(moving_handle)
+            .expect("moving body remains in world")
+            .linear_velocity = SVector::zeros();
         world.step(0.016);
         assert!(world.ccd_diagnostics().is_empty());
     }
