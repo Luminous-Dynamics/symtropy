@@ -540,7 +540,7 @@ fn valid_lineage(role: EvidenceRole, lineage_ref: Option<&String>) -> bool {
         EvidenceRole::ProcessSensor
         | EvidenceRole::OperatorReported
         | EvidenceRole::ModelEstimate
-        | EvidenceRole::Simulation => false,
+        | EvidenceRole::Simulation => true,
     }
 }
 
