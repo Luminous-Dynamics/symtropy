@@ -429,7 +429,6 @@ pub fn evaluate(
         .find(|run| run.configuration.configuration_id == benchmark.baseline_configuration_id)
         .expect("validated benchmark contains the baseline");
     let baseline_decisions = decision_map(baseline);
-    let baseline_cohort_rates = cohort_rates(&baseline.decisions, &benchmark.reference_cohort_id);
 
     let mut configuration_metrics = Vec::with_capacity(benchmark.runs.len());
     for run in &benchmark.runs {
@@ -439,10 +438,11 @@ pub fn evaluate(
             .filter(|(case_id, selected)| baseline_decisions[*case_id] != **selected)
             .count();
         let overall = overall_rate(&run.decisions);
-        let cohorts = cohort_rates(&run.decisions, &benchmark.reference_cohort_id)
+        let run_cohort_rates = cohort_rates(&run.decisions, &benchmark.reference_cohort_id);
+        let cohorts = run_cohort_rates
             .into_iter()
             .map(|(cohort_id, rate)| {
-                let reference = baseline_cohort_rates
+                let reference = run_cohort_rates
                     .get(&benchmark.reference_cohort_id)
                     .expect("validated reference cohort exists");
                 let reference_rate = reference.value;
