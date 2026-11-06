@@ -114,7 +114,7 @@ pub fn sphere_sphere<const D: usize>(
     }
 
     let radial_room_sq = radius_sum_sq - closest_distance_sq;
-    let tolerance = 64.0 * f64::EPSILON * radius_sum_sq.max(closest_distance_sq).max(1.0);
+    let tolerance = 64.0 * f64::EPSILON * radius_sum_sq.max(closest_distance_sq).max(f64::MIN_POSITIVE);
     if radial_room_sq < -tolerance {
         return None;
     }
@@ -149,8 +149,9 @@ pub fn sphere_sphere<const D: usize>(
 
 /// Swept sphere vs half-space (infinite plane): find time of impact.
 ///
-/// Solve for t where `normal · (pos + vel*t) - offset = radius`.
-/// This is linear: `t = (radius + offset - normal · pos) / (normal · vel)`.
+/// Solve for t where the signed distance to the plane equals `radius`.
+/// The plane is represented by `normal · x = offset`; the offset must be
+/// scaled together with the normal when representing the same plane.
 pub fn sphere_halfspace<const D: usize>(
     pos: &SVector<f64, D>,
     vel: &SVector<f64, D>,
@@ -361,6 +362,34 @@ mod tests {
         assert!((unit_hit.toi - scaled_hit.toi).abs() < 1e-12);
         assert!((unit_hit.point - scaled_hit.point).norm() < 1e-12);
         assert!((scaled_hit.normal.norm() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_halfspace_is_invariant_to_scaled_nonzero_plane_offset() {
+        let pos = SVector::from([0.0, 10.0, 0.0]);
+        let vel = SVector::from([0.0, -100.0, 0.0]);
+        let unit_normal = SVector::from([0.0, 1.0, 0.0]);
+        let scaled_normal = SVector::from([0.0, 7.0, 0.0]);
+
+        let unit_hit = sphere_halfspace(&pos, &vel, 0.5, &unit_normal, 2.0, 1.0).unwrap();
+        let scaled_hit = sphere_halfspace(&pos, &vel, 0.5, &scaled_normal, 14.0, 1.0).unwrap();
+
+        assert!((unit_hit.toi - 0.075).abs() < 1e-12);
+        assert!((unit_hit.toi - scaled_hit.toi).abs() < 1e-12);
+        assert!((unit_hit.point - scaled_hit.point).norm() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_sphere_scale_relative_tolerance_does_not_admit_micro_scale_near_miss() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([1.0e-3, 0.0, 0.0]);
+        let pos_b = SVector::from([1.0e3, 1.000_001e-6, 0.0]);
+        let vel_b = SVector::zeros();
+
+        assert!(
+            sphere_sphere(&pos_a, &vel_a, 0.5e-6, &pos_b, &vel_b, 0.5e-6, 2.0e6).is_none(),
+            "a micro-scale trajectory missing by 1 pm must remain a miss"
+        );
     }
 
     #[test]
