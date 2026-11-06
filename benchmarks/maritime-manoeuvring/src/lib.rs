@@ -667,12 +667,24 @@ fn yaw_rate_zero_crossing(
     for index in (start_index + 1)..=end_index {
         let before = samples[index - 1].yaw_rate_rad_s * direction;
         let after = samples[index].yaw_rate_rad_s * direction;
-        if before > EPSILON && after <= EPSILON {
-            let fraction = if after.abs() <= EPSILON {
-                1.0
-            } else {
-                before / (before - after)
-            };
+        if before <= EPSILON {
+            continue;
+        }
+
+        let crossing_fraction = if after < -EPSILON {
+            Some(before / (before - after))
+        } else if after.abs() <= EPSILON
+            && index < end_index
+            && samples[index + 1].yaw_rate_rad_s * direction < -EPSILON
+        {
+            // An exact sampled zero is accepted only when the next sample
+            // confirms the opposite sign; a zero/plateau alone is not a peak.
+            Some(1.0)
+        } else {
+            None
+        };
+
+        if let Some(fraction) = crossing_fraction {
             let a = samples[index - 1];
             let b = samples[index];
             return Some(HeadingPeak {
