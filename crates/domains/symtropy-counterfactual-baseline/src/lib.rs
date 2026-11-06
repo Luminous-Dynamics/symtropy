@@ -116,6 +116,7 @@ pub struct NoDispatchObservation {
     interval_duration_ns: u64,
     predicted_no_dispatch_power_kw: f64,
     observed_no_dispatch_power_kw: f64,
+    observed_expanded_uncertainty_kw: f64,
     fold: BaselineFold,
     dispatch_active: bool,
 }
@@ -132,6 +133,7 @@ impl NoDispatchObservation {
         interval_duration_ns: u64,
         predicted_no_dispatch_power_kw: f64,
         observed_no_dispatch_power_kw: f64,
+        observed_expanded_uncertainty_kw: f64,
         fold: BaselineFold,
         dispatch_active: bool,
     ) -> Result<Self, BaselineQualificationError> {
@@ -145,6 +147,7 @@ impl NoDispatchObservation {
             interval_duration_ns,
             predicted_no_dispatch_power_kw,
             observed_no_dispatch_power_kw,
+            observed_expanded_uncertainty_kw,
             fold,
             dispatch_active,
         };
@@ -174,10 +177,17 @@ impl NoDispatchObservation {
         for (field, value) in [
             ("predicted no-dispatch power", predicted_no_dispatch_power_kw),
             ("observed no-dispatch power", observed_no_dispatch_power_kw),
+            ("observed no-dispatch expanded uncertainty", observed_expanded_uncertainty_kw),
         ] {
             if !value.is_finite() {
                 return Err(BaselineQualificationError::InvalidQuantity { field, value });
             }
+        }
+        if observed_expanded_uncertainty_kw < 0.0 {
+            return Err(BaselineQualificationError::InvalidQuantity {
+                field: "observed no-dispatch expanded uncertainty",
+                value: observed_expanded_uncertainty_kw,
+            });
         }
         interval_start_ns
             .checked_add(interval_duration_ns)
@@ -466,6 +476,8 @@ pub struct BaselineEventReport {
     pub net_reduction_energy_kwh: f64,
     pub minimum_response_kw: f64,
     pub event_qualified: bool,
+    /// Interval bounds are not automatically a joint event-horizon probability.
+    pub event_lower_bound_is_joint_probability: bool,
     pub event_and_recovery_included_in_supplied_horizon: bool,
     pub intervals: Vec<BaselineEventIntervalReceipt>,
     pub claim_boundary: String,
@@ -599,25 +611,44 @@ pub fn qualify_counterfactual_baseline(
     for regime_id in regimes {
         let calibration_samples = calibration.get(regime_id).expect("regime key exists");
         let evaluation_samples = evaluation.get(regime_id).expect("regime key exists");
-        if calibration_samples.len() < contract.minimum_calibration_groups_per_regime {
+        let calibration_group_ids: BTreeSet<&str> = calibration_samples
+            .iter()
+            .map(|sample| sample.group_id.as_str())
+            .collect();
+        let evaluation_group_ids: BTreeSet<&str> = evaluation_samples
+            .iter()
+            .map(|sample| sample.group_id.as_str())
+            .collect();
+        if calibration_group_ids.len() < contract.minimum_calibration_groups_per_regime {
             return Err(BaselineQualificationError::InsufficientCalibrationGroups {
                 regime_id: regime_id.to_owned(),
-                observed: calibration_samples.len(),
-                required: contract.minimum_calibration_groups_per_regime,
+                observed_groups: calibration_group_ids.len(),
+                required_groups: contract.minimum_calibration_groups_per_regime,
             });
         }
-        if evaluation_samples.len() < contract.minimum_evaluation_groups_per_regime {
+        if evaluation_group_ids.len() < contract.minimum_evaluation_groups_per_regime {
             return Err(BaselineQualificationError::InsufficientEvaluationGroups {
                 regime_id: regime_id.to_owned(),
-                observed: evaluation_samples.len(),
-                required: contract.minimum_evaluation_groups_per_regime,
+                observed_groups: evaluation_group_ids.len(),
+                required_groups: contract.minimum_evaluation_groups_per_regime,
             });
         }
 
-        let mut calibration_residuals: Vec<f64> = calibration_samples
-            .iter()
-            .map(|sample| sample.observed_no_dispatch_power_kw - sample.predicted_no_dispatch_power_kw)
-            .collect();
+        // Treat each independence group as one calibration unit. Use its
+        // worst interval residual so serially correlated rows cannot inflate
+        // the nominal tail sample count or hide a bad interval within a block.
+        let mut group_lower_residuals: BTreeMap<&str, f64> = BTreeMap::new();
+        for sample in calibration_samples {
+            let conservative_residual = sample.observed_no_dispatch_power_kw
+                - sample.observed_expanded_uncertainty_kw
+                - sample.predicted_no_dispatch_power_kw;
+            group_lower_residuals
+                .entry(sample.group_id.as_str())
+                .and_modify(|current| *current = current.min(conservative_residual))
+                .or_insert(conservative_residual);
+        }
+        let mut calibration_residuals: Vec<f64> =
+            group_lower_residuals.values().copied().collect();
         calibration_residuals.sort_by(f64::total_cmp);
         let alpha = contract.residual_lower_tail_alpha_basis_points as usize;
         let rank = ((calibration_residuals.len() + 1) * alpha / 10_000).clamp(1, calibration_residuals.len());
@@ -649,21 +680,29 @@ pub fn qualify_counterfactual_baseline(
         let normalized_mae_basis_points = evaluation_mae_kw
             / mean_absolute_actual_kw * BASIS_POINTS;
 
-        let mut covered = 0usize;
-        let mut false_positive_reductions = 0usize;
+        // Evaluate at the independent-group level: one bad interval means
+        // that a group fails joint within-block coverage. This avoids treating
+        // autocorrelated intervals as independent Bernoulli trials.
+        let mut group_audit: BTreeMap<&str, (bool, bool)> = BTreeMap::new();
         for sample in evaluation_samples {
             let lower_bound = sample.predicted_no_dispatch_power_kw + lower_residual_quantile_kw;
-            if sample.observed_no_dispatch_power_kw + 1.0e-9 >= lower_bound {
-                covered += 1;
-            }
-            if lower_bound - sample.observed_no_dispatch_power_kw >= contract.minimum_response_kw {
-                false_positive_reductions += 1;
-            }
+            let observed_lower_bound =
+                sample.observed_no_dispatch_power_kw - sample.observed_expanded_uncertainty_kw;
+            let covered = observed_lower_bound + 1.0e-9 >= lower_bound;
+            let false_positive =
+                lower_bound - observed_lower_bound >= contract.minimum_response_kw;
+            let audit = group_audit
+                .entry(sample.group_id.as_str())
+                .or_insert((true, false));
+            audit.0 &= covered;
+            audit.1 |= false_positive;
         }
+        let covered_groups = group_audit.values().filter(|(covered, _)| *covered).count();
+        let false_positive_groups = group_audit.values().filter(|(_, false_positive)| *false_positive).count();
         let lower_bound_coverage_basis_points =
-            covered as f64 / evaluation_samples.len() as f64 * BASIS_POINTS;
+            covered_groups as f64 / group_audit.len() as f64 * BASIS_POINTS;
         let false_positive_reduction_rate_basis_points =
-            false_positive_reductions as f64 / evaluation_samples.len() as f64 * BASIS_POINTS;
+            false_positive_groups as f64 / group_audit.len() as f64 * BASIS_POINTS;
 
         let qualified = normalized_bias_basis_points
             <= contract.maximum_absolute_normalized_bias_basis_points as f64
@@ -677,16 +716,8 @@ pub fn qualify_counterfactual_baseline(
             regime_id: regime_id.to_owned(),
             calibration_sample_count: calibration_samples.len(),
             evaluation_sample_count: evaluation_samples.len(),
-            calibration_group_count: calibration_samples
-                .iter()
-                .map(|sample| sample.group_id.as_str())
-                .collect::<BTreeSet<_>>()
-                .len(),
-            evaluation_group_count: evaluation_samples
-                .iter()
-                .map(|sample| sample.group_id.as_str())
-                .collect::<BTreeSet<_>>()
-                .len(),
+            calibration_group_count: calibration_group_ids.len(),
+            evaluation_group_count: evaluation_group_ids.len(),
             lower_residual_quantile_kw,
             evaluation_bias_kw,
             normalized_bias_basis_points,
@@ -836,6 +867,7 @@ pub fn evaluate_baseline_bounded_event(
         net_reduction_energy_kwh,
         minimum_response_kw: qualified_baseline.minimum_response_kw,
         event_qualified,
+        event_lower_bound_is_joint_probability: false,
         event_and_recovery_included_in_supplied_horizon: true,
         intervals: receipts,
         claim_boundary: "model-based conservative impact bound using holdout-qualified counterfactual baseline and caller-supplied expanded PCC measurement uncertainty; no causal identification is asserted".to_owned(),
