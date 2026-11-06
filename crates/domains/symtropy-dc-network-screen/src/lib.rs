@@ -208,10 +208,6 @@ impl DcNetworkModel {
         self.topology_effective_at_ns
     }
 
-    pub fn pcc_bus_id(&self) -> &str {
-        &self.pcc_bus_id
-    }
-
     pub const fn base_mva(&self) -> f64 {
         self.base_mva
     }
