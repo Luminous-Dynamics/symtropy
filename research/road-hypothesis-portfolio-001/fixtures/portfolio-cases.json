@@ -171,6 +171,16 @@
       "id": "HP-34",
       "scenario": "Two successor records fork from one coverage obligation",
       "expected": "reject"
+    },
+    {
+      "id": "HP-35",
+      "scenario": "Coverage successor revision is not later than its parent",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-36",
+      "scenario": "Coverage supersession cycle",
+      "expected": "reject"
     }
   ]
 }
