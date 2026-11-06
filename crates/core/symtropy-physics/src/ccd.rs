@@ -44,6 +44,9 @@ pub enum CcdQueryError {
     DegeneratePlaneNormal,
     /// A finite input produced an unrepresentable intermediate or output.
     NumericalOverflow,
+    /// A nonzero physical sweep underflowed to zero or lost all representable
+    /// quadratic motion coefficients.
+    NumericalUnderflow,
 }
 
 /// Primitive CCD query that produced a diagnostic.
@@ -189,7 +192,7 @@ pub fn sphere_sphere_checked<const D: usize>(
         return Err(CcdQueryError::NumericalOverflow);
     }
     if travel_scale == 0.0 {
-        return Ok(None);
+        return Err(CcdQueryError::NumericalUnderflow);
     }
 
     // The maximum Euclidean displacement is bounded by sqrt(D) times the
@@ -222,7 +225,7 @@ pub fn sphere_sphere_checked<const D: usize>(
         return Err(CcdQueryError::NumericalOverflow);
     }
     if a == 0.0 {
-        return Ok(None);
+        return Err(CcdQueryError::NumericalUnderflow);
     }
 
     let four_ac = 4.0 * a * c;
@@ -526,6 +529,31 @@ mod tests {
         // t = 99.5 / 1.0 = 99.5, way beyond dt=1.0
         let hit = sphere_halfspace(&pos, &vel, 0.5, &normal, 0.0, 1.0);
         assert!(hit.is_none(), "impact outside dt should not be reported");
+    }
+
+    #[test]
+    fn zero_dimension_queries_return_typed_error_without_panicking() {
+        let point = SVector::<f64, 0>::zeros();
+        assert_eq!(
+            sphere_sphere_checked(&point, &point, 0.0, &point, &point, 0.0, 1.0),
+            Err(CcdQueryError::ZeroDimension)
+        );
+        assert_eq!(
+            sphere_halfspace_checked(&point, &point, 0.0, &point, 0.0, 1.0),
+            Err(CcdQueryError::ZeroDimension)
+        );
+    }
+
+    #[test]
+    fn nonzero_sweep_that_underflows_is_not_reported_as_no_hit() {
+        let pos_a = SVector::from([0.0, 0.0]);
+        let vel_a = SVector::from([1e-300, 0.0]);
+        let pos_b = SVector::from([1e-300, 0.0]);
+        let vel_b = SVector::zeros();
+        assert_eq!(
+            sphere_sphere_checked(&pos_a, &vel_a, 0.0, &pos_b, &vel_b, 0.0, 1e-300),
+            Err(CcdQueryError::NumericalUnderflow)
+        );
     }
 
     #[test]
