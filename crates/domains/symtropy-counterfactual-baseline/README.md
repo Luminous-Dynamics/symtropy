@@ -1,0 +1,45 @@
+# Symtropy Counterfactual Baseline Qualification
+
+A Rust assurance layer for no-dispatch load baseline validation and conservative event-impact estimation.
+
+## Paradigm
+
+Demand-response impact is counterfactual. The no-dispatch load during a dispatch event is not observed. A model that overpredicts this counterfactual can manufacture a positive reduction even when the site did nothing.
+
+This package therefore requires disjoint no-dispatch calibration and evaluation groups. It computes a lower residual quantile from the calibration partition, then tests lower-bound coverage, error bias and false-positive reductions on the independent evaluation groups. An unqualified model cannot be used to produce an event report.
+
+## v0.1 guarantees
+
+- Forecasts must be issued before the target interval begins.
+- Dispatched observations are rejected from baseline calibration/evaluation.
+- Calibration and evaluation independence-group IDs cannot overlap.
+- Calibration and evaluation source digests cannot be identical.
+- One-sided lower residual quantile is calibrated separately by declared operating regime.
+- Holdout bias, normalized MAE, RMSE, lower-bound coverage and apparent false-positive reduction rate are reported per regime.
+- Every regime must pass the pre-registered contract before event evaluation is enabled.
+- Event evaluation uses the lower baseline bound and upper PCC measured-load bound (including the metrology uncertainty supplied by #3772).
+- Event and recovery intervals are chronological and contiguous; gross reduction, rebound and net energy remain separate.
+- The event receipt binds the exact qualified model identity, regime, forecast issue time, interval, metrology and evidence ID.
+
+## Method and assumptions
+
+For each regime, calibration residuals are `r = observed no-dispatch power − predicted no-dispatch power`. The caller declares a lower-tail alpha. The selected empirical lower residual quantile is applied as:
+
+`baseline lower bound = predicted no-dispatch power + lower residual quantile`
+
+This is a split-calibration-style empirical bound. The independent evaluation fold measures actual coverage; it does not prove exchangeability in future regimes. If the regime, model, hardware, workload mix, cooling or forecast process changes materially, requalify or abstain.
+
+The event response lower bound is:
+
+`baseline lower bound − (measured dispatched power + PCC expanded uncertainty)`
+
+Signed rebound is retained. Summed event energy is reported separately from any capacity-credit or settlement claim.
+
+## Run
+
+```sh
+cargo test -p symtropy-counterfactual-baseline
+cargo clippy -p symtropy-counterfactual-baseline --all-targets -- -D warnings
+```
+
+All current integration fixtures are synthetic known truth. This crate makes model-based M&V estimates; it is not causal identification, market accreditation or ELCC.
