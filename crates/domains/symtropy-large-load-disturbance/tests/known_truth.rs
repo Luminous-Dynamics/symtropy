@@ -252,9 +252,8 @@ fn excessive_sample_gap_abstains() {
     ];
     let strict_cadence =
         DisturbanceTraceContract::new(10_000, 500_000_000, 20_000_000, 0.4, 3).unwrap();
-    let error =
-        evaluate_disturbance_conformance(&event(), &requirement(), &strict_cadence, &trace)
-            .unwrap_err();
+    let error = evaluate_disturbance_conformance(&event(), &requirement(), &strict_cadence, &trace)
+        .unwrap_err();
 
     assert!(matches!(
         error,
@@ -534,7 +533,10 @@ fn initial_measurement_gap_from_event_start_abstains() {
         sample(200_000_000, 0.87, 50.0, 72.0, true),
     ];
     let policy = DisturbanceTraceContract::new(10_000, 50_000_000, 20_000_000, 0.4, 3).unwrap();
-    let error = evaluate_disturbance_conformance(&event(), &requirement(), &policy, &trace)
-        .unwrap_err();
-    assert!(matches!(error, DisturbanceError::InitialSampleGapExceedsContract { .. }));
+    let error =
+        evaluate_disturbance_conformance(&event(), &requirement(), &policy, &trace).unwrap_err();
+    assert!(matches!(
+        error,
+        DisturbanceError::InitialSampleGapExceedsContract { .. }
+    ));
 }
