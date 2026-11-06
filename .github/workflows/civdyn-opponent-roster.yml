@@ -73,7 +73,7 @@ jobs:
           for roster, winner in expected_winners.items():
               ranked = sorted(
                   (row for (roster_id, _), row in scores.items() if roster_id == roster),
-                  key=lambda row: int(row["rank"]),
+                  key=lambda row: float(row["rank"]),
               )
               assert ranked[0]["strategy"] == winner, f"{roster} winner should be {winner}"
 
