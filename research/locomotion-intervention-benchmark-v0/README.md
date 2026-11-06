@@ -33,11 +33,13 @@ These are intentionally small synthetic generators for benchmark semantics. The 
 - Candidate-family selection with a score-margin threshold and explicit abstention.
 - **Maximin intervention design:** rank feasible candidate actions by the minimum pairwise post-onset forecast RMSE across all competing mechanism pairs, divided by declared action cost. This avoids choosing an experiment that separates easy pairs while leaving one rival pair indistinguishable.
 - **Parameter-scenario robustness:** evaluate the same action across a supplied set of plausible damping/coupling/frequency/phase configurations and maximize the worst separation across both model pairs and parameter scenarios. Scenarios must share the same sample grid.
-- Unresolved worst-case model pairs/scenarios cause design abstention; infeasible actions are excluded before ranking.
+- **Finite-hypothesis Bayesian expected information gain:** supply explicit mechanism/parameter hypotheses with prior weights; simulate Monte Carlo outcomes under a common Gaussian observation model; estimate expected log posterior-to-prior information gain for each candidate action; report standard error and rank by information nats per unit cost.
+- Identical predictive hypotheses yield approximately zero information and trigger abstention; candidate-ID-derived random streams make estimates reproducible and order-invariant.
+- Unresolved worst-case model pairs/scenarios cause maximin-design abstention; near-zero EIG causes Bayesian-design abstention; infeasible actions are excluded before ranking.
 - Strictly increasing timestamps and exact paired timestamp-grid identity for prediction scoring.
 - Standalone Cargo crate with a dedicated Rust 1.96.0 formatting / test / strict-Clippy workflow.
 
-The 42 deterministic tests cover:
+The 46 deterministic tests cover:
 - baseline observational equivalence and mandatory abstention;
 - feedback-cut divergence and both directions of fitted-model selection;
 - driven-attractor relaxation, hybrid phase correction and phase pulses;
@@ -56,11 +58,11 @@ This V0 does not fit feedback decay/coupling, implement Bayesian model evidence,
 
 The paired-seed Monte Carlo currently uses small deterministic seed sets and known synthetic parameter grids; it is a harness proof, not a powered performance evaluation. Wilson intervals quantify binomial rates over the chosen synthetic seeds; they do not establish biological generalization.
 
-The intervention designer uses deterministic model-prediction disagreement divided by declared cost. Its multi-scenario extension is a finite-scenario worst-case approximation, not a posterior-predictive distribution. Neither variant is Bayesian expected information gain: they have no posterior over models, nuisance parameters, action outcomes or intervention uncertainty. Next work should add posterior-predictive design, parameter uncertainty, profile-likelihood practical identifiability and sequential outcome-updated planning. The phase pulse and feedback cut are idealized synthetic actions; measured interventions require authenticated assignment/delivery receipts and actual timing/latency.
+The maximin intervention designer uses deterministic model-prediction disagreement divided by declared cost; its multi-scenario extension is a finite-scenario worst-case approximation. The new EIG selector carries an explicit discrete prior over user-declared mechanism/parameter hypotheses and computes Monte Carlo expected information gain under a fixed common Gaussian observation model. It is not continuous parameter posterior inference; its prior support is only as complete as the supplied finite hypotheses, and the variance model does not include process uncertainty or missingness. Next work should add profile-likelihood practical identifiability and sequential outcome-updated planning. The phase pulse and feedback cut are idealized synthetic actions; measured interventions require authenticated assignment/delivery receipts and actual timing/latency.
 
 ## Required next benchmark increments
 
-1. Add posterior-predictive expected information gain and compare with maximin disagreement, random-feasible, greedy and robust baselines.
+1. Compare finite-hypothesis EIG with maximin disagreement, random-feasible, greedy and robust baselines; add posterior uncertainty over nuisance parameters and sequential outcome-updated planning.
 2. Add parameter-uncertainty/profile-likelihood design and a sequential plan that updates model probabilities after each observed outcome.
 3. Compare against AR(1), VAR(p), ordinary SSM, switching SSM and feedback-attractor estimators under equal fitting budgets.
 4. Add PRC, entrainment/locking range, phase slips, amplitude recovery, delayed feedback and per-leg coupling.
