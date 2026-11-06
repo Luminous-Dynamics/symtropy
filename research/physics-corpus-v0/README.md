@@ -203,6 +203,55 @@ data within a declared uncertainty budget, while deterministic controls and
 invariants pass?" This is a distinct qualification tier, not a relaxation of
 analytic tests.
 
+## 2026 GPU-physics and industry benchmark update
+
+The comparator set has expanded beyond CPU rigid-body engines. Dimforge's
+25 October 2026 Q3 report describes Nexus v0.7.0, a cross-platform GPU
+multiphysics engine written in Rust shaders, and the Physmark benchmarking
+suite. The report states a 505,000-rigid-body pyramid at approximately
+14 ms/frame on an RTX 5080. This is a vendor-reported result for a particular
+scene, engine revision and hardware; it is not an independently reproduced
+Symtropy comparison and must not be treated as a directly comparable number.
+
+The same report describes three distinct benchmark families used by Physmark:
+
+1. Large-scale rigid-body scenes with tens/hundreds of thousands of bodies.
+2. Many small independent environments for robotics/RL training.
+3. Non-rigid MPM scenes.
+
+It also describes Rapier parallelism work beyond independent islands:
+intra-island parallelism, persistent graph coloring and parallel broadphase.
+The reported up-to-2x single-thread / up-to-4x eight-worker speedups are
+before/after vendor results on an M4 Max; they are not attributed to the tagged
+Rapier 0.35.3 release unless a matching exact release/commit is verified.
+
+This means the current 64-rollout CPU benchmark is only the **many-small-
+environments CPU baseline**. It does not cover the large-single-world GPU or
+MPM families. Track the extension in
+[PHYS-GPU-001 #3866](https://github.com/Luminous-Dynamics/symtropy/issues/3866).
+
+Required comparison rules:
+- Separate bodies/frame, environments/second and particles/second; never
+  aggregate unlike workloads into one score.
+- Pin exact engine commit, solver/friction/contact mode, device backend,
+  precision, worker count and scene digest.
+- Report kernel-only and end-to-end time separately, including host/device
+  transfer and synchronization.
+- Preserve the full output/observable stream and failure IDs; do not silently
+  omit timeouts or unsupported engines from the denominator.
+- On current local RTX 2070 Laptop hardware, use the new workload family for
+  correctness and profiling only. It is not hardware-equivalent to an RTX 5080.
+- A GPU performance claim needs matched physical/numerical quality and actual
+  supported energy measurements, not FLOP estimates.
+
+Official research links:
+- Dimforge Q3 2026 report:
+  https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/
+- Physmark:
+  https://physmark.dimforge.com
+- MuJoCo 3.17.0 batch API:
+  https://mujoco.readthedocs.io/en/3.17.0/changelog.html
+
 ## Future scenario families
 
 The first batch workload is only one lane. Extend the corpus with separately
