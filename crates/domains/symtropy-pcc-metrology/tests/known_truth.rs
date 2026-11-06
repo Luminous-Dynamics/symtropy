@@ -38,7 +38,10 @@ fn contract(minimum_response_w: f64) -> PccMetrologyContract {
 }
 
 fn clock() -> ClockAlignmentEvidence {
-    ClockAlignmentEvidence::new(5, 5, "clock-model-1").expect("valid clock")
+    ClockAlignmentEvidence::new(5, 5, "clock-model-1")
+        .expect("valid clock")
+        .with_maximum_power_slew_bounds(0.0, 0.0)
+        .expect("valid slew bounds")
 }
 
 fn reading(
@@ -373,5 +376,57 @@ fn calibration_operating_range_is_fail_closed() {
     assert!(matches!(
         error,
         symtropy_pcc_metrology::PccMetrologyError::OutsideCalibrationOperatingRange { .. }
+    ));
+}
+
+#[test]
+fn clock_time_uncertainty_is_propagated_through_declared_power_slew() {
+    let clock = ClockAlignmentEvidence::new(5, 5, "clock-model-1")
+        .expect("valid clock")
+        .with_maximum_power_slew_bounds(1.0e9, 1.0e9)
+        .expect("valid slew bounds");
+    let report = evaluate_pcc_metrology(
+        &identity(),
+        &calibration(1.0, 0.0),
+        &contract(95.0),
+        &clock,
+        &[pair(0, 1_000_000_000, 1_000.0, 900.0, 0.0, 0.0, 0.0)],
+    )
+    .expect("evaluation succeeds");
+    let interval = &report.intervals[0];
+    assert_eq!(interval.measured_reduction_w, 100.0);
+    assert!((interval.time_alignment_uncertainty_bound_w - 10.0).abs() < 1e-12);
+    assert!((interval.expanded_uncertainty_w - 10.0).abs() < 1e-12);
+    assert!((interval.conservative_reduction_lower_bound_w - 90.0).abs() < 1e-12);
+    assert!(!interval.response_threshold_pass);
+}
+
+#[test]
+fn nonzero_clock_uncertainty_without_slew_bounds_abstains() {
+    let clock = ClockAlignmentEvidence::new(5, 5, "clock-model-1")
+        .expect("valid clock");
+    let error = evaluate_pcc_metrology(
+        &identity(),
+        &calibration(1.0, 0.0),
+        &contract(1.0),
+        &clock,
+        &[pair(0, 1_000, 100.0, 90.0, 0.0, 0.0, 0.0)],
+    )
+    .unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_pcc_metrology::PccMetrologyError::MissingClockSlewBounds { .. }
+    ));
+}
+
+#[test]
+fn invalid_power_slew_bound_is_rejected() {
+    let error = ClockAlignmentEvidence::new(5, 5, "clock-model-1")
+        .expect("valid clock")
+        .with_maximum_power_slew_bounds(-1.0, 0.0)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_pcc_metrology::PccMetrologyError::InvalidQuantity { .. }
     ));
 }
