@@ -12,7 +12,7 @@
 
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -136,6 +136,10 @@ pub struct TrialRecord {
     pub task_profile_ref: String,
     pub material_cohort_ref: String,
     pub material_pairing_ref: String,
+    /// Unique physical specimen/block identity; cannot be reused across trials.
+    pub specimen_ref: String,
+    /// Shared pair identifier for matched baseline/candidate specimens.
+    pub matched_pair_ref: String,
     pub geometry_profile_ref: String,
     pub acceptance_profile_ref: String,
     pub site_context_ref: String,
@@ -157,6 +161,10 @@ pub enum ValidationCode {
     InvalidMinimumReplicates,
     EmptyTrialReference,
     DuplicateTrialId,
+    DuplicateSpecimenReference,
+    MissingMatchedPairReference,
+    MatchedPairMismatch,
+    MethodConfigurationMismatch,
     ProfileMismatch,
     InvalidNumericValue,
     InvalidUncertainty,
@@ -257,6 +265,7 @@ pub fn compare_trials(
     }
 
     let mut ids = BTreeSet::new();
+    let mut specimen_ids = BTreeSet::new();
     let mut baseline = Vec::new();
     let mut candidate = Vec::new();
 
@@ -272,6 +281,9 @@ pub fn compare_trials(
         }
 
         validate_trial(profile, trial, &mut issues);
+        if !trial.specimen_ref.trim().is_empty() && !specimen_ids.insert(trial.specimen_ref.as_str()) {
+            push_issue(&mut issues, Some(trial.trial_id.clone()), ValidationCode::DuplicateSpecimenReference);
+        }
 
         match trial.arm {
             TrialArm::MechanicalBaseline => baseline.push(trial),
@@ -281,6 +293,10 @@ pub fn compare_trials(
 
     if profile.study_design == StudyDesign::SingleArm {
         push_issue(&mut issues, None, ValidationCode::UnsupportedSingleArmComparison);
+    }
+    validate_matched_pairs(profile, &baseline, &candidate, &mut issues);
+    if !arm_configuration_is_consistent(&baseline) || !arm_configuration_is_consistent(&candidate) {
+        push_issue(&mut issues, None, ValidationCode::MethodConfigurationMismatch);
     }
     if baseline.is_empty() {
         push_issue(&mut issues, None, ValidationCode::MissingBaselineArm);
@@ -400,6 +416,7 @@ fn validate_trial(
         &trial.task_profile_ref,
         &trial.material_cohort_ref,
         &trial.material_pairing_ref,
+        &trial.specimen_ref,
         &trial.geometry_profile_ref,
         &trial.acceptance_profile_ref,
         &trial.site_context_ref,
@@ -419,6 +436,12 @@ fn validate_trial(
 
     if references.iter().any(|reference| reference.trim().is_empty()) {
         push_issue(issues, id.clone(), ValidationCode::EmptyTrialReference);
+    }
+
+    if matches!(profile.study_design, StudyDesign::RandomizedMatchedPair | StudyDesign::ObservationalMatched)
+        && trial.matched_pair_ref.trim().is_empty()
+    {
+        push_issue(issues, id.clone(), ValidationCode::MissingMatchedPairReference);
     }
 
     if trial.profile_ref != profile.profile_id
@@ -495,6 +518,41 @@ fn validate_trial(
     if !valid_lineage(trial.time.evidence_role, trial.time.lineage_ref.as_ref()) {
         push_issue(issues, id, ValidationCode::MissingEvidenceLineage);
     }
+}
+
+fn validate_matched_pairs(
+    profile: &ComparisonProfile,
+    baseline: &[&TrialRecord],
+    candidate: &[&TrialRecord],
+    issues: &mut Vec<ValidationIssue>,
+) {
+    if !matches!(profile.study_design, StudyDesign::RandomizedMatchedPair | StudyDesign::ObservationalMatched) {
+        return;
+    }
+
+    let mut pairs: BTreeMap<&str, (usize, usize)> = BTreeMap::new();
+    for trial in baseline {
+        if !trial.matched_pair_ref.trim().is_empty() {
+            pairs.entry(trial.matched_pair_ref.as_str()).or_default().0 += 1;
+        }
+    }
+    for trial in candidate {
+        if !trial.matched_pair_ref.trim().is_empty() {
+            pairs.entry(trial.matched_pair_ref.as_str()).or_default().1 += 1;
+        }
+    }
+    if pairs.values().any(|counts| *counts != (1, 1)) {
+        push_issue(issues, None, ValidationCode::MatchedPairMismatch);
+    }
+}
+
+fn arm_configuration_is_consistent(trials: &[&TrialRecord]) -> bool {
+    let Some(first) = trials.first() else { return true; };
+    trials.iter().all(|trial| {
+        trial.method_profile_ref == first.method_profile_ref
+            && trial.machine_profile_ref == first.machine_profile_ref
+            && trial.tool_profile_ref == first.tool_profile_ref
+    })
 }
 
 fn arm_metrics_are_valid(metrics: &ArmMetrics) -> bool {
@@ -606,6 +664,8 @@ mod tests {
             task_profile_ref: profile.task_profile_ref,
             material_cohort_ref: profile.material_cohort_ref,
             material_pairing_ref: profile.material_pairing_ref,
+            specimen_ref: format!("specimen:{id}"),
+            matched_pair_ref: if id.ends_with('1') { "matched-pair:01".to_owned() } else { "matched-pair:02".to_owned() },
             geometry_profile_ref: profile.geometry_profile_ref,
             acceptance_profile_ref: profile.acceptance_profile_ref,
             site_context_ref: profile.site_context_ref,
@@ -918,6 +978,39 @@ mod tests {
         trials[2].accepted_output.lineage_ref = Some("lineage:scan-and-weigh-raw:v1".to_owned());
         let result = compare_trials(&profile(), &trials).unwrap();
         assert_eq!(result.candidate.trial_count, 2);
+    }
+
+
+    #[test]
+    fn matched_pair_design_requires_one_baseline_and_one_candidate_per_pair() {
+        let mut trials = four_trials();
+        trials[3].matched_pair_ref = "matched-pair:01".to_owned();
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::MatchedPairMismatch));
+    }
+
+    #[test]
+    fn matched_pair_design_requires_pair_reference() {
+        let mut trials = four_trials();
+        trials[2].matched_pair_ref.clear();
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::MissingMatchedPairReference));
+    }
+
+    #[test]
+    fn duplicate_physical_specimen_ids_are_rejected() {
+        let mut trials = four_trials();
+        trials[2].specimen_ref = trials[0].specimen_ref.clone();
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::DuplicateSpecimenReference));
+    }
+
+    #[test]
+    fn one_arm_cannot_pool_multiple_tool_configurations() {
+        let mut trials = four_trials();
+        trials[3].tool_profile_ref = "tool:alternate-disc-cutter:v1".to_owned();
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::MethodConfigurationMismatch));
     }
 
 }
