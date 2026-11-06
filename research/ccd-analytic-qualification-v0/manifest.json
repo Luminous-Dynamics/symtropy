@@ -42,8 +42,37 @@
       "observable": "toi_and_contact_point",
       "reference_relation": "invariant_under_positive_scaling_of_plane_normal_and_offset",
       "tolerance": 1e-12
+    },
+    {
+      "id": "sphere-sphere-galilean-boost",
+      "observable": "toi_and_contact_normal",
+      "reference_relation": "common_velocity_boost_invariant",
+      "tolerance": 1e-12
+    },
+    {
+      "id": "sphere-sphere-time-reparameterization",
+      "observable": "toi_and_contact_point",
+      "reference_relation": "toi_scales_inversely_with_velocity_time_scale",
+      "tolerance": 1e-12
+    },
+    {
+      "id": "sphere-sphere-contact-residual",
+      "observable": "center_distance_minus_radius_sum",
+      "analytic_reference": 0.0,
+      "tolerance": 1e-11
+    },
+    {
+      "id": "sphere-halfspace-contact-residual",
+      "observable": "normalized_plane_equation_at_contact_point",
+      "analytic_reference": 0.0,
+      "tolerance": 1e-12
     }
   ],
+  "checked_api_semantics": {
+    "valid_no_hit": "Ok(None)",
+    "invalid_input": "Err(CcdInputError)",
+    "legacy_option_api": "invalid_input_and_no_hit_both_map_to_none"
+  },
   "negative_controls": [
     "zero_plane_normal",
     "non_finite_plane_offset",
