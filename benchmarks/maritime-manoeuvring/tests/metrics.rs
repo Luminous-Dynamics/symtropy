@@ -491,6 +491,18 @@ fn zig_zag_rejects_missing_first_peak() {
 }
 
 #[test]
+fn zig_zag_rejects_zero_yaw_rate_without_observed_sign_reversal() {
+    let mut trajectory = zig_zag_trajectory();
+    for sample in &mut trajectory.samples[5..10] {
+        sample.yaw_rate_rad_s = 1.0;
+    }
+    assert_eq!(
+        zig_zag_metrics(&trajectory, &zig_zag_commands(), 10.0),
+        Err(TrajectoryError::OvershootPeakNotObserved(1))
+    );
+}
+
+#[test]
 fn zig_zag_requires_command_events_to_align_with_trajectory_samples() {
     let mut commands = zig_zag_commands();
     commands[1].time_s = 2.5;
