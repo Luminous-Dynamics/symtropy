@@ -63,7 +63,10 @@
         "minimum_evidence_tier",
         "objectives",
         "constraints",
-        "primary_outcomes_require_independent_measurements"
+        "primary_outcomes_require_independent_measurements",
+        "material_cohort_ref",
+        "acceptance_profile_ref",
+        "site_context_ref"
       ],
       "properties": {
         "profile_id": {
@@ -144,6 +147,18 @@
             },
             "additionalProperties": false
           }
+        },
+        "material_cohort_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_context_ref": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false
@@ -248,7 +263,12 @@
         "energy_boundary_ref",
         "configuration_ref",
         "outcomes",
-        "source_refs"
+        "source_refs",
+        "decision_profile_ref",
+        "task_profile_ref",
+        "material_cohort_ref",
+        "acceptance_profile_ref",
+        "site_context_ref"
       ],
       "properties": {
         "strategy_id": {
@@ -317,6 +337,30 @@
         },
         "notes": {
           "type": "string"
+        },
+        "decision_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_cohort_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_context_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_ledger_ref": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "allOf": [
@@ -334,6 +378,23 @@
           "then": {
             "required": [
               "engineering_qualification_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "resource_boundary_status": {
+                "const": "COMPLETE"
+              }
+            },
+            "required": [
+              "resource_boundary_status"
+            ]
+          },
+          "then": {
+            "required": [
+              "resource_ledger_ref"
             ]
           }
         }
