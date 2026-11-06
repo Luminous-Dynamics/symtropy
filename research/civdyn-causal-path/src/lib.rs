@@ -1027,6 +1027,14 @@ mod tests {
             .treatment
             .initial_values
             .insert("authorized_transfer_m3".into(), 2.0);
+        let authorization_edge = invalid.required_path_edge_ids[1].clone();
+        invalid
+            .treatment
+            .transitions
+            .iter_mut()
+            .find(|receipt| receipt.edge_id == authorization_edge)
+            .unwrap()
+            .target_before = 2.0;
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::UncontrolledInitialState(_))
