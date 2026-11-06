@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-ccd-checked-query-v0",
+  "status": "analytic_verification_only_no_performance_claim",
+  "target": "crates/core/symtropy-physics/src/ccd.rs",
+  "api": {
+    "compatibility": "Option<CcdHit> wrappers",
+    "checked": "Result<Option<CcdHit>, CcdInputError>",
+    "toi_unit": "seconds",
+    "toi_interval": "[0, dt]",
+    "invalid_input_policy": "typed error from checked API; legacy wrapper maps invalid input to None"
+  },
+  "input_contract": {
+    "position": "finite length vector",
+    "velocity": "finite length-per-second vector",
+    "radius": "finite non-negative length",
+    "timestep": "finite non-negative seconds",
+    "plane_normal": "finite nonzero vector; normalized internally",
+    "plane_offset": "finite scalar divided by the original normal magnitude",
+    "output_normal": "unit length",
+    "overflow": "checked arithmetic/result values fail as NumericOverflow"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "sphere-sphere-head-on-v0",
+      "dimension": 3,
+      "pos_a_m": [
+        0,
+        0,
+        0
+      ],
+      "vel_a_m_per_s": [
+        10,
+        0,
+        0
+      ],
+      "radius_a_m": 0.5,
+      "pos_b_m": [
+        5,
+        0,
+        0
+      ],
+      "vel_b_m_per_s": [
+        -10,
+        0,
+        0
+      ],
+      "radius_b_m": 0.5,
+      "timestep_s": 1,
+      "analytic_toi_s": 0.2,
+      "analytic_contact_center_distance_m": 1,
+      "acceptance": {
+        "toi_abs_error_s_max": 1e-12,
+        "center_distance_residual_m_max": 1e-12,
+        "normal_unit_norm_error_max": 1e-12
+      }
+    },
+    {
+      "scenario_id": "sphere-sphere-tangent-v0",
+      "dimension": 3,
+      "pos_a_m": [
+        0,
+        0,
+        0
+      ],
+      "vel_a_m_per_s": [
+        10,
+        0,
+        0
+      ],
+      "radius_a_m": 0.5,
+      "pos_b_m": [
+        5,
+        1,
+        0
+      ],
+      "vel_b_m_per_s": [
+        0,
+        0,
+        0
+      ],
+      "radius_b_m": 0.5,
+      "timestep_s": 1,
+      "analytic_toi_s": 0.5,
+      "discriminant": 0,
+      "acceptance": {
+        "toi_abs_error_s_max": 1e-12,
+        "center_distance_residual_m_max": 1e-12
+      }
+    },
+    {
+      "scenario_id": "sphere-halfspace-scaled-normal-v0",
+      "dimension": 3,
+      "position_m": [
+        0,
+        10,
+        0
+      ],
+      "velocity_m_per_s": [
+        0,
+        -100,
+        0
+      ],
+      "radius_m": 0.5,
+      "plane_normal": [
+        0,
+        2,
+        0
+      ],
+      "plane_offset": 4,
+      "plane_equation": "2*y - 4 = 0",
+      "timestep_s": 1,
+      "analytic_plane_y_m": 2,
+      "analytic_toi_s": 0.075,
+      "acceptance": {
+        "toi_abs_error_s_max": 1e-12,
+        "contact_plane_residual_m_max": 1e-12,
+        "normal_unit_norm_error_max": 1e-12
+      }
+    },
+    {
+      "scenario_id": "sphere-halfspace-zero-normal-negative-control-v0",
+      "dimension": 3,
+      "plane_normal": [
+        0,
+        0,
+        0
+      ],
+      "expected_error": "ZeroPlaneNormal"
+    }
+  ],
+  "claim_limits": {
+    "general_convex_ccd_validation": false,
+    "rotating_body_ccd_validation": false,
+    "mesh_ccd_validation": false,
+    "full_world_tunnelling_free_claim": false,
+    "external_engine_performance_claim": false,
+    "sota_superiority_claim": false
+  }
+}
