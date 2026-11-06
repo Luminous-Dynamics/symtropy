@@ -18,8 +18,8 @@ use symtropy_road_actor_adapter::{
 };
 use symtropy_road_actors::{
     ActorAction, ActorPolicy, ActorPolicyState, AllowedActorObservation, CautiousPausePolicy,
-    CommittedAfterEntryPolicy, CueKind, CueValue, MotionBounds, ObservationCue,
-    ObservationError, ObservationProvenance, PolicyError, ScenarioActorId, ScenarioTick,
+    CommittedAfterEntryPolicy, CueKind, CueValue, MotionBounds, ObservationCue, ObservationError,
+    ObservationProvenance, PolicyError, ScenarioActorId, ScenarioTick,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -189,9 +189,9 @@ enum ActorPolicyInstance {
 impl ActorPolicyInstance {
     fn new(profile: ActorPolicyProfile, bounds: MotionBounds) -> Result<Self, ProducerError> {
         match profile {
-            ActorPolicyProfile::CautiousPause => Ok(Self::CautiousPause(
-                CautiousPausePolicy::new(bounds, 2.5, 3.5, 0)?,
-            )),
+            ActorPolicyProfile::CautiousPause => Ok(Self::CautiousPause(CautiousPausePolicy::new(
+                bounds, 2.5, 3.5, 0,
+            )?)),
             ActorPolicyProfile::CommittedAfterEntry => Ok(Self::CommittedAfterEntry(
                 CommittedAfterEntryPolicy::new(bounds, 3.5, 0)?,
             )),
