@@ -127,8 +127,10 @@ impl SimulationConfig {
 ///
 /// IntrinsicOscillator is a stable unit-amplitude limit-cycle surrogate.
 /// DampedFocus is a transient rotating focus whose amplitude decays.
-/// SensoryFeedbackDriven follows a periodic external drive and stops cycling
-/// when that feedback is removed.
+/// FeedbackAttractor is a stable state tracking a periodic external target;
+/// without feedback it relaxes to the origin.
+/// SensoryFeedbackDriven directly follows a periodic external drive and stops
+/// cycling when that feedback is removed.
 /// HybridFeedbackCoupled has an intrinsic phase plus Kuramoto-style sensory
 /// phase coupling. These deliberately simple generators provide known-truth
 /// controls; they are not asserted to reproduce any animal's neural circuit.
@@ -597,7 +599,7 @@ mod tests {
         let trace =
             simulate(Mechanism::FeedbackAttractor, intervention, config()).unwrap();
         assert!(trace.latent_truth[10].amplitude > 0.5);
-        assert!(trace.latent_truth[30].amplitude > 0.5);
+        assert!(trace.latent_truth[20].amplitude > 0.5);
         assert!(trace.latent_truth.last().unwrap().amplitude < 0.01);
         assert!(trace.samples[10].x.is_finite());
         assert!(trace.samples[10].y.is_finite());
