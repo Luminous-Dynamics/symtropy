@@ -62,6 +62,11 @@ and specialist solver adapters are intentionally not implemented in v0. The
 trajectory and evidence contract is designed to receive those as later,
 separately qualified capabilities.
 
+
+## Industry baselines
+
+See [industry-baselines.md](industry-baselines.md) for the 2026 standards, peer-reviewed research comparators, matched optimizer protocol and service-level metrics. This note distinguishes study-specific author-reported gains from directly comparable benchmark results.
+
 ## Frozen test coverage
 
 The initial suite contains hand-checkable synthetic controls for:
