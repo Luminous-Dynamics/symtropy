@@ -757,12 +757,7 @@ mod tests {
             Err(ValidationError::DuplicateSampleId { .. })
         ));
 
-        let mut non_finite = set(
-            "sim",
-            &values,
-            "posts/day",
-            "independent_simulation_run",
-        );
+        let mut non_finite = set("sim", &values, "posts/day", "independent_simulation_run");
         non_finite.samples[5].value = f64::NAN;
         assert!(matches!(
             compare_metric(
