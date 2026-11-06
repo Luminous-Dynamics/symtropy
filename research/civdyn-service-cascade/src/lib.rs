@@ -87,9 +87,7 @@ impl Scenario {
                 tick_count: self.own_availability_by_tick.len(),
             });
         }
-        if !self.recovery_threshold.is_finite()
-            || !(0.0..=1.0).contains(&self.recovery_threshold)
-        {
+        if !self.recovery_threshold.is_finite() || !(0.0..=1.0).contains(&self.recovery_threshold) {
             return Err(CascadeError::InvalidRecoveryThreshold(
                 self.recovery_threshold,
             ));
@@ -112,9 +110,7 @@ impl Scenario {
             if ids.insert(node.id.as_str(), index).is_some() {
                 return Err(CascadeError::DuplicateNodeId(node.id.clone()));
             }
-            if !node.beneficiary_demand_weight.is_finite()
-                || node.beneficiary_demand_weight < 0.0
-            {
+            if !node.beneficiary_demand_weight.is_finite() || node.beneficiary_demand_weight < 0.0 {
                 return Err(CascadeError::InvalidDemandWeight {
                     node_id: node.id.clone(),
                     value: node.beneficiary_demand_weight,
@@ -172,8 +168,7 @@ impl Scenario {
                     }
                     if !input.minimum_operating_fraction.is_finite()
                         || input.minimum_operating_fraction < 0.0
-                        || input.minimum_operating_fraction
-                            > input.full_service_fraction
+                        || input.minimum_operating_fraction > input.full_service_fraction
                     {
                         return Err(CascadeError::InvalidMinimumOperatingFraction {
                             node_id: node.id.clone(),
@@ -393,7 +388,10 @@ impl fmt::Display for CascadeError {
                 "recovery start tick {recovery_start_tick} exceeds trajectory length {tick_count}"
             ),
             Self::InvalidRecoveryThreshold(value) => {
-                write!(f, "recovery threshold must be finite and in [0, 1], got {value}")
+                write!(
+                    f,
+                    "recovery threshold must be finite and in [0, 1], got {value}"
+                )
             }
             Self::ZeroSustainedRecoverySteps => {
                 write!(f, "sustained recovery steps must be greater than zero")
@@ -408,7 +406,10 @@ impl fmt::Display for CascadeError {
             }
             Self::DemandWeightOverflow => write!(f, "total beneficiary demand weight overflowed"),
             Self::NoBeneficiaryDemand => {
-                write!(f, "at least one endpoint must have positive beneficiary demand")
+                write!(
+                    f,
+                    "at least one endpoint must have positive beneficiary demand"
+                )
             }
             Self::EmptyDependencyGroup { node_id } => {
                 write!(f, "node {node_id} has an empty dependency group")
@@ -515,12 +516,8 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioOutcome, CascadeError
                     group_values.push(factor);
                 }
                 let group_capacity = match group.mode {
-                    DependencyMode::AllOf => {
-                        group_values.iter().copied().fold(1.0_f64, f64::min)
-                    }
-                    DependencyMode::AnyOf => {
-                        group_values.iter().copied().fold(0.0_f64, f64::max)
-                    }
+                    DependencyMode::AllOf => group_values.iter().copied().fold(1.0_f64, f64::min),
+                    DependencyMode::AnyOf => group_values.iter().copied().fold(0.0_f64, f64::max),
                 };
                 dependency_capacity = dependency_capacity.min(group_capacity);
             }
@@ -550,8 +547,7 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioOutcome, CascadeError
             .map(|tick| tick.service_levels[node_index])
             .collect::<Vec<_>>();
         let minimum_service = levels.iter().copied().fold(1.0_f64, f64::min);
-        let deficit_area_service_ticks =
-            levels.iter().map(|service| 1.0 - service).sum::<f64>();
+        let deficit_area_service_ticks = levels.iter().map(|service| 1.0 - service).sum::<f64>();
         let ticks_below_50_percent = levels
             .iter()
             .filter(|service| **service < 0.5 - TOLERANCE)
@@ -562,11 +558,7 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioOutcome, CascadeError
             .count();
         let mut recovery_streak = 0usize;
         let mut recovery_after_ticks = None;
-        for (tick_index, service) in levels
-            .iter()
-            .enumerate()
-            .skip(scenario.recovery_start_tick)
-        {
+        for (tick_index, service) in levels.iter().enumerate().skip(scenario.recovery_start_tick) {
             if *service >= scenario.recovery_threshold {
                 recovery_streak += 1;
             } else {
@@ -575,8 +567,7 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioOutcome, CascadeError
             if recovery_after_ticks.is_none()
                 && recovery_streak >= scenario.sustained_recovery_steps
             {
-                recovery_after_ticks =
-                    Some(tick_index + 1 - scenario.recovery_start_tick);
+                recovery_after_ticks = Some(tick_index + 1 - scenario.recovery_start_tick);
             }
         }
 
@@ -686,10 +677,7 @@ pub fn reference_scenario() -> Scenario {
             "road_access",
             "transport",
             0.0,
-            vec![any_of(vec![
-                dep("fuel", 0.5, 0.1),
-                dep("grid", 0.2, 0.05),
-            ])],
+            vec![any_of(vec![dep("fuel", 0.5, 0.1), dep("grid", 0.2, 0.05)])],
         ),
         node(
             "hospital",
@@ -802,10 +790,22 @@ mod tests {
         };
         for tick in [1, 2] {
             assert_eq!(outcome.ticks[tick].service_levels[node_index("grid")], 0.0);
-            assert_eq!(outcome.ticks[tick].service_levels[node_index("hospital")], 0.0);
-            assert_eq!(outcome.ticks[tick].service_levels[node_index("payments")], 0.0);
-            assert_eq!(outcome.ticks[tick].service_levels[node_index("household_water")], 0.0);
-            assert_eq!(outcome.ticks[tick].service_levels[node_index("road_access")], 1.0);
+            assert_eq!(
+                outcome.ticks[tick].service_levels[node_index("hospital")],
+                0.0
+            );
+            assert_eq!(
+                outcome.ticks[tick].service_levels[node_index("payments")],
+                0.0
+            );
+            assert_eq!(
+                outcome.ticks[tick].service_levels[node_index("household_water")],
+                0.0
+            );
+            assert_eq!(
+                outcome.ticks[tick].service_levels[node_index("road_access")],
+                1.0
+            );
         }
         assert_eq!(outcome.demand_weighted_service_deficit_area, 16.0);
     }
@@ -817,7 +817,11 @@ mod tests {
         scenario.own_availability_by_tick[1][0] = 0.25;
         scenario.recovery_start_tick = 2;
         let outcome = run_scenario(&scenario).unwrap();
-        let treatment = scenario.nodes.iter().position(|node| node.id == "water_treatment").unwrap();
+        let treatment = scenario
+            .nodes
+            .iter()
+            .position(|node| node.id == "water_treatment")
+            .unwrap();
         assert!((outcome.ticks[1].service_levels[treatment] - 0.5).abs() < 1e-12);
         assert!(outcome.ticks[1].service_levels[treatment] > 0.0);
         assert!(outcome.ticks[1].service_levels[treatment] < 1.0);
@@ -827,7 +831,11 @@ mod tests {
     fn any_of_dependency_keeps_road_service_when_grid_is_lost_but_fuel_survives() {
         let scenario = reference_scenario();
         let outcome = run_scenario(&scenario).unwrap();
-        let road = scenario.nodes.iter().position(|node| node.id == "road_access").unwrap();
+        let road = scenario
+            .nodes
+            .iter()
+            .position(|node| node.id == "road_access")
+            .unwrap();
         assert_eq!(outcome.ticks[1].service_levels[road], 1.0);
     }
 
@@ -835,7 +843,11 @@ mod tests {
     fn sustained_recovery_requires_two_consecutive_ticks() {
         let scenario = reference_scenario();
         let outcome = run_scenario(&scenario).unwrap();
-        let hospital = outcome.nodes.iter().find(|node| node.node_id == "hospital").unwrap();
+        let hospital = outcome
+            .nodes
+            .iter()
+            .find(|node| node.node_id == "hospital")
+            .unwrap();
         assert_eq!(hospital.recovery_after_ticks, Some(2));
     }
 
@@ -845,8 +857,14 @@ mod tests {
         scenario.own_availability_by_tick = vec![vec![1.0; scenario.nodes.len()]; 4];
         scenario.recovery_start_tick = 0;
         let criticalities = node_criticalities(&scenario, 1, 2).unwrap();
-        let grid = criticalities.iter().find(|node| node.node_id == "grid").unwrap();
-        let fuel = criticalities.iter().find(|node| node.node_id == "fuel").unwrap();
+        let grid = criticalities
+            .iter()
+            .find(|node| node.node_id == "grid")
+            .unwrap();
+        let fuel = criticalities
+            .iter()
+            .find(|node| node.node_id == "fuel")
+            .unwrap();
         assert!(grid.marginal_service_deficit_area > 0.0);
         assert_eq!(fuel.marginal_service_deficit_area, 0.0);
     }
@@ -888,9 +906,11 @@ mod tests {
             tick.reverse();
         }
         let result = run_scenario(&reversed).unwrap();
-        assert!((baseline.demand_weighted_service_deficit_area
-            - result.demand_weighted_service_deficit_area)
-            .abs()
-            < 1e-12);
+        assert!(
+            (baseline.demand_weighted_service_deficit_area
+                - result.demand_weighted_service_deficit_area)
+                .abs()
+                < 1e-12
+        );
     }
 }
