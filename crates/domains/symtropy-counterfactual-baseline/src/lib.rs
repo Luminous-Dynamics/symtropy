@@ -517,6 +517,9 @@ pub struct EventRecoveryEvidence {
 }
 
 impl EventRecoveryEvidence {
+    // The constructor pins two independent reconciliation receipts alongside
+    // the source horizon and its time boundaries; keep this explicit API.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         event_start_ns: u64,
         dispatch_end_ns: u64,
