@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-analytic-numerical-qualification-v0",
+  "status": "research_only_no_engine_wide_validation_claim",
+  "engine": {"crate":"symtropy-physics","release":"0.2.1","profile":"default"},
+  "scenarios": [
+    {
+      "id":"ccd-thin-wall-crossing-v0",
+      "family":"ccd_sphere_sphere",
+      "input":{"moving_center_m":[-10,0,0],"moving_velocity_mps":[1000,0,0],"fixed_center_m":[0,0,0],"fixed_velocity_mps":[0,0,0],"radii_m":[0.1,0.1],"dt_s":0.02},
+      "oracle":{"method":"centerline_chord","expected_toi_s":0.0098},
+      "acceptance":{"toi_abs_error_s":1e-12,"contact_distance_abs_error_m":1e-10,"unit_normal_abs_error":1e-12}
+    },
+    {
+      "id":"ccd-swept-sphere-chord-grid-v0",
+      "family":"ccd_sphere_sphere",
+      "grid":{"combined_radius_m":0.75,"start_x_m":-4,"speed_mps":12,"offset_y_steps":31,"offset_y_range_m":[0,0.75],"dt_s":1},
+      "oracle":{"method":"circle_chord_geometry","near_contact_x":"-sqrt(R^2-y^2)","toi":"(near_contact_x-start_x)/speed"},
+      "acceptance":{"toi_abs_error_s":1e-11,"contact_distance_abs_error_m":1e-10,"unit_normal_abs_error":1e-12}
+    },
+    {
+      "id":"ccd-grazing-contact-v0",
+      "family":"ccd_sphere_sphere",
+      "input":{"moving_center_m":[-2,0.2,0],"moving_velocity_mps":[4,0,0],"fixed_center_m":[0,0,0],"combined_radius_m":0.2,"dt_s":1},
+      "oracle":{"method":"tangent_geometry","expected_toi_s":0.5},
+      "acceptance":{"toi_abs_error_s":1e-10,"finite_point_and_normal":true,"unit_normal_abs_error":1e-10}
+    },
+    {
+      "id":"ccd-halfspace-speed-grid-v0",
+      "family":"ccd_sphere_halfspace",
+      "grid":{"normal":[0,1,0],"plane_offset_m":2,"radius_m":0.25,"start_height_m":10,"speeds_mps":"3,6,...,60","dt_s":10},
+      "oracle":{"method":"signed_distance","toi":"(start_height-plane_offset-radius)/speed"},
+      "acceptance":{"toi_abs_error_s":1e-12,"signed_distance_residual_m":1e-10,"normal_abs_error":1e-12}
+    },
+    {
+      "id":"distance-constraint-stiffness-decay-v0",
+      "family":"distance_constraint",
+      "input":{"initial_distance_m":10,"rest_length_m":4,"stiffness":0.25,"iterations":16},
+      "oracle":{"method":"analytic_geometric_convergence","residual_after_n":"initial_error*(1-stiffness)^n"},
+      "acceptance":{"residual_abs_error_m":1e-10}
+    },
+    {
+      "id":"distance-constraint-unequal-mass-com-v0",
+      "family":"distance_constraint",
+      "input":{"masses_kg":[1,3],"positions_m":[[0,0,0],[10,0,0]],"rest_length_m":4,"stiffness":0.5,"iterations":16},
+      "oracle":{"method":"isolated_two_body_center_of_mass_invariance"},
+      "acceptance":{"center_of_mass_drift_m":1e-12,"distance_residual_m":1e-3}
+    },
+    {
+      "id":"integrator-discrete-free-fall-v0",
+      "family":"semi_implicit_euler",
+      "input":{"initial_position_m":[0,0,0],"initial_velocity_mps":[0,0,0],"gravity_mps2":[0,-9.81,0],"dt_s":0.1,"steps":10,"damping":0},
+      "oracle":{"method":"exact_discrete_recurrence","velocity_y":"g*T","position_y":"g*dt^2*n*(n+1)/2"},
+      "acceptance":{"velocity_abs_error_mps":1e-12,"position_abs_error_m":1e-11}
+    },
+    {
+      "id":"integrator-free-fall-refinement-v0",
+      "family":"semi_implicit_euler",
+      "input":{"total_time_s":1,"gravity_y_mps2":-9.81,"timesteps_s":[0.125,0.0625],"damping":0},
+      "oracle":{"method":"continuous_solution_and_step_refinement","expected_global_position_order":1,"expected_error_ratio_after_halving_dt":2},
+      "acceptance":{"observed_error_ratio_abs_error":1e-10}
+    }
+  ],
+  "claim_ceiling":{"replay_determinism_is_physical_validation":false,"analytic_scenarios_qualify_entire_engine":false,"performance_superiority_claimed":false,"real_world_validation_claimed":false},
+  "result_requirements":{"source_commit":"exact SHA","scenario_digest":"SHA-256 of this manifest","toolchain":"exact rustc/cargo/target","preserve_failures":true,"tolerance_selection":"predeclared; never tuned after inspecting results"}
+}

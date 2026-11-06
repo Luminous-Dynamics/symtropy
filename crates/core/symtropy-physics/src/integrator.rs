@@ -382,3 +382,61 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod analytic_integrator_qualification_tests {
+    use super::*;
+    use crate::body::BodyHandle;
+    use symtropy_math::Point;
+
+    fn simulate_free_fall(dt: f64, steps: usize) -> (f64, f64) {
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.25, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        let gravity = SVector::from([0.0, -9.81, 0.0]);
+
+        for _ in 0..steps {
+            integrate(&mut body, &gravity, dt);
+        }
+
+        (body.transform.translation.0[1], body.linear_velocity[1])
+    }
+
+    #[test]
+    fn semi_implicit_euler_matches_its_exact_discrete_free_fall_recurrence() {
+        let dt = 0.1;
+        let steps = 10;
+        let total_time = dt * steps as f64;
+        let gravity = -9.81;
+        let (position, velocity) = simulate_free_fall(dt, steps);
+
+        // v_n = n*g*dt and x_n = g*dt²*n*(n+1)/2 for v_0 = x_0 = 0.
+        let expected_velocity = gravity * total_time;
+        let expected_position = gravity * dt * dt * (steps * (steps + 1)) as f64 / 2.0;
+
+        assert!((velocity - expected_velocity).abs() < 1e-12);
+        assert!((position - expected_position).abs() < 1e-11);
+    }
+
+    #[test]
+    fn free_fall_position_error_converges_at_first_order_under_step_refinement() {
+        let total_time = 1.0;
+        let gravity = -9.81;
+        let continuous_position = 0.5 * gravity * total_time * total_time;
+
+        let coarse_dt: f64 = 0.125;
+        let fine_dt: f64 = coarse_dt / 2.0;
+        let coarse_steps = (total_time / coarse_dt) as usize;
+        let fine_steps = (total_time / fine_dt) as usize;
+        let (coarse_position, _) = simulate_free_fall(coarse_dt, coarse_steps);
+        let (fine_position, _) = simulate_free_fall(fine_dt, fine_steps);
+        let coarse_error = (coarse_position - continuous_position).abs();
+        let fine_error = (fine_position - continuous_position).abs();
+
+        assert!(coarse_error > 0.0 && fine_error > 0.0);
+        assert!(
+            (coarse_error / fine_error - 2.0).abs() < 1e-10,
+            "expected first-order global position error: coarse={coarse_error}, fine={fine_error}"
+        );
+    }
+}

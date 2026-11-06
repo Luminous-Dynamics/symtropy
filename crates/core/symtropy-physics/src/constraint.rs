@@ -141,3 +141,74 @@ mod tests {
         assert!((dist - 3.0).abs() < 0.1, "dist = {dist}, expected ~3.0");
     }
 }
+
+#[cfg(test)]
+mod analytic_constraint_qualification_tests {
+    use super::*;
+    use symtropy_math::Point;
+
+    #[test]
+    fn distance_constraint_residual_follows_analytic_stiffness_convergence() {
+        let mut a =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([0.0, 0.0, 0.0]), 0.25, 1.0);
+        let mut b =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([10.0, 0.0, 0.0]), 0.25, 1.0);
+        let rest_length = 4.0;
+        let stiffness = 0.25;
+        let initial_error: f64 = 10.0 - rest_length;
+        let constraint = DistanceConstraint {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            rest_length,
+            stiffness,
+        };
+
+        for iterations in 1..=16 {
+            constraint.solve(&mut a, &mut b, 1.0 / 60.0);
+            let actual_error =
+                a.transform.translation.distance(&b.transform.translation) - rest_length;
+            let expected_error = initial_error * (1.0 - stiffness).powi(iterations);
+            assert!(
+                (actual_error - expected_error).abs() < 1e-10,
+                "iteration {iterations}: residual {actual_error}, expected {expected_error}"
+            );
+        }
+    }
+
+    #[test]
+    fn inverse_mass_weighting_preserves_center_of_mass_for_unequal_masses() {
+        let mass_a = 1.0;
+        let mass_b = 3.0;
+        let mut a = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([0.0, 0.0, 0.0]),
+            0.25,
+            mass_a,
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::new([10.0, 0.0, 0.0]),
+            0.25,
+            mass_b,
+        );
+        let center_before = (a.transform.translation.0 * mass_a
+            + b.transform.translation.0 * mass_b)
+            / (mass_a + mass_b);
+
+        let constraint = DistanceConstraint {
+            body_a: BodyHandle(0),
+            body_b: BodyHandle(1),
+            rest_length: 4.0,
+            stiffness: 0.5,
+        };
+        for _ in 0..16 {
+            constraint.solve(&mut a, &mut b, 1.0 / 60.0);
+        }
+
+        let center_after = (a.transform.translation.0 * mass_a
+            + b.transform.translation.0 * mass_b)
+            / (mass_a + mass_b);
+        assert!((center_after - center_before).norm() < 1e-12);
+        assert!((a.transform.translation.distance(&b.transform.translation) - 4.0).abs() < 1e-3);
+    }
+}
