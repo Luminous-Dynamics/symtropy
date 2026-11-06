@@ -63,7 +63,8 @@
       "evidence_manifest_digest": "sha256:evidence-ODD-rain-night-occluded",
       "source_lineage_digest": "sha256:lineage-ODD-rain-night-occluded",
       "challenge_protocol_digest": "sha256:challenge-v1",
-      "not_applicable_rationale": null
+      "not_applicable_rationale": null,
+      "supersedes_obligation_id": null
     },
     {
       "obligation_id": "yielding-reciprocity",
@@ -76,7 +77,8 @@
       "evidence_manifest_digest": "sha256:evidence-yielding-reciprocity",
       "source_lineage_digest": "sha256:lineage-yielding-reciprocity",
       "challenge_protocol_digest": "sha256:challenge-v1",
-      "not_applicable_rationale": null
+      "not_applicable_rationale": null,
+      "supersedes_obligation_id": null
     },
     {
       "obligation_id": "shared-weather-descendants",
@@ -89,7 +91,8 @@
       "evidence_manifest_digest": "sha256:evidence-shared-weather-descendants",
       "source_lineage_digest": "sha256:lineage-shared-weather-descendants",
       "challenge_protocol_digest": "sha256:challenge-v1",
-      "not_applicable_rationale": null
+      "not_applicable_rationale": null,
+      "supersedes_obligation_id": null
     },
     {
       "obligation_id": "road-rule-crossing",
@@ -102,7 +105,8 @@
       "evidence_manifest_digest": "sha256:evidence-road-rule-crossing",
       "source_lineage_digest": "sha256:lineage-road-rule-crossing",
       "challenge_protocol_digest": "sha256:challenge-v1",
-      "not_applicable_rationale": null
+      "not_applicable_rationale": null,
+      "supersedes_obligation_id": null
     }
   ],
   "challenge_requirements": [
