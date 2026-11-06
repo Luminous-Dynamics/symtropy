@@ -400,6 +400,7 @@ pub enum DcNetworkError {
     UnknownInjectionBus { bus_id: String },
     SlackBusInjectionSupplied { bus_id: String },
     UnknownContingencyBranch { branch_id: String },
+    UnknownBranchFlow { branch_id: String },
     SelfLoop { branch_id: String },
     EmergencyLimitBelowNormal { branch_id: String, normal_limit_mw: f64, emergency_limit_mw: f64 },
     InvalidTopologyAgeLimit,
@@ -429,6 +430,7 @@ impl fmt::Display for DcNetworkError {
             Self::UnknownInjectionBus { bus_id } => write!(f, "injection references unknown bus {bus_id}"),
             Self::SlackBusInjectionSupplied { bus_id } => write!(f, "slack bus {bus_id} is balanced implicitly and must not appear in the injection map"),
             Self::UnknownContingencyBranch { branch_id } => write!(f, "contingency references unknown branch {branch_id}"),
+            Self::UnknownBranchFlow { branch_id } => write!(f, "missing solved branch flow for {branch_id}"),
             Self::SelfLoop { branch_id } => write!(f, "branch {branch_id} connects a bus to itself"),
             Self::EmergencyLimitBelowNormal { branch_id, normal_limit_mw, emergency_limit_mw } => write!(f, "branch {branch_id} emergency limit {emergency_limit_mw} MW is below normal limit {normal_limit_mw} MW"),
             Self::InvalidTopologyAgeLimit => write!(f, "maximum topology age must be positive"),
@@ -816,8 +818,6 @@ fn build_branch_flow_receipts(
     }
     Ok(receipts)
 }
-
-fn mean_not_used() {}
 
 fn require_id(field: &'static str, value: &str) -> Result<(), DcNetworkError> {
     if value.trim().is_empty() {
