@@ -493,7 +493,6 @@ pub fn stopping_metrics(
     })
 }
 
-
 /// Recompute first and second overshoot angles for a 10/10, 20/20 or other
 /// symmetric zig-zag trajectory.
 ///
@@ -610,11 +609,10 @@ pub fn zig_zag_metrics(
     .ok_or(TrajectoryError::OvershootPeakNotObserved(2))?;
 
     let first_overshoot_deg =
-        turn_direction * (first_peak.heading_rad - initial_heading).to_degrees()
-            - target_angle_deg;
-    let second_overshoot_deg =
-        -turn_direction * (second_peak.heading_rad - initial_heading).to_degrees()
-            - target_angle_deg;
+        turn_direction * (first_peak.heading_rad - initial_heading).to_degrees() - target_angle_deg;
+    let second_overshoot_deg = -turn_direction
+        * (second_peak.heading_rad - initial_heading).to_degrees()
+        - target_angle_deg;
 
     if first_overshoot_deg < -EPSILON {
         return Err(TrajectoryError::NegativeOvershoot(1));
