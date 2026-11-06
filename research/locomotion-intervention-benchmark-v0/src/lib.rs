@@ -5,7 +5,7 @@
 //! In particular, matching a short periodic trace is deliberately not treated
 //! as evidence that the generating system contains an intrinsic oscillator.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Mechanism {
@@ -1614,6 +1614,10 @@ pub struct HypothesisPosteriorUpdate {
     pub prior_entropy_nats: f64,
     pub posterior_entropy_nats: f64,
     pub information_gain_nats: f64,
+    /// True when an extremely small normalized probability underflowed to
+    /// zero and was floored at f64::MIN_POSITIVE so the posterior remains a
+    /// valid reusable prior for a subsequent design step.
+    pub probability_floor_applied: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1743,11 +1747,18 @@ pub fn update_hypothesis_posterior_after_intervention(
             .map(|(_, value)| *value)
             .collect::<Vec<_>>(),
     )?;
+    let mut probability_floor_applied = false;
     let mut posterior = log_joint
         .into_iter()
-        .map(|(hypothesis_id, log_probability)| HypothesisPosteriorWeight {
-            hypothesis_id,
-            probability: (log_probability - log_evidence).exp(),
+        .map(|(hypothesis_id, log_probability)| {
+            let raw_probability = (log_probability - log_evidence).exp();
+            if raw_probability == 0.0 {
+                probability_floor_applied = true;
+            }
+            HypothesisPosteriorWeight {
+                hypothesis_id,
+                probability: raw_probability.max(f64::MIN_POSITIVE),
+            }
         })
         .collect::<Vec<_>>();
     posterior.sort_by(|left, right| left.hypothesis_id.cmp(&right.hypothesis_id));
@@ -1779,6 +1790,7 @@ pub fn update_hypothesis_posterior_after_intervention(
         prior_entropy_nats,
         posterior_entropy_nats,
         information_gain_nats,
+        probability_floor_applied,
     })
 }
 
@@ -3644,6 +3656,7 @@ mod tests {
         .unwrap();
         assert_eq!(update_ab.posterior, update_ba.posterior);
 
+        assert!(update_ab.probability_floor_applied);
         let posterior_hypotheses =
             apply_hypothesis_posterior(&[a, b], &update_ab).unwrap();
         let total = posterior_hypotheses
@@ -3738,6 +3751,7 @@ mod tests {
             prior_entropy_nats: 0.0,
             posterior_entropy_nats: 0.0,
             information_gain_nats: 0.0,
+            probability_floor_applied: false,
         };
         assert_eq!(
             apply_hypothesis_posterior(&hypotheses, &invalid),
