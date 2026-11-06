@@ -21,6 +21,7 @@
     "baselines",
     "negative_controls",
     "holdouts",
+    "configuration_passport",
     "execution_stack",
     "reproduction",
     "claim_report",
@@ -546,7 +547,7 @@
         },
         "configuration_digest": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[a-f0-9]{64}$"
         },
         "data_manifest_digest": {
           "type": [
@@ -885,6 +886,119 @@
               ]
             }
           }
+        }
+      }
+    },
+    "configuration_passport": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Human-readable decision configuration passport. The digest binds these fields to the benchmark and evaluation identifiers. Runtime component inventory remains separately described by execution_stack and the Humanity Atlas run artifact.",
+      "required": [
+        "configuration_id",
+        "configuration_digest",
+        "canonicalization",
+        "model",
+        "facets",
+        "task_contract_digest",
+        "data_split_digest",
+        "re_audit_policy"
+      ],
+      "properties": {
+        "configuration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "canonicalization": {
+          "const": "sorted-key-value-lines-v1"
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_id",
+            "model_version"
+          ],
+          "properties": {
+            "model_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "facets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "persona_id",
+            "interview_protocol_id",
+            "facilitator_id",
+            "aggregation_rule_id",
+            "order_profile_id",
+            "prompt_template_id",
+            "tool_policy_id",
+            "evidence_snapshot_id",
+            "decoding_policy_id"
+          ],
+          "properties": {
+            "persona_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "interview_protocol_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "facilitator_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "aggregation_rule_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "order_profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "prompt_template_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tool_policy_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_snapshot_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decoding_policy_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "task_contract_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "data_split_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "re_audit_policy": {
+          "const": "any-decision-relevant-change"
         }
       }
     }
