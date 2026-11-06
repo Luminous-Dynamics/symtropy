@@ -454,3 +454,21 @@ fn a_load_trip_is_never_issued_intentional_dispatch_credit() {
     assert!(report.unexpected_trip_detected);
     assert!(!report.intentional_demand_response_credit);
 }
+
+#[test]
+fn recovery_ramp_across_stability_boundary_is_not_hidden() {
+    let trace = vec![
+        sample(0, 0.85, 49.5, 70.0, true),
+        sample(1_000_000_000, 0.88, 49.7, 75.0, true),
+        sample(2_000_000_000, 0.95, 50.0, 80.0, true),
+        sample(2_500_000_000, 0.96, 50.0, 80.0, true),
+        sample(2_900_000_000, 0.98, 50.0, 80.0, true),
+        sample(3_100_000_000, 0.98, 50.0, 100.0, true),
+        sample(3_999_999_999, 0.98, 50.0, 100.0, true),
+    ];
+    let policy = DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 500.0, 3).unwrap();
+    let report = evaluate_disturbance_conformance(&event(), &requirement(), &policy, &trace).unwrap();
+    assert!(report.recovery_condition_observed);
+    assert!(!report.recovery_compliant);
+    assert!(report.maximum_absolute_recovery_ramp_mw_per_s.unwrap() >= 100.0);
+}
