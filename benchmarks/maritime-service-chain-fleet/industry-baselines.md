@@ -12,6 +12,10 @@ Research snapshot: 6 November 2026. This is a benchmark-design note, not a claim
 
 - Segovia et al., *Multi-vessel placement in multi-chamber inland waterway transport locks using switching max-plus algebra*, *Ocean Engineering*, 15 January 2026. The model jointly handles route/waypoint timing, vessel order, chamber assignment and vessel placement, and translates switching max-plus constraints into MILP. This is a required future comparator for multi-chamber cases; it is **outside the current fleet oracle's model**, which has fixed route segments and no geometric chamber packing. DOI: https://doi.org/10.1016/j.oceaneng.2025.123414. https://research.tudelft.nl/en/publications/multi-vessel-placement-in-multi-chamber-inland-waterway-transport/.
 
+- Xu et al., *Integrated optimization of vessel traffic organization and heterogeneous tugboat scheduling in a seaport with dual one-way channels*, *Frontiers in Marine Science*, 9 September 2026. Its bi-objective MILP minimizes total weighted vessel waiting and tugboat fuel; the NSGA-II-AAMNS solver coordinates channel traffic, tugboat capabilities/horsepower, task sequences and tug repositioning. The reported real-port case uses 18 vessels and the test groups span 10–40 vessels. This is a direct comparator for mobile assistance resources, but is not matched to the current fixed-capacity fleet oracle. DOI: https://doi.org/10.3389/fmars.2026.1939678. https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2026.1939678/full.
+
+- Duan et al., *Joint optimization of vessel traffic scheduling and berth allocation in a multi-basin and multi-anchorage port with one-way channel*, *Ocean Engineering*, 30 October 2026. Its MILP jointly handles vessel inbound/outbound sequencing and discrete berth assignment with berth compatibility, channel conflicts, navigational continuity, safety intervals and tidal windows; OHE-IGA is compared with CPLEX, GA, PSO and FCFS. The article reports a Jingtang Port case and a paper-specific 30.98% objective reduction against FCFS. That number is not portable to our case and must not be claimed as our gain. DOI: https://doi.org/10.1016/j.oceaneng.2026.128093.
+
 ### 2. Operational port-call systems and standards
 
 - DCSA Port Call Standard 2.0.0 provides a shared data/API process for port-call timestamps and service coordination. Its estimated/requested/planned/actual (ERPA) pattern distinguishes a carrier estimate, a service request, an agreed plan and observed actual event. The fleet benchmark must preserve these meanings and information cutoffs; an ETA or a proposed slot is not an agreed berth plan. https://dcsa.org/standards/port-call and https://reference.dcsa.org/content/standards/releases/port-call/v2/pc-v2-purpose-and-scope.
@@ -34,6 +38,8 @@ Research snapshot: 6 November 2026. This is a benchmark-design note, not a claim
 | Earliest feasible / least energy / minimum wait-slack | Transparent greedy rules | Required matched heuristic baselines |
 | NSGA-II / NSGA-III / MOEA/D / SPEA-II | Multi-objective search quality | Required paper-aligned comparison on identical frozen cases |
 | Switching max-plus / MILP | Serial multi-lock and multi-chamber placement | Required when vessel packing/chamber geometry enters scope; not represented by current model |
+| MILP + NSGA-II-AAMNS | One-way channel traffic plus heterogeneous tug assignment and repositioning | Owned by MARITIME-MOBILE-OPS-001 #3798; current fleet crate has no named tug or reposition route |
+| MILP + OHE-IGA | Multi-basin, multi-anchorage traffic sequencing plus discrete berth allocation | Must be reproduced for spatial port traffic cases; current fleet crate has no basin conflict graph or berth compatibility geometry |
 | CP-SAT or MILP reference | Independent larger-instance formulation and optimality gap | Next external solver differential; not yet implemented/reproduced here |
 | DCSA/IAPH/IHMA-aligned coordination | Operational data exchange and timestamp semantics | Consume standards; compare against real workflow only with authorized data |
 | StormGeo/Portchain class of products | Voyage-speed decisions linked to berth/terminal readiness | Industry capability reference; no access to matched vendor data or independent head-to-head performance results |
@@ -98,6 +104,8 @@ All values below are proposed promotion targets, not achieved results or univers
 - Liao et al., 2026 lock fairness/efficiency paper: https://doi.org/10.1016/j.oceaneng.2026.125004
 - Xu et al., 2026 multi-objective lock scheduling: https://www.mdpi.com/2079-8954/14/5/507
 - Segovia et al., 2026 multi-chamber SMPL/MILP: https://doi.org/10.1016/j.oceaneng.2025.123414
+- Xu et al., 2026 dual one-way channel / heterogeneous tug scheduling: https://doi.org/10.3389/fmars.2026.1939678
+- Duan et al., 2026 multi-basin / berth co-scheduling: https://doi.org/10.1016/j.oceaneng.2026.128093
 - DCSA Port Call Standard: https://dcsa.org/standards/port-call
 - IMO/IAPH/IHMA Port Call Optimization Guide: https://greenvoyage2050.imo.org/port-call-optimization-guide-launched-at-imo/
 - StormGeo/Portchain announcement, 30 October 2026: https://stormgeo.com/insights/stormgeo-acquires-portchain-to-advance-just-in-time-voyage-optimization-at-scale
