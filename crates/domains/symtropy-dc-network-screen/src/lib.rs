@@ -905,7 +905,6 @@ struct SolvedBranchFlow {
     flow_mw: f64,
 }
 
-
 /// Intersect the scalar action fractions in [0, 1] that satisfy every
 /// branch limit for an affine DC-flow transition from baseline to full action.
 /// Returns None when no scalar fraction satisfies the complete branch set.
