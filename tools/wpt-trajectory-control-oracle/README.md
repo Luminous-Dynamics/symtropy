@@ -38,7 +38,7 @@ Four ordered synthetic samples:
 - setpoint ceilings [3, 2, 3, 2];
 - useful-energy yields [2, 2, 1, 2] mWh per quantum;
 - stress coefficients [2, 1, 1, 1];
-- initial setpoint 1, maximum slew 1, cumulative stress budget 8;
+- initial setpoint 1, maximum slew 1, cumulative stress budget 7;
 - useful-energy request 12 mWh, service floor 9 mWh.
 
 The hand-enumerated exact schedule is [1, 2, 1, 2], delivering 11 mWh for 7 stress units. The candidate [1, 1, 1, 1] and fixed baseline deliver 7 mWh; the exact energy gap is 4 mWh. The forward greedy baseline is included and evaluated under the same constraints. These are synthetic known-truth values, not a physical setpoint/power/thermal result.
