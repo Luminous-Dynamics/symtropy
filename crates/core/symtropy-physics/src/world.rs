@@ -2585,3 +2585,40 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+#[cfg(test)]
+mod ccd_query_diagnostic_tests {
+    use super::*;
+    use crate::body::{BodyHandle, RigidBody};
+    use symtropy_math::Sphere;
+
+    #[test]
+    fn world_records_invalid_ccd_query_instead_of_treating_it_as_a_miss() {
+        let mut world = PhysicsWorld::<3>::default();
+        let mut moving = RigidBody::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            f64::NAN,
+            1.0,
+        );
+        moving.linear_velocity = SVector::from([10.0, 0.0, 0.0]);
+        let moving_handle = world.add_body(moving);
+
+        let target = RigidBody::static_body(
+            BodyHandle(1),
+            Point::new([5.0, 0.0, 0.0]),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+        );
+        let target_handle = world.add_body(target);
+        let initial_positions: Vec<_> = world.bodies.iter().map(|body| body.position()).collect();
+
+        world.run_ccd_pass(&initial_positions, 1.0);
+
+        assert_eq!(world.ccd_query_diagnostics.len(), 1);
+        let diagnostic = world.ccd_query_diagnostics[0];
+        assert_eq!(diagnostic.body_a, moving_handle);
+        assert_eq!(diagnostic.body_b, target_handle);
+        assert_eq!(diagnostic.kind, ccd::CcdQueryKind::SphereSphere);
+        assert_eq!(diagnostic.error, ccd::CcdQueryError::NonFiniteInput);
+    }
+}
