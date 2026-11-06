@@ -58,3 +58,5 @@ For every independent incident group, the evaluator selects the worst shortfall 
 ## Overlapping failure domains
 
 Failure-domain memberships can overlap (for example, a site may share both a utility region and a telecom carrier with other assets). The largest single-domain offered-capacity share is reported, and every event retains its domain membership/state receipts. Individual domain member-capacity totals are descriptive and may overlap; they are never summed into a second portfolio capacity total. V0.1 intentionally does not emit a Herfindahl index across overlapping domains because that would require an explicit, defensible allocation of each asset's capacity among its memberships.
+
+The v0.1 implementation is intentionally an empirical evidence-panel evaluator; statistical extrapolation and scenario generation remain separate future work.
