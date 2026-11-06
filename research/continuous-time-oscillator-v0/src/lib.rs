@@ -9,7 +9,6 @@
 //!
 //! This module is a numerical reference kernel, not a fitted biological model.
 
-
 pub mod filter;
 pub use filter::{
     ChannelMeasurement, ChannelSpec, FilterError, FilterUpdate, ObservationForecast,
