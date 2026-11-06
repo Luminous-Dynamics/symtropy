@@ -161,7 +161,7 @@ It computes only pooled descriptive metrics and emits causal_effect_claim_allowe
 
 ## 6. Conformance and adversarial test plan
 
-The current Rust module contains 16 unit tests for valid pooled arithmetic and rejection of modelled output, loose spoil, active-only time, mismatched energy boundaries, omitted auxiliary subsystems, process-sensor energy, duplicate trials, changed material cohorts, adjacent-interval descriptive status, insufficient replication, missing machine/tool identity, non-finite/zero values, energy-basis mismatch, single-arm comparisons and order invariance.
+The current Rust module contains 27 unit tests covering valid pooled arithmetic; modelled output; loose spoil; active-only time; mismatched energy boundaries; omitted/duplicate auxiliary subsystems; process-sensor energy; duplicate trials; changed material cohorts and acceptance profiles; adjacent-interval descriptive status; insufficient replication; missing machine/tool, calibration or energy-accounting identity; non-finite/zero values; negative uncertainty; energy-basis mismatch; single-arm and missing-arm comparisons; order invariance; and aggregate overflow.
 
 Next tests to add:
 - duplicate profile subsystem IDs;
