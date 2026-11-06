@@ -251,3 +251,76 @@ directories prevent cached binaries from smuggling in a previous compile-time
 revision and are removed on exit. The script is provided as a qualification
 path; it has **not** been executed in this editing environment. Queued CI is not
 counted as a pass.
+
+
+## CivBench domain-report adapter
+
+The companion `adapt_civbench_output.py` maps domain-specific CivBench CSV reports to the **same** `humanity-atlas.run.v0.1` output schema above. It does not define a second run envelope.
+
+Initial supported tracks:
+- `service-cascade`: tick-level service availability/function, node service-loss/recovery summaries, component-outage criticality and the separate demand-weighted whole-scenario deficit.
+- `knowledge-resilience`: per-item transmission/acquisition/comprehension/demonstration/retention/teaching counts, epistemic status preserved in the source CSV, and archive recovery by failure domain.
+
+The complete domain CSV is retained as a content-addressed artifact. The scalar `outputs[]` array is only an index of numeric metrics; it must not replace the full report or collapse native units. Categorical evidence such as `verified` versus `refuted` remains in the source artifact instead of being converted into an arbitrary numeric score.
+
+### Contract and claim boundaries
+
+- The scenario descriptor is validated against `schemas/scenario-v0.1.schema.json`; the output is validated against `schemas/run-v0.1.schema.json`.
+- The scenario baseline dataset digest must match the exact dataset-fixture bytes. The declared model digest must match a stable manifest of repository-relative model-source files.
+- The CSV, scenario, dataset and model-source manifest are bound by SHA-256. This binds bytes; it does not authenticate the publisher or establish scientific truth.
+- Classification is fixed to `synthetic_fixture`; validation is fixed to `contract_smoke`. No command-line switch promotes a run to calibrated simulation or forecast.
+- Determinism remains `null` unless a second same-seed CSV is supplied. Only a byte-identical replay sets it to `true` and adds a reproducibility evidence item.
+- The scenario and dataset must be supplied separately. A missing independent data source must not be relabelled as an empirical dataset.
+- Input reads are bounded; duplicate CSV headers, malformed numeric fields, non-finite values, unsupported row types and mismatched digests fail closed.
+
+### Test
+
+From the repository root:
+
+```sh
+python -m pip install "jsonschema==4.26.0"
+PYTHONPATH=docs/ops/humanity_atlas_scenario_contract_v0_1 \
+  python -m unittest discover \
+  -s docs/ops/humanity_atlas_scenario_contract_v0_1 \
+  -p 'test_adapt_civbench_output.py' -v
+```
+
+The tests use only synthetic CSV, scenario and dataset fixtures. Passing them establishes adapter/schema conformance, not empirical validity.
+
+
+### Emit an envelope for an exact CivBench report
+
+From the repository root, first calculate the source-manifest digest using the same ordered path list that will be supplied to the adapter:
+
+```sh
+PYTHONPATH=docs/ops/humanity_atlas_scenario_contract_v0_1 python - <<'PY'
+from pathlib import Path
+from adapt_civbench_output import _model_manifest
+
+digest, manifest = _model_manifest([
+    Path("research/civdyn-service-cascade/src/lib.rs"),
+    Path("research/civdyn-service-cascade/src/bin/service_cascade_sweep.rs"),
+])
+print("model_sha256 =", digest)
+print(manifest.decode("utf-8"))
+PY
+```
+
+Create a scenario-v0.1 JSON document whose `engine.model_sha256` equals that digest and whose `baseline.dataset_sha256` equals the SHA-256 of the exact dataset-fixture JSON bytes. The scenario's requested metric units and horizon must match the domain report. Then adapt the report:
+
+```sh
+PYTHONPATH=docs/ops/humanity_atlas_scenario_contract_v0_1 python \
+  docs/ops/humanity_atlas_scenario_contract_v0_1/adapt_civbench_output.py \
+  --track service-cascade \
+  --csv target/civdyn-service-cascade-evidence/service-cascade.csv \
+  --scenario civbench-service-cascade.scenario.json \
+  --dataset civbench-service-cascade.dataset.json \
+  --model-source research/civdyn-service-cascade/src/lib.rs \
+  --model-source research/civdyn-service-cascade/src/bin/service_cascade_sweep.rs \
+  --source-revision "$(git rev-parse HEAD)" \
+  --output target/civdyn-service-cascade-evidence/humanity-atlas-run.v0.1.json
+```
+
+Use `--track knowledge-resilience` with the corresponding report and source files for the knowledge benchmark. Supply `--replay-csv` only when a second execution used the same scenario and seed; the adapter compares exact bytes. Without that second artifact, determinism stays null even when the scenario configuration requests deterministic execution.
+
+The adapter rejects a scenario whose dataset or model digest does not match the exact input bytes, and it never exposes a switch to promote synthetic fixtures to calibrated simulation or prospective forecast.
