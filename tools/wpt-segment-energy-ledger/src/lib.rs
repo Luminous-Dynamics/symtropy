@@ -1183,7 +1183,12 @@ mod tests {
                 timestamp_ns: 16_000_000_000 + (index as u64 - 3) * 1_000_000_000,
             });
         }
-        assert!(ledger.validate().unwrap_err().contains("2..=512 canonical samples"));
+        assert!(
+            ledger
+                .validate()
+                .unwrap_err()
+                .contains("2..=512 canonical samples")
+        );
     }
 
     #[test]
