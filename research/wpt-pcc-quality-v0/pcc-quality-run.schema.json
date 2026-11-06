@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/wpt-pcc-quality-v0/pcc-quality-run.schema.json",
+  "title": "WPT PCC and equipment power-quality run v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "evidence_kind",
+    "profile",
+    "measurement",
+    "current_spectrum",
+    "quality_flags"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-pcc-power-quality-v0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_kind": {
+      "enum": [
+        "MEASURED",
+        "PUBLISHED_MEASURED",
+        "SIMULATED",
+        "SYNTHETIC_KNOWN_TRUTH"
+      ]
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard_id",
+        "edition",
+        "standard_role",
+        "assessment_boundary",
+        "network_type",
+        "phase_count",
+        "wire_count",
+        "grid_frequency_hz",
+        "nominal_voltage_v",
+        "rated_input_current_a_per_phase",
+        "pcc"
+      ],
+      "properties": {
+        "standard_id": {
+          "enum": [
+            "IEEE_519_2022",
+            "IEC_61000_3_12_2011_AMD1_2021",
+            "IEC_61000_4_30_2025"
+          ]
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard_role": {
+          "enum": [
+            "SYSTEM_PCC_LIMITS",
+            "PRODUCT_EMISSION_LIMITS",
+            "MEASUREMENT_METHOD_ONLY"
+          ]
+        },
+        "assessment_boundary": {
+          "enum": [
+            "SITE_PCC",
+            "EQUIPMENT_TERMINAL"
+          ]
+        },
+        "network_type": {
+          "enum": [
+            "PUBLIC_LOW_VOLTAGE",
+            "PRIVATE_LOW_VOLTAGE",
+            "MEDIUM_VOLTAGE",
+            "HIGH_VOLTAGE",
+            "OTHER"
+          ]
+        },
+        "phase_count": {
+          "enum": [
+            1,
+            3
+          ]
+        },
+        "grid_frequency_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rated_input_current_a_per_phase": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "pcc": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "pcc_id",
+            "voltage_kv",
+            "i_sc_rms_a",
+            "i_sc_method_id",
+            "i_sc_source_artifact_sha256",
+            "i_l_rms_a",
+            "i_l_definition_id",
+            "i_l_window_seconds",
+            "i_l_reference_period_id",
+            "i_l_source_artifact_sha256"
+          ],
+          "properties": {
+            "pcc_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "voltage_kv": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "i_sc_rms_a": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "i_l_rms_a": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "i_l_definition_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "i_sc_method_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "i_sc_source_artifact_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "i_l_window_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "i_l_reference_period_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "i_l_source_artifact_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "nominal_voltage_v": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "wire_count": {
+          "enum": [
+            2,
+            3,
+            4
+          ],
+          "description": "Number of current-carrying conductors in the declared system; IEC 61000-3-12 scope permits 2/3-wire single phase and 3/4-wire three phase."
+        }
+      },
+      "description": "A pinned standard edition and system profile. IEC 61000-3-12 edition 2011+AMD1:2021 broad equipment scope (public LV, >16 A and <=75 A/phase, <=240 V single phase or <=690 V three phase) is distinct from its stated limit domain, 230/400 V at 50 Hz."
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_standard_id",
+        "measurement_edition",
+        "measurement_class",
+        "instrument_id",
+        "calibration_receipt_id",
+        "aggregation_window_id",
+        "bandwidth_max_hz",
+        "raw_artifact_sha256"
+      ],
+      "properties": {
+        "measurement_standard_id": {
+          "enum": [
+            "IEC_61000_4_30_2025",
+            "IEC_61000_4_7_2002_AMD1_2008",
+            "OTHER"
+          ]
+        },
+        "measurement_edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_class": {
+          "enum": [
+            "CLASS_A",
+            "CLASS_S",
+            "EQUIPMENT_TEST",
+            "OTHER"
+          ]
+        },
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aggregation_window_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bandwidth_max_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "raw_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "current_spectrum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fundamental_rms_a",
+        "maximum_harmonic_order",
+        "harmonics"
+      ],
+      "properties": {
+        "fundamental_rms_a": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "harmonics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "harmonic_order",
+              "rms_current_a",
+              "expanded_uncertainty_a"
+            ],
+            "properties": {
+              "harmonic_order": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 1000
+              },
+              "rms_current_a": {
+                "type": "number",
+                "minimum": 0
+              },
+              "expanded_uncertainty_a": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "maximum_harmonic_order": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 50,
+          "description": "Maximum integer harmonic included in the THD/TDD point metrics. v0 requires every integer harmonic bin 2..N exactly once; IEEE 519-2022 PCC TDD requires N=50."
+        }
+      }
+    },
+    "quality_flags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "SYNTHETIC_ONLY",
+          "CALIBRATION_MISSING",
+          "CLOCK_UNCERTAIN",
+          "BACKGROUND_DISTORTION_NOT_CHARACTERIZED",
+          "LIMIT_TABLE_NOT_LOADED"
+        ]
+      }
+    }
+  }
+}
