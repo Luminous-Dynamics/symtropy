@@ -121,6 +121,8 @@ bytemuck = { version = "1.18", features = ["derive"] }
 resolver = "2"
 exclude = [
     "crates/bridges/symtropy-robotics-bridge",
+    # Standalone, low-dependency verification harness; tested with its own manifest.
+    "crates/tools/citykit-benchmark",
 ]
 members = [
     ".",
