@@ -245,6 +245,18 @@ pub struct HexapodTrace {
     pub samples: Vec<HexapodSample>,
 }
 
+/// Frozen observable-only forecast vector matching the field contract used
+/// by loco-intervention-design-v0::ModelPrediction. The caller supplies a
+/// nonzero digest binding the timestamp grid, time units, canonical leg order
+/// and per-sample active-leg mask.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ObservableForecast {
+    pub hypothesis_id: u64,
+    pub observable_layout_digest: [u8; 32],
+    /// Step-major, then canonical leg order, then x/y for active legs only.
+    pub mean: Vec<f64>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoordinationError {
     InvalidSampleCount,
@@ -266,6 +278,7 @@ pub enum CoordinationError {
     InvalidTimestamp,
     NonMonotonicTimestamp,
     TimestampGridMismatch,
+    InvalidObservableLayoutDigest,
     InvalidAmplitudeThreshold,
     InvalidPhaseErrorThreshold,
     InvalidConsecutiveSampleCount,
@@ -743,6 +756,53 @@ fn sample_interval(trace: &HexapodTrace) -> Result<f64, CoordinationError> {
     Ok(interval)
 }
 
+impl HexapodTrace {
+    /// Freeze the observable phase-plane outputs for one mechanism hypothesis.
+    ///
+    /// No intervention label, model enum or latent state is copied into the
+    /// predictive vector. Unavailable legs are omitted, never encoded as
+    /// synthetic zero measurements. The caller-supplied layout digest must
+    /// bind the exact timestamps, units, leg order and active-observation mask
+    /// and must be identical across hypotheses being compared for one action.
+    pub fn freeze_observable_forecast(
+        &self,
+        hypothesis_id: u64,
+        observable_layout_digest: [u8; 32],
+    ) -> Result<ObservableForecast, CoordinationError> {
+        if observable_layout_digest.iter().all(|byte| *byte == 0) {
+            return Err(CoordinationError::InvalidObservableLayoutDigest);
+        }
+        validate_timestamps(&self.samples)?;
+        let observable_count = self
+            .samples
+            .iter()
+            .map(|sample| sample.active.iter().filter(|active| **active).count() * 2)
+            .sum::<usize>();
+        if observable_count == 0 {
+            return Err(CoordinationError::InvalidTraceLength);
+        }
+
+        let mut mean = Vec::with_capacity(observable_count);
+        for sample in &self.samples {
+            for leg in LegId::ALL {
+                let leg_index = leg.index();
+                if sample.active[leg_index] {
+                    mean.push(sample.x[leg_index]);
+                    mean.push(sample.y[leg_index]);
+                }
+            }
+        }
+        if !mean.iter().all(|value| value.is_finite()) {
+            return Err(CoordinationError::NumericalFailure);
+        }
+        Ok(ObservableForecast {
+            hypothesis_id,
+            observable_layout_digest,
+            mean,
+        })
+    }
+}
+
 /// Validate exact timestamp alignment before comparing paired traces.
 pub fn validate_aligned_traces(
     left: &[HexapodSample],
@@ -1064,6 +1124,72 @@ mod tests {
         let trace = run(CoordinationModel::HybridOscillators, intervention).unwrap();
         let recovery = recovery_time(&trace, 20, 0.08, 3, DEFAULT_TRIPOD_OFFSETS, 1.0e-9).unwrap();
         assert!(recovery.is_some());
+    }
+
+
+    #[test]
+    fn frozen_forecasts_have_stable_layout_and_separate_local_pulse_predictions() {
+        let layout_digest = [0xA5; 32];
+        let baseline_action = Intervention::default();
+        let independent_baseline =
+            run(CoordinationModel::IndependentOscillators, baseline_action).unwrap();
+        let coupled_baseline =
+            run(CoordinationModel::CoupledOscillators, baseline_action).unwrap();
+        let independent_baseline_forecast = independent_baseline
+            .freeze_observable_forecast(1, layout_digest)
+            .unwrap();
+        let coupled_baseline_forecast = coupled_baseline
+            .freeze_observable_forecast(2, layout_digest)
+            .unwrap();
+
+        assert_eq!(
+            independent_baseline_forecast.observable_layout_digest,
+            coupled_baseline_forecast.observable_layout_digest
+        );
+        assert_eq!(
+            independent_baseline_forecast.mean,
+            coupled_baseline_forecast.mean
+        );
+
+        let phase_pulse = pulse(LegId::LeftFront, 20, 0.8);
+        let independent_perturbed =
+            run(CoordinationModel::IndependentOscillators, phase_pulse).unwrap();
+        let coupled_perturbed =
+            run(CoordinationModel::CoupledOscillators, phase_pulse).unwrap();
+        let independent_prediction = independent_perturbed
+            .freeze_observable_forecast(1, layout_digest)
+            .unwrap();
+        let coupled_prediction = coupled_perturbed
+            .freeze_observable_forecast(2, layout_digest)
+            .unwrap();
+
+        assert_eq!(
+            independent_prediction.observable_layout_digest,
+            coupled_prediction.observable_layout_digest
+        );
+        assert_eq!(independent_prediction.mean.len(), coupled_prediction.mean.len());
+        assert_ne!(independent_prediction.mean, coupled_prediction.mean);
+    }
+
+    #[test]
+    fn frozen_forecasts_omit_failed_leg_observations_and_reject_missing_layout_digest() {
+        let intervention = Intervention {
+            leg_failure: Some(LegFailure {
+                from_step: 10,
+                leg: LegId::RightRear,
+            }),
+            ..Intervention::default()
+        };
+        let trace = run(CoordinationModel::CoupledOscillators, intervention).unwrap();
+        let forecast = trace
+            .freeze_observable_forecast(7, [0xB6; 32])
+            .unwrap();
+        assert!(forecast.mean.len() < trace.samples.len() * LEG_COUNT * 2);
+        assert_eq!(forecast.observable_layout_digest, [0xB6; 32]);
+        assert_eq!(
+            trace.freeze_observable_forecast(7, [0; 32]),
+            Err(CoordinationError::InvalidObservableLayoutDigest)
+        );
     }
 
     #[test]
