@@ -253,6 +253,12 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         ));
     }
 
+    receivers.sort_by_key(|receiver| receiver.receiver_id.clone());
+    receiver_indices.clear();
+    for (index, receiver) in receivers.iter().enumerate() {
+        receiver_indices.insert(receiver.receiver_id.clone(), index);
+    }
+
     let source_rows = array_field(value, "source_slots", "$")?;
     if source_rows.is_empty() || source_rows.len() > MAX_SOURCE_SLOTS {
         return Err(fail(
@@ -703,7 +709,7 @@ fn candidate_point(
                 .ok_or_else(|| "resource-use total overflowed".to_string())?;
         }
     }
-    let shared_resource_allocations = scenario
+    let mut shared_resource_allocations = scenario
         .resources
         .iter()
         .zip(resource_used.iter())
@@ -713,7 +719,9 @@ fn candidate_point(
             capacity_units: resource.capacity_units,
             used_units: *used_units,
         })
-        .collect();
+        .collect::<Vec<_>>();
+    shared_resource_allocations
+        .sort_by_key(|row| (row.resource_id.clone(), row.interval_index));
 
     let link_allocations = scenario
         .links
@@ -1120,13 +1128,29 @@ mod tests {
     }
 
     #[test]
-    fn input_link_order_does_not_change_the_frontier_or_witness() {
+    fn input_row_order_does_not_change_the_frontier_or_witness() {
         let first = evaluate_scenario(&fixture()).unwrap();
         let mut reversed = fixture();
+        reversed["receivers"].as_array_mut().unwrap().reverse();
+        reversed["segment_slots"].as_array_mut().unwrap().reverse();
+        reversed["receiver_slots"].as_array_mut().unwrap().reverse();
+        reversed["shared_resource_slots"].as_array_mut().unwrap().reverse();
         reversed["transfer_links"].as_array_mut().unwrap().reverse();
         let second = evaluate_scenario(&reversed).unwrap();
         assert_eq!(first.pareto_frontier, second.pareto_frontier);
         assert_eq!(first.feasible_allocations, second.feasible_allocations);
+    }
+
+    #[test]
+    fn pareto_frontier_has_no_dominated_or_duplicate_objective_points() {
+        let report = evaluate_scenario(&fixture()).unwrap();
+        for (index, left) in report.pareto_frontier.iter().enumerate() {
+            for right in report.pareto_frontier.iter().skip(index + 1) {
+                assert!(!objectives_dominate(left, right));
+                assert!(!objectives_dominate(right, left));
+                assert!(!same_objectives(left, right));
+            }
+        }
     }
 
     #[test]
