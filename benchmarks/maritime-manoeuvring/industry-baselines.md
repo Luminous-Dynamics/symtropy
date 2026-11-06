@@ -181,3 +181,31 @@ Initial improvement targets should be declared only after the exact matched base
 - Symtropy coupled coastal-to-inland service-chain benchmark: https://github.com/Luminous-Dynamics/symtropy/issues/3683
 - Symthaea physical reference intake: https://github.com/Luminous-Dynamics/symthaea/issues/8146
 - Symthaea calibration under marine regime shift: https://github.com/Luminous-Dynamics/symthaea/issues/8171
+
+
+## 2026 open manoeuvring benchmark landscape
+
+Two particularly useful public comparison anchors are now explicit:
+
+| Comparator | Declared scope | What it can establish | What it cannot establish |
+|---|---|---|---|
+| ITTC 7.5-02-06-06 (2024 Rev. 01) / SIMMAN 2014 and 2020 | Public benchmark families with captive PMM/CMT and free-running data for KVLCC2, KCS and ONRT; deep/shallow cases and selected regular-wave manoeuvres | Common experimental references for forces, moments and trajectories; uncertainty-aware validation and reproducible matched cases | Full-scale validation for every vessel; complete restricted-water/harbour coverage; a single universal solver ranking |
+| OpenNAOE Manoeuvring v1.0.0 (2 Nov 2026), DOI 10.5281/zenodo.23817277 | MMG standard method, conventional single-propeller/single-rudder ship, calm deep water, 3-DOF surge/sway/yaw; turning and zig-zag, but not stopping or overall compliance | A recent, transparent, easily inspectable educational/early-design comparator within its declared domain | Merchant-ship full-scale or shallow/restricted-water validation; 4/6-DOF physics; evidence of class/IMO compliance or specialist commercial-grade capability |
+| MITO 31 RIB sea-trial dataset (8 Jul 2026), DOI 10.17632/pz37h8vtjt.1 | Full-scale two-stepped high-speed planing RIB; raw IMU/GNSS/NMEA2000 and two turning manoeuvres | A potential independent sensor/trajectory processing and high-speed craft transfer test | A substitute for conventional merchant vessels or SIMMAN benchmark families; unrestricted reuse absent a verified licence/rights record |
+
+Sources:
+- ITTC benchmark guidance, 7.5-02-06-06 (2024 Rev. 01): https://ittc.info/media/11874/75-02-06-06.pdf
+- ITTC benchmark repository: https://www.ittc.info/benchmark-repository/
+- SIMMAN 2020: https://www.simman2020.kr/contents/Purpose.php?me_code=10
+- OpenNAOE Manoeuvring: https://zenodo.org/records/23817277
+- MITO 31 dataset: https://data.mendeley.com/datasets/pz37h8vtjt/1
+
+Important ITTC findings for the programme:
+- Its benchmark guidance says uncertainty assessment is strongly recommended and that even a reduced uncertainty-assessment scope is preferable to omitting it.
+- In the cited SIMMAN comparisons, 3-DOF methods were inadequate for KCS manoeuvring predictions; low-GM cases may need at least 4 DOF. The ITTC procedure states that 4- or 6-DOF is appropriate where vertical motions matter, including high-speed vessels, low-GM vessels and manoeuvring in waves.
+- SIMMAN 2014/2020 includes both free-running and captive data. Deep-water and shallow-water cases must be separate strata; the guideline reports greater variation and fewer submissions for shallow-water cases.
+- These findings support a regime- and mechanism-conditioned model hierarchy, not a blanket requirement to use the most complex model everywhere.
+
+**Benchmark design consequence:** compare the output metric verifier and the physical model as separate subjects. The verifier can be assessed against hand-derived geometry and independent calculations. A simulator must be assessed against experimental time histories (and force/moment data where available), with calibration and hold-out cases kept separate. A green metric-oracle suite says nothing by itself about hydrodynamic model accuracy.
+
+No external dataset is copied into CI or treated as a mandatory fixture until source bytes, metadata, units, data-quality notes, provenance, licence and redistribution rights are reviewed and pinned. MITO 31 remains a transfer test because its hull class differs materially from merchant vessels.
