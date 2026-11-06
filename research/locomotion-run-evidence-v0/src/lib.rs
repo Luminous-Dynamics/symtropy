@@ -96,6 +96,7 @@ pub enum EvidenceError {
     MissingInterventionReceipt,
     UnexpectedInterventionReceipt,
     MissingHardwareProfile,
+    MissingHardwareCalibration,
     PairedRunMismatch(PairedRunMismatch),
 }
 
@@ -160,10 +161,16 @@ impl RunManifest {
             return Err(EvidenceError::InvalidSampleCount);
         }
 
-        if self.evidence_tier == EvidenceTier::Hardware && self.hardware_profile.is_none() {
-            return Err(EvidenceError::MissingHardwareProfile);
-        }
-        if let Some(profile) = &self.hardware_profile {
+        if self.evidence_tier == EvidenceTier::Hardware {
+            let profile = self
+                .hardware_profile
+                .as_ref()
+                .ok_or(EvidenceError::MissingHardwareProfile)?;
+            profile.validate()?;
+            if profile.calibration_record_sha256.is_none() {
+                return Err(EvidenceError::MissingHardwareCalibration);
+            }
+        } else if let Some(profile) = &self.hardware_profile {
             profile.validate()?;
         }
         Ok(())
@@ -535,6 +542,23 @@ mod tests {
         run.evidence_tier = EvidenceTier::Hardware;
         run.hardware_profile = None;
         assert_eq!(run.validate(), Err(EvidenceError::MissingHardwareProfile));
+    }
+
+
+    #[test]
+    fn hardware_tier_requires_a_calibration_record_digest() {
+        let mut run = manifest("run-hardware", "mujoco");
+        run.evidence_tier = EvidenceTier::Hardware;
+        let mut profile = run.hardware_profile.take().unwrap();
+        profile.calibration_record_sha256 = None;
+        run.hardware_profile = Some(profile);
+        assert_eq!(
+            run.validate(),
+            Err(EvidenceError::MissingHardwareCalibration)
+        );
+
+        run.hardware_profile.as_mut().unwrap().calibration_record_sha256 = Some(digest('f'));
+        assert_eq!(run.validate(), Ok(()));
     }
 
     #[test]
