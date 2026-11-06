@@ -84,6 +84,15 @@ pub struct RunArm {
     pub independent_outcome: IndependentOutcomeReceipt,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MechanismAblation {
+    /// Exogenous switch used only in the ablation arm.
+    pub block_variable_id: String,
+    /// Mediator/intermediate expected to return to its control value when blocked.
+    pub blocked_mechanism_variable_id: String,
+    pub arm: RunArm,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct CausalExperiment {
     pub experiment_id: String,
@@ -98,6 +107,8 @@ pub struct CausalExperiment {
     pub treatment: RunArm,
     /// A sham arm changes only an internal negative-control variable.
     pub negative_control: RunArm,
+    /// A fourth arm keeps the primary intervention enabled but blocks a declared mediator.
+    pub mechanism_ablation: MechanismAblation,
 }
 
 impl CausalExperiment {
@@ -165,8 +176,10 @@ impl CausalExperiment {
         self.validate_run(&self.control, &variable_map, &edge_map)?;
         self.validate_run(&self.treatment, &variable_map, &edge_map)?;
         self.validate_run(&self.negative_control, &variable_map, &edge_map)?;
+        self.validate_run(&self.mechanism_ablation.arm, &variable_map, &edge_map)?;
         self.validate_paired_inputs(&variable_map)?;
         self.validate_negative_control(&variable_map)?;
+        self.validate_mechanism_ablation(&variable_map)?;
         Ok(())
     }
 
@@ -175,8 +188,10 @@ impl CausalExperiment {
         let control_value = self.control.independent_outcome.value;
         let treatment_value = self.treatment.independent_outcome.value;
         let negative_value = self.negative_control.independent_outcome.value;
+        let ablation_value = self.mechanism_ablation.arm.independent_outcome.value;
         let observed_effect = treatment_value - control_value;
         let negative_control_effect = negative_value - control_value;
+        let mechanism_ablation_effect = ablation_value - control_value;
 
         let variable_map = self.variable_map()?;
         let edge_map = self.edge_map(&variable_map)?;
@@ -259,6 +274,42 @@ impl CausalExperiment {
             && self.negative_control.independent_outcome.unit
                 == variable_map[self.outcome_variable_id.as_str()].unit;
 
+        let ablation_exogenous_matched = self.mechanism_ablation.arm.exogenous_snapshot_id
+            == self.control.exogenous_snapshot_id;
+        let ablation_inputs_matched = only_one_initial_value_differs(
+            &self.treatment,
+            &self.mechanism_ablation.arm,
+            &self.mechanism_ablation.block_variable_id,
+        );
+        let primary_intervention_preserved = close(
+            self.treatment.initial_values[&self.intervention_variable_id],
+            self.mechanism_ablation.arm.initial_values[&self.intervention_variable_id],
+        );
+        let blocked_mechanism_suppressed = close(
+            self.mechanism_ablation.arm.final_values
+                [&self.mechanism_ablation.blocked_mechanism_variable_id],
+            self.control.final_values[&self.mechanism_ablation.blocked_mechanism_variable_id],
+        ) && !close(
+            self.mechanism_ablation.arm.final_values
+                [&self.mechanism_ablation.blocked_mechanism_variable_id],
+            self.treatment.final_values[&self.mechanism_ablation.blocked_mechanism_variable_id],
+        );
+        let ablation_outcome_agrees = close(
+            self.mechanism_ablation.arm.final_values[&self.outcome_variable_id],
+            ablation_value,
+        ) && self.mechanism_ablation.arm.independent_outcome.variable_id
+            == self.outcome_variable_id
+            && self.mechanism_ablation.arm.independent_outcome.unit
+                == variable_map[self.outcome_variable_id.as_str()].unit;
+        let ablation_protocol_valid = ablation_exogenous_matched
+            && ablation_inputs_matched
+            && primary_intervention_preserved
+            && blocked_mechanism_suppressed
+            && ablation_outcome_agrees;
+        let mechanism_necessity_supported = ablation_protocol_valid
+            && !close(observed_effect, 0.0)
+            && close(ablation_value, control_value);
+
         let qualified = mechanism_path_complete
             && negative_control_isolated
             && exogenous_inputs_matched
@@ -272,6 +323,15 @@ impl CausalExperiment {
             observed_treatment_effect: observed_effect,
             negative_control_outcome: negative_value,
             negative_control_effect,
+            mechanism_ablation_outcome: ablation_value,
+            mechanism_ablation_effect,
+            ablation_exogenous_matched,
+            ablation_inputs_matched,
+            primary_intervention_preserved,
+            blocked_mechanism_suppressed,
+            ablation_outcome_agrees,
+            ablation_protocol_valid,
+            mechanism_necessity_supported,
             mechanism_path_complete,
             first_broken_edge,
             negative_control_isolated,
@@ -548,6 +608,66 @@ impl CausalExperiment {
         Ok(())
     }
 
+    fn validate_mechanism_ablation(
+        &self,
+        variables: &BTreeMap<&str, &CausalVariable>,
+    ) -> Result<(), CausalPathError> {
+        let block_id = self.mechanism_ablation.block_variable_id.as_str();
+        let mechanism_id = self.mechanism_ablation.blocked_mechanism_variable_id.as_str();
+        if block_id == self.intervention_variable_id
+            || block_id == self.negative_control_variable_id
+            || block_id == self.outcome_variable_id
+            || mechanism_id == self.intervention_variable_id
+            || mechanism_id == self.negative_control_variable_id
+            || mechanism_id == self.outcome_variable_id
+            || block_id == mechanism_id
+        {
+            return Err(CausalPathError::AblationVariableRolesOverlap);
+        }
+        let block = variables
+            .get(block_id)
+            .ok_or_else(|| CausalPathError::UnknownVariable(block_id.to_owned()))?;
+        let mechanism = variables
+            .get(mechanism_id)
+            .ok_or_else(|| CausalPathError::UnknownVariable(mechanism_id.to_owned()))?;
+        if block.stage != CausalStage::Intervention {
+            return Err(CausalPathError::AblationSwitchWrongStage(block_id.to_owned()));
+        }
+        if !matches!(mechanism.stage, CausalStage::Mechanism | CausalStage::Intermediate) {
+            return Err(CausalPathError::AblationTargetWrongStage(mechanism_id.to_owned()));
+        }
+        if self.mechanism_ablation.arm.exogenous_snapshot_id
+            != self.control.exogenous_snapshot_id
+        {
+            return Err(CausalPathError::AblationExogenousSnapshotMismatch);
+        }
+        if !only_one_initial_value_differs(
+            &self.treatment,
+            &self.mechanism_ablation.arm,
+            block_id,
+        ) {
+            return Err(CausalPathError::AblationInitialStateMismatch);
+        }
+        if !close(
+            self.treatment.initial_values[&self.intervention_variable_id],
+            self.mechanism_ablation.arm.initial_values[&self.intervention_variable_id],
+        ) {
+            return Err(CausalPathError::AblationChangedPrimaryIntervention);
+        }
+        if close(
+            self.mechanism_ablation.arm.final_values[mechanism_id],
+            self.treatment.final_values[mechanism_id],
+        ) || !close(
+            self.mechanism_ablation.arm.final_values[mechanism_id],
+            self.control.final_values[mechanism_id],
+        ) {
+            return Err(CausalPathError::MechanismAblationDidNotBlock(
+                mechanism_id.to_owned(),
+            ));
+        }
+        Ok(())
+    }
+
     fn validate_negative_control(
         &self,
         _variables: &BTreeMap<&str, &CausalVariable>,
@@ -599,6 +719,16 @@ pub struct CausalPathResult {
     pub observed_treatment_effect: f64,
     pub negative_control_outcome: f64,
     pub negative_control_effect: f64,
+    pub mechanism_ablation_outcome: f64,
+    pub mechanism_ablation_effect: f64,
+    pub ablation_exogenous_matched: bool,
+    pub ablation_inputs_matched: bool,
+    pub primary_intervention_preserved: bool,
+    pub blocked_mechanism_suppressed: bool,
+    pub ablation_outcome_agrees: bool,
+    pub ablation_protocol_valid: bool,
+    /// True only when blocking the named mediator removes the treatment effect.
+    pub mechanism_necessity_supported: bool,
     pub mechanism_path_complete: bool,
     pub first_broken_edge: Option<String>,
     pub negative_control_isolated: bool,
@@ -671,6 +801,13 @@ pub enum CausalPathError {
     NegativeControlDidNotActivate,
     NegativeControlChangedOutcomeState(String),
     NegativeControlChangedIndependentOutcome,
+    AblationVariableRolesOverlap,
+    AblationSwitchWrongStage(String),
+    AblationTargetWrongStage(String),
+    AblationExogenousSnapshotMismatch,
+    AblationInitialStateMismatch,
+    AblationChangedPrimaryIntervention,
+    MechanismAblationDidNotBlock(String),
 }
 
 impl fmt::Display for CausalPathError {
@@ -782,6 +919,28 @@ impl fmt::Display for CausalPathError {
                 f,
                 "negative control changed the independent measured outcome"
             ),
+            Self::AblationVariableRolesOverlap => write!(
+                f,
+                "mechanism ablation switch, blocked mediator, primary intervention, outcome and negative-control roles must be distinct"
+            ),
+            Self::AblationSwitchWrongStage(id) => {
+                write!(f, "mechanism ablation switch {id} must be an intervention-stage variable")
+            }
+            Self::AblationTargetWrongStage(id) => {
+                write!(f, "mechanism ablation target {id} must be a mechanism or intermediate variable")
+            }
+            Self::AblationExogenousSnapshotMismatch => {
+                write!(f, "mechanism ablation arm does not use the matched exogenous snapshot")
+            }
+            Self::AblationInitialStateMismatch => {
+                write!(f, "mechanism ablation arm must differ from treatment only in the declared ablation switch")
+            }
+            Self::AblationChangedPrimaryIntervention => {
+                write!(f, "mechanism ablation arm must preserve the primary intervention assignment")
+            }
+            Self::MechanismAblationDidNotBlock(id) => {
+                write!(f, "mechanism ablation did not suppress mediator {id} to its control value")
+            }
         }
     }
 }
