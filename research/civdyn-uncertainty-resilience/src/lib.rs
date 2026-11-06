@@ -309,14 +309,11 @@ pub fn latin_hypercube(
         strata_by_factor.push(strata);
     }
 
-    let mut points = Vec::with_capacity(sample_count);
-    for sample_index in 0..sample_count {
-        let mut point = [0.0; FACTOR_COUNT];
-        for factor in 0..FACTOR_COUNT {
-            point[factor] =
-                (strata_by_factor[factor][sample_index] as f64 + 0.5) / sample_count as f64;
+    let mut points = vec![[0.0; FACTOR_COUNT]; sample_count];
+    for (factor_index, strata) in strata_by_factor.iter().enumerate() {
+        for (point, stratum) in points.iter_mut().zip(strata) {
+            point[factor_index] = (*stratum as f64 + 0.5) / sample_count as f64;
         }
-        points.push(point);
     }
     Ok(LatinHypercubeDesign { seed, points })
 }
@@ -616,16 +613,14 @@ pub fn evaluate_morris(
         }
 
         for (step, factor_index) in trajectory.factor_order.iter().enumerate() {
-            for shock_index in 0..SHOCKS.len() {
-                for policy_index in 0..POLICIES.len() {
+            for (shock_index, shock_effects) in effects.iter_mut().enumerate() {
+                for (policy_index, policy_effects) in shock_effects.iter_mut().enumerate() {
                     let flat_index = shock_index * POLICIES.len() + policy_index;
-                    for metric_index in 0..OutputMetric::ALL.len() {
-                        let metric = OutputMetric::ALL[metric_index];
+                    for (metric_index, metric) in OutputMetric::ALL.iter().enumerate() {
                         let before = metric.value(&point_outcomes[step][flat_index]);
                         let after = metric.value(&point_outcomes[step + 1][flat_index]);
                         let effect = (after - before) / MORRIS_DELTA;
-                        effects[shock_index][policy_index][*factor_index][metric_index]
-                            .push(effect);
+                        policy_effects[*factor_index][metric_index].push(effect);
                     }
                 }
             }
@@ -633,11 +628,10 @@ pub fn evaluate_morris(
     }
 
     let mut summaries = Vec::new();
-    for shock_index in 0..SHOCKS.len() {
-        for policy_index in 0..POLICIES.len() {
-            for factor_index in 0..FACTOR_COUNT {
-                for metric_index in 0..OutputMetric::ALL.len() {
-                    let values = &effects[shock_index][policy_index][factor_index][metric_index];
+    for (shock_index, shock_effects) in effects.iter().enumerate() {
+        for (policy_index, policy_effects) in shock_effects.iter().enumerate() {
+            for (factor_index, factor_effects) in policy_effects.iter().enumerate() {
+                for (metric_index, values) in factor_effects.iter().enumerate() {
                     let count = values.len();
                     let mu_star =
                         values.iter().map(|value| value.abs()).sum::<f64>() / count as f64;
