@@ -1562,7 +1562,12 @@ mod tests {
                 base.equilibrium.free_dof_backward_error_scale_n,
             ),
         ] {
-            close(actual, expected, 1.0e-7_f64.max(expected.abs() * 1.0e-10), name);
+            close(
+                actual,
+                expected,
+                1.0e-7_f64.max(expected.abs() * 1.0e-10),
+                name,
+            );
         }
         for (name, actual, expected) in [
             (
@@ -1581,7 +1586,12 @@ mod tests {
                 base.equilibrium.normalized_free_dof_residual,
             ),
         ] {
-            close(actual, expected, 1.0e-10_f64.max(expected.abs() * 1.0e-8), name);
+            close(
+                actual,
+                expected,
+                1.0e-10_f64.max(expected.abs() * 1.0e-8),
+                name,
+            );
         }
 
         for id in ["C", "D"] {
@@ -1708,10 +1718,26 @@ mod tests {
             node.force_x_n = cos * fx - sin * fy;
             node.force_y_n = sin * fx + cos * fy;
         }
-        let rotated_min_x = rotated_input.nodes.iter().map(|node| node.x_m).fold(f64::INFINITY, f64::min);
-        let rotated_max_x = rotated_input.nodes.iter().map(|node| node.x_m).fold(f64::NEG_INFINITY, f64::max);
-        let rotated_min_y = rotated_input.nodes.iter().map(|node| node.y_m).fold(f64::INFINITY, f64::min);
-        let rotated_max_y = rotated_input.nodes.iter().map(|node| node.y_m).fold(f64::NEG_INFINITY, f64::max);
+        let rotated_min_x = rotated_input
+            .nodes
+            .iter()
+            .map(|node| node.x_m)
+            .fold(f64::INFINITY, f64::min);
+        let rotated_max_x = rotated_input
+            .nodes
+            .iter()
+            .map(|node| node.x_m)
+            .fold(f64::NEG_INFINITY, f64::max);
+        let rotated_min_y = rotated_input
+            .nodes
+            .iter()
+            .map(|node| node.y_m)
+            .fold(f64::INFINITY, f64::min);
+        let rotated_max_y = rotated_input
+            .nodes
+            .iter()
+            .map(|node| node.y_m)
+            .fold(f64::NEG_INFINITY, f64::max);
         let legacy_rotated_bbox_diagonal =
             (rotated_max_x - rotated_min_x).hypot(rotated_max_y - rotated_min_y);
         close(
