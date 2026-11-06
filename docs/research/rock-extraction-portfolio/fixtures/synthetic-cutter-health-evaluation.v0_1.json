@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "SYNTHETIC-CUTTER-HEALTH-TRANSFER-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "dataset": {
+    "dataset_id": "SYNTHETIC-CUTTER-DATASET-001",
+    "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sample_count": 20,
+    "source_records_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "group_dimensions": ["parent_block", "specimen", "site", "rig", "cutter_geometry", "tool_serial", "time_window"],
+    "measurement_protocol_refs": ["synthetic-protocol:3d-scan-v1", "synthetic-protocol:load-reference-v1"],
+    "domain_description": "Fabricated fixture only; not a physical cutter dataset."
+  },
+  "ground_truth": {
+    "authority_ref": "synthetic-independent-inspection",
+    "measurement_method": "REPLACED_CUTTER_3D_SCAN",
+    "calibration_ref": "synthetic-calibration-record",
+    "uncertainty_budget_ref": "synthetic-uncertainty-budget",
+    "independent": true,
+    "assessor_blinding": "BLINDED"
+  },
+  "split": {
+    "split_id": "EXTERNAL-SITE-FROZEN-01",
+    "strategy": "ExternalSite",
+    "holdout_dimensions": ["parent_block", "specimen", "site", "rig", "cutter_geometry", "tool_serial"],
+    "train_groups": [
+      {"dimension": "parent_block", "group_id": "BLOCK-A"},
+      {"dimension": "specimen", "group_id": "SPECIMEN-A"},
+      {"dimension": "site", "group_id": "SITE-TRAIN"},
+      {"dimension": "rig", "group_id": "RIG-TRAIN"},
+      {"dimension": "cutter_geometry", "group_id": "GEOMETRY-TRAIN"},
+      {"dimension": "tool_serial", "group_id": "SERIAL-TRAIN"}
+    ],
+    "calibration_groups": [
+      {"dimension": "parent_block", "group_id": "BLOCK-CAL"},
+      {"dimension": "specimen", "group_id": "SPECIMEN-CAL"},
+      {"dimension": "site", "group_id": "SITE-TRAIN"},
+      {"dimension": "rig", "group_id": "RIG-TRAIN"},
+      {"dimension": "cutter_geometry", "group_id": "GEOMETRY-TRAIN"},
+      {"dimension": "tool_serial", "group_id": "SERIAL-CAL"}
+    ],
+    "test_groups": [
+      {"dimension": "parent_block", "group_id": "BLOCK-TEST"},
+      {"dimension": "specimen", "group_id": "SPECIMEN-TEST"},
+      {"dimension": "site", "group_id": "SITE-HELD-OUT"},
+      {"dimension": "rig", "group_id": "RIG-HELD-OUT"},
+      {"dimension": "cutter_geometry", "group_id": "GEOMETRY-HELD-OUT"},
+      {"dimension": "tool_serial", "group_id": "SERIAL-HELD-OUT"}
+    ],
+    "train_sample_count": 12,
+    "calibration_sample_count": 4,
+    "test_sample_count": 4,
+    "train_sample_ids_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "calibration_sample_ids_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "test_sample_ids_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "model_runs": [
+    {
+      "model_id": "PHYSICS-WEAR-BASELINE",
+      "family": "PHYSICS_INFORMED",
+      "model_revision": "synthetic-baseline-v1",
+      "code_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "dataset_ref": "SYNTHETIC-CUTTER-DATASET-001",
+      "training_split_ref": "EXTERNAL-SITE-FROZEN-01",
+      "metrics": [
+        {
+          "task": "WEAR_STATE_CLASSIFICATION",
+          "evaluation_partition": "TEST",
+          "sample_count": 4,
+          "truth_evidence_role": "INDEPENDENT_INSPECTION",
+          "macro_f1": 0.72,
+          "per_class_recall": {"NORMAL": 0.9, "UNEVEN_WEAR": 0.6, "FRACTURE": 0.5}
+        },
+        {
+          "task": "RUL_DISTRIBUTION",
+          "evaluation_partition": "TEST",
+          "sample_count": 3,
+          "truth_evidence_role": "INDEPENDENT_INSPECTION",
+          "mae": 18.0,
+          "pinball_loss": 0.16,
+          "censoring_handling": "RIGHT_CENSORED",
+          "prediction_interval": {
+            "nominal_coverage": 0.9,
+            "observed_coverage": 0.67,
+            "mean_width": 36.0,
+            "calibration_partition": "HELD_OUT_CALIBRATION",
+            "calibration_split_ref": "EXTERNAL-SITE-FROZEN-01",
+            "calibration_sample_count": 4
+          }
+        },
+        {
+          "task": "ANOMALY_EVENT_DETECTION",
+          "evaluation_partition": "TEST",
+          "sample_count": 4,
+          "truth_evidence_role": "INDEPENDENT_INSPECTION",
+          "false_alarms_per_100_operating_hours": 1.5,
+          "missed_critical_events": 1,
+          "total_critical_events": 2,
+          "median_detection_delay_hours": 2.0
+        }
+      ]
+    },
+    {
+      "model_id": "ATTENTION-WEAR-MODEL",
+      "family": "ATTENTION",
+      "model_revision": "synthetic-attention-v1",
+      "code_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "configuration_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "dataset_ref": "SYNTHETIC-CUTTER-DATASET-001",
+      "training_split_ref": "EXTERNAL-SITE-FROZEN-01",
+      "metrics": [
+        {
+          "task": "WEAR_STATE_CLASSIFICATION",
+          "evaluation_partition": "TEST",
+          "sample_count": 4,
+          "truth_evidence_role": "INDEPENDENT_INSPECTION",
+          "macro_f1": 0.81,
+          "per_class_recall": {"NORMAL": 0.95, "UNEVEN_WEAR": 0.75, "FRACTURE": 0.6}
+        },
+        {
+          "task": "RUL_DISTRIBUTION",
+          "evaluation_partition": "TEST",
+          "sample_count": 3,
+          "truth_evidence_role": "INDEPENDENT_INSPECTION",
+          "mae": 14.0,
+          "pinball_loss": 0.12,
+          "censoring_handling": "RIGHT_CENSORED",
+          "prediction_interval": {
+            "nominal_coverage": 0.9,
+            "observed_coverage": 0.67,
+            "mean_width": 28.0,
+            "calibration_partition": "HELD_OUT_CALIBRATION",
+            "calibration_split_ref": "EXTERNAL-SITE-FROZEN-01",
+            "calibration_sample_count": 4
+          }
+        },
+        {
+          "task": "ANOMALY_EVENT_DETECTION",
+          "evaluation_partition": "TEST",
+          "sample_count": 4,
+          "truth_evidence_role": "INDEPENDENT_INSPECTION",
+          "false_alarms_per_100_operating_hours": 1.0,
+          "missed_critical_events": 0,
+          "total_critical_events": 2,
+          "median_detection_delay_hours": 1.0
+        }
+      ]
+    }
+  ]
+}
