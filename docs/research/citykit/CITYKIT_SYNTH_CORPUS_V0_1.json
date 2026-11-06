@@ -1,7 +1,7 @@
 {
   "schema_id": "org.luminousdynamics.citykit.synthetic-corpus",
-  "schema_version": "0.1.1",
-  "corpus_id": "CITYKIT-SYNTH-CORPUS-V0.1.1",
+  "schema_version": "0.1.2",
+  "corpus_id": "CITYKIT-SYNTH-CORPUS-V0.1.2",
   "classification": "synthetic_fixture_only",
   "units_policy": "Every numeric quantity is synthetic and local to its declared unit; no value is a vendor, site, city, engineering, cost, carbon, or field-performance claim.",
   "semantics": {
