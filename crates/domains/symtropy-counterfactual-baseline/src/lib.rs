@@ -664,13 +664,13 @@ pub enum BaselineQualificationError {
     BaselineTrajectoryShapeMismatch {
         regime_id: String,
         group_id: String,
-        expected_interval_count: usize,
-        observed_interval_count: usize,
+        expected: Vec<BaselineTrajectoryIntervalShape>,
+        observed: Vec<BaselineTrajectoryIntervalShape>,
     },
     EventTrajectoryShapeMismatch {
         regime_id: String,
-        expected_interval_count: usize,
-        observed_interval_count: usize,
+        expected: Vec<BaselineTrajectoryIntervalShape>,
+        observed: Vec<BaselineTrajectoryIntervalShape>,
     },
     InvalidNormalizedPowerScale {
         regime_id: String,
@@ -803,19 +803,19 @@ impl fmt::Display for BaselineQualificationError {
             Self::BaselineTrajectoryShapeMismatch {
                 regime_id,
                 group_id,
-                expected_interval_count,
-                observed_interval_count,
+                expected,
+                observed,
             } => write!(
                 f,
-                "baseline trajectory group {group_id} in regime {regime_id} has {observed_interval_count} intervals; expected shape has {expected_interval_count}"
+                "baseline trajectory group {group_id} in regime {regime_id} has interval geometry {observed:?}; expected {expected:?}"
             ),
             Self::EventTrajectoryShapeMismatch {
                 regime_id,
-                expected_interval_count,
-                observed_interval_count,
+                expected,
+                observed,
             } => write!(
                 f,
-                "event/recovery trace in regime {regime_id} has {observed_interval_count} intervals; qualified baseline horizon has {expected_interval_count}"
+                "event/recovery trace in regime {regime_id} has interval geometry {observed:?}; qualified baseline horizon has {expected:?}"
             ),
             Self::InvalidNormalizedPowerScale { regime_id } => write!(
                 f,
@@ -1016,8 +1016,8 @@ pub fn qualify_counterfactual_baseline(
                 return Err(BaselineQualificationError::BaselineTrajectoryShapeMismatch {
                     regime_id: regime_id.to_owned(),
                     group_id: (*group_id).to_owned(),
-                    expected_interval_count: expected_trajectory_shape.len(),
-                    observed_interval_count: shape.len(),
+                    expected: expected_trajectory_shape.clone(),
+                    observed: shape.clone(),
                 });
             }
         }
@@ -1333,8 +1333,8 @@ pub fn evaluate_baseline_bounded_event(
         if &event_shape != expected_shape {
             return Err(BaselineQualificationError::EventTrajectoryShapeMismatch {
                 regime_id: regime_id.to_owned(),
-                expected_interval_count: expected_shape.len(),
-                observed_interval_count: event_shape.len(),
+                expected: expected_shape.clone(),
+                observed: event_shape.clone(),
             });
         }
     }
