@@ -451,6 +451,96 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
         return errors;
     };
 
+    if parent_bins.is_empty() {
+        push(
+            &mut errors,
+            "PARENT_PSD_UNAVAILABLE",
+            "$.acquisition.parent_interval_id",
+            "authoritative parent PSD must contain at least one size bin",
+        );
+        return errors;
+    }
+
+    let mut previous_parent_upper: Option<f64> = None;
+    for (bin_index, bin) in parent_bins.iter().enumerate() {
+        let bin_path = format!("$.parent.fragment_bins[{bin_index}]");
+        let lower = finite(bin, "lower_mm");
+        let upper = bin.get("upper_mm");
+        match (lower, upper) {
+            (Some(lo), Some(Value::Number(n))) if lo >= 0.0 => {
+                let Some(hi) = n.as_f64().filter(|v| v.is_finite()) else {
+                    push(
+                        &mut errors,
+                        "INVALID_PARENT_PSD_BIN",
+                        &bin_path,
+                        "numeric upper bin boundary must be finite",
+                    );
+                    continue;
+                };
+                if hi <= lo {
+                    push(
+                        &mut errors,
+                        "INVALID_PARENT_PSD_BIN",
+                        &bin_path,
+                        "parent upper bin boundary must exceed lower boundary",
+                    );
+                }
+                if bin_index + 1 == parent_bins.len() {
+                    push(
+                        &mut errors,
+                        "PARENT_PSD_FINAL_BIN_NOT_OPEN",
+                        &bin_path,
+                        "final authoritative parent PSD bin must be open-ended",
+                    );
+                }
+                if bin_index == 0 && !close(lo, 0.0) {
+                    push(
+                        &mut errors,
+                        "PARENT_PSD_NOT_ZERO_ORIGIN",
+                        &bin_path,
+                        "authoritative parent PSD must start at 0 mm",
+                    );
+                }
+                if let Some(previous) = previous_parent_upper {
+                    if !close(previous, lo) {
+                        push(
+                            &mut errors,
+                            "PARENT_PSD_GAP_OR_OVERLAP",
+                            &bin_path,
+                            "authoritative parent PSD bins must be ordered, contiguous and non-overlapping",
+                        );
+                    }
+                }
+                previous_parent_upper = Some(hi);
+            }
+            (Some(lo), Some(Value::Null)) if lo >= 0.0 && bin_index + 1 == parent_bins.len() => {
+                if bin_index == 0 {
+                    if !close(lo, 0.0) {
+                        push(
+                            &mut errors,
+                            "PARENT_PSD_NOT_ZERO_ORIGIN",
+                            &bin_path,
+                            "authoritative parent PSD must start at 0 mm",
+                        );
+                    }
+                } else if previous_parent_upper.is_none_or(|previous| !close(previous, lo)) {
+                    push(
+                        &mut errors,
+                        "PARENT_PSD_GAP_OR_OVERLAP",
+                        &bin_path,
+                        "authoritative parent PSD bins must be ordered, contiguous and non-overlapping",
+                    );
+                }
+            }
+            _ => push(
+                &mut errors,
+                "INVALID_PARENT_PSD_BIN",
+                &bin_path,
+                "parent PSD boundaries must be finite, non-negative, contiguous, and only the final upper bound may be null",
+            ),
+        }
+    }
+
     let Some(strata) = case.get("size_strata").and_then(Value::as_array) else {
         push(
             &mut errors,
@@ -692,7 +782,14 @@ pub fn evaluate_against_parent(
             count(stratum, "rejected_particle_count").expect("validated rejected count"),
         ];
         for (total, value) in totals.iter_mut().zip(counts) {
-            *total = total.saturating_add(value);
+            let Some(next) = total.checked_add(value) else {
+                return Err(vec![Violation {
+                    code: "AGGREGATE_PARTICLE_COUNT_OVERFLOW".to_owned(),
+                    path: "$.size_strata".to_owned(),
+                    detail: "aggregate particle count exceeds u64; refusing saturating or wrapped totals".to_owned(),
+                }]);
+            };
+            *total = next;
         }
 
         let mut descriptor_reports = Vec::new();
@@ -1078,15 +1175,48 @@ mod tests {
         let mut case = morphology_case();
         case["acquisition"]["method"] = serde_json::json!("LIDAR_POINT_CLOUD");
         for stratum in case["size_strata"].as_array_mut().unwrap() {
-            for descriptor in stratum["descriptors"].as_array_mut().unwrap() {
-                descriptor["descriptor_type"] = serde_json::json!("SPHERICITY_3D");
-                descriptor["basis"] = serde_json::json!("RECONSTRUCTION_3D");
-                descriptor["quantiles"] = serde_json::json!({
-                    "p05":0.42,"p25":0.55,"p50":0.68,"p75":0.79,"p95":0.91
-                });
-            }
+            stratum["descriptors"] = serde_json::json!([{
+                "descriptor_type":"SPHERICITY_3D",
+                "basis":"RECONSTRUCTION_3D",
+                "unit":"1",
+                "descriptor_definition_ref":"descriptor:sphericity-3d-v1",
+                "sample_count":48,
+                "p50_standard_uncertainty":0.025,
+                "quantiles":{"p05":0.42,"p25":0.55,"p50":0.68,"p75":0.79,"p95":0.91}
+            }]);
         }
         assert!(validate_against_parent(&case, &parent_case()).is_empty());
+    }
+
+    #[test]
+    fn malformed_parent_psd_gap_is_rejected() {
+        let mut parent = parent_case();
+        parent["intervals"][0]["fragment_bins"][1]["lower_mm"] =
+            serde_json::json!(5.5);
+        assert!(has_code(
+            &validate_against_parent(&morphology_case(), &parent),
+            "PARENT_PSD_GAP_OR_OVERLAP"
+        ));
+    }
+
+    #[test]
+    fn aggregate_particle_count_overflow_is_rejected() {
+        let mut case = morphology_case();
+        for index in 0..2 {
+            let stratum = stratum_mut(&mut case, index);
+            stratum["sampled_particle_count"] = serde_json::json!(u64::MAX);
+            stratum["valid_particle_count"] = serde_json::json!(u64::MAX);
+            stratum["occluded_particle_count"] = serde_json::json!(0);
+            stratum["ambiguous_particle_count"] = serde_json::json!(0);
+            stratum["rejected_particle_count"] = serde_json::json!(0);
+            for descriptor in stratum["descriptors"].as_array_mut().unwrap() {
+                descriptor["sample_count"] = serde_json::json!(u64::MAX);
+            }
+        }
+        assert!(matches!(
+            evaluate_against_parent(&case, &parent_case()),
+            Err(errors) if has_code(&errors, "AGGREGATE_PARTICLE_COUNT_OVERFLOW")
+        ));
     }
 
     #[test]
