@@ -338,8 +338,14 @@ impl DcFlexibilityIdentity {
             ("site ID", identity.site_id.as_str()),
             ("PCC ID", identity.pcc_id.as_str()),
             ("PCC bus ID", identity.pcc_bus_id.as_str()),
-            ("baseline trace digest", identity.baseline_trace_digest.as_str()),
-            ("flexible trace digest", identity.flexible_trace_digest.as_str()),
+            (
+                "baseline trace digest",
+                identity.baseline_trace_digest.as_str(),
+            ),
+            (
+                "flexible trace digest",
+                identity.flexible_trace_digest.as_str(),
+            ),
         ] {
             require_id(field, value)?;
         }
@@ -424,30 +430,79 @@ pub struct DcNetworkDeliverabilityReport {
 /// Fail-closed network input and numerical errors.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DcNetworkError {
-    MissingIdentity { field: &'static str },
-    InvalidQuantity { field: &'static str, value: f64 },
-    InvalidInjection { bus_id: String, value: f64 },
-    InvalidLoadReduction { bus_id: String, value: f64 },
+    MissingIdentity {
+        field: &'static str,
+    },
+    InvalidQuantity {
+        field: &'static str,
+        value: f64,
+    },
+    InvalidInjection {
+        bus_id: String,
+        value: f64,
+    },
+    InvalidLoadReduction {
+        bus_id: String,
+        value: f64,
+    },
     EmptyNetwork,
     EmptyTrajectory,
-    InvalidSlackBusCount { observed: usize },
-    DuplicateBus { bus_id: String },
-    DuplicateBranch { branch_id: String },
-    UnknownBus { bus_id: String },
-    UnknownInjectionBus { bus_id: String },
-    PccBusMismatch { expected_bus_id: String, observed_bus_id: String },
-    PccBusMapsToSlack { bus_id: String },
-    SlackBusInjectionSupplied { bus_id: String },
-    UnknownContingencyBranch { branch_id: String },
-    UnknownBranchFlow { branch_id: String },
-    SelfLoop { branch_id: String },
-    EmergencyLimitBelowNormal { branch_id: String, normal_limit_mw: f64, emergency_limit_mw: f64 },
+    InvalidSlackBusCount {
+        observed: usize,
+    },
+    DuplicateBus {
+        bus_id: String,
+    },
+    DuplicateBranch {
+        branch_id: String,
+    },
+    UnknownBus {
+        bus_id: String,
+    },
+    UnknownInjectionBus {
+        bus_id: String,
+    },
+    PccBusMismatch {
+        expected_bus_id: String,
+        observed_bus_id: String,
+    },
+    PccBusMapsToSlack {
+        bus_id: String,
+    },
+    SlackBusInjectionSupplied {
+        bus_id: String,
+    },
+    UnknownContingencyBranch {
+        branch_id: String,
+    },
+    UnknownBranchFlow {
+        branch_id: String,
+    },
+    SelfLoop {
+        branch_id: String,
+    },
+    EmergencyLimitBelowNormal {
+        branch_id: String,
+        normal_limit_mw: f64,
+        emergency_limit_mw: f64,
+    },
     InvalidTopologyAgeLimit,
-    StaleTopology { interval_start_ns: u64, topology_effective_at_ns: u64, maximum_age_ns: u64 },
-    NonContiguousIntervals { index: usize, expected_start_ns: u64, observed_start_ns: u64 },
+    StaleTopology {
+        interval_start_ns: u64,
+        topology_effective_at_ns: u64,
+        maximum_age_ns: u64,
+    },
+    NonContiguousIntervals {
+        index: usize,
+        expected_start_ns: u64,
+        observed_start_ns: u64,
+    },
     InvalidIntervalDuration,
     MissingRequiredContingencies,
-    SingularOrIslandedTopology { outage_branch_id: Option<String>, pivot: f64 },
+    SingularOrIslandedTopology {
+        outage_branch_id: Option<String>,
+        pivot: f64,
+    },
     PowerMatrixDimensionMismatch,
     TimestampOverflow,
     NumericalOverflow(&'static str),
@@ -458,33 +513,98 @@ impl fmt::Display for DcNetworkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingIdentity { field } => write!(f, "{field} must not be empty"),
-            Self::InvalidQuantity { field, value } => write!(f, "{field} must be finite and positive; got {value}"),
-            Self::InvalidInjection { bus_id, value } => write!(f, "injection at bus {bus_id} is non-finite: {value}"),
-            Self::InvalidLoadReduction { bus_id, value } => write!(f, "load reduction at bus {bus_id} must be non-negative; got {value}"),
+            Self::InvalidQuantity { field, value } => {
+                write!(f, "{field} must be finite and positive; got {value}")
+            }
+            Self::InvalidInjection { bus_id, value } => {
+                write!(f, "injection at bus {bus_id} is non-finite: {value}")
+            }
+            Self::InvalidLoadReduction { bus_id, value } => write!(
+                f,
+                "load reduction at bus {bus_id} must be non-negative; got {value}"
+            ),
             Self::EmptyNetwork => write!(f, "network requires at least one bus"),
-            Self::EmptyTrajectory => write!(f, "network deliverability requires at least one interval"),
-            Self::InvalidSlackBusCount { observed } => write!(f, "network requires exactly one slack bus; got {observed}"),
+            Self::EmptyTrajectory => {
+                write!(f, "network deliverability requires at least one interval")
+            }
+            Self::InvalidSlackBusCount { observed } => {
+                write!(f, "network requires exactly one slack bus; got {observed}")
+            }
             Self::DuplicateBus { bus_id } => write!(f, "duplicate bus ID {bus_id}"),
             Self::DuplicateBranch { branch_id } => write!(f, "duplicate branch ID {branch_id}"),
             Self::UnknownBus { bus_id } => write!(f, "network references unknown bus {bus_id}"),
-            Self::UnknownInjectionBus { bus_id } => write!(f, "injection references unknown bus {bus_id}"),
-            Self::PccBusMismatch { expected_bus_id, observed_bus_id } => write!(f, "site flexibility is pinned to PCC bus {expected_bus_id}, but load-reduction action is assigned to {observed_bus_id}"),
-            Self::PccBusMapsToSlack { bus_id } => write!(f, "PCC bus {bus_id} cannot be the balancing slack bus"),
-            Self::SlackBusInjectionSupplied { bus_id } => write!(f, "slack bus {bus_id} is balanced implicitly and must not appear in the injection map"),
-            Self::UnknownContingencyBranch { branch_id } => write!(f, "contingency references unknown branch {branch_id}"),
-            Self::UnknownBranchFlow { branch_id } => write!(f, "missing solved branch flow for {branch_id}"),
-            Self::SelfLoop { branch_id } => write!(f, "branch {branch_id} connects a bus to itself"),
-            Self::EmergencyLimitBelowNormal { branch_id, normal_limit_mw, emergency_limit_mw } => write!(f, "branch {branch_id} emergency limit {emergency_limit_mw} MW is below normal limit {normal_limit_mw} MW"),
+            Self::UnknownInjectionBus { bus_id } => {
+                write!(f, "injection references unknown bus {bus_id}")
+            }
+            Self::PccBusMismatch {
+                expected_bus_id,
+                observed_bus_id,
+            } => write!(
+                f,
+                "site flexibility is pinned to PCC bus {expected_bus_id}, but load-reduction action is assigned to {observed_bus_id}"
+            ),
+            Self::PccBusMapsToSlack { bus_id } => {
+                write!(f, "PCC bus {bus_id} cannot be the balancing slack bus")
+            }
+            Self::SlackBusInjectionSupplied { bus_id } => write!(
+                f,
+                "slack bus {bus_id} is balanced implicitly and must not appear in the injection map"
+            ),
+            Self::UnknownContingencyBranch { branch_id } => {
+                write!(f, "contingency references unknown branch {branch_id}")
+            }
+            Self::UnknownBranchFlow { branch_id } => {
+                write!(f, "missing solved branch flow for {branch_id}")
+            }
+            Self::SelfLoop { branch_id } => {
+                write!(f, "branch {branch_id} connects a bus to itself")
+            }
+            Self::EmergencyLimitBelowNormal {
+                branch_id,
+                normal_limit_mw,
+                emergency_limit_mw,
+            } => write!(
+                f,
+                "branch {branch_id} emergency limit {emergency_limit_mw} MW is below normal limit {normal_limit_mw} MW"
+            ),
             Self::InvalidTopologyAgeLimit => write!(f, "maximum topology age must be positive"),
-            Self::StaleTopology { interval_start_ns, topology_effective_at_ns, maximum_age_ns } => write!(f, "topology effective at {topology_effective_at_ns} is stale at interval {interval_start_ns}; maximum age is {maximum_age_ns} ns"),
-            Self::NonContiguousIntervals { index, expected_start_ns, observed_start_ns } => write!(f, "network interval {index} starts at {observed_start_ns}; expected contiguous start {expected_start_ns}"),
+            Self::StaleTopology {
+                interval_start_ns,
+                topology_effective_at_ns,
+                maximum_age_ns,
+            } => write!(
+                f,
+                "topology effective at {topology_effective_at_ns} is stale at interval {interval_start_ns}; maximum age is {maximum_age_ns} ns"
+            ),
+            Self::NonContiguousIntervals {
+                index,
+                expected_start_ns,
+                observed_start_ns,
+            } => write!(
+                f,
+                "network interval {index} starts at {observed_start_ns}; expected contiguous start {expected_start_ns}"
+            ),
             Self::InvalidIntervalDuration => write!(f, "interval duration must be positive"),
-            Self::MissingRequiredContingencies => write!(f, "N-1 policy requires an explicit non-empty contingency set"),
-            Self::SingularOrIslandedTopology { outage_branch_id, pivot } => write!(f, "DC susceptance matrix is singular/islanded for outage {outage_branch_id:?}; pivot {pivot}"),
-            Self::PowerMatrixDimensionMismatch => write!(f, "DC susceptance matrix and injection vector dimensions differ"),
+            Self::MissingRequiredContingencies => write!(
+                f,
+                "N-1 policy requires an explicit non-empty contingency set"
+            ),
+            Self::SingularOrIslandedTopology {
+                outage_branch_id,
+                pivot,
+            } => write!(
+                f,
+                "DC susceptance matrix is singular/islanded for outage {outage_branch_id:?}; pivot {pivot}"
+            ),
+            Self::PowerMatrixDimensionMismatch => write!(
+                f,
+                "DC susceptance matrix and injection vector dimensions differ"
+            ),
             Self::TimestampOverflow => write!(f, "timestamp arithmetic overflow"),
             Self::NumericalOverflow(field) => write!(f, "numerical overflow computing {field}"),
-            Self::TraceDigestCollision => write!(f, "baseline and flexible trace digests must differ"),
+            Self::TraceDigestCollision => {
+                write!(f, "baseline and flexible trace digests must differ")
+            }
         }
     }
 }
@@ -518,7 +638,11 @@ pub fn evaluate_dc_network_deliverability(
             bus_id: identity.pcc_bus_id.clone(),
         });
     }
-    let branch_ids: BTreeSet<&str> = network.branches.iter().map(|branch| branch.id.as_str()).collect();
+    let branch_ids: BTreeSet<&str> = network
+        .branches
+        .iter()
+        .map(|branch| branch.id.as_str())
+        .collect();
     let mut unique_contingencies = BTreeSet::new();
     for branch_id in n_minus_one_contingencies {
         if !branch_ids.contains(branch_id.as_str()) {
@@ -551,7 +675,8 @@ pub fn evaluate_dc_network_deliverability(
                 observed_start_ns: interval.interval_start_ns,
             });
         }
-        let end_ns = interval.interval_start_ns
+        let end_ns = interval
+            .interval_start_ns
             .checked_add(interval.interval_duration_ns)
             .ok_or(DcNetworkError::TimestampOverflow)?;
         previous_end_ns = Some(end_ns);
@@ -589,9 +714,24 @@ pub fn evaluate_dc_network_deliverability(
             *flexible_injections.entry(bus_id.clone()).or_insert(0.0) += reduction_mw;
         }
 
-        let baseline_flows = solve_dc_flows(network, &interval.baseline_non_slack_injections_mw, None, contract.pivot_tolerance)?;
-        let flexible_flows = solve_dc_flows(network, &flexible_injections, None, contract.pivot_tolerance)?;
-        let branch_flows = build_branch_flow_receipts(network, &baseline_flows, &flexible_flows, contract.flow_tolerance_mw)?;
+        let baseline_flows = solve_dc_flows(
+            network,
+            &interval.baseline_non_slack_injections_mw,
+            None,
+            contract.pivot_tolerance,
+        )?;
+        let flexible_flows = solve_dc_flows(
+            network,
+            &flexible_injections,
+            None,
+            contract.pivot_tolerance,
+        )?;
+        let branch_flows = build_branch_flow_receipts(
+            network,
+            &baseline_flows,
+            &flexible_flows,
+            contract.flow_tolerance_mw,
+        )?;
         let basecase_action_range = action_fraction_range(
             network,
             &baseline_flows,
@@ -625,8 +765,12 @@ pub fn evaluate_dc_network_deliverability(
                     let overloaded: Vec<String> = flexible_flows
                         .iter()
                         .filter_map(|flow| {
-                            let branch = network.branches.iter().find(|branch| branch.id == flow.branch_id)?;
-                            (flow.flow_mw.abs() > branch.emergency_limit_mw + contract.flow_tolerance_mw)
+                            let branch = network
+                                .branches
+                                .iter()
+                                .find(|branch| branch.id == flow.branch_id)?;
+                            (flow.flow_mw.abs()
+                                > branch.emergency_limit_mw + contract.flow_tolerance_mw)
                                 .then(|| branch.id.clone())
                         })
                         .collect();
@@ -640,7 +784,8 @@ pub fn evaluate_dc_network_deliverability(
                     let feasible = action_range
                         .is_some_and(|(_, maximum)| maximum >= 1.0 - contract.flow_tolerance_mw);
                     if contract.require_n_minus_one {
-                        combined_action_range = intersect_action_ranges(combined_action_range, action_range);
+                        combined_action_range =
+                            intersect_action_ranges(combined_action_range, action_range);
                     }
                     contingency_receipts.push(DcContingencyReceipt {
                         outaged_branch_id: outage.clone(),
@@ -664,7 +809,9 @@ pub fn evaluate_dc_network_deliverability(
                         overloaded_branch_ids: Vec::new(),
                         minimum_feasible_action_fraction: None,
                         maximum_feasible_action_fraction: None,
-                        diagnostic: Some(format!("islanded or singular DC topology (pivot {pivot})")),
+                        diagnostic: Some(format!(
+                            "islanded or singular DC topology (pivot {pivot})"
+                        )),
                     });
                 }
                 (Err(error), _) | (_, Err(error)) => return Err(error),
@@ -674,26 +821,25 @@ pub fn evaluate_dc_network_deliverability(
         if n_minus_one_feasible {
             n_minus_one_feasible_interval_count += 1;
         }
-        let interval_network_deliverable = basecase_flexible_feasible
-            && (!contract.require_n_minus_one || n_minus_one_feasible);
+        let interval_network_deliverable =
+            basecase_flexible_feasible && (!contract.require_n_minus_one || n_minus_one_feasible);
         if interval_network_deliverable {
             network_deliverable_interval_count += 1;
         }
         let requested_reduction_mw = interval.load_reductions_mw.values().sum::<f64>();
         if !requested_reduction_mw.is_finite() {
-            return Err(DcNetworkError::NumericalOverflow("total requested load reduction"));
+            return Err(DcNetworkError::NumericalOverflow(
+                "total requested load reduction",
+            ));
         }
         maximum_requested_load_reduction_mw =
             maximum_requested_load_reduction_mw.max(requested_reduction_mw);
         let duration_hours = interval.interval_duration_ns as f64 / 3_600_000_000_000.0;
         requested_reduction_energy_mwh += requested_reduction_mw * duration_hours;
-        let minimum_network_feasible_action_fraction =
-            combined_action_range.map(|range| range.0);
-        let maximum_network_feasible_action_fraction =
-            combined_action_range.map(|range| range.1);
+        let minimum_network_feasible_action_fraction = combined_action_range.map(|range| range.0);
+        let maximum_network_feasible_action_fraction = combined_action_range.map(|range| range.1);
         let maximum_network_deliverable_reduction_mw =
-            requested_reduction_mw
-                * maximum_network_feasible_action_fraction.unwrap_or(0.0);
+            requested_reduction_mw * maximum_network_feasible_action_fraction.unwrap_or(0.0);
         maximum_network_deliverable_reduction_energy_mwh +=
             maximum_network_deliverable_reduction_mw * duration_hours;
         if !maximum_network_deliverable_reduction_energy_mwh.is_finite() {
@@ -702,11 +848,15 @@ pub fn evaluate_dc_network_deliverability(
             ));
         }
         if !requested_reduction_energy_mwh.is_finite() {
-            return Err(DcNetworkError::NumericalOverflow("requested flexibility energy"));
+            return Err(DcNetworkError::NumericalOverflow(
+                "requested flexibility energy",
+            ));
         }
 
-        let baseline_slack_injection_mw =
-            -interval.baseline_non_slack_injections_mw.values().sum::<f64>();
+        let baseline_slack_injection_mw = -interval
+            .baseline_non_slack_injections_mw
+            .values()
+            .sum::<f64>();
         let flexible_slack_injection_mw = -flexible_injections.values().sum::<f64>();
         receipts.push(DcNetworkIntervalReceipt {
             interval_start_ns: interval.interval_start_ns,
@@ -781,11 +931,12 @@ fn action_fraction_range(
         let Some(base_flow) = baseline.get(branch.id.as_str()).copied() else {
             continue; // An outaged branch is absent from both flow lists.
         };
-        let full_flow = *full.get(branch.id.as_str()).ok_or_else(|| {
-            DcNetworkError::UnknownBranchFlow {
-                branch_id: branch.id.clone(),
-            }
-        })?;
+        let full_flow =
+            *full
+                .get(branch.id.as_str())
+                .ok_or_else(|| DcNetworkError::UnknownBranchFlow {
+                    branch_id: branch.id.clone(),
+                })?;
         let rating = (if emergency {
             branch.emergency_limit_mw
         } else {
@@ -832,14 +983,18 @@ fn validate_injection_map(
     network: &DcNetworkModel,
     injections: &BTreeMap<String, f64>,
 ) -> Result<(), DcNetworkError> {
-    let bus_by_id: BTreeMap<&str, &DcBus> =
-        network.buses.iter().map(|bus| (bus.id.as_str(), bus)).collect();
+    let bus_by_id: BTreeMap<&str, &DcBus> = network
+        .buses
+        .iter()
+        .map(|bus| (bus.id.as_str(), bus))
+        .collect();
     for (bus_id, value) in injections {
-        let bus = bus_by_id.get(bus_id.as_str()).ok_or_else(|| {
-            DcNetworkError::UnknownInjectionBus {
-                bus_id: bus_id.clone(),
-            }
-        })?;
+        let bus =
+            bus_by_id
+                .get(bus_id.as_str())
+                .ok_or_else(|| DcNetworkError::UnknownInjectionBus {
+                    bus_id: bus_id.clone(),
+                })?;
         if bus.is_slack {
             return Err(DcNetworkError::SlackBusInjectionSupplied {
                 bus_id: bus_id.clone(),
@@ -861,8 +1016,7 @@ fn solve_dc_flows(
     outage_branch_id: Option<&str>,
     pivot_tolerance: f64,
 ) -> Result<Vec<SolvedBranchFlow>, DcNetworkError> {
-    let non_slack_buses: Vec<&DcBus> =
-        network.buses.iter().filter(|bus| !bus.is_slack).collect();
+    let non_slack_buses: Vec<&DcBus> = network.buses.iter().filter(|bus| !bus.is_slack).collect();
     let indices: BTreeMap<&str, usize> = non_slack_buses
         .iter()
         .enumerate()
@@ -872,11 +1026,12 @@ fn solve_dc_flows(
     let mut matrix = vec![vec![0.0; dimension]; dimension];
     let mut rhs = vec![0.0; dimension];
     for (bus_id, value) in injections {
-        let index = *indices.get(bus_id.as_str()).ok_or_else(|| {
-            DcNetworkError::UnknownInjectionBus {
-                bus_id: bus_id.clone(),
-            }
-        })?;
+        let index =
+            *indices
+                .get(bus_id.as_str())
+                .ok_or_else(|| DcNetworkError::UnknownInjectionBus {
+                    bus_id: bus_id.clone(),
+                })?;
         rhs[index] = *value / network.base_mva;
     }
 
@@ -909,8 +1064,14 @@ fn solve_dc_flows(
         let flow_mw = if outage_branch_id == Some(branch.id.as_str()) {
             continue;
         } else {
-            let from_angle = angle_by_bus.get(branch.from_bus.as_str()).copied().unwrap_or(0.0);
-            let to_angle = angle_by_bus.get(branch.to_bus.as_str()).copied().unwrap_or(0.0);
+            let from_angle = angle_by_bus
+                .get(branch.from_bus.as_str())
+                .copied()
+                .unwrap_or(0.0);
+            let to_angle = angle_by_bus
+                .get(branch.to_bus.as_str())
+                .copied()
+                .unwrap_or(0.0);
             (from_angle - to_angle) / branch.reactance_pu * network.base_mva
         };
         if !flow_mw.is_finite() {
@@ -990,16 +1151,18 @@ fn build_branch_flow_receipts(
         .collect();
     let mut receipts = Vec::with_capacity(network.branches.len());
     for branch in &network.branches {
-        let baseline_flow_mw = *baseline.get(branch.id.as_str()).ok_or_else(|| {
-            DcNetworkError::UnknownBranchFlow {
-                branch_id: branch.id.clone(),
-            }
-        })?;
-        let flexible_flow_mw = *flexible.get(branch.id.as_str()).ok_or_else(|| {
-            DcNetworkError::UnknownBranchFlow {
-                branch_id: branch.id.clone(),
-            }
-        })?;
+        let baseline_flow_mw =
+            *baseline
+                .get(branch.id.as_str())
+                .ok_or_else(|| DcNetworkError::UnknownBranchFlow {
+                    branch_id: branch.id.clone(),
+                })?;
+        let flexible_flow_mw =
+            *flexible
+                .get(branch.id.as_str())
+                .ok_or_else(|| DcNetworkError::UnknownBranchFlow {
+                    branch_id: branch.id.clone(),
+                })?;
         let flow_delta_mw = flexible_flow_mw - baseline_flow_mw;
         let absolute_flow_relief_mw = baseline_flow_mw.abs() - flexible_flow_mw.abs();
         if !flow_delta_mw.is_finite() || !absolute_flow_relief_mw.is_finite() {
