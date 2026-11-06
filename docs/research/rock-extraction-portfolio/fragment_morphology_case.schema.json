@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/fragment-morphology-case-v0.1.json",
+  "title": "Symtropy Fragment Morphology Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "acquisition",
+    "size_strata"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quantiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "p05",
+        "p25",
+        "p50",
+        "p75",
+        "p95"
+      ],
+      "properties": {
+        "p05": {
+          "type": "number"
+        },
+        "p25": {
+          "type": "number"
+        },
+        "p50": {
+          "type": "number"
+        },
+        "p75": {
+          "type": "number"
+        },
+        "p95": {
+          "type": "number"
+        }
+      }
+    },
+    "descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "descriptor_type",
+        "basis",
+        "unit",
+        "descriptor_definition_ref",
+        "sample_count",
+        "p50_standard_uncertainty",
+        "quantiles"
+      ],
+      "properties": {
+        "descriptor_type": {
+          "enum": [
+            "FERET_ASPECT_RATIO_2D",
+            "CIRCULARITY_2D",
+            "SOLIDITY_2D",
+            "FOURIER_ANGULARITY_2D",
+            "FOURIER_ROUGHNESS_2D",
+            "SPHERICITY_3D",
+            "ASPECT_RATIO_3D",
+            "CONVEXITY_3D"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "PROJECTION_2D",
+            "RECONSTRUCTION_3D"
+          ]
+        },
+        "unit": {
+          "const": "1"
+        },
+        "descriptor_definition_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "p50_standard_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "quantiles": {
+          "$ref": "#/$defs/quantiles"
+        }
+      }
+    },
+    "stratum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parent_bin_index",
+        "lower_mm",
+        "upper_mm",
+        "sampled_particle_count",
+        "valid_particle_count",
+        "occluded_particle_count",
+        "ambiguous_particle_count",
+        "rejected_particle_count",
+        "evidence_role",
+        "source_ref",
+        "descriptors"
+      ],
+      "properties": {
+        "parent_bin_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lower_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "upper_mm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "sampled_particle_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "valid_particle_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occluded_particle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ambiguous_particle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected_particle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_role": {
+          "enum": [
+            "INDEPENDENT_MEASUREMENT",
+            "DERIVED_FROM_INDEPENDENT_MEASUREMENTS",
+            "MODEL_ESTIMATE",
+            "SIMULATION",
+            "OPERATOR_REPORTED"
+          ]
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "lineage_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "descriptors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/descriptor"
+          }
+        }
+      }
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acquisition_id",
+        "parent_case_id",
+        "parent_interval_id",
+        "trial_id",
+        "configuration_ref",
+        "material_cohort_ref",
+        "method",
+        "instrument_ref",
+        "calibration_ref",
+        "reference_material_ref",
+        "sampling_protocol_ref",
+        "segmentation_pipeline_ref",
+        "orientation_protocol",
+        "orientation_protocol_ref",
+        "repeatability_ref",
+        "source_artifact_ref"
+      ],
+      "properties": {
+        "acquisition_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "parent_case_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "parent_interval_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "trial_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "configuration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "material_cohort_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "method": {
+          "enum": [
+            "STATIC_2D_IMAGE",
+            "DYNAMIC_2D_IMAGE",
+            "LIDAR_POINT_CLOUD",
+            "PHOTOGRAMMETRY_3D",
+            "STRUCTURED_LIGHT_3D",
+            "MULTIVIEW_RECONSTRUCTION"
+          ]
+        },
+        "instrument_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "calibration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "reference_material_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "sampling_protocol_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "segmentation_pipeline_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "orientation_protocol": {
+          "enum": [
+            "DYNAMIC_ROTATION",
+            "MULTI_VIEW",
+            "RANDOM_ORIENTATION_SAMPLE",
+            "SINGLE_VIEW_UNCONTROLLED"
+          ]
+        },
+        "orientation_protocol_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "repeatability_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MEASURED"
+      ]
+    },
+    "acquisition": {
+      "$ref": "#/$defs/acquisition"
+    },
+    "size_strata": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/stratum"
+      }
+    }
+  }
+}
