@@ -47,6 +47,7 @@ pub enum ValidationCode {
     ArtifactLineageCycle,
     OdcSpeedRatioMismatch,
     LaserEnergyBoundaryMismatch,
+    OperatingPointObservationMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -320,6 +321,12 @@ fn validate_record(
         }
     }
 
+    if mechanism == Some("ODC") {
+        if let (Some(config), Some(observations)) = (config, observations) {
+            validate_odc_observations(config, observations, record_id.clone(), issues);
+        }
+    }
+
     if let Some(observations) = observations {
         for observation in observations {
             let Some(metric_id) = non_empty_string(observation, "metric_id") else {
@@ -399,9 +406,9 @@ fn validate_method_config(
             &["kind", "wavelength_m", "source_electrical_input_j", "optical_output_energy_j", "workpiece_incident_optical_energy_j", "absorbed_energy_estimate_j", "spot_major_axis_m", "spot_minor_axis_m", "incidence_angle_rad", "standoff_m", "beam_to_cutter_offset_m", "preheat_to_cut_delay_s", "back_rake_rad", "side_rake_rad", "cutter_spacing_m", "depth_of_cut_m", "cutting_speed_m_s", "laser_state"],
         ),
         "ODC" => (
-            &["disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio", "speed_ratio_definition"],
+            &["disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio", "speed_ratio_definition", "angular_speed_observation_ref", "traction_speed_observation_ref"],
             &["disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio"],
-            &["kind", "disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio", "speed_ratio_definition", "cutter_edge_profile_ref"],
+            &["kind", "disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio", "speed_ratio_definition", "angular_speed_observation_ref", "traction_speed_observation_ref", "cutter_edge_profile_ref"],
         ),
         _ => {
             push(issues, record_id, ValidationCode::UnsupportedMechanism, format!("unsupported mechanism: {mechanism}"));
@@ -410,7 +417,7 @@ fn validate_method_config(
     };
 
     for field in required {
-        let valid = if matches!(*field, "laser_state" | "speed_ratio_definition" | "axial_waveform_artifact_ref" | "torsional_waveform_artifact_ref") {
+        let valid = if matches!(*field, "laser_state" | "speed_ratio_definition" | "axial_waveform_artifact_ref" | "torsional_waveform_artifact_ref" | "angular_speed_observation_ref" | "traction_speed_observation_ref") {
             non_empty_string(config, field).is_some()
         } else {
             number(config, field).is_some()
@@ -470,6 +477,69 @@ fn validate_method_config(
             if !recomputed.is_finite() || (recomputed - stated).abs() > 1.0e-9 * recomputed.abs().max(1.0) {
                 push(issues, record_id, ValidationCode::OdcSpeedRatioMismatch, format!("stored ODC speed_ratio {stated} does not match recomputed value {recomputed}"));
             }
+        }
+    }
+}
+
+fn validate_odc_observations(
+    config: &Value,
+    observations: &[Value],
+    record_id: Option<String>,
+    issues: &mut Vec<ValidationIssue>,
+) {
+    let angular_ref = non_empty_string(config, "angular_speed_observation_ref");
+    let traction_ref = non_empty_string(config, "traction_speed_observation_ref");
+    let angular = angular_ref.and_then(|reference| observations.iter().find(|observation| non_empty_string(observation, "metric_id") == Some(reference)));
+    let traction = traction_ref.and_then(|reference| observations.iter().find(|observation| non_empty_string(observation, "metric_id") == Some(reference)));
+
+    let Some(angular) = angular else {
+        push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, "ODC angular_speed_observation_ref must resolve to an observation");
+        return;
+    };
+    let Some(traction) = traction else {
+        push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, "ODC traction_speed_observation_ref must resolve to an observation");
+        return;
+    };
+
+    if non_empty_string(angular, "measurement_role") != Some("IndependentMeasurement")
+        || non_empty_string(angular, "unit") != Some("rad/s")
+    {
+        push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, "ODC angular speed must be independently measured in rad/s");
+    }
+    if non_empty_string(traction, "measurement_role") != Some("IndependentMeasurement")
+        || non_empty_string(traction, "unit") != Some("m/s")
+    {
+        push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, "ODC traction speed must be independently measured in m/s");
+    }
+
+    let measured_omega = number(angular, "value");
+    let measured_v = number(traction, "value");
+    let declared_omega = number(config, "angular_speed_rad_s");
+    let declared_v = number(config, "traction_speed_m_s");
+    if let (Some(measured), Some(declared)) = (measured_omega, declared_omega) {
+        if (measured - declared).abs() > 1.0e-9 * measured.abs().max(1.0) {
+            push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, "declared ODC angular speed disagrees with the independent encoder observation");
+        }
+    } else {
+        push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, "ODC angular speed observation must be finite numeric");
+    }
+    if let (Some(measured), Some(declared)) = (measured_v, declared_v) {
+        if (measured - declared).abs() > 1.0e-9 * measured.abs().max(1.0) {
+            push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, "declared ODC traction speed disagrees with the independent encoder observation");
+        }
+    } else {
+        push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, "ODC traction speed observation must be finite numeric");
+    }
+
+    if let (Some(v), Some(omega), Some(e), Some(stated)) = (
+        measured_v,
+        measured_omega,
+        number(config, "eccentricity_m"),
+        number(config, "speed_ratio"),
+    ) {
+        let recomputed = v / (omega * e);
+        if !recomputed.is_finite() || (recomputed - stated).abs() > 1.0e-9 * recomputed.abs().max(1.0) {
+            push(issues, record_id, ValidationCode::OdcSpeedRatioMismatch, format!("stored ODC speed_ratio {stated} does not match independently measured encoder value {recomputed}"));
         }
     }
 }
@@ -843,6 +913,20 @@ mod tests {
         let mut data = fixture();
         data["records"][2]["method_configuration"]["speed_ratio"] = json!(0.5);
         assert!(has(&validate_bundle(&data), ValidationCode::OdcSpeedRatioMismatch));
+    }
+
+    #[test]
+    fn odc_speed_ratio_requires_independent_encoder_observations() {
+        let mut data = fixture();
+        data["records"][2]["observations"][0]["value"] = json!(30.0);
+        assert!(has(&validate_bundle(&data), ValidationCode::OperatingPointObservationMismatch));
+    }
+
+    #[test]
+    fn odc_speed_observation_reference_must_resolve() {
+        let mut data = fixture();
+        data["records"][2]["method_configuration"]["angular_speed_observation_ref"] = json!("missing-speed-observation");
+        assert!(has(&validate_bundle(&data), ValidationCode::OperatingPointObservationMismatch));
     }
 
     #[test]
