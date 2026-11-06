@@ -104,11 +104,14 @@ fn qualified_report_with_shape(
                 BaselineFold::Calibration => 0,
                 BaselineFold::Evaluation => 10_000,
             } + group_index * interval_count;
-            let group_start_ns =
-                (group_index * 100 + if fold == BaselineFold::Evaluation { 10_000 } else { 0 })
-                    as u64
-                    * interval_duration_ns
-                    * interval_count as u64;
+            let group_start_ns = (group_index * 100
+                + if fold == BaselineFold::Evaluation {
+                    10_000
+                } else {
+                    0
+                }) as u64
+                * interval_duration_ns
+                * interval_count as u64;
             for interval_index in 0..interval_count {
                 let sample_id = sample_base + interval_index;
                 let start_ns = group_start_ns + interval_index as u64 * interval_duration_ns;
@@ -324,7 +327,7 @@ fn baseline_and_meter_uncertainty_are_both_subtracted_from_delivery() {
             85.0,
             2.0,
             "pcc-receipt-1",
-            "sha256:recovery-receipt",
+        "sha256:recovery-receipt",
         )
         .expect("valid dispatch point"),
         DispatchEventPoint::new(
@@ -338,7 +341,7 @@ fn baseline_and_meter_uncertainty_are_both_subtracted_from_delivery() {
             100.0,
             0.0,
             "pcc-recovery-receipt-1",
-            "sha256:recovery-receipt",
+        "sha256:recovery-receipt",
         )
         .expect("valid recovery point"),
     ];
@@ -375,7 +378,7 @@ fn rebound_is_preserved_and_reduces_net_event_energy() {
             80.0,
             0.0,
             "pcc-1",
-            "sha256:recovery-receipt",
+        "sha256:recovery-receipt",
         )
         .unwrap(),
         DispatchEventPoint::new(
@@ -389,7 +392,7 @@ fn rebound_is_preserved_and_reduces_net_event_energy() {
             110.0,
             0.0,
             "pcc-2",
-            "sha256:recovery-receipt",
+        "sha256:recovery-receipt",
         )
         .unwrap(),
     ];
@@ -890,19 +893,49 @@ fn baseline_calibration_group_must_be_contiguous() {
     let mut rows = Vec::new();
     for i in 0..40 {
         let group = format!("cal-{i}");
-        rows.push(NoDispatchObservation::new(
-            format!("cal-{i}-a"), &group, "normal", "sha256:calibration",
-            0, i as u64 * 10_000, 1_000, 100.0, 100.0, 0.0,
-            BaselineFold::Calibration, false,
-        ).unwrap());
-        rows.push(NoDispatchObservation::new(
-            format!("cal-{i}-b"), &group, "normal", "sha256:calibration",
-            0, i as u64 * 10_000 + 2_000, 1_000, 100.0, 100.0, 0.0,
-            BaselineFold::Calibration, false,
-        ).unwrap());
+        rows.push(
+            NoDispatchObservation::new(
+                format!("cal-{i}-a"),
+                &group,
+                "normal",
+                "sha256:calibration",
+                0,
+                i as u64 * 10_000,
+                1_000,
+                100.0,
+                100.0,
+                0.0,
+                BaselineFold::Calibration,
+                false,
+            )
+            .unwrap(),
+        );
+        rows.push(
+            NoDispatchObservation::new(
+                format!("cal-{i}-b"),
+                &group,
+                "normal",
+                "sha256:calibration",
+                0,
+                i as u64 * 10_000 + 2_000,
+                1_000,
+                100.0,
+                100.0,
+                0.0,
+                BaselineFold::Calibration,
+                false,
+            )
+            .unwrap(),
+        );
     }
     for i in 0..20 {
-        rows.push(observation(100 + i, &format!("eval-{i}"), BaselineFold::Evaluation, 100.0, 100.0));
+        rows.push(observation(
+            100 + i,
+            &format!("eval-{i}"),
+            BaselineFold::Evaluation,
+            100.0,
+            100.0,
+        ));
     }
     let error = qualify_counterfactual_baseline(&identity(), &contract(), &rows).unwrap_err();
     assert!(matches!(
@@ -916,21 +949,51 @@ fn calibration_and_evaluation_groups_must_share_exact_horizon_shape() {
     let mut rows = Vec::new();
     for i in 0..40 {
         let group = format!("cal-{i}");
-        rows.push(NoDispatchObservation::new(
-            format!("cal-{i}-a"), &group, "normal", "sha256:calibration",
-            0, i as u64 * 10_000, 1_000, 100.0, 100.0, 0.0,
-            BaselineFold::Calibration, false,
-        ).unwrap());
+        rows.push(
+            NoDispatchObservation::new(
+                format!("cal-{i}-a"),
+                &group,
+                "normal",
+                "sha256:calibration",
+                0,
+                i as u64 * 10_000,
+                1_000,
+                100.0,
+                100.0,
+                0.0,
+                BaselineFold::Calibration,
+                false,
+            )
+            .unwrap(),
+        );
         if i != 0 {
-            rows.push(NoDispatchObservation::new(
-                format!("cal-{i}-b"), &group, "normal", "sha256:calibration",
-                0, i as u64 * 10_000 + 1_000, 1_000, 100.0, 100.0, 0.0,
-                BaselineFold::Calibration, false,
-            ).unwrap());
+            rows.push(
+                NoDispatchObservation::new(
+                    format!("cal-{i}-b"),
+                    &group,
+                    "normal",
+                    "sha256:calibration",
+                    0,
+                    i as u64 * 10_000 + 1_000,
+                    1_000,
+                    100.0,
+                    100.0,
+                    0.0,
+                    BaselineFold::Calibration,
+                    false,
+                )
+                .unwrap(),
+            );
         }
     }
     for i in 0..20 {
-        rows.push(observation(100 + i, &format!("eval-{i}"), BaselineFold::Evaluation, 100.0, 100.0));
+        rows.push(observation(
+            100 + i,
+            &format!("eval-{i}"),
+            BaselineFold::Evaluation,
+            100.0,
+            100.0,
+        ));
     }
     let error = qualify_counterfactual_baseline(&identity(), &contract(), &rows).unwrap_err();
     assert!(matches!(
@@ -944,19 +1007,37 @@ fn event_plus_recovery_must_match_qualified_baseline_trajectory_shape() {
     let baseline = qualified_report();
     let points = [
         DispatchEventPoint::new(
-            "dispatch-1", DispatchEventPhase::Dispatch, "normal", 0, 0, 1_000,
-            100.0, 80.0, 0.0, "pcc-dispatch-1",
+            "dispatch-1",
+            DispatchEventPhase::Dispatch,
+            "normal",
+            0,
+            0,
+            1_000,
+            100.0,
+            80.0,
+            0.0,
+            "pcc-dispatch-1",
             "sha256:recovery-receipt",
-        ).unwrap(),
+        )
+        .unwrap(),
         DispatchEventPoint::new(
-            "recovery-1", DispatchEventPhase::Recovery, "normal", 0, 1_000, 1_000,
-            100.0, 100.0, 0.0, "pcc-recovery-1",
+            "recovery-1",
+            DispatchEventPhase::Recovery,
+            "normal",
+            0,
+            1_000,
+            1_000,
+            100.0,
+            100.0,
+            0.0,
+            "pcc-recovery-1",
             "sha256:recovery-receipt",
-        ).unwrap(),
+        )
+        .unwrap(),
     ];
     let evidence = recovery_evidence(0, 1_000, 2_000, true);
-    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
-        .unwrap_err();
+    let error =
+        evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points).unwrap_err();
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::EventTrajectoryShapeMismatch { .. }
@@ -968,17 +1049,37 @@ fn every_event_point_must_share_the_pinned_recovery_trace_digest() {
     let baseline = qualified_report_with_shape(2, 3_600_000_000_000);
     let points = [
         DispatchEventPoint::new(
-            "dispatch-1", DispatchEventPhase::Dispatch, "normal", 0, 0, 3_600_000_000_000,
-            100.0, 80.0, 0.0, "pcc-dispatch-1", "sha256:wrong-source",
-        ).unwrap(),
+            "dispatch-1",
+            DispatchEventPhase::Dispatch,
+            "normal",
+            0,
+            0,
+            3_600_000_000_000,
+            100.0,
+            80.0,
+            0.0,
+            "pcc-dispatch-1",
+            "sha256:wrong-source",
+        )
+        .unwrap(),
         DispatchEventPoint::new(
-            "recovery-1", DispatchEventPhase::Recovery, "normal", 0, 3_600_000_000_000, 3_600_000_000_000,
-            100.0, 100.0, 0.0, "pcc-recovery-1", "sha256:recovery-receipt",
-        ).unwrap(),
+            "recovery-1",
+            DispatchEventPhase::Recovery,
+            "normal",
+            0,
+            3_600_000_000_000,
+            3_600_000_000_000,
+            100.0,
+            100.0,
+            0.0,
+            "pcc-recovery-1",
+            "sha256:recovery-receipt",
+        )
+        .unwrap(),
     ];
     let evidence = recovery_evidence(0, 3_600_000_000_000, 7_200_000_000_000, true);
-    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
-        .unwrap_err();
+    let error =
+        evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points).unwrap_err();
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::EventPointSourceDigestMismatch { .. }
