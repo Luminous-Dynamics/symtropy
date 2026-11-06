@@ -1643,6 +1643,158 @@ mod tests {
     }
 
     #[test]
+    fn partially_shared_lineage_is_transitively_collapsed() {
+        let hypotheses = vec![
+            hypothesis("H-A", "model-a", "source-a", None),
+            hypothesis("H-B", "model-b", "source-b", None),
+            hypothesis("H-C", "model-c", "source-c", None),
+        ];
+        let mut hypotheses = hypotheses;
+        hypotheses[1].source_lineage_digests.push(d("source-a"));
+        hypotheses[2].source_lineage_digests.push(d("source-b"));
+        assert_eq!(independent_hypothesis_families(&hypotheses).len(), 1);
+    }
+
+    #[test]
+    fn distinct_lineage_families_are_not_collapsed() {
+        let hypotheses = vec![
+            hypothesis("H-A", "model-a", "source-a", None),
+            hypothesis("H-B", "model-b", "source-b", None),
+        ];
+        assert_eq!(independent_hypothesis_families(&hypotheses).len(), 2);
+    }
+
+    #[test]
+    fn falsification_methods_must_share_the_same_sealed_holdout() {
+        let mut receipts = challenge_set();
+        receipts[0].holdout_manifest_digest = d("different-holdout");
+        assert_eq!(
+            evaluate_portfolio(
+                &manifest(),
+                &d("odd-city-1"),
+                &receipts,
+                Some(&residual()),
+            ),
+            Err(PortfolioError::ChallengeHoldoutMismatch)
+        );
+    }
+
+    #[test]
+    fn falsification_methods_must_use_equal_search_budgets() {
+        let mut receipts = challenge_set();
+        receipts[0].budget_units += 1;
+        assert_eq!(
+            evaluate_portfolio(
+                &manifest(),
+                &d("odd-city-1"),
+                &receipts,
+                Some(&residual()),
+            ),
+            Err(PortfolioError::ChallengeBudgetMismatch)
+        );
+    }
+
+    #[test]
+    fn counterexample_without_verified_replay_cannot_falsify() {
+        let mut receipts = challenge_set();
+        receipts[0] = challenge(
+            "unreplayed-counterexample",
+            ChallengeStrategy::Random,
+            "challenge-random",
+            ChallengeOutcome::CounterexampleFound,
+        );
+        receipts[0].counterexample_replay_verified = false;
+        assert_eq!(
+            evaluate_portfolio(
+                &manifest(),
+                &d("odd-city-1"),
+                &receipts,
+                Some(&residual()),
+            ),
+            Err(PortfolioError::CounterexampleMissingReplay)
+        );
+    }
+
+    #[test]
+    fn residual_evidence_cannot_reuse_training_or_sealed_holdout_lineage() {
+        let mut envelope = residual();
+        envelope.action_bounds[0].source_lineage_digests = vec![d("training-root")];
+        assert_eq!(
+            evaluate_portfolio(
+                &manifest(),
+                &d("odd-city-1"),
+                &challenge_set(),
+                Some(&envelope),
+            ),
+            Err(PortfolioError::ResidualEvidenceLineageLeak)
+        );
+
+        let mut envelope = residual();
+        envelope.action_bounds[0].source_lineage_digests = vec![d("sealed-holdout-parent-v1")];
+        assert_eq!(
+            evaluate_portfolio(
+                &manifest(),
+                &d("odd-city-1"),
+                &challenge_set(),
+                Some(&envelope),
+            ),
+            Err(PortfolioError::ResidualEvidenceLineageLeak)
+        );
+    }
+
+    #[test]
+    fn residual_evidence_requires_declared_independent_unit_floor() {
+        let mut envelope = residual();
+        envelope.action_bounds[0].independent_unit_count = 19;
+        assert_eq!(
+            evaluate_portfolio(
+                &manifest(),
+                &d("odd-city-1"),
+                &challenge_set(),
+                Some(&envelope),
+            ),
+            Err(PortfolioError::InsufficientResidualUnits)
+        );
+    }
+
+    #[test]
+    fn evaluation_digest_binds_challenge_and_residual_inputs() {
+        let baseline = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&residual()),
+        )
+        .unwrap();
+
+        let mut altered_challenges = challenge_set();
+        altered_challenges[0].budget_units += 1;
+        // Keep the entire comparison fair: all arms use the same changed budget.
+        for receipt in &mut altered_challenges {
+            receipt.budget_units += 1;
+        }
+        let altered_challenge_report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &altered_challenges,
+            Some(&residual()),
+        )
+        .unwrap();
+        assert_ne!(baseline.evaluation_digest, altered_challenge_report.evaluation_digest);
+
+        let mut altered_residual = residual();
+        altered_residual.action_bounds[0].independent_unit_count += 1;
+        let altered_residual_report = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&altered_residual),
+        )
+        .unwrap();
+        assert_ne!(baseline.evaluation_digest, altered_residual_report.evaluation_digest);
+    }
+
+    #[test]
     fn complete_portfolio_requires_all_axes_challenges_and_bounded_residuals() {
         let report = evaluate_portfolio(
             &manifest(),
