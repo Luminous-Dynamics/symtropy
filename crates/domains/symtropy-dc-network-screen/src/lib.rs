@@ -345,6 +345,8 @@ pub struct DcContingencyReceipt {
     pub feasible: bool,
     pub islanded_or_singular: bool,
     pub overloaded_branch_ids: Vec<String>,
+    pub minimum_feasible_action_fraction: Option<f64>,
+    pub maximum_feasible_action_fraction: Option<f64>,
     pub diagnostic: Option<String>,
 }
 
@@ -358,6 +360,9 @@ pub struct DcNetworkIntervalReceipt {
     pub flexible_slack_injection_mw: f64,
     pub branch_flows: Vec<DcBranchFlowReceipt>,
     pub n_minus_one: Vec<DcContingencyReceipt>,
+    pub minimum_network_feasible_action_fraction: Option<f64>,
+    pub maximum_network_feasible_action_fraction: Option<f64>,
+    pub maximum_network_deliverable_reduction_mw: f64,
     pub basecase_flexible_feasible: bool,
     pub n_minus_one_feasible: bool,
     pub interval_network_deliverable: bool,
@@ -375,6 +380,7 @@ pub struct DcNetworkDeliverabilityReport {
     pub slack_bus_id: String,
     pub interval_count: usize,
     pub requested_load_reduction_energy_mwh: f64,
+    pub maximum_network_deliverable_reduction_energy_mwh: f64,
     pub maximum_requested_load_reduction_mw: f64,
     pub basecase_feasible_interval_count: usize,
     pub n_minus_one_feasible_interval_count: usize,
@@ -481,6 +487,7 @@ pub fn evaluate_dc_network_deliverability(
     let mut previous_end_ns: Option<u64> = None;
     let mut receipts = Vec::with_capacity(intervals.len());
     let mut requested_reduction_energy_mwh = 0.0;
+    let mut maximum_network_deliverable_reduction_energy_mwh = 0.0;
     let mut maximum_requested_load_reduction_mw: f64 = 0.0;
     let mut basecase_feasible_interval_count = 0usize;
     let mut n_minus_one_feasible_interval_count = 0usize;
@@ -526,16 +533,37 @@ pub fn evaluate_dc_network_deliverability(
         let baseline_flows = solve_dc_flows(network, &interval.baseline_non_slack_injections_mw, None, contract.pivot_tolerance)?;
         let flexible_flows = solve_dc_flows(network, &flexible_injections, None, contract.pivot_tolerance)?;
         let branch_flows = build_branch_flow_receipts(network, &baseline_flows, &flexible_flows, contract.flow_tolerance_mw)?;
-        let basecase_flexible_feasible = branch_flows.iter().all(|flow| !flow.flexible_over_limit);
+        let basecase_action_range = action_fraction_range(
+            network,
+            &baseline_flows,
+            &flexible_flows,
+            false,
+            contract.flow_tolerance_mw,
+        )?;
+        let basecase_flexible_feasible = basecase_action_range
+            .is_some_and(|(_, maximum)| maximum >= 1.0 - contract.flow_tolerance_mw);
         if basecase_flexible_feasible {
             basecase_feasible_interval_count += 1;
         }
 
         let mut contingency_receipts = Vec::with_capacity(n_minus_one_contingencies.len());
+        let mut combined_action_range = basecase_action_range;
         for outage in n_minus_one_contingencies {
-            match solve_dc_flows(network, &flexible_injections, Some(outage), contract.pivot_tolerance) {
-                Ok(flows) => {
-                    let overloaded: Vec<String> = flows
+            let baseline_outage = solve_dc_flows(
+                network,
+                &interval.baseline_non_slack_injections_mw,
+                Some(outage),
+                contract.pivot_tolerance,
+            );
+            let flexible_outage = solve_dc_flows(
+                network,
+                &flexible_injections,
+                Some(outage),
+                contract.pivot_tolerance,
+            );
+            match (baseline_outage, flexible_outage) {
+                (Ok(baseline_flows), Ok(flexible_flows)) => {
+                    let overloaded: Vec<String> = flexible_flows
                         .iter()
                         .filter_map(|flow| {
                             let branch = network.branches.iter().find(|branch| branch.id == flow.branch_id)?;
@@ -543,24 +571,40 @@ pub fn evaluate_dc_network_deliverability(
                                 .then(|| branch.id.clone())
                         })
                         .collect();
+                    let action_range = action_fraction_range(
+                        network,
+                        &baseline_flows,
+                        &flexible_flows,
+                        true,
+                        contract.flow_tolerance_mw,
+                    )?;
+                    let feasible = action_range
+                        .is_some_and(|(_, maximum)| maximum >= 1.0 - contract.flow_tolerance_mw);
+                    combined_action_range = intersect_action_ranges(combined_action_range, action_range);
                     contingency_receipts.push(DcContingencyReceipt {
                         outaged_branch_id: outage.clone(),
-                        feasible: overloaded.is_empty(),
+                        feasible,
                         islanded_or_singular: false,
                         overloaded_branch_ids: overloaded,
-                        diagnostic: None,
+                        minimum_feasible_action_fraction: action_range.map(|range| range.0),
+                        maximum_feasible_action_fraction: action_range.map(|range| range.1),
+                        diagnostic: action_range.is_none().then(|| "no common feasible scalar action fraction satisfies all emergency branch limits".to_owned()),
                     });
                 }
-                Err(DcNetworkError::SingularOrIslandedTopology { pivot, .. }) => {
+                (Err(DcNetworkError::SingularOrIslandedTopology { pivot, .. }), _)
+                | (_, Err(DcNetworkError::SingularOrIslandedTopology { pivot, .. })) => {
+                    combined_action_range = None;
                     contingency_receipts.push(DcContingencyReceipt {
                         outaged_branch_id: outage.clone(),
                         feasible: false,
                         islanded_or_singular: true,
                         overloaded_branch_ids: Vec::new(),
+                        minimum_feasible_action_fraction: None,
+                        maximum_feasible_action_fraction: None,
                         diagnostic: Some(format!("islanded or singular DC topology (pivot {pivot})")),
                     });
                 }
-                Err(error) => return Err(error),
+                (Err(error), _) | (_, Err(error)) => return Err(error),
             }
         }
         let n_minus_one_feasible = contingency_receipts.iter().all(|receipt| receipt.feasible);
@@ -574,9 +618,23 @@ pub fn evaluate_dc_network_deliverability(
         }
         let requested_reduction_mw = interval.load_reductions_mw.values().sum::<f64>();
         maximum_requested_load_reduction_mw =
-            maximum_requested_load_reduction_mw.max(requested_reduction_mw.abs());
+            maximum_requested_load_reduction_mw.max(requested_reduction_mw);
         let duration_hours = interval.interval_duration_ns as f64 / 3_600_000_000_000.0;
         requested_reduction_energy_mwh += requested_reduction_mw * duration_hours / 1_000.0;
+        let minimum_network_feasible_action_fraction =
+            combined_action_range.map(|range| range.0);
+        let maximum_network_feasible_action_fraction =
+            combined_action_range.map(|range| range.1);
+        let maximum_network_deliverable_reduction_mw =
+            requested_reduction_mw
+                * maximum_network_feasible_action_fraction.unwrap_or(0.0);
+        maximum_network_deliverable_reduction_energy_mwh +=
+            maximum_network_deliverable_reduction_mw * duration_hours / 1_000.0;
+        if !maximum_network_deliverable_reduction_energy_mwh.is_finite() {
+            return Err(DcNetworkError::NumericalOverflow(
+                "maximum network-deliverable flexibility energy",
+            ));
+        }
         if !requested_reduction_energy_mwh.is_finite() {
             return Err(DcNetworkError::NumericalOverflow("requested flexibility energy"));
         }
@@ -592,6 +650,9 @@ pub fn evaluate_dc_network_deliverability(
             flexible_slack_injection_mw,
             branch_flows,
             n_minus_one: contingency_receipts,
+            minimum_network_feasible_action_fraction,
+            maximum_network_feasible_action_fraction,
+            maximum_network_deliverable_reduction_mw,
             basecase_flexible_feasible,
             n_minus_one_feasible,
             interval_network_deliverable,
@@ -609,6 +670,7 @@ pub fn evaluate_dc_network_deliverability(
         slack_bus_id: network.slack_bus_id.clone(),
         interval_count: intervals.len(),
         requested_load_reduction_energy_mwh: requested_reduction_energy_mwh,
+        maximum_network_deliverable_reduction_energy_mwh,
         maximum_requested_load_reduction_mw,
         basecase_feasible_interval_count,
         n_minus_one_feasible_interval_count,
@@ -624,6 +686,79 @@ pub fn evaluate_dc_network_deliverability(
 struct SolvedBranchFlow {
     branch_id: String,
     flow_mw: f64,
+}
+
+
+/// Intersect the scalar action fractions in [0, 1] that satisfy every
+/// branch limit for an affine DC-flow transition from baseline to full action.
+/// Returns None when no scalar fraction satisfies the complete branch set.
+fn action_fraction_range(
+    network: &DcNetworkModel,
+    baseline_flows: &[SolvedBranchFlow],
+    full_action_flows: &[SolvedBranchFlow],
+    emergency: bool,
+    tolerance_mw: f64,
+) -> Result<Option<(f64, f64)>, DcNetworkError> {
+    let baseline: BTreeMap<&str, f64> = baseline_flows
+        .iter()
+        .map(|flow| (flow.branch_id.as_str(), flow.flow_mw))
+        .collect();
+    let full: BTreeMap<&str, f64> = full_action_flows
+        .iter()
+        .map(|flow| (flow.branch_id.as_str(), flow.flow_mw))
+        .collect();
+    let mut minimum_fraction: f64 = 0.0;
+    let mut maximum_fraction: f64 = 1.0;
+
+    for branch in &network.branches {
+        let Some(base_flow) = baseline.get(branch.id.as_str()).copied() else {
+            continue; // An outaged branch is absent from both flow lists.
+        };
+        let full_flow = *full.get(branch.id.as_str()).ok_or_else(|| {
+            DcNetworkError::UnknownBranchFlow {
+                branch_id: branch.id.clone(),
+            }
+        })?;
+        let rating = if emergency {
+            branch.emergency_limit_mw
+        } else {
+            branch.normal_limit_mw
+        } + tolerance_mw;
+        let delta = full_flow - base_flow;
+        if delta.abs() <= f64::EPSILON {
+            if base_flow.abs() > rating {
+                return Ok(None);
+            }
+            continue;
+        }
+
+        let lower = (-rating - base_flow) / delta;
+        let upper = (rating - base_flow) / delta;
+        minimum_fraction = minimum_fraction.max(lower.min(upper));
+        maximum_fraction = maximum_fraction.min(lower.max(upper));
+        if minimum_fraction > maximum_fraction + 1.0e-12 {
+            return Ok(None);
+        }
+    }
+
+    if maximum_fraction < 0.0 || minimum_fraction > 1.0 {
+        return Ok(None);
+    }
+    Ok(Some((
+        minimum_fraction.clamp(0.0, 1.0),
+        maximum_fraction.clamp(0.0, 1.0),
+    )))
+}
+
+fn intersect_action_ranges(
+    left: Option<(f64, f64)>,
+    right: Option<(f64, f64)>,
+) -> Option<(f64, f64)> {
+    let (left_min, left_max) = left?;
+    let (right_min, right_max) = right?;
+    let minimum = left_min.max(right_min);
+    let maximum = left_max.min(right_max);
+    (minimum <= maximum + 1.0e-12).then_some((minimum, maximum))
 }
 
 fn validate_injection_map(
