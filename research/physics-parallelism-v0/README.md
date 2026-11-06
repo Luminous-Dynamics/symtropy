@@ -26,6 +26,12 @@ connected stack or articulated mechanism.
   assigns contact/constraint edges once in a linear pass after union-find, and
   checks exactly-once edge ownership. It is a decomposition prerequisite, not
   a working parallel solver.
+- The same PR adds a Criterion decomposition benchmark comparing the
+  single-pass candidate against a benchmark-only reproduction of the prior
+  per-component-rescan algorithm. Both outputs are canonicalized and compared
+  for exact partition equivalence before timing. The legacy comparison is
+  omitted for the 100k-isolated-body case, where its per-island HashSet
+  allocations are intentionally pathological; the candidate is still timed.
 - `PhysicsWorld::step` performs integration, CCD, broadphase, narrowphase and
   contact solving in serial loops.
 - `PhysicsCallback` is mutable and includes force/impulse modulation, event
@@ -97,6 +103,26 @@ Sources:
 - https://physmark.dimforge.com/
 - https://chronoengine.info/news/
 - https://computing.llnl.gov/projects/sundials/sundials-software
+
+## Decomposition microbenchmark
+
+Run the new target with:
+
+```sh
+cargo bench -p symtropy-physics --bench island_decomposition_bench
+```
+
+It creates each frozen fixture outside the timed region and measures only
+island construction and edge-to-island assignment. Workloads include 1k/10k
+isolated bodies, 1k/10k disjoint contact pairs, contact chains and mixed
+contact/constraint edges; the single-pass candidate also runs at 100k isolated
+bodies. For the <=10k cases, the same fixture is run through a benchmark-only
+reproduction of the previous per-island rescan algorithm. Before timing, the
+benchmark asserts equality of canonical body/contact/constraint membership
+and sleeping flags. This gives an apples-to-apples algorithm comparison, not a
+whole-world or solver speedup claim. No performance result is recorded until
+the benchmark is run on a frozen machine/toolchain and its run receipt is
+stored.
 
 ## P0: make decomposition a live, inspectable stage
 
