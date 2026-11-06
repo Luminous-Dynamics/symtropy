@@ -664,8 +664,6 @@ pub fn select_frozen_forecast(
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-
 /// Candidate identity for a mechanistic generator or a purely predictive
 /// baseline. A selected VAR(1) means predictive equivalence, not a biological
 /// oscillator or other neural mechanism.
