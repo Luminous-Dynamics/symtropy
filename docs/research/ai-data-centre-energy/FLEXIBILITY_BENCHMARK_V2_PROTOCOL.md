@@ -275,3 +275,10 @@ Add a separate conformance gate for operator-defined voltage/frequency ride-thro
 The first slice is trace-based and bounded: voltage/frequency/RoCoF time series, facility connection status, active/reactive power, current where measured, declared UPS/backup mode, pre-event power reference, staged recovery and repeated-event behavior. It must abstain if critical samples or the required measurement bandwidth are missing.
 
 Keep dispatch and disturbance channels separate. A load reduction during an overlapping fault cannot be credited as intentional demand response without causal attribution. A trace-conformance pass is not positive-sequence dynamic model validation, EMT/PDT stability, protection coordination, harmonic compliance, grid-code certification or ELCC.
+## 14. Large-load disturbance conformance (GRID-DISTURBANCE-001 #3851)
+
+Add a separate, operator-specific conformance gate for voltage/frequency ride-through, RoCoF, PCC connection continuity and post-fault active-power recovery. The Rust trace evaluator checks the pinned requirement version against PCC RMS waveforms, timebase, clock uncertainty, measurement bandwidth and RMS window. It evaluates allowed momentary cessation duration and recovery dwell/deadline/ramp/overshoot.
+
+A sudden facility trip during a grid disturbance is not demand response. The conformance report always sets intentional demand-response credit to false. Dispatch flexibility and disturbance performance remain separate evidence dimensions.
+
+A trace-conformance pass is not converter internal stability, positive-sequence dynamic model validation, EMT/PDT, protection coordination, harmonic/unbalance compliance, grid-code certification, interconnection approval or ELCC.
