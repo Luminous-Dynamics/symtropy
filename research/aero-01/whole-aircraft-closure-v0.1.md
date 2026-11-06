@@ -225,11 +225,12 @@ All configurations share identical mission, payload, reserve and environmental d
 | C2 | Partial-span blown lift + distributed propulsion | Does useful low-speed benefit survive installed mass, cruise drag, wiring and failure penalties? |
 | C3 | Full-span blown lift + distributed propulsion | Is the incremental lift benefit worth the additional installed system and integration burden? |
 | C4 | Battery-electric fixed-wing / DEP | Which declared missions close at adverse temperature and end-of-life? |
-| C5 | Series-hybrid generator + battery buffer | Does phase-aware dispatch improve complete mission economics and reserve robustness? |
+| C5P | Parallel hybrid: mechanically coupled primary engine plus electric boost/recuperation where supported | Does avoiding a full series conversion chain reduce installed mass/loss while retaining useful transient assistance? |
+| C5S | Series hybrid: generator + battery + electric propulsion | Does dispatch flexibility and distributed propulsive control justify generator, motor, inverter, cable and cooling mass/loss? |
 | C6 | Evidence-selected alternative geometry | Does any non-obvious topology win under the same constraints? |
 | C7+ | VTOL alternatives | Is vertical access actually required, and does it justify hover/transition and certification penalties? |
 
-The first decisive comparison should be C0 vs C2 vs C5. C3 and VTOL remain in the portfolio but should not consume expensive high-fidelity resources until first-order screening shows a credible mission reason.
+The first decisive comparison should be C0 vs C2 vs C5P vs C5S. Parallel and series hybrid are distinct topologies; neither should be treated as a generic 'hybrid' score. For a two- or four-seat aircraft, the mass and efficiency penalty of the series electrical conversion chain may be decisive, while a parallel layout brings mechanical integration and control complexity of its own. C3 and VTOL remain in the portfolio but should not consume expensive high-fidelity resources until first-order screening shows a credible mission reason.
 
 ## 7. Benchmarks and evaluation protocol
 
