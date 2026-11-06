@@ -112,7 +112,6 @@ struct Scenario {
     active_zone_start_s_mm: i64,
     active_zone_end_s_mm: i64,
     alignment_limit_mm: u64,
-    max_sample_gap_ms: u64,
     wheels: Vec<Wheel>,
     samples: Vec<Sample>,
 }
@@ -313,19 +312,21 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         if speed_mm_per_s == 0 {
             return Err(fail(&path, "speed_mm_per_s must be positive"));
         }
-        if let Some(previous) = previous_time_ms {
-            if time_ms <= previous {
-                return Err(fail(&path, "time_ms must be strictly increasing"));
-            }
-            if time_ms - previous > max_sample_gap_ms {
-                return Err(fail(
-                    &path,
-                    format!(
-                        "sample gap {} ms exceeds declared maximum {max_sample_gap_ms} ms",
-                        time_ms - previous
-                    ),
-                ));
-            }
+        if let Some(previous) = previous_time_ms
+            && time_ms <= previous
+        {
+            return Err(fail(&path, "time_ms must be strictly increasing"));
+        }
+        if let Some(previous) = previous_time_ms
+            && time_ms - previous > max_sample_gap_ms
+        {
+            return Err(fail(
+                &path,
+                format!(
+                    "sample gap {} ms exceeds declared maximum {max_sample_gap_ms} ms",
+                    time_ms - previous
+                ),
+            ));
         }
         if let Some(previous) = previous_vehicle_s_mm
             && vehicle_s_mm <= previous
@@ -418,6 +419,7 @@ pub struct WheelPath {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SampleWitness {
     pub sample_index: usize,
+    pub speed_mm_per_s: u64,
     pub receiver_longitudinal_offset_from_coil_mm: i64,
     pub receiver_lateral_offset_from_coil_mm: i64,
     pub receiver_inside_declared_active_zone: bool,
@@ -442,7 +444,7 @@ pub struct TrajectoryCouplingReport {
     pub roadway_dc_input_energy_uwh: u64,
     pub vehicle_receiver_dc_output_energy_uwh: u64,
     pub pass_level_conversion_efficiency_ppm: Option<u64>,
-    pub total_vertical_wheel_load_impulse_micronewton_seconds: u64,
+    pub total_vertical_wheel_load_impulse_micro_kn_s: u64,
     pub maximum_coil_temperature_millidegrees_c: Option<i64>,
     pub maximum_interface_temperature_millidegrees_c: Option<i64>,
     pub missing_coil_temperature_samples: usize,
@@ -572,6 +574,7 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
 
         witnesses.push(SampleWitness {
             sample_index: sample.sample_index,
+            speed_mm_per_s: sample.speed_mm_per_s,
             receiver_longitudinal_offset_from_coil_mm: receiver_longitudinal_offset_mm,
             receiver_lateral_offset_from_coil_mm: receiver_lateral_offset_mm,
             receiver_inside_declared_active_zone,
@@ -640,7 +643,7 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
         roadway_dc_input_energy_uwh,
         vehicle_receiver_dc_output_energy_uwh,
         pass_level_conversion_efficiency_ppm,
-        total_vertical_wheel_load_impulse_micronewton_seconds:
+        total_vertical_wheel_load_impulse_micro_kn_s:
             integrate_wheel_load_impulse_micronewton_seconds(&scenario.samples)?,
         maximum_coil_temperature_millidegrees_c,
         maximum_interface_temperature_millidegrees_c,
@@ -672,13 +675,14 @@ mod tests {
         let report = evaluate_trajectory(&fixture()).unwrap();
         assert_eq!(report.sample_count, 3);
         assert_eq!(report.active_zone_sample_count, 1);
+        assert_eq!(report.witnesses[0].speed_mm_per_s, 10_000);
         assert_eq!(report.lateral_alignment_coverage_ppm, 666_667);
         assert_eq!(report.maximum_absolute_receiver_lateral_offset_mm, 220);
         assert_eq!(report.minimum_absolute_wheel_path_offset_mm, 600);
         assert_eq!(report.roadway_dc_input_energy_uwh, 27_777_778);
         assert_eq!(report.vehicle_receiver_dc_output_energy_uwh, 23_611_111);
         assert_eq!(report.pass_level_conversion_efficiency_ppm, Some(850_000));
-        assert_eq!(report.total_vertical_wheel_load_impulse_micronewton_seconds, 84_000_000);
+        assert_eq!(report.total_vertical_wheel_load_impulse_micro_kn_s, 84_000_000);
         assert_eq!(report.maximum_coil_temperature_millidegrees_c, Some(45_000));
         assert_eq!(report.maximum_interface_temperature_millidegrees_c, Some(35_000));
         assert_eq!(report.missing_ambient_temperature_samples, 0);
