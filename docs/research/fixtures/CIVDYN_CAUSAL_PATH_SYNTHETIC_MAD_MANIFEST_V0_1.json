@@ -1,0 +1,374 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/measurement-distribution/0.1",
+  "schema_version": "0.1.0",
+  "protocol_id": "CIVBENCH-MAD-001",
+  "evaluation_id": "CIVDYN-CAUSAL-PATH-SYNTHETIC-WATER-SAFEGUARD-001",
+  "benchmark_id": "CIVDYN-CAUSAL-PATH-001",
+  "construct": {
+    "name": "matched intervention-to-outcome causal-path qualification",
+    "intended_use": "Check whether a declared institutional intervention propagates through a typed mechanism and authorized resource transfer to an independently ledger-measured household service outcome under matched exogenous conditions.",
+    "claim_tier": "tier-1-reference",
+    "claim_ceiling": "Tier 1 deterministic ledger-backed mechanism-path reference only. It does not establish a real-world causal effect, empirical identification, confounder completeness or policy efficacy."
+  },
+  "units": {
+    "observational_unit": "matched intervention arm × typed causal transition × ledger outcome receipt",
+    "resampling_unit": "none",
+    "independent_unit": "One deterministic four-arm synthetic resource-ledger experiment",
+    "dependence_statement": "Control, treatment, negative-control and mechanism-ablation arms share one declared synthetic exogenous snapshot and are deliberately paired. They are not independent empirical samples.",
+    "clustered_observations": false,
+    "independence_claimed": false
+  },
+  "sources": [
+    {
+      "source_id": "CIVDYN-CAUSAL-PATH-001-SYNTHETIC-FIXTURE-V0",
+      "epistemic_status": "synthetic-test-fixture",
+      "version": "0.1.0",
+      "retrieved_at": "2026-11-06",
+      "license": "AGPL-3.0-or-later",
+      "content_digest": null,
+      "source_family": "locally-authored-synthetic-fixture",
+      "missingness_semantics": "Fixture cells are declared and complete; absent, unsupported and not-applicable values are not encoded as zero."
+    }
+  ],
+  "evaluation_distribution": {
+    "sampling_frame": "One reservoir, one household and a four-arm intervention, negative-control and mediator-ablation portfolio.",
+    "factors": [
+      {
+        "factor_id": "experiment_arm",
+        "weight_interpretation": "Four designed arm roles for one deterministic mechanism test; equal weights are design coverage, not treatment prevalence.",
+        "levels": [
+          {
+            "level_id": "control",
+            "target_weight": 0.25,
+            "support_count": 1
+          },
+          {
+            "level_id": "treatment",
+            "target_weight": 0.25,
+            "support_count": 1
+          },
+          {
+            "level_id": "negative_control",
+            "target_weight": 0.25,
+            "support_count": 1
+          },
+          {
+            "level_id": "mechanism_ablation",
+            "target_weight": 0.25,
+            "support_count": 1
+          }
+        ]
+      },
+      {
+        "factor_id": "path_gate",
+        "weight_interpretation": "Required path, transition receipt, independent outcome receipt and mechanism-ablation gates are conjunctive, not probabilistically weighted.",
+        "levels": [
+          {
+            "level_id": "all_gates_pass",
+            "target_weight": 1,
+            "support_count": 1
+          }
+        ]
+      }
+    ],
+    "excluded_support": []
+  },
+  "perturbation_families": [
+    {
+      "family_id": "primary-intervention",
+      "rationale": "Enable one declared safeguard while holding exogenous snapshot and all other initial state variables fixed.",
+      "validity_check": "Only the declared intervention assignment differs from control; every required transition has a receipt.",
+      "expected_invariants": [
+        "Intervention effect can only qualify through a contiguous typed path.",
+        "Final household water coverage is read from the resource ledger."
+      ],
+      "seed_policy": "Deterministic exact reference; no stochastic seed.",
+      "parameter_range": null
+    },
+    {
+      "family_id": "mediator-ablation",
+      "rationale": "Preserve the primary intervention but block a named mechanism-stage mediator.",
+      "validity_check": "Ablation changes only the declared ablation switch and suppresses the mediator to control value.",
+      "expected_invariants": [
+        "The treatment outcome effect disappears when the claimed mediator is blocked.",
+        "A disconnected or unrelated state variable cannot support the required causal path."
+      ],
+      "seed_policy": "Deterministic exact reference; no stochastic seed.",
+      "parameter_range": null
+    }
+  ],
+  "replication_design": {
+    "method": "deterministic-fixture",
+    "replication_count": 1,
+    "independent_unit": "One deterministic four-arm synthetic resource-ledger experiment",
+    "inference_claimed": false,
+    "dependence_assessment": "Control, treatment, negative-control and mechanism-ablation arms share one declared synthetic exogenous snapshot and are deliberately paired. They are not independent empirical samples.",
+    "sample_size_rationale": "One deterministic run is sufficient to check exact software contracts and negative controls; it does not support confidence intervals or population inference.",
+    "seed_manifest_digest": null,
+    "cluster_unit": null
+  },
+  "metrics": [
+    {
+      "metric_id": "observed_treatment_contrast",
+      "construct_dimension": "control-to-treatment service difference",
+      "unit": "fraction household water coverage",
+      "direction": "higher-is-better",
+      "aggregation": "paired treatment minus control outcome; reported even when qualification fails",
+      "strata": [
+        "experiment_arm"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "qualified_treatment_effect",
+      "construct_dimension": "causal-path-qualified treatment contrast",
+      "unit": "fraction household water coverage",
+      "direction": "descriptive-only",
+      "aggregation": "present only when every path, matching, independent-measurement, negative-control and ablation gate passes; otherwise null",
+      "strata": [
+        "experiment_arm"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "negative_control_outcome_delta",
+      "construct_dimension": "counter-only negative-control outcome",
+      "unit": "fraction household water coverage",
+      "direction": "target-range",
+      "aggregation": "negative-control minus control ledger outcome; expected zero",
+      "strata": [
+        "experiment_arm"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "water_conservation_residual",
+      "construct_dimension": "independent physical ledger integrity",
+      "unit": "m3",
+      "direction": "lower-is-better",
+      "aggregation": "maximum absolute regional stock-flow residual across all arms",
+      "strata": [
+        "experiment_arm"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "required_path_completion",
+      "construct_dimension": "mechanistic path execution",
+      "unit": "fraction",
+      "direction": "higher-is-better",
+      "aggregation": "required path edges with valid transition receipts divided by required path edges",
+      "strata": [
+        "experiment_arm"
+      ],
+      "uncertainty_method": "none; deterministic fixture",
+      "proper_scoring_rule": null
+    }
+  ],
+  "baselines": [
+    {
+      "baseline_id": "no-intervention-control",
+      "description": "No safeguard and no inter-region transfer; household receives zero of essential water demand.",
+      "protocol_matched": true,
+      "source_uri": null
+    },
+    {
+      "baseline_id": "counter-only-negative-control",
+      "description": "Changes only an internal reputation counter; the physical resource ledger outcome must remain unchanged.",
+      "protocol_matched": true,
+      "source_uri": null
+    },
+    {
+      "baseline_id": "mechanism-ablation",
+      "description": "Keeps primary safeguard enabled while blocking transfer eligibility; service outcome should return to control.",
+      "protocol_matched": true,
+      "source_uri": null
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "negative-control-counter",
+      "intervention": "Change only the reputation counter while holding physical stocks, transfer eligibility and ledger inputs fixed.",
+      "expected_result": "Household water coverage remains unchanged from control.",
+      "must_fail_or_remain_null": "remain-unchanged"
+    },
+    {
+      "control_id": "mechanism-ablation",
+      "intervention": "Keep the safeguard assignment but block the required transfer-eligibility mediator.",
+      "expected_result": "Treatment effect is suppressed; no qualified mechanism effect is retained.",
+      "must_fail_or_remain_null": "remain-unchanged"
+    },
+    {
+      "control_id": "disconnected-path",
+      "intervention": "Remove or disconnect any required intervention-to-outcome transition edge.",
+      "expected_result": "The experiment fails path qualification and qualified treatment effect remains null.",
+      "must_fail_or_remain_null": "fail"
+    },
+    {
+      "control_id": "unmatched-exogenous-snapshot",
+      "intervention": "Change the exogenous snapshot ID in one arm.",
+      "expected_result": "The matched experiment fails closed.",
+      "must_fail_or_remain_null": "fail"
+    }
+  ],
+  "holdouts": [
+    {
+      "holdout_id": "external-empirical-holdout",
+      "dimension": "none",
+      "status": "not-applicable",
+      "leakage_control": "No empirical observations are used; external generalization is not claimed."
+    }
+  ],
+  "reproduction": {
+    "code_commit": "4fb909d651a83808884e75073af0dbb67bbcaf07",
+    "configuration_digest": "513d40ca090f2d148660a12172b804fd35b62adc13421ad132ca0ac6700eedf3",
+    "data_manifest_digest": null,
+    "model_identifier": "civdyn-causal-path-001-reference-kernel",
+    "runtime_environment": "Rust edition 2024; deterministic synthetic reference; exact-head GitHub Actions workflow",
+    "command": "cargo run --locked --manifest-path research/civdyn-causal-path/Cargo.toml --bin causal-path-sweep",
+    "humanity_atlas_run_artifact_ref": "Not applicable: synthetic reference execution only; no complete Humanity Atlas run artifact is claimed."
+  },
+  "claim_report": {
+    "claim_ceiling": "Tier 1 deterministic ledger-backed mechanism-path reference only. It does not establish a real-world causal effect, empirical identification, confounder completeness or policy efficacy.",
+    "known_limitations": [
+      "The reservoir and household are synthetic, not a Johannesburg water-system model.",
+      "The exogenous snapshot ID is a protocol assertion, not cryptographically authenticated by the reference crate.",
+      "A complete path proves only that the declared mechanism executed inside this model and the independent ledger outcome changed in this fixture.",
+      "Empirical causal identification requires source-backed interventions, defensible assumptions, held-out tests and independent review."
+    ],
+    "unsupported_strata": [
+      "Real human populations, institutions, regions, infrastructure systems and operational policy settings."
+    ],
+    "deviations": [],
+    "failed_controls": []
+  },
+  "composite_score_policy": "no-universal-composite",
+  "configuration_passport": {
+    "configuration_id": "CIVDYN-CAUSAL-PATH-SYNTHETIC-WATER-SAFEGUARD-001",
+    "configuration_digest": "513d40ca090f2d148660a12172b804fd35b62adc13421ad132ca0ac6700eedf3",
+    "canonicalization": "sorted-key-value-lines-v1",
+    "model": {
+      "model_id": "civdyn-causal-path-001-reference-kernel",
+      "model_version": "0.1.0"
+    },
+    "facets": {
+      "persona_id": "synthetic-reference-no-persona",
+      "interview_protocol_id": "not-applicable-no-interview",
+      "facilitator_id": "not-applicable-no-facilitator",
+      "aggregation_rule_id": "native-metric-vector-no-composite",
+      "order_profile_id": "stable-deterministic-order",
+      "prompt_template_id": "not-applicable-no-llm",
+      "tool_policy_id": "none",
+      "evidence_snapshot_id": "synthetic:CIVDYN-CAUSAL-PATH-SYNTHETIC-WATER-SAFEGUARD-001",
+      "decoding_policy_id": "deterministic-reference"
+    },
+    "task_contract_digest": "9f4711208918b96ade2515b3e004160fffb0ccd9c756597821c49b2dae26d8f7",
+    "data_split_digest": null,
+    "re_audit_policy": "any-decision-relevant-change"
+  },
+  "execution_stack": {
+    "components": [
+      {
+        "component_id": "reference-simulator",
+        "role": "simulator",
+        "version": "0.1.0",
+        "configuration_digest": "cb6f3ea259ed7376cc1cd46bd006da59a7ea7536d644a20b0af14920f5e7c30e",
+        "behavior_affecting": true,
+        "notes": "Deterministic authored benchmark kernel."
+      },
+      {
+        "component_id": "reference-response-generator",
+        "role": "response-generator",
+        "version": "0.1.0",
+        "configuration_digest": "d070b544d21ff705c3cf260c969ec5fed2fa4e5a20bbc4cccedaee6d560a5207",
+        "behavior_affecting": true,
+        "notes": "Synthetic oracle or explicit deterministic controller; not a human or LLM."
+      },
+      {
+        "component_id": "reference-scheduler",
+        "role": "scheduler",
+        "version": "0.1.0",
+        "configuration_digest": "44f08f62a9e4fc4f8d0abdd0b353b643b094819f18eef414560561bb3408b7c9",
+        "behavior_affecting": true,
+        "notes": "Stable serial execution in declared input order."
+      },
+      {
+        "component_id": "typed-action-parser",
+        "role": "action-parser",
+        "version": "0.1.0",
+        "configuration_digest": "35e22d7754bc9866cd04045ca7ddeb9ab31003471627b27f2cf19b59377050ee",
+        "behavior_affecting": true,
+        "notes": "Typed, source-defined structured input parser."
+      },
+      {
+        "component_id": "typed-action-validator",
+        "role": "action-validator",
+        "version": "0.1.0",
+        "configuration_digest": "37e9765d0dfa3f96e8316f092e6a1c0bae31dec8e054cb7d6ac2a6b0b031218b",
+        "behavior_affecting": true,
+        "notes": "Reject invalid or out-of-contract inputs; no silent repair."
+      },
+      {
+        "component_id": "complete-event-capture",
+        "role": "event-capture",
+        "version": "0.1.0",
+        "configuration_digest": "ce7f65fe130ffcd19b89f98bbd1f49bc15c6bbed1de5e3642c463169939ea024",
+        "behavior_affecting": true,
+        "notes": "Capture every declared input, step, output and metric; missing records fail closed."
+      },
+      {
+        "component_id": "measurement-kernel",
+        "role": "measurement",
+        "version": "0.1.0",
+        "configuration_digest": "3d42daeac0f91f9cfb3a12bee87650cb22e0015a8a3369fecd568b1c06268ff0",
+        "behavior_affecting": true,
+        "notes": "Native-unit, task-specific metric calculations."
+      },
+      {
+        "component_id": "deterministic-randomness-policy",
+        "role": "randomness",
+        "version": "0.1.0",
+        "configuration_digest": "c91bb9c334fdb1d9d3c7aec4da6ba71ed853531944840417affc562422ec1b06",
+        "behavior_affecting": true,
+        "notes": "No unseeded random source is used by this deterministic fixture."
+      }
+    ],
+    "fallback_policy": "abort",
+    "fallback_events": [],
+    "unseeded_random_sources": [],
+    "scheduler_policy": {
+      "scheduler_id": "reference-scheduler",
+      "update_order": "stable declared fixture order; deterministic serial execution",
+      "parallelism": 1,
+      "tie_breaking_rule": "stable identifier then stable input index"
+    },
+    "exposure_policy": {
+      "policy_id": "exposure-not-applicable",
+      "eligibility_rule": "not applicable to this deterministic reference fixture",
+      "ordering_rule": "explicit deterministic fixture order",
+      "state_visibility": "all declared synthetic inputs are visible to the benchmark runner"
+    },
+    "action_validation_policy": {
+      "parser_component_id": "typed-action-parser",
+      "validator_component_id": "typed-action-validator",
+      "invalid_action_policy": "abort",
+      "retry_limit": 0,
+      "repair_policy": "none; malformed input fails closed"
+    },
+    "event_capture_policy": {
+      "capture_component_id": "complete-event-capture",
+      "required_event_kinds": [
+        "declared_input",
+        "run_output",
+        "metric_record",
+        "negative_control_result"
+      ],
+      "dropped_event_count": 0,
+      "drop_policy": "fail-closed"
+    }
+  }
+}
