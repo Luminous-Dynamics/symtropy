@@ -141,14 +141,15 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         ));
     }
 
-    let interval_count = usize::try_from(uint_field(value, "interval_count", "$")?)
-        .map_err(|_| fail("$.interval_count", "does not fit this platform"))?;
-    if interval_count == 0 || interval_count as u64 > MAX_INTERVALS {
+    let interval_count_value = uint_field(value, "interval_count", "$")?;
+    if !(1..=MAX_INTERVALS).contains(&interval_count_value) {
         return Err(fail(
             "$.interval_count",
             format!("must be within 1..={MAX_INTERVALS}"),
         ));
     }
+    let interval_count = usize::try_from(interval_count_value)
+        .map_err(|_| fail("$.interval_count", "does not fit this platform"))?;
 
     let receiver_rows = array_field(value, "receivers", "$")?;
     if receiver_rows.is_empty() || receiver_rows.len() > MAX_RECEIVERS {
@@ -678,11 +679,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             });
         }
     }
-    minimum_cut_edges.sort_by(|left, right| {
-        left.kind
-            .cmp(&right.kind)
-            .then_with(|| left.label.cmp(&right.label))
-    });
+    minimum_cut_edges.sort_by_key(|edge| (edge.kind.clone(), edge.label.clone()));
     if minimum_cut_capacity_mwh != delivered {
         return Err(format!(
             "internal max-flow/min-cut invariant failed: flow {delivered} != cut {minimum_cut_capacity_mwh}"
