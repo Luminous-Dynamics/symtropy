@@ -258,6 +258,28 @@ Official research links:
 - MuJoCo 3.17.0 batch API:
   https://mujoco.readthedocs.io/en/3.17.0/changelog.html
 
+## Current analytic qualification work
+
+The next physics-verification increments are tracked separately from the batch
+throughput lane:
+
+- [CCD helper invariance and exact TOI #3915](https://github.com/Luminous-Dynamics/symtropy/pull/3915):
+  plane-equation scale invariance, invalid-input rejection and a stable
+  sphere-sphere quadratic root. This qualifies analytical helpers, not the
+  full world collision response.
+- [Semi-implicit Euler work-precision #3916](https://github.com/Luminous-Dynamics/symtropy/pull/3916):
+  a constant-acceleration closed-form fixture checks exact final velocity and
+  first-order global position error. The symplectic guarantee applies only to
+  the undamped conservative update; damping/non-conservative forces remove it.
+- [World-level TOI response #3919](https://github.com/Luminous-Dynamics/symtropy/issues/3919):
+  position clamping at exact TOI may leave a tangent sphere with no positive-
+  depth contact manifold, so the impact impulse and remaining-step response
+  must be verified separately.
+
+A green replay test does not certify these physical properties. Keep output
+determinism, analytic/numerical verification, cross-engine validation, physical
+validation and performance as distinct acceptance layers.
+
 ## Future scenario families
 
 1. Anisotropic rotational dynamics: asymmetric-top motion, off-axis products of inertia,
