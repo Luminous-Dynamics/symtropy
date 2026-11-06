@@ -90,7 +90,7 @@ fn validate_sample(
         value,
         &[
             "sample_id",
-            "timestamp_ms",
+            "timestamp_ns",
             "x_mm",
             "y_mm",
             "z_mm",
@@ -105,7 +105,7 @@ fn validate_sample(
         &path,
     )?;
     let sample_id = string_field(value, "sample_id", &path)?.to_string();
-    let timestamp = unsigned_field(value, "timestamp_ms", &path)?;
+    let timestamp = unsigned_field(value, "timestamp_ns", &path)?;
     if sample_timestamps
         .insert(sample_id.clone(), timestamp)
         .is_some()
@@ -162,9 +162,9 @@ fn validate_projection_group(
             "coupling_ppm",
             "useful_power_w",
             "vehicle_dc_power_w",
-            "measurement_timestamp_ms",
-            "clock_offset_ms",
-            "clock_uncertainty_ms",
+            "measurement_timestamp_ns",
+            "clock_offset_ns",
+            "clock_uncertainty_ns",
         ]
     } else {
         &[
@@ -177,9 +177,9 @@ fn validate_projection_group(
             "tensile_strain_microstrain",
             "heat_flux_w_m2",
             "interface_condition",
-            "measurement_timestamp_ms",
-            "clock_offset_ms",
-            "clock_uncertainty_ms",
+            "measurement_timestamp_ns",
+            "clock_offset_ns",
+            "clock_uncertainty_ns",
         ]
     };
 
@@ -205,9 +205,9 @@ fn validate_projection_group(
         let canonical_timestamp = sample_timestamps.get(&sample_id).ok_or_else(|| {
             fail(&path, format!("unknown trajectory sample_id {sample_id}"))
         })?;
-        let measurement_timestamp = unsigned_field(projection, "measurement_timestamp_ms", &path)?;
-        let clock_offset = signed_field(projection, "clock_offset_ms", &path)?;
-        let clock_uncertainty = unsigned_field(projection, "clock_uncertainty_ms", &path)?;
+        let measurement_timestamp = unsigned_field(projection, "measurement_timestamp_ns", &path)?;
+        let clock_offset = signed_field(projection, "clock_offset_ns", &path)?;
+        let clock_uncertainty = unsigned_field(projection, "clock_uncertainty_ns", &path)?;
         let corrected_timestamp =
             i128::from(measurement_timestamp) + i128::from(clock_offset);
         let timestamp_error = (corrected_timestamp - i128::from(*canonical_timestamp)).abs();
@@ -327,7 +327,7 @@ pub fn validate_trajectory_episode(value: &Value) -> Result<TrajectoryReplayRepo
         if previous_timestamp.is_some_and(|previous| timestamp <= previous) {
             return Err(fail(
                 &format!("$.trajectory_samples[{index}]"),
-                "timestamp_ms must be strictly increasing",
+                "timestamp_ns must be strictly increasing",
             ));
         }
         previous_timestamp = Some(timestamp);
@@ -399,7 +399,7 @@ mod tests {
         );
 
         let mut scenario = fixture();
-        scenario["trajectory_samples"][2]["timestamp_ms"] = Value::from(50);
+        scenario["trajectory_samples"][2]["timestamp_ns"] = Value::from(50);
         assert!(
             validate_trajectory_episode(&scenario)
                 .unwrap_err()
@@ -489,16 +489,16 @@ mod tests {
     #[test]
     fn projection_clock_offset_must_align_with_the_canonical_pose_within_uncertainty() {
         let mut scenario = fixture();
-        scenario["electromagnetic_projections"][0]["measurement_timestamp_ms"] =
-            Value::from(30);
-        scenario["electromagnetic_projections"][0]["clock_offset_ms"] = Value::from(-30);
-        scenario["electromagnetic_projections"][0]["clock_uncertainty_ms"] = Value::from(0);
+        scenario["electromagnetic_projections"][0]["measurement_timestamp_ns"] =
+            Value::from(30_000_000);
+        scenario["electromagnetic_projections"][0]["clock_offset_ns"] = Value::from(-30_000_000);
+        scenario["electromagnetic_projections"][0]["clock_uncertainty_ns"] = Value::from(0);
         assert!(validate_trajectory_episode(&scenario).is_ok());
 
         let mut scenario = fixture();
-        scenario["pavement_projections"][0]["measurement_timestamp_ms"] = Value::from(3);
-        scenario["pavement_projections"][0]["clock_offset_ms"] = Value::from(0);
-        scenario["pavement_projections"][0]["clock_uncertainty_ms"] = Value::from(1);
+        scenario["pavement_projections"][0]["measurement_timestamp_ns"] = Value::from(3);
+        scenario["pavement_projections"][0]["clock_offset_ns"] = Value::from(0);
+        scenario["pavement_projections"][0]["clock_uncertainty_ns"] = Value::from(1);
         assert!(
             validate_trajectory_episode(&scenario)
                 .unwrap_err()
