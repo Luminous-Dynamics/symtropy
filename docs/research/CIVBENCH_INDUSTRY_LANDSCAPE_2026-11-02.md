@@ -547,3 +547,38 @@ Implementation: [CIVDYN-AGENTWORLD-REPRO-001 #3785](https://github.com/Luminous-
 6. Audit judge gaming and outcome-based reward hacking with independent verifiers and blinded human annotation.
 
 No single SOUL/HUMSIM/CCE/CivBench number is a universal intelligence, fairness or civilizational-quality score.
+
+
+## 17. Accountability must include the simulation stack (6 November 2026)
+
+### From plausible agents to accountable simulation
+
+**Liu, United Nations University Macau (29 September 2026), "From Plausible Agents to Accountable Simulation: A Technical and Governance Framework for LLM-Enabled Agent-Based Modelling".**  
+https://unu.edu/publication/plausible-agents-accountable-simulation-technical-and-governance-framework-llm-enabled
+
+This 22-page review examines 14 public LLM-agent projects and 9 traditional ABM platforms, with source-code inspection where available. Its central methodological warning is that fluent/plausible agents can still be empirically unrealistic; parsers, repair/retry logic, default actions, schedulers, exposure rules, memory/retrieval settings and environment machinery can drive aggregate results as much as the language model. It notes that some systems leave controllable randomness unseeded and that hidden fallbacks may silently replace invalid model outputs with fixed actions.
+
+**CivBench response — stack-level validity manifest.** Every LLM-agent result must bind together:
+- base model/version, prompt/template and decoding;
+- persona/profile source and completeness;
+- memory/retrieval settings and retained-state policy;
+- action parser, schema validator, retries, repair and fallback policy;
+- scheduler, update order, feed/exposure and interaction constraints;
+- environment dynamics, transaction settlement and measurement code;
+- RNG streams/seeds and external nondeterminism;
+- data capture, metric implementation, holdout/split manifest and scoring;
+- independent output receipt and exact source/config digest.
+
+The benchmark must add anti-shortcut controls: malformed output, timeout, duplicate action, omitted agent, reordered event, alternate scheduler, altered feed, unseeded source and changed fallback. Every fallback must be observable and counted; silent defaults fail conformance. Compare the same declared environment with ablations of agent cognition and environment machinery to estimate their separate contributions.
+
+This complements, rather than replaces, [CIVDYN-ENGINE-COMPARE-001 #3787](https://github.com/Luminous-Dynamics/symtropy/issues/3787). The runtime lane requires behavioural equivalence before timing; the accountability lane requires stack-level provenance before claiming validity. The two lanes must not be merged into one score.
+
+### Current implementation map
+
+- [CIVDYN-DELIB-001 #3617](https://github.com/Luminous-Dynamics/symtropy/issues/3617) → procedural audit draft [PR #3682](https://github.com/Luminous-Dynamics/symtropy/pull/3682); its exact-head hosted workflow passed.
+- [CIVDYN-RES-001 #3621](https://github.com/Luminous-Dynamics/symtropy/issues/3621) → cross-scale service resilience [PR #3666](https://github.com/Luminous-Dynamics/symtropy/pull/3666); exact-head workflow passed.
+- [CIVDYN-HUMSIM-001 #3665](https://github.com/Luminous-Dynamics/symtropy/issues/3665) → micro/population/trajectory fidelity [PR #3668](https://github.com/Luminous-Dynamics/symtropy/pull/3668); exact-head workflow passed.
+- [CIVDYN-NTG-001 #3671](https://github.com/Luminous-Dynamics/symtropy/issues/3671) → opponent-roster cycles and regret [PR #3674](https://github.com/Luminous-Dynamics/symtropy/pull/3674); exact-head workflow passed.
+- [CivBench independent ledger/counterfactual issue #3319](https://github.com/Luminous-Dynamics/symtropy/issues/3319) → matched causal-path conformance [PR #3803](https://github.com/Luminous-Dynamics/symtropy/pull/3803); draft, exact-head CI pending.
+
+All listed PRs remain drafts. Hosted software-fixture passes do not constitute empirical validation or a SOTA result.
