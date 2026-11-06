@@ -291,6 +291,136 @@ mod tests {
         assert!(drift < 0.01, "energy drift {drift} > 1%");
     }
 
+    fn run_constant_acceleration(dt: f64) -> (f64, f64) {
+        let total_time = 1.0;
+        let steps = (total_time / dt).round() as usize;
+        let acceleration = 3.7;
+        let initial_velocity = 1.25;
+        let mass = 2.0;
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, mass);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity[0] = initial_velocity;
+
+        for _ in 0..steps {
+            body.apply_force(SVector::from([mass * acceleration, 0.0, 0.0]));
+            integrate(&mut body, &SVector::zeros(), dt);
+        }
+
+        (body.transform.translation.0[0], body.linear_velocity[0])
+    }
+
+    #[test]
+    fn constant_acceleration_matches_analytic_velocity_and_first_order_position_error() {
+        let acceleration = 3.7;
+        let initial_velocity = 1.25;
+        let total_time = 1.0;
+        let exact_position =
+            initial_velocity * total_time + 0.5 * acceleration * total_time * total_time;
+        let exact_velocity = initial_velocity + acceleration * total_time;
+
+        let coarse_dt = 1.0 / 30.0;
+        let medium_dt = 1.0 / 60.0;
+        let fine_dt = 1.0 / 120.0;
+        let (coarse_position, coarse_velocity) = run_constant_acceleration(coarse_dt);
+        let (medium_position, medium_velocity) = run_constant_acceleration(medium_dt);
+        let (fine_position, fine_velocity) = run_constant_acceleration(fine_dt);
+
+        // Semi-implicit Euler updates velocity before position. Under constant
+        // acceleration its global position error is exactly +0.5*a*T*dt,
+        // while final velocity is exact (up to floating-point roundoff).
+        for (dt, position, velocity) in [
+            (coarse_dt, coarse_position, coarse_velocity),
+            (medium_dt, medium_position, medium_velocity),
+            (fine_dt, fine_position, fine_velocity),
+        ] {
+            let expected_error = 0.5 * acceleration * total_time * dt;
+            let observed_error = position - exact_position;
+            assert!(
+                (observed_error - expected_error).abs() < 1e-10,
+                "dt={dt}: observed position error {observed_error}, expected {expected_error}"
+            );
+            assert!(
+                (velocity - exact_velocity).abs() < 1e-10,
+                "dt={dt}: velocity {velocity}, expected {exact_velocity}"
+            );
+        }
+
+        let coarse_error = coarse_position - exact_position;
+        let medium_error = medium_position - exact_position;
+        let fine_error = fine_position - exact_position;
+        assert!((coarse_error / medium_error - 2.0).abs() < 1e-9);
+        assert!((medium_error / fine_error - 2.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn free_inertial_motion_matches_closed_form_trajectory() {
+        let initial_position = SVector::from([1.25, -2.5, 4.0]);
+        let initial_velocity = SVector::from([3.0, -0.75, 1.5]);
+        let total_time = 3.0;
+        let dt = 1.0 / 240.0;
+        let steps = (total_time / dt) as usize;
+
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point(initial_position), 0.5, 2.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = initial_velocity;
+
+        for _ in 0..steps {
+            integrate(&mut body, &SVector::zeros(), dt);
+        }
+
+        let exact_position = initial_position + initial_velocity * total_time;
+        assert!(
+            (body.transform.translation.0 - exact_position).norm() < 1e-10,
+            "free-flight position error: {}",
+            (body.transform.translation.0 - exact_position).norm()
+        );
+        assert!(
+            (body.linear_velocity - initial_velocity).norm() < 1e-12,
+            "free-flight velocity changed without forces"
+        );
+    }
+
+    #[test]
+    fn gravity_energy_drift_matches_signed_semi_implicit_euler_error() {
+        let mass = 2.0;
+        let gravity = 9.81;
+        let total_time: f64 = 1.0;
+        let initial_height: f64 = 100.0;
+
+        for dt in [1.0 / 30.0, 1.0 / 60.0, 1.0 / 120.0] {
+            let steps = (total_time / dt).round() as usize;
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(0),
+                Point::new([0.0, initial_height, 0.0]),
+                0.5,
+                mass,
+            );
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+
+            let initial_energy =
+                body.kinetic_energy() + mass * gravity * body.transform.translation.coord(1);
+            let acceleration = SVector::from([0.0, -gravity, 0.0]);
+
+            for _ in 0..steps {
+                integrate(&mut body, &acceleration, dt);
+            }
+
+            let final_energy =
+                body.kinetic_energy() + mass * gravity * body.transform.translation.coord(1);
+            let observed_drift = final_energy - initial_energy;
+            let expected_drift = -0.5 * mass * gravity * gravity * total_time * dt;
+
+            assert!(
+                (observed_drift - expected_drift).abs() < 1e-8,
+                "dt={dt}: observed signed energy drift {observed_drift}, expected {expected_drift}"
+            );
+        }
+    }
+
     #[test]
     fn static_body_not_affected() {
         use symtropy_math::Sphere;
