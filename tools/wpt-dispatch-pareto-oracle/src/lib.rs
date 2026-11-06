@@ -788,11 +788,9 @@ fn enumerate(
         ));
     }
 
-    for receiver_index in 0..search.scenario.receivers.len() {
+    for (receiver_index, receiver) in search.scenario.receivers.iter().enumerate() {
         let maximum_remaining = search.suffix_possible[link_index][receiver_index];
-        if search.receiver_delivered[receiver_index] + maximum_remaining
-            < search.scenario.receivers[receiver_index].minimum_quanta
-        {
+        if search.receiver_delivered[receiver_index] + maximum_remaining < receiver.minimum_quanta {
             return Ok(());
         }
     }
