@@ -191,6 +191,53 @@
       "expected": {
         "dr_credit": false
       }
+    },
+    {
+      "case_id": "initial-waveform-coverage-gap",
+      "first_sample_offset_ns": 100000000,
+      "maximum_sample_gap_ns": 50000000,
+      "expected": {
+        "accepted": false,
+        "reason": "initial_sample_gap_exceeds_contract"
+      }
+    },
+    {
+      "case_id": "required-reactive-power-or-current-missing",
+      "missing_channel": "reactive_power_mvar",
+      "expected": {
+        "accepted": false,
+        "reason": "missing_required_channel"
+      }
+    },
+    {
+      "case_id": "reactive-power-outside-operator-envelope",
+      "reactive_power_mvar": 6,
+      "operator_range_mvar": [
+        -5,
+        5
+      ],
+      "expected": {
+        "qualified": false,
+        "reason": "reactive_current_envelope_violation"
+      }
+    },
+    {
+      "case_id": "pcc-current-over-operator-limit",
+      "current_pu": 1.3,
+      "operator_max_current_pu": 1.2,
+      "expected": {
+        "qualified": false,
+        "reason": "reactive_current_envelope_violation"
+      }
+    },
+    {
+      "case_id": "sparse-samples-claiming-high-bandwidth",
+      "sample_gap_ns": 1000000000,
+      "required_bandwidth_hz": 1,
+      "expected": {
+        "accepted": false,
+        "reason": "sampling_cadence_cannot_resolve_bandwidth"
+      }
     }
   ],
   "negative_controls": [
@@ -210,6 +257,11 @@
     "active_power_recovery_misses_deadline",
     "recovery_ramp_limit_exceeded",
     "post_fault_overshoot_exceeded",
-    "recovery_stability_condition_never_observed"
+    "recovery_stability_condition_never_observed",
+    "waveform_initial_sample_missing_beyond_cadence",
+    "waveform_sample_rate_below_nyquist_for_declared_bandwidth",
+    "reactive_power_or_current_channel_missing_when_operator_requires_it",
+    "PCC_reactive_power_exceeds_operator_envelope",
+    "PCC_current_exceeds_operator_limit"
   ]
 }
