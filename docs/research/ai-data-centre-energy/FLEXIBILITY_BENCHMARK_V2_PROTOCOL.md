@@ -235,3 +235,23 @@ The source repository README identifies the data as CC BY-NC-ND 4.0, while the F
 PR #3772 qualifies the PCC meter chain, but it does not establish the no-dispatch counterfactual. Issue #3802 / GRID-BASELINE-MV-001 introduces a separate gate: no-dispatch calibration groups and evaluation groups must be disjoint; forecasts must be issued before target intervals; baseline residuals include no-dispatch meter uncertainty; lower-tail residuals are calibrated at the independent-group level using the worst interval residual per calibration block; and evaluation regimes without calibration coverage abstain. Holdout bias, normalized error, block lower-bound coverage and false-positive reduction rate are reported by operating regime.
 
 An event response lower bound is formed from the baseline lower prediction bound minus the upper PCC measured-load bound. It is model-based impact estimation, not causal identification. Recovery horizon completeness must be explicitly declared; event interval bounds are not a joint event-horizon probability bound without cross-interval dependence evidence.
+
+## 12. Portfolio joint-delivery under shared failure domains
+
+PR #3819 / issue #3817 adds a separate portfolio event-panel evaluator. It is not another load covariance calculation: #3783 characterizes observed cross-site power dependence, whereas this slice evaluates whether the full enrolled asset set delivers the contracted lower-bound kW during observed stress events.
+
+Every event must include exactly one outcome for every enrolled asset and exactly one observed state for every declared failure domain. Missing outcomes/domain evidence fail closed; explicit Unknown remains Unknown. Per-asset receipts preserve the upstream response receipt ID and source digest. Domain receipts preserve observed state, evidence ID and source digest. The evaluator does not re-measure PCC or recertify site response.
+
+Repeated dispatch episodes that share an incident-group ID use the group's worst event margin for group pass/fail. The report keeps event pass fraction and incident-group pass fraction separate. It also reports worst incident-group margin, maximum event shortfall, the empirical upper-tail mean of incident-group maximum shortfalls, scenario-specific group pass fractions, and observed portfolio pass/fail conditional on each domain state.
+
+Failure-domain memberships can overlap. V0.1 reports the largest single-domain offered-capacity share and per-domain member outcomes, but it does not sum overlapping capacities or report an HHI without an explicit allocation model. The results are descriptive incident-panel evidence, not future failure probabilities, causal attribution, nodal deliverability or ELCC.
+
+### Portfolio resilience benchmark gates
+
+- Complete event × enrolled-asset and event × failure-domain panel; missing evidence never becomes zero or presumed success.
+- Independent stress-group count is explicit and distinct from event count or interval count.
+- The same complete panel is used to compare marginal site success, any declared independence estimate and observed joint portfolio success.
+- All event receipts preserve per-asset response and per-domain evidence references.
+- Shared-domain stratification is descriptive and never interpreted as causality.
+- Overlapping failure-domain memberships cannot be added into total portfolio capacity.
+- Future confidence intervals and scenario generation require separate independent-group statistical and empirical-validation protocols.
