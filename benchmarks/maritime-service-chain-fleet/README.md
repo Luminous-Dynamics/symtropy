@@ -48,11 +48,9 @@ The Rust unit-test corpus covers:
 - duplicate demand identity, mismatched decision cutoffs/tick resolutions and missing time basis;
 - input permutation replay, zero-budget rejection and explicit search-budget exhaustion.
 
-The test-only independent fleet enumerator separately explores each demand's alternatives and integer-tick placements, calculates feasibility using per-tick/per-window accounting, reconstructs the objective vector and computes its own Pareto frontier. It is cross-checked against the production frontier on:
-- a feasible two-demand mixed-speed workload;
-- a two-demand workload with speed alternatives and non-dominated trade-offs;
-- a workload that is jointly infeasible under a strict delivery deadline;
-- individually valid demands whose combined water or shore-energy quota is infeasible.
+Exact-head CI at `6bb64789997746d8a1f1c5509a745b2ca340a008` reports **30 unit tests and 3 integration tests passing**, with rustfmt and Clippy passing.
+
+The test-only independent fleet enumerator separately explores each demand's alternatives and integer-tick placements, calculates feasibility using per-tick/per-window accounting, reconstructs the objective vector and computes its own Pareto frontier. It is cross-checked against the production frontier on four hand-checkable cases and a **20-variant frozen parameter sweep**. The sweep changes fast/slow alternative combinations, delivery windows, lock/channel/berth/terminal capacity, and cumulative water/shore-power quotas. Every production frontier must match the independently generated frontier exactly.
 
 A separate integration-test oracle compares the production concurrent-capacity event sweep with a direct per-tick implementation and compares cumulative quota accounting with independent window sums over exhaustive tiny operation pairs.
 
