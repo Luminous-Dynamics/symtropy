@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/wpt-dual-frequency-v0/dual-frequency-run.schema.json",
+  "title": "Dual-Frequency WPT/Grid Spectral Run v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "evidence_kind",
+    "analysis_model_class",
+    "cross_frequency_transfer_claim",
+    "grid_frequency_hz",
+    "resonant_carrier_hz",
+    "minimum_sideband_separation_hz",
+    "effective_frequency_resolution_hz",
+    "acquisition",
+    "channels",
+    "quality_flags"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-dual-frequency-run-v0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_kind": {
+      "enum": [
+        "MEASURED",
+        "PUBLISHED_MEASURED",
+        "SIMULATED",
+        "SYNTHETIC_KNOWN_TRUTH"
+      ]
+    },
+    "analysis_model_class": {
+      "enum": [
+        "LTI",
+        "LTP",
+        "HSS",
+        "SWITCHED_EMT"
+      ]
+    },
+    "cross_frequency_transfer_claim": {
+      "type": "boolean"
+    },
+    "grid_frequency_hz": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "resonant_carrier_hz": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "minimum_sideband_separation_hz": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "effective_frequency_resolution_hz": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_rate_hz",
+        "sample_count",
+        "clock_id",
+        "synchronization_group_id",
+        "started_at_utc",
+        "window_function",
+        "raw_waveform_sha256",
+        "calibration_receipt_id"
+      ],
+      "properties": {
+        "sample_rate_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "synchronization_group_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "started_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "window_function": {
+          "enum": [
+            "RECTANGULAR",
+            "HANN",
+            "BLACKMAN",
+            "FLAT_TOP",
+            "OTHER"
+          ]
+        },
+        "raw_waveform_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "calibration_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "channel_id",
+          "channel_kind",
+          "measurement_plane_id",
+          "phase_reference_id",
+          "quantity_kind",
+          "unit",
+          "nominal_frequency_hz",
+          "frequency_tolerance_hz",
+          "maximum_harmonic_order",
+          "lines"
+        ],
+        "properties": {
+          "channel_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "channel_kind": {
+            "enum": [
+              "GRID_CURRENT",
+              "RESONANT_CURRENT"
+            ]
+          },
+          "measurement_plane_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "phase_reference_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity_kind": {
+            "enum": [
+              "RMS_CURRENT_SPECTRUM",
+              "RMS_VOLTAGE_SPECTRUM"
+            ]
+          },
+          "unit": {
+            "enum": [
+              "A",
+              "V"
+            ]
+          },
+          "nominal_frequency_hz": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "frequency_tolerance_hz": {
+            "type": "number",
+            "minimum": 0
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "frequency_hz",
+                "rms_amplitude",
+                "phase_deg",
+                "harmonic_order",
+                "sideband_offset_hz",
+                "expanded_uncertainty"
+              ],
+              "properties": {
+                "frequency_hz": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "rms_amplitude": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "phase_deg": {
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180
+                },
+                "harmonic_order": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                },
+                "sideband_offset_hz": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "expanded_uncertainty": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "maximum_harmonic_order": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "For GRID_CURRENT, the evaluator requires every integer harmonic from 1 through this order. Null for RESONANT_CURRENT.",
+            "maximum": 4096
+          }
+        }
+      }
+    },
+    "quality_flags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "SYNTHETIC_ONLY",
+          "CLOCK_UNCERTAIN",
+          "CALIBRATION_MISSING",
+          "RAW_WAVEFORM_MISSING",
+          "SPECTRAL_RESOLUTION_LIMITED"
+        ]
+      }
+    }
+  }
+}
