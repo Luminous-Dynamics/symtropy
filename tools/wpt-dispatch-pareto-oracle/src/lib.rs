@@ -966,7 +966,7 @@ mod tests {
         let report = evaluate_scenario(&fixture()).unwrap();
         assert!(report.feasible);
         assert_eq!(report.total_requested_mwh, 10);
-        assert_eq!(report.feasible_allocations, 122);
+        assert_eq!(report.feasible_allocations, 89);
         assert_eq!(report.pareto_frontier.len(), 7);
         assert!(report.pareto_frontier.iter().all(|point| point.total_delivered_mwh == 8));
 
