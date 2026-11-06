@@ -214,7 +214,7 @@ fn render_json(report: &MissionReport) -> String {
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let input_path = match (args.next().as_deref(), args.next()) {
-        (None, None) => "fixtures/proxima-4p24ly-flyby-0p1c.input".to_owned(),
+        (None, None) => "fixtures/proxima-4p24ly-stop-at-target-0p1c.input".to_owned(),
         (Some("--input"), Some(path)) if args.next().is_none() => path,
         _ => return Err("usage: interstellar-precursor-bench [--input PATH]".to_owned()),
     };
@@ -242,7 +242,7 @@ mod tests {
     use super::*;
 
     const FIXTURE: &str =
-        include_str!("../fixtures/proxima-4p24ly-flyby-0p1c.input");
+        include_str!("../fixtures/proxima-4p24ly-stop-at-target-0p1c.input");
 
     fn close(actual: f64, expected: f64, tolerance: f64) {
         assert!(
@@ -255,7 +255,7 @@ mod tests {
     fn fixture_parses_and_replays_reference_case() {
         let input = parse_input(FIXTURE).expect("valid frozen fixture");
         let report = evaluate(&input).expect("valid mission profile");
-        assert_eq!(report.scenario_id, "proxima-centauri-flyby-0p1c");
+        assert_eq!(report.scenario_id, "proxima-centauri-stop-at-target-0p1c");
         close(report.lorentz_factor, 1.005_037_815_259_212, 1e-12);
         close(report.coordinate_flight_years, 43.352_371_885_495_91, 1e-9);
         close(report.spacecraft_proper_years, 43.141_436_900_950_91, 1e-9);
