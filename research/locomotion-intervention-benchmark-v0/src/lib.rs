@@ -333,6 +333,79 @@ pub fn predictive_log_score(
     }
 }
 
+
+/// Add deterministic, seeded, independent Gaussian observation noise to the
+/// observable coordinates. Latent truth is not accepted by or returned from
+/// this function, preserving the observation/truth boundary.
+pub fn add_gaussian_observation_noise(
+    observed: &[SyntheticSample],
+    observation_noise_variance: f64,
+    seed: u64,
+) -> Result<Vec<SyntheticSample>, BenchmarkError> {
+    validate_trace(observed)?;
+    if !observation_noise_variance.is_finite() || observation_noise_variance < 0.0 {
+        return Err(BenchmarkError::InvalidObservationVariance);
+    }
+    if observation_noise_variance == 0.0 {
+        return Ok(observed.to_vec());
+    }
+
+    let standard_deviation = observation_noise_variance.sqrt();
+    let mut random = SeededNormal::new(seed);
+    let mut noisy = Vec::with_capacity(observed.len());
+    for sample in observed {
+        let x = sample.x + standard_deviation * random.standard_normal();
+        let y = sample.y + standard_deviation * random.standard_normal();
+        if !x.is_finite() || !y.is_finite() {
+            return Err(BenchmarkError::NumericalFailure);
+        }
+        noisy.push(SyntheticSample {
+            timestamp: sample.timestamp,
+            x,
+            y,
+        });
+    }
+    Ok(noisy)
+}
+
+struct SeededNormal {
+    state: u64,
+    spare: Option<f64>,
+}
+
+impl SeededNormal {
+    fn new(seed: u64) -> Self {
+        Self {
+            state: seed,
+            spare: None,
+        }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut value = self.state;
+        value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        value ^ (value >> 31)
+    }
+
+    fn uniform_open(&mut self) -> f64 {
+        let mantissa = self.next_u64() >> 11;
+        (mantissa as f64 + 0.5) / ((1_u64 << 53) as f64)
+    }
+
+    fn standard_normal(&mut self) -> f64 {
+        if let Some(spare) = self.spare.take() {
+            return spare;
+        }
+        let radius = (-2.0 * self.uniform_open().ln()).sqrt();
+        let angle = std::f64::consts::TAU * self.uniform_open();
+        let (sin_angle, cos_angle) = angle.sin_cos();
+        self.spare = Some(radius * sin_angle);
+        radius * cos_angle
+    }
+}
+
 /// Compare candidate mechanisms on the same observations and intervention.
 /// A score margin below the caller's threshold yields abstention rather than
 /// forcing a winner among observationally equivalent or weakly identified
@@ -400,7 +473,6 @@ fn validate_trace(trace: &[SyntheticSample]) -> Result<(), BenchmarkError> {
         !sample.timestamp.is_finite()
             || !sample.x.is_finite()
             || !sample.y.is_finite()
-            
     }) {
         return Err(BenchmarkError::NonFiniteTrace);
     }
@@ -467,9 +539,6 @@ mod tests {
             simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
         let feedback =
             simulate(Mechanism::SensoryFeedbackDriven, intervention, config()).unwrap();
-        let final_oscillator = oscillator.samples.last().unwrap();
-        let final_feedback = feedback.samples.last().unwrap();
-
         assert!((oscillator.latent_truth.last().unwrap().amplitude - 1.0).abs() < 1.0e-12);
         assert!(feedback.latent_truth.last().unwrap().amplitude < 0.01);
         assert!(trajectory_rmse(&oscillator.samples, &feedback.samples).unwrap() > 0.1);
@@ -604,6 +673,94 @@ mod tests {
         )
         .unwrap();
         assert_eq!(offset, None);
+    }
+
+
+    #[test]
+    fn seeded_observation_noise_is_reproducible_and_preserves_timestamps() {
+        let trace = simulate(
+            Mechanism::IntrinsicOscillator,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
+        let a = add_gaussian_observation_noise(&trace.samples, 0.01, 42).unwrap();
+        let b = add_gaussian_observation_noise(&trace.samples, 0.01, 42).unwrap();
+        assert_eq!(a, b);
+        assert_eq!(
+            a.iter().map(|sample| sample.timestamp).collect::<Vec<_>>(),
+            trace.samples.iter().map(|sample| sample.timestamp).collect::<Vec<_>>()
+        );
+        assert_ne!(a, trace.samples);
+    }
+
+    #[test]
+    fn seeded_gaussian_noise_recovers_declared_variance_on_large_fixture() {
+        let mut large_config = config();
+        large_config.sample_count = 10_000;
+        let trace = simulate(
+            Mechanism::IntrinsicOscillator,
+            Intervention::None,
+            large_config,
+        )
+        .unwrap();
+        let noisy = add_gaussian_observation_noise(&trace.samples, 0.04, 0xC0FFEE).unwrap();
+
+        let mut residuals = Vec::with_capacity(noisy.len() * 2);
+        for (actual, expected) in noisy.iter().zip(&trace.samples) {
+            residuals.push(actual.x - expected.x);
+            residuals.push(actual.y - expected.y);
+        }
+        let mean = residuals.iter().sum::<f64>() / residuals.len() as f64;
+        let variance = residuals
+            .iter()
+            .map(|residual| (residual - mean).powi(2))
+            .sum::<f64>()
+            / residuals.len() as f64;
+        assert!(mean.abs() < 0.01);
+        assert!((variance - 0.04).abs() < 0.002);
+    }
+
+    #[test]
+    fn noisy_held_out_feedback_cut_still_discriminates_the_generating_mechanism() {
+        let intervention = Intervention::FeedbackCutFrom { sample_index: 20 };
+        let generated =
+            simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
+        let noisy =
+            add_gaussian_observation_noise(&generated.samples, 0.01, 0x5EED).unwrap();
+        let decision = select_mechanism(
+            &noisy,
+            &CANDIDATES,
+            intervention,
+            config(),
+            1.0e-6,
+        )
+        .unwrap();
+        assert!(matches!(
+            decision,
+            SelectionDecision::Selected {
+                mechanism: Mechanism::IntrinsicOscillator,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn zero_variance_noise_is_an_exact_copy_and_invalid_noise_fails_closed() {
+        let trace = simulate(
+            Mechanism::IntrinsicOscillator,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
+        assert_eq!(
+            add_gaussian_observation_noise(&trace.samples, 0.0, 99).unwrap(),
+            trace.samples
+        );
+        assert_eq!(
+            add_gaussian_observation_noise(&trace.samples, -0.1, 99),
+            Err(BenchmarkError::InvalidObservationVariance)
+        );
     }
 
     #[test]
