@@ -54,7 +54,10 @@ impl PortfolioIdentity {
         for (field, value) in [
             ("portfolio ID", identity.portfolio_id.as_str()),
             ("product contract ID", identity.product_contract_id.as_str()),
-            ("asset manifest digest", identity.asset_manifest_digest.as_str()),
+                "asset manifest digest",
+                identity.asset_manifest_digest.as_str(),
+            ),
+            (
             (
                 "failure-domain manifest digest",
                 identity.failure_domain_manifest_digest.as_str(),
@@ -93,7 +96,10 @@ impl PortfolioContract {
             return Err(PortfolioResilienceError::InvalidMinimumCount);
         }
         for (field, value) in [
-            ("minimum event pass fraction", minimum_event_pass_fraction_basis_points),
+                "minimum event pass fraction",
+                minimum_event_pass_fraction_basis_points,
+            ),
+            (
             (
                 "minimum incident-group pass fraction",
                 minimum_incident_group_pass_fraction_basis_points,
@@ -175,7 +181,10 @@ impl PortfolioAsset {
             ("asset ID", asset.asset_id.as_str()),
             ("site ID", asset.site_id.as_str()),
             ("PCC ID", asset.pcc_id.as_str()),
-            ("measurement boundary ID", asset.measurement_boundary_id.as_str()),
+            (
+                "measurement boundary ID",
+                asset.measurement_boundary_id.as_str(),
+            ),
             ("asset evidence ID", asset.asset_evidence_id.as_str()),
         ] {
             require_id(field, value)?;
@@ -191,7 +200,11 @@ impl PortfolioAsset {
                 asset_id: asset.asset_id.clone(),
             });
         }
-        let unique: BTreeSet<&str> = asset.failure_domain_ids.iter().map(String::as_str).collect();
+        let unique: BTreeSet<&str> = asset
+            .failure_domain_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
         if unique.len() != asset.failure_domain_ids.len() {
             return Err(PortfolioResilienceError::DuplicateAssetFailureDomain {
                 asset_id: asset.asset_id.clone(),
@@ -246,7 +259,10 @@ impl PortfolioDefinition {
         }
         let mut domains_by_id = BTreeMap::new();
         for domain in &failure_domains {
-            if domains_by_id.insert(domain.domain_id.as_str(), domain).is_some() {
+            if domains_by_id
+                .insert(domain.domain_id.as_str(), domain)
+                .is_some()
+            {
                 return Err(PortfolioResilienceError::DuplicateFailureDomain {
                     domain_id: domain.domain_id.clone(),
                 });
@@ -262,9 +278,14 @@ impl PortfolioDefinition {
             }
         }
 
-        let total_offered_capacity_kw = assets.iter().map(|asset| asset.offered_capacity_kw).sum::<f64>();
+        let total_offered_capacity_kw = assets
+            .iter()
+            .map(|asset| asset.offered_capacity_kw)
+            .sum::<f64>();
         if !total_offered_capacity_kw.is_finite() || total_offered_capacity_kw <= 0.0 {
-            return Err(PortfolioResilienceError::NumericalOverflow("total offered capacity"));
+            return Err(PortfolioResilienceError::NumericalOverflow(
+                "total offered capacity",
+            ));
         }
 
         // Domain memberships may overlap. Each domain's member capacity is
@@ -461,10 +482,7 @@ impl PortfolioStressEvent {
             require_id(field, value)?;
         }
         if start_ns >= end_ns {
-            return Err(PortfolioResilienceError::InvalidEventWindow {
-                start_ns,
-                end_ns,
-            });
+            return Err(PortfolioResilienceError::InvalidEventWindow { start_ns, end_ns });
         }
         if !required_delivery_kw.is_finite() || required_delivery_kw < 0.0 {
             return Err(PortfolioResilienceError::InvalidQuantity {
@@ -612,32 +630,93 @@ pub struct PortfolioResilienceReport {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PortfolioResilienceError {
-    MissingIdentity { field: &'static str },
-    InvalidQuantity { field: &'static str, value: f64 },
-    InvalidBasisPoints { field: &'static str, value: u16 },
+    MissingIdentity {
+        field: &'static str,
+    },
+    InvalidQuantity {
+        field: &'static str,
+        value: f64,
+    },
+    InvalidBasisPoints {
+        field: &'static str,
+        value: u16,
+    },
     InvalidMinimumCount,
     EmptyPortfolioCatalogue,
     ProductContractMismatch,
-    DuplicateAsset { asset_id: String },
-    DuplicateSitePcc { site_id: String, pcc_id: String },
-    DuplicateFailureDomain { domain_id: String },
-    UnknownFailureDomain { domain_id: String },
-    AssetHasNoFailureDomain { asset_id: String },
-    DuplicateAssetFailureDomain { asset_id: String },
-    DuplicateEvent { event_id: String },
-    DuplicateAssetOutcome { event_id: String, asset_id: String },
-    MissingAssetOutcome { event_id: String, asset_id: String },
-    UnknownAssetOutcome { event_id: String, asset_id: String },
-    DeliveryExceedsOffer { event_id: String, asset_id: String, delivered_kw: f64, offered_kw: f64 },
-    AvailabilityDeliveryMismatch { asset_id: String, availability: AssetAvailability, delivered_lower_bound_kw: f64 },
-    DuplicateDomainObservation { event_id: String, domain_id: String },
-    MissingDomainObservation { event_id: String, domain_id: String },
-    UnknownDomainObservation { event_id: String, domain_id: String },
-    DuplicateIncidentGroupScenario { incident_group_id: String },
-    InvalidEventWindow { start_ns: u64, end_ns: u64 },
+    DuplicateAsset {
+        asset_id: String,
+    },
+    DuplicateSitePcc {
+        site_id: String,
+        pcc_id: String,
+    },
+    DuplicateFailureDomain {
+        domain_id: String,
+    },
+    UnknownFailureDomain {
+        domain_id: String,
+    },
+    AssetHasNoFailureDomain {
+        asset_id: String,
+    },
+    DuplicateAssetFailureDomain {
+        asset_id: String,
+    },
+    DuplicateEvent {
+        event_id: String,
+    },
+    DuplicateAssetOutcome {
+        event_id: String,
+        asset_id: String,
+    },
+    MissingAssetOutcome {
+        event_id: String,
+        asset_id: String,
+    },
+    UnknownAssetOutcome {
+        event_id: String,
+        asset_id: String,
+    },
+    DeliveryExceedsOffer {
+        event_id: String,
+        asset_id: String,
+        delivered_kw: f64,
+        offered_kw: f64,
+    },
+    AvailabilityDeliveryMismatch {
+        asset_id: String,
+        availability: AssetAvailability,
+        delivered_lower_bound_kw: f64,
+    },
+    DuplicateDomainObservation {
+        event_id: String,
+        domain_id: String,
+    },
+    MissingDomainObservation {
+        event_id: String,
+        domain_id: String,
+    },
+    UnknownDomainObservation {
+        event_id: String,
+        domain_id: String,
+    },
+    DuplicateIncidentGroupScenario {
+        incident_group_id: String,
+    },
+    InvalidEventWindow {
+        start_ns: u64,
+        end_ns: u64,
+    },
     EmptyEventPanel,
-    InsufficientEventCount { observed: usize, required: usize },
-    InsufficientIncidentGroups { observed: usize, required: usize },
+    InsufficientEventCount {
+        observed: usize,
+        required: usize,
+    },
+    InsufficientIncidentGroups {
+        observed: usize,
+        required: usize,
+    },
     NumericalOverflow(&'static str),
 }
 
@@ -645,31 +724,102 @@ impl fmt::Display for PortfolioResilienceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingIdentity { field } => write!(f, "{field} must not be empty"),
-            Self::InvalidQuantity { field, value } => write!(f, "{field} must be finite and in range; got {value}"),
-            Self::InvalidBasisPoints { field, value } => write!(f, "{field} must be in 1..=10000 basis points; got {value}"),
-            Self::InvalidMinimumCount => write!(f, "event and independent incident-group minima must be positive"),
-            Self::EmptyPortfolioCatalogue => write!(f, "portfolio requires at least one asset and one failure domain"),
-            Self::ProductContractMismatch => write!(f, "portfolio identity and contract product IDs differ"),
+            Self::InvalidQuantity { field, value } => {
+                write!(f, "{field} must be finite and in range; got {value}")
+            }
+            Self::InvalidBasisPoints { field, value } => {
+                write!(f, "{field} must be in 1..=10000 basis points; got {value}")
+            }
+            Self::InvalidMinimumCount => write!(
+                f,
+                "event and independent incident-group minima must be positive"
+            ),
+            Self::EmptyPortfolioCatalogue => write!(
+                f,
+                "portfolio requires at least one asset and one failure domain"
+            ),
+            Self::ProductContractMismatch => {
+                write!(f, "portfolio identity and contract product IDs differ")
+            }
             Self::DuplicateAsset { asset_id } => write!(f, "duplicate portfolio asset {asset_id}"),
-            Self::DuplicateSitePcc { site_id, pcc_id } => write!(f, "duplicate site/PCC pair {site_id}/{pcc_id}"),
-            Self::DuplicateFailureDomain { domain_id } => write!(f, "duplicate failure domain {domain_id}"),
-            Self::UnknownFailureDomain { domain_id } => write!(f, "asset references unknown failure domain {domain_id}"),
-            Self::AssetHasNoFailureDomain { asset_id } => write!(f, "asset {asset_id} has no declared failure domain"),
-            Self::DuplicateAssetFailureDomain { asset_id } => write!(f, "asset {asset_id} repeats a failure-domain membership"),
+            Self::DuplicateSitePcc { site_id, pcc_id } => {
+                write!(f, "duplicate site/PCC pair {site_id}/{pcc_id}")
+            }
+            Self::DuplicateFailureDomain { domain_id } => {
+                write!(f, "duplicate failure domain {domain_id}")
+            }
+            Self::UnknownFailureDomain { domain_id } => {
+                write!(f, "asset references unknown failure domain {domain_id}")
+            }
+            Self::AssetHasNoFailureDomain { asset_id } => {
+                write!(f, "asset {asset_id} has no declared failure domain")
+            }
+            Self::DuplicateAssetFailureDomain { asset_id } => {
+                write!(f, "asset {asset_id} repeats a failure-domain membership")
+            }
             Self::DuplicateEvent { event_id } => write!(f, "duplicate event ID {event_id}"),
-            Self::DuplicateAssetOutcome { event_id, asset_id } => write!(f, "event {event_id} repeats asset outcome {asset_id}"),
-            Self::MissingAssetOutcome { event_id, asset_id } => write!(f, "event {event_id} omits enrolled asset outcome {asset_id}"),
-            Self::UnknownAssetOutcome { event_id, asset_id } => write!(f, "event {event_id} includes unenrolled asset {asset_id}"),
-            Self::DeliveryExceedsOffer { event_id, asset_id, delivered_kw, offered_kw } => write!(f, "event {event_id} asset {asset_id} delivers lower bound {delivered_kw} kW above offer {offered_kw} kW"),
-            Self::AvailabilityDeliveryMismatch { asset_id, availability, delivered_lower_bound_kw } => write!(f, "asset {asset_id} is {availability:?} but reports nonzero delivered lower bound {delivered_lower_bound_kw} kW"),
-            Self::DuplicateDomainObservation { event_id, domain_id } => write!(f, "event {event_id} repeats failure-domain observation {domain_id}"),
-            Self::MissingDomainObservation { event_id, domain_id } => write!(f, "event {event_id} omits failure-domain state {domain_id}"),
-            Self::UnknownDomainObservation { event_id, domain_id } => write!(f, "event {event_id} reports undeclared failure domain {domain_id}"),
-            Self::DuplicateIncidentGroupScenario { incident_group_id } => write!(f, "incident group {incident_group_id} spans inconsistent scenario IDs"),
-            Self::InvalidEventWindow { start_ns, end_ns } => write!(f, "event window must satisfy start < end; got {start_ns}..{end_ns}"),
+            Self::DuplicateAssetOutcome { event_id, asset_id } => {
+                write!(f, "event {event_id} repeats asset outcome {asset_id}")
+            }
+            Self::MissingAssetOutcome { event_id, asset_id } => write!(
+                f,
+                "event {event_id} omits enrolled asset outcome {asset_id}"
+            ),
+            Self::UnknownAssetOutcome { event_id, asset_id } => {
+                write!(f, "event {event_id} includes unenrolled asset {asset_id}")
+            }
+            Self::DeliveryExceedsOffer {
+                event_id,
+                asset_id,
+                delivered_kw,
+                offered_kw,
+            } => write!(
+                f,
+                "event {event_id} asset {asset_id} delivers lower bound {delivered_kw} kW above offer {offered_kw} kW"
+            ),
+            Self::AvailabilityDeliveryMismatch {
+                asset_id,
+                availability,
+                delivered_lower_bound_kw,
+            } => write!(
+                f,
+                "asset {asset_id} is {availability:?} but reports nonzero delivered lower bound {delivered_lower_bound_kw} kW"
+            ),
+            Self::DuplicateDomainObservation {
+                event_id,
+                domain_id,
+            } => write!(
+                f,
+                "event {event_id} repeats failure-domain observation {domain_id}"
+            ),
+            Self::MissingDomainObservation {
+                event_id,
+                domain_id,
+            } => write!(f, "event {event_id} omits failure-domain state {domain_id}"),
+            Self::UnknownDomainObservation {
+                event_id,
+                domain_id,
+            } => write!(
+                f,
+                "event {event_id} reports undeclared failure domain {domain_id}"
+            ),
+            Self::DuplicateIncidentGroupScenario { incident_group_id } => write!(
+                f,
+                "incident group {incident_group_id} spans inconsistent scenario IDs"
+            ),
+            Self::InvalidEventWindow { start_ns, end_ns } => write!(
+                f,
+                "event window must satisfy start < end; got {start_ns}..{end_ns}"
+            ),
             Self::EmptyEventPanel => write!(f, "portfolio evaluation requires at least one event"),
-            Self::InsufficientEventCount { observed, required } => write!(f, "observed {observed} events; contract requires {required}"),
-            Self::InsufficientIncidentGroups { observed, required } => write!(f, "observed {observed} independent incident groups; contract requires {required}"),
+            Self::InsufficientEventCount { observed, required } => write!(
+                f,
+                "observed {observed} events; contract requires {required}"
+            ),
+            Self::InsufficientIncidentGroups { observed, required } => write!(
+                f,
+                "observed {observed} independent incident groups; contract requires {required}"
+            ),
             Self::NumericalOverflow(field) => write!(f, "numerical overflow computing {field}"),
         }
     }
@@ -709,10 +859,9 @@ pub fn evaluate_portfolio_resilience(
                 event_id: event.event_id.clone(),
             });
         }
-        if let Some(previous_scenario) = group_scenarios.insert(
-            event.incident_group_id.as_str(),
-            event.scenario_id.as_str(),
-        ) {
+        if let Some(previous_scenario) =
+            group_scenarios.insert(event.incident_group_id.as_str(), event.scenario_id.as_str())
+        {
             if previous_scenario != event.scenario_id {
                 return Err(PortfolioResilienceError::DuplicateIncidentGroupScenario {
                     incident_group_id: event.incident_group_id.clone(),
@@ -728,7 +877,10 @@ pub fn evaluate_portfolio_resilience(
                     asset_id: outcome.asset_id.clone(),
                 });
             }
-            if outcome_by_asset.insert(outcome.asset_id.as_str(), outcome).is_some() {
+            if outcome_by_asset
+                .insert(outcome.asset_id.as_str(), outcome)
+                .is_some()
+            {
                 return Err(PortfolioResilienceError::DuplicateAssetOutcome {
                     event_id: event.event_id.clone(),
                     asset_id: outcome.asset_id.clone(),
@@ -746,7 +898,8 @@ pub fn evaluate_portfolio_resilience(
             }
         }
 
-        let mut domain_observation_by_id: BTreeMap<&str, &FailureDomainObservation> = BTreeMap::new();
+        let mut domain_observation_by_id: BTreeMap<&str, &FailureDomainObservation> =
+            BTreeMap::new();
         for domain_observation in &observation.failure_domain_observations {
             if !domain_by_id.contains_key(domain_observation.domain_id.as_str()) {
                 return Err(PortfolioResilienceError::UnknownDomainObservation {
@@ -863,18 +1016,16 @@ pub fn evaluate_portfolio_resilience(
                 .iter()
                 .filter(|asset| asset.failure_domain_ids.contains(&domain.domain_id))
                 .collect();
-            let member_offered_kw = member_assets.iter().map(|asset| asset.offered_capacity_kw).sum::<f64>();
+            let member_offered_kw = member_assets
+                .iter()
+                .map(|asset| asset.offered_capacity_kw)
+                .sum::<f64>();
             let member_delivered_kw = member_assets
                 .iter()
                 .map(|asset| outcome_by_asset[asset.asset_id.as_str()].delivered_lower_bound_kw)
                 .sum::<f64>();
             let accumulator = domain_work.entry(domain.domain_id.as_str()).or_default();
-            accumulator.observe(
-                state,
-                passed,
-                member_offered_kw,
-                member_delivered_kw,
-            );
+            accumulator.observe(state, passed, member_offered_kw, member_delivered_kw);
             if !accumulator.member_offered_kw_sum.is_finite()
                 || !accumulator.member_delivered_kw_sum.is_finite()
             {
@@ -901,7 +1052,10 @@ pub fn evaluate_portfolio_resilience(
     let mut group_receipts = Vec::with_capacity(group_work.len());
     let mut group_shortfalls = Vec::with_capacity(group_work.len());
     for (incident_group_id, values) in group_work {
-        let worst_margin_kw = values.iter().map(|value| value.0).fold(f64::INFINITY, f64::min);
+        let worst_margin_kw = values
+            .iter()
+            .map(|value| value.0)
+            .fold(f64::INFINITY, f64::min);
         let maximum_shortfall_kw = values.iter().map(|value| value.1).fold(0.0, f64::max);
         let passed = values.iter().all(|value| value.0 + EPSILON >= 0.0);
         group_shortfalls.push(maximum_shortfall_kw);
@@ -958,7 +1112,11 @@ pub fn evaluate_portfolio_resilience(
         scenarios_work
             .entry(group.scenario_id.as_str())
             .or_default()
-            .push((group.incident_group_id.as_str(), group.passed, group.event_count));
+            .push((
+                group.incident_group_id.as_str(),
+                group.passed,
+                group.event_count,
+            ));
     }
     let mut scenarios = Vec::with_capacity(scenarios_work.len());
     for (scenario_id, groups) in scenarios_work {
@@ -968,7 +1126,8 @@ pub fn evaluate_portfolio_resilience(
             scenario_id: scenario_id.to_owned(),
             independent_incident_group_count: groups.len(),
             passed_incident_group_count: passed_count,
-            incident_group_pass_fraction_basis_points: passed_count as f64 / groups.len() as f64 * BASIS_POINTS,
+            incident_group_pass_fraction_basis_points: passed_count as f64 / groups.len() as f64
+                * BASIS_POINTS,
             event_count,
         });
     }
@@ -995,7 +1154,8 @@ pub fn evaluate_portfolio_resilience(
             portfolio_passes_when_degraded: accumulator.degraded_pass_count,
             portfolio_passes_when_failed: accumulator.failed_pass_count,
             portfolio_passes_when_unknown: accumulator.unknown_pass_count,
-            member_offered_capacity_kw: accumulator.member_offered_kw_sum / observations.len() as f64,
+            member_offered_capacity_kw: accumulator.member_offered_kw_sum
+                / observations.len() as f64,
             member_delivered_lower_bound_sum_kw: accumulator.member_delivered_kw_sum,
             member_delivery_to_offer_fraction: member_delivery_to_offer_fraction,
             membership_overlaps_other_domains: portfolio.assets.iter().any(|asset| {
@@ -1009,7 +1169,9 @@ pub fn evaluate_portfolio_resilience(
     let event_threshold_passed = event_pass_fraction_basis_points
         >= portfolio.contract.minimum_event_pass_fraction_basis_points as f64;
     let incident_group_threshold_passed = incident_group_pass_fraction_basis_points
-        >= portfolio.contract.minimum_incident_group_pass_fraction_basis_points as f64;
+        >= portfolio
+            .contract
+            .minimum_incident_group_pass_fraction_basis_points as f64;
     Ok(PortfolioResilienceReport {
         identity: portfolio.identity.clone(),
         product_contract_id: portfolio.contract.product_contract_id.clone(),
