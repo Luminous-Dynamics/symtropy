@@ -1603,6 +1603,146 @@ mod tests {
     }
 
     #[test]
+    fn four_by_one_rectangle_diameter_is_rotation_invariant() {
+        let input = PlanarTrussInput {
+            nodes: vec![
+                TrussNode {
+                    id: "A".to_owned(),
+                    x_m: 0.0,
+                    y_m: 0.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 100.0,
+                    force_y_n: 30.0,
+                },
+                TrussNode {
+                    id: "B".to_owned(),
+                    x_m: 4.0,
+                    y_m: 0.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+                TrussNode {
+                    id: "C".to_owned(),
+                    x_m: 4.0,
+                    y_m: 1.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+                TrussNode {
+                    id: "D".to_owned(),
+                    x_m: 0.0,
+                    y_m: 1.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+            ],
+            bars: vec![
+                TrussBar {
+                    id: "AB".to_owned(),
+                    node_i: "A".to_owned(),
+                    node_j: "B".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "BC".to_owned(),
+                    node_i: "B".to_owned(),
+                    node_j: "C".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "CD".to_owned(),
+                    node_i: "C".to_owned(),
+                    node_j: "D".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "DA".to_owned(),
+                    node_i: "D".to_owned(),
+                    node_j: "A".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+            ],
+        };
+        let base = solve(&input).expect("4-by-1 rectangle");
+        let expected_diameter = 17.0_f64.sqrt();
+        close(
+            base.equilibrium.characteristic_length_m,
+            expected_diameter,
+            1.0e-12,
+            "4-by-1 rectangle point-set diameter",
+        );
+        close(
+            base.equilibrium.moment_reference_x_m,
+            2.0,
+            1.0e-12,
+            "4-by-1 rectangle centroid x",
+        );
+        close(
+            base.equilibrium.moment_reference_y_m,
+            0.5,
+            1.0e-12,
+            "4-by-1 rectangle centroid y",
+        );
+
+        let angle = std::f64::consts::FRAC_PI_4;
+        let (sin, cos) = angle.sin_cos();
+        let mut rotated_input = input;
+        for node in &mut rotated_input.nodes {
+            let x = node.x_m;
+            let y = node.y_m;
+            let fx = node.force_x_n;
+            let fy = node.force_y_n;
+            node.x_m = cos * x - sin * y;
+            node.y_m = sin * x + cos * y;
+            node.force_x_n = cos * fx - sin * fy;
+            node.force_y_n = sin * fx + cos * fy;
+        }
+        let rotated = solve(&rotated_input).expect("rotated 4-by-1 rectangle");
+
+        close(
+            rotated.equilibrium.characteristic_length_m,
+            expected_diameter,
+            1.0e-12,
+            "rotated 4-by-1 rectangle point-set diameter",
+        );
+        close(
+            rotated.equilibrium.moment_reference_x_m,
+            cos * 2.0 - sin * 0.5,
+            1.0e-12,
+            "rotated 4-by-1 rectangle centroid x",
+        );
+        close(
+            rotated.equilibrium.moment_reference_y_m,
+            sin * 2.0 + cos * 0.5,
+            1.0e-12,
+            "rotated 4-by-1 rectangle centroid y",
+        );
+        close(
+            rotated.equilibrium.force_normalization_scale_n,
+            base.equilibrium.force_normalization_scale_n,
+            1.0e-10,
+            "rotated 4-by-1 rectangle force scale",
+        );
+        close(
+            rotated.equilibrium.moment_normalization_scale_nm,
+            base.equilibrium.moment_normalization_scale_nm,
+            1.0e-10,
+            "rotated 4-by-1 rectangle moment scale",
+        );
+    }
+
+    #[test]
     fn uniform_stiffness_and_load_rescaling_does_not_change_displacement() {
         let base_input = symmetric_two_bar_truss();
         let base = solve(&base_input).expect("base truss");
