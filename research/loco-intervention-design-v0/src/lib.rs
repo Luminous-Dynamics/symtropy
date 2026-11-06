@@ -115,9 +115,7 @@ impl DesignConstraints {
         if !self.maximum_cost.is_finite() || self.maximum_cost <= 0.0 {
             return Err(DesignError::InvalidMaximumCost);
         }
-        if !self.minimum_worst_pairwise_kl.is_finite()
-            || self.minimum_worst_pairwise_kl < 0.0
-        {
+        if !self.minimum_worst_pairwise_kl.is_finite() || self.minimum_worst_pairwise_kl < 0.0 {
             return Err(DesignError::InvalidMinimumSeparation);
         }
         Ok(())
@@ -197,9 +195,7 @@ fn validate_hypotheses(hypotheses: &[HypothesisPrior]) -> Result<(), DesignError
     Ok(())
 }
 
-fn validate_candidate_catalog(
-    candidates: &[InterventionCandidate],
-) -> Result<(), DesignError> {
+fn validate_candidate_catalog(candidates: &[InterventionCandidate]) -> Result<(), DesignError> {
     let mut seen = BTreeSet::new();
     for candidate in candidates {
         if !seen.insert(candidate.candidate_id) {
@@ -249,9 +245,8 @@ fn score_candidate(
     let mut ordered_hypotheses = hypotheses.to_vec();
     ordered_hypotheses.sort_by_key(|hypothesis| hypothesis.hypothesis_id);
 
-    let mut pairwise_separation = Vec::with_capacity(
-        ordered_hypotheses.len() * (ordered_hypotheses.len() - 1) / 2,
-    );
+    let mut pairwise_separation =
+        Vec::with_capacity(ordered_hypotheses.len() * (ordered_hypotheses.len() - 1) / 2);
     let mut worst_pairwise_kl = f64::INFINITY;
     let mut weighted_kl_sum = 0.0;
     let mut pair_weight_sum = 0.0;
@@ -469,7 +464,10 @@ mod tests {
         let mut constraints = constraints();
         constraints.observation_variances = vec![1.0];
         let decision = select_intervention(&hypotheses, &[candidate], &constraints).unwrap();
-        let DesignDecision::Abstained { closest_candidate, .. } = decision else {
+        let DesignDecision::Abstained {
+            closest_candidate, ..
+        } = decision
+        else {
             panic!("the weakly separated pair must force abstention");
         };
         assert!(closest_candidate.worst_pairwise_kl < 0.001);
