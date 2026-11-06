@@ -564,14 +564,46 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
             _ => push(&mut errors, "INVALID_ALIGNMENT_TOLERANCE", &format!("{path}.alignment_tolerance_ms"), "alignment tolerance must be finite and non-negative"),
         }
 
+        if !matches!(
+            text(transition, "stage"),
+            Some("CAPTURE" | "CONVEY" | "SEPARATE" | "DISCHARGE" | "OTHER")
+        ) {
+            push(
+                &mut errors,
+                "UNKNOWN_TRANSITION_STAGE",
+                &format!("{path}.stage"),
+                "transition stage is outside v0.1 vocabulary",
+            );
+        }
+
         let inputs = transition.get("input_stream_ids").and_then(Value::as_array);
         let outputs = transition.get("output_stream_ids").and_then(Value::as_array);
         let (Some(inputs), Some(outputs)) = (inputs, outputs) else {
             push(&mut errors, "MISSING_TRANSITION_STREAMS", &path, "each transition needs input and output stream arrays");
             continue;
         };
+        if inputs.iter().any(|value| value.as_str().is_none())
+            || outputs.iter().any(|value| value.as_str().is_none())
+        {
+            push(
+                &mut errors,
+                "INVALID_TRANSITION_STREAM_ID",
+                &path,
+                "all input/output stream IDs must be strings",
+            );
+        }
         let input_ids: Vec<String> = inputs.iter().filter_map(Value::as_str).map(str::to_owned).collect();
         let output_ids: Vec<String> = outputs.iter().filter_map(Value::as_str).map(str::to_owned).collect();
+        if input_ids.iter().collect::<BTreeSet<_>>().len() != input_ids.len()
+            || output_ids.iter().collect::<BTreeSet<_>>().len() != output_ids.len()
+        {
+            push(
+                &mut errors,
+                "DUPLICATE_TRANSITION_STREAM_ID",
+                &path,
+                "input and output stream IDs must be unique within a transition",
+            );
+        }
         if input_ids.is_empty() || output_ids.is_empty() {
             push(&mut errors, "EMPTY_TRANSITION_STREAMS", &path, "input and output stream arrays must both be non-empty");
         }
@@ -1000,6 +1032,8 @@ mod tests {
         let report = evaluate_against_parent(&fixture(), &parent()).unwrap();
         let convey = transition_report(&report, "transition-convey-001");
         assert_eq!(convey.bin_flow_changes.len(), 4);
+        assert_eq!(convey.bin_flow_changes[0].disposition, "INCREASE_CONFIRMED");
+        assert_eq!(convey.bin_flow_changes[3].disposition, "DECREASE_CONFIRMED");
         assert!(report.causal_attribution.contains("NOT_CAUSAL"));
     }
 
@@ -1110,6 +1144,28 @@ mod tests {
         let start = case["streams"][0]["start_ms"].clone();
         stream_mut(&mut case, "stream-generated")["end_ms"] = start;
         assert!(has(&validate_against_parent(&case, &parent()), "INVALID_STREAM_WINDOW"));
+    }
+
+    #[test]
+    fn duplicate_stream_id_within_transition_is_rejected() {
+        let mut case = fixture();
+        transition_mut(&mut case, "transition-capture-001")["output_stream_ids"] =
+            serde_json::json!(["stream-captured", "stream-captured"]);
+        assert!(has(
+            &validate_against_parent(&case, &parent()),
+            "DUPLICATE_TRANSITION_STREAM_ID"
+        ));
+    }
+
+    #[test]
+    fn transition_stage_must_be_known() {
+        let mut case = fixture();
+        transition_mut(&mut case, "transition-capture-001")["stage"] =
+            serde_json::json!("CUTTER");
+        assert!(has(
+            &validate_against_parent(&case, &parent()),
+            "UNKNOWN_TRANSITION_STAGE"
+        ));
     }
 
     #[test]
