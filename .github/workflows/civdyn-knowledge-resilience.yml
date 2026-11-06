@@ -59,7 +59,7 @@ jobs:
           with path.open(newline="", encoding="utf-8") as handle:
               rows = list(csv.DictReader(handle))
           assert len(rows) == 11, f"expected 2 items + 5 transmissions + 4 archive outcomes, got {len(rows)}"
-          assert all(len(row) == 22 for row in rows)
+          assert all(len(row) == 23 for row in rows)
 
           items = {row["item_id"]: row for row in rows if row["record_type"] == "item_summary"}
           hydro = items["hydrology_skill"]
@@ -84,7 +84,7 @@ jobs:
           assert myth["verified_archive_copy_count"] == "0"
 
           archive = {
-              (row["item_id"], row["epistemic_status"]): row
+              (row["item_id"], row["scope"]): row
               for row in rows if row["record_type"] == "archive_recovery"
           }
           hydro_failed = archive[("hydrology_skill", "archive_domain_a_failed")]
