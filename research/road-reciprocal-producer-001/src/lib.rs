@@ -215,10 +215,7 @@ impl ActorRuntime {
         })
     }
 
-    fn plan(
-        &self,
-        decision_state: ActorPolicyState,
-    ) -> Result<PathStepReceipt, ProducerError> {
+    fn plan(&self, decision_state: ActorPolicyState) -> Result<PathStepReceipt, ProducerError> {
         Ok(plan_path_step(&PathStepInput {
             actor_id: &self.id,
             policy_profile_id: self.policy.profile_id(),
@@ -380,7 +377,10 @@ impl ReciprocalPolicyProducer {
         // Decisions are committed before any action is projected or latched.
         let ego_prior_state = self.ego.state;
         let actor_prior_state = self.other_actor.state;
-        let ego_transition = self.ego.policy.transition(ego_prior_state, &ego_observation)?;
+        let ego_transition = self
+            .ego
+            .policy
+            .transition(ego_prior_state, &ego_observation)?;
         let actor_transition = self
             .other_actor
             .policy
@@ -391,9 +391,7 @@ impl ReciprocalPolicyProducer {
         // Pose projection is downstream of both decisions. The two pose
         // projection events precede both command latches.
         let ego_path = self.ego.plan(ego_transition.next_state())?;
-        let actor_path = self
-            .other_actor
-            .plan(actor_transition.next_state())?;
+        let actor_path = self.other_actor.plan(actor_transition.next_state())?;
         let ego_pose_sequence = self.sequence.next()?;
         let actor_pose_sequence = self.sequence.next()?;
         let ego_latch_sequence = self.sequence.next()?;
@@ -526,8 +524,13 @@ mod tests {
         );
         assert_eq!(step.ego.action, ActorAction::EnterCrossing);
         assert_eq!(step.other_actor.action, ActorAction::EnterCrossing);
-        assert!(step.ego.observation_delivery_event_sequence < step.shared_input_cutoff_event_sequence);
-        assert!(step.other_actor.observation_delivery_event_sequence < step.shared_input_cutoff_event_sequence);
+        assert!(
+            step.ego.observation_delivery_event_sequence < step.shared_input_cutoff_event_sequence
+        );
+        assert!(
+            step.other_actor.observation_delivery_event_sequence
+                < step.shared_input_cutoff_event_sequence
+        );
         assert!(step.max_command_latch_event_sequence > step.ego.decision_event_sequence);
         assert!(step.max_command_latch_event_sequence > step.other_actor.decision_event_sequence);
     }
@@ -541,21 +544,15 @@ mod tests {
             Err(ProducerError::MissingPhysicsCommit)
         );
 
-        let physics = producer
-            .record_physics_commit("a".repeat(64))
-            .unwrap();
+        let physics = producer.record_physics_commit("a".repeat(64)).unwrap();
         assert!(physics.event_sequence > first.max_command_latch_event_sequence);
         let second = producer.step([3.0, 3.0]).unwrap();
         assert_eq!(
             second.prior_physics_event_sequence,
             Some(physics.event_sequence)
         );
-        assert!(
-            second.ego.observation_generated_event_sequence > physics.event_sequence
-        );
-        assert!(
-            second.other_actor.observation_generated_event_sequence > physics.event_sequence
-        );
+        assert!(second.ego.observation_generated_event_sequence > physics.event_sequence);
+        assert!(second.other_actor.observation_generated_event_sequence > physics.event_sequence);
     }
 
     #[test]
