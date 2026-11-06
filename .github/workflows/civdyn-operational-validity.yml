@@ -1,0 +1,89 @@
+name: CivDyn operational validity reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-operational-validity/**"
+      - ".github/workflows/civdyn-operational-validity.yml"
+  push:
+    paths:
+      - "research/civdyn-operational-validity/**"
+      - ".github/workflows/civdyn-operational-validity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute operational-validity reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-operational-validity/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-operational-validity/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-operational-validity/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-operational-validity/Cargo.toml --all-targets
+
+      - name: Execute synthetic metric-comparison fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-opval-evidence
+          cargo run --locked --manifest-path research/civdyn-operational-validity/Cargo.toml --bin operational-validity-sweep \
+            | tee target/civdyn-opval-evidence/operational-validity-sweep.csv
+
+      - name: Verify synthetic strata and sample counts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/civdyn-opval-evidence/operational-validity-sweep.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) == 5, f"expected 5 metric/stratum rows, got {len(rows)}"
+          assert all(len(row) == 19 for row in rows), "each result must retain 19 columns"
+          assert all(row["run_kind"] == "synthetic_benchmark_fixture" for row in rows)
+          assert all(row["n_observed"] == "30" and row["n_simulated"] == "30" for row in rows)
+          toxicity = {row["stratum_id"]: row for row in rows if row["metric_id"] == "toxicity"}
+          assert set(toxicity) == {"root_posts", "comments"}
+          assert float(toxicity["root_posts"]["mean_delta"]) > 0.0
+          assert float(toxicity["comments"]["mean_delta"]) < 0.0
+          assert all(float(row["ks_distance"]) >= 0.0 for row in rows)
+          assert all(float(row["wasserstein_1"]) >= 0.0 for row in rows)
+
+          print("CIVDYN-OPVAL-001 synthetic sample counts, distribution distances and strata verified.")
+          PY
+
+          {
+            echo "## CIVDYN-OPVAL-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-opval-evidence/operational-validity-sweep.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: synthetic kernel fixture only"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload operational validity fixture
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-operational-validity-sweep
+          path: target/civdyn-opval-evidence/operational-validity-sweep.csv
+          if-no-files-found: error
+          retention-days: 30
