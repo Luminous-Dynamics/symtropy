@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/residual-contact-case-v0.1.json",
+  "title": "Symtropy Residual Contact Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "map",
+    "support_profiles"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC",
+        "MEASURED"
+      ]
+    },
+    "map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "map_id",
+        "frame_id",
+        "registration_ref",
+        "registration_calibration_ref",
+        "registration_uncertainty_mm",
+        "observed_at_ns",
+        "cell_size_mm",
+        "width_cells",
+        "height_cells",
+        "cells",
+        "trial_id",
+        "task_id",
+        "site_id",
+        "machine_instance_id",
+        "machine_configuration_ref"
+      ],
+      "properties": {
+        "map_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "registration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "registration_calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "registration_uncertainty_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "observed_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cell_size_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "width_cells": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height_cells": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cells": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "x",
+              "y",
+              "residual_thickness_lower_mm",
+              "residual_thickness_upper_mm",
+              "evidence_role",
+              "calibration_ref",
+              "source_ref"
+            ],
+            "properties": {
+              "x": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "y": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "residual_thickness_lower_mm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "residual_thickness_upper_mm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "evidence_role": {
+                "const": "INDEPENDENT_MEASUREMENT"
+              },
+              "calibration_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "trial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "machine_instance_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "machine_configuration_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "support_profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "support_id",
+          "frame_id",
+          "acceptance_profile_ref",
+          "maximum_residual_thickness_mm",
+          "maximum_registration_uncertainty_mm",
+          "footprint_cells",
+          "site_id",
+          "machine_instance_id",
+          "machine_configuration_ref"
+        ],
+        "properties": {
+          "support_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frame_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "acceptance_profile_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maximum_residual_thickness_mm": {
+            "type": "number",
+            "minimum": 0
+          },
+          "maximum_registration_uncertainty_mm": {
+            "type": "number",
+            "minimum": 0
+          },
+          "footprint_cells": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "x",
+                "y"
+              ],
+              "properties": {
+                "x": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "y": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "site_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "machine_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "machine_configuration_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

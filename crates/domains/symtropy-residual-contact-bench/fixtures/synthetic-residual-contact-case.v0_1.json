@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "case_id": "synthetic-residual-contact-001",
+  "evidence_class": "SYNTHETIC",
+  "map": {
+    "map_id": "synthetic-floor-map-001",
+    "frame_id": "frame-panel-local-001",
+    "registration_ref": "registration:survey-fixture-001",
+    "registration_calibration_ref": "calibration:survey-fixture-001",
+    "registration_uncertainty_mm": 0.5,
+    "observed_at_ns": 1000000000,
+    "cell_size_mm": 100,
+    "width_cells": 4,
+    "height_cells": 3,
+    "cells": [
+      {
+        "x": 0,
+        "y": 0,
+        "residual_thickness_lower_mm": 0,
+        "residual_thickness_upper_mm": 1,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-00",
+        "source_ref": "survey:cell-00"
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "residual_thickness_lower_mm": 2,
+        "residual_thickness_upper_mm": 4,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-10",
+        "source_ref": "survey:cell-10"
+      },
+      {
+        "x": 2,
+        "y": 0,
+        "residual_thickness_lower_mm": 10,
+        "residual_thickness_upper_mm": 13,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-20",
+        "source_ref": "survey:cell-20"
+      },
+      {
+        "x": 3,
+        "y": 0,
+        "residual_thickness_lower_mm": 0,
+        "residual_thickness_upper_mm": 1,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-30",
+        "source_ref": "survey:cell-30"
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "residual_thickness_lower_mm": 4,
+        "residual_thickness_upper_mm": 6,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-01",
+        "source_ref": "survey:cell-01"
+      },
+      {
+        "x": 1,
+        "y": 1,
+        "residual_thickness_lower_mm": 8,
+        "residual_thickness_upper_mm": 11,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-11",
+        "source_ref": "survey:cell-11"
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "residual_thickness_lower_mm": 23,
+        "residual_thickness_upper_mm": 27,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-21",
+        "source_ref": "survey:cell-21"
+      },
+      {
+        "x": 3,
+        "y": 1,
+        "residual_thickness_lower_mm": 1,
+        "residual_thickness_upper_mm": 2,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-31",
+        "source_ref": "survey:cell-31"
+      },
+      {
+        "x": 0,
+        "y": 2,
+        "residual_thickness_lower_mm": 0,
+        "residual_thickness_upper_mm": 1,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-02",
+        "source_ref": "survey:cell-02"
+      },
+      {
+        "x": 1,
+        "y": 2,
+        "residual_thickness_lower_mm": 0,
+        "residual_thickness_upper_mm": 2,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-12",
+        "source_ref": "survey:cell-12"
+      },
+      {
+        "x": 2,
+        "y": 2,
+        "residual_thickness_lower_mm": 12,
+        "residual_thickness_upper_mm": 14,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-22",
+        "source_ref": "survey:cell-22"
+      },
+      {
+        "x": 3,
+        "y": 2,
+        "residual_thickness_lower_mm": 2,
+        "residual_thickness_upper_mm": 3,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:cell-32",
+        "source_ref": "survey:cell-32"
+      }
+    ],
+    "trial_id": "synthetic-trial-001",
+    "task_id": "synthetic-task-001",
+    "site_id": "synthetic-site-001",
+    "machine_instance_id": "synthetic-machine-001",
+    "machine_configuration_ref": "machine-config:synthetic-001"
+  },
+  "support_profiles": [
+    {
+      "support_id": "left-gripper",
+      "frame_id": "frame-panel-local-001",
+      "acceptance_profile_ref": "acceptance-profile:synthetic-left-gripper",
+      "maximum_residual_thickness_mm": 10,
+      "maximum_registration_uncertainty_mm": 2,
+      "footprint_cells": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 1
+        },
+        {
+          "x": 1,
+          "y": 1
+        }
+      ],
+      "site_id": "synthetic-site-001",
+      "machine_instance_id": "synthetic-machine-001",
+      "machine_configuration_ref": "machine-config:synthetic-001"
+    },
+    {
+      "support_id": "right-gripper",
+      "frame_id": "frame-panel-local-001",
+      "acceptance_profile_ref": "acceptance-profile:synthetic-right-gripper",
+      "maximum_residual_thickness_mm": 20,
+      "maximum_registration_uncertainty_mm": 2,
+      "footprint_cells": [
+        {
+          "x": 2,
+          "y": 1
+        },
+        {
+          "x": 2,
+          "y": 2
+        }
+      ],
+      "site_id": "synthetic-site-001",
+      "machine_instance_id": "synthetic-machine-001",
+      "machine_configuration_ref": "machine-config:synthetic-001"
+    }
+  ]
+}
