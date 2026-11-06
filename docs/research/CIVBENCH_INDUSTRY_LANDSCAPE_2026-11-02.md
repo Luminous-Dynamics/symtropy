@@ -791,3 +791,8 @@ Research anchors:
 - "On the transmission of texts: Written cultures as complex systems" (PNAS Nexus, 7 July 2026): https://doi.org/10.1093/pnasnexus/pgag207
 
 The implementation uses synthetic traces only; it does not reproduce these human experiments or historical manuscript corpora.
+
+
+## 15. Institutional authority and effective voting power
+
+CIVDYN-AUTH-001 (#3684) now has a first exact reference in [draft PR #3861](https://github.com/Luminous-Dynamics/symtropy/pull/3861). It enumerates small weighted councils and reports nominal weights, normalized/raw Banzhaf power, Shapley–Shubik pivotality, minimal winning coalitions, veto/dictator status, HHI and Gini. A separate permission-topology audit records caller-declared role conflicts, single points of control and appeal independence. The exact enumerator is capped at 20 actors; no universal democracy/legitimacy score is emitted.
