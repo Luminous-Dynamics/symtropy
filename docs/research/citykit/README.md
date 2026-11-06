@@ -14,7 +14,7 @@ The corpus contains 18 bounded cases covering service capacity/evidence, resourc
 ## Ownership and semantics
 
 - **CityKit does not implement a generic AND/OR productive-capability closure engine.** Symthaea CIV-BOOT owns that theorem and its closure outputs. CityKit consumes an owner-native assessment receipt and checks the receipt contract / claim consistency.
-- Each case declares `capability_assessments`, including target, disposition, operational/local-closure booleans where known, evidence state, source-owner/contract identity, revision and synthetic receipt ID.
+- Each case declares `capability_assessments`, including target, disposition, operational/local-closure booleans where known, evidence state, source-owner/contract identity, revision, exact scenario subject digest and synthetic receipt ID.
 - `LocallyClosed` requires operationally reachable = true and locally closed = true.
 - `ImportDependent` requires operationally reachable = true and locally closed = false.
 - `Unavailable` requires operationally reachable = false and locally closed = false.
