@@ -119,6 +119,29 @@ https://doi.org/10.1057/s41278-026-00352-9
 A June 2026 *Marine Geology* study reports adaptive Delft3D sediment-transport calibration across storm/calm regimes, compared with static calibration and validated with ADCP and RTK-GPS observations at Nushahr Beach. This supports regime-conditioned evaluation, but only with frozen calibration/hold-out groups and transition-window tests; the reported site-specific gain is not portable as a universal target:
 https://doi.org/10.1016/j.margeo.2026.107739
 
+
+## Commercial port-call and port-management platforms
+
+The competitive set extends beyond ship-handling solvers. Established platforms already coordinate berth plans, ETAs, port calls and mobile services; a Luminous claim to be the first integrated JIT/port-call platform would be incorrect.
+
+| Platform | Publicly stated capability | Benchmark implication |
+|---|---|---|
+| **StormGeo + Portchain** | StormGeo announced acquisition of Portchain on 30 Oct 2026. Portchain Connect provides berth alignment and digital schedule/data handshake between terminals and carriers; Portchain Quay covers berth, crane and workforce planning. The announcement says its network links 200+ terminals, representing over 40% of global container-terminal capacity (company-reported). StormGeo brings voyage/weather optimization, positioning the combined group to connect terminal berth readiness with at-sea speed/arrival decisions. | Treat as a direct JIT arrival + berth-alignment competitor. Benchmark ETA/ETB alignment, data freshness, change propagation, speed advice, achieved waiting/fuel and decision latency. The acquisition creates a strong reference for sea-to-port coordination, not proof that the combined product already optimizes every tug/channel/lock/inland constraint. |
+| **PortXchange Synchronizer** | Real-time berth-plan updates, vessel speed adjustment to reach pilot boarding/terminal at the planned time, API integration and deviation alerts. | Benchmark update latency, data authorization, arrival prediction and JIT speed-plan response to berth-plan changes. |
+| **Awake.AI Port Vision** | Publicly describes port-call planning/JIT, berth planning, resource scheduling, geofenced maps, weather warnings, event/chat handling and infrastructure management. Its site reports >1.5m voyage predictions/day and analytics configured for >3,000 ports; these are provider-reported scale claims, not independent accuracy results. | Benchmark ETA calibration and tail errors, resource assignment, update cadence, coverage, forecast horizon, workload/cost and outcomes, not raw prediction volume alone. |
+| **Kongsberg PMIS** | Integrated port-management system for vessel traffic, berth/anchorage, tug and pilot utilization KPIs, JIT arrivals, planning and validated Master-Pilot Exchange information. | Benchmark resource utilization, VTS/PMIS interoperability, role/authority separation, data quality and operational workflow integration. |
+| **DCSA Port Call 2.0 / IAPH port-call guidance** | Common port-call event/API and data-exchange semantics. | Conform to interoperable event/timestamp vocabulary and map source events faithfully. Do not invent a competing data standard or assume API conformance establishes authorization or operational truth. |
+
+Public source material:
+- StormGeo acquisition announcement, 30 Oct 2026: https://portchain.com/insights/stormgeo-acquires-portchain-to-advance-just-in-time-voyage-optimization-at-scale
+- Portchain Connect: https://portchain.com/portchain-connect
+- PortXchange Synchronizer: https://port-xchange.com/synchronizer/
+- Awake.AI Port Vision: https://www.awake.ai/
+- Kongsberg PMIS: https://www.kongsberg.com/what-we-do/ocean-space/surveillance-monitoring/foresight/pmis/
+- DCSA Port Call OpenAPI: https://reference.dcsa.org/content/standards/releases/port-call/v2/pc-v2-openapi-specification
+
+**What remains differentiating for Luminous:** not a shared berth calendar, ETA forecast, digital handshake, or generic multi-resource optimizer. The research hypothesis is an independently auditable decision fabric connecting exact vessel/configuration identity, validated manoeuvring/ODD envelopes, current hydrographic and environmental evidence, spatial conflict topology, tug/pilot capability and position, port/lock/berth/energy/water capacity, cargo custody and inland delivery. This must be verified with counterfactual service-chain tests and ex-post realized outcomes; it is not established by the presence of an evidence schema.
+
 ## 4. Matched comparison protocol
 
 ### Optimizer arms
