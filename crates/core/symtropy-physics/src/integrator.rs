@@ -242,8 +242,7 @@ mod tests {
     #[test]
     fn constant_acceleration_matches_closed_form_and_converges_first_order() {
         fn simulate(dt: f64, duration: f64, acceleration: f64) -> (f64, f64) {
-            let mut body =
-                RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 2.0);
+            let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 2.0);
             body.linear_damping = 0.0;
             body.angular_damping = 0.0;
             let steps = (duration / dt).round() as usize;
