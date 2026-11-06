@@ -58,12 +58,13 @@ One action per sample is required in V0 to make simultaneous-action ordering una
 - Worst pairwise phase error.
 - Recovery sample/time, requiring a contiguous dwell window within the requested tolerance.
 - Wrapped pairwise phase-error branch-crossing count as a simple phase-slip diagnostic.
+- Open-set held-out model-family selector that binds its scoring suffix to the first action onset and compares frozen same-parameter predictions using circular phase residuals. It abstains separately for poor absolute fit or inadequate model separation; the absolute-fit floor requires independent calibration.
 
 These are phase-network metrics only. They do not measure joint kinematics, stance/swing, contact forces, slip, body stability, energy or task success.
 
 ## Deterministic known-truth tests
 
-The 20 tests cover:
+The 26 tests cover:
 - tripod grouping and stable leg identifiers;
 - central coupling convergence to a declared phase-offset target;
 - relative drift in independent heterogeneous oscillators;
@@ -79,11 +80,13 @@ The 20 tests cover:
 - common-phase invariance of target-alignment metrics;
 - contiguous dwell-window recovery and phase-slip diagnostics;
 - RK4 timestep-refinement agreement;
+- held-out feedback-cut model selection and equivalent-family abstention;
+- poor-fit abstention, adequate separated selection, truncated-trace rejection and intervention-onset alignment;
 - invalid configuration, action schedule, pulse and recovery controls.
 
 ## Scientific boundary
 
-This is not a connectome model, neural CPG reconstruction, articulated-body simulator, contact model or biological result. The feedback input is an idealized external phase reference, not an identified sensory receptor. The delay is applied to that reference phase; it is not a measured receptor, neural conduction or actuator delay model. The phase coupling graph is a declared mathematical structure, not an inferred neural wiring diagram. A high order parameter does not establish a biological mechanism or a physically successful gait.
+This is not a connectome model, neural CPG reconstruction, articulated-body simulator, contact model or biological result. The feedback input is an idealized external phase reference, not an identified sensory receptor. The delay is applied to that reference phase; it is not a measured receptor, neural conduction or actuator delay model. The phase coupling graph is a declared mathematical structure, not an inferred neural wiring diagram. A high order parameter does not establish a biological mechanism or a physically successful gait. The held-out family selector uses known shared parameters; it is not parameter estimation or a biological mechanism classifier. Its absolute-fit floor is meaningful only after calibration on independent data with matching horizon, noise variance and metric definition.
 
 The intended next step is to use these synthetic generators as known-truth controls for #3829, then compare them with source-grounded FlyGym 2.1.1 telemetry and the #3345 CPG-to-contact harness under matched initial conditions, body/physics, sensory access, intervention schedule and metric definitions.
 
