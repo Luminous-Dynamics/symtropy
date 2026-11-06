@@ -592,3 +592,23 @@ The [CIVBENCH-MAD-001 draft schema PR #3735](https://github.com/Luminous-Dynamic
 ### Operational validity sample-size discipline
 
 The `civdyn-operational-validity` reference has been updated in [draft PR #3619](https://github.com/Luminous-Dynamics/symtropy/pull/3619): minimum observed/simulated counts, independent units, dependence assessment and sample-size rationale are now declared per metric. The 30+30 fixture mirrors the June 2026 replicated-forum study only. This avoids turning one study's sampling design into a universal rule; independent-unit declarations still require source-design justification.
+
+
+## 18. Configuration, not just model, is the audit unit (6 November 2026)
+
+**Loghmani et al. (EMNLP 2026), "Hidden Configuration Effects on Fairness in LLM-Based Multi-Agent Decision Systems".**  
+https://aclanthology.org/2026.emnlp-main.2531/
+
+The authors sweep persona, interview protocol, deliberation, aggregation and order across three models and two applicant datasets. Their abstract reports within-model persona effects up to 91 percentage points in positive-prediction rate, chair-dependent changes in disparate-impact outcomes, and speaking-order changes flipping up to 34% of applicants in the evaluated panel setup. These are results from that study's tasks and configurations, not general constants.
+
+**CivBench response:** every decision audit is bound to a complete configuration passport, not just a model ID. A canonical digest covers model/version, persona, elicitation/interview, facilitator/chair, aggregation, order, prompt, tools, evidence and decoding, with task/data/split identity. Changing any decision-relevant value triggers a fresh audit identity.
+
+Implementation: [CIVDYN-CFG-001 #3849](https://github.com/Luminous-Dynamics/symtropy/issues/3849), [draft PR #3850](https://github.com/Luminous-Dynamics/symtropy/pull/3850). The current crate validates digest format/uniqueness supplied by the caller and compares the same fixed case/slice set across configurations. Its fixture is synthetic and is not a reproduction of the EMNLP result.
+
+The benchmark reports case-flip rate, overall selection rates, declared-cohort numerator/denominator, reference ratio and matched single-facet contrasts. Multi-facet changes are not described as causal single-factor effects. Meaning-preserving reorderings are negative controls; substantive config changes are not forced to be invariant, but must be measured and re-audited.
+
+### Consolidation rule
+
+The ICML 2026 position paper argues that the field should consolidate around shared benchmarks, open data and reproducible protocols rather than continuing to multiply unvalidated simulators: https://proceedings.mlr.press/v306/puelma-touzel26a.html
+
+Accordingly, CIVDYN-CFG is not a new simulator or run-envelope. It is an orthogonal conformance slice that feeds the existing Humanity Atlas run contract and CIVBENCH-MAD-001. Its metrics remain part of the outcome vector; no global fairness/validity scalar is added.
