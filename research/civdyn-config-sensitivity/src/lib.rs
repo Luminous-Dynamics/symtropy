@@ -439,13 +439,13 @@ pub fn evaluate(
             .count();
         let overall = overall_rate(&run.decisions);
         let run_cohort_rates = cohort_rates(&run.decisions, &benchmark.reference_cohort_id);
+        let reference_rate = run_cohort_rates
+            .get(&benchmark.reference_cohort_id)
+            .expect("validated reference cohort exists")
+            .value;
         let cohorts = run_cohort_rates
             .into_iter()
             .map(|(cohort_id, rate)| {
-                let reference = run_cohort_rates
-                    .get(&benchmark.reference_cohort_id)
-                    .expect("validated reference cohort exists");
-                let reference_rate = reference.value;
                 CohortMetrics {
                     cohort_id,
                     rate: rate.clone(),
