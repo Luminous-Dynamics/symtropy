@@ -1286,8 +1286,11 @@ fn assess_challenges(
     }
 
     search_points.sort_by(|a, b| {
-        (&a.hypothesis_id, a.strategy, &a.challenge_id)
-            .cmp(&(&b.hypothesis_id, b.strategy, &b.challenge_id))
+        (&a.hypothesis_id, a.strategy, &a.challenge_id).cmp(&(
+            &b.hypothesis_id,
+            b.strategy,
+            &b.challenge_id,
+        ))
     });
 
     Ok((
@@ -2437,7 +2440,9 @@ mod tests {
             Some(&residual()),
         )
         .unwrap();
-        let odd = report.axes.iter()
+        let odd = report
+            .axes
+            .iter()
             .find(|summary| summary.axis == CoverageAxis::OddRange)
             .unwrap();
         assert_eq!(odd.declared_obligations, 1);
@@ -2487,7 +2492,8 @@ mod tests {
             &d("odd-city-1"),
             &baseline_receipts,
             Some(&residual()),
-        ).unwrap();
+        )
+        .unwrap();
 
         let mut reordered_manifest = baseline_manifest.clone();
         reordered_manifest.training_lineage_roots.reverse();
@@ -2509,7 +2515,8 @@ mod tests {
             &d("odd-city-1"),
             &reordered_receipts,
             Some(&reordered_residual),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(baseline.portfolio_digest, reordered.portfolio_digest);
         assert_eq!(baseline.evaluation_digest, reordered.evaluation_digest);
@@ -2537,8 +2544,7 @@ mod tests {
             not_applicable_rationale: None,
             supersedes_obligation_id: Some(parent.obligation_id.clone()),
         });
-        cyclic.coverage_obligations[0].supersedes_obligation_id =
-            Some("cyclic-successor".into());
+        cyclic.coverage_obligations[0].supersedes_obligation_id = Some("cyclic-successor".into());
         assert_eq!(
             cyclic.validate(),
             Err(PortfolioError::InvalidCoverageEvidence)
