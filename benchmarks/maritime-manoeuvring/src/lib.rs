@@ -311,6 +311,13 @@ pub enum TrajectoryError {
     InvalidSpeedThreshold,
     VesselAlreadyBelowStopThreshold,
     StopThresholdNotReached,
+    InvalidZigZagTarget,
+    InvalidRudderSequence,
+    CommandTimeNotSampleAligned,
+    FirstReversalBeforeTarget,
+    SecondReversalBeforeOppositeTarget,
+    OvershootPeakNotObserved(u8),
+    NegativeOvershoot(u8),
 }
 
 /// Metrics from the standard 90°/180° turning-circle geometry.
@@ -332,6 +339,28 @@ pub struct StoppingMetrics {
     pub along_track_displacement_m: f64,
     pub cross_track_displacement_m: f64,
     pub speed_at_threshold_mps: f64,
+}
+
+/// One rudder command in a standard zig-zag trial.
+///
+/// V0 requires command times to coincide with trajectory sample times, so the
+/// transition boundary is unambiguous. Rudder angle is in degrees.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ZigZagCommand {
+    pub time_s: f64,
+    pub rudder_deg: f64,
+}
+
+/// First and second heading overshoots beyond the commanded target angle.
+///
+/// These are trajectory descriptors. They are not an IMO compliance verdict.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ZigZagMetrics {
+    pub target_angle_deg: f64,
+    pub first_overshoot_deg: f64,
+    pub second_overshoot_deg: f64,
+    pub first_peak_time_s: f64,
+    pub second_peak_time_s: f64,
 }
 
 pub fn validate_trajectory(trajectory: &Trajectory) -> Result<(), TrajectoryError> {
@@ -462,6 +491,200 @@ pub fn stopping_metrics(
         cross_track_displacement_m: -dx * sin_h + dy * cos_h,
         speed_at_threshold_mps: measured_speed,
     })
+}
+
+
+/// Recompute first and second overshoot angles for a 10/10, 20/20 or other
+/// symmetric zig-zag trajectory.
+///
+/// The input must contain exactly three alternating, equal-magnitude rudder
+/// commands: initial command, first reversal after the initial heading target,
+/// and second reversal after the opposite heading target. Each command time
+/// must align with a trajectory sample. Peak heading is interpolated at the
+/// first yaw-rate sign change after each reversal.
+///
+/// This function does not decide whether the manoeuvre meets a standard or
+/// whether the vessel is safe to operate.
+pub fn zig_zag_metrics(
+    trajectory: &Trajectory,
+    commands: &[ZigZagCommand],
+    target_angle_deg: f64,
+) -> Result<ZigZagMetrics, TrajectoryError> {
+    validate_trajectory(trajectory)?;
+    if !target_angle_deg.is_finite() || target_angle_deg <= 0.0 || target_angle_deg >= 180.0 {
+        return Err(TrajectoryError::InvalidZigZagTarget);
+    }
+    if commands.len() != 3 {
+        return Err(TrajectoryError::InvalidRudderSequence);
+    }
+
+    let magnitude = commands[0].rudder_deg.abs();
+    if !magnitude.is_finite() || magnitude <= EPSILON {
+        return Err(TrajectoryError::InvalidRudderSequence);
+    }
+
+    let mut command_indices = Vec::with_capacity(3);
+    for (index, command) in commands.iter().enumerate() {
+        if !command.time_s.is_finite()
+            || !command.rudder_deg.is_finite()
+            || command.rudder_deg.abs() <= EPSILON
+            || (command.rudder_deg.abs() - magnitude).abs() > EPSILON
+            || (index > 0 && command.time_s <= commands[index - 1].time_s)
+        {
+            return Err(TrajectoryError::InvalidRudderSequence);
+        }
+        let sample_index = trajectory
+            .samples
+            .iter()
+            .position(|sample| (sample.time_s - command.time_s).abs() <= EPSILON)
+            .ok_or(TrajectoryError::CommandTimeNotSampleAligned)?;
+        command_indices.push(sample_index);
+    }
+
+    let initial_sign = commands[0].rudder_deg.signum();
+    if commands[1].rudder_deg.signum() != -initial_sign
+        || commands[2].rudder_deg.signum() != initial_sign
+    {
+        return Err(TrajectoryError::InvalidRudderSequence);
+    }
+    if command_indices[0] != 0 {
+        return Err(TrajectoryError::InvalidRudderSequence);
+    }
+
+    let headings = unwrap_headings(&trajectory.samples)?;
+    let initial_heading = headings[0];
+    let turn_direction = headings
+        .windows(2)
+        .map(|pair| pair[1] - pair[0])
+        .find(|delta| delta.abs() > EPSILON)
+        .map(f64::signum)
+        .ok_or(TrajectoryError::NoTurningDirection)?;
+
+    let first_target_time = heading_target_time(
+        &trajectory.samples,
+        &headings,
+        command_indices[0],
+        turn_direction,
+        target_angle_deg,
+    )
+    .ok_or(TrajectoryError::HeadingTargetNotReached(
+        target_angle_deg.round() as u16,
+    ))?;
+    if commands[1].time_s + EPSILON < first_target_time {
+        return Err(TrajectoryError::FirstReversalBeforeTarget);
+    }
+
+    let opposite_target_time = heading_target_time(
+        &trajectory.samples,
+        &headings,
+        command_indices[1],
+        -turn_direction,
+        target_angle_deg,
+    )
+    .ok_or(TrajectoryError::HeadingTargetNotReached(
+        target_angle_deg.round() as u16,
+    ))?;
+    if commands[2].time_s + EPSILON < opposite_target_time {
+        return Err(TrajectoryError::SecondReversalBeforeOppositeTarget);
+    }
+
+    let first_peak = yaw_rate_zero_crossing(
+        &trajectory.samples,
+        &headings,
+        command_indices[1],
+        command_indices[2],
+        turn_direction,
+    )
+    .ok_or(TrajectoryError::OvershootPeakNotObserved(1))?;
+    if first_peak.time_s > opposite_target_time + EPSILON {
+        return Err(TrajectoryError::OvershootPeakNotObserved(1));
+    }
+
+    let second_peak = yaw_rate_zero_crossing(
+        &trajectory.samples,
+        &headings,
+        command_indices[2],
+        trajectory.samples.len() - 1,
+        -turn_direction,
+    )
+    .ok_or(TrajectoryError::OvershootPeakNotObserved(2))?;
+
+    let first_overshoot_deg =
+        turn_direction * (first_peak.heading_rad - initial_heading).to_degrees()
+            - target_angle_deg;
+    let second_overshoot_deg =
+        -turn_direction * (second_peak.heading_rad - initial_heading).to_degrees()
+            - target_angle_deg;
+
+    if first_overshoot_deg < -EPSILON {
+        return Err(TrajectoryError::NegativeOvershoot(1));
+    }
+    if second_overshoot_deg < -EPSILON {
+        return Err(TrajectoryError::NegativeOvershoot(2));
+    }
+
+    Ok(ZigZagMetrics {
+        target_angle_deg,
+        first_overshoot_deg: first_overshoot_deg.max(0.0),
+        second_overshoot_deg: second_overshoot_deg.max(0.0),
+        first_peak_time_s: first_peak.time_s,
+        second_peak_time_s: second_peak.time_s,
+    })
+}
+
+#[derive(Clone, Copy)]
+struct HeadingPeak {
+    time_s: f64,
+    heading_rad: f64,
+}
+
+fn heading_target_time(
+    samples: &[TrajectorySample],
+    headings: &[f64],
+    start_index: usize,
+    direction: f64,
+    target_angle_deg: f64,
+) -> Option<f64> {
+    let target = target_angle_deg.to_radians();
+    for index in (start_index + 1)..headings.len() {
+        let before = direction * (headings[index - 1] - headings[0]);
+        let after = direction * (headings[index] - headings[0]);
+        if before <= target && after >= target && after > before {
+            let fraction = (target - before) / (after - before);
+            let a = samples[index - 1];
+            let b = samples[index];
+            return Some(a.time_s + fraction * (b.time_s - a.time_s));
+        }
+    }
+    None
+}
+
+fn yaw_rate_zero_crossing(
+    samples: &[TrajectorySample],
+    headings: &[f64],
+    start_index: usize,
+    end_index: usize,
+    direction: f64,
+) -> Option<HeadingPeak> {
+    for index in (start_index + 1)..=end_index {
+        let before = samples[index - 1].yaw_rate_rad_s * direction;
+        let after = samples[index].yaw_rate_rad_s * direction;
+        if before > EPSILON && after <= EPSILON {
+            let fraction = if after.abs() <= EPSILON {
+                1.0
+            } else {
+                before / (before - after)
+            };
+            let a = samples[index - 1];
+            let b = samples[index];
+            return Some(HeadingPeak {
+                time_s: a.time_s + fraction * (b.time_s - a.time_s),
+                heading_rad: headings[index - 1]
+                    + fraction * (headings[index] - headings[index - 1]),
+            });
+        }
+    }
+    None
 }
 
 fn speed(sample: TrajectorySample) -> f64 {
