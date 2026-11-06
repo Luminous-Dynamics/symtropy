@@ -712,7 +712,10 @@ impl fmt::Display for CausalPathError {
                 run_id,
                 variable_id,
                 value,
-            } => write!(f, "run {run_id} variable {variable_id} has non-finite value {value}"),
+            } => write!(
+                f,
+                "run {run_id} variable {variable_id} has non-finite value {value}"
+            ),
             Self::TransitionReceiptCountMismatch {
                 run_id,
                 expected,
@@ -886,17 +889,20 @@ mod tests {
         ]);
         let build_receipts = |initial: &BTreeMap<String, f64>,
                               final_values: &BTreeMap<String, f64>| {
-            edges.iter().map(|edge| {
-                let before = initial[&edge.to_variable];
-                let after = final_values[&edge.to_variable];
-                TransitionReceipt {
-                    edge_id: edge.id.clone(),
-                    source_value: final_values[&edge.from_variable],
-                    target_before: before,
-                    target_after: after,
-                    applied: !close(before, after),
-                }
-            }).collect::<Vec<_>>()
+            edges
+                .iter()
+                .map(|edge| {
+                    let before = initial[&edge.to_variable];
+                    let after = final_values[&edge.to_variable];
+                    TransitionReceipt {
+                        edge_id: edge.id.clone(),
+                        source_value: final_values[&edge.from_variable],
+                        target_before: before,
+                        target_after: after,
+                        applied: !close(before, after),
+                    }
+                })
+                .collect::<Vec<_>>()
         };
         let ledger_outcome = |value: f64, record_id: &str| IndependentOutcomeReceipt {
             variable_id: "household_water_coverage".into(),
