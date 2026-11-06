@@ -2603,3 +2603,77 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+#[cfg(test)]
+mod checked_ccd_diagnostic_tests {
+    use super::*;
+    use crate::body::{BodyHandle, BodyType, RigidBody};
+    use symtropy_math::Point;
+
+    #[test]
+    fn world_retains_checked_ccd_errors_instead_of_treating_them_as_misses() {
+        let mut world = PhysicsWorld::<3>::default();
+        let mut moving = RigidBody::dynamic_sphere(
+            BodyHandle(100),
+            Point::origin(),
+            0.5,
+            1.0,
+        );
+        moving.linear_velocity = SVector::from([f64::NAN, 0.0, 0.0]);
+        let moving_handle = world.add_body(moving);
+
+        let mut obstacle = RigidBody::dynamic_sphere(
+            BodyHandle(101),
+            Point::new([10.0, 0.0, 0.0]),
+            0.5,
+            1.0,
+        );
+        obstacle.body_type = BodyType::Static;
+        let obstacle_handle = world.add_body(obstacle);
+
+        let pre_integration_positions: Vec<_> =
+            world.bodies.iter().map(RigidBody::position).collect();
+        world.run_ccd_pass(&pre_integration_positions, 0.016);
+
+        assert!(world.ccd_diagnostics().iter().any(|diagnostic| {
+            diagnostic.moving_body == moving_handle
+                && diagnostic.other_body == obstacle_handle
+                && diagnostic.error == ccd::CcdError::NonFiniteInput
+        }));
+    }
+
+    #[test]
+    fn step_clears_ccd_diagnostics_between_frames() {
+        let mut world = PhysicsWorld::<3>::default();
+        let mut moving = RigidBody::dynamic_sphere(
+            BodyHandle(100),
+            Point::origin(),
+            0.5,
+            1.0,
+        );
+        moving.linear_velocity = SVector::from([f64::NAN, 0.0, 0.0]);
+        world.add_body(moving);
+
+        let obstacle = RigidBody::new(
+            BodyHandle(101),
+            BodyType::Static,
+            Transform::from_translation(Point::new([10.0, 0.0, 0.0])),
+            Box::new(crate::body::RigidBody::<3>::dynamic_sphere(
+                BodyHandle(102),
+                Point::origin(),
+                0.5,
+                1.0,
+            ).collider),
+            0.0,
+            SVector::zeros(),
+        );
+        world.add_body(obstacle);
+
+        let positions: Vec<_> = world.bodies.iter().map(RigidBody::position).collect();
+        world.run_ccd_pass(&positions, 0.016);
+        assert!(!world.ccd_diagnostics().is_empty());
+
+        world.step(0.016);
+        assert!(world.ccd_diagnostics().is_empty());
+    }
+}
