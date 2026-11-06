@@ -534,6 +534,7 @@ pub enum DisturbanceError {
         minimum: usize,
     },
     SampleBeforeEventStart,
+    InitialSampleGapExceedsContract { gap_ns: u64, maximum_gap_ns: u64 },
     DuplicateOrReversedTimestamp {
         index: usize,
         previous_ns: u64,
@@ -713,6 +714,16 @@ pub fn evaluate_disturbance_conformance(
         .event_start_ns
         .checked_add(requirement.required_observation_horizon_ns)
         .ok_or(DisturbanceError::TimestampOverflow)?;
+    let initial_gap_ns = samples[0]
+        .timestamp_ns
+        .checked_sub(event.event_start_ns)
+        .ok_or(DisturbanceError::SampleBeforeEventStart)?;
+    if initial_gap_ns > trace_contract.maximum_sample_gap_ns {
+        return Err(DisturbanceError::InitialSampleGapExceedsContract {
+            gap_ns: initial_gap_ns,
+            maximum_gap_ns: trace_contract.maximum_sample_gap_ns,
+        });
+    }
 
     let n = requirement.segments.len();
     let mut zone_voltage_frequency = vec![true; n];
