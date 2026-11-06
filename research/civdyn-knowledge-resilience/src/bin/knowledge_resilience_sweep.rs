@@ -4,8 +4,7 @@
 //! Synthetic knowledge transmission and archive-resilience trace.
 
 use civdyn_knowledge_resilience::{
-    ArchiveRecovery, KnowledgeDataset, archive_recovery_after_failures, evaluate,
-    reference_dataset,
+    ArchiveRecovery, KnowledgeDataset, archive_recovery_after_failures, evaluate, reference_dataset,
 };
 use std::collections::BTreeSet;
 
@@ -26,7 +25,6 @@ fn empty_row(record_type: &str, item_id: &str) -> Vec<String> {
         item_id.into(),
         String::new(),
         String::new(),
-
         String::new(),
         String::new(),
         String::new(),
@@ -68,7 +66,9 @@ fn item_row(item: &civdyn_knowledge_resilience::ItemMetrics) {
     row[16] = item.independent_teacher_count.to_string();
     row[17] = item.refuted_knowledge_acquisition_count.to_string();
     row[18] = item.distinct_demonstrated_generations.to_string();
-    row[19] = item.longest_consecutive_demonstrated_generations.to_string();
+    row[19] = item
+        .longest_consecutive_demonstrated_generations
+        .to_string();
     row[20] = item.verified_archive_copy_count.to_string();
     row[21] = item.independent_archive_failure_domain_count.to_string();
     emit(row);
@@ -102,10 +102,8 @@ fn main() {
     }
 
     let current = archive_recovery_after_failures(&dataset, &BTreeSet::new());
-    let failed_primary = archive_recovery_after_failures(
-        &dataset,
-        &BTreeSet::from(["archive_domain_a".to_owned()]),
-    );
+    let failed_primary =
+        archive_recovery_after_failures(&dataset, &BTreeSet::from(["archive_domain_a".to_owned()]));
     for recovery in &current {
         archive_row(&recovery.item_id, "no_domain_failure", recovery);
     }
@@ -134,8 +132,14 @@ mod tests {
             &dataset,
             &BTreeSet::from(["archive_domain_a".to_owned()]),
         );
-        let hydro = recovery.iter().find(|item| item.item_id == "hydrology_skill").unwrap();
-        let myth = recovery.iter().find(|item| item.item_id == "silt_myth").unwrap();
+        let hydro = recovery
+            .iter()
+            .find(|item| item.item_id == "hydrology_skill")
+            .unwrap();
+        let myth = recovery
+            .iter()
+            .find(|item| item.item_id == "silt_myth")
+            .unwrap();
         assert!(hydro.recoverable);
         assert!(!myth.recoverable);
     }
