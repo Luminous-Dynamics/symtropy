@@ -17,7 +17,7 @@ Every resource has one explicit `SharedResourcePolicy`:
 - `ConcurrentCapacity`: sum of resource use across all overlapping operations must not exceed capacity at any tick. Half-open intervals are used; an operation ending at tick 10 does not overlap one beginning at tick 10.
 - `CumulativeWindowQuota`: each operation must fit wholly inside one declared accounting window, and its consumption is added once to that window's quota.
 
-This version requires `WaterQuota` and `ShorePower` to use cumulative-window accounting. Channel slots, lockages, berth slots, terminal handling and inland transfer use concurrent-capacity accounting. The mode is explicit in the workload and checked against the typed resource kind; a water quota cannot be treated as a simultaneous lock slot.
+This version requires `WaterQuota`, `ShorePower`, `TerminalHandling` and `InlandTransfer` to use cumulative-window accounting. The latter two represent tonnes-per-window throughput quotas in this model, not simultaneous occupied tonnes. Channel transit slots, lockage slots and berth slots use concurrent-capacity accounting. The mode is explicit in the workload and checked against the typed resource kind; a shift throughput quota cannot be silently treated as a concurrent slot. A future profile that models cranes or other simultaneous handling equipment must give those resources a distinct typed resource identity/unit rather than reinterpreting `Tonnes`.
 
 All cases in one workload must share a corridor, decision cutoff and tick resolution, bound to a caller-declared `time_basis_id`. If two cases reference the same resource ID, their complete resource declarations and referenced evidence records must be identical. Conflicting capacities, windows, units, revisions or evidence snapshots reject the workload.
 
@@ -42,7 +42,7 @@ The Rust unit-test corpus covers:
 - capacity changes between declared windows;
 - cumulative quota overrun, exact-boundary acceptance, independent accounting windows and a use interval that straddles two windows;
 - two complete vessel demands sharing lock, berth, terminal, shore-energy and water resources;
-- joint infeasibility when shared water or shore-energy quota is individually feasible for each demand but not for both;
+- joint infeasibility when shared water, shore-energy, terminal-handling throughput or inland-transfer throughput is individually feasible for each demand but not for both;
 - conflicting shared-resource snapshots and invalid accounting modes;
 - missing, duplicate and orphan resource policies;
 - duplicate demand identity, mismatched decision cutoffs/tick resolutions and missing time basis;
