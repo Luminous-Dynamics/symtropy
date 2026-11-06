@@ -106,6 +106,8 @@ pub enum TrajectoryError {
     DuplicateSample(String),
     SessionReopened(String),
     OutOfOrderTime { session_id: String, time_index: u64 },
+    NonContiguousTime { session_id: String, expected_time_index: u64, actual_time_index: u64 },
+    TimeIndexOverflow,
     AssignmentDesignInvalid,
     AssignmentDeliveryMismatch,
     DeliveryNotVerified,
@@ -236,6 +238,16 @@ fn validate_history(
                     time_index: observation.time_index,
                 });
             }
+            let expected_time_index = last_time_index
+                .checked_add(1)
+                .ok_or(TrajectoryError::TimeIndexOverflow)?;
+            if observation.time_index != expected_time_index {
+                return Err(TrajectoryError::NonContiguousTime {
+                    session_id: observation.session_id.clone(),
+                    expected_time_index,
+                    actual_time_index: observation.time_index,
+                });
+            }
             last_time_index = observation.time_index;
         }
     }
@@ -256,6 +268,17 @@ fn validate_next_identity(
                 return Err(TrajectoryError::OutOfOrderTime {
                     session_id: session_id.to_owned(),
                     time_index,
+                });
+            }
+            let expected_time_index = last
+                .time_index
+                .checked_add(1)
+                .ok_or(TrajectoryError::TimeIndexOverflow)?;
+            if time_index != expected_time_index {
+                return Err(TrajectoryError::NonContiguousTime {
+                    session_id: session_id.to_owned(),
+                    expected_time_index,
+                    actual_time_index: time_index,
                 });
             }
         } else if history
@@ -652,7 +675,7 @@ mod tests {
             &model,
             &once,
             "session-a",
-            2,
+            1,
             "baseline",
             TrajectoryConfig::default(),
         )
@@ -775,6 +798,26 @@ mod tests {
             out_of_order,
             Err(TrajectoryError::OutOfOrderTime { .. })
         ));
+    }
+
+    #[test]
+    fn irregular_within_session_time_indices_are_rejected_instead_of_misapplied_as_one_ar_step() {
+        let existing = history(vec![observation("sample-1", "session-a", 0, 0.0)]);
+        assert_eq!(
+            forecast_next(
+                &model("m", 0.0, 0.5, 0.1),
+                &existing,
+                "session-a",
+                2,
+                "baseline",
+                TrajectoryConfig::default()
+            ),
+            Err(TrajectoryError::NonContiguousTime {
+                session_id: "session-a".to_owned(),
+                expected_time_index: 1,
+                actual_time_index: 2,
+            })
+        );
     }
 
     #[test]
