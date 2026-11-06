@@ -288,22 +288,22 @@ impl KnowledgeDataset {
                     item_id: carrier.item_id.clone(),
                 });
             }
-            if let Some(score) = carrier.demonstration_score {
-                if !carrier.acquired || !score.is_finite() || !(0.0..=1.0).contains(&score) {
-                    return Err(KnowledgeError::InvalidDemonstration {
-                        participant_id: carrier.participant_id.clone(),
-                        item_id: carrier.item_id.clone(),
-                        score,
-                    });
-                }
+            if let Some(score) = carrier.demonstration_score
+                && (!carrier.acquired || !score.is_finite() || !(0.0..=1.0).contains(&score))
+            {
+                return Err(KnowledgeError::InvalidDemonstration {
+                    participant_id: carrier.participant_id.clone(),
+                    item_id: carrier.item_id.clone(),
+                    score,
+                });
             }
-            if let Some(retention) = carrier.retention {
-                if !carrier.acquired || retention.delay_steps == 0 {
-                    return Err(KnowledgeError::InvalidRetentionAssessment {
-                        participant_id: carrier.participant_id.clone(),
-                        item_id: carrier.item_id.clone(),
-                    });
-                }
+            if let Some(retention) = carrier.retention
+                && (!carrier.acquired || retention.delay_steps == 0)
+            {
+                return Err(KnowledgeError::InvalidRetentionAssessment {
+                    participant_id: carrier.participant_id.clone(),
+                    item_id: carrier.item_id.clone(),
+                });
             }
             if carrier.independently_taught && !carrier.acquired {
                 return Err(KnowledgeError::TeachingWithoutAcquisition {
