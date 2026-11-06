@@ -114,7 +114,11 @@ pub fn sphere_sphere<const D: usize>(
     }
 
     let radial_room_sq = radius_sum_sq - closest_distance_sq;
-    let tolerance = 64.0 * f64::EPSILON * radius_sum_sq.max(closest_distance_sq).max(f64::MIN_POSITIVE);
+    let tolerance = 64.0
+        * f64::EPSILON
+        * radius_sum_sq
+            .max(closest_distance_sq)
+            .max(f64::MIN_POSITIVE);
     if radial_room_sq < -tolerance {
         return None;
     }
