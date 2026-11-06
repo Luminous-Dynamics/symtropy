@@ -84,6 +84,8 @@ These values are synthetic regression data, not Purdue, Electreon, IEC or vehicl
 ## CLI and tests
 
     cargo test --locked -p wpt-segment-energy-ledger
+
+V2 has 18 Rust tests, including exact canonical-trajectory sample-window linkage, timestamp monotonicity, artifact-digest format and a 512-pose bound.
     cargo run --locked -p wpt-segment-energy-ledger -- benchmarks/wpt-segment-energy-ledger/v2/synthetic-highway-pass.json
 
 ## Industry and standards comparators
