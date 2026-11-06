@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use symtropy_counterfactual_baseline::{
-    BaselineFold, BaselineIdentity,
-    BaselineQualificationContract, DispatchEventPoint, NoDispatchObservation,
-    evaluate_baseline_bounded_event, qualify_counterfactual_baseline,
+    BaselineFold, BaselineIdentity, BaselineQualificationContract, DispatchEventPoint,
+    NoDispatchObservation, evaluate_baseline_bounded_event, qualify_counterfactual_baseline,
 };
 
 fn identity() -> BaselineIdentity {
@@ -22,15 +21,13 @@ fn identity() -> BaselineIdentity {
 
 fn contract() -> BaselineQualificationContract {
     BaselineQualificationContract::new(
-        500,   // 5% lower residual tail
-        19,    // minimum for the requested lower tail
-        10,
-        200,   // maximum absolute normalized bias: 2%
+        500, // 5% lower residual tail
+        19,  // minimum for the requested lower tail
+        10, 200,   // maximum absolute normalized bias: 2%
         500,   // maximum normalized MAE: 5%
         9_000, // 90% observed lower-bound coverage
         100,   // maximum false-positive rate: 1%
-        10.0,
-        9_500,
+        10.0, 9_500,
     )
     .expect("valid contract")
 }
@@ -83,8 +80,7 @@ fn qualified_report() -> symtropy_counterfactual_baseline::BaselineQualification
             100.0,
         ));
     }
-    qualify_counterfactual_baseline(&identity(), &contract(), &rows)
-        .expect("baseline qualifies")
+    qualify_counterfactual_baseline(&identity(), &contract(), &rows).expect("baseline qualifies")
 }
 
 #[test]
@@ -153,7 +149,11 @@ fn same_independence_group_cannot_leak_across_calibration_and_evaluation() {
     for i in 0..40 {
         rows.push(observation(
             i,
-            if i == 0 { "leaked-group" } else { &format!("cal-{i}") },
+            if i == 0 {
+                "leaked-group"
+            } else {
+                &format!("cal-{i}")
+            },
             BaselineFold::Calibration,
             100.0,
             100.0,
@@ -162,7 +162,11 @@ fn same_independence_group_cannot_leak_across_calibration_and_evaluation() {
     for i in 0..20 {
         rows.push(observation(
             100 + i,
-            if i == 0 { "leaked-group" } else { &format!("eval-{i}") },
+            if i == 0 {
+                "leaked-group"
+            } else {
+                &format!("eval-{i}")
+            },
             BaselineFold::Evaluation,
             100.0,
             100.0,
@@ -228,23 +232,20 @@ fn distribution_shift_fails_holdout_coverage() {
     let report = qualify_counterfactual_baseline(&identity(), &contract(), &rows)
         .expect("qualification report produced");
     assert!(!report.is_qualified());
-    assert_eq!(report.regime("normal").unwrap().lower_bound_coverage_basis_points, 0.0);
+    assert_eq!(
+        report
+            .regime("normal")
+            .unwrap()
+            .lower_bound_coverage_basis_points,
+        0.0
+    );
 }
 
 #[test]
 fn split_conformal_tail_requires_enough_calibration_samples() {
-    let invalid = BaselineQualificationContract::new(
-        500,
-        18,
-        10,
-        200,
-        500,
-        9_000,
-        100,
-        10.0,
-        9_500,
-    )
-    .unwrap_err();
+    let invalid =
+        BaselineQualificationContract::new(500, 18, 10, 200, 500, 9_000, 100, 10.0, 9_500)
+            .unwrap_err();
 
     assert!(matches!(
         invalid,
@@ -271,9 +272,15 @@ fn baseline_and_meter_uncertainty_are_both_subtracted_from_delivery() {
         .expect("event report");
 
     assert_eq!(report.intervals[0].baseline_lower_power_bound_kw, 100.0);
-    assert_eq!(report.intervals[0].measured_dispatch_upper_power_bound_kw, 87.0);
+    assert_eq!(
+        report.intervals[0].measured_dispatch_upper_power_bound_kw,
+        87.0
+    );
     assert_eq!(report.intervals[0].reduction_point_estimate_kw, 15.0);
-    assert_eq!(report.intervals[0].conservative_reduction_lower_bound_kw, 13.0);
+    assert_eq!(
+        report.intervals[0].conservative_reduction_lower_bound_kw,
+        13.0
+    );
     assert_eq!(report.net_reduction_energy_kwh, 15.0);
     assert!(report.event_qualified);
 }
@@ -313,7 +320,10 @@ fn rebound_is_preserved_and_reduces_net_event_energy() {
     assert_eq!(report.gross_reduction_energy_kwh, 20.0);
     assert_eq!(report.gross_rebound_energy_kwh, 10.0);
     assert_eq!(report.net_reduction_energy_kwh, 10.0);
-    assert_eq!(report.intervals[1].conservative_reduction_lower_bound_kw, -10.0);
+    assert_eq!(
+        report.intervals[1].conservative_reduction_lower_bound_kw,
+        -10.0
+    );
 }
 
 #[test]
@@ -337,20 +347,10 @@ fn unqualified_baseline_cannot_be_used_for_event_credit() {
             100.0,
         ));
     }
-    let report = qualify_counterfactual_baseline(&identity(), &contract(), &rows)
-        .expect("report");
-    let point = DispatchEventPoint::new(
-        "event-1",
-        "normal",
-        0,
-        0,
-        1_000,
-        110.0,
-        80.0,
-        0.0,
-        "pcc-1",
-    )
-    .unwrap();
+    let report = qualify_counterfactual_baseline(&identity(), &contract(), &rows).expect("report");
+    let point =
+        DispatchEventPoint::new("event-1", "normal", 0, 0, 1_000, 110.0, 80.0, 0.0, "pcc-1")
+            .unwrap();
     let error = evaluate_baseline_bounded_event(&report, &identity(), &[point], true).unwrap_err();
 
     assert!(matches!(
@@ -390,18 +390,9 @@ fn event_identity_regime_and_chronology_are_bound() {
         "sha256:evaluation",
     )
     .unwrap();
-    let point = DispatchEventPoint::new(
-        "event-2",
-        "normal",
-        0,
-        0,
-        1_000,
-        100.0,
-        90.0,
-        0.0,
-        "pcc-2",
-    )
-    .unwrap();
+    let point =
+        DispatchEventPoint::new("event-2", "normal", 0, 0, 1_000, 100.0, 90.0, 0.0, "pcc-2")
+            .unwrap();
     assert!(matches!(
         evaluate_baseline_bounded_event(&baseline, &other, &[point], true),
         Err(symtropy_counterfactual_baseline::BaselineQualificationError::BaselineIdentityMismatch)
@@ -412,8 +403,20 @@ fn event_identity_regime_and_chronology_are_bound() {
 fn non_contiguous_recovery_horizon_is_rejected() {
     let baseline = qualified_report();
     let points = [
-        DispatchEventPoint::new("event-1", "normal", 0, 0, 1_000, 100.0, 80.0, 0.0, "pcc-1").unwrap(),
-        DispatchEventPoint::new("recovery-1", "normal", 0, 2_000, 1_000, 100.0, 110.0, 0.0, "pcc-2").unwrap(),
+        DispatchEventPoint::new("event-1", "normal", 0, 0, 1_000, 100.0, 80.0, 0.0, "pcc-1")
+            .unwrap(),
+        DispatchEventPoint::new(
+            "recovery-1",
+            "normal",
+            0,
+            2_000,
+            1_000,
+            100.0,
+            110.0,
+            0.0,
+            "pcc-2",
+        )
+        .unwrap(),
     ];
     let error = evaluate_baseline_bounded_event(&baseline, &identity(), &points).unwrap_err();
 
@@ -456,7 +459,10 @@ fn residual_quantile_weights_independent_blocks_not_autocorrelated_rows() {
     let report = qualify_counterfactual_baseline(&identity(), &contract(), &rows)
         .expect("baseline qualification report");
     assert_eq!(report.regime("normal").unwrap().calibration_group_count, 40);
-    assert_eq!(report.regime("normal").unwrap().lower_residual_quantile_kw, 0.0);
+    assert_eq!(
+        report.regime("normal").unwrap().lower_residual_quantile_kw,
+        0.0
+    );
 }
 
 #[test]
@@ -472,23 +478,25 @@ fn evaluation_regime_without_calibration_abstains() {
         ));
     }
     for i in 0..20 {
-        rows.push(NoDispatchObservation::new(
-            format!("hot-eval-{i}"),
-            format!("hot-group-{i}"),
-            "heatwave",
-            "sha256:evaluation",
-            0,
-            (100 + i) as u64 * 1_000_000_000,
-            1_000_000_000,
-            100.0,
-            100.0,
-            0.0,
-            BaselineFold::Evaluation,
-            false,
-        ).unwrap());
+        rows.push(
+            NoDispatchObservation::new(
+                format!("hot-eval-{i}"),
+                format!("hot-group-{i}"),
+                "heatwave",
+                "sha256:evaluation",
+                0,
+                (100 + i) as u64 * 1_000_000_000,
+                1_000_000_000,
+                100.0,
+                100.0,
+                0.0,
+                BaselineFold::Evaluation,
+                false,
+            )
+            .unwrap(),
+        );
     }
-    let error = qualify_counterfactual_baseline(&identity(), &contract(), &rows)
-        .unwrap_err();
+    let error = qualify_counterfactual_baseline(&identity(), &contract(), &rows).unwrap_err();
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::EvaluationRegimeMissingCalibration { .. }
@@ -507,20 +515,23 @@ fn observation_source_digest_must_match_pinned_partition() {
             100.0,
         ));
     }
-    rows.push(NoDispatchObservation::new(
-        "wrong-source",
-        "eval-group",
-        "normal",
-        "sha256:wrong-evaluation-source",
-        0,
-        100_000_000_000,
-        1_000_000_000,
-        100.0,
-        100.0,
-        0.0,
-        BaselineFold::Evaluation,
-        false,
-    ).unwrap());
+    rows.push(
+        NoDispatchObservation::new(
+            "wrong-source",
+            "eval-group",
+            "normal",
+            "sha256:wrong-evaluation-source",
+            0,
+            100_000_000_000,
+            1_000_000_000,
+            100.0,
+            100.0,
+            0.0,
+            BaselineFold::Evaluation,
+            false,
+        )
+        .unwrap(),
+    );
     for i in 1..20 {
         rows.push(observation(
             100 + i,
@@ -530,8 +541,7 @@ fn observation_source_digest_must_match_pinned_partition() {
             100.0,
         ));
     }
-    let error = qualify_counterfactual_baseline(&identity(), &contract(), &rows)
-        .unwrap_err();
+    let error = qualify_counterfactual_baseline(&identity(), &contract(), &rows).unwrap_err();
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::SourceDigestMismatch { .. }
@@ -551,7 +561,8 @@ fn event_response_is_not_qualified_until_recovery_horizon_is_declared_complete()
         80.0,
         0.0,
         "pcc-1",
-    ).unwrap();
+    )
+    .unwrap();
     let report = evaluate_baseline_bounded_event(&baseline, &identity(), &[point], false)
         .expect("partial-horizon report");
     assert!(!report.event_and_recovery_included_in_supplied_horizon);
