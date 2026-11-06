@@ -33,6 +33,7 @@ This is **not** grid-to-battery efficiency. It is not battery-terminal energy. A
 The evaluator reports:
 - minimum lateral distance between any declared wheel path and the coil centre;
 - integrated total vertical wheel-load impulse;
+- maximum mismatch between odometry-derived interval speed and the mean of endpoint speed samples, checked against an explicit protocol tolerance;
 - maximum recorded coil and pavement-interface temperatures;
 - counts of missing thermal samples.
 
