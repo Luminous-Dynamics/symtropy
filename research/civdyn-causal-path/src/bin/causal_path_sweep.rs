@@ -12,7 +12,7 @@ use civdyn_resource_ledger::{
 };
 use std::collections::BTreeMap;
 
-const CSV_COLUMNS: usize = 16;
+const CSV_COLUMNS: usize = 19;
 const EXOGENOUS_SNAPSHOT: &str = "fixture:reservoir20m3_household_demand10m3_production0";
 
 #[derive(Debug)]
@@ -251,12 +251,15 @@ fn empty_row(record_type: &str, arm_id: &str) -> Vec<String> {
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
     ]
 }
 
 fn main() {
     println!(
-        "record_type,arm_id,metric,value,unit,source_record_id,exogenous_snapshot_id,qualified,path_complete,first_broken_edge,transition_applied,control_outcome,treatment_outcome,reservoir_closing_water_m3,household_served_water_m3,max_water_conservation_residual_m3"
+        "record_type,arm_id,metric,value,unit,source_record_id,exogenous_snapshot_id,qualified,path_complete,first_broken_edge,transition_applied,control_outcome,treatment_outcome,reservoir_closing_water_m3,household_served_water_m3,max_water_conservation_residual_m3,treatment_source_value,control_source_value,source_changed"
     );
 
     let (experiment, arms) = reference_experiment();
@@ -287,6 +290,9 @@ fn main() {
         row[10] = edge.treatment_transition_applied.to_string();
         row[11] = fmt(result.control_outcome);
         row[12] = fmt(result.treatment_outcome);
+        row[16] = fmt(edge.treatment_source_value);
+        row[17] = fmt(edge.control_source_value);
+        row[18] = edge.source_changed.to_string();
         emit(row);
     }
 
