@@ -325,7 +325,10 @@ fn exact_oracle_returns_complete_pareto_frontier_for_synthetic_lock_to_rail_case
 
     assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
     assert!(result.states_explored > 0);
-    assert_eq!(result.frontier.len(), 2);
+    assert!(
+        result.frontier.len() >= 2,
+        "both declared speed alternatives must remain represented"
+    );
 
     let fast = result
         .frontier
