@@ -854,9 +854,21 @@ mod tests {
     fn unaffected_redundant_services_do_not_receive_a_recovery_time() {
         let scenario = reference_scenario();
         let outcome = run_scenario(&scenario).unwrap();
-        let fuel = outcome.nodes.iter().find(|node| node.node_id == "fuel").unwrap();
-        let road = outcome.nodes.iter().find(|node| node.node_id == "road_access").unwrap();
-        let hospital = outcome.nodes.iter().find(|node| node.node_id == "hospital").unwrap();
+        let fuel = outcome
+            .nodes
+            .iter()
+            .find(|node| node.node_id == "fuel")
+            .unwrap();
+        let road = outcome
+            .nodes
+            .iter()
+            .find(|node| node.node_id == "road_access")
+            .unwrap();
+        let hospital = outcome
+            .nodes
+            .iter()
+            .find(|node| node.node_id == "hospital")
+            .unwrap();
         assert_eq!(fuel.recovery_after_ticks, None);
         assert_eq!(road.recovery_after_ticks, None);
         assert_eq!(hospital.recovery_after_ticks, Some(2));
