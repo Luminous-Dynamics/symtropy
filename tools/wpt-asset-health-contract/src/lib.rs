@@ -13,12 +13,12 @@ const SCHEMA: &str =
     include_str!("../../../research/wpt-asset-health-v0/asset-observation.schema.json");
 const EXAMPLE: &str =
     include_str!("../../../research/wpt-asset-health-v0/asset-observation.synthetic-example.json");
-const SCENARIOS: &str =
-    include_str!("../../../research/wpt-asset-health-v0/scenarios.json");
+const SCENARIOS: &str = include_str!("../../../research/wpt-asset-health-v0/scenarios.json");
 const LIFECYCLE_SCHEMA: &str =
     include_str!("../../../research/wpt-asset-health-v0/asset-lifecycle-outcome.schema.json");
-const LIFECYCLE_EXAMPLE: &str =
-    include_str!("../../../research/wpt-asset-health-v0/asset-lifecycle-outcomes.synthetic-example.json");
+const LIFECYCLE_EXAMPLE: &str = include_str!(
+    "../../../research/wpt-asset-health-v0/asset-lifecycle-outcomes.synthetic-example.json"
+);
 
 fn fail(path: &str, message: impl AsRef<str>) -> String {
     format!("{path}: {}", message.as_ref())
@@ -36,7 +36,7 @@ fn matches_type(value: &Value, expected: &str) -> bool {
                 || value
                     .as_f64()
                     .is_some_and(|number| number.is_finite() && number.fract() == 0.0)
-        },
+        }
         "boolean" => value.is_boolean(),
         "null" => value.is_null(),
         _ => false,
@@ -51,18 +51,23 @@ fn validate_type(schema: &Value, value: &Value, path: &str) -> Result<(), String
     let matches = if let Some(name) = expected.as_str() {
         matches_type(value, name)
     } else if let Some(names) = expected.as_array() {
-        names.iter().any(|name| {
-            name.as_str()
-                .is_some_and(|name| matches_type(value, name))
-        })
+        names
+            .iter()
+            .any(|name| name.as_str().is_some_and(|name| matches_type(value, name)))
     } else {
-        return Err(fail(path, "schema type must be a string or array of strings"));
+        return Err(fail(
+            path,
+            "schema type must be a string or array of strings",
+        ));
     };
 
     if matches {
         Ok(())
     } else {
-        Err(fail(path, format!("value does not match declared type {expected}")))
+        Err(fail(
+            path,
+            format!("value does not match declared type {expected}"),
+        ))
     }
 }
 
@@ -98,12 +103,7 @@ fn utc_timestamp_seconds(value: &str) -> Option<i64> {
     let hour = value[11..13].parse::<i64>().ok()?;
     let minute = value[14..16].parse::<i64>().ok()?;
     let second = value[17..19].parse::<i64>().ok()?;
-    if year == 0
-        || !(1..=12).contains(&month)
-        || hour > 23
-        || minute > 59
-        || second > 59
-    {
+    if year == 0 || !(1..=12).contains(&month) || hour > 23 || minute > 59 || second > 59 {
         return None;
     }
 
@@ -126,8 +126,7 @@ fn utc_timestamp_seconds(value: &str) -> Option<i64> {
     let year_of_era = adjusted_year - era * 400;
     let shifted_month = month + if month > 2 { -3 } else { 9 };
     let day_of_year = (153 * shifted_month + 2) / 5 + day - 1;
-    let day_of_era =
-        year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
     let days_since_epoch = era * 146_097 + day_of_era - 719_468;
 
     Some(days_since_epoch * 86_400 + hour * 3_600 + minute * 60 + second)
@@ -162,13 +161,19 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
     if let Some(text) = value.as_str() {
         if let Some(minimum) = schema.get("minLength").and_then(Value::as_u64) {
             if text.chars().count() < minimum as usize {
-                return Err(fail(path, format!("string is shorter than minLength {minimum}")));
+                return Err(fail(
+                    path,
+                    format!("string is shorter than minLength {minimum}"),
+                ));
             }
         }
         if let Some(pattern) = schema.get("pattern").and_then(Value::as_str) {
             if pattern == "^[0-9a-f]{64}$" {
                 if !is_lower_hex_64(text) {
-                    return Err(fail(path, "string must be 64 lowercase hexadecimal characters"));
+                    return Err(fail(
+                        path,
+                        "string must be 64 lowercase hexadecimal characters",
+                    ));
                 }
             } else {
                 return Err(fail(path, format!("unsupported schema pattern {pattern}")));
@@ -234,11 +239,7 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
 
         for (name, property_schema) in &properties {
             if let Some(property_value) = object.get(name) {
-                validate_schema_node(
-                    property_schema,
-                    property_value,
-                    &format!("{path}.{name}"),
-                )?;
+                validate_schema_node(property_schema, property_value, &format!("{path}.{name}"))?;
             }
         }
     }
@@ -442,17 +443,17 @@ pub fn validate_scenarios(scenarios: &Value) -> Result<(), String> {
 
 /// Validate one time-to-event dataset, preserving right-censored and
 /// competing-risk observations as distinct outcomes.
-pub fn validate_lifecycle_outcomes(
-    schema: &Value,
-    dataset: &Value,
-) -> Result<(), String> {
+pub fn validate_lifecycle_outcomes(schema: &Value, dataset: &Value) -> Result<(), String> {
     validate_schema_node(schema, dataset, "$")?;
 
     let records = object_field(dataset, "records", "$")?
         .as_array()
         .ok_or_else(|| fail("$.records", "must be an array"))?;
     if records.is_empty() {
-        return Err(fail("$.records", "at least one lifecycle outcome is required"));
+        return Err(fail(
+            "$.records",
+            "at least one lifecycle outcome is required",
+        ));
     }
 
     let mut outcome_ids = BTreeSet::new();
@@ -467,7 +468,12 @@ pub fn validate_lifecycle_outcomes(
             return Err(fail(&path, format!("duplicate outcome_id {outcome_id}")));
         }
         if !asset_ids.insert(asset_id.to_string()) {
-            return Err(fail(&path, format!("duplicate asset_id {asset_id}; one first-event outcome per asset is permitted")));
+            return Err(fail(
+                &path,
+                format!(
+                    "duplicate asset_id {asset_id}; one first-event outcome per asset is permitted"
+                ),
+            ));
         }
 
         let start = string_field(record, "at_risk_start_utc", &path)?;
@@ -511,21 +517,36 @@ pub fn validate_lifecycle_outcomes(
                 ]
                 .contains(&code)
                 {
-                    return Err(fail(&path, "competing-event code cannot represent the target failure"));
+                    return Err(fail(
+                        &path,
+                        "competing-event code cannot represent the target failure",
+                    ));
                 }
                 if !censor_reason.is_null() {
                     return Err(fail(&path, "target failure cannot carry a censor_reason"));
                 }
                 if has_flag("RIGHT_CENSORED") || has_flag("COMPETING_RISK") {
-                    return Err(fail(&path, "target failure cannot carry censoring or competing-risk flags"));
+                    return Err(fail(
+                        &path,
+                        "target failure cannot carry censoring or competing-risk flags",
+                    ));
                 }
             }
             "RIGHT_CENSORED" => {
                 if !event_code.is_null() {
-                    return Err(fail(&path, "right-censored record must not carry an event_code"));
+                    return Err(fail(
+                        &path,
+                        "right-censored record must not carry an event_code",
+                    ));
                 }
-                if censor_reason.as_str().is_none_or(|reason| reason.trim().is_empty()) {
-                    return Err(fail(&path, "right-censored record requires a censor_reason"));
+                if censor_reason
+                    .as_str()
+                    .is_none_or(|reason| reason.trim().is_empty())
+                {
+                    return Err(fail(
+                        &path,
+                        "right-censored record requires a censor_reason",
+                    ));
                 }
                 if !has_flag("RIGHT_CENSORED") {
                     return Err(fail(&path, "right-censored record must carry RIGHT_CENSORED"));
@@ -545,7 +566,10 @@ pub fn validate_lifecycle_outcomes(
                 ]
                 .contains(&code)
                 {
-                    return Err(fail(&path, "competing event requires a declared competing-event code"));
+                    return Err(fail(
+                        &path,
+                        "competing event requires a declared competing-event code",
+                    ));
                 }
                 if !censor_reason.is_null() {
                     return Err(fail(&path, "competing event cannot carry a censor_reason"));
@@ -562,10 +586,16 @@ pub fn validate_lifecycle_outcomes(
 
         let evidence_kind = string_field(record, "evidence_kind", &path)?;
         if evidence_kind == "SYNTHETIC_KNOWN_TRUTH" && !has_flag("SYNTHETIC_ONLY") {
-            return Err(fail(&path, "synthetic lifecycle evidence must carry SYNTHETIC_ONLY"));
+            return Err(fail(
+                &path,
+                "synthetic lifecycle evidence must carry SYNTHETIC_ONLY",
+            ));
         }
         if evidence_kind != "SYNTHETIC_KNOWN_TRUTH" && has_flag("SYNTHETIC_ONLY") {
-            return Err(fail(&path, "SYNTHETIC_ONLY cannot be attached to non-synthetic evidence"));
+            return Err(fail(
+                &path,
+                "SYNTHETIC_ONLY cannot be attached to non-synthetic evidence",
+            ));
         }
         let source_records = object_field(record, "source_record_ids", &path)?
             .as_array()
@@ -614,13 +644,18 @@ pub fn validate_lifecycle_outcomes(
             "environmental_campaign_id",
         ] {
             let group_value = object_field(record, group_key, &path)?;
-            if let Some(value) = group_value.as_str().filter(|value| !value.trim().is_empty()) {
+            if let Some(value) = group_value
+                .as_str()
+                .filter(|value| !value.trim().is_empty())
+            {
                 let key = (group_key.to_string(), value.to_string());
                 if let Some(previous_split) = group_splits.get(&key) {
                     if previous_split != &split {
                         return Err(fail(
                             &path,
-                            format!("{group_key} {value} leaks across {previous_split} and {split} splits"),
+                            format!(
+                                "{group_key} {value} leaks across {previous_split} and {split} splits"
+                            ),
                         ));
                     }
                 } else {
@@ -683,8 +718,7 @@ mod tests {
         dataset["records"][0]["evidence_kind"] = Value::String("MEASURED".into());
         dataset["records"][0]["quality_flags"] = Value::Array(vec![]);
         dataset["records"][0]["source_record_ids"] = Value::Array(vec![]);
-        dataset["records"][0]["raw_artifact_sha256"] =
-            Value::String("d".repeat(64));
+        dataset["records"][0]["raw_artifact_sha256"] = Value::String("d".repeat(64));
         assert!(
             validate_lifecycle_outcomes(&schema, &dataset)
                 .unwrap_err()
