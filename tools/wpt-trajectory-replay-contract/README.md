@@ -31,7 +31,7 @@ Fraunhofer IISB's robot-assisted IPT bench provides a repeatable laboratory misa
 
 Run cargo test --locked -p wpt-trajectory-replay-contract.
 
-Seven Rust tests cover shared sample coverage, timestamp monotonicity, duplicate sample IDs, unknown sample references, coordinate-frame agreement, projection completeness, trajectory/transform binding and synthetic-only admission.
+Eight Rust tests cover shared sample coverage, timestamp monotonicity, duplicate sample IDs, unknown sample references, coordinate-frame agreement, projection completeness, trajectory/transform binding and synthetic-only admission.
 
 ## Claim ceiling
 
