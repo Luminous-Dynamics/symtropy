@@ -30,7 +30,7 @@
     },
     "fragment_bin": {
       "type": "object",
-      "required": ["lower_mm", "mass_kg", "standard_uncertainty_kg", "evidence_role", "calibration_ref", "source_ref"],
+      "required": ["lower_mm", "upper_mm", "mass_kg", "standard_uncertainty_kg", "evidence_role", "calibration_ref", "source_ref"],
       "properties": {
         "lower_mm": { "type": "number", "minimum": 0 },
         "upper_mm": { "type": ["number", "null"], "exclusiveMinimum": 0 },
@@ -45,12 +45,13 @@
     },
     "stage_capacity": {
       "type": "object",
-      "required": ["stage", "capacity_lower_kg_s", "capacity_upper_kg_s", "transport_configuration_ref", "capacity_window_ref", "evidence_role", "calibration_ref", "source_ref"],
+      "required": ["stage", "capacity_lower_kg_s", "capacity_upper_kg_s", "transport_configuration_ref", "transport_capacity_profile_ref", "capacity_window_ref", "evidence_role", "calibration_ref", "source_ref"],
       "properties": {
         "stage": { "enum": ["CAPTURE", "CONVEY", "SEPARATE", "DISCHARGE"] },
         "capacity_lower_kg_s": { "type": "number", "minimum": 0 },
         "capacity_upper_kg_s": { "type": "number", "minimum": 0 },
         "transport_configuration_ref": { "$ref": "#/$defs/reference" },
+        "transport_capacity_profile_ref": { "$ref": "#/$defs/reference" },
         "capacity_window_ref": { "$ref": "#/$defs/reference" },
         "evidence_role": { "enum": ["INDEPENDENT_MEASUREMENT", "DERIVED_FROM_INDEPENDENT_MEASUREMENTS", "PROCESS_SENSOR", "OPERATOR_REPORTED", "MODEL_ESTIMATE", "SIMULATION"] },
         "calibration_ref": { "$ref": "#/$defs/reference" },
