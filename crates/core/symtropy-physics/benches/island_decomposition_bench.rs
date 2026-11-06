@@ -241,9 +241,9 @@ impl ReferenceUnionFind {
     }
 }
 
-fn island_signature(
-    islands: &[Island],
-) -> Vec<(Vec<usize>, Vec<usize>, Vec<usize>, bool)> {
+type IslandSignature = (Vec<usize>, Vec<usize>, Vec<usize>, bool);
+
+fn island_signature(islands: &[Island]) -> Vec<IslandSignature> {
     islands
         .iter()
         .map(|island| {
