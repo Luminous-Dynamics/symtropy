@@ -915,10 +915,10 @@ fn validate_branch_event_order(
                 }
             }
         }
-        if let Some(sequence) = cue.delivered_event_sequence {
-            if !event_sequences.insert(sequence) {
-                return Err(HandoffError::DuplicateEventSequence);
-            }
+        if let Some(sequence) = cue.delivered_event_sequence
+            && !event_sequences.insert(sequence)
+        {
+            return Err(HandoffError::DuplicateEventSequence);
         }
     }
 
@@ -932,10 +932,10 @@ fn validate_branch_event_order(
         if !event_sequences.insert(decision.decision_event_sequence) {
             return Err(HandoffError::DuplicateEventSequence);
         }
-        if let Some(sequence) = decision.latch_event_sequence {
-            if !event_sequences.insert(sequence) {
-                return Err(HandoffError::DuplicateEventSequence);
-            }
+        if let Some(sequence) = decision.latch_event_sequence
+            && !event_sequences.insert(sequence)
+        {
+            return Err(HandoffError::DuplicateEventSequence);
         }
     }
 
