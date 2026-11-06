@@ -306,7 +306,8 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             ],
             &path,
         )?;
-        let sample_index = uint_field(row, "sample_index", &path)? as usize;
+        let sample_index = usize::try_from(uint_field(row, "sample_index", &path)?)
+            .map_err(|_| fail(&path, "sample_index exceeds the platform index range"))?;
         if sample_index != index {
             return Err(fail(
                 &path,
@@ -533,7 +534,7 @@ fn integrate_power_uwh(samples: &[Sample], roadway_input: bool) -> Result<u64, S
         };
         energy_uwh += (left as f64 + right as f64) * duration_ms / 7.2;
     }
-    if !energy_uwh.is_finite() || energy_uwh < 0.0 || energy_uwh > u64::MAX as f64 {
+    if !energy_uwh.is_finite() || energy_uwh < 0.0 || energy_uwh >= u64::MAX as f64 {
         return Err("integrated pass energy exceeded the representable range".into());
     }
     Ok(energy_uwh.round() as u64)
@@ -550,7 +551,7 @@ fn integrate_wheel_load_impulse_micro_kn_s(
     }
     if !impulse_micro_kn_s.is_finite()
         || impulse_micro_kn_s < 0.0
-        || impulse_micro_kn_s > u64::MAX as f64
+        || impulse_micro_kn_s >= u64::MAX as f64
     {
         return Err("integrated wheel-load impulse exceeded the representable range".into());
     }
@@ -623,7 +624,7 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
         let total_vertical_wheel_load_millikn = (sample.wheel_load_total_kn * 1000.0).round();
         if !total_vertical_wheel_load_millikn.is_finite()
             || total_vertical_wheel_load_millikn < 0.0
-            || total_vertical_wheel_load_millikn > u64::MAX as f64
+            || total_vertical_wheel_load_millikn >= u64::MAX as f64
         {
             return Err(fail(
                 "$.samples.wheel_loads",
