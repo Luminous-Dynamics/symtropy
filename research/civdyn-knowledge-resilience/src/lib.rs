@@ -208,9 +208,7 @@ impl KnowledgeDataset {
         let mut event_ids = BTreeSet::new();
         let mut delivered_to = BTreeSet::new();
         for event in &self.transmissions {
-            if event.event_id.trim().is_empty()
-                || event.method.trim().is_empty()
-            {
+            if event.event_id.trim().is_empty() || event.method.trim().is_empty() {
                 return Err(KnowledgeError::EmptyTransmissionIdentity);
             }
             if !event_ids.insert(event.event_id.as_str()) {
@@ -265,10 +263,8 @@ impl KnowledgeDataset {
             }
             if carrier.acquired
                 && carrier.acquisition_source == Some(AcquisitionSource::Transmission)
-                && !delivered_to.contains((
-                    carrier.participant_id.as_str(),
-                    carrier.item_id.as_str(),
-                ))
+                && !delivered_to
+                    .contains((carrier.participant_id.as_str(), carrier.item_id.as_str()))
             {
                 return Err(KnowledgeError::AcquisitionWithoutDeliveredTransmission {
                     participant_id: carrier.participant_id.clone(),
@@ -278,9 +274,7 @@ impl KnowledgeDataset {
             if carrier.acquired
                 && carrier.acquisition_source == Some(AcquisitionSource::Archive)
                 && !self.archive_copies.iter().any(|copy| {
-                    copy.item_id == carrier.item_id
-                        && copy.checksum_verified
-                        && copy.accessible
+                    copy.item_id == carrier.item_id && copy.checksum_verified && copy.accessible
                 })
             {
                 return Err(KnowledgeError::ArchiveAcquisitionWithoutVerifiedCopy {
@@ -427,13 +421,19 @@ impl fmt::Display for KnowledgeError {
             }
             Self::DuplicateItemId(id) => write!(f, "duplicate knowledge item ID: {id}"),
             Self::InvalidDemonstrationThreshold { item_id, value } => {
-                write!(f, "item {item_id} has invalid demonstration threshold {value}")
+                write!(
+                    f,
+                    "item {item_id} has invalid demonstration threshold {value}"
+                )
             }
             Self::EmptyEvidenceFamily { item_id } => {
                 write!(f, "item {item_id} has an empty evidence source family")
             }
             Self::VerifiedWithoutEvidence { item_id } => {
-                write!(f, "verified item {item_id} has no declared evidence source family")
+                write!(
+                    f,
+                    "verified item {item_id} has no declared evidence source family"
+                )
             }
             Self::DuplicateEvidenceFamily { item_id, family_id } => {
                 write!(f, "item {item_id} repeats evidence family {family_id}")
@@ -441,11 +441,20 @@ impl fmt::Display for KnowledgeError {
             Self::EmptyPrerequisite { item_id } => {
                 write!(f, "item {item_id} has an empty prerequisite ID")
             }
-            Self::DuplicatePrerequisite { item_id, prerequisite_id } => {
+            Self::DuplicatePrerequisite {
+                item_id,
+                prerequisite_id,
+            } => {
                 write!(f, "item {item_id} repeats prerequisite {prerequisite_id}")
             }
-            Self::UnknownPrerequisite { item_id, prerequisite_id } => {
-                write!(f, "item {item_id} references unknown prerequisite {prerequisite_id}")
+            Self::UnknownPrerequisite {
+                item_id,
+                prerequisite_id,
+            } => {
+                write!(
+                    f,
+                    "item {item_id} references unknown prerequisite {prerequisite_id}"
+                )
             }
             Self::PrerequisiteCycle => write!(f, "knowledge prerequisite graph contains a cycle"),
             Self::EmptyParticipantId => write!(f, "participant ID must not be empty"),
@@ -456,32 +465,87 @@ impl fmt::Display for KnowledgeError {
             Self::DuplicateTransmissionId(id) => write!(f, "duplicate transmission ID: {id}"),
             Self::UnknownParticipant(id) => write!(f, "unknown participant: {id}"),
             Self::UnknownItem(id) => write!(f, "unknown knowledge item: {id}"),
-            Self::FutureToPastTransmission { sender_id, receiver_id } => {
-                write!(f, "future participant {sender_id} cannot teach earlier participant {receiver_id}")
+            Self::FutureToPastTransmission {
+                sender_id,
+                receiver_id,
+            } => {
+                write!(
+                    f,
+                    "future participant {sender_id} cannot teach earlier participant {receiver_id}"
+                )
             }
-            Self::DuplicateCarrierState { participant_id, item_id } => {
-                write!(f, "duplicate carrier state for ({participant_id}, {item_id})")
+            Self::DuplicateCarrierState {
+                participant_id,
+                item_id,
+            } => {
+                write!(
+                    f,
+                    "duplicate carrier state for ({participant_id}, {item_id})"
+                )
             }
-            Self::AcquisitionSourceMismatch { participant_id, item_id } => {
-                write!(f, "acquisition/source mismatch for ({participant_id}, {item_id})")
+            Self::AcquisitionSourceMismatch {
+                participant_id,
+                item_id,
+            } => {
+                write!(
+                    f,
+                    "acquisition/source mismatch for ({participant_id}, {item_id})"
+                )
             }
-            Self::AcquisitionWithoutDeliveredTransmission { participant_id, item_id } => {
-                write!(f, "transmission acquisition for ({participant_id}, {item_id}) lacks a delivered event")
+            Self::AcquisitionWithoutDeliveredTransmission {
+                participant_id,
+                item_id,
+            } => {
+                write!(
+                    f,
+                    "transmission acquisition for ({participant_id}, {item_id}) lacks a delivered event"
+                )
             }
-            Self::ArchiveAcquisitionWithoutVerifiedCopy { participant_id, item_id } => {
-                write!(f, "archive acquisition for ({participant_id}, {item_id}) lacks a verified copy")
+            Self::ArchiveAcquisitionWithoutVerifiedCopy {
+                participant_id,
+                item_id,
+            } => {
+                write!(
+                    f,
+                    "archive acquisition for ({participant_id}, {item_id}) lacks a verified copy"
+                )
             }
-            Self::ComprehensionWithoutAcquisition { participant_id, item_id } => {
-                write!(f, "comprehension without acquisition for ({participant_id}, {item_id})")
+            Self::ComprehensionWithoutAcquisition {
+                participant_id,
+                item_id,
+            } => {
+                write!(
+                    f,
+                    "comprehension without acquisition for ({participant_id}, {item_id})"
+                )
             }
-            Self::InvalidDemonstration { participant_id, item_id, score } => {
-                write!(f, "invalid demonstration {score} for ({participant_id}, {item_id})")
+            Self::InvalidDemonstration {
+                participant_id,
+                item_id,
+                score,
+            } => {
+                write!(
+                    f,
+                    "invalid demonstration {score} for ({participant_id}, {item_id})"
+                )
             }
-            Self::InvalidRetentionAssessment { participant_id, item_id } => {
-                write!(f, "invalid delayed retention assessment for ({participant_id}, {item_id})")
+            Self::InvalidRetentionAssessment {
+                participant_id,
+                item_id,
+            } => {
+                write!(
+                    f,
+                    "invalid delayed retention assessment for ({participant_id}, {item_id})"
+                )
             }
-            Self::TeachingWithoutAcquisition { participant_id, item_id } => {
-                write!(f, "independent teaching without acquisition for ({participant_id}, {item_id})")
+            Self::TeachingWithoutAcquisition {
+                participant_id,
+                item_id,
+            } => {
+                write!(
+                    f,
+                    "independent teaching without acquisition for ({participant_id}, {item_id})"
+                )
             }
             Self::EmptyArchiveIdentity => {
                 write!(f, "archive copy ID and failure domain must not be empty")
@@ -570,7 +634,10 @@ pub fn evaluate(dataset: &KnowledgeDataset) -> Result<KnowledgeEvaluation, Knowl
             .map(|copy| copy.failure_domain_id.as_str())
             .collect::<BTreeSet<_>>();
 
-        let acquisition_count = item_carriers.iter().filter(|carrier| carrier.acquired).count();
+        let acquisition_count = item_carriers
+            .iter()
+            .filter(|carrier| carrier.acquired)
+            .count();
         let comprehension_count = item_carriers
             .iter()
             .filter(|carrier| carrier.comprehended)
@@ -741,12 +808,30 @@ pub fn reference_dataset() -> KnowledgeDataset {
         },
     ];
     let participants = vec![
-        Participant { participant_id: "agent_a".into(), generation: 0 },
-        Participant { participant_id: "agent_b".into(), generation: 0 },
-        Participant { participant_id: "agent_c".into(), generation: 1 },
-        Participant { participant_id: "agent_d".into(), generation: 1 },
-        Participant { participant_id: "agent_e".into(), generation: 2 },
-        Participant { participant_id: "agent_f".into(), generation: 2 },
+        Participant {
+            participant_id: "agent_a".into(),
+            generation: 0,
+        },
+        Participant {
+            participant_id: "agent_b".into(),
+            generation: 0,
+        },
+        Participant {
+            participant_id: "agent_c".into(),
+            generation: 1,
+        },
+        Participant {
+            participant_id: "agent_d".into(),
+            generation: 1,
+        },
+        Participant {
+            participant_id: "agent_e".into(),
+            generation: 2,
+        },
+        Participant {
+            participant_id: "agent_f".into(),
+            generation: 2,
+        },
     ];
     let transmissions = vec![
         transmission("tx_01", "agent_a", "agent_c", "hydrology_skill", true),
@@ -756,17 +841,67 @@ pub fn reference_dataset() -> KnowledgeDataset {
         transmission("tx_05", "agent_b", "agent_f", "silt_myth", true),
     ];
     let carriers = vec![
-        carrier("agent_a", "hydrology_skill", Some(AcquisitionSource::IndependentDiscovery), true, Some(0.95), Some(true), true),
-        carrier("agent_c", "hydrology_skill", Some(AcquisitionSource::Transmission), true, Some(0.90), Some(true), true),
+        carrier(
+            "agent_a",
+            "hydrology_skill",
+            Some(AcquisitionSource::IndependentDiscovery),
+            true,
+            Some(0.95),
+            Some(true),
+            true,
+        ),
+        carrier(
+            "agent_c",
+            "hydrology_skill",
+            Some(AcquisitionSource::Transmission),
+            true,
+            Some(0.90),
+            Some(true),
+            true,
+        ),
         carrier("agent_d", "hydrology_skill", None, false, None, None, false),
-        carrier("agent_e", "hydrology_skill", Some(AcquisitionSource::Transmission), true, Some(0.80), Some(false), false),
-        carrier("agent_b", "silt_myth", Some(AcquisitionSource::Transmission), true, Some(0.85), Some(true), true),
+        carrier(
+            "agent_e",
+            "hydrology_skill",
+            Some(AcquisitionSource::Transmission),
+            true,
+            Some(0.80),
+            Some(false),
+            false,
+        ),
+        carrier(
+            "agent_b",
+            "silt_myth",
+            Some(AcquisitionSource::Transmission),
+            true,
+            Some(0.85),
+            Some(true),
+            true,
+        ),
         carrier("agent_f", "silt_myth", None, false, None, None, false),
     ];
     let archive_copies = vec![
-        archive("hydro_copy_a", "hydrology_skill", "archive_domain_a", true, true),
-        archive("hydro_copy_b", "hydrology_skill", "archive_domain_b", true, true),
-        archive("hydro_copy_c", "hydrology_skill", "archive_domain_b", true, true),
+        archive(
+            "hydro_copy_a",
+            "hydrology_skill",
+            "archive_domain_a",
+            true,
+            true,
+        ),
+        archive(
+            "hydro_copy_b",
+            "hydrology_skill",
+            "archive_domain_b",
+            true,
+            true,
+        ),
+        archive(
+            "hydro_copy_c",
+            "hydrology_skill",
+            "archive_domain_b",
+            true,
+            true,
+        ),
         archive("silt_copy_a", "silt_myth", "archive_domain_a", false, true),
     ];
 
@@ -844,7 +979,11 @@ mod tests {
     #[test]
     fn delivery_is_not_equivalent_to_acquisition_or_durable_capability() {
         let evaluation = evaluate(&reference_dataset()).unwrap();
-        let hydro = evaluation.items.iter().find(|item| item.item_id == "hydrology_skill").unwrap();
+        let hydro = evaluation
+            .items
+            .iter()
+            .find(|item| item.item_id == "hydrology_skill")
+            .unwrap();
         assert_eq!(hydro.delivered_transmissions, 3);
         assert_eq!(hydro.acquisition_count, 3);
         assert_eq!(hydro.comprehension_count, 3);
@@ -858,7 +997,11 @@ mod tests {
     #[test]
     fn refuted_knowledge_acquisition_is_reported_separately() {
         let evaluation = evaluate(&reference_dataset()).unwrap();
-        let myth = evaluation.items.iter().find(|item| item.item_id == "silt_myth").unwrap();
+        let myth = evaluation
+            .items
+            .iter()
+            .find(|item| item.item_id == "silt_myth")
+            .unwrap();
         assert_eq!(myth.epistemic_status, EpistemicStatus::Refuted);
         assert_eq!(myth.acquisition_count, 1);
         assert_eq!(myth.refuted_knowledge_acquisition_count, 1);
@@ -875,8 +1018,14 @@ mod tests {
 
         let failures = BTreeSet::from(["archive_domain_a".to_owned()]);
         let recovery = archive_recovery_after_failures(&dataset, &failures);
-        let hydro_recovery = recovery.iter().find(|item| item.item_id == "hydrology_skill").unwrap();
-        let myth_recovery = recovery.iter().find(|item| item.item_id == "silt_myth").unwrap();
+        let hydro_recovery = recovery
+            .iter()
+            .find(|item| item.item_id == "hydrology_skill")
+            .unwrap();
+        let myth_recovery = recovery
+            .iter()
+            .find(|item| item.item_id == "silt_myth")
+            .unwrap();
         assert_eq!(hydro_recovery.surviving_verified_copy_count, 2);
         assert!(hydro_recovery.recoverable);
         assert_eq!(myth_recovery.surviving_verified_copy_count, 0);
@@ -896,7 +1045,9 @@ mod tests {
     #[test]
     fn duplicate_evidence_families_do_not_inflate_corroboration() {
         let mut dataset = reference_dataset();
-        dataset.items[0].evidence_source_families.push("field_measurement".into());
+        dataset.items[0]
+            .evidence_source_families
+            .push("field_measurement".into());
         assert!(matches!(
             dataset.validate(),
             Err(KnowledgeError::DuplicateEvidenceFamily { .. })
@@ -907,7 +1058,9 @@ mod tests {
     fn knowledge_prerequisite_cycles_fail_closed() {
         let mut dataset = reference_dataset();
         dataset.items[0].prerequisites.push("silt_myth".into());
-        dataset.items[1].prerequisites.push("hydrology_skill".into());
+        dataset.items[1]
+            .prerequisites
+            .push("hydrology_skill".into());
         assert!(matches!(
             dataset.validate(),
             Err(KnowledgeError::PrerequisiteCycle)
@@ -940,7 +1093,9 @@ mod tests {
         dataset.carriers[2].acquired = true;
         dataset.carriers[2].acquisition_source = Some(AcquisitionSource::Archive);
         dataset.carriers[2].comprehended = true;
-        dataset.archive_copies.retain(|copy| copy.item_id != "hydrology_skill");
+        dataset
+            .archive_copies
+            .retain(|copy| copy.item_id != "hydrology_skill");
         assert!(matches!(
             dataset.validate(),
             Err(KnowledgeError::ArchiveAcquisitionWithoutVerifiedCopy { .. })
