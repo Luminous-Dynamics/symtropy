@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/marine-powertrain-literature-0.1.0.json",
+  "title": "Marine Powertrain Literature Benchmark Dataset",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "accessed_at",
+    "intended_use",
+    "comparison_policy",
+    "sources",
+    "studies",
+    "design_implications"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "accessed_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
+    },
+    "comparison_policy": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "studies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/study"
+      }
+    },
+    "design_implications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": [
+        "source_id",
+        "title",
+        "authors",
+        "publisher",
+        "published_at",
+        "doi",
+        "uri",
+        "evidence_class",
+        "accessed_at",
+        "method_summary"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "publisher": {
+          "type": "string",
+          "minLength": 1
+        },
+        "volume": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "article_number": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "published_at": {
+          "type": "string",
+          "minLength": 4
+        },
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\."
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "landing_page": {
+          "type": "string",
+          "format": "uri"
+        },
+        "evidence_class": {
+          "const": "peer_reviewed_open_access_research_article"
+        },
+        "accessed_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "data_availability": {
+          "type": "string"
+        },
+        "method_summary": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "metric",
+        "unit",
+        "technology",
+        "status",
+        "boundary"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "minimum": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maximum": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "technology": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty": {
+          "type": [
+            "number",
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "study": {
+      "type": "object",
+      "required": [
+        "study_id",
+        "source_id",
+        "vessel_class",
+        "route_or_region",
+        "operational_profile",
+        "baseline",
+        "methods",
+        "findings",
+        "limitations"
+      ],
+      "properties": {
+        "study_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vessel_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_or_region": {
+          "type": "string"
+        },
+        "operational_profile": {
+          "type": "string"
+        },
+        "baseline": {
+          "type": "string"
+        },
+        "configurations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "configurations_or_pathways": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "methods": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "findings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "configurations"
+          ]
+        },
+        {
+          "required": [
+            "configurations_or_pathways"
+          ]
+        }
+      ],
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

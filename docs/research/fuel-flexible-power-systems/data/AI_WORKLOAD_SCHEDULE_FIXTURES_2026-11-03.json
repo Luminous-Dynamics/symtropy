@@ -1,0 +1,391 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "luminous.ai-workload-schedule-feasibility-oracles.2026-11-03",
+  "status": "synthetic_schedule_feasibility_oracles",
+  "accessed_at": "2026-11-03",
+  "intended_use": "Synthetic test cases for the independent workload schedule verifier. They validate schedule feasibility, not optimal scheduling or physical site performance.",
+  "conventions": {
+    "slot_semantics": "half-open time interval [start_elapsed_ns, start_elapsed_ns + duration_ns)",
+    "facility_input_boundary": "base non-compute plus cooling plus job IT, job cooling and checkpoint energy at the declared facility input boundary",
+    "grid_import_rule": "max(facility_input_kw - committed_non_grid_supply_kw, 0)",
+    "checkpoint_rule": "checkpointable jobs incur declared checkpoint_resume_overhead_kwh each time work resumes after one or more unscheduled slots",
+    "work_rule": "all required work for every job must be delivered within its release/deadline window",
+    "optimizer_scope": "Verifier checks a proposed schedule; it does not generate or optimize the schedule."
+  },
+  "fixtures": [
+    {
+      "fixture_id": "SCHEDULE-PASS-001",
+      "expected_result": "pass",
+      "jobs": [
+        {
+          "job_id": "JOB-A",
+          "work_unit_id": "training-steps-v1",
+          "release_slot": 0,
+          "deadline_slot_exclusive": 4,
+          "required_work_units": 20,
+          "maximum_work_units_per_slot": 20,
+          "it_power_kw_per_work_unit": 10,
+          "cooling_power_kw_per_work_unit": 2,
+          "preemption_policy": "Deferrable",
+          "checkpoint_resume_overhead_kwh": 0
+        },
+        {
+          "job_id": "JOB-B",
+          "work_unit_id": "training-steps-v1",
+          "release_slot": 0,
+          "deadline_slot_exclusive": 4,
+          "required_work_units": 20,
+          "maximum_work_units_per_slot": 20,
+          "it_power_kw_per_work_unit": 10,
+          "cooling_power_kw_per_work_unit": 2,
+          "preemption_policy": "NonPreemptible",
+          "checkpoint_resume_overhead_kwh": 0
+        }
+      ],
+      "slots": [
+        {
+          "slot_index": 0,
+          "start_elapsed_ns": 0,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        },
+        {
+          "slot_index": 1,
+          "start_elapsed_ns": 3600000000000,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        },
+        {
+          "slot_index": 2,
+          "start_elapsed_ns": 7200000000000,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        },
+        {
+          "slot_index": 3,
+          "start_elapsed_ns": 10800000000000,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        }
+      ],
+      "allocations": [
+        {
+          "job_id": "JOB-A",
+          "slot_index": 0,
+          "work_units": 10
+        },
+        {
+          "job_id": "JOB-A",
+          "slot_index": 2,
+          "work_units": 10
+        },
+        {
+          "job_id": "JOB-B",
+          "slot_index": 1,
+          "work_units": 20
+        }
+      ],
+      "oracle": {
+        "completed_work_units": 40,
+        "peak_facility_input_kw": 490,
+        "peak_grid_import_kw": 390,
+        "peak_cooling_power_kw": 90,
+        "total_facility_energy_kwh": 1480,
+        "total_grid_import_energy_kwh": 1080,
+        "total_cooling_energy_kwh": 280,
+        "checkpoint_overhead_energy_kwh": 0,
+        "interpretation": "Both jobs complete; all slot budgets pass; the non-preemptible job occupies one continuous slot."
+      }
+    },
+    {
+      "fixture_id": "SCHEDULE-REJECT-GRID-001",
+      "expected_result": "reject",
+      "expected_error": "GridImportLimitExceeded",
+      "jobs": [
+        {
+          "job_id": "JOB-A",
+          "work_unit_id": "training-steps-v1",
+          "release_slot": 0,
+          "deadline_slot_exclusive": 2,
+          "required_work_units": 20,
+          "maximum_work_units_per_slot": 20,
+          "it_power_kw_per_work_unit": 10,
+          "cooling_power_kw_per_work_unit": 2,
+          "preemption_policy": "Deferrable",
+          "checkpoint_resume_overhead_kwh": 0
+        }
+      ],
+      "slots": [
+        {
+          "slot_index": 0,
+          "start_elapsed_ns": 0,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 350,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        },
+        {
+          "slot_index": 1,
+          "start_elapsed_ns": 3600000000000,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        }
+      ],
+      "allocations": [
+        {
+          "job_id": "JOB-A",
+          "slot_index": 0,
+          "work_units": 20
+        }
+      ],
+      "oracle": {
+        "slot_index": 0,
+        "facility_input_kw": 490,
+        "grid_import_kw": 390,
+        "maximum_grid_import_kw": 350,
+        "interpretation": "The workload fits the facility input limit but violates the residual grid-import cap after 100 kW committed non-grid supply."
+      }
+    },
+    {
+      "fixture_id": "SCHEDULE-REJECT-COOLING-001",
+      "expected_result": "reject",
+      "expected_error": "CoolingLimitExceeded",
+      "jobs": [
+        {
+          "job_id": "JOB-A",
+          "work_unit_id": "training-steps-v1",
+          "release_slot": 0,
+          "deadline_slot_exclusive": 2,
+          "required_work_units": 20,
+          "maximum_work_units_per_slot": 20,
+          "it_power_kw_per_work_unit": 10,
+          "cooling_power_kw_per_work_unit": 2,
+          "preemption_policy": "Deferrable",
+          "checkpoint_resume_overhead_kwh": 0
+        }
+      ],
+      "slots": [
+        {
+          "slot_index": 0,
+          "start_elapsed_ns": 0,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 80,
+          "maximum_compute_work_units": 100
+        },
+        {
+          "slot_index": 1,
+          "start_elapsed_ns": 3600000000000,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        }
+      ],
+      "allocations": [
+        {
+          "job_id": "JOB-A",
+          "slot_index": 0,
+          "work_units": 20
+        }
+      ],
+      "oracle": {
+        "slot_index": 0,
+        "cooling_power_kw": 90,
+        "maximum_cooling_power_kw": 80,
+        "interpretation": "Electrical power limits pass but the cooling plant capacity is exceeded."
+      }
+    },
+    {
+      "fixture_id": "SCHEDULE-REJECT-NONPREEMPTIBLE-001",
+      "expected_result": "reject",
+      "expected_error": "NonPreemptibleJobFragmented",
+      "jobs": [
+        {
+          "job_id": "JOB-A",
+          "work_unit_id": "training-steps-v1",
+          "release_slot": 0,
+          "deadline_slot_exclusive": 3,
+          "required_work_units": 20,
+          "maximum_work_units_per_slot": 20,
+          "it_power_kw_per_work_unit": 10,
+          "cooling_power_kw_per_work_unit": 2,
+          "preemption_policy": "NonPreemptible",
+          "checkpoint_resume_overhead_kwh": 0
+        }
+      ],
+      "slots": [
+        {
+          "slot_index": 0,
+          "start_elapsed_ns": 0,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        },
+        {
+          "slot_index": 1,
+          "start_elapsed_ns": 3600000000000,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        },
+        {
+          "slot_index": 2,
+          "start_elapsed_ns": 7200000000000,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        }
+      ],
+      "allocations": [
+        {
+          "job_id": "JOB-A",
+          "slot_index": 0,
+          "work_units": 10
+        },
+        {
+          "job_id": "JOB-A",
+          "slot_index": 2,
+          "work_units": 10
+        }
+      ],
+      "oracle": {
+        "previous_slot": 0,
+        "next_slot": 2,
+        "interpretation": "All work is delivered before the deadline, but the non-preemptible job is incorrectly fragmented across a gap."
+      }
+    },
+    {
+      "fixture_id": "SCHEDULE-PASS-CHECKPOINT-001",
+      "expected_result": "pass",
+      "jobs": [
+        {
+          "job_id": "JOB-A",
+          "work_unit_id": "training-steps-v1",
+          "release_slot": 0,
+          "deadline_slot_exclusive": 3,
+          "required_work_units": 20,
+          "maximum_work_units_per_slot": 20,
+          "it_power_kw_per_work_unit": 10,
+          "cooling_power_kw_per_work_unit": 2,
+          "preemption_policy": "Checkpointable",
+          "checkpoint_resume_overhead_kwh": 5
+        }
+      ],
+      "slots": [
+        {
+          "slot_index": 0,
+          "start_elapsed_ns": 0,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        },
+        {
+          "slot_index": 1,
+          "start_elapsed_ns": 3600000000000,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        },
+        {
+          "slot_index": 2,
+          "start_elapsed_ns": 7200000000000,
+          "duration_ns": 3600000000000,
+          "base_non_compute_power_kw": 200,
+          "base_cooling_power_kw": 50,
+          "committed_non_grid_supply_kw": 100,
+          "maximum_facility_input_kw": 600,
+          "maximum_grid_import_kw": 500,
+          "maximum_cooling_power_kw": 100,
+          "maximum_compute_work_units": 100
+        }
+      ],
+      "allocations": [
+        {
+          "job_id": "JOB-A",
+          "slot_index": 0,
+          "work_units": 10
+        },
+        {
+          "job_id": "JOB-A",
+          "slot_index": 2,
+          "work_units": 10
+        }
+      ],
+      "oracle": {
+        "completed_work_units": 20,
+        "checkpoint_overhead_energy_kwh": 5,
+        "slot_2_checkpoint_power_kw": 5,
+        "interpretation": "The pause/resume is permitted; 5 kWh checkpoint overhead is assigned to the resumed slot and included in facility/grid budget accounting."
+      }
+    }
+  ],
+  "claim_ceiling": "All inputs are synthetic arithmetic controls. No fixture is a real workload, site meter, grid import profile or cooling plant result."
+}

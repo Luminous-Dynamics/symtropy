@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/ai-workload-schedule-oracles-0.1.0.json",
+  "title": "AI Workload Schedule Feasibility Oracle Fixtures",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "accessed_at",
+    "intended_use",
+    "conventions",
+    "fixtures",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "synthetic_schedule_feasibility_oracles"
+    },
+    "accessed_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
+    },
+    "conventions": {
+      "type": "object",
+      "required": [
+        "slot_semantics",
+        "facility_input_boundary",
+        "grid_import_rule",
+        "checkpoint_rule",
+        "work_rule",
+        "optimizer_scope"
+      ],
+      "additionalProperties": false
+    },
+    "fixtures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/fixture"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "job": {
+      "type": "object",
+      "required": [
+        "job_id",
+        "work_unit_id",
+        "release_slot",
+        "deadline_slot_exclusive",
+        "required_work_units",
+        "maximum_work_units_per_slot",
+        "it_power_kw_per_work_unit",
+        "cooling_power_kw_per_work_unit",
+        "preemption_policy",
+        "checkpoint_resume_overhead_kwh"
+      ],
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "work_unit_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "release_slot": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_slot_exclusive": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "required_work_units": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_work_units_per_slot": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "it_power_kw_per_work_unit": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cooling_power_kw_per_work_unit": {
+          "type": "number",
+          "minimum": 0
+        },
+        "preemption_policy": {
+          "enum": [
+            "NonPreemptible",
+            "Checkpointable",
+            "Deferrable"
+          ]
+        },
+        "checkpoint_resume_overhead_kwh": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "slot": {
+      "type": "object",
+      "required": [
+        "slot_index",
+        "start_elapsed_ns",
+        "duration_ns",
+        "base_non_compute_power_kw",
+        "base_cooling_power_kw",
+        "committed_non_grid_supply_kw",
+        "maximum_facility_input_kw",
+        "maximum_grid_import_kw",
+        "maximum_cooling_power_kw",
+        "maximum_compute_work_units"
+      ],
+      "properties": {
+        "slot_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "start_elapsed_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duration_ns": {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "base_non_compute_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "base_cooling_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "committed_non_grid_supply_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_facility_input_kw": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_grid_import_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_cooling_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_compute_work_units": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "allocation": {
+      "type": "object",
+      "required": [
+        "job_id",
+        "slot_index",
+        "work_units"
+      ],
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slot_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "work_units": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "fixture": {
+      "type": "object",
+      "required": [
+        "fixture_id",
+        "expected_result",
+        "jobs",
+        "slots",
+        "allocations",
+        "oracle"
+      ],
+      "properties": {
+        "fixture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_result": {
+          "enum": [
+            "pass",
+            "reject"
+          ]
+        },
+        "expected_error": {
+          "type": "string"
+        },
+        "jobs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/job"
+          }
+        },
+        "slots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/slot"
+          }
+        },
+        "allocations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/allocation"
+          }
+        },
+        "oracle": {
+          "type": "object",
+          "required": [
+            "interpretation"
+          ],
+          "properties": {
+            "interpretation": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

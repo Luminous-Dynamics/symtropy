@@ -1,0 +1,296 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "luminous.energy.matched-service-ffer-fixtures.2026-11-03",
+  "status": "synthetic_arithmetic_oracle_fixtures",
+  "accessed_at": "2026-11-03",
+  "intended_use": "Independent hand-checkable fixtures for matched-service net-AC FFER implementation and hostile-input testing. All quantities are synthetic arithmetic controls, not physical engine performance data.",
+  "conventions": {
+    "energy_unit": "J",
+    "power_unit": "W",
+    "mass_flow_unit": "kg/s",
+    "lhv_unit": "J/kg",
+    "time_unit": "Unix seconds",
+    "time_window_semantics": "half-open [start, end)",
+    "efficiency_basis": "chemical fuel energy LHV to net AC electrical energy",
+    "service_boundary": "net AC terminal after declared generator conversion losses and auxiliary load",
+    "common_service_rule": "per segment min(requested energy, reference generated energy, candidate generated energy)",
+    "surplus_rule": "generated energy above requested service is reported but never credited",
+    "ffer_rule": "candidate common-service efficiency divided by reference common-service efficiency",
+    "tolerance_rule": "per segment max(absolute_energy_j, relative_fraction * required_energy_j); a positive demand cannot have allowed deficit greater than or equal to the full demand"
+  },
+  "common_configuration": {
+    "lower_heating_value_j_per_kg": 43000000,
+    "generator_efficiency": 0.96,
+    "auxiliary_power_w_by_segment": [
+      5760,
+      1700
+    ],
+    "segment_windows_unix_seconds": [
+      [
+        0,
+        60
+      ],
+      [
+        60,
+        90
+      ]
+    ],
+    "reference_engine_efficiency": 0.45
+  },
+  "scenarios": [
+    {
+      "scenario_id": "FFER-MATCH-001",
+      "title": "Equal net-AC service; candidate requires less fuel energy",
+      "expected_result": "comparison_pass",
+      "profile": {
+        "profile_id": "GEN-FFER-REFERENCE",
+        "version": "v1",
+        "segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "required_net_ac_energy_j": 10800000
+          },
+          {
+            "start_unix_seconds": 60,
+            "end_unix_seconds": 90,
+            "required_net_ac_energy_j": 2735400
+          }
+        ]
+      },
+      "systems": {
+        "reference": {
+          "name": "reference",
+          "engine_efficiency": 0.45,
+          "fuel_mass_flow_kg_per_s": [
+            0.01,
+            0.005
+          ],
+          "segment_generated_net_ac_energy_j": [
+            10800000,
+            2735400
+          ],
+          "chemical_input_energy_j": 32250000
+        },
+        "candidate": {
+          "name": "candidate",
+          "engine_efficiency": 0.5,
+          "fuel_mass_flow_kg_per_s": [
+            0.009,
+            0.0045
+          ],
+          "segment_generated_net_ac_energy_j": [
+            10800000,
+            2735400
+          ],
+          "chemical_input_energy_j": 29025000
+        }
+      },
+      "tolerance": {
+        "absolute_energy_j": 0,
+        "relative_fraction": 1e-9
+      },
+      "oracle": {
+        "total_required_service_energy_j": 13535400,
+        "common_matched_service_energy_j": 13535400,
+        "reference_surplus_energy_j": 0,
+        "candidate_surplus_energy_j": 0,
+        "reference_unserved_energy_j": 0,
+        "candidate_unserved_energy_j": 0,
+        "reference_matched_service_efficiency": 0.41970232558139536,
+        "candidate_matched_service_efficiency": 0.4663359173126615,
+        "ffer": 1.1111111111111112,
+        "interpretation": "The candidate delivers identical segment-level net-AC service while requiring 10% less chemical input energy (FFER is reference input / candidate input = 1.111111...)."
+      }
+    },
+    {
+      "scenario_id": "FFER-MATCH-002",
+      "title": "Surplus generation is visible but not credited",
+      "expected_result": "comparison_pass",
+      "profile": {
+        "profile_id": "GEN-FFER-SURPLUS",
+        "version": "v1",
+        "segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "required_net_ac_energy_j": 9685440
+          },
+          {
+            "start_unix_seconds": 60,
+            "end_unix_seconds": 90,
+            "required_net_ac_energy_j": 2456760
+          }
+        ]
+      },
+      "systems": {
+        "reference": {
+          "name": "reference",
+          "engine_efficiency": 0.45,
+          "fuel_mass_flow_kg_per_s": [
+            0.01,
+            0.005
+          ],
+          "segment_generated_net_ac_energy_j": [
+            10800000,
+            2735400
+          ],
+          "chemical_input_energy_j": 32250000
+        },
+        "candidate": {
+          "name": "candidate",
+          "engine_efficiency": 0.45,
+          "fuel_mass_flow_kg_per_s": [
+            0.009,
+            0.0045
+          ],
+          "segment_generated_net_ac_energy_j": [
+            9685440,
+            2456760
+          ],
+          "chemical_input_energy_j": 29025000
+        }
+      },
+      "tolerance": {
+        "absolute_energy_j": 0,
+        "relative_fraction": 1e-9
+      },
+      "oracle": {
+        "total_required_service_energy_j": 12142200,
+        "common_matched_service_energy_j": 12142200,
+        "reference_surplus_energy_j": 1393200,
+        "candidate_surplus_energy_j": 0,
+        "reference_unserved_energy_j": 0,
+        "candidate_unserved_energy_j": 0,
+        "reference_matched_service_efficiency": 0.37650232558139535,
+        "candidate_matched_service_efficiency": 0.4183359173126615,
+        "ffer": 1.1111111111111112,
+        "interpretation": "Reference surplus is 1,393,200 J. It is reported and excluded from common useful service; it cannot inflate reference efficiency or distort candidate credit."
+      }
+    },
+    {
+      "scenario_id": "FFER-REJECT-003",
+      "title": "Candidate under-delivers requested service",
+      "expected_result": "reject_service_deficit",
+      "profile": {
+        "profile_id": "GEN-FFER-UNDERDELIVERY",
+        "version": "v1",
+        "segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "required_net_ac_energy_j": 10800000
+          },
+          {
+            "start_unix_seconds": 60,
+            "end_unix_seconds": 90,
+            "required_net_ac_energy_j": 2735400
+          }
+        ]
+      },
+      "systems": {
+        "reference": {
+          "name": "reference",
+          "engine_efficiency": 0.45,
+          "fuel_mass_flow_kg_per_s": [
+            0.01,
+            0.005
+          ],
+          "segment_generated_net_ac_energy_j": [
+            10800000,
+            2735400
+          ],
+          "chemical_input_energy_j": 32250000
+        },
+        "candidate": {
+          "name": "under-delivering-candidate",
+          "engine_efficiency": 0.5,
+          "fuel_mass_flow_kg_per_s": [
+            0.008,
+            0.004
+          ],
+          "segment_generated_net_ac_energy_j": [
+            9561600,
+            2425800
+          ],
+          "chemical_input_energy_j": 25800000
+        }
+      },
+      "tolerance": {
+        "absolute_energy_j": 0,
+        "relative_fraction": 0
+      },
+      "oracle": {
+        "expected_error": "ServiceDeficit",
+        "first_candidate_segment_deficit_j": 1238400,
+        "second_candidate_segment_deficit_j": 309600,
+        "interpretation": "Even though the candidate uses less fuel, it does not provide the requested net-AC service. No efficiency comparison is emitted."
+      }
+    },
+    {
+      "scenario_id": "FFER-REJECT-004",
+      "title": "Excessive absolute tolerance cannot hide total service failure",
+      "expected_result": "reject_tolerance_exceeds_demand",
+      "profile": {
+        "profile_id": "GEN-FFER-LOOSE-TOLERANCE",
+        "version": "v1",
+        "segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "required_net_ac_energy_j": 10800000
+          },
+          {
+            "start_unix_seconds": 60,
+            "end_unix_seconds": 90,
+            "required_net_ac_energy_j": 2735400
+          }
+        ]
+      },
+      "systems": {
+        "reference": {
+          "name": "reference",
+          "engine_efficiency": 0.45,
+          "fuel_mass_flow_kg_per_s": [
+            0.01,
+            0.005
+          ],
+          "segment_generated_net_ac_energy_j": [
+            10800000,
+            2735400
+          ],
+          "chemical_input_energy_j": 32250000
+        },
+        "candidate": {
+          "name": "low-output-candidate",
+          "engine_efficiency": 0.5,
+          "fuel_mass_flow_kg_per_s": [
+            0.00032,
+            0.0001
+          ],
+          "segment_generated_net_ac_energy_j": [
+            50688,
+            10920
+          ],
+          "chemical_input_energy_j": 954600
+        }
+      },
+      "tolerance": {
+        "absolute_energy_j": 20000000,
+        "relative_fraction": 0
+      },
+      "oracle": {
+        "expected_error": "ToleranceExceedsDemand",
+        "interpretation": "The allowed deficit is greater than the first segment's entire requested energy. The comparator must reject the tolerance contract before it can conceal a complete service failure."
+      }
+    }
+  ],
+  "reproducibility": {
+    "recompute_chemical_input_energy": "sum_i(mass_flow_kg_per_s[i] * LHV_J_per_kg * (end_i - start_i))",
+    "recompute_net_ac_energy": "sum_i(max(0, (mass_flow_i * LHV * engine_efficiency * generator_efficiency - auxiliary_power_i) * duration_i))",
+    "recompute_common_service": "sum_i(min(required_i, reference_generated_i, candidate_generated_i))",
+    "recompute_surplus": "sum_i(max(generated_i - required_i, 0))",
+    "recompute_ffer": "(common_service / candidate_chemical_input_energy) / (common_service / reference_chemical_input_energy)",
+    "caveat": "These formulas are for the explicit synthetic fixtures only. Real system models must also include fuel-batch evidence, calibration, measurement uncertainty, covariance, test boundary and topology-specific losses."
+  }
+}

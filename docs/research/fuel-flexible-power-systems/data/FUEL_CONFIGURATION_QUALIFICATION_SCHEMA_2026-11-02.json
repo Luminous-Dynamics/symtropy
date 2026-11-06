@@ -1,0 +1,805 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/fuel-configuration-qualification-0.1.0.json",
+  "title": "Fuel Configuration Qualification Record",
+  "description": "Evidence contract for qualifying one exact hardware/software configuration against one fuel family and an explicit batch-property envelope. Product-family marketing claims and planned tests cannot satisfy physical qualification.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "qualification_record_id",
+    "configuration_identity",
+    "fuel_identity",
+    "requested_scope",
+    "qualification_status",
+    "evidence_records",
+    "unresolved_gaps",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "qualification_record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "configuration_identity": {
+      "$ref": "#/$defs/configuration"
+    },
+    "fuel_identity": {
+      "$ref": "#/$defs/fuel"
+    },
+    "requested_scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "qualification_status": {
+      "enum": [
+        "unknown",
+        "proposed",
+        "planned_test",
+        "in_test",
+        "partially_qualified",
+        "qualified_within_scope",
+        "rejected",
+        "expired_or_superseded"
+      ]
+    },
+    "operating_envelope": {
+      "$ref": "#/$defs/operating_envelope"
+    },
+    "test_coverage": {
+      "$ref": "#/$defs/test_coverage"
+    },
+    "emissions_evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/emissions"
+      }
+    },
+    "materials_compatibility": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/material_compatibility"
+      }
+    },
+    "durability_evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/durability"
+      }
+    },
+    "safety_approvals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/approval"
+      }
+    },
+    "evidence_records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "unresolved_gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "reviewer": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "qualification_status": {
+            "const": "qualified_within_scope"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "test_coverage": {
+            "physical_test_completed": {
+              "const": true
+            },
+            "independent_review_completed": {
+              "const": true
+            },
+            "emissions_test_complete": {
+              "const": true
+            }
+          },
+          "unresolved_gaps": {
+            "maxItems": 0
+          },
+          "evidence_records": {
+            "minItems": 1,
+            "contains": {
+              "type": "object",
+              "required": [
+                "evidence_class",
+                "review_status"
+              ],
+              "properties": {
+                "evidence_class": {
+                  "enum": [
+                    "physical_measurement",
+                    "third_party_test"
+                  ]
+                },
+                "review_status": {
+                  "const": "independent_reviewed"
+                }
+              }
+            },
+            "minContains": 1
+          },
+          "emissions_evidence": {
+            "minItems": 1,
+            "contains": {
+              "type": "object",
+              "required": [
+                "evidence_status"
+              ],
+              "properties": {
+                "evidence_status": {
+                  "enum": [
+                    "measured",
+                    "third_party_source_test"
+                  ]
+                }
+              }
+            },
+            "minContains": 1
+          },
+          "safety_approvals": {
+            "minItems": 1,
+            "contains": {
+              "type": "object",
+              "required": [
+                "status"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "approved",
+                    "not_required_confirmed"
+                  ]
+                }
+              }
+            },
+            "minContains": 1
+          }
+        },
+        "required": [
+          "test_coverage",
+          "safety_approvals",
+          "emissions_evidence"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": [
+        "source_id",
+        "uri",
+        "publisher",
+        "retrieved_at"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "publisher": {
+          "type": "string",
+          "minLength": 1
+        },
+        "published_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "document_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "configuration": {
+      "type": "object",
+      "required": [
+        "configuration_id",
+        "topology",
+        "hardware_revision",
+        "fuel_system_revision",
+        "control_calibration_revision"
+      ],
+      "properties": {
+        "configuration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "topology": {
+          "enum": [
+            "reciprocating_engine",
+            "microturbine",
+            "linear_generator",
+            "fuel_cell",
+            "hybrid",
+            "other"
+          ]
+        },
+        "hardware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fuel_system_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control_calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aftertreatment_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "software_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installation_class": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "fuel": {
+      "type": "object",
+      "required": [
+        "fuel_family",
+        "grade_or_blend",
+        "batch_scope"
+      ],
+      "properties": {
+        "fuel_family": {
+          "enum": [
+            "diesel",
+            "renewable_diesel",
+            "biodiesel",
+            "natural_gas",
+            "biomethane",
+            "lpg",
+            "methanol",
+            "ethanol",
+            "hydrogen",
+            "ammonia",
+            "syngas",
+            "other"
+          ]
+        },
+        "grade_or_blend": {
+          "type": "string",
+          "minLength": 1
+        },
+        "batch_scope": {
+          "enum": [
+            "single_batch",
+            "defined_property_envelope",
+            "supplier_specification",
+            "regional_distribution",
+            "unknown"
+          ]
+        },
+        "batch_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "composition_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "property_envelope": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/property_limit"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "property_limit": {
+      "type": "object",
+      "required": [
+        "property",
+        "unit",
+        "lower_bound",
+        "upper_bound",
+        "evidence_status"
+      ],
+      "properties": {
+        "property": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lower_bound": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "upper_bound": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "standard_uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reference_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "reference_pressure_kpa": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "evidence_status": {
+          "enum": [
+            "measured",
+            "supplier_certificate",
+            "published_reference",
+            "analyst_scenario",
+            "unknown"
+          ]
+        },
+        "source_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "application",
+        "jurisdiction",
+        "duty_cycle_id",
+        "measurement_boundary"
+      ],
+      "properties": {
+        "application": {
+          "enum": [
+            "stationary_generator",
+            "road_vehicle",
+            "marine_auxiliary",
+            "marine_propulsion",
+            "industrial",
+            "other"
+          ]
+        },
+        "jurisdiction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duty_cycle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ambient_envelope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "load_envelope": {
+          "type": "string"
+        },
+        "excluded_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "operating_envelope": {
+      "type": "object",
+      "properties": {
+        "minimum_stable_load_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_continuous_load_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cold_start_tested": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "hot_start_tested": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "transient_tested": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "fuel_switching_tested": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "switching_procedure_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tested_ambient_range": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "test_coverage": {
+      "type": "object",
+      "required": [
+        "physical_test_completed",
+        "independent_review_completed",
+        "test_run_ids"
+      ],
+      "properties": {
+        "physical_test_completed": {
+          "type": "boolean"
+        },
+        "independent_review_completed": {
+          "type": "boolean"
+        },
+        "test_run_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "steady_state_map_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "transient_test_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "emissions_test_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "durability_test_hours": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "measurement_uncertainty_reported": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "emissions": {
+      "type": "object",
+      "required": [
+        "pollutant",
+        "value",
+        "unit",
+        "test_cycle",
+        "measurement_boundary",
+        "evidence_status"
+      ],
+      "properties": {
+        "pollutant": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "reference_oxygen_percent": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "test_cycle": {
+          "type": "string"
+        },
+        "measurement_boundary": {
+          "type": "string"
+        },
+        "evidence_status": {
+          "enum": [
+            "measured",
+            "third_party_source_test",
+            "manufacturer_reported",
+            "modelled",
+            "unknown"
+          ]
+        },
+        "uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "material_compatibility": {
+      "type": "object",
+      "required": [
+        "component_or_material",
+        "exposure_condition",
+        "result_status"
+      ],
+      "properties": {
+        "component_or_material": {
+          "type": "string"
+        },
+        "exposure_condition": {
+          "type": "string"
+        },
+        "result_status": {
+          "enum": [
+            "tested_compatible",
+            "tested_incompatible",
+            "manufacturer_statement",
+            "not_tested",
+            "unknown"
+          ]
+        },
+        "test_standard": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "durability": {
+      "type": "object",
+      "required": [
+        "test_hours",
+        "test_condition",
+        "result_status"
+      ],
+      "properties": {
+        "test_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "test_condition": {
+          "type": "string"
+        },
+        "result_status": {
+          "enum": [
+            "passed",
+            "failed",
+            "partial",
+            "planned",
+            "unknown"
+          ]
+        },
+        "inspection_findings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "approval": {
+      "type": "object",
+      "required": [
+        "approval_type",
+        "jurisdiction",
+        "status",
+        "source"
+      ],
+      "properties": {
+        "approval_type": {
+          "type": "string"
+        },
+        "jurisdiction": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "approved",
+            "conditional",
+            "application_in_progress",
+            "not_required_confirmed",
+            "not_assessed",
+            "rejected",
+            "expired"
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "configuration_scope": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "evidence_id",
+        "evidence_class",
+        "source",
+        "claim_scope"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string"
+        },
+        "evidence_class": {
+          "enum": [
+            "physical_measurement",
+            "third_party_test",
+            "manufacturer_test",
+            "supplier_certificate",
+            "government_pilot_announcement",
+            "published_literature",
+            "standard_or_regulation",
+            "analyst_scenario",
+            "planned_test"
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "claim_scope": {
+          "type": "string"
+        },
+        "configuration_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw_data_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_status": {
+          "enum": [
+            "independent_reviewed",
+            "internal_reviewed",
+            "not_reviewed",
+            "unknown"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

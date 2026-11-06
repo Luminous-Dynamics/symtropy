@@ -1,0 +1,273 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "luminous.marine-powertrain-literature-baselines.2026-11-03",
+  "status": "peer_reviewed_literature_reference_not_universal_ranking",
+  "accessed_at": "2026-11-03",
+  "intended_use": "Vessel-specific system-level research baselines covering dynamic energy, lifecycle GHG, cost and cargo/storage trade-offs. Values are study outcomes, not universal fuel properties or independent certification of a commercial product.",
+  "comparison_policy": [
+    "Keep each source tied to its actual vessel, route, operational profile, geography, technology assumptions and functional unit.",
+    "Do not combine the container-ship study and the 6177-GT general-cargo study into one ranking.",
+    "Report upstream fuel production, onboard processing, tank-to-wake, components, replacements, cargo payload, route and lifecycle boundaries separately.",
+    "PEMFC stack efficiency is not the same as whole-plant propulsion efficiency; include reforming/cracking, balance of plant, power electronics and auxiliaries.",
+    "Tank volume and cargo deadweight penalties are vessel-specific and must not be transferred as universal multipliers.",
+    "The article's interpretation of adopted/projected IMO GFI trajectories is a study result; verify legal/regulatory status against the current official IMO instrument before any compliance claim.",
+    "Null values and missing uncertainty remain unknown, not zero."
+  ],
+  "sources": [
+    {
+      "source_id": "ELKAFAS_LAZAKIS_ECM_2026_121836",
+      "title": "Comparative multi-criteria assessment of electro-fuel-based marine power systems for container ships",
+      "authors": [
+        "Ahmed G. Elkafas",
+        "Iraklis Lazakis"
+      ],
+      "publisher": "Energy Conversion and Management",
+      "volume": 366,
+      "article_number": "121836",
+      "published_at": "2026-10-15",
+      "doi": "10.1016/j.enconman.2026.121836",
+      "uri": "https://doi.org/10.1016/j.enconman.2026.121836",
+      "evidence_class": "peer_reviewed_open_access_research_article",
+      "accessed_at": "2026-11-03",
+      "data_availability": "Supplementary data and detailed model inputs stated as available on request in the article.",
+      "method_summary": "High-fidelity dynamic energy modelling, lifecycle environmental assessment, techno-economic analysis, IMO-related GFI/EEXI assessment, TOPSIS multi-criteria decision analysis and Monte Carlo uncertainty analysis (1000 Latin-hypercube samples)."
+    },
+    {
+      "source_id": "ZINCIR_ARSLANOGLU_NEXTENERGY_2026_101068",
+      "title": "Environmental and economic assessment of alternative marine energy pathways using integrated life cycle analysis",
+      "authors": [
+        "Bugra Arda Zincir",
+        "Yasin Arslanoglu"
+      ],
+      "publisher": "Next Energy",
+      "volume": 13,
+      "article_number": "101068",
+      "published_at": "2026-10",
+      "doi": "10.1016/j.nxener.2026.101068",
+      "uri": "https://doi.org/10.1016/j.nxener.2026.101068",
+      "landing_page": "https://research.itu.edu.tr/en/publications/environmental-and-economic-assessment-of-alternative-marine-energ/",
+      "evidence_class": "peer_reviewed_open_access_research_article",
+      "accessed_at": "2026-11-03",
+      "method_summary": "Well-to-wake life-cycle assessment with GREET and OpenLCA / Environmental Footprint 3.0, life-cycle cost assessment over vessel service life and 10000-iteration Monte Carlo uncertainty analysis. Uses real operational data from a 6177-GT general-cargo vessel in the Mediterranean and Black Sea."
+    }
+  ],
+  "studies": [
+    {
+      "study_id": "deep_sea_container_ship_e_fuel_retrofits_2026",
+      "source_id": "ELKAFAS_LAZAKIS_ECM_2026_121836",
+      "vessel_class": "deep_sea_container_ship",
+      "route_or_region": "specific deep-sea container ship operational profile; exact source route not generalized here",
+      "operational_profile": "real operational profile per article",
+      "baseline": "conventional diesel",
+      "configurations": [
+        "e-ammonia dual-fuel engine",
+        "e-methanol dual-fuel engine",
+        "e-liquid-hydrogen dual-fuel engine",
+        "e-ammonia PEMFC with onboard cracking",
+        "e-methanol PEMFC with onboard steam reforming",
+        "e-liquid-hydrogen PEMFC"
+      ],
+      "methods": [
+        "dynamic energy model",
+        "well-to-wake / lifecycle environmental assessment",
+        "techno-economic assessment",
+        "regulatory scenario analysis",
+        "TOPSIS MCDA with multiple weighting scenarios",
+        "Monte Carlo with 1000 Latin-hypercube samples"
+      ],
+      "findings": [
+        {
+          "metric": "lifecycle_ghg_reduction_vs_diesel",
+          "value": 0.884,
+          "unit": "fraction",
+          "technology": "direct_hydrogen_PEMFC",
+          "status": "study_reported",
+          "boundary": "study's lifecycle GHG boundary and container-ship profile",
+          "uncertainty": null
+        },
+        {
+          "metric": "energy_consumption_reduction_vs_diesel",
+          "value": 0.163,
+          "unit": "fraction",
+          "technology": "direct_hydrogen_PEMFC",
+          "status": "study_reported",
+          "boundary": "study's dynamic system energy model",
+          "uncertainty": null
+        },
+        {
+          "metric": "greenhouse_gas_fuel_intensity",
+          "value": 9.99,
+          "unit": "gCO2e_per_MJ",
+          "technology": "direct_hydrogen_PEMFC",
+          "status": "study_reported",
+          "boundary": "study's GFI methodology",
+          "uncertainty": null
+        },
+        {
+          "metric": "ammonia_cracking_PEMFC_efficiency_penalty",
+          "minimum": 3.4,
+          "maximum": 5,
+          "unit": "percentage_points",
+          "technology": "e-ammonia_PEMFC",
+          "status": "study_reported",
+          "boundary": "relative to direct-hydrogen PEMFC operation"
+        },
+        {
+          "metric": "methanol_reforming_PEMFC_efficiency_penalty",
+          "minimum": 8.3,
+          "maximum": 9.4,
+          "unit": "percentage_points",
+          "technology": "e-methanol_PEMFC",
+          "status": "study_reported",
+          "boundary": "relative to direct-hydrogen PEMFC operation"
+        },
+        {
+          "metric": "ammonia_dual_fuel_marginal_abatement_cost",
+          "value": 254,
+          "unit": "USD_per_tCO2e",
+          "technology": "e-ammonia_dual_fuel_engine",
+          "status": "study_reported",
+          "boundary": "study's annualized economics and CO2 abatement calculation"
+        },
+        {
+          "metric": "cost_rank",
+          "value": "lowest_annual_cost_and_CO2_abatement_cost",
+          "unit": "categorical",
+          "technology": "e-ammonia_dual_fuel_engine",
+          "status": "study_reported",
+          "boundary": "among the studied configurations and assumptions"
+        },
+        {
+          "metric": "balanced_MCDA_top_rank",
+          "value": "e-ammonia_dual_fuel_engine",
+          "unit": "categorical",
+          "technology": "e-ammonia_dual_fuel_engine",
+          "status": "study_reported",
+          "boundary": "article's balanced TOPSIS weights"
+        },
+        {
+          "metric": "environmental_and_regulatory_MCDA_top_rank",
+          "value": "direct_hydrogen_PEMFC",
+          "unit": "categorical",
+          "technology": "direct_hydrogen_PEMFC",
+          "status": "study_reported",
+          "boundary": "article's environmental / regulatory stakeholder weights"
+        }
+      ],
+      "uncertainty_and_sensitivity": "Article reports ranking sensitivity to stakeholder priorities and cost uncertainty; article-specific Monte Carlo and sensitivity assumptions must be obtained before reproducing results.",
+      "limitations": [
+        "One deep-sea container-ship profile; results do not generalize automatically to inland cargo, short-sea, bulk, cruise or South African routes.",
+        "Fuel cost, electrolytic production pathway, onboard processing, PEMFC stack life and capital costs strongly affect rankings.",
+        "Article's IMO GFI trajectory claims must be checked against the current adopted legal instruments separately.",
+        "Detailed inputs are not fully reproduced in this record; do not claim independent replication."
+      ]
+    },
+    {
+      "study_id": "general_cargo_vessel_multifuel_lca_lcc_2026",
+      "source_id": "ZINCIR_ARSLANOGLU_NEXTENERGY_2026_101068",
+      "vessel_class": "general_cargo_vessel",
+      "vessel_gross_tonnage": 6177,
+      "route_or_region": "Mediterranean and Black Sea",
+      "operational_profile": "real vessel operational data per article",
+      "baseline": "marine diesel oil (MDO)",
+      "configurations_or_pathways": [
+        "MDO",
+        "LNG",
+        "biodiesel",
+        "methanol",
+        "e-methanol",
+        "e-diesel",
+        "e-ammonia",
+        "hydrogen",
+        "other study pathways as defined in the full article"
+      ],
+      "methods": [
+        "well-to-wake lifecycle assessment",
+        "GREET",
+        "OpenLCA",
+        "Environmental Footprint 3.0",
+        "lifecycle cost assessment",
+        "Monte Carlo uncertainty analysis with 10000 iterations"
+      ],
+      "findings": [
+        {
+          "metric": "ghg_reduction_vs_MDO",
+          "value": 0.762,
+          "unit": "fraction",
+          "technology": "e-methanol",
+          "status": "study_reported",
+          "boundary": "article's well-to-wake climate-change indicator"
+        },
+        {
+          "metric": "ghg_reduction_vs_MDO",
+          "value": 0.457,
+          "unit": "fraction",
+          "technology": "hydrogen",
+          "status": "study_reported",
+          "boundary": "article's well-to-wake climate-change indicator"
+        },
+        {
+          "metric": "ghg_reduction_vs_MDO",
+          "value": 0.324,
+          "unit": "fraction",
+          "technology": "e-ammonia",
+          "status": "study_reported",
+          "boundary": "article's well-to-wake climate-change indicator"
+        },
+        {
+          "metric": "non_climate_impact_category_ranking",
+          "value": "hydrogen_ranked_first_in_8_of_9_categories",
+          "unit": "categorical",
+          "technology": "hydrogen",
+          "status": "study_reported",
+          "boundary": "article's Environmental Footprint 3.0 assessment"
+        },
+        {
+          "metric": "lifecycle_cost_ratio_vs_LNG",
+          "value": 2.7,
+          "unit": "ratio",
+          "technology": "hydrogen",
+          "status": "study_reported",
+          "boundary": "article's service-life LCC"
+        },
+        {
+          "metric": "tank_volume_ratio_vs_MDO_for_equal_propulsion_energy",
+          "value": 3.7,
+          "unit": "ratio",
+          "technology": "hydrogen",
+          "status": "study_reported",
+          "boundary": "specific vessel and storage assumptions in article"
+        },
+        {
+          "metric": "cargo_deadweight_displacement",
+          "value": 0.068,
+          "unit": "fraction",
+          "technology": "hydrogen",
+          "status": "study_reported",
+          "boundary": "specific 6177-GT vessel; estimated cargo deadweight loss"
+        },
+        {
+          "metric": "lifecycle_cost_ratio_vs_MDO",
+          "value": 7,
+          "unit": "ratio",
+          "technology": "e-methanol",
+          "status": "study_reported",
+          "boundary": "article's service-life LCC"
+        }
+      ],
+      "limitations": [
+        "One 6177-GT vessel and two regional seas; no direct transfer to deep-sea container or inland vessel design.",
+        "The 3.7× tank volume and 6.8% cargo displacement are vessel-specific and distinct from the RSC 2026 container-ship tank-energy-density ratios.",
+        "E-fuel GHG performance depends on the upstream electricity, hydrogen, carbon and feedstock pathways used in the study.",
+        "Full model inputs and route data must be obtained before independent reproduction."
+      ]
+    }
+  ],
+  "design_implications": [
+    "Fuel choice is inseparable from conversion topology, onboard processing and ship-specific operating profiles.",
+    "A direct-hydrogen PEMFC result cannot be attributed to ammonia- or methanol-fed PEMFC systems without including cracker/reformer energy and balance-of-plant parasitics.",
+    "Economic and climate-optimal configurations can differ even on the same vessel and study assumptions.",
+    "A 6177-GT general-cargo vessel result must not be combined with a deep-sea container-ship result as if both share hull, route and load conditions.",
+    "Tank-volume and cargo displacement must be measured against each study's vessel geometry and reserve policy."
+  ]
+}

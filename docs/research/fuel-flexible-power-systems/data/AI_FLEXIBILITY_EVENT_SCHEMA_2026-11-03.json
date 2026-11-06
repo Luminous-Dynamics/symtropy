@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/ai-flexibility-event-oracles-0.1.0.json",
+  "title": "AI Data-Centre Flexibility Event Oracle Fixtures",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "accessed_at",
+    "intended_use",
+    "boundary_policy",
+    "fixtures",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "synthetic_flexibility_event_oracles"
+    },
+    "accessed_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
+    },
+    "boundary_policy": {
+      "type": "object",
+      "required": [
+        "grid_response_boundary",
+        "efficiency_boundary",
+        "work_boundary",
+        "limitation"
+      ],
+      "additionalProperties": false
+    },
+    "fixtures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/fixture"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "identity": {
+      "type": "object",
+      "required": [
+        "event_id",
+        "service_contract_id",
+        "work_unit_id",
+        "measurement_boundary_id",
+        "baseline_configuration_digest",
+        "response_configuration_digest"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_contract_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "work_unit_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "baseline_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "response_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "contract": {
+      "type": "object",
+      "required": [
+        "identity",
+        "event_start_ns",
+        "event_end_ns",
+        "rebound_end_ns",
+        "sample_interval_ns",
+        "minimum_grid_import_reduction_fraction",
+        "maximum_work_loss_fraction",
+        "maximum_facility_energy_per_work_ratio",
+        "maximum_rebound_grid_import_peak_ratio",
+        "maximum_response_p99_latency_ms",
+        "maximum_deadline_misses",
+        "maximum_response_temperature_c"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "event_start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_end_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rebound_end_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sample_interval_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_grid_import_reduction_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_work_loss_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_facility_energy_per_work_ratio": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_rebound_grid_import_peak_ratio": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_response_p99_latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_deadline_misses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_response_temperature_c": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sample": {
+      "type": "object",
+      "required": [
+        "elapsed_ns",
+        "baseline_pcc_import_kw",
+        "response_pcc_import_kw",
+        "baseline_total_facility_input_kw",
+        "response_total_facility_input_kw",
+        "baseline_completed_work_units",
+        "response_completed_work_units",
+        "response_p99_latency_ms",
+        "response_deadline_misses",
+        "response_peak_temperature_c",
+        "evidence_id"
+      ],
+      "properties": {
+        "elapsed_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_pcc_import_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "response_pcc_import_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "baseline_total_facility_input_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "response_total_facility_input_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "baseline_completed_work_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "response_completed_work_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "response_p99_latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "response_deadline_misses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "response_peak_temperature_c": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "fixture": {
+      "type": "object",
+      "required": [
+        "fixture_id",
+        "expected_pass",
+        "contract",
+        "samples",
+        "oracle"
+      ],
+      "properties": {
+        "fixture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_pass": {
+          "type": "boolean"
+        },
+        "contract": {
+          "$ref": "#/$defs/contract"
+        },
+        "samples": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/sample"
+          }
+        },
+        "oracle": {
+          "type": "object",
+          "required": [
+            "pass",
+            "interpretation"
+          ],
+          "properties": {
+            "pass": {
+              "type": "boolean"
+            },
+            "interpretation": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

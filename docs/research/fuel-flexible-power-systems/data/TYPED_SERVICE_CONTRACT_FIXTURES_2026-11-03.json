@@ -1,0 +1,498 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "luminous.energy.typed-service-contract-fixtures.2026-11-03",
+  "status": "synthetic_service_contract_oracle_fixtures",
+  "accessed_at": "2026-11-03",
+  "intended_use": "Hand-checkable synthetic fixtures for typed AC, DC and propulsion-work service contracts. No scenario is a physical system test or performance claim.",
+  "conventions": {
+    "energy_unit": "J",
+    "time_unit": "Unix seconds",
+    "interval_semantics": "half-open [start, end)",
+    "service_match_rule": "common useful service per segment = min(requested, reference delivered, candidate delivered)",
+    "surplus_rule": "surplus beyond requested service is reported but never credited",
+    "input_energy_rule": "compute candidate/reference service-per-input-energy ratio only if both input-energy bases match exactly",
+    "boundary_rule": "service interface, boundary ID and specification ID must match exactly",
+    "output_evidence_rule": "every synthetic segment is tagged analyst_scenario; a missing evidence record remains null and must not be promoted"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "TSC-AC-001",
+      "title": "Engine-generator and linear generator at the same net-AC boundary",
+      "expected_result": "comparison_pass_ratio_comparable",
+      "contract": {
+        "profile_id": "AC-DISTRIBUTED-GEN",
+        "version": "v1",
+        "boundary": {
+          "interface": "NetAc",
+          "boundary_id": "site-ac-pcc",
+          "specification_id": "AC-service-v1"
+        },
+        "segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "required_energy_j": 6000000
+          },
+          {
+            "start_unix_seconds": 60,
+            "end_unix_seconds": 120,
+            "required_energy_j": 6000000
+          }
+        ]
+      },
+      "reference": {
+        "system_name": "engine-generator",
+        "topology_id": "reciprocating-engine-generator",
+        "configuration_digest": "sha256:engine-gen-config",
+        "boundary": {
+          "interface": "NetAc",
+          "boundary_id": "site-ac-pcc",
+          "specification_id": "AC-service-v1"
+        },
+        "delivered_segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-AC-REF-1"
+            }
+          },
+          {
+            "start_unix_seconds": 60,
+            "end_unix_seconds": 120,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-AC-REF-2"
+            }
+          }
+        ],
+        "input_energy": {
+          "basis": "FuelChemicalLhv",
+          "energy_j": 30000000,
+          "evidence_id": "SYNTHETIC-FUEL-INPUT-REF"
+        }
+      },
+      "candidate": {
+        "system_name": "linear-generator",
+        "topology_id": "free-piston-linear-generator",
+        "configuration_digest": "sha256:linear-gen-config",
+        "boundary": {
+          "interface": "NetAc",
+          "boundary_id": "site-ac-pcc",
+          "specification_id": "AC-service-v1"
+        },
+        "delivered_segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-AC-CAND-1"
+            }
+          },
+          {
+            "start_unix_seconds": 60,
+            "end_unix_seconds": 120,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-AC-CAND-2"
+            }
+          }
+        ],
+        "input_energy": {
+          "basis": "FuelChemicalLhv",
+          "energy_j": 27000000,
+          "evidence_id": "SYNTHETIC-FUEL-INPUT-CAND"
+        }
+      },
+      "tolerance": {
+        "absolute_energy_j": 0,
+        "relative_fraction": 0
+      },
+      "oracle": {
+        "required_service_energy_j": 12000000,
+        "common_service_energy_j": 12000000,
+        "reference_input_energy_j": 30000000,
+        "candidate_input_energy_j": 27000000,
+        "candidate_service_per_input_ratio": 1.1111111111111112,
+        "reference_surplus_energy_j": 0,
+        "candidate_surplus_energy_j": 0,
+        "expected_input_comparison": "Comparable",
+        "interpretation": "Both systems deliver identical AC service and use the same declared fuel-chemical LHV input basis; the ratio can be compared within the modelled fuel-to-AC boundary."
+      }
+    },
+    {
+      "scenario_id": "TSC-DC-001",
+      "title": "Microturbine DC source and battery storage at the same regulated DC bus",
+      "expected_result": "comparison_pass_ratio_not_comparable",
+      "contract": {
+        "profile_id": "DC-DATACENTER-LOAD",
+        "version": "v1",
+        "boundary": {
+          "interface": "RegulatedDc",
+          "boundary_id": "800vdc-rack-bus",
+          "specification_id": "OCP-DC-load-v1"
+        },
+        "segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "required_energy_j": 6000000
+          },
+          {
+            "start_unix_seconds": 60,
+            "end_unix_seconds": 120,
+            "required_energy_j": 6000000
+          }
+        ]
+      },
+      "reference": {
+        "system_name": "microturbine-rectifier",
+        "topology_id": "microturbine-plus-rectifier",
+        "configuration_digest": "sha256:microturbine-dc-config",
+        "boundary": {
+          "interface": "RegulatedDc",
+          "boundary_id": "800vdc-rack-bus",
+          "specification_id": "OCP-DC-load-v1"
+        },
+        "delivered_segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-DC-REF-1"
+            }
+          },
+          {
+            "start_unix_seconds": 60,
+            "end_unix_seconds": 120,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-DC-REF-2"
+            }
+          }
+        ],
+        "input_energy": {
+          "basis": "FuelChemicalLhv",
+          "energy_j": 30000000,
+          "evidence_id": "SYNTHETIC-DC-FUEL-INPUT"
+        }
+      },
+      "candidate": {
+        "system_name": "battery-inverter",
+        "topology_id": "battery-storage-inverter",
+        "configuration_digest": "sha256:battery-dc-config",
+        "boundary": {
+          "interface": "RegulatedDc",
+          "boundary_id": "800vdc-rack-bus",
+          "specification_id": "OCP-DC-load-v1"
+        },
+        "delivered_segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-DC-CAND-1"
+            }
+          },
+          {
+            "start_unix_seconds": 60,
+            "end_unix_seconds": 120,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-DC-CAND-2"
+            }
+          }
+        ],
+        "input_energy": {
+          "basis": "StoredElectricalEnergyAtInitialSoc",
+          "energy_j": 27000000,
+          "evidence_id": "SYNTHETIC-BATTERY-SOC"
+        }
+      },
+      "tolerance": {
+        "absolute_energy_j": 0,
+        "relative_fraction": 0
+      },
+      "oracle": {
+        "required_service_energy_j": 12000000,
+        "common_service_energy_j": 12000000,
+        "reference_surplus_energy_j": 0,
+        "candidate_surplus_energy_j": 0,
+        "expected_input_comparison": "DifferentInputBases",
+        "candidate_service_per_input_ratio": null,
+        "interpretation": "Both systems can be compared at the same DC customer bus, but chemical fuel energy and stored battery energy are different input boundaries. No efficiency ratio is emitted; a well-to-service primary-energy and lifecycle boundary is required."
+      }
+    },
+    {
+      "scenario_id": "TSC-PROPULSOR-001",
+      "title": "Diesel propulsion and battery propulsion at the propulsor-work boundary",
+      "expected_result": "comparison_pass_ratio_not_comparable",
+      "contract": {
+        "profile_id": "INLAND-CARGO-PROPULSOR",
+        "version": "v1",
+        "boundary": {
+          "interface": "PropulsionWork",
+          "stage": "Propulsor",
+          "boundary_id": "propulsor-shaft",
+          "specification_id": "vessel-mission-v1"
+        },
+        "segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 600,
+            "required_energy_j": 100000000
+          },
+          {
+            "start_unix_seconds": 600,
+            "end_unix_seconds": 1200,
+            "required_energy_j": 100000000
+          }
+        ]
+      },
+      "reference": {
+        "system_name": "diesel-mechanical-drive",
+        "topology_id": "diesel-engine-propulsor",
+        "configuration_digest": "sha256:diesel-vessel-config",
+        "boundary": {
+          "interface": "PropulsionWork",
+          "stage": "Propulsor",
+          "boundary_id": "propulsor-shaft",
+          "specification_id": "vessel-mission-v1"
+        },
+        "delivered_segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 600,
+            "delivered_energy_j": 100000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-PROP-REF-1"
+            }
+          },
+          {
+            "start_unix_seconds": 600,
+            "end_unix_seconds": 1200,
+            "delivered_energy_j": 100000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-PROP-REF-2"
+            }
+          }
+        ],
+        "input_energy": {
+          "basis": "FuelChemicalLhv",
+          "energy_j": 500000000,
+          "evidence_id": "SYNTHETIC-DIESEL-INPUT"
+        }
+      },
+      "candidate": {
+        "system_name": "battery-electric-propulsor",
+        "topology_id": "battery-electric-propulsor",
+        "configuration_digest": "sha256:battery-vessel-config",
+        "boundary": {
+          "interface": "PropulsionWork",
+          "stage": "Propulsor",
+          "boundary_id": "propulsor-shaft",
+          "specification_id": "vessel-mission-v1"
+        },
+        "delivered_segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 600,
+            "delivered_energy_j": 100000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-PROP-CAND-1"
+            }
+          },
+          {
+            "start_unix_seconds": 600,
+            "end_unix_seconds": 1200,
+            "delivered_energy_j": 100000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-PROP-CAND-2"
+            }
+          }
+        ],
+        "input_energy": {
+          "basis": "StoredElectricalEnergyAtInitialSoc",
+          "energy_j": 260000000,
+          "evidence_id": "SYNTHETIC-BATTERY-INITIAL-SOC"
+        }
+      },
+      "tolerance": {
+        "absolute_energy_j": 0,
+        "relative_fraction": 0
+      },
+      "oracle": {
+        "required_service_energy_j": 200000000,
+        "common_service_energy_j": 200000000,
+        "reference_surplus_energy_j": 0,
+        "candidate_surplus_energy_j": 0,
+        "expected_input_comparison": "DifferentInputBases",
+        "candidate_service_per_input_ratio": null,
+        "interpretation": "Both meet the identical propulsor-work trace. Chemical fuel input and stored battery energy are not equivalent lifecycle/primary-energy bases, so service is comparable but no direct ratio is emitted."
+      }
+    },
+    {
+      "scenario_id": "TSC-REJECT-BOUNDARY-001",
+      "title": "AC and DC delivery boundaries cannot be silently compared",
+      "expected_result": "reject_boundary_mismatch",
+      "contract": {
+        "profile_id": "FACILITY-POWER",
+        "version": "v1",
+        "boundary": {
+          "interface": "NetAc",
+          "boundary_id": "site-ac-pcc",
+          "specification_id": "AC-service-v1"
+        },
+        "segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "required_energy_j": 6000000
+          }
+        ]
+      },
+      "reference": {
+        "system_name": "AC-generator",
+        "topology_id": "engine-generator",
+        "configuration_digest": "sha256:ac",
+        "boundary": {
+          "interface": "NetAc",
+          "boundary_id": "site-ac-pcc",
+          "specification_id": "AC-service-v1"
+        },
+        "delivered_segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-AC"
+            }
+          }
+        ],
+        "input_energy": null
+      },
+      "candidate": {
+        "system_name": "DC-source",
+        "topology_id": "dc-native-source",
+        "configuration_digest": "sha256:dc",
+        "boundary": {
+          "interface": "RegulatedDc",
+          "boundary_id": "800vdc-bus",
+          "specification_id": "DC-service-v1"
+        },
+        "delivered_segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-DC"
+            }
+          }
+        ],
+        "input_energy": null
+      },
+      "tolerance": {
+        "absolute_energy_j": 0,
+        "relative_fraction": 0
+      },
+      "oracle": {
+        "expected_error": "BoundaryMismatch",
+        "interpretation": "Equal joule values do not make AC-terminal and regulated-DC-bus interfaces equivalent."
+      }
+    },
+    {
+      "scenario_id": "TSC-REJECT-SERVICE-001",
+      "title": "System cannot claim efficiency by under-delivering useful service",
+      "expected_result": "reject_service_deficit",
+      "contract": {
+        "profile_id": "FACILITY-POWER",
+        "version": "v1",
+        "boundary": {
+          "interface": "NetAc",
+          "boundary_id": "site-ac-pcc",
+          "specification_id": "AC-service-v1"
+        },
+        "segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "required_energy_j": 6000000
+          }
+        ]
+      },
+      "reference": {
+        "system_name": "reference",
+        "topology_id": "engine-generator",
+        "configuration_digest": "sha256:ref",
+        "boundary": {
+          "interface": "NetAc",
+          "boundary_id": "site-ac-pcc",
+          "specification_id": "AC-service-v1"
+        },
+        "delivered_segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "delivered_energy_j": 6000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-REF"
+            }
+          }
+        ],
+        "input_energy": null
+      },
+      "candidate": {
+        "system_name": "under-delivering-candidate",
+        "topology_id": "small-generator",
+        "configuration_digest": "sha256:candidate",
+        "boundary": {
+          "interface": "NetAc",
+          "boundary_id": "site-ac-pcc",
+          "specification_id": "AC-service-v1"
+        },
+        "delivered_segments": [
+          {
+            "start_unix_seconds": 0,
+            "end_unix_seconds": 60,
+            "delivered_energy_j": 5000000,
+            "evidence": {
+              "class": "analyst_scenario",
+              "evidence_id": "SYNTHETIC-CANDIDATE"
+            }
+          }
+        ],
+        "input_energy": null
+      },
+      "tolerance": {
+        "absolute_energy_j": 0,
+        "relative_fraction": 0
+      },
+      "oracle": {
+        "expected_error": "ServiceDeficit",
+        "interpretation": "A 1 MJ deficit on a 6 MJ segment is rejected; no efficiency ratio is emitted."
+      }
+    }
+  ],
+  "claim_ceiling": "These synthetic fixtures validate typed service matching and basis-handling arithmetic only. They do not establish physical performance, lifecycle primary-energy equivalence, grid approval, vessel feasibility or a topology-specific solver result."
+}

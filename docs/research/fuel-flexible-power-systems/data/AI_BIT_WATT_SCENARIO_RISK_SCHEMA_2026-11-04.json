@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/ai-bit-watt-scenario-risk-0.1.0.json",
+  "title": "AI Data-Centre Joint Scenario Risk Benchmark",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "intended_use",
+    "reference_register",
+    "fixtures",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "synthetic_joint_scenario_risk_oracles"
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reference_register": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/reference"
+      }
+    },
+    "fixtures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/fixture"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "reference": {
+      "type": "object",
+      "required": [
+        "reference_id",
+        "title",
+        "doi",
+        "evidence_class",
+        "scope_note",
+        "publication_period"
+      ],
+      "properties": {
+        "reference_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\."
+        },
+        "evidence_class": {
+          "enum": [
+            "peer_reviewed_modelled_case_study",
+            "peer_reviewed_field_measurement",
+            "published_dataset"
+          ]
+        },
+        "scope_note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publication_period": {
+          "type": "string",
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])(-[0-3]\\d)?$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "risk_contract": {
+      "type": "object",
+      "required": [
+        "benchmark_id",
+        "strategy_id",
+        "scenario_set_digest",
+        "service_contract_digest",
+        "evaluation_configuration_digest",
+        "cvar_confidence_level",
+        "maximum_power_shortfall_probability",
+        "maximum_energy_shortfall_probability",
+        "maximum_deadline_violation_probability",
+        "maximum_thermal_violation_probability",
+        "maximum_reserve_breach_probability",
+        "maximum_peak_power_shortfall_cvar_kw",
+        "maximum_energy_shortfall_cvar_kwh",
+        "minimum_expected_work_completion_fraction",
+        "minimum_worst_case_work_completion_fraction",
+        "probability_sum_tolerance"
+      ],
+      "properties": {
+        "benchmark_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "strategy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_contract_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluation_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cvar_confidence_level": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "maximum_power_shortfall_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_energy_shortfall_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_deadline_violation_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_thermal_violation_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_reserve_breach_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_peak_power_shortfall_cvar_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_energy_shortfall_cvar_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_expected_work_completion_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_worst_case_work_completion_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "probability_sum_tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.001
+        }
+      },
+      "additionalProperties": false
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "scenario_id",
+        "scenario_digest",
+        "probability_weight",
+        "operating_cost",
+        "facility_energy_kwh",
+        "completed_work_fraction",
+        "peak_power_shortfall_kw",
+        "energy_shortfall_kwh",
+        "deadline_violated",
+        "thermal_limit_violated",
+        "protected_reserve_breached",
+        "workload_evidence_id",
+        "power_evidence_id",
+        "thermal_evidence_id",
+        "storage_evidence_id"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probability_weight": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "operating_cost": {
+          "type": "number"
+        },
+        "facility_energy_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "completed_work_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "peak_power_shortfall_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "energy_shortfall_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "deadline_violated": {
+          "type": "boolean"
+        },
+        "thermal_limit_violated": {
+          "type": "boolean"
+        },
+        "protected_reserve_breached": {
+          "type": "boolean"
+        },
+        "workload_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "power_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "thermal_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storage_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "fixture": {
+      "type": "object",
+      "required": [
+        "fixture_id",
+        "expected_result",
+        "risk_contract",
+        "outcomes",
+        "expected_oracle",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "fixture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_result": {
+          "enum": [
+            "pass",
+            "reject"
+          ]
+        },
+        "risk_contract": {
+          "$ref": "#/$defs/risk_contract"
+        },
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/outcome"
+          }
+        },
+        "expected_oracle": {
+          "type": "object",
+          "properties": {
+            "probability_weight_sum": {
+              "type": "number"
+            },
+            "expected_operating_cost": {
+              "type": "number"
+            },
+            "expected_facility_energy_kwh": {
+              "type": "number"
+            },
+            "expected_work_completion_fraction": {
+              "type": "number"
+            },
+            "minimum_work_completion_fraction": {
+              "type": "number"
+            },
+            "power_shortfall_probability": {
+              "type": "number"
+            },
+            "energy_shortfall_probability": {
+              "type": "number"
+            },
+            "deadline_violation_probability": {
+              "type": "number"
+            },
+            "thermal_violation_probability": {
+              "type": "number"
+            },
+            "protected_reserve_breach_probability": {
+              "type": "number"
+            },
+            "peak_power_shortfall_var_kw": {
+              "type": "number"
+            },
+            "peak_power_shortfall_cvar_kw": {
+              "type": "number"
+            },
+            "energy_shortfall_var_kwh": {
+              "type": "number"
+            },
+            "energy_shortfall_cvar_kwh": {
+              "type": "number"
+            },
+            "expected_verification_passed": {
+              "type": "boolean"
+            },
+            "failed_gates": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "interpretation": {
+          "type": "string"
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

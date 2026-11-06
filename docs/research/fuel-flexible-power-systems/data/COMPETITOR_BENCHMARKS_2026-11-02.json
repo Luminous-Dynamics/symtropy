@@ -1,0 +1,669 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "luminous.power-conversion.competitor-baselines.2026-11-02",
+  "status": "evidence_classified_public_reference",
+  "accessed_at": "2026-11-02",
+  "intended_use": "Competitor landscape, benchmark planning and evidence-contract tests. Not a certified performance database and not sufficient for a SOTA claim.",
+  "comparison_policy": [
+    "Never compare engine brake thermal efficiency to net AC plant efficiency or fuel-cell stack DC efficiency as if they shared a measurement boundary.",
+    "Keep manufacturer specifications, manufacturer-authored demonstrations, third-party source tests, government pilot announcements and future commercial agreements separate.",
+    "Null means not available in this dataset, not zero.",
+    "A proposed or announced fuel test is not a completed fuel qualification.",
+    "A press-release capacity agreement is not installed or independently observed capacity.",
+    "All quantitative rankings require matched duty cycle, net electrical measurement boundary, LHV/HHV basis, ambient correction, included auxiliaries and measurement uncertainty."
+  ],
+  "entities": [
+    {
+      "entity_id": "mainspring_mse3_linear_generator",
+      "name": "Mainspring Energy linear generator (MSE3 product family)",
+      "conversion_topology": "free_piston_linear_generator",
+      "application": "stationary_distributed_generation",
+      "closest_comparator_for": "250 kW multi-fuel distributed generation",
+      "evidence_records": [
+        {
+          "record_id": "mainspring_product_datasheet_r40322",
+          "evidence_class": "manufacturer_product_specification",
+          "published_date": null,
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "MAINSPRING-MSE3-R40322",
+            "title": "Mainspring 2.5 MW Linear Generator Datasheet R40322",
+            "uri": "https://linear-power.files.svdcdn.com/production/Mainspring-Linear-Generator-2.5MW-Datasheet-R40322.pdf",
+            "publisher": "Mainspring Energy"
+          },
+          "claims": [
+            {
+              "metric": "module_rated_electrical_output",
+              "value": 250,
+              "unit": "kW",
+              "boundary": "manufacturer module rating",
+              "status": "manufacturer_published",
+              "uncertainty": null
+            },
+            {
+              "metric": "standard_block_rated_electrical_output",
+              "value": 2500,
+              "unit": "kW",
+              "boundary": "standard block comprising ten 250 kW modules",
+              "status": "manufacturer_published",
+              "uncertainty": null
+            },
+            {
+              "metric": "net_electrical_efficiency",
+              "value": 0.46,
+              "unit": "fraction",
+              "basis": "LHV",
+              "fuel_scope": [
+                "natural_gas",
+                "biogas"
+              ],
+              "boundary": "net AC; datasheet includes 1% assumed inverter and line losses",
+              "test_method_claim": "ASME PTC 50",
+              "test_conditions": {
+                "ambient_temperature_c": 15,
+                "pressure_atm": 1
+              },
+              "status": "manufacturer_reported_measurement",
+              "independent_comparative_validation": false,
+              "uncertainty": null
+            },
+            {
+              "metric": "nox_emissions",
+              "value": 1.5,
+              "relation": "less_than",
+              "unit": "ppm",
+              "basis": null,
+              "reference_oxygen_percent": null,
+              "boundary": "manufacturer product specification; detailed test basis must be obtained",
+              "status": "manufacturer_published",
+              "uncertainty": null
+            },
+            {
+              "metric": "electrical_output_dispatch_range",
+              "minimum": 0,
+              "maximum": 100,
+              "unit": "percent_of_rated_output",
+              "boundary": "manufacturer product specification",
+              "status": "manufacturer_published",
+              "uncertainty": null
+            },
+            {
+              "metric": "listed_fuel_families",
+              "value": [
+                "biogas",
+                "natural_gas",
+                "hydrogen",
+                "propane"
+              ],
+              "unit": "categorical",
+              "boundary": "product literature; fuel-specific module/configuration qualification applies",
+              "status": "manufacturer_published",
+              "uncertainty": null
+            },
+            {
+              "metric": "package_weight",
+              "value": 22,
+              "unit": "US_tons",
+              "boundary": "datasheet field says 'unit weight'; exact module/package basis is ambiguous",
+              "status": "manufacturer_published_ambiguous_basis",
+              "uncertainty": null
+            },
+            {
+              "metric": "core_run_hours",
+              "value": 1500000,
+              "unit": "core_hours",
+              "boundary": "manufacturer website aggregate claim",
+              "status": "manufacturer_claim",
+              "limitation": "Core-hours are not necessarily elapsed hours on one machine, MTBF, fleet availability or independently audited run hours.",
+              "uncertainty": null
+            },
+            {
+              "metric": "water_consumption",
+              "value": 0,
+              "unit": "water_use_claim",
+              "boundary": "manufacturer product claim; verify site auxiliary and cooling boundary",
+              "status": "manufacturer_published",
+              "uncertainty": null
+            },
+            {
+              "metric": "ambient_operating_temperature",
+              "minimum": -30,
+              "maximum": 50,
+              "unit": "degrees_Celsius",
+              "boundary": "manufacturer product specification",
+              "status": "manufacturer_published",
+              "uncertainty": null
+            }
+          ],
+          "comparison_limitations": [
+            "The 46% claim is not an independent head-to-head comparison against an ISO 8528 reciprocating engine-generator test.",
+            "ASME public catalogue lists PTC 50 for Fuel Cell Power Systems Performance. Obtain the full report and written test-code applicability before accepting direct comparability.",
+            "Verify net/gross definition, power factor, exact auxiliary boundary, fuel composition, LHV certificate, calibration and uncertainty.",
+            "Do not treat listed fuels as proof that one machine switches between all fuels without configuration changes or that every listed gas is qualified in every market."
+          ]
+        },
+        {
+          "record_id": "mainspring_cec_beta_site_demonstration_2024",
+          "evidence_class": "manufacturer_authored_report_under_government_sponsored_project",
+          "published_date": "2024-05-06",
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "CEC-500-2024-037",
+            "title": "High-efficiency and Ultra-low Emissions Linear Generator Demonstration Project in Southern California",
+            "uri": "https://www.energy.ca.gov/sites/default/files/2024-05/CEC-500-2024-037.pdf",
+            "landing_page": "https://www.energy.ca.gov/publications/2024/high-efficiency-and-ultra-low-emissions-linear-generator-demonstration-project",
+            "publisher": "California Energy Commission; report prepared by Mainspring Energy"
+          },
+          "claims": [
+            {
+              "metric": "demonstration_unit_rated_output",
+              "value": 230,
+              "unit": "kW",
+              "boundary": "beta demonstration unit",
+              "status": "reported_demonstration"
+            },
+            {
+              "metric": "net_electrical_efficiency",
+              "value": 0.415,
+              "unit": "fraction",
+              "basis": "LHV",
+              "boundary": "net AC, as reported in final project report",
+              "status": "manufacturer_reported_demonstration_result",
+              "independent_comparative_validation": false,
+              "uncertainty": null
+            },
+            {
+              "metric": "site_building_load_range",
+              "minimum": 130,
+              "maximum": 370,
+              "unit": "kW",
+              "boundary": "reported host grocery site's electrical load range; not a generator load-map range",
+              "status": "reported_demonstration_context"
+            },
+            {
+              "metric": "site_demonstration_duration",
+              "value": 9,
+              "unit": "months",
+              "boundary": "grocery-site beta demonstration",
+              "status": "reported_demonstration"
+            },
+            {
+              "metric": "source_test_nox",
+              "value": 1.6,
+              "unit": "ppmvd",
+              "reference_oxygen_percent": 15,
+              "boundary": "third-party emissions source test as described in the report",
+              "status": "third_party_source_test",
+              "uncertainty": null
+            },
+            {
+              "metric": "source_test_co",
+              "value": 0.8,
+              "unit": "ppmvd",
+              "reference_oxygen_percent": 15,
+              "boundary": "third-party emissions source test as described in the report",
+              "status": "third_party_source_test",
+              "uncertainty": null
+            },
+            {
+              "metric": "source_test_voc",
+              "value": 8.4,
+              "unit": "ppmvd",
+              "reference_oxygen_percent": 15,
+              "boundary": "third-party emissions source test as described in the report",
+              "status": "third_party_source_test",
+              "uncertainty": null
+            }
+          ],
+          "comparison_limitations": [
+            "The report was prepared by Mainspring under a CEC-sponsored project and carries a disclaimer that the report does not necessarily represent CEC views and is not CEC approval of accuracy.",
+            "The report describes third-party status specifically for the emissions source test; do not describe all project efficiency data as independently certified.",
+            "The 41.5% beta result and 46% later product datasheet are different configurations/evidence records and must not be merged."
+          ]
+        },
+        {
+          "record_id": "us_air_force_250kw_multi_fuel_pilot_2026",
+          "evidence_class": "government_prototype_pilot_announcement",
+          "published_date": "2026-03-04",
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "USAF-AFMC-2026-03-04",
+            "title": "Air Force pilots fuel-flexible generator for Travis AFB",
+            "uri": "https://www.afmc.af.mil/News/Article-Display/Article/4421866/air-force-pilots-fuel-flexible-generator-for-travis-afb/",
+            "publisher": "Department of the Air Force / Air Force Materiel Command"
+          },
+          "claims": [
+            {
+              "metric": "pilot_prototype_rated_output",
+              "value": 250,
+              "unit": "kW",
+              "boundary": "prototype agreement",
+              "status": "government_announced"
+            },
+            {
+              "metric": "pilot_fuels_planned_for_testing",
+              "value": [
+                "natural_gas",
+                "biomethane",
+                "syngas",
+                "ammonia",
+                "propane",
+                "hydrogen"
+              ],
+              "unit": "categorical",
+              "boundary": "fuel families identified for pilot testing",
+              "status": "planned_test_programme",
+              "uncertainty": null
+            },
+            {
+              "metric": "fuel_efficiency_power_consumption_emissions_data",
+              "value": "to_be_collected",
+              "unit": "not_applicable",
+              "boundary": "planned pilot objectives",
+              "status": "future_test_objectives"
+            }
+          ],
+          "comparison_limitations": [
+            "The announcement is a pilot programme, not completed test data.",
+            "Planned ammonia and syngas testing must not be described as a completed commercial qualification.",
+            "Results should be added as a new evidence record only after the source data and protocol are published."
+          ]
+        },
+        {
+          "record_id": "mainspring_aep_agreement_2026",
+          "evidence_class": "commercial_agreement_press_release",
+          "published_date": "2026-10-13",
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "MAINSPRING-AEP-2026-10-13",
+            "title": "Mainspring Energy signs landmark 1.6 GW agreement with AEP",
+            "uri": "https://www.mainspringenergy.com/news/mainspring-energy-signs-landmark-1-6-gw-agreement-with-aep-for-reliable-affordable-power-capacity",
+            "publisher": "Mainspring Energy"
+          },
+          "claims": [
+            {
+              "metric": "announced_agreement_capacity",
+              "value": 1600,
+              "unit": "MW",
+              "boundary": "up to 1.6 GW through 2034",
+              "status": "company_announced_agreement"
+            },
+            {
+              "metric": "initial_delivery_tranche",
+              "value": 190,
+              "unit": "MW",
+              "expected_delivery_start_year": 2027,
+              "boundary": "initial tranche expected to begin delivery in 2027",
+              "status": "future_delivery_schedule"
+            }
+          ],
+          "comparison_limitations": [
+            "An agreement is not installed capacity, a commissioning record, an availability measurement or an independent fleet-performance dataset."
+          ]
+        }
+      ]
+    },
+    {
+      "entity_id": "capstone_c200_microturbine",
+      "name": "Capstone Energy+ C200 microturbine and C250 development platform",
+      "conversion_topology": "microturbine_generator",
+      "application": "stationary_distributed_generation",
+      "evidence_records": [
+        {
+          "record_id": "capstone_fy2026_10k_c200_c250_and_fuel_flexibility",
+          "evidence_class": "manufacturer_regulatory_filing_and_product_literature",
+          "published_date": "2026-06-18",
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "CAPSTONE-ENERGYPLUS-FY2026-10K",
+            "title": "Capstone Energy+, Inc. Form 10-K for fiscal year ended 31 March 2026",
+            "uri": "https://www.sec.gov/Archives/edgar/data/1009759/000110465926077817/cgeh-20260331x10k.htm",
+            "publisher": "Capstone Energy+"
+          },
+          "claims": [
+            {
+              "metric": "c200_rated_electrical_output",
+              "value": 200,
+              "unit": "kW",
+              "boundary": "C200 core microturbine product platform",
+              "status": "manufacturer_filing",
+              "uncertainty": null
+            },
+            {
+              "metric": "c250_development_rated_electrical_output",
+              "value": 250,
+              "unit": "kW",
+              "boundary": "C250 development platform; not yet described as commercially released",
+              "status": "manufacturer_reported_development",
+              "uncertainty": null
+            },
+            {
+              "metric": "c250_development_status",
+              "value": "successful_test_runs_completed; advancing_through_commercialization",
+              "unit": "categorical",
+              "boundary": "C250 product development",
+              "status": "manufacturer_filing",
+              "uncertainty": null
+            },
+            {
+              "metric": "fuel_families_and_gas_quality",
+              "value": [
+                "natural_gas",
+                "renewable_biogas",
+                "landfill_gas",
+                "wastewater_derived_methane",
+                "sour_gas",
+                "low_BTU_gas",
+                "hydrogen_blends_up_to_30_percent"
+              ],
+              "unit": "categorical",
+              "boundary": "product family descriptions; configuration and gas specification remain decisive",
+              "status": "manufacturer_filing",
+              "uncertainty": null
+            },
+            {
+              "metric": "simple_cycle_efficiency",
+              "value": 0.33,
+              "relation": "approximately",
+              "unit": "fraction",
+              "basis": null,
+              "boundary": "manufacturer filing describes approximately 33% simple-cycle operation; net/gross, LHV/HHV and correction boundary not specified in cited passage",
+              "status": "manufacturer_reported_approximation_not_admitted_for_ranking",
+              "uncertainty": null
+            },
+            {
+              "metric": "c200_grid_interconnection_certifications",
+              "value": [
+                "UL1741_SB",
+                "IEEE_1547"
+              ],
+              "unit": "categorical",
+              "boundary": "North American C200 and C1000 families; certification completed during FY2026",
+              "status": "manufacturer_filing",
+              "uncertainty": null
+            },
+            {
+              "metric": "800VDC_microturbine_solution",
+              "value": "developed",
+              "unit": "categorical",
+              "boundary": "manufacturer-developed DC-output platform for data-center use",
+              "status": "manufacturer_filing",
+              "uncertainty": null
+            },
+            {
+              "metric": "800VDC_power_efficiency_improvement_claim",
+              "value": 0.05,
+              "relation": "up_to",
+              "unit": "fraction",
+              "boundary": "manufacturer-reported comparison against legacy AC distribution; not independent net plant efficiency test",
+              "status": "manufacturer_claim",
+              "uncertainty": null
+            }
+          ],
+          "comparison_limitations": [
+            "The filing is a manufacturer regulatory disclosure, not an independent comparative performance test.",
+            "The approximately 33% simple-cycle efficiency statement does not specify the net/gross terminal, LHV/HHV basis or test correction details in the cited passage; do not use it as a matched net-AC ranking value.",
+            "C250 has completed successful test runs but is still described as advancing through commercialization; distinguish development status from commercial availability.",
+            "Hydrogen blends up to 30% are reported; do not claim that the C200 is already commercially qualified for 100% hydrogen from this filing.",
+            "C200 and C1000 UL1741 SB / IEEE 1547 certification is North American grid-interconnection evidence, not a South African compliance approval.",
+            "The 800VDC up-to-5% efficiency improvement is a manufacturer comparison claim for data-centre power architecture; obtain test boundary and independent validation before using it as a quantified advantage."
+          ]
+        },
+        {
+          "record_id": "capstone_fy2025_fuel_flexibility_development",
+          "evidence_class": "manufacturer_regulatory_filing_and_product_literature",
+          "published_date": "2025-06-30",
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "CAPSTONE-ENERGYPLUS-FY2025-10K",
+            "title": "Capstone Green Energy Holdings, Inc. Form 10-K for fiscal year ended 31 March 2025",
+            "uri": "https://www.sec.gov/Archives/edgar/data/1009759/000155837025008930/cgeh-20250331x10k.htm",
+            "publisher": "Capstone Green Energy"
+          },
+          "claims": [
+            {
+              "metric": "combustor_fuel_configuration",
+              "value": "common_combustor_architecture_with_fuel_specific_injectors_for_multiple_gaseous_fuels",
+              "unit": "categorical",
+              "boundary": "manufacturer description of microturbine family",
+              "status": "manufacturer_filing"
+            },
+            {
+              "metric": "hydrogen_fuel_development",
+              "value": [
+                "70_percent_natural_gas_30_percent_hydrogen_blend",
+                "100_percent_hydrogen_development_target"
+              ],
+              "unit": "categorical",
+              "boundary": "development programme with Argonne National Laboratory; C200 hydrogen testing described as planned for FY2026",
+              "status": "manufacturer_reported_development_not_general_product_qualification"
+            }
+          ],
+          "comparison_limitations": [
+            "Hydrogen development and planned testing in the FY2025 filing are not equivalent to general commercial qualification.",
+            "The filing describes the microturbine family and development programme; verify exact per-model fuel certification."
+          ]
+        }
+      ]
+    },
+    {
+      "entity_id": "cummins_helm_x10_x15",
+      "name": "Cummins HELM X10 / X15 fuel-agnostic engine platform",
+      "conversion_topology": "fuel_specific_reciprocating_engine_variants",
+      "application": "heavy_duty_on_road_and_related_engines",
+      "evidence_records": [
+        {
+          "record_id": "cummins_helm_platform",
+          "evidence_class": "manufacturer_product_information",
+          "published_date": null,
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "CUMMINS-HELM",
+            "title": "Cummins fuel-agnostic HELM platform",
+            "uri": "https://www.cummins.com/en-ame/engines/on-highway/fuel-agnostic",
+            "publisher": "Cummins"
+          },
+          "claims": [
+            {
+              "metric": "fuel_platform_strategy",
+              "value": "shared_engine_architecture_with_fuel_specific_variants",
+              "unit": "categorical",
+              "boundary": "X10 / X15 HELM family",
+              "status": "manufacturer_published"
+            },
+            {
+              "metric": "production_ramp",
+              "value": "MY2027",
+              "unit": "model_year",
+              "boundary": "phased product launch plan",
+              "status": "manufacturer_announced"
+            }
+          ],
+          "comparison_limitations": [
+            "This is evidence that shared architecture across fuel-specific engine variants is an established industry strategy, not evidence that every fuel is burned in one identical hardware configuration.",
+            "Heavy-duty engine BTE and vehicle tank-to-wheel efficiency are not generator net-AC efficiency."
+          ]
+        }
+      ]
+    },
+    {
+      "entity_id": "doe_supertruck_2",
+      "name": "U.S. DOE SuperTruck 2 heavy-duty engine efficiency results",
+      "conversion_topology": "high_efficiency_reciprocating_engine",
+      "application": "heavy_duty_long_haul",
+      "evidence_records": [
+        {
+          "record_id": "doe_supertruck2_bte",
+          "evidence_class": "government_programme_summary",
+          "published_date": "2024-06-10",
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "DOE-FOTW-1346",
+            "title": "U.S. DOE SuperTruck 3 initiative and SuperTruck 2 results",
+            "uri": "https://www.energy.gov/cmei/vehicles/articles/fotw-1346-june-10-2024-us-doe-supertruck-3-initiative-seeks-reduce",
+            "publisher": "U.S. Department of Energy"
+          },
+          "claims": [
+            {
+              "metric": "brake_thermal_efficiency",
+              "value": 0.52,
+              "relation": "greater_than",
+              "unit": "fraction",
+              "boundary": "heavy-duty engine BTE demonstrated by SuperTruck 2 teams",
+              "status": "government_reported_programme_result",
+              "uncertainty": null
+            },
+            {
+              "metric": "pathways_to_brake_thermal_efficiency",
+              "value": 0.55,
+              "relation": "three_teams_demonstrated_pathways_to",
+              "unit": "fraction",
+              "boundary": "engine BTE, not net AC generator efficiency",
+              "status": "government_reported_programme_result"
+            }
+          ],
+          "comparison_limitations": [
+            "Do not compare engine BTE with net AC electrical efficiency.",
+            "Check whether waste-heat recovery is included in any specific team's number before matching system boundaries."
+          ]
+        }
+      ]
+    },
+    {
+      "entity_id": "wartsila_marine_methanol",
+      "name": "Wärtsilä 32 Methanol / 46F Methanol",
+      "conversion_topology": "marine_reciprocating_engine_variants",
+      "application": "marine_propulsion_and_power_generation",
+      "evidence_records": [
+        {
+          "record_id": "wartsila_methanol_engine_family",
+          "evidence_class": "manufacturer_product_specification",
+          "published_date": null,
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "WARTSILA-METHANOL",
+            "title": "Wärtsilä methanol engines",
+            "uri": "https://www.wartsila.com/marine/products/engines-and-generating-sets/methanol-engines",
+            "publisher": "Wärtsilä"
+          },
+          "claims": [
+            {
+              "metric": "wartsila_32_methanol_power_range",
+              "minimum": 3.4,
+              "maximum": 5.2,
+              "unit": "MW",
+              "boundary": "product family output range",
+              "status": "manufacturer_published"
+            },
+            {
+              "metric": "fuel_mode",
+              "value": "methanol_and_conventional_liquid_fuels",
+              "unit": "categorical",
+              "boundary": "fuel-specific marine engine configuration",
+              "status": "manufacturer_published"
+            }
+          ],
+          "comparison_limitations": [
+            "Multi-megawatt marine engine scale differs from a 50–250 kWe stationary demonstrator.",
+            "Obtain full engine type, duty-cycle, emissions, BTE, fuel mode transition and certification data before comparison."
+          ]
+        }
+      ]
+    },
+    {
+      "entity_id": "everllence_man_b_and_w_ammonia",
+      "name": "Everllence / MAN B&W 6G60ME-LGIA ammonia two-stroke",
+      "conversion_topology": "dual_fuel_slow_speed_marine_reciprocating_engine",
+      "application": "large_ocean_going_ship_propulsion",
+      "evidence_records": [
+        {
+          "record_id": "everllence_ammonia_type_approval_fat",
+          "evidence_class": "manufacturer_announced_type_approval_and_factory_acceptance",
+          "published_date": "2026-04-20",
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "EVERLLENCE-AMMONIA-2026",
+            "title": "Ammonia engine Type Approval Test and Factory Acceptance Test",
+            "uri": "https://www.everllence.com/marine/products/two-stroke-engines/ammonia-engine",
+            "publisher": "Everllence"
+          },
+          "claims": [
+            {
+              "metric": "type_approval_test",
+              "value": "reported_passed",
+              "unit": "categorical",
+              "reported_date": "2026-06",
+              "status": "manufacturer_announced"
+            },
+            {
+              "metric": "first_unit_factory_acceptance_test",
+              "value": "reported_passed",
+              "unit": "categorical",
+              "reported_date": "2026-04-20",
+              "status": "manufacturer_announced"
+            }
+          ],
+          "comparison_limitations": [
+            "A factory acceptance test and type approval are distinct from long-term fleet reliability and independent lifecycle emissions evidence.",
+            "Ammonia slip, NOx, N2O, pilot fuel, upstream ammonia pathway and fuel storage safety must be included in an equivalent comparison.",
+            "Large-bore low-speed propulsion is not comparable directly with stationary medium-speed generator sets."
+          ]
+        }
+      ]
+    },
+    {
+      "entity_id": "battery_electric_heavy_duty",
+      "name": "Battery-electric heavy-duty vehicle reference pathway",
+      "conversion_topology": "battery_inverter_motor",
+      "application": "heavy_duty_road_freight",
+      "evidence_records": [
+        {
+          "record_id": "pnnl_heavy_duty_lifecycle_comparison_2026",
+          "evidence_class": "peer_reviewed_lifecycle_study",
+          "published_date": "2026",
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "PNNL-HDV-LCA-2026",
+            "title": "Cradle-to-grave lifecycle analysis of U.S. medium- and heavy-duty vehicle fuel pathways",
+            "uri": "https://www.pnnl.gov/publications/cradle-grave-lifecycle-analysis-us-medium-and-heavy-duty-vehicle-fuel-pathways",
+            "publisher": "Pacific Northwest National Laboratory / Environmental Science & Technology"
+          },
+          "claims": [
+            {
+              "metric": "greenhouse_gas_reduction_vs_diesel",
+              "minimum": 0.1,
+              "maximum": 0.6,
+              "unit": "fraction",
+              "boundary": "battery-electric HDV lifecycle emissions across studied vehicle classes / scenarios",
+              "status": "published_lifecycle_study"
+            }
+          ],
+          "comparison_limitations": [
+            "Results depend on electricity generation mix, vehicle class, duty cycle and assumed vehicle lifetime.",
+            "Do not transfer U.S. grid lifecycle factors directly to South Africa.",
+            "Generator comparison requires an upstream electricity boundary and useful transport service, not motor efficiency alone."
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_topology_rules": [
+    "Reciprocating engine BTE is not net AC plant efficiency.",
+    "Linear-generator net AC efficiency must be measured at the declared AC terminal and include all product auxiliaries or list excluded auxiliaries.",
+    "Fuel-cell stack DC efficiency is not whole-plant net AC efficiency.",
+    "Battery discharge must include initial/final state of charge, charge source and storage losses; a battery is not a fuel source.",
+    "A planned pilot is not a completed performance test.",
+    "A field demonstration is not automatically a type-approved product specification.",
+    "A third-party source emissions test does not make every efficiency or reliability figure in the same report independently validated.",
+    "A purchase agreement is not installed nameplate capacity, operating availability or fleet reliability.",
+    "The exact test code and whether it applies to the technology must be established before a like-for-like benchmark is accepted."
+  ],
+  "data_gaps_to_close": [
+    "Obtain Mainspring full raw performance report, test protocol, map, fuel composition, LHV certificates, parasitic power and measurement uncertainty.",
+    "Clarify the PTC 50 scope/application for the Mainspring linear generator, given ASME public catalogue classifies PTC 50 for fuel-cell systems.",
+    "Obtain precise Mainspring meaning of 22-ton unit weight, per module or packaged installation.",
+    "Obtain official Capstone C200/C200S current net-AC datasheet, boundary, fuel range, power curve and test code; do not use old projected efficiency as current measured performance.",
+    "Obtain independent fuel-by-fuel pilot data from the USAF Mainspring programme when released.",
+    "Obtain South African same-duty-cycle data for fuel availability, quality, grid carbon intensity, costs and maintenance."
+  ]
+}
