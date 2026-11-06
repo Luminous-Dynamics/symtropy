@@ -152,6 +152,11 @@ pub fn build_islands<const D: usize>(
         });
     }
 
+    // HashMap iteration order is deliberately unspecified. Canonicalize
+    // islands by their lowest body index so downstream scheduling, receipts
+    // and deterministic parallel execution do not inherit hash iteration order.
+    islands.sort_by_key(|island| island.body_indices.first().copied().unwrap_or(usize::MAX));
+
     islands
 }
 
@@ -266,6 +271,46 @@ mod tests {
         assert_eq!(islands.len(), 2);
         let connected = islands.iter().find(|i| i.body_indices.len() == 2).unwrap();
         assert_eq!(connected.constraint_indices.len(), 1);
+    }
+
+    #[test]
+    fn islands_are_canonically_ordered_by_lowest_body_index() {
+        let (bodies, map) = make_bodies(8);
+        let contacts = vec![
+            ContactManifold::single(
+                BodyHandle(6),
+                BodyHandle(7),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            ContactManifold::single(
+                BodyHandle(2),
+                BodyHandle(3),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            ContactManifold::single(
+                BodyHandle(0),
+                BodyHandle(1),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+        ];
+
+        for _ in 0..16 {
+            let islands = build_islands(&bodies, &contacts, &[], &map);
+            let first_indices: Vec<_> = islands
+                .iter()
+                .map(|island| island.body_indices[0])
+                .collect();
+            assert_eq!(first_indices, vec![0, 2, 4, 6]);
+            assert!(islands.windows(2).all(|pair| {
+                pair[0].body_indices[0] < pair[1].body_indices[0]
+            }));
+        }
     }
 
     #[test]
