@@ -709,7 +709,7 @@ fn verify_decisions<'a>(
                 && cue.disposition == ObservationDisposition::Delivered
                 && cue.delivered_tick.is_some_and(|tick| tick <= decision.tick)
                 && cue.delivered_event_sequence.is_some_and(|sequence| {
-                    sequence > decision.input_cutoff_event_sequence
+                    sequence >= decision.input_cutoff_event_sequence
                 })
             {
                 return Err(HandoffError::FutureCueLeak);
@@ -724,7 +724,7 @@ fn verify_decisions<'a>(
                     && cue.delivered_tick.is_some_and(|tick| tick <= decision.tick)
                     && cue
                         .delivered_event_sequence
-                        .is_some_and(|sequence| sequence <= decision.input_cutoff_event_sequence)
+                        .is_some_and(|sequence| sequence < decision.input_cutoff_event_sequence)
             })
             .collect();
         expected_visible.sort_by_key(|cue| (cue.delivered_tick.unwrap(), cue.delivery_sequence));
@@ -972,6 +972,12 @@ fn validate_branch_event_order(
     }
 
     for cue in cues.values() {
+        let generated_cutoff = cutoffs_by_tick
+            .get(&cue.generated_tick)
+            .ok_or(HandoffError::InvalidObservationTiming)?;
+        if cue.generated_event_sequence >= *generated_cutoff {
+            return Err(HandoffError::InvalidObservationTiming);
+        }
         if cue.generated_tick > 0 {
             let prior_tick = cue.generated_tick - 1;
             let prior_physics = physics_by_tick
@@ -979,6 +985,24 @@ fn validate_branch_event_order(
                 .ok_or(HandoffError::InvalidObservationTiming)?;
             if cue.generated_event_sequence <= *prior_physics {
                 return Err(HandoffError::InvalidObservationTiming);
+            }
+        }
+        if let (Some(delivered_tick), Some(delivered_sequence)) =
+            (cue.delivered_tick, cue.delivered_event_sequence)
+        {
+            let delivery_cutoff = cutoffs_by_tick
+                .get(&delivered_tick)
+                .ok_or(HandoffError::InvalidObservationTiming)?;
+            if delivered_sequence >= *delivery_cutoff {
+                return Err(HandoffError::InvalidObservationTiming);
+            }
+            if delivered_tick > 0 {
+                let prior_physics = physics_by_tick
+                    .get(&(delivered_tick - 1))
+                    .ok_or(HandoffError::InvalidObservationTiming)?;
+                if delivered_sequence <= *prior_physics {
+                    return Err(HandoffError::InvalidObservationTiming);
+                }
             }
         }
     }
