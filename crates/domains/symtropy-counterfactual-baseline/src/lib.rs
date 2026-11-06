@@ -303,19 +303,51 @@ pub struct RegimeBaselineReceipt {
 /// Qualification result for one baseline model and one declared operating domain.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct BaselineQualificationReport {
-    pub identity: BaselineIdentity,
-    pub residual_lower_tail_alpha_basis_points: u16,
-    pub minimum_response_kw: f64,
-    pub minimum_event_qualifying_fraction_basis_points: u16,
-    pub calibration_method: String,
-    pub calibration_evaluation_groups_disjoint: bool,
-    pub forecast_issue_time_checked: bool,
-    pub regimes: Vec<RegimeBaselineReceipt>,
-    pub qualified: bool,
-    pub claim_boundary: String,
+    identity: BaselineIdentity,
+    residual_lower_tail_alpha_basis_points: u16,
+    minimum_response_kw: f64,
+    minimum_event_qualifying_fraction_basis_points: u16,
+    calibration_method: String,
+    calibration_evaluation_groups_disjoint: bool,
+    forecast_issue_time_checked: bool,
+    regimes: Vec<RegimeBaselineReceipt>,
+    qualified: bool,
+    claim_boundary: String,
 }
 
 impl BaselineQualificationReport {
+    pub fn identity(&self) -> &BaselineIdentity {
+        &self.identity
+    }
+
+    pub const fn is_qualified(&self) -> bool {
+        self.qualified
+    }
+
+    pub const fn residual_lower_tail_alpha_basis_points(&self) -> u16 {
+        self.residual_lower_tail_alpha_basis_points
+    }
+
+    pub const fn minimum_response_kw(&self) -> f64 {
+        self.minimum_response_kw
+    }
+
+    pub const fn minimum_event_qualifying_fraction_basis_points(&self) -> u16 {
+        self.minimum_event_qualifying_fraction_basis_points
+    }
+
+    pub fn calibration_method(&self) -> &str {
+        &self.calibration_method
+    }
+
+    pub fn regimes(&self) -> &[RegimeBaselineReceipt] {
+        &self.regimes
+    }
+
+    pub fn claim_boundary(&self) -> &str {
+        &self.claim_boundary
+    }
+
     pub fn regime(&self, regime_id: &str) -> Option<&RegimeBaselineReceipt> {
         self.regimes.iter().find(|regime| regime.regime_id == regime_id)
     }
@@ -446,6 +478,7 @@ pub enum BaselineQualificationError {
     InvalidQuantity { field: &'static str, value: f64 },
     InvalidBasisPoints { field: &'static str, value: u16 },
     InvalidMinimumSampleCount,
+    SourceDigestMismatch { fold: BaselineFold, expected: String, observed: String },
     InsufficientCalibrationForTail { minimum_required: usize, configured: usize },
     InvalidIntervalDuration,
     FutureInformationLeakage { sample_id: String, forecast_issued_at_ns: u64, interval_start_ns: u64 },
@@ -474,6 +507,7 @@ impl fmt::Display for BaselineQualificationError {
             Self::InvalidQuantity { field, value } => write!(f, "{field} must be finite and in range; got {value}"),
             Self::InvalidBasisPoints { field, value } => write!(f, "{field} must be in 0..=10000 basis points; got {value}"),
             Self::InvalidMinimumSampleCount => write!(f, "calibration and evaluation sample minima must be positive"),
+            Self::SourceDigestMismatch { fold, expected, observed } => write!(f, "{fold:?} sample source digest {observed} does not match pinned partition digest {expected}"),
             Self::InsufficientCalibrationForTail { minimum_required, configured } => write!(f, "calibration sample minimum {configured} cannot support the requested lower tail; at least {minimum_required} are required"),
             Self::InvalidIntervalDuration => write!(f, "interval duration must be positive"),
             Self::FutureInformationLeakage { sample_id, forecast_issued_at_ns, interval_start_ns } => write!(f, "forecast {sample_id} was issued at {forecast_issued_at_ns} after target interval start {interval_start_ns}"),
@@ -519,6 +553,17 @@ pub fn qualify_counterfactual_baseline(
     let mut evaluation: BTreeMap<&str, Vec<&NoDispatchObservation>> = BTreeMap::new();
 
     for observation in observations {
+        let expected_source_digest = match observation.fold {
+            BaselineFold::Calibration => &identity.calibration_data_digest,
+            BaselineFold::Evaluation => &identity.evaluation_data_digest,
+        };
+        if &observation.source_digest != expected_source_digest {
+            return Err(BaselineQualificationError::SourceDigestMismatch {
+                fold: observation.fold,
+                expected: expected_source_digest.clone(),
+                observed: observation.source_digest.clone(),
+            });
+        }
         if !sample_ids.insert(observation.sample_id.as_str()) {
             return Err(BaselineQualificationError::DuplicateSampleId {
                 sample_id: observation.sample_id.clone(),
@@ -632,8 +677,16 @@ pub fn qualify_counterfactual_baseline(
             regime_id: regime_id.to_owned(),
             calibration_sample_count: calibration_samples.len(),
             evaluation_sample_count: evaluation_samples.len(),
-            calibration_group_count: calibration_groups.len(),
-            evaluation_group_count: evaluation_groups.len(),
+            calibration_group_count: calibration_samples
+                .iter()
+                .map(|sample| sample.group_id.as_str())
+                .collect::<BTreeSet<_>>()
+                .len(),
+            evaluation_group_count: evaluation_samples
+                .iter()
+                .map(|sample| sample.group_id.as_str())
+                .collect::<BTreeSet<_>>()
+                .len(),
             lower_residual_quantile_kw,
             evaluation_bias_kw,
             normalized_bias_basis_points,
