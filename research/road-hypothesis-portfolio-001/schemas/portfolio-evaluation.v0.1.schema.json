@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/road-hypothesis-portfolio-evaluation.v0.1.schema.json",
+  "title": "ROAD hypothesis portfolio evaluation receipt v0.1",
+  "description": "Stable field contract for deterministic finite portfolio evaluation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "portfolio_digest",
+    "evaluation_digest",
+    "disposition",
+    "odd_scope_match",
+    "model_family_count",
+    "effective_independent_hypothesis_family_count",
+    "decision_recommendation_authorized",
+    "completeness_relative_to_reality_proven"
+  ],
+  "properties": {
+    "portfolio_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluation_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "disposition": {
+      "enum": [
+        "portfolio_complete_for_declared_scope",
+        "portfolio_incomplete",
+        "portfolio_falsified",
+        "out_of_scope",
+        "residual_risk_unbounded"
+      ]
+    },
+    "odd_scope_match": {
+      "type": "boolean"
+    },
+    "model_family_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "effective_independent_hypothesis_family_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decision_recommendation_authorized": {
+      "type": "boolean"
+    },
+    "completeness_relative_to_reality_proven": {
+      "const": false
+    }
+  }
+}
