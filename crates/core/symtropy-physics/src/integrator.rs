@@ -31,10 +31,13 @@ pub fn nan_zeroed_count() -> u64 {
 ///
 /// Semi-implicit Euler: update velocity first, then position.
 ///
-/// For separable Hamiltonians of the form H(q, p) = T(p) + V(q), this update
-/// is symplectic. Symplectic does not mean unconditionally stable: the useful
-/// timestep range still depends on the system's frequencies and stiffness,
-/// and position error remains first-order globally for constant acceleration.
+/// With damping disabled and conservative forces derived from V(q), this
+/// velocity-first / position-second update is symplectic Euler for a separable
+/// Hamiltonian H(q, p) = T(p) + V(q). Configured damping or non-conservative
+/// external forces remove that guarantee. Symplectic does not mean
+/// unconditionally stable: the useful timestep range still depends on the
+/// system's frequencies and stiffness, and position error remains first-order
+/// globally for constant acceleration.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
