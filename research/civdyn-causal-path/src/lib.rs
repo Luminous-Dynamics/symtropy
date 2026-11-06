@@ -255,9 +255,9 @@ impl CausalExperiment {
             && self.treatment.independent_outcome.unit
                 == variable_map[self.outcome_variable_id.as_str()].unit
             && self.control.independent_outcome.unit
-                == variable_map[&self.outcome_variable_id].unit
+                == variable_map[self.outcome_variable_id.as_str()].unit
             && self.negative_control.independent_outcome.unit
-                == variable_map[&self.outcome_variable_id].unit;
+                == variable_map[self.outcome_variable_id.as_str()].unit;
 
         let qualified = mechanism_path_complete
             && negative_control_isolated
