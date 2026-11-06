@@ -121,15 +121,15 @@ impl CausalExperiment {
         }
 
         let intervention = variable_map
-            .get(&self.intervention_variable_id)
+            .get(self.intervention_variable_id.as_str())
             .ok_or_else(|| {
                 CausalPathError::UnknownVariable(self.intervention_variable_id.clone())
             })?;
         let outcome = variable_map
-            .get(&self.outcome_variable_id)
+            .get(self.outcome_variable_id.as_str())
             .ok_or_else(|| CausalPathError::UnknownVariable(self.outcome_variable_id.clone()))?;
         let negative = variable_map
-            .get(&self.negative_control_variable_id)
+            .get(self.negative_control_variable_id.as_str())
             .ok_or_else(|| {
                 CausalPathError::UnknownVariable(self.negative_control_variable_id.clone())
             })?;
@@ -246,7 +246,7 @@ impl CausalExperiment {
                 negative_value,
             )
             && self.treatment.independent_outcome.unit
-                == variable_map[&self.outcome_variable_id].unit
+                == variable_map[self.outcome_variable_id.as_str()].unit
             && self.control.independent_outcome.unit
                 == variable_map[&self.outcome_variable_id].unit
             && self.negative_control.independent_outcome.unit
@@ -933,7 +933,7 @@ mod tests {
             treatment: RunArm {
                 arm_id: "treatment".into(),
                 exogenous_snapshot_id: "fixture:opening20_demand10_production0".into(),
-                initial_values: treatment_initial,
+                initial_values: treatment_initial.clone(),
                 final_values: treatment_final.clone(),
                 transitions: build_receipts(&treatment_initial, &treatment_final),
                 independent_outcome: ledger_outcome(1.0, "ledger:treatment:tick1:household_1"),
