@@ -372,11 +372,9 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     for dof in &free_dofs {
         free_displacement_l2_norm = free_displacement_l2_norm.hypot(displacement[*dof]);
         free_load_l2_norm = free_load_l2_norm.hypot(loads[*dof]);
-        free_residual_l2_norm =
-            free_residual_l2_norm.hypot(internal[*dof] - loads[*dof]);
+        free_residual_l2_norm = free_residual_l2_norm.hypot(internal[*dof] - loads[*dof]);
     }
-    let stiffness_displacement_scale =
-        free_stiffness_frobenius_norm * free_displacement_l2_norm;
+    let stiffness_displacement_scale = free_stiffness_frobenius_norm * free_displacement_l2_norm;
     require_finite(
         stiffness_displacement_scale,
         "free-DOF stiffness-displacement scale",
@@ -1316,9 +1314,8 @@ mod tests {
             ("AC", 0, 2),
         ];
         let split_geometry = test_bar_geometry(&split_nodes, &split_edges);
-        let (split_x, split_y, split_diameter) =
-            reference_geometry(&split_nodes, &split_geometry)
-                .expect("subdivided linework reference");
+        let (split_x, split_y, split_diameter) = reference_geometry(&split_nodes, &split_geometry)
+            .expect("subdivided linework reference");
         close(split_x, base_x, 1.0e-12, "subdivision-invariant centroid x");
         close(split_y, base_y, 1.0e-12, "subdivision-invariant centroid y");
         close(
@@ -1348,12 +1345,10 @@ mod tests {
         }
 
         let rotated = solve(&rotated_input).expect("rotated truss");
-        let expected_reference_x =
-            cos * base.equilibrium.moment_reference_x_m
-                - sin * base.equilibrium.moment_reference_y_m;
-        let expected_reference_y =
-            sin * base.equilibrium.moment_reference_x_m
-                + cos * base.equilibrium.moment_reference_y_m;
+        let expected_reference_x = cos * base.equilibrium.moment_reference_x_m
+            - sin * base.equilibrium.moment_reference_y_m;
+        let expected_reference_y = sin * base.equilibrium.moment_reference_x_m
+            + cos * base.equilibrium.moment_reference_y_m;
         close(
             rotated.equilibrium.moment_reference_x_m,
             expected_reference_x,
