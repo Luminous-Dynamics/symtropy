@@ -13,7 +13,7 @@ The two lanes must not use independently assembled lane-position or time series.
 
 ## Episode contract
 
-Each canonical pose contains timestamp, x/y/z, yaw/pitch/roll, speed, axle load and left/right wheel-path positions. Every pose has exactly one electromagnetic projection and one pavement projection. Duplicate IDs, missing poses, time reversal, frame mismatch, bad transform digests, clock misalignment beyond the declared uncertainty, invalid physical domains and unsupported evidence are rejected.
+Each canonical pose contains nanosecond timestamp, x/y/z, yaw/pitch/roll, speed, axle load and left/right wheel-path positions. Every pose has exactly one electromagnetic projection and one pavement projection. Duplicate IDs, missing poses, time reversal, frame mismatch, bad transform digests, clock misalignment beyond the declared uncertainty, invalid physical domains and unsupported evidence are rejected.
 
 ## Bounded validation
 
