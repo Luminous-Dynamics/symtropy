@@ -103,59 +103,77 @@ pub fn build_islands<const D: usize>(
         }
     }
 
-    // Group bodies by their root
-    let mut island_map: HashMap<usize, Vec<usize>> = HashMap::new();
+    // Group body indices by root. Body iteration is ascending, so every
+    // membership vector is canonical without a separate per-island sort.
+    let mut groups: std::collections::BTreeMap<usize, Vec<usize>> =
+        std::collections::BTreeMap::new();
+    let mut body_roots = Vec::with_capacity(n);
     for i in 0..n {
         let root = uf.find(i);
-        island_map.entry(root).or_default().push(i);
+        body_roots.push(root);
+        groups.entry(root).or_default().push(i);
     }
 
-    // Build islands with contact and constraint indices
-    let mut islands = Vec::new();
-    for (_, body_indices) in island_map {
-        // Collect contacts that belong to this island
-        let body_set: std::collections::HashSet<usize> = body_indices.iter().copied().collect();
-        let contact_indices: Vec<usize> = contacts
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| {
-                let ia = handle_to_index.get(&c.body_a).copied();
-                let ib = handle_to_index.get(&c.body_b).copied();
-                ia.is_some_and(|i| body_set.contains(&i))
-                    || ib.is_some_and(|i| body_set.contains(&i))
-            })
-            .map(|(i, _)| i)
-            .collect();
-
-        // Collect constraints that belong to this island
-        let constraint_indices: Vec<usize> = constraints
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| {
-                let (ha, hb) = c.bodies();
-                let ia = handle_to_index.get(&ha).copied();
-                let ib = handle_to_index.get(&hb).copied();
-                ia.is_some_and(|i| body_set.contains(&i))
-                    || ib.is_some_and(|i| body_set.contains(&i))
-            })
-            .map(|(i, _)| i)
-            .collect();
-
-        // Check if all bodies in the island are sleeping
-        let sleeping = body_indices.iter().all(|&i| bodies[i].sleeping);
-
+    // Build each island once, then retain a root -> output-index map so every
+    // contact and constraint is assigned in a single pass rather than
+    // rescanning the full edge arrays once per island.
+    let mut islands = Vec::with_capacity(groups.len());
+    let mut root_to_island = HashMap::with_capacity(groups.len());
+    for (root, body_indices) in groups {
+        let sleeping = body_indices.iter().all(|&index| bodies[index].sleeping);
+        let island_index = islands.len();
+        root_to_island.insert(root, island_index);
         islands.push(Island {
             body_indices,
-            contact_indices,
-            constraint_indices,
+            contact_indices: Vec::new(),
+            constraint_indices: Vec::new(),
             sleeping,
         });
     }
 
-    // HashMap iteration order is deliberately unspecified. Canonicalize
-    // islands by their lowest body index so downstream scheduling, receipts
-    // and deterministic parallel execution do not inherit hash iteration order.
-    islands.sort_by_key(|island| island.body_indices.first().copied().unwrap_or(usize::MAX));
+    // A valid contact whose two endpoints are present must have endpoints in
+    // the same union-find component. If only one endpoint is present, preserve
+    // the prior behavior and associate it with that known endpoint's island.
+    for (contact_index, contact) in contacts.iter().enumerate() {
+        let body_a = handle_to_index.get(&contact.body_a).copied();
+        let body_b = handle_to_index.get(&contact.body_b).copied();
+        let root = body_a
+            .or(body_b)
+            .map(|body_index| body_roots[body_index]);
+        if let Some(root) = root {
+            if let Some(&island_index) = root_to_island.get(&root) {
+                islands[island_index].contact_indices.push(contact_index);
+            }
+        }
+    }
+
+    // Constraints follow the same single-owner rule as contact manifolds.
+    for (constraint_index, constraint) in constraints.iter().enumerate() {
+        let (handle_a, handle_b) = constraint.bodies();
+        let body_a = handle_to_index.get(&handle_a).copied();
+        let body_b = handle_to_index.get(&handle_b).copied();
+        let root = body_a
+            .or(body_b)
+            .map(|body_index| body_roots[body_index]);
+        if let Some(root) = root {
+            if let Some(&island_index) = root_to_island.get(&root) {
+                islands[island_index]
+                    .constraint_indices
+                    .push(constraint_index);
+            }
+        }
+    }
+
+    // Hash-derived roots are not stable semantic identities. Order by the
+    // lowest stable BodyHandle in each component for deterministic scheduling.
+    islands.sort_by_key(|island| {
+        island
+            .body_indices
+            .iter()
+            .map(|&index| bodies[index].handle)
+            .min()
+            .unwrap_or(BodyHandle(usize::MAX))
+    });
 
     islands
 }
