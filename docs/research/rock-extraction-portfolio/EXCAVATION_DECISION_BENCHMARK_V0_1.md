@@ -253,3 +253,16 @@ Current source contains **33 authored Rust unit tests**. Run:
 Cargo/rustc are not installed in this execution environment, so compilation and test execution remain unverified. Schema/fixture parse and custom semantic checks pass, but full JSON Schema 2020-12 engine validation is not claimed.
 
 The evaluator does not compute EVSI/EVPI: it preserves experiment options and exposes evidence gaps, but expected information value requires a declared utility function, observation likelihood, experiment cost and stopping rule. It must not invent a decision value from incomplete preferences or evidence.
+
+
+## 14. Formal experiment value-of-information follow-on
+
+Issue #3854 defines the next research tranche for EVSI/EVPI and experiment selection. It requires an explicit utility or constrained preference policy, calibrated observation likelihood, complete experiment-cost basis, experiment risk/delay and stopping rule. The v0.1 evaluator deliberately does not calculate scalar information value until those inputs exist.
+
+A key acceptance invariant is:
+- EVSI is non-negative before costs under a correctly specified normalized decision problem;
+- EVPI upper-bounds EVSI under the same state/action/utility assumptions;
+- net EVSI may be negative;
+- no scalar EVI is emitted without a declared utility/preference contract.
+
+The purpose is to learn when to gather more evidence and when additional measurement is not worth its cost—not to reward experimentation for its own sake.
