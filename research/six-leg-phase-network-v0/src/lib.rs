@@ -65,6 +65,8 @@ pub struct SixLegConfig {
     pub preferred_phase_offsets: [f64; LEG_COUNT],
     /// Proprioceptive/contact phase-attractor gains, inverse time units.
     pub feedback_gains: [f64; LEG_COUNT],
+    /// Per-leg delay of the external phase-reference signal, in time units.
+    pub feedback_delay_times: [f64; LEG_COUNT],
     /// Frequency of the external sensory/contact phase reference.
     pub drive_angular_frequency: f64,
     /// Initial phase of the external drive, radians.
@@ -121,6 +123,13 @@ impl SixLegConfig {
             .all(|value| value.is_finite() && *value >= 0.0)
         {
             return Err(CoordinationError::InvalidFeedbackGain);
+        }
+        if !self
+            .feedback_delay_times
+            .iter()
+            .all(|value| value.is_finite() && *value >= 0.0)
+        {
+            return Err(CoordinationError::InvalidFeedbackDelay);
         }
         for row in 0..LEG_COUNT {
             for column in 0..LEG_COUNT {
@@ -217,6 +226,7 @@ pub enum CoordinationError {
     InvalidNaturalFrequency,
     InvalidPhase,
     InvalidFeedbackGain,
+    InvalidFeedbackDelay,
     InvalidCouplingGain,
     SelfCouplingNotAllowed,
     NonFiniteTimebase,
@@ -448,9 +458,6 @@ fn phase_derivative(
     state: NetworkState,
     time: f64,
 ) -> [f64; LEG_COUNT] {
-    let drive_phase = config
-        .drive_angular_frequency
-        .mul_add(time, config.drive_initial_phase);
     let mut derivative = [0.0; LEG_COUNT];
 
     for leg_index in 0..LEG_COUNT {
@@ -489,8 +496,11 @@ fn phase_derivative(
             CoordinationModel::FeedbackDriven | CoordinationModel::Hybrid
         ) && state.feedback_enabled[leg_index]
         {
-            let target_phase =
-                drive_phase + config.preferred_phase_offsets[leg_index];
+            let delayed_drive_time = time - config.feedback_delay_times[leg_index];
+            let target_phase = config
+                .drive_angular_frequency
+                .mul_add(delayed_drive_time, config.drive_initial_phase)
+                + config.preferred_phase_offsets[leg_index];
             let phase_error = target_phase - state.phases[leg_index];
             rate += config.feedback_gains[leg_index] * phase_error.sin();
         }
@@ -683,6 +693,7 @@ mod tests {
             coupling_gains,
             preferred_phase_offsets: SixLegConfig::tripod(),
             feedback_gains: [4.0; LEG_COUNT],
+            feedback_delay_times: [0.0; LEG_COUNT],
             drive_angular_frequency: 2.0,
             drive_initial_phase: 0.0,
             time_step: 0.01,
@@ -1009,6 +1020,38 @@ mod tests {
                 }],
             ),
             Err(CoordinationError::SelfCouplingCut)
+        );
+    }
+
+    #[test]
+    fn hybrid_coupling_compensates_for_heterogeneous_feedback_delays() {
+        let mut config = base_config();
+        config.feedback_delay_times = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25];
+
+        let feedback_only =
+            simulate(config, CoordinationModel::FeedbackDriven, &[]).unwrap();
+        let hybrid = simulate(config, CoordinationModel::Hybrid, &[]).unwrap();
+
+        let feedback_error =
+            final_metrics(&feedback_only, config).pairwise_phase_error_radians;
+        let hybrid_error = final_metrics(&hybrid, config).pairwise_phase_error_radians;
+        assert!(feedback_error > 0.2);
+        assert!(hybrid_error < feedback_error * 0.5);
+    }
+
+    #[test]
+    fn rejects_negative_or_nonfinite_feedback_delay() {
+        let mut config = base_config();
+        config.feedback_delay_times[2] = -0.01;
+        assert_eq!(
+            simulate(config, CoordinationModel::FeedbackDriven, &[]),
+            Err(CoordinationError::InvalidFeedbackDelay)
+        );
+        config = base_config();
+        config.feedback_delay_times[2] = f64::NAN;
+        assert_eq!(
+            simulate(config, CoordinationModel::FeedbackDriven, &[]),
+            Err(CoordinationError::InvalidFeedbackDelay)
         );
     }
 
