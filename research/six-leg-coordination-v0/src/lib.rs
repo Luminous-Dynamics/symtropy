@@ -40,6 +40,7 @@ impl LegId {
 pub enum CoordinationModel {
     IndependentOscillators,
     CoupledOscillators,
+    CoupledHopfOscillators,
     FeedbackAttractor,
     HybridOscillators,
 }
@@ -54,6 +55,8 @@ pub struct CoordinationConfig {
     pub central_coupling_gain: f64,
     pub feedback_gain: f64,
     pub attractor_decay_rate: f64,
+    pub hopf_radial_gain: f64,
+    pub hopf_limit_cycle_amplitude: f64,
 }
 
 impl Default for CoordinationConfig {
@@ -67,6 +70,8 @@ impl Default for CoordinationConfig {
             central_coupling_gain: 5.0,
             feedback_gain: 8.0,
             attractor_decay_rate: 3.0,
+            hopf_radial_gain: 10.0,
+            hopf_limit_cycle_amplitude: 1.0,
         }
     }
 }
@@ -103,6 +108,18 @@ impl CoordinationConfig {
         if !self.attractor_decay_rate.is_finite() || self.attractor_decay_rate <= 0.0 {
             return Err(CoordinationError::InvalidAttractorDecayRate);
         }
+        if matches!(model, CoordinationModel::CoupledHopfOscillators)
+            && (!self.hopf_radial_gain.is_finite()
+                || self.hopf_radial_gain <= 0.0
+                || !self.hopf_limit_cycle_amplitude.is_finite()
+                || self.hopf_limit_cycle_amplitude <= 0.0
+                || self.hopf_radial_gain
+                    * self.sample_interval
+                    * self.hopf_limit_cycle_amplitude.powi(2)
+                    > 1.0)
+        {
+            return Err(CoordinationError::InvalidHopfParameters);
+        }
         if matches!(
             model,
             CoordinationModel::CoupledOscillators | CoordinationModel::HybridOscillators
@@ -119,6 +136,14 @@ pub struct PhasePulse {
     pub step: usize,
     pub leg: LegId,
     pub delta_phase_radians: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AmplitudePulse {
+    pub step: usize,
+    pub leg: LegId,
+    /// Multiplicative amplitude factor in (0, 1].
+    pub scale: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -145,6 +170,7 @@ pub struct FrequencyDetune {
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Intervention {
     pub phase_pulse: Option<PhasePulse>,
+    pub amplitude_pulse: Option<AmplitudePulse>,
     pub coupling_cut_from: Option<usize>,
     pub feedback_cut_from: Option<usize>,
     pub feedback_delay: Option<FeedbackDelay>,
@@ -161,6 +187,14 @@ impl Intervention {
             }
             if !pulse.delta_phase_radians.is_finite() {
                 return Err(CoordinationError::InvalidPhasePulse);
+            }
+        }
+        if let Some(pulse) = self.amplitude_pulse {
+            if !valid_step(pulse.step) {
+                return Err(CoordinationError::InvalidInterventionStep);
+            }
+            if !pulse.scale.is_finite() || pulse.scale <= 0.0 || pulse.scale > 1.0 {
+                return Err(CoordinationError::InvalidAmplitudePulse);
             }
         }
         if self.coupling_cut_from.is_some_and(|step| !valid_step(step))
@@ -219,7 +253,9 @@ pub enum CoordinationError {
     InvalidCentralCouplingGain,
     InvalidFeedbackGain,
     InvalidAttractorDecayRate,
+    InvalidHopfParameters,
     InvalidInterventionStep,
+    InvalidAmplitudePulse,
     InvalidPhasePulse,
     InvalidFeedbackDelay,
     InvalidFrequencyDetune,
@@ -248,11 +284,13 @@ pub fn simulate(
         let phase = config.initial_phase + config.target_offsets[leg_index];
         [phase.cos(), phase.sin()]
     });
+    let mut radii = [config.hopf_limit_cycle_amplitude; LEG_COUNT];
     let mut samples = Vec::with_capacity(config.sample_count);
 
     for step in 0..config.sample_count {
         let active = active_legs(step, intervention);
         apply_phase_pulse(step, model, intervention, &mut phases, &mut attractor_states);
+        apply_amplitude_pulse(step, intervention, &mut radii);
 
         let timestamp = step as f64 * config.sample_interval;
         if !timestamp.is_finite() {
@@ -280,14 +318,14 @@ pub fn simulate(
             (
                 std::array::from_fn(|leg_index| {
                     if active[leg_index] {
-                        phases[leg_index].cos()
+                        output_radius(model, radii[leg_index]) * phases[leg_index].cos()
                     } else {
                         0.0
                     }
                 }),
                 std::array::from_fn(|leg_index| {
                     if active[leg_index] {
-                        phases[leg_index].sin()
+                        output_radius(model, radii[leg_index]) * phases[leg_index].sin()
                     } else {
                         0.0
                     }
@@ -315,6 +353,7 @@ pub fn simulate(
                 &active_legs(step + 1, intervention),
                 &mut phases,
                 &mut attractor_states,
+                &mut radii,
             )?;
         }
     }
@@ -324,6 +363,26 @@ pub fn simulate(
         intervention,
         samples,
     })
+}
+
+fn output_radius(model: CoordinationModel, radius: f64) -> f64 {
+    if model == CoordinationModel::CoupledHopfOscillators {
+        radius
+    } else {
+        1.0
+    }
+}
+
+fn apply_amplitude_pulse(
+    step: usize,
+    intervention: Intervention,
+    radii: &mut [f64; LEG_COUNT],
+) {
+    if let Some(pulse) = intervention.amplitude_pulse {
+        if step == pulse.step {
+            radii[pulse.leg.index()] *= pulse.scale;
+        }
+    }
 }
 
 fn active_legs(step: usize, intervention: Intervention) -> [bool; LEG_COUNT] {
@@ -369,6 +428,7 @@ fn advance_state(
     active: &[bool; LEG_COUNT],
     phases: &mut [f64; LEG_COUNT],
     attractor_states: &mut [[f64; 2]; LEG_COUNT],
+    radii: &mut [f64; LEG_COUNT],
 ) -> Result<(), CoordinationError> {
     let elapsed = config.sample_interval;
     let feedback_present = !intervention
@@ -409,6 +469,21 @@ fn advance_state(
         return Ok(());
     }
 
+    if model == CoordinationModel::CoupledHopfOscillators {
+        for (leg_index, radius) in radii.iter_mut().enumerate() {
+            if active[leg_index] {
+                let target_squared = config.hopf_limit_cycle_amplitude.powi(2);
+                *radius += config.hopf_radial_gain
+                    * (target_squared - radius.powi(2))
+                    * *radius
+                    * elapsed;
+                if !radius.is_finite() || *radius <= 0.0 {
+                    return Err(CoordinationError::NumericalFailure);
+                }
+            }
+        }
+    }
+
     let previous = *phases;
     let mut next = previous;
     let active_count = active.iter().filter(|enabled| **enabled).count();
@@ -429,7 +504,9 @@ fn advance_state(
             && active_count > 1
             && matches!(
                 model,
-                CoordinationModel::CoupledOscillators | CoordinationModel::HybridOscillators
+                CoordinationModel::CoupledOscillators
+                    | CoordinationModel::CoupledHopfOscillators
+                    | CoordinationModel::HybridOscillators
             )
         {
             let mut coupling_sum = 0.0;
