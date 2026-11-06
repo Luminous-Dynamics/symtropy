@@ -82,7 +82,7 @@ fn event_for(rule_id: &str, digest: &str) -> DisturbanceEventIdentity {
         100.0,
         1_000,
         10_000_000,
-        1_000.0,
+        0.4,
     )
     .unwrap()
 }
@@ -92,7 +92,7 @@ fn event() -> DisturbanceEventIdentity {
 }
 
 fn contract() -> DisturbanceTraceContract {
-    DisturbanceTraceContract::new(10_000, 100_000_000, 20_000_000, 500.0, 3).unwrap()
+    DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 0.4, 3).unwrap()
 }
 
 fn sample(
@@ -165,7 +165,7 @@ fn operator_permitted_momentary_cessation_is_duration_bounded() {
     );
     let event = event_for("operator-rule-2", "sha256:requirement-2");
     let trace_contract =
-        DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 500.0, 3).unwrap();
+        DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 0.4, 3).unwrap();
     let trace = vec![
         sample(0, 0.2, 49.5, 60.0, false),
         sample(250_000_000, 0.4, 49.5, 70.0, true),
@@ -248,8 +248,15 @@ fn excessive_sample_gap_abstains() {
         sample(3_000_000_000, 0.98, 50.0, 95.0, true),
         sample(3_999_999_999, 0.98, 50.0, 96.0, true),
     ];
-    let error = evaluate_disturbance_conformance(&event(), &requirement(), &contract(), &trace)
-        .unwrap_err();
+    let strict_cadence =
+        DisturbanceTraceContract::new(10_000, 500_000_000, 20_000_000, 0.4, 3).unwrap();
+    let error = evaluate_disturbance_conformance(
+        &event(),
+        &requirement(),
+        &strict_cadence,
+        &trace,
+    )
+    .unwrap_err();
 
     assert!(matches!(
         error,
@@ -466,4 +473,15 @@ fn recovery_ramp_across_stability_boundary_is_not_hidden() {
     assert!(report.recovery_condition_observed);
     assert!(!report.recovery_compliant);
     assert!(report.maximum_absolute_recovery_ramp_mw_per_s.unwrap() >= 100.0);
+}
+
+#[test]
+fn sample_cadence_cannot_claim_unobservable_bandwidth() {
+    let error = DisturbanceTraceContract::new(
+        10_000, 1_000_000_000, 20_000_000, 1.0, 3,
+    ).unwrap_err();
+    assert!(matches!(
+        error,
+        DisturbanceError::SamplingCadenceCannotResolveBandwidth { .. }
+    ));
 }
