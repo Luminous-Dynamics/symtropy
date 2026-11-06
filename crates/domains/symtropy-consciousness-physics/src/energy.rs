@@ -1,36 +1,38 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-//! Persistent energy reservoir for consciousness-coupled entities.
+//! Simulated resource reservoir for consciousness-coupled entities.
 //!
-//! Energy is a finite, conserved quantity. It depletes through movement,
-//! consciousness maintenance, and collisions. It regenerates through
-//! harmony resonance, energy wells, and slow ambient recovery.
+//! The numeric resource scale is configurable model state, not calibrated SI
+//! joules by default. It depletes through configured movement, maintenance and
+//! collision policies, and regenerates through modeled resonance/well inputs.
+//! Physical heat measured by the mechanics engine is tracked separately.
 //!
-//! When energy reaches zero, the entity collapses — Φ drops to 0,
+//! When the modeled resource reaches zero, the entity collapses — Φ drops to 0,
 //! motor output halts, and recovery requires another agent's help.
 
-/// Persistent energy reservoir for a consciousness-coupled entity.
+/// Simulated resource reservoir for a consciousness-coupled entity.
 ///
-/// Tracks internal energy (U), temperature (T), and entropy (S)
-/// for 2nd Law compliance. Available work = Helmholtz free energy F = U - TS.
+/// Tracks a model internal-resource store (U), effective temperature (T), and
+/// entropy-like state (S). Its units are model resource units unless a caller
+/// explicitly calibrates the entire reservoir in SI joules.
 #[derive(Debug, Clone)]
 pub struct EnergyBudget {
-    /// Maximum energy capacity.
+    /// Maximum simulated resource capacity.
     pub max_energy: f64,
-    /// Current internal energy U (persistent — does NOT reset each tick).
+    /// Current model internal-resource store U (persistent — does NOT reset each tick).
     pub available: f64,
-    /// Entity temperature in Kelvin (rises with dissipated heat).
+    /// Effective temperature parameter in kelvin-scaled model units.
     pub temperature: f64,
-    /// Cumulative entropy in J/K (monotonically increases per 2nd Law).
+    /// Cumulative entropy-like state in model resource units per kelvin.
     pub entropy: f64,
-    /// Heat capacity in J/K.
+    /// Constant model heat capacity in resource units per kelvin.
     pub heat_capacity: f64,
-    /// Total energy consumed this tick (reset each tick for telemetry).
+    /// Model resource consumed this tick (reset each tick for telemetry).
     pub consumed_this_tick: f64,
-    /// Total energy regenerated this tick (reset each tick for telemetry).
+    /// Model resource regenerated this tick (reset each tick for telemetry).
     pub regenerated_this_tick: f64,
-    /// Cumulative energy spent across all ticks.
+    /// Cumulative model resource spent across all ticks.
     pub lifetime_consumed: f64,
     /// Whether this entity has collapsed (energy depleted to zero).
     pub collapsed: bool,
@@ -83,20 +85,47 @@ impl EnergyBudget {
         actual
     }
 
-    /// Absorb heat from dissipation (damping, friction, collision).
-    /// Increases temperature and entropy per 2nd Law.
+    /// Apply a heat-like model input to the constant-capacity reservoir.
+    ///
+    /// For positive heat input Q, constant capacity C and positive initial
+    /// temperature T0, set T1 = T0 + Q/C and update the entropy state with the
+    /// exact relation ΔS = C ln(T1/T0). This consumes model resource units; it
+    /// is an SI thermodynamic update only when the reservoir is calibrated in
+    /// joules and its temperature/capacity have physical meaning.
     pub fn dissipate_heat(&mut self, energy: f64) {
-        if energy <= 0.0 || self.heat_capacity <= 0.0 {
+        if !energy.is_finite()
+            || energy <= 0.0
+            || !self.heat_capacity.is_finite()
+            || self.heat_capacity <= 0.0
+            || !self.temperature.is_finite()
+            || self.temperature <= 0.0
+        {
             return;
         }
-        self.temperature += energy / self.heat_capacity;
-        self.entropy += energy / self.temperature;
+
+        let initial_temperature = self.temperature;
+        let final_temperature = initial_temperature + energy / self.heat_capacity;
+        if !final_temperature.is_finite() || final_temperature <= 0.0 {
+            return;
+        }
+
+        let entropy_delta =
+            self.heat_capacity * (final_temperature.ln() - initial_temperature.ln());
+        if !entropy_delta.is_finite() || entropy_delta < 0.0 {
+            return;
+        }
+
+        self.temperature = final_temperature;
+        self.entropy += entropy_delta;
     }
 
-    /// Helmholtz free energy: maximum extractable work at constant T.
-    /// F = U - TS. Always ≥ 0.
+    /// Helmholtz-like free-energy value relative to the model's chosen zero:
+    /// F = U - T*S. It may be negative; clamping would conceal the reference
+    /// state and remove information about the model's accounting convention.
+    /// This is physical available work only for a calibrated thermodynamic
+    /// reservoir with a declared reference state.
     pub fn available_work(&self) -> f64 {
-        (self.available - self.temperature * self.entropy).max(0.0)
+        self.available - self.temperature * self.entropy
     }
 
     /// Add energy (from regeneration sources). Capped at max_energy.
@@ -211,6 +240,43 @@ mod tests {
         budget.tick_reset();
         budget.consume(20.0);
         assert!((budget.lifetime_consumed - 50.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn constant_heat_capacity_entropy_uses_exact_log_relation() {
+        let mut budget = EnergyBudget::new(100.0);
+        budget.temperature = 300.0;
+        budget.heat_capacity = 100.0;
+        budget.dissipate_heat(20.0);
+
+        let expected_temperature = 300.2;
+        let expected_entropy_delta = 100.0 * (expected_temperature.ln() - 300.0_f64.ln());
+        assert!((budget.temperature - expected_temperature).abs() < 1e-12);
+        assert!((budget.entropy - expected_entropy_delta).abs() < 1e-12);
+    }
+
+    #[test]
+    fn heat_model_rejects_non_finite_and_non_positive_state() {
+        let mut budget = EnergyBudget::new(100.0);
+        budget.temperature = 0.0;
+        budget.dissipate_heat(10.0);
+        assert_eq!(budget.temperature, 0.0);
+        assert_eq!(budget.entropy, 0.0);
+
+        budget.temperature = 300.0;
+        budget.dissipate_heat(f64::NAN);
+        assert_eq!(budget.temperature, 300.0);
+        assert_eq!(budget.entropy, 0.0);
+    }
+
+    #[test]
+    fn helmholtz_like_value_is_not_silently_clamped_at_zero() {
+        let mut budget = EnergyBudget::new(100.0);
+        budget.available = 1.0;
+        budget.temperature = 300.0;
+        budget.entropy = 1.0;
+
+        assert_eq!(budget.available_work(), -299.0);
     }
 
     #[test]
