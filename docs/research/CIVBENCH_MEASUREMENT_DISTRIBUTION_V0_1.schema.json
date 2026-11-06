@@ -1001,6 +1001,133 @@
           "const": "any-decision-relevant-change"
         }
       }
+    },
+    "benchmark_harmony": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "diagnostic_id",
+        "variant",
+        "partition_factor_id",
+        "partition_method",
+        "partition_rule",
+        "partition_completeness",
+        "performance_metric_id",
+        "performance_transform",
+        "bandwidth_min",
+        "bandwidth_mad_multiplier",
+        "subdomains",
+        "weighted_mean_performance",
+        "median_performance",
+        "mad_performance",
+        "bandwidth",
+        "harmony",
+        "comparability",
+        "claim_limit"
+      ],
+      "properties": {
+        "diagnostic_id": {
+          "const": "CIVBENCH-BENCHMARK-HARMONY-001"
+        },
+        "variant": {
+          "const": "fixed-partition-adaptation-v0.1"
+        },
+        "partition_factor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "partition_method": {
+          "const": "predeclared-factor-levels"
+        },
+        "partition_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "partition_completeness": {
+          "const": "predeclared-disjoint-exhaustive"
+        },
+        "performance_metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "performance_transform": {
+          "const": "identity-normalized-fraction"
+        },
+        "bandwidth_min": {
+          "const": 0.02
+        },
+        "bandwidth_mad_multiplier": {
+          "const": 1.4826
+        },
+        "subdomains": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "subdomain_id",
+              "support_count",
+              "performance_score",
+              "performance_mass"
+            ],
+            "properties": {
+              "subdomain_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "support_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "performance_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "performance_mass": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        },
+        "weighted_mean_performance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "median_performance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mad_performance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "bandwidth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "harmony": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "comparability": {
+          "enum": [
+            "fixed-partition-only-not-comparable-to-model-induced-clusters",
+            "fixed-partition-within-study-only"
+          ]
+        },
+        "claim_limit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   }
 }
