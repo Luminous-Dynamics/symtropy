@@ -2,7 +2,7 @@
 
 **Status:** research specification / synthetic-only implementation target. Not a measured test report, safety assessment, standards certificate or authorization to energize hardware.
 
-Tracking issue: [#undefined](https://github.com/Luminous-Dynamics/symtropy/issues/undefined)
+Tracking issue: [#3950](https://github.com/Luminous-Dynamics/symtropy/issues/3950)
 
 ## 1. Purpose
 
