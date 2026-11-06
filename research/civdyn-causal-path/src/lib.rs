@@ -1461,16 +1461,6 @@ mod tests {
     }
 
     #[test]
-    fn ablation_target_must_be_on_the_required_path() {
-        let mut invalid = experiment();
-        invalid.mechanism_ablation.blocked_mechanism_variable_id = "unrelated_intermediate".into();
-        assert!(matches!(
-            invalid.validate(),
-            Err(CausalPathError::AblationTargetNotOnRequiredPath(_))
-        ));
-    }
-
-    #[test]
     fn outcome_receipts_must_refer_to_the_same_resource_region_and_tick() {
         let mut invalid = experiment();
         invalid.negative_control.independent_outcome.region_id = "different_household".into();
@@ -1482,6 +1472,13 @@ mod tests {
 
     #[test]
     fn ablation_target_must_be_on_the_required_path() {
+        let mut unrelated = experiment();
+        unrelated.mechanism_ablation.blocked_mechanism_variable_id = "unrelated_intermediate".into();
+        assert!(matches!(
+            unrelated.validate(),
+            Err(CausalPathError::AblationTargetNotOnRequiredPath(_))
+        ));
+
         let mut invalid = experiment();
         invalid.mechanism_ablation.blocked_mechanism_variable_id = "authorized_transfer_m3".into();
         invalid
