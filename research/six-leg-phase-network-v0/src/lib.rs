@@ -253,6 +253,7 @@ pub enum CoordinationError {
     SelfCouplingNotAllowed,
     NonFiniteTimebase,
     InvalidInterventionIndex,
+    InvalidInterventionOnset,
     InvalidPhasePulse,
     DuplicateInterventionSample,
     SelfCouplingCut,
@@ -574,6 +575,15 @@ pub fn select_coordination_model_open_set(
     validate_trace(&observed.samples)?;
     if observed.samples.len() != observed.config.sample_count {
         return Err(CoordinationError::InvalidTraceLength);
+    }
+    let first_action_sample = observed
+        .interventions
+        .iter()
+        .map(|intervention| intervention.sample_index())
+        .min()
+        .ok_or(CoordinationError::InvalidInterventionOnset)?;
+    if first_action_sample != onset_sample {
+        return Err(CoordinationError::InvalidInterventionOnset);
     }
 
     let mut seen = BTreeMap::new();
@@ -1320,7 +1330,12 @@ mod tests {
         let mut config = base_config();
         config.coupling_gains = [[0.0; LEG_COUNT]; LEG_COUNT];
         config.feedback_gains = [0.0; LEG_COUNT];
-        let observed = simulate(config, CoordinationModel::Independent, &[]).unwrap();
+        let action = Intervention::PhasePulse {
+            sample_index: 100,
+            leg: Leg::LeftFront,
+            delta_phase_radians: 0.3,
+        };
+        let observed = simulate(config, CoordinationModel::Independent, &[action]).unwrap();
         let decision = select_coordination_model_open_set(
             &observed,
             &[
@@ -1345,7 +1360,12 @@ mod tests {
     #[test]
     fn open_set_coordination_gate_rejects_a_poor_fit_even_with_a_large_margin() {
         let config = base_config();
-        let observed = simulate(config, CoordinationModel::CentrallyCoupled, &[]).unwrap();
+        let action = Intervention::PhasePulse {
+            sample_index: 100,
+            leg: Leg::LeftFront,
+            delta_phase_radians: 0.3,
+        };
+        let observed = simulate(config, CoordinationModel::CentrallyCoupled, &[action]).unwrap();
         let decision = select_coordination_model_open_set(
             &observed,
             &[
@@ -1370,7 +1390,12 @@ mod tests {
     #[test]
     fn open_set_coordination_gate_selects_an_adequate_separated_candidate() {
         let config = base_config();
-        let observed = simulate(config, CoordinationModel::Independent, &[]).unwrap();
+        let action = Intervention::PhasePulse {
+            sample_index: 100,
+            leg: Leg::LeftFront,
+            delta_phase_radians: 0.3,
+        };
+        let observed = simulate(config, CoordinationModel::Independent, &[action]).unwrap();
         let decision = select_coordination_model_open_set(
             &observed,
             &[
@@ -1395,7 +1420,12 @@ mod tests {
     #[test]
     fn six_leg_selector_rejects_truncated_observation_trace_without_panicking() {
         let config = base_config();
-        let mut observed = simulate(config, CoordinationModel::Independent, &[]).unwrap();
+        let action = Intervention::PhasePulse {
+            sample_index: 100,
+            leg: Leg::LeftFront,
+            delta_phase_radians: 0.3,
+        };
+        let mut observed = simulate(config, CoordinationModel::Independent, &[action]).unwrap();
         observed.samples.pop();
         assert_eq!(
             select_coordination_model_open_set(
@@ -1410,6 +1440,45 @@ mod tests {
                 -10.0,
             ),
             Err(CoordinationError::InvalidTraceLength)
+        );
+    }
+
+    #[test]
+    fn six_leg_selector_rejects_absent_or_misaligned_intervention_onset() {
+        let config = base_config();
+        let no_action = simulate(config, CoordinationModel::Independent, &[]).unwrap();
+        let candidates = [
+            CoordinationModel::Independent,
+            CoordinationModel::FeedbackDriven,
+        ];
+        assert_eq!(
+            select_coordination_model_open_set(
+                &no_action,
+                &candidates,
+                100,
+                0.01,
+                0.01,
+                -10.0,
+            ),
+            Err(CoordinationError::InvalidInterventionOnset)
+        );
+
+        let action = Intervention::PhasePulse {
+            sample_index: 100,
+            leg: Leg::LeftFront,
+            delta_phase_radians: 0.3,
+        };
+        let acted = simulate(config, CoordinationModel::Independent, &[action]).unwrap();
+        assert_eq!(
+            select_coordination_model_open_set(
+                &acted,
+                &candidates,
+                101,
+                0.01,
+                0.01,
+                -10.0,
+            ),
+            Err(CoordinationError::InvalidInterventionOnset)
         );
     }
 
