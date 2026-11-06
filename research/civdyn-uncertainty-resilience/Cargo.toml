@@ -1,0 +1,19 @@
+[workspace]
+
+[package]
+name = "civdyn-uncertainty-resilience"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Parameter uncertainty and Morris sensitivity screening for cross-scale resilience"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "uncertainty-resilience-sweep"
+path = "src/bin/uncertainty_resilience_sweep.rs"
+
+[dependencies]
+civdyn-cross-scale-resilience = { path = "../civdyn-cross-scale-resilience" }
