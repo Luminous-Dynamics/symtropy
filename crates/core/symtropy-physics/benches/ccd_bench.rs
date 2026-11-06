@@ -111,7 +111,14 @@ fn bench_sphere_halfspace(c: &mut Criterion) {
         BenchmarkId::new("checked_scaled_normal_3d", "scale_17"),
         |bench| {
             bench.iter(|| {
-                black_box(sphere_halfspace_checked(black_box(&position), black_box(&velocity), 0.5, black_box(&scaled_normal), 0.0, 0.016))
+                black_box(sphere_halfspace_checked(
+                    black_box(&position),
+                    black_box(&velocity),
+                    0.5,
+                    black_box(&scaled_normal),
+                    0.0,
+                    0.016,
+                ))
             });
         },
     );
@@ -120,7 +127,14 @@ fn bench_sphere_halfspace(c: &mut Criterion) {
         BenchmarkId::new("compat_unit_normal_3d", "scale_1"),
         |bench| {
             bench.iter(|| {
-                black_box(sphere_halfspace(black_box(&position), black_box(&velocity), 0.5, black_box(&unit_normal), 0.0, 0.016))
+                black_box(sphere_halfspace(
+                    black_box(&position),
+                    black_box(&velocity),
+                    0.5,
+                    black_box(&unit_normal),
+                    0.0,
+                    0.016,
+                ))
             });
         },
     );
