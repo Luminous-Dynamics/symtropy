@@ -208,6 +208,10 @@ impl DcNetworkModel {
         self.topology_effective_at_ns
     }
 
+    pub fn pcc_bus_id(&self) -> &str {
+        &self.pcc_bus_id
+    }
+
     pub const fn base_mva(&self) -> f64 {
         self.base_mva
     }
@@ -310,6 +314,7 @@ impl DcFlexInterval {
 pub struct DcFlexibilityIdentity {
     site_id: String,
     pcc_id: String,
+    pcc_bus_id: String,
     baseline_trace_digest: String,
     flexible_trace_digest: String,
 }
@@ -318,18 +323,21 @@ impl DcFlexibilityIdentity {
     pub fn new(
         site_id: impl Into<String>,
         pcc_id: impl Into<String>,
+        pcc_bus_id: impl Into<String>,
         baseline_trace_digest: impl Into<String>,
         flexible_trace_digest: impl Into<String>,
     ) -> Result<Self, DcNetworkError> {
         let identity = Self {
             site_id: site_id.into(),
             pcc_id: pcc_id.into(),
+            pcc_bus_id: pcc_bus_id.into(),
             baseline_trace_digest: baseline_trace_digest.into(),
             flexible_trace_digest: flexible_trace_digest.into(),
         };
         for (field, value) in [
             ("site ID", identity.site_id.as_str()),
             ("PCC ID", identity.pcc_id.as_str()),
+            ("PCC bus ID", identity.pcc_bus_id.as_str()),
             ("baseline trace digest", identity.baseline_trace_digest.as_str()),
             ("flexible trace digest", identity.flexible_trace_digest.as_str()),
         ] {
@@ -427,6 +435,7 @@ pub enum DcNetworkError {
     DuplicateBranch { branch_id: String },
     UnknownBus { bus_id: String },
     UnknownInjectionBus { bus_id: String },
+    PccBusMismatch { expected_bus_id: String, observed_bus_id: String },
     SlackBusInjectionSupplied { bus_id: String },
     UnknownContingencyBranch { branch_id: String },
     UnknownBranchFlow { branch_id: String },
@@ -458,6 +467,7 @@ impl fmt::Display for DcNetworkError {
             Self::DuplicateBranch { branch_id } => write!(f, "duplicate branch ID {branch_id}"),
             Self::UnknownBus { bus_id } => write!(f, "network references unknown bus {bus_id}"),
             Self::UnknownInjectionBus { bus_id } => write!(f, "injection references unknown bus {bus_id}"),
+            Self::PccBusMismatch { expected_bus_id, observed_bus_id } => write!(f, "site flexibility is pinned to PCC bus {expected_bus_id}, but load-reduction action is assigned to {observed_bus_id}"),
             Self::SlackBusInjectionSupplied { bus_id } => write!(f, "slack bus {bus_id} is balanced implicitly and must not appear in the injection map"),
             Self::UnknownContingencyBranch { branch_id } => write!(f, "contingency references unknown branch {branch_id}"),
             Self::UnknownBranchFlow { branch_id } => write!(f, "missing solved branch flow for {branch_id}"),
@@ -547,6 +557,14 @@ pub fn evaluate_dc_network_deliverability(
             });
         }
         validate_injection_map(network, &interval.baseline_non_slack_injections_mw)?;
+        for bus_id in interval.load_reductions_mw.keys() {
+            if bus_id != &identity.pcc_bus_id {
+                return Err(DcNetworkError::PccBusMismatch {
+                    expected_bus_id: identity.pcc_bus_id.clone(),
+                    observed_bus_id: bus_id.clone(),
+                });
+            }
+        }
         validate_injection_map(network, &interval.load_reductions_mw)?;
 
         let mut flexible_injections = interval.baseline_non_slack_injections_mw.clone();
