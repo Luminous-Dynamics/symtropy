@@ -1730,11 +1730,7 @@ pub fn update_hypothesis_posterior_after_intervention(
 
         // Predictions are regenerated from the hypothesis and the verified
         // action. No observed sample is used to tune this prediction.
-        let predicted = simulate(
-            hypothesis.mechanism,
-            intervention,
-            hypothesis.config,
-        )?;
+        let predicted = simulate(hypothesis.mechanism, intervention, hypothesis.config)?;
         let predicted_suffix = &predicted.samples[onset_index..];
         let log_likelihood =
             predictive_log_score(observed_suffix, predicted_suffix, observation_variance)?;
@@ -3558,8 +3554,7 @@ mod tests {
             },
         ];
         let action = Intervention::FeedbackCutFrom { sample_index: 30 };
-        let observed =
-            simulate(Mechanism::IntrinsicOscillator, action, cfg).unwrap();
+        let observed = simulate(Mechanism::IntrinsicOscillator, action, cfg).unwrap();
         let update = update_hypothesis_posterior_after_intervention(
             &hypotheses,
             action,
@@ -3605,8 +3600,7 @@ mod tests {
             sample_index: 30,
             delta_phase_radians: 0.3,
         };
-        let observed =
-            simulate(Mechanism::IntrinsicOscillator, action, cfg).unwrap();
+        let observed = simulate(Mechanism::IntrinsicOscillator, action, cfg).unwrap();
         let update = update_hypothesis_posterior_after_intervention(
             &hypotheses,
             action,
@@ -3615,8 +3609,16 @@ mod tests {
         )
         .unwrap();
 
-        let a = update.posterior.iter().find(|item| item.hypothesis_id == "prior-a").unwrap();
-        let b = update.posterior.iter().find(|item| item.hypothesis_id == "prior-b").unwrap();
+        let a = update
+            .posterior
+            .iter()
+            .find(|item| item.hypothesis_id == "prior-a")
+            .unwrap();
+        let b = update
+            .posterior
+            .iter()
+            .find(|item| item.hypothesis_id == "prior-b")
+            .unwrap();
         assert!((a.probability - 0.75).abs() < 1.0e-10);
         assert!((b.probability - 0.25).abs() < 1.0e-10);
         assert!(update.information_gain_nats.abs() < 1.0e-10);
@@ -3638,8 +3640,7 @@ mod tests {
             prior_weight: 1.0,
         };
         let action = Intervention::FeedbackCutFrom { sample_index: 30 };
-        let observed =
-            simulate(Mechanism::SensoryFeedbackDriven, action, cfg).unwrap();
+        let observed = simulate(Mechanism::SensoryFeedbackDriven, action, cfg).unwrap();
         let update_ab = update_hypothesis_posterior_after_intervention(
             &[a.clone(), b.clone()],
             action,
@@ -3657,16 +3658,17 @@ mod tests {
         assert_eq!(update_ab.posterior, update_ba.posterior);
 
         assert!(update_ab.probability_floor_applied);
-        let posterior_hypotheses =
-            apply_hypothesis_posterior(&[a, b], &update_ab).unwrap();
+        let posterior_hypotheses = apply_hypothesis_posterior(&[a, b], &update_ab).unwrap();
         let total = posterior_hypotheses
             .iter()
             .map(|hypothesis| hypothesis.prior_weight)
             .sum::<f64>();
         assert!((total - 1.0).abs() < 1.0e-12);
-        assert!(posterior_hypotheses
-            .iter()
-            .any(|hypothesis| hypothesis.id == "sensory" && hypothesis.prior_weight > 0.999));
+        assert!(
+            posterior_hypotheses
+                .iter()
+                .any(|hypothesis| hypothesis.id == "sensory" && hypothesis.prior_weight > 0.999)
+        );
     }
 
     #[test]
