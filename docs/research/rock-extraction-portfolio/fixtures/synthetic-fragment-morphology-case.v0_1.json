@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-FRAGMENT-MORPHOLOGY-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "acquisition": {
+    "acquisition_id": "acquisition:synthetic-morphology-001",
+    "parent_case_id": "SYNTHETIC-FRAGMENT-TRANSPORT-001",
+    "parent_interval_id": "WINDOW-001",
+    "trial_id": "TRIAL-001",
+    "configuration_ref": "machine:synthetic-undercutter-r2",
+    "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+    "method": "DYNAMIC_2D_IMAGE",
+    "instrument_ref": "instrument:synthetic-dynamic-imager-r1",
+    "calibration_ref": "cal:synthetic-particle-reference-material-r1",
+    "reference_material_ref": "reference-material:certified-shape-artifact-r1",
+    "sampling_protocol_ref": "sampling:systematic-randomized-particle-v1",
+    "segmentation_pipeline_ref": "pipeline:synthetic-segmentation-r1",
+    "orientation_protocol": "DYNAMIC_ROTATION",
+    "orientation_protocol_ref": "orientation:dynamic-rotation-r1",
+    "repeatability_ref": "repeatability:synthetic-repeat-scan-r1",
+    "source_artifact_ref": "artifact:synthetic-morphology-raw-image-set-001"
+  },
+  "size_strata": [
+    {
+      "parent_bin_index": 0,
+      "lower_mm": 0,
+      "upper_mm": 5,
+      "sampled_particle_count": 52,
+      "valid_particle_count": 48,
+      "occluded_particle_count": 2,
+      "ambiguous_particle_count": 1,
+      "rejected_particle_count": 1,
+      "evidence_role": "INDEPENDENT_MEASUREMENT",
+      "source_ref": "morphology:synthetic-size-bin-0",
+      "descriptors": [
+        {
+          "descriptor_type": "FERET_ASPECT_RATIO_2D",
+          "basis": "PROJECTION_2D",
+          "unit": "1",
+          "descriptor_definition_ref": "descriptor:feret-aspect-ratio-2d-v1",
+          "sample_count": 48,
+          "p50_standard_uncertainty": 0.04,
+          "quantiles": {
+            "p05": 1.05,
+            "p25": 1.18,
+            "p50": 1.34,
+            "p75": 1.62,
+            "p95": 2.1
+          }
+        },
+        {
+          "descriptor_type": "CIRCULARITY_2D",
+          "basis": "PROJECTION_2D",
+          "unit": "1",
+          "descriptor_definition_ref": "descriptor:circularity-2d-v1",
+          "sample_count": 48,
+          "p50_standard_uncertainty": 0.025,
+          "quantiles": {
+            "p05": 0.42,
+            "p25": 0.58,
+            "p50": 0.71,
+            "p75": 0.82,
+            "p95": 0.94
+          }
+        }
+      ]
+    },
+    {
+      "parent_bin_index": 1,
+      "lower_mm": 5,
+      "upper_mm": 10,
+      "sampled_particle_count": 52,
+      "valid_particle_count": 48,
+      "occluded_particle_count": 2,
+      "ambiguous_particle_count": 1,
+      "rejected_particle_count": 1,
+      "evidence_role": "INDEPENDENT_MEASUREMENT",
+      "source_ref": "morphology:synthetic-size-bin-1",
+      "descriptors": [
+        {
+          "descriptor_type": "FERET_ASPECT_RATIO_2D",
+          "basis": "PROJECTION_2D",
+          "unit": "1",
+          "descriptor_definition_ref": "descriptor:feret-aspect-ratio-2d-v1",
+          "sample_count": 48,
+          "p50_standard_uncertainty": 0.04,
+          "quantiles": {
+            "p05": 1.1,
+            "p25": 1.25,
+            "p50": 1.48,
+            "p75": 1.83,
+            "p95": 2.4
+          }
+        },
+        {
+          "descriptor_type": "CIRCULARITY_2D",
+          "basis": "PROJECTION_2D",
+          "unit": "1",
+          "descriptor_definition_ref": "descriptor:circularity-2d-v1",
+          "sample_count": 48,
+          "p50_standard_uncertainty": 0.025,
+          "quantiles": {
+            "p05": 0.33,
+            "p25": 0.49,
+            "p50": 0.63,
+            "p75": 0.77,
+            "p95": 0.91
+          }
+        }
+      ]
+    },
+    {
+      "parent_bin_index": 2,
+      "lower_mm": 10,
+      "upper_mm": 20,
+      "sampled_particle_count": 52,
+      "valid_particle_count": 48,
+      "occluded_particle_count": 2,
+      "ambiguous_particle_count": 1,
+      "rejected_particle_count": 1,
+      "evidence_role": "INDEPENDENT_MEASUREMENT",
+      "source_ref": "morphology:synthetic-size-bin-2",
+      "descriptors": [
+        {
+          "descriptor_type": "FERET_ASPECT_RATIO_2D",
+          "basis": "PROJECTION_2D",
+          "unit": "1",
+          "descriptor_definition_ref": "descriptor:feret-aspect-ratio-2d-v1",
+          "sample_count": 48,
+          "p50_standard_uncertainty": 0.06,
+          "quantiles": {
+            "p05": 1.18,
+            "p25": 1.42,
+            "p50": 1.9,
+            "p75": 2.6,
+            "p95": 3.8
+          }
+        },
+        {
+          "descriptor_type": "FOURIER_ANGULARITY_2D",
+          "basis": "PROJECTION_2D",
+          "unit": "1",
+          "descriptor_definition_ref": "descriptor:fourier-angularity-k16-v1",
+          "sample_count": 44,
+          "p50_standard_uncertainty": 0.035,
+          "quantiles": {
+            "p05": 0.07,
+            "p25": 0.12,
+            "p50": 0.2,
+            "p75": 0.31,
+            "p95": 0.49
+          }
+        }
+      ]
+    },
+    {
+      "parent_bin_index": 3,
+      "lower_mm": 20,
+      "upper_mm": null,
+      "sampled_particle_count": 52,
+      "valid_particle_count": 48,
+      "occluded_particle_count": 2,
+      "ambiguous_particle_count": 1,
+      "rejected_particle_count": 1,
+      "evidence_role": "INDEPENDENT_MEASUREMENT",
+      "source_ref": "morphology:synthetic-size-bin-3",
+      "descriptors": [
+        {
+          "descriptor_type": "FERET_ASPECT_RATIO_2D",
+          "basis": "PROJECTION_2D",
+          "unit": "1",
+          "descriptor_definition_ref": "descriptor:feret-aspect-ratio-2d-v1",
+          "sample_count": 48,
+          "p50_standard_uncertainty": 0.06,
+          "quantiles": {
+            "p05": 1.18,
+            "p25": 1.42,
+            "p50": 1.9,
+            "p75": 2.6,
+            "p95": 3.8
+          }
+        },
+        {
+          "descriptor_type": "FOURIER_ANGULARITY_2D",
+          "basis": "PROJECTION_2D",
+          "unit": "1",
+          "descriptor_definition_ref": "descriptor:fourier-angularity-k16-v1",
+          "sample_count": 44,
+          "p50_standard_uncertainty": 0.035,
+          "quantiles": {
+            "p05": 0.07,
+            "p25": 0.12,
+            "p50": 0.2,
+            "p75": 0.31,
+            "p95": 0.49
+          }
+        }
+      ]
+    }
+  ]
+}
