@@ -251,13 +251,9 @@ fn excessive_sample_gap_abstains() {
     ];
     let strict_cadence =
         DisturbanceTraceContract::new(10_000, 500_000_000, 20_000_000, 0.4, 3).unwrap();
-    let error = evaluate_disturbance_conformance(
-        &event(),
-        &requirement(),
-        &strict_cadence,
-        &trace,
-    )
-    .unwrap_err();
+    let error =
+        evaluate_disturbance_conformance(&event(), &requirement(), &strict_cadence, &trace)
+            .unwrap_err();
 
     assert!(matches!(
         error,
@@ -467,8 +463,7 @@ fn recovery_ramp_across_stability_boundary_is_not_hidden() {
         sample(3_100_000_000, 0.98, 50.0, 100.0, true),
         sample(3_999_999_999, 0.98, 50.0, 100.0, true),
     ];
-    let policy =
-        DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 0.4, 3).unwrap();
+    let policy = DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 0.4, 3).unwrap();
     let report =
         evaluate_disturbance_conformance(&event(), &requirement(), &policy, &trace).unwrap();
     assert!(report.recovery_condition_observed);
@@ -478,9 +473,8 @@ fn recovery_ramp_across_stability_boundary_is_not_hidden() {
 
 #[test]
 fn sample_cadence_cannot_claim_unobservable_bandwidth() {
-    let error = DisturbanceTraceContract::new(
-        10_000, 1_000_000_000, 20_000_000, 1.0, 3,
-    ).unwrap_err();
+    let error =
+        DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 1.0, 3).unwrap_err();
     assert!(matches!(
         error,
         DisturbanceError::SamplingCadenceCannotResolveBandwidth { .. }
