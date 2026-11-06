@@ -102,6 +102,7 @@ pub struct EnergyObservation {
     pub included_subsystems: Vec<String>,
     pub evidence_role: EvidenceRole,
     pub calibration_ref: String,
+    pub lineage_ref: Option<String>,
     pub source_ref: String,
 }
 
@@ -112,6 +113,7 @@ pub struct AcceptedOutputObservation {
     pub basis: VolumeBasis,
     pub evidence_role: EvidenceRole,
     pub calibration_ref: String,
+    pub lineage_ref: Option<String>,
     pub source_ref: String,
 }
 
@@ -122,6 +124,7 @@ pub struct TimeObservation {
     pub basis: TimeBasis,
     pub evidence_role: EvidenceRole,
     pub calibration_ref: String,
+    pub lineage_ref: Option<String>,
     pub source_ref: String,
 }
 
@@ -161,6 +164,7 @@ pub enum ValidationCode {
     NonIndependentEnergyEvidence,
     NonIndependentOutputEvidence,
     NonIndependentTimeEvidence,
+    MissingEvidenceLineage,
     WrongOutputBasis,
     WrongTimeBasis,
     EnergyBasisMismatch,
@@ -456,6 +460,9 @@ fn validate_trial(
     if !trial.energy.evidence_role.is_independent_measurement() {
         push_issue(issues, id.clone(), ValidationCode::NonIndependentEnergyEvidence);
     }
+    if !valid_lineage(trial.energy.evidence_role, trial.energy.lineage_ref.as_ref()) {
+        push_issue(issues, id.clone(), ValidationCode::MissingEvidenceLineage);
+    }
 
     if !is_positive_finite(trial.accepted_output.accepted_solid_volume_m3) {
         push_issue(issues, id.clone(), ValidationCode::InvalidNumericValue);
@@ -469,6 +476,9 @@ fn validate_trial(
     if !trial.accepted_output.evidence_role.is_independent_measurement() {
         push_issue(issues, id.clone(), ValidationCode::NonIndependentOutputEvidence);
     }
+    if !valid_lineage(trial.accepted_output.evidence_role, trial.accepted_output.lineage_ref.as_ref()) {
+        push_issue(issues, id.clone(), ValidationCode::MissingEvidenceLineage);
+    }
 
     if !is_positive_finite(trial.time.elapsed_hours) {
         push_issue(issues, id.clone(), ValidationCode::InvalidNumericValue);
@@ -480,7 +490,10 @@ fn validate_trial(
         push_issue(issues, id.clone(), ValidationCode::WrongTimeBasis);
     }
     if !trial.time.evidence_role.is_independent_measurement() {
-        push_issue(issues, id, ValidationCode::NonIndependentTimeEvidence);
+        push_issue(issues, id.clone(), ValidationCode::NonIndependentTimeEvidence);
+    }
+    if !valid_lineage(trial.time.evidence_role, trial.time.lineage_ref.as_ref()) {
+        push_issue(issues, id, ValidationCode::MissingEvidenceLineage);
     }
 }
 
@@ -513,6 +526,21 @@ fn aggregate_arm(trials: &[&TrialRecord]) -> ArmMetrics {
         total_full_cycle_hours: total_hours,
         accepted_output_rate_m3_per_hour: total_volume / total_hours,
         full_system_energy_kwh_per_accepted_m3: total_energy / total_volume,
+    }
+}
+
+fn valid_lineage(role: EvidenceRole, lineage_ref: Option<&String>) -> bool {
+    match role {
+        EvidenceRole::IndependentMeasurement => lineage_ref
+            .map(|reference| !reference.trim().is_empty())
+            .unwrap_or(true),
+        EvidenceRole::DerivedFromIndependentMeasurements => lineage_ref
+            .map(|reference| !reference.trim().is_empty())
+            .unwrap_or(false),
+        EvidenceRole::ProcessSensor
+        | EvidenceRole::OperatorReported
+        | EvidenceRole::ModelEstimate
+        | EvidenceRole::Simulation => false,
     }
 }
 
@@ -604,6 +632,7 @@ mod tests {
                 included_subsystems: profile.included_subsystems,
                 evidence_role: EvidenceRole::IndependentMeasurement,
                 calibration_ref: "calibration:facility-meter-7:v1".to_owned(),
+                lineage_ref: None,
                 source_ref: format!("meter:{id}"),
             },
             accepted_output: AcceptedOutputObservation {
@@ -612,6 +641,7 @@ mod tests {
                 basis: VolumeBasis::AcceptedSolidVolume,
                 evidence_role: EvidenceRole::IndependentMeasurement,
                 calibration_ref: "calibration:laser-scan-scale:v1".to_owned(),
+                lineage_ref: None,
                 source_ref: format!("scan-weigh:{id}"),
             },
             time: TimeObservation {
@@ -620,6 +650,7 @@ mod tests {
                 basis: TimeBasis::FullCycle,
                 evidence_role: EvidenceRole::IndependentMeasurement,
                 calibration_ref: "calibration:clock-sync:v1".to_owned(),
+                lineage_ref: None,
                 source_ref: format!("clock-log:{id}"),
             },
         }
@@ -869,6 +900,24 @@ mod tests {
         trials[1].energy.total_energy_kwh = f64::MAX;
         let errors = compare_trials(&profile(), &trials).unwrap_err();
         assert!(has_code(&errors, ValidationCode::AggregateMetricOutOfRange));
+    }
+
+
+    #[test]
+    fn derived_primary_measurement_requires_source_lineage() {
+        let mut trials = four_trials();
+        trials[2].accepted_output.evidence_role = EvidenceRole::DerivedFromIndependentMeasurements;
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::MissingEvidenceLineage));
+    }
+
+    #[test]
+    fn derived_primary_measurement_with_lineage_is_admissible() {
+        let mut trials = four_trials();
+        trials[2].accepted_output.evidence_role = EvidenceRole::DerivedFromIndependentMeasurements;
+        trials[2].accepted_output.lineage_ref = Some("lineage:scan-and-weigh-raw:v1".to_owned());
+        let result = compare_trials(&profile(), &trials).unwrap();
+        assert_eq!(result.candidate.trial_count, 2);
     }
 
 }
