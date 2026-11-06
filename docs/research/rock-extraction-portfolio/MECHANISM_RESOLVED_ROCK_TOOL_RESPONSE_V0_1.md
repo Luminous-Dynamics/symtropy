@@ -259,3 +259,39 @@ Do not freeze parameter ranges or sample-size claims until these are answered wi
 - Raju & Esterhuyse (2026), South African in-stope cutting/vacuum extraction validation: https://doi.org/10.1007/s42461-026-01722-w
 - Komatsu MC51 published machine specifications: https://www.komatsu.com/en-us/products/equipment/hard-rock-continuous-miners/mc51
 - Colorado School of Mines Earth Mechanics Institute, linear cutting test facilities: https://emi.mines.edu/laboratories-and-test-facilities/
+
+
+## 13. Executable semantic validation tranche
+
+The standalone crate `crates/domains/symtropy-rock-tool-response-bench/` implements cross-field and cross-reference checks for the v0.1 response bundle. It complements, but does not replace, JSON Schema 2020-12 validation.
+
+Current authored tests cover:
+- frozen three-mechanism fixture acceptance;
+- schema-version and empty-bundle rejection;
+- unique record/specimen/channel/artifact identity;
+- mechanism/configuration mismatch and unknown method fields;
+- artifact digest format and channel/artifact/source/parent references;
+- ATCP waveform artifact resolution;
+- raw artifact clock-domain agreement and required coupled-channel clock consistency;
+- required synchronization uncertainty, anti-alias reference and sample-rate/bandwidth relationship;
+- calibration and non-negative uncertainty;
+- rejection of model/simulation evidence as a required independent diagnostic channel;
+- mechanism-specific diagnostic channel presence;
+- derived observation lineage;
+- artifact self-cycle detection;
+- ODC speed-ratio recomputation;
+- laser ON, OFF_SHAM and OFF_BASELINE energy semantics;
+- deterministic issue ordering and JSON parse errors.
+
+The laser control distinction is explicit:
+- ON requires positive source electrical input and workpiece-incident optical energy.
+- OFF_SHAM keeps source electrical input energized while declaring zero optical exposure at the workpiece and zero absorbed-energy estimate.
+- OFF_BASELINE requires zero source electrical input, zero workpiece exposure and zero optional output/absorption quantities.
+
+This allows the physical mechanical control to be represented without claiming laser delivery.
+
+The current source contains **35 unit tests authored**. The exact command is:
+
+`cargo test --manifest-path crates/domains/symtropy-rock-tool-response-bench/Cargo.toml`
+
+Execution remains unverified because this environment has no Cargo, rustc or rustfmt. Do not interpret authored tests or structural checks as a Rust compile/test pass. The validator checks SHA-256 digest syntax; only the artifact-ingestion boundary can verify digest-to-byte correspondence. It does not validate physical calibration or infer a fracture mechanism.
