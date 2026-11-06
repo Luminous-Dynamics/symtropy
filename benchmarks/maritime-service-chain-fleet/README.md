@@ -42,23 +42,28 @@ The Rust unit-test corpus covers:
 - capacity changes between declared windows;
 - cumulative quota overrun, exact-boundary acceptance, independent accounting windows and a use interval that straddles two windows;
 - two complete vessel demands sharing lock, berth, terminal, shore-energy and water resources;
+- terminal-handling and inland-transfer throughput quota conflicts across sequential (non-overlapping) operations;
 - joint infeasibility when shared water, shore-energy, terminal-handling throughput or inland-transfer throughput is individually feasible for each demand but not for both;
 - conflicting shared-resource snapshots and invalid accounting modes;
 - missing, duplicate and orphan resource policies;
 - duplicate demand identity, mismatched decision cutoffs/tick resolutions and missing time basis;
 - input permutation replay, zero-budget rejection and explicit search-budget exhaustion.
 
-Exact-head CI at `6bb64789997746d8a1f1c5509a745b2ca340a008` reports **30 unit tests and 3 integration tests passing**, with rustfmt and Clippy passing.
+The last recorded exact-head pass (`6bb64789997746d8a1f1c5509a745b2ca340a008`) reported **30 unit tests and 3 integration tests passing**, with rustfmt and Clippy passing. The current branch adds two further throughput-quota tests (32 unit-test declarations total); the newest exact-head CI is queued and those two tests are not yet claimed as passed.
 
 The test-only independent fleet enumerator separately explores each demand's alternatives and integer-tick placements, calculates feasibility using per-tick/per-window accounting, reconstructs the objective vector and computes its own Pareto frontier. It is cross-checked against the production frontier on four hand-checkable cases and a **20-variant frozen parameter sweep**. The sweep changes fast/slow alternative combinations, delivery windows, lock/channel/berth/terminal capacity, and cumulative water/shore-power quotas. Every production frontier must match the independently generated frontier exactly.
 
 A separate integration-test oracle compares the production concurrent-capacity event sweep with a direct per-tick implementation and compares cumulative quota accounting with independent window sums over exhaustive tiny operation pairs.
 
+## Research comparisons
+
+See [`industry-baselines.md`](industry-baselines.md) for the current 2026 industry/research comparison, matched baseline matrix, qualification targets and explicit gaps. The solver-backed reference is tracked in [MARITIME-FLEET-MIP-001 #3833](https://github.com/Luminous-Dynamics/symtropy/issues/3833).
+
 ## Deliberate limits
 
 This is an exact tiny-instance reference oracle, not a production optimizer. It requires all demands to be jointly served in a candidate plan; partial-service allocation, participant fairness policies, stochastic arrival/duration distributions, dynamic replanning, multi-chamber vessel packing, hydraulic transients, water-level/tide physics, sediment evolution, AIS/LPMS ingestion, resource reservation and live dispatch remain out of scope.
 
-The implementation is a bounded exhaustive enumerator over its declared finite integer-tick search space. A second test-only implementation now cross-checks the complete fleet frontier on a small set of frozen hand-checkable workloads; this is useful differential evidence, not yet a comprehensive independent qualification corpus or a reproduced external MILP/CP-SAT solver. Expand the cross-check to at least 20 tiny cases, then compare larger matched instances against published serial-lock MILP and multi-objective algorithm baselines.
+The implementation is a bounded exhaustive enumerator over its declared finite integer-tick search space. A second test-only implementation now cross-checks the complete fleet frontier on a small set of frozen hand-checkable workloads; this is useful differential evidence, not yet a comprehensive independent qualification corpus or a reproduced external MILP/CP-SAT solver. Expand the cross-check beyond the existing 20-variant two-demand sweep to three-, five- and ten-demand cases, then compare larger matched instances against the solver-backed HiGHS MILP reference tracked in #3833 and the reproduced serial-lock/multi-objective literature baselines.
 
 The production search budget counts operation-start candidate evaluations, not every recursive call or memory allocation; future benchmark reports must preserve that exact definition.
 
