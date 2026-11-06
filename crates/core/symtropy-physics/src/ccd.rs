@@ -646,17 +646,9 @@ mod tests {
         let vel_a = SVector::from([1.0e7, 0.0]);
         let pos_b = SVector::from([1.0e7, 0.0]);
         let vel_b = SVector::zeros();
-        let hit = sphere_sphere_checked(
-            &pos_a,
-            &vel_a,
-            0.5,
-            &pos_b,
-            &vel_b,
-            0.5,
-            1.0,
-        )
-        .unwrap()
-        .unwrap();
+        let hit = sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .unwrap()
+            .unwrap();
         assert!((hit.toi - 0.999_999_9).abs() < 2e-9);
     }
 
