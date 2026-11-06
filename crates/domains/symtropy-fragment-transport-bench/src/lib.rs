@@ -7,7 +7,7 @@
 #![forbid(unsafe_code)]
 
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const STAGES: [&str; 4] = ["CAPTURE", "CONVEY", "SEPARATE", "DISCHARGE"];
 
@@ -495,7 +495,9 @@ fn validate_stage_capacities(
         .iter()
         .filter_map(|stage| non_empty(stage, "stage").map(str::to_owned))
         .collect::<Vec<_>>();
-    if actual_order != stage_order {
+    if actual_order.len() != stage_order.len()
+        || actual_order.iter().zip(stage_order).any(|(actual, expected)| actual != expected)
+    {
         push(
             errors,
             "STAGE_ORDER_MISMATCH",
@@ -619,6 +621,7 @@ pub fn evaluate(value: &Value) -> Result<EvaluationReport, Vec<Violation>> {
     }
 
     let mut interval_ids = BTreeSet::new();
+    let mut trial_windows: BTreeMap<String, Vec<(u64, u64)>> = BTreeMap::new();
     let mut reports = Vec::new();
     let mut any_indeterminate_accounting = false;
 
@@ -680,6 +683,18 @@ pub fn evaluate(value: &Value) -> Result<EvaluationReport, Vec<Violation>> {
                 None
             }
         };
+        if let (Some(trial), Some(s), Some(e)) = (trial_id, start, end) {
+            let prior_windows = trial_windows.entry(trial.to_owned()).or_default();
+            if prior_windows.iter().any(|(prior_start, prior_end)| s < *prior_end && *prior_start < e) {
+                push(
+                    &mut errors,
+                    "TIME_WINDOW_OVERLAP",
+                    &format!("{path}.start_ms"),
+                    "observation windows for the same trial must not overlap; overlapping windows would double-count material flow",
+                );
+            }
+            prior_windows.push((s, e));
+        }
         let duration_seconds = duration_ms.map(|d| d / 1000.0);
         let time_uncertainty_seconds = match time_uncertainty_ms {
             Some(u) if u >= 0.0 => Some(u / 1000.0),
@@ -1153,6 +1168,22 @@ mod tests {
         let mut v = fixture();
         v["intervals"][0].as_object_mut().unwrap().remove("generated_mass");
         assert!(has(&v, "MISSING_MASS_MEASUREMENT"));
+    }
+
+
+    #[test]
+    fn rejects_overlapping_windows_within_same_trial() {
+        let mut v = fixture();
+        v["intervals"][1]["start_ms"] = json!(1050000);
+        assert!(has(&v, "TIME_WINDOW_OVERLAP"));
+    }
+
+    #[test]
+    fn allows_equal_clock_windows_for_distinct_trials() {
+        let mut v = fixture();
+        v["intervals"][1]["trial_id"] = json!("TRIAL-002");
+        let report = evaluate(&v).expect("different trials may use the same clock interval");
+        assert_eq!(report.interval_count, 2);
     }
 
     #[test]
