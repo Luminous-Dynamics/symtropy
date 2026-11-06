@@ -100,7 +100,7 @@ jobs:
           ablation = next(row for row in rows if row["record_type"] == "mechanism_ablation")
           assert ablation["qualified"] == "true"
           assert ablation["path_complete"] == "true"
-          assert ablation["first_broken_edge"] == "transfer_eligible"
+          assert ablation["first_broken_edge"] == "safeguard_to_eligibility"
           assert ablation["transition_applied"] == "true"
           assert ablation["value"] == "true"
           assert ablation["control_outcome"] == ablation["treatment_outcome"] == "0.000000"
