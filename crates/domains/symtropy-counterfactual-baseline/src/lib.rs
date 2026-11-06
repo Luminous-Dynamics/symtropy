@@ -1439,7 +1439,6 @@ pub fn evaluate_baseline_bounded_event(
     })
 }
 
-
 /// Build a contiguous, relative-time trajectory shape for every independent
 /// group. Absolute start times may differ; interval offsets and durations may
 /// not. Groups with different numbers of samples are never pooled together.
