@@ -80,8 +80,8 @@ impl OscillatorParameters {
         // Q = sigma_inf^2 * (1 - exp(-2*kappa*dt)) * I.
         // For kappa == 0 this is exactly zero; the latent state rotates
         // deterministically while preserving its stationary covariance.
-        let process_variance = self.stationary_variance
-            * -(-2.0 * self.damping_rate * elapsed_time).exp_m1();
+        let process_variance =
+            self.stationary_variance * -(-2.0 * self.damping_rate * elapsed_time).exp_m1();
         let process_covariance = [[process_variance, 0.0], [0.0, process_variance]];
 
         if !matrix.iter().flatten().all(|value| value.is_finite())
@@ -126,10 +126,7 @@ impl OscillatorTransition {
 }
 
 pub fn transpose(matrix: [[f64; 2]; 2]) -> [[f64; 2]; 2] {
-    [
-        [matrix[0][0], matrix[1][0]],
-        [matrix[0][1], matrix[1][1]],
-    ]
+    [[matrix[0][0], matrix[1][0]], [matrix[0][1], matrix[1][1]]]
 }
 
 pub fn multiply(left: [[f64; 2]; 2], right: [[f64; 2]; 2]) -> [[f64; 2]; 2] {
