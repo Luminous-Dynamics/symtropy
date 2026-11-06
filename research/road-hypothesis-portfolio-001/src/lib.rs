@@ -731,14 +731,13 @@ impl PortfolioManifest {
             .map(|hypothesis| hypothesis.hypothesis_id.as_str())
             .collect();
         for added in &current.hypotheses {
-            if !prior_ids.contains(added.hypothesis_id.as_str()) {
-                if added
+            if !prior_ids.contains(added.hypothesis_id.as_str())
+                && added
                     .supersedes_hypothesis_id
                     .as_ref()
                     .is_some_and(|id| !prior_ids.contains(id.as_str()))
-                {
-                    return Err(PortfolioError::NonAppendOnlyRevision);
-                }
+            {
+                return Err(PortfolioError::NonAppendOnlyRevision);
             }
         }
         Ok(())
