@@ -1,0 +1,376 @@
+{
+  "schema_version": 1,
+  "bundle_id": "SYNTHETIC-ROCK-TOOL-RESPONSE-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "records": [
+    {
+      "record_id": "SYN-ATCP-001",
+      "mechanism": "ATCP",
+      "protocol": {
+        "protocol_id": "SYN-PROTOCOL-ATCP",
+        "revision": "0.1.0",
+        "digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "study_design": "SYNTHETIC_CONFORMANCE",
+        "run_id": "SYN-RUN-ATCP-001"
+      },
+      "material": {
+        "cohort_ref": "SYN-GRANITE-COHORT-A",
+        "specimen_ref": "SYN-GRANITE-A-001",
+        "parent_block_ref": "SYN-BLOCK-A",
+        "lithology": "synthetic-granite",
+        "properties": [
+          {
+            "property": "ucs",
+            "value": 180,
+            "unit": "MPa",
+            "standard_uncertainty": 2,
+            "method_ref": "SYN-METHOD-UCS",
+            "calibration_ref": "SYN-CAL-UCS",
+            "measurement_role": "IndependentMeasurement",
+            "source_artifact_ref": "SYN-ART-ATCP-RAW"
+          }
+        ]
+      },
+      "machine": {
+        "machine_profile_ref": "SYN-ATCP-RIG",
+        "tool_profile_ref": "SYN-ATCP-BIT",
+        "configuration_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "method_configuration": {
+        "kind": "ATCP",
+        "axial_waveform_artifact_ref": "SYN-ART-ATCP-RAW",
+        "torsional_waveform_artifact_ref": "SYN-ART-ATCP-RAW",
+        "phase_offset_rad": 1.2,
+        "axial_excitation_frequency_hz": 35,
+        "torsional_excitation_frequency_hz": 35,
+        "axial_impulse_energy_j": 40,
+        "torsional_impulse_energy_j": 18,
+        "rotation_speed_rad_s": 5.2,
+        "weight_on_bit_n": 90000,
+        "fluid_pressure_pa": 26000000,
+        "flow_rate_m3_s": 0.036
+      },
+      "environment": {
+        "temperature_k": 453.15,
+        "confining_pressure_pa": 10000000,
+        "pore_pressure_pa": 1000000,
+        "site_context_ref": "SYN-LAB-ATCP"
+      },
+      "channels": [
+        {
+          "channel_id": "axial-force",
+          "quantity": "axial_force",
+          "unit": "N",
+          "sensor_ref": "SYN-LOADCELL-A",
+          "measurement_location": "bit_sub_axial",
+          "calibration_ref": "SYN-CAL-A",
+          "standard_uncertainty": 100,
+          "measurement_role": "IndependentMeasurement",
+          "sample_rate_hz": 20000,
+          "bandwidth_hz": 5000,
+          "clock_domain_ref": "SYN-CLOCK-1",
+          "synchronization_uncertainty_ns": 1000,
+          "raw_artifact_ref": "SYN-ART-ATCP-RAW",
+          "saturated_samples": 0,
+          "missing_samples": 0,
+          "range_exceeded": false
+        },
+        {
+          "channel_id": "torsional-torque",
+          "quantity": "torsional_torque",
+          "unit": "Nm",
+          "sensor_ref": "SYN-TORQUE-T",
+          "measurement_location": "bit_sub_torsion",
+          "calibration_ref": "SYN-CAL-T",
+          "standard_uncertainty": 2,
+          "measurement_role": "IndependentMeasurement",
+          "sample_rate_hz": 20000,
+          "bandwidth_hz": 5000,
+          "clock_domain_ref": "SYN-CLOCK-1",
+          "synchronization_uncertainty_ns": 1000,
+          "raw_artifact_ref": "SYN-ART-ATCP-RAW",
+          "saturated_samples": 0,
+          "missing_samples": 0,
+          "range_exceeded": false
+        }
+      ],
+      "artifacts": [
+        {
+          "artifact_id": "SYN-ART-ATCP-RAW",
+          "artifact_role": "RawSignal",
+          "uri": "urn:fixture:atcp:raw",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "media_type": "application/octet-stream",
+          "byte_length": 1024,
+          "clock_domain_ref": "SYN-CLOCK-1",
+          "channel_refs": [
+            "axial-force",
+            "torsional-torque"
+          ],
+          "parent_artifact_refs": []
+        }
+      ],
+      "observations": [
+        {
+          "metric_id": "peak_axial_force",
+          "value": 120000,
+          "unit": "N",
+          "measurement_role": "IndependentMeasurement",
+          "standard_uncertainty": 100,
+          "calibration_ref": "SYN-CAL-A",
+          "source_artifact_refs": [
+            "SYN-ART-ATCP-RAW"
+          ]
+        }
+      ],
+      "quality": []
+    },
+    {
+      "record_id": "SYN-LASER-PDC-001",
+      "mechanism": "LASER_ASSISTED_PDC",
+      "protocol": {
+        "protocol_id": "SYN-PROTOCOL-LASER",
+        "revision": "0.1.0",
+        "digest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "study_design": "SYNTHETIC_CONFORMANCE",
+        "run_id": "SYN-RUN-LASER-001"
+      },
+      "material": {
+        "cohort_ref": "SYN-GRANITE-COHORT-B",
+        "specimen_ref": "SYN-GRANITE-B-001",
+        "parent_block_ref": "SYN-BLOCK-B",
+        "lithology": "synthetic-granite",
+        "properties": [
+          {
+            "property": "ucs",
+            "value": 160,
+            "unit": "MPa",
+            "standard_uncertainty": 3,
+            "method_ref": "SYN-METHOD-UCS",
+            "calibration_ref": "SYN-CAL-UCS",
+            "measurement_role": "IndependentMeasurement",
+            "source_artifact_ref": "SYN-ART-LASER-RAW"
+          }
+        ]
+      },
+      "machine": {
+        "machine_profile_ref": "SYN-LASER-RIG",
+        "tool_profile_ref": "SYN-PDC-CONE",
+        "configuration_digest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "method_configuration": {
+        "kind": "LASER_ASSISTED_PDC",
+        "wavelength_m": 0.000001064,
+        "spot_major_axis_m": 0.004,
+        "spot_minor_axis_m": 0.002,
+        "incidence_angle_rad": 0.15,
+        "standoff_m": 0.03,
+        "beam_to_cutter_offset_m": 0.006,
+        "preheat_to_cut_delay_s": 0.08,
+        "back_rake_rad": 0.349,
+        "side_rake_rad": 0,
+        "cutter_spacing_m": 0.006,
+        "depth_of_cut_m": 0.009,
+        "cutting_speed_m_s": 0.01,
+        "laser_state": "ON",
+        "source_electrical_input_j": 900,
+        "optical_output_energy_j": 600,
+        "workpiece_incident_optical_energy_j": 450,
+        "absorbed_energy_estimate_j": 380
+      },
+      "environment": {
+        "temperature_k": 293.15,
+        "confining_pressure_pa": 0,
+        "site_context_ref": "SYN-LAB-LASER"
+      },
+      "channels": [
+        {
+          "channel_id": "optical-power",
+          "quantity": "optical_power",
+          "unit": "W",
+          "sensor_ref": "SYN-POWER-METER",
+          "measurement_location": "workpiece_plane",
+          "calibration_ref": "SYN-CAL-OPT",
+          "standard_uncertainty": 5,
+          "measurement_role": "IndependentMeasurement",
+          "sample_rate_hz": 1000,
+          "bandwidth_hz": 200,
+          "clock_domain_ref": "SYN-CLOCK-2",
+          "synchronization_uncertainty_ns": 5000,
+          "raw_artifact_ref": "SYN-ART-LASER-RAW",
+          "saturated_samples": 0,
+          "missing_samples": 0,
+          "range_exceeded": false
+        },
+        {
+          "channel_id": "surface-temperature",
+          "quantity": "surface_temperature",
+          "unit": "K",
+          "sensor_ref": "SYN-IR-CAMERA",
+          "measurement_location": "rock_surface",
+          "calibration_ref": "SYN-CAL-IR",
+          "standard_uncertainty": 2,
+          "measurement_role": "IndependentMeasurement",
+          "sample_rate_hz": 500,
+          "bandwidth_hz": 100,
+          "clock_domain_ref": "SYN-CLOCK-2",
+          "synchronization_uncertainty_ns": 5000,
+          "raw_artifact_ref": "SYN-ART-LASER-RAW",
+          "saturated_samples": 0,
+          "missing_samples": 0,
+          "range_exceeded": false
+        }
+      ],
+      "artifacts": [
+        {
+          "artifact_id": "SYN-ART-LASER-RAW",
+          "artifact_role": "RawSignal",
+          "uri": "urn:fixture:laser-pdc:raw",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "media_type": "application/octet-stream",
+          "byte_length": 2048,
+          "clock_domain_ref": "SYN-CLOCK-2",
+          "channel_refs": [
+            "optical-power",
+            "surface-temperature"
+          ],
+          "parent_artifact_refs": []
+        }
+      ],
+      "observations": [
+        {
+          "metric_id": "workpiece_optical_energy",
+          "value": 450,
+          "unit": "J",
+          "measurement_role": "IndependentMeasurement",
+          "standard_uncertainty": 5,
+          "calibration_ref": "SYN-CAL-OPT",
+          "source_artifact_refs": [
+            "SYN-ART-LASER-RAW"
+          ]
+        }
+      ],
+      "quality": []
+    },
+    {
+      "record_id": "SYN-ODC-001",
+      "mechanism": "ODC",
+      "protocol": {
+        "protocol_id": "SYN-PROTOCOL-ODC",
+        "revision": "0.1.0",
+        "digest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "study_design": "SYNTHETIC_CONFORMANCE",
+        "run_id": "SYN-RUN-ODC-001"
+      },
+      "material": {
+        "cohort_ref": "SYN-BASALT-COHORT-A",
+        "specimen_ref": "SYN-BASALT-A-001",
+        "parent_block_ref": "SYN-BLOCK-C",
+        "lithology": "synthetic-basalt",
+        "properties": [
+          {
+            "property": "ucs",
+            "value": 200,
+            "unit": "MPa",
+            "standard_uncertainty": 4,
+            "method_ref": "SYN-METHOD-UCS",
+            "calibration_ref": "SYN-CAL-UCS",
+            "measurement_role": "IndependentMeasurement",
+            "source_artifact_ref": "SYN-ART-ODC-RAW"
+          }
+        ]
+      },
+      "machine": {
+        "machine_profile_ref": "SYN-ODC-LCM",
+        "tool_profile_ref": "SYN-ODC-DISC",
+        "configuration_digest_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "method_configuration": {
+        "kind": "ODC",
+        "disc_diameter_m": 0.1,
+        "eccentricity_m": 0.001,
+        "angular_speed_rad_s": 31.4,
+        "traction_speed_m_s": 0.01,
+        "depth_of_cut_m": 0.003,
+        "speed_ratio": 0.3184713375796179,
+        "speed_ratio_definition": "v/(omega*e)",
+        "cutter_edge_profile_ref": "SYN-ODC-EDGE"
+      },
+      "environment": {
+        "temperature_k": 293.15,
+        "confining_pressure_pa": 0,
+        "site_context_ref": "SYN-LAB-ODC"
+      },
+      "channels": [
+        {
+          "channel_id": "thrust-force",
+          "quantity": "thrust_force",
+          "unit": "N",
+          "sensor_ref": "SYN-3D-FORCE",
+          "measurement_location": "cutter_mount_x",
+          "calibration_ref": "SYN-CAL-FORCE",
+          "standard_uncertainty": 10,
+          "measurement_role": "IndependentMeasurement",
+          "sample_rate_hz": 50000,
+          "bandwidth_hz": 10000,
+          "clock_domain_ref": "SYN-CLOCK-3",
+          "synchronization_uncertainty_ns": 1000,
+          "raw_artifact_ref": "SYN-ART-ODC-RAW",
+          "saturated_samples": 0,
+          "missing_samples": 0,
+          "range_exceeded": false
+        },
+        {
+          "channel_id": "cutting-torque",
+          "quantity": "cutting_torque",
+          "unit": "Nm",
+          "sensor_ref": "SYN-TORQUE-ODC",
+          "measurement_location": "spindle",
+          "calibration_ref": "SYN-CAL-TORQUE",
+          "standard_uncertainty": 1,
+          "measurement_role": "IndependentMeasurement",
+          "sample_rate_hz": 50000,
+          "bandwidth_hz": 10000,
+          "clock_domain_ref": "SYN-CLOCK-3",
+          "synchronization_uncertainty_ns": 1000,
+          "raw_artifact_ref": "SYN-ART-ODC-RAW",
+          "saturated_samples": 0,
+          "missing_samples": 0,
+          "range_exceeded": false
+        }
+      ],
+      "artifacts": [
+        {
+          "artifact_id": "SYN-ART-ODC-RAW",
+          "artifact_role": "RawSignal",
+          "uri": "urn:fixture:odc:raw",
+          "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "media_type": "application/octet-stream",
+          "byte_length": 4096,
+          "clock_domain_ref": "SYN-CLOCK-3",
+          "channel_refs": [
+            "thrust-force",
+            "cutting-torque"
+          ],
+          "parent_artifact_refs": []
+        }
+      ],
+      "observations": [
+        {
+          "metric_id": "rv_recomputed",
+          "value": 0.3184713376,
+          "unit": "1",
+          "measurement_role": "DerivedFromIndependentMeasurements",
+          "standard_uncertainty": 0.001,
+          "calibration_ref": "SYN-CAL-ENCODER",
+          "source_artifact_refs": [
+            "SYN-ART-ODC-RAW"
+          ],
+          "lineage_ref": "SYN-LINEAGE-RV-001",
+          "method_ref": "SYN-CALC-RV-001"
+        }
+      ],
+      "quality": []
+    }
+  ]
+}
