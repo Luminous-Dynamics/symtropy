@@ -306,15 +306,15 @@ impl CausalExperiment {
             && primary_intervention_preserved
             && blocked_mechanism_suppressed
             && ablation_outcome_agrees;
-        let mechanism_necessity_supported = ablation_protocol_valid
-            && !close(observed_effect, 0.0)
-            && close(ablation_value, control_value);
-
         let qualified = mechanism_path_complete
             && negative_control_isolated
             && exogenous_inputs_matched
             && single_intervention_difference
             && independent_outcome_agrees;
+        let mechanism_necessity_supported = qualified
+            && ablation_protocol_valid
+            && !close(observed_effect, 0.0)
+            && close(ablation_value, control_value);
 
         Ok(CausalPathResult {
             experiment_id: self.experiment_id.clone(),
@@ -976,6 +976,11 @@ mod tests {
                 unit: "boolean".into(),
             },
             CausalVariable {
+                id: "mechanism_blocked".into(),
+                stage: CausalStage::Intervention,
+                unit: "boolean".into(),
+            },
+            CausalVariable {
                 id: "transfer_eligible".into(),
                 stage: CausalStage::Mechanism,
                 unit: "boolean".into(),
@@ -1025,6 +1030,7 @@ mod tests {
         ];
         let control_values = BTreeMap::from([
             ("safeguard_enabled".into(), 0.0),
+            ("mechanism_blocked".into(), 0.0),
             ("transfer_eligible".into(), 0.0),
             ("authorized_transfer_m3".into(), 0.0),
             ("delivered_water_m3".into(), 0.0),
@@ -1033,6 +1039,7 @@ mod tests {
         ]);
         let treatment_initial = BTreeMap::from([
             ("safeguard_enabled".into(), 1.0),
+            ("mechanism_blocked".into(), 0.0),
             ("transfer_eligible".into(), 0.0),
             ("authorized_transfer_m3".into(), 0.0),
             ("delivered_water_m3".into(), 0.0),
@@ -1041,6 +1048,7 @@ mod tests {
         ]);
         let treatment_final = BTreeMap::from([
             ("safeguard_enabled".into(), 1.0),
+            ("mechanism_blocked".into(), 0.0),
             ("transfer_eligible".into(), 1.0),
             ("authorized_transfer_m3".into(), 10.0),
             ("delivered_water_m3".into(), 10.0),
@@ -1049,6 +1057,7 @@ mod tests {
         ]);
         let negative_final = BTreeMap::from([
             ("safeguard_enabled".into(), 0.0),
+            ("mechanism_blocked".into(), 0.0),
             ("transfer_eligible".into(), 0.0),
             ("authorized_transfer_m3".into(), 0.0),
             ("delivered_water_m3".into(), 0.0),
@@ -1114,6 +1123,32 @@ mod tests {
                 transitions: build_receipts(&control_values, &negative_final),
                 independent_outcome: ledger_outcome(0.0, "ledger:negative:tick1:household_1"),
             },
+            mechanism_ablation: MechanismAblation {
+                block_variable_id: "mechanism_blocked".into(),
+                blocked_mechanism_variable_id: "transfer_eligible".into(),
+                arm: {
+                    let ablation_initial = BTreeMap::from([
+                        ("safeguard_enabled".into(), 1.0),
+                        ("mechanism_blocked".into(), 1.0),
+                        ("transfer_eligible".into(), 0.0),
+                        ("authorized_transfer_m3".into(), 0.0),
+                        ("delivered_water_m3".into(), 0.0),
+                        ("household_water_coverage".into(), 0.0),
+                        ("reputation_counter".into(), 0.0),
+                    ]);
+                    RunArm {
+                        arm_id: "mechanism_ablation".into(),
+                        exogenous_snapshot_id: "fixture:opening20_demand10_production0".into(),
+                        initial_values: ablation_initial.clone(),
+                        final_values: ablation_initial.clone(),
+                        transitions: build_receipts(&ablation_initial, &ablation_initial),
+                        independent_outcome: ledger_outcome(
+                            0.0,
+                            "ledger:ablation:tick1:household_1",
+                        ),
+                    }
+                },
+            },
         }
     }
 
@@ -1129,6 +1164,68 @@ mod tests {
         assert_eq!(result.observed_treatment_effect, 1.0);
         assert_eq!(result.qualified_treatment_effect, Some(1.0));
         assert_eq!(result.path_edges.len(), 4);
+    }
+
+    #[test]
+    fn mediator_ablation_removes_the_treatment_effect() {
+        let result = experiment().evaluate().unwrap();
+        assert!(result.qualified);
+        assert!(result.ablation_protocol_valid);
+        assert!(result.ablation_exogenous_matched);
+        assert!(result.ablation_inputs_matched);
+        assert!(result.primary_intervention_preserved);
+        assert!(result.blocked_mechanism_suppressed);
+        assert!(result.ablation_outcome_agrees);
+        assert_eq!(result.mechanism_ablation_outcome, result.control_outcome);
+        assert_eq!(result.mechanism_ablation_effect, 0.0);
+        assert!(result.mechanism_necessity_supported);
+    }
+
+    #[test]
+    fn uncontrolled_ablation_inputs_fail_closed() {
+        let mut invalid = experiment();
+        invalid
+            .mechanism_ablation
+            .arm
+            .initial_values
+            .insert("authorized_transfer_m3".into(), 2.0);
+        let edge = invalid.required_path_edge_ids[1].clone();
+        invalid
+            .mechanism_ablation
+            .arm
+            .transitions
+            .iter_mut()
+            .find(|receipt| receipt.edge_id == edge)
+            .unwrap()
+            .target_before = 2.0;
+        assert!(matches!(
+            invalid.validate(),
+            Err(CausalPathError::AblationInitialStateMismatch)
+        ));
+    }
+
+    #[test]
+    fn mediator_must_be_blocked_to_its_control_value() {
+        let mut invalid = experiment();
+        invalid
+            .mechanism_ablation
+            .arm
+            .final_values
+            .insert("transfer_eligible".into(), 1.0);
+        let edge = invalid.required_path_edge_ids[0].clone();
+        let receipt = invalid
+            .mechanism_ablation
+            .arm
+            .transitions
+            .iter_mut()
+            .find(|receipt| receipt.edge_id == edge)
+            .unwrap();
+        receipt.target_after = 1.0;
+        receipt.applied = true;
+        assert!(matches!(
+            invalid.validate(),
+            Err(CausalPathError::MechanismAblationDidNotBlock(_))
+        ));
     }
 
     #[test]
