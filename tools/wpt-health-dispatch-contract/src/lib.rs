@@ -606,12 +606,12 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
             "one or more authorization, electrical, thermal, grid/PCC, stability or handover hard limits failed"
                 .into(),
         );
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::HardLimitViolation,
+            RecommendedAction::DeenergizeAndEscalate,
+            reasons,
+        ));
     }
 
     if evidence_kind == "SYNTHETIC_KNOWN_TRUTH"
@@ -621,21 +621,21 @@ ${indent}));
         reasons.push(
             "synthetic/simulated evidence cannot qualify an operational health forecast".into(),
         );
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::SyntheticOnlyNotEligible,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
     }
     if flags.contains("SOURCE_INCOMPLETE") || flags.contains("CALIBRATION_DRIFT") {
         reasons.push("source provenance is incomplete or calibration drift is declared".into());
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::NotEvaluable,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
     }
 
     let identity_digests = validate_digest_fields(
@@ -654,12 +654,12 @@ ${indent}));
     );
     if identity_digests.is_err() || forecast_digests.is_err() {
         reasons.push("one or more asset/model/outcome/calibration digests are invalid".into());
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::NotEvaluable,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
     }
 
     let calibration_status = string_field(forecast, "calibration_status", "$.forecast")?;
@@ -667,12 +667,12 @@ ${indent}));
     let policy_digest = string_field(policy, "policy_sha256", "$.dispatch_policy")?;
     if !valid_sha256(policy_digest) {
         reasons.push("dispatch policy digest is invalid".into());
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::NotEvaluable,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
     }
     let source_locator = field(forecast, "source_locator", "$.forecast")?;
     if evidence_kind == "PUBLISHED_MEASURED"
@@ -681,12 +681,12 @@ ${indent}));
             .is_none_or(|value| value.trim().is_empty())
     {
         reasons.push("published-measured forecasts require a non-empty source locator".into());
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::NotEvaluable,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
     }
     if calibration_status != "CALIBRATED"
         || ![
@@ -703,12 +703,12 @@ ${indent}));
         reasons.push(
             "forecast calibration, horizon support or hazard/CIF coherence is insufficient".into(),
         );
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::NotEvaluable,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
     }
 
     if censoring_status != "SUPPORTED"
@@ -725,22 +725,22 @@ ${indent}));
             "censoring support, positivity or weight bounds are not qualified for this horizon"
                 .into(),
         );
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::NotEvaluable,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
     }
 
     if domain_status == "UNKNOWN" {
         reasons.push("operating-domain support is unknown".into());
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::NotEvaluable,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
     }
     let outside_domain = domain_status == "OUT_OF_DOMAIN"
         || material != validated_material
@@ -754,12 +754,12 @@ ${indent}));
             "material, route, temperature or duty cycle is outside calibrated domain support"
                 .into(),
         );
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::OutOfDomain,
+            RecommendedAction::ConservativeFallbackNoUprating,
+            reasons,
+        ));
     }
 
     let risk_exceeded = target_cif > maximum_risk;
@@ -772,22 +772,22 @@ ${indent}));
         } else {
             RecommendedAction::DerateOrReserveMaintenance
         };
-${indent}return Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}));
+        return Ok(report(
+            &report_context,
+            EligibilityState::PolicyRiskExceeded,
+            action,
+            reasons,
+        ));
     }
 
     reasons
         .push("forecast evidence gates pass; result may inform supervisory allocation only".into());
-${indent}Ok(report(
-${indent}    &report_context,
-${indent}    ${state},
-${indent}    ${action},
-${indent}    reasons,
-${indent}))
+    Ok(report(
+        &report_context,
+        EligibilityState::DecisionSupportEligible,
+        RecommendedAction::MayInformAllocationOnly,
+        reasons,
+    ))
 }
 
 pub fn bundled_fixture() -> Result<Value, String> {
