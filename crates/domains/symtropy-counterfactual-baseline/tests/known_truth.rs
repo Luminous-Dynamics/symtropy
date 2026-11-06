@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use symtropy_counterfactual_baseline::{
-    BaselineFold, BaselineIdentity, BaselineQualificationContract, DispatchEventPoint,
-    NoDispatchObservation, evaluate_baseline_bounded_event, qualify_counterfactual_baseline,
+    BaselineFold, BaselineIdentity, BaselineQualificationContract, DispatchEventPhase,
+    DispatchEventPoint, EventRecoveryEvidence, NoDispatchObservation,
+    evaluate_baseline_bounded_event, qualify_counterfactual_baseline,
 };
 
 fn identity() -> BaselineIdentity {
@@ -58,6 +59,25 @@ fn observation(
         false,
     )
     .expect("valid no-dispatch observation")
+}
+
+
+fn recovery_evidence(
+    start_ns: u64,
+    dispatch_end_ns: u64,
+    observed_through_ns: u64,
+    complete: bool,
+) -> EventRecoveryEvidence {
+    EventRecoveryEvidence::new(
+        start_ns,
+        dispatch_end_ns,
+        observed_through_ns,
+        "recovery-reconciliation-1",
+        "sha256:recovery-receipt",
+        complete,
+        complete,
+    )
+    .expect("valid recovery evidence")
 }
 
 fn qualified_report() -> symtropy_counterfactual_baseline::BaselineQualificationReport {
@@ -256,19 +276,36 @@ fn split_conformal_tail_requires_enough_calibration_samples() {
 #[test]
 fn baseline_and_meter_uncertainty_are_both_subtracted_from_delivery() {
     let baseline = qualified_report();
-    let point = DispatchEventPoint::new(
-        "event-1",
-        "normal",
-        0,
-        0,
-        3_600_000_000_000,
-        100.0,
-        85.0,
-        2.0,
-        "pcc-receipt-1",
-    )
-    .expect("valid event point");
-    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &[point], true)
+    let points = [
+        DispatchEventPoint::new(
+            "event-1",
+            DispatchEventPhase::Dispatch,
+            "normal",
+            0,
+            0,
+            3_600_000_000_000,
+            100.0,
+            85.0,
+            2.0,
+            "pcc-receipt-1",
+        )
+        .expect("valid dispatch point"),
+        DispatchEventPoint::new(
+            "recovery-1",
+            DispatchEventPhase::Recovery,
+            "normal",
+            0,
+            3_600_000_000_000,
+            3_600_000_000_000,
+            100.0,
+            100.0,
+            0.0,
+            "pcc-recovery-receipt-1",
+        )
+        .expect("valid recovery point"),
+    ];
+    let evidence = recovery_evidence(0, 3_600_000_000_000, 7_200_000_000_000, true);
+    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
         .expect("event report");
 
     assert_eq!(report.intervals[0].baseline_lower_power_bound_kw, 100.0);
@@ -291,6 +328,7 @@ fn rebound_is_preserved_and_reduces_net_event_energy() {
     let points = [
         DispatchEventPoint::new(
             "event-1",
+            DispatchEventPhase::Dispatch,
             "normal",
             0,
             0,
@@ -303,6 +341,7 @@ fn rebound_is_preserved_and_reduces_net_event_energy() {
         .unwrap(),
         DispatchEventPoint::new(
             "recovery-1",
+            DispatchEventPhase::Recovery,
             "normal",
             0,
             3_600_000_000_000,
@@ -314,7 +353,8 @@ fn rebound_is_preserved_and_reduces_net_event_energy() {
         )
         .unwrap(),
     ];
-    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &points, true)
+    let evidence = recovery_evidence(0, 3_600_000_000_000, 7_200_000_000_000, true);
+    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
         .expect("event report");
 
     assert_eq!(report.gross_reduction_energy_kwh, 20.0);
@@ -348,10 +388,22 @@ fn unqualified_baseline_cannot_be_used_for_event_credit() {
         ));
     }
     let report = qualify_counterfactual_baseline(&identity(), &contract(), &rows).expect("report");
-    let point =
-        DispatchEventPoint::new("event-1", "normal", 0, 0, 1_000, 110.0, 80.0, 0.0, "pcc-1")
-            .unwrap();
-    let error = evaluate_baseline_bounded_event(&report, &identity(), &[point], true).unwrap_err();
+    let point = DispatchEventPoint::new(
+        "event-1",
+        DispatchEventPhase::Dispatch,
+        "normal",
+        0,
+        0,
+        1_000,
+        110.0,
+        80.0,
+        0.0,
+        "pcc-1",
+    )
+    .unwrap();
+    let evidence = recovery_evidence(0, 1_000, 2_000, true);
+    let error = evaluate_baseline_bounded_event(&report, &identity(), &evidence, &[point])
+        .unwrap_err();
 
     assert!(matches!(
         error,
@@ -364,6 +416,7 @@ fn event_identity_regime_and_chronology_are_bound() {
     let baseline = qualified_report();
     let point = DispatchEventPoint::new(
         "event-1",
+        DispatchEventPhase::Dispatch,
         "unknown-regime",
         0,
         0,
@@ -374,7 +427,9 @@ fn event_identity_regime_and_chronology_are_bound() {
         "pcc-1",
     )
     .unwrap();
-    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &[point]).unwrap_err();
+    let evidence = recovery_evidence(0, 1_000, 2_000, true);
+    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &[point])
+        .unwrap_err();
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::UnknownOperatingRegime { .. }
@@ -390,11 +445,22 @@ fn event_identity_regime_and_chronology_are_bound() {
         "sha256:evaluation",
     )
     .unwrap();
-    let point =
-        DispatchEventPoint::new("event-2", "normal", 0, 0, 1_000, 100.0, 90.0, 0.0, "pcc-2")
-            .unwrap();
+    let point = DispatchEventPoint::new(
+        "event-2",
+        DispatchEventPhase::Dispatch,
+        "normal",
+        0,
+        0,
+        1_000,
+        100.0,
+        90.0,
+        0.0,
+        "pcc-2",
+    )
+    .unwrap();
+    let evidence = recovery_evidence(0, 1_000, 2_000, true);
     assert!(matches!(
-        evaluate_baseline_bounded_event(&baseline, &other, &[point], true),
+        evaluate_baseline_bounded_event(&baseline, &other, &evidence, &[point]),
         Err(symtropy_counterfactual_baseline::BaselineQualificationError::BaselineIdentityMismatch)
     ));
 }
@@ -403,10 +469,22 @@ fn event_identity_regime_and_chronology_are_bound() {
 fn non_contiguous_recovery_horizon_is_rejected() {
     let baseline = qualified_report();
     let points = [
-        DispatchEventPoint::new("event-1", "normal", 0, 0, 1_000, 100.0, 80.0, 0.0, "pcc-1")
-            .unwrap(),
+        DispatchEventPoint::new(
+            "event-1",
+            DispatchEventPhase::Dispatch,
+            "normal",
+            0,
+            0,
+            1_000,
+            100.0,
+            80.0,
+            0.0,
+            "pcc-1",
+        )
+        .unwrap(),
         DispatchEventPoint::new(
             "recovery-1",
+            DispatchEventPhase::Recovery,
             "normal",
             0,
             2_000,
@@ -418,7 +496,9 @@ fn non_contiguous_recovery_horizon_is_rejected() {
         )
         .unwrap(),
     ];
-    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &points).unwrap_err();
+    let evidence = recovery_evidence(0, 1_000, 3_000, true);
+    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
+        .unwrap_err();
 
     assert!(matches!(
         error,
@@ -549,23 +629,43 @@ fn observation_source_digest_must_match_pinned_partition() {
 }
 
 #[test]
-fn event_response_is_not_qualified_until_recovery_horizon_is_declared_complete() {
+fn event_response_is_not_qualified_until_work_and_resource_recovery_are_reconciled() {
     let baseline = qualified_report();
-    let point = DispatchEventPoint::new(
-        "event-1",
-        "normal",
-        0,
-        0,
-        3_600_000_000_000,
-        100.0,
-        80.0,
-        0.0,
-        "pcc-1",
-    )
-    .unwrap();
-    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &[point], false)
-        .expect("partial-horizon report");
-    assert!(!report.event_and_recovery_included_in_supplied_horizon);
+    let points = [
+        DispatchEventPoint::new(
+            "event-1",
+            DispatchEventPhase::Dispatch,
+            "normal",
+            0,
+            0,
+            3_600_000_000_000,
+            100.0,
+            80.0,
+            0.0,
+            "pcc-event-1",
+        ).unwrap(),
+        DispatchEventPoint::new(
+            "recovery-1",
+            DispatchEventPhase::Recovery,
+            "normal",
+            0,
+            3_600_000_000_000,
+            3_600_000_000_000,
+            100.0,
+            100.0,
+            0.0,
+            "pcc-recovery-1",
+        ).unwrap(),
+    ];
+    let evidence = recovery_evidence(0, 3_600_000_000_000, 7_200_000_000_000, false);
+    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
+        .expect("event report with incomplete reconciliation");
+    assert!(report.event_and_recovery_included_in_supplied_horizon);
+    assert!(!report.workload_obligations_reconciled);
+    assert!(!report.physical_resource_states_reconciled);
     assert!(!report.event_qualified);
+    assert_eq!(report.dispatch_interval_count, 1);
+    assert_eq!(report.recovery_interval_count, 1);
+    assert_eq!(report.qualifying_interval_count, 1);
     assert!((report.net_reduction_energy_kwh - 20.0).abs() < 1e-12);
 }
