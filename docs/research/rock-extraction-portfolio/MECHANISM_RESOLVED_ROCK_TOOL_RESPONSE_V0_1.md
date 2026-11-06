@@ -259,3 +259,46 @@ Do not freeze parameter ranges or sample-size claims until these are answered wi
 - Raju & Esterhuyse (2026), South African in-stope cutting/vacuum extraction validation: https://doi.org/10.1007/s42461-026-01722-w
 - Komatsu MC51 published machine specifications: https://www.komatsu.com/en-us/products/equipment/hard-rock-continuous-miners/mc51
 - Colorado School of Mines Earth Mechanics Institute, linear cutting test facilities: https://emi.mines.edu/laboratories-and-test-facilities/
+
+
+## 13. Executable semantic validation tranche
+
+The standalone crate `crates/domains/symtropy-rock-tool-response-bench/` implements cross-field and cross-reference checks for the v0.1 response bundle. It complements, but does not replace, JSON Schema 2020-12 validation.
+
+Current authored tests cover:
+- frozen three-mechanism fixture acceptance;
+- schema-version and empty-bundle rejection;
+- unique record/specimen/channel/artifact identity and artifact evidence-role consistency;
+- mechanism/configuration mismatch and unknown method fields;
+- artifact digest format and channel/artifact/source/parent references;
+- ATCP waveform artifact resolution;
+- raw artifact clock-domain agreement and required coupled-channel clock consistency;
+- required synchronization uncertainty, anti-alias reference and sample-rate/bandwidth relationship;
+- calibration and non-negative uncertainty;
+- rejection of model/simulation evidence as a required independent diagnostic channel;
+- mechanism-specific diagnostic channel presence and unit semantics;
+- derived observation lineage;
+- artifact self-cycle detection;
+- ODC feed–oscillation ratio Rv = v/(omega*e) recomputation from independent encoder observations, raw-channel bindings and matching calibration references; eccentricity ratio Re = e/a recomputation from source-defined cutterhead radius;
+- laser ON, OFF_SHAM and OFF_BASELINE energy semantics;
+- deterministic issue ordering and JSON parse errors.
+
+The laser control distinction is explicit:
+- ON requires positive source electrical input and workpiece-incident optical energy.
+- OFF_SHAM keeps source electrical input energized while declaring zero optical exposure at the workpiece and zero absorbed-energy estimate.
+- OFF_BASELINE requires zero source electrical input, zero workpiece exposure and zero optional output/absorption quantities.
+
+This allows the physical mechanical control to be represented without claiming laser delivery.
+
+The current source contains **45 unit tests authored**. The exact command is:
+
+`cargo test --manifest-path crates/domains/symtropy-rock-tool-response-bench/Cargo.toml`
+
+Execution remains unverified because this environment has no Cargo, rustc or rustfmt. Do not interpret authored tests or structural checks as a Rust compile/test pass. The validator checks SHA-256 digest syntax; only the artifact-ingestion boundary can verify digest-to-byte correspondence. It does not validate physical calibration or infer a fracture mechanism.
+
+
+The ODC kinematic evidence path was tightened after review: the configuration now references independent angular-speed and traction-speed observations; each observation must use rad/s or m/s respectively, match the corresponding encoder channel's calibration, and cite a raw artifact that actually contains that channel. The stored speed ratio is recomputed from those observed values and eccentricity, not just from configuration scalars. The ODC fixture now contains four synchronized channels (thrust, torque, angular speed, traction speed). This remains schema/semantic validation of synthetic records; no physical encoder calibration or ODC machine performance is established.
+
+A further follow-on issue, #3839, tracks the broader need to distinguish setpoints from actual measured values for ATCP and laser-PDC energy stages, including protocol-specific synchronization tolerances.
+
+The ODC geometry bundle now also records the source-defined eccentricity ratio Re = e/a, where a is the cutterhead radius in Zhang et al. (2026), alongside Rv = v/(omega*e). The semantic validator recomputes Re from eccentricity and cutterhead radius and rejects a mismatch. These ratios remain mechanism/profile-specific descriptors; the raw variables are always retained. Reference: https://doi.org/10.3390/machines14070829.

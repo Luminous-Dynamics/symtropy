@@ -73,7 +73,8 @@
           "raw_artifact_ref": "SYN-ART-ATCP-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-ATCP"
         },
         {
           "channel_id": "torsional-torque",
@@ -91,7 +92,8 @@
           "raw_artifact_ref": "SYN-ART-ATCP-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-ATCP"
         }
       ],
       "artifacts": [
@@ -107,7 +109,8 @@
             "axial-force",
             "torsional-torque"
           ],
-          "parent_artifact_refs": []
+          "parent_artifact_refs": [],
+          "evidence_role": "IndependentMeasurement"
         }
       ],
       "observations": [
@@ -200,7 +203,8 @@
           "raw_artifact_ref": "SYN-ART-LASER-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-LASER_ASSISTED_PDC"
         },
         {
           "channel_id": "surface-temperature",
@@ -218,7 +222,8 @@
           "raw_artifact_ref": "SYN-ART-LASER-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-LASER_ASSISTED_PDC"
         }
       ],
       "artifacts": [
@@ -234,7 +239,8 @@
             "optical-power",
             "surface-temperature"
           ],
-          "parent_artifact_refs": []
+          "parent_artifact_refs": [],
+          "evidence_role": "IndependentMeasurement"
         }
       ],
       "observations": [
@@ -294,7 +300,12 @@
         "depth_of_cut_m": 0.003,
         "speed_ratio": 0.3184713375796179,
         "speed_ratio_definition": "v/(omega*e)",
-        "cutter_edge_profile_ref": "SYN-ODC-EDGE"
+        "cutter_edge_profile_ref": "SYN-ODC-EDGE",
+        "angular_speed_observation_ref": "angular_speed_rad_s",
+        "traction_speed_observation_ref": "traction_speed_m_s",
+        "cutterhead_radius_m": 0.05,
+        "eccentric_ratio": 0.02,
+        "eccentric_ratio_definition": "e/a"
       },
       "environment": {
         "temperature_k": 293.15,
@@ -318,7 +329,8 @@
           "raw_artifact_ref": "SYN-ART-ODC-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-ODC"
         },
         {
           "channel_id": "cutting-torque",
@@ -336,6 +348,45 @@
           "raw_artifact_ref": "SYN-ART-ODC-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-ODC"
+        },
+        {
+          "channel_id": "angular-speed",
+          "quantity": "angular_speed",
+          "unit": "rad/s",
+          "measurement_location": "spindle_encoder",
+          "sensor_ref": "SYN-ENCODER",
+          "calibration_ref": "SYN-CAL-ENCODER",
+          "standard_uncertainty": 0.001,
+          "measurement_role": "IndependentMeasurement",
+          "sample_rate_hz": 50000,
+          "bandwidth_hz": 10000,
+          "clock_domain_ref": "SYN-CLOCK-3",
+          "synchronization_uncertainty_ns": 1000,
+          "anti_alias_filter_ref": "SYN-AA-ODC",
+          "raw_artifact_ref": "SYN-ART-ODC-RAW",
+          "saturated_samples": 0,
+          "missing_samples": 0,
+          "range_exceeded": false
+        },
+        {
+          "channel_id": "traction-speed",
+          "quantity": "traction_speed",
+          "unit": "m/s",
+          "measurement_location": "traction_encoder",
+          "sensor_ref": "SYN-ENCODER",
+          "calibration_ref": "SYN-CAL-ENCODER",
+          "standard_uncertainty": 0.001,
+          "measurement_role": "IndependentMeasurement",
+          "sample_rate_hz": 50000,
+          "bandwidth_hz": 10000,
+          "clock_domain_ref": "SYN-CLOCK-3",
+          "synchronization_uncertainty_ns": 1000,
+          "anti_alias_filter_ref": "SYN-AA-ODC",
+          "raw_artifact_ref": "SYN-ART-ODC-RAW",
+          "saturated_samples": 0,
+          "missing_samples": 0,
           "range_exceeded": false
         }
       ],
@@ -350,15 +401,40 @@
           "clock_domain_ref": "SYN-CLOCK-3",
           "channel_refs": [
             "thrust-force",
-            "cutting-torque"
+            "cutting-torque",
+            "angular-speed",
+            "traction-speed"
           ],
-          "parent_artifact_refs": []
+          "parent_artifact_refs": [],
+          "evidence_role": "IndependentMeasurement"
         }
       ],
       "observations": [
         {
+          "metric_id": "angular_speed_rad_s",
+          "value": 31.4,
+          "unit": "rad/s",
+          "measurement_role": "IndependentMeasurement",
+          "standard_uncertainty": 0.05,
+          "calibration_ref": "SYN-CAL-ENCODER",
+          "source_artifact_refs": [
+            "SYN-ART-ODC-RAW"
+          ]
+        },
+        {
+          "metric_id": "traction_speed_m_s",
+          "value": 0.01,
+          "unit": "m/s",
+          "measurement_role": "IndependentMeasurement",
+          "standard_uncertainty": 0.0001,
+          "calibration_ref": "SYN-CAL-ENCODER",
+          "source_artifact_refs": [
+            "SYN-ART-ODC-RAW"
+          ]
+        },
+        {
           "metric_id": "rv_recomputed",
-          "value": 0.3184713376,
+          "value": 0.3184713375796179,
           "unit": "1",
           "measurement_role": "DerivedFromIndependentMeasurements",
           "standard_uncertainty": 0.001,
