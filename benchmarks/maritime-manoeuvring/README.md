@@ -51,14 +51,15 @@ be fine enough that heading changes between samples are unambiguous. Advance
 and transfer are expressed in the initial-heading frame; tactical diameter is
 the absolute lateral displacement at 180°.
 
+Zig-zag metrics require exactly three alternating, equal-magnitude rudder commands. V0 requires command event times to align with trajectory samples. It verifies both target-heading crossings and requires a yaw-rate sign change to demonstrate that each overshoot peak was actually observed. Peak heading is interpolated at the yaw-rate zero crossing. The metric is not a pass/fail verdict against IMO criteria.
+
 Stopping metrics start at an explicit command sample and interpolate the first
 crossing of a caller-declared speed threshold. The threshold is an analysis
 parameter; it is not presented as an IMO-prescribed stopping definition.
 Returned along-/cross-track quantities are signed displacements, not an
 assumption about a universal stopping distance.
 
-Zig-zag overshoot extraction, route-clearance evaluation, uncertainty coverage,
-and specialist solver adapters are intentionally not implemented in v0. The
+Route-clearance evaluation, uncertainty coverage, and specialist solver adapters are intentionally not implemented in v0. The
 trajectory and evidence contract is designed to receive those as later,
 separately qualified capabilities.
 
@@ -69,11 +70,13 @@ See [industry-baselines.md](industry-baselines.md) for the 2026 standards, peer-
 
 ## Frozen test coverage
 
-The initial suite contains hand-checkable synthetic controls for:
+The current suite contains 22 hand-checkable synthetic controls for:
 
 - right- and left-hand turning circles;
 - heading wrap across 2π;
 - missing turning thresholds and ambiguous heading increments;
+- 10°/10° zig-zag first and second overshoots;
+- invalid rudder sequence, early reversal, unobserved target/peak and non-aligned command-time controls;
 - interpolated stopping threshold;
 - stopping from a non-origin command sample;
 - missing, stale, unknown, unsupported and future-published evidence;
