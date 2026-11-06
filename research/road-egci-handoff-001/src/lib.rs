@@ -543,9 +543,9 @@ fn validate_branch_identity(branch: &BranchExport) -> Result<(), HandoffError> {
     Ok(())
 }
 
-fn policy_index<'a>(
-    policies: &'a [PolicyProfile],
-) -> Result<BTreeMap<&'a str, &'a PolicyProfile>, HandoffError> {
+fn policy_index(
+    policies: &[PolicyProfile],
+) -> Result<BTreeMap<&str, &PolicyProfile>, HandoffError> {
     let mut index = BTreeMap::new();
     for policy in policies {
         require(&policy.actor_id, "actor_id")?;
@@ -570,9 +570,9 @@ fn policy_index<'a>(
     Ok(index)
 }
 
-fn observation_index<'a>(
-    observations: &'a [ObservationDelivery],
-) -> Result<BTreeMap<&'a str, &'a ObservationDelivery>, HandoffError> {
+fn observation_index(
+    observations: &[ObservationDelivery],
+) -> Result<BTreeMap<&str, &ObservationDelivery>, HandoffError> {
     let mut index = BTreeMap::new();
     let mut delivery_sequences = BTreeSet::new();
     for cue in observations {
@@ -973,9 +973,9 @@ fn transitions_complete(branch: &BranchExport, steps: &[SamDecisionStep]) -> boo
     true
 }
 
-fn correspondence_index<'a>(
-    receipts: &'a [CorrespondenceReceipt],
-) -> Result<BTreeMap<String, &'a CorrespondenceReceipt>, HandoffError> {
+fn correspondence_index(
+    receipts: &[CorrespondenceReceipt],
+) -> Result<BTreeMap<String, &CorrespondenceReceipt>, HandoffError> {
     let mut index = BTreeMap::new();
     for receipt in receipts {
         require(&receipt.hypothesis_id, "hypothesis_id")?;
@@ -1637,18 +1637,32 @@ mod tests {
         }
     }
 
-    fn decision(
-        actor: &str,
+    struct DecisionSpec<'a> {
+        actor: &'a str,
         tick: u64,
         visible: Vec<String>,
         consumed: Vec<String>,
         prior: Vec<String>,
+        prior_state: &'a str,
+        action: &'a str,
+    }
+
+    fn decision(
+        spec: DecisionSpec<'_>,
         cue_index: &BTreeMap<String, ObservationDelivery>,
-        prior_state: &str,
-        action: &str,
     ) -> PolicyDecision {
+        let DecisionSpec {
+            actor,
+            tick,
+            visible,
+            consumed,
+            prior,
+            prior_state,
+            action,
+        } = spec;
         let policy = policy(actor);
-        let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.1");
+        let mut h =
+            blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.1");
         hash_str(&mut h, actor);
         hash_u64(&mut h, tick);
         hash_str(&mut h, prior_state);
@@ -1704,44 +1718,52 @@ mod tests {
 
         let decisions = vec![
             decision(
-                "ego",
-                0,
-                vec!["ego-sees-actor".into()],
-                vec!["ego-sees-actor".into()],
-                vec![],
+                DecisionSpec {
+                    actor: "ego",
+                    tick: 0,
+                    visible: vec!["ego-sees-actor".into()],
+                    consumed: vec!["ego-sees-actor".into()],
+                    prior: vec![],
+                    prior_state: &d("state-ego"),
+                    action: "continue",
+                },
                 &cue_index,
-                &d("state-ego"),
-                "continue",
             ),
             decision(
-                "actor-1",
-                0,
-                vec!["actor-sees-ego".into()],
-                vec!["actor-sees-ego".into()],
-                vec![],
+                DecisionSpec {
+                    actor: "actor-1",
+                    tick: 0,
+                    visible: vec!["actor-sees-ego".into()],
+                    consumed: vec!["actor-sees-ego".into()],
+                    prior: vec![],
+                    prior_state: &d("state-actor-1"),
+                    action: "yield",
+                },
                 &cue_index,
-                &d("state-actor-1"),
-                "yield",
             ),
             decision(
-                "ego",
-                1,
-                vec!["ego-sees-actor".into(), "ego-sees-yield".into()],
-                vec!["ego-sees-yield".into()],
-                vec![d("decision-ego-0")],
+                DecisionSpec {
+                    actor: "ego",
+                    tick: 1,
+                    visible: vec!["ego-sees-actor".into(), "ego-sees-yield".into()],
+                    consumed: vec!["ego-sees-yield".into()],
+                    prior: vec![d("decision-ego-0")],
+                    prior_state: &d("next-ego-0"),
+                    action: "yield",
+                },
                 &cue_index,
-                &d("next-ego-0"),
-                "yield",
             ),
             decision(
-                "actor-1",
-                1,
-                vec!["actor-sees-ego".into(), "actor-sees-continue".into()],
-                vec!["actor-sees-continue".into()],
-                vec![d("decision-actor-1-0")],
+                DecisionSpec {
+                    actor: "actor-1",
+                    tick: 1,
+                    visible: vec!["actor-sees-ego".into(), "actor-sees-continue".into()],
+                    consumed: vec!["actor-sees-continue".into()],
+                    prior: vec![d("decision-actor-1-0")],
+                    prior_state: &d("next-actor-1-0"),
+                    action: "continue",
+                },
                 &cue_index,
-                &d("next-actor-1-0"),
-                "continue",
             ),
         ];
 
