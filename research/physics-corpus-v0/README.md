@@ -149,6 +149,24 @@ Pin exact release versions and match model semantics before comparing:
   5080. These are vendor-reported results for distinct engine revisions and
   workloads—not head-to-head measurements against Symtropy or universal
   body-count targets.
+- **Box3D (30 Jun 2026 announcement)** — include as a major 3D game-physics
+  comparator. Its architecture advertises C17, substepping, continuous collision,
+  graph coloring for large islands, wide-SIMD contact solving, multithreading
+  hooks/optional scheduler, large-world double positions, cross-platform
+  determinism and recording/replay. Match API and solver settings carefully:
+  these are project features, not proof of measured superiority.
+- **Box2D 3.2 (18 Oct 2026)** — use for the 2D engine lane and as an algorithmic
+  reference for contact recycling, SIMD dispatch, solver and broadphase
+  optimization. The maintainer reports roughly 3x performance over 3.1 in its
+  own workloads, with contact recycling, solver changes, AVX2 dispatch and
+  broadphase each contributing. These are author-reported within-project gains,
+  not cross-engine comparison data. Box2D 3.2 also includes recording/replay,
+  world snapshots, native task scheduling, large-world double positions and
+  continuous sensors.
+- **Jolt Physics 5.6.0 (11 Jul 2026)** — include as a 3D rigid/soft-body and
+  multithreading comparator, with GPU compute interfaces for DX12/Vulkan/Metal
+  and strand-based hair simulation. Distinguish CPU/GPU backends and soft-body
+  workloads from rigid-body solver comparisons.
 - **Project Chrono 10.0.0 (27 Mar 2026)** — use for multibody, vehicle, FSI and
   deformable/material scenario families where model assumptions match. It adds
   checkpointing and updated implicit-integrator Jacobian strategies.
@@ -170,6 +188,10 @@ Official reference links:
 - MuJoCo 3.17.0 changelog: https://mujoco.readthedocs.io/en/3.17.0/changelog.html
 - MuJoCo batch simulation: https://mujoco.readthedocs.io/en/latest/programming/simulation.html
 - Rapier changelog: https://github.com/dimforge/rapier/blob/master/CHANGELOG.md
+- Box2D 3.2 release notes: https://box2d.org/documentation/md_release__notes__v320.html
+- Box2D contact recycling design: https://box2d.org/posts/2026/10/contact-recycling/
+- Box3D announcement: https://box2d.org/posts/2026/06/announcing-box3d/
+- Jolt releases: https://github.com/jrouwe/JoltPhysics/releases
 - Dimforge Q3 2026 report: https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/
 - Project Chrono 10.0.0: https://projectchrono.org/news/
 - SUNDIALS release history: https://computing.llnl.gov/projects/sundials/sundials-software
