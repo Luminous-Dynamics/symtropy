@@ -205,7 +205,9 @@ impl EvaluatorDataset {
         }
 
         if let Some(overlap) = all_rater_ids.intersection(&all_judge_ids).next() {
-            return Err(EvaluatorError::JudgeAlsoListedAsPanelRater((*overlap).to_owned()));
+            return Err(EvaluatorError::JudgeAlsoListedAsPanelRater(
+                (*overlap).to_owned(),
+            ));
         }
         if all_judge_ids.is_empty() {
             return Err(EvaluatorError::NoJudgePredictions);
@@ -334,7 +336,11 @@ impl fmt::Display for EvaluatorError {
             Self::EmptyCohortId { case_id } => {
                 write!(f, "case {case_id} has an empty cohort ID")
             }
-            Self::TooFewPanelRatings { case_id, actual, minimum } => write!(
+            Self::TooFewPanelRatings {
+                case_id,
+                actual,
+                minimum,
+            } => write!(
                 f,
                 "case {case_id} has {actual} panel ratings; at least {minimum} required"
             ),
@@ -357,7 +363,10 @@ impl fmt::Display for EvaluatorError {
                 write!(f, "case {case_id} has an empty judge ID")
             }
             Self::DuplicateJudgeCase { case_id, judge_id } => {
-                write!(f, "judge {judge_id} has duplicate predictions for case {case_id}")
+                write!(
+                    f,
+                    "judge {judge_id} has duplicate predictions for case {case_id}"
+                )
             }
             Self::ProbabilityLengthMismatch {
                 case_id,
@@ -377,8 +386,15 @@ impl fmt::Display for EvaluatorError {
                 f,
                 "judge {judge_id}/{case_id} category {category_index} has invalid probability {value}"
             ),
-            Self::ProbabilityMassMismatch { case_id, judge_id, sum } => {
-                write!(f, "judge {judge_id}/{case_id} probabilities sum to {sum}, not one")
+            Self::ProbabilityMassMismatch {
+                case_id,
+                judge_id,
+                sum,
+            } => {
+                write!(
+                    f,
+                    "judge {judge_id}/{case_id} probabilities sum to {sum}, not one"
+                )
             }
             Self::InvalidJudgeCategory {
                 case_id,
@@ -408,9 +424,14 @@ impl fmt::Display for EvaluatorError {
                 "{actor_kind} {actor_id}/{case_id} has confidence outside [0,1]: {value}"
             ),
             Self::JudgeAlsoListedAsPanelRater(id) => {
-                write!(f, "judge {id} is also present in the independent panel-rater set")
+                write!(
+                    f,
+                    "judge {id} is also present in the independent panel-rater set"
+                )
             }
-            Self::NoJudgePredictions => write!(f, "dataset must include at least one judge prediction"),
+            Self::NoJudgePredictions => {
+                write!(f, "dataset must include at least one judge prediction")
+            }
         }
     }
 }
@@ -523,7 +544,11 @@ pub fn evaluate(dataset: &EvaluatorDataset) -> Result<EvaluatorAuditReport, Eval
     let judge_ids = dataset
         .cases
         .iter()
-        .flat_map(|case| case.judge_predictions.iter().map(|prediction| prediction.judge_id.clone()))
+        .flat_map(|case| {
+            case.judge_predictions
+                .iter()
+                .map(|prediction| prediction.judge_id.clone())
+        })
         .collect::<BTreeSet<_>>();
     let mut overall_judges = Vec::new();
     let mut judge_slices = Vec::new();
@@ -532,7 +557,11 @@ pub fn evaluate(dataset: &EvaluatorDataset) -> Result<EvaluatorAuditReport, Eval
         let cases = dataset
             .cases
             .iter()
-            .filter(|case| case.judge_predictions.iter().any(|prediction| prediction.judge_id == judge_id))
+            .filter(|case| {
+                case.judge_predictions
+                    .iter()
+                    .any(|prediction| prediction.judge_id == judge_id)
+            })
             .collect::<Vec<_>>();
         overall_judges.push(judge_metrics(
             &judge_id,
@@ -551,11 +580,7 @@ pub fn evaluate(dataset: &EvaluatorDataset) -> Result<EvaluatorAuditReport, Eval
             judge_slices.push(JudgeSliceMetrics {
                 context_id,
                 cohort_id,
-                metrics: judge_metrics(
-                    &judge_id,
-                    &group_cases,
-                    dataset.category_labels.len(),
-                ),
+                metrics: judge_metrics(&judge_id, &group_cases, dataset.category_labels.len()),
             });
         }
     }
@@ -608,7 +633,10 @@ fn panel_metrics_from_refs(cases: &[&EvaluationCase], category_count: usize) -> 
         maximum_raters = maximum_raters.max(n);
         let pairs = n * (n - 1);
         total_pairs += pairs;
-        let agree_pairs = counts.iter().map(|count| count * count.saturating_sub(1)).sum::<usize>();
+        let agree_pairs = counts
+            .iter()
+            .map(|count| count * count.saturating_sub(1))
+            .sum::<usize>();
         total_disagreeing_pairs += pairs - agree_pairs;
         total_entropy += entropy_bits_from_counts(&counts, n);
         if counts.iter().any(|count| *count == n) {
@@ -670,11 +698,7 @@ fn case_panel_metrics(case: &EvaluationCase, category_count: usize) -> CasePanel
     }
 }
 
-fn judge_metrics(
-    judge_id: &str,
-    cases: &[&EvaluationCase],
-    category_count: usize,
-) -> JudgeMetrics {
+fn judge_metrics(judge_id: &str, cases: &[&EvaluationCase], category_count: usize) -> JudgeMetrics {
     let mut brier_sum = 0.0;
     let mut cross_entropy_sum = 0.0;
     let mut plurality_matches = 0usize;
@@ -704,10 +728,7 @@ fn judge_metrics(
 
         let support = target[prediction.selected_category];
         selected_support_sum += support;
-        let plurality = target
-            .iter()
-            .copied()
-            .fold(0.0_f64, f64::max);
+        let plurality = target.iter().copied().fold(0.0_f64, f64::max);
         if (support - plurality).abs() <= PROBABILITY_TOLERANCE {
             plurality_matches += 1;
         }
@@ -716,8 +737,8 @@ fn judge_metrics(
             confidence_count += 1;
             confidence_sum += confidence;
             confidence_gap_sum += (confidence - support).abs();
-            let bin_index = ((confidence * CALIBRATION_BINS as f64) as usize)
-                .min(CALIBRATION_BINS - 1);
+            let bin_index =
+                ((confidence * CALIBRATION_BINS as f64) as usize).min(CALIBRATION_BINS - 1);
             bins[bin_index].0 += 1;
             bins[bin_index].1 += confidence;
             bins[bin_index].2 += support;
@@ -726,7 +747,11 @@ fn judge_metrics(
 
     let count = cases
         .iter()
-        .filter(|case| case.judge_predictions.iter().any(|prediction| prediction.judge_id == judge_id))
+        .filter(|case| {
+            case.judge_predictions
+                .iter()
+                .any(|prediction| prediction.judge_id == judge_id)
+        })
         .count();
     let calibration_bins = bins
         .iter()
@@ -827,8 +852,16 @@ mod tests {
     fn fixture_dataset() -> EvaluatorDataset {
         let mut cases = Vec::new();
         for index in 0..12 {
-            let context_id = if index < 6 { "context_alpha" } else { "context_beta" };
-            let cohort_id = if index % 2 == 0 { "community_a" } else { "community_b" };
+            let context_id = if index < 6 {
+                "context_alpha"
+            } else {
+                "context_beta"
+            };
+            let cohort_id = if index % 2 == 0 {
+                "community_a"
+            } else {
+                "community_b"
+            };
             let panel_categories = if index < 4 {
                 vec![0, 0, 0]
             } else if index < 8 {
@@ -867,7 +900,12 @@ mod tests {
                     .collect(),
                 judge_predictions: vec![
                     judge_prediction("distribution_aware", selected, counts.clone(), confidence),
-                    judge_prediction("overconfident_majority", selected, overconfident_probabilities, 0.99),
+                    judge_prediction(
+                        "overconfident_majority",
+                        selected,
+                        overconfident_probabilities,
+                        0.99,
+                    ),
                 ],
             });
         }
@@ -901,15 +939,31 @@ mod tests {
     #[test]
     fn distribution_aware_judge_scores_better_than_overconfident_majority() {
         let report = evaluate(&fixture_dataset()).unwrap();
-        let aware = report.overall_judges.iter().find(|judge| judge.judge_id == "distribution_aware").unwrap();
-        let overconfident = report.overall_judges.iter().find(|judge| judge.judge_id == "overconfident_majority").unwrap();
+        let aware = report
+            .overall_judges
+            .iter()
+            .find(|judge| judge.judge_id == "distribution_aware")
+            .unwrap();
+        let overconfident = report
+            .overall_judges
+            .iter()
+            .find(|judge| judge.judge_id == "overconfident_majority")
+            .unwrap();
         assert!(aware.mean_soft_panel_brier_score < 1e-12);
-        assert!(aware.mean_soft_panel_cross_entropy_nats < overconfident.mean_soft_panel_cross_entropy_nats);
+        assert!(
+            aware.mean_soft_panel_cross_entropy_nats
+                < overconfident.mean_soft_panel_cross_entropy_nats
+        );
         assert!(aware.confidence_ece.unwrap() < 1e-12);
         assert!(overconfident.confidence_ece.unwrap() > 0.1);
         assert_eq!(aware.mean_plurality_match_rate, 1.0);
         assert_eq!(overconfident.mean_plurality_match_rate, 1.0);
-        assert!(overconfident.mean_absolute_confidence_support_error.unwrap() > 0.1);
+        assert!(
+            overconfident
+                .mean_absolute_confidence_support_error
+                .unwrap()
+                > 0.1
+        );
     }
 
     #[test]
@@ -917,7 +971,12 @@ mod tests {
         let report = evaluate(&fixture_dataset()).unwrap();
         assert_eq!(report.panel_slices.len(), 4);
         assert_eq!(report.judge_slices.len(), 8);
-        assert!(report.panel_slices.iter().all(|slice| slice.metrics.case_count == 3));
+        assert!(
+            report
+                .panel_slices
+                .iter()
+                .all(|slice| slice.metrics.case_count == 3)
+        );
     }
 
     #[test]
