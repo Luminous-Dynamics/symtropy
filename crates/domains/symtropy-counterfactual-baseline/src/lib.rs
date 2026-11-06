@@ -268,7 +268,10 @@ impl BaselineQualificationContract {
                 "maximum absolute normalized bias",
                 maximum_absolute_normalized_bias_basis_points,
             ),
-            ("maximum normalized MAE", maximum_normalized_mae_basis_points),
+                "maximum normalized MAE",
+                maximum_normalized_mae_basis_points,
+            ),
+            (
             (
                 "minimum lower-bound coverage",
                 minimum_lower_bound_coverage_basis_points,
@@ -519,9 +522,7 @@ impl EventRecoveryEvidence {
         };
         require_id("event recovery evidence ID", &evidence.evidence_id)?;
         require_id("event recovery source digest", &evidence.source_digest)?;
-        if !(event_start_ns < dispatch_end_ns
-            && dispatch_end_ns < observation_horizon_end_ns)
-        {
+        if !(event_start_ns < dispatch_end_ns && dispatch_end_ns < observation_horizon_end_ns) {
             return Err(BaselineQualificationError::InvalidEventRecoveryHorizon {
                 event_start_ns,
                 dispatch_end_ns,
@@ -810,7 +811,10 @@ impl fmt::Display for BaselineQualificationError {
                 f,
                 "event trace ends at {observed_end_ns}; recovery evidence requires {expected_end_ns}"
             ),
-            Self::EventIntervalStraddlesDispatchEnd { index, dispatch_end_ns } => write!(
+            Self::EventIntervalStraddlesDispatchEnd {
+                index,
+                dispatch_end_ns,
+            } => write!(
                 f,
                 "event interval {index} straddles dispatch-end boundary {dispatch_end_ns}"
             ),
@@ -976,7 +980,9 @@ pub fn qualify_counterfactual_baseline(
             .collect();
         let group_mses: Vec<f64> = group_errors
             .values()
-            .map(|errors| errors.iter().map(|error| error.powi(2)).sum::<f64>() / errors.len() as f64)
+            .map(|errors| {
+                errors.iter().map(|error| error.powi(2)).sum::<f64>() / errors.len() as f64
+            })
             .collect();
         let group_actual_scales: Vec<f64> = group_actual_magnitudes
             .values()
@@ -1122,25 +1128,27 @@ pub fn evaluate_baseline_bounded_event(
         if point.interval_start_ns < recovery_evidence.dispatch_end_ns
             && end_ns > recovery_evidence.dispatch_end_ns
         {
-            return Err(BaselineQualificationError::EventIntervalStraddlesDispatchEnd {
-                index,
-                dispatch_end_ns: recovery_evidence.dispatch_end_ns,
-            });
+            return Err(
+                BaselineQualificationError::EventIntervalStraddlesDispatchEnd {
+                    index,
+                    dispatch_end_ns: recovery_evidence.dispatch_end_ns,
+                },
+            );
         }
         match point.phase {
             DispatchEventPhase::Dispatch => {
                 if seen_recovery_phase || end_ns > recovery_evidence.dispatch_end_ns {
-                    return Err(BaselineQualificationError::DispatchRecoveryPhaseOrderViolation {
-                        index,
-                    });
+                    return Err(
+                        BaselineQualificationError::DispatchRecoveryPhaseOrderViolation { index },
+                    );
                 }
                 dispatch_interval_count += 1;
             }
             DispatchEventPhase::Recovery => {
                 if point.interval_start_ns < recovery_evidence.dispatch_end_ns {
-                    return Err(BaselineQualificationError::DispatchRecoveryPhaseOrderViolation {
-                        index,
-                    });
+                    return Err(
+                        BaselineQualificationError::DispatchRecoveryPhaseOrderViolation { index },
+                    );
                 }
                 seen_recovery_phase = true;
                 recovery_interval_count += 1;
