@@ -279,6 +279,9 @@ fn empty_row(record_type: &str, arm_id: &str) -> Vec<String> {
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
     ]
 }
 
