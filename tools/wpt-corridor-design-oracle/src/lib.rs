@@ -19,10 +19,7 @@ fn fail(path: &str, message: impl AsRef<str>) -> String {
     format!("{path}: {}", message.as_ref())
 }
 
-fn object<'a>(
-    value: &'a Value,
-    path: &str,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
     value
         .as_object()
         .ok_or_else(|| fail(path, "must be an object"))
@@ -168,11 +165,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
     let mut total_required_kwh = 0_u64;
     for (index, row) in route_rows.iter().enumerate() {
         let path = format!("$.routes[{index}]");
-        exact_keys(
-            row,
-            &["route_id", "minimum_useful_energy_kwh"],
-            &path,
-        )?;
+        exact_keys(row, &["route_id", "minimum_useful_energy_kwh"], &path)?;
         let route_id = string_field(row, "route_id", &path)?.to_string();
         let minimum_useful_energy_kwh = uint_field(row, "minimum_useful_energy_kwh", &path)?;
         if minimum_useful_energy_kwh == 0 {
@@ -228,8 +221,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         let feeder_index = *feeder_indices
             .get(feeder_id)
             .ok_or_else(|| fail(&path, format!("unknown feeder_id {feeder_id}")))?;
-        let max_deliverable_energy_kwh =
-            uint_field(row, "max_deliverable_energy_kwh", &path)?;
+        let max_deliverable_energy_kwh = uint_field(row, "max_deliverable_energy_kwh", &path)?;
         if max_deliverable_energy_kwh == 0 {
             return Err(fail(&path, "segment energy capacity must be positive"));
         }
@@ -257,10 +249,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
                     )
                 })?;
             if !seen_routes.insert(route_id.to_string()) {
-                return Err(fail(
-                    &path,
-                    format!("duplicate served route {route_id}"),
-                ));
+                return Err(fail(&path, format!("duplicate served route {route_id}")));
             }
             let route_index = *route_indices
                 .get(route_id)
@@ -463,8 +452,7 @@ fn evaluate_service_scenario(
     let mut route_service = Vec::with_capacity(scenario.routes.len());
     for (route_index, route) in scenario.routes.iter().enumerate() {
         let (from, edge_index) = route_sink_edges[route_index];
-        let delivered_kwh =
-            route.minimum_useful_energy_kwh - graph[from][edge_index].residual_kwh;
+        let delivered_kwh = route.minimum_useful_energy_kwh - graph[from][edge_index].residual_kwh;
         route_service.push(RouteService {
             route_id: route.route_id.clone(),
             required_kwh: route.minimum_useful_energy_kwh,
@@ -479,8 +467,7 @@ fn evaluate_service_scenario(
             || "NORMAL".to_string(),
             |index| format!("SEGMENT_OUTAGE:{}", scenario.segments[index].segment_id),
         ),
-        failed_segment_id: failed_segment
-            .map(|index| scenario.segments[index].segment_id.clone()),
+        failed_segment_id: failed_segment.map(|index| scenario.segments[index].segment_id.clone()),
         total_required_kwh: scenario.total_required_kwh,
         total_delivered_kwh,
         feasible: total_delivered_kwh == scenario.total_required_kwh,
@@ -566,10 +553,7 @@ pub fn evaluate_corridor(value: &Value) -> Result<CorridorDesignReport, String> 
             .scenario_checks
             .sort_by_key(|check| check.scenario_id.clone());
     }
-    best_designs.sort_by(|left, right| {
-        left.selected_segment_ids
-            .cmp(&right.selected_segment_ids)
-    });
+    best_designs.sort_by(|left, right| left.selected_segment_ids.cmp(&right.selected_segment_ids));
 
     Ok(CorridorDesignReport {
         corridor_id: scenario.corridor_id,
@@ -617,9 +601,10 @@ mod tests {
         assert_eq!(best.scenario_checks.len(), 4);
         assert!(best.scenario_checks.iter().all(|check| check.feasible));
         assert!(best.scenario_checks.iter().all(|check| {
-            check.route_service.iter().all(|route| {
-                route.delivered_kwh == route.required_kwh && route.shortfall_kwh == 0
-            })
+            check
+                .route_service
+                .iter()
+                .all(|route| route.delivered_kwh == route.required_kwh && route.shortfall_kwh == 0)
         }));
     }
 
@@ -701,9 +686,15 @@ mod tests {
         let mut reversed = fixture();
         reversed["feeders"].as_array_mut().unwrap().reverse();
         reversed["routes"].as_array_mut().unwrap().reverse();
-        reversed["candidate_segments"].as_array_mut().unwrap().reverse();
+        reversed["candidate_segments"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
         for segment in reversed["candidate_segments"].as_array_mut().unwrap() {
-            segment["served_route_ids"].as_array_mut().unwrap().reverse();
+            segment["served_route_ids"]
+                .as_array_mut()
+                .unwrap()
+                .reverse();
         }
         let second = evaluate_corridor(&reversed).unwrap();
         assert_eq!(first.minimum_capex_units, second.minimum_capex_units);
@@ -718,10 +709,17 @@ mod tests {
     fn cost_and_capacity_boundaries_are_strict_integers() {
         let mut scenario = fixture();
         scenario["candidate_segments"][0]["capex_units"] = Value::from(0);
-        assert!(evaluate_corridor(&scenario).unwrap_err().contains("capex_units"));
+        assert!(
+            evaluate_corridor(&scenario)
+                .unwrap_err()
+                .contains("capex_units")
+        );
         let mut scenario = fixture();
-        scenario["candidate_segments"][0]["max_deliverable_energy_kwh"] =
-            Value::from("5.0");
-        assert!(evaluate_corridor(&scenario).unwrap_err().contains("non-negative integer"));
+        scenario["candidate_segments"][0]["max_deliverable_energy_kwh"] = Value::from("5.0");
+        assert!(
+            evaluate_corridor(&scenario)
+                .unwrap_err()
+                .contains("non-negative integer")
+        );
     }
 }
