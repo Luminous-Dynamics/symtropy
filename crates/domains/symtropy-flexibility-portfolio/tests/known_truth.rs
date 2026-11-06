@@ -45,7 +45,7 @@ fn definition() -> PortfolioDefinition {
         .unwrap(),
         vec![
             asset("a", "site-a", 60.0, &["region", "control"]),
-            asset("b", "site-b", 50.0, &["region", "telecom"]),
+            asset("b", "site-b", 50.0, &["region", "control", "telecom"]),
         ],
         vec![
             domain("region", "weather-region"),
@@ -242,7 +242,7 @@ fn omitted_failure_domain_state_is_rejected_but_explicit_unknown_is_preserved() 
     ));
 
     let unknown = event(
-        "e1", "g1", "normal", 0, 100.0,
+        "unknown", "g-unknown", "normal", 0, 100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &[
@@ -251,13 +251,18 @@ fn omitted_failure_domain_state_is_rejected_but_explicit_unknown_is_preserved() 
             ("telecom", FailureDomainState::Normal),
         ],
     );
-    let error = evaluate_portfolio_resilience(&definition(), &[unknown]).unwrap_err();
-    assert!(matches!(
-        error,
-        symtropy_flexibility_portfolio::PortfolioResilienceError::InsufficientEventCount { .. }
-    ));
+    let normal = event(
+        "normal", "g-normal", "normal", 10_000_000_000_000, 100.0,
+        (60.0, AssetAvailability::Available),
+        (50.0, AssetAvailability::Available),
+        &normal_states(),
+    );
+    let report = evaluate_portfolio_resilience(&definition(), &[unknown, normal]).unwrap();
+    let region = report.failure_domains.iter().find(|domain| domain.domain_id == "region").unwrap();
+    assert_eq!(region.unknown_event_count, 1);
+    assert_eq!(region.normal_event_count, 1);
+    assert_eq!(report.events[0].failure_domain_observations[0].state, FailureDomainState::Unknown);
 }
-
 #[test]
 fn unavailable_asset_cannot_report_nonzero_lower_bound_delivery() {
     let error = AssetDeliveryOutcome::new(
@@ -430,12 +435,8 @@ fn duplicate_event_id_and_inconsistent_incident_scenario_are_rejected() {
 
 #[test]
 fn domain_observed_state_is_descriptive_even_when_outcome_does_not_follow_it() {
-    let observation = event(
-        "weather-degraded",
-        "heatwave-1",
-        "heatwave",
-        0,
-        100.0,
+    let degraded = event(
+        "weather-degraded", "heatwave-1", "heatwave", 0, 100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &[
@@ -444,13 +445,18 @@ fn domain_observed_state_is_descriptive_even_when_outcome_does_not_follow_it() {
             ("telecom", FailureDomainState::Normal),
         ],
     );
-    let report = evaluate_portfolio_resilience(&definition(), &[observation]).unwrap_err();
-    assert!(matches!(
-        report,
-        symtropy_flexibility_portfolio::PortfolioResilienceError::InsufficientEventCount { .. }
-    ));
+    let normal = event(
+        "weather-normal", "separate-storm", "storm", 10_000_000_000_000, 100.0,
+        (60.0, AssetAvailability::Available),
+        (50.0, AssetAvailability::Available),
+        &normal_states(),
+    );
+    let report = evaluate_portfolio_resilience(&definition(), &[degraded, normal]).unwrap();
+    let region = report.failure_domains.iter().find(|domain| domain.domain_id == "region").unwrap();
+    assert_eq!(region.degraded_event_count, 1);
+    assert_eq!(region.portfolio_passes_when_degraded, 1);
+    assert_eq!(report.passed_event_count, 2);
 }
-
 #[test]
 fn invalid_portfolio_offer_and_product_contract_mismatch_are_rejected() {
     assert!(matches!(
@@ -468,4 +474,31 @@ fn invalid_portfolio_offer_and_product_contract_mismatch_are_rejected() {
         ).unwrap_err(),
         symtropy_flexibility_portfolio::PortfolioResilienceError::ProductContractMismatch
     ));
+}
+
+#[test]
+fn event_receipt_retains_each_response_and_domain_evidence_reference() {
+    let report = evaluate_portfolio_resilience(
+        &definition(),
+        &[
+            event(
+                "e1", "g1", "heatwave", 0, 100.0,
+                (60.0, AssetAvailability::Available),
+                (50.0, AssetAvailability::Available),
+                &normal_states(),
+            ),
+            event(
+                "e2", "g2", "storm", 10_000_000_000_000, 100.0,
+                (60.0, AssetAvailability::Available),
+                (50.0, AssetAvailability::Available),
+                &normal_states(),
+            ),
+        ],
+    ).unwrap();
+    let receipt = &report.events[0];
+    assert_eq!(receipt.asset_outcomes.len(), 2);
+    assert_eq!(receipt.asset_outcomes[0].response_receipt_id, "response-a");
+    assert_eq!(receipt.asset_outcomes[0].source_digest, "sha256:response-a");
+    assert_eq!(receipt.failure_domain_observations.len(), 3);
+    assert_eq!(receipt.failure_domain_observations[0].evidence_id, "domain-evidence-control-e1");
 }
