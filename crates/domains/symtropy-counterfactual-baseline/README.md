@@ -43,3 +43,15 @@ cargo clippy -p symtropy-counterfactual-baseline --all-targets -- -D warnings
 ```
 
 All current integration fixtures are synthetic known truth. This crate makes model-based M&V estimates; it is not causal identification, market accreditation or ELCC.
+
+## Independence and measurement uncertainty
+
+The calibration tail is estimated from **independence groups**, not raw interval count. Within each calibration group, v0.1 uses the worst conservative residual across its intervals, where the observed no-dispatch power is reduced by its supplied expanded measurement uncertainty. This block-minimum residual prevents a long, autocorrelated session from masquerading as hundreds of independent calibration observations.
+
+The evaluation audit is also grouped: a group passes lower-bound coverage only when every interval in that group is covered; a group is counted as a false-positive reduction if any interval would have minted the contracted minimum response with no dispatch. This is intentionally more conservative than row-wise binomial scoring.
+
+Every observation source digest must match the pinned calibration or evaluation partition digest. Evaluation regimes without a matching calibration regime are rejected rather than silently omitted. The report is an immutable read-only receipt (it is not deserializable into a caller-forged qualification token).
+
+## Event-horizon interpretation
+
+The event report includes point-estimate net energy and a separate sum of conservative interval lower-bound energy contributions. The latter is **not** a joint horizon-wide probability bound: serial and cross-interval dependence must be modeled or validated before attaching a whole-event coverage probability. The supplied event trace must include the full recovery horizon to make rebound accounting meaningful.
