@@ -38,7 +38,12 @@
         "cell_size_mm",
         "width_cells",
         "height_cells",
-        "cells"
+        "cells",
+        "trial_id",
+        "task_id",
+        "site_id",
+        "machine_instance_id",
+        "machine_configuration_ref"
       ],
       "properties": {
         "map_id": {
@@ -122,6 +127,26 @@
               }
             }
           }
+        },
+        "trial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "machine_instance_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "machine_configuration_ref": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -137,7 +162,10 @@
           "acceptance_profile_ref",
           "maximum_residual_thickness_mm",
           "maximum_registration_uncertainty_mm",
-          "footprint_cells"
+          "footprint_cells",
+          "site_id",
+          "machine_instance_id",
+          "machine_configuration_ref"
         ],
         "properties": {
           "support_id": {
@@ -182,6 +210,18 @@
                 }
               }
             }
+          },
+          "site_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "machine_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "machine_configuration_ref": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
