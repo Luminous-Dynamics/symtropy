@@ -90,6 +90,8 @@ pub enum BenchmarkError {
     InvalidInterventionIndex,
     InvalidPhasePulse,
     InvalidScoreMargin,
+    InvalidFitGrid,
+    InvalidInterventionAlignment,
     InvalidTraceLength,
     NonFiniteTrace,
     NonMonotonicTraceTimestamp,
@@ -447,6 +449,212 @@ impl SeededNormal {
         let (sin_angle, cos_angle) = angle.sin_cos();
         self.spare = Some(radius * sin_angle);
         radius * cos_angle
+    }
+}
+
+
+
+/// Equal-budget grid used to fit baseline angular frequency and initial phase.
+/// Feedback decay and coupling stay frozen in the shared SimulationConfig.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FrequencyPhaseGrid {
+    pub minimum_angular_frequency: f64,
+    pub maximum_angular_frequency: f64,
+    /// Number of equally spaced frequencies, including both endpoints.
+    pub frequency_steps: usize,
+    /// Number of equally spaced phases over [-pi, pi).
+    pub phase_steps: usize,
+}
+
+impl FrequencyPhaseGrid {
+    pub fn validate(self) -> Result<(), BenchmarkError> {
+        if !self.minimum_angular_frequency.is_finite()
+            || !self.maximum_angular_frequency.is_finite()
+            || self.minimum_angular_frequency >= self.maximum_angular_frequency
+            || self.frequency_steps < 2
+            || self.phase_steps < 4
+        {
+            return Err(BenchmarkError::InvalidFitGrid);
+        }
+        Ok(())
+    }
+}
+
+/// Outcome-blind forecast produced from baseline observations only.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FrozenForecast {
+    pub mechanism: Mechanism,
+    pub fitted_angular_frequency: f64,
+    pub fitted_initial_phase: f64,
+    pub baseline_log_score: f64,
+    /// Gap between the best and second-best parameter-grid scores. Zero
+    /// signals a tie/aliasing ambiguity at the selected grid resolution.
+    pub baseline_parameter_score_margin: f64,
+    /// Only samples at and after the declared intervention index.
+    pub predicted_suffix: Vec<SyntheticSample>,
+}
+
+/// Fit the same two baseline parameters for each candidate over the same
+/// prefix and fixed search budget, then freeze its response to one action.
+/// The action index must equal prefix.len(); held-out outcomes are not inputs.
+pub fn predict_intervention_candidates(
+    observed_prefix: &[SyntheticSample],
+    candidates: &[Mechanism],
+    intervention: Intervention,
+    base_config: SimulationConfig,
+    grid: FrequencyPhaseGrid,
+) -> Result<Vec<FrozenForecast>, BenchmarkError> {
+    base_config.validate()?;
+    grid.validate()?;
+    validate_trace(observed_prefix)?;
+
+    if observed_prefix.len() < 2 || observed_prefix.len() >= base_config.sample_count {
+        return Err(BenchmarkError::InvalidTraceLength);
+    }
+    for (index, sample) in observed_prefix.iter().enumerate() {
+        let expected_timestamp = index as f64 * base_config.sample_interval;
+        if sample.timestamp != expected_timestamp {
+            return Err(BenchmarkError::TimestampMismatch);
+        }
+    }
+
+    let intervention_index = match intervention {
+        Intervention::FeedbackCutFrom { sample_index }
+        | Intervention::PhasePulseAt { sample_index, .. } => sample_index,
+        Intervention::None => return Err(BenchmarkError::InvalidInterventionAlignment),
+    };
+    if intervention_index != observed_prefix.len() {
+        return Err(BenchmarkError::InvalidInterventionAlignment);
+    }
+    validate_intervention(intervention, base_config)?;
+
+    if candidates.len() < 2 {
+        return Err(BenchmarkError::EmptyCandidateSet);
+    }
+    let mut seen = BTreeSet::new();
+    for candidate in candidates {
+        if !seen.insert(*candidate) {
+            return Err(BenchmarkError::DuplicateCandidate);
+        }
+    }
+
+    let mut frozen = Vec::with_capacity(candidates.len());
+    for candidate in candidates {
+        let mut best: Option<(SimulationConfig, f64)> = None;
+        let mut second_best_score = f64::NEG_INFINITY;
+
+        for frequency_index in 0..grid.frequency_steps {
+            let frequency_fraction =
+                frequency_index as f64 / (grid.frequency_steps - 1) as f64;
+            let frequency = grid.minimum_angular_frequency
+                + (grid.maximum_angular_frequency - grid.minimum_angular_frequency)
+                    * frequency_fraction;
+
+            for phase_index in 0..grid.phase_steps {
+                let phase = -std::f64::consts::PI
+                    + std::f64::consts::TAU * phase_index as f64 / grid.phase_steps as f64;
+                let fit_config = SimulationConfig {
+                    angular_frequency: frequency,
+                    initial_phase: phase,
+                    ..base_config
+                };
+                let baseline_prediction = simulate(*candidate, Intervention::None, fit_config)?;
+                let score = predictive_log_score(
+                    observed_prefix,
+                    &baseline_prediction.samples[..observed_prefix.len()],
+                    base_config.observation_variance,
+                )?;
+
+                if best.is_none_or(|(_, best_score)| score > best_score) {
+                    if let Some((_, previous_best_score)) = best {
+                        second_best_score = previous_best_score;
+                    }
+                    best = Some((fit_config, score));
+                } else if score > second_best_score {
+                    second_best_score = score;
+                }
+            }
+        }
+
+        let (fitted_config, baseline_log_score) =
+            best.ok_or(BenchmarkError::NumericalFailure)?;
+        let parameter_margin = if second_best_score.is_finite() {
+            (baseline_log_score - second_best_score).max(0.0)
+        } else {
+            0.0
+        };
+
+        // No held-out outcome is available during this fit/forecast operation.
+        let action_prediction = simulate(*candidate, intervention, fitted_config)?;
+        let predicted_suffix = action_prediction.samples[observed_prefix.len()..].to_vec();
+        if predicted_suffix.is_empty() {
+            return Err(BenchmarkError::InvalidTraceLength);
+        }
+
+        frozen.push(FrozenForecast {
+            mechanism: *candidate,
+            fitted_angular_frequency: fitted_config.angular_frequency,
+            fitted_initial_phase: fitted_config.initial_phase,
+            baseline_log_score,
+            baseline_parameter_score_margin: parameter_margin,
+            predicted_suffix,
+        });
+    }
+    Ok(frozen)
+}
+
+/// Score already-frozen predictions against a held-out post-intervention
+/// suffix. Kept separate from fitting so outcomes cannot tune the baseline fit.
+pub fn select_frozen_forecast(
+    observed_suffix: &[SyntheticSample],
+    forecasts: &[FrozenForecast],
+    observation_variance: f64,
+    minimum_score_margin: f64,
+) -> Result<SelectionDecision, BenchmarkError> {
+    if forecasts.len() < 2 {
+        return Err(BenchmarkError::EmptyCandidateSet);
+    }
+    if !minimum_score_margin.is_finite() || minimum_score_margin < 0.0 {
+        return Err(BenchmarkError::InvalidScoreMargin);
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut scores = Vec::with_capacity(forecasts.len());
+    for forecast in forecasts {
+        if !seen.insert(forecast.mechanism) {
+            return Err(BenchmarkError::DuplicateCandidate);
+        }
+        let score = predictive_log_score(
+            observed_suffix,
+            &forecast.predicted_suffix,
+            observation_variance,
+        )?;
+        scores.push((forecast.mechanism, score));
+    }
+    scores.sort_by(|left, right| {
+        right
+            .1
+            .total_cmp(&left.1)
+            .then_with(|| left.0.cmp(&right.0))
+    });
+
+    let best = scores[0];
+    let runner_up = scores[1];
+    let margin = best.1 - runner_up.1;
+    if !margin.is_finite() {
+        return Err(BenchmarkError::NumericalFailure);
+    }
+    if margin <= minimum_score_margin {
+        Ok(SelectionDecision::Abstained {
+            best_candidate: best.0,
+            margin_over_runner_up: margin,
+        })
+    } else {
+        Ok(SelectionDecision::Selected {
+            mechanism: best.0,
+            log_score: best.1,
+            margin_over_runner_up: margin,
+        })
     }
 }
 
