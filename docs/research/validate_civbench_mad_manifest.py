@@ -49,6 +49,52 @@ if not design["inference_claimed"] and design["method"] == "deterministic-fixtur
     if design["replication_count"] != 1:
         raise SystemExit("a deterministic fixture must declare exactly one execution")
 
+
+
+stack = manifest["execution_stack"]
+require_unique(stack["components"], "component_id", "execution-stack component ID")
+component_ids = {component["component_id"] for component in stack["components"]}
+component_roles = {component["role"] for component in stack["components"]}
+
+for component in stack["components"]:
+    if component["behavior_affecting"] and not component["configuration_digest"]:
+        raise SystemExit(
+            f"behavior-affecting component {component['component_id']} is not configuration-pinned"
+        )
+
+for component_id in (
+    stack["action_validation_policy"]["parser_component_id"],
+    stack["action_validation_policy"]["validator_component_id"],
+    stack["event_capture_policy"]["capture_component_id"],
+):
+    if component_id not in component_ids:
+        raise SystemExit(f"execution-stack policy references unknown component: {component_id}")
+
+fallback_events = stack["fallback_events"]
+if len(fallback_events) != sum(1 for _ in fallback_events):
+    raise SystemExit("fallback event count mismatch")
+fallback_ids = [event["event_id"] for event in fallback_events]
+if len(fallback_ids) != len(set(fallback_ids)):
+    raise SystemExit("fallback event IDs must be unique")
+if stack["fallback_policy"] in ("none", "abort") and fallback_events:
+    raise SystemExit("fallback events are incompatible with the declared none/abort policy")
+if stack["fallback_policy"] == "counted-declared-default" and not fallback_events:
+    raise SystemExit("counted-declared-default requires explicit fallback event records")
+
+unseeded = stack["unseeded_random_sources"]
+for source in unseeded:
+    if source["component_id"] not in component_ids:
+        raise SystemExit(f"unseeded random source references unknown component: {source['component_id']}")
+if unseeded and manifest["construct"]["claim_tier"] in (
+    "tier-0-integrity", "tier-1-reference", "tier-2-empirical-distribution",
+    "tier-3-external-generalization", "tier-4-intervention-validity"
+):
+    raise SystemExit("unseeded randomness is incompatible with a reproducibility/validity tier; report a lower claim ceiling")
+
+capture = stack["event_capture_policy"]
+if capture["dropped_event_count"] > 0 and capture["drop_policy"] == "fail-closed":
+    raise SystemExit("fail-closed event capture cannot report dropped events")
+
 if manifest["composite_score_policy"] != "no-universal-composite":
     raise SystemExit("CivBench does not permit a universal composite score")
 
