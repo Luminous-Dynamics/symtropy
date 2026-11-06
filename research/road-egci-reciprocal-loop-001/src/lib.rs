@@ -523,7 +523,7 @@ fn build_world() -> Result<(PhysicsWorld<2>, BodyHandle, BodyHandle), String> {
     let actor = RigidBody::<2>::new(
         BodyHandle(0),
         BodyType::Kinematic,
-        Transform::from_translation(Point::new([2.0, -0.2])),
+        Transform::from_translation(Point::new([2.0, -0.7])),
         Box::new(Sphere::<2>::new(Point::<2>::origin(), 0.12)),
         0.0,
         SVector::<f64, 2>::zeros(),
