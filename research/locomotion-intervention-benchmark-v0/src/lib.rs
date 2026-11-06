@@ -1523,7 +1523,9 @@ pub enum ExpectedInformationDecision {
 /// The likelihood is the common predictive Gaussian likelihood used elsewhere
 /// in this crate. The expected information gain is:
 ///
-///     E_{h ~ prior, y ~ p(y|h,a)} [log p(y|h,a) - log sum_j p(h_j)p(y|h_j,a)]
+/// ```text
+/// E_{h ~ prior, y ~ p(y|h,a)} [log p(y|h,a) - log sum_j p(h_j)p(y|h_j,a)]
+/// ```
 ///
 /// This is a genuine finite-hypothesis expected information gain calculation
 /// under the supplied discrete prior and Gaussian observation model. It is
