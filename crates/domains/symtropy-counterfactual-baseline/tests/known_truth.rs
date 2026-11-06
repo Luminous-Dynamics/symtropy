@@ -56,6 +56,7 @@ fn observation(
         1_000_000_000,
         predicted,
         observed,
+        0.0,
         fold,
         false,
     )
@@ -90,8 +91,8 @@ fn qualified_report() -> symtropy_counterfactual_baseline::BaselineQualification
 fn exact_no_dispatch_baseline_qualifies_on_disjoint_holdout_groups() {
     let report = qualified_report();
     assert!(report.is_qualified());
-    assert!(report.calibration_evaluation_groups_disjoint);
-    assert!(report.forecast_issue_time_checked);
+    assert!(report.calibration_evaluation_groups_disjoint());
+    assert!(report.forecast_issue_time_checked());
     let regime = report.regime("normal").unwrap();
     assert_eq!(regime.lower_residual_quantile_kw, 0.0);
     assert_eq!(regime.lower_bound_coverage_basis_points, 10_000.0);
@@ -110,6 +111,7 @@ fn future_forecast_feature_timestamp_is_rejected() {
         1_000,
         100.0,
         100.0,
+        0.0,
         BaselineFold::Evaluation,
         false,
     )
@@ -133,6 +135,7 @@ fn dispatched_observations_cannot_be_used_as_no_dispatch_controls() {
         1_000,
         100.0,
         90.0,
+        0.0,
         BaselineFold::Calibration,
         true,
     )
@@ -224,7 +227,7 @@ fn distribution_shift_fails_holdout_coverage() {
     }
     let report = qualify_counterfactual_baseline(&identity(), &contract(), &rows)
         .expect("qualification report produced");
-    assert!(!report.qualified);
+    assert!(!report.is_qualified());
     assert_eq!(report.regime("normal").unwrap().lower_bound_coverage_basis_points, 0.0);
 }
 
