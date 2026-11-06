@@ -55,3 +55,19 @@ Every observation source digest must match the pinned calibration or evaluation 
 ## Event-horizon interpretation
 
 The event report includes point-estimate net energy and a separate sum of conservative interval lower-bound energy contributions. The latter is **not** a joint horizon-wide probability bound: serial and cross-interval dependence must be modeled or validated before attaching a whole-event coverage probability. The supplied event trace must include the full recovery horizon to make rebound accounting meaningful.
+
+## Group-weighted holdout metrics
+
+Bias, normalized bias, MAE, RMSE and normalization scale are now computed by first calculating each independent evaluation group's metric and then weighting the groups equally. A long site-day or session cannot dominate a short site-day merely because it contributes more samples. Coverage is stricter still: every interval in a group must be covered for the group to count as covered; any interval that would mint the contracted response marks the group as a false-positive group.
+
+## Evidence-bearing event and recovery horizon
+
+Event points carry an explicit `Dispatch` or `Recovery` phase. The event-evaluation contract consumes an `EventRecoveryEvidence` object binding:
+- exact event start, dispatch end and observation-horizon end timestamps;
+- a recovery evidence ID and source digest;
+- explicit reconciliation of useful-work obligations; and
+- explicit reconciliation of physical resource states.
+
+The trace must start and end at the pinned boundaries, be contiguous, contain at least one dispatch interval and one post-dispatch recovery interval, and never straddle the dispatch-end boundary. A dispatch interval cannot appear after recovery begins. The contracted minimum-response fraction is evaluated over dispatch intervals only, while gross reduction, gross rebound, point-estimate net energy and conservative signed interval energy include both dispatch and recovery. The event cannot qualify unless work and resource-state reconciliation are both true.
+
+This does not establish a joint probability bound over the full horizon. The report explicitly marks event lower bounds as non-joint until cross-interval dependence is separately qualified.
