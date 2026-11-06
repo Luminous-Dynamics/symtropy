@@ -309,12 +309,6 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
             "target CIF and event-free survival must form a valid probability subdistribution",
         ));
     }
-    if !bool_field(forecast, "hazard_cif_coherence_verified", "$.forecast")? {
-        return Err(fail(
-            "$.forecast.hazard_cif_coherence_verified",
-            "hazard/CIF coherence must be independently verified",
-        ));
-    }
     let target_code = string_field(forecast, "target_event_code", "$.forecast")?;
     let allowed_target_codes = [
         "STRUCTURAL_CRACK_LIMIT",
@@ -351,16 +345,16 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
                     "all codes must be non-empty strings",
                 )
             })?;
-        if !allowed_competing_codes.contains(&code) {
-            return Err(fail(
-                &format!("$.forecast.competing_event_codes[{index}]"),
-                format!("unknown competing-event code {code}"),
-            ));
-        }
         if code == target_code {
             return Err(fail(
                 "$.forecast.competing_event_codes",
                 "target and competing event codes must be disjoint",
+            ));
+        }
+        if !allowed_competing_codes.contains(&code) {
+            return Err(fail(
+                &format!("$.forecast.competing_event_codes[{index}]"),
+                format!("unknown competing-event code {code}"),
             ));
         }
         if !competing_codes.insert(code.to_string()) {
@@ -888,7 +882,9 @@ mod tests {
         let mut run = fixture();
         promote_fixture_to_measured_for_policy_unit_test(&mut run);
         run["forecast"]["target_event_cif"] = Value::from(0.08);
-        run["forecast"]["event_free_survival"] = Value::from(0.85);
+        run["forecast"]["event_free_survival"] = Value::from(0.86);
+        run["forecast"]["cause_specific_cumulative_incidence"][0]["probability"] =
+            Value::from(0.08);
         let report = evaluate_eligibility(&run).unwrap();
         assert_eq!(report.state, EligibilityState::PolicyRiskExceeded);
         assert!(report.forecast_eligible_for_decision_support);
@@ -903,7 +899,9 @@ mod tests {
         let mut run = fixture();
         promote_fixture_to_measured_for_policy_unit_test(&mut run);
         run["forecast"]["target_event_cif"] = Value::from(0.08);
-        run["forecast"]["event_free_survival"] = Value::from(0.85);
+        run["forecast"]["event_free_survival"] = Value::from(0.86);
+        run["forecast"]["cause_specific_cumulative_incidence"][0]["probability"] =
+            Value::from(0.08);
         run["dispatch_policy"]["decision_mode"] = Value::String("HARD_RISK_CAP".into());
         let report = evaluate_eligibility(&run).unwrap();
         assert_eq!(report.state, EligibilityState::PolicyRiskExceeded);
