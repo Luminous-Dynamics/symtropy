@@ -434,11 +434,7 @@ mod tests {
 
     #[test]
     fn body_second_moment_constructs_physically_realizable_3d_operator() {
-        let second_moment = vec![
-            2.0, 0.25, 0.0,
-            0.25, 3.0, 0.5,
-            0.0, 0.5, 4.0,
-        ];
+        let second_moment = vec![2.0, 0.25, 0.0, 0.25, 3.0, 0.5, 0.0, 0.5, 4.0];
         let inertia =
             RotationalInertiaOperator::<3>::from_body_second_moment_matrix(second_moment).unwrap();
         let matrix = inertia.as_row_major();
@@ -478,10 +474,7 @@ mod tests {
     #[test]
     fn diagonal_second_moment_maps_to_expected_four_dimensional_plane_inertias() {
         let inertia = RotationalInertiaOperator::<4>::from_body_second_moment_matrix(vec![
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 2.0, 0.0, 0.0,
-            0.0, 0.0, 3.0, 0.0,
-            0.0, 0.0, 0.0, 4.0,
+            1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 4.0,
         ])
         .unwrap();
         let expected = [3.0, 4.0, 5.0, 5.0, 6.0, 7.0];
