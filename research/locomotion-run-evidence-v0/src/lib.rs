@@ -647,14 +647,18 @@ mod tests {
         mujoco.sensor_latency_seconds = 0.004;
         assert_eq!(
             validate_paired_comparison(&flygym, &mujoco),
-            Err(EvidenceError::PairedRunMismatch(PairedRunMismatch::Timebase))
+            Err(EvidenceError::PairedRunMismatch(
+                PairedRunMismatch::Timebase
+            ))
         );
 
         mujoco = manifest("run-mujoco", "mujoco");
         mujoco.actuator_latency_seconds = 0.003;
         assert_eq!(
             validate_paired_comparison(&flygym, &mujoco),
-            Err(EvidenceError::PairedRunMismatch(PairedRunMismatch::Timebase))
+            Err(EvidenceError::PairedRunMismatch(
+                PairedRunMismatch::Timebase
+            ))
         );
     }
 
