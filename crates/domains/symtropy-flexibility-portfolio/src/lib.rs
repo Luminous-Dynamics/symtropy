@@ -337,6 +337,14 @@ pub struct AssetDeliveryOutcome {
 }
 
 impl AssetDeliveryOutcome {
+    pub fn delivered_lower_bound_kw(&self) -> f64 {
+        self.delivered_lower_bound_kw
+    }
+
+    pub const fn availability(&self) -> AssetAvailability {
+        self.availability
+    }
+
     pub fn new(
         asset_id: impl Into<String>,
         delivered_lower_bound_kw: f64,
