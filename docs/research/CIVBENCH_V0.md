@@ -300,3 +300,11 @@ CivBench separates four non-interchangeable empirical comparisons:
 - **AgentWorld:** 100 human-annotated tasks + 100 variants, role-asymmetric teams of 3–20, 25–55 rounds; best reported main-set success is 52.0%. The independent CCE audit is planned under [issue #3785](https://github.com/Luminous-Dynamics/symtropy/issues/3785).
 
 The 2026 papers report judge-based reward hacking, text-only limitations, naturalistic action-trace gaps and long-horizon coordination failures. CivBench must reproduce the paper's own metrics for comparability while retaining independent, evidence-qualified metric vectors and claim ceilings.
+
+
+## 2B. Configuration-surface reference and shared MAD passport status
+
+The first configuration-surface reference is in [CIVDYN-CFG-001 #3849](https://github.com/Luminous-Dynamics/symtropy/issues/3849) and [draft PR #3850](https://github.com/Luminous-Dynamics/symtropy/pull/3850). Exact-head hosted validation passed on 6 November 2026 (9 library tests, 2 binary tests, fmt, strict Clippy, locked compilation and a 13-row synthetic CSV contract). The current claim ceiling remains Tier 1.
+
+The shared [CIVBENCH-MAD-001 #3731](https://github.com/Luminous-Dynamics/symtropy/issues/3731) schema PR #3735 now adds a separate configuration passport, with a recomputed canonical digest, alongside the execution-stack inventory. The synthetic manifest validator and its unpinned-configuration negative control passed on commit `8431a109da905986e9f80fdd48cde8a86b14dde8`.
+
