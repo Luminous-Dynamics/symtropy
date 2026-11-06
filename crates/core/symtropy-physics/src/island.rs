@@ -307,9 +307,11 @@ mod tests {
                 .map(|island| island.body_indices[0])
                 .collect();
             assert_eq!(first_indices, vec![0, 2, 4, 5, 6]);
-            assert!(islands.windows(2).all(|pair| {
-                pair[0].body_indices[0] < pair[1].body_indices[0]
-            }));
+            assert!(
+                islands
+                    .windows(2)
+                    .all(|pair| { pair[0].body_indices[0] < pair[1].body_indices[0] })
+            );
         }
     }
 
