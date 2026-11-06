@@ -818,7 +818,7 @@ fn evaluate_recovery(
 
     let mut maximum_ramp = 0.0f64;
     let mut maximum_power = event.pre_event_active_power_mw;
-    for pair in samples.windows(2).filter(|p| p[0].timestamp_ns >= recovery_trigger_ns) {
+    for pair in samples.windows(2).filter(|p| p[1].timestamp_ns >= recovery_trigger_ns) {
         let dt = (pair[1].timestamp_ns - pair[0].timestamp_ns) as f64 / 1e9;
         let ramp = (pair[1].active_power_mw - pair[0].active_power_mw).abs() / dt;
         if !ramp.is_finite() {
