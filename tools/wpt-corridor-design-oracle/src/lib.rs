@@ -63,7 +63,6 @@ fn array_field<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a [Value
 
 #[derive(Debug, Clone)]
 struct Feeder {
-    feeder_id: String,
     capacity_kwh: u64,
 }
 
@@ -147,10 +146,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         if feeder_indices.insert(feeder_id.clone(), index).is_some() {
             return Err(fail(&path, format!("duplicate feeder_id {feeder_id}")));
         }
-        feeders.push(Feeder {
-            feeder_id,
-            capacity_kwh,
-        });
+        feeders.push(Feeder { capacity_kwh });
     }
 
     let route_rows = array_field(value, "routes", "$")?;
