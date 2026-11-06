@@ -6,7 +6,7 @@ Standalone Rust validator and descriptive evaluator for measured fragmentation-t
 
 The crate validates:
 - common task, material, site, machine, installed transport, energy and resource-ledger references;
-- synchronized positive-duration measurement windows;
+- synchronized positive-duration measurement windows that do not overlap within a trial; time gaps remain unobserved;
 - independently measured dry-solid mass values and calibration/lineage references;
 - ordered, contiguous, non-overlapping particle-size bins whose mass reconciles to generated mass within stated uncertainty;
 - generated/recovered/residual/rejected mass balance;
