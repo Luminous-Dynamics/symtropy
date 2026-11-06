@@ -10,11 +10,13 @@ use maritime_mobile_assistance_contract::{
 use maritime_service_chain_contract::TickWindow;
 use maritime_service_chain_fleet::OperationPlacement;
 
-fn evidence(id: &str) -> EvidenceReceipt {
+fn evidence(id: &str, subject_id: &str, subject_revision: &str) -> EvidenceReceipt {
     EvidenceReceipt {
         evidence_id: id.to_owned(),
         source_id: format!("source-{id}"),
-        source_revision: "r1".to_owned(),
+        source_revision: "source-r1".to_owned(),
+        subject_id: subject_id.to_owned(),
+        subject_revision: subject_revision.to_owned(),
         state: EvidenceState::Current,
         valid_from_tick: 0,
         valid_through_tick: 100,
@@ -29,8 +31,8 @@ fn tug() -> TugResource {
         position_node_id: "origin".to_owned(),
         capability_class_id: "harbour-assist".to_owned(),
         bollard_pull_kn: 100,
-        capability_evidence: evidence("tug-capability"),
-        position_evidence: evidence("tug-position"),
+        capability_evidence: evidence("tug-capability", "tug-1", "tug-r1"),
+        position_evidence: evidence("tug-position", "tug-1", "tug-r1"),
         availability: vec![TickWindow {
             start_tick: 0,
             end_tick: 100,
@@ -71,7 +73,11 @@ fn reposition(from: &str, to: &str, duration: u64, id: &str) -> RepositionLeg {
         to_node_id: to.to_owned(),
         duration_ticks: duration,
         route_revision: "route-r1".to_owned(),
-        evidence: evidence(id),
+        evidence: evidence(
+            id,
+            &format!("{from}->{to}"),
+            "route-r1",
+        ),
     }
 }
 
