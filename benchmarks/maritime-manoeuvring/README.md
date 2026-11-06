@@ -5,8 +5,8 @@ This dependency-free Rust crate implements the first small piece of
 
 It provides:
 
-- context-of-use-specific evidence-role requirements;
-- time-bounded manifest checks with a decision cutoff;
+- context-of-use-specific evidence-role requirements bound to the exact frozen case;
+- exact-case binding plus time-bounded manifest checks with a decision cutoff;
 - deterministic NeedsEvidence / Unsupported outcomes;
 - trajectory structural validation;
 - independent geometric reconstruction of turning-circle advance, transfer and
