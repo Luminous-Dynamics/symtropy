@@ -264,7 +264,7 @@ impl KnowledgeDataset {
             if carrier.acquired
                 && carrier.acquisition_source == Some(AcquisitionSource::Transmission)
                 && !delivered_to
-                    .contains((carrier.participant_id.as_str(), carrier.item_id.as_str()))
+                    .contains(&(carrier.participant_id.as_str(), carrier.item_id.as_str()))
             {
                 return Err(KnowledgeError::AcquisitionWithoutDeliveredTransmission {
                     participant_id: carrier.participant_id.clone(),
@@ -736,7 +736,7 @@ pub fn archive_recovery_after_failures(
 fn longest_consecutive_run(generations: &BTreeSet<u32>) -> usize {
     let mut longest = 0usize;
     let mut current = 0usize;
-    let mut previous = None;
+    let mut previous: Option<u32> = None;
     for generation in generations {
         if previous.is_some_and(|last| last.checked_add(1) == Some(*generation)) {
             current += 1;
