@@ -46,7 +46,7 @@
     ],
     "slack_bus": "S",
     "topology_effective_at_ns": 0,
-    "base_mva": 1
+    "base_mva": 100
   },
   "cases": [
     {
@@ -320,6 +320,41 @@
       "expected": {
         "branch_flow_mw_equal": true
       }
+    },
+    {
+      "case_id": "network-base-invariance",
+      "base_mva_values": [
+        1,
+        100
+      ],
+      "injections_mw": {
+        "A": 100,
+        "B": 0
+      },
+      "expected": {
+        "branch_flows_mw_equal": true,
+        "flow_tolerance_mw": 1e-9
+      }
+    },
+    {
+      "case_id": "mwh-unit-known-truth",
+      "load_reduction_mw": 30,
+      "duration_hours": 1,
+      "expected": {
+        "requested_reduction_energy_mwh": 30,
+        "network_deliverable_reduction_energy_mwh": 17.5
+      }
+    },
+    {
+      "case_id": "topology-expires-mid-interval",
+      "topology_effective_at_ns": 0,
+      "maximum_topology_age_ns": 10000,
+      "interval_start_ns": 9990,
+      "interval_duration_ns": 20,
+      "expected": {
+        "accepted": false,
+        "reason": "stale_topology_at_interval_end"
+      }
     }
   ],
   "negative_controls": [
@@ -342,7 +377,10 @@
     "PCC_mapped_to_slack",
     "site_flexibility_reassigned_to_other_bus",
     "per_unit_base_mva_omitted_or_mismatched",
-    "baseline_already_overloaded_minimum_action_fraction_ignored"
+    "baseline_already_overloaded_minimum_action_fraction_ignored",
+    "incorrect_mva_base_not_converted_to_per_unit",
+    "mw_hours_divided_by_1000_twice",
+    "topology_fresh_at_interval_start_but_stale_before_interval_end"
   ],
   "claim_boundary": "linearized active-power screening for a pinned network snapshot. No AC voltage/reactive, losses, protection, RMS/EMT, distribution hosting capacity, market accreditation or ELCC claim.",
   "identity": {
