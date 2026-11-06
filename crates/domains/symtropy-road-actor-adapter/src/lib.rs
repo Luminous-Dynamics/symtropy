@@ -8,7 +8,6 @@
 
 #![forbid(unsafe_code)]
 
-use blake3::Hasher;
 use std::fmt;
 use symtropy_road_actors::{
     ActorMode, ActorPolicyState, MotionBounds, ScenarioActorId, ScenarioTick,
