@@ -4,8 +4,8 @@
 //! One-tick matched intervention experiment backed by the shared resource ledger.
 
 use civdyn_causal_path::{
-    CausalEdge, CausalExperiment, CausalStage, CausalVariable, IndependentOutcomeReceipt, RunArm,
-    TransitionReceipt,
+    CausalEdge, CausalExperiment, CausalStage, CausalVariable, IndependentOutcomeReceipt,
+    MechanismAblation, RunArm, TransitionReceipt,
 };
 use civdyn_resource_ledger::{
     Production, Region, ResourceVector, StepInput, TransferPolicy, TransferRequest, World,
@@ -27,6 +27,11 @@ fn variables() -> Vec<CausalVariable> {
     vec![
         CausalVariable {
             id: "safeguard_enabled".into(),
+            stage: CausalStage::Intervention,
+            unit: "boolean".into(),
+        },
+        CausalVariable {
+            id: "mechanism_blocked".into(),
             stage: CausalStage::Intervention,
             unit: "boolean".into(),
         },
@@ -83,7 +88,12 @@ fn edges() -> Vec<CausalEdge> {
     ]
 }
 
-fn execute_arm(arm_id: &str, safeguard_enabled: bool, decoy_counter: bool) -> ArmDiagnostics {
+fn execute_arm(
+    arm_id: &str,
+    safeguard_enabled: bool,
+    decoy_counter: bool,
+    mechanism_blocked: bool,
+) -> ArmDiagnostics {
     let regions = vec![
         Region {
             id: "regional_reservoir".into(),
@@ -99,7 +109,7 @@ fn execute_arm(arm_id: &str, safeguard_enabled: bool, decoy_counter: bool) -> Ar
         },
     ];
     let mut world = World::new(regions).expect("synthetic resource ledger world must validate");
-    let eligible = safeguard_enabled;
+    let eligible = safeguard_enabled && !mechanism_blocked;
     let authorized_water_m3 = if eligible { 10.0 } else { 0.0 };
     let transfers = if authorized_water_m3 > 0.0 {
         vec![TransferRequest {
@@ -133,6 +143,7 @@ fn execute_arm(arm_id: &str, safeguard_enabled: bool, decoy_counter: bool) -> Ar
             "safeguard_enabled".into(),
             if safeguard_enabled { 1.0 } else { 0.0 },
         ),
+        ("mechanism_blocked".into(), if mechanism_blocked { 1.0 } else { 0.0 }),
         ("transfer_eligible".into(), 0.0),
         ("authorized_transfer_m3".into(), 0.0),
         ("delivered_water_m3".into(), 0.0),
@@ -144,6 +155,7 @@ fn execute_arm(arm_id: &str, safeguard_enabled: bool, decoy_counter: bool) -> Ar
             "safeguard_enabled".into(),
             if safeguard_enabled { 1.0 } else { 0.0 },
         ),
+        ("mechanism_blocked".into(), if mechanism_blocked { 1.0 } else { 0.0 }),
         ("transfer_eligible".into(), if eligible { 1.0 } else { 0.0 }),
         ("authorized_transfer_m3".into(), authorized_water_m3),
         ("delivered_water_m3".into(), delivered_water_m3),
@@ -200,9 +212,10 @@ fn execute_arm(arm_id: &str, safeguard_enabled: bool, decoy_counter: bool) -> Ar
 }
 
 fn reference_experiment() -> (CausalExperiment, [ArmDiagnostics; 3]) {
-    let control = execute_arm("control", false, false);
-    let treatment = execute_arm("treatment", true, false);
-    let negative_control = execute_arm("negative_control", false, true);
+    let control = execute_arm("control", false, false, false);
+    let treatment = execute_arm("treatment", true, false, false);
+    let negative_control = execute_arm("negative_control", false, true, false);
+    let mechanism_ablation = execute_arm("mechanism_ablation", true, false, true);
     let edge_list = edges();
 
     let experiment = CausalExperiment {
@@ -216,8 +229,13 @@ fn reference_experiment() -> (CausalExperiment, [ArmDiagnostics; 3]) {
         control: control.arm.clone(),
         treatment: treatment.arm.clone(),
         negative_control: negative_control.arm.clone(),
+        mechanism_ablation: MechanismAblation {
+            block_variable_id: "mechanism_blocked".into(),
+            blocked_mechanism_variable_id: "transfer_eligible".into(),
+            arm: mechanism_ablation.arm.clone(),
+        },
     };
-    (experiment, [control, treatment, negative_control])
+    (experiment, [control, treatment, negative_control, mechanism_ablation])
 }
 
 fn fmt(value: f64) -> String {
@@ -318,6 +336,21 @@ fn main() {
     negative[11] = fmt(result.control_outcome);
     negative[12] = fmt(result.negative_control_outcome);
     emit(negative);
+
+    let mut ablation = empty_row("mechanism_ablation", "mechanism_ablation");
+    ablation[2] = "mechanism_necessity_supported".into();
+    ablation[3] = result.mechanism_necessity_supported.to_string();
+    ablation[4] = "boolean".into();
+    ablation[7] = result.ablation_protocol_valid.to_string();
+    ablation[8] = result.blocked_mechanism_suppressed.to_string();
+    ablation[9] = "transfer_eligible".into();
+    ablation[10] = result.primary_intervention_preserved.to_string();
+    ablation[11] = fmt(result.control_outcome);
+    ablation[12] = fmt(result.mechanism_ablation_outcome);
+    ablation[16] = fmt(result.mechanism_ablation_effect);
+    ablation[17] = fmt(result.observed_treatment_effect);
+    ablation[18] = result.ablation_inputs_matched.to_string();
+    emit(ablation);
 }
 
 #[cfg(test)]
@@ -333,6 +366,7 @@ mod tests {
         assert_eq!(arms[0].household_served_water_m3, 0.0);
         assert_eq!(arms[1].household_served_water_m3, 10.0);
         assert_eq!(arms[2].household_served_water_m3, 0.0);
+        assert_eq!(arms[3].household_served_water_m3, 0.0);
         assert_eq!(arms[0].reservoir_closing_water_m3, 20.0);
         assert_eq!(arms[1].reservoir_closing_water_m3, 10.0);
         assert_eq!(arms[2].reservoir_closing_water_m3, 20.0);
