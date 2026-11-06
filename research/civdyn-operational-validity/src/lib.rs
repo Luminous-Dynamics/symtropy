@@ -622,11 +622,11 @@ mod tests {
             compare_metric(
                 metric("all"),
                 &set(
-                "obs",
-                &values,
-                "posts/day",
-                "non_overlapping_empirical_window",
-            ),
+                    "obs",
+                    &values,
+                    "posts/day",
+                    "non_overlapping_empirical_window"
+                ),
                 &set("sim", &values, "users/day", "independent_simulation_run"),
             ),
             Err(ValidationError::UnitMismatch {
@@ -643,11 +643,11 @@ mod tests {
             compare_metric(
                 metric("all"),
                 &set(
-                "obs",
-                &values,
-                "posts/day",
-                "non_overlapping_empirical_window",
-            ),
+                    "obs",
+                    &values,
+                    "posts/day",
+                    "non_overlapping_empirical_window"
+                ),
                 &set("sim", &values, "posts/day", "independent_simulation_run"),
             ),
             Err(ValidationError::TooFewIndependentSamples { .. })
@@ -675,7 +675,8 @@ mod tests {
                 "posts/day",
                 "independent_simulation_run",
             ),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(result.observed.sample_count, 8);
         assert!(result.observed.mean_99_ci_half_width > 0.0);
         let standard_error = result.observed.sample_standard_deviation / (8.0_f64).sqrt();
@@ -688,12 +689,7 @@ mod tests {
         assert!(matches!(
             compare_metric(
                 metric("all"),
-                &set(
-                    "obs",
-                    &values,
-                    "posts/day",
-                    "overlapping_empirical_rows"
-                ),
+                &set("obs", &values, "posts/day", "overlapping_empirical_rows"),
                 &set("sim", &values, "posts/day", "independent_simulation_run"),
             ),
             Err(ValidationError::IndependentUnitMismatch {
@@ -712,11 +708,11 @@ mod tests {
             compare_metric(
                 missing_rationale,
                 &set(
-                "obs",
-                &values,
-                "posts/day",
-                "non_overlapping_empirical_window",
-            ),
+                    "obs",
+                    &values,
+                    "posts/day",
+                    "non_overlapping_empirical_window"
+                ),
                 &set("sim", &values, "posts/day", "independent_simulation_run"),
             ),
             Err(ValidationError::EmptySampleSizeRationale)
@@ -728,11 +724,11 @@ mod tests {
             compare_metric(
                 invalid_minimum,
                 &set(
-                "obs",
-                &values,
-                "posts/day",
-                "non_overlapping_empirical_window",
-            ),
+                    "obs",
+                    &values,
+                    "posts/day",
+                    "non_overlapping_empirical_window"
+                ),
                 &set("sim", &values, "posts/day", "independent_simulation_run"),
             ),
             Err(ValidationError::MinimumSampleCountTooSmall {
@@ -745,7 +741,12 @@ mod tests {
     #[test]
     fn duplicate_ids_and_non_finite_values_fail_closed() {
         let values = values_0_to_29();
-        let mut duplicate = set("obs", &values, "posts/day", "non_overlapping_empirical_window");
+        let mut duplicate = set(
+            "obs",
+            &values,
+            "posts/day",
+            "non_overlapping_empirical_window",
+        );
         duplicate.samples[1].sample_id = duplicate.samples[0].sample_id.clone();
         assert!(matches!(
             compare_metric(
@@ -756,17 +757,22 @@ mod tests {
             Err(ValidationError::DuplicateSampleId { .. })
         ));
 
-        let mut non_finite = set("sim", &values, "posts/day");
+        let mut non_finite = set(
+            "sim",
+            &values,
+            "posts/day",
+            "independent_simulation_run",
+        );
         non_finite.samples[5].value = f64::NAN;
         assert!(matches!(
             compare_metric(
                 metric("all"),
                 &set(
-                "obs",
-                &values,
-                "posts/day",
-                "non_overlapping_empirical_window",
-            ),
+                    "obs",
+                    &values,
+                    "posts/day",
+                    "non_overlapping_empirical_window"
+                ),
                 &non_finite,
             ),
             Err(ValidationError::NonFiniteValue { .. })
@@ -782,11 +788,11 @@ mod tests {
             compare_metric(
                 invalid,
                 &set(
-                "obs",
-                &values,
-                "posts/day",
-                "non_overlapping_empirical_window",
-            ),
+                    "obs",
+                    &values,
+                    "posts/day",
+                    "non_overlapping_empirical_window"
+                ),
                 &set("sim", &values, "posts/day", "independent_simulation_run"),
             ),
             Err(ValidationError::EmptyStratumId)
