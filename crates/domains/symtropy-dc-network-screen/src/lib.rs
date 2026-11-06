@@ -590,7 +590,9 @@ pub fn evaluate_dc_network_deliverability(
                     )?;
                     let feasible = action_range
                         .is_some_and(|(_, maximum)| maximum >= 1.0 - contract.flow_tolerance_mw);
-                    combined_action_range = intersect_action_ranges(combined_action_range, action_range);
+                    if contract.require_n_minus_one {
+                        combined_action_range = intersect_action_ranges(combined_action_range, action_range);
+                    }
                     contingency_receipts.push(DcContingencyReceipt {
                         outaged_branch_id: outage.clone(),
                         feasible,
@@ -603,7 +605,9 @@ pub fn evaluate_dc_network_deliverability(
                 }
                 (Err(DcNetworkError::SingularOrIslandedTopology { pivot, .. }), _)
                 | (_, Err(DcNetworkError::SingularOrIslandedTopology { pivot, .. })) => {
-                    combined_action_range = None;
+                    if contract.require_n_minus_one {
+                        combined_action_range = None;
+                    }
                     contingency_receipts.push(DcContingencyReceipt {
                         outaged_branch_id: outage.clone(),
                         feasible: false,
@@ -732,11 +736,11 @@ fn action_fraction_range(
                 branch_id: branch.id.clone(),
             }
         })?;
-        let rating = if emergency {
+        let rating = (if emergency {
             branch.emergency_limit_mw
         } else {
             branch.normal_limit_mw
-        } + tolerance_mw;
+        }) + tolerance_mw;
         let delta = full_flow - base_flow;
         if delta.abs() <= f64::EPSILON {
             if base_flow.abs() > rating {
