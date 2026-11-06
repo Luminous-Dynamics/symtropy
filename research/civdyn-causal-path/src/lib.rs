@@ -84,7 +84,7 @@ pub struct RunArm {
     pub independent_outcome: IndependentOutcomeReceipt,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MechanismAblation {
     /// Exogenous switch used only in the ablation arm.
     pub block_variable_id: String,
@@ -633,6 +633,14 @@ impl CausalExperiment {
         if block.stage != CausalStage::Intervention {
             return Err(CausalPathError::AblationSwitchWrongStage(block_id.to_owned()));
         }
+        if self.required_path_edge_ids.iter().any(|edge_id| {
+            let edge = self.edges.iter().find(|candidate| candidate.id == *edge_id);
+            edge.is_some_and(|item| {
+                item.from_variable == block_id || item.to_variable == block_id
+            })
+        }) {
+            return Err(CausalPathError::AblationSwitchOnRequiredPath(block_id.to_owned()));
+        }
         if !matches!(mechanism.stage, CausalStage::Mechanism | CausalStage::Intermediate) {
             return Err(CausalPathError::AblationTargetWrongStage(mechanism_id.to_owned()));
         }
@@ -803,6 +811,7 @@ pub enum CausalPathError {
     NegativeControlChangedIndependentOutcome,
     AblationVariableRolesOverlap,
     AblationSwitchWrongStage(String),
+    AblationSwitchOnRequiredPath(String),
     AblationTargetWrongStage(String),
     AblationExogenousSnapshotMismatch,
     AblationInitialStateMismatch,
@@ -925,6 +934,9 @@ impl fmt::Display for CausalPathError {
             ),
             Self::AblationSwitchWrongStage(id) => {
                 write!(f, "mechanism ablation switch {id} must be an intervention-stage variable")
+            }
+            Self::AblationSwitchOnRequiredPath(id) => {
+                write!(f, "mechanism ablation switch {id} must not be a node on the required path")
             }
             Self::AblationTargetWrongStage(id) => {
                 write!(f, "mechanism ablation target {id} must be a mechanism or intermediate variable")
