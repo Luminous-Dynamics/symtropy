@@ -46,7 +46,7 @@ The unit fixtures cover:
 - insufficient reposition time;
 - insufficient tug count and bollard pull;
 - pilot qualification mismatch or omission;
-- missing reposition evidence, stale capability evidence, revoked position evidence and wrong route revision;
+- missing reposition evidence, stale capability evidence, revoked position evidence, wrong route revision and cross-resource evidence substitution;
 - availability limits, duplicate assignments and deterministic permutation replay.
 
 A separate test-only reference path recomputes one-tug/two-task feasibility directly over **512 frozen timing combinations**. It does not call the production reposition or sequence helpers. This is a synthetic algorithmic cross-check only; it is not experimental validation of tug movement or capability.
