@@ -1,0 +1,267 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+use std::collections::BTreeMap;
+
+use symtropy_dc_network_screen::{
+    DcBranch, DcBus, DcFlexibilityIdentity, DcFlexInterval, DcNetworkContract, DcNetworkError,
+    DcNetworkModel, evaluate_dc_network_deliverability,
+};
+
+fn network(branches: Vec<DcBranch>) -> DcNetworkModel {
+    DcNetworkModel::new(
+        "three-bus-v1",
+        "sha256:model",
+        "topology-a",
+        "sha256:topology",
+        0,
+        vec![
+            DcBus::new("S", true).unwrap(),
+            DcBus::new("A", false).unwrap(),
+            DcBus::new("B", false).unwrap(),
+        ],
+        branches,
+    )
+    .unwrap()
+}
+
+fn triangle() -> DcNetworkModel {
+    network(vec![
+        DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap(),
+        DcBranch::new("A-B", "A", "B", 0.1, 40.0, 60.0).unwrap(),
+        DcBranch::new("S-B", "S", "B", 0.1, 60.0, 80.0).unwrap(),
+    ])
+}
+
+fn identity() -> DcFlexibilityIdentity {
+    DcFlexibilityIdentity::new(
+        "dc-site",
+        "pcc-b",
+        "sha256:baseline",
+        "sha256:flexible",
+    )
+    .unwrap()
+}
+
+fn contract(require_n1: bool) -> DcNetworkContract {
+    DcNetworkContract::new(10_000_000_000, 1.0e-9, 1.0e-12, require_n1).unwrap()
+}
+
+fn injections(a_mw: f64, b_mw: f64) -> BTreeMap<String, f64> {
+    BTreeMap::from([("A".to_owned(), a_mw), ("B".to_owned(), b_mw)])
+}
+
+#[test]
+fn hand_computed_triangle_flows_and_ptdf_shift_match() {
+    let report = evaluate_dc_network_deliverability(
+        &identity(),
+        &triangle(),
+        &contract(false),
+        &[DcFlexInterval::new(
+            0,
+            3_600_000_000_000,
+            injections(100.0, 0.0),
+            BTreeMap::from([("B".to_owned(), 30.0)]),
+        )
+        .unwrap()],
+        &[],
+    )
+    .unwrap();
+
+    let flows = &report.intervals[0].branch_flows;
+    let get = |id: &str| flows.iter().find(|f| f.branch_id == id).unwrap();
+    assert!((get("A-B").baseline_flow_mw - 33.3333333333).abs() < 1e-8);
+    assert!((get("A-B").flexible_flow_mw - 23.3333333333).abs() < 1e-8);
+    assert!((get("A-B").flow_delta_mw + 10.0).abs() < 1e-8);
+    assert!((get("S-A").flow_delta_mw + 10.0).abs() < 1e-8);
+    assert!((get("S-B").flow_delta_mw + 20.0).abs() < 1e-8);
+}
+
+#[test]
+fn flexibility_can_relieve_one_constraint_but_overload_another() {
+    let report = evaluate_dc_network_deliverability(
+        &identity(),
+        &triangle(),
+        &contract(false),
+        &[DcFlexInterval::new(
+            0,
+            1_000,
+            injections(100.0, 0.0),
+            BTreeMap::from([("B".to_owned(), 30.0)]),
+        )
+        .unwrap()],
+        &[],
+    )
+    .unwrap();
+    let flows = &report.intervals[0].branch_flows;
+    let ab = flows.iter().find(|f| f.branch_id == "A-B").unwrap();
+    let sb = flows.iter().find(|f| f.branch_id == "S-B").unwrap();
+    assert!(ab.absolute_flow_relief_mw > 0.0);
+    assert!(sb.absolute_flow_relief_mw < 0.0);
+    assert!(sb.flexible_over_limit);
+    assert!(!report.network_deliverable);
+}
+
+#[test]
+fn n_minus_one_outage_is_explicit_and_line_outage_can_island_network() {
+    let radial = network(vec![
+        DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap(),
+        DcBranch::new("A-B", "A", "B", 0.1, 100.0, 120.0).unwrap(),
+    ]);
+    let report = evaluate_dc_network_deliverability(
+        &identity(),
+        &radial,
+        &contract(true),
+        &[DcFlexInterval::new(
+            0,
+            1_000,
+            injections(0.0, 10.0),
+            BTreeMap::from([("B".to_owned(), 5.0)]),
+        )
+        .unwrap()],
+        &["A-B".to_owned()],
+    )
+    .unwrap();
+    let outage = &report.intervals[0].n_minus_one[0];
+    assert!(!outage.feasible);
+    assert!(outage.islanded_or_singular);
+    assert!(!report.network_deliverable);
+}
+
+#[test]
+fn triangle_single_line_contingencies_are_recomputed_not_assumed() {
+    let report = evaluate_dc_network_deliverability(
+        &identity(),
+        &triangle(),
+        &contract(true),
+        &[DcFlexInterval::new(
+            0,
+            1_000,
+            injections(20.0, 0.0),
+            BTreeMap::from([("B".to_owned(), 5.0)]),
+        )
+        .unwrap()],
+        &["S-A".to_owned(), "A-B".to_owned(), "S-B".to_owned()],
+    )
+    .unwrap();
+    assert_eq!(report.intervals[0].n_minus_one.len(), 3);
+    assert!(report.intervals[0].n_minus_one.iter().all(|c| !c.islanded_or_singular));
+}
+
+#[test]
+fn stale_topology_is_rejected() {
+    let model = DcNetworkModel::new(
+        "model",
+        "sha256:model",
+        "topology",
+        "sha256:topology",
+        10_000,
+        vec![DcBus::new("S", true).unwrap(), DcBus::new("A", false).unwrap()],
+        vec![DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap()],
+    )
+    .unwrap();
+    let error = evaluate_dc_network_deliverability(
+        &identity(),
+        &model,
+        &contract(false),
+        &[DcFlexInterval::new(0, 1_000, injections(0.0, 0.0), BTreeMap::new()).unwrap()],
+        &[],
+    )
+    .unwrap_err();
+    assert!(matches!(error, DcNetworkError::StaleTopology { .. }));
+}
+
+#[test]
+fn stale_topology_by_age_is_rejected_even_when_interval_is_after_effective_time() {
+    let model = DcNetworkModel::new(
+        "model",
+        "sha256:model",
+        "topology",
+        "sha256:topology",
+        0,
+        vec![DcBus::new("S", true).unwrap(), DcBus::new("A", false).unwrap()],
+        vec![DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap()],
+    )
+    .unwrap();
+    let error = evaluate_dc_network_deliverability(
+        &identity(),
+        &model,
+        &DcNetworkContract::new(10, 1.0e-9, 1.0e-12, false).unwrap(),
+        &[DcFlexInterval::new(100, 1_000, injections(0.0, 0.0), BTreeMap::new()).unwrap()],
+        &[],
+    )
+    .unwrap_err();
+    assert!(matches!(error, DcNetworkError::StaleTopology { .. }));
+}
+
+#[test]
+fn unknown_slack_bus_injection_and_wrong_injection_bus_fail_closed() {
+    let model = triangle();
+    let mut slack_injection = BTreeMap::new();
+    slack_injection.insert("S".to_owned(), -100.0);
+    let error = evaluate_dc_network_deliverability(
+        &identity(),
+        &model,
+        &contract(false),
+        &[DcFlexInterval::new(0, 1_000, slack_injection, BTreeMap::new()).unwrap()],
+        &[],
+    )
+    .unwrap_err();
+    assert!(matches!(error, DcNetworkError::SlackBusInjectionSupplied { .. }));
+
+    let error = evaluate_dc_network_deliverability(
+        &identity(),
+        &model,
+        &contract(false),
+        &[DcFlexInterval::new(
+            0,
+            1_000,
+            BTreeMap::from([("UNKNOWN".to_owned(), 10.0)]),
+            BTreeMap::new(),
+        )
+        .unwrap()],
+        &[],
+    )
+    .unwrap_err();
+    assert!(matches!(error, DcNetworkError::UnknownInjectionBus { .. }));
+}
+
+#[test]
+fn required_n_minus_one_policy_needs_explicit_contingency_set() {
+    let error = evaluate_dc_network_deliverability(
+        &identity(),
+        &triangle(),
+        &contract(true),
+        &[DcFlexInterval::new(0, 1_000, injections(0.0, 0.0), BTreeMap::new()).unwrap()],
+        &[],
+    )
+    .unwrap_err();
+    assert!(matches!(error, DcNetworkError::MissingRequiredContingencies));
+}
+
+#[test]
+fn non_contiguous_chronology_and_unknown_outage_are_rejected() {
+    let intervals = [
+        DcFlexInterval::new(0, 100, injections(0.0, 0.0), BTreeMap::new()).unwrap(),
+        DcFlexInterval::new(200, 100, injections(0.0, 0.0), BTreeMap::new()).unwrap(),
+    ];
+    let error = evaluate_dc_network_deliverability(
+        &identity(),
+        &triangle(),
+        &contract(false),
+        &intervals,
+        &[],
+    )
+    .unwrap_err();
+    assert!(matches!(error, DcNetworkError::NonContiguousIntervals { .. }));
+
+    let error = evaluate_dc_network_deliverability(
+        &identity(),
+        &triangle(),
+        &contract(true),
+        &[DcFlexInterval::new(0, 100, injections(0.0, 0.0), BTreeMap::new()).unwrap()],
+        &["missing-branch".to_owned()],
+    )
+    .unwrap_err();
+    assert!(matches!(error, DcNetworkError::UnknownContingencyBranch { .. }));
+}
