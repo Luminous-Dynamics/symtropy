@@ -31,7 +31,10 @@
         "relation": "AT_MOST",
         "threshold": 0.05
       }
-    ]
+    ],
+    "material_cohort_ref": "SYN-CHARACTERIZED-GRANITE-COHORT",
+    "acceptance_profile_ref": "SYN-ACCEPTANCE-EXCAVATION-001",
+    "site_context_ref": "SYN-LAB-SITE-001"
   },
   "strategies": [
     {
@@ -86,7 +89,13 @@
       ],
       "source_refs": [
         "SYN-TRIAL-BASELINE"
-      ]
+      ],
+      "decision_profile_ref": "SYN-HARD-ROCK-TUNNEL-001",
+      "task_profile_ref": "SYN-TASK-ACCEPTED-SOLID-M3",
+      "material_cohort_ref": "SYN-CHARACTERIZED-GRANITE-COHORT",
+      "acceptance_profile_ref": "SYN-ACCEPTANCE-EXCAVATION-001",
+      "site_context_ref": "SYN-LAB-SITE-001",
+      "resource_ledger_ref": "SYN-RESOURCE-LEDGER-MECHANICAL-BASELINE"
     },
     {
       "strategy_id": "HPWJ-DISC-HYBRID",
@@ -141,7 +150,13 @@
       "source_refs": [
         "SYN-TRIAL-HPWJ",
         "SYN-HPWJ-KERF-PROTOCOL"
-      ]
+      ],
+      "decision_profile_ref": "SYN-HARD-ROCK-TUNNEL-001",
+      "task_profile_ref": "SYN-TASK-ACCEPTED-SOLID-M3",
+      "material_cohort_ref": "SYN-CHARACTERIZED-GRANITE-COHORT",
+      "acceptance_profile_ref": "SYN-ACCEPTANCE-EXCAVATION-001",
+      "site_context_ref": "SYN-LAB-SITE-001",
+      "resource_ledger_ref": "SYN-RESOURCE-LEDGER-HPWJ-DISC-HYBRID"
     },
     {
       "strategy_id": "OSCILLATING-DISC",
@@ -195,7 +210,13 @@
       ],
       "source_refs": [
         "SYN-TRIAL-ODC"
-      ]
+      ],
+      "decision_profile_ref": "SYN-HARD-ROCK-TUNNEL-001",
+      "task_profile_ref": "SYN-TASK-ACCEPTED-SOLID-M3",
+      "material_cohort_ref": "SYN-CHARACTERIZED-GRANITE-COHORT",
+      "acceptance_profile_ref": "SYN-ACCEPTANCE-EXCAVATION-001",
+      "site_context_ref": "SYN-LAB-SITE-001",
+      "resource_ledger_ref": "SYN-RESOURCE-LEDGER-OSCILLATING-DISC"
     },
     {
       "strategy_id": "ATCP-HIGH-TEMP",
@@ -248,7 +269,12 @@
       ],
       "source_refs": [
         "SYN-TRIAL-ATCP"
-      ]
+      ],
+      "decision_profile_ref": "SYN-HARD-ROCK-TUNNEL-001",
+      "task_profile_ref": "SYN-TASK-ACCEPTED-SOLID-M3",
+      "material_cohort_ref": "SYN-CHARACTERIZED-GRANITE-COHORT",
+      "acceptance_profile_ref": "SYN-ACCEPTANCE-EXCAVATION-001",
+      "site_context_ref": "SYN-LAB-SITE-001"
     },
     {
       "strategy_id": "LASER-PDC-UNQUALIFIED",
@@ -296,7 +322,12 @@
       ],
       "source_refs": [
         "SYN-LASER-PDC-LAB-STUDY"
-      ]
+      ],
+      "decision_profile_ref": "SYN-HARD-ROCK-TUNNEL-001",
+      "task_profile_ref": "SYN-TASK-ACCEPTED-SOLID-M3",
+      "material_cohort_ref": "SYN-CHARACTERIZED-GRANITE-COHORT",
+      "acceptance_profile_ref": "SYN-ACCEPTANCE-EXCAVATION-001",
+      "site_context_ref": "SYN-LAB-SITE-001"
     }
   ],
   "experiment_options": [
