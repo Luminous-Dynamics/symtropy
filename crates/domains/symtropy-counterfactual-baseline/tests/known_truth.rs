@@ -42,11 +42,15 @@ fn observation(
     predicted: f64,
     observed: f64,
 ) -> NoDispatchObservation {
+    let source_digest = match fold {
+        BaselineFold::Calibration => "sha256:calibration",
+        BaselineFold::Evaluation => "sha256:evaluation",
+    };
     NoDispatchObservation::new(
         format!("sample-{sample}"),
         group,
         "normal",
-        "sha256:source",
+        source_digest,
         0,
         sample as u64 * 1_000_000_000,
         1_000_000_000,
@@ -85,7 +89,7 @@ fn qualified_report() -> symtropy_counterfactual_baseline::BaselineQualification
 #[test]
 fn exact_no_dispatch_baseline_qualifies_on_disjoint_holdout_groups() {
     let report = qualified_report();
-    assert!(report.qualified);
+    assert!(report.is_qualified());
     assert!(report.calibration_evaluation_groups_disjoint);
     assert!(report.forecast_issue_time_checked);
     let regime = report.regime("normal").unwrap();
@@ -191,7 +195,7 @@ fn positive_baseline_bias_is_detected_and_does_not_mint_false_reduction() {
     }
     let report = qualify_counterfactual_baseline(&identity(), &contract(), &rows)
         .expect("qualification report produced");
-    assert!(!report.qualified);
+    assert!(!report.is_qualified());
     let regime = report.regime("normal").unwrap();
     assert!(regime.normalized_bias_basis_points > 200.0);
     assert!(regime.false_positive_reduction_rate_basis_points <= 100.0);
