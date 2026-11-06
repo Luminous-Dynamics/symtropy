@@ -47,6 +47,7 @@ pub enum ValidationCode {
     ArtifactParentMissing,
     ArtifactLineageCycle,
     OdcSpeedRatioMismatch,
+    OdcEccentricRatioMismatch,
     LaserEnergyBoundaryMismatch,
     OperatingPointObservationMismatch,
 }
@@ -409,9 +410,9 @@ fn validate_method_config(
             &["kind", "wavelength_m", "source_electrical_input_j", "optical_output_energy_j", "workpiece_incident_optical_energy_j", "absorbed_energy_estimate_j", "spot_major_axis_m", "spot_minor_axis_m", "incidence_angle_rad", "standoff_m", "beam_to_cutter_offset_m", "preheat_to_cut_delay_s", "back_rake_rad", "side_rake_rad", "cutter_spacing_m", "depth_of_cut_m", "cutting_speed_m_s", "laser_state"],
         ),
         "ODC" => (
-            &["disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio", "speed_ratio_definition", "angular_speed_observation_ref", "traction_speed_observation_ref"],
-            &["disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio"],
-            &["kind", "disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio", "speed_ratio_definition", "angular_speed_observation_ref", "traction_speed_observation_ref", "cutter_edge_profile_ref"],
+            &["disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio", "speed_ratio_definition", "angular_speed_observation_ref", "traction_speed_observation_ref", "cutterhead_radius_m", "eccentric_ratio", "eccentric_ratio_definition"],
+            &["disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio", "cutterhead_radius_m", "eccentric_ratio"],
+            &["kind", "disc_diameter_m", "eccentricity_m", "angular_speed_rad_s", "traction_speed_m_s", "depth_of_cut_m", "speed_ratio", "speed_ratio_definition", "angular_speed_observation_ref", "traction_speed_observation_ref", "cutterhead_radius_m", "eccentric_ratio", "eccentric_ratio_definition", "cutter_edge_profile_ref"],
         ),
         _ => {
             push(issues, record_id, ValidationCode::UnsupportedMechanism, format!("unsupported mechanism: {mechanism}"));
@@ -420,7 +421,7 @@ fn validate_method_config(
     };
 
     for field in required {
-        let valid = if matches!(*field, "laser_state" | "speed_ratio_definition" | "axial_waveform_artifact_ref" | "torsional_waveform_artifact_ref" | "angular_speed_observation_ref" | "traction_speed_observation_ref") {
+        let valid = if matches!(*field, "laser_state" | "speed_ratio_definition" | "axial_waveform_artifact_ref" | "torsional_waveform_artifact_ref" | "angular_speed_observation_ref" | "traction_speed_observation_ref" | "eccentric_ratio_definition") {
             non_empty_string(config, field).is_some()
         } else {
             number(config, field).is_some()
@@ -475,6 +476,21 @@ fn validate_method_config(
         let omega = number(config, "angular_speed_rad_s");
         let e = number(config, "eccentricity_m");
         let stated = number(config, "speed_ratio");
+        if non_empty_string(config, "eccentric_ratio_definition") != Some("e/a") {
+            push(issues, record_id.clone(), ValidationCode::OdcEccentricRatioMismatch, "ODC eccentric_ratio_definition must be e/a");
+        }
+        if let (Some(e), Some(a), Some(stated_re)) = (
+            number(config, "eccentricity_m"),
+            number(config, "cutterhead_radius_m"),
+            number(config, "eccentric_ratio"),
+        ) {
+            let recomputed_re = e / a;
+            if !recomputed_re.is_finite() || (recomputed_re - stated_re).abs() > 1.0e-9 * recomputed_re.abs().max(1.0) {
+                push(issues, record_id.clone(), ValidationCode::OdcEccentricRatioMismatch, format!("stored ODC eccentric_ratio {stated_re} does not match recomputed e/a {recomputed_re}"));
+            }
+        } else {
+            push(issues, record_id.clone(), ValidationCode::OdcEccentricRatioMismatch, "ODC eccentric_ratio requires finite eccentricity, cutterhead radius and ratio");
+        }
         if let (Some(v), Some(omega), Some(e), Some(stated)) = (v, omega, e, stated) {
             let recomputed = v / (omega * e);
             if !recomputed.is_finite() || (recomputed - stated).abs() > 1.0e-9 * recomputed.abs().max(1.0) {
@@ -952,6 +968,13 @@ mod tests {
         config["source_electrical_input_j"] = json!(900.0);
         config["workpiece_incident_optical_energy_j"] = json!(0.0);
         assert!(has(&validate_bundle(&data), ValidationCode::LaserEnergyBoundaryMismatch));
+    }
+
+    #[test]
+    fn odc_eccentric_ratio_is_recomputed_from_geometry() {
+        let mut data = fixture();
+        data["records"][2]["method_configuration"]["eccentric_ratio"] = json!(0.5);
+        assert!(has(&validate_bundle(&data), ValidationCode::OdcEccentricRatioMismatch));
     }
 
     #[test]
