@@ -1,0 +1,38 @@
+name: Road actor path adapter v0.1
+
+on:
+  push:
+    branches:
+      - "research/road-actor-path-adapter-v0-1-*"
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-road-actor-adapter/**"
+      - ".github/workflows/road-actor-path-adapter.yml"
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-road-actor-adapter/**"
+      - ".github/workflows/road-actor-path-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  path-adapter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path Cargo.toml -p symtropy-road-actor-adapter -- --check
+      - name: Run exact adapter tests
+        run: cargo test --locked -p symtropy-road-actor-adapter --all-targets
+      - name: Run strict Clippy
+        run: cargo clippy --locked -p symtropy-road-actor-adapter --all-targets -- -D warnings
+      - name: Validate machine-readable fixtures
+        run: python3 -c 'import json; data=json.load(open("crates/domains/symtropy-road-actor-adapter/fixtures/path-adapter-cases.json", encoding="utf-8")); assert data["schema"] == "symtropy.road-actor-path-adapter-fixtures.v0.1"; assert len(data["cases"]) == 12'
