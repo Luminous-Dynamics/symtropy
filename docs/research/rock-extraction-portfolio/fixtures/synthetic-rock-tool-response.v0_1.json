@@ -73,7 +73,8 @@
           "raw_artifact_ref": "SYN-ART-ATCP-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-ATCP"
         },
         {
           "channel_id": "torsional-torque",
@@ -91,7 +92,8 @@
           "raw_artifact_ref": "SYN-ART-ATCP-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-ATCP"
         }
       ],
       "artifacts": [
@@ -200,7 +202,8 @@
           "raw_artifact_ref": "SYN-ART-LASER-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-LASER_ASSISTED_PDC"
         },
         {
           "channel_id": "surface-temperature",
@@ -218,7 +221,8 @@
           "raw_artifact_ref": "SYN-ART-LASER-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-LASER_ASSISTED_PDC"
         }
       ],
       "artifacts": [
@@ -318,7 +322,8 @@
           "raw_artifact_ref": "SYN-ART-ODC-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-ODC"
         },
         {
           "channel_id": "cutting-torque",
@@ -336,7 +341,8 @@
           "raw_artifact_ref": "SYN-ART-ODC-RAW",
           "saturated_samples": 0,
           "missing_samples": 0,
-          "range_exceeded": false
+          "range_exceeded": false,
+          "anti_alias_filter_ref": "SYN-AA-ODC"
         }
       ],
       "artifacts": [
