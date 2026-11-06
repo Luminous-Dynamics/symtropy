@@ -21,6 +21,8 @@
     "baselines",
     "negative_controls",
     "holdouts",
+    "configuration_passport",
+    "execution_stack",
     "reproduction",
     "claim_report",
     "composite_score_policy"
@@ -545,7 +547,7 @@
         },
         "configuration_digest": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[a-f0-9]{64}$"
         },
         "data_manifest_digest": {
           "type": [
@@ -617,6 +619,388 @@
     },
     "composite_score_policy": {
       "const": "no-universal-composite"
+    },
+    "execution_stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "components",
+        "fallback_policy",
+        "fallback_events",
+        "unseeded_random_sources",
+        "scheduler_policy",
+        "exposure_policy",
+        "action_validation_policy",
+        "event_capture_policy"
+      ],
+      "properties": {
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "component_id",
+              "role",
+              "version",
+              "configuration_digest",
+              "behavior_affecting"
+            ],
+            "properties": {
+              "component_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "enum": [
+                  "simulator",
+                  "base-model",
+                  "response-generator",
+                  "prompt-template",
+                  "participant-profile",
+                  "memory",
+                  "context-policy",
+                  "action-parser",
+                  "action-validator",
+                  "retry-policy",
+                  "fallback",
+                  "scheduler",
+                  "exposure-policy",
+                  "environment",
+                  "randomness",
+                  "event-capture",
+                  "measurement"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "configuration_digest": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "behavior_affecting": {
+                "type": "boolean"
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "fallback_policy": {
+          "enum": [
+            "none",
+            "abort",
+            "counted-declared-default",
+            "other-explicit"
+          ]
+        },
+        "fallback_events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_id",
+              "component_id",
+              "reason",
+              "action_taken"
+            ],
+            "properties": {
+              "event_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "component_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "action_taken": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "unseeded_random_sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_id",
+              "component_id",
+              "purpose"
+            ],
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "component_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "purpose": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "scheduler_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheduler_id",
+            "update_order",
+            "parallelism",
+            "tie_breaking_rule"
+          ],
+          "properties": {
+            "scheduler_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "update_order": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parallelism": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "tie_breaking_rule": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "exposure_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy_id",
+            "eligibility_rule",
+            "ordering_rule",
+            "state_visibility"
+          ],
+          "properties": {
+            "policy_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "eligibility_rule": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ordering_rule": {
+              "type": "string",
+              "minLength": 1
+            },
+            "state_visibility": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "action_validation_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "parser_component_id",
+            "validator_component_id",
+            "invalid_action_policy",
+            "retry_limit",
+            "repair_policy"
+          ],
+          "properties": {
+            "parser_component_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "validator_component_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "invalid_action_policy": {
+              "enum": [
+                "abort",
+                "reject-and-record",
+                "counted-declared-default",
+                "other-explicit"
+              ]
+            },
+            "retry_limit": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "repair_policy": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "event_capture_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "capture_component_id",
+            "required_event_kinds",
+            "dropped_event_count",
+            "drop_policy"
+          ],
+          "properties": {
+            "capture_component_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required_event_kinds": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "dropped_event_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "drop_policy": {
+              "enum": [
+                "fail-closed",
+                "count-and-report",
+                "known-loss-model",
+                "other-explicit"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "configuration_passport": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Human-readable decision configuration passport. The digest binds these fields to the benchmark and evaluation identifiers. Runtime component inventory remains separately described by execution_stack and the Humanity Atlas run artifact.",
+      "required": [
+        "configuration_id",
+        "configuration_digest",
+        "canonicalization",
+        "model",
+        "facets",
+        "task_contract_digest",
+        "data_split_digest",
+        "re_audit_policy"
+      ],
+      "properties": {
+        "configuration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "canonicalization": {
+          "const": "sorted-key-value-lines-v1"
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_id",
+            "model_version"
+          ],
+          "properties": {
+            "model_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "facets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "persona_id",
+            "interview_protocol_id",
+            "facilitator_id",
+            "aggregation_rule_id",
+            "order_profile_id",
+            "prompt_template_id",
+            "tool_policy_id",
+            "evidence_snapshot_id",
+            "decoding_policy_id"
+          ],
+          "properties": {
+            "persona_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "interview_protocol_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "facilitator_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "aggregation_rule_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "order_profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "prompt_template_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tool_policy_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_snapshot_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decoding_policy_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "task_contract_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "data_split_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "re_audit_policy": {
+          "const": "any-decision-relevant-change"
+        }
+      }
     }
   }
 }
