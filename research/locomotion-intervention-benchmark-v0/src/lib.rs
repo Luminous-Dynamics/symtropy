@@ -123,6 +123,7 @@ pub enum BenchmarkError {
     EmptyHypothesisSet,
     DuplicateHypothesis,
     InvalidHypothesisPrior,
+    InvalidPosteriorUpdate,
     InvalidMonteCarloDraws,
     InvalidInterventionIndex,
     InvalidPhasePulse,
@@ -1599,6 +1600,23 @@ pub struct MechanismHypothesis {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct HypothesisPosteriorWeight {
+    pub hypothesis_id: String,
+    pub probability: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct HypothesisPosteriorUpdate {
+    /// Sorted by hypothesis ID, independent of caller order.
+    pub posterior: Vec<HypothesisPosteriorWeight>,
+    /// Log marginal predictive density of this intervention outcome.
+    pub log_marginal_evidence: f64,
+    pub prior_entropy_nats: f64,
+    pub posterior_entropy_nats: f64,
+    pub information_gain_nats: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExpectedInformationDesign {
     pub candidate_id: String,
     pub intervention: Intervention,
@@ -1620,6 +1638,198 @@ pub enum ExpectedInformationDecision {
         information_per_cost: f64,
         standard_error_nats: f64,
     },
+}
+
+/// Update a finite mechanism/parameter posterior after observing one
+/// intervention outcome on a new, reset session.
+///
+/// Hypotheses are fixed mechanism/parameter scenarios with an explicit prior.
+/// The intervention assignment and delivery must have been independently
+/// verified by the caller. This function scores only the observed suffix,
+/// requires its timestamps to match the declared intervention grid, and
+/// uses the same independent Gaussian observation variance for both
+/// coordinates. The returned posterior can be passed to
+/// apply_hypothesis_posterior and then back into the EIG action selector.
+///
+/// This supports sequential experiment selection across independent
+/// sessions. It does not propagate latent state across interventions within
+/// one uninterrupted locomotor episode.
+pub fn update_hypothesis_posterior_after_intervention(
+    hypotheses: &[MechanismHypothesis],
+    intervention: Intervention,
+    observed_suffix: &[SyntheticSample],
+    observation_variance: f64,
+) -> Result<HypothesisPosteriorUpdate, BenchmarkError> {
+    if hypotheses.len() < 2 {
+        return Err(BenchmarkError::EmptyHypothesisSet);
+    }
+    if !observation_variance.is_finite() || observation_variance <= 0.0 {
+        return Err(BenchmarkError::InvalidObservationVariance);
+    }
+
+    let mut ids = BTreeSet::new();
+    let first_config = hypotheses[0].config;
+    first_config.validate()?;
+    let onset_index = match intervention {
+        Intervention::FeedbackCutFrom { sample_index }
+        | Intervention::PhasePulseAt { sample_index, .. } => sample_index,
+        Intervention::None => return Err(BenchmarkError::InvalidInterventionAlignment),
+    };
+    if onset_index >= first_config.sample_count {
+        return Err(BenchmarkError::InvalidInterventionIndex);
+    }
+
+    let expected_len = first_config.sample_count - onset_index;
+    if observed_suffix.len() != expected_len {
+        return Err(BenchmarkError::InvalidTraceLength);
+    }
+    validate_trace(observed_suffix)?;
+    for (offset, sample) in observed_suffix.iter().enumerate() {
+        let expected_timestamp = (onset_index + offset) as f64 * first_config.sample_interval;
+        if sample.timestamp != expected_timestamp {
+            return Err(BenchmarkError::TimestampMismatch);
+        }
+    }
+
+    let mut prior_total = 0.0;
+    for hypothesis in hypotheses {
+        if hypothesis.id.trim().is_empty() {
+            return Err(BenchmarkError::InvalidInterventionCandidateId);
+        }
+        if !ids.insert(hypothesis.id.clone()) {
+            return Err(BenchmarkError::DuplicateHypothesis);
+        }
+        hypothesis.config.validate()?;
+        if hypothesis.config.sample_count != first_config.sample_count
+            || hypothesis.config.sample_interval != first_config.sample_interval
+        {
+            return Err(BenchmarkError::InvalidParameterScenarioGrid);
+        }
+        validate_intervention(intervention, hypothesis.config)?;
+        if !hypothesis.prior_weight.is_finite() || hypothesis.prior_weight <= 0.0 {
+            return Err(BenchmarkError::InvalidHypothesisPrior);
+        }
+        prior_total += hypothesis.prior_weight;
+        if !prior_total.is_finite() {
+            return Err(BenchmarkError::InvalidHypothesisPrior);
+        }
+    }
+    if prior_total <= 0.0 {
+        return Err(BenchmarkError::InvalidHypothesisPrior);
+    }
+
+    let mut prior_entropy_nats = 0.0;
+    let mut log_joint = Vec::with_capacity(hypotheses.len());
+    for hypothesis in hypotheses {
+        let prior = hypothesis.prior_weight / prior_total;
+        prior_entropy_nats -= prior * prior.ln();
+
+        // Predictions are regenerated from the hypothesis and the verified
+        // action. No observed sample is used to tune this prediction.
+        let predicted = simulate(
+            hypothesis.mechanism,
+            intervention,
+            hypothesis.config,
+        )?;
+        let predicted_suffix = &predicted.samples[onset_index..];
+        let log_likelihood =
+            predictive_log_score(observed_suffix, predicted_suffix, observation_variance)?;
+        log_joint.push((hypothesis.id.clone(), prior.ln() + log_likelihood));
+    }
+
+    let log_evidence = log_sum_exp(
+        &log_joint
+            .iter()
+            .map(|(_, value)| *value)
+            .collect::<Vec<_>>(),
+    )?;
+    let mut posterior = log_joint
+        .into_iter()
+        .map(|(hypothesis_id, log_probability)| HypothesisPosteriorWeight {
+            hypothesis_id,
+            probability: (log_probability - log_evidence).exp(),
+        })
+        .collect::<Vec<_>>();
+    posterior.sort_by(|left, right| left.hypothesis_id.cmp(&right.hypothesis_id));
+
+    let posterior_total = posterior.iter().map(|item| item.probability).sum::<f64>();
+    if !posterior_total.is_finite() || posterior_total <= 0.0 {
+        return Err(BenchmarkError::NumericalFailure);
+    }
+    for item in &mut posterior {
+        item.probability /= posterior_total;
+    }
+    let posterior_entropy_nats = posterior
+        .iter()
+        .filter(|item| item.probability > 0.0)
+        .map(|item| -item.probability * item.probability.ln())
+        .sum::<f64>();
+    let information_gain_nats = prior_entropy_nats - posterior_entropy_nats;
+    if !prior_entropy_nats.is_finite()
+        || !posterior_entropy_nats.is_finite()
+        || !information_gain_nats.is_finite()
+        || !log_evidence.is_finite()
+    {
+        return Err(BenchmarkError::NumericalFailure);
+    }
+
+    Ok(HypothesisPosteriorUpdate {
+        posterior,
+        log_marginal_evidence: log_evidence,
+        prior_entropy_nats,
+        posterior_entropy_nats,
+        information_gain_nats,
+    })
+}
+
+/// Replace hypothesis prior weights with a posterior update. Every ID must
+/// match exactly once; omissions, extras and duplicate IDs fail closed.
+pub fn apply_hypothesis_posterior(
+    hypotheses: &[MechanismHypothesis],
+    update: &HypothesisPosteriorUpdate,
+) -> Result<Vec<MechanismHypothesis>, BenchmarkError> {
+    if hypotheses.len() < 2 || hypotheses.len() != update.posterior.len() {
+        return Err(BenchmarkError::InvalidPosteriorUpdate);
+    }
+    let mut posterior_by_id = BTreeMap::new();
+    let mut total_probability = 0.0;
+    for item in &update.posterior {
+        if item.hypothesis_id.trim().is_empty()
+            || !item.probability.is_finite()
+            || item.probability <= 0.0
+            || posterior_by_id
+                .insert(item.hypothesis_id.as_str(), item.probability)
+                .is_some()
+        {
+            return Err(BenchmarkError::InvalidPosteriorUpdate);
+        }
+        total_probability += item.probability;
+    }
+    if !total_probability.is_finite() || (total_probability - 1.0).abs() > 1.0e-9 {
+        return Err(BenchmarkError::InvalidPosteriorUpdate);
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut updated = Vec::with_capacity(hypotheses.len());
+    for hypothesis in hypotheses {
+        if !seen.insert(hypothesis.id.as_str()) {
+            return Err(BenchmarkError::DuplicateHypothesis);
+        }
+        let probability = posterior_by_id
+            .get(hypothesis.id.as_str())
+            .copied()
+            .ok_or(BenchmarkError::InvalidPosteriorUpdate)?;
+        updated.push(MechanismHypothesis {
+            id: hypothesis.id.clone(),
+            mechanism: hypothesis.mechanism,
+            config: hypothesis.config,
+            prior_weight: probability,
+        });
+    }
+    if seen.len() != posterior_by_id.len() {
+        return Err(BenchmarkError::InvalidPosteriorUpdate);
+    }
+    Ok(updated)
 }
 
 /// Monte Carlo estimate of discrete-hypothesis Bayesian expected information
@@ -3316,6 +3526,223 @@ mod tests {
         assert!(design.standard_error_nats.is_finite());
         assert!(design.information_per_cost > 0.5);
         assert_eq!(design.draws, 256);
+    }
+
+    #[test]
+    fn posterior_update_moves_weight_toward_the_intervention_response_that_occurred() {
+        let cfg = config();
+        let hypotheses = vec![
+            MechanismHypothesis {
+                id: "intrinsic".to_owned(),
+                mechanism: Mechanism::IntrinsicOscillator,
+                config: cfg,
+                prior_weight: 1.0,
+            },
+            MechanismHypothesis {
+                id: "sensory".to_owned(),
+                mechanism: Mechanism::SensoryFeedbackDriven,
+                config: cfg,
+                prior_weight: 1.0,
+            },
+        ];
+        let action = Intervention::FeedbackCutFrom { sample_index: 30 };
+        let observed =
+            simulate(Mechanism::IntrinsicOscillator, action, cfg).unwrap();
+        let update = update_hypothesis_posterior_after_intervention(
+            &hypotheses,
+            action,
+            &observed.samples[30..],
+            cfg.observation_variance,
+        )
+        .unwrap();
+
+        let intrinsic = update
+            .posterior
+            .iter()
+            .find(|item| item.hypothesis_id == "intrinsic")
+            .unwrap();
+        let sensory = update
+            .posterior
+            .iter()
+            .find(|item| item.hypothesis_id == "sensory")
+            .unwrap();
+        assert!(intrinsic.probability > 0.999);
+        assert!(sensory.probability < 0.001);
+        assert!(update.information_gain_nats > 0.0);
+        assert!(update.log_marginal_evidence.is_finite());
+    }
+
+    #[test]
+    fn posterior_update_preserves_prior_for_identical_hypotheses() {
+        let cfg = config();
+        let hypotheses = vec![
+            MechanismHypothesis {
+                id: "prior-a".to_owned(),
+                mechanism: Mechanism::IntrinsicOscillator,
+                config: cfg,
+                prior_weight: 3.0,
+            },
+            MechanismHypothesis {
+                id: "prior-b".to_owned(),
+                mechanism: Mechanism::IntrinsicOscillator,
+                config: cfg,
+                prior_weight: 1.0,
+            },
+        ];
+        let action = Intervention::PhasePulseAt {
+            sample_index: 30,
+            delta_phase_radians: 0.3,
+        };
+        let observed =
+            simulate(Mechanism::IntrinsicOscillator, action, cfg).unwrap();
+        let update = update_hypothesis_posterior_after_intervention(
+            &hypotheses,
+            action,
+            &observed.samples[30..],
+            cfg.observation_variance,
+        )
+        .unwrap();
+
+        let a = update.posterior.iter().find(|item| item.hypothesis_id == "prior-a").unwrap();
+        let b = update.posterior.iter().find(|item| item.hypothesis_id == "prior-b").unwrap();
+        assert!((a.probability - 0.75).abs() < 1.0e-10);
+        assert!((b.probability - 0.25).abs() < 1.0e-10);
+        assert!(update.information_gain_nats.abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn posterior_update_is_caller_order_invariant_and_can_be_applied_for_next_eig_step() {
+        let cfg = config();
+        let a = MechanismHypothesis {
+            id: "oscillator".to_owned(),
+            mechanism: Mechanism::IntrinsicOscillator,
+            config: cfg,
+            prior_weight: 1.0,
+        };
+        let b = MechanismHypothesis {
+            id: "sensory".to_owned(),
+            mechanism: Mechanism::SensoryFeedbackDriven,
+            config: cfg,
+            prior_weight: 1.0,
+        };
+        let action = Intervention::FeedbackCutFrom { sample_index: 30 };
+        let observed =
+            simulate(Mechanism::SensoryFeedbackDriven, action, cfg).unwrap();
+        let update_ab = update_hypothesis_posterior_after_intervention(
+            &[a.clone(), b.clone()],
+            action,
+            &observed.samples[30..],
+            cfg.observation_variance,
+        )
+        .unwrap();
+        let update_ba = update_hypothesis_posterior_after_intervention(
+            &[b.clone(), a.clone()],
+            action,
+            &observed.samples[30..],
+            cfg.observation_variance,
+        )
+        .unwrap();
+        assert_eq!(update_ab.posterior, update_ba.posterior);
+
+        let posterior_hypotheses =
+            apply_hypothesis_posterior(&[a, b], &update_ab).unwrap();
+        let total = posterior_hypotheses
+            .iter()
+            .map(|hypothesis| hypothesis.prior_weight)
+            .sum::<f64>();
+        assert!((total - 1.0).abs() < 1.0e-12);
+        assert!(posterior_hypotheses
+            .iter()
+            .any(|hypothesis| hypothesis.id == "sensory" && hypothesis.prior_weight > 0.999));
+    }
+
+    #[test]
+    fn posterior_update_rejects_missing_or_misaligned_observations_and_invalid_hypotheses() {
+        let cfg = config();
+        let hypotheses = vec![
+            MechanismHypothesis {
+                id: "one".to_owned(),
+                mechanism: Mechanism::IntrinsicOscillator,
+                config: cfg,
+                prior_weight: 1.0,
+            },
+            MechanismHypothesis {
+                id: "two".to_owned(),
+                mechanism: Mechanism::SensoryFeedbackDriven,
+                config: cfg,
+                prior_weight: 1.0,
+            },
+        ];
+        let action = Intervention::FeedbackCutFrom { sample_index: 30 };
+        let observed = simulate(Mechanism::IntrinsicOscillator, action, cfg).unwrap();
+        assert_eq!(
+            update_hypothesis_posterior_after_intervention(
+                &hypotheses,
+                action,
+                &observed.samples[29..],
+                cfg.observation_variance
+            ),
+            Err(BenchmarkError::InvalidTraceLength)
+        );
+        let mut shifted = observed.samples[30..].to_vec();
+        shifted[0].timestamp += 0.001;
+        assert_eq!(
+            update_hypothesis_posterior_after_intervention(
+                &hypotheses,
+                action,
+                &shifted,
+                cfg.observation_variance
+            ),
+            Err(BenchmarkError::TimestampMismatch)
+        );
+        assert_eq!(
+            update_hypothesis_posterior_after_intervention(
+                &hypotheses,
+                Intervention::None,
+                &observed.samples[30..],
+                cfg.observation_variance
+            ),
+            Err(BenchmarkError::InvalidInterventionAlignment)
+        );
+    }
+
+    #[test]
+    fn applying_a_posterior_rejects_duplicate_or_missing_hypothesis_ids() {
+        let cfg = config();
+        let hypotheses = vec![
+            MechanismHypothesis {
+                id: "one".to_owned(),
+                mechanism: Mechanism::IntrinsicOscillator,
+                config: cfg,
+                prior_weight: 1.0,
+            },
+            MechanismHypothesis {
+                id: "two".to_owned(),
+                mechanism: Mechanism::SensoryFeedbackDriven,
+                config: cfg,
+                prior_weight: 1.0,
+            },
+        ];
+        let invalid = HypothesisPosteriorUpdate {
+            posterior: vec![
+                HypothesisPosteriorWeight {
+                    hypothesis_id: "one".to_owned(),
+                    probability: 0.5,
+                },
+                HypothesisPosteriorWeight {
+                    hypothesis_id: "extra".to_owned(),
+                    probability: 0.5,
+                },
+            ],
+            log_marginal_evidence: 0.0,
+            prior_entropy_nats: 0.0,
+            posterior_entropy_nats: 0.0,
+            information_gain_nats: 0.0,
+        };
+        assert_eq!(
+            apply_hypothesis_posterior(&hypotheses, &invalid),
+            Err(BenchmarkError::InvalidPosteriorUpdate)
+        );
     }
 
     #[test]
