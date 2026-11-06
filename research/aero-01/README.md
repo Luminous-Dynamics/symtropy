@@ -121,10 +121,11 @@ MISSION + ODD + PAYLOAD + RESERVE
 
 - **Symtropy:** configuration space, sizing, solver adapters, MDO, uncertainty, Pareto analysis and independent replay. It is not a universal CFD, FEM, propeller, electrochemistry or certification solver.
 - **Symthaea:** mission reasoning, candidate/experiment proposal, uncertainty and abstention. It is not the flight controller or the safety monitor.
+- **Symthaea aircraft family / serviceability:** reuse AIRFAMILY-001 (#7745) for the Wren 2 / Wayfarer 4 / conditional Ranger 4 / gated Wren-E family decisions; reuse the evidence-bound maintenance task-card validator (#7750) and transparent ownership-cost model (#7754). Do not duplicate maintenance authorization or lifecycle-cost implementations. Commonality is a hypothesis, not a mandate to force one airframe or certification basis across all variants.
 - **Mycelix:** source, component, test, inspection and approval provenance. A signed record is not proof that the underlying assertion is true.
 - **Sol-Atlas:** versioned airfield, obstacle, terrain, airspace, weather-source and ground-energy context. Context is not clearance.
 
-Use the existing aerospace MDO interoperability contract (#3237), aerodynamic applicability work (#3495), fixed-wing physics owner (Symthaea #6249), energy owner (#7646) and assurance boundary (#10747). Do not create a second orchestration or solver stack.
+Use the existing aerospace MDO interoperability contract (#3237), aerodynamic applicability work (#3495), fixed-wing physics owner (Symthaea #6249), energy owner (#7646), assurance boundary (#10747), aircraft-family and maintenance work (#7745/#7750/#7754). Do not create a second orchestration, solver, maintenance-task or ownership-cost stack.
 
 ## 7. Benchmark scorecard
 
