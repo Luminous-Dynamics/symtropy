@@ -798,14 +798,6 @@ fn entropy_bits_from_counts(counts: &[usize], total: usize) -> f64 {
         .sum()
 }
 
-fn entropy_bits(distribution: &[f64]) -> f64 {
-    distribution
-        .iter()
-        .filter(|probability| **probability > 0.0)
-        .map(|probability| -probability * probability.log2())
-        .sum()
-}
-
 fn argmax(values: &[f64]) -> usize {
     values
         .iter()
@@ -942,7 +934,8 @@ mod tests {
     #[test]
     fn duplicate_raters_and_model_judge_in_panel_fail_closed() {
         let mut duplicate = fixture_dataset();
-        duplicate.cases[0].ratings.push(duplicate.cases[0].ratings[0].clone());
+        let repeated_rating = duplicate.cases[0].ratings[0].clone();
+        duplicate.cases[0].ratings.push(repeated_rating);
         assert!(matches!(
             duplicate.validate(),
             Err(EvaluatorError::DuplicateRaterCase { .. })
