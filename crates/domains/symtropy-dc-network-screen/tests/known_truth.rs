@@ -449,9 +449,12 @@ fn topology_must_remain_fresh_until_interval_end() {
         vec![DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap()],
     ).unwrap();
     let policy = DcNetworkContract::new(10_000, 1e-9, 1e-12, false).unwrap();
+    let pcc_identity = DcFlexibilityIdentity::new(
+        "dc-site", "pcc-a", "A", "sha256:baseline", "sha256:flexible",
+    ).unwrap();
     let error = evaluate_dc_network_deliverability(
-        &identity(), &model, &policy,
-        &[DcFlexInterval::new(9_990, 20, injections(0.0, 0.0), BTreeMap::new()).unwrap()],
+        &pcc_identity, &model, &policy,
+        &[DcFlexInterval::new(9_990, 20, BTreeMap::new(), BTreeMap::new()).unwrap()],
         &[],
     ).unwrap_err();
     assert!(matches!(error, DcNetworkError::StaleTopology { interval_start_ns: 10_010, .. }));
