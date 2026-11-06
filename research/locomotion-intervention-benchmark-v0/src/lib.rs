@@ -912,11 +912,7 @@ pub fn select_frozen_forecast_open_set(
         if !mean_log_density_per_coordinate.is_finite() {
             return Err(BenchmarkError::NumericalFailure);
         }
-        scores.push((
-            forecast.mechanism,
-            score,
-            mean_log_density_per_coordinate,
-        ));
+        scores.push((forecast.mechanism, score, mean_log_density_per_coordinate));
     }
 
     scores.sort_by(|left, right| {
@@ -2638,14 +2634,8 @@ mod tests {
             },
         ];
 
-        let decision = select_frozen_forecast_open_set(
-            &observed,
-            &forecasts,
-            0.01,
-            1.0e-6,
-            -10.0,
-        )
-        .unwrap();
+        let decision =
+            select_frozen_forecast_open_set(&observed, &forecasts, 0.01, 1.0e-6, -10.0).unwrap();
         assert!(matches!(
             decision,
             OpenSetSelectionDecision::Abstained {
@@ -2680,13 +2670,7 @@ mod tests {
         .collect::<Vec<_>>();
 
         assert_eq!(
-            select_frozen_forecast_open_set(
-                &observed,
-                &forecasts,
-                0.01,
-                1.0e-6,
-                f64::NAN,
-            ),
+            select_frozen_forecast_open_set(&observed, &forecasts, 0.01, 1.0e-6, f64::NAN,),
             Err(BenchmarkError::InvalidAbsoluteFitThreshold)
         );
     }
