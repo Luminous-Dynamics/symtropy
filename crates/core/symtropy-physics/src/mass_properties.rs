@@ -122,7 +122,10 @@ impl<const D: usize> RotationalInertiaOperator<D> {
         if moment_per_plane <= 0.0 {
             return Err(MassPropertiesError::NotPositiveDefinite);
         }
-        let mut matrix = vec![0.0; dof * dof];
+        let matrix_len = dof
+            .checked_mul(dof)
+            .ok_or(MassPropertiesError::InvalidDimension)?;
+        let mut matrix = vec![0.0; matrix_len];
         for index in 0..dof {
             matrix[index * dof + index] = moment_per_plane;
         }
@@ -220,8 +223,14 @@ impl<const D: usize> RotationalInertiaOperator<D> {
         if D < 2 || i >= j || j >= D {
             return Err(MassPropertiesError::InvalidPlaneIndex);
         }
+        let twice_dimension = D
+            .checked_mul(2)
+            .ok_or(MassPropertiesError::InvalidDimension)?;
+        let row_width = twice_dimension
+            .checked_sub(i + 1)
+            .ok_or(MassPropertiesError::InvalidDimension)?;
         let prefix = i
-            .checked_mul(2 * D - i - 1)
+            .checked_mul(row_width)
             .ok_or(MassPropertiesError::InvalidDimension)?
             / 2;
         prefix
