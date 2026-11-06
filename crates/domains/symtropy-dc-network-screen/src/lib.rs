@@ -504,6 +504,18 @@ pub fn evaluate_dc_network_deliverability(
     if contract.require_n_minus_one && n_minus_one_contingencies.is_empty() {
         return Err(DcNetworkError::MissingRequiredContingencies);
     }
+    let pcc_bus = network
+        .buses
+        .iter()
+        .find(|bus| bus.id == identity.pcc_bus_id)
+        .ok_or_else(|| DcNetworkError::UnknownBus {
+            bus_id: identity.pcc_bus_id.clone(),
+        })?;
+    if pcc_bus.is_slack {
+        return Err(DcNetworkError::SlackBusInjectionSupplied {
+            bus_id: identity.pcc_bus_id.clone(),
+        });
+    }
     let branch_ids: BTreeSet<&str> = network.branches.iter().map(|branch| branch.id.as_str()).collect();
     let mut unique_contingencies = BTreeSet::new();
     for branch_id in n_minus_one_contingencies {
