@@ -10,11 +10,11 @@ This crate validates cross-field and cross-reference semantics in the v0.1 JSON 
 - ATCP / laser-PDC / ODC discriminator consistency and method-specific fields;
 - finite positive kinematic/signal quantities;
 - laser ON, source-energized sham and mechanical OFF baseline energy semantics;
-- ODC speed ratio recomputation from v, omega and eccentricity;
+- ODC speed ratio recomputation from independently measured angular/traction encoder observations, matching calibrations, raw artifacts and eccentricity;
 - unique channels/artifacts, channel-to-raw-artifact linkage and clock-domain agreement;
 - calibration, uncertainty, synchronization and anti-alias metadata;
 - signal bandwidth not exceeding sample_rate / 2;
-- mechanism-required independent diagnostic channels;
+- mechanism-required independent diagnostic channels with expected SI units;
 - observation source lineage and artifact parent DAG integrity;
 - deterministic, sorted validation issues.
 
