@@ -282,3 +282,6 @@ Add a separate, operator-specific conformance gate for voltage/frequency ride-th
 A sudden facility trip during a grid disturbance is not demand response. The conformance report always sets intentional demand-response credit to false. Dispatch flexibility and disturbance performance remain separate evidence dimensions.
 
 A trace-conformance pass is not converter internal stability, positive-sequence dynamic model validation, EMT/PDT, protection coordination, harmonic/unbalance compliance, grid-code certification, interconnection approval or ELCC.
+### Additional v0.1 measurement gates
+
+The trace contract now requires a Nyquist-consistent relationship between maximum sample gap and declared minimum observable bandwidth. The first waveform sample must also arrive within the permitted gap after event start. If the operator requirement includes a reactive-power range or PCC current ceiling, every sample must contain those channels; missing Q/current data abstains, and measured values outside the operator envelope fail conformance. These are observable trace checks, not converter-model validation.
