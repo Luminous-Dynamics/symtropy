@@ -275,6 +275,14 @@ impl DcFlexInterval {
                 });
             }
         }
+        for (bus_id, value) in &load_reductions_mw {
+            if *value < 0.0 {
+                return Err(DcNetworkError::InvalidLoadReduction {
+                    bus_id: bus_id.clone(),
+                    value: *value,
+                });
+            }
+        }
         Ok(Self {
             interval_start_ns,
             interval_duration_ns,
@@ -397,6 +405,7 @@ pub enum DcNetworkError {
     MissingIdentity { field: &'static str },
     InvalidQuantity { field: &'static str, value: f64 },
     InvalidInjection { bus_id: String, value: f64 },
+    InvalidLoadReduction { bus_id: String, value: f64 },
     EmptyNetwork,
     EmptyTrajectory,
     InvalidSlackBusCount { observed: usize },
@@ -427,6 +436,7 @@ impl fmt::Display for DcNetworkError {
             Self::MissingIdentity { field } => write!(f, "{field} must not be empty"),
             Self::InvalidQuantity { field, value } => write!(f, "{field} must be finite and positive; got {value}"),
             Self::InvalidInjection { bus_id, value } => write!(f, "injection at bus {bus_id} is non-finite: {value}"),
+            Self::InvalidLoadReduction { bus_id, value } => write!(f, "load reduction at bus {bus_id} must be non-negative; got {value}"),
             Self::EmptyNetwork => write!(f, "network requires at least one bus"),
             Self::EmptyTrajectory => write!(f, "network deliverability requires at least one interval"),
             Self::InvalidSlackBusCount { observed } => write!(f, "network requires exactly one slack bus; got {observed}"),
@@ -617,6 +627,9 @@ pub fn evaluate_dc_network_deliverability(
             network_deliverable_interval_count += 1;
         }
         let requested_reduction_mw = interval.load_reductions_mw.values().sum::<f64>();
+        if !requested_reduction_mw.is_finite() {
+            return Err(DcNetworkError::NumericalOverflow("total requested load reduction"));
+        }
         maximum_requested_load_reduction_mw =
             maximum_requested_load_reduction_mw.max(requested_reduction_mw);
         let duration_hours = interval.interval_duration_ns as f64 / 3_600_000_000_000.0;
