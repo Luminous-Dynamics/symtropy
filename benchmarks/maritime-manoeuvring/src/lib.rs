@@ -101,6 +101,8 @@ impl ContextOfUse {
 #[derive(Clone, Debug, PartialEq)]
 pub struct EvidenceRef {
     pub id: String,
+    /// Exact frozen case to which this admission record is bound.
+    pub case_id: String,
     pub role: EvidenceRole,
     pub source_id: String,
     pub source_revision: String,
@@ -155,6 +157,7 @@ pub enum ManifestError {
     InvalidOperationWindow,
     DecisionAfterOperationStart,
     EmptyEvidenceField,
+    EvidenceCaseMismatch(String),
     InvalidDigest(String),
     InvalidEvidenceInterval(String),
     FutureEvidence(String),
@@ -188,6 +191,9 @@ impl ManoeuvringManifest {
         let mut ids = BTreeSet::new();
         let mut roles = BTreeSet::new();
         for evidence in &self.evidence {
+            if evidence.case_id != self.case_id {
+                return Err(ManifestError::EvidenceCaseMismatch(evidence.id.clone()));
+            }
             if evidence.id.trim().is_empty()
                 || evidence.source_id.trim().is_empty()
                 || evidence.source_revision.trim().is_empty()
@@ -398,7 +404,7 @@ pub fn turning_circle_metrics(
     })
 }
 
-/// Recompute a full-astern stopping track descriptor from the command sample.
+/// Recompute a stopping track descriptor from an explicit command sample.
 ///
 /// speed_threshold_mps is an explicit analysis parameter, not an IMO-prescribed
 /// universal stop definition. The first crossing is linearly interpolated between
