@@ -274,9 +274,10 @@ pub struct ConsciousnessField<const D: usize> {
     pub ledger: ThermodynamicLedger,
     /// Tunable thermodynamic constants.
     pub constants: ThermodynamicConstants,
-    /// Accumulated sanctuary absorption (deferred from &self → &mut self).
-    /// Uses AtomicU64 storing f64 bits for thread safety (Bevy requires Sync).
-    sanctuary_absorbed: std::sync::atomic::AtomicU64,
+    /// Cumulative mechanical friction heat reported by the physics solver, in joules.
+    ///
+    /// This is separate from the legacy, dimensionless/model-resource ledger.
+    pub mechanical_friction_heat_joules: f64,
 }
 
 impl<const D: usize> ConsciousnessField<D> {
@@ -291,18 +292,7 @@ impl<const D: usize> ConsciousnessField<D> {
             collective_phi: 0.0,
             ledger: ThermodynamicLedger::new(),
             constants: ThermodynamicConstants::default(),
-            sanctuary_absorbed: std::sync::atomic::AtomicU64::new(0u64.to_le()),
-        }
-    }
-
-    /// Drain accumulated sanctuary absorption into ledger.
-    fn drain_sanctuary_absorption(&mut self) {
-        let bits = self
-            .sanctuary_absorbed
-            .swap(0, std::sync::atomic::Ordering::Relaxed);
-        let absorbed = f64::from_bits(bits);
-        if absorbed > 1e-15 {
-            self.ledger.record_dissipation(absorbed);
+            mechanical_friction_heat_joules: 0.0,
         }
     }
 
@@ -386,7 +376,6 @@ impl<const D: usize> ConsciousnessField<D> {
         for event in events {
             if let Some(entity) = self.entities.get_mut(&event.body_a) {
                 entity.on_collision(event.impulse);
-                self.ledger.record_dissipation(event.impulse * 0.1); // 10% of impulse as heat
             }
             if let Some(entity) = self.entities.get_mut(&event.body_b) {
                 entity.on_collision(event.impulse);
@@ -411,23 +400,10 @@ impl<const D: usize> ConsciousnessField<D> {
             let m = sanctuary.impulse_multiplier(contact_point);
             multiplier = multiplier.min(m);
         }
-        let dampened = impulse * multiplier;
-        let absorbed = impulse - dampened;
-        // Track absorbed impulse energy for deferred ledger recording (Fix 2).
-        // KE equivalent ≈ absorbed * 0.5 (simplified impulse-to-energy conversion).
-        if absorbed > 1e-10 {
-            use std::sync::atomic::Ordering;
-            let absorbed_energy = absorbed * 0.5;
-            let _ = self.sanctuary_absorbed.fetch_update(
-                Ordering::Relaxed,
-                Ordering::Relaxed,
-                |bits| {
-                    let prev = f64::from_bits(bits);
-                    Some((prev + absorbed_energy).to_bits())
-                },
-            );
-        }
-        dampened
+        // The impulse difference is momentum, not energy. The actual mechanical
+        // kinetic-energy change is only knowable to the solver after it applies
+        // the modified impulse to bodies with known masses and velocities.
+        impulse * multiplier
     }
 
     /// Try to consume energy for an entity. Returns actual energy consumed.
@@ -451,9 +427,18 @@ impl<const D: usize> ConsciousnessField<D> {
         consumed
     }
 
-    /// Record energy dissipated by physics (friction, damping, collision heat).
-    pub fn record_dissipation(&mut self, energy: f64) {
-        self.ledger.record_dissipation(energy);
+    /// Record mechanical kinetic energy converted to friction heat by the solver.
+    ///
+    /// The argument is a measured kinetic-energy decrease in joules. It is
+    /// intentionally not added to the legacy model-resource ledger, and is not
+    /// distributed equally across entities whose contact involvement is unknown.
+    pub fn record_dissipation(&mut self, energy_joules: f64) {
+        if energy_joules.is_finite() && energy_joules >= 0.0 {
+            let total = self.mechanical_friction_heat_joules + energy_joules;
+            if total.is_finite() {
+                self.mechanical_friction_heat_joules = total;
+            }
+        }
     }
 
     /// Finalize this tick's energy balance. Returns the balance report.
@@ -592,10 +577,10 @@ impl<const D: usize> ConsciousnessField<D> {
             if let Some(entity) = self.entities.get_mut(handle) {
                 if effect > 0.0 {
                     entity.energy.regenerate(effect);
-                    self.ledger.record_dissipation(-effect); // Energy enters 3D
+                    // Model-resource inflow is tracked by EnergyBudget::regenerated_this_tick.
                 } else if effect < 0.0 {
                     let consumed = entity.energy.consume(effect.abs());
-                    self.ledger.record_dissipation(consumed); // Energy exits 3D
+                    // Model-resource outflow is tracked by EnergyBudget::consumed_this_tick.
                 }
             }
         }
@@ -678,8 +663,6 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
     }
 
     fn on_collision(&mut self, event: &symtropy_physics::CollisionEvent<D>) {
-        self.drain_sanctuary_absorption();
-
         let drain_rate = self.constants.collision_energy_drain;
 
         // Compute resonance between colliding bodies for prediction error scaling
@@ -707,11 +690,10 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
             let drain = event.impulse * drain_rate;
             let consumed = entity.energy.consume(drain);
 
-            // Wire dissipate_heat: collision energy becomes heat (raises temperature + entropy)
+            // This is an impulse-derived model-resource penalty, not a measured
+            // mechanical energy transfer in joules. Keep the local temperature
+            // response as an ALife policy, but do not promote it to physical heat. 
             entity.energy.dissipate_heat(consumed * 0.5);
-
-            // Record global dissipation (Phase 3 fix)
-            self.ledger.record_dissipation(consumed * 0.5);
         }
         if let Some(entity) = self.entities.get_mut(&event.body_b) {
             let surprise_factor = (1.0 - resonance).max(0.1);
@@ -719,31 +701,14 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
 
             let drain = event.impulse * drain_rate;
             let consumed = entity.energy.consume(drain);
+            // Same dimensionless/model-resource temperature policy as body A;
+            // this is not a physical heat receipt in joules.
             entity.energy.dissipate_heat(consumed * 0.5);
-
-            // Record global dissipation (Phase 3 fix)
-            self.ledger.record_dissipation(consumed * 0.5);
         }
     }
 
     fn record_dissipation(&mut self, energy: f64) {
-        self.drain_sanctuary_absorption();
-
-        // Dimensional Entropy: higher DOF systems dissipate heat more efficiently
-        // due to increased surface area and joint friction.
-        let entropy_multiplier = 1.0 + (D as f64 - 3.0).max(0.0) * 0.05;
-        let scaled_dissipation = energy * entropy_multiplier;
-
-        self.ledger.record_dissipation(scaled_dissipation);
-
-        // Distribute damping heat across all entities (simplified: equal share)
-        let n = self.entities.len();
-        if n > 0 && scaled_dissipation > 1e-15 {
-            let per_entity = scaled_dissipation / n as f64;
-            for entity in self.entities.values_mut() {
-                entity.energy.dissipate_heat(per_entity);
-            }
-        }
+        ConsciousnessField::record_dissipation(self, energy);
     }
 
     fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
@@ -762,8 +727,8 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
                 let recovered = work_joules.abs() * 0.4; // 40% efficiency for v0 recovery
                 entity.energy.regenerate(recovered);
 
-                // Track in ledger as negative action (energy returned)
-                self.ledger.lifetime_energy -= recovered;
+                // Per-entity regeneration telemetry is recorded by EnergyBudget.
+                // Lifetime consumption remains historical and is never decremented.
             }
         }
     }
