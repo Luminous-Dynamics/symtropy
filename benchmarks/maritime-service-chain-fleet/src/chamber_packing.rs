@@ -514,8 +514,7 @@ mod tests {
         let first = [vessel("v1", 50, 20), vessel("v2", 40, 20)];
         let reversed_vessels = [vessel("v2", 40, 20), vessel("v1", 50, 20)];
         let forward = exact_chamber_packing(&chambers, &first, 10_000).unwrap();
-        let reverse =
-            exact_chamber_packing(&reversed_chambers, &reversed_vessels, 10_000).unwrap();
+        let reverse = exact_chamber_packing(&reversed_chambers, &reversed_vessels, 10_000).unwrap();
         assert_eq!(forward, reverse);
     }
 }
