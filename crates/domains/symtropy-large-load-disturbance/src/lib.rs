@@ -163,6 +163,44 @@ impl ActivePowerRecoveryRequirement {
     }
 }
 
+/// Operator-defined PCC reactive-power and current operating envelope.
+/// Measurements are mandatory for every sample whenever this requirement is
+/// attached to a requirement set.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ReactiveCurrentRequirement {
+    minimum_reactive_power_mvar: f64,
+    maximum_reactive_power_mvar: f64,
+    maximum_current_pu: f64,
+}
+
+impl ReactiveCurrentRequirement {
+    pub fn new(
+        minimum_reactive_power_mvar: f64,
+        maximum_reactive_power_mvar: f64,
+        maximum_current_pu: f64,
+    ) -> Result<Self, DisturbanceError> {
+        for (field, value) in [
+            ("minimum reactive power", minimum_reactive_power_mvar),
+            ("maximum reactive power", maximum_reactive_power_mvar),
+            ("maximum current", maximum_current_pu),
+        ] {
+            if !value.is_finite() {
+                return Err(DisturbanceError::InvalidQuantity { field, value });
+            }
+        }
+        if minimum_reactive_power_mvar > maximum_reactive_power_mvar
+            || maximum_current_pu <= 0.0
+        {
+            return Err(DisturbanceError::InvalidReactiveCurrentRequirement);
+        }
+        Ok(Self {
+            minimum_reactive_power_mvar,
+            maximum_reactive_power_mvar,
+            maximum_current_pu,
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct DisturbanceRequirementSet {
     requirement_id: String,
@@ -174,6 +212,7 @@ pub struct DisturbanceRequirementSet {
     required_observation_horizon_ns: u64,
     segments: Vec<RideThroughSegment>,
     recovery: ActivePowerRecoveryRequirement,
+    reactive_current: Option<ReactiveCurrentRequirement>,
 }
 
 impl DisturbanceRequirementSet {
@@ -199,6 +238,7 @@ impl DisturbanceRequirementSet {
             required_observation_horizon_ns,
             segments,
             recovery,
+            reactive_current: None,
         };
         for (field, value) in [
             ("requirement ID", set.requirement_id.as_str()),
@@ -233,6 +273,14 @@ impl DisturbanceRequirementSet {
             return Err(DisturbanceError::RequirementHorizonMismatch);
         }
         Ok(set)
+    }
+
+    pub fn with_reactive_current_requirement(
+        mut self,
+        requirement: ReactiveCurrentRequirement,
+    ) -> Self {
+        self.reactive_current = Some(requirement);
+        self
     }
 
     pub fn requirement_id(&self) -> &str {
@@ -475,6 +523,11 @@ pub struct DisturbanceConformanceReport {
     pub minimum_frequency_hz: f64,
     pub maximum_frequency_hz: f64,
     pub maximum_absolute_rocof_hz_per_s: f64,
+    pub reactive_current_assessed: bool,
+    pub minimum_reactive_power_mvar: Option<f64>,
+    pub maximum_reactive_power_mvar: Option<f64>,
+    pub maximum_current_pu: Option<f64>,
+    pub reactive_current_compliant: bool,
     pub total_disconnected_duration_ns: u64,
     pub unexpected_trip_detected: bool,
     pub ride_through_compliant: bool,
@@ -505,6 +558,9 @@ pub enum DisturbanceError {
     InvertedEnvelope,
     InvalidDisconnectionAllowance,
     InvalidRecoveryRequirement,
+    InvalidReactiveCurrentRequirement,
+    MissingReactivePowerSample { timestamp_ns: u64 },
+    MissingCurrentSample { timestamp_ns: u64 },
     EmptyRequirementEnvelope,
     NonContiguousRequirementEnvelope {
         index: usize,
@@ -584,6 +640,17 @@ impl fmt::Display for DisturbanceError {
             Self::InvalidRecoveryRequirement => {
                 write!(f, "active-power recovery requirement is invalid")
             }
+            Self::InvalidReactiveCurrentRequirement => {
+                write!(f, "reactive-power/current requirement envelope is invalid")
+            }
+            Self::MissingReactivePowerSample { timestamp_ns } => write!(
+                f,
+                "reactive-power measurement is missing at {timestamp_ns} while the operator requires it"
+            ),
+            Self::MissingCurrentSample { timestamp_ns } => write!(
+                f,
+                "current measurement is missing at {timestamp_ns} while the operator requires it"
+            ),
             Self::EmptyRequirementEnvelope => {
                 write!(f, "operator requirement envelope must not be empty")
             }
@@ -744,6 +811,10 @@ pub fn evaluate_disturbance_conformance(
     let mut min_frequency = f64::INFINITY;
     let mut max_frequency = f64::NEG_INFINITY;
     let mut maximum_rocof = 0.0f64;
+    let mut minimum_reactive_power = f64::INFINITY;
+    let mut maximum_reactive_power = f64::NEG_INFINITY;
+    let mut maximum_current = 0.0f64;
+    let mut reactive_current_compliant = true;
     let mut total_disconnected = 0u64;
     let mut unexpected_trip = false;
 
@@ -759,6 +830,26 @@ pub fn evaluate_disturbance_conformance(
             .ok_or(DisturbanceError::NoSamplesInRequirementZone { index })?;
         zone_samples[zone_index] += 1;
         let zone = &requirement.segments[zone_index];
+
+        if let Some(reactive_requirement) = &requirement.reactive_current {
+            let reactive_power = sample.reactive_power_mvar.ok_or(
+                DisturbanceError::MissingReactivePowerSample {
+                    timestamp_ns: sample.timestamp_ns,
+                },
+            )?;
+            let current = sample.current_pu.ok_or(DisturbanceError::MissingCurrentSample {
+                timestamp_ns: sample.timestamp_ns,
+            })?;
+            minimum_reactive_power = minimum_reactive_power.min(reactive_power);
+            maximum_reactive_power = maximum_reactive_power.max(reactive_power);
+            maximum_current = maximum_current.max(current);
+            if reactive_power < reactive_requirement.minimum_reactive_power_mvar
+                || reactive_power > reactive_requirement.maximum_reactive_power_mvar
+                || current > reactive_requirement.maximum_current_pu
+            {
+                reactive_current_compliant = false;
+            }
+        }
 
         if sample.voltage_pu < zone.minimum_voltage_pu
             || sample.voltage_pu > zone.maximum_voltage_pu
@@ -915,7 +1006,11 @@ pub fn evaluate_disturbance_conformance(
         .iter()
         .all(|z| z.voltage_frequency_within_envelope && z.rocof_within_envelope);
     let connection_continuity_compliant = zones.iter().all(|z| z.connection_requirement_met);
-    let qualified = ride_through_compliant && connection_continuity_compliant && recovery_compliant;
+    let reactive_current_assessed = requirement.reactive_current.is_some();
+    let qualified = ride_through_compliant
+        && connection_continuity_compliant
+        && recovery_compliant
+        && reactive_current_compliant;
 
     Ok(DisturbanceConformanceReport {
         event_id: event.event_id.clone(),
@@ -935,6 +1030,11 @@ pub fn evaluate_disturbance_conformance(
         minimum_frequency_hz: min_frequency,
         maximum_frequency_hz: max_frequency,
         maximum_absolute_rocof_hz_per_s: maximum_rocof,
+        reactive_current_assessed,
+        minimum_reactive_power_mvar: reactive_current_assessed.then_some(minimum_reactive_power),
+        maximum_reactive_power_mvar: reactive_current_assessed.then_some(maximum_reactive_power),
+        maximum_current_pu: reactive_current_assessed.then_some(maximum_current),
+        reactive_current_compliant,
         total_disconnected_duration_ns: total_disconnected,
         unexpected_trip_detected: unexpected_trip,
         ride_through_compliant,
