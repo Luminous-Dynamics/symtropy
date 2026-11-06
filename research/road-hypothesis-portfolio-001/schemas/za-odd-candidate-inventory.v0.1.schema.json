@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/road-odd-za-candidate-inventory-v0.1.schema.json",
+  "title": "South Africa / Johannesburg ODD candidate inventory v0.1",
+  "description": "Candidate coverage obligations and evidence context; this inventory is not a validated ODD and cannot award coverage credit.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "inventory_id",
+    "revision",
+    "geography",
+    "claim_ceiling",
+    "evidence_sources",
+    "candidate_cells"
+  ],
+  "properties": {
+    "schema": {
+      "const": "symtropy.road-odd-za-candidate-inventory.v0.1"
+    },
+    "inventory_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "geography": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "country",
+        "target_area",
+        "administrative_scope",
+        "boundary_status"
+      ],
+      "properties": {
+        "country": {
+          "const": "South Africa"
+        },
+        "target_area": {
+          "const": "City of Johannesburg / Gauteng"
+        },
+        "administrative_scope": {
+          "enum": [
+            "national_context_plus_gauteng_context",
+            "city_of_johannesburg_validated"
+          ]
+        },
+        "boundary_status": {
+          "enum": [
+            "not_defined",
+            "candidate_geography_only",
+            "formally_frozen"
+          ]
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "is_validated_odd",
+        "coverage_credit_permitted",
+        "local_prevalence_established",
+        "notes"
+      ],
+      "properties": {
+        "is_validated_odd": {
+          "const": false
+        },
+        "coverage_credit_permitted": {
+          "const": false
+        },
+        "local_prevalence_established": {
+          "const": false
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evidence_sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "title",
+          "publisher",
+          "publication_date",
+          "url",
+          "geographic_scope",
+          "reported_fact",
+          "limitations"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publication_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "geographic_scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reported_fact": {
+            "type": "string",
+            "minLength": 1
+          },
+          "limitations": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "candidate_cells": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cell_id",
+          "coverage_axis",
+          "candidate_scenario",
+          "interacting_road_users",
+          "evidence_status",
+          "evidence_source_ids",
+          "provisional_priority",
+          "independent_unit",
+          "local_validation_needed",
+          "coverage_credit"
+        ],
+        "properties": {
+          "cell_id": {
+            "type": "string",
+            "pattern": "^ZA-[0-9]{2}$"
+          },
+          "coverage_axis": {
+            "enum": [
+              "odd_range",
+              "behavioural_competency",
+              "causal_mechanism",
+              "rule_safety"
+            ]
+          },
+          "candidate_scenario": {
+            "type": "string",
+            "minLength": 1
+          },
+          "interacting_road_users": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_status": {
+            "enum": [
+              "official_context_supports_relevance",
+              "candidate_unverified",
+              "legal_semantics_require_versioned_confirmation"
+            ]
+          },
+          "evidence_source_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "provisional_priority": {
+            "enum": [
+              "high_contextual_priority",
+              "medium_contextual_priority",
+              "unranked_candidate"
+            ]
+          },
+          "independent_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "local_validation_needed": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "coverage_credit": {
+            "const": false
+          }
+        }
+      }
+    }
+  }
+}

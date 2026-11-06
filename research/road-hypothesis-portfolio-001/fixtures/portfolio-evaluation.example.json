@@ -1,0 +1,106 @@
+{
+  "portfolio_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "evaluation_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "disposition": "portfolio_complete_for_declared_scope",
+  "odd_scope_match": true,
+  "model_family_count": 2,
+  "effective_independent_hypothesis_family_count": 1,
+  "axes": [
+    {
+      "axis": "odd_range",
+      "declared_obligations": 1,
+      "covered_obligations": 1,
+      "not_applicable_obligations": 0,
+      "unresolved_obligations": 0
+    },
+    {
+      "axis": "behavioural_competency",
+      "declared_obligations": 1,
+      "covered_obligations": 1,
+      "not_applicable_obligations": 0,
+      "unresolved_obligations": 0
+    },
+    {
+      "axis": "causal_mechanism",
+      "declared_obligations": 1,
+      "covered_obligations": 1,
+      "not_applicable_obligations": 0,
+      "unresolved_obligations": 0
+    },
+    {
+      "axis": "rule_safety",
+      "declared_obligations": 1,
+      "covered_obligations": 1,
+      "not_applicable_obligations": 0,
+      "unresolved_obligations": 0
+    }
+  ],
+  "challenge": {
+    "required_challenges": 8,
+    "qualified_challenges": 8,
+    "unresolved_challenges": 0,
+    "strategies": [
+      {
+        "strategy": "random",
+        "attempts": 2,
+        "total_budget_units": 200,
+        "non_discovery_budget_units": 200,
+        "counterexamples_found": 0
+      },
+      {
+        "strategy": "coverage_guided",
+        "attempts": 2,
+        "total_budget_units": 200,
+        "non_discovery_budget_units": 200,
+        "counterexamples_found": 0
+      },
+      {
+        "strategy": "expert",
+        "attempts": 2,
+        "total_budget_units": 200,
+        "non_discovery_budget_units": 200,
+        "counterexamples_found": 0
+      },
+      {
+        "strategy": "reinforcement_learning",
+        "attempts": 2,
+        "total_budget_units": 200,
+        "non_discovery_budget_units": 200,
+        "counterexamples_found": 0
+      }
+    ],
+    "search_points": [],
+    "non_discovery_proves_absence": false
+  },
+  "residual": {
+    "disposition": "bounded_rectangular_relaxation",
+    "action_regret_bounds": [
+      {
+        "action_id": "continue",
+        "worst_case_regret_upper": {
+          "numerator": 40,
+          "denominator": 1
+        },
+        "feasibility": "guaranteed"
+      },
+      {
+        "action_id": "yield",
+        "worst_case_regret_upper": {
+          "numerator": 30,
+          "denominator": 1
+        },
+        "feasibility": "guaranteed"
+      }
+    ],
+    "robust_feasible_actions": [
+      "continue",
+      "yield"
+    ],
+    "minimax_regret_actions": [
+      "yield"
+    ],
+    "rectangular_bound_is_attainable_joint_world": false
+  },
+  "decision_recommendation_authorized": true,
+  "completeness_relative_to_reality_proven": false
+}

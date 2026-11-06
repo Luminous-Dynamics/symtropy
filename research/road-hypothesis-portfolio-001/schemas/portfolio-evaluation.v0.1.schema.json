@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/road-hypothesis-portfolio-evaluation.v0.1.schema.json",
+  "title": "ROAD hypothesis portfolio evaluation receipt v0.1",
+  "description": "Stable field contract for deterministic finite portfolio evaluation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "portfolio_digest",
+    "evaluation_digest",
+    "disposition",
+    "odd_scope_match",
+    "model_family_count",
+    "effective_independent_hypothesis_family_count",
+    "axes",
+    "challenge",
+    "residual",
+    "decision_recommendation_authorized",
+    "completeness_relative_to_reality_proven"
+  ],
+  "properties": {
+    "portfolio_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluation_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "disposition": {
+      "enum": [
+        "portfolio_complete_for_declared_scope",
+        "portfolio_incomplete",
+        "portfolio_falsified",
+        "out_of_scope",
+        "residual_risk_unbounded"
+      ]
+    },
+    "odd_scope_match": {
+      "type": "boolean"
+    },
+    "model_family_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "effective_independent_hypothesis_family_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decision_recommendation_authorized": {
+      "type": "boolean"
+    },
+    "completeness_relative_to_reality_proven": {
+      "const": false
+    },
+    "axes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "axis",
+          "declared_obligations",
+          "covered_obligations",
+          "not_applicable_obligations",
+          "unresolved_obligations"
+        ],
+        "properties": {
+          "axis": {
+            "enum": [
+              "odd_range",
+              "behavioural_competency",
+              "causal_mechanism",
+              "rule_safety"
+            ]
+          },
+          "declared_obligations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "covered_obligations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "not_applicable_obligations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unresolved_obligations": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "challenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_challenges",
+        "qualified_challenges",
+        "unresolved_challenges",
+        "strategies",
+        "search_points",
+        "non_discovery_proves_absence"
+      ],
+      "properties": {
+        "required_challenges": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "qualified_challenges": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_challenges": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "strategies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "strategy",
+              "attempts",
+              "total_budget_units",
+              "non_discovery_budget_units",
+              "counterexamples_found"
+            ],
+            "properties": {
+              "strategy": {
+                "enum": [
+                  "random",
+                  "coverage_guided",
+                  "expert",
+                  "reinforcement_learning"
+                ]
+              },
+              "attempts": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_budget_units": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "non_discovery_budget_units": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "counterexamples_found": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "search_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "challenge_id",
+              "hypothesis_id",
+              "strategy",
+              "budget_units",
+              "outcome",
+              "holdout_manifest_digest"
+            ],
+            "properties": {
+              "challenge_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hypothesis_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "strategy": {
+                "enum": [
+                  "random",
+                  "coverage_guided",
+                  "expert",
+                  "reinforcement_learning"
+                ]
+              },
+              "budget_units": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "outcome": {
+                "enum": [
+                  "counterexample_found",
+                  "non_discovery_within_budget",
+                  "incomplete",
+                  "not_run"
+                ]
+              },
+              "holdout_manifest_digest": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "non_discovery_proves_absence": {
+          "const": false
+        }
+      }
+    },
+    "residual": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "action_regret_bounds",
+        "robust_feasible_actions",
+        "minimax_regret_actions",
+        "rectangular_bound_is_attainable_joint_world"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "bounded_rectangular_relaxation",
+            "residual_risk_unbounded"
+          ]
+        },
+        "action_regret_bounds": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action_id",
+              "worst_case_regret_upper",
+              "feasibility"
+            ],
+            "properties": {
+              "action_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "worst_case_regret_upper": {
+                "$ref": "#/$defs/rational"
+              },
+              "feasibility": {
+                "enum": [
+                  "guaranteed",
+                  "potential_violation",
+                  "unknown"
+                ]
+              }
+            }
+          }
+        },
+        "robust_feasible_actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "minimax_regret_actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rectangular_bound_is_attainable_joint_world": {
+          "const": false
+        }
+      }
+    }
+  },
+  "$defs": {
+    "rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "numerator",
+        "denominator"
+      ],
+      "properties": {
+        "numerator": {
+          "type": "integer"
+        },
+        "denominator": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
