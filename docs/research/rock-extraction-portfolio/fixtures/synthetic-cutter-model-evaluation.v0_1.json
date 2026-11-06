@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "SYNTHETIC-CUTTER-MODEL-EVAL-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "dataset": {
+    "dataset_id": "SYNTHETIC-LCM-CORPUS-001",
+    "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sample_count": 12,
+    "source_records_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "group_dimensions": [
+      "parent_block",
+      "source_study",
+      "rig",
+      "cutter_geometry"
+    ],
+    "measurement_protocol_refs": [
+      "SYN-PROTOCOL-LCM-001"
+    ],
+    "domain_description": "Fabricated conformance corpus; no physical LCM records."
+  },
+  "split": {
+    "split_id": "SYN-GROUP-HOLDOUT-001",
+    "strategy": "GroupHoldout",
+    "holdout_dimensions": [
+      "parent_block",
+      "source_study"
+    ],
+    "train_groups": [
+      {
+        "dimension": "parent_block",
+        "group_id": "SYN-BLOCK-A"
+      },
+      {
+        "dimension": "source_study",
+        "group_id": "SYN-STUDY-A"
+      }
+    ],
+    "test_groups": [
+      {
+        "dimension": "parent_block",
+        "group_id": "SYN-BLOCK-Z"
+      },
+      {
+        "dimension": "source_study",
+        "group_id": "SYN-STUDY-Z"
+      }
+    ],
+    "train_sample_ids_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "test_sample_ids_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "train_sample_count": 8,
+    "test_sample_count": 4
+  },
+  "model_runs": [
+    {
+      "model_id": "SYN-MODIFIED-CSM-001",
+      "family": "ModifiedCSM",
+      "model_revision": "synthetic-0.1",
+      "code_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "configuration_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "training_dataset_ref": "SYNTHETIC-LCM-CORPUS-001",
+      "training_split_ref": "SYN-GROUP-HOLDOUT-001",
+      "seed": 7,
+      "metrics": [
+        {
+          "target": "normal_force",
+          "unit": "N",
+          "evaluation_partition": "TEST",
+          "sample_count": 4,
+          "mae": 1200,
+          "rmse": 1500,
+          "bias": -100,
+          "r2": 0.75,
+          "p95_absolute_error": 2300,
+          "normalized_rmse": 0.12,
+          "prediction_interval": {
+            "nominal_coverage": 0.95,
+            "observed_coverage": 0.75,
+            "mean_width": 4000
+          }
+        },
+        {
+          "target": "rolling_force",
+          "unit": "N",
+          "evaluation_partition": "TEST",
+          "sample_count": 4,
+          "mae": 350,
+          "rmse": 420,
+          "bias": 20,
+          "r2": 0.71,
+          "p95_absolute_error": 650,
+          "normalized_rmse": 0.15
+        }
+      ],
+      "ood": {
+        "evaluated": true,
+        "abstention_rate": 0.25,
+        "false_accept_rate": 0,
+        "ood_detection_recall": 0.8
+      },
+      "compute": {
+        "wall_clock_seconds": 0.02,
+        "peak_memory_bytes": 1048576,
+        "deterministic_replay": true,
+        "hardware_ref": "SYN-HARDWARE"
+      }
+    }
+  ]
+}
