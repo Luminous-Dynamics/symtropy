@@ -24,7 +24,7 @@ fn requirement_with_rule(
             RideThroughSegment::new(
                 0,
                 2_000_000_000,
-                0.5,
+                0.1,
                 1.2,
                 47.0,
                 52.0,
@@ -225,7 +225,7 @@ fn momentary_cessation_over_operator_duration_limit_fails() {
 #[test]
 fn voltage_frequency_boundary_violation_fails_without_panicking() {
     let mut trace = passing_trace();
-    trace[0] = sample(0, 0.4, 49.5, 70.0, true);
+    trace[0] = sample(0, 0.05, 49.5, 70.0, true);
     let report = evaluate_disturbance_conformance(
         &event(),
         &requirement(),
