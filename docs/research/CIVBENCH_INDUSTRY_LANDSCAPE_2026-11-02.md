@@ -582,3 +582,8 @@ This complements, rather than replaces, [CIVDYN-ENGINE-COMPARE-001 #3787](https:
 - [CivBench independent ledger/counterfactual issue #3319](https://github.com/Luminous-Dynamics/symtropy/issues/3319) → matched causal-path conformance [PR #3803](https://github.com/Luminous-Dynamics/symtropy/pull/3803); draft, exact-head CI pending.
 
 All listed PRs remain drafts. Hosted software-fixture passes do not constitute empirical validation or a SOTA result.
+
+
+### Stack-level accountability is now part of the machine-checkable MAD protocol
+
+The [CIVBENCH-MAD-001 draft schema PR #3735](https://github.com/Luminous-Dynamics/symtropy/pull/3735) now requires execution-stack inventory and negative controls for hidden fallback, unseeded RNG, policy/component mismatch and dropped events. This operationalizes the UNU 2026 accountability warning without adding another run-envelope: Humanity Atlas remains the authoritative run-artifact contract; MAD references it and declares the evaluation conditions.
