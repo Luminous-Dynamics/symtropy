@@ -204,10 +204,10 @@ impl Intervention {
         {
             return Err(CoordinationError::InvalidInterventionStep);
         }
-        if let Some(delay) = self.feedback_delay {
-            if !valid_step(delay.from_step) || delay.delay_steps == 0 {
-                return Err(CoordinationError::InvalidFeedbackDelay);
-            }
+        if let Some(delay) = self.feedback_delay
+            && (!valid_step(delay.from_step) || delay.delay_steps == 0)
+        {
+            return Err(CoordinationError::InvalidFeedbackDelay);
         }
         if self
             .leg_failure
@@ -355,16 +355,15 @@ pub fn simulate(
         });
 
         if step + 1 < config.sample_count {
-            advance_state(
-                step + 1,
+            let next_active = active_legs(step + 1, intervention);
+            let context = AdvanceContext {
+                next_step: step + 1,
                 model,
                 intervention,
                 config,
-                &active_legs(step + 1, intervention),
-                &mut phases,
-                &mut attractor_states,
-                &mut radii,
-            )?;
+                active: &next_active,
+            };
+            advance_state(context, &mut phases, &mut attractor_states, &mut radii)?;
         }
     }
 
@@ -384,10 +383,10 @@ fn output_radius(model: CoordinationModel, radius: f64) -> f64 {
 }
 
 fn apply_amplitude_pulse(step: usize, intervention: Intervention, radii: &mut [f64; LEG_COUNT]) {
-    if let Some(pulse) = intervention.amplitude_pulse {
-        if step == pulse.step {
-            radii[pulse.leg.index()] *= pulse.scale;
-        }
+    if let Some(pulse) = intervention.amplitude_pulse
+        && step == pulse.step
+    {
+        radii[pulse.leg.index()] *= pulse.scale;
     }
 }
 
@@ -424,23 +423,34 @@ fn apply_phase_pulse(
     }
 }
 
-fn advance_state(
+struct AdvanceContext<'a> {
     next_step: usize,
     model: CoordinationModel,
     intervention: Intervention,
     config: CoordinationConfig,
-    active: &[bool; LEG_COUNT],
+    active: &'a [bool; LEG_COUNT],
+}
+
+fn advance_state(
+    context: AdvanceContext<'_>,
     phases: &mut [f64; LEG_COUNT],
     attractor_states: &mut [[f64; 2]; LEG_COUNT],
     radii: &mut [f64; LEG_COUNT],
 ) -> Result<(), CoordinationError> {
+    let AdvanceContext {
+        next_step,
+        model,
+        intervention,
+        config,
+        active,
+    } = context;
     let elapsed = config.sample_interval;
-    let feedback_present = !intervention
+    let feedback_present = intervention
         .feedback_cut_from
-        .is_some_and(|cut_step| next_step >= cut_step);
-    let coupling_present = !intervention
+        .is_none_or(|cut_step| next_step < cut_step);
+    let coupling_present = intervention
         .coupling_cut_from
-        .is_some_and(|cut_step| next_step >= cut_step);
+        .is_none_or(|cut_step| next_step < cut_step);
 
     if model == CoordinationModel::FeedbackAttractor {
         let delay_steps = intervention
@@ -1148,33 +1158,36 @@ mod tests {
 
     #[test]
     fn rejects_invalid_configuration() {
-        let mut config = CoordinationConfig::default();
-        config.sample_count = 1;
+        let invalid_sample_count = CoordinationConfig {
+            sample_count: 1,
+            ..CoordinationConfig::default()
+        };
         assert_eq!(
             simulate(
                 CoordinationModel::IndependentOscillators,
                 Intervention::default(),
-                config
+                invalid_sample_count
             ),
             Err(CoordinationError::InvalidSampleCount)
         );
-        config = CoordinationConfig::default();
-        config.central_coupling_gain = 0.0;
+
+        let zero_coupling = CoordinationConfig {
+            central_coupling_gain: 0.0,
+            ..CoordinationConfig::default()
+        };
         assert_eq!(
             simulate(
                 CoordinationModel::CoupledOscillators,
                 Intervention::default(),
-                config
+                zero_coupling
             ),
             Err(CoordinationError::InvalidCentralCouplingGain)
         );
-        config = CoordinationConfig::default();
-        config.central_coupling_gain = 0.0;
         assert_eq!(
             simulate(
                 CoordinationModel::CoupledHopfOscillators,
                 Intervention::default(),
-                config
+                zero_coupling
             ),
             Err(CoordinationError::InvalidCentralCouplingGain)
         );
