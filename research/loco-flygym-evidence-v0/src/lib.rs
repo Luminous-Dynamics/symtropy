@@ -811,6 +811,14 @@ mod tests {
         assert_eq!(trial.validate(), Err(EvidenceError::DuplicateJointChannel));
     }
 
+
+    #[test]
+    fn rejects_joint_channel_without_separate_velocity_unit() {
+        let mut trial = valid_trial();
+        trial.schema.joint_channels[0].velocity_unit.clear();
+        assert_eq!(trial.validate(), Err(EvidenceError::InvalidJointDescriptor));
+    }
+
     #[test]
     fn rejects_actuator_referencing_unknown_joint_channel() {
         let mut trial = valid_trial();
