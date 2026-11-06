@@ -612,6 +612,7 @@ pub fn recovery_time(
     target_offsets: [f64; LEG_COUNT],
     minimum_amplitude: f64,
 ) -> Result<Option<f64>, CoordinationError> {
+    validate_timestamps(&trace.samples)?;
     if onset_step >= trace.samples.len() {
         return Err(CoordinationError::InvalidInterventionStep);
     }
@@ -680,9 +681,15 @@ pub fn validate_aligned_traces(
 }
 
 fn validate_timestamps(samples: &[HexapodSample]) -> Result<(), CoordinationError> {
+    if samples.is_empty() {
+        return Err(CoordinationError::InvalidTraceLength);
+    }
     let mut previous = None;
     for sample in samples {
-        if !sample.timestamp.is_finite() {
+        if !sample.timestamp.is_finite()
+            || !sample.x.iter().all(|value| value.is_finite())
+            || !sample.y.iter().all(|value| value.is_finite())
+        {
             return Err(CoordinationError::InvalidTimestamp);
         }
         if previous.is_some_and(|timestamp| sample.timestamp <= timestamp) {
@@ -823,8 +830,8 @@ mod tests {
         };
         let trace = run(CoordinationModel::FeedbackAttractor, intervention).unwrap();
         let final_sample = trace.samples.last().unwrap();
-        for leg_index in 0..LEG_COUNT {
-            let amplitude = final_sample.x[leg_index].hypot(final_sample.y[leg_index]);
+        for (x, y) in final_sample.x.iter().zip(final_sample.y) {
+            let amplitude = x.hypot(y);
             assert!(amplitude < 0.01);
         }
     }
@@ -902,7 +909,7 @@ mod tests {
             frequency_detune: Some(FrequencyDetune {
                 from_step: 20,
                 leg: LegId::RightRear,
-                delta_angular_frequency: 2.0,
+                delta_angular_frequency: 0.2,
             }),
             ..Intervention::default()
         };
