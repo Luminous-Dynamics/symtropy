@@ -373,7 +373,7 @@
       "uncertainty_status": "QUANTIFIED"
     }
   ],
-  "pairs": [
+  "requested_pairs": [
     {
       "pair_id": "shift-vs-cutting-hour",
       "record_a_id": "mc51-advance-shift",
