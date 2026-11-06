@@ -18,6 +18,7 @@ Implements the evaluation contract in [issue #3877](https://github.com/Luminous-
 - Every window explicitly records every registered channel as OBSERVED, DEGRADED or MISSING. Missing data is not zero-filled.
 - Channel observations bind to the window's clock-synchronization reference and carry time uncertainty.
 - Event labels require independent physical or sensor-diagnostic evidence, source provenance and an adjudicator reference.
+- The held-out test partition must contain at least one critical seeded restriction/blockage event to support the critical-event recall challenge.
 - Sensor faults remain distinct from physical conveying faults; multi-label events are permitted.
 - Startup/shutdown transients and unknown/out-of-domain states are explicit.
 - Critical-event deadlines and event/clear time boundaries are checked.
