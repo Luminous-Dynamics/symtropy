@@ -20,7 +20,7 @@ Each item has a semantic family, epistemic status, declared evidence-source fami
 
 ## Archive resilience
 
-Archive copies are grouped by failure domain. Three copies across two domains count as two independent domains, not three. A copy is recoverable only when its checksum is verified, it remains accessible and its failure domain is not in the declared failed-domain set.
+The CSV includes separate scope and event-detail fields; transmission sender/receiver IDs are never written into the semantic-family column. Archive copies are grouped by failure domain. Three copies across two domains count as two independent domains, not three. A copy is recoverable only when its checksum is verified, it remains accessible and its failure domain is not in the declared failed-domain set.
 
 ## Synthetic reference
 
