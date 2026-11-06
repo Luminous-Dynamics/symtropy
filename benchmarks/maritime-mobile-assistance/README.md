@@ -42,7 +42,7 @@ cargo clippy --locked --manifest-path benchmarks/maritime-mobile-assistance/Carg
 
 The unit fixtures cover:
 - feasible two-task tug/pilot continuity;
-- tug double-booking and half-open handoff;
+- tug double-booking, wrong-class rejection and half-open handoff;
 - insufficient reposition time;
 - insufficient tug count and bollard pull;
 - pilot qualification mismatch or omission;
