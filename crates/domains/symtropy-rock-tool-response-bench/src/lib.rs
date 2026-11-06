@@ -540,6 +540,9 @@ fn validate_odc_observations(
         (traction, traction_channel, "traction"),
     ] {
         let channel_id = non_empty_string(channel, "channel_id");
+        if non_empty_string(observation, "calibration_ref") != non_empty_string(channel, "calibration_ref") {
+            push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, format!("ODC {label} speed observation calibration does not match its encoder channel"));
+        }
         let source_refs = observation.get("source_artifact_refs").and_then(Value::as_array);
         let source_binds_channel = match (channel_id, source_refs) {
             (Some(channel_id), Some(source_refs)) => source_refs.iter().filter_map(Value::as_str).any(|source_ref| {
@@ -962,6 +965,13 @@ mod tests {
     fn odc_speed_ratio_requires_independent_encoder_observations() {
         let mut data = fixture();
         data["records"][2]["observations"][0]["value"] = json!(30.0);
+        assert!(has(&validate_bundle(&data), ValidationCode::OperatingPointObservationMismatch));
+    }
+
+    #[test]
+    fn odc_speed_observation_calibration_must_match_encoder_channel() {
+        let mut data = fixture();
+        data["records"][2]["observations"][0]["calibration_ref"] = json!("WRONG-CALIBRATION");
         assert!(has(&validate_bundle(&data), ValidationCode::OperatingPointObservationMismatch));
     }
 
