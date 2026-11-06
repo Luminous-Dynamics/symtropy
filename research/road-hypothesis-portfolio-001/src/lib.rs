@@ -119,6 +119,7 @@ pub struct ChallengeReceipt {
     pub outcome: ChallengeOutcome,
     pub counterexample_digest: Option<String>,
     pub replay_receipt_digest: Option<String>,
+    pub counterexample_replay_verified: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -328,6 +329,9 @@ pub struct ActionResidualBound {
     pub utility_upper: Rational,
     pub evidence_digest: String,
     pub calibration_protocol_digest: String,
+    pub source_lineage_digests: Vec<String>,
+    pub minimum_independent_units: u64,
+    pub independent_unit_count: u64,
     pub feasibility: FeasibilityDisposition,
 }
 
@@ -435,6 +439,8 @@ pub enum PortfolioError {
     UnrequiredChallengeReceipt,
     InvalidChallengeBudget,
     ChallengeHoldoutMismatch,
+    ResidualEvidenceLineageLeak,
+    InsufficientResidualUnits,
     ChallengeBudgetMismatch,
     MissingCoverageAxis,
     InvalidCoverageEvidence,
@@ -602,6 +608,7 @@ impl PortfolioManifest {
         }
 
         let mut requirement_keys = BTreeSet::new();
+        let mut required_budgets = BTreeSet::new();
         for requirement in &self.challenge_requirements {
             require(&requirement.hypothesis_id, "challenge.hypothesis_id")?;
             require(&requirement.protocol_digest, "challenge.protocol_digest")?;
@@ -611,6 +618,7 @@ impl PortfolioManifest {
             if requirement.minimum_budget_units == 0 {
                 return Err(PortfolioError::InvalidChallengeBudget);
             }
+            required_budgets.insert(requirement.minimum_budget_units);
             let key = (
                 requirement.hypothesis_id.as_str(),
                 requirement.strategy,
@@ -619,6 +627,9 @@ impl PortfolioManifest {
             if !requirement_keys.insert(key) {
                 return Err(PortfolioError::DuplicateChallengeRequirement);
             }
+        }
+        if required_budgets.len() != 1 {
+            return Err(PortfolioError::ChallengeBudgetMismatch);
         }
         for hypothesis in &self.hypotheses {
             for strategy in [
@@ -768,7 +779,7 @@ pub fn evaluate_portfolio(
     });
     let challenges_complete = challenge.unresolved_challenges == 0;
 
-    let residual = assess_residual(manifest, residual_envelope)?;
+    let residual = assess_residual(manifest, residual_envelope, challenge_receipts)?;
     let disposition = if falsified {
         PortfolioDisposition::PortfolioFalsified
     } else if !odd_scope_match {
@@ -854,6 +865,7 @@ fn evaluation_digest(
         });
         hash_opt_str(&mut h, receipt.counterexample_digest.as_deref());
         hash_opt_str(&mut h, receipt.replay_receipt_digest.as_deref());
+        hash_u8(&mut h, u8::from(receipt.counterexample_replay_verified));
     }
 
     match residual {
@@ -1009,9 +1021,14 @@ fn assess_challenges(
                 receipt.replay_receipt_digest.as_deref().unwrap_or(""),
                 "challenge.replay_receipt_digest",
             )?;
+            if !receipt.counterexample_replay_verified {
+                return Err(PortfolioError::CounterexampleMissingReplay);
+            }
         }
         if receipt.outcome != ChallengeOutcome::CounterexampleFound
-            && (receipt.counterexample_digest.is_some() || receipt.replay_receipt_digest.is_some())
+            && (receipt.counterexample_digest.is_some()
+                || receipt.replay_receipt_digest.is_some()
+                || receipt.counterexample_replay_verified)
         {
             return Err(PortfolioError::CounterexampleMissingReplay);
         }
@@ -1028,32 +1045,27 @@ fn assess_challenges(
         }
     }
 
-    let mut comparison_holds: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
-    let mut comparison_budgets: BTreeMap<&str, BTreeSet<u64>> = BTreeMap::new();
-    let mut comparison_parents: BTreeMap<&str, BTreeSet<Vec<String>>> = BTreeMap::new();
-    for receipt in receipts {
-        comparison_holds
-            .entry(receipt.hypothesis_id.as_str())
-            .or_default()
-            .insert(receipt.holdout_manifest_digest.as_str());
-        comparison_budgets
-            .entry(receipt.hypothesis_id.as_str())
-            .or_default()
-            .insert(receipt.budget_units);
-        let mut parents = receipt.holdout_parent_lineage_digests.clone();
-        parents.sort();
-        parents.dedup();
-        comparison_parents
-            .entry(receipt.hypothesis_id.as_str())
-            .or_default()
-            .insert(parents);
-    }
-    if comparison_holds.values().any(|values| values.len() > 1)
-        || comparison_parents.values().any(|values| values.len() > 1)
-    {
+    let holdout_ids: BTreeSet<_> = receipts
+        .iter()
+        .map(|receipt| receipt.holdout_manifest_digest.as_str())
+        .collect();
+    let search_budgets: BTreeSet<_> = receipts
+        .iter()
+        .map(|receipt| receipt.budget_units)
+        .collect();
+    let holdout_parent_sets: BTreeSet<Vec<String>> = receipts
+        .iter()
+        .map(|receipt| {
+            let mut parents = receipt.holdout_parent_lineage_digests.clone();
+            parents.sort();
+            parents.dedup();
+            parents
+        })
+        .collect();
+    if holdout_ids.len() > 1 || holdout_parent_sets.len() > 1 {
         return Err(PortfolioError::ChallengeHoldoutMismatch);
     }
-    if comparison_budgets.values().any(|values| values.len() > 1) {
+    if search_budgets.len() > 1 {
         return Err(PortfolioError::ChallengeBudgetMismatch);
     }
 
@@ -1130,6 +1142,7 @@ fn assess_challenges(
 fn assess_residual(
     manifest: &PortfolioManifest,
     envelope: Option<&ResidualEnvelope>,
+    challenge_receipts: &[ChallengeReceipt],
 ) -> Result<ResidualAssessment, PortfolioError> {
     let unbounded = || ResidualAssessment {
         disposition: ResidualDisposition::ResidualRiskUnbounded,
@@ -1160,13 +1173,41 @@ fn assess_residual(
         return Ok(unbounded());
     }
 
+    let training_lineage: BTreeSet<_> = manifest
+        .training_lineage_roots
+        .iter()
+        .map(String::as_str)
+        .chain(
+            manifest
+                .hypotheses
+                .iter()
+                .flat_map(|hypothesis| hypothesis.source_lineage_digests.iter().map(String::as_str)),
+        )
+        .collect();
+    let holdout_lineage: BTreeSet<_> = challenge_receipts
+        .iter()
+        .flat_map(|receipt| receipt.holdout_parent_lineage_digests.iter().map(String::as_str))
+        .collect();
     let mut bounds = BTreeMap::new();
     for bound in &envelope.action_bounds {
         require(&bound.action_id, "residual.action_id")?;
         if bound.evidence_digest.trim().is_empty()
             || bound.calibration_protocol_digest.trim().is_empty()
+            || bound.source_lineage_digests.is_empty()
+            || bound.minimum_independent_units == 0
         {
             return Ok(unbounded());
+        }
+        if bound.independent_unit_count < bound.minimum_independent_units {
+            return Err(PortfolioError::InsufficientResidualUnits);
+        }
+        for lineage in &bound.source_lineage_digests {
+            require(lineage, "residual.source_lineage_digest")?;
+            if training_lineage.contains(lineage.as_str())
+                || holdout_lineage.contains(lineage.as_str())
+            {
+                return Err(PortfolioError::ResidualEvidenceLineageLeak);
+            }
         }
         if bound.utility_lower.cmp_exact(bound.utility_upper)? == std::cmp::Ordering::Greater
             || bounds.insert(bound.action_id.as_str(), bound).is_some()
@@ -1490,14 +1531,15 @@ mod tests {
             hypothesis_id: "H-weather".into(),
             strategy,
             protocol_digest: d(protocol),
-            holdout_manifest_digest: d(&format!("holdout-{id}")),
+            holdout_manifest_digest: d("sealed-holdout-v1"),
             blinded: true,
             sealed_test: true,
             budget_units: 100,
-            holdout_parent_lineage_digests: vec![d(&format!("holdout-parent-{id}"))],
+            holdout_parent_lineage_digests: vec![d("sealed-holdout-parent-v1")],
             outcome,
             counterexample_digest: found.then(|| d(&format!("counterexample-{id}"))),
             replay_receipt_digest: found.then(|| d(&format!("replay-{id}"))),
+            counterexample_replay_verified: found,
         }
     }
 
@@ -1509,8 +1551,8 @@ mod tests {
             challenge("rl-1", ChallengeStrategy::ReinforcementLearning, "challenge-rl", ChallengeOutcome::NonDiscoveryWithinBudget),
         ];
         for receipt in &mut receipts {
-            receipt.holdout_manifest_digest = d("holdout-H-weather");
-            receipt.holdout_parent_lineage_digests = vec![d("holdout-parent-H-weather")];
+            receipt.holdout_manifest_digest = d("sealed-holdout-v1");
+            receipt.holdout_parent_lineage_digests = vec![d("sealed-holdout-parent-v1")];
         }
         for (id, strategy, protocol) in [
             ("random-copy", ChallengeStrategy::Random, "challenge-random-copy"),
@@ -1520,8 +1562,8 @@ mod tests {
         ] {
             let mut receipt = challenge(id, strategy, protocol, ChallengeOutcome::NonDiscoveryWithinBudget);
             receipt.hypothesis_id = "H-weather-copy".into();
-            receipt.holdout_manifest_digest = d("holdout-H-weather-copy");
-            receipt.holdout_parent_lineage_digests = vec![d("holdout-parent-H-weather-copy")];
+            receipt.holdout_manifest_digest = d("sealed-holdout-v1");
+            receipt.holdout_parent_lineage_digests = vec![d("sealed-holdout-parent-v1")];
             receipts.push(receipt);
         }
         receipts
@@ -1542,6 +1584,9 @@ mod tests {
                     utility_upper: Rational::new(60, 1).unwrap(),
                     evidence_digest: d("continue-residual-evidence"),
                     calibration_protocol_digest: d("continue-calibration"),
+                    source_lineage_digests: vec![d("independent-intervention-evidence")],
+                    minimum_independent_units: 20,
+                    independent_unit_count: 24,
                     feasibility: FeasibilityDisposition::Guaranteed,
                 },
                 ActionResidualBound {
@@ -1550,6 +1595,9 @@ mod tests {
                     utility_upper: Rational::new(80, 1).unwrap(),
                     evidence_digest: d("yield-residual-evidence"),
                     calibration_protocol_digest: d("yield-calibration"),
+                    source_lineage_digests: vec![d("independent-intervention-evidence")],
+                    minimum_independent_units: 20,
+                    independent_unit_count: 24,
                     feasibility: FeasibilityDisposition::Guaranteed,
                 },
             ],
