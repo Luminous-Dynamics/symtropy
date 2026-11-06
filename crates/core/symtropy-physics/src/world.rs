@@ -2589,5 +2589,4 @@ mod transformed_halfspace_tests {
             body.position()[1]
         );
     }
-
 }
