@@ -554,11 +554,11 @@ mod checked_tests {
         let unit_normal = SVector::from([0.0, 1.0, 0.0]);
         let scaled_normal = SVector::from([0.0, 7.0, 0.0]);
 
-        let unit = sphere_halfspace_checked(&position, &velocity, 0.5, &unit_normal, 0.0, 0.2)
+        let unit = sphere_halfspace_checked(&position, &velocity, 0.5, &unit_normal, 1.0, 0.2)
             .unwrap()
             .unwrap();
         let scaled =
-            sphere_halfspace_checked(&position, &velocity, 0.5, &scaled_normal, 0.0, 0.2)
+            sphere_halfspace_checked(&position, &velocity, 0.5, &scaled_normal, 7.0, 0.2)
                 .unwrap()
                 .unwrap();
 
@@ -585,6 +585,33 @@ mod checked_tests {
         assert!(matches!(
             sphere_halfspace_checked(&position, &velocity, 0.5, &normal, 0.0, -0.1),
             Err(CcdError::InvalidTimeStep)
+        ));
+    }
+
+    #[test]
+    fn tangent_contact_is_reported_at_the_closest_approach_time() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([5.0, 1.0, 0.0]);
+        let vel_b = SVector::from([-10.0, 0.0, 0.0]);
+
+        let hit = sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .unwrap()
+            .unwrap();
+
+        assert!((hit.toi - 0.5).abs() < 1e-14);
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn non_finite_vectors_are_typed_errors() {
+        let pos_a = SVector::from([f64::NAN, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0, 0.0, 0.0]);
+        let velocity = SVector::zeros();
+
+        assert!(matches!(
+            sphere_sphere_checked(&pos_a, &velocity, 0.5, &pos_b, &velocity, 0.5, 1.0),
+            Err(CcdError::NonFiniteInput)
         ));
     }
 
