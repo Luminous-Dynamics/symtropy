@@ -402,8 +402,8 @@ fn unqualified_baseline_cannot_be_used_for_event_credit() {
     )
     .unwrap();
     let evidence = recovery_evidence(0, 1_000, 2_000, true);
-    let error = evaluate_baseline_bounded_event(&report, &identity(), &evidence, &[point])
-        .unwrap_err();
+    let error =
+        evaluate_baseline_bounded_event(&report, &identity(), &evidence, &[point]).unwrap_err();
 
     assert!(matches!(
         error,
@@ -428,8 +428,8 @@ fn event_identity_regime_and_chronology_are_bound() {
     )
     .unwrap();
     let evidence = recovery_evidence(0, 1_000, 2_000, true);
-    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &[point])
-        .unwrap_err();
+    let error =
+        evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &[point]).unwrap_err();
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::UnknownOperatingRegime { .. }
@@ -497,8 +497,8 @@ fn non_contiguous_recovery_horizon_is_rejected() {
         .unwrap(),
     ];
     let evidence = recovery_evidence(0, 1_000, 3_000, true);
-    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
-        .unwrap_err();
+    let error =
+        evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points).unwrap_err();
 
     assert!(matches!(
         error,
@@ -643,7 +643,8 @@ fn event_response_is_not_qualified_until_work_and_resource_recovery_are_reconcil
             80.0,
             0.0,
             "pcc-event-1",
-        ).unwrap(),
+        )
+        .unwrap(),
         DispatchEventPoint::new(
             "recovery-1",
             DispatchEventPhase::Recovery,
@@ -655,7 +656,8 @@ fn event_response_is_not_qualified_until_work_and_resource_recovery_are_reconcil
             100.0,
             0.0,
             "pcc-recovery-1",
-        ).unwrap(),
+        )
+        .unwrap(),
     ];
     let evidence = recovery_evidence(0, 3_600_000_000_000, 7_200_000_000_000, false);
     let report = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
