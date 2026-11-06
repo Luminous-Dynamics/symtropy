@@ -357,3 +357,112 @@ Dynamic material-characterization reference: the ISRM Suggested Methods list inc
 Additional reciprocal cutter/geology reference: Pan et al. (2026), “Mutual prediction mechanism between disc cutter cutting forces and rock strength parameters: Experimental study and field application.” https://doi.org/10.1016/j.rockmb.2026.100317.
 
 Manufacturer specification references for denominator-reconciled industry context: Komatsu MC51 US product page (remove cut material up to 60 m³/h) and Australia product page (material handling in situ 30 m³/h; typical maximum cut rate 20 m³/h). These are different manufacturer-published metrics, not an independently matched performance test. https://www.komatsu.com/en-us/products/equipment/hard-rock-continuous-miners/mc51 ; https://www.komatsu.com/en-au/products/equipment/hard-rock-continuous-miners/mc51.
+
+
+## 12. Research extension — 6 November 2026: fracture-path engineering, mixed strata, and evidence-qualified adaptation
+
+This extension adds three research directions and one decision-architecture requirement. It does not change the claim ceiling of the portfolio.
+
+### 12.1 HPWJ-prefabricated kerf + disc cutter: fracture-path engineering
+
+Lu et al., *Scientific Reports* (published 1 September 2026), DOI https://doi.org/10.1038/s41598-026-68175-5, perform same-track coupled tests with a 17-inch disc cutter on granite at fixed 6 mm penetration. They compare pure disc cutting with HPWJ-prefabricated kerfs 2, 4, 6 and 8 mm deep.
+
+Reported outcomes:
+- maximum 32% reduction in mean normal force;
+- 22% reduction in peak normal force;
+- 34% reduction in specific cutting energy at the maximum tested kerf depth;
+- transition from powder-like debris toward lamellar fragments as kerf depth increases;
+- JH2 simulation estimates the dense-core projected area at 8 mm kerf depth at 11.3% of the no-kerf baseline.
+
+**Interpretation:** a designed kerf can change the boundary condition for subsequent tensile fracture and crack coalescence. This is a strong mechanistic result and should be reproduced using same-track controls.
+
+**Claim boundary:** the 34% result is specific cutting energy for the mechanical cutting stage. It is not a measured full-system benefit after HPWJ pumping, water treatment/recovery, cutting, cooling, extraction, maintenance and downtime. The HPWJ method profile is R2 laboratory evidence, not a field-qualified system.
+
+A new family-level concept is **Fracture-Path Engineering (FPE)**: first create a spatially controlled weak plane or damage zone, then choose a mechanical detachment process that exploits it. Keep implementations distinct:
+- HPWJ kerf + disc cutter;
+- saw kerf + wedge splitting;
+- laser thermal preconditioning + PDC;
+- waterjet kerf + ODC or other rolling disc cutter.
+
+Do not pool their force/energy curves. Compare each complete sequence with its matched mechanical-only baseline. The selector must be allowed to choose no preconditioning when the auxiliary burden exceeds the benefit.
+
+### 12.2 Composite strata: transition response is a first-class benchmark
+
+Ren et al., *International Journal of Rock Mechanics and Mining Sciences* 202 (June 2026), DOI https://doi.org/10.1016/j.ijrmms.2026.106517, tested sandstone/granite composite rock discs up to 3,300 mm diameter on a full-scale rotary cutting platform. The maximum strength contrast exceeded 110 MPa. Normal, rolling and side forces showed step-like changes across material strength and cutting depth; rotational speed affected the force relationships. They proposed a triaxial cutter-force prediction model.
+
+This is large-scale laboratory rotary evidence, not an in-situ TBM field dataset. It does, however, expose a major limitation of homogeneous specimen benchmarks and linear cutting models.
+
+New benchmark cohorts should include:
+- abrupt sandstone/granite and granite/basalt interfaces;
+- graded strength transitions;
+- multiple interface orientations relative to cutter travel;
+- measured layer thickness, bond/weak-plane condition and discontinuity populations;
+- intact homogeneous controls;
+- cutter/rock position synchronized to interface crossing.
+
+The benchmark must score triaxial force prediction, transition detection lead distance/time, side-force error, fracture-path changes, wear transients and out-of-domain rejection. Group holdouts by parent composite block, lithology pair, rig and cutter geometry. Never split adjacent cuts from one composite specimen randomly across training and test sets.
+
+### 12.3 Cutter health: reproduce classification, then test transfer
+
+Li et al., *Engineering Applications of Artificial Intelligence* 181 (1 October 2026), DOI https://doi.org/10.1016/j.engappai.2026.115682, combine an instrumented cutter with temperature/vibration signals, physics/data-constrained load reconstruction and load/vibration/temperature fusion. The paper reports 94.29% of reconstructed sequence samples with R² >0.95 and approximately 96.5% wear-state recognition accuracy on a full-scale rotary cutting platform.
+
+The article describes a 70/30 training/validation data split under its experimental conditions. Treat the reported figures as platform-level reproduction targets—not independent-site generalization or production maintenance qualification. The authors also identify generalization, sensor placement and harsh operating environments as open issues.
+
+Our benchmark must add:
+- physical cutter/serial-unit, parent rock block, site, rig and time-group holdouts;
+- chronological prospective testing and leave-site/rig/cutter-geometry-out transfer;
+- independent teardown or metrology wear ground truth;
+- normal wear, abnormal wear, ring damage, bearing/seal faults, sensor drift and geology-induced signal changes as separate states;
+- event-level false alarms, missed-failure cost, detection delay and RUL prediction intervals;
+- out-of-domain abstention and sensor-fault detection.
+
+Do not use random adjacent time windows from the same experimental wear sequence across train and test. R² and classification accuracy alone are insufficient. A useful model must improve maintenance decisions and availability per accepted output.
+
+### 12.4 Geological adaptation: uncertainty warning is not generalization
+
+Pan et al., *International Journal of Rock Mechanics and Mining Sciences* 205 (September 2026), DOI https://doi.org/10.1016/j.ijrmms.2026.106610, study Bayesian continual learning on ring-level operational data from a twin-line Shenzhen intercity railway tunnel.
+
+Reported static known-state accuracy was 84.76%, while direct cross-line transfer fell to 45.40%. Unknown geological states increased mean epistemic uncertainty by about 2.3 times. In sequential adaptation, experience replay reached 77.2% final accuracy during geological evolution and 79.9% in cross-line transfer; elastic weight consolidation reached 82.1% for newly emerging states. These are study-specific operational proxy labels, not direct universal lithology ground truth.
+
+This is a useful benchmark for Symthaea:
+- retain epistemic vs aleatoric uncertainty;
+- test cross-line / cross-site transfer before adaptation;
+- measure catastrophic forgetting and performance on previously seen geology after updating;
+- keep unknown states unknown until independently characterized;
+- distinguish a genuine geological shift from sensor noise, calibration drift or cutter wear.
+
+A geological model must not silently relabel a new domain as a known lithology merely because its predictor has high confidence.
+
+### 12.5 New architecture: active fracture intelligence
+
+The combined research suggests a three-stage closed scientific loop:
+
+1. **Sense:** use independent geology, face imagery, cutter forces, vibration, thermal observations and material-flow signals to estimate a posterior over local rock structure and tool condition.
+2. **Intervene:** select a qualified fracture strategy (including no assist), or select an additional low-cost experiment/measurement when the expected value of information is high.
+3. **Verify:** measure actual fracture, accepted output, energy, resource use, wear and damage; update the evidence and model support domain only after independent validation.
+
+The decision benchmark must be evaluated on:
+- decision regret versus the best eligible evidence-supported strategy;
+- unsupported-selection and constraint-violation rates;
+- out-of-domain detection and abstention quality;
+- uncertainty calibration;
+- value of information for additional sensing/experiments;
+- total accepted output, energy, wear, material handling and downtime.
+
+This is more meaningful than a static method leaderboard: the system must know when to act, when to abstain, and when a new experiment is more valuable than a premature operating decision.
+
+### 12.6 Current new Symtropy work items
+
+- #3844 — Fracture-path engineering: HPWJ kerf, saw/wedge splitting and mechanical detachment.
+- #3845 — Composite-strata transition benchmark and triaxial cutter response.
+- #3846 — Independent-site cutter health, anomaly and RUL transfer.
+- #3847 — Robust method selection, abstention and value-of-information benchmark.
+
+These extend—not replace—#1952, #3812, #3823, #3825, #3831 and #3836.
+
+### 12.7 Additional references
+
+- Lu et al. (2026), HPWJ same-track granite precutting and disc cutting: https://doi.org/10.1038/s41598-026-68175-5
+- Ren et al. (2026), full-scale rotary triaxial cutter forces in composite strata: https://doi.org/10.1016/j.ijrmms.2026.106517
+- Li et al. (2026), physics-informed multi-source disc-cutter wear monitoring: https://doi.org/10.1016/j.engappai.2026.115682
+- Pan et al. (2026), Bayesian continual learning and uncertainty for non-stationary TBM geology: https://doi.org/10.1016/j.ijrmms.2026.106610
