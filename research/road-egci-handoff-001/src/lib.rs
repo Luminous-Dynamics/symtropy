@@ -398,7 +398,7 @@ pub fn export_to_sam(
         }
     }
     let target_policy_digest = target_policy_digest(&episode.policies)?;
-    let context_digest = context_digest(&episode.manifest, &episode.policies)?;
+    let base_context_digest = context_digest(&episode.manifest, &episode.policies)?;
     let anchors = draw_anchor_index(&anchor.draw_bundle_anchors)?;
 
     let mut branches: Vec<_> = episode.branches.iter().collect();
@@ -467,9 +467,15 @@ pub fn export_to_sam(
                 return Err(HandoffError::DrawBundleAnchorMismatch);
             }
 
+            let hypothesis_context_digest = hypothesis_context_digest(
+                &base_context_digest,
+                &branch.branch_id,
+                &hypothesis_id,
+                receipt,
+            );
             let query = SamTrajectoryQuery {
                 target_policy_digest: target_policy_digest.clone(),
-                context_digest: context_digest.clone(),
+                context_digest: hypothesis_context_digest,
                 complete: branch_complete,
                 steps: steps.clone(),
             };
@@ -1047,6 +1053,27 @@ fn context_digest(
         hash_str(&mut h, &policy.action_domain_digest);
     }
     Ok(hex(h.finalize().as_bytes()))
+}
+
+fn hypothesis_context_digest(
+    base_context_digest: &str,
+    branch_id: &str,
+    hypothesis_id: &str,
+    receipt: &CorrespondenceReceipt,
+) -> String {
+    let mut h = blake3::Hasher::new_derive_key(
+        "Symtropy EGCI hypothesis-qualified SAM context v0.1",
+    );
+    hash_str(&mut h, base_context_digest);
+    hash_str(&mut h, branch_id);
+    hash_str(&mut h, hypothesis_id);
+    hash_str(&mut h, &receipt.correspondence_digest);
+    hash_str(&mut h, &receipt.causal_dispositions_digest);
+    hash_str(&mut h, &receipt.projection_input_digest);
+    hash_str(&mut h, &receipt.draw_bundle_digest);
+    hash_str(&mut h, &receipt.verifier_profile_digest);
+    hash_str(&mut h, &receipt.verifier_receipt_digest);
+    hex(h.finalize().as_bytes())
 }
 
 fn sam_query_json(query: &SamTrajectoryQuery) -> String {
@@ -1933,8 +1960,13 @@ mod tests {
             assert_eq!(query.query.steps.len(), 2);
             assert_eq!(query.query.steps[0].joint_actions.len(), 2);
             assert_eq!(query.query.target_policy_digest.len(), 64);
+            assert_eq!(query.query.context_digest.len(), 64);
             assert!(query.query_json.starts_with("{\"target_policy_digest\":"));
         }
+        assert_ne!(
+            handoff.branches[0].queries[0].query.context_digest,
+            handoff.branches[0].queries[1].query.context_digest
+        );
     }
 
     #[test]
