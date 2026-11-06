@@ -176,6 +176,23 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
     }
 
     for key in [
+        "trial_id",
+        "task_id",
+        "site_id",
+        "machine_instance_id",
+        "machine_configuration_ref",
+    ] {
+        if text(map, key).is_none() {
+            push(
+                &mut errors,
+                "MISSING_MAP_CONTEXT",
+                &format!("$.map.{key}"),
+                "trial, task, site, machine instance and exact configuration identity are required",
+            );
+        }
+    }
+
+    for key in [
         "registration_ref",
         "registration_calibration_ref",
     ] {
@@ -385,6 +402,17 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
                 &format!("{path}.frame_id"),
                 "support footprint frame must exactly match the residual map frame",
             );
+        }
+
+        for key in ["site_id", "machine_instance_id", "machine_configuration_ref"] {
+            if text(support, key) != text(map, key) {
+                push(
+                    &mut errors,
+                    "SUPPORT_CONTEXT_MISMATCH",
+                    &format!("{path}.{key}"),
+                    "support footprint must bind to the exact map site, machine instance and configuration",
+                );
+            }
         }
 
         if text(support, "acceptance_profile_ref").is_none() {
@@ -887,6 +915,25 @@ mod tests {
         assert!(validate_case(&case)
             .iter()
             .any(|v| v.code == "RESIDUAL_VOLUME_OVERFLOW"));
+    }
+
+    #[test]
+    fn support_machine_configuration_must_match_map() {
+        let mut case = fixture();
+        case["support_profiles"][0]["machine_configuration_ref"] =
+            serde_json::json!("machine-config:other");
+        assert!(validate_case(&case)
+            .iter()
+            .any(|v| v.code == "SUPPORT_CONTEXT_MISMATCH"));
+    }
+
+    #[test]
+    fn map_trial_and_machine_identity_are_mandatory() {
+        let mut case = fixture();
+        case["map"].as_object_mut().unwrap().remove("machine_instance_id");
+        assert!(validate_case(&case)
+            .iter()
+            .any(|v| v.code == "MISSING_MAP_CONTEXT"));
     }
 
     #[test]
