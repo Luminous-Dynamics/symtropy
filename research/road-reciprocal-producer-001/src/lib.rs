@@ -22,7 +22,7 @@ use symtropy_road_actors::{
     PolicyError, ScenarioActorId, ScenarioTick,
 };
 
-unused constant#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ProducerError {
     EmptyBranchId,
     InvalidActorId,
