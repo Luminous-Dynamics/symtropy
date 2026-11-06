@@ -637,3 +637,106 @@ The shared [CIVBENCH-MAD-001 issue #3731](https://github.com/Luminous-Dynamics/s
 The distinction prevents an unchanged model name from being mistaken for an unchanged decision system, and prevents prompt identity from substituting for runtime accountability. The validator recomputes the canonical SHA-256 and includes a negative test: a persona change without a new digest must fail. Its exact-head synthetic fixture workflow passed on commit `8431a109da905986e9f80fdd48cde8a86b14dde8`, run [#42217641736](https://github.com/Luminous-Dynamics/symtropy/actions/runs/42217641736).
 
 These are Tier 1 schema/software controls. They are not a reproduction of the EMNLP 2026 fairness study, a human-effect estimate or a universal fairness test.
+
+
+## 20. What the current research frontier actually says (6 November 2026)
+
+### The field's central problem is validation, not simulator scarcity
+
+Puelma Touzel et al. (ICML 2026), *Position: Time to Close the Validation Gap in LLM Social Simulations*, argue for consolidation around shared benchmarks, open data and reproducible protocols rather than unvalidated expansion. The paper explicitly warns that high-stakes policy, epidemiology and computational-social-science uses risk premature deployment when the simulator's validity is not established.
+- https://proceedings.mlr.press/v306/puelma-touzel26a.html
+
+Afli & Frank (Findings EMNLP 2026), *The Benchmark Is Not the Construct*, formalize Measurement-as-Distribution: build a defensible distribution of conditions, validated perturbations, repeated measurements and uncertainty reporting instead of treating one scalar score on one fixed test as the capability itself.
+- https://aclanthology.org/2026.findings-emnlp.1992/
+
+**CivBench response:** preserve the protocol's task-specific metric vector; bind it to the complete configuration passport and behavior-affecting execution stack; evaluate across principled perturbations, strata, independent units and holdouts. The evidence plane and Humanity Atlas run contract remain the authority for run identity and receipts. MAD is the measurement specification, not a new simulator or run-envelope.
+
+### Human simulation: published baselines remain modest and task-specific
+
+SimBench (ICLR 2026) unifies 20 human-behaviour datasets and reports a top published score of 40.80/100. It finds high-entropy response diversity and specific-cohort fidelity challenging, and reports an alignment/simulation trade-off between consensus-style and diverse-response tasks.
+- https://proceedings.iclr.cc/paper_files/paper/2026/hash/2fc4d6a6400addda7493b9db258c34e0-Abstract-Conference.html
+
+OdysSim/SOUL (2026) reports 62 datasets and 23 benchmark tasks, with OSim-8B first or tied-first on 8/23 tasks in the authors' evaluation. It also reports judge-reward hacking and the need for detectors. This is a different suite and score protocol from SimBench; task counts are not directly comparable.
+- https://arxiv.org/abs/2606.14199
+
+**CivBench response:** reproduce each upstream benchmark exactly before comparison. Report R1 individual response scores separately from R2 population-distribution scores, transition/trajectory fidelity, subgroup support, tail-option coverage, judge disagreement and external transfer. Do not compare the SimBench 40.80/100 to an SOUL task count or our synthetic kernel.
+
+### Configuration is part of the scientific object
+
+Loghmani et al. (EMNLP 2026) report large within-model effects across persona, interview, deliberation, aggregation and order; in their evaluated tasks, persona could shift positive-prediction rates by up to 91 percentage points and speaking-order reversal flipped up to 34% of applicants.
+- https://aclanthology.org/2026.emnlp-main.2531/
+
+**CivBench response:** a model name is not a complete configuration identity. A decision claim must be tied to model/version, persona, elicitation protocol, facilitator, aggregation, option order, prompt, tools, evidence snapshot, decoding, task contract and data split. Any decision-relevant change creates a new audit identity. Full configuration stability is separate from normative fairness.
+
+### Multi-agent performance is population-conditional
+
+Deng et al. (Scientific Reports, 4 June 2026) test 54 agents from 18 archetypes in 500-round double round-robin RPS tournaments over 10 seeds. Their study reports 134 directed three-cycles in the induced payoff matrix and roster-dependent rankings (Spearman rho 0.83 between two pools).
+- https://www.nature.com/articles/s41598-026-55417-9
+
+**CivBench response:** rank only against a named roster and protocol; publish pairwise payoff matrices, cycles, exploitability, rank correlations, seed-paired uncertainty and held-out-roster performance. Our three-action RPS kernel is an exact control, not a reproduction of the 54-agent benchmark.
+
+### Socio-ecological resilience requires dynamics and cross-scale uncertainty
+
+Balali et al. (Ecological Indicators, April 2026) review 121 studies and report 59% static assessment, 74% without explicit uncertainty, and 96% neglecting cross-scale dynamics or endogenous/exogenous shock interactions. The authors explicitly state that the review does not test the empirical accuracy of individual measures.
+- https://doi.org/10.1016/j.ecolind.2026.114792
+
+**CivBench response:** service recovery, stock/ecological recovery, adaptation, transformation, worst-served groups and cross-scale shock propagation remain separate. Thirty or more independent replications is a proposed floor for our inferential portfolio only when the independent unit and dependence design justify it; it is not a universal number.
+
+## 21. Measurement-as-Distribution integration status
+
+The CivBench MAD extension is in [draft PR #3771](https://github.com/Luminous-Dynamics/symtropy/pull/3771), based on [MAD protocol PR #3735](https://github.com/Luminous-Dynamics/symtropy/pull/3735). Exact-head workflow run [#42232988239](https://github.com/Luminous-Dynamics/symtropy/actions/runs/42232988239) passed the upgraded schema and semantic validation on 6 November 2026.
+
+The branch now validates eight task-specific manifests:
+1. Engine comparison
+2. Human fidelity (HUMSIM)
+3. Cross-scale resilience
+4. Deliberation trace audit
+5. Opponent-roster / non-transitive game
+6. Causal collaboration
+7. Full configuration sensitivity
+8. Matched causal-path qualification
+
+Each manifest binds a **configuration passport** (canonical decision configuration and digest) and an **execution-stack inventory** (scheduler, parser, validator, retry/fallback, exposure, RNG and event capture). The validator rejects stale configuration digests, hidden fallback, unseeded RNG under a validity tier, unknown scheduler bindings and dropped events under fail-closed capture.
+
+This is the important architectural boundary:
+- **Humanity Atlas** owns exact run identity, configuration, outputs and evidence receipts.
+- **CivBench MAD** owns the experimental distribution, observational/resampling/independent unit declarations, metrics, baselines, perturbations, controls, holdouts and claim ceiling.
+- **Symtropy** owns executable model/reference implementations.
+- **Symthaea** supplies candidate cognitive/social policies; it does not define ground truth.
+- **Mycelix** owns provenance, authority, consent, contestability and evidence stewardship.
+- **Sol-Atlas** owns source-backed spatial/temporal interpretation and map layers.
+
+The branch remains a draft and its eight manifests are Tier-1 synthetic references. The schema pass is not an empirical validity result.
+
+## 22. Explicit benchmark gates for claims beyond current practice
+
+| Claim tier | Required evidence | Target for this programme |
+|---|---|---|
+| T0 integrity | Schema, type, source identity, unit, missingness and fail-closed validation | Zero known silent coercions or unsupported zero substitutions |
+| T1 reference | Hand-calculated oracle, negative/positive controls, deterministic replay | Exact agreement on every declared reference fixture |
+| T2 empirical distribution | Licensed source data, source-pinned splits, independent units, repeated measurement and calibrated uncertainty | Reproduce the strongest protocol-matched baseline first; then positive paired improvement with no unexplained material stratum regression |
+| T3 external generalization | Held-out participant, site, region, period, source family or opponent roster | Report transfer degradation and uncertainty; do not pool in-domain and external results |
+| T4 intervention validity | Matched counterfactuals, mechanism ablations, negative controls and independently measured outcomes | No qualified effect when a required mechanism path is disconnected or placebo-only |
+| T5 operational readiness | External pilot/HIL, incident evidence, governance/appeal process and domain-specific acceptance | No Tier-5 claim from simulation-only evidence |
+
+### Concrete aspirational targets (not current results)
+
+- **HUMSIM:** reproduce SimBench's official score and 20 per-dataset breakdown; only then target +5 absolute points over the 40.80/100 published reference, with paired uncertainty and no unexplained regression above 2 points on any task or declared cohort. Also compare against SOUL/HumanStudy-Bench on their own protocols.
+- **Configuration robustness:** exact zero semantic-order flips in the deterministic reference; in empirical group/decision studies, measure all facets and require every decision-relevant configuration change to trigger a re-audit. Do not demand invariance to legitimate changes in evidence or preferences.
+- **Causal mechanisms:** positive-control propagation plus null negative controls; every qualified treatment effect must be supported by a contiguous path, mediator ablation, matched exogenous state and independent outcome receipt.
+- **Resilience:** preserve separate water/energy/material/ecological units; report service-floor duration, worst-group loss, stock depletion, recovery time/quality and compound-shock interaction. Add source-calibrated ensembles and held-out regions before prediction claims.
+- **Multi-agent:** publish a roster × strategy performance surface, not a global leaderboard; report cycles, exploitability, regret, rank stability and performance on sealed rosters.
+- **Civilizational forecasting:** compare every model against transparent historical-mean, random-walk, persistence, linear and domain-specific baselines under time-forward validation. Use proper scores (Brier/log loss/CRPS) and calibration; report the full outcome vector rather than a pooled CVS.
+
+The programme should claim to beat the state of the art only on a named benchmark, fixed evaluation protocol, held-out split and uncertainty-aware metric. A strong synthetic software kernel is an integrity achievement, not SOTA.
+
+## 23. Immediate research priorities
+
+1. Close exact-head CI and review the causal-path reference; don't call the matched path qualified until its full ledger-backed execution passes.
+2. Extend MAD's factor manifests and configuration passports to every new benchmark before adding more simulation code.
+3. Reproduce at least one external human-behaviour benchmark (SimBench or HumanStudy-Bench) under its official data, licence, scoring and split rules.
+4. Extend the deterministic resilience fixture to parameter/shock ensembles, then source-calibrated regional hindcasts and held-out basins.
+5. Reproduce the 54-agent non-transitive benchmark before making model-family rankings; keep our RPS control as a conformance test.
+6. Convert the Shashe–Limpopo HIST-001 case into an uncertainty-preserving archaeological data ingestion and held-out-site reconstruction benchmark.
+
+The governing rule remains: no increase in sophistication, aggregate score, collective intelligence proxy or simulation realism is allowed to compensate for missing evidence, disconnected mechanisms, poor calibration, or worse outcomes for a hidden subgroup.
