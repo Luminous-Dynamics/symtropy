@@ -1,0 +1,766 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-MATERIAL-TRANSFORMATION-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "parent_context": {
+    "parent_case_id": "SYNTHETIC-FRAGMENT-TRANSPORT-001",
+    "parent_interval_id": "WINDOW-001",
+    "trial_id": "TRIAL-001",
+    "site_context_ref": "site:synthetic-test-mine",
+    "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+    "machine_configuration_ref": "machine:synthetic-undercutter-r2",
+    "transport_configuration_ref": "transport:installed-205m-hose-r3",
+    "clock_sync_protocol_ref": "clock:ptp-sync-v1"
+  },
+  "stations": [
+    {
+      "station_id": "s-generated",
+      "stage": "CUTTER_DISCHARGE",
+      "physical_location_ref": "loc:cutter-discharge",
+      "configuration_ref": "machine:synthetic-undercutter-r2"
+    },
+    {
+      "station_id": "s-captured",
+      "stage": "CONVEYANCE_INLET",
+      "physical_location_ref": "loc:vacuum-inlet",
+      "configuration_ref": "transport:installed-205m-hose-r3"
+    },
+    {
+      "station_id": "s-floor",
+      "stage": "FLOOR_RESIDUAL",
+      "physical_location_ref": "loc:cut-floor",
+      "configuration_ref": "machine:synthetic-undercutter-r2"
+    },
+    {
+      "station_id": "s-conveyed",
+      "stage": "CONVEYANCE_OUTLET",
+      "physical_location_ref": "loc:separator-feed",
+      "configuration_ref": "transport:installed-205m-hose-r3"
+    },
+    {
+      "station_id": "s-deposit",
+      "stage": "LINE_DEPOSIT",
+      "physical_location_ref": "loc:hose-inspection",
+      "configuration_ref": "transport:installed-205m-hose-r3"
+    },
+    {
+      "station_id": "s-coarse",
+      "stage": "SEPARATOR_COARSE_OUTLET",
+      "physical_location_ref": "loc:cyclone-coarse",
+      "configuration_ref": "transport:installed-205m-hose-r3"
+    },
+    {
+      "station_id": "s-fines",
+      "stage": "FILTER_FINE_OUTLET",
+      "physical_location_ref": "loc:filter-box",
+      "configuration_ref": "transport:installed-205m-hose-r3"
+    },
+    {
+      "station_id": "s-reject",
+      "stage": "REJECT_DISCHARGE",
+      "physical_location_ref": "loc:reject-outlet",
+      "configuration_ref": "transport:installed-205m-hose-r3"
+    },
+    {
+      "station_id": "s-accepted",
+      "stage": "ACCEPTED_DISCHARGE",
+      "physical_location_ref": "loc:accepted-bin",
+      "configuration_ref": "transport:installed-205m-hose-r3"
+    },
+    {
+      "station_id": "s-loss",
+      "stage": "REJECT_DISCHARGE",
+      "physical_location_ref": "loc:discharge-residual",
+      "configuration_ref": "transport:installed-205m-hose-r3"
+    }
+  ],
+  "streams": [
+    {
+      "stream_id": "stream-generated",
+      "station_id": "s-generated",
+      "role": "GENERATED",
+      "start_ms": 1000000,
+      "end_ms": 1060000,
+      "clock_sync_ref": "clock:campaign-001",
+      "time_uncertainty_ms": 50,
+      "dry_mass_flow_lower_kg_s": 1.6616,
+      "dry_mass_flow_upper_kg_s": 1.6715999999999998,
+      "provenance": {
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:generated-scale",
+        "source_ref": "artifact:generated-flow-001"
+      },
+      "bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "dry_mass_flow_lower_kg_s": 0.3323,
+          "dry_mass_flow_upper_kg_s": 0.3343,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:generated-psd-001",
+            "source_ref": "artifact:generated-psd-bin-0-001"
+          }
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "dry_mass_flow_lower_kg_s": 0.4157,
+          "dry_mass_flow_upper_kg_s": 0.4177,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:generated-psd-001",
+            "source_ref": "artifact:generated-psd-bin-1-001"
+          }
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "dry_mass_flow_lower_kg_s": 0.5823,
+          "dry_mass_flow_upper_kg_s": 0.5843,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:generated-psd-001",
+            "source_ref": "artifact:generated-psd-bin-2-001"
+          }
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "dry_mass_flow_lower_kg_s": 0.3323,
+          "dry_mass_flow_upper_kg_s": 0.3343,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:generated-psd-001",
+            "source_ref": "artifact:generated-psd-bin-3-001"
+          }
+        }
+      ]
+    },
+    {
+      "stream_id": "stream-captured",
+      "station_id": "s-captured",
+      "role": "CAPTURED",
+      "start_ms": 1001000,
+      "end_ms": 1061000,
+      "clock_sync_ref": "clock:campaign-001",
+      "time_uncertainty_ms": 50,
+      "dry_mass_flow_lower_kg_s": 1.495,
+      "dry_mass_flow_upper_kg_s": 1.505,
+      "provenance": {
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:captured-scale",
+        "source_ref": "artifact:captured-flow-001"
+      },
+      "bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "dry_mass_flow_lower_kg_s": 0.239,
+          "dry_mass_flow_upper_kg_s": 0.241,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:captured-psd-001",
+            "source_ref": "artifact:captured-psd-bin-0-001"
+          }
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "dry_mass_flow_lower_kg_s": 0.389,
+          "dry_mass_flow_upper_kg_s": 0.391,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:captured-psd-001",
+            "source_ref": "artifact:captured-psd-bin-1-001"
+          }
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "dry_mass_flow_lower_kg_s": 0.559,
+          "dry_mass_flow_upper_kg_s": 0.561,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:captured-psd-001",
+            "source_ref": "artifact:captured-psd-bin-2-001"
+          }
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "dry_mass_flow_lower_kg_s": 0.309,
+          "dry_mass_flow_upper_kg_s": 0.311,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:captured-psd-001",
+            "source_ref": "artifact:captured-psd-bin-3-001"
+          }
+        }
+      ]
+    },
+    {
+      "stream_id": "stream-floor",
+      "station_id": "s-floor",
+      "role": "FLOOR_RESIDUAL",
+      "start_ms": 1001000,
+      "end_ms": 1061000,
+      "clock_sync_ref": "clock:campaign-001",
+      "time_uncertainty_ms": 50,
+      "dry_mass_flow_lower_kg_s": 0.16159999999999997,
+      "dry_mass_flow_upper_kg_s": 0.17159999999999997,
+      "provenance": {
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:floor-scale",
+        "source_ref": "artifact:floor-flow-001"
+      },
+      "bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "dry_mass_flow_lower_kg_s": 0.0923,
+          "dry_mass_flow_upper_kg_s": 0.0943,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:floor-psd-001",
+            "source_ref": "artifact:floor-psd-bin-0-001"
+          }
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "dry_mass_flow_lower_kg_s": 0.0257,
+          "dry_mass_flow_upper_kg_s": 0.027700000000000002,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:floor-psd-001",
+            "source_ref": "artifact:floor-psd-bin-1-001"
+          }
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "dry_mass_flow_lower_kg_s": 0.0223,
+          "dry_mass_flow_upper_kg_s": 0.024300000000000002,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:floor-psd-001",
+            "source_ref": "artifact:floor-psd-bin-2-001"
+          }
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "dry_mass_flow_lower_kg_s": 0.0223,
+          "dry_mass_flow_upper_kg_s": 0.024300000000000002,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:floor-psd-001",
+            "source_ref": "artifact:floor-psd-bin-3-001"
+          }
+        }
+      ]
+    },
+    {
+      "stream_id": "stream-conveyed",
+      "station_id": "s-conveyed",
+      "role": "CONVEYED",
+      "start_ms": 1003500,
+      "end_ms": 1063500,
+      "clock_sync_ref": "clock:campaign-001",
+      "time_uncertainty_ms": 50,
+      "dry_mass_flow_lower_kg_s": 1.445,
+      "dry_mass_flow_upper_kg_s": 1.4549999999999998,
+      "provenance": {
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:conveyed-scale",
+        "source_ref": "artifact:conveyed-flow-001"
+      },
+      "bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "dry_mass_flow_lower_kg_s": 0.259,
+          "dry_mass_flow_upper_kg_s": 0.261,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:conveyed-psd-001",
+            "source_ref": "artifact:conveyed-psd-bin-0-001"
+          }
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "dry_mass_flow_lower_kg_s": 0.389,
+          "dry_mass_flow_upper_kg_s": 0.391,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:conveyed-psd-001",
+            "source_ref": "artifact:conveyed-psd-bin-1-001"
+          }
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "dry_mass_flow_lower_kg_s": 0.539,
+          "dry_mass_flow_upper_kg_s": 0.541,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:conveyed-psd-001",
+            "source_ref": "artifact:conveyed-psd-bin-2-001"
+          }
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "dry_mass_flow_lower_kg_s": 0.259,
+          "dry_mass_flow_upper_kg_s": 0.261,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:conveyed-psd-001",
+            "source_ref": "artifact:conveyed-psd-bin-3-001"
+          }
+        }
+      ]
+    },
+    {
+      "stream_id": "stream-deposit",
+      "station_id": "s-deposit",
+      "role": "LINE_DEPOSIT",
+      "start_ms": 1003500,
+      "end_ms": 1063500,
+      "clock_sync_ref": "clock:campaign-001",
+      "time_uncertainty_ms": 50,
+      "dry_mass_flow_lower_kg_s": 0.045000000000000005,
+      "dry_mass_flow_upper_kg_s": 0.055,
+      "provenance": {
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:deposit-scale",
+        "source_ref": "artifact:deposit-flow-001"
+      },
+      "bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "dry_mass_flow_lower_kg_s": 0,
+          "dry_mass_flow_upper_kg_s": 0.001,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:deposit-psd-001",
+            "source_ref": "artifact:deposit-psd-bin-0-001"
+          }
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "dry_mass_flow_lower_kg_s": 0,
+          "dry_mass_flow_upper_kg_s": 0.001,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:deposit-psd-001",
+            "source_ref": "artifact:deposit-psd-bin-1-001"
+          }
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "dry_mass_flow_lower_kg_s": 0.019,
+          "dry_mass_flow_upper_kg_s": 0.021,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:deposit-psd-001",
+            "source_ref": "artifact:deposit-psd-bin-2-001"
+          }
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "dry_mass_flow_lower_kg_s": 0.028999999999999998,
+          "dry_mass_flow_upper_kg_s": 0.031,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:deposit-psd-001",
+            "source_ref": "artifact:deposit-psd-bin-3-001"
+          }
+        }
+      ]
+    },
+    {
+      "stream_id": "stream-coarse",
+      "station_id": "s-coarse",
+      "role": "SEPARATOR_COARSE",
+      "start_ms": 1004000,
+      "end_ms": 1064000,
+      "clock_sync_ref": "clock:campaign-001",
+      "time_uncertainty_ms": 50,
+      "dry_mass_flow_lower_kg_s": 1.195,
+      "dry_mass_flow_upper_kg_s": 1.2049999999999998,
+      "provenance": {
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:coarse-scale",
+        "source_ref": "artifact:coarse-flow-001"
+      },
+      "bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "dry_mass_flow_lower_kg_s": 0.229,
+          "dry_mass_flow_upper_kg_s": 0.231,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:coarse-psd-001",
+            "source_ref": "artifact:coarse-psd-bin-0-001"
+          }
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "dry_mass_flow_lower_kg_s": 0.339,
+          "dry_mass_flow_upper_kg_s": 0.341,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:coarse-psd-001",
+            "source_ref": "artifact:coarse-psd-bin-1-001"
+          }
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "dry_mass_flow_lower_kg_s": 0.429,
+          "dry_mass_flow_upper_kg_s": 0.431,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:coarse-psd-001",
+            "source_ref": "artifact:coarse-psd-bin-2-001"
+          }
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "dry_mass_flow_lower_kg_s": 0.199,
+          "dry_mass_flow_upper_kg_s": 0.201,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:coarse-psd-001",
+            "source_ref": "artifact:coarse-psd-bin-3-001"
+          }
+        }
+      ]
+    },
+    {
+      "stream_id": "stream-fines",
+      "station_id": "s-fines",
+      "role": "FILTER_FINES",
+      "start_ms": 1004000,
+      "end_ms": 1064000,
+      "clock_sync_ref": "clock:campaign-001",
+      "time_uncertainty_ms": 50,
+      "dry_mass_flow_lower_kg_s": 0.195,
+      "dry_mass_flow_upper_kg_s": 0.20500000000000002,
+      "provenance": {
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:fines-scale",
+        "source_ref": "artifact:fines-flow-001"
+      },
+      "bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "dry_mass_flow_lower_kg_s": 0.028999999999999998,
+          "dry_mass_flow_upper_kg_s": 0.031,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:fines-psd-001",
+            "source_ref": "artifact:fines-psd-bin-0-001"
+          }
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "dry_mass_flow_lower_kg_s": 0.039,
+          "dry_mass_flow_upper_kg_s": 0.041,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:fines-psd-001",
+            "source_ref": "artifact:fines-psd-bin-1-001"
+          }
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "dry_mass_flow_lower_kg_s": 0.089,
+          "dry_mass_flow_upper_kg_s": 0.091,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:fines-psd-001",
+            "source_ref": "artifact:fines-psd-bin-2-001"
+          }
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "dry_mass_flow_lower_kg_s": 0.039,
+          "dry_mass_flow_upper_kg_s": 0.041,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:fines-psd-001",
+            "source_ref": "artifact:fines-psd-bin-3-001"
+          }
+        }
+      ]
+    },
+    {
+      "stream_id": "stream-reject",
+      "station_id": "s-reject",
+      "role": "REJECTED",
+      "start_ms": 1004000,
+      "end_ms": 1064000,
+      "clock_sync_ref": "clock:campaign-001",
+      "time_uncertainty_ms": 50,
+      "dry_mass_flow_lower_kg_s": 0.045000000000000005,
+      "dry_mass_flow_upper_kg_s": 0.055,
+      "provenance": {
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:reject-scale",
+        "source_ref": "artifact:reject-flow-001"
+      },
+      "bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "dry_mass_flow_lower_kg_s": 0,
+          "dry_mass_flow_upper_kg_s": 0.001,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:reject-psd-001",
+            "source_ref": "artifact:reject-psd-bin-0-001"
+          }
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "dry_mass_flow_lower_kg_s": 0.009000000000000001,
+          "dry_mass_flow_upper_kg_s": 0.011,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:reject-psd-001",
+            "source_ref": "artifact:reject-psd-bin-1-001"
+          }
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "dry_mass_flow_lower_kg_s": 0.019,
+          "dry_mass_flow_upper_kg_s": 0.021,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:reject-psd-001",
+            "source_ref": "artifact:reject-psd-bin-2-001"
+          }
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "dry_mass_flow_lower_kg_s": 0.019,
+          "dry_mass_flow_upper_kg_s": 0.021,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:reject-psd-001",
+            "source_ref": "artifact:reject-psd-bin-3-001"
+          }
+        }
+      ]
+    },
+    {
+      "stream_id": "stream-accepted",
+      "station_id": "s-accepted",
+      "role": "ACCEPTED_DISCHARGE",
+      "start_ms": 1004500,
+      "end_ms": 1064500,
+      "clock_sync_ref": "clock:campaign-001",
+      "time_uncertainty_ms": 50,
+      "dry_mass_flow_lower_kg_s": 1.185,
+      "dry_mass_flow_upper_kg_s": 1.1949999999999998,
+      "provenance": {
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:accepted-scale",
+        "source_ref": "artifact:accepted-flow-001"
+      },
+      "bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "dry_mass_flow_lower_kg_s": 0.229,
+          "dry_mass_flow_upper_kg_s": 0.231,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:accepted-psd-001",
+            "source_ref": "artifact:accepted-psd-bin-0-001"
+          }
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "dry_mass_flow_lower_kg_s": 0.339,
+          "dry_mass_flow_upper_kg_s": 0.341,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:accepted-psd-001",
+            "source_ref": "artifact:accepted-psd-bin-1-001"
+          }
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "dry_mass_flow_lower_kg_s": 0.429,
+          "dry_mass_flow_upper_kg_s": 0.431,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:accepted-psd-001",
+            "source_ref": "artifact:accepted-psd-bin-2-001"
+          }
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "dry_mass_flow_lower_kg_s": 0.189,
+          "dry_mass_flow_upper_kg_s": 0.191,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:accepted-psd-001",
+            "source_ref": "artifact:accepted-psd-bin-3-001"
+          }
+        }
+      ]
+    },
+    {
+      "stream_id": "stream-loss",
+      "station_id": "s-loss",
+      "role": "REJECTED",
+      "start_ms": 1004500,
+      "end_ms": 1064500,
+      "clock_sync_ref": "clock:campaign-001",
+      "time_uncertainty_ms": 50,
+      "dry_mass_flow_lower_kg_s": 0.005,
+      "dry_mass_flow_upper_kg_s": 0.015,
+      "provenance": {
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:loss-scale",
+        "source_ref": "artifact:loss-flow-001"
+      },
+      "bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "dry_mass_flow_lower_kg_s": 0,
+          "dry_mass_flow_upper_kg_s": 0.001,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:loss-psd-001",
+            "source_ref": "artifact:loss-psd-bin-0-001"
+          }
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "dry_mass_flow_lower_kg_s": 0,
+          "dry_mass_flow_upper_kg_s": 0.001,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:loss-psd-001",
+            "source_ref": "artifact:loss-psd-bin-1-001"
+          }
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "dry_mass_flow_lower_kg_s": 0,
+          "dry_mass_flow_upper_kg_s": 0.001,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:loss-psd-001",
+            "source_ref": "artifact:loss-psd-bin-2-001"
+          }
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "dry_mass_flow_lower_kg_s": 0.009000000000000001,
+          "dry_mass_flow_upper_kg_s": 0.011,
+          "provenance": {
+            "evidence_role": "INDEPENDENT_MEASUREMENT",
+            "calibration_ref": "cal:loss-psd-001",
+            "source_ref": "artifact:loss-psd-bin-3-001"
+          }
+        }
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "transition_id": "transition-capture-001",
+      "stage": "CAPTURE",
+      "path_segment_ref": "path:face-to-vacuum-inlet",
+      "input_stream_ids": [
+        "stream-generated"
+      ],
+      "output_stream_ids": [
+        "stream-captured",
+        "stream-floor"
+      ],
+      "residence_time_lower_ms": 500,
+      "residence_time_upper_ms": 1500,
+      "alignment_tolerance_ms": 100,
+      "clock_sync_ref": "clock:campaign-001"
+    },
+    {
+      "transition_id": "transition-convey-001",
+      "stage": "CONVEY",
+      "path_segment_ref": "path:installed-205m-hose",
+      "input_stream_ids": [
+        "stream-captured"
+      ],
+      "output_stream_ids": [
+        "stream-conveyed",
+        "stream-deposit"
+      ],
+      "residence_time_lower_ms": 2000,
+      "residence_time_upper_ms": 3000,
+      "alignment_tolerance_ms": 100,
+      "clock_sync_ref": "clock:campaign-001"
+    },
+    {
+      "transition_id": "transition-separate-001",
+      "stage": "SEPARATE",
+      "path_segment_ref": "path:cyclone-filter-train",
+      "input_stream_ids": [
+        "stream-conveyed"
+      ],
+      "output_stream_ids": [
+        "stream-coarse",
+        "stream-fines",
+        "stream-reject"
+      ],
+      "residence_time_lower_ms": 0,
+      "residence_time_upper_ms": 1000,
+      "alignment_tolerance_ms": 100,
+      "clock_sync_ref": "clock:campaign-001"
+    },
+    {
+      "transition_id": "transition-discharge-001",
+      "stage": "DISCHARGE",
+      "path_segment_ref": "path:accepted-material-discharge",
+      "input_stream_ids": [
+        "stream-coarse"
+      ],
+      "output_stream_ids": [
+        "stream-accepted",
+        "stream-loss"
+      ],
+      "residence_time_lower_ms": 0,
+      "residence_time_upper_ms": 1000,
+      "alignment_tolerance_ms": 100,
+      "clock_sync_ref": "clock:campaign-001"
+    }
+  ]
+}
