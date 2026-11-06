@@ -29,8 +29,15 @@ pub fn nan_zeroed_count() -> u64 {
 
 /// Integrate a single rigid body forward by dt seconds.
 ///
-/// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+/// Semi-implicit (kick-drift) Euler: update velocity first, then position.
+///
+/// For appropriate separable Hamiltonian systems, this update is symplectic:
+/// it preserves the canonical symplectic structure of the discrete map. That
+/// property is not a blanket stability guarantee. Accuracy and stability
+/// depend on the force law, timestep and coupling; arbitrary large timesteps,
+/// nonlinear systems and dissipative terms may still produce poor or unstable
+/// trajectories. The linear/angular damping and safety clamps below are not
+/// part of a conservative Hamiltonian update.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
@@ -195,6 +202,65 @@ mod tests {
         let y = body.transform.translation.coord(1);
         assert!(y < -3.0, "y = {y}, expected < -3.0");
         assert!(y > -6.0, "y = {y}, expected > -6.0 (damping bounds)");
+    }
+
+    fn ballistic_run(dt: f64) -> (f64, f64) {
+        let total_time = 1.0_f64;
+        let steps = (total_time / dt).round() as usize;
+        assert!(
+            (steps as f64 * dt - total_time).abs() < 1e-14,
+            "fixture requires an integral number of fixed steps"
+        );
+
+        let initial_position = SVector::from([0.25, 2.0, -0.5]);
+        let initial_velocity = SVector::from([0.3, 2.0, -0.1]);
+        let gravity = SVector::from([0.0, -9.81, 0.0]);
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([
+                initial_position[0],
+                initial_position[1],
+                initial_position[2],
+            ]),
+            0.01,
+            1.0,
+        );
+        body.linear_velocity = initial_velocity;
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+
+        for _ in 0..steps {
+            integrate(&mut body, &gravity, dt);
+        }
+
+        let exact_position =
+            initial_position + initial_velocity * total_time + gravity * (0.5 * total_time.powi(2));
+        let exact_velocity = initial_velocity + gravity * total_time;
+        let position_error = (body.transform.translation.0 - exact_position).norm();
+        let velocity_error = (body.linear_velocity - exact_velocity).norm();
+        (position_error, velocity_error)
+    }
+
+    #[test]
+    fn ballistic_position_error_is_first_order_and_velocity_is_exact() {
+        let (error_dt, velocity_error_dt) = ballistic_run(0.1);
+        let (error_half, velocity_error_half) = ballistic_run(0.05);
+        let (error_quarter, velocity_error_quarter) = ballistic_run(0.025);
+
+        let ratio_one = error_dt / error_half;
+        let ratio_two = error_half / error_quarter;
+
+        assert!(
+            (ratio_one - 2.0).abs() < 1e-10,
+            "halving dt should halve the global position error: {ratio_one}"
+        );
+        assert!(
+            (ratio_two - 2.0).abs() < 1e-10,
+            "second refinement should retain first-order convergence: {ratio_two}"
+        );
+        assert!(velocity_error_dt < 1e-10);
+        assert!(velocity_error_half < 1e-10);
+        assert!(velocity_error_quarter < 1e-10);
     }
 
     #[test]
