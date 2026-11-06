@@ -188,6 +188,7 @@
       "additionalProperties": false,
       "required": [
         "obligation_id",
+        "revision_sequence",
         "axis",
         "stratum_digest",
         "state",
@@ -275,6 +276,10 @@
             "null"
           ],
           "minLength": 1
+        },
+        "revision_sequence": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
