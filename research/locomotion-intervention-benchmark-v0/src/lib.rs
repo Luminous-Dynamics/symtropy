@@ -93,6 +93,8 @@ pub enum BenchmarkError {
     EmptyInterventionSet,
     NoFeasibleInterventions,
     InvalidDesignThreshold,
+    EmptyParameterScenarioSet,
+    InvalidParameterScenarioGrid,
     InvalidInterventionIndex,
     InvalidPhasePulse,
     InvalidScoreMargin,
@@ -1085,6 +1087,7 @@ pub struct InterventionCandidate {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PairwiseSeparation {
+    pub scenario_index: usize,
     pub left: Mechanism,
     pub right: Mechanism,
     pub post_intervention_rmse: f64,
@@ -1100,6 +1103,7 @@ pub struct InterventionDesign {
     pub mean_pairwise_rmse: f64,
     /// Worst-pair separation divided by action cost.
     pub maximin_utility: f64,
+    pub scenario_count: usize,
     pub pairwise: Vec<PairwiseSeparation>,
 }
 
@@ -1134,7 +1138,43 @@ pub fn design_discriminating_intervention(
     config: SimulationConfig,
     minimum_maximin_utility: f64,
 ) -> Result<InterventionDesignDecision, BenchmarkError> {
-    config.validate()?;
+    design_discriminating_intervention_across_scenarios(
+        mechanisms,
+        candidates,
+        &[config],
+        minimum_maximin_utility,
+    )
+}
+
+/// Robust variant of the intervention selector. Every candidate action is
+/// evaluated under all supplied plausible parameter scenarios using the same
+/// time grid. The objective takes the minimum separation over both mechanism
+/// pairs and parameter scenarios, so a perturbation is not selected merely
+/// because it is informative at one favourable nuisance-parameter setting.
+///
+/// Scenarios may vary frequency, phase, feedback decay and coupling. They must
+/// share the same sample count and interval so paired trajectories remain
+/// aligned. This is a finite-scenario worst-case approximation, not a
+/// posterior predictive distribution or a Bayesian credible set.
+pub fn design_discriminating_intervention_across_scenarios(
+    mechanisms: &[Mechanism],
+    candidates: &[InterventionCandidate],
+    parameter_scenarios: &[SimulationConfig],
+    minimum_maximin_utility: f64,
+) -> Result<InterventionDesignDecision, BenchmarkError> {
+    if parameter_scenarios.is_empty() {
+        return Err(BenchmarkError::EmptyParameterScenarioSet);
+    }
+    let primary_config = parameter_scenarios[0];
+    primary_config.validate()?;
+    for scenario in parameter_scenarios.iter().skip(1) {
+        scenario.validate()?;
+        if scenario.sample_count != primary_config.sample_count
+            || scenario.sample_interval != primary_config.sample_interval
+        {
+            return Err(BenchmarkError::InvalidParameterScenarioGrid);
+        }
+    }
     if mechanisms.len() < 2 {
         return Err(BenchmarkError::EmptyCandidateSet);
     }
@@ -1163,7 +1203,7 @@ pub fn design_discriminating_intervention(
         if !candidate.cost.is_finite() || candidate.cost <= 0.0 {
             return Err(BenchmarkError::InvalidInterventionCost);
         }
-        if candidate.onset_index >= config.sample_count {
+        if candidate.onset_index >= primary_config.sample_count {
             return Err(BenchmarkError::InvalidInterventionIndex);
         }
         let action_index = match candidate.intervention {
@@ -1174,39 +1214,45 @@ pub fn design_discriminating_intervention(
         if action_index != candidate.onset_index {
             return Err(BenchmarkError::InvalidInterventionAlignment);
         }
-        validate_intervention(candidate.intervention, config)?;
+        for scenario in parameter_scenarios {
+            validate_intervention(candidate.intervention, *scenario)?;
+        }
     }
 
     let mut designs = Vec::new();
     for candidate in candidates.iter().filter(|candidate| candidate.feasible) {
-        let mut traces = Vec::with_capacity(ordered_mechanisms.len());
-        for mechanism in &ordered_mechanisms {
-            traces.push((
-                *mechanism,
-                simulate(*mechanism, candidate.intervention, config)?,
-            ));
-        }
-
         let mut pairwise = Vec::new();
         let mut worst_pairwise_rmse = f64::INFINITY;
         let mut pairwise_sum = 0.0;
-        for left_index in 0..traces.len() {
-            for right_index in (left_index + 1)..traces.len() {
-                let divergence = post_intervention_rmse(
-                    &traces[left_index].1.samples,
-                    &traces[right_index].1.samples,
-                    candidate.onset_index,
-                )?;
-                if !divergence.is_finite() {
-                    return Err(BenchmarkError::NumericalFailure);
+
+        for (scenario_index, scenario) in parameter_scenarios.iter().enumerate() {
+            let mut traces = Vec::with_capacity(ordered_mechanisms.len());
+            for mechanism in &ordered_mechanisms {
+                traces.push((
+                    *mechanism,
+                    simulate(*mechanism, candidate.intervention, *scenario)?,
+                ));
+            }
+
+            for left_index in 0..traces.len() {
+                for right_index in (left_index + 1)..traces.len() {
+                    let divergence = post_intervention_rmse(
+                        &traces[left_index].1.samples,
+                        &traces[right_index].1.samples,
+                        candidate.onset_index,
+                    )?;
+                    if !divergence.is_finite() {
+                        return Err(BenchmarkError::NumericalFailure);
+                    }
+                    worst_pairwise_rmse = worst_pairwise_rmse.min(divergence);
+                    pairwise_sum += divergence;
+                    pairwise.push(PairwiseSeparation {
+                        scenario_index,
+                        left: traces[left_index].0,
+                        right: traces[right_index].0,
+                        post_intervention_rmse: divergence,
+                    });
                 }
-                worst_pairwise_rmse = worst_pairwise_rmse.min(divergence);
-                pairwise_sum += divergence;
-                pairwise.push(PairwiseSeparation {
-                    left: traces[left_index].0,
-                    right: traces[right_index].0,
-                    post_intervention_rmse: divergence,
-                });
             }
         }
 
@@ -1228,6 +1274,7 @@ pub fn design_discriminating_intervention(
             worst_pairwise_rmse,
             mean_pairwise_rmse,
             maximin_utility,
+            scenario_count: parameter_scenarios.len(),
             pairwise,
         });
     }
@@ -2402,6 +2449,91 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn robust_design_accounts_for_feedback_decay_uncertainty_across_scenarios() {
+        let mechanisms = [
+            Mechanism::IntrinsicOscillator,
+            Mechanism::SensoryFeedbackDriven,
+        ];
+        let nominal = config();
+        let slow_feedback = SimulationConfig {
+            feedback_decay_rate: 0.01,
+            ..nominal
+        };
+        let candidates = [
+            design_candidate(
+                "feedback-cut",
+                Intervention::FeedbackCutFrom { sample_index: 20 },
+                20,
+                1.0,
+                true,
+            ),
+            design_candidate(
+                "phase-pulse",
+                Intervention::PhasePulseAt {
+                    sample_index: 20,
+                    delta_phase_radians: 0.6,
+                },
+                20,
+                1.0,
+                true,
+            ),
+        ];
+        let decision = design_discriminating_intervention_across_scenarios(
+            &mechanisms,
+            &candidates,
+            &[nominal, slow_feedback],
+            0.0,
+        )
+        .unwrap();
+        let InterventionDesignDecision::Selected { design } = decision else {
+            panic!("expected a robustly discriminating action");
+        };
+        assert_eq!(design.candidate_id, "phase-pulse");
+        assert_eq!(design.scenario_count, 2);
+        assert_eq!(design.pairwise.len(), 2);
+        assert_eq!(design.pairwise[0].scenario_index, 0);
+        assert_eq!(design.pairwise[1].scenario_index, 1);
+    }
+
+    #[test]
+    fn robust_design_rejects_empty_or_mismatched_parameter_scenarios() {
+        let mechanisms = [
+            Mechanism::IntrinsicOscillator,
+            Mechanism::SensoryFeedbackDriven,
+        ];
+        let candidates = [design_candidate(
+            "feedback-cut",
+            Intervention::FeedbackCutFrom { sample_index: 20 },
+            20,
+            1.0,
+            true,
+        )];
+        assert_eq!(
+            design_discriminating_intervention_across_scenarios(
+                &mechanisms,
+                &candidates,
+                &[],
+                0.0
+            ),
+            Err(BenchmarkError::EmptyParameterScenarioSet)
+        );
+
+        let mismatched = SimulationConfig {
+            sample_interval: 0.04,
+            ..config()
+        };
+        assert_eq!(
+            design_discriminating_intervention_across_scenarios(
+                &mechanisms,
+                &candidates,
+                &[config(), mismatched],
+                0.0
+            ),
+            Err(BenchmarkError::InvalidParameterScenarioGrid)
+        );
+    }
     #[test]
     fn wilson_interval_matches_known_small_sample_reference() {
         let interval = wilson_interval(5, 10);
