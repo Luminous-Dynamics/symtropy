@@ -93,7 +93,15 @@ struct Receiver {
 #[derive(Debug, Clone)]
 struct SegmentSlot {
     source_slot_index: usize,
+    slot_index: usize,
     capacity_quanta: u64,
+}
+
+#[derive(Debug, Clone)]
+struct ResourceSlot {
+    resource_id: String,
+    interval_index: usize,
+    capacity_units: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -119,8 +127,10 @@ struct Scenario {
     segment_capacities: Vec<u64>,
     receiver_slot_capacities: Vec<u64>,
     resource_capacities: Vec<u64>,
+    resources: Vec<ResourceSlot>,
     links: Vec<Link>,
     total_requested_quanta: u64,
+    total_requested_mwh: u64,
 }
 
 fn parse_scenario(value: &Value) -> Result<Scenario, String> {
@@ -321,6 +331,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
                 key.clone(),
                 SegmentSlot {
                     source_slot_index,
+                    slot_index: index,
                     capacity_quanta,
                 },
             )
@@ -386,6 +397,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         ));
     }
     let mut resource_capacities = Vec::with_capacity(resource_rows.len());
+    let mut resources = Vec::with_capacity(resource_rows.len());
     let mut resource_indices = BTreeMap::new();
     for (index, row) in resource_rows.iter().enumerate() {
         let path = format!("$.shared_resource_slots[{index}]");
@@ -406,7 +418,13 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
                 format!("duplicate shared resource slot {}@{}", key.0, key.1),
             ));
         }
-        resource_capacities.push(uint_field(row, "capacity_units", &path)?);
+        let capacity_units = uint_field(row, "capacity_units", &path)?;
+        resource_capacities.push(capacity_units);
+        resources.push(ResourceSlot {
+            resource_id,
+            interval_index: interval as usize,
+            capacity_units,
+        });
     }
 
     let link_rows = array_field(value, "transfer_links", "$")?;
@@ -503,10 +521,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         links.push(Link {
             link_id,
             source_slot_index,
-            segment_slot_index: segment_slots
-                .keys()
-                .position(|key| key == &(segment_id.clone(), interval))
-                .ok_or_else(|| fail(&path, "segment index disappeared"))?,
+            segment_slot_index: segment.slot_index,
             receiver_index,
             receiver_slot_index,
             interval_index: interval,
@@ -525,10 +540,9 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
     }
     links.sort_by_key(|link| link.link_id.clone());
 
-    let _segment_capacity_sanity = segment_capacities
-        .iter()
-        .zip(segment_slots.values())
-        .all(|(capacity, slot)| *capacity == slot.capacity_quanta);
+    let total_requested_mwh = total_requested_quanta
+        .checked_mul(energy_quantum_mwh)
+        .ok_or_else(|| fail("$.receivers", "total requested mWh overflowed u64"))?;
     Ok(Scenario {
         scenario_id,
         interval_count,
@@ -538,8 +552,10 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         segment_capacities,
         receiver_slot_capacities,
         resource_capacities,
+        resources,
         links,
         total_requested_quanta,
+        total_requested_mwh,
     })
 }
 
@@ -560,12 +576,21 @@ pub struct ReceiverAllocation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SharedResourceAllocation {
+    pub resource_id: String,
+    pub interval_index: usize,
+    pub capacity_units: u64,
+    pub used_units: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParetoPoint {
     pub total_delivered_mwh: u64,
     pub worst_receiver_satisfaction_ppm: u64,
     pub jain_fairness_ppm: u64,
     pub total_asset_stress_units: u64,
     pub receiver_allocations: Vec<ReceiverAllocation>,
+    pub shared_resource_allocations: Vec<SharedResourceAllocation>,
     /// In link_id order; exact constructive allocation witness.
     pub link_allocations: Vec<LinkAllocation>,
 }
@@ -663,6 +688,29 @@ fn candidate_point(
         .ok_or_else(|| "Jain numerator overflowed u128".to_string())?
         / jain_denominator;
 
+    let mut resource_used = vec![0_u64; scenario.resources.len()];
+    for (link, amount) in scenario.links.iter().zip(allocations.iter()) {
+        for (resource_index, units_per_quantum) in &link.resource_uses {
+            let used = amount
+                .checked_mul(*units_per_quantum)
+                .ok_or_else(|| "resource-use multiplication overflowed".to_string())?;
+            resource_used[*resource_index] = resource_used[*resource_index]
+                .checked_add(used)
+                .ok_or_else(|| "resource-use total overflowed".to_string())?;
+        }
+    }
+    let shared_resource_allocations = scenario
+        .resources
+        .iter()
+        .zip(resource_used.iter())
+        .map(|(resource, used_units)| SharedResourceAllocation {
+            resource_id: resource.resource_id.clone(),
+            interval_index: resource.interval_index,
+            capacity_units: resource.capacity_units,
+            used_units: *used_units,
+        })
+        .collect();
+
     let link_allocations = scenario
         .links
         .iter()
@@ -680,6 +728,7 @@ fn candidate_point(
         jain_fairness_ppm: jain as u64,
         total_asset_stress_units: stress,
         receiver_allocations,
+        shared_resource_allocations,
         link_allocations,
     })
 }
@@ -894,7 +943,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ParetoOracleReport, String> {
         energy_quantum_mwh: scenario.energy_quantum_mwh,
         receiver_count,
         transfer_link_count: link_count,
-        total_requested_mwh: scenario.total_requested_quanta * scenario.energy_quantum_mwh,
+        total_requested_mwh: scenario.total_requested_mwh,
         enumeration_nodes: search.nodes,
         feasible_allocations: search.feasible_allocations,
         feasible: !search.frontier.is_empty(),
@@ -952,13 +1001,20 @@ mod tests {
     fn shared_coupling_resource_is_enforced_jointly_across_pairwise_links() {
         let report = evaluate_scenario(&fixture()).unwrap();
         for point in report.pareto_frontier {
+            let resource = point
+                .shared_resource_allocations
+                .iter()
+                .find(|row| row.resource_id == "segment-a-coupling-envelope")
+                .unwrap();
+            assert_eq!(resource.capacity_units, 3);
+            assert!(resource.used_units <= resource.capacity_units);
             let segment_a_use = point
                 .link_allocations
                 .iter()
                 .filter(|link| link.link_id.starts_with("a-"))
                 .map(|link| link.allocated_mwh)
                 .sum::<u64>();
-            assert!(segment_a_use <= 3);
+            assert_eq!(resource.used_units, segment_a_use);
         }
     }
 
@@ -995,6 +1051,24 @@ mod tests {
     #[test]
     fn half_open_departure_window_rejects_late_transfer() {
         let mut scenario = fixture();
+        scenario["interval_count"] = Value::from(2);
+        scenario["source_slots"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "source_id": "site-inverter",
+                "interval_index": 1,
+                "available_deliverable_energy_mwh": 8
+            }));
+        scenario["segment_slots"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "source_id": "site-inverter",
+                "segment_id": "segment-a",
+                "interval_index": 1,
+                "available_deliverable_energy_mwh": 5
+            }));
         scenario["transfer_links"][0]["interval_index"] = Value::from(1);
         assert!(
             evaluate_scenario(&scenario)
@@ -1006,7 +1080,8 @@ mod tests {
     #[test]
     fn duplicate_link_identity_and_unknown_properties_fail_closed() {
         let mut scenario = fixture();
-        scenario["transfer_links"][1]["link_id"] = scenario["transfer_links"][0]["link_id"].clone();
+        let duplicate_id = scenario["transfer_links"][0]["link_id"].clone();
+        scenario["transfer_links"][1]["link_id"] = duplicate_id;
         assert!(evaluate_scenario(&scenario).unwrap_err().contains("duplicate link_id"));
 
         let mut scenario = fixture();
