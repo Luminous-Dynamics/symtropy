@@ -122,7 +122,9 @@ impl CoordinationConfig {
         }
         if matches!(
             model,
-            CoordinationModel::CoupledOscillators | CoordinationModel::HybridOscillators
+            CoordinationModel::CoupledOscillators
+                | CoordinationModel::CoupledHopfOscillators
+                | CoordinationModel::HybridOscillators
         ) && self.central_coupling_gain == 0.0
         {
             return Err(CoordinationError::InvalidCentralCouplingGain);
@@ -999,6 +1001,79 @@ mod tests {
         .unwrap()
         .unwrap();
         assert!(error < 0.1);
+    }
+
+
+    #[test]
+    fn six_node_hopf_network_recovers_a_suppressed_leg_amplitude() {
+        let intervention = Intervention {
+            amplitude_pulse: Some(AmplitudePulse {
+                step: 20,
+                leg: LegId::LeftFront,
+                scale: 0.2,
+            }),
+            ..Intervention::default()
+        };
+        let trace = run(CoordinationModel::CoupledHopfOscillators, intervention).unwrap();
+        let at_pulse = &trace.samples[20];
+        let pulse_amplitude = at_pulse.x[0].hypot(at_pulse.y[0]);
+        assert!((pulse_amplitude - 0.2).abs() < 1.0e-10);
+
+        let final_sample = trace.samples.last().unwrap();
+        let final_amplitude = final_sample.x[0].hypot(final_sample.y[0]);
+        assert!((final_amplitude - 1.0).abs() < 1.0e-3);
+        let pattern_error =
+            phase_pattern_rmse(final_sample, DEFAULT_TRIPOD_OFFSETS, 1.0e-9)
+                .unwrap()
+                .unwrap();
+        assert!(pattern_error < 0.01);
+    }
+
+    #[test]
+    fn six_node_hopf_network_recovers_a_local_phase_pulse() {
+        let intervention = pulse(LegId::RightRear, 20, 0.8);
+        let trace = run(CoordinationModel::CoupledHopfOscillators, intervention).unwrap();
+        let recovery = recovery_time(
+            &trace,
+            20,
+            0.04,
+            3,
+            DEFAULT_TRIPOD_OFFSETS,
+            1.0e-9,
+        )
+        .unwrap();
+        assert!(recovery.is_some_and(|time| time < 1.0));
+    }
+
+    #[test]
+    fn hopf_interventions_and_parameters_fail_closed() {
+        let config = CoordinationConfig::default();
+        assert_eq!(
+            simulate(
+                CoordinationModel::CoupledHopfOscillators,
+                Intervention {
+                    amplitude_pulse: Some(AmplitudePulse {
+                        step: 10,
+                        leg: LegId::LeftMiddle,
+                        scale: 0.0,
+                    }),
+                    ..Intervention::default()
+                },
+                config
+            ),
+            Err(CoordinationError::InvalidAmplitudePulse)
+        );
+
+        let mut invalid = config;
+        invalid.hopf_radial_gain = 0.0;
+        assert_eq!(
+            simulate(
+                CoordinationModel::CoupledHopfOscillators,
+                Intervention::default(),
+                invalid
+            ),
+            Err(CoordinationError::InvalidHopfParameters)
+        );
     }
 
     #[test]
