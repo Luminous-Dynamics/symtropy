@@ -1,0 +1,102 @@
+name: CivDyn service cascade reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-service-cascade/**"
+      - ".github/workflows/civdyn-service-cascade.yml"
+  push:
+    paths:
+      - "research/civdyn-service-cascade/**"
+      - ".github/workflows/civdyn-service-cascade.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute service cascade benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-service-cascade/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-service-cascade/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-service-cascade/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-service-cascade/Cargo.toml --all-targets
+
+      - name: Execute service cascade and criticality sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-service-cascade-evidence
+          cargo run --locked --manifest-path research/civdyn-service-cascade/Cargo.toml --bin service-cascade-sweep \
+            | tee target/civdyn-service-cascade-evidence/service-cascade.csv
+
+      - name: Verify dependency cascade, redundancy and marginal criticality
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/civdyn-service-cascade-evidence/service-cascade.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) == 73, f"expected 54 tick + 9 summary + 9 criticality + 1 scenario row, got {len(rows)}"
+          assert all(len(row) == 16 for row in rows)
+          ticks = [row for row in rows if row["record_type"] == "tick"]
+          summaries = {row["node_id"]: row for row in rows if row["record_type"] == "node_summary"}
+          criticalities = {row["node_id"]: row for row in rows if row["record_type"] == "criticality"}
+          assert len(ticks) == 54 and len(summaries) == 9 and len(criticalities) == 9
+
+          def service(node, tick):
+              return float(next(row for row in ticks if row["node_id"] == node and row["tick_index"] == str(tick))["effective_service"])
+
+          for tick in (1, 2):
+              assert service("grid", tick) == 0.0
+              assert service("hospital", tick) == 0.0
+              assert service("payments", tick) == 0.0
+              assert service("household_water", tick) == 0.0
+              assert service("road_access", tick) == 1.0, "fuel redundancy must preserve road access"
+
+          assert abs(float(next(row for row in rows if row["record_type"] == "scenario_summary")["marginal_service_deficit_area"]) - 16.0) < 1e-9
+          assert summaries["hospital"]["recovery_after_ticks"] == "2"
+          assert float(summaries["road_access"]["minimum_service"]) == 1.0
+          assert float(criticalities["grid"]["marginal_service_deficit_area"]) > 0.0
+          assert float(criticalities["fuel"]["marginal_service_deficit_area"]) == 0.0
+          assert all(0.0 <= float(row["effective_service"]) <= 1.0 for row in ticks)
+
+          print("CIVDYN-CASCADE-001 dependency propagation, OR redundancy, sustained recovery and component criticality verified.")
+          PY
+
+          {
+            echo "## CIVDYN-CASCADE-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-service-cascade-evidence/service-cascade.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: deterministic synthetic service graph"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload service cascade evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-service-cascade
+          path: target/civdyn-service-cascade-evidence/service-cascade.csv
+          if-no-files-found: error
+          retention-days: 30
