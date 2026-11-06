@@ -310,7 +310,7 @@
     "fallback_events": [],
     "unseeded_random_sources": [],
     "scheduler_policy": {
-      "scheduler_id": "serial-deterministic-v1",
+      "scheduler_id": "scheduler-v1",
       "update_order": "lexicographic participant ID, then ascending step index",
       "parallelism": 1,
       "tie_breaking_rule": "Stable option index; no randomized scheduling."
