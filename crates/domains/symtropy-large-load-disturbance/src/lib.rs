@@ -16,7 +16,9 @@ use serde::Serialize;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum ConnectionRequirement {
     MustRemainConnected,
-    MomentaryCessationAllowed { maximum_disconnected_duration_ns: u64 },
+    MomentaryCessationAllowed {
+        maximum_disconnected_duration_ns: u64,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -56,9 +58,7 @@ impl RideThroughSegment {
                 return Err(DisturbanceError::InvalidQuantity { field, value });
             }
         }
-        if minimum_voltage_pu > maximum_voltage_pu
-            || minimum_frequency_hz > maximum_frequency_hz
-        {
+        if minimum_voltage_pu > maximum_voltage_pu || minimum_frequency_hz > maximum_frequency_hz {
             return Err(DisturbanceError::InvertedEnvelope);
         }
         if let Some(value) = maximum_absolute_rocof_hz_per_s
@@ -115,11 +115,26 @@ impl ActivePowerRecoveryRequirement {
     ) -> Result<Self, DisturbanceError> {
         for (field, value) in [
             ("minimum recovered voltage", minimum_recovered_voltage_pu),
-            ("minimum recovered frequency", minimum_recovered_frequency_hz),
-            ("maximum recovered frequency", maximum_recovered_frequency_hz),
-            ("minimum recovered power fraction", minimum_recovered_power_fraction),
-            ("maximum recovery overshoot fraction", maximum_overshoot_fraction),
-            ("maximum absolute recovery ramp", maximum_absolute_recovery_ramp_mw_per_s),
+            (
+                "minimum recovered frequency",
+                minimum_recovered_frequency_hz,
+            ),
+            (
+                "maximum recovered frequency",
+                maximum_recovered_frequency_hz,
+            ),
+            (
+                "minimum recovered power fraction",
+                minimum_recovered_power_fraction,
+            ),
+            (
+                "maximum recovery overshoot fraction",
+                maximum_overshoot_fraction,
+            ),
+            (
+                "maximum absolute recovery ramp",
+                maximum_absolute_recovery_ramp_mw_per_s,
+            ),
         ] {
             if !value.is_finite() || value < 0.0 {
                 return Err(DisturbanceError::InvalidQuantity { field, value });
@@ -128,8 +143,7 @@ impl ActivePowerRecoveryRequirement {
         if minimum_recovered_voltage_pu <= 0.0
             || minimum_recovered_frequency_hz <= 0.0
             || maximum_recovered_frequency_hz < minimum_recovered_frequency_hz
-            || !(0.0 < minimum_recovered_power_fraction
-                && minimum_recovered_power_fraction <= 1.0)
+            || !(0.0 < minimum_recovered_power_fraction && minimum_recovered_power_fraction <= 1.0)
             || maximum_absolute_recovery_ramp_mw_per_s <= 0.0
             || stable_dwell_ns == 0
             || recovery_deadline_ns == 0
@@ -221,10 +235,18 @@ impl DisturbanceRequirementSet {
         Ok(set)
     }
 
-    pub fn requirement_id(&self) -> &str { &self.requirement_id }
-    pub fn requirement_version(&self) -> &str { &self.requirement_version }
-    pub fn source_digest(&self) -> &str { &self.source_digest }
-    pub fn pcc_id(&self) -> &str { &self.pcc_id }
+    pub fn requirement_id(&self) -> &str {
+        &self.requirement_id
+    }
+    pub fn requirement_version(&self) -> &str {
+        &self.requirement_version
+    }
+    pub fn source_digest(&self) -> &str {
+        &self.source_digest
+    }
+    pub fn pcc_id(&self) -> &str {
+        &self.pcc_id
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -247,8 +269,7 @@ impl DisturbanceTraceContract {
         if maximum_sample_gap_ns == 0 || maximum_rms_window_ns == 0 || minimum_sample_count < 2 {
             return Err(DisturbanceError::InvalidTraceContract);
         }
-        if !minimum_measurement_bandwidth_hz.is_finite()
-            || minimum_measurement_bandwidth_hz <= 0.0
+        if !minimum_measurement_bandwidth_hz.is_finite() || minimum_measurement_bandwidth_hz <= 0.0
         {
             return Err(DisturbanceError::InvalidQuantity {
                 field: "minimum measurement bandwidth",
@@ -321,12 +342,21 @@ impl DisturbanceEventIdentity {
             ("event ID", event.event_id.as_str()),
             ("requirement ID", event.requirement_id.as_str()),
             ("requirement version", event.requirement_version.as_str()),
-            ("requirement source digest", event.requirement_source_digest.as_str()),
+            (
+                "requirement source digest",
+                event.requirement_source_digest.as_str(),
+            ),
             ("PCC ID", event.pcc_id.as_str()),
             ("waveform digest", event.waveform_digest.as_str()),
-            ("measurement-chain digest", event.measurement_chain_digest.as_str()),
+            (
+                "measurement-chain digest",
+                event.measurement_chain_digest.as_str(),
+            ),
             ("clock model ID", event.clock_model_id.as_str()),
-            ("pre-event reference digest", event.pre_event_reference_digest.as_str()),
+            (
+                "pre-event reference digest",
+                event.pre_event_reference_digest.as_str(),
+            ),
         ] {
             require_id(field, value)?;
         }
@@ -336,7 +366,8 @@ impl DisturbanceEventIdentity {
                 value: pre_event_active_power_mw,
             });
         }
-        if rms_window_ns == 0 || !measurement_bandwidth_hz.is_finite()
+        if rms_window_ns == 0
+            || !measurement_bandwidth_hz.is_finite()
             || measurement_bandwidth_hz <= 0.0
         {
             return Err(DisturbanceError::InvalidTraceContract);
@@ -378,16 +409,27 @@ impl PccDisturbanceSample {
         if let Some(value) = reactive_power_mvar
             && !value.is_finite()
         {
-            return Err(DisturbanceError::InvalidQuantity { field: "reactive power", value });
+            return Err(DisturbanceError::InvalidQuantity {
+                field: "reactive power",
+                value,
+            });
         }
         if let Some(value) = current_pu
             && (!value.is_finite() || value < 0.0)
         {
-            return Err(DisturbanceError::InvalidQuantity { field: "current", value });
+            return Err(DisturbanceError::InvalidQuantity {
+                field: "current",
+                value,
+            });
         }
         Ok(Self {
-            timestamp_ns, voltage_pu, frequency_hz, active_power_mw,
-            reactive_power_mvar, current_pu, grid_connected,
+            timestamp_ns,
+            voltage_pu,
+            frequency_hz,
+            active_power_mw,
+            reactive_power_mvar,
+            current_pu,
+            grid_connected,
         })
     }
 }
@@ -442,30 +484,64 @@ pub struct DisturbanceConformanceReport {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum DisturbanceError {
-    MissingIdentity { field: &'static str },
-    InvalidQuantity { field: &'static str, value: f64 },
+    MissingIdentity {
+        field: &'static str,
+    },
+    InvalidQuantity {
+        field: &'static str,
+        value: f64,
+    },
     InvalidRequirementWindow,
     InvertedEnvelope,
     InvalidDisconnectionAllowance,
     InvalidRecoveryRequirement,
     EmptyRequirementEnvelope,
-    NonContiguousRequirementEnvelope { index: usize, expected_start_ns: u64, observed_start_ns: u64 },
+    NonContiguousRequirementEnvelope {
+        index: usize,
+        expected_start_ns: u64,
+        observed_start_ns: u64,
+    },
     RequirementHorizonMismatch,
     InvalidTraceContract,
     RequirementIdentityMismatch,
     PccIdentityMismatch,
-    ClockUncertaintyExceedsContract { observed_ns: u64, maximum_ns: u64 },
-    RmsWindowExceedsContract { observed_ns: u64, maximum_ns: u64 },
-    MeasurementBandwidthBelowContract { observed_hz: f64, minimum_hz: f64 },
+    ClockUncertaintyExceedsContract {
+        observed_ns: u64,
+        maximum_ns: u64,
+    },
+    RmsWindowExceedsContract {
+        observed_ns: u64,
+        maximum_ns: u64,
+    },
+    MeasurementBandwidthBelowContract {
+        observed_hz: f64,
+        minimum_hz: f64,
+    },
     EmptyTrace,
-    InsufficientSamples { observed: usize, minimum: usize },
+    InsufficientSamples {
+        observed: usize,
+        minimum: usize,
+    },
     SampleBeforeEventStart,
-    DuplicateOrReversedTimestamp { index: usize, previous_ns: u64, observed_ns: u64 },
-    SampleGapExceedsContract { index: usize, gap_ns: u64, maximum_gap_ns: u64 },
+    DuplicateOrReversedTimestamp {
+        index: usize,
+        previous_ns: u64,
+        observed_ns: u64,
+    },
+    SampleGapExceedsContract {
+        index: usize,
+        gap_ns: u64,
+        maximum_gap_ns: u64,
+    },
     TimestampOverflow,
     SampleOutsideRequirementHorizon,
-    NoSamplesInRequirementZone { index: usize },
-    ObservationHorizonIncomplete { required_end_ns: u64, observed_end_ns: u64 },
+    NoSamplesInRequirementZone {
+        index: usize,
+    },
+    ObservationHorizonIncomplete {
+        required_end_ns: u64,
+        observed_end_ns: u64,
+    },
     RecoveryDeadlineOverflow,
     NumericalOverflow(&'static str),
 }
@@ -474,29 +550,105 @@ impl fmt::Display for DisturbanceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingIdentity { field } => write!(f, "{field} must not be empty"),
-            Self::InvalidQuantity { field, value } => write!(f, "{field} must be finite and in range; got {value}"),
-            Self::InvalidRequirementWindow => write!(f, "ride-through requirement window is empty or reversed"),
-            Self::InvertedEnvelope => write!(f, "operator voltage or frequency envelope is inverted"),
-            Self::InvalidDisconnectionAllowance => write!(f, "momentary cessation allowance must be positive"),
-            Self::InvalidRecoveryRequirement => write!(f, "active-power recovery requirement is invalid"),
-            Self::EmptyRequirementEnvelope => write!(f, "operator requirement envelope must not be empty"),
-            Self::NonContiguousRequirementEnvelope { index, expected_start_ns, observed_start_ns } => write!(f, "requirement segment {index} starts at {observed_start_ns}; expected {expected_start_ns}"),
-            Self::RequirementHorizonMismatch => write!(f, "requirement segments do not cover the declared observation horizon"),
-            Self::InvalidTraceContract => write!(f, "trace sampling, RMS window, bandwidth or sample-count contract is invalid"),
-            Self::RequirementIdentityMismatch => write!(f, "event requirement identity differs from the supplied pinned requirement set"),
-            Self::PccIdentityMismatch => write!(f, "event PCC differs from the requirement point of applicability"),
-            Self::ClockUncertaintyExceedsContract { observed_ns, maximum_ns } => write!(f, "clock uncertainty {observed_ns} ns exceeds {maximum_ns} ns"),
-            Self::RmsWindowExceedsContract { observed_ns, maximum_ns } => write!(f, "RMS window {observed_ns} ns exceeds {maximum_ns} ns"),
-            Self::MeasurementBandwidthBelowContract { observed_hz, minimum_hz } => write!(f, "measurement bandwidth {observed_hz} Hz is below {minimum_hz} Hz"),
+            Self::InvalidQuantity { field, value } => {
+                write!(f, "{field} must be finite and in range; got {value}")
+            }
+            Self::InvalidRequirementWindow => {
+                write!(f, "ride-through requirement window is empty or reversed")
+            }
+            Self::InvertedEnvelope => {
+                write!(f, "operator voltage or frequency envelope is inverted")
+            }
+            Self::InvalidDisconnectionAllowance => {
+                write!(f, "momentary cessation allowance must be positive")
+            }
+            Self::InvalidRecoveryRequirement => {
+                write!(f, "active-power recovery requirement is invalid")
+            }
+            Self::EmptyRequirementEnvelope => {
+                write!(f, "operator requirement envelope must not be empty")
+            }
+            Self::NonContiguousRequirementEnvelope {
+                index,
+                expected_start_ns,
+                observed_start_ns,
+            } => write!(
+                f,
+                "requirement segment {index} starts at {observed_start_ns}; expected {expected_start_ns}"
+            ),
+            Self::RequirementHorizonMismatch => write!(
+                f,
+                "requirement segments do not cover the declared observation horizon"
+            ),
+            Self::InvalidTraceContract => write!(
+                f,
+                "trace sampling, RMS window, bandwidth or sample-count contract is invalid"
+            ),
+            Self::RequirementIdentityMismatch => write!(
+                f,
+                "event requirement identity differs from the supplied pinned requirement set"
+            ),
+            Self::PccIdentityMismatch => write!(
+                f,
+                "event PCC differs from the requirement point of applicability"
+            ),
+            Self::ClockUncertaintyExceedsContract {
+                observed_ns,
+                maximum_ns,
+            } => write!(
+                f,
+                "clock uncertainty {observed_ns} ns exceeds {maximum_ns} ns"
+            ),
+            Self::RmsWindowExceedsContract {
+                observed_ns,
+                maximum_ns,
+            } => write!(f, "RMS window {observed_ns} ns exceeds {maximum_ns} ns"),
+            Self::MeasurementBandwidthBelowContract {
+                observed_hz,
+                minimum_hz,
+            } => write!(
+                f,
+                "measurement bandwidth {observed_hz} Hz is below {minimum_hz} Hz"
+            ),
             Self::EmptyTrace => write!(f, "disturbance waveform contains no samples"),
-            Self::InsufficientSamples { observed, minimum } => write!(f, "waveform contains {observed} samples; requires {minimum}"),
-            Self::SampleBeforeEventStart => write!(f, "waveform sample precedes the pinned event start"),
-            Self::DuplicateOrReversedTimestamp { index, previous_ns, observed_ns } => write!(f, "sample {index} timestamp {observed_ns} does not follow {previous_ns}"),
-            Self::SampleGapExceedsContract { index, gap_ns, maximum_gap_ns } => write!(f, "sample gap {gap_ns} ns at {index} exceeds {maximum_gap_ns} ns"),
+            Self::InsufficientSamples { observed, minimum } => write!(
+                f,
+                "waveform contains {observed} samples; requires {minimum}"
+            ),
+            Self::SampleBeforeEventStart => {
+                write!(f, "waveform sample precedes the pinned event start")
+            }
+            Self::DuplicateOrReversedTimestamp {
+                index,
+                previous_ns,
+                observed_ns,
+            } => write!(
+                f,
+                "sample {index} timestamp {observed_ns} does not follow {previous_ns}"
+            ),
+            Self::SampleGapExceedsContract {
+                index,
+                gap_ns,
+                maximum_gap_ns,
+            } => write!(
+                f,
+                "sample gap {gap_ns} ns at {index} exceeds {maximum_gap_ns} ns"
+            ),
             Self::TimestampOverflow => write!(f, "event timestamp arithmetic overflow"),
-            Self::SampleOutsideRequirementHorizon => write!(f, "waveform sample lies outside the pinned requirement horizon"),
-            Self::NoSamplesInRequirementZone { index } => write!(f, "requirement zone {index} has no waveform samples"),
-            Self::ObservationHorizonIncomplete { required_end_ns, observed_end_ns } => write!(f, "trace ends at {observed_end_ns}; required observation ends at {required_end_ns}"),
+            Self::SampleOutsideRequirementHorizon => write!(
+                f,
+                "waveform sample lies outside the pinned requirement horizon"
+            ),
+            Self::NoSamplesInRequirementZone { index } => {
+                write!(f, "requirement zone {index} has no waveform samples")
+            }
+            Self::ObservationHorizonIncomplete {
+                required_end_ns,
+                observed_end_ns,
+            } => write!(
+                f,
+                "trace ends at {observed_end_ns}; required observation ends at {required_end_ns}"
+            ),
             Self::RecoveryDeadlineOverflow => write!(f, "recovery deadline timestamp overflow"),
             Self::NumericalOverflow(field) => write!(f, "numerical overflow computing {field}"),
         }
@@ -546,7 +698,8 @@ pub fn evaluate_disturbance_conformance(
             minimum: trace_contract.minimum_sample_count,
         });
     }
-    let required_end_ns = event.event_start_ns
+    let required_end_ns = event
+        .event_start_ns
         .checked_add(requirement.required_observation_horizon_ns)
         .ok_or(DisturbanceError::TimestampOverflow)?;
 
@@ -655,7 +808,10 @@ pub fn evaluate_disturbance_conformance(
         }
     }
 
-    let observed_end_ns = samples.last().ok_or(DisturbanceError::EmptyTrace)?.timestamp_ns;
+    let observed_end_ns = samples
+        .last()
+        .ok_or(DisturbanceError::EmptyTrace)?
+        .timestamp_ns;
     if observed_end_ns.saturating_add(trace_contract.maximum_sample_gap_ns) < required_end_ns {
         return Err(DisturbanceError::ObservationHorizonIncomplete {
             required_end_ns,
@@ -670,7 +826,8 @@ pub fn evaluate_disturbance_conformance(
         let elapsed = last.timestamp_ns - event.event_start_ns;
         for (zi, segment) in requirement.segments.iter().enumerate() {
             let overlap_start = elapsed.max(segment.start_elapsed_ns);
-            let overlap_end = requirement.required_observation_horizon_ns
+            let overlap_end = requirement
+                .required_observation_horizon_ns
                 .min(segment.end_elapsed_ns);
             if overlap_end > overlap_start {
                 let duration = overlap_end - overlap_start;
@@ -709,8 +866,11 @@ pub fn evaluate_disturbance_conformance(
         recovery_compliant,
     ) = evaluate_recovery(event, &requirement.recovery, samples)?;
 
-    let zones: Vec<RideThroughZoneReceipt> = requirement.segments.iter().enumerate().map(|(i, segment)| {
-        RideThroughZoneReceipt {
+    let zones: Vec<RideThroughZoneReceipt> = requirement
+        .segments
+        .iter()
+        .enumerate()
+        .map(|(i, segment)| RideThroughZoneReceipt {
             start_elapsed_ns: segment.start_elapsed_ns,
             end_elapsed_ns: segment.end_elapsed_ns,
             sample_count: zone_samples[i],
@@ -719,9 +879,11 @@ pub fn evaluate_disturbance_conformance(
             connection_requirement_met: zone_connection[i],
             maximum_absolute_rocof_hz_per_s: (zone_samples[i] > 1).then_some(zone_max_rocof[i]),
             disconnected_duration_ns: zone_disconnected[i],
-        }
-    }).collect();
-    let ride_through_compliant = zones.iter().all(|z| z.voltage_frequency_within_envelope && z.rocof_within_envelope);
+        })
+        .collect();
+    let ride_through_compliant = zones
+        .iter()
+        .all(|z| z.voltage_frequency_within_envelope && z.rocof_within_envelope);
     let connection_continuity_compliant = zones.iter().all(|z| z.connection_requirement_met);
     let qualified = ride_through_compliant && connection_continuity_compliant && recovery_compliant;
 
@@ -765,7 +927,18 @@ fn evaluate_recovery(
     event: &DisturbanceEventIdentity,
     requirement: &ActivePowerRecoveryRequirement,
     samples: &[PccDisturbanceSample],
-) -> Result<(bool, Option<u64>, Option<u64>, Option<f64>, Option<f64>, Option<f64>, bool), DisturbanceError> {
+) -> Result<
+    (
+        bool,
+        Option<u64>,
+        Option<u64>,
+        Option<f64>,
+        Option<f64>,
+        Option<f64>,
+        bool,
+    ),
+    DisturbanceError,
+> {
     let mut stable_index = None;
     for (i, first) in samples.iter().enumerate() {
         if first.voltage_pu < requirement.minimum_recovered_voltage_pu
@@ -774,7 +947,9 @@ fn evaluate_recovery(
         {
             continue;
         }
-        let stable_end = first.timestamp_ns.checked_add(requirement.stable_dwell_ns)
+        let stable_end = first
+            .timestamp_ns
+            .checked_add(requirement.stable_dwell_ns)
             .ok_or(DisturbanceError::RecoveryDeadlineOverflow)?;
         let mut last_stable = first.timestamp_ns;
         let mut valid = true;
@@ -787,7 +962,9 @@ fn evaluate_recovery(
                 break;
             }
             last_stable = sample.timestamp_ns;
-            if sample.timestamp_ns >= stable_end { break; }
+            if sample.timestamp_ns >= stable_end {
+                break;
+            }
         }
         if valid && last_stable >= stable_end {
             stable_index = Some(i);
@@ -797,10 +974,12 @@ fn evaluate_recovery(
     let Some(index) = stable_index else {
         return Ok((false, None, None, None, None, None, false));
     };
-    let recovery_trigger_ns = samples[index].timestamp_ns
+    let recovery_trigger_ns = samples[index]
+        .timestamp_ns
         .checked_add(requirement.stable_dwell_ns)
         .ok_or(DisturbanceError::RecoveryDeadlineOverflow)?;
-    let deadline_ns = recovery_trigger_ns.checked_add(requirement.recovery_deadline_ns)
+    let deadline_ns = recovery_trigger_ns
+        .checked_add(requirement.recovery_deadline_ns)
         .ok_or(DisturbanceError::RecoveryDeadlineOverflow)?;
     let observed_end = samples.last().map(|s| s.timestamp_ns).unwrap_or(0);
     if observed_end < deadline_ns {
@@ -809,8 +988,10 @@ fn evaluate_recovery(
             observed_end_ns: observed_end,
         });
     }
-    let target_power = event.pre_event_active_power_mw * requirement.minimum_recovered_power_fraction;
-    let achieved_at = samples.iter()
+    let target_power =
+        event.pre_event_active_power_mw * requirement.minimum_recovered_power_fraction;
+    let achieved_at = samples
+        .iter()
         .filter(|s| s.timestamp_ns >= recovery_trigger_ns && s.timestamp_ns <= deadline_ns)
         .find(|s| s.active_power_mw >= target_power)
         .map(|s| s.timestamp_ns);
@@ -818,29 +999,45 @@ fn evaluate_recovery(
 
     let mut maximum_ramp = 0.0f64;
     let mut maximum_power = event.pre_event_active_power_mw;
-    for pair in samples.windows(2).filter(|p| p[1].timestamp_ns >= recovery_trigger_ns) {
+    for pair in samples
+        .windows(2)
+        .filter(|p| p[1].timestamp_ns >= recovery_trigger_ns)
+    {
         let dt = (pair[1].timestamp_ns - pair[0].timestamp_ns) as f64 / 1e9;
         let ramp = (pair[1].active_power_mw - pair[0].active_power_mw).abs() / dt;
         if !ramp.is_finite() {
-            return Err(DisturbanceError::NumericalOverflow("active-power recovery ramp"));
+            return Err(DisturbanceError::NumericalOverflow(
+                "active-power recovery ramp",
+            ));
         }
         maximum_ramp = maximum_ramp.max(ramp);
         maximum_power = maximum_power.max(pair[1].active_power_mw);
     }
     let overshoot = (maximum_power - event.pre_event_active_power_mw).max(0.0)
         / event.pre_event_active_power_mw;
-    let power_fraction_at_deadline = samples.iter()
+    let power_fraction_at_deadline = samples
+        .iter()
         .take_while(|s| s.timestamp_ns <= deadline_ns)
         .last()
         .map(|s| s.active_power_mw / event.pre_event_active_power_mw);
     let compliant = achieved
         && maximum_ramp <= requirement.maximum_absolute_recovery_ramp_mw_per_s
         && overshoot <= requirement.maximum_overshoot_fraction;
-    Ok((true, Some(deadline_ns), achieved_at, power_fraction_at_deadline, Some(maximum_ramp), Some(overshoot), compliant))
+    Ok((
+        true,
+        Some(deadline_ns),
+        achieved_at,
+        power_fraction_at_deadline,
+        Some(maximum_ramp),
+        Some(overshoot),
+        compliant,
+    ))
 }
 
 fn find_zone(segments: &[RideThroughSegment], elapsed_ns: u64) -> Option<usize> {
-    segments.iter().position(|s| elapsed_ns >= s.start_elapsed_ns && elapsed_ns < s.end_elapsed_ns)
+    segments
+        .iter()
+        .position(|s| elapsed_ns >= s.start_elapsed_ns && elapsed_ns < s.end_elapsed_ns)
 }
 
 fn require_id(field: &'static str, value: &str) -> Result<(), DisturbanceError> {
