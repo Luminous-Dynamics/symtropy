@@ -42,7 +42,7 @@ Do not call an unavailable baseline a loss or replace it with a weaker straw man
 
 ## What the current fleet oracle does—and does not—establish
 
-Current scope is a finite, integer-tick synthetic service chain with at least two demands, shared physical resource IDs and a bounded set of prequalified voyage alternatives. Its 32 unit tests, 3 independent resource-accounting integration tests, test-only full-fleet enumerator and 20-variant differential sweep are correctness evidence for that finite model only; refer to the exact-head CI run before citing a test count.
+Current scope is a finite, integer-tick synthetic service chain with at least two demands, shared physical resource IDs and a bounded set of prequalified voyage alternatives. The current source declares 32 unit tests and 3 independent resource-accounting integration tests, includes a test-only full-fleet enumerator and a 20-variant differential sweep. The last recorded exact-head pass predates the two newest terminal/inland throughput-quota tests (30 unit tests + 3 integration tests); the newest workflow is queued, so do not describe all 32 unit tests as passed until that exact-head run succeeds. These tests are correctness evidence for the finite model only.
 
 Covered model features:
 - Joint feasibility across demands rather than independent one-vessel feasibility.
