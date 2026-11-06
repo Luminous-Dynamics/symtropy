@@ -388,7 +388,7 @@ fn baseline_overload_can_require_a_nonzero_minimum_dispatch_fraction() {
         &[],
     ).unwrap();
     let interval = &report.intervals[0];
-    assert!(!interval.branch_flows.iter().find(|flow| flow.branch_id == "S-B").unwrap().baseline_over_limit == false);
+    assert!(interval.branch_flows.iter().find(|flow| flow.branch_id == "S-B").unwrap().baseline_over_limit);
     assert!(interval.basecase_flexible_feasible);
     assert!((interval.minimum_network_feasible_action_fraction.unwrap() - 0.5416666667).abs() < 1e-8);
     assert!((interval.maximum_network_feasible_action_fraction.unwrap() - 1.0).abs() < 1e-12);
