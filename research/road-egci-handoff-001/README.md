@@ -1,4 +1,4 @@
-# ROAD-EGCI-RECIPROCAL-HANDOFF-001 v0.1
+# ROAD-EGCI-RECIPROCAL-HANDOFF-001 v0.2
 
 A standalone Rust adapter for the Symtropy #3744 -> Symthaea SAM #10514 episode handoff.
 
@@ -27,9 +27,19 @@ The current #3532 reciprocal policy loop is still a specification. The fixture i
 8. Every branch retains its own receipt root, replay profile and terminal disposition.
 9. The evidence class is fixed to `SimulationGenerated` and eligibility to `FormalConformanceOnly`. This adapter cannot relabel synthetic outcomes as empirical decision evidence.
 
+## Phase-aware event ordering (v0.2)
+
+Every branch now carries one branch-local event sequence. Observation generation and delivery, policy-input cutoffs, policy decision receipts, command latches, and physics commits are ordered in that sequence. The verifier requires:
+
+`generation < delivery <= policy-input-cutoff < policy-decision < command-latch < physics-commit`
+
+The cutoff is shared by the policies making decisions from the same delivered-observation boundary. All completed policy decisions at a tick must occur before any command is latched; every command latch must occur before that tick's physics commit. Cues generated from a post-transition world state must follow the corresponding physics event. Integer tick equality is no longer used as a substitute for a happens-before proof.
+
+The branch payload root, per-policy permitted-history digest, canonical episode JSON and episode root all bind these event ordinals. The SAM query shape remains unchanged. The event ordinals are still producer-declared evidence: an external evidence registry/signature boundary must authenticate the producer's event log. This adapter checks semantic consistency and anchor equality, not source authority.
+
 ## Canonical interchange
 
-The full source episode is emitted as deterministic JSON under `schemas/reciprocal-episode-export.v0.1.schema.json`, with canonical branch, policy, observation, decision, transition and correspondence ordering. The episode root is a domain-separated BLAKE3 content commitment over the schema identity and typed source fields, including the branch receipt roots and replay dispositions. The SAM query is serialized separately against `schemas/sam-policy-trajectory-query.v0.1.schema.json`, with a canonical example under `fixtures/`. Consumers should retain both objects: the full episode for audit/replay, and the reduced SAM query for path-support assessment. The conformance fixture includes two branches, distinct branch-level draw-bundle anchors, two correspondence hypotheses per branch, and a censored branch that remains present with `complete=false`.
+The full source episode is emitted as deterministic JSON under `schemas/reciprocal-episode-export.v0.2.schema.json`, with canonical branch, policy, observation, decision, transition and correspondence ordering. The episode root is a domain-separated BLAKE3 content commitment over the schema identity and typed source fields, including the branch receipt roots and replay dispositions. The SAM query is serialized separately against `schemas/sam-policy-trajectory-query.v0.1.schema.json`, with a canonical example under `fixtures/`. Consumers should retain both objects: the full episode for audit/replay, and the reduced SAM query for path-support assessment. The conformance fixture includes two branches, distinct branch-level draw-bundle anchors, two correspondence hypotheses per branch, and a censored branch that remains present with `complete=false`.
 
 ## External anchoring
 
