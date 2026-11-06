@@ -756,14 +756,20 @@ mod tests {
         bundled_fixture().unwrap()
     }
 
-    fn rewrite_artifact(bundle: &mut Value, role: &str, mutate: impl FnOnce(&mut Value)) {
+    fn rewrite_artifact(
+        bundle: &mut Value,
+        role: &str,
+        mutate: impl FnOnce(&mut Value),
+    ) -> String {
         let encoded = bundle["artifacts"][role]["bytes_base64"].as_str().unwrap();
         let bytes = STANDARD.decode(encoded).unwrap();
         let mut json: Value = serde_json::from_slice(&bytes).unwrap();
         mutate(&mut json);
         let bytes = serde_json::to_vec(&json).unwrap();
-        bundle["artifacts"][role]["sha256"] = Value::String(sha256_hex(&bytes));
+        let digest = sha256_hex(&bytes);
+        bundle["artifacts"][role]["sha256"] = Value::String(digest.clone());
         bundle["artifacts"][role]["bytes_base64"] = Value::String(STANDARD.encode(bytes));
+        digest
     }
 
     #[test]
@@ -921,8 +927,11 @@ mod tests {
         assert!(verify_bundle(&bundle).unwrap_err().contains("bytes_base64"));
 
         let mut bundle = fixture();
-        rewrite_artifact(&mut bundle, "em_transform", |transform| {
+        let transform_digest = rewrite_artifact(&mut bundle, "em_transform", |transform| {
             transform["matrix_ppm"] = Value::Array(vec![Value::Array(vec![Value::from(1)])]);
+        });
+        rewrite_artifact(&mut bundle, "em_projection", |projection| {
+            projection["transform_sha256"] = Value::String(transform_digest);
         });
         assert!(
             verify_bundle(&bundle)
