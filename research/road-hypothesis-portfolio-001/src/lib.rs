@@ -54,6 +54,8 @@ pub struct CoverageObligation {
     pub source_lineage_digest: Option<String>,
     pub challenge_protocol_digest: Option<String>,
     pub not_applicable_rationale: Option<String>,
+    /// Append-only coverage revisions point to the exact prior obligation.
+    pub supersedes_obligation_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -705,6 +707,24 @@ impl PortfolioManifest {
                 return Err(PortfolioError::NonAppendOnlyRevision);
             }
         }
+        let previous_obligations: BTreeMap<_, _> = previous
+            .coverage_obligations
+            .iter()
+            .map(|obligation| (obligation.obligation_id.as_str(), obligation))
+            .collect();
+        for added in &current.coverage_obligations {
+            if previous_obligations.contains_key(added.obligation_id.as_str()) {
+                continue;
+            }
+            if let Some(parent_id) = &added.supersedes_obligation_id {
+                let parent = previous_obligations
+                    .get(parent_id.as_str())
+                    .ok_or(PortfolioError::NonAppendOnlyRevision)?;
+                if parent.axis != added.axis || parent.stratum_digest != added.stratum_digest {
+                    return Err(PortfolioError::NonAppendOnlyRevision);
+                }
+            }
+        }
         for prior in &previous.challenge_requirements {
             if !current
                 .challenge_requirements
@@ -773,6 +793,9 @@ fn validate_coverage_obligation(obligation: &CoverageObligation) -> Result<(), P
             require(rationale, "coverage.not_applicable_rationale")?;
         }
         CoverageState::NotCovered | CoverageState::Unknown => {}
+    }
+    if let Some(parent) = &obligation.supersedes_obligation_id {
+        require(parent, "coverage.supersedes_obligation_id")?;
     }
     Ok(())
 }
@@ -1031,7 +1054,16 @@ fn coverage_summaries(obligations: &[CoverageObligation]) -> Vec<AxisCoverageSum
     ]
     .into_iter()
     .map(|axis| {
-        let matching: Vec<_> = obligations.iter().filter(|o| o.axis == axis).collect();
+        let superseded: BTreeSet<_> = obligations
+            .iter()
+            .filter_map(|obligation| obligation.supersedes_obligation_id.as_deref())
+            .collect();
+        let matching: Vec<_> = obligations
+            .iter()
+            .filter(|obligation| {
+                obligation.axis == axis && !superseded.contains(obligation.obligation_id.as_str())
+            })
+            .collect();
         AxisCoverageSummary {
             axis,
             declared_obligations: matching.len(),
@@ -1446,6 +1478,7 @@ fn hash_coverage(h: &mut blake3::Hasher, value: &CoverageObligation) {
     hash_opt_str(h, value.source_lineage_digest.as_deref());
     hash_opt_str(h, value.challenge_protocol_digest.as_deref());
     hash_opt_str(h, value.not_applicable_rationale.as_deref());
+    hash_opt_str(h, value.supersedes_obligation_id.as_deref());
 }
 
 fn evidence_tag(value: EvidenceClass) -> u8 {
@@ -1569,6 +1602,7 @@ mod tests {
             source_lineage_digest: Some(d(&format!("lineage-{id}"))),
             challenge_protocol_digest: Some(d("challenge-protocol-v1")),
             not_applicable_rationale: None,
+            supersedes_obligation_id: None,
         }
     }
 
@@ -1977,6 +2011,7 @@ mod tests {
             source_lineage_digest: None,
             challenge_protocol_digest: None,
             not_applicable_rationale: None,
+            supersedes_obligation_id: None,
         });
         let report = evaluate_portfolio(
             &portfolio,
