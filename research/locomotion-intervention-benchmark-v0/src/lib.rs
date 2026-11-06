@@ -660,7 +660,6 @@ pub fn select_frozen_forecast(
 
 #[derive(Debug, Clone, PartialEq)]
 
-
 /// Candidate identity for a mechanistic generator or a purely predictive
 /// baseline. A selected VAR(1) means predictive equivalence, not a biological
 /// oscillator or other neural mechanism.
@@ -775,25 +774,17 @@ pub fn fit_vector_ar1_forecast(
     ];
     let transition = [
         [
-            cross_covariance[0][0] * inverse[0][0]
-                + cross_covariance[0][1] * inverse[1][0],
-            cross_covariance[0][0] * inverse[0][1]
-                + cross_covariance[0][1] * inverse[1][1],
+            cross_covariance[0][0] * inverse[0][0] + cross_covariance[0][1] * inverse[1][0],
+            cross_covariance[0][0] * inverse[0][1] + cross_covariance[0][1] * inverse[1][1],
         ],
         [
-            cross_covariance[1][0] * inverse[0][0]
-                + cross_covariance[1][1] * inverse[1][0],
-            cross_covariance[1][0] * inverse[0][1]
-                + cross_covariance[1][1] * inverse[1][1],
+            cross_covariance[1][0] * inverse[0][0] + cross_covariance[1][1] * inverse[1][0],
+            cross_covariance[1][0] * inverse[0][1] + cross_covariance[1][1] * inverse[1][1],
         ],
     ];
     let intercept = [
-        next_mean[0]
-            - transition[0][0] * previous_mean[0]
-            - transition[0][1] * previous_mean[1],
-        next_mean[1]
-            - transition[1][0] * previous_mean[0]
-            - transition[1][1] * previous_mean[1],
+        next_mean[0] - transition[0][0] * previous_mean[0] - transition[0][1] * previous_mean[1],
+        next_mean[1] - transition[1][0] * previous_mean[0] - transition[1][1] * previous_mean[1],
     ];
     if !transition.iter().flatten().all(|value| value.is_finite())
         || !intercept.iter().all(|value| value.is_finite())
@@ -804,11 +795,7 @@ pub fn fit_vector_ar1_forecast(
     let mut training_prediction = Vec::with_capacity(observed_prefix.len() - 1);
     for index in 1..observed_prefix.len() {
         let previous = observed_prefix[index - 1];
-        let prediction = apply_vector_ar1(
-            transition,
-            intercept,
-            [previous.x, previous.y],
-        );
+        let prediction = apply_vector_ar1(transition, intercept, [previous.x, previous.y]);
         training_prediction.push(SyntheticSample {
             timestamp: observed_prefix[index].timestamp,
             x: prediction[0],
@@ -846,11 +833,7 @@ pub fn fit_vector_ar1_forecast(
     })
 }
 
-fn apply_vector_ar1(
-    transition: [[f64; 2]; 2],
-    intercept: [f64; 2],
-    state: [f64; 2],
-) -> [f64; 2] {
+fn apply_vector_ar1(transition: [[f64; 2]; 2], intercept: [f64; 2], state: [f64; 2]) -> [f64; 2] {
     [
         transition[0][0] * state[0] + transition[0][1] * state[1] + intercept[0],
         transition[1][0] * state[0] + transition[1][1] * state[1] + intercept[1],
@@ -1799,7 +1782,6 @@ mod tests {
         );
     }
 
-
     fn quick_fit_grid() -> FrequencyPhaseGrid {
         FrequencyPhaseGrid {
             minimum_angular_frequency: 3.5,
@@ -1812,18 +1794,9 @@ mod tests {
     #[test]
     fn vector_ar1_recovers_the_rotational_baseline_and_freezes_its_suffix() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
-        let generated = simulate(
-            Mechanism::IntrinsicOscillator,
-            intervention,
-            config(),
-        )
-        .unwrap();
-        let forecast = fit_vector_ar1_forecast(
-            &generated.samples[..30],
-            intervention,
-            config(),
-        )
-        .unwrap();
+        let generated = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
+        let forecast =
+            fit_vector_ar1_forecast(&generated.samples[..30], intervention, config()).unwrap();
         let angle = config().angular_frequency * config().sample_interval;
         let (sin_angle, cos_angle) = angle.sin_cos();
 
@@ -1842,12 +1815,7 @@ mod tests {
     #[test]
     fn vector_ar1_is_a_predictive_equivalent_not_evidence_for_an_oscillator() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
-        let generated = simulate(
-            Mechanism::IntrinsicOscillator,
-            intervention,
-            config(),
-        )
-        .unwrap();
+        let generated = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
         let mechanistic = predict_intervention_candidates(
             &generated.samples[..30],
             &CANDIDATES,
@@ -1856,12 +1824,8 @@ mod tests {
             quick_fit_grid(),
         )
         .unwrap();
-        let ar1 = fit_vector_ar1_forecast(
-            &generated.samples[..30],
-            intervention,
-            config(),
-        )
-        .unwrap();
+        let ar1 =
+            fit_vector_ar1_forecast(&generated.samples[..30], intervention, config()).unwrap();
 
         let oscillator = mechanistic
             .iter()
@@ -1878,21 +1842,13 @@ mod tests {
             2.0,
         )
         .unwrap();
-        assert!(matches!(
-            decision,
-            CompetingModelDecision::Abstained { .. }
-        ));
+        assert!(matches!(decision, CompetingModelDecision::Abstained { .. }));
     }
 
     #[test]
     fn fitted_sensory_model_beats_action_blind_var1_after_feedback_cut() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
-        let generated = simulate(
-            Mechanism::SensoryFeedbackDriven,
-            intervention,
-            config(),
-        )
-        .unwrap();
+        let generated = simulate(Mechanism::SensoryFeedbackDriven, intervention, config()).unwrap();
         let candidates = [
             Mechanism::SensoryFeedbackDriven,
             Mechanism::IntrinsicOscillator,
@@ -1947,12 +1903,8 @@ mod tests {
             Err(BenchmarkError::SingularVectorAr1Fit)
         );
 
-        let generated = simulate(
-            Mechanism::IntrinsicOscillator,
-            Intervention::None,
-            config(),
-        )
-        .unwrap();
+        let generated =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
         let mut shifted = generated.samples[..30].to_vec();
         shifted[4].timestamp += 0.001;
         assert_eq!(
