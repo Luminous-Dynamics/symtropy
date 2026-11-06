@@ -12,7 +12,7 @@ use civdyn_resource_ledger::{
 };
 use std::collections::BTreeMap;
 
-const CSV_COLUMNS: usize = 19;
+const CSV_COLUMNS: usize = 29;
 const EXOGENOUS_SNAPSHOT: &str = "fixture:reservoir20m3_household_demand10m3_production0";
 
 #[derive(Debug)]
@@ -272,12 +272,19 @@ fn empty_row(record_type: &str, arm_id: &str) -> Vec<String> {
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
     ]
 }
 
 fn main() {
     println!(
-        "record_type,arm_id,metric,value,unit,ledger_record_key,exogenous_snapshot_id,qualified,path_complete,first_broken_edge,transition_applied,control_outcome,treatment_outcome,reservoir_closing_water_m3,household_served_water_m3,max_water_conservation_residual_m3,treatment_source_value,control_source_value,source_changed"
+        "record_type,arm_id,metric,value,unit,ledger_record_key,exogenous_snapshot_id,qualified,path_complete,first_broken_edge,transition_applied,control_outcome,treatment_outcome,reservoir_closing_water_m3,household_served_water_m3,max_water_conservation_residual_m3,treatment_source_value,control_source_value,source_changed,ablation_block_variable_id,ablation_block_switch_changed,ablation_primary_intervention_preserved,ablation_blocked_mediator_variable_id,ablation_mediator_suppressed,ablation_protocol_valid,mechanism_necessity_supported,ablation_outcome,ablation_effect,observed_treatment_effect"
     );
 
     let (experiment, arms) = reference_experiment();
@@ -341,21 +348,23 @@ fn main() {
     ablation[2] = "mechanism_necessity_supported".into();
     ablation[3] = result.mechanism_necessity_supported.to_string();
     ablation[4] = "boolean".into();
-    ablation[7] = result.ablation_protocol_valid.to_string();
-    ablation[8] = result.blocked_mechanism_suppressed.to_string();
-    ablation[9] = experiment
-        .edges
-        .iter()
-        .find(|edge| {
-            edge.to_variable == experiment.mechanism_ablation.blocked_mechanism_variable_id
-        })
-        .map_or_else(String::new, |edge| edge.id.clone());
-    ablation[10] = result.primary_intervention_preserved.to_string();
+    ablation[7] = result.qualified.to_string();
+    ablation[8] = result.mechanism_path_complete.to_string();
     ablation[11] = fmt(result.control_outcome);
-    ablation[12] = fmt(result.mechanism_ablation_outcome);
-    ablation[16] = fmt(result.mechanism_ablation_effect);
-    ablation[17] = fmt(result.observed_treatment_effect);
-    ablation[18] = result.ablation_inputs_matched.to_string();
+    ablation[12] = fmt(result.treatment_outcome);
+    ablation[19] = experiment.mechanism_ablation.block_variable_id.clone();
+    ablation[20] = result.ablation_inputs_matched.to_string();
+    ablation[21] = result.primary_intervention_preserved.to_string();
+    ablation[22] = experiment
+        .mechanism_ablation
+        .blocked_mechanism_variable_id
+        .clone();
+    ablation[23] = result.blocked_mechanism_suppressed.to_string();
+    ablation[24] = result.ablation_protocol_valid.to_string();
+    ablation[25] = result.mechanism_necessity_supported.to_string();
+    ablation[26] = fmt(result.mechanism_ablation_outcome);
+    ablation[27] = fmt(result.mechanism_ablation_effect);
+    ablation[28] = fmt(result.observed_treatment_effect);
     emit(ablation);
 }
 
