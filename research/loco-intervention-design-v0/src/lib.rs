@@ -592,8 +592,7 @@ mod tests {
             Err(DesignError::InvalidObservationVariances)
         );
 
-        let mut invalid_candidate =
-            candidate(1, 1.0, true, &[0.0, 0.0, 0.0], &[1.0, 0.0, 0.0]);
+        let mut invalid_candidate = candidate(1, 1.0, true, &[0.0, 0.0, 0.0], &[1.0, 0.0, 0.0]);
         invalid_candidate.candidate_digest = [0; 32];
         assert_eq!(
             select_intervention(&hypotheses(), &[invalid_candidate], &constraints()),
