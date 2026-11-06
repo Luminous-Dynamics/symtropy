@@ -537,3 +537,24 @@ fn observation_source_digest_must_match_pinned_partition() {
         symtropy_counterfactual_baseline::BaselineQualificationError::SourceDigestMismatch { .. }
     ));
 }
+
+#[test]
+fn event_response_is_not_qualified_until_recovery_horizon_is_declared_complete() {
+    let baseline = qualified_report();
+    let point = DispatchEventPoint::new(
+        "event-1",
+        "normal",
+        0,
+        0,
+        3_600_000_000_000,
+        100.0,
+        80.0,
+        0.0,
+        "pcc-1",
+    ).unwrap();
+    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &[point], false)
+        .expect("partial-horizon report");
+    assert!(!report.event_and_recovery_included_in_supplied_horizon);
+    assert!(!report.event_qualified);
+    assert!((report.net_reduction_energy_kwh - 20.0).abs() < 1e-12);
+}
