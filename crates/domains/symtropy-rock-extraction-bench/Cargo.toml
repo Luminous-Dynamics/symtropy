@@ -1,0 +1,11 @@
+[package]
+name = "symtropy-rock-extraction-bench"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Evidence-bounded full-cycle rock extraction trial validation and comparison"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]

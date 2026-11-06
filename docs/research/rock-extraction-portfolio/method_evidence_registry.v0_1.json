@@ -1,0 +1,666 @@
+{
+  "schema_version": 1,
+  "registry_id": "symtropy.rock-extraction.method-evidence",
+  "registry_version": "0.1.0",
+  "status": "literature_reference_only",
+  "claim_ceiling": "This registry is a research index. It does not qualify a method, machine, site, physical model, safety case, construction design, or operational use.",
+  "evidence_scale": [
+    {
+      "id": "R0",
+      "label": "Concept",
+      "meaning": "Plausible mechanism or proposal; no adequate experimental demonstration identified."
+    },
+    {
+      "id": "R1",
+      "label": "Analytical_or_small_specimen",
+      "meaning": "Theory, simulation, or initial small-specimen evidence."
+    },
+    {
+      "id": "R2",
+      "label": "Controlled_experimental_fixture",
+      "meaning": "Controlled laboratory apparatus with measured response."
+    },
+    {
+      "id": "R3",
+      "label": "Field_or_pilot",
+      "meaning": "Borehole, mine, quarry, or TBM pilot; full production boundary may remain incomplete."
+    },
+    {
+      "id": "R4",
+      "label": "Sustained_production",
+      "meaning": "Repeated useful duty cycles with full-cycle energy, maintenance, reliability, and acceptance evidence."
+    },
+    {
+      "id": "R5",
+      "label": "Independent_transfer",
+      "meaning": "Independent replication across sites, machines, and relevant geological cohorts."
+    }
+  ],
+  "evidence_rules": [
+    "Evidence tiers are assigned per application, not globally to a technology name.",
+    "A borehole demonstration is not evidence for large-diameter tunnel-face production.",
+    "A cutting-only energy reduction is not a full-cycle productivity or lifecycle-cost result.",
+    "Laboratory, company-reported, peer-reviewed field, archaeological, and interpretive evidence remain distinct.",
+    "Unknown application scope must be recorded as not_demonstrated, not inferred from another application."
+  ],
+  "methods": [
+    {
+      "id": "mechanical_disc_cutter",
+      "mechanism": "mechanical_contact_fracture",
+      "family": "mechanical",
+      "application_evidence": [
+        {
+          "application": "hard_rock_tunnel_boring",
+          "tier": "R4-R5",
+          "basis": "Established industrial method family; exact machine/ground envelope still requires project-specific qualification.",
+          "sources": [
+            "https://www.rocktechnology.sandvik/en/"
+          ]
+        },
+        {
+          "application": "hard_rock_quarrying",
+          "tier": "R4-R5",
+          "basis": "Established industrial method family; task and block-quality boundaries differ from tunnel advance.",
+          "sources": []
+        }
+      ],
+      "not_demonstrated": [
+        "One universal performance envelope for all granite and basalt."
+      ],
+      "primary_metrics": [
+        "full_cycle_accepted_advance",
+        "specific_energy",
+        "cutter_wear",
+        "fragment_size",
+        "overbreak",
+        "support_demand"
+      ]
+    },
+    {
+      "id": "drill_and_blast",
+      "mechanism": "percussive_drilling_plus_controlled_blast_fracture",
+      "family": "mechanical_and_explosive_baseline",
+      "application_evidence": [
+        {
+          "application": "hard_rock_mining_and_tunnelling",
+          "tier": "R4-R5",
+          "basis": "Established industrial method family; comparisons require declared blast, ventilation, fragmentation, support, and cycle boundaries.",
+          "sources": []
+        }
+      ],
+      "not_demonstrated": [
+        "A universal substitute for mechanical continuous excavation."
+      ],
+      "primary_metrics": [
+        "full_cycle_advance",
+        "fragmentation",
+        "overbreak",
+        "vibration",
+        "ventilation",
+        "mucking_time",
+        "support_demand"
+      ]
+    },
+    {
+      "id": "high_pressure_waterjet_assist",
+      "mechanism": "fluid_jet_kerf_erosion_and_local_fracture",
+      "family": "hybrid_mechanical_assist",
+      "application_evidence": [
+        {
+          "application": "granite_tb_m_disc_cutter_assist",
+          "tier": "R3",
+          "basis": "Laboratory and field/industrial TBM studies exist; heating/cooling burden and sustained-operation effects remain important.",
+          "sources": [
+            "https://doi.org/10.1007/s11709-023-0947-0",
+            "https://doi.org/10.1177/1687814020962290"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Standalone large-fragment detachment in hard granite across general field conditions."
+      ],
+      "primary_metrics": [
+        "full_cycle_specific_energy",
+        "kerf_geometry",
+        "disc_cutter_force",
+        "cooling_load",
+        "water_use",
+        "nozzle_life",
+        "accepted_fragment_output"
+      ]
+    },
+    {
+      "id": "plasma_channel_ehd_ed",
+      "mechanism": "electrical_breakdown_and_shock_or_arc_induced_fracture",
+      "family": "electrical_pulse",
+      "application_evidence": [
+        {
+          "application": "granite_pdc_precracking_assist_sparc",
+          "tier": "R2",
+          "basis": "2025 controlled drilling study reports underwater low-energy pulses (~80 J/pulse), cracks up to 9.4 mm, up to 56% lower specific cutting energy before PDC mechanical cutting, and cracking tests at elevated pressure (~300 atm). This is cutting-energy evidence, not a full-cycle mine productivity result.",
+          "sources": [
+            "https://doi.org/10.1016/j.renene.2025.122351",
+            "https://doi.org/10.1115/1.4056752"
+          ]
+        },
+        {
+          "application": "granite_and_other_rock_lab_ehd_ed_mechanism",
+          "tier": "R1-R2",
+          "basis": "2026 review surveys granite and other rock experiments but identifies disagreement between EHD shockwave and electric-discharge arc mechanisms, sensitivity to fluid/polarity/pulse settings, limited high-pressure modelling, and absence of standardized benchmarks.",
+          "sources": [
+            "https://doi.org/10.1109/TPS.2026.3705317",
+            "https://doi.org/10.1007/s40948-023-00550-2"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Sustained high-pressure downhole operation or production-scale tunnel excavation."
+      ],
+      "primary_metrics": [
+        "energy_per_removed_solid_volume",
+        "damage_zone",
+        "electrode_wear",
+        "fluid_sensitivity",
+        "repeatability",
+        "pulse_to_tool_integration"
+      ]
+    },
+    {
+      "id": "thermal_plasma_torch",
+      "mechanism": "high_temperature_ionized_gas_heat_transfer",
+      "family": "thermal",
+      "application_evidence": [
+        {
+          "application": "hard_rock_mining_excavation",
+          "tier": "R0-R1",
+          "basis": "Keep distinct from pulsed electrical discharge and gyrotron methods; this registry found no production-scale granite/basalt tunnelling evidence.",
+          "sources": []
+        }
+      ],
+      "not_demonstrated": [
+        "A qualified production hard-rock tunnel or quarry system."
+      ],
+      "primary_metrics": [
+        "net_energy_per_volume",
+        "heat_affected_zone",
+        "gas_flow_burden",
+        "wall_damage",
+        "debris_removal",
+        "equipment_life"
+      ]
+    },
+    {
+      "id": "thermal_spallation_flame_jet",
+      "mechanism": "thermal_gradient_and_grain_scale_spalling",
+      "family": "thermal_hybrid",
+      "application_evidence": [
+        {
+          "application": "hard_rock_geothermal_drilling_assist",
+          "tier": "R2-R3",
+          "basis": "ETH modelling and combined thermo-mechanical laboratory/field proof-of-concept exist; not a sustained production tunnel face.",
+          "sources": [
+            "https://gegnew.ethz.ch/projects/project-spallation-drilling",
+            "https://doi.org/10.3997/2214-4609.201901604"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "A transferable full-cycle granite/basalt tunnel production advantage."
+      ],
+      "primary_metrics": [
+        "spall_rate",
+        "heat_affected_depth",
+        "full_cycle_energy",
+        "cooling_and_ventilation",
+        "fragment_distribution",
+        "tool_wear"
+      ]
+    },
+    {
+      "id": "gyrotron_millimetre_wave",
+      "mechanism": "high_power_electromagnetic_heating_spalling_melting_and_vaporization",
+      "family": "electromagnetic_ablation",
+      "application_evidence": [
+        {
+          "application": "granite_small_bore_geothermal_drilling",
+          "tier": "R3",
+          "basis": "MIT/MITEI reported a 118 m field borehole and company-reported demonstration speed up to 5 m/h in 2025; treat as a specific borehole demonstration.",
+          "sources": [
+            "https://energy.mit.edu/news-events/news/mitei-spinout-quaise-energy-successfully-demonstrates-their-geothermal-energy/"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Large-diameter tunnel-face production, heterogeneous deep-hole transfer, or independently replicated full-cycle economics."
+      ],
+      "primary_metrics": [
+        "borehole_diameter",
+        "net_energy_per_removed_volume",
+        "beam_delivery_efficiency",
+        "vapour_and_dust_clearance",
+        "power_conversion",
+        "wall_quality"
+      ]
+    },
+    {
+      "id": "microwave_preconditioning",
+      "mechanism": "dielectric_heating_and_differential_mineral_thermal_stress",
+      "family": "electromagnetic_hybrid",
+      "application_evidence": [
+        {
+          "application": "granite_and_other_hard_rock_preconditioning",
+          "tier": "R1-R2",
+          "basis": "Laboratory tests and a 2026 review describe pre-weakening and reduced subsequent mechanical cutting loads for selected specimen/configuration sets.",
+          "sources": [
+            "https://doi.org/10.3390/pr14193117",
+            "https://doi.org/10.1016/j.energy.2024.130489"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Universal geology transfer or a complete production system with conversion, shielding, cooling and ventilation costs."
+      ],
+      "primary_metrics": [
+        "dielectric_loss",
+        "thermal_penetration",
+        "subsequent_cutting_energy",
+        "total_system_energy",
+        "heat_affected_volume",
+        "safety_exclusions"
+      ]
+    },
+    {
+      "id": "laser_assisted_ablation",
+      "mechanism": "localized_optical_heating_fracture_melting_or_vaporization",
+      "family": "optical_ablation",
+      "application_evidence": [
+        {
+          "application": "hard_rock_excavation",
+          "tier": "R1-R2",
+          "basis": "Research and conceptual diagrams exist; no sustained large-scale granite/basalt tunnel production result identified in this review.",
+          "sources": [
+            "https://www.ricas2020.eu/research-areas/innovative-excavation-methods/"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Production-scale tunnel face performance, optical delivery through dusty/steamy boreholes, and lifecycle cost."
+      ],
+      "primary_metrics": [
+        "optical_to_rock_efficiency",
+        "removed_volume",
+        "heat_affected_zone",
+        "plume_clearance",
+        "wall_damage",
+        "optics_life"
+      ]
+    },
+    {
+      "id": "sonic_drill_string",
+      "mechanism": "longitudinal_drill_string_resonance_and_vibro_percussion",
+      "family": "vibratory_mechanical",
+      "application_evidence": [
+        {
+          "application": "subsurface_sampling_and_geotechnical_drilling",
+          "tier": "R3",
+          "basis": "Sonic drilling is used in field sampling; this does not imply a hard-rock production-tunnelling capability.",
+          "sources": [
+            "https://doi.org/10.1177/14613484211025155"
+          ]
+        },
+        {
+          "application": "hard_rock_bit_breakage_model",
+          "tier": "R1",
+          "basis": "Published analytical/dynamic rock-breaking model; not a full-scale hard-granite tunnel trial.",
+          "sources": [
+            "https://doi.org/10.1177/14613484211025155"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Sustained production advance in massive granite/basalt using resonance alone."
+      ],
+      "primary_metrics": [
+        "amplitude_at_bit",
+        "resonance_stability",
+        "energy_transmission",
+        "penetration_rate",
+        "string_fatigue",
+        "bit_life"
+      ]
+    },
+    {
+      "id": "ultrasonic_impact_assist",
+      "mechanism": "high_frequency_transducer_driven_tool_rock_impact",
+      "family": "vibratory_mechanical_assist",
+      "application_evidence": [
+        {
+          "application": "sandstone_and_limestone_drilling_prototype",
+          "tier": "R2",
+          "basis": "2025 prototype reports stable 43 micrometre amplitude and speed gains for the tested sandstone/limestone conditions.",
+          "sources": [
+            "https://doi.org/10.1177/10775463251387452"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Granite or basalt performance at a representative hard-rock cutting scale."
+      ],
+      "primary_metrics": [
+        "amplitude_at_contact",
+        "frequency_tracking",
+        "bit_force",
+        "specific_energy",
+        "transducer_temperature",
+        "fatigue_life"
+      ]
+    },
+    {
+      "id": "liquid_nitrogen_preconditioning",
+      "mechanism": "cryogenic_thermal_shock_and_crack_growth",
+      "family": "cryogenic_hybrid",
+      "application_evidence": [
+        {
+          "application": "hard_rock_specimen_pre_damaging",
+          "tier": "R2",
+          "basis": "2025 laboratory study reports exposure-time-dependent micro/macrocracking and strength changes in tested samples.",
+          "sources": [
+            "https://doi.org/10.1007/s40948-025-01021-6"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Continuous field excavation or net-energy advantage after cryogen production, storage, transport and boil-off."
+      ],
+      "primary_metrics": [
+        "crack_depth",
+        "strength_change",
+        "cryogen_per_volume",
+        "boiloff_loss",
+        "thermal_recovery",
+        "subsequent_cutting_energy"
+      ]
+    },
+    {
+      "id": "expansive_chemical_splitting",
+      "mechanism": "confined_hydration_expansion_and_static_tensile_fracture",
+      "family": "chemical_static_splitting",
+      "application_evidence": [
+        {
+          "application": "quarry_block_splitting_and_secondary_fragmentation",
+          "tier": "R3-R4",
+          "basis": "Commercial/static splitting methods and engineering literature exist; dwell time and borehole geometry make it distinct from continuous TBM production.",
+          "sources": [
+            "https://doi.org/10.3390/en14185965"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "High-throughput continuous tunnel-face removal."
+      ],
+      "primary_metrics": [
+        "split_time",
+        "borehole_consumables",
+        "block_yield",
+        "crack_path_control",
+        "residue",
+        "accepted_volume_per_shift"
+      ]
+    },
+    {
+      "id": "ancient_dolerite_pounder",
+      "mechanism": "percussive_contact_crushing_and_brittle_chipping",
+      "family": "archaeological_reconstruction",
+      "application_evidence": [
+        {
+          "application": "ancient_egyptian_aswan_granite_quarrying",
+          "tier": "archaeological_and_replicative",
+          "basis": "Quarry artefacts and replicated work; one 2023 photogrammetric experiment measured about 216 cm3/h at 85 hits/minute with a 3.47 kg pounder.",
+          "sources": [
+            "https://doi.org/10.1016/j.daach.2023.e00284",
+            "https://doi.org/10.1080/01977261.2025.2577022"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "The complete historical workflow for every monument or a single-method explanation of the unfinished obelisk."
+      ],
+      "primary_metrics": [
+        "removed_volume",
+        "impact_rate",
+        "pounder_wear",
+        "groove_geometry",
+        "labour_time",
+        "replication_uncertainty"
+      ]
+    },
+    {
+      "id": "ancient_abrasive_saw_drill",
+      "mechanism": "abrasive_particle_cutting_with_tool_carrier",
+      "family": "archaeological_reconstruction",
+      "application_evidence": [
+        {
+          "application": "ancient_egyptian_hard_stone_sawing_and_coring",
+          "tier": "archaeological_and_replicative",
+          "basis": "Museum research describes abrasive particulates in saws/core drills and quartz-rich traces in ancient drill holes; Egyptian emery use remains debated.",
+          "sources": [
+            "https://www.metmuseum.org/ja/perspectives/ancient-egyptian-technology"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "The use of a particular abrasive such as emery in every Egyptian quarry."
+      ],
+      "primary_metrics": [
+        "removed_volume",
+        "abrasive_grain_type",
+        "cut_rate",
+        "tool_wear",
+        "groove_or_bore_geometry"
+      ]
+    },
+    {
+      "id": "ancient_basalt_stone_tool_quarrying",
+      "mechanism": "percussive_pecking_and_trench_isolation",
+      "family": "archaeological_reconstruction",
+      "application_evidence": [
+        {
+          "application": "pre_european_gran_canaria_basalt_quern_quarries",
+          "tier": "archaeological_field_evidence",
+          "basis": "Quarry faces and workshop evidence document extraction and shaping of basalt with stone tools.",
+          "sources": [
+            "https://doi.org/10.2218/jls.v3i2.1779"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Transfer to other basalt types, monumental block sizes or unrelated quarry contexts."
+      ],
+      "primary_metrics": [
+        "roughout_geometry",
+        "removed_volume",
+        "tool_wear",
+        "percussion_time",
+        "block_yield"
+      ]
+    },
+    {
+      "id": "ancient_molten_natron_hypothesis",
+      "mechanism": "proposed_alkali_fluxing_plus_thermal_shock",
+      "family": "archaeological_hypothesis",
+      "application_evidence": [
+        {
+          "application": "ancient_egyptian_granite_quarrying_hypothesis",
+          "tier": "R1_hypothesis",
+          "basis": "2026 paper reports small specimen replication and proposes an interpretation of text/imagery; no quarry residue is reported and historical attribution remains unconfirmed.",
+          "sources": [
+            "https://doi.org/10.1038/s40494-026-02315-y"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Use at the Aswan Unfinished Obelisk, full trench scale, or consensus historical attribution."
+      ],
+      "primary_metrics": [
+        "replication_repeatability",
+        "chemical_residue",
+        "thermal_mass_balance",
+        "mineral_reaction",
+        "archaeological_context_fit"
+      ]
+    },
+    {
+      "id": "pulsed_thermal_plasma_jet",
+      "mechanism": "high_temperature_pulsed_plasma_jet_thermal_spallation_and_melting",
+      "family": "thermal_plasma_jet",
+      "application_evidence": [
+        {
+          "application": "granite_laboratory_drilling_and_thermal_removal",
+          "tier": "R2",
+          "basis": "A 2024 granite laboratory study comparing pulsed versus constant plasma jet reports 54.74% lower specific energy, 17.81% higher penetration rate and 50.06% lower electrode wear in its own test boundary. A 2025 thermal study identifies a spalling-to-melting transition and a heat-affected region. These are laboratory comparisons, not a production tunnel result.",
+          "sources": [
+            "https://doi.org/10.1016/j.geoen.2023.212466",
+            "https://doi.org/10.1016/j.petsci.2024.12.017"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Sustained production-scale granite or basalt tunnel excavation.",
+        "A full-cycle comparison including power conversion, cooling, ventilation, debris removal and maintenance."
+      ],
+      "primary_metrics": [
+        "net_energy_per_removed_solid_volume",
+        "penetration_rate",
+        "spall_vs_melt_fraction",
+        "heat_affected_zone",
+        "electrode_wear",
+        "cooling_and_gas_burden",
+        "fragment_recovery"
+      ]
+    },
+    {
+      "id": "high_voltage_pulse_mineral_liberation",
+      "mechanism": "dielectric_breakdown_and_selective_intergranular_fragmentation_in_particulate_feed",
+      "family": "mineral_processing_and_beneficiation",
+      "application_evidence": [
+        {
+          "application": "ore_mineral_liberation_and_preconcentration",
+          "tier": "R1-R2",
+          "basis": "2021 review describes high-voltage pulse applications in mineral liberation, pre-weakening and pre-concentration; it also identifies energy, equipment wear, water processing and throughput challenges. A 2025 review surveys discharge-parameter optimization and heterogeneity effects. Treat as a distinct mineral-processing pathway, not in-situ tunnel excavation.",
+          "sources": [
+            "https://doi.org/10.1016/j.powtec.2021.09.034",
+            "https://doi.org/10.1016/j.mineng.2025.109356"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "A general replacement for conventional tunnel-face excavation.",
+        "A universally beneficial energy or recovery gain across ores and feed-size distributions."
+      ],
+      "primary_metrics": [
+        "liberated_mineral_fraction",
+        "concentrate_grade_and_recovery",
+        "specific_energy_per_tonne",
+        "downstream_grinding_energy",
+        "equipment_wear",
+        "water_processing_burden",
+        "feed_throughput"
+      ]
+    },
+    {
+      "id": "axial_torsional_coupled_percussion",
+      "mechanism": "coordinated_axial_and_torsional_impact_generates_alternating_tensile_compressive_strain_and_volume_spalling",
+      "family": "mechanical_dynamic_percussion",
+      "application_evidence": [
+        {
+          "application": "hot_dry_rock_altered_granite_geothermal_drilling",
+          "tier": "R3",
+          "basis": "A 2026 Fushen-1 field test in altered granite above 180 C reports a 33 m ATCP test interval at 5.32 m/h versus 1.93 m/h in an adjacent 164 m conventional rotary interval; the paper reports 175.65% higher ROP and 63.68% lower MSE. Adjacent intervals are not a randomized matched trial; retain geology/interval/operating confounding and do not infer a transferable causal effect.",
+          "sources": [
+            "https://doi.org/10.1016/S1876-3804(26)60774-4"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Matched randomized transfer across granite/basalt cohorts, depths, temperatures and equipment configurations.",
+        "An equivalent productivity gain in large-diameter tunnel-face excavation.",
+        "Lifecycle-cost improvement after tool, pump, maintenance and full-cycle accounting."
+      ],
+      "primary_metrics": [
+        "full_cycle_accepted_advance",
+        "mechanical_specific_energy",
+        "weight_on_bit_variance",
+        "axial_torsional_frequency",
+        "tool_life",
+        "downtime",
+        "energy_boundary"
+      ]
+    },
+    {
+      "id": "laser_assisted_pdc_cone_hybrid",
+      "mechanism": "localized_optical_thermal_preconditioning_coupled_to_optimized_pdc_cutter_geometry",
+      "family": "laser_mechanical_hybrid",
+      "application_evidence": [
+        {
+          "application": "granite_laser_assisted_pdc_fragmentation",
+          "tier": "R1-R2",
+          "basis": "A 2025 experimental/simulation study reports an optimized cone-hybrid cutter configuration with 70.81% lower comprehensive specific fragmentation energy than its minimum mechanical baseline and 7.4% lower than a laser-assisted triple-cylinder configuration. This is configuration-specific fragmentation-energy evidence, not a whole-rig electrical or field productivity result.",
+          "sources": [
+            "https://doi.org/10.1016/j.geoen.2025.214317"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Sustained field operation in granite or basalt with complete optical source, cooling, ventilation and auxiliary energy accounting.",
+        "A transferable result for large TBM disc-cutter faces or unrelated cutter geometry."
+      ],
+      "primary_metrics": [
+        "comprehensive_specific_fragmentation_energy",
+        "laser_to_rock_energy",
+        "cutter_force",
+        "fragment_distribution",
+        "heat_affected_zone",
+        "optics_life",
+        "full_cycle_energy"
+      ]
+    },
+    {
+      "id": "oscillating_disc_cutter",
+      "mechanism": "eccentric_oscillation_of_rolling_disc_induces_discontinuous_tensile_fracture_and_fragmentation",
+      "family": "mechanical_kinematic_hybrid",
+      "application_evidence": [
+        {
+          "application": "red_sandstone_full_scale_linear_cutting_rig",
+          "tier": "R2",
+          "basis": "A 2026 full-scale linear cutting-rig study tests ODC speed ratio and cutting depth on red sandstone (UCS 61.33 MPa). It measures thrust, torque, specific energy and fragment size; increased oscillation has competing cutting-energy and downstream-crushing-energy effects. This is not a granite/basalt test.",
+          "sources": [
+            "https://doi.org/10.1177/01445987261471924"
+          ]
+        },
+        {
+          "application": "underground_passage_machine_deployment",
+          "tier": "R3",
+          "basis": "The 2026 paper reports that the Komatsu MC51 using ODC technology completed an underground passage project in Sydney in 2025. This is reported application evidence, not an independently published hard-granite performance dataset.",
+          "sources": [
+            "https://doi.org/10.1177/01445987261471924"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Matched full-scale granite and basalt comparisons against conventional disc cutters.",
+        "Transfer of red-sandstone cutting-force and fragment-size findings into highly abrasive hard rock.",
+        "Lifecycle cost and cutter life under a complete tunnel project boundary."
+      ],
+      "primary_metrics": [
+        "thrust_force",
+        "cutting_torque",
+        "specific_energy",
+        "crushing_energy",
+        "fragment_size_distribution",
+        "oscillation_speed_ratio",
+        "cutter_wear",
+        "full_cycle_advance"
+      ]
+    }
+  ]
+}

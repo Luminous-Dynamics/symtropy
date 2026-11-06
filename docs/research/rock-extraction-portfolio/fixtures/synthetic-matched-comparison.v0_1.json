@@ -1,0 +1,229 @@
+{
+  "fixture_id": "rock-extraction-comparison-synthetic-01",
+  "synthetic": true,
+  "claim_ceiling": "All values are fabricated conformance fixtures. They are not physical measurements, performance evidence, or predictions.",
+  "comparison_profile": {
+    "schema_version": 1,
+    "profile_id": "synthetic:granite-slot-cut-comparison:v1",
+    "protocol_ref": "synthetic:preregistered-matched-block-protocol:v1",
+    "task_profile_ref": "synthetic:slot-cut-100x50mm:v1",
+    "material_cohort_ref": "synthetic:granite-cohort-A:v1",
+    "material_pairing_ref": "synthetic:matched-block-17:v1",
+    "geometry_profile_ref": "synthetic:slot-geometry-100x50mm:v1",
+    "acceptance_profile_ref": "synthetic:accepted-solid-volume-plus-wall-quality:v1",
+    "site_context_ref": "synthetic:lab-cutting-rig-02:v1",
+    "metrology_protocol_ref": "synthetic:independent-scan-weigh-clock:v1",
+    "energy_boundary_ref": "synthetic:facility-meter-plus-aux-inventory:v1",
+    "energy_basis": "FacilityElectricalInput",
+    "included_subsystems": [
+      "primary_tool",
+      "cooling",
+      "dust_extraction"
+    ],
+    "time_basis": "FullCycle",
+    "study_design": "RandomizedMatchedPair",
+    "minimum_replicates_per_arm": 2
+  },
+  "trials": [
+    {
+      "schema_version": 1,
+      "trial_id": "base-001",
+      "profile_ref": "synthetic:granite-slot-cut-comparison:v1",
+      "protocol_ref": "synthetic:preregistered-matched-block-protocol:v1",
+      "task_profile_ref": "synthetic:slot-cut-100x50mm:v1",
+      "material_cohort_ref": "synthetic:granite-cohort-A:v1",
+      "material_pairing_ref": "synthetic:matched-block-17:v1",
+      "geometry_profile_ref": "synthetic:slot-geometry-100x50mm:v1",
+      "acceptance_profile_ref": "synthetic:accepted-solid-volume-plus-wall-quality:v1",
+      "site_context_ref": "synthetic:lab-cutting-rig-02:v1",
+      "metrology_protocol_ref": "synthetic:independent-scan-weigh-clock:v1",
+      "method_profile_ref": "synthetic:mechanical-disc-cut:v1",
+      "machine_profile_ref": "synthetic:rig-mechanical:v1",
+      "tool_profile_ref": "synthetic:disc-cutter:v1",
+      "arm": "MechanicalBaseline",
+      "energy": {
+        "total_energy_kwh": 12,
+        "standard_uncertainty_kwh": 0.12,
+        "basis": "FacilityElectricalInput",
+        "boundary_ref": "synthetic:facility-meter-plus-aux-inventory:v1",
+        "energy_accounting_ref": "synthetic:energy-accounting-v1",
+        "included_subsystems": [
+          "primary_tool",
+          "cooling",
+          "dust_extraction"
+        ],
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:facility-meter-calibration-v1",
+        "source_ref": "synthetic:meter-record:base-001"
+      },
+      "accepted_output": {
+        "accepted_solid_volume_m3": 0.1,
+        "standard_uncertainty_m3": 0.001,
+        "basis": "AcceptedSolidVolume",
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:laser-scan-scale-calibration-v1",
+        "source_ref": "synthetic:scan-weigh-record:base-001"
+      },
+      "time": {
+        "elapsed_hours": 2,
+        "standard_uncertainty_hours": 0.02,
+        "basis": "FullCycle",
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:clock-calibration-v1",
+        "source_ref": "synthetic:clock-log:base-001"
+      },
+      "specimen_ref": "synthetic:specimen:base-001",
+      "matched_pair_ref": "synthetic:pair-01"
+    },
+    {
+      "schema_version": 1,
+      "trial_id": "base-002",
+      "profile_ref": "synthetic:granite-slot-cut-comparison:v1",
+      "protocol_ref": "synthetic:preregistered-matched-block-protocol:v1",
+      "task_profile_ref": "synthetic:slot-cut-100x50mm:v1",
+      "material_cohort_ref": "synthetic:granite-cohort-A:v1",
+      "material_pairing_ref": "synthetic:matched-block-17:v1",
+      "geometry_profile_ref": "synthetic:slot-geometry-100x50mm:v1",
+      "acceptance_profile_ref": "synthetic:accepted-solid-volume-plus-wall-quality:v1",
+      "site_context_ref": "synthetic:lab-cutting-rig-02:v1",
+      "metrology_protocol_ref": "synthetic:independent-scan-weigh-clock:v1",
+      "method_profile_ref": "synthetic:mechanical-disc-cut:v1",
+      "machine_profile_ref": "synthetic:rig-mechanical:v1",
+      "tool_profile_ref": "synthetic:disc-cutter:v1",
+      "arm": "MechanicalBaseline",
+      "energy": {
+        "total_energy_kwh": 10,
+        "standard_uncertainty_kwh": 0.1,
+        "basis": "FacilityElectricalInput",
+        "boundary_ref": "synthetic:facility-meter-plus-aux-inventory:v1",
+        "energy_accounting_ref": "synthetic:energy-accounting-v1",
+        "included_subsystems": [
+          "primary_tool",
+          "cooling",
+          "dust_extraction"
+        ],
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:facility-meter-calibration-v1",
+        "source_ref": "synthetic:meter-record:base-002"
+      },
+      "accepted_output": {
+        "accepted_solid_volume_m3": 0.1,
+        "standard_uncertainty_m3": 0.001,
+        "basis": "AcceptedSolidVolume",
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:laser-scan-scale-calibration-v1",
+        "source_ref": "synthetic:scan-weigh-record:base-002"
+      },
+      "time": {
+        "elapsed_hours": 2,
+        "standard_uncertainty_hours": 0.02,
+        "basis": "FullCycle",
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:clock-calibration-v1",
+        "source_ref": "synthetic:clock-log:base-002"
+      },
+      "specimen_ref": "synthetic:specimen:base-002",
+      "matched_pair_ref": "synthetic:pair-02"
+    },
+    {
+      "schema_version": 1,
+      "trial_id": "candidate-001",
+      "profile_ref": "synthetic:granite-slot-cut-comparison:v1",
+      "protocol_ref": "synthetic:preregistered-matched-block-protocol:v1",
+      "task_profile_ref": "synthetic:slot-cut-100x50mm:v1",
+      "material_cohort_ref": "synthetic:granite-cohort-A:v1",
+      "material_pairing_ref": "synthetic:matched-block-17:v1",
+      "geometry_profile_ref": "synthetic:slot-geometry-100x50mm:v1",
+      "acceptance_profile_ref": "synthetic:accepted-solid-volume-plus-wall-quality:v1",
+      "site_context_ref": "synthetic:lab-cutting-rig-02:v1",
+      "metrology_protocol_ref": "synthetic:independent-scan-weigh-clock:v1",
+      "method_profile_ref": "synthetic:hybrid-sparc-pdc:v1",
+      "machine_profile_ref": "synthetic:rig-hybrid:v1",
+      "tool_profile_ref": "synthetic:sparc-pdc:v1",
+      "arm": "Candidate",
+      "energy": {
+        "total_energy_kwh": 10,
+        "standard_uncertainty_kwh": 0.1,
+        "basis": "FacilityElectricalInput",
+        "boundary_ref": "synthetic:facility-meter-plus-aux-inventory:v1",
+        "energy_accounting_ref": "synthetic:energy-accounting-v1",
+        "included_subsystems": [
+          "primary_tool",
+          "cooling",
+          "dust_extraction"
+        ],
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:facility-meter-calibration-v1",
+        "source_ref": "synthetic:meter-record:candidate-001"
+      },
+      "accepted_output": {
+        "accepted_solid_volume_m3": 0.12,
+        "standard_uncertainty_m3": 0.0012,
+        "basis": "AcceptedSolidVolume",
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:laser-scan-scale-calibration-v1",
+        "source_ref": "synthetic:scan-weigh-record:candidate-001"
+      },
+      "time": {
+        "elapsed_hours": 1.8,
+        "standard_uncertainty_hours": 0.018000000000000002,
+        "basis": "FullCycle",
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:clock-calibration-v1",
+        "source_ref": "synthetic:clock-log:candidate-001"
+      },
+      "specimen_ref": "synthetic:specimen:candidate-001",
+      "matched_pair_ref": "synthetic:pair-01"
+    },
+    {
+      "schema_version": 1,
+      "trial_id": "candidate-002",
+      "profile_ref": "synthetic:granite-slot-cut-comparison:v1",
+      "protocol_ref": "synthetic:preregistered-matched-block-protocol:v1",
+      "task_profile_ref": "synthetic:slot-cut-100x50mm:v1",
+      "material_cohort_ref": "synthetic:granite-cohort-A:v1",
+      "material_pairing_ref": "synthetic:matched-block-17:v1",
+      "geometry_profile_ref": "synthetic:slot-geometry-100x50mm:v1",
+      "acceptance_profile_ref": "synthetic:accepted-solid-volume-plus-wall-quality:v1",
+      "site_context_ref": "synthetic:lab-cutting-rig-02:v1",
+      "metrology_protocol_ref": "synthetic:independent-scan-weigh-clock:v1",
+      "method_profile_ref": "synthetic:hybrid-sparc-pdc:v1",
+      "machine_profile_ref": "synthetic:rig-hybrid:v1",
+      "tool_profile_ref": "synthetic:sparc-pdc:v1",
+      "arm": "Candidate",
+      "energy": {
+        "total_energy_kwh": 9,
+        "standard_uncertainty_kwh": 0.09,
+        "basis": "FacilityElectricalInput",
+        "boundary_ref": "synthetic:facility-meter-plus-aux-inventory:v1",
+        "energy_accounting_ref": "synthetic:energy-accounting-v1",
+        "included_subsystems": [
+          "primary_tool",
+          "cooling",
+          "dust_extraction"
+        ],
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:facility-meter-calibration-v1",
+        "source_ref": "synthetic:meter-record:candidate-002"
+      },
+      "accepted_output": {
+        "accepted_solid_volume_m3": 0.12,
+        "standard_uncertainty_m3": 0.0012,
+        "basis": "AcceptedSolidVolume",
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:laser-scan-scale-calibration-v1",
+        "source_ref": "synthetic:scan-weigh-record:candidate-002"
+      },
+      "time": {
+        "elapsed_hours": 1.8,
+        "standard_uncertainty_hours": 0.018000000000000002,
+        "basis": "FullCycle",
+        "evidence_role": "IndependentMeasurement",
+        "calibration_ref": "synthetic:clock-calibration-v1",
+        "source_ref": "synthetic:clock-log:candidate-002"
+      },
+      "specimen_ref": "synthetic:specimen:candidate-002",
+      "matched_pair_ref": "synthetic:pair-02"
+    }
+  ]
+}
