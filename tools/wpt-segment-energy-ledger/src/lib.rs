@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
 
-pub const SCHEMA_VERSION: &str = "wpt-segment-energy-ledger-v1";
+pub const SCHEMA_VERSION: &str = "wpt-segment-energy-ledger-v2";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -86,12 +86,20 @@ pub struct BoundaryMeasurement {
     pub quantity: EnergyQuantity,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct TrajectorySampleReference {
+    pub sample_id: String,
+    pub timestamp_ns: u64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SegmentEvent {
     pub segment_id: String,
     pub vehicle_id: String,
     pub geometry_digest: String,
+    pub trajectory_sample_ids: Vec<String>,
     pub start_ns: u64,
     pub end_ns: u64,
     pub phases: Vec<PhaseEnergy>,
@@ -118,6 +126,10 @@ pub struct RouteLedger {
     pub evidence_class: EvidenceClass,
     pub power_flow_direction: PowerFlowDirection,
     pub route_geometry_digest: String,
+    pub trajectory_id: String,
+    pub trajectory_artifact_digest: String,
+    pub trajectory_coordinate_frame_id: String,
+    pub trajectory_samples: Vec<TrajectorySampleReference>,
     pub route_start_ns: u64,
     pub route_end_ns: u64,
     pub segments: Vec<SegmentEvent>,
@@ -176,6 +188,7 @@ pub struct EnergyRatioInterval {
 pub struct SegmentReport {
     pub segment_id: String,
     pub geometry_digest: String,
+    pub trajectory_sample_ids: Vec<String>,
     pub segment_spc_measurement_id: String,
     pub segment_evpc_measurement_id: String,
     pub boundary_measurements: Vec<BoundaryReport>,
@@ -206,6 +219,10 @@ pub struct RouteReport {
     pub evidence_class: EvidenceClass,
     pub power_flow_direction: PowerFlowDirection,
     pub route_geometry_digest: String,
+    pub trajectory_id: String,
+    pub trajectory_artifact_digest: String,
+    pub trajectory_coordinate_frame_id: String,
+    pub trajectory_samples: Vec<TrajectorySampleReference>,
     pub total_segment_spc_input_wh: f64,
     pub total_segment_evpc_output_wh: f64,
     pub total_idle_grid_input_wh: f64,
@@ -234,11 +251,45 @@ impl RouteLedger {
         if !valid_sha256(&self.route_geometry_digest) {
             return Err("route geometry digest must be sha256".into());
         }
+        if self.trajectory_id.trim().is_empty()
+            || self.trajectory_coordinate_frame_id.trim().is_empty()
+        {
+            return Err("trajectory identity and coordinate frame must be non-empty".into());
+        }
+        if !valid_sha256(&self.trajectory_artifact_digest) {
+            return Err("trajectory artifact digest must be sha256".into());
+        }
+        if self.trajectory_samples.len() < 2 {
+            return Err("route trajectory requires at least two canonical samples".into());
+        }
+        let mut trajectory_sample_index = BTreeMap::new();
+        let mut previous_trajectory_timestamp = None::<u64>;
+        for (index, sample) in self.trajectory_samples.iter().enumerate() {
+            if sample.sample_id.trim().is_empty()
+                || trajectory_sample_index
+                    .insert(sample.sample_id.clone(), (index, sample.timestamp_ns))
+                    .is_some()
+            {
+                return Err("trajectory sample IDs must be unique and non-empty".into());
+            }
+            if previous_trajectory_timestamp
+                .is_some_and(|previous| sample.timestamp_ns <= previous)
+            {
+                return Err("trajectory sample timestamps must be strictly increasing".into());
+            }
+            previous_trajectory_timestamp = Some(sample.timestamp_ns);
+        }
+        if self.trajectory_samples[0].timestamp_ns < self.route_start_ns
+            || self.trajectory_samples.last().map(|sample| sample.timestamp_ns)
+                != Some(self.route_end_ns)
+        {
+            return Err("trajectory sample range must terminate at route_end_ns and remain within route bounds".into());
+        }
         if self.route_end_ns <= self.route_start_ns {
             return Err("route time range must be increasing".into());
         }
         if self.power_flow_direction != PowerFlowDirection::GridToVehicle {
-            return Err("v1 supports grid_to_vehicle only; vehicle_to_grid requires a separate sign/metric contract".into());
+            return Err("v2 supports grid_to_vehicle only; vehicle_to_grid requires a separate sign/metric contract".into());
         }
         if self.segments.is_empty() {
             return Err("route requires at least one energized segment".into());
@@ -256,6 +307,34 @@ impl RouteLedger {
             }
             if !valid_sha256(&segment.geometry_digest) {
                 return Err("segment geometry digest must be sha256".into());
+            }
+            if segment.trajectory_sample_ids.len() < 2 {
+                return Err("each segment requires at least two canonical trajectory sample IDs".into());
+            }
+            let mut segment_sample_ids = HashSet::new();
+            let mut previous_sample_index = None::<usize>;
+            let mut first_sample_timestamp = None::<u64>;
+            let mut last_sample_timestamp = None::<u64>;
+            for sample_id in &segment.trajectory_sample_ids {
+                if !segment_sample_ids.insert(sample_id) {
+                    return Err("segment trajectory sample IDs must be unique".into());
+                }
+                let Some((sample_index, sample_timestamp)) =
+                    trajectory_sample_index.get(sample_id)
+                else {
+                    return Err("segment trajectory sample ID is absent from the route trajectory".into());
+                };
+                if previous_sample_index.is_some_and(|previous| *sample_index != previous + 1) {
+                    return Err("segment trajectory samples must be a contiguous canonical sequence".into());
+                }
+                first_sample_timestamp.get_or_insert(*sample_timestamp);
+                last_sample_timestamp = Some(*sample_timestamp);
+                previous_sample_index = Some(*sample_index);
+            }
+            if first_sample_timestamp != Some(segment.start_ns)
+                || last_sample_timestamp != Some(segment.end_ns)
+            {
+                return Err("segment trajectory endpoint timestamps must match segment start_ns/end_ns".into());
             }
             if segment.start_ns < self.route_start_ns
                 || segment.end_ns > self.route_end_ns
@@ -561,6 +640,7 @@ impl RouteLedger {
             segment_reports.push(SegmentReport {
                 segment_id: segment.segment_id.clone(),
                 geometry_digest: segment.geometry_digest.clone(),
+                trajectory_sample_ids: segment.trajectory_sample_ids.clone(),
                 segment_spc_measurement_id: segment.segment_spc_input.measurement_id.clone(),
                 segment_evpc_measurement_id: segment.segment_evpc_output.measurement_id.clone(),
                 boundary_measurements: boundary_reports,
@@ -672,6 +752,10 @@ impl RouteLedger {
             evidence_class: self.evidence_class.clone(),
             power_flow_direction: self.power_flow_direction.clone(),
             route_geometry_digest: self.route_geometry_digest.clone(),
+            trajectory_id: self.trajectory_id.clone(),
+            trajectory_artifact_digest: self.trajectory_artifact_digest.clone(),
+            trajectory_coordinate_frame_id: self.trajectory_coordinate_frame_id.clone(),
+            trajectory_samples: self.trajectory_samples.clone(),
             total_segment_spc_input_wh: total_spc,
             total_segment_evpc_output_wh: total_evpc,
             total_idle_grid_input_wh: total_idle_grid,
@@ -945,6 +1029,11 @@ mod tests {
             segment_id: id.into(),
             vehicle_id: "TRUCK-1".into(),
             geometry_digest: digest('c'),
+            trajectory_sample_ids: if start_ns == 0 {
+                vec!["POSE-000".into(), "POSE-001".into()]
+            } else {
+                vec!["POSE-002".into(), "POSE-003".into()]
+            },
             start_ns,
             end_ns: start_ns + 6_000_000_000,
             phases,
@@ -982,6 +1071,27 @@ mod tests {
             evidence_class: EvidenceClass::SyntheticKnownTruth,
             power_flow_direction: PowerFlowDirection::GridToVehicle,
             route_geometry_digest: digest('d'),
+            trajectory_id: "SYNTHETIC-LATERAL-WANDER-001".into(),
+            trajectory_artifact_digest: digest('e'),
+            trajectory_coordinate_frame_id: "SYNTHETIC-ROAD-FRAME".into(),
+            trajectory_samples: vec![
+                TrajectorySampleReference {
+                    sample_id: "POSE-000".into(),
+                    timestamp_ns: 0,
+                },
+                TrajectorySampleReference {
+                    sample_id: "POSE-001".into(),
+                    timestamp_ns: 6_000_000_000,
+                },
+                TrajectorySampleReference {
+                    sample_id: "POSE-002".into(),
+                    timestamp_ns: 10_000_000_000,
+                },
+                TrajectorySampleReference {
+                    sample_id: "POSE-003".into(),
+                    timestamp_ns: 16_000_000_000,
+                },
+            ],
             route_start_ns: 0,
             route_end_ns: 16_000_000_000,
             segments: vec![segment("SEG-1", 0), segment("SEG-2", 10_000_000_000)],
@@ -1008,12 +1118,34 @@ mod tests {
     }
 
     #[test]
+    fn trajectory_artifact_identity_and_segment_pose_windows_are_required() {
+        let mut ledger = fixture();
+        assert!(ledger.validate().is_ok());
+
+        let mut ledger = fixture();
+        ledger.trajectory_artifact_digest = "not-a-digest".into();
+        assert!(ledger.validate().unwrap_err().contains("trajectory artifact digest"));
+
+        let mut ledger = fixture();
+        ledger.segments[0].trajectory_sample_ids[1] = "MISSING-POSE".into();
+        assert!(ledger.validate().unwrap_err().contains("absent from the route trajectory"));
+
+        let mut ledger = fixture();
+        ledger.segments[0].trajectory_sample_ids = vec!["POSE-001".into(), "POSE-000".into()];
+        assert!(ledger.validate().unwrap_err().contains("contiguous canonical sequence"));
+
+        let mut ledger = fixture();
+        ledger.segments[0].trajectory_sample_ids = vec!["POSE-000".into(), "POSE-002".into()];
+        assert!(ledger.validate().unwrap_err().contains("contiguous canonical sequence"));
+    }
+
+    #[test]
     fn synthetic_route_fixture_matches_schema_and_replays_all_distinct_energy_boundaries() {
         const FIXTURE: &str = include_str!(
-            "../../../benchmarks/wpt-segment-energy-ledger/v1/synthetic-highway-pass.json"
+            "../../../benchmarks/wpt-segment-energy-ledger/v2/synthetic-highway-pass.json"
         );
         const SCHEMA: &str =
-            include_str!("../../../benchmarks/wpt-segment-energy-ledger/v1/schema.json");
+            include_str!("../../../benchmarks/wpt-segment-energy-ledger/v2/schema.json");
         let ledger: RouteLedger =
             serde_json::from_str(FIXTURE).expect("synthetic segment-energy ledger fixture");
         let schema: serde_json::Value =
