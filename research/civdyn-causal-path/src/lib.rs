@@ -334,10 +334,10 @@ impl CausalExperiment {
             let edge = edges
                 .get(edge_id.as_str())
                 .ok_or_else(|| CausalPathError::UnknownEdge(edge_id.clone()))?;
-            if let Some(previous) = previous_target {
-                if edge.from_variable != previous {
-                    return Err(CausalPathError::DiscontinuousPath(edge_id.clone()));
-                }
+            if let Some(previous) = previous_target
+                && edge.from_variable != previous
+            {
+                return Err(CausalPathError::DiscontinuousPath(edge_id.clone()));
             }
             let from = variables[edge.from_variable.as_str()];
             let to = variables[edge.to_variable.as_str()];
