@@ -26,7 +26,7 @@ The household coverage value and served-water amount are read from the actual `W
 - Mediator necessity is reported separately from path conformance: a complete path does not by itself prove that the path is necessary.
 - The paired effect is withheld (`qualified_treatment_effect = null`) unless all gates pass.
 
-The exogenous snapshot identifier is an asserted protocol key, not a cryptographically verified digest. This v0.1 verifies internal model conformance; it does not prove that all possible confounders were measured or establish a causal effect in the real world.
+All four arms must measure the same resource, region and tick. The exogenous snapshot identifier is an asserted protocol key, not a cryptographically verified digest. This v0.1 verifies internal model conformance; it does not prove that all possible confounders were measured or establish a causal effect in the real world.
 
 ## Run
 
