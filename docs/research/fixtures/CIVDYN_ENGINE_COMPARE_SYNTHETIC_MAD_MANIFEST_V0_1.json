@@ -313,9 +313,9 @@
   ],
   "reproduction": {
     "code_commit": "773c1bac8c5454381cae5bc4151bdc043b736afa",
-    "configuration_digest": "civdyn-engine-compare-v0.1; forest-fire; 32x32 and 64x64; 20 fixed seeds; 40 ticks; synchronous double-buffer; fixed-empty boundary",
+    "configuration_digest": "b73ebf16d2c3d99049d9d60947b442d9e6f6d07b7ff8bc1f50fd3ebb10f05dba",
     "data_manifest_digest": null,
-    "model_identifier": null,
+    "model_identifier": "civdyn-engine-compare-001-reference-kernel",
     "runtime_environment": "Rust edition 2024; exact-head GitHub Actions workflow; runtime diagnostics only for Rust reference",
     "command": "cargo run --locked --manifest-path research/civdyn-engine-compare/Cargo.toml --bin forest-fire-reference -- target/civdyn-engine-evidence",
     "humanity_atlas_run_artifact_ref": "Not a Humanity Atlas civilizational scenario; benchmark workload and output receipts are produced by the engine comparison CI."
@@ -335,5 +335,129 @@
     "deviations": [],
     "failed_controls": []
   },
-  "composite_score_policy": "no-universal-composite"
+  "composite_score_policy": "no-universal-composite",
+  "configuration_passport": {
+    "configuration_id": "CIVDYN-ENGINE-FOREST-FIRE-TRACE-001",
+    "configuration_digest": "b73ebf16d2c3d99049d9d60947b442d9e6f6d07b7ff8bc1f50fd3ebb10f05dba",
+    "canonicalization": "sorted-key-value-lines-v1",
+    "model": {
+      "model_id": "civdyn-engine-compare-001-reference-kernel",
+      "model_version": "0.1.0"
+    },
+    "facets": {
+      "persona_id": "synthetic-reference-no-persona",
+      "interview_protocol_id": "not-applicable-no-interview",
+      "facilitator_id": "not-applicable-no-facilitator",
+      "aggregation_rule_id": "native-metric-vector-no-composite",
+      "order_profile_id": "stable-deterministic-order",
+      "prompt_template_id": "not-applicable-no-llm",
+      "tool_policy_id": "none",
+      "evidence_snapshot_id": "synthetic:CIVDYN-ENGINE-FOREST-FIRE-TRACE-001",
+      "decoding_policy_id": "deterministic-reference"
+    },
+    "task_contract_digest": "e05a99320c9675435ac79e15052f576461e31b6f0187b191aa5e9bead766b95d",
+    "data_split_digest": null,
+    "re_audit_policy": "any-decision-relevant-change"
+  },
+  "execution_stack": {
+    "components": [
+      {
+        "component_id": "reference-simulator",
+        "role": "simulator",
+        "version": "0.1.0",
+        "configuration_digest": "fbb7ccf140dc3c2d13f1366df9f97bf1ac429512f613b10a23fe75cbb4acfd3f",
+        "behavior_affecting": true,
+        "notes": "Deterministic authored benchmark kernel."
+      },
+      {
+        "component_id": "reference-response-generator",
+        "role": "response-generator",
+        "version": "0.1.0",
+        "configuration_digest": "31a1a1c3d5d7614da98195e4d6ff74a099714391095720ce7329b140ffe7988c",
+        "behavior_affecting": true,
+        "notes": "Synthetic oracle or explicit deterministic controller; not a human or LLM."
+      },
+      {
+        "component_id": "reference-scheduler",
+        "role": "scheduler",
+        "version": "0.1.0",
+        "configuration_digest": "f41d7292f01db15d4e3211545dec1f1f966fc56928a095a91a9ab27cbcb8733a",
+        "behavior_affecting": true,
+        "notes": "Stable serial execution in declared input order."
+      },
+      {
+        "component_id": "typed-action-parser",
+        "role": "action-parser",
+        "version": "0.1.0",
+        "configuration_digest": "8636e150f28fd0b3cabac677d1700c17338185592d485d5d1fe1783cb01a1285",
+        "behavior_affecting": true,
+        "notes": "Typed, source-defined structured input parser."
+      },
+      {
+        "component_id": "typed-action-validator",
+        "role": "action-validator",
+        "version": "0.1.0",
+        "configuration_digest": "49297c51e33cb1211ac1946af484b9ed922c8d8ce524d9cb213b004092dc1699",
+        "behavior_affecting": true,
+        "notes": "Reject invalid or out-of-contract inputs; no silent repair."
+      },
+      {
+        "component_id": "complete-event-capture",
+        "role": "event-capture",
+        "version": "0.1.0",
+        "configuration_digest": "2afe1bc1c7bf43aa747ef81679482930cc8ebeb88e6681f93d17676d3f4b8fde",
+        "behavior_affecting": true,
+        "notes": "Capture every declared input, step, output and metric; missing records fail closed."
+      },
+      {
+        "component_id": "measurement-kernel",
+        "role": "measurement",
+        "version": "0.1.0",
+        "configuration_digest": "56d77443340fcb67c305d2f19de2b3905160213249c92614e865bbb01fcd172a",
+        "behavior_affecting": true,
+        "notes": "Native-unit, task-specific metric calculations."
+      },
+      {
+        "component_id": "deterministic-randomness-policy",
+        "role": "randomness",
+        "version": "0.1.0",
+        "configuration_digest": "aa5a2a09f9c44be5cdb088878883c962d03854e38214caa0d89f9e8204074dae",
+        "behavior_affecting": true,
+        "notes": "No unseeded random source is used by this deterministic fixture."
+      }
+    ],
+    "fallback_policy": "abort",
+    "fallback_events": [],
+    "unseeded_random_sources": [],
+    "scheduler_policy": {
+      "scheduler_id": "reference-scheduler",
+      "update_order": "stable declared fixture order; deterministic serial execution",
+      "parallelism": 1,
+      "tie_breaking_rule": "stable identifier then stable input index"
+    },
+    "exposure_policy": {
+      "policy_id": "exposure-not-applicable",
+      "eligibility_rule": "not applicable to this deterministic reference fixture",
+      "ordering_rule": "explicit deterministic fixture order",
+      "state_visibility": "all declared synthetic inputs are visible to the benchmark runner"
+    },
+    "action_validation_policy": {
+      "parser_component_id": "typed-action-parser",
+      "validator_component_id": "typed-action-validator",
+      "invalid_action_policy": "abort",
+      "retry_limit": 0,
+      "repair_policy": "none; malformed input fails closed"
+    },
+    "event_capture_policy": {
+      "capture_component_id": "complete-event-capture",
+      "required_event_kinds": [
+        "declared_input",
+        "run_output",
+        "metric_record",
+        "negative_control_result"
+      ],
+      "dropped_event_count": 0,
+      "drop_policy": "fail-closed"
+    }
+  }
 }
