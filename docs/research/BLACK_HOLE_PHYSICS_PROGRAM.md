@@ -242,3 +242,16 @@ Allowed claims: “analytic fixture reproduced,” “geodesic integrator meets 
 Not allowed without stronger evidence: “outperforms state of the art,” “solves black-hole physics,” “discovers quantum gravity,” “resolves the information paradox,” “proves a theory,” or “observes an event horizon.”
 
 The success criterion is not the number of black-hole features. It is the number of scientific claims whose provenance, assumptions, computation, uncertainty, and independent verification can be inspected end to end.
+
+
+## Implementation update — 2026-11-06
+
+A first bounded Rust implementation slice has been added on branch `research/black-hole-physics-program`:
+
+- `crates/domains/symtropy-relativity` is now a workspace member.
+- Its initial API validates positive finite mass and signed dimensionless Kerr spin.
+- It implements SI-valued gravitational radius; Schwarzschild horizon, photon sphere, and ISCO; Schwarzschild Kretschmann scalar; scoped static-observer lapse/redshift; Kerr inner/outer Boyer-Lindquist horizons; and angle-dependent ergosurface.
+- Ten analytic/limiting-case/domain tests are authored, including zero-spin and extremal-spin Kerr limits, signed-spin preservation, Schwarzschild scale ratios, curvature scaling, and rejection of invalid inputs.
+
+**Validation status:** tests are authored but not executed in this editing environment because no Rust toolchain is available here (`rustc` is absent). No compilation, test pass, CI pass, numerical-relativity result, observational validation, or performance comparison is claimed. Before merge, run `cargo test -p symtropy-relativity` on the exact PR head and review the API/math conventions. The new crate is an analytic scalar kernel only; it is not yet a metric/tensor implementation or geodesic solver.
+
