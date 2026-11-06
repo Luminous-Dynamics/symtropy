@@ -65,3 +65,27 @@ The production search budget counts operation-start candidate evaluations, not e
 The oracle assumes fixed segment durations, fixed capacity windows and one ordered route per demand. Its `total_idle_wait_ticks` metric only sums idle gaps between consecutive route operations for the same demand; it excludes anchorage/queue wait before the first operation, berth dwell, and end-to-end cargo dwell. Those must be added by the recovery and service-chain owners before comparing door-to-door logistics performance.
 
 It does not establish that upstream evidence is authentic, that a vessel is physically qualified, that a resource operator has authorized use, or that real water/energy availability matches the synthetic profile. It never controls a lock, berth, pump, vessel or shore-power asset.
+
+## Exact multi-vessel chamber packing primitive
+
+The crate also exposes `chamber_packing::exact_chamber_packing`, a separate
+geometric reference primitive for already-qualified vessel footprints. It assigns
+each axis-aligned vessel rectangle to one of a set of rectangular chambers, using
+integer millimetre coordinates and a conservative per-vessel/per-wall clearance.
+Each hull rectangle is inflated on all four sides by the declared clearance;
+inflated rectangles may touch but may not overlap. Rotation is not permitted.
+
+The search explores every remaining-vessel ordering and stable corner placements
+at chamber boundaries or edges of already-placed inflated rectangles. Its state
+budget counts candidate (chamber, x, y) placements. A complete placement witness
+is returned only on Feasible; no partial placements are exposed on Infeasible or
+BudgetExhausted. The geometric abstraction is deliberately separate from lock
+passage eligibility and does not establish safe clearance, mooring, hydrodynamics,
+chamber flow or navigation approval.
+
+An independent integer-grid integration oracle exhaustively compares the edge-
+candidate search against every integer-millimetre vessel origin on frozen tiny
+cases. The current suite includes more than 8,000 two-vessel chamber layouts, a
+multi-chamber reference, and an exact full-chamber grid fill. The grid oracle is a
+correctness reference for this discrete geometry model, not an operational
+hydraulic or naval-architecture model.
