@@ -325,9 +325,9 @@
     {
       "id": "locational-network-deliverability",
       "evidence_class": "SYNTHETIC_KNOWN_TRUTH_THEN_INDEPENDENT_SOLVER",
-      "source": "GRID-LOC-DELIV-001 #3826; PR #3827; IEA Electricity 2026 Grids; ESIG Large Loads RA April 2026",
+      "source": "GRID-LOC-DELIV-001 #3826; implementation PR #3827; IEA Electricity 2026 Grids; ESIG Large Loads RA April 2026",
       "domain": "pcc_to_nodal_constraint_deliverability",
-      "baseline": "frozen topology and PCC/bus mapping, explicit MVA base, branch reactance/rating, chronological signed injection trajectory, explicit N-1 outage set",
+      "baseline": "frozen topology and explicit PCC-bus binding, MVA base, branch reactance/rating, chronological injection trace and explicit N-1 outage set",
       "target": "100% known-truth PTDF/flow agreement within declared tolerance; 100% fail-closed for stale topology/islanding/missing mapping; no DC screening result promoted to AC feasibility or N-1 capability",
       "primary_metrics": [
         "requested_response_mw",
