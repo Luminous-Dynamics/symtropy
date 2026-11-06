@@ -624,6 +624,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "component_digest_canonicalization",
         "components",
         "fallback_policy",
         "fallback_events",
@@ -645,7 +646,8 @@
               "role",
               "version",
               "configuration_digest",
-              "behavior_affecting"
+              "behavior_affecting",
+              "notes"
             ],
             "properties": {
               "component_id": {
@@ -690,7 +692,8 @@
               "notes": {
                 "type": "string"
               }
-            }
+            },
+            "description": "Declared behavior-affecting component inventory. Each component_digest is the canonical digest of component_id, role, version, behavior_affecting and notes; it identifies the declaration, not an executable binary attestation. Exact source/run identity remains in the Humanity Atlas run artifact."
           }
         },
         "fallback_policy": {
@@ -886,6 +889,9 @@
               ]
             }
           }
+        },
+        "component_digest_canonicalization": {
+          "const": "sorted-key-value-lines-v1"
         }
       }
     },
