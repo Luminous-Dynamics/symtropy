@@ -1319,7 +1319,7 @@ fn assess_residual(
     })
 }
 
-remove no-op helperfn hash_hypothesis(h: &mut blake3::Hasher, value: &Hypothesis) {
+fn hash_hypothesis(h: &mut blake3::Hasher, value: &Hypothesis) {
     hash_str(h, &value.hypothesis_id);
     hash_str(h, &value.model_family_id);
     hash_str(h, &value.version_digest);
