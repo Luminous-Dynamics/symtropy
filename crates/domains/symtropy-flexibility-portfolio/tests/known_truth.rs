@@ -679,3 +679,36 @@ fn duplicate_site_pcc_and_duplicate_asset_failure_memberships_are_rejected() {
         symtropy_flexibility_portfolio::PortfolioResilienceError::DuplicateAssetFailureDomain { .. }
     ));
 }
+
+#[test]
+fn tiny_positive_delivery_is_rejected_for_unavailable_or_unknown_assets() {
+    for availability in [AssetAvailability::Unavailable, AssetAvailability::Unknown] {
+        let error = AssetDeliveryOutcome::new(
+            "asset-a",
+            f64::EPSILON,
+            availability,
+            "response-a",
+            "sha256:response-a",
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            symtropy_flexibility_portfolio::PortfolioResilienceError::AvailabilityDeliveryMismatch { .. }
+        ));
+    }
+}
+
+#[test]
+fn arbitrarily_small_offer_overrun_is_rejected_without_tolerance_credit() {
+    let observation = event(
+        "e-overrun", "g-overrun", "normal", 0, 100.0,
+        (60.0 + f64::EPSILON * 16.0, AssetAvailability::Available),
+        (50.0, AssetAvailability::Available),
+        &normal_states(),
+    );
+    let error = evaluate_portfolio_resilience(&definition(), &[observation]).unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_flexibility_portfolio::PortfolioResilienceError::DeliveryExceedsOffer { .. }
+    ));
+}
