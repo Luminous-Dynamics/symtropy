@@ -1182,6 +1182,8 @@ mod tests {
     fn allows_equal_clock_windows_for_distinct_trials() {
         let mut v = fixture();
         v["intervals"][1]["trial_id"] = json!("TRIAL-002");
+        v["intervals"][1]["start_ms"] = json!(1000000);
+        v["intervals"][1]["end_ms"] = json!(1060000);
         let report = evaluate(&v).expect("different trials may use the same clock interval");
         assert_eq!(report.interval_count, 2);
     }
