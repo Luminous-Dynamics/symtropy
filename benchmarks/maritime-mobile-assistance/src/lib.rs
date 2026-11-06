@@ -480,7 +480,7 @@ fn check_resource_sequence(
                     resource_id.to_owned(),
                 ));
                 current_node = task.location_node_id.clone();
-                ready_tick = task.operation.start_tick;
+                ready_tick = task.operation.end_tick;
                 previous_end = Some(task.operation.end_tick);
                 continue;
             };
