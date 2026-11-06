@@ -164,7 +164,10 @@ fn execute_arm(
             "safeguard_enabled".into(),
             if safeguard_enabled { 1.0 } else { 0.0 },
         ),
-        ("mechanism_blocked".into(), if mechanism_blocked { 1.0 } else { 0.0 }),
+        (
+            "mechanism_blocked".into(),
+            if mechanism_blocked { 1.0 } else { 0.0 },
+        ),
         ("transfer_eligible".into(), if eligible { 1.0 } else { 0.0 }),
         ("authorized_transfer_m3".into(), authorized_water_m3),
         ("delivered_water_m3".into(), delivered_water_m3),
