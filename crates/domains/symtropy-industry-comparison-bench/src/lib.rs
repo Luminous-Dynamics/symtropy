@@ -76,7 +76,7 @@ fn valid_source_class(value: &str) -> bool {
     )
 }
 
-fn comparison_fields() -> [&'static str; 11] {
+fn comparison_fields() -> [&'static str; 12] {
     [
         "metric_definition_ref",
         "unit",
@@ -453,7 +453,7 @@ mod tests {
         let result = pair(&report, "shift-vs-cutting-hour");
         assert_eq!(result.comparison_status, "NON_COMPARABLE");
         assert!(result.reason_codes.iter().any(|code| code == "UNIT_MISMATCH"));
-        assert!(result.reason_codes.iter().any(|code| code == "denominator_basis_ref_MISMATCH"));
+        assert!(result.reason_codes.iter().any(|code| code == "DENOMINATOR_BASIS_REF_MISMATCH"));
     }
 
     #[test]
@@ -461,7 +461,7 @@ mod tests {
         let report = evaluate_case(&fixture()).unwrap();
         let result = pair(&report, "cutting-vs-in-situ-handling");
         assert_eq!(result.comparison_status, "NON_COMPARABLE");
-        assert!(result.reason_codes.contains(&"metric_definition_ref_MISMATCH".to_owned()));
+        assert!(result.reason_codes.contains(&"METRIC_DEFINITION_REF_MISMATCH".to_owned()));
     }
 
     #[test]
@@ -469,7 +469,7 @@ mod tests {
         let report = evaluate_case(&fixture()).unwrap();
         let result = pair(&report, "ucs-vs-advertised-hardness");
         assert_eq!(result.comparison_status, "NON_COMPARABLE");
-        assert!(result.reason_codes.contains(&"metric_definition_ref_MISMATCH".to_owned()));
+        assert!(result.reason_codes.contains(&"METRIC_DEFINITION_REF_MISMATCH".to_owned()));
     }
 
     #[test]
