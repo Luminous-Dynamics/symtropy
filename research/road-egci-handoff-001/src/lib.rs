@@ -708,9 +708,9 @@ fn verify_decisions<'a>(
             if cue.recipient_actor_id == decision.actor_id
                 && cue.disposition == ObservationDisposition::Delivered
                 && cue.delivered_tick.is_some_and(|tick| tick <= decision.tick)
-                && cue.delivered_event_sequence.is_some_and(|sequence| {
-                    sequence >= decision.input_cutoff_event_sequence
-                })
+                && cue
+                    .delivered_event_sequence
+                    .is_some_and(|sequence| sequence >= decision.input_cutoff_event_sequence)
             {
                 return Err(HandoffError::FutureCueLeak);
             }
