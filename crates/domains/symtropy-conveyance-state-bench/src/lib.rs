@@ -27,6 +27,7 @@ pub struct EvaluationReport {
     pub window_count: usize,
     pub event_count: usize,
     pub critical_event_count: usize,
+    pub critical_test_seeded_blockage_event_count: usize,
     pub missing_channel_observation_count: usize,
     pub degraded_channel_observation_count: usize,
     pub windows_with_non_observed_channels: usize,
@@ -928,6 +929,41 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
         }
     }
 
+    let test_group_ids: BTreeSet<&str> = split
+        .get("test_group_ids")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect();
+    let has_critical_seeded_test_blockage = events.iter().any(|event| {
+        let Some(window_id) = text(event, "window_id") else {
+            return false;
+        };
+        let Some(window) = window_by_id.get(window_id) else {
+            return false;
+        };
+        let Some(group_id) = text(window, "group_id") else {
+            return false;
+        };
+        let labels = event.get("state_labels").and_then(Value::as_array);
+        let has_blockage_label = labels.into_iter().flatten().any(|label| {
+            label.as_str().is_some_and(is_restriction_state)
+        });
+        test_group_ids.contains(group_id)
+            && event.get("critical").and_then(Value::as_bool) == Some(true)
+            && text(event, "evidence_method") == Some("SEEDED_RESTRICTION_TEST")
+            && has_blockage_label
+    });
+    if !has_critical_seeded_test_blockage {
+        push(
+            &mut errors,
+            "NO_CRITICAL_SEEDED_BLOCKAGE_IN_TEST",
+            "$.events",
+            "held-out test partition must contain at least one independently evidenced critical seeded restriction/blockage event",
+        );
+    }
+
     errors
 }
 
@@ -994,11 +1030,38 @@ pub fn evaluate_case(case: &Value) -> Result<EvaluationReport, Vec<Violation>> {
         }
     }
 
+    let test_group_ids: BTreeSet<&str> = split["test_group_ids"]
+        .as_array()
+        .expect("test groups")
+        .iter()
+        .filter_map(Value::as_str)
+        .collect();
     let mut observed_labels = BTreeSet::new();
     let mut critical_events = 0usize;
+    let mut critical_test_seeded_blockage_event_count = 0usize;
     for event in events {
         if event.get("critical").and_then(Value::as_bool) == Some(true) {
             critical_events += 1;
+            let window_id = text(event, "window_id").expect("validated event window");
+            let window = case["windows"]
+                .as_array()
+                .expect("validated windows")
+                .iter()
+                .find(|window| text(window, "window_id") == Some(window_id))
+                .expect("validated event window identity");
+            let group_id = text(window, "group_id").expect("validated window group");
+            let has_blockage_label = event["state_labels"]
+                .as_array()
+                .expect("validated labels")
+                .iter()
+                .filter_map(Value::as_str)
+                .any(is_restriction_state);
+            if test_group_ids.contains(group_id)
+                && text(event, "evidence_method") == Some("SEEDED_RESTRICTION_TEST")
+                && has_blockage_label
+            {
+                critical_test_seeded_blockage_event_count += 1;
+            }
         }
         if let Some(labels) = event.get("state_labels").and_then(Value::as_array) {
             for label in labels {
@@ -1031,6 +1094,7 @@ pub fn evaluate_case(case: &Value) -> Result<EvaluationReport, Vec<Violation>> {
         window_count: windows.len(),
         event_count: events.len(),
         critical_event_count: critical_events,
+        critical_test_seeded_blockage_event_count,
         missing_channel_observation_count: missing,
         degraded_channel_observation_count: degraded,
         windows_with_non_observed_channels: windows_with_non_observed,
@@ -1082,11 +1146,23 @@ mod tests {
         assert_eq!(report.window_count, 3);
         assert_eq!(report.event_count, 4);
         assert_eq!(report.critical_event_count, 1);
+        assert_eq!(report.critical_test_seeded_blockage_event_count, 1);
         assert_eq!(report.degraded_channel_observation_count, 1);
         assert_eq!(report.missing_channel_observation_count, 0);
         assert_eq!(report.windows_with_non_observed_channels, 1);
         assert!(report.observed_state_labels.contains(&"DEVELOPING_BLOCKAGE".to_owned()));
         assert!(report.observed_state_labels.contains(&"PRESSURE_SENSOR_FAULT".to_owned()));
+    }
+
+    #[test]
+    fn critical_seeded_blockage_must_be_in_heldout_test() {
+        let mut case = fixture();
+        case["split"]["test_group_ids"] = serde_json::json!(["group-calibration-001"]);
+        case["split"]["calibration_group_ids"] = serde_json::json!(["group-test-001"]);
+        assert!(has_code(
+            &validate_case(&case),
+            "NO_CRITICAL_SEEDED_BLOCKAGE_IN_TEST"
+        ));
     }
 
     #[test]
