@@ -357,7 +357,7 @@ impl CausalExperiment {
                     expected: CausalStage::Outcome,
                     actual: to.stage,
                 })?;
-            if to_rank <= from_rank || previous_stage.is_some_and(|rank| from_rank < rank) {
+            if to_rank < from_rank || previous_stage.is_some_and(|rank| from_rank < rank) {
                 return Err(CausalPathError::InvalidStageOrder(edge_id.clone()));
             }
             previous_stage = Some(to_rank);
