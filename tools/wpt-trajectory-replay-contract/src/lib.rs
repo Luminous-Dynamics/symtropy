@@ -259,7 +259,7 @@ fn validate_projection_group(
         }
     }
 
-    if projected_samples != sample_timestamps.keys().cloned().collect() {
+    if projected_samples != sample_timestamps.keys().cloned().collect::<BTreeSet<_>>() {
         return Err(fail(
             &format!("$.{kind}"),
             "projection lane does not cover the canonical sample set exactly",
