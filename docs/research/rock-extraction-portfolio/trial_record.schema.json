@@ -145,9 +145,32 @@
         "calibration_ref": {
           "type": "string",
           "minLength": 1
+        },
+        "lineage_ref": {
+          "type": "string",
+          "minLength": 1
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_role": {
+                "const": "DerivedFromIndependentMeasurements"
+              }
+            },
+            "required": [
+              "evidence_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "lineage_ref"
+            ]
+          }
+        }
+      ]
     },
     "accepted_output": {
       "type": "object",
@@ -184,9 +207,32 @@
         "calibration_ref": {
           "type": "string",
           "minLength": 1
+        },
+        "lineage_ref": {
+          "type": "string",
+          "minLength": 1
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_role": {
+                "const": "DerivedFromIndependentMeasurements"
+              }
+            },
+            "required": [
+              "evidence_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "lineage_ref"
+            ]
+          }
+        }
+      ]
     },
     "time": {
       "type": "object",
@@ -223,9 +269,32 @@
         "calibration_ref": {
           "type": "string",
           "minLength": 1
+        },
+        "lineage_ref": {
+          "type": "string",
+          "minLength": 1
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_role": {
+                "const": "DerivedFromIndependentMeasurements"
+              }
+            },
+            "required": [
+              "evidence_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "lineage_ref"
+            ]
+          }
+        }
+      ]
     }
   },
   "additionalProperties": false
