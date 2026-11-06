@@ -94,7 +94,6 @@ struct Receiver {
 struct SegmentSlot {
     source_slot_index: usize,
     slot_index: usize,
-    capacity_quanta: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -129,7 +128,6 @@ struct Scenario {
     resource_capacities: Vec<u64>,
     resources: Vec<ResourceSlot>,
     links: Vec<Link>,
-    total_requested_quanta: u64,
     total_requested_mwh: u64,
 }
 
@@ -332,7 +330,6 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
                 SegmentSlot {
                     source_slot_index,
                     slot_index: index,
-                    capacity_quanta,
                 },
             )
             .is_some()
@@ -554,7 +551,6 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         resource_capacities,
         resources,
         links,
-        total_requested_quanta,
         total_requested_mwh,
     })
 }
