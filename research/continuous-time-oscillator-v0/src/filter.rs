@@ -853,7 +853,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn a_numerical_failure_does_not_partially_commit_a_timestamp() {
         let mut filter = filter();
