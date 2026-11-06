@@ -1661,8 +1661,7 @@ mod tests {
             action,
         } = spec;
         let policy = policy(actor);
-        let mut h =
-            blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.1");
+        let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.1");
         hash_str(&mut h, actor);
         hash_u64(&mut h, tick);
         hash_str(&mut h, prior_state);
