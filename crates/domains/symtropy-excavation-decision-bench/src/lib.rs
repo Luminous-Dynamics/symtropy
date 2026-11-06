@@ -556,11 +556,18 @@ fn evaluate_strategy(
             let role = non_empty_string(outcome, "evidence_role");
             if require_independent {
                 match role {
-                    Some("IndependentMeasurement") => {}
-                    Some("DerivedFromIndependentMeasurements")
-                        if non_empty_string(outcome, "lineage_ref").is_some() => {}
+                    Some("IndependentMeasurement") => {
+                        if non_empty_string(outcome, "calibration_ref").is_none() {
+                            status.indeterminate(format!("INDEPENDENT_OUTCOME_CALIBRATION_MISSING: {metric_id}"));
+                        }
+                    }
                     Some("DerivedFromIndependentMeasurements") => {
-                        status.indeterminate(format!("DERIVED_OUTCOME_LINEAGE_MISSING: {metric_id}"))
+                        if non_empty_string(outcome, "lineage_ref").is_none() {
+                            status.indeterminate(format!("DERIVED_OUTCOME_LINEAGE_MISSING: {metric_id}"));
+                        }
+                        if non_empty_string(outcome, "calibration_ref").is_none() {
+                            status.indeterminate(format!("DERIVED_OUTCOME_CALIBRATION_MISSING: {metric_id}"));
+                        }
                     }
                     Some("ModelEstimate" | "Simulation" | "OperatorReported" | "ProcessSensor") => {
                         status.indeterminate(format!("PRIMARY_OUTCOME_NOT_INDEPENDENT: {metric_id}"))
@@ -854,6 +861,22 @@ mod tests {
         let mut data = fixture();
         data["strategies"][0]["outcomes"][0]["evidence_role"] = json!("DerivedFromIndependentMeasurements");
         data["strategies"][0]["outcomes"][0].as_object_mut().unwrap().remove("lineage_ref");
+        let report = evaluate_case(&data).unwrap();
+        assert_eq!(assessment(&report, "MECHANICAL-BASELINE").eligibility, Eligibility::Indeterminate);
+    }
+
+    #[test]
+    fn independent_primary_outcome_requires_calibration_reference() {
+        let mut data = fixture();
+        data["strategies"][0]["outcomes"][0].as_object_mut().unwrap().remove("calibration_ref");
+        let report = evaluate_case(&data).unwrap();
+        assert_eq!(assessment(&report, "MECHANICAL-BASELINE").eligibility, Eligibility::Indeterminate);
+    }
+
+    #[test]
+    fn derived_primary_outcome_requires_calibration_reference() {
+        let mut data = fixture();
+        data["strategies"][0]["outcomes"][2].as_object_mut().unwrap().remove("calibration_ref");
         let report = evaluate_case(&data).unwrap();
         assert_eq!(assessment(&report, "MECHANICAL-BASELINE").eligibility, Eligibility::Indeterminate);
     }
