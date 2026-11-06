@@ -563,10 +563,6 @@
                   "type": "number",
                   "exclusiveMinimum": 0
                 },
-                "delivered_workpiece_energy_j": {
-                  "type": "number",
-                  "exclusiveMinimum": 0
-                },
                 "spot_major_axis_m": {
                   "type": "number",
                   "exclusiveMinimum": 0
