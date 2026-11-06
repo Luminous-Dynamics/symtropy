@@ -12,13 +12,13 @@ Each metric is compared separately within an explicit stratum and unit:
 - one-dimensional empirical Wasserstein-1 distance;
 - simulated-minus-observed mean and quantile deltas.
 
-The kernel requires at least 30 unique independent samples on each side. Sample IDs are unique within each side. Units must match exactly. Empty, duplicate, non-finite, undersized or unit-mismatched inputs are rejected.
+Each metric declares separate minimum observed and simulated sample counts, their independent-unit definitions, a dependence assessment and a sample-size rationale. The kernel does not impose a universal count of 30. Sample IDs are unique within each side, and each SampleSet must match its declared unit and independent-unit definition. These declarations are protocol assertions; unique IDs cannot prove that windows, groups or runs are genuinely independent. Empty, duplicate, non-finite, undersized, unit-mismatched or independence-unit-mismatched inputs are rejected.
 
 ## Important statistical limits
 
 - The kernel compares independent samples; it does not assume paired windows merely because sample counts match.
 - KS and Wasserstein-1 are descriptive distances. This v0.1 does not emit p-values or equivalence decisions.
-- The 99% mean intervals use conservative t-critical lookup buckets. They describe uncertainty in each sample mean; overlapping intervals are not proof of equivalence.
+- The 99% mean intervals use conservative Student-t critical values, including small-sample degrees of freedom. They describe uncertainty in each sample mean; overlapping intervals are not proof of equivalence.
 - Dependence between adjacent empirical windows, overlapping data, seasonality and measurement error must be handled by the domain adapter and sampling design. The kernel cannot make dependent windows independent.
 - A good distributional match does not prove the model used the right mechanism. Causal/path validation and ablations remain separate.
 - No pooled operational-validity score is emitted. Metrics and strata remain separate.
@@ -40,3 +40,15 @@ cargo run --locked --manifest-path research/civdyn-operational-validity/Cargo.to
 ## Evidence claim ceiling
 
 This crate validates a comparison kernel on synthetic data. It does not establish operational validity for a social or civilizational model. A real benchmark needs licensed, source-pinned empirical windows, predeclared patterns, calibration/holdout separation, adequate independent samples and purpose-aligned mechanism diagnostics.
+
+
+## Design-specific sample-size contract
+
+The library requires each caller to set:
+- minimum observed sample count;
+- minimum simulated sample count;
+- observed and simulated independent-unit definitions;
+- a dependence assessment;
+- a sample-size rationale.
+
+The threshold is not hard-coded. The current synthetic forum-style fixture uses 30 empirical windows and 30 independent simulation runs to match the cited study design. Another benchmark may declare a different threshold where its design/power rationale supports it. The comparator checks declared units and unique IDs but cannot establish statistical independence from metadata alone.
