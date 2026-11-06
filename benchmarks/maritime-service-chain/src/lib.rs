@@ -163,6 +163,7 @@ pub enum ResourceKind {
     TerminalHandling,
     ShorePower,
     InlandTransfer,
+    WaterQuota,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -176,6 +177,7 @@ pub enum ResourceUnit {
     Vehicles,
     Containers,
     WattHours,
+    Millilitres,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -193,25 +195,30 @@ pub struct Resource {
     pub evidence_ids: Vec<String>,
 }
 
+/// Separate meter boundaries for a synthetic service-chain alternative.
+///
+/// These values are deliberately not summed. Shore power may be the supply for
+/// the vessel auxiliary load, so adding source-side imports to end-use loads can
+/// double-count the same energy. Aggregate energy is unavailable until an
+/// evidence-qualified boundary cut proves the measurements are disjoint. See
+/// Symtropy PHYS-ENERGY-PORTS-001 (#3615) and the typed energy-port contract
+/// (#3691).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct EnergyLedger {
-    /// Ship propulsion boundary, expressed in watt-hours.
+    /// Vessel propulsion energy measured at the propulsion boundary (Wh).
     pub propulsion_wh: u64,
-    /// Ship auxiliary / hotel-load boundary, expressed in watt-hours.
+    /// Vessel auxiliary / hotel-load energy measured at the load boundary (Wh).
     pub auxiliary_wh: u64,
-    /// Shore-power supply boundary, expressed in watt-hours.
-    pub shore_power_wh: u64,
-    /// Onward-transfer energy boundary, expressed in watt-hours.
-    pub onward_transfer_wh: u64,
+    /// Shore-grid energy imported at the shore connection boundary (Wh).
+    pub shore_power_import_wh: u64,
+    /// Energy measured at the inland-transfer traction boundary (Wh).
+    pub inland_transfer_wh: u64,
 }
 
-impl EnergyLedger {
-    pub fn total_wh(self) -> u128 {
-        u128::from(self.propulsion_wh)
-            + u128::from(self.auxiliary_wh)
-            + u128::from(self.shore_power_wh)
-            + u128::from(self.onward_transfer_wh)
-    }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SegmentOperationTiming {
+    pub segment_id: String,
+    pub duration_ticks: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -228,6 +235,8 @@ pub struct VoyageAlternative {
     pub evidence_ids: Vec<String>,
     /// Ordered route segment IDs; must match the frozen corridor path.
     pub route_segment_ids: Vec<String>,
+    /// One positive-duration operation envelope per route segment, in route order.
+    pub operation_timings: Vec<SegmentOperationTiming>,
     pub energy: EnergyLedger,
 }
 
@@ -323,8 +332,11 @@ pub enum ValidationError {
     EvidenceOwnerMismatch(String),
     EvidenceSubjectMismatch(String),
     ArrivalIntervalEvidenceMismatch(String),
+    ArrivalNodeNotOnRoute(String),
     InvalidVoyageAlternative(String),
     RouteAlternativeMismatch(String),
+    SegmentOperationTimingMismatch(String),
+    InvalidSegmentOperationTiming(String),
     DemandRouteMismatch,
     DemandResourceUnitMismatch(String),
     DemandResourceShortfall(String),
@@ -445,6 +457,7 @@ fn resource_unit_matches_kind(kind: ResourceKind, unit: ResourceUnit) -> bool {
                 | ResourceUnit::Containers
         ),
         ResourceKind::ShorePower => unit == ResourceUnit::WattHours,
+        ResourceKind::WaterQuota => unit == ResourceUnit::Millilitres,
     }
 }
 
@@ -453,7 +466,7 @@ fn resource_kind_allowed_for_segment(segment: SegmentKind, resource: ResourceKin
         SegmentKind::ChannelTransit | SegmentKind::PortApproach => {
             resource == ResourceKind::ChannelWindow
         }
-        SegmentKind::Lockage => resource == ResourceKind::Lock,
+        SegmentKind::Lockage => matches!(resource, ResourceKind::Lock | ResourceKind::WaterQuota),
         SegmentKind::BerthHandling => matches!(
             resource,
             ResourceKind::Berth | ResourceKind::TerminalHandling | ResourceKind::ShorePower
@@ -467,7 +480,9 @@ fn segment_has_required_resource(segment: SegmentKind, kinds: &BTreeSet<Resource
         SegmentKind::ChannelTransit | SegmentKind::PortApproach => {
             kinds.contains(&ResourceKind::ChannelWindow)
         }
-        SegmentKind::Lockage => kinds.contains(&ResourceKind::Lock),
+        SegmentKind::Lockage => {
+            kinds.contains(&ResourceKind::Lock) && kinds.contains(&ResourceKind::WaterQuota)
+        }
         SegmentKind::BerthHandling => {
             kinds.contains(&ResourceKind::Berth) && kinds.contains(&ResourceKind::TerminalHandling)
         }
@@ -926,6 +941,15 @@ fn validate_voyage_alternatives(case: &ServiceChainCase) -> Result<(), Validatio
                 alternative.arrival_node_id.clone(),
             ));
         }
+        if !case
+            .route_segments
+            .iter()
+            .any(|segment| segment.to_node_id == alternative.arrival_node_id)
+        {
+            return Err(ValidationError::ArrivalNodeNotOnRoute(
+                alternative.alternative_id.clone(),
+            ));
+        }
 
         let actual_route: Vec<&str> = alternative
             .route_segment_ids
@@ -934,6 +958,25 @@ fn validate_voyage_alternatives(case: &ServiceChainCase) -> Result<(), Validatio
             .collect();
         if actual_route != expected_route {
             return Err(ValidationError::RouteAlternativeMismatch(
+                alternative.alternative_id.clone(),
+            ));
+        }
+        let timed_route: Vec<&str> = alternative
+            .operation_timings
+            .iter()
+            .map(|timing| timing.segment_id.as_str())
+            .collect();
+        if timed_route != expected_route {
+            return Err(ValidationError::SegmentOperationTimingMismatch(
+                alternative.alternative_id.clone(),
+            ));
+        }
+        if alternative
+            .operation_timings
+            .iter()
+            .any(|timing| timing.duration_ticks == 0)
+        {
+            return Err(ValidationError::InvalidSegmentOperationTiming(
                 alternative.alternative_id.clone(),
             ));
         }
@@ -1210,8 +1253,8 @@ mod tests {
             end_tick: 13,
         };
         let arrival_slow = TickWindow {
-            start_tick: 14,
-            end_tick: 17,
+            start_tick: 15,
+            end_tick: 18,
         };
 
         let evidence = vec![
@@ -1291,10 +1334,22 @@ mod tests {
                 ResourceUnit::Lockages,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 15,
-                        end_tick: 35,
+                        start_tick: 12,
+                        end_tick: 40,
                     },
                     capacity: 1,
+                }],
+            ),
+            capacity_evidence(
+                "water-calendar",
+                "water-budget-01",
+                ResourceUnit::Millilitres,
+                vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 12,
+                        end_tick: 40,
+                    },
+                    capacity: 5_000,
                 }],
             ),
             capacity_evidence(
@@ -1303,8 +1358,8 @@ mod tests {
                 ResourceUnit::BerthSlots,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
-                        end_tick: 50,
+                        start_tick: 18,
+                        end_tick: 40,
                     },
                     capacity: 1,
                 }],
@@ -1315,7 +1370,7 @@ mod tests {
                 ResourceUnit::WattHours,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
+                        start_tick: 18,
                         end_tick: 40,
                     },
                     capacity: 1_000,
@@ -1327,7 +1382,7 @@ mod tests {
                 ResourceUnit::Tonnes,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 40,
+                        start_tick: 28,
                         end_tick: 60,
                     },
                     capacity: 10,
@@ -1358,7 +1413,7 @@ mod tests {
                 ResourceUnit::Tonnes,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
+                        start_tick: 18,
                         end_tick: 40,
                     },
                     capacity: 20,
@@ -1420,12 +1475,25 @@ mod tests {
                 capacity_unit: ResourceUnit::Lockages,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 15,
-                        end_tick: 35,
+                        start_tick: 12,
+                        end_tick: 40,
                     },
                     capacity: 1,
                 }],
                 evidence_ids: vec!["lock-water".into(), "lock-calendar".into()],
+            },
+            Resource {
+                resource_id: "water-budget-01".into(),
+                kind: ResourceKind::WaterQuota,
+                capacity_unit: ResourceUnit::Millilitres,
+                availability: vec![CapacityWindow {
+                    window: TickWindow {
+                        start_tick: 12,
+                        end_tick: 40,
+                    },
+                    capacity: 5_000,
+                }],
+                evidence_ids: vec!["water-calendar".into()],
             },
             Resource {
                 resource_id: "berth-01".into(),
@@ -1433,8 +1501,8 @@ mod tests {
                 capacity_unit: ResourceUnit::BerthSlots,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
-                        end_tick: 50,
+                        start_tick: 18,
+                        end_tick: 40,
                     },
                     capacity: 1,
                 }],
@@ -1446,7 +1514,7 @@ mod tests {
                 capacity_unit: ResourceUnit::WattHours,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
+                        start_tick: 18,
                         end_tick: 40,
                     },
                     capacity: 1_000,
@@ -1459,7 +1527,7 @@ mod tests {
                 capacity_unit: ResourceUnit::Tonnes,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 25,
+                        start_tick: 18,
                         end_tick: 40,
                     },
                     capacity: 20,
@@ -1472,7 +1540,7 @@ mod tests {
                 capacity_unit: ResourceUnit::Tonnes,
                 availability: vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 40,
+                        start_tick: 28,
                         end_tick: 60,
                     },
                     capacity: 10,
@@ -1503,12 +1571,20 @@ mod tests {
                     "lock-compatibility".into(),
                     "lock-water".into(),
                     "lock-calendar".into(),
+                    "water-calendar".into(),
                 ],
-                resource_uses: vec![ResourceUse {
-                    resource_id: "lock-01".into(),
-                    amount: 1,
-                    unit: ResourceUnit::Lockages,
-                }],
+                resource_uses: vec![
+                    ResourceUse {
+                        resource_id: "lock-01".into(),
+                        amount: 1,
+                        unit: ResourceUnit::Lockages,
+                    },
+                    ResourceUse {
+                        resource_id: "water-budget-01".into(),
+                        amount: 4_000,
+                        unit: ResourceUnit::Millilitres,
+                    },
+                ],
             },
             RouteSegment {
                 segment_id: "approach-01".into(),
@@ -1577,11 +1653,33 @@ mod tests {
                 arrival_evidence_id: "arrival-fast".into(),
                 evidence_ids: vec!["vessel-capability".into(), "vessel-performance".into()],
                 route_segment_ids: route_segment_ids.clone(),
+                operation_timings: vec![
+                    SegmentOperationTiming {
+                        segment_id: "channel-01".into(),
+                        duration_ticks: 2,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "lock-01".into(),
+                        duration_ticks: 2,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "approach-01".into(),
+                        duration_ticks: 1,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "turnaround-01".into(),
+                        duration_ticks: 10,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "rail-01".into(),
+                        duration_ticks: 5,
+                    },
+                ],
                 energy: EnergyLedger {
                     propulsion_wh: 1_800,
                     auxiliary_wh: 200,
-                    shore_power_wh: 0,
-                    onward_transfer_wh: 0,
+                    shore_power_import_wh: 800,
+                    inland_transfer_wh: 0,
                 },
             },
             VoyageAlternative {
@@ -1596,11 +1694,33 @@ mod tests {
                 arrival_evidence_id: "arrival-slow".into(),
                 evidence_ids: vec!["vessel-capability".into(), "vessel-performance".into()],
                 route_segment_ids: route_segment_ids.clone(),
+                operation_timings: vec![
+                    SegmentOperationTiming {
+                        segment_id: "channel-01".into(),
+                        duration_ticks: 2,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "lock-01".into(),
+                        duration_ticks: 2,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "approach-01".into(),
+                        duration_ticks: 1,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "turnaround-01".into(),
+                        duration_ticks: 10,
+                    },
+                    SegmentOperationTiming {
+                        segment_id: "rail-01".into(),
+                        duration_ticks: 5,
+                    },
+                ],
                 energy: EnergyLedger {
                     propulsion_wh: 1_300,
                     auxiliary_wh: 200,
-                    shore_power_wh: 0,
-                    onward_transfer_wh: 0,
+                    shore_power_import_wh: 800,
+                    inland_transfer_wh: 0,
                 },
             },
         ];
@@ -1693,8 +1813,17 @@ mod tests {
     fn synthetic_vessel_to_rail_case_has_a_valid_composable_contract() {
         let case = valid_case();
         assert_eq!(validate_case(&case), Ok(()));
-        assert_eq!(case.voyage_alternatives[0].energy.total_wh(), 2_000);
-        assert_eq!(case.voyage_alternatives[1].energy.total_wh(), 1_500);
+        let fast = case.voyage_alternatives[0].energy;
+        assert_eq!(fast.propulsion_wh, 1_800);
+        assert_eq!(fast.auxiliary_wh, 200);
+        assert_eq!(fast.shore_power_import_wh, 800);
+        assert_eq!(fast.inland_transfer_wh, 0);
+
+        let slow = case.voyage_alternatives[1].energy;
+        assert_eq!(slow.propulsion_wh, 1_300);
+        assert_eq!(slow.auxiliary_wh, 200);
+        assert_eq!(slow.shore_power_import_wh, 800);
+        assert_eq!(slow.inland_transfer_wh, 0);
     }
 
     #[test]
@@ -2604,6 +2733,40 @@ mod tests {
     }
 
     #[test]
+    fn voyage_operation_timings_must_match_every_route_segment() {
+        let mut missing = valid_case();
+        missing.voyage_alternatives[0].operation_timings.pop();
+        assert_eq!(
+            validate_case(&missing),
+            Err(ValidationError::SegmentOperationTimingMismatch(
+                "fast-high-energy".into()
+            ))
+        );
+
+        let mut zero = valid_case();
+        zero.voyage_alternatives[0].operation_timings[0].duration_ticks = 0;
+        assert_eq!(
+            validate_case(&zero),
+            Err(ValidationError::InvalidSegmentOperationTiming(
+                "fast-high-energy".into()
+            ))
+        );
+    }
+
+    #[test]
+    fn arrival_node_must_be_a_route_arrival_node() {
+        let mut case = valid_case();
+        // Origin is a declared route node, but it is not a segment arrival node.
+        case.voyage_alternatives[0].arrival_node_id = "origin".into();
+        assert_eq!(
+            validate_case(&case),
+            Err(ValidationError::ArrivalNodeNotOnRoute(
+                "fast-high-energy".into()
+            ))
+        );
+    }
+
+    #[test]
     fn every_voyage_alternative_must_use_the_frozen_corridor_path() {
         let mut case = valid_case();
         case.voyage_alternatives[1].route_segment_ids.reverse();
@@ -2614,4 +2777,7 @@ mod tests {
             ))
         );
     }
+
+    #[path = "exact_oracle.rs"]
+    mod exact_oracle;
 }

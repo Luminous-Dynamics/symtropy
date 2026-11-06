@@ -173,7 +173,12 @@ approximate, or incomplete.
 - schedule churn and stability after each new observation.
 
 ### Physical/resource ledgers
-- propulsion, auxiliary, shore-power and onward-transfer Wh separately;
+- propulsion, auxiliary, shore-power import and onward-transfer Wh as separate
+  meter boundaries. Do not sum these values without an evidence-qualified typed
+  boundary cut proving that the measurements are disjoint: shore-grid import may
+  supply the onboard auxiliary load, so adding source and load meters can double
+  count the same energy. Reuse PHYS-ENERGY-PORTS-001 (#3615) / PR #3691 for
+  boundary-aware aggregation; an absent or incomplete cut is inconclusive, not zero;
 - lock water draw, return, reuse, pump energy and loss by cycle;
 - channel/navigability availability and the evidence time/datum behind it;
 - dredged dry-solid mass and channel service availability when qualified inputs
