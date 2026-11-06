@@ -541,7 +541,7 @@
               "required": [
                 "kind",
                 "wavelength_m",
-                "incident_optical_energy_j",
+                "source_electrical_input_j",
                 "spot_major_axis_m",
                 "spot_minor_axis_m",
                 "incidence_angle_rad",
@@ -552,17 +552,14 @@
                 "cutter_spacing_m",
                 "depth_of_cut_m",
                 "cutting_speed_m_s",
-                "laser_state"
+                "laser_state",
+                "workpiece_incident_optical_energy_j"
               ],
               "properties": {
                 "kind": {
                   "const": "LASER_ASSISTED_PDC"
                 },
                 "wavelength_m": {
-                  "type": "number",
-                  "exclusiveMinimum": 0
-                },
-                "incident_optical_energy_j": {
                   "type": "number",
                   "exclusiveMinimum": 0
                 },
@@ -616,6 +613,22 @@
                     "OFF_SHAM",
                     "OFF_BASELINE"
                   ]
+                },
+                "source_electrical_input_j": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "optical_output_energy_j": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "workpiece_incident_optical_energy_j": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "absorbed_energy_estimate_j": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
                 }
               },
               "additionalProperties": false
