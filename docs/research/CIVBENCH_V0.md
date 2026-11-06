@@ -27,6 +27,24 @@ Every scored task run records:
 
 A run without a complete manifest is exploratory and cannot appear on the scored leaderboard.
 
+### Measurement-as-Distribution extension
+
+CivBench results are conditional on a declared evaluation distribution, not intrinsic scalar properties of a model. The task manifest therefore additionally records:
+
+- observational unit, resampling unit, independent unit, and the dependence assumptions connecting them;
+- source epistemic status (observed, reconstructed, simulated, inferred, hypothetical, or synthetic fixture), source family, missingness semantics, and digest;
+- evaluation factors and levels, target weights, support counts, and excluded support;
+- perturbation families, their construct rationale, validity checks, expected invariants, and seed policy;
+- replication design, independence assessment, sample-size rationale, and whether inference is claimed;
+- per-metric construct dimension, native unit, direction, aggregation, strata, and uncertainty method;
+- negative controls, holdout dimensions, reproduction receipt, deviations, failed controls, and claim ceiling.
+
+**Replication counts are design-dependent.** Thirty replications is not a universal threshold. The independent unit, dependence structure, power, effect size, and uncertainty method determine what is defensible. Equal sample counts do not establish pairing or independence.
+
+Use the shared [CIVBENCH-MAD-001 protocol issue #3731](https://github.com/Luminous-Dynamics/symtropy/issues/3731) and its [JSON Schema](CIVBENCH_MEASUREMENT_DISTRIBUTION_V0_1.schema.json). The committed [HUMSIM synthetic manifest fixture](fixtures/HUMSIM_SYNTHETIC_MAD_MANIFEST_V0_1.json) demonstrates a Tier-1 software control only; it does not claim empirical human-behaviour validity. Schema and semantic checks run through the dedicated CivBench MAD workflow.
+
+The protocol extends the task-specific measurement design; it does not replace the Humanity Atlas run artifact. Model identity, source bytes, configuration, output digests, and qualification receipts remain with the existing run contract. No universal composite CSS/CivBench score is permitted.
+
 ### Relationship to the existing Humanity Atlas contracts
 
 CivBench is the **scientific evaluation layer**, not a replacement for the existing scenario/run artifact contract.
