@@ -15,7 +15,7 @@
       {
         "start_elapsed_ns": 0,
         "end_elapsed_ns": 2000000000,
-        "min_voltage_pu": 0.5,
+        "min_voltage_pu": 0.1,
         "max_voltage_pu": 1.2,
         "min_frequency_hz": 47,
         "max_frequency_hz": 52,
