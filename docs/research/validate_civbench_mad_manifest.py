@@ -75,7 +75,7 @@ def semantic_errors(candidate):
         "task_contract_digest": passport["task_contract_digest"],
         **passport["facets"],
     }
-    canonical_bytes = "\\n".join(
+    canonical_bytes = "\n".join(
         f"{key}={canonical_fields[key] if canonical_fields[key] is not None else 'null'}"
         for key in sorted(canonical_fields)
     ).encode("utf-8")
