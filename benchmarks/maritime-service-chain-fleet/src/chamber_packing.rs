@@ -198,8 +198,7 @@ fn inside_chamber(
     length_mm: u64,
     width_mm: u64,
 ) -> bool {
-    x_mm
-        .checked_add(length_mm)
+    x_mm.checked_add(length_mm)
         .is_some_and(|right| right <= chamber.length_mm)
         && y_mm
             .checked_add(width_mm)
@@ -231,12 +230,8 @@ impl PackingSearch<'_> {
                 let Some((item_length, item_width)) = inflated_dimensions(vessel, chamber)? else {
                     continue;
                 };
-                let (xs, ys) = candidate_coordinates(
-                    &self.placements,
-                    chamber_index,
-                    item_length,
-                    item_width,
-                );
+                let (xs, ys) =
+                    candidate_coordinates(&self.placements, chamber_index, item_length, item_width);
 
                 for x_mm in xs {
                     for y_mm in ys.iter().copied() {
@@ -257,12 +252,9 @@ impl PackingSearch<'_> {
                             length_mm: item_length,
                             width_mm: item_width,
                         };
-                        if self
-                            .placements
-                            .iter()
-                            .copied()
-                            .any(|known| known.chamber_index == chamber_index && overlaps(known, candidate))
-                        {
+                        if self.placements.iter().copied().any(|known| {
+                            known.chamber_index == chamber_index && overlaps(known, candidate)
+                        }) {
                             continue;
                         }
 
@@ -318,11 +310,7 @@ pub fn exact_chamber_packing(
     }
 
     let mut vessel_order: Vec<usize> = (0..vessels.len()).collect();
-    vessel_order.sort_by(|left, right| {
-        vessels[*left]
-            .vessel_id
-            .cmp(&vessels[*right].vessel_id)
-    });
+    vessel_order.sort_by(|left, right| vessels[*left].vessel_id.cmp(&vessels[*right].vessel_id));
 
     let mut search = PackingSearch {
         chambers,
@@ -392,12 +380,9 @@ mod tests {
 
     #[test]
     fn single_vessel_fits_with_declared_wall_clearance() {
-        let result = exact_chamber_packing(
-            &[chamber("c1", 120, 30, 5)],
-            &[vessel("v1", 100, 20)],
-            100,
-        )
-        .unwrap();
+        let result =
+            exact_chamber_packing(&[chamber("c1", 120, 30, 5)], &[vessel("v1", 100, 20)], 100)
+                .unwrap();
         assert_eq!(result.termination, PackingTermination::Feasible);
         assert_eq!(
             result.placements,
@@ -473,23 +458,16 @@ mod tests {
 
     #[test]
     fn exact_clearance_boundary_is_admitted() {
-        let result = exact_chamber_packing(
-            &[chamber("c1", 104, 44, 2)],
-            &[vessel("v1", 100, 40)],
-            100,
-        )
-        .unwrap();
+        let result =
+            exact_chamber_packing(&[chamber("c1", 104, 44, 2)], &[vessel("v1", 100, 40)], 100)
+                .unwrap();
         assert_eq!(result.termination, PackingTermination::Feasible);
     }
 
     #[test]
     fn impossible_clearance_is_not_silently_reduced() {
-        let error = exact_chamber_packing(
-            &[chamber("c1", 10, 10, 5)],
-            &[vessel("v1", 1, 1)],
-            100,
-        )
-        .unwrap_err();
+        let error = exact_chamber_packing(&[chamber("c1", 10, 10, 5)], &[vessel("v1", 1, 1)], 100)
+            .unwrap_err();
         assert_eq!(
             error,
             ChamberPackingError::ClearanceConsumesChamber("c1".into())
@@ -504,20 +482,13 @@ mod tests {
             100,
         )
         .unwrap_err();
-        assert_eq!(
-            error,
-            ChamberPackingError::DuplicateVesselId("v1".into())
-        );
+        assert_eq!(error, ChamberPackingError::DuplicateVesselId("v1".into()));
     }
 
     #[test]
     fn zero_search_budget_is_invalid() {
-        let error = exact_chamber_packing(
-            &[chamber("c1", 20, 20, 0)],
-            &[vessel("v1", 5, 5)],
-            0,
-        )
-        .unwrap_err();
+        let error = exact_chamber_packing(&[chamber("c1", 20, 20, 0)], &[vessel("v1", 5, 5)], 0)
+            .unwrap_err();
         assert_eq!(error, ChamberPackingError::InvalidSearchBudget);
     }
 
