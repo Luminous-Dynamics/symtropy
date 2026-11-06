@@ -745,7 +745,9 @@
                 "traction_speed_m_s",
                 "depth_of_cut_m",
                 "speed_ratio",
-                "speed_ratio_definition"
+                "speed_ratio_definition",
+                "angular_speed_observation_ref",
+                "traction_speed_observation_ref"
               ],
               "properties": {
                 "kind": {
@@ -779,6 +781,14 @@
                   "const": "v/(omega*e)"
                 },
                 "cutter_edge_profile_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "angular_speed_observation_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "traction_speed_observation_ref": {
                   "type": "string",
                   "minLength": 1
                 }
