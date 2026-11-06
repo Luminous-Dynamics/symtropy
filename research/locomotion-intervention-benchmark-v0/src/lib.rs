@@ -2963,12 +2963,7 @@ mod tests {
     #[test]
     fn finite_hypothesis_eig_rejects_bad_priors_scenarios_and_duplicate_ids() {
         let mut hypotheses = [
-            information_hypothesis(
-                "intrinsic",
-                Mechanism::IntrinsicOscillator,
-                config(),
-                0.5,
-            ),
+            information_hypothesis("intrinsic", Mechanism::IntrinsicOscillator, config(), 0.5),
             information_hypothesis(
                 "sensory",
                 Mechanism::SensoryFeedbackDriven,
