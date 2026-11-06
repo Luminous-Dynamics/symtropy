@@ -70,7 +70,7 @@ See [industry-baselines.md](industry-baselines.md) for the 2026 standards, peer-
 
 ## Frozen test coverage
 
-The current suite contains 22 hand-checkable synthetic controls for:
+The current suite contains 24 hand-checkable synthetic controls for:
 
 - right- and left-hand turning circles;
 - heading wrap across 2π;
