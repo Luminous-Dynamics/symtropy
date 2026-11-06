@@ -506,11 +506,9 @@ mod tests {
         let vel_b = SVector::from([-10.0, 0.0, 0.0]);
         let boost = SVector::from([123.0, -37.0, 4.5]);
 
-        let baseline = sphere_sphere_checked(
-            &pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0,
-        )
-        .unwrap()
-        .unwrap();
+        let baseline = sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .unwrap()
+            .unwrap();
         let boosted = sphere_sphere_checked(
             &pos_a,
             &(vel_a + boost),
@@ -541,11 +539,9 @@ mod tests {
         let vel_a = SVector::from([10.0, 0.0, 0.0]);
         let vel_b = SVector::from([-10.0, 0.0, 0.0]);
 
-        let original = sphere_sphere_checked(
-            &pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0,
-        )
-        .unwrap()
-        .unwrap();
+        let original = sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .unwrap()
+            .unwrap();
         let time_scale = 4.0;
         let rescaled = sphere_sphere_checked(
             &pos_a,
@@ -570,11 +566,9 @@ mod tests {
         let normal = SVector::from([0.0, 7.0, 0.0]);
         let offset = 0.0;
 
-        let hit = sphere_halfspace_checked(
-            &pos, &velocity, 0.5, &normal, offset, 3.0,
-        )
-        .unwrap()
-        .unwrap();
+        let hit = sphere_halfspace_checked(&pos, &velocity, 0.5, &normal, offset, 3.0)
+            .unwrap()
+            .unwrap();
         let signed_plane_residual = hit.normal.dot(&hit.point) - offset / normal.norm();
 
         assert!((hit.toi - 2.5).abs() < 1e-12);
