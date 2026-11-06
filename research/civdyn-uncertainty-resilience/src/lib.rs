@@ -114,7 +114,11 @@ impl ParameterSet {
         let result = Self {
             basin_water_supply_multiplier: 0.7 + 0.6 * values[0],
             basin_energy_supply_multiplier: 0.7 + 0.6 * values[1],
-            household_demand_multiplier: 0.8 + 0.4 * values[2],
+            household_demand_multiplier: if values[2] >= 1.0 {
+                1.2
+            } else {
+                0.8 + 0.4 * values[2]
+            },
             initial_reserve_multiplier: 0.5 + values[3],
             water_shock_retention: 0.6 * values[4],
             energy_shock_retention: 0.6 * values[5],
@@ -399,10 +403,16 @@ pub fn morris_design(
         let mut directions = [1_i8; FACTOR_COUNT];
         let mut base = [0.0; FACTOR_COUNT];
         for factor in 0..FACTOR_COUNT {
-            let low_or_high = rng.index(2) as u8;
-            base_levels[factor] = low_or_high;
-            directions[factor] = if low_or_high == 0 { 1 } else { -1 };
-            base[factor] = f64::from(low_or_high) / f64::from(MORRIS_LEVELS - 1);
+            let direction_up = rng.index(2) == 0;
+            let starting_level = if direction_up {
+                rng.index(2) as u8
+            } else {
+                2 + rng.index(2) as u8
+            };
+            base_levels[factor] = starting_level;
+            directions[factor] = if direction_up { 1 } else { -1 };
+            base[factor] =
+                f64::from(starting_level) / f64::from(MORRIS_LEVELS - 1);
         }
 
         let mut factor_order = core::array::from_fn(|index| index);
@@ -873,6 +883,20 @@ mod tests {
             trajectory.validate().unwrap();
             assert_eq!(trajectory.factor_order.len(), FACTOR_COUNT);
             assert_eq!(trajectory.points.len(), FACTOR_COUNT + 1);
+        }
+    }
+
+    #[test]
+    fn morris_start_levels_match_direction_and_never_underflow() {
+        let trajectories = morris_design(200, DESIGN_SEED).unwrap();
+        for trajectory in trajectories {
+            for factor in 0..FACTOR_COUNT {
+                if trajectory.directions[factor] > 0 {
+                    assert!(trajectory.base_levels[factor] <= 1);
+                } else {
+                    assert!(trajectory.base_levels[factor] >= 2);
+                }
+            }
         }
     }
 
