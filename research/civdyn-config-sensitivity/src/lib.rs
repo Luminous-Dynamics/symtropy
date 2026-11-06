@@ -445,17 +445,15 @@ pub fn evaluate(
             .value;
         let cohorts = run_cohort_rates
             .into_iter()
-            .map(|(cohort_id, rate)| {
-                CohortMetrics {
-                    cohort_id,
-                    rate: rate.clone(),
-                    rate_ratio_to_reference: if reference_rate.abs() <= RATE_TOLERANCE {
-                        None
-                    } else {
-                        Some(rate.value / reference_rate)
-                    },
-                    rate_gap_to_reference: rate.value - reference_rate,
-                }
+            .map(|(cohort_id, rate)| CohortMetrics {
+                cohort_id,
+                rate: rate.clone(),
+                rate_ratio_to_reference: if reference_rate.abs() <= RATE_TOLERANCE {
+                    None
+                } else {
+                    Some(rate.value / reference_rate)
+                },
+                rate_gap_to_reference: rate.value - reference_rate,
             })
             .collect();
 
