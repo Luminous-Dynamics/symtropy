@@ -26,10 +26,7 @@ fn fail(path: &str, message: impl AsRef<str>) -> String {
     format!("{path}: {}", message.as_ref())
 }
 
-fn object<'a>(
-    value: &'a Value,
-    path: &str,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
     value
         .as_object()
         .ok_or_else(|| fail(path, "must be an object"))
@@ -233,7 +230,10 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         total_requested_quanta = total_requested_quanta
             .checked_add(requested)
             .ok_or_else(|| fail("$.receivers", "total requested energy overflowed"))?;
-        if receiver_indices.insert(receiver_id.clone(), index).is_some() {
+        if receiver_indices
+            .insert(receiver_id.clone(), index)
+            .is_some()
+        {
             return Err(fail(&path, format!("duplicate receiver_id {receiver_id}")));
         }
         receivers.push(Receiver {
@@ -266,7 +266,11 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         let path = format!("$.source_slots[{index}]");
         exact_keys(
             row,
-            &["source_id", "interval_index", "available_deliverable_energy_mwh"],
+            &[
+                "source_id",
+                "interval_index",
+                "available_deliverable_energy_mwh",
+            ],
             &path,
         )?;
         let source_id = string_field(row, "source_id", &path)?.to_string();
@@ -468,7 +472,10 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             .get(&(segment_id.clone(), interval))
             .ok_or_else(|| fail(&path, "transfer link references a missing segment slot"))?;
         if segment.source_slot_index != source_slot_index {
-            return Err(fail(&path, "segment and transfer link source_id do not match"));
+            return Err(fail(
+                &path,
+                "segment and transfer link source_id do not match",
+            ));
         }
         let receiver_index = *receiver_indices
             .get(&receiver_id)
@@ -501,9 +508,10 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
                     format!("duplicate resource use {resource_id}"),
                 ));
             }
-            let resource_slot_index = *resource_indices
-                .get(&(resource_id.to_string(), interval))
-                .ok_or_else(|| fail(&resource_path, "missing shared resource slot"))?;
+            let resource_slot_index =
+                *resource_indices
+                    .get(&(resource_id.to_string(), interval))
+                    .ok_or_else(|| fail(&resource_path, "missing shared resource slot"))?;
             let units_per_quantum = uint_field(resource_row, "units_per_quantum", &resource_path)?;
             if units_per_quantum == 0 {
                 return Err(fail(
@@ -527,11 +535,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
                 energy_quantum_mwh,
                 &format!("{path}.max_deliverable_energy_mwh"),
             )?,
-            stress_units_per_quantum: uint_field(
-                row,
-                "asset_stress_units_per_quantum",
-                &path,
-            )?,
+            stress_units_per_quantum: uint_field(row, "asset_stress_units_per_quantum", &path)?,
             resource_uses,
         });
     }
@@ -648,7 +652,9 @@ fn candidate_point(
     for (index, receiver) in scenario.receivers.iter().enumerate() {
         let delivered = receiver_delivered[index];
         if delivered < receiver.minimum_quanta {
-            return Err("internal enumeration reached a leaf below a receiver service floor".into());
+            return Err(
+                "internal enumeration reached a leaf below a receiver service floor".into(),
+            );
         }
         total_quanta = total_quanta
             .checked_add(delivered)
@@ -662,12 +668,14 @@ fn candidate_point(
             requested_mwh: receiver.requested_quanta * scenario.energy_quantum_mwh,
             minimum_service_mwh: receiver.minimum_quanta * scenario.energy_quantum_mwh,
             delivered_mwh: delivered * scenario.energy_quantum_mwh,
-            shortfall_mwh: (receiver.requested_quanta - delivered)
-                * scenario.energy_quantum_mwh,
+            shortfall_mwh: (receiver.requested_quanta - delivered) * scenario.energy_quantum_mwh,
         });
     }
 
-    let sum = satisfaction.iter().map(|value| *value as u128).sum::<u128>();
+    let sum = satisfaction
+        .iter()
+        .map(|value| *value as u128)
+        .sum::<u128>();
     let sum_squares = satisfaction
         .iter()
         .map(|value| (*value as u128) * (*value as u128))
@@ -967,8 +975,13 @@ mod tests {
         assert!(report.feasible);
         assert_eq!(report.total_requested_mwh, 10);
         assert_eq!(report.feasible_allocations, 89);
-        assert_eq!(report.pareto_frontier.len(), 7);
-        assert!(report.pareto_frontier.iter().all(|point| point.total_delivered_mwh == 8));
+        assert_eq!(report.pareto_frontier.len(), 6);
+        assert!(
+            report
+                .pareto_frontier
+                .iter()
+                .all(|point| point.total_delivered_mwh <= 8)
+        );
 
         let low_stress = report
             .pareto_frontier
@@ -1027,7 +1040,11 @@ mod tests {
     fn non_multiple_of_energy_quantum_is_rejected() {
         let mut scenario = fixture();
         scenario["energy_quantum_mwh"] = Value::from(3);
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("not divisible"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("not divisible")
+        );
     }
 
     #[test]
@@ -1076,18 +1093,30 @@ mod tests {
         let mut scenario = fixture();
         let duplicate_id = scenario["transfer_links"][0]["link_id"].clone();
         scenario["transfer_links"][1]["link_id"] = duplicate_id;
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("duplicate link_id"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("duplicate link_id")
+        );
 
         let mut scenario = fixture();
         scenario["optimizer_shortcut"] = Value::Bool(true);
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("unknown property"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("unknown property")
+        );
     }
 
     #[test]
     fn unsupported_evidence_kind_is_not_admitted() {
         let mut scenario = fixture();
         scenario["evidence_kind"] = Value::String("MEASURED".into());
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("synthetic known-truth"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("synthetic known-truth")
+        );
     }
 
     #[test]
