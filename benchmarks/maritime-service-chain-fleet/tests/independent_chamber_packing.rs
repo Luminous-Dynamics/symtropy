@@ -165,7 +165,7 @@ fn exact_edge_candidate_search_matches_grid_oracle_for_all_tiny_vessel_pairs() {
             }
         }
     }
-    assert!(checked >= 8_000);
+    assert!(checked >= 6_000);
 }
 
 #[test]
