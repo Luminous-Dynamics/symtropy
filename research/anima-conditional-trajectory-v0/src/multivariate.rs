@@ -117,8 +117,15 @@ pub enum MultivariateError {
     DuplicateChannel(String),
     DuplicateMechanism(String),
     InvalidMechanism(String),
-    InvalidActionEffect { model_id: String, channel_id: String, action_id: String },
-    UnknownChannel { model_id: String, channel_id: String },
+    InvalidActionEffect {
+        model_id: String,
+        channel_id: String,
+        action_id: String,
+    },
+    UnknownChannel {
+        model_id: String,
+        channel_id: String,
+    },
     InvalidPosterior,
     ModelSetMismatch,
     InvalidDeliveryThreshold,
@@ -126,9 +133,19 @@ pub enum MultivariateError {
     AnimalIdentityMismatch,
     DuplicateSample(String),
     SessionReopened(String),
-    SessionStartTimeNotZero { session_id: String, actual_time_index: u64 },
-    OutOfOrderTime { session_id: String, time_index: u64 },
-    NonContiguousTime { session_id: String, expected_time_index: u64, actual_time_index: u64 },
+    SessionStartTimeNotZero {
+        session_id: String,
+        actual_time_index: u64,
+    },
+    OutOfOrderTime {
+        session_id: String,
+        time_index: u64,
+    },
+    NonContiguousTime {
+        session_id: String,
+        expected_time_index: u64,
+        actual_time_index: u64,
+    },
     TimeIndexOverflow,
     EmptyObservationValues,
     AssignmentDesignInvalid,
@@ -155,8 +172,7 @@ struct GaussianState {
 impl GaussianState {
     fn initial(model: &MultivariateMechanism) -> Self {
         let dimension = model.channels.len() + 1;
-        let phase_variance = model.phase_innovation_sd.powi(2)
-            / (1.0 - model.phase_phi.powi(2));
+        let phase_variance = model.phase_innovation_sd.powi(2) / (1.0 - model.phase_phi.powi(2));
         let mut covariance = vec![vec![0.0; dimension]; dimension];
         covariance[0][0] = phase_variance;
         for (index, channel) in model.channels.iter().enumerate() {
@@ -193,7 +209,11 @@ impl GaussianState {
             self.covariance[index][0] = self.covariance[0][index];
         }
         if !self.mean[0].is_finite()
-            || !self.covariance.iter().flatten().all(|value| value.is_finite())
+            || !self
+                .covariance
+                .iter()
+                .flatten()
+                .all(|value| value.is_finite())
         {
             return Err(MultivariateError::NumericalFailure);
         }
@@ -208,13 +228,15 @@ impl GaussianState {
         observed_value: f64,
     ) -> Result<f64, MultivariateError> {
         let channel = &model.channels[channel_index];
-        let action_effect = channel.action_effects.get(action_id).copied().ok_or_else(|| {
-            MultivariateError::InvalidActionEffect {
+        let action_effect = channel
+            .action_effects
+            .get(action_id)
+            .copied()
+            .ok_or_else(|| MultivariateError::InvalidActionEffect {
                 model_id: model.model_id.clone(),
                 channel_id: channel.channel_id.clone(),
                 action_id: action_id.to_owned(),
-            }
-        })?;
+            })?;
 
         let mut loading = vec![0.0; self.mean.len()];
         loading[0] = channel.phase_loading;
@@ -263,23 +285,27 @@ impl GaussianState {
         for row in 0..self.mean.len() {
             for column in 0..self.mean.len() {
                 self.covariance[row][column] = old_covariance[row][column]
-                    - covariance_loading[row] * covariance_loading[column]
-                        / innovation_variance;
+                    - covariance_loading[row] * covariance_loading[column] / innovation_variance;
             }
         }
         for row in 0..self.mean.len() {
             for column in 0..row {
-                let symmetric =
-                    0.5 * (self.covariance[row][column] + self.covariance[column][row]);
+                let symmetric = 0.5 * (self.covariance[row][column] + self.covariance[column][row]);
                 self.covariance[row][column] = symmetric;
                 self.covariance[column][row] = symmetric;
             }
         }
         if !self.mean.iter().all(|value| value.is_finite())
-            || !self.covariance.iter().flatten().all(|value| value.is_finite())
-            || self.covariance.iter().enumerate().any(|(index, row)| {
-                row[index] < -COVARIANCE_TOLERANCE
-            })
+            || !self
+                .covariance
+                .iter()
+                .flatten()
+                .all(|value| value.is_finite())
+            || self
+                .covariance
+                .iter()
+                .enumerate()
+                .any(|(index, row)| row[index] < -COVARIANCE_TOLERANCE)
         {
             return Err(MultivariateError::NumericalFailure);
         }
@@ -337,8 +363,14 @@ fn validate_observation(
         ("sample_id", observation.sample_id.as_str()),
         ("animal_id", observation.animal_id.as_str()),
         ("session_id", observation.session_id.as_str()),
-        ("assigned_action_id", observation.assigned_action_id.as_str()),
-        ("delivered_action_id", observation.delivered_action_id.as_str()),
+        (
+            "assigned_action_id",
+            observation.assigned_action_id.as_str(),
+        ),
+        (
+            "delivered_action_id",
+            observation.delivered_action_id.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             return Err(MultivariateError::EmptyIdentifier(field));
@@ -536,10 +568,11 @@ fn validate_next_identity(
             }
             Ok(())
         }
-        Some(_) if history
-            .observations
-            .iter()
-            .any(|item| item.session_id == session_id) =>
+        Some(_)
+            if history
+                .observations
+                .iter()
+                .any(|item| item.session_id == session_id) =>
         {
             Err(MultivariateError::SessionReopened(session_id.to_owned()))
         }
@@ -595,13 +628,15 @@ fn forecast_from_state(
     for channel_id in &channel_ids {
         let index = indices[channel_id];
         let channel = &model.channels[index];
-        let action_effect = channel.action_effects.get(action_id).copied().ok_or_else(|| {
-            MultivariateError::InvalidActionEffect {
+        let action_effect = channel
+            .action_effects
+            .get(action_id)
+            .copied()
+            .ok_or_else(|| MultivariateError::InvalidActionEffect {
                 model_id: model.model_id.clone(),
                 channel_id: channel.channel_id.clone(),
                 action_id: action_id.to_owned(),
-            }
-        })?;
+            })?;
         let mut loading = vec![0.0; dimension];
         loading[0] = channel.phase_loading;
         loading[index + 1] = 1.0;
@@ -614,8 +649,7 @@ fn forecast_from_state(
         loadings.push(loading);
     }
 
-    let mut predictive_covariance =
-        vec![vec![0.0; channel_ids.len()]; channel_ids.len()];
+    let mut predictive_covariance = vec![vec![0.0; channel_ids.len()]; channel_ids.len()];
     for row in 0..channel_ids.len() {
         for column in 0..channel_ids.len() {
             let mut covariance = 0.0;
@@ -634,7 +668,10 @@ fn forecast_from_state(
         }
     }
     if predictive_means.iter().any(|value| !value.is_finite())
-        || predictive_covariance.iter().flatten().any(|value| !value.is_finite())
+        || predictive_covariance
+            .iter()
+            .flatten()
+            .any(|value| !value.is_finite())
         || predictive_covariance
             .iter()
             .enumerate()
@@ -728,13 +765,8 @@ pub fn forecast_next(
     } else {
         state.reset_session(model, session_id);
     }
-    let fingerprint = history_fingerprint(
-        &model.model_id,
-        history,
-        session_id,
-        time_index,
-        action_id,
-    );
+    let fingerprint =
+        history_fingerprint(&model.model_id, history, session_id, time_index, action_id);
     forecast_from_state(
         model,
         &state,
@@ -758,9 +790,7 @@ fn validate_config(config: MultivariateConfig) -> Result<(), MultivariateError> 
 fn validate_posterior(posterior: &MechanismPosterior) -> Result<(), MultivariateError> {
     if posterior.is_empty()
         || posterior.iter().any(|(id, probability)| {
-            id.trim().is_empty()
-                || !probability.is_finite()
-                || !(0.0..=1.0).contains(probability)
+            id.trim().is_empty() || !probability.is_finite() || !(0.0..=1.0).contains(probability)
         })
         || (posterior.values().sum::<f64>() - 1.0).abs() > PROBABILITY_TOLERANCE
     {
@@ -837,12 +867,8 @@ pub fn update_mechanism_posterior(
             }
         }
 
-        let log_likelihood = process_session_observation_score(
-            model,
-            history,
-            &observation,
-            config,
-        )?;
+        let log_likelihood =
+            process_session_observation_score(model, history, &observation, config)?;
         conditional_log_likelihoods.insert(model_id.clone(), log_likelihood);
         forecasts_before_observation.insert(model_id.clone(), forecast);
 
@@ -885,10 +911,7 @@ fn process_session_observation_score(
 }
 
 fn log_sum_exp(values: &[f64]) -> Result<f64, MultivariateError> {
-    let maximum = values
-        .iter()
-        .copied()
-        .fold(f64::NEG_INFINITY, f64::max);
+    let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     if !maximum.is_finite() {
         return Err(MultivariateError::NumericalFailure);
     }
@@ -1022,19 +1045,19 @@ mod tests {
             .iter()
             .position(|id| id == "contact-force")
             .unwrap();
-        assert_ne!(before.predictive_means[force_index], after.predictive_means[force_index]);
+        assert_ne!(
+            before.predictive_means[force_index],
+            after.predictive_means[force_index]
+        );
         assert!(after.latent_phase_mean > 0.0);
     }
 
     #[test]
     fn missing_channel_is_omitted_without_being_filled_with_zero() {
         let mut history = history(Vec::new());
-        history.observations.push(observation(
-            "s1",
-            "session-a",
-            0,
-            &[("joint-angle", 0.75)],
-        ));
+        history
+            .observations
+            .push(observation("s1", "session-a", 0, &[("joint-angle", 0.75)]));
         let forecast = forecast_next(
             &model("m", 0.5, 1.0),
             &history,
@@ -1046,7 +1069,12 @@ mod tests {
         .unwrap();
         assert_eq!(forecast.conditioned_observation_count, 1);
         assert_eq!(forecast.channel_ids.len(), 2);
-        assert!(forecast.predictive_means.iter().all(|value| value.is_finite()));
+        assert!(
+            forecast
+                .predictive_means
+                .iter()
+                .all(|value| value.is_finite())
+        );
     }
 
     #[test]
@@ -1078,7 +1106,10 @@ mod tests {
 
     #[test]
     fn conditional_multichannel_likelihood_updates_competing_mechanisms() {
-        let mechanisms = vec![model("weak-phase", 0.0, 0.1), model("strong-phase", 0.0, 1.0)];
+        let mechanisms = vec![
+            model("weak-phase", 0.0, 0.1),
+            model("strong-phase", 0.0, 1.0),
+        ];
         let mut history = history(Vec::new());
         let receipt = update_mechanism_posterior(
             &mut history,
@@ -1102,12 +1133,7 @@ mod tests {
     fn rejects_unknown_channels_and_unknown_actions() {
         let unknown_channel = forecast_next(
             &model("m", 0.5, 1.0),
-            &history(vec![observation(
-                "s1",
-                "session-a",
-                0,
-                &[("unknown", 0.0)],
-            )]),
+            &history(vec![observation("s1", "session-a", 0, &[("unknown", 0.0)])]),
             "session-a",
             1,
             "baseline",
