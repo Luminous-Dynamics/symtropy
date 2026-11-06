@@ -278,6 +278,11 @@ pub fn simulate(
 ) -> Result<HexapodTrace, CoordinationError> {
     config.validate(model)?;
     intervention.validate(config.sample_count)?;
+    if intervention.amplitude_pulse.is_some()
+        && model != CoordinationModel::CoupledHopfOscillators
+    {
+        return Err(CoordinationError::AmplitudePulseUnsupported);
+    }
 
     let mut phases = std::array::from_fn(|leg_index| {
         config.initial_phase + config.target_offsets[leg_index]
@@ -1043,6 +1048,23 @@ mod tests {
         )
         .unwrap();
         assert!(recovery.is_some_and(|time| time < 1.0));
+    }
+
+
+    #[test]
+    fn amplitude_pulse_is_rejected_for_models_without_radial_state() {
+        let intervention = Intervention {
+            amplitude_pulse: Some(AmplitudePulse {
+                step: 10,
+                leg: LegId::LeftFront,
+                scale: 0.5,
+            }),
+            ..Intervention::default()
+        };
+        assert_eq!(
+            run(CoordinationModel::CoupledOscillators, intervention),
+            Err(CoordinationError::AmplitudePulseUnsupported)
+        );
     }
 
     #[test]
