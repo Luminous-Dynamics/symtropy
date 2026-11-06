@@ -32,7 +32,32 @@ Rules:
 3. Diamond DA40 NG 2025 product folder: https://www.diamondaircraft.com/fileadmin/diamondaircraft/documents/da40/DA40_NG_Product_Folder_2025_SCREEN.pdf
 4. Tecnam P2010 180 HP official page: https://tecnam.com/aircraft/p2010-180hp/
 
-## 3. Advanced architecture references — different product classes
+## 3. Preliminary two-seat references — Wren 2 lane
+
+These are useful acquisition targets, not a normalized ranking. They differ in category, propulsion, intended operation, energy reserve and evidence maturity.
+
+| Reference | Published configuration / mass | Published mission figures | Evidence boundary / unresolved items |
+|---|---|---|---|
+| Sling 2 | Two seats; 700 kg MTOW; 420 kg standard empty mass; 280 kg useful load; Rotax 912iS, 100 hp / 75 kW | 117 KTAS typical cruise at 9,500 ft; 830 nm published range; 330 m takeoff over 50 ft; 260 m landing over 50 ft; 875 fpm climb; 15 L/h economy fuel burn | Manufacturer figures. Confirm exact Sling 2 variant, equipment basis, fuel/reserve and applicable South African build/registration/airworthiness path. Treat separately from type-certified aircraft and obtain current POH/AFM/build configuration before comparison. |
+| Evektor SportStar RTC | Two seats; official page lists approximately 351–355 kg empty mass and 600 kg MTOW; Rotax 912-series, 100 hp class | 115 KTAS headline cruise; 700 nm headline range; 128 m takeoff and 169 m landing figures on the official page; 78 km/h stall figure | Manufacturer page notes data may change. A separate official overview has quoted 255 kg usable load, which must be reconciled against the exact equipment/variant and detailed empty-weight definition. Do not compare short field numbers until ground-roll/obstacle definitions, conditions and revision are confirmed. |
+| Pipistrel Velis Electro | Two seats; EASA type certificate EASA.A.573; 428 kg empty mass with batteries; 600 kg MTOW; 172 kg published useful load; 57.6 kW maximum takeoff power | Approximately 88–90 kt cruise depending on page/definition; 50 min typical endurance plus VFR reserve; official EU page reports 453 m grass / 409 m asphalt takeoff over 50 ft obstacle | Type-certified electric trainer; an important battery-electric operational comparator, not a direct long-range touring comparator. Verify exact manual revision, battery state/temperature, reserve policy and charging turnaround. Do not mix the 88 KTAS and 90 KCAS values from different pages. |
+
+### Primary manufacturer sources
+
+1. Sling Aircraft — Sling 2: https://slingaircraft.com/sling-2/
+2. Evektor — SportStar RTC: https://www.evektor.com/sportstar-rtc
+3. Evektor — SportStar overview: https://www.evektor.com/sportstar
+4. Pipistrel — Velis Electro (EU): https://www.pipistrel-aircraft.com/aircraft/velis-electro/
+5. Pipistrel — Velis Electro (US): https://www.pipistrel-usa.com/velis-electro/
+
+### Interpretation
+
+- **Sling 2 is strategically relevant** because it is a South African manufacturer and a practical two-seat reference. It is not automatically a type-certified peer; its exact regulatory category and local operating pathway must be established for the comparison.
+- **SportStar RTC provides a more conventional certified-trainer comparison**, but its headline payload/range/runway data need a single revision and consistent definitions.
+- **Velis Electro supplies a real electric-aircraft operational reference** and illustrates the distinction between battery-electric training missions and longer owner-touring missions. It should not be judged on ferry range alone; compare completed training sorties, charging time, battery life and dispatch availability.
+- Do not use any table value as an AER-01 target until its source basis and mission boundary have been recovered.
+
+## 4. Advanced architecture references — different product classes
 
 | Reference | Published / reported architecture | What it can benchmark | What it cannot establish |
 |---|---|---|---|
