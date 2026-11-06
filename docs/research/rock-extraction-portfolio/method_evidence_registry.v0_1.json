@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "registry_id": "symtropy.rock-extraction.method-evidence",
-  "registry_version": "0.1.0",
+  "registry_version": "0.1.1",
   "status": "literature_reference_only",
   "claim_ceiling": "This registry is a research index. It does not qualify a method, machine, site, physical model, safety case, construction design, or operational use.",
   "evidence_scale": [
@@ -660,6 +660,39 @@
         "oscillation_speed_ratio",
         "cutter_wear",
         "full_cycle_advance"
+      ]
+    },
+    {
+      "id": "cutting_and_splitting_saw_wedge",
+      "mechanism": "saw_created_kerf_followed_by_wedge_induced_tensile_crack_propagation_to_free_face",
+      "family": "sequential_mechanical_cut_and_split",
+      "application_evidence": [
+        {
+          "application": "granite_slope_and_simulated_tunnel_face_feasibility",
+          "tier": "R2-R3",
+          "basis": "Cho et al. (2026) report scaled model tests, numerical modelling, and in-situ excavation tests on a granite slope and simulated tunnel face. Effective block separation was reported at cut-spacing-to-depth ratios below 2.0. Net cutting rate was reported 20–30% above predicted roadheader rates and more than 600% above predicted impact-hammer rates for tested UCS >100 MPa rock; these are not concurrent randomized machine comparisons. Treat as method feasibility evidence, not a generalized full-cycle productivity, energy, wear or lifecycle-cost advantage.",
+          "sources": [
+            "https://doi.org/10.1016/j.tust.2026.107477"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Concurrent matched full-cycle comparison with roadheaders, disc cutters, oscillating disc cutters or impact hammers.",
+        "Transfer across characterized granite and basalt cohorts, confinement regimes, anisotropy and discontinuity populations.",
+        "Complete saw, wedge, handling, extraction and auxiliary energy accounting plus long-duration blade/wedge wear.",
+        "Sustained production-scale underground tunnel advance and lifecycle-cost advantage."
+      ],
+      "primary_metrics": [
+        "cut_spacing_to_depth_ratio",
+        "kerf_width_and_cut_depth",
+        "wedge_force_displacement_and_work",
+        "block_separation_success_rate",
+        "accepted_block_geometry_deviation",
+        "fracture_damage_zone",
+        "saw_and_wedge_energy",
+        "blade_and_wedge_wear",
+        "fines_overbreak_and_residual_spoil",
+        "full_cycle_accepted_output_rate"
       ]
     }
   ]
