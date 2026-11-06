@@ -215,11 +215,7 @@ pub fn sphere_sphere_checked<const D: usize>(
         return Err(CcdError::ArithmeticOverflow);
     }
 
-    Ok(Some(CcdHit {
-        toi,
-        point,
-        normal,
-    }))
+    Ok(Some(CcdHit { toi, point, normal }))
 }
 
 /// Compatibility swept-sphere query.
@@ -325,11 +321,7 @@ pub fn sphere_halfspace_checked<const D: usize>(
         return Err(CcdError::ArithmeticOverflow);
     }
 
-    Ok(Some(CcdHit {
-        toi,
-        point,
-        normal,
-    }))
+    Ok(Some(CcdHit { toi, point, normal }))
 }
 
 /// Compatibility swept-sphere vs half-space query.
@@ -496,7 +488,15 @@ mod checked_tests {
         let other_position = SVector::from([10.0, 0.0, 0.0]);
 
         assert!(matches!(
-            sphere_sphere_checked(&valid_position, &zero, -1.0, &other_position, &zero, 1.0, 1.0),
+            sphere_sphere_checked(
+                &valid_position,
+                &zero,
+                -1.0,
+                &other_position,
+                &zero,
+                1.0,
+                1.0
+            ),
             Err(CcdError::InvalidRadius)
         ));
         assert!(matches!(
@@ -557,10 +557,9 @@ mod checked_tests {
         let unit = sphere_halfspace_checked(&position, &velocity, 0.5, &unit_normal, 1.0, 0.2)
             .unwrap()
             .unwrap();
-        let scaled =
-            sphere_halfspace_checked(&position, &velocity, 0.5, &scaled_normal, 7.0, 0.2)
-                .unwrap()
-                .unwrap();
+        let scaled = sphere_halfspace_checked(&position, &velocity, 0.5, &scaled_normal, 7.0, 0.2)
+            .unwrap()
+            .unwrap();
 
         assert!((unit.toi - scaled.toi).abs() < 1e-14);
         assert!((unit.point - scaled.point).norm() < 1e-12);
