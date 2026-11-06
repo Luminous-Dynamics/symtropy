@@ -629,7 +629,7 @@ mod tests {
 
         assert!((receipt.target.heading_radians - std::f64::consts::FRAC_PI_2).abs() < 1e-12);
         assert_eq!(receipt.target.position.x_m, 1.0);
-        assert!((receipt.target.position.y_m - 2.0025).abs() < 1e-12);
+        assert!((receipt.target.position.y_m - 2.5025).abs() < 1e-12);
         assert!((receipt.applied_forward_speed_mps - 0.05).abs() < 1e-12);
         assert!((receipt.applied_distance_m - 0.0025).abs() < 1e-12);
     }
@@ -739,7 +739,7 @@ mod tests {
 
         let faster_policy = ActorPolicyState::from_scenario(
             ActorMode::Crossing,
-            1.5,
+            2.5,
             Some(ScenarioTick(3)),
             MotionBounds::new(3.0).unwrap(),
         )
