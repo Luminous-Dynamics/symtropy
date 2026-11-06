@@ -1206,12 +1206,7 @@ mod tests {
     #[test]
     fn held_out_suffix_selects_generator_after_equal_budget_baseline_fit() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
-        let generated = simulate(
-            Mechanism::IntrinsicOscillator,
-            intervention,
-            config(),
-        )
-        .unwrap();
+        let generated = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
         let noisy = add_gaussian_observation_noise(&generated.samples, 0.01, 0xA11CE).unwrap();
         let forecasts = predict_intervention_candidates(
             &noisy[..30],
@@ -1244,12 +1239,7 @@ mod tests {
             sample_index: 30,
             delta_phase_radians: 0.5,
         };
-        let generated = simulate(
-            Mechanism::IntrinsicOscillator,
-            intervention,
-            config(),
-        )
-        .unwrap();
+        let generated = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
         let forecasts = predict_intervention_candidates(
             &generated.samples[..30],
             &CANDIDATES,
@@ -1277,12 +1267,8 @@ mod tests {
 
     #[test]
     fn rejects_an_action_not_aligned_to_first_held_out_sample() {
-        let generated = simulate(
-            Mechanism::IntrinsicOscillator,
-            Intervention::None,
-            config(),
-        )
-        .unwrap();
+        let generated =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
         assert_eq!(
             predict_intervention_candidates(
                 &generated.samples[..30],
@@ -1307,12 +1293,8 @@ mod tests {
 
     #[test]
     fn rejects_invalid_fit_grid_and_prefix_time_grid() {
-        let generated = simulate(
-            Mechanism::IntrinsicOscillator,
-            Intervention::None,
-            config(),
-        )
-        .unwrap();
+        let generated =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
         let mut invalid_grid = fit_grid();
         invalid_grid.frequency_steps = 1;
         assert_eq!(
@@ -1342,12 +1324,8 @@ mod tests {
 
     #[test]
     fn baseline_fit_rejects_single_or_duplicate_candidate_families() {
-        let generated = simulate(
-            Mechanism::IntrinsicOscillator,
-            Intervention::None,
-            config(),
-        )
-        .unwrap();
+        let generated =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
         assert_eq!(
             predict_intervention_candidates(
                 &generated.samples[..30],
