@@ -480,12 +480,17 @@ fn greedy_baseline(scenario: &Scenario) -> Result<ScheduleOutcome, String> {
     let mut setpoints = Vec::with_capacity(scenario.intervals.len());
     let mut previous = scenario.initial_setpoint_quanta;
     let mut stress = 0_u64;
+    let mut delivered = 0_u64;
 
     for interval in &scenario.intervals {
         let lower = previous.saturating_sub(scenario.max_slew_quanta_per_interval);
+        let requested_remainder = scenario.requested_energy_mwh.saturating_sub(delivered);
+        let request_limited_max = requested_remainder
+            .div_ceil(interval.useful_energy_mwh_per_quantum);
         let upper = interval
             .max_setpoint_quanta
-            .min(previous.saturating_add(scenario.max_slew_quanta_per_interval));
+            .min(previous.saturating_add(scenario.max_slew_quanta_per_interval))
+            .min(request_limited_max);
         let mut chosen = None;
         for q in (lower..=upper).rev() {
             let next_stress = stress
@@ -502,6 +507,12 @@ fn greedy_baseline(scenario: &Scenario) -> Result<ScheduleOutcome, String> {
             break;
         }
         let (q, next_stress) = chosen.unwrap_or((0, stress));
+        let energy = checked_mul(
+            q,
+            interval.useful_energy_mwh_per_quantum,
+            "$.greedy_baseline",
+        )?;
+        delivered = delivered.saturating_add(energy).min(scenario.requested_energy_mwh);
         stress = next_stress;
         previous = q;
         setpoints.push(q);
