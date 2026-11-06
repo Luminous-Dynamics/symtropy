@@ -17,10 +17,7 @@ fn fail(path: &str, message: impl AsRef<str>) -> String {
     format!("{path}: {}", message.as_ref())
 }
 
-fn object<'a>(
-    value: &'a Value,
-    path: &str,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
     value
         .as_object()
         .ok_or_else(|| fail(path, "must be an object"))
@@ -162,11 +159,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
     let frame = field(value, "coordinate_frame", "$")?;
     exact_keys(
         frame,
-        &[
-            "frame_id",
-            "longitudinal_positive",
-            "lateral_positive",
-        ],
+        &["frame_id", "longitudinal_positive", "lateral_positive"],
         "$.coordinate_frame",
     )?;
     let frame_id = string_field(frame, "frame_id", "$.coordinate_frame")?.to_string();
@@ -192,8 +185,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
     let vehicle_id = string_field(vehicle, "vehicle_id", "$.vehicle")?.to_string();
     let receiver_offset_longitudinal_mm =
         int_field(vehicle, "receiver_offset_longitudinal_mm", "$.vehicle")?;
-    let receiver_offset_lateral_mm =
-        int_field(vehicle, "receiver_offset_lateral_mm", "$.vehicle")?;
+    let receiver_offset_lateral_mm = int_field(vehicle, "receiver_offset_lateral_mm", "$.vehicle")?;
 
     let coil = field(value, "coil", "$")?;
     exact_keys(
@@ -261,8 +253,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         if !wheel_ids.insert(wheel_id.clone()) {
             return Err(fail(&path, format!("duplicate wheel_id {wheel_id}")));
         }
-        let lateral_offset_mm =
-            int_field(row, "lateral_offset_from_vehicle_center_mm", &path)?;
+        let lateral_offset_mm = int_field(row, "lateral_offset_from_vehicle_center_mm", &path)?;
         wheels.push(Wheel {
             wheel_id,
             lateral_offset_mm,
@@ -412,16 +403,14 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             .checked_sub(pair[0].vehicle_s_mm)
             .ok_or_else(|| fail("$.samples", "forward progress difference overflowed"))?;
         let delta_t_ms = pair[1].time_ms - pair[0].time_ms;
-        let observed_speed_mm_per_s =
-            (delta_s_mm as u128 * 1000_u128) / delta_t_ms as u128;
+        let observed_speed_mm_per_s = (delta_s_mm as u128 * 1000_u128) / delta_t_ms as u128;
         let expected_speed_mm_per_s =
             (pair[0].speed_mm_per_s as u128 + pair[1].speed_mm_per_s as u128) / 2;
         let mismatch_ppm = (observed_speed_mm_per_s.abs_diff(expected_speed_mm_per_s)
             * PPM as u128)
             / expected_speed_mm_per_s;
         let mismatch_ppm = mismatch_ppm.min(u64::MAX as u128) as u64;
-        maximum_kinematic_mismatch_ppm =
-            maximum_kinematic_mismatch_ppm.max(mismatch_ppm);
+        maximum_kinematic_mismatch_ppm = maximum_kinematic_mismatch_ppm.max(mismatch_ppm);
         if mismatch_ppm > max_kinematic_mismatch_ppm {
             return Err(fail(
                 "$.samples",
@@ -513,7 +502,10 @@ fn max_optional_millidegrees(
         || millidegrees < i64::MIN as f64
         || millidegrees >= i64::MAX as f64
     {
-        return Err(fail(path, "temperature is outside the millidegree representation"));
+        return Err(fail(
+            path,
+            "temperature is outside the millidegree representation",
+        ));
     }
     Ok(Some(millidegrees as i64))
 }
@@ -540,9 +532,7 @@ fn integrate_power_uwh(samples: &[Sample], roadway_input: bool) -> Result<u64, S
     Ok(energy_uwh.round() as u64)
 }
 
-fn integrate_wheel_load_impulse_micro_kn_s(
-    samples: &[Sample],
-) -> Result<u64, String> {
+fn integrate_wheel_load_impulse_micro_kn_s(samples: &[Sample]) -> Result<u64, String> {
     let mut impulse_micro_kn_s = 0.0_f64;
     for pair in samples.windows(2) {
         let duration_ms = (pair[1].time_ms - pair[0].time_ms) as f64;
@@ -578,13 +568,21 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
             scenario.receiver_offset_lateral_mm,
             "$.samples.receiver_y_mm",
         )?;
-        let receiver_longitudinal_offset_mm =
-            receiver_s_mm.checked_sub(scenario.coil_center_s_mm).ok_or_else(|| {
-                fail("$.samples", "receiver longitudinal offset arithmetic overflowed")
+        let receiver_longitudinal_offset_mm = receiver_s_mm
+            .checked_sub(scenario.coil_center_s_mm)
+            .ok_or_else(|| {
+                fail(
+                    "$.samples",
+                    "receiver longitudinal offset arithmetic overflowed",
+                )
             })?;
-        let receiver_lateral_offset_mm =
-            receiver_y_mm.checked_sub(scenario.coil_center_y_mm).ok_or_else(|| {
-                fail("$.samples", "receiver lateral offset arithmetic overflowed")
+        let receiver_lateral_offset_mm = receiver_y_mm
+            .checked_sub(scenario.coil_center_y_mm)
+            .ok_or_else(|| {
+                fail(
+                    "$.samples",
+                    "receiver lateral offset arithmetic overflowed",
+                )
             })?;
         let receiver_inside_declared_active_zone =
             receiver_s_mm >= scenario.active_zone_start_s_mm
@@ -608,10 +606,9 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
                 wheel.lateral_offset_mm,
                 "$.samples.wheel_y_mm",
             )?;
-            let wheel_offset_mm =
-                wheel_y_mm.checked_sub(scenario.coil_center_y_mm).ok_or_else(|| {
-                    fail("$.samples", "wheel path offset arithmetic overflowed")
-                })?;
+            let wheel_offset_mm = wheel_y_mm
+                .checked_sub(scenario.coil_center_y_mm)
+                .ok_or_else(|| fail("$.samples", "wheel path offset arithmetic overflowed"))?;
             minimum_absolute_wheel_path_offset_mm =
                 minimum_absolute_wheel_path_offset_mm.min(wheel_offset_mm.unsigned_abs());
             wheel_paths.push(WheelPath {
@@ -646,18 +643,17 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
 
     let roadway_dc_input_energy_uwh = integrate_power_uwh(&scenario.samples, true)?;
     let vehicle_receiver_dc_output_energy_uwh = integrate_power_uwh(&scenario.samples, false)?;
-    let pass_level_conversion_efficiency_ppm =
-        if roadway_dc_input_energy_uwh > 0
-            && vehicle_receiver_dc_output_energy_uwh <= roadway_dc_input_energy_uwh
-        {
-            Some(
-                ((vehicle_receiver_dc_output_energy_uwh as u128 * PPM as u128
-                    + roadway_dc_input_energy_uwh as u128 / 2)
-                    / roadway_dc_input_energy_uwh as u128) as u64,
-            )
-        } else {
-            None
-        };
+    let pass_level_conversion_efficiency_ppm = if roadway_dc_input_energy_uwh > 0
+        && vehicle_receiver_dc_output_energy_uwh <= roadway_dc_input_energy_uwh
+    {
+        Some(
+            ((vehicle_receiver_dc_output_energy_uwh as u128 * PPM as u128
+                + roadway_dc_input_energy_uwh as u128 / 2)
+                / roadway_dc_input_energy_uwh as u128) as u64,
+        )
+    } else {
+        None
+    };
 
     let sample_count = scenario.samples.len() as u64;
     let lateral_alignment_coverage_ppm =
@@ -705,8 +701,9 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
         roadway_dc_input_energy_uwh,
         vehicle_receiver_dc_output_energy_uwh,
         pass_level_conversion_efficiency_ppm,
-        total_vertical_wheel_load_impulse_micro_kn_s:
-            integrate_wheel_load_impulse_micro_kn_s(&scenario.samples)?,
+        total_vertical_wheel_load_impulse_micro_kn_s: integrate_wheel_load_impulse_micro_kn_s(
+            &scenario.samples,
+        )?,
         maximum_coil_temperature_millidegrees_c,
         maximum_interface_temperature_millidegrees_c,
         missing_coil_temperature_samples,
@@ -745,9 +742,15 @@ mod tests {
         assert_eq!(report.roadway_dc_input_energy_uwh, 27_777_778);
         assert_eq!(report.vehicle_receiver_dc_output_energy_uwh, 23_611_111);
         assert_eq!(report.pass_level_conversion_efficiency_ppm, Some(850_000));
-        assert_eq!(report.total_vertical_wheel_load_impulse_micro_kn_s, 84_000_000);
+        assert_eq!(
+            report.total_vertical_wheel_load_impulse_micro_kn_s,
+            84_000_000
+        );
         assert_eq!(report.maximum_coil_temperature_millidegrees_c, Some(45_000));
-        assert_eq!(report.maximum_interface_temperature_millidegrees_c, Some(35_000));
+        assert_eq!(
+            report.maximum_interface_temperature_millidegrees_c,
+            Some(35_000)
+        );
         assert_eq!(report.missing_ambient_temperature_samples, 0);
         assert_eq!(
             report.witnesses[1].receiver_lateral_offset_from_coil_mm,
@@ -886,8 +889,7 @@ mod tests {
         );
 
         let mut unknown = fixture();
-        unknown["samples"][1]["wheel_loads"][0]["wheel_id"] =
-            Value::String("unknown-wheel".into());
+        unknown["samples"][1]["wheel_loads"][0]["wheel_id"] = Value::String("unknown-wheel".into());
         assert!(
             evaluate_trajectory(&unknown)
                 .unwrap_err()
@@ -912,7 +914,10 @@ mod tests {
         scenario["samples"][0]["ambient_temperature_c"] = Value::Null;
         let report = evaluate_trajectory(&scenario).unwrap();
         assert_eq!(report.maximum_coil_temperature_millidegrees_c, Some(30_000));
-        assert_eq!(report.maximum_interface_temperature_millidegrees_c, Some(35_000));
+        assert_eq!(
+            report.maximum_interface_temperature_millidegrees_c,
+            Some(35_000)
+        );
         assert_eq!(report.missing_coil_temperature_samples, 1);
         assert_eq!(report.missing_interface_temperature_samples, 1);
         assert_eq!(report.missing_ambient_temperature_samples, 1);
