@@ -583,6 +583,19 @@ impl CausalExperiment {
             }
         }
         let reference_outcome = &self.control.independent_outcome;
+        let mut source_record_ids = BTreeSet::new();
+        for run in [
+            &self.control,
+            &self.treatment,
+            &self.negative_control,
+            &self.mechanism_ablation.arm,
+        ] {
+            if !source_record_ids.insert(run.independent_outcome.source_record_id.as_str()) {
+                return Err(CausalPathError::DuplicateIndependentOutcomeRecord(
+                    run.independent_outcome.source_record_id.clone(),
+                ));
+            }
+        }
         for run in [
             &self.treatment,
             &self.negative_control,
@@ -839,6 +852,7 @@ pub enum CausalPathError {
     InvalidIndependentOutcome(String),
     IndependentOutcomeMismatch(String),
     OutcomeIdentityMismatch(String),
+    DuplicateIndependentOutcomeRecord(String),
     ExogenousSnapshotMismatch(String),
     InterventionNotChanged,
     UncontrolledInitialState(String),
@@ -947,6 +961,9 @@ impl fmt::Display for CausalPathError {
                 f,
                 "run {run} outcome receipt does not match the control resource, region and tick"
             ),
+            Self::DuplicateIndependentOutcomeRecord(record_id) => {
+                write!(f, "independent outcome record key is reused across arms: {record_id}")
+            }
             Self::ExogenousSnapshotMismatch(run) => {
                 write!(f, "run {run} does not use the matched exogenous snapshot")
             }
@@ -1389,6 +1406,17 @@ mod tests {
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::UncontrolledInitialState(_))
+        ));
+    }
+
+    #[test]
+    fn independent_outcome_record_keys_must_be_unique_across_arms() {
+        let mut invalid = experiment();
+        invalid.negative_control.independent_outcome.source_record_id =
+            invalid.control.independent_outcome.source_record_id.clone();
+        assert!(matches!(
+            invalid.validate(),
+            Err(CausalPathError::DuplicateIndependentOutcomeRecord(_))
         ));
     }
 
