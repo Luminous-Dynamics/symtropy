@@ -1,0 +1,70 @@
+name: CityKit Synthetic Reference Oracle
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "crates/tools/citykit-benchmark/**"
+      - "docs/research/citykit/**"
+      - ".github/workflows/citykit-reference-oracle.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "crates/tools/citykit-benchmark/**"
+      - "docs/research/citykit/**"
+      - ".github/workflows/citykit-reference-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: citykit-reference-oracle-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Run reference-oracle and hostile-control tests
+        run: cargo test --manifest-path crates/tools/citykit-benchmark/Cargo.toml
+
+      - name: Emit exact-head, exact-corpus reference receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path crates/tools/citykit-benchmark/Cargo.toml -- \
+            docs/research/citykit/CITYKIT_SYNTH_CORPUS_V0_1.json \
+            --source-commit "$source_commit" > citykit-reference-receipt.json
+          jq -e '
+            .result == "pass"
+            and .corpus_classification == "synthetic_fixture_only"
+            and .scenario_count == 18
+            and .failure_count == 0
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.scenarios | length == 18)
+            and (.scenarios | all(.status == "pass"))
+          ' citykit-reference-receipt.json
+
+      - name: Upload deterministic reference receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: citykit-reference-receipt
+          path: citykit-reference-receipt.json
+          if-no-files-found: error
+          retention-days: 90
