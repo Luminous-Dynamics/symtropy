@@ -12,8 +12,6 @@
 use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
 
-const TOLERANCE: f64 = 1e-12;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EpistemicStatus {
     Verified,
@@ -237,16 +235,14 @@ impl KnowledgeDataset {
 
         let mut carrier_keys = BTreeSet::new();
         for carrier in &self.carriers {
-            let generation = participant_by_id
-                .get(carrier.participant_id.as_str())
-                .copied()
-                .ok_or_else(|| KnowledgeError::UnknownParticipant(
+            if !participant_by_id.contains_key(carrier.participant_id.as_str()) {
+                return Err(KnowledgeError::UnknownParticipant(
                     carrier.participant_id.clone(),
-                ))?;
-            let item = item_by_id
-                .get(carrier.item_id.as_str())
-                .copied()
-                .ok_or_else(|| KnowledgeError::UnknownItem(carrier.item_id.clone()))?;
+                ));
+            }
+            if !item_by_id.contains_key(carrier.item_id.as_str()) {
+                return Err(KnowledgeError::UnknownItem(carrier.item_id.clone()));
+            }
             if !carrier_keys.insert((carrier.participant_id.as_str(), carrier.item_id.as_str())) {
                 return Err(KnowledgeError::DuplicateCarrierState {
                     participant_id: carrier.participant_id.clone(),
@@ -275,7 +271,9 @@ impl KnowledgeDataset {
             if carrier.acquired
                 && carrier.acquisition_source == Some(AcquisitionSource::Archive)
                 && !self.archive_copies.iter().any(|copy| {
-                    copy.item_id == carrier.item_id && copy.checksum_verified
+                    copy.item_id == carrier.item_id
+                        && copy.checksum_verified
+                        && copy.accessible
                 })
             {
                 return Err(KnowledgeError::ArchiveAcquisitionWithoutVerifiedCopy {
@@ -312,7 +310,6 @@ impl KnowledgeDataset {
                     item_id: carrier.item_id.clone(),
                 });
             }
-            let _ = (generation, item);
         }
 
         let mut archive_ids = BTreeSet::new();
@@ -489,6 +486,7 @@ pub struct ItemMetrics {
     pub semantic_family_id: String,
     pub epistemic_status: EpistemicStatus,
     pub source_evidence_family_count: usize,
+    pub carrier_state_count: usize,
     pub transmission_events: usize,
     pub delivered_transmissions: usize,
     pub acquisition_count: usize,
@@ -590,6 +588,7 @@ pub fn evaluate(dataset: &KnowledgeDataset) -> Result<KnowledgeEvaluation, Knowl
             semantic_family_id: item.semantic_family_id.clone(),
             epistemic_status: item.epistemic_status,
             source_evidence_family_count: item.evidence_source_families.len(),
+            carrier_state_count: item_carriers.len(),
             transmission_events: item_transmissions.len(),
             delivered_transmissions: item_transmissions
                 .iter()
@@ -659,7 +658,7 @@ fn longest_consecutive_run(generations: &BTreeSet<u32>) -> usize {
     let mut current = 0usize;
     let mut previous = None;
     for generation in generations {
-        if previous.is_some_and(|last| *generation == last + 1) {
+        if previous.is_some_and(|last| last.checked_add(1) == Some(*generation)) {
             current += 1;
         } else {
             current = 1;
