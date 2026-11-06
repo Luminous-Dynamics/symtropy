@@ -321,6 +321,25 @@
         "missing_evidence_rejection_rate"
       ],
       "status": "IMPLEMENTATION_IN_REVIEW"
+    },
+    {
+      "id": "locational-network-deliverability",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH_THEN_INDEPENDENT_SOLVER",
+      "source": "GRID-LOC-DELIV-001 #3826; IEA Electricity 2026 Grids; ESIG Large Loads RA April 2026",
+      "domain": "pcc_to_nodal_constraint_deliverability",
+      "baseline": "frozen topology, bus/PCC mapping, monitored interfaces and contingency set; three-bus PTDF/LODF arithmetic known-truth fixtures before independent AC solver comparison",
+      "target": "100% known-truth PTDF/flow agreement within declared tolerance; 100% fail-closed for stale topology/islanding/missing mapping; no DC screening result promoted to AC feasibility or N-1 capability",
+      "primary_metrics": [
+        "locational_deliverable_mw",
+        "binding_constraint_margin_mw",
+        "n_0_vs_n_1_deliverability",
+        "interface_flow_delta_mw",
+        "duration_under_constraint",
+        "voltage_reactive_margin_when_ac_validated",
+        "topology_abstention_rate"
+      ],
+      "status": "RESEARCH_ISSUE_OPEN_SYNTHETIC_NETWORK_CRATE_NOT_STARTED",
+      "claim_ceiling": "DC linear screening only in first implementation; not AC feasibility, protection, RMS/EMT, market accreditation or ELCC"
     }
   ],
   "result_requirements": {
@@ -370,7 +389,10 @@
     "the Figshare landing page and accompanying GitHub README report different licences for the high-resolution workload dataset; treat rights as unresolved until clarified by the rights holder",
     "portfolio joint-delivery reports are empirical observed incident-panel results; event count and independent incident-group count are separate",
     "failure-domain membership and state are descriptive observations, not causal failure attribution",
-    "overlapping failure-domain capacities must not be summed; V0.1 reports maximum single-domain capacity share rather than an unsupported HHI"
+    "overlapping failure-domain capacities must not be summed; V0.1 reports maximum single-domain capacity share rather than an unsupported HHI",
+    "site-meter response, network-deliverable response and probabilistic adequacy contribution are three different quantities",
+    "DC PTDF/LODF screening is not AC power-flow feasibility, distribution feeder validation, protection coordination or dynamic stability",
+    "N-0 deliverability cannot be promoted to N-1 firm deliverability without explicit contingency validation"
   ],
   "metadata": {
     "benchmark_domain_count": 14
