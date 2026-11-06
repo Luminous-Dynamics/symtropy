@@ -238,10 +238,15 @@ fn validate_workload(workload: &FleetWorkload) -> Result<FleetContext, FleetErro
                 ));
             };
             let expected_mode = match resource.kind {
-                ResourceKind::WaterQuota | ResourceKind::ShorePower => {
+                ResourceKind::WaterQuota
+                | ResourceKind::ShorePower
+                | ResourceKind::TerminalHandling
+                | ResourceKind::InlandTransfer => {
                     ResourceAccountingMode::CumulativeWindowQuota
                 }
-                _ => ResourceAccountingMode::ConcurrentCapacity,
+                ResourceKind::ChannelWindow | ResourceKind::Lock | ResourceKind::Berth => {
+                    ResourceAccountingMode::ConcurrentCapacity
+                }
             };
             if accounting_mode != expected_mode {
                 return Err(FleetError::ResourceAccountingModeMismatch(
@@ -1352,10 +1357,15 @@ mod tests {
             .map(|resource| SharedResourcePolicy {
                 resource_id: resource.resource_id.clone(),
                 accounting_mode: match resource.kind {
-                    ResourceKind::WaterQuota | ResourceKind::ShorePower => {
+                    ResourceKind::WaterQuota
+                    | ResourceKind::ShorePower
+                    | ResourceKind::TerminalHandling
+                    | ResourceKind::InlandTransfer => {
                         ResourceAccountingMode::CumulativeWindowQuota
                     }
-                    _ => ResourceAccountingMode::ConcurrentCapacity,
+                    ResourceKind::ChannelWindow | ResourceKind::Lock | ResourceKind::Berth => {
+                        ResourceAccountingMode::ConcurrentCapacity
+                    },
                 },
             })
             .collect();
@@ -2043,6 +2053,58 @@ mod tests {
             error,
             FleetError::ConflictingResourceSnapshot("lock-01".into())
         );
+    }
+
+    #[test]
+    fn multi_demand_oracle_counts_terminal_handling_as_a_window_throughput_quota() {
+        let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        for case in [&mut first, &mut second] {
+            case.resources
+                .iter_mut()
+                .find(|resource| resource.resource_id == "terminal-01")
+                .unwrap()
+                .availability[0]
+                .capacity = 15;
+            case.evidence
+                .iter_mut()
+                .find(|item| item.evidence_id == "handling-calendar")
+                .unwrap()
+                .covered_capacity_windows
+                .as_mut()
+                .unwrap()[0]
+                .capacity = 15;
+        }
+        assert_eq!(
+            first.resources.iter().find(|resource| resource.resource_id == "terminal-01").unwrap().availability[0].capacity,
+            15
+        );
+        let result = exact_fleet_oracle(&fleet_workload(vec![first, second]), 50_000)
+            .expect("each demand is individually below the shared shift throughput");
+        assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
+        assert!(result.frontier.is_empty());
+    }
+
+    #[test]
+    fn multi_demand_oracle_counts_inland_transfer_as_a_window_throughput_quota() {
+        let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
+        let mut second = valid_fleet_case("case-b", "demand-b", "participant-b", "vessel-b");
+        for case in [&mut first, &mut second] {
+            case.resources
+                .iter_mut()
+                .find(|resource| resource.resource_id == "rail-01")
+                .unwrap()
+                .availability = vec![window(28, 60, 15)];
+            case.evidence
+                .iter_mut()
+                .find(|item| item.evidence_id == "rail-calendar")
+                .unwrap()
+                .covered_capacity_windows = Some(vec![window(28, 60, 15)]);
+        }
+        let result = exact_fleet_oracle(&fleet_workload(vec![first, second]), 50_000)
+            .expect("each demand is individually below the shared inland shift throughput");
+        assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
+        assert!(result.frontier.is_empty());
     }
 
     #[test]
