@@ -2077,8 +2077,14 @@ mod tests {
         let baseline = export_to_sam(&episode, &anchor).unwrap();
 
         let mut changed_policy = episode.clone();
-        changed_policy.policies[0].policy_digest = d("new-policy");
-        changed_policy.branches[0].decisions[0].policy_digest = d("new-policy");
+        let changed_actor = changed_policy.policies[0].actor_id.clone();
+        let changed_digest = d("new-policy");
+        changed_policy.policies[0].policy_digest = changed_digest.clone();
+        for decision in &mut changed_policy.branches[0].decisions {
+            if decision.actor_id == changed_actor {
+                decision.policy_digest = changed_digest.clone();
+            }
+        }
         let policy_anchor = reanchor(&mut changed_policy, &anchor);
         let policy_updated = export_to_sam(&changed_policy, &policy_anchor).unwrap();
         assert_ne!(
