@@ -3039,7 +3039,7 @@ mod tests {
             &candidates,
             0.04,
             256,
-            0xE1_6A_2026,
+            0xE16A_2026,
             0.0,
         )
         .unwrap();
@@ -3262,7 +3262,7 @@ mod tests {
         let generated =
             simulate(Mechanism::IntrinsicOscillator, Intervention::None, known).unwrap();
         let observed =
-            add_gaussian_observation_noise(&generated.samples, 0.0025, 0xF1_0F_2026).unwrap();
+            add_gaussian_observation_noise(&generated.samples, 0.0025, 0xF10F_2026).unwrap();
         let profile = profile_angular_frequency(
             &observed,
             Mechanism::IntrinsicOscillator,
