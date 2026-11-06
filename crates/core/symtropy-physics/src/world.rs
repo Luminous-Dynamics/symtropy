@@ -2560,4 +2560,30 @@ mod transformed_halfspace_tests {
 
         assert!(world.static_tree_dirty);
     }
+    #[test]
+    fn small_sphere_below_absolute_speed_threshold_does_not_tunnel() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let ground = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::from([0.0, 1.0, 0.0]), 0.0)),
+        );
+        world.add_body(ground);
+
+        let sphere = world.add_sphere(Point::new([0.0, 0.01, 0.0]), 0.001, 1.0);
+        world.body_mut(sphere).unwrap().linear_velocity = SVector::from([0.0, -1.0, 0.0]);
+
+        // Speed 1 m/s is below the legacy 5 m/s absolute guard, but the
+        // 16 mm swept distance is much larger than half the 1 mm radius.
+        world.step(0.016);
+
+        let body = world.body(sphere).unwrap();
+        assert!(
+            body.position()[1] >= 0.001 - 1e-8,
+            "sphere tunneled through the plane: y={}",
+            body.position()[1]
+        );
+        assert!(body.position()[1] < 0.002, "unexpected CCD clamp: y={}", body.position()[1]);
+    }
+
 }
