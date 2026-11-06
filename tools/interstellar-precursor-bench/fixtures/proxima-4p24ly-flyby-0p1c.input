@@ -1,8 +1,0 @@
-# Interstellar precursor benchmark input v0.1.
-# This is an illustrative synthetic design point, not an approved mission.
-schema_version=0.1
-scenario_id=proxima-centauri-flyby-0p1c
-distance_ly=4.24
-spacecraft_mass_kg=1000
-peak_speed_fraction_c=0.1
-proper_acceleration_m_s2=1.0
