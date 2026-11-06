@@ -2255,9 +2255,10 @@ mod tests {
         changed_coverage
             .coverage_obligations
             .push(obligation("extra-odd-stratum", CoverageAxis::OddRange));
-        changed_coverage
-            .coverage_obligations
-            .push(obligation("extra-behaviour", CoverageAxis::BehaviouralCompetency));
+        changed_coverage.coverage_obligations.push(obligation(
+            "extra-behaviour",
+            CoverageAxis::BehaviouralCompetency,
+        ));
         changed_coverage
             .coverage_obligations
             .retain(|entry| entry.obligation_id != "yielding-reciprocity");
