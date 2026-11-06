@@ -38,7 +38,7 @@ The control period must be an integral multiple of the physics timestep. Observa
 
 ## Telemetry contract
 
-The schema preserves the actual upstream six-leg order as a six-element permutation. Each joint channel has a stable ID, leg, axis and unit. Each actuator channel has a stable ID, referenced joint channel, control mode, input unit and output-force unit.
+The schema preserves the actual upstream six-leg order as a six-element permutation. Each joint channel has a stable ID, leg, axis, position unit and separate velocity unit. Each actuator channel has a stable ID, referenced joint channel, control mode, input unit and output-force unit.
 
 Each telemetry frame captures:
 - timestamp;
@@ -61,11 +61,12 @@ A trial with an assignment but no delivery receipt fails validation. Unverified 
 
 ## Deterministic tests
 
-14 tests cover:
+15 tests cover:
 - acceptance of a complete CPU v2.1.1 baseline trial;
 - GPU Warp version requirement;
 - verified intervention assignment/delivery;
 - rejection of version drift, invalid source SHA and missing artifact digest;
+- rejection when a joint channel omits its separate velocity unit;
 - physics/control clock consistency;
 - exact six-leg permutation and joint/actuator schema integrity;
 - unknown actuator-to-joint references;
