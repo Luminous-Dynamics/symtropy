@@ -372,4 +372,165 @@ mod tests {
             "corrected position should be above plane, y = {corrected_y}"
         );
     }
+    #[test]
+    fn sphere_sphere_stable_q_form_preserves_small_root() {
+        let pos_a = SVector::from([0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([100_000_000.0, 0.0]);
+        let vel_b = SVector::from([-1.0, 0.0]);
+        let radius_a = 100_000_000.0 - f64::EPSILON * 100_000_000.0;
+
+        let expected = pos_b[0] - radius_a;
+        let hit = sphere_sphere(
+            &pos_a, &vel_a, radius_a, &pos_b, &vel_b, 0.0, 1e-6,
+        )
+        .unwrap();
+
+        assert!(hit.toi > 0.0);
+        assert!((hit.toi - expected).abs() <= expected * 1e-6);
+    }
+
+    #[test]
+    fn sphere_sphere_does_not_discard_low_speed_long_horizon_hits() {
+        let pos_a = SVector::from([0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([1.5, 0.0]);
+        let vel_b = SVector::from([-1e-11, 0.0]);
+
+        let hit = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1e11)
+            .expect("low-speed collision is within the long horizon");
+        assert!((hit.toi - 5e10).abs() <= 1e-4);
+    }
+
+    #[test]
+    fn sphere_sphere_accepts_exact_end_of_interval_and_tangent_hits() {
+        let pos_a = SVector::from([0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([2.0, 0.0]);
+        let vel_b = SVector::from([-1.0, 0.0]);
+        let end_hit = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .expect("contact at exactly dt is included");
+        assert!((end_hit.toi - 1.0).abs() < 1e-12);
+
+        let tangent_pos = SVector::from([2.0, 1.0]);
+        let tangent = sphere_sphere(
+            &pos_a,
+            &vel_a,
+            0.5,
+            &tangent_pos,
+            &vel_b,
+            0.5,
+            2.0,
+        )
+        .expect("grazing contact is a hit");
+        assert!((tangent.toi - 2.0).abs() < 1e-10);
+
+        let near_miss_pos = SVector::from([2.0, 1.0 + 1e-8]);
+        assert!(
+            sphere_sphere(
+                &pos_a,
+                &vel_a,
+                0.5,
+                &near_miss_pos,
+                &vel_b,
+                0.5,
+                2.0
+            )
+            .is_none(),
+            "a separated near-tangent trajectory must remain a miss"
+        );
+    }
+
+    #[test]
+    fn sphere_sphere_reversing_body_order_preserves_toi_and_reverses_normal() {
+        let pos_a = SVector::from([-2.0, 0.0, 0.0]);
+        let vel_a = SVector::from([1.0, 0.0, 0.0]);
+        let pos_b = SVector::from([2.0, 0.5, 0.0]);
+        let vel_b = SVector::from([-1.0, 0.0, 0.0]);
+
+        let forward = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 2.0).unwrap();
+        let reverse = sphere_sphere(&pos_b, &vel_b, 0.5, &pos_a, &vel_a, 0.5, 2.0).unwrap();
+
+        assert!((forward.toi - reverse.toi).abs() < 1e-12);
+        assert!((forward.normal + reverse.normal).norm() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_sphere_rejects_invalid_query_inputs() {
+        let pos = SVector::from([0.0, 0.0, 0.0]);
+        let velocity = SVector::zeros();
+
+        assert!(sphere_sphere(&pos, &velocity, -1.0, &pos, &velocity, 1.0, 1.0).is_none());
+        assert!(sphere_sphere(&pos, &velocity, f64::NAN, &pos, &velocity, 1.0, 1.0).is_none());
+        assert!(sphere_sphere(&pos, &velocity, 1.0, &pos, &velocity, 1.0, f64::INFINITY).is_none());
+        assert!(sphere_sphere(&pos, &velocity, 1.0, &pos, &velocity, 1.0, -1.0).is_none());
+
+        let invalid_pos = SVector::from([f64::NAN, 0.0, 0.0]);
+        assert!(sphere_sphere(&invalid_pos, &velocity, 1.0, &pos, &velocity, 1.0, 1.0).is_none());
+
+        let invalid_velocity = SVector::from([0.0, f64::INFINITY, 0.0]);
+        assert!(sphere_sphere(&pos, &velocity, 1.0, &pos, &invalid_velocity, 1.0, 1.0).is_none());
+    }
+
+    #[test]
+    fn sphere_halfspace_is_invariant_to_normal_and_offset_scaling() {
+        let pos = SVector::from([0.0, 10.0, 0.0]);
+        let vel = SVector::from([0.0, -100.0, 0.0]);
+        let reference_normal = SVector::from([0.0, 1.0, 0.0]);
+
+        let reference = sphere_halfspace(&pos, &vel, 0.5, &reference_normal, 0.0, 1.0).unwrap();
+        for scale in [1e-6, 1.0, 1e6] {
+            let scaled_normal = reference_normal * scale;
+            let hit = sphere_halfspace(&pos, &vel, 0.5, &scaled_normal, 0.0, 1.0).unwrap();
+            assert!((hit.toi - reference.toi).abs() < 1e-12);
+            assert!((hit.normal - reference.normal).norm() < 1e-12);
+            assert!((hit.point - reference.point).norm() < 1e-12);
+            assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+        }
+
+        // Non-zero plane offset must scale together with the normal too.
+        let shifted_pos = SVector::from([0.0, 12.0, 0.0]);
+        let offset_reference = sphere_halfspace(
+            &shifted_pos,
+            &vel,
+            0.5,
+            &reference_normal,
+            2.0,
+            1.0,
+        )
+        .unwrap();
+        let scaled = sphere_halfspace(
+            &shifted_pos,
+            &vel,
+            0.5,
+            &(reference_normal * 1e6),
+            2e6,
+            1.0,
+        )
+        .unwrap();
+        assert!((scaled.toi - offset_reference.toi).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_halfspace_rejects_invalid_inputs_and_returns_unit_normal() {
+        let pos = SVector::from([0.0, 2.0, 0.0]);
+        let vel = SVector::from([0.0, -2.0, 0.0]);
+        let normal = SVector::from([0.0, 5.0, 0.0]);
+
+        let hit = sphere_halfspace(&pos, &vel, 0.5, &normal, 0.0, 1.0).unwrap();
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+
+        assert!(sphere_halfspace(&pos, &vel, -1.0, &normal, 0.0, 1.0).is_none());
+        assert!(sphere_halfspace(&pos, &vel, 0.5, &SVector::zeros(), 0.0, 1.0).is_none());
+        assert!(sphere_halfspace(&pos, &vel, 0.5, &normal, f64::NAN, 1.0).is_none());
+        assert!(sphere_halfspace(&pos, &vel, 0.5, &normal, 0.0, f64::NAN).is_none());
+        assert!(sphere_halfspace(&pos, &vel, 0.5, &normal, 0.0, f64::INFINITY).is_none());
+
+        let invalid_pos = SVector::from([0.0, f64::INFINITY, 0.0]);
+        assert!(sphere_halfspace(&invalid_pos, &vel, 0.5, &normal, 0.0, 1.0).is_none());
+
+        let invalid_normal = SVector::from([0.0, f64::NAN, 0.0]);
+        assert!(sphere_halfspace(&pos, &vel, 0.5, &invalid_normal, 0.0, 1.0).is_none());
+    }
+
 }
