@@ -208,6 +208,7 @@ fn momentary_cessation_over_operator_duration_limit_fails() {
         evaluate_disturbance_conformance(&event, &requirement, &trace_contract, &trace).unwrap();
 
     assert!(!report.connection_continuity_compliant);
+    assert!(report.unexpected_trip_detected);
     assert!(!report.qualified);
 }
 
