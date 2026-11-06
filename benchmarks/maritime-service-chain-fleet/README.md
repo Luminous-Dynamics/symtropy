@@ -85,7 +85,7 @@ chamber flow or navigation approval.
 
 An independent integer-grid integration oracle exhaustively compares the edge-
 candidate search against every integer-millimetre vessel origin on frozen tiny
-cases. The current suite includes more than 8,000 two-vessel chamber layouts, a
+cases. The current suite includes more than 6,000 two-vessel chamber layouts, a
 multi-chamber reference, and an exact full-chamber grid fill. The grid oracle is a
 correctness reference for this discrete geometry model, not an operational
 hydraulic or naval-architecture model.
