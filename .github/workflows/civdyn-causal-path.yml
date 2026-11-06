@@ -73,7 +73,7 @@ jobs:
           assert float(arms["treatment"]["reservoir_closing_water_m3"]) == 10.0
           assert float(arms["negative_control"]["reservoir_closing_water_m3"]) == 20.0
           assert float(arms["treatment"]["household_served_water_m3"]) == 10.0
-          assert all(row["source_record_id"].startswith("resource-ledger:") for row in arms.values())
+          assert all(row["ledger_record_key"].startswith("resource-ledger:") for row in arms.values())
           assert all(float(row["max_water_conservation_residual_m3"]) < 1e-9 for row in arms.values())
 
           edges = [row for row in rows if row["record_type"] == "path_edge"]
