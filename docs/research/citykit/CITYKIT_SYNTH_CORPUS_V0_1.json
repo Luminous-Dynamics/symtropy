@@ -625,7 +625,7 @@
         "unknown_evidence": [],
         "selected_routes": [
           {
-            "target": "panel-stock",
+            "target": "panel-production",
             "route": "route-local"
           }
         ]
