@@ -1285,6 +1285,11 @@ fn assess_challenges(
         }
     }
 
+    search_points.sort_by(|a, b| {
+        (&a.hypothesis_id, a.strategy, &a.challenge_id)
+            .cmp(&(&b.hypothesis_id, b.strategy, &b.challenge_id))
+    });
+
     Ok((
         ChallengeSummary {
             required_challenges: manifest.challenge_requirements.len(),
@@ -1446,6 +1451,10 @@ fn assess_residual(
             }
         }
     }
+
+    action_regret_bounds.sort_by(|a, b| a.action_id.cmp(&b.action_id));
+    robust_feasible_actions.sort();
+    minimax_regret_actions.sort();
 
     Ok(ResidualAssessment {
         disposition: ResidualDisposition::BoundedRectangularRelaxation,
@@ -2464,6 +2473,84 @@ mod tests {
         portfolio.coverage_obligations.extend([successor, fork]);
         assert_eq!(
             portfolio.validate(),
+            Err(PortfolioError::InvalidCoverageEvidence)
+        );
+    }
+
+    #[test]
+    fn manifest_and_evaluation_are_order_independent() {
+        let baseline_manifest = manifest();
+        let baseline_receipts = challenge_set();
+        let baseline = evaluate_portfolio(
+            &baseline_manifest,
+            &d("odd-city-1"),
+            &baseline_receipts,
+            Some(&residual()),
+        ).unwrap();
+
+        let mut reordered_manifest = baseline_manifest.clone();
+        reordered_manifest.training_lineage_roots.reverse();
+        reordered_manifest.action_ids.reverse();
+        reordered_manifest.hypotheses.reverse();
+        reordered_manifest.coverage_obligations.reverse();
+        reordered_manifest.challenge_requirements.reverse();
+        for hypothesis in &mut reordered_manifest.hypotheses {
+            hypothesis.mechanism_class_ids.reverse();
+            hypothesis.source_lineage_digests.reverse();
+        }
+        let mut reordered_receipts = baseline_receipts.clone();
+        reordered_receipts.reverse();
+        let mut reordered_residual = residual();
+        reordered_residual.action_bounds.reverse();
+
+        let reordered = evaluate_portfolio(
+            &reordered_manifest,
+            &d("odd-city-1"),
+            &reordered_receipts,
+            Some(&reordered_residual),
+        ).unwrap();
+
+        assert_eq!(baseline.portfolio_digest, reordered.portfolio_digest);
+        assert_eq!(baseline.evaluation_digest, reordered.evaluation_digest);
+        assert_eq!(baseline.axes, reordered.axes);
+        assert_eq!(baseline.challenge, reordered.challenge);
+        assert_eq!(baseline.residual, reordered.residual);
+    }
+
+    #[test]
+    fn coverage_supersession_must_be_acyclic_and_strictly_later() {
+        let mut portfolio = manifest();
+        let a = portfolio.coverage_obligations[0].clone();
+        let b = portfolio.coverage_obligations[1].clone();
+        portfolio.coverage_obligations[0].supersedes_obligation_id =
+            Some(b.obligation_id.clone());
+        portfolio.coverage_obligations[1].supersedes_obligation_id =
+            Some(a.obligation_id.clone());
+        assert_eq!(
+            portfolio.validate(),
+            Err(PortfolioError::InvalidCoverageEvidence)
+        );
+
+        let mut non_monotone = manifest();
+        non_monotone.coverage_obligations.push(CoverageObligation {
+            obligation_id: "same-revision-successor".into(),
+            revision_sequence: 1,
+            axis: non_monotone.coverage_obligations[0].axis,
+            stratum_digest: non_monotone.coverage_obligations[0].stratum_digest.clone(),
+            state: CoverageState::Covered,
+            minimum_independent_units: 5,
+            independent_unit_count: 8,
+            evidence_class: Some(EvidenceClass::ControlledIntervention),
+            evidence_manifest_digest: Some(d("successor-evidence")),
+            source_lineage_digest: Some(d("successor-lineage")),
+            challenge_protocol_digest: Some(d("successor-protocol")),
+            not_applicable_rationale: None,
+            supersedes_obligation_id: Some(
+                non_monotone.coverage_obligations[0].obligation_id.clone()
+            ),
+        });
+        assert_eq!(
+            non_monotone.validate(),
             Err(PortfolioError::InvalidCoverageEvidence)
         );
     }
