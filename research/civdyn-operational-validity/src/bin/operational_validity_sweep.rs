@@ -4,9 +4,7 @@
 //! Synthetic software fixture for multi-run operational pattern comparison.
 //! Every value is artificial; this binary does not import empirical data.
 
-use civdyn_operational_validity::{
-    MetricSpec, NumericSample, SampleSet, compare_metric,
-};
+use civdyn_operational_validity::{MetricSpec, NumericSample, SampleSet, compare_metric};
 
 const REFERENCE_SAMPLE_COUNT: usize = 30;
 
