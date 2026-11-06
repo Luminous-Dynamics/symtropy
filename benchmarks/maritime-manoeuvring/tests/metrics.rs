@@ -36,6 +36,7 @@ fn right_turn() -> Trajectory {
 fn evidence(role: EvidenceRole, id: &str, state: EvidenceState) -> EvidenceRef {
     EvidenceRef {
         id: id.to_owned(),
+        case_id: "synthetic-case-01".to_owned(),
         role,
         source_id: format!("synthetic-source-{id}"),
         source_revision: "fixture-v1".to_owned(),
@@ -277,4 +278,16 @@ fn manifest_rejects_evidence_that_does_not_cover_the_operation_window() {
     let report = case.evaluate().expect("well-formed but stale evidence");
     assert_eq!(report.disposition, ManifestDisposition::NeedsEvidence);
     assert_eq!(report.unresolved_roles, vec![EvidenceRole::Bathymetry]);
+}
+
+#[test]
+fn manifest_rejects_evidence_bound_to_a_different_case() {
+    let mut case = manifest(ContextOfUse::DeepWaterStandard);
+    case.evidence[0].case_id = "other-case".to_owned();
+    assert_eq!(
+        case.evaluate(),
+        Err(maritime_manoeuvring_contract::ManifestError::EvidenceCaseMismatch(
+            "e-0".to_owned()
+        ))
+    );
 }
