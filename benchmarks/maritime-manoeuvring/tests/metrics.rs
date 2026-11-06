@@ -17,7 +17,7 @@ fn sample(time_s: f64, x_m: f64, y_m: f64, heading_rad: f64) -> TrajectorySample
 }
 
 fn positive_heading_turn() -> Trajectory {
-    let headings = [0.0, 45.0, 90.0, 135.0, 180.0];
+    let headings: [f64; 5] = [0.0, 45.0, 90.0, 135.0, 180.0];
     let samples = headings
         .iter()
         .enumerate()
@@ -81,7 +81,7 @@ fn positive_heading_turn_metrics_match_hand_calculated_circle() {
 
 #[test]
 fn negative_heading_turn_reports_signed_transfer_and_positive_tactical_diameter() {
-    let headings = [0.0, -45.0, -90.0, -135.0, -180.0];
+    let headings: [f64; 5] = [0.0, -45.0, -90.0, -135.0, -180.0];
     let samples = headings
         .iter()
         .enumerate()
@@ -109,7 +109,7 @@ fn negative_heading_turn_reports_signed_transfer_and_positive_tactical_diameter(
 #[test]
 fn wrapped_heading_samples_are_unwrapped_before_crossing_detection() {
     let base = 350.0_f64.to_radians();
-    let offsets = [0.0, 45.0, 90.0, 135.0, 180.0];
+    let offsets: [f64; 5] = [0.0, 45.0, 90.0, 135.0, 180.0];
     let samples = offsets
         .iter()
         .enumerate()
@@ -372,7 +372,7 @@ fn manifest_rejects_evidence_bound_to_a_different_case() {
 }
 
 fn zig_zag_trajectory() -> Trajectory {
-    let records = [
+    let records: [(f64, f64, f64); 14] = [
         (0.0, 0.0, 3.0),
         (1.0, 5.0, 3.0),
         (2.0, 10.0, 2.0),
