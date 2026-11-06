@@ -72,6 +72,16 @@ struct Constraint {
     threshold: f64,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct DecisionContext {
+    profile_id: String,
+    task_profile_ref: String,
+    material_cohort_ref: String,
+    acceptance_profile_ref: String,
+    site_context_ref: String,
+    energy_boundary_ref: String,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 struct MetricInterval {
     lower: f64,
@@ -227,7 +237,7 @@ pub fn evaluate_case(case: &Value) -> Result<DecisionReport, Vec<DecisionError>>
     if !errors.is_empty() {
         return Err(errors);
     }
-    let (objectives, constraints, min_tier, profile_boundary, require_independent) =
+    let (objectives, constraints, min_tier, context, require_independent) =
         parsed_profile.expect("profile is valid when errors is empty");
     let case_id = case_id.expect("case_id was validated");
 
@@ -239,7 +249,7 @@ pub fn evaluate_case(case: &Value) -> Result<DecisionReport, Vec<DecisionError>>
                 &objectives,
                 &constraints,
                 min_tier,
-                &profile_boundary,
+                &context,
                 require_independent,
             )
         })
@@ -320,10 +330,13 @@ pub fn evaluate_case(case: &Value) -> Result<DecisionReport, Vec<DecisionError>>
 fn parse_profile(
     profile: &Value,
     errors: &mut Vec<DecisionError>,
-) -> Option<(Vec<Objective>, Vec<Constraint>, u8, String, bool)> {
+) -> Option<(Vec<Objective>, Vec<Constraint>, u8, DecisionContext, bool)> {
     let required_strings = [
         "profile_id",
         "task_profile_ref",
+        "material_cohort_ref",
+        "acceptance_profile_ref",
+        "site_context_ref",
         "energy_boundary_ref",
         "minimum_evidence_tier",
     ];
@@ -453,9 +466,14 @@ fn parse_profile(
         objectives,
         constraints,
         min_tier.expect("validated tier"),
-        non_empty_string(profile, "energy_boundary_ref")
-            .expect("validated boundary")
-            .to_owned(),
+        DecisionContext {
+            profile_id: non_empty_string(profile, "profile_id").expect("validated profile id").to_owned(),
+            task_profile_ref: non_empty_string(profile, "task_profile_ref").expect("validated task ref").to_owned(),
+            material_cohort_ref: non_empty_string(profile, "material_cohort_ref").expect("validated material cohort").to_owned(),
+            acceptance_profile_ref: non_empty_string(profile, "acceptance_profile_ref").expect("validated acceptance profile").to_owned(),
+            site_context_ref: non_empty_string(profile, "site_context_ref").expect("validated site context").to_owned(),
+            energy_boundary_ref: non_empty_string(profile, "energy_boundary_ref").expect("validated boundary").to_owned(),
+        },
         require_independent.expect("validated boolean"),
     ))
 }
@@ -465,7 +483,7 @@ fn evaluate_strategy(
     objectives: &[Objective],
     constraints: &[Constraint],
     min_tier: u8,
-    profile_boundary: &str,
+    context: &DecisionContext,
     require_independent: bool,
 ) -> EvaluatedStrategy {
     let strategy_id = non_empty_string(strategy, "strategy_id")
@@ -511,16 +529,29 @@ fn evaluate_strategy(
     }
 
     match non_empty_string(strategy, "resource_boundary_status") {
-        Some("COMPLETE") => {}
+        Some("COMPLETE") => {
+            if non_empty_string(strategy, "resource_ledger_ref").is_none() {
+                status.indeterminate("RESOURCE_LEDGER_REFERENCE_MISSING");
+            }
+        }
         Some("INCOMPLETE") => status.indeterminate("RESOURCE_BOUNDARY_INCOMPLETE"),
         Some("UNKNOWN") | None => status.indeterminate("RESOURCE_BOUNDARY_UNKNOWN"),
         _ => status.indeterminate("RESOURCE_BOUNDARY_STATUS_INVALID"),
     }
 
-    match non_empty_string(strategy, "energy_boundary_ref") {
-        Some(boundary) if boundary == profile_boundary => {}
-        Some(_) => status.indeterminate("ENERGY_BOUNDARY_MISMATCH"),
-        None => status.indeterminate("ENERGY_BOUNDARY_REFERENCE_MISSING"),
+    for (field, expected, label) in [
+        ("decision_profile_ref", context.profile_id.as_str(), "DECISION_PROFILE"),
+        ("task_profile_ref", context.task_profile_ref.as_str(), "TASK_PROFILE"),
+        ("material_cohort_ref", context.material_cohort_ref.as_str(), "MATERIAL_COHORT"),
+        ("acceptance_profile_ref", context.acceptance_profile_ref.as_str(), "ACCEPTANCE_PROFILE"),
+        ("site_context_ref", context.site_context_ref.as_str(), "SITE_CONTEXT"),
+        ("energy_boundary_ref", context.energy_boundary_ref.as_str(), "ENERGY_BOUNDARY"),
+    ] {
+        match non_empty_string(strategy, field) {
+            Some(actual) if actual == expected => {}
+            Some(_) => status.indeterminate(format!("{label}_MISMATCH")),
+            None => status.indeterminate(format!("{label}_REFERENCE_MISSING")),
+        }
     }
 
     for field in ["configuration_ref"] {
@@ -790,6 +821,46 @@ mod tests {
         assert_eq!(report.state, DecisionState::AbstainNoEligibleStrategy);
         assert!(report.eligible_strategy_ids.is_empty());
         assert!(report.pareto_frontier_ids.is_empty());
+    }
+
+    #[test]
+    fn task_profile_mismatch_is_indeterminate() {
+        let mut data = fixture();
+        data["strategies"][0]["task_profile_ref"] = json!("DIFFERENT-TASK");
+        let report = evaluate_case(&data).unwrap();
+        assert_eq!(assessment(&report, "MECHANICAL-BASELINE").eligibility, Eligibility::Indeterminate);
+    }
+
+    #[test]
+    fn material_cohort_mismatch_is_indeterminate() {
+        let mut data = fixture();
+        data["strategies"][0]["material_cohort_ref"] = json!("DIFFERENT-COHORT");
+        let report = evaluate_case(&data).unwrap();
+        assert_eq!(assessment(&report, "MECHANICAL-BASELINE").eligibility, Eligibility::Indeterminate);
+    }
+
+    #[test]
+    fn acceptance_profile_mismatch_is_indeterminate() {
+        let mut data = fixture();
+        data["strategies"][0]["acceptance_profile_ref"] = json!("DIFFERENT-ACCEPTANCE");
+        let report = evaluate_case(&data).unwrap();
+        assert_eq!(assessment(&report, "MECHANICAL-BASELINE").eligibility, Eligibility::Indeterminate);
+    }
+
+    #[test]
+    fn site_context_mismatch_is_indeterminate() {
+        let mut data = fixture();
+        data["strategies"][0]["site_context_ref"] = json!("DIFFERENT-SITE");
+        let report = evaluate_case(&data).unwrap();
+        assert_eq!(assessment(&report, "MECHANICAL-BASELINE").eligibility, Eligibility::Indeterminate);
+    }
+
+    #[test]
+    fn complete_resource_boundary_requires_ledger_reference() {
+        let mut data = fixture();
+        data["strategies"][0].as_object_mut().unwrap().remove("resource_ledger_ref");
+        let report = evaluate_case(&data).unwrap();
+        assert_eq!(assessment(&report, "MECHANICAL-BASELINE").eligibility, Eligibility::Indeterminate);
     }
 
     #[test]
