@@ -790,21 +790,19 @@ impl<const D: usize> PhysicsWorld<D> {
                 continue;
             }
             let vel_i = self.bodies[i].linear_velocity;
-            if vel_i.norm() <= ccd::CCD_SPEED_THRESHOLD {
-                continue;
-            }
-            let Some(sphere_i) = self.bodies[i].collider.as_any().downcast_ref::<Sphere<D>>()
-            else {
+            let Some(sphere_i) = self.bodies[i].collider.as_any().downcast_ref::<Sphere<D>>() else {
                 continue;
             };
             let radius_i = sphere_i.radius;
+            if !radius_i.is_finite() || radius_i <= 0.0 {
+                continue;
+            }
             let pos_i0 = pre_integration_positions[i];
 
             let mut earliest: Option<ccd::CcdHit<D>> = None;
 
-            // `j` indexes two parallel collections (`self.bodies` and
-            // `pre_integration_positions`) plus is compared against `i` for
-            // self-exclusion — not expressible as a single `.iter().enumerate()`.
+            // j indexes two parallel collections (bodies and pre-integration
+            // positions) and is compared against i for self-exclusion.
             #[allow(clippy::needless_range_loop)]
             for j in 0..n {
                 if j == i || self.bodies[j].is_sensor {
@@ -816,29 +814,41 @@ impl<const D: usize> PhysicsWorld<D> {
                     .as_any()
                     .downcast_ref::<HalfSpace<D>>()
                 {
-                    if let Some(hit) = ccd::sphere_halfspace(
-                        &pos_i0,
-                        &vel_i,
-                        radius_i,
-                        &halfspace.normal,
-                        halfspace.offset,
-                        dt,
-                    ) && earliest.as_ref().is_none_or(|e| hit.toi < e.toi)
+                    // For a static plane, relative displacement is the sphere's
+                    // swept distance during this step. Small bodies therefore
+                    // receive CCD even below the legacy absolute-speed threshold.
+                    let swept_distance = vel_i.norm() * dt;
+                    if ccd::sweep_exceeds_feature_fraction(swept_distance, radius_i)
+                        && let Some(hit) = ccd::sphere_halfspace(
+                            &pos_i0,
+                            &vel_i,
+                            radius_i,
+                            &halfspace.normal,
+                            halfspace.offset,
+                            dt,
+                        )
+                        && earliest.as_ref().is_none_or(|e| hit.toi < e.toi)
                     {
                         earliest = Some(hit);
                     }
                     continue;
                 }
 
-                if let Some(sphere_j) = self.bodies[j].collider.as_any().downcast_ref::<Sphere<D>>()
-                {
+                if let Some(sphere_j) = self.bodies[j].collider.as_any().downcast_ref::<Sphere<D>>() {
                     let pos_j0 = pre_integration_positions[j];
                     let vel_j = if self.bodies[j].is_dynamic() && !self.bodies[j].sleeping {
                         self.bodies[j].linear_velocity
                     } else {
                         SVector::zeros()
                     };
-                    if let Some(hit) = ccd::sphere_sphere(
+                    // Use relative displacement, not body i's absolute speed:
+                    // a slow body can still be struck by a faster-moving sphere.
+                    let relative_swept_distance = (vel_i - vel_j).norm() * dt;
+                    let characteristic_size = radius_i.min(sphere_j.radius);
+                    if ccd::sweep_exceeds_feature_fraction(
+                        relative_swept_distance,
+                        characteristic_size,
+                    ) && let Some(hit) = ccd::sphere_sphere(
                         &pos_i0,
                         &vel_i,
                         radius_i,
@@ -2559,5 +2569,56 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+#[cfg(test)]
+mod ccd_scale_aware_activation_tests {
+    use super::*;
+    use symtropy_math::Point;
+
+    #[test]
+    fn sub_threshold_moving_sphere_cannot_tunnel_through_stationary_sphere() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 8;
+
+        let stationary = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.1, 1.0);
+        let moving = world.add_sphere(Point::new([-2.0, 0.0, 0.0]), 0.1, 1.0);
+        world.body_mut(moving).unwrap().linear_velocity = SVector::from([4.0, 0.0, 0.0]);
+
+        // 4 m/s is below the legacy 5 m/s gate, but the relative swept
+        // displacement is 4 m, twenty times the 0.2 m characteristic size.
+        world.step(1.0);
+
+        let stationary_position = world.body(stationary).unwrap().position();
+        let moving_position = world.body(moving).unwrap().position();
+        let separation = (stationary_position - moving_position).norm();
+        assert!(
+            separation >= 0.2 - 1e-6,
+            "sub-threshold moving target tunneled: separation={separation}"
+        );
+        assert!(
+            moving_position[0] < stationary_position[0],
+            "moving sphere must be clamped before crossing the target"
+        );
+    }
+
+    #[test]
+    fn small_slow_sphere_activation_depends_on_radius_and_timestep() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let stationary = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.025, 1.0);
+        let moving = world.add_sphere(Point::new([-0.5, 0.0, 0.0]), 0.025, 1.0);
+        world.body_mut(moving).unwrap().linear_velocity = SVector::from([0.8, 0.0, 0.0]);
+
+        // 0.8 m/s is far below the old fixed 5 m/s threshold, but over this
+        // 1 s step the swept distance is 16 times the sphere diameter.
+        world.step(1.0);
+
+        let a = world.body(stationary).unwrap().position();
+        let b = world.body(moving).unwrap().position();
+        assert!(
+            (a - b).norm() >= 0.05 - 1e-6,
+            "small sphere tunneled despite large dimensionless sweep"
+        );
     }
 }
