@@ -8,7 +8,7 @@ on:
       - "docs/research/citykit/**"
       - ".github/workflows/citykit-reference-oracle.yml"
   push:
-    branches: ["main"]
+    branches: ["main", "feat/citykit-reference-verifier-v0.1"]
     paths:
       - "crates/tools/citykit-benchmark/**"
       - "docs/research/citykit/**"
