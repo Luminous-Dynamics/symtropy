@@ -79,6 +79,7 @@ jobs:
 
           balanced = [row for (roster_id, _), row in scores.items() if roster_id == "balanced"]
           assert all(abs(float(row["expected_payoff"])) < 1e-12 for row in balanced)
+          assert all(float(row["rank"]) == 2.0 for row in balanced), "all tied strategies must share average rank 2"
 
           graphs = [row for row in rows if row["record_type"] == "invasion_graph"]
           assert len(graphs) == 4
