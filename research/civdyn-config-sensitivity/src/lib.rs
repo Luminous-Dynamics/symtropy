@@ -408,7 +408,6 @@ pub fn evaluate(
         })
         .expect("validated benchmark contains the baseline");
     let baseline_decisions = decision_map(baseline);
-    let baseline_rate = overall_rate(&baseline.decisions);
     let baseline_cohort_rates = cohort_rates(&baseline.decisions, &benchmark.reference_cohort_id);
 
     let mut configuration_metrics = Vec::with_capacity(benchmark.runs.len());
@@ -691,6 +690,7 @@ mod tests {
         multi.configuration.configuration_id = "multi_facet_variant".into();
         multi.configuration.configuration_digest = digest('d');
         multi.configuration.facets.persona_id = "persona_expert".into();
+        multi.configuration.facets.order_profile_id = "multi_order".into();
         benchmark.runs.push(multi);
 
         let report = evaluate(&benchmark).unwrap();
