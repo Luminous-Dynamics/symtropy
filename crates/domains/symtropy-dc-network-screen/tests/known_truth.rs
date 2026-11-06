@@ -29,7 +29,7 @@ fn triangle() -> DcNetworkModel {
     network(vec![
         DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap(),
         DcBranch::new("A-B", "A", "B", 0.1, 40.0, 60.0).unwrap(),
-        DcBranch::new("S-B", "S", "B", 0.1, 60.0, 80.0).unwrap(),
+        DcBranch::new("S-B", "S", "B", 0.1, 45.0, 80.0).unwrap(),
     ])
 }
 
@@ -100,6 +100,8 @@ fn flexibility_can_relieve_one_constraint_but_overload_another() {
     assert!(sb.absolute_flow_relief_mw < 0.0);
     assert!(sb.flexible_over_limit);
     assert!(!report.network_deliverable);
+    assert!((report.intervals[0].maximum_network_feasible_action_fraction.unwrap() - 0.5833333333).abs() < 1e-8);
+    assert!((report.intervals[0].maximum_network_deliverable_reduction_mw - 17.5).abs() < 1e-8);
 }
 
 #[test]
@@ -264,4 +266,33 @@ fn non_contiguous_chronology_and_unknown_outage_are_rejected() {
     )
     .unwrap_err();
     assert!(matches!(error, DcNetworkError::UnknownContingencyBranch { .. }));
+}
+
+#[test]
+fn negative_load_reduction_is_rejected_instead_of_changing_sign_silently() {
+    let error = DcFlexInterval::new(
+        0,
+        1_000,
+        injections(0.0, 0.0),
+        BTreeMap::from([("B".to_owned(), -5.0)]),
+    ).unwrap_err();
+    assert!(matches!(error, DcNetworkError::InvalidLoadReduction { .. }));
+}
+
+#[test]
+fn maximum_deliverable_fraction_is_one_when_no_branch_binds() {
+    let model = network(vec![
+        DcBranch::new("S-A", "S", "A", 0.1, 200.0, 250.0).unwrap(),
+        DcBranch::new("A-B", "A", "B", 0.1, 200.0, 250.0).unwrap(),
+        DcBranch::new("S-B", "S", "B", 0.1, 200.0, 250.0).unwrap(),
+    ]);
+    let report = evaluate_dc_network_deliverability(
+        &identity(), &model, &contract(false),
+        &[DcFlexInterval::new(0, 1_000, injections(10.0, 0.0),
+            BTreeMap::from([("B".to_owned(), 5.0)]),).unwrap()],
+        &[],
+    ).unwrap();
+    assert!(report.network_deliverable);
+    assert!((report.intervals[0].maximum_network_feasible_action_fraction.unwrap() - 1.0).abs() < 1e-12);
+    assert!((report.intervals[0].maximum_network_deliverable_reduction_mw - 5.0).abs() < 1e-12);
 }
