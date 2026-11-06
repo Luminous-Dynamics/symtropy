@@ -194,7 +194,7 @@ fn momentary_cessation_over_operator_duration_limit_fails() {
     );
     let event = event_for("operator-rule-3", "sha256:requirement-3");
     let trace_contract =
-        DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 500.0, 3).unwrap();
+        DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 0.4, 3).unwrap();
     let trace = vec![
         sample(0, 0.2, 49.5, 60.0, false),
         sample(250_000_000, 0.4, 49.5, 70.0, true),
@@ -367,7 +367,7 @@ fn measurement_bandwidth_rms_window_and_clock_uncertainty_are_enforced() {
         100.0,
         1_000,
         10_000_000,
-        10.0,
+        0.1,
     )
     .unwrap();
     assert!(matches!(
@@ -467,7 +467,7 @@ fn recovery_ramp_across_stability_boundary_is_not_hidden() {
         sample(3_999_999_999, 0.98, 50.0, 100.0, true),
     ];
     let policy =
-        DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 500.0, 3).unwrap();
+        DisturbanceTraceContract::new(10_000, 1_000_000_000, 20_000_000, 0.4, 3).unwrap();
     let report =
         evaluate_disturbance_conformance(&event(), &requirement(), &policy, &trace).unwrap();
     assert!(report.recovery_condition_observed);
