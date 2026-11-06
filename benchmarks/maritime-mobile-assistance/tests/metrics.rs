@@ -86,16 +86,17 @@ fn pilot(id: &str, node: &str, qualifications: &[&str]) -> PilotResource {
     }
 }
 
-fn task(
-    task_id: &str,
-    segment_id: &str,
+struct TaskSpec<'a> {
+    segment_id: &'a str,
     start_tick: u64,
     end_tick: u64,
-    location: &str,
+    location: &'a str,
     tug_count: u8,
     required_pull: u32,
-    pilot_qualification: Option<&str>,
-) -> AssistanceTask {
+    pilot_qualification: Option<&'a str>,
+}
+
+fn task(task_id: &str, spec: TaskSpec<'_>) -> AssistanceTask {
     AssistanceTask {
         task_id: task_id.to_owned(),
         corridor_id: "synthetic-corridor".to_owned(),
@@ -104,21 +105,21 @@ fn task(
             demand_id: format!("demand-{task_id}"),
             participant_id: format!("participant-{task_id}"),
             alternative_id: "alternative-a".to_owned(),
-            segment_id: segment_id.to_owned(),
-            start_tick,
-            end_tick,
+            segment_id: spec.segment_id.to_owned(),
+            start_tick: spec.start_tick,
+            end_tick: spec.end_tick,
             resource_uses: Vec::new(),
         },
-        location_node_id: location.to_owned(),
+        location_node_id: spec.location.to_owned(),
         kind: AssistanceKind::Berthing,
-        required_tug_count: tug_count,
-        accepted_tug_class_ids: if tug_count == 0 {
+        required_tug_count: spec.tug_count,
+        accepted_tug_class_ids: if spec.tug_count == 0 {
             Vec::new()
         } else {
             vec!["harbour-assist".to_owned()]
         },
-        required_bollard_pull_kn: required_pull,
-        required_pilot_qualification: pilot_qualification.map(str::to_owned),
+        required_bollard_pull_kn: spec.required_pull,
+        required_pilot_qualification: spec.pilot_qualification.map(str::to_owned),
     }
 }
 
@@ -145,8 +146,30 @@ fn workload() -> MobileWorkload {
         time_basis_id: "synthetic-ticks-v1".to_owned(),
         decision_tick: 0,
         tasks: vec![
-            task("task-a", "segment-a", 5, 7, "pilot-point", 1, 30, Some("container")),
-            task("task-b", "segment-b", 12, 14, "berth-1", 1, 30, Some("container")),
+            task(
+                "task-a",
+                TaskSpec {
+                    segment_id: "segment-a",
+                    start_tick: 5,
+                    end_tick: 7,
+                    location: "pilot-point",
+                    tug_count: 1,
+                    required_pull: 30,
+                    pilot_qualification: Some("container"),
+                },
+            ),
+            task(
+                "task-b",
+                TaskSpec {
+                    segment_id: "segment-b",
+                    start_tick: 12,
+                    end_tick: 14,
+                    location: "berth-1",
+                    tug_count: 1,
+                    required_pull: 30,
+                    pilot_qualification: Some("container"),
+                },
+            ),
         ],
         tugs: vec![tug("tug-01", "anchorage", 40)],
         pilots: vec![pilot("pilot-01", "pilot-point", &["container"])],
@@ -389,6 +412,30 @@ fn equivalent_input_permutations_produce_identical_reports() {
     assert_eq!(
         evaluate_mobile_assistance(&permuted).expect("permuted workload"),
         expected
+    );
+}
+
+#[test]
+fn capability_evidence_must_bind_to_the_exact_tug_identity_and_revision() {
+    let mut input = workload();
+    input.tugs[0].capability_evidence.subject_id = "another-tug".to_owned();
+    assert_eq!(
+        evaluate_mobile_assistance(&input),
+        Err(MobileError::InvalidEvidenceReceipt(
+            "tug-01-capability".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn reposition_evidence_must_bind_to_the_exact_directed_route_leg() {
+    let mut input = workload();
+    input.reposition_legs[0].evidence.subject_id = "anchorage->different-node".to_owned();
+    assert_eq!(
+        evaluate_mobile_assistance(&input),
+        Err(MobileError::InvalidEvidenceReceipt(
+            "reposition-anchorage-pilot-point".to_owned()
+        ))
     );
 }
 
