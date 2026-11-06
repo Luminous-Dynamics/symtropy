@@ -13,6 +13,9 @@
 use core::fmt;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+pub mod paired_effects;
+pub mod temporal_graph;
+
 const VALUE_TOLERANCE: f64 = 1e-9;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
