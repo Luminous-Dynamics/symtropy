@@ -124,7 +124,7 @@ fn emit_topology() {
         let mut row = blank("role_conflict", "captured_topology");
         row[2] = conflict.actor_id.clone();
         row[17] = format!("{}:{}", conflict.first.name(), conflict.second.name());
-        row[18] = conflict.rule_id.clone().len().to_string();
+        row[18] = conflict.rule_id.clone();
         row[20] = report.appeal_channel_available.to_string();
         row[21] = report.appeal_adjudicator_independent.to_string();
         row[22] = report.declared_policy_satisfied.to_string();
@@ -150,7 +150,7 @@ fn emit_topology() {
 
 fn main() {
     println!(
-        "record_type,scenario,actor_id,weight_or_total,nominal_share_or_quota,raw_banzhaf_swings,normalized_banzhaf_power,shapley_shubik_power,power_to_weight_ratio,veto_player,dictator,coalition_members,nominal_weight_hhi,banzhaf_hhi,shapley_shubik_hhi,nominal_weight_gini,banzhaf_gini,capability_or_conflict,holder_count_or_rule_len,single_point_of_control,appeal_channel_available,appeal_adjudicator_independent,declared_policy_satisfied"
+        "record_type,scenario,actor_id,weight_or_total,nominal_share_or_quota,raw_banzhaf_swings_or_conflict_count,normalized_banzhaf_power,shapley_shubik_power,power_to_weight_ratio,veto_player,dictator,coalition_members,nominal_weight_hhi,banzhaf_hhi,shapley_shubik_hhi,nominal_weight_gini,banzhaf_gini,capability_or_conflict,role_rule_id_or_holder_count,single_point_of_control,appeal_channel_available,appeal_adjudicator_independent,declared_policy_satisfied"
     );
     for scenario in ["equal_majority", "weighted_supermajority", "concentrated_majority"] {
         emit_council(scenario);
