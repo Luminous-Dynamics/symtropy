@@ -1,0 +1,18 @@
+[workspace]
+
+[package]
+name = "hist001-population-sensitivity"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Independent sensitivity calculator for published HIST-001 settlement population estimates"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "hist001-population-sensitivity"
+path = "src/main.rs"
+
+[dependencies]
