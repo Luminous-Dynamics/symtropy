@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Symtropy AI Data-Centre Flexibility Benchmark Result",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "claim_class",
+    "revision",
+    "scenario_digest",
+    "hardware_and_workload",
+    "measurement_boundary",
+    "strategies",
+    "metrics",
+    "uncertainty",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy.ai-datacentre-flex-result.v2"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_class": {
+      "enum": [
+        "SYNTHETIC_KNOWN_TRUTH",
+        "SOURCE_REPORTED",
+        "TRACE_REPLAY",
+        "SIMULATION",
+        "RECONSTRUCTED_MODEL",
+        "RMS_EMT",
+        "HIL",
+        "LABORATORY",
+        "FIELD_MEASURED"
+      ]
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data_split_digest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hardware_and_workload": {
+      "type": "object",
+      "required": [
+        "hardware_id",
+        "workload_digest",
+        "service_contract_digest"
+      ],
+      "properties": {
+        "hardware_id": {
+          "type": "string"
+        },
+        "workload_digest": {
+          "type": "string"
+        },
+        "service_contract_digest": {
+          "type": "string"
+        },
+        "model_quality_target": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "software_stack_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "measurement_boundary": {
+      "type": "object",
+      "required": [
+        "boundary_id",
+        "pcc_or_internal_boundary",
+        "calibration_id",
+        "timebase_id"
+      ],
+      "properties": {
+        "boundary_id": {
+          "type": "string"
+        },
+        "pcc_or_internal_boundary": {
+          "enum": [
+            "FACILITY_PCC",
+            "UPS_OUTPUT",
+            "RACK_PDU",
+            "NODE_INPUT",
+            "ACCELERATOR_RAIL",
+            "COOLING_PLANT",
+            "OTHER"
+          ]
+        },
+        "calibration_id": {
+          "type": "string"
+        },
+        "timebase_id": {
+          "type": "string"
+        },
+        "meter_hierarchy_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "strategies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "strategy_id",
+          "software_revision",
+          "compute_budget",
+          "outcome"
+        ],
+        "properties": {
+          "strategy_id": {
+            "type": "string"
+          },
+          "software_revision": {
+            "type": "string"
+          },
+          "compute_budget": {
+            "type": "object",
+            "required": [
+              "wall_time_s"
+            ],
+            "properties": {
+              "wall_time_s": {
+                "type": "number",
+                "minimum": 0
+              },
+              "cpu_hours": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "gpu_hours": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "peak_memory_bytes": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            }
+          },
+          "outcome": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Metric vector, not a scalar score; units and scopes must be explicit.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "object",
+            "required": [
+              "value",
+              "unit",
+              "scope"
+            ],
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "reference_period": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "required": [
+        "method",
+        "tail_convention",
+        "abstentions"
+      ],
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "coverage_factor": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "coverage_probability": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tail_convention": {
+          "type": "string"
+        },
+        "correlation_assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "abstentions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "standard_error": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "interval_lower": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "interval_upper": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "economics": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "total_cost": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cost_per_delivered_mwh": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "compute_opportunity_cost": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "storage_degradation_cost": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "emissions_boundary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "claim_boundary": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}
