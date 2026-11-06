@@ -500,6 +500,26 @@ impl PortfolioEventObservation {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct AssetOutcomeReceipt {
+    pub asset_id: String,
+    pub site_id: String,
+    pub pcc_id: String,
+    pub offered_capacity_kw: f64,
+    pub delivered_lower_bound_kw: f64,
+    pub availability: AssetAvailability,
+    pub response_receipt_id: String,
+    pub source_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DomainObservationReceipt {
+    pub domain_id: String,
+    pub state: FailureDomainState,
+    pub evidence_id: String,
+    pub source_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PortfolioEventReceipt {
     pub event_id: String,
     pub incident_group_id: String,
@@ -513,6 +533,8 @@ pub struct PortfolioEventReceipt {
     pub margin_kw: f64,
     pub shortfall_kw: f64,
     pub passed: bool,
+    pub asset_outcomes: Vec<AssetOutcomeReceipt>,
+    pub failure_domain_observations: Vec<DomainObservationReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -724,7 +746,7 @@ pub fn evaluate_portfolio_resilience(
             }
         }
 
-        let mut domain_state_by_id: BTreeMap<&str, FailureDomainState> = BTreeMap::new();
+        let mut domain_observation_by_id: BTreeMap<&str, &FailureDomainObservation> = BTreeMap::new();
         for domain_observation in &observation.failure_domain_observations {
             if !domain_by_id.contains_key(domain_observation.domain_id.as_str()) {
                 return Err(PortfolioResilienceError::UnknownDomainObservation {
@@ -732,8 +754,8 @@ pub fn evaluate_portfolio_resilience(
                     domain_id: domain_observation.domain_id.clone(),
                 });
             }
-            if domain_state_by_id
-                .insert(domain_observation.domain_id.as_str(), domain_observation.state)
+            if domain_observation_by_id
+                .insert(domain_observation.domain_id.as_str(), domain_observation)
                 .is_some()
             {
                 return Err(PortfolioResilienceError::DuplicateDomainObservation {
@@ -742,9 +764,9 @@ pub fn evaluate_portfolio_resilience(
                 });
             }
         }
-        if domain_state_by_id.len() != portfolio.failure_domains.len() {
+        if domain_observation_by_id.len() != portfolio.failure_domains.len() {
             for domain in &portfolio.failure_domains {
-                if !domain_state_by_id.contains_key(domain.domain_id.as_str()) {
+                if !domain_observation_by_id.contains_key(domain.domain_id.as_str()) {
                     return Err(PortfolioResilienceError::MissingDomainObservation {
                         event_id: event.event_id.clone(),
                         domain_id: domain.domain_id.clone(),
@@ -780,6 +802,36 @@ pub fn evaluate_portfolio_resilience(
             return Err(PortfolioResilienceError::NumericalOverflow("event totals"));
         }
         let passed = margin_kw + EPSILON >= 0.0;
+        let mut asset_receipts = Vec::with_capacity(portfolio.assets.len());
+        for asset in &portfolio.assets {
+            let outcome = outcome_by_asset
+                .get(asset.asset_id.as_str())
+                .expect("complete catalogue check precedes receipt construction");
+            asset_receipts.push(AssetOutcomeReceipt {
+                asset_id: asset.asset_id.clone(),
+                site_id: asset.site_id.clone(),
+                pcc_id: asset.pcc_id.clone(),
+                offered_capacity_kw: asset.offered_capacity_kw,
+                delivered_lower_bound_kw: outcome.delivered_lower_bound_kw,
+                availability: outcome.availability,
+                response_receipt_id: outcome.response_receipt_id.clone(),
+                source_digest: outcome.source_digest.clone(),
+            });
+        }
+        asset_receipts.sort_by(|a, b| a.asset_id.cmp(&b.asset_id));
+        let mut domain_receipts = Vec::with_capacity(portfolio.failure_domains.len());
+        for domain in &portfolio.failure_domains {
+            let observed = domain_observation_by_id
+                .get(domain.domain_id.as_str())
+                .expect("complete domain check precedes receipt construction");
+            domain_receipts.push(DomainObservationReceipt {
+                domain_id: domain.domain_id.clone(),
+                state: observed.state,
+                evidence_id: observed.evidence_id.clone(),
+                source_digest: observed.source_digest.clone(),
+            });
+        }
+        domain_receipts.sort_by(|a, b| a.domain_id.cmp(&b.domain_id));
         event_receipts.push(PortfolioEventReceipt {
             event_id: event.event_id.clone(),
             incident_group_id: event.incident_group_id.clone(),
@@ -793,6 +845,8 @@ pub fn evaluate_portfolio_resilience(
             margin_kw,
             shortfall_kw,
             passed,
+            asset_outcomes: asset_receipts,
+            failure_domain_observations: domain_receipts,
         });
         group_work
             .entry(event.incident_group_id.as_str())
@@ -800,9 +854,10 @@ pub fn evaluate_portfolio_resilience(
             .push((margin_kw, shortfall_kw));
 
         for domain in &portfolio.failure_domains {
-            let state = *domain_state_by_id
+            let state = domain_observation_by_id
                 .get(domain.domain_id.as_str())
-                .expect("complete domain check precedes aggregation");
+                .expect("complete domain check precedes aggregation")
+                .state;
             let member_assets: Vec<&PortfolioAsset> = portfolio
                 .assets
                 .iter()
