@@ -8,7 +8,7 @@ use civdyn_service_cascade::{
     run_scenario,
 };
 
-const CSV_COLUMNS: usize = 16;
+const CSV_COLUMNS: usize = 17;
 
 fn fmt(value: f64) -> String {
     format!("{value:.6}")
@@ -27,6 +27,7 @@ fn empty_row(record_type: &str, scenario_id: &str) -> Vec<String> {
     vec![
         record_type.into(),
         scenario_id.into(),
+        String::new(),
         String::new(),
         String::new(),
         String::new(),
@@ -83,7 +84,7 @@ fn emit_criticality(scenario_id: &str, criticality: &NodeCriticality) {
 
 fn main() {
     println!(
-        "record_type,scenario_id,node_id,service_type,tick_index,own_availability,effective_service,minimum_service,beneficiary_demand_weight,deficit_area_service_ticks,ticks_below_50,ticks_below_90,recovery_after_ticks,baseline_service_deficit_area,outage_service_deficit_area,marginal_service_deficit_area"
+        "record_type,scenario_id,node_id,service_type,tick_index,own_availability,effective_service,minimum_service,beneficiary_demand_weight,deficit_area_service_ticks,ticks_below_50,ticks_below_90,recovery_after_ticks,baseline_service_deficit_area,outage_service_deficit_area,marginal_service_deficit_area,demand_weighted_service_deficit_area"
     );
 
     let scenario = reference_scenario();
@@ -106,7 +107,7 @@ fn main() {
 
     let mut aggregate = empty_row("scenario_summary", &scenario.id);
     aggregate[8] = fmt(outcome.total_beneficiary_demand_weight);
-    aggregate[15] = fmt(outcome.demand_weighted_service_deficit_area);
+    aggregate[16] = fmt(outcome.demand_weighted_service_deficit_area);
     emit(aggregate);
 }
 
