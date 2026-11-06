@@ -944,7 +944,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ParetoOracleReport, String> {
     });
 
     Ok(ParetoOracleReport {
-        scenario_id: scenario.scenario_id,
+        scenario_id: scenario.scenario_id.clone(),
         interval_count: scenario.interval_count,
         energy_quantum_mwh: scenario.energy_quantum_mwh,
         receiver_count,
