@@ -858,15 +858,7 @@ mod tests {
     fn sensory_attractor_recovers_a_local_phase_pulse_without_autonomous_oscillation() {
         let intervention = pulse(LegId::LeftFront, 20, 0.8);
         let trace = run(CoordinationModel::FeedbackAttractor, intervention).unwrap();
-        let recovery = recovery_time(
-            &trace,
-            20,
-            0.04,
-            3,
-            DEFAULT_TRIPOD_OFFSETS,
-            1.0e-9,
-        )
-        .unwrap();
+        let recovery = recovery_time(&trace, 20, 0.04, 3, DEFAULT_TRIPOD_OFFSETS, 1.0e-9).unwrap();
         assert!(recovery.is_some_and(|time| time < 1.0));
     }
 
@@ -996,15 +988,7 @@ mod tests {
     fn six_node_hopf_network_recovers_a_local_phase_pulse() {
         let intervention = pulse(LegId::RightRear, 20, 0.8);
         let trace = run(CoordinationModel::CoupledHopfOscillators, intervention).unwrap();
-        let recovery = recovery_time(
-            &trace,
-            20,
-            0.04,
-            3,
-            DEFAULT_TRIPOD_OFFSETS,
-            1.0e-9,
-        )
-        .unwrap();
+        let recovery = recovery_time(&trace, 20, 0.04, 3, DEFAULT_TRIPOD_OFFSETS, 1.0e-9).unwrap();
         assert!(recovery.is_some_and(|time| time < 1.0));
     }
 
@@ -1067,15 +1051,7 @@ mod tests {
             ..Intervention::default()
         };
         let trace = run(CoordinationModel::HybridOscillators, intervention).unwrap();
-        let recovery = recovery_time(
-            &trace,
-            20,
-            0.08,
-            3,
-            DEFAULT_TRIPOD_OFFSETS,
-            1.0e-9,
-        )
-        .unwrap();
+        let recovery = recovery_time(&trace, 20, 0.08, 3, DEFAULT_TRIPOD_OFFSETS, 1.0e-9).unwrap();
         assert!(recovery.is_some());
     }
 
