@@ -612,3 +612,28 @@ The benchmark reports case-flip rate, overall selection rates, declared-cohort n
 The ICML 2026 position paper argues that the field should consolidate around shared benchmarks, open data and reproducible protocols rather than continuing to multiply unvalidated simulators: https://proceedings.mlr.press/v306/puelma-touzel26a.html
 
 Accordingly, CIVDYN-CFG is not a new simulator or run-envelope. It is an orthogonal conformance slice that feeds the existing Humanity Atlas run contract and CIVBENCH-MAD-001. Its metrics remain part of the outcome vector; no global fairness/validity scalar is added.
+
+
+## 19. Configuration passport and re-audit identity: executable conformance
+
+CIVDYN-CFG-001 is the first matched decision-configuration reference: [issue #3849](https://github.com/Luminous-Dynamics/symtropy/issues/3849), [draft PR #3850](https://github.com/Luminous-Dynamics/symtropy/pull/3850).
+
+Exact-head CI passed on 6 November 2026:
+- 9 library tests and 2 binary tests;
+- format, strict Clippy and locked compile;
+- 13-row/21-column CSV schema and semantic controls;
+- zero flips under semantic option permutation;
+- four of twelve flips under position-biased order, with unchanged 50% overall selection rate;
+- cohort B/reference cohort A selection-rate ratio reverses from 0.5 to 2.0.
+
+A bug discovered by the synthetic test was corrected before qualification: each cohort ratio now uses the reference cohort rate *within the same configuration*, not the baseline configuration's rate. The test remains as a regression guard.
+
+### MAD configuration passport
+
+The shared [CIVBENCH-MAD-001 issue #3731](https://github.com/Luminous-Dynamics/symtropy/issues/3731) and [draft PR #3735](https://github.com/Luminous-Dynamics/symtropy/pull/3735) now require both:
+1. `configuration_passport`: model/version, persona, interview protocol, facilitator, aggregation, order, prompt, tools, evidence snapshot, decoding, task/data identity and canonical digest;
+2. `execution_stack`: parser, validator, retries, fallback events, scheduler, exposure, RNG and event capture.
+
+The distinction prevents an unchanged model name from being mistaken for an unchanged decision system, and prevents prompt identity from substituting for runtime accountability. The validator recomputes the canonical SHA-256 and includes a negative test: a persona change without a new digest must fail. Its exact-head synthetic fixture workflow passed on commit `8431a109da905986e9f80fdd48cde8a86b14dde8`, run [#42217641736](https://github.com/Luminous-Dynamics/symtropy/actions/runs/42217641736).
+
+These are Tier 1 schema/software controls. They are not a reproduction of the EMNLP 2026 fairness study, a human-effect estimate or a universal fairness test.
