@@ -98,7 +98,6 @@ pub struct EnergyObservation {
     pub boundary_ref: String,
     /// Declares how energy inputs and conversion losses are accounted for.
     pub energy_accounting_ref: String,
-    pub calibration_ref: String,
     /// Must exactly match the comparison profile's declared inventory.
     pub included_subsystems: Vec<String>,
     pub evidence_role: EvidenceRole,
@@ -578,7 +577,6 @@ mod tests {
                 basis: EnergyBasis::FacilityElectricalInput,
                 boundary_ref: profile.energy_boundary_ref,
                 energy_accounting_ref: "energy-accounting:site-input-v1".to_owned(),
-                calibration_ref: "calibration:facility-meter-7:v1".to_owned(),
                 included_subsystems: profile.included_subsystems,
                 evidence_role: EvidenceRole::IndependentMeasurement,
                 calibration_ref: "calibration:facility-meter-7:v1".to_owned(),
