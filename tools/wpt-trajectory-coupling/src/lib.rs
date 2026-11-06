@@ -134,6 +134,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             "wheels",
             "declared_lateral_alignment_limit_mm",
             "max_sample_gap_ms",
+            "max_kinematic_mismatch_ppm",
             "samples",
             "quality_flags",
         ],
@@ -228,6 +229,13 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         return Err(fail(
             "$.max_sample_gap_ms",
             format!("must be in 1..={MAX_SAMPLE_GAP_MS}"),
+        ));
+    }
+    let max_kinematic_mismatch_ppm = uint_field(value, "max_kinematic_mismatch_ppm", "$")?;
+    if max_kinematic_mismatch_ppm > PPM {
+        return Err(fail(
+            "$.max_kinematic_mismatch_ppm",
+            "must be between zero and one million ppm",
         ));
     }
 
@@ -390,6 +398,33 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         });
     }
 
+    let mut maximum_kinematic_mismatch_ppm = 0_u64;
+    for pair in samples.windows(2) {
+        let delta_s_mm = pair[1]
+            .vehicle_s_mm
+            .checked_sub(pair[0].vehicle_s_mm)
+            .ok_or_else(|| fail("$.samples", "forward progress difference overflowed"))?;
+        let delta_t_ms = pair[1].time_ms - pair[0].time_ms;
+        let observed_speed_mm_per_s =
+            (delta_s_mm as u128 * 1000_u128) / delta_t_ms as u128;
+        let expected_speed_mm_per_s =
+            (pair[0].speed_mm_per_s as u128 + pair[1].speed_mm_per_s as u128) / 2;
+        let mismatch_ppm = (observed_speed_mm_per_s.abs_diff(expected_speed_mm_per_s)
+            * PPM as u128)
+            / expected_speed_mm_per_s;
+        let mismatch_ppm = mismatch_ppm.min(u64::MAX as u128) as u64;
+        maximum_kinematic_mismatch_ppm =
+            maximum_kinematic_mismatch_ppm.max(mismatch_ppm);
+        if mismatch_ppm > max_kinematic_mismatch_ppm {
+            return Err(fail(
+                "$.samples",
+                format!(
+                    "odometry/speed mismatch {mismatch_ppm} ppm exceeds declared maximum {max_kinematic_mismatch_ppm} ppm"
+                ),
+            ));
+        }
+    }
+
     Ok(Scenario {
         episode_id: string_field(value, "episode_id", "$")?.to_string(),
         frame_id,
@@ -405,6 +440,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         active_zone_end_s_mm,
         alignment_limit_mm: alignment_limit,
         max_sample_gap_ms,
+        maximum_kinematic_mismatch_ppm,
         wheels,
         samples,
     })
@@ -437,6 +473,7 @@ pub struct TrajectoryCouplingReport {
     pub segment_id: String,
     pub coil_id: String,
     pub sample_count: usize,
+    pub maximum_kinematic_mismatch_ppm: u64,
     pub active_zone_sample_count: usize,
     pub lateral_alignment_coverage_ppm: u64,
     pub maximum_absolute_receiver_lateral_offset_mm: u64,
@@ -637,6 +674,7 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
         segment_id: scenario.segment_id,
         coil_id: scenario.coil_id,
         sample_count: sample_count as usize,
+        maximum_kinematic_mismatch_ppm: scenario.maximum_kinematic_mismatch_ppm,
         active_zone_sample_count,
         lateral_alignment_coverage_ppm,
         maximum_absolute_receiver_lateral_offset_mm,
@@ -675,6 +713,7 @@ mod tests {
     fn known_truth_derives_geometry_energy_and_exposure() {
         let report = evaluate_trajectory(&fixture()).unwrap();
         assert_eq!(report.sample_count, 3);
+        assert_eq!(report.maximum_kinematic_mismatch_ppm, 0);
         assert_eq!(report.active_zone_sample_count, 1);
         assert_eq!(report.witnesses[0].speed_mm_per_s, 10_000);
         assert_eq!(report.lateral_alignment_coverage_ppm, 666_667);
@@ -747,6 +786,19 @@ mod tests {
             evaluate_trajectory(&scenario)
                 .unwrap_err()
                 .contains("strictly increasing")
+        );
+    }
+
+    #[test]
+    fn odometry_and_speed_must_agree_within_declared_tolerance() {
+        let mut scenario = fixture();
+        for sample in scenario["samples"].as_array_mut().unwrap() {
+            sample["speed_mm_per_s"] = Value::from(4000);
+        }
+        assert!(
+            evaluate_trajectory(&scenario)
+                .unwrap_err()
+                .contains("odometry/speed mismatch")
         );
     }
 
