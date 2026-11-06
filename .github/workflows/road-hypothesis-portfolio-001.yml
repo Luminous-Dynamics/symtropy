@@ -1,0 +1,35 @@
+name: Road hypothesis portfolio verifier
+
+on:
+  push:
+    branches:
+      - "research/road-hypothesis-portfolio-001-*"
+    paths:
+      - "research/road-hypothesis-portfolio-001/**"
+      - ".github/workflows/road-hypothesis-portfolio-001.yml"
+  pull_request:
+    paths:
+      - "research/road-hypothesis-portfolio-001/**"
+      - ".github/workflows/road-hypothesis-portfolio-001.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/road-hypothesis-portfolio-001/Cargo.toml -- --check
+      - name: Run finite portfolio tests
+        run: cargo test --locked --manifest-path research/road-hypothesis-portfolio-001/Cargo.toml --all-targets
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path research/road-hypothesis-portfolio-001/Cargo.toml --all-targets -- -D warnings
+      - name: Validate schema and fixture JSON syntax
+        run: python3 -c 'import json; from pathlib import Path; root=Path("research/road-hypothesis-portfolio-001"); schema=json.loads((root/"schemas/portfolio-manifest.v0.1.schema.json").read_text()); report=json.loads((root/"schemas/portfolio-evaluation.v0.1.schema.json").read_text()); sample=json.loads((root/"fixtures/portfolio-manifest.example.json").read_text()); cases=json.loads((root/"fixtures/portfolio-cases.json").read_text()); assert sample["schema"]=="symtropy.road-hypothesis-portfolio.v0.1"; assert len(sample["challenge_requirements"]) >= 4; assert len(cases["cases"]) >= 25; assert schema["required"] and report["required"]'
