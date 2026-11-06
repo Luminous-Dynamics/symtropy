@@ -14,9 +14,10 @@ The same feeder supply and segment output budgets constrain all served routes jo
 
 It then checks:
 1. Normal operation.
-2. Every single installed-segment outage, one at a time, with the remaining system reallocated to the routes.
+2. Every single installed-segment outage, one at a time.
+3. Every declared feeder outage, one at a time, with the remaining independent supply and installed modules reallocated to the routes.
 
-It enumerates every non-empty segment subset and reports all minimum-capex designs that satisfy the complete normal + N-1 segment-outage set.
+It enumerates every non-empty segment subset and reports all minimum-capex designs that satisfy the complete normal + one-at-a-time N-1 segment- and feeder-outage set.
 
 ## Known-truth fixture
 
@@ -24,8 +25,8 @@ It enumerates every non-empty segment subset and reports all minimum-capex desig
 - 2 routes: route-east requires 5 kWh and route-west requires 4 kWh.
 - 6 candidate segments with different feeder assignments, route coverage, capacity and capex.
 - 63 non-empty designs exhaustively checked.
-- 35 designs satisfy normal plus every single installed-segment outage.
-- Minimum capex is 16 units; the unique minimum design is `a-route-east`, `a-route-west`, `b-route-east`, and `b-route-west`.
+- 25 designs satisfy normal operation, all four selected-segment outages and both feeder outages.
+- Minimum capex is 16 synthetic cost units; the unique minimum design is `a-route-east`, `a-route-west`, `b-route-east`, and `b-route-west`.
 - Seven service checks accompany the selected design: normal, four selected-segment outages and two feeder outages. Every route receives its full 5 / 4 kWh minimum in every check.
 
 The cheaper shared-segment alternative fails the feeder-outage or module-outage checks because it can leave both routes dependent on one common feed or module. The exact search chooses one dedicated module per route on each independent feeder.
@@ -41,9 +42,8 @@ The cheaper shared-segment alternative fails the feeder-outage or module-outage 
 
 ## What it does not model
 
-This v0 only proves service floors in a static aggregate capacity network under **single segment or feeder outages**. It does not protect against:
-- source/substation or upstream common-mode failure, simultaneous segment+feeder failure, or correlated hazards;
-- multiple simultaneous segment failures, flood/fire/road closure or correlated hazards;
+This v0 only proves service floors in a static aggregate capacity network under **single segment or single feeder outages, one component at a time**. It does not protect against:
+- source/substation or upstream common-mode failure, multiple simultaneous component failures, flood/fire/road closure or correlated hazards;
 - time-dependent vehicle trajectories, dwell, handover, arrival/departure windows or traffic;
 - coil pitch, magnetic coupling, nonlinear multiport interaction, cross-regulation, switching, thermal state or harmonic constraints;
 - nonlinear AC power-flow, voltage stability, protection coordination, EMC or safety;
@@ -56,7 +56,7 @@ Those require separate validated models and evidence. A linear feeder/segment fl
 
 `cargo test --locked -p wpt-corridor-design-oracle`
 
-Seven Rust tests cover the exact known-truth design, normal-only versus N-1 infeasibility, outage enumeration, invalid feeder/route references, duplicate/unknown/non-synthetic controls, input-order invariance and integer cost/capacity contracts.
+Eight Rust tests cover the exact known-truth design, normal-only versus N-1 infeasibility, outage enumeration, invalid feeder/route references, duplicate/unknown/non-synthetic controls, input-order invariance and integer cost/capacity contracts.
 
 ## Claim ceiling
 
