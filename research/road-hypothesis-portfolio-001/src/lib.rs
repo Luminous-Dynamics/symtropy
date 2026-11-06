@@ -42,6 +42,7 @@ pub enum EvidenceClass {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CoverageObligation {
     pub obligation_id: String,
+    pub revision_sequence: u64,
     pub axis: CoverageAxis,
     /// Exact stratum or interaction-combination identity. A combination such
     /// as rain x night x occluded crossing is a separate obligation.
@@ -604,6 +605,11 @@ impl PortfolioManifest {
         for obligation in &self.coverage_obligations {
             require(&obligation.obligation_id, "obligation_id")?;
             require(&obligation.stratum_digest, "stratum_digest")?;
+            if obligation.revision_sequence == 0
+                || obligation.revision_sequence > self.revision_sequence
+            {
+                return Err(PortfolioError::InvalidCoverageEvidence);
+            }
             axes.insert(obligation.axis);
             if !obligation_ids.insert(obligation.obligation_id.as_str()) {
                 return Err(PortfolioError::DuplicateCoverageObligation);
@@ -632,6 +638,7 @@ impl PortfolioManifest {
                     .get(parent_id.as_str())
                     .ok_or(PortfolioError::InvalidCoverageEvidence)?;
                 if parent.obligation_id == obligation.obligation_id
+                    || parent.revision_sequence >= obligation.revision_sequence
                     || parent.axis != obligation.axis
                     || parent.stratum_digest != obligation.stratum_digest
                     || !superseded_ids.insert(parent_id.as_str())
@@ -735,6 +742,9 @@ impl PortfolioManifest {
         for added in &current.coverage_obligations {
             if previous_obligations.contains_key(added.obligation_id.as_str()) {
                 continue;
+            }
+            if added.revision_sequence != current.revision_sequence {
+                return Err(PortfolioError::NonAppendOnlyRevision);
             }
             if let Some(parent_id) = &added.supersedes_obligation_id {
                 let parent = previous_obligations
@@ -1472,6 +1482,7 @@ fn hash_hypothesis(h: &mut blake3::Hasher, value: &Hypothesis) {
 
 fn hash_coverage(h: &mut blake3::Hasher, value: &CoverageObligation) {
     hash_str(h, &value.obligation_id);
+    hash_u64(h, value.revision_sequence);
     hash_u8(
         h,
         match value.axis {
@@ -1612,6 +1623,7 @@ mod tests {
     fn obligation(id: &str, axis: CoverageAxis) -> CoverageObligation {
         CoverageObligation {
             obligation_id: id.into(),
+            revision_sequence: 1,
             axis,
             stratum_digest: d(&format!("stratum-{id}")),
             state: CoverageState::Covered,
@@ -2021,6 +2033,7 @@ mod tests {
         let mut portfolio = manifest();
         portfolio.coverage_obligations.push(CoverageObligation {
             obligation_id: "rain-x-night-x-occluded".into(),
+            revision_sequence: 1,
             axis: CoverageAxis::OddRange,
             stratum_digest: d("rain-night-occluded-crossing"),
             state: CoverageState::NotCovered,
@@ -2389,6 +2402,7 @@ mod tests {
         let parent = previous.coverage_obligations[0].clone();
         current.coverage_obligations.push(CoverageObligation {
             obligation_id: "ODD-rain-night-occluded-evidence-v2".into(),
+            revision_sequence: 2,
             axis: parent.axis,
             stratum_digest: parent.stratum_digest.clone(),
             state: CoverageState::Covered,
@@ -2432,6 +2446,7 @@ mod tests {
         let parent = portfolio.coverage_obligations[0].clone();
         let successor = CoverageObligation {
             obligation_id: "ODD-successor-a".into(),
+            revision_sequence: 2,
             axis: parent.axis,
             stratum_digest: parent.stratum_digest.clone(),
             state: CoverageState::Covered,
