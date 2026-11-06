@@ -60,6 +60,9 @@ The levels below are a qualitative evidence ladder for this research programme, 
 | Method / family | Evidence observed | Current posture for granite/basalt excavation | Major unresolved barriers |
 |---|---|---|---|
 | Mechanical disc cutters, roadheaders, rotary/percussive drilling, drill-and-blast | Established industrial methods with extensive field use | R4–R5 as broad industrial families; exact machine/ground combinations still need declared envelopes | Wear, high thrust/torque, vibration, overbreak, support, blast restrictions, downtime and mucking bottlenecks |
+| Axial–torsional coupled percussion (ATCP) | A 2026 hot-dry-rock study combines axial and torsional impacts; a Fushen-1 altered-granite interval above 180°C is compared with an adjacent conventional-rotary interval | R3 field evidence for a specific geothermal drilling configuration; adjacent intervals are not a randomized matched trial | Geology/interval confounding, transfer to basalt and ordinary-temperature granite, tool life, fluid/pump energy and full-cycle cost |
+| Laser-assisted PDC cone-hybrid cutting | 2025 experimental/simulation study reports optimized cone-hybrid cutter geometry in granite with reduced comprehensive specific fragmentation energy | R1–R2 for the published granite configuration comparison | Laser source/beam delivery, cooling and facility energy, cutter wear, field durability and transfer to a tunnel face |
+| Oscillating disc cutter (ODC) | Full-scale linear cutting rig study tests kinematic settings on red sandstone; paper also reports ODC machine use in a Sydney underground passage | R2 for the sandstone experiment; reported R3 machine deployment evidence for an application, not a granite/basalt performance dataset | High thrust/torque at stronger oscillation, drive/shaft fatigue, fragment-size versus cutting-energy trade-off and hard-rock transfer |
 | High-pressure waterjet-assisted mechanical cutting | Laboratory and field/industrial TBM studies exist. A 2023 study reports field testing, but also identifies heating of tunnel air/water and loss of cutterhead cooling as long-term concerns. A separate granite laboratory study found its jet kerf alone did not produce independent large-fragment detachment | R3 for specific assist configurations; not a universal standalone hard-granite method | Nozzle/seal durability, clogging, pump power, water, heating/cooling, slurry and fragment liberation |
 | Low-energy plasma-channel / EHD / electric-discharge pre-cracking (SPARC) | A 2025 granite study reports underwater pulsed discharges (~80 J/pulse), microcracks extending up to 9.4 mm and up to 56% lower specific cutting energy before a conventional PDC cutter; cracking was also demonstrated at elevated pressure (~300 atm) | R2 for granite pre-cracking plus mechanical cutting in a controlled drilling test; not a mine-scale full-cycle result | Reproducible mechanism attribution, matched specimens, energy boundary, electrode wear, fluid effects, scale-up and downhole integration |
 | High-energy pulsed thermal plasma jet | A 2024 granite study compares pulsed and constant plasma jets; it reports 54.74% lower specific energy, 17.81% higher penetration rate and 50.06% lower electrode wear in its experimental comparison. A 2025 thermal study describes spalling-to-melting transitions and heat-affected regions | R2 for a laboratory granite drilling system; this is direct thermal removal and must not be pooled with low-energy SPARC pre-cracking | Full energy/power/cooling boundary, spall-versus-melt efficiency, electrode life under duty cycle, heat-affected damage and field-scale debris clearance |
@@ -76,6 +79,16 @@ The levels below are a qualitative evidence ladder for this research programme, 
 ### Important reading of the gyrotron result
 
 MIT/MITEI reported Quaise's 118 m granite field hole and an up-to-5 m/h drilling rate in 2025. Treat this as a credible public demonstration of a novel *small-bore drilling process*, while recognizing the public account includes company performance claims and is not a peer-reviewed independent multi-site study. It does not answer whether the technology can economically remove a 5–15 m tunnel face, deal with heterogeneous ground at depth, clear vaporized material and maintain a safe, reliable production cycle.
+
+### Important additions to mechanical and hybrid SOTA (November 2026)
+
+**Axial–torsional coupled percussion is a stronger field lead than the phrase "sonic drilling" suggests.** Sun et al. report a high-temperature granite Fushen-1 test interval at 4,604–4,637 m, with 33 m drilled in 6.20 h (5.32 m/h), compared with an adjacent 4,653–4,824 m conventional rotary interval (164 m in 85 h, 1.93 m/h). The paper reports 175.65% higher ROP and 63.68% lower MSE for the ATCP interval. The laboratory programme used high-temperature granite, triaxial confinement, high-speed imaging and axial/torsional impact modes. The test is significant, but its adjacent-interval comparator is not a randomized matched control; it must be stored as observational field evidence, not as a causal effect estimate. DOI: https://doi.org/10.1016/S1876-3804(26)60774-4.
+
+**Laser-assisted PDC cutter geometry is a separate hybrid lane.** Ma et al. report a 2025 cone-hybrid configuration with 70.81% lower comprehensive specific fragmentation energy against the paper's minimum mechanical baseline and 7.4% lower than a laser-assisted triple-cylinder configuration. Do not call the 70.81% a whole-rig energy or field productivity gain. DOI: https://doi.org/10.1016/j.geoen.2025.214317.
+
+**Oscillating disc cutters are a promising mechanical kinematic alternative.** Wang et al. use a full-scale linear cutting rig on red sandstone (UCS 61.33 MPa). Oscillation ratio and cutting depth affect thrust, torque, cutting specific energy and fragment size; in the tested range, stronger oscillation increased thrust/torque/cutting SE while reducing calculated downstream crushing energy by producing larger chips. The paper reports the Komatsu MC51 completed a Sydney underground passage in 2025, but that deployment statement is not a published hard-granite performance dataset. DOI: https://doi.org/10.1177/01445987261471924.
+
+**Full-scale disc abrasion testing is a metrology lead.** Nasrabadi et al. report 12 FDAT tests on 305 mm discs in quartz-rich marble (UCS about 33.1 MPa; CAI 2.2), with specific cutter weight loss 0.14–2.09 mg/m. The study shows why wear needs load, speed and friction measurements; its tested rock is not hard granite. DOI: https://doi.org/10.1016/j.tust.2026.107672.
 
 ## 4. Separate excavation from mineral liberation
 
@@ -292,26 +305,30 @@ The first gate is trustworthy measurement and reproducibility, not an arbitrary 
 
 ## 11. Research references
 
-1. Qian et al. (2021), *The rock breaking capability analyses of sonic drilling*, Journal of Low Frequency Noise, Vibration and Active Control. https://doi.org/10.1177/14613484211025155
-2. Bai et al. (2025), *Design and experimental evaluation of an ultrasonic impact-assisted drilling mechanism for hard rocks*, Journal of Vibration and Control. https://doi.org/10.1177/10775463251387452
-3. Akhter et al. (2025), *Shockwave and plasma assisted rock cracking for geothermal drilling* (SPARC low-energy pre-cracking before PDC cutting). https://doi.org/10.1016/j.renene.2025.122351
-4. Han et al. (2024), *Study on the rock-breaking characteristics of high-energy pulsed plasma jet for granite* (direct thermal plasma-jet drilling). https://doi.org/10.1016/j.geoen.2023.212466
+1. Qian et al. (2021), *The rock breaking capability analyses of sonic drilling*. https://doi.org/10.1177/14613484211025155
+2. Bai et al. (2025), *Design and experimental evaluation of an ultrasonic impact-assisted drilling mechanism for hard rocks*. https://doi.org/10.1177/10775463251387452
+3. Akhter et al. (2025), *Shockwave and plasma assisted rock cracking for geothermal drilling* (SPARC). https://doi.org/10.1016/j.renene.2025.122351
+4. Han et al. (2024), *Study on the rock-breaking characteristics of high-energy pulsed plasma jet for granite*. https://doi.org/10.1016/j.geoen.2023.212466
 5. Han et al. (2025), *Thermal characteristics and removal mechanism of high energy plasma jet rock-breaking*. https://doi.org/10.1016/j.petsci.2024.12.017
-6. Ghaly & Shor (2026), *Plasma-Pulse-Based Drilling Technology—A State of the Art: Research Progress, Comparative Analysis, and Future Directions*, IEEE Transactions on Plasma Science. https://doi.org/10.1109/TPS.2026.3705317
-4. ETH Zurich, *Modeling thermal spallation drilling* (2016–2020 project). https://gegnew.ethz.ch/projects/project-spallation-drilling
-5. Rossi et al. (2019), *Laboratory and Field Investigation of a Combined Thermo-Mechanical Technology to Enhance Deep Geothermal Drilling*. https://doi.org/10.3997/2214-4609.201901604
-6. Wang et al. (2025), *Liquid nitrogen-assisted damage and fracturing of rocks and its implications for rock excavation*. https://doi.org/10.1007/s40948-025-01021-6
-7. Fei et al. (2023), *Field and laboratory experimental studies on hard-rock tunnel excavation based on disc cutter coupled with high-pressure waterjet*. https://doi.org/10.1007/s11709-023-0947-0
-8. Zhang et al. (2020), *Using a high-pressure water jet-assisted tunnel boring machine to break rock*. https://doi.org/10.1177/1687814020962290
-9. MIT Energy Initiative (3 Nov 2025), *Quaise Energy successfully demonstrates geothermal energy drilling technology in the field*. https://energy.mit.edu/news-events/news/mitei-spinout-quaise-energy-successfully-demonstrates-their-geothermal-energy/
-10. Microwave-assisted rock fragmentation review, 2026. https://doi.org/10.3390/pr14193117
-11. Naranjo-Mayor, Francisco-Ortega & Rodríguez-Rodríguez (2016), *The quarry and workshop of Barranco Cardones: Basalt quern production using stone tools*, Journal of Lithic Studies. https://doi.org/10.2218/jls.v3i2.1779
-12. *The problems of the obelisk revisited: Photogrammetric measurement of the speed of quarrying granite using dolerite pounders* (2023), Digital Applications in Archaeology and Cultural Heritage. https://doi.org/10.1016/j.daach.2023.e00284
-13. Gil Sevillano (2025), *Quarrying Granite with Dolerite Pounders in Ancient Egypt: Some Quantitative Assessment*, Lithic Technology. https://doi.org/10.1080/01977261.2025.2577022
-14. Serotta & Carò (2015), *Hidden Secrets of Ancient Egyptian Technology*, The Metropolitan Museum of Art. https://www.metmuseum.org/ja/perspectives/ancient-egyptian-technology
-15. Yi (2026), *Feasibility of cracking granite with molten sodium carbonate as a mining technique in ancient Egypt*, npj Heritage Science. https://doi.org/10.1038/s40494-026-02315-y
-16. Huang & Chen (2021), *The application of high voltage pulses in the mineral processing industry — A review*, Powder Technology. https://doi.org/10.1016/j.powtec.2021.09.034
-17. Zhang et al. (2025), *Optimization of discharge parameters for high-voltage pulse crushing technology — A review*, Minerals Engineering. https://doi.org/10.1016/j.mineng.2025.109356
-18. Xu et al. (2025), *Synergistic effects of confining pressure and kerf spacing on waterjet-assisted TBM rock breaking*, Tunnelling and Underground Space Technology. https://doi.org/10.1016/j.tust.2025.107128
+6. Ghaly & Shor (2026), *Plasma-Pulse-Based Drilling Technology—A State of the Art*. https://doi.org/10.1109/TPS.2026.3705317
+7. ETH Zurich, *Modeling thermal spallation drilling*. https://gegnew.ethz.ch/projects/project-spallation-drilling
+8. Rossi et al. (2019), *Laboratory and Field Investigation of a Combined Thermo-Mechanical Technology to Enhance Deep Geothermal Drilling*. https://doi.org/10.3997/2214-4609.201901604
+9. Wang et al. (2025), *Liquid nitrogen-assisted damage and fracturing of rocks and its implications for rock excavation*. https://doi.org/10.1007/s40948-025-01021-6
+10. Fei et al. (2023), *Field and laboratory experimental studies on hard-rock tunnel excavation based on disc cutter coupled with high-pressure waterjet*. https://doi.org/10.1007/s11709-023-0947-0
+11. Zhang et al. (2020), *Using a high-pressure water jet-assisted tunnel boring machine to break rock*. https://doi.org/10.1177/1687814020962290
+12. MIT Energy Initiative (3 Nov 2025), *Quaise Energy successfully demonstrates geothermal energy drilling technology in the field*. https://energy.mit.edu/news-events/news/mitei-spinout-quaise-energy-successfully-demonstrates-their-geothermal-energy/
+13. Microwave-assisted rock fragmentation review (2026). https://doi.org/10.3390/pr14193117
+14. Naranjo-Mayor et al. (2016), *The quarry and workshop of Barranco Cardones: Basalt quern production using stone tools*. https://doi.org/10.2218/jls.v3i2.1779
+15. *The problems of the obelisk revisited: Photogrammetric measurement of the speed of quarrying granite using dolerite pounders* (2023). https://doi.org/10.1016/j.daach.2023.e00284
+16. Gil Sevillano (2025), *Quarrying Granite with Dolerite Pounders in Ancient Egypt: Some Quantitative Assessment*. https://doi.org/10.1080/01977261.2025.2577022
+17. Serotta & Carò (2015), *Hidden Secrets of Ancient Egyptian Technology*, The Metropolitan Museum of Art. https://www.metmuseum.org/ja/perspectives/ancient-egyptian-technology
+18. Yi (2026), *Feasibility of cracking granite with molten sodium carbonate as a mining technique in ancient Egypt*. https://doi.org/10.1038/s40494-026-02315-y
+19. Huang & Chen (2021), *The application of high voltage pulses in the mineral processing industry — A review*. https://doi.org/10.1016/j.powtec.2021.09.034
+20. Zhang et al. (2025), *Optimization of discharge parameters for high-voltage pulse crushing technology — A review*. https://doi.org/10.1016/j.mineng.2025.109356
+21. Xu et al. (2025), *Synergistic effects of confining pressure and kerf spacing on waterjet-assisted TBM rock breaking*. https://doi.org/10.1016/j.tust.2025.107128
+22. Sun et al. (2026), *Rock-breaking and rate-of-penetration improvement mechanisms of hot dry rock under axial-torsional coupled percussion*. https://doi.org/10.1016/S1876-3804(26)60774-4
+23. Ma et al. (2025), *Research on the rock-breaking performance of laser-assisted PDC cutters in granite formation*. https://doi.org/10.1016/j.geoen.2025.214317
+24. Wang et al. (2026), *Experimental investigation on rock-cutting behavior of oscillating disc cutters: Effects of kinematic parameters and energy consumption characteristics*. https://doi.org/10.1177/01445987261471924
+25. Nasrabadi et al. (2026), *Effects of operational parameters on TBM disc cutter wear: insights from full-scale disc abrasion testing (FDAT)*. https://doi.org/10.1016/j.tust.2026.107672
 
 All papers, abstracts, company/field announcements and archaeological interpretations must retain their own evidence class. A company demonstration, a laboratory experiment, a theory paper and a production deployment are not equivalent evidence.
