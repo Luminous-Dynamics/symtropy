@@ -302,6 +302,25 @@
         "conservative_net_energy_kwh"
       ],
       "status": "IMPLEMENTATION_IN_REVIEW"
+    },
+    {
+      "id": "portfolio-joint-delivery-stress",
+      "evidence_class": "TRACE_REPLAY",
+      "source": "FLEX-PORTFOLIO-RESILIENCE-001 #3817 / implementation PR #3819",
+      "domain": "shared_failure_domain_and_joint_portfolio_delivery",
+      "baseline": "sum of marginal per-site event success rates and independence assumptions versus observed complete portfolio outcomes grouped by independent stress incident",
+      "target": "100% asset-event and domain-event panel completeness; preserve asset response and domain-state provenance; independent incident-group pass rates and worst group shortfall reported separately from dispatch-event pass rates",
+      "primary_metrics": [
+        "event_pass_fraction",
+        "incident_group_pass_fraction",
+        "worst_incident_group_margin_kw",
+        "maximum_event_shortfall_kw",
+        "empirical_upper_tail_mean_incident_shortfall_kw",
+        "largest_failure_domain_capacity_share",
+        "scenario_conditional_group_pass_fraction",
+        "missing_evidence_rejection_rate"
+      ],
+      "status": "IMPLEMENTATION_IN_REVIEW"
     }
   ],
   "result_requirements": {
@@ -348,6 +367,12 @@
     "a software evaluator does not certify instrument transformers or grid-code compliance",
     "the 15-minute H100/B200/RTX workload dataset is component/node evidence, not a facility PCC or three-hour field-response trace",
     "a lower prediction bound calibrated on no-dispatch holdout data is model-based M&V, not causal identification or a joint event-horizon probability bound",
-    "the Figshare landing page and accompanying GitHub README report different licences for the high-resolution workload dataset; treat rights as unresolved until clarified by the rights holder"
-  ]
+    "the Figshare landing page and accompanying GitHub README report different licences for the high-resolution workload dataset; treat rights as unresolved until clarified by the rights holder",
+    "portfolio joint-delivery reports are empirical observed incident-panel results; event count and independent incident-group count are separate",
+    "failure-domain membership and state are descriptive observations, not causal failure attribution",
+    "overlapping failure-domain capacities must not be summed; V0.1 reports maximum single-domain capacity share rather than an unsupported HHI"
+  ],
+  "metadata": {
+    "benchmark_domain_count": 14
+  }
 }
