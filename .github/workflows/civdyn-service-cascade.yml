@@ -60,7 +60,7 @@ jobs:
               rows = list(csv.DictReader(handle))
 
           assert len(rows) == 73, f"expected 54 tick + 9 summary + 9 criticality + 1 scenario row, got {len(rows)}"
-          assert all(len(row) == 16 for row in rows)
+          assert all(len(row) == 17 for row in rows)
           ticks = [row for row in rows if row["record_type"] == "tick"]
           summaries = {row["node_id"]: row for row in rows if row["record_type"] == "node_summary"}
           criticalities = {row["node_id"]: row for row in rows if row["record_type"] == "criticality"}
@@ -76,7 +76,8 @@ jobs:
               assert service("household_water", tick) == 0.0
               assert service("road_access", tick) == 1.0, "fuel redundancy must preserve road access"
 
-          assert abs(float(next(row for row in rows if row["record_type"] == "scenario_summary")["marginal_service_deficit_area"]) - 16.0) < 1e-9
+          assert abs(float(next(row for row in rows if row["record_type"] == "scenario_summary")["demand_weighted_service_deficit_area"]) - 16.0) < 1e-9
+          assert all(row["demand_weighted_service_deficit_area"] == "" for row in rows if row["record_type"] != "scenario_summary")
           assert summaries["hospital"]["recovery_after_ticks"] == "2"
           assert float(summaries["road_access"]["minimum_service"]) == 1.0
           assert float(criticalities["grid"]["marginal_service_deficit_area"]) > 0.0
