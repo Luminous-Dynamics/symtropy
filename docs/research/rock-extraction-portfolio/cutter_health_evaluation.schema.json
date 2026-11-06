@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/rock-extraction-portfolio/cutter_health_evaluation.schema.json",
+  "title": "Cutter Health Transfer Evaluation v0.1",
+  "description": "Manifest shape for leakage-resistant cutter health evaluation. Schema validation alone does not prove group disjointness, independent physical truth, calibration integrity or model validity.",
+  "type": "object",
+  "required": ["schema_version", "evaluation_id", "evidence_class", "dataset", "ground_truth", "split", "model_runs"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "evaluation_id": { "type": "string", "minLength": 1 },
+    "evidence_class": { "enum": ["SYNTHETIC_CONFORMANCE_FIXTURE", "MODEL_EVALUATION"] },
+    "dataset": { "$ref": "#/$defs/dataset" },
+    "ground_truth": { "$ref": "#/$defs/ground_truth" },
+    "split": { "$ref": "#/$defs/split" },
+    "model_runs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/model_run" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+    "dimension": {
+      "enum": ["parent_block", "specimen", "rock_cohort", "rock_family", "source_study", "campaign", "site", "tunnel", "mine", "rig", "machine", "cutter_geometry", "tool_serial", "radial_position", "sensor_configuration", "time_window"]
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["dataset_id", "manifest_sha256", "sample_count", "source_records_sha256", "group_dimensions", "measurement_protocol_refs"],
+      "properties": {
+        "dataset_id": { "type": "string", "minLength": 1 },
+        "manifest_sha256": { "$ref": "#/$defs/digest" },
+        "sample_count": { "type": "integer", "minimum": 1 },
+        "source_records_sha256": { "$ref": "#/$defs/digest" },
+        "group_dimensions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/dimension" } },
+        "measurement_protocol_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "domain_description": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "ground_truth": {
+      "type": "object",
+      "required": ["authority_ref", "measurement_method", "calibration_ref", "uncertainty_budget_ref", "independent", "assessor_blinding"],
+      "properties": {
+        "authority_ref": { "type": "string", "minLength": 1 },
+        "measurement_method": { "enum": ["REPLACED_CUTTER_3D_SCAN", "CALIBRATED_DIMENSIONAL_METROLOGY", "INDEPENDENT_LAB_MEASUREMENT", "CALIBRATED_REFERENCE_LOAD_SENSOR", "OTHER_DECLARED_METHOD"] },
+        "calibration_ref": { "type": "string", "minLength": 1 },
+        "uncertainty_budget_ref": { "type": "string", "minLength": 1 },
+        "independent": { "type": "boolean" },
+        "assessor_blinding": { "enum": ["BLINDED", "UNBLINDED", "NOT_POSSIBLE"] }
+      },
+      "additionalProperties": false
+    },
+    "group": {
+      "type": "object",
+      "required": ["dimension", "group_id"],
+      "properties": {
+        "dimension": { "$ref": "#/$defs/dimension" },
+        "group_id": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "split": {
+      "type": "object",
+      "required": ["split_id", "strategy", "holdout_dimensions", "train_groups", "calibration_groups", "test_groups", "train_sample_count", "calibration_sample_count", "test_sample_count", "train_sample_ids_sha256", "calibration_sample_ids_sha256", "test_sample_ids_sha256"],
+      "properties": {
+        "split_id": { "type": "string", "minLength": 1 },
+        "strategy": { "enum": ["RandomRowDiagnostic", "GroupHoldout", "TemporalHoldout", "ExternalSite", "ProspectiveField"] },
+        "holdout_dimensions": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/dimension" } },
+        "train_groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
+        "calibration_groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
+        "test_groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
+        "train_sample_count": { "type": "integer", "minimum": 1 },
+        "calibration_sample_count": { "type": "integer", "minimum": 0 },
+        "test_sample_count": { "type": "integer", "minimum": 1 },
+        "train_sample_ids_sha256": { "$ref": "#/$defs/digest" },
+        "calibration_sample_ids_sha256": { "$ref": "#/$defs/digest" },
+        "test_sample_ids_sha256": { "$ref": "#/$defs/digest" }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "strategy": { "enum": ["GroupHoldout", "TemporalHoldout", "ExternalSite", "ProspectiveField"] } }, "required": ["strategy"] },
+          "then": { "properties": { "holdout_dimensions": { "type": "array", "minItems": 1 }, "train_groups": { "type": "array", "minItems": 1 }, "test_groups": { "type": "array", "minItems": 1 } } }
+        }
+      ]
+    },
+    "prediction_interval": {
+      "type": "object",
+      "required": ["nominal_coverage", "observed_coverage", "mean_width", "calibration_partition", "calibration_split_ref", "calibration_sample_count"],
+      "properties": {
+        "nominal_coverage": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "observed_coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "mean_width": { "type": "number", "minimum": 0 },
+        "calibration_partition": { "enum": ["HELD_OUT_CALIBRATION", "TRAINING", "TEST", "NONE"] },
+        "calibration_split_ref": { "type": "string", "minLength": 1 },
+        "calibration_sample_count": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "metric": {
+      "type": "object",
+      "required": ["task", "evaluation_partition", "sample_count", "truth_evidence_role"],
+      "properties": {
+        "task": { "enum": ["LOAD_RECONSTRUCTION", "WEAR_STATE_CLASSIFICATION", "WEAR_SEVERITY_REGRESSION", "ANOMALY_EVENT_DETECTION", "RUL_DISTRIBUTION", "SENSOR_DRIFT_DETECTION", "OOD_DETECTION"] },
+        "evaluation_partition": { "enum": ["TRAIN", "CALIBRATION", "TEST"] },
+        "sample_count": { "type": "integer", "minimum": 1 },
+        "truth_evidence_role": { "enum": ["INDEPENDENT_INSPECTION", "CALIBRATED_REFERENCE_SENSOR", "OPERATOR_REPORT", "PROCESS_SENSOR", "MODEL_DERIVED", "SIMULATION"] },
+        "mae": { "type": "number", "minimum": 0 },
+        "rmse": { "type": "number", "minimum": 0 },
+        "bias": { "type": "number" },
+        "r2": { "type": "number" },
+        "macro_f1": { "type": "number", "minimum": 0, "maximum": 1 },
+        "per_class_recall": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 } },
+        "false_alarms_per_100_operating_hours": { "type": "number", "minimum": 0 },
+        "missed_critical_events": { "type": "integer", "minimum": 0 },
+        "total_critical_events": { "type": "integer", "minimum": 0 },
+        "median_detection_delay_hours": { "type": "number", "minimum": 0 },
+        "pinball_loss": { "type": "number", "minimum": 0 },
+        "censoring_handling": { "enum": ["NONE", "RIGHT_CENSORED", "INTERVAL_CENSORED", "COMPETING_RISKS"] },
+        "prediction_interval": { "$ref": "#/$defs/prediction_interval" },
+        "ood_case_count": { "type": "integer", "minimum": 1 },
+        "ood_detected_count": { "type": "integer", "minimum": 0 },
+        "ood_false_accept_count": { "type": "integer", "minimum": 0 },
+        "abstention_count": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "model_run": {
+      "type": "object",
+      "required": ["model_id", "family", "model_revision", "code_sha256", "configuration_sha256", "dataset_ref", "training_split_ref", "metrics"],
+      "properties": {
+        "model_id": { "type": "string", "minLength": 1 },
+        "family": { "enum": ["PERSISTENCE", "EMPIRICAL_WEAR", "PHYSICS_INFORMED", "TABULAR_ML", "TEMPORAL_CNN", "RECURRENT", "ATTENTION", "SEMI_SUPERVISED_MULTI_TASK", "SURVIVAL_MODEL", "HYBRID_PHYSICS_ML", "OTHER_DECLARED_MODEL"] },
+        "model_revision": { "type": "string", "minLength": 1 },
+        "code_sha256": { "$ref": "#/$defs/digest" },
+        "configuration_sha256": { "$ref": "#/$defs/digest" },
+        "dataset_ref": { "type": "string", "minLength": 1 },
+        "training_split_ref": { "type": "string", "minLength": 1 },
+        "metrics": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/metric" } }
+      },
+      "additionalProperties": false
+    }
+  }
+}
