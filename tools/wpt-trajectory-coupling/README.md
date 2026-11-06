@@ -69,7 +69,7 @@ The fixtures are hand-computable software controls, not measurements or performa
 
 `cargo test --locked -p wpt-trajectory-coupling`
 
-Nine tests cover known-truth outputs, coordinate translation, sample order/progress, speed/odometry agreement, sample gaps, wheel-channel completeness, ambiguous energy balance, explicit missing thermal channels and fail-closed identifiers/fields/evidence.
+Twelve tests cover known-truth outputs, coordinate translation, sample order/progress, speed/odometry agreement, single-sample clock skew, lateral-axis inversion, meter swaps, sample gaps, wheel-channel completeness, ambiguous energy balance, explicit missing thermal channels and fail-closed identifiers/fields/evidence.
 
 ## Claim ceiling
 
