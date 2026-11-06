@@ -134,10 +134,9 @@ pub fn transpose(matrix: [[f64; 2]; 2]) -> [[f64; 2]; 2] {
 
 pub fn multiply(left: [[f64; 2]; 2], right: [[f64; 2]; 2]) -> [[f64; 2]; 2] {
     let mut result = [[0.0; 2]; 2];
-    for row in 0..2 {
-        for column in 0..2 {
-            result[row][column] =
-                left[row][0] * right[0][column] + left[row][1] * right[1][column];
+    for (row, result_row) in result.iter_mut().enumerate() {
+        for (column, value) in result_row.iter_mut().enumerate() {
+            *value = left[row][0] * right[0][column] + left[row][1] * right[1][column];
         }
     }
     result
