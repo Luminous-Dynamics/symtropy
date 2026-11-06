@@ -1473,7 +1473,8 @@ mod tests {
     #[test]
     fn ablation_target_must_be_on_the_required_path() {
         let mut unrelated = experiment();
-        unrelated.mechanism_ablation.blocked_mechanism_variable_id = "unrelated_intermediate".into();
+        unrelated.mechanism_ablation.blocked_mechanism_variable_id =
+            "unrelated_intermediate".into();
         assert!(matches!(
             unrelated.validate(),
             Err(CausalPathError::AblationTargetNotOnRequiredPath(_))
