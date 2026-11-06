@@ -17,3 +17,7 @@ path = "src/bin/causal_path_sweep.rs"
 
 [dependencies]
 civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
+
+[[bin]]
+name = "causal-contrast-sweep"
+path = "src/bin/causal_contrast_sweep.rs"
