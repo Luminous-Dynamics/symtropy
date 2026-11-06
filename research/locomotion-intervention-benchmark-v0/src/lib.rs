@@ -103,6 +103,7 @@ pub enum BenchmarkError {
     InvalidPhasePulse,
     InvalidScoreMargin,
     InvalidFitGrid,
+    InvalidProfileLikelihoodCutoff,
     InvalidInterventionAlignment,
     EmptySeedSet,
     DuplicateSeed,
@@ -466,6 +467,182 @@ impl SeededNormal {
         self.spare = Some(radius * sin_angle);
         radius * cos_angle
     }
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FrequencyProfileInterval {
+    pub lower_angular_frequency: f64,
+    pub upper_angular_frequency: f64,
+    pub grid_points: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrequencyIdentifiability {
+    /// One bounded, relatively narrow profile-likelihood component.
+    Resolved,
+    /// Two or more separated accepted frequency components remain.
+    Multimodal,
+    /// The accepted set touches either edge of the searched frequency range.
+    BoundaryLimited,
+    /// One broad accepted component covers at least half of the search range.
+    Broad,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FrequencyProfile {
+    pub best_angular_frequency: f64,
+    pub best_initial_phase: f64,
+    pub maximum_log_score: f64,
+    /// User-declared likelihood drop from the maximum defining the accepted
+    /// profile set. For a regular one-parameter 95% likelihood-ratio set,
+    /// 1.920729 is the usual asymptotic log-likelihood drop (chi-square_1/2).
+    pub delta_log_likelihood_cutoff: f64,
+    pub accepted_intervals: Vec<FrequencyProfileInterval>,
+    pub accepted_grid_points: usize,
+    pub total_grid_points: usize,
+    pub accepted_fraction: f64,
+    pub touches_lower_boundary: bool,
+    pub touches_upper_boundary: bool,
+    pub identifiability: FrequencyIdentifiability,
+}
+
+/// Profile over initial phase at each angular-frequency grid point using only
+/// the supplied baseline observations. The returned set includes all grid
+/// frequencies whose profiled log score is within the declared cutoff of the
+/// global maximum. Disconnected components expose aliases/multiple modes
+/// rather than collapsing them to a single point estimate.
+///
+/// This is a grid approximation to a profile-likelihood confidence set, not a
+/// posterior interval. Standard asymptotic likelihood-ratio cutoffs require
+/// regularity/identifiability assumptions that may fail on short or aliased
+/// records; boundary/multimodal flags are therefore part of the result.
+pub fn profile_angular_frequency(
+    observed_prefix: &[SyntheticSample],
+    mechanism: Mechanism,
+    base_config: SimulationConfig,
+    grid: FrequencyPhaseGrid,
+    delta_log_likelihood_cutoff: f64,
+) -> Result<FrequencyProfile, BenchmarkError> {
+    base_config.validate()?;
+    grid.validate()?;
+    validate_trace(observed_prefix)?;
+    if observed_prefix.len() < 2 || observed_prefix.len() > base_config.sample_count {
+        return Err(BenchmarkError::InvalidTraceLength);
+    }
+    if !delta_log_likelihood_cutoff.is_finite() || delta_log_likelihood_cutoff < 0.0 {
+        return Err(BenchmarkError::InvalidProfileLikelihoodCutoff);
+    }
+    for (index, sample) in observed_prefix.iter().enumerate() {
+        let expected_timestamp = index as f64 * base_config.sample_interval;
+        if sample.timestamp != expected_timestamp {
+            return Err(BenchmarkError::TimestampMismatch);
+        }
+    }
+
+    let mut profile = Vec::with_capacity(grid.frequency_steps);
+    let mut best_score = f64::NEG_INFINITY;
+    let mut best_frequency = grid.minimum_angular_frequency;
+    let mut best_phase = -std::f64::consts::PI;
+
+    for frequency_index in 0..grid.frequency_steps {
+        let fraction = frequency_index as f64 / (grid.frequency_steps - 1) as f64;
+        let frequency = grid.minimum_angular_frequency
+            + (grid.maximum_angular_frequency - grid.minimum_angular_frequency) * fraction;
+        let mut best_phase_score = f64::NEG_INFINITY;
+        let mut best_phase_at_frequency = -std::f64::consts::PI;
+
+        for phase_index in 0..grid.phase_steps {
+            let phase = -std::f64::consts::PI
+                + std::f64::consts::TAU * phase_index as f64 / grid.phase_steps as f64;
+            let fit_config = SimulationConfig {
+                angular_frequency: frequency,
+                initial_phase: phase,
+                ..base_config
+            };
+            let prediction = simulate(mechanism, Intervention::None, fit_config)?;
+            let score = predictive_log_score(
+                observed_prefix,
+                &prediction.samples[..observed_prefix.len()],
+                base_config.observation_variance,
+            )?;
+            if score > best_phase_score {
+                best_phase_score = score;
+                best_phase_at_frequency = phase;
+            }
+        }
+
+        profile.push((frequency, best_phase_at_frequency, best_phase_score));
+        if best_phase_score > best_score {
+            best_score = best_phase_score;
+            best_frequency = frequency;
+            best_phase = best_phase_at_frequency;
+        }
+    }
+    if !best_score.is_finite() {
+        return Err(BenchmarkError::NumericalFailure);
+    }
+
+    let cutoff_score = best_score - delta_log_likelihood_cutoff;
+    let accepted = profile
+        .iter()
+        .map(|(_, _, score)| *score >= cutoff_score)
+        .collect::<Vec<_>>();
+    let accepted_grid_points = accepted.iter().filter(|is_accepted| **is_accepted).count();
+    if accepted_grid_points == 0 {
+        return Err(BenchmarkError::NumericalFailure);
+    }
+
+    let mut intervals = Vec::new();
+    let mut interval_start = None;
+    for (index, is_accepted) in accepted.iter().copied().enumerate() {
+        match (interval_start, is_accepted) {
+            (None, true) => interval_start = Some(index),
+            (Some(start), false) => {
+                intervals.push(FrequencyProfileInterval {
+                    lower_angular_frequency: profile[start].0,
+                    upper_angular_frequency: profile[index - 1].0,
+                    grid_points: index - start,
+                });
+                interval_start = None;
+            }
+            _ => {}
+        }
+    }
+    if let Some(start) = interval_start {
+        intervals.push(FrequencyProfileInterval {
+            lower_angular_frequency: profile[start].0,
+            upper_angular_frequency: profile[profile.len() - 1].0,
+            grid_points: profile.len() - start,
+        });
+    }
+
+    let touches_lower_boundary = accepted.first().copied().unwrap_or(false);
+    let touches_upper_boundary = accepted.last().copied().unwrap_or(false);
+    let accepted_fraction = accepted_grid_points as f64 / grid.frequency_steps as f64;
+    let identifiability = if intervals.len() > 1 {
+        FrequencyIdentifiability::Multimodal
+    } else if touches_lower_boundary || touches_upper_boundary {
+        FrequencyIdentifiability::BoundaryLimited
+    } else if accepted_fraction >= 0.5 {
+        FrequencyIdentifiability::Broad
+    } else {
+        FrequencyIdentifiability::Resolved
+    };
+
+    Ok(FrequencyProfile {
+        best_angular_frequency: best_frequency,
+        best_initial_phase: best_phase,
+        maximum_log_score: best_score,
+        delta_log_likelihood_cutoff,
+        accepted_intervals: intervals,
+        accepted_grid_points,
+        total_grid_points: grid.frequency_steps,
+        accepted_fraction,
+        touches_lower_boundary,
+        touches_upper_boundary,
+        identifiability,
+    })
 }
 
 /// Equal-budget grid used to fit baseline angular frequency and initial phase.
@@ -3072,6 +3249,133 @@ mod tests {
         };
         assert_eq!(design.candidate_id, "cheap-cut");
         assert!(design.information_per_cost > 0.0);
+    }
+
+
+    #[test]
+    fn profile_likelihood_resolves_a_well_sampled_frequency() {
+        let mut known = config();
+        known.sample_count = 160;
+        known.sample_interval = 0.025;
+        known.angular_frequency = 4.0;
+        known.observation_variance = 0.0025;
+        let generated =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, known).unwrap();
+        let observed =
+            add_gaussian_observation_noise(&generated.samples, 0.0025, 0xF1_0F_2026).unwrap();
+        let profile = profile_angular_frequency(
+            &observed,
+            Mechanism::IntrinsicOscillator,
+            known,
+            FrequencyPhaseGrid {
+                minimum_angular_frequency: 3.5,
+                maximum_angular_frequency: 4.5,
+                frequency_steps: 101,
+                phase_steps: 96,
+            },
+            1.920_729_410_347_062,
+        )
+        .unwrap();
+
+        assert!((profile.best_angular_frequency - 4.0).abs() <= 0.02);
+        assert_eq!(profile.identifiability, FrequencyIdentifiability::Resolved);
+        assert!(!profile.touches_lower_boundary);
+        assert!(!profile.touches_upper_boundary);
+        assert_eq!(profile.accepted_intervals.len(), 1);
+    }
+
+    #[test]
+    fn profile_likelihood_reports_two_frequency_modes_under_exact_sampling_alias() {
+        let alias_frequency = 2.5_f64;
+        let mut alias_config = config();
+        alias_config.sample_count = 12;
+        alias_config.sample_interval = std::f64::consts::PI;
+        alias_config.angular_frequency = 0.5;
+        alias_config.damping_rate = 0.0;
+        let generated =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, alias_config).unwrap();
+        let profile = profile_angular_frequency(
+            &generated.samples,
+            Mechanism::IntrinsicOscillator,
+            alias_config,
+            FrequencyPhaseGrid {
+                minimum_angular_frequency: 0.4,
+                maximum_angular_frequency: 2.6,
+                frequency_steps: 221,
+                phase_steps: 64,
+            },
+            1.0e-7,
+        )
+        .unwrap();
+
+        assert!(profile
+            .accepted_intervals
+            .iter()
+            .any(|interval| (interval.lower_angular_frequency - 0.5).abs() <= 0.02));
+        assert!(profile
+            .accepted_intervals
+            .iter()
+            .any(|interval| (interval.lower_angular_frequency - alias_frequency).abs() <= 0.02));
+        assert_eq!(
+            profile.identifiability,
+            FrequencyIdentifiability::Multimodal
+        );
+    }
+
+    #[test]
+    fn profile_likelihood_marks_a_best_fit_on_the_search_boundary() {
+        let mut outside = config();
+        outside.angular_frequency = 5.0;
+        let generated =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, outside).unwrap();
+        let profile = profile_angular_frequency(
+            &generated.samples,
+            Mechanism::IntrinsicOscillator,
+            outside,
+            FrequencyPhaseGrid {
+                minimum_angular_frequency: 3.5,
+                maximum_angular_frequency: 4.5,
+                frequency_steps: 51,
+                phase_steps: 64,
+            },
+            1.920_729_410_347_062,
+        )
+        .unwrap();
+
+        assert_eq!(
+            profile.identifiability,
+            FrequencyIdentifiability::BoundaryLimited
+        );
+        assert!(profile.touches_upper_boundary);
+    }
+
+    #[test]
+    fn profile_likelihood_rejects_invalid_cutoff_and_misaligned_time_grid() {
+        let generated =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
+        let grid = quick_fit_grid();
+        assert_eq!(
+            profile_angular_frequency(
+                &generated.samples,
+                Mechanism::IntrinsicOscillator,
+                config(),
+                grid,
+                -1.0,
+            ),
+            Err(BenchmarkError::InvalidProfileLikelihoodCutoff)
+        );
+        let mut shifted = generated.samples.clone();
+        shifted[4].timestamp += 0.001;
+        assert_eq!(
+            profile_angular_frequency(
+                &shifted,
+                Mechanism::IntrinsicOscillator,
+                config(),
+                grid,
+                1.0,
+            ),
+            Err(BenchmarkError::TimestampMismatch)
+        );
     }
 
     #[test]
