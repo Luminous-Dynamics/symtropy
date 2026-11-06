@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-ccd-analytic-v0",
+  "status": "research_only_no_engine_level_tunnelling_claim",
+  "source_module": "crates/core/symtropy-physics/src/ccd.rs",
+  "query_contract": {
+    "checked_result": "Result<Option<CcdHit>, CcdQueryError>",
+    "time_unit": "seconds",
+    "interval": "[0, dt]",
+    "legacy_wrapper_invalid_input": "maps to None for compatibility",
+    "world_failure_policy": "record CcdQueryDiagnostic in PhysicsWorld::ccd_query_diagnostics"
+  },
+  "sphere_sphere": {
+    "equation": "|(pos_b-pos_a) + (vel_b-vel_a)*t| = radius_a + radius_b",
+    "root_method": "normalized_tau_scaled_coefficients_stable_q_form",
+    "discriminant_policy": "relative_roundoff_bound_32_machine_epsilon",
+    "expected_root": "earliest_root_in_closed_interval"
+  },
+  "sphere_halfspace": {
+    "plane_equation": "normal dot position = offset",
+    "normal_policy": "normalize_normal_and_offset_together",
+    "expected_root": "earliest_root_in_closed_interval"
+  },
+  "fixtures": [
+    {"id":"sphere-head-on","dimension":3,"expected_toi_s":0.2,"tolerance_s":1e-10,"expected":"hit"},
+    {"id":"sphere-oblique-tangent","dimension":2,"expected_toi_s":5.0,"tolerance_s":1e-10,"expected":"hit"},
+    {"id":"sphere-miss","dimension":3,"expected":"no_hit"},
+    {"id":"sphere-moving-apart","dimension":3,"expected":"no_hit"},
+    {"id":"sphere-initial-overlap","dimension":3,"expected_toi_s":0.0,"tolerance_s":1e-12,"expected":"hit"},
+    {"id":"sphere-endpoint-contact","dimension":2,"expected_toi_s":1.0,"tolerance_s":1e-12,"expected":"hit"},
+    {"id":"halfspace-fast-fall","dimension":3,"expected_toi_s":0.095,"tolerance_s":1e-10,"expected":"hit"},
+    {"id":"halfspace-non-unit-normal","dimension":3,"expected_toi_s":0.075,"tolerance_s":1e-12,"expected":"hit"},
+    {"id":"sphere-scale-micrometre","dimension":3,"scale":1e-6,"expected_toi_s":0.2,"tolerance_s":1e-12,"expected":"hit"},
+    {"id":"sphere-scale-megametre","dimension":3,"scale":1e6,"expected_toi_s":0.2,"tolerance_s":1e-12,"expected":"hit"},
+    {"id":"sphere-near-cancellation","dimension":2,"expected_toi_s":0.9999999,"tolerance_s":2e-9,"expected":"hit"},
+    {"id":"negative-radius","expected_error":"NegativeRadius"},
+    {"id":"negative-timestep","expected_error":"NegativeTimeStep"},
+    {"id":"nan-position","expected_error":"NonFiniteInput"},
+    {"id":"zero-halfspace-normal","expected_error":"DegeneratePlaneNormal"},
+    {"id":"underflowed-sweep","expected_error":"NumericalUnderflow"},
+    {"id":"zero-dimension","expected_error":"ZeroDimension"}
+  ],
+  "global_acceptance": {
+    "all_hit_times_finite": true,
+    "all_points_normals_finite": true,
+    "normal_unit_length_tolerance": 1e-12,
+    "invalid_input_not_silently_classified_as_checked_no_hit": true,
+    "legacy_wrappers_source_compatible": true,
+    "world_query_errors_visible": true,
+    "engine_level_tunnelling_claimed": false
+  },
+  "performance": {
+    "benchmark_target": "ccd_analytic_bench",
+    "metrics": ["queries_per_second","checked_vs_compatibility_overhead"],
+    "full_world_step_measured": false,
+    "energy_measurement": "only when a supported sensor receipt exists"
+  },
+  "external_comparators": {
+    "rapier": "0.35.3",
+    "mujoco": "3.17.0",
+    "box2d": "3.1",
+    "semantic_match_required": true
+  }
+}
