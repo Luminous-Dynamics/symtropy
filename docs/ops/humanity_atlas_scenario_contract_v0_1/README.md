@@ -286,3 +286,41 @@ PYTHONPATH=docs/ops/humanity_atlas_scenario_contract_v0_1 \
 ```
 
 The tests use only synthetic CSV, scenario and dataset fixtures. Passing them establishes adapter/schema conformance, not empirical validity.
+
+
+### Emit an envelope for an exact CivBench report
+
+From the repository root, first calculate the source-manifest digest using the same ordered path list that will be supplied to the adapter:
+
+```sh
+PYTHONPATH=docs/ops/humanity_atlas_scenario_contract_v0_1 python - <<'PY'
+from pathlib import Path
+from adapt_civbench_output import _model_manifest
+
+digest, manifest = _model_manifest([
+    Path("research/civdyn-service-cascade/src/lib.rs"),
+    Path("research/civdyn-service-cascade/src/bin/service_cascade_sweep.rs"),
+])
+print("model_sha256 =", digest)
+print(manifest.decode("utf-8"))
+PY
+```
+
+Create a scenario-v0.1 JSON document whose `engine.model_sha256` equals that digest and whose `baseline.dataset_sha256` equals the SHA-256 of the exact dataset-fixture JSON bytes. The scenario's requested metric units and horizon must match the domain report. Then adapt the report:
+
+```sh
+PYTHONPATH=docs/ops/humanity_atlas_scenario_contract_v0_1 python \
+  docs/ops/humanity_atlas_scenario_contract_v0_1/adapt_civbench_output.py \
+  --track service-cascade \
+  --csv target/civdyn-service-cascade-evidence/service-cascade.csv \
+  --scenario civbench-service-cascade.scenario.json \
+  --dataset civbench-service-cascade.dataset.json \
+  --model-source research/civdyn-service-cascade/src/lib.rs \
+  --model-source research/civdyn-service-cascade/src/bin/service_cascade_sweep.rs \
+  --source-revision "$(git rev-parse HEAD)" \
+  --output target/civdyn-service-cascade-evidence/humanity-atlas-run.v0.1.json
+```
+
+Use `--track knowledge-resilience` with the corresponding report and source files for the knowledge benchmark. Supply `--replay-csv` only when a second execution used the same scenario and seed; the adapter compares exact bytes. Without that second artifact, determinism stays null even when the scenario configuration requests deterministic execution.
+
+The adapter rejects a scenario whose dataset or model digest does not match the exact input bytes, and it never exposes a switch to promote synthetic fixtures to calibrated simulation or prospective forecast.
