@@ -134,17 +134,36 @@ pub fn evaluate_case(case: &Value) -> Value {
 
     // Consume capability assessments from the owning Symthaea CIV-BOOT
     // contract. This is receipt validation/projection, not closure calculation.
+    // Duplicate target receipts invalidate that target as a whole: do not let
+    // whichever record happens to appear first leak a favorable projection.
+    let receipts = items(input, "capability_assessments");
+    let mut assessment_counts: BTreeMap<&str, usize> = BTreeMap::new();
+    for receipt in receipts {
+        let target = text(receipt, "target_id");
+        if !target.is_empty() {
+            *assessment_counts.entry(target).or_insert(0) += 1;
+        }
+    }
+    let duplicate_targets = assessment_counts
+        .iter()
+        .filter_map(|(target, count)| (*count > 1).then_some(*target))
+        .collect::<BTreeSet<_>>();
+    for target in &duplicate_targets {
+        result.record(Disposition::Unsupported, "DUPLICATE_CAPABILITY_ASSESSMENT");
+        result.unknown_evidence.insert((*target).to_owned());
+    }
+
     let mut assessments: BTreeMap<&str, &Value> = BTreeMap::new();
-    for receipt in items(input, "capability_assessments") {
+    for receipt in receipts {
         let target = text(receipt, "target_id");
         if target.is_empty() {
             result.record(Disposition::Unsupported, "CAPABILITY_TARGET_ID_MISSING");
             continue;
         }
-        if assessments.insert(target, receipt).is_some() {
-            result.record(Disposition::Unsupported, "DUPLICATE_CAPABILITY_ASSESSMENT");
+        if duplicate_targets.contains(target) {
             continue;
         }
+        assessments.insert(target, receipt);
 
         if text(receipt, "scenario_id") != case_id {
             result.unknown(target, "CAPABILITY_RECEIPT_SUBJECT_MISMATCH");
@@ -157,6 +176,11 @@ pub fn evaluate_case(case: &Value) -> Value {
             || text(receipt, "source_subject_digest").is_empty()
         {
             result.unknown(target, "CAPABILITY_RECEIPT_IDENTITY_INCOMPLETE");
+            continue;
+        }
+        let expected_subject_digest = format!("synthetic-subject:{case_id}");
+        if text(receipt, "source_subject_digest") != expected_subject_digest {
+            result.unknown(target, "CAPABILITY_RECEIPT_SUBJECT_DIGEST_MISMATCH");
             continue;
         }
 
@@ -176,12 +200,15 @@ pub fn evaluate_case(case: &Value) -> Value {
         let operational = boolean(receipt, "operationally_reachable");
         let locally_closed = boolean(receipt, "locally_closed");
 
+        let mut status_consistent = false;
         match status {
             "LocallyClosed" if operational == Some(true) && locally_closed == Some(true) => {
+                status_consistent = true;
                 result.locally_closed_targets.insert(target.to_owned());
                 result.operationally_reachable_targets.insert(target.to_owned());
             }
             "ImportDependent" if operational == Some(true) && locally_closed == Some(false) => {
+                status_consistent = true;
                 result.import_dependent_targets.insert(target.to_owned());
                 result.operationally_reachable_targets.insert(target.to_owned());
             }
@@ -207,7 +234,7 @@ pub fn evaluate_case(case: &Value) -> Value {
         }
 
         let route = text(receipt, "selected_route_id");
-        if !route.is_empty() {
+        if status_consistent && !route.is_empty() {
             result.selected_routes.insert((target.to_owned(), route.to_owned()));
         }
     }
@@ -297,6 +324,7 @@ pub fn evaluate_case(case: &Value) -> Value {
 
     // Finite workcell capacities; shared demands use half-open time intervals.
     let mut capacities: BTreeMap<&str, f64> = BTreeMap::new();
+    let mut capacity_units: BTreeMap<&str, &str> = BTreeMap::new();
     for capacity in items(input, "resource_capacities") {
         let id = text(capacity, "id");
         let unit = text(capacity, "unit");
@@ -311,6 +339,7 @@ pub fn evaluate_case(case: &Value) -> Value {
         if capacities.insert(id, amount).is_some() {
             result.record(Disposition::Unsupported, "DUPLICATE_RESOURCE_CAPACITY_ID");
         }
+        capacity_units.insert(id, unit);
     }
 
     let mut work_package_ids = BTreeSet::new();
@@ -333,12 +362,21 @@ pub fn evaluate_case(case: &Value) -> Value {
 
         for demand in items(package, "resource_demands") {
             let resource_id = text(demand, "resource_id");
+            let demand_unit = text(demand, "unit");
             let Some(quantity) = nonnegative(demand, "quantity") else {
                 result.record(Disposition::Unsupported, "WORK_PACKAGE_RESOURCE_DEMAND_INVALID");
                 continue;
             };
             if !capacities.contains_key(resource_id) {
                 result.unknown(resource_id, "WORK_PACKAGE_RESOURCE_CAPACITY_MISSING");
+                continue;
+            }
+            if demand_unit.is_empty() {
+                result.record(Disposition::Unsupported, "WORK_PACKAGE_RESOURCE_DEMAND_UNIT_MISSING");
+                continue;
+            }
+            if capacity_units.get(resource_id).copied() != Some(demand_unit) {
+                result.record(Disposition::Unsupported, "WORK_PACKAGE_RESOURCE_DEMAND_UNIT_MISMATCH");
                 continue;
             }
             let timeline = events.entry(resource_id).or_default();
