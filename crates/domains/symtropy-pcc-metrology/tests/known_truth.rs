@@ -394,6 +394,10 @@ fn clock_time_uncertainty_is_propagated_through_declared_power_slew() {
     )
     .expect("evaluation succeeds");
     let interval = &report.intervals[0];
+    assert_eq!(report.baseline_clock_uncertainty_ns, 5);
+    assert_eq!(report.candidate_clock_uncertainty_ns, 5);
+    assert_eq!(report.baseline_maximum_absolute_power_slew_w_per_s, 1.0e9);
+    assert_eq!(report.candidate_maximum_absolute_power_slew_w_per_s, 1.0e9);
     assert_eq!(interval.measured_reduction_w, 100.0);
     assert!((interval.time_alignment_uncertainty_bound_w - 10.0).abs() < 1e-12);
     assert!((interval.expanded_uncertainty_w - 10.0).abs() < 1e-12);
