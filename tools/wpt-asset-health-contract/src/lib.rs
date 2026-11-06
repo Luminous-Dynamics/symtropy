@@ -143,10 +143,10 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
 
     validate_type(schema, value, path)?;
 
-    if let Some(expected) = schema.get("const") {
-        if value != expected {
-            return Err(fail(path, format!("value must equal const {expected}")));
-        }
+    if let Some(expected) = schema.get("const")
+        && value != expected
+    {
+        return Err(fail(path, format!("value must equal const {expected}")));
     }
 
     if let Some(allowed) = schema.get("enum") {
@@ -159,13 +159,13 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
     }
 
     if let Some(text) = value.as_str() {
-        if let Some(minimum) = schema.get("minLength").and_then(Value::as_u64) {
-            if text.chars().count() < minimum as usize {
-                return Err(fail(
-                    path,
-                    format!("string is shorter than minLength {minimum}"),
-                ));
-            }
+        if let Some(minimum) = schema.get("minLength").and_then(Value::as_u64)
+            && text.chars().count() < minimum as usize
+        {
+            return Err(fail(
+                path,
+                format!("string is shorter than minLength {minimum}"),
+            ));
         }
         if let Some(pattern) = schema.get("pattern").and_then(Value::as_str) {
             if pattern == "^[0-9a-f]{64}$" {
@@ -191,20 +191,20 @@ fn validate_schema_node(schema: &Value, value: &Value, path: &str) -> Result<(),
     }
 
     if let Some(number) = value.as_f64() {
-        if let Some(minimum) = schema.get("minimum").and_then(Value::as_f64) {
-            if number < minimum {
-                return Err(fail(path, format!("number is below minimum {minimum}")));
-            }
+        if let Some(minimum) = schema.get("minimum").and_then(Value::as_f64)
+            && number < minimum
+        {
+            return Err(fail(path, format!("number is below minimum {minimum}")));
         }
-        if let Some(maximum) = schema.get("maximum").and_then(Value::as_f64) {
-            if number > maximum {
-                return Err(fail(path, format!("number is above maximum {maximum}")));
-            }
+        if let Some(maximum) = schema.get("maximum").and_then(Value::as_f64)
+            && number > maximum
+        {
+            return Err(fail(path, format!("number is above maximum {maximum}")));
         }
-        if let Some(minimum) = schema.get("exclusiveMinimum").and_then(Value::as_f64) {
-            if number <= minimum {
-                return Err(fail(path, format!("number must be greater than {minimum}")));
-            }
+        if let Some(minimum) = schema.get("exclusiveMinimum").and_then(Value::as_f64)
+            && number <= minimum
+        {
+            return Err(fail(path, format!("number must be greater than {minimum}")));
         }
     }
 
@@ -312,8 +312,8 @@ pub fn validate_observation(schema: &Value, observation: &Value) -> Result<(), S
     if let (Some(minimum), Some(maximum)) = (
         exposure.get("ambient_min_c").and_then(Value::as_f64),
         exposure.get("ambient_max_c").and_then(Value::as_f64),
-    ) {
-        if minimum > maximum {
+    ) && minimum > maximum
+    {
             return Err(fail(
                 "$.exposure",
                 "ambient_min_c cannot exceed ambient_max_c",
