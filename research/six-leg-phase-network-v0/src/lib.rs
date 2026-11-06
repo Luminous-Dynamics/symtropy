@@ -39,7 +39,7 @@ impl Leg {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CoordinationModel {
     /// Six independent local phase processes.
     Independent,
@@ -217,6 +217,29 @@ pub struct SixLegTrace {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoordinationAbstentionReason {
+    PoorAbsoluteFit,
+    InsufficientSeparation,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CoordinationSelection {
+    Selected {
+        model: CoordinationModel,
+        log_score: f64,
+        mean_log_density_per_phase: f64,
+        margin_over_runner_up: f64,
+    },
+    Abstained {
+        best_candidate: CoordinationModel,
+        reason: CoordinationAbstentionReason,
+        log_score: f64,
+        mean_log_density_per_phase: f64,
+        margin_over_runner_up: f64,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoordinationError {
     InvalidSampleCount,
     InvalidTimeStep,
@@ -237,6 +260,11 @@ pub enum CoordinationError {
     InsufficientActiveLegs,
     NonFiniteState,
     InvalidCoordinationThreshold,
+    InvalidScoreMargin,
+    InvalidAbsoluteFitThreshold,
+    InvalidObservationVariance,
+    EmptyModelCandidateSet,
+    DuplicateModelCandidate,
     InvalidRecoveryWindow,
     InvalidTraceLength,
     NonMonotonicTimestamp,
@@ -507,6 +535,128 @@ fn phase_derivative(
         *output_rate = rate;
     }
     derivative
+}
+
+/// Compare frozen known-parameter model-family predictions on a held-out
+/// post-intervention suffix.
+///
+/// Every candidate receives the same config and action schedule. Predictions
+/// are regenerated without access to the observed suffix; only afterward are
+/// circular phase residuals scored. This is a synthetic family-discrimination
+/// oracle, not a fitted biological model or general-purpose state estimator.
+///
+/// The absolute-fit threshold is average log density per observed phase
+/// coordinate and must be calibrated on independent controls at matching
+/// variance, horizon and preprocessing.
+pub fn select_coordination_model_open_set(
+    observed: &SixLegTrace,
+    candidates: &[CoordinationModel],
+    onset_sample: usize,
+    observation_variance: f64,
+    minimum_score_margin: f64,
+    minimum_mean_log_density_per_phase: f64,
+) -> Result<CoordinationSelection, CoordinationError> {
+    if candidates.len() < 2 {
+        return Err(CoordinationError::EmptyModelCandidateSet);
+    }
+    if onset_sample >= observed.samples.len() {
+        return Err(CoordinationError::InvalidInterventionIndex);
+    }
+    if !observation_variance.is_finite() || observation_variance <= 0.0 {
+        return Err(CoordinationError::InvalidObservationVariance);
+    }
+    if !minimum_score_margin.is_finite() || minimum_score_margin < 0.0 {
+        return Err(CoordinationError::InvalidScoreMargin);
+    }
+    if !minimum_mean_log_density_per_phase.is_finite() {
+        return Err(CoordinationError::InvalidAbsoluteFitThreshold);
+    }
+    validate_trace(&observed.samples)?;
+
+    let mut seen = BTreeMap::new();
+    let mut scores = Vec::with_capacity(candidates.len());
+    for candidate in candidates {
+        if seen.insert(*candidate, ()).is_some() {
+            return Err(CoordinationError::DuplicateModelCandidate);
+        }
+
+        // Each prediction is generated from the same immutable configuration
+        // and intervention receipt stored in the observed synthetic trace.
+        let forecast = simulate(observed.config, *candidate, &observed.interventions)?;
+        let mut log_score = 0.0;
+        let mut observed_coordinates = 0_usize;
+
+        for index in onset_sample..observed.samples.len() {
+            let actual = &observed.samples[index];
+            let predicted = &forecast.samples[index];
+            if actual.timestamp != predicted.timestamp
+                || actual.enabled != predicted.enabled
+                || actual.feedback_enabled != predicted.feedback_enabled
+            {
+                return Err(CoordinationError::InvalidTraceLength);
+            }
+
+            for leg_index in 0..LEG_COUNT {
+                if !actual.enabled[leg_index] {
+                    continue;
+                }
+                let residual = wrap_angle(
+                    actual.phases[leg_index] - predicted.phases[leg_index],
+                );
+                log_score += -0.5
+                    * ((2.0 * std::f64::consts::PI * observation_variance).ln()
+                        + residual * residual / observation_variance);
+                observed_coordinates += 1;
+            }
+        }
+
+        if observed_coordinates == 0 || !log_score.is_finite() {
+            return Err(CoordinationError::InsufficientActiveLegs);
+        }
+        let mean_log_density = log_score / observed_coordinates as f64;
+        if !mean_log_density.is_finite() {
+            return Err(CoordinationError::NonFiniteState);
+        }
+        scores.push((*candidate, log_score, mean_log_density));
+    }
+
+    scores.sort_by(|left, right| {
+        right
+            .1
+            .total_cmp(&left.1)
+            .then_with(|| left.0.cmp(&right.0))
+    });
+    let best = scores[0];
+    let runner_up = scores[1];
+    let margin = best.1 - runner_up.1;
+    if !margin.is_finite() {
+        return Err(CoordinationError::NonFiniteState);
+    }
+
+    if best.2 < minimum_mean_log_density_per_phase {
+        Ok(CoordinationSelection::Abstained {
+            best_candidate: best.0,
+            reason: CoordinationAbstentionReason::PoorAbsoluteFit,
+            log_score: best.1,
+            mean_log_density_per_phase: best.2,
+            margin_over_runner_up: margin,
+        })
+    } else if margin <= minimum_score_margin {
+        Ok(CoordinationSelection::Abstained {
+            best_candidate: best.0,
+            reason: CoordinationAbstentionReason::InsufficientSeparation,
+            log_score: best.1,
+            mean_log_density_per_phase: best.2,
+            margin_over_runner_up: margin,
+        })
+    } else {
+        Ok(CoordinationSelection::Selected {
+            model: best.0,
+            log_score: best.1,
+            mean_log_density_per_phase: best.2,
+            margin_over_runner_up: margin,
+        })
+    }
 }
 
 /// Compute phase coordination relative to a declared phase-offset pattern.
@@ -1129,6 +1279,105 @@ mod tests {
             ),
             Err(CoordinationError::CouplingEdgeAbsent)
         );
+    }
+
+    #[test]
+    fn held_out_feedback_cut_selects_the_feedback_only_model() {
+        let mut config = base_config();
+        config.natural_angular_frequencies = [0.0; LEG_COUNT];
+        config.feedback_delay_times = [0.0; LEG_COUNT];
+        let action = Intervention::FeedbackCut {
+            sample_index: 600,
+            leg: None,
+        };
+        let observed = simulate(config, CoordinationModel::FeedbackDriven, &[action]).unwrap();
+        let selected = select_coordination_model_open_set(
+            &observed,
+            &[
+                CoordinationModel::FeedbackDriven,
+                CoordinationModel::Hybrid,
+            ],
+            600,
+            0.0001,
+            0.0,
+            -10.0,
+        )
+        .unwrap();
+        assert!(matches!(
+            selected,
+            CoordinationSelection::Selected {
+                model: CoordinationModel::FeedbackDriven,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn identical_coordination_predictions_trigger_open_set_ambiguity_abstention() {
+        let config = base_config();
+        let observed = simulate(config, CoordinationModel::CentrallyCoupled, &[]).unwrap();
+        let decision = select_coordination_model_open_set(
+            &observed,
+            &[
+                CoordinationModel::CentrallyCoupled,
+                CoordinationModel::CentrallyCoupled,
+            ],
+            100,
+            0.01,
+            0.0,
+            -10.0,
+        );
+        assert_eq!(decision, Err(CoordinationError::DuplicateModelCandidate));
+    }
+
+    #[test]
+    fn open_set_coordination_gate_rejects_a_poor_fit_even_with_a_large_margin() {
+        let config = base_config();
+        let observed = simulate(config, CoordinationModel::CentrallyCoupled, &[]).unwrap();
+        let decision = select_coordination_model_open_set(
+            &observed,
+            &[
+                CoordinationModel::Independent,
+                CoordinationModel::FeedbackDriven,
+            ],
+            100,
+            0.0001,
+            0.0,
+            100.0,
+        )
+        .unwrap();
+        assert!(matches!(
+            decision,
+            CoordinationSelection::Abstained {
+                reason: CoordinationAbstentionReason::PoorAbsoluteFit,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn open_set_coordination_gate_distinguishes_ambiguity_from_poor_fit() {
+        let config = base_config();
+        let observed = simulate(config, CoordinationModel::CentrallyCoupled, &[]).unwrap();
+        let decision = select_coordination_model_open_set(
+            &observed,
+            &[
+                CoordinationModel::CentrallyCoupled,
+                CoordinationModel::Hybrid,
+            ],
+            100,
+            0.01,
+            f64::MAX,
+            -10.0,
+        )
+        .unwrap();
+        assert!(matches!(
+            decision,
+            CoordinationSelection::Abstained {
+                reason: CoordinationAbstentionReason::InsufficientSeparation,
+                ..
+            }
+        ));
     }
 
     #[test]
