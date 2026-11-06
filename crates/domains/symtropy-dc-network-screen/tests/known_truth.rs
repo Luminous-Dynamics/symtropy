@@ -384,7 +384,7 @@ fn explicit_mva_base_preserves_mw_flow_units() {
         &identity(),
         &model_1mva,
         &contract(false),
-        &[interval.clone()],
+        std::slice::from_ref(&interval),
         &[],
     )
     .unwrap();
@@ -445,7 +445,7 @@ fn pcc_identity_must_resolve_to_a_non_slack_bus_in_the_topology() {
         &unknown_pcc,
         &triangle(),
         &contract(false),
-        &[interval.clone()],
+        std::slice::from_ref(&interval),
         &[],
     )
     .unwrap_err();
