@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-EXPERIMENT-VALUE-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "decision_profile": {
+    "decision_profile_ref": "decision-profile:synthetic-excavation-regime-v1",
+    "decision_owner_ref": "decision-owner:synthetic-review-board",
+    "utility_validation_ref": "utility-validation:synthetic-only",
+    "utility_unit": "declared-net-benefit-points"
+  },
+  "states": [
+    {
+      "state_id": "transport-limited",
+      "prior_probability": 0.6,
+      "evidence": {
+        "evidence_role": "SIMULATION_ONLY",
+        "method_ref": "method:synthetic-prior",
+        "source_ref": "source:synthetic-prior"
+      }
+    },
+    {
+      "state_id": "fragmentation-limited",
+      "prior_probability": 0.4,
+      "evidence": {
+        "evidence_role": "SIMULATION_ONLY",
+        "method_ref": "method:synthetic-prior",
+        "source_ref": "source:synthetic-prior"
+      }
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "maintain-current",
+      "utilities": [
+        {
+          "state_id": "transport-limited",
+          "value": 0
+        },
+        {
+          "state_id": "fragmentation-limited",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "action_id": "improve-transport",
+      "utilities": [
+        {
+          "state_id": "transport-limited",
+          "value": 100
+        },
+        {
+          "state_id": "fragmentation-limited",
+          "value": -30
+        }
+      ]
+    },
+    {
+      "action_id": "change-fragmentation",
+      "utilities": [
+        {
+          "state_id": "transport-limited",
+          "value": -50
+        },
+        {
+          "state_id": "fragmentation-limited",
+          "value": 80
+        }
+      ]
+    }
+  ],
+  "experiments": [
+    {
+      "experiment_id": "pressure-differential-probe",
+      "cost": {
+        "value": 5,
+        "unit": "declared-net-benefit-points",
+        "boundary_ref": "cost-boundary:synthetic-laboratory-only",
+        "source_ref": "cost-source:synthetic-estimate"
+      },
+      "likelihood_evidence": {
+        "evidence_role": "SIMULATION_ONLY",
+        "method_ref": "method:synthetic-likelihood",
+        "source_ref": "source:synthetic-likelihood"
+      },
+      "outcomes": [
+        {
+          "outcome_id": "high-differential-pressure",
+          "likelihoods": [
+            {
+              "state_id": "transport-limited",
+              "probability": 0.8
+            },
+            {
+              "state_id": "fragmentation-limited",
+              "probability": 0.2
+            }
+          ]
+        },
+        {
+          "outcome_id": "normal-differential-pressure",
+          "likelihoods": [
+            {
+              "state_id": "transport-limited",
+              "probability": 0.2
+            },
+            {
+              "state_id": "fragmentation-limited",
+              "probability": 0.8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "experiment_id": "weak-discriminator-probe",
+      "cost": {
+        "value": 2,
+        "unit": "declared-net-benefit-points",
+        "boundary_ref": "cost-boundary:synthetic-laboratory-only",
+        "source_ref": "cost-source:synthetic-estimate"
+      },
+      "likelihood_evidence": {
+        "evidence_role": "SIMULATION_ONLY",
+        "method_ref": "method:synthetic-weak-likelihood",
+        "source_ref": "source:synthetic-weak-likelihood"
+      },
+      "outcomes": [
+        {
+          "outcome_id": "signal-positive",
+          "likelihoods": [
+            {
+              "state_id": "transport-limited",
+              "probability": 0.6
+            },
+            {
+              "state_id": "fragmentation-limited",
+              "probability": 0.4
+            }
+          ]
+        },
+        {
+          "outcome_id": "signal-negative",
+          "likelihoods": [
+            {
+              "state_id": "transport-limited",
+              "probability": 0.4
+            },
+            {
+              "state_id": "fragmentation-limited",
+              "probability": 0.6
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_policy": {
+    "minimum_net_evsi_to_continue": 1,
+    "remaining_budget": 10,
+    "budget_unit": "declared-net-benefit-points",
+    "maximum_experiments_remaining": 1,
+    "stop_consequence_ref": "stop-consequence:synthetic-defer-and-review",
+    "continue_authority_ref": "continue-authority:synthetic-human-review-required"
+  }
+}
