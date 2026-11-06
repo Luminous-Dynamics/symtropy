@@ -674,23 +674,22 @@ fn event_response_is_not_qualified_until_work_and_resource_recovery_are_reconcil
 #[test]
 fn event_cannot_qualify_without_at_least_one_recovery_interval() {
     let baseline = qualified_report();
-    let points = [
-        DispatchEventPoint::new(
-            "dispatch-1",
-            DispatchEventPhase::Dispatch,
-            "normal",
-            0,
-            0,
-            1_000,
-            100.0,
-            80.0,
-            0.0,
-            "pcc-dispatch-1",
-        ).unwrap(),
-    ];
+    let points = [DispatchEventPoint::new(
+        "dispatch-1",
+        DispatchEventPhase::Dispatch,
+        "normal",
+        0,
+        0,
+        1_000,
+        100.0,
+        80.0,
+        0.0,
+        "pcc-dispatch-1",
+    )
+    .unwrap()];
     let evidence = recovery_evidence(0, 1_000, 2_000, true);
-    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
-        .unwrap_err();
+    let error =
+        evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points).unwrap_err();
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::MissingRecoveryIntervals
@@ -712,7 +711,8 @@ fn interval_may_not_straddle_the_dispatch_end_boundary() {
             80.0,
             0.0,
             "pcc-straddles",
-        ).unwrap(),
+        )
+        .unwrap(),
         DispatchEventPoint::new(
             "recovery-1",
             DispatchEventPhase::Recovery,
@@ -724,11 +724,12 @@ fn interval_may_not_straddle_the_dispatch_end_boundary() {
             100.0,
             0.0,
             "pcc-recovery-1",
-        ).unwrap(),
+        )
+        .unwrap(),
     ];
     let evidence = recovery_evidence(0, 1_000, 3_000, true);
-    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
-        .unwrap_err();
+    let error =
+        evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points).unwrap_err();
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::EventIntervalStraddlesDispatchEnd { .. }
@@ -750,7 +751,8 @@ fn observed_trace_must_reach_the_pinned_recovery_horizon_end() {
             80.0,
             0.0,
             "pcc-dispatch-1",
-        ).unwrap(),
+        )
+        .unwrap(),
         DispatchEventPoint::new(
             "recovery-1",
             DispatchEventPhase::Recovery,
@@ -762,11 +764,12 @@ fn observed_trace_must_reach_the_pinned_recovery_horizon_end() {
             100.0,
             0.0,
             "pcc-recovery-1",
-        ).unwrap(),
+        )
+        .unwrap(),
     ];
     let evidence = recovery_evidence(0, 1_000, 3_000, true);
-    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
-        .unwrap_err();
+    let error =
+        evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points).unwrap_err();
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::EventHorizonEndMismatch { .. }
@@ -788,7 +791,8 @@ fn dispatch_intervals_cannot_resume_after_recovery_has_started() {
             80.0,
             0.0,
             "pcc-dispatch-1",
-        ).unwrap(),
+        )
+        .unwrap(),
         DispatchEventPoint::new(
             "recovery-1",
             DispatchEventPhase::Recovery,
@@ -800,7 +804,8 @@ fn dispatch_intervals_cannot_resume_after_recovery_has_started() {
             100.0,
             0.0,
             "pcc-recovery-1",
-        ).unwrap(),
+        )
+        .unwrap(),
         DispatchEventPoint::new(
             "dispatch-2",
             DispatchEventPhase::Dispatch,
@@ -812,11 +817,12 @@ fn dispatch_intervals_cannot_resume_after_recovery_has_started() {
             80.0,
             0.0,
             "pcc-dispatch-2",
-        ).unwrap(),
+        )
+        .unwrap(),
     ];
     let evidence = recovery_evidence(0, 1_000, 3_000, true);
-    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
-        .unwrap_err();
+    let error =
+        evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points).unwrap_err();
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::DispatchRecoveryPhaseOrderViolation { .. }
