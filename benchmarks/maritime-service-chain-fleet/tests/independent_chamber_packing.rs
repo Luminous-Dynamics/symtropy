@@ -4,10 +4,14 @@
 //! not reuse the production edge-coordinate candidate generator or overlap
 //! predicate.
 
+use maritime_service_chain_contract::{
+    CapacityWindow, Resource, ResourceKind, ResourceUnit, ResourceUse, TickWindow,
+};
 use maritime_service_chain_fleet::chamber_packing::{
     ChamberPackingResult, ChamberPlacement, ChamberSpec, PackingTermination, VesselFootprint,
     exact_chamber_packing,
 };
+use maritime_service_chain_fleet::{OperationPlacement, check_concurrent_capacity};
 
 fn reference_fits(
     chamber: &ChamberSpec,
@@ -231,4 +235,78 @@ fn complete_grid_fill_has_a_canonical_non_overlapping_witness() {
         }],
         &vessels
     ));
+}
+
+
+#[test]
+fn scalar_lockage_capacity_does_not_imply_physical_chamber_fit() {
+    let lock_resource = Resource {
+        resource_id: "lock-01".into(),
+        kind: ResourceKind::Lock,
+        capacity_unit: ResourceUnit::Lockages,
+        availability: vec![CapacityWindow {
+            window: TickWindow {
+                start_tick: 0,
+                end_tick: 10,
+            },
+            capacity: 2,
+        }],
+        evidence_ids: vec![],
+    };
+    let lockage_requests = vec![
+        OperationPlacement {
+            demand_id: "demand-a".into(),
+            participant_id: "participant-a".into(),
+            alternative_id: "alternative-a".into(),
+            segment_id: "lockage".into(),
+            start_tick: 1,
+            end_tick: 5,
+            resource_uses: vec![ResourceUse {
+                resource_id: "lock-01".into(),
+                amount: 1,
+                unit: ResourceUnit::Lockages,
+            }],
+        },
+        OperationPlacement {
+            demand_id: "demand-b".into(),
+            participant_id: "participant-b".into(),
+            alternative_id: "alternative-b".into(),
+            segment_id: "lockage".into(),
+            start_tick: 1,
+            end_tick: 5,
+            resource_uses: vec![ResourceUse {
+                resource_id: "lock-01".into(),
+                amount: 1,
+                unit: ResourceUnit::Lockages,
+            }],
+        },
+    ];
+
+    assert!(check_concurrent_capacity(&lock_resource, &lockage_requests));
+
+    let physical = exact_chamber_packing(
+        &[ChamberSpec {
+            chamber_id: "chamber-01".into(),
+            length_mm: 120,
+            width_mm: 30,
+            clearance_mm: 1,
+        }],
+        &[
+            VesselFootprint {
+                vessel_id: "vessel-a".into(),
+                length_mm: 100,
+                beam_mm: 20,
+            },
+            VesselFootprint {
+                vessel_id: "vessel-b".into(),
+                length_mm: 100,
+                beam_mm: 20,
+            },
+        ],
+        10_000,
+    )
+    .unwrap();
+
+    assert_eq!(physical.termination, PackingTermination::Infeasible);
+    assert!(physical.placements.is_empty());
 }
