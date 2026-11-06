@@ -2964,12 +2964,7 @@ mod tests {
     fn finite_hypothesis_eig_rejects_bad_priors_scenarios_and_duplicate_ids() {
         let mut hypotheses = [
             information_hypothesis("intrinsic", Mechanism::IntrinsicOscillator, config(), 0.5),
-            information_hypothesis(
-                "sensory",
-                Mechanism::SensoryFeedbackDriven,
-                config(),
-                0.5,
-            ),
+            information_hypothesis("sensory", Mechanism::SensoryFeedbackDriven, config(), 0.5),
         ];
         let candidates = [design_candidate(
             "feedback-cut",
@@ -3020,22 +3015,11 @@ mod tests {
         );
     }
 
-
     #[test]
     fn finite_hypothesis_eig_respects_nonuniform_prior_entropy_within_sampling_error() {
         let hypotheses = [
-            information_hypothesis(
-                "intrinsic",
-                Mechanism::IntrinsicOscillator,
-                config(),
-                0.9,
-            ),
-            information_hypothesis(
-                "sensory",
-                Mechanism::SensoryFeedbackDriven,
-                config(),
-                0.1,
-            ),
+            information_hypothesis("intrinsic", Mechanism::IntrinsicOscillator, config(), 0.9),
+            information_hypothesis("sensory", Mechanism::SensoryFeedbackDriven, config(), 0.1),
         ];
         let candidates = [design_candidate(
             "feedback-cut",
@@ -3065,12 +3049,7 @@ mod tests {
     #[test]
     fn finite_hypothesis_eig_selects_lower_cost_action_and_ignores_infeasible_candidates() {
         let hypotheses = [
-            information_hypothesis(
-                "intrinsic",
-                Mechanism::IntrinsicOscillator,
-                config(),
-                0.5,
-            ),
+            information_hypothesis("intrinsic", Mechanism::IntrinsicOscillator, config(), 0.5),
             information_hypothesis(
                 "sensory",
                 Mechanism::SensoryFeedbackDriven,
