@@ -209,3 +209,39 @@ Important ITTC findings for the programme:
 **Benchmark design consequence:** compare the output metric verifier and the physical model as separate subjects. The verifier can be assessed against hand-derived geometry and independent calculations. A simulator must be assessed against experimental time histories (and force/moment data where available), with calibration and hold-out cases kept separate. A green metric-oracle suite says nothing by itself about hydrodynamic model accuracy.
 
 No external dataset is copied into CI or treated as a mandatory fixture until source bytes, metadata, units, data-quality notes, provenance, licence and redistribution rights are reviewed and pinned. MITO 31 remains a transfer test because its hull class differs materially from merchant vessels.
+
+
+## 2026 commercial engineering and simulator comparators
+
+Public vendor material confirms that the incumbent market already has substantial capability. These are not weak baselines to caricature:
+
+| Provider / platform | Publicly stated scope | What Symtropy should compare or complement |
+|---|---|---|
+| MARIN + Deltares SHIPMA | Fast-time manoeuvring simulation for ports and fairways; autopilot with track-keeping and harbour-manoeuvring modes; turning, reverse sailing and berthing; tug/thruster allocation; design evaluation and possible later real-time simulator study | Matched repeatable channel/harbour manoeuvre cases, vessel-specific physics, tug interaction, channel/terminal design and engineering-study workflow |
+| MARIN aNySIM XMF | Time-domain nonlinear hydrodynamic/mechanical response for stationary offshore vessels and sailing ships; manoeuvring, sailing, mooring, operability and harsh-weather safety; verification against analytical solutions and validation against MARIN model tests, full-scale trials and other tools | Multi-physics reference arm and validation evidence; Symtropy should not pretend to replace this solver |
+| Kongsberg K-Sim Navigation | Real-time bridge/ship-handling simulation with hydrodynamic modelling, environmental/object interaction, instructor/debrief functions and DNV/STCW training configurations | Scenario and bridge-team integration, real-time behaviour and human-in-the-loop trials; not a direct metric-oracle substitute |
+| Wärtsilä NTPRO 7 | Current navigation/ship-handling training platform launched 21 Apr 2026; integrated bridge simulation, training and wider R&D/digital-simulation products | Human/operational workflows and real-time simulation integration; compare only with access to exact vessel models, scenarios and recorded outputs |
+| FORCE Technology vessel manoeuvring evaluation / SimFlex ShipYard | Captive PMM tests, selected free-sailing manoeuvres and early-design prediction results; standard turning, zig-zag and crash-stop outputs can inform simulator preparation | Reference-data and model-preparation chain; a suitable partner/reference provider rather than an assumed open benchmark |
+
+Vendor sources:
+- MARIN SHIPMA: https://www.marin.nl/en/about/facilities-and-tools/software/shipma
+- MARIN aNySIM XMF: https://www.marin.nl/en/about/facilities-and-tools/software/anysim
+- Kongsberg K-Sim Navigation: https://www.kongsbergmaritime.com/products/simulation/k-sim-navigation/
+- Wärtsilä NTPRO 7 launch (21 Apr 2026): https://www.wartsila.com/ind/media/news/21-04-2026-wartsila-launches-next-generation-simulation-platform-to-support-future-ready-maritime-training-3743424
+- FORCE Technology manoeuvring evaluation: https://forcetechnology.com/en/expertise/development-design-and-test/maritime-and-offshore-engineering/vessel-manoeuvring-evaluation
+
+**Important comparison boundary:** public product pages describe capabilities and marketed use cases, not independently comparable error distributions, exact vessel-model particulars, solver versions, calibration artefacts or benchmark outputs. A genuine head-to-head requires access to matched models, input decks, conditions, run settings and raw output. It is not defensible to infer that a vendor lacks a feature because it is not described publicly.
+
+### Our credible differentiation hypothesis
+
+Do not compete by claiming to have a better hydrodynamics engine than MARIN, Kongsberg, FORCE or Wärtsilä. Use them as specialist model/experiment/in-the-loop comparators.
+
+The potential Luminous advantage is at the **cross-system evidence and decision layer**:
+- preserve the exact chain from source data, rights, vessel configuration, model/calibration, run settings and raw solver output through normalization and independent re-computation;
+- distinguish experimental uncertainty, model-form error, numerical error and operational forecast uncertainty;
+- route each scenario to a model family shown adequate for that vessel/regime, with explicit abstention outside its demonstrated domain;
+- connect qualified physical envelopes to pilot/tug/channel/berth/port-call and onward freight decisions;
+- verify the optimizer independently and reconcile predicted versus realized outcomes;
+- produce machine-readable reasons, lineage and non-authority-limited decision receipts.
+
+This must be measured by reduced evidence-preparation/review effort, reproducibility, cross-tool interoperability, decision-regret reduction, service reliability and cost per qualified decision—not claimed from architecture diagrams.
