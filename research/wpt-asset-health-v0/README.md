@@ -96,3 +96,28 @@ These are programme targets, not standards or achieved results:
 ## Claim ceiling
 
 This is a schema, benchmark and software research specification. It does not establish field lifetime, hardware safety, standards compliance, predictive maintenance readiness or SOTA superiority. No energized high-power build, public-road operation or unapproved accelerated pavement test is authorized.
+
+## Time-to-event outcomes and survival evidence — 6 November 2026
+
+Condition observations and lifecycle outcomes are separate evidence types. A sensor reading at time (t) is not a failure event, and the end of a study is not automatically a failure. The lifecycle contract preserves three distinct outcomes:
+
+- `TARGET_FAILURE`: the declared target event occurred.
+- `RIGHT_CENSORED`: follow-up ended without observing the event.
+- `COMPETING_EVENT`: a different event ended the target-event observation process.
+
+The new `asset-lifecycle-outcome.schema.json` and `asset-lifecycle-outcomes.synthetic-example.json` define that outcome record independently of `asset-observation.schema.json`. The validator checks event/censor semantics, UTC-derived duration, first-event identity, provenance, and split isolation across asset, segment, material lot, installation, route and environmental-campaign groups. It does not estimate an RUL model.
+
+Measured outcomes require a source-record identity and raw-artifact digest; published measured outcomes require a source locator. Missing evidence is a validation failure, not a reason to infer event truth.
+
+### Executable validator
+
+Package: `tools/wpt-asset-health-contract`
+
+```sh
+cargo test --locked -p wpt-asset-health-contract
+```
+
+The package gate validates observation and lifecycle record contracts, synthetic scenario manifests and leakage controls. It is not a field-lifetime dataset or a predictive model. Synthetic test success cannot establish RUL calibration, discrimination, field lifetime, maintenance readiness, safety, or standards compliance.
+
+This current-main integration deliberately retains the newer observation schema and example already present on `main`, including its thermal-stimulus and exposure fields. The lifecycle outcome contract is additive; it does not replace or downgrade the condition-observation schema.
+
