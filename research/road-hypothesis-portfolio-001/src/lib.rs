@@ -924,7 +924,10 @@ fn evaluation_digest(
             hash_str(&mut h, &envelope.estimand_digest);
             hash_str(&mut h, &envelope.independent_unit_definition_digest);
             hash_opt_str(&mut h, envelope.assignment_protocol_digest.as_deref());
-            hash_opt_str(&mut h, envelope.identification_assumptions_digest.as_deref());
+            hash_opt_str(
+                &mut h,
+                envelope.identification_assumptions_digest.as_deref(),
+            );
             hash_u8(
                 &mut h,
                 match envelope.evidence_class {
@@ -1280,7 +1283,10 @@ fn assess_residual(
         || !evidence_identification_qualified
         || envelope.scope_digest != manifest.odd_scope_digest
         || envelope.estimand_digest.trim().is_empty()
-        || envelope.independent_unit_definition_digest.trim().is_empty()
+        || envelope
+            .independent_unit_definition_digest
+            .trim()
+            .is_empty()
         || envelope.evidence_digest.trim().is_empty()
         || envelope.calibration_protocol_digest.trim().is_empty()
     {
@@ -2188,7 +2194,8 @@ mod tests {
         let mut envelope = residual();
         envelope.evidence_class = ResidualEvidenceClass::QualifiedNaturalExperiment;
         envelope.assignment_protocol_digest = None;
-        envelope.identification_assumptions_digest = Some(d("natural-experiment-dag-overlap-sensitivity"));
+        envelope.identification_assumptions_digest =
+            Some(d("natural-experiment-dag-overlap-sensitivity"));
         let qualified = evaluate_portfolio(
             &manifest(),
             &d("odd-city-1"),
