@@ -268,7 +268,7 @@ The standalone crate `crates/domains/symtropy-rock-tool-response-bench/` impleme
 Current authored tests cover:
 - frozen three-mechanism fixture acceptance;
 - schema-version and empty-bundle rejection;
-- unique record/specimen/channel/artifact identity;
+- unique record/specimen/channel/artifact identity and artifact evidence-role consistency;
 - mechanism/configuration mismatch and unknown method fields;
 - artifact digest format and channel/artifact/source/parent references;
 - ATCP waveform artifact resolution;
@@ -290,7 +290,7 @@ The laser control distinction is explicit:
 
 This allows the physical mechanical control to be represented without claiming laser delivery.
 
-The current source contains **35 unit tests authored**. The exact command is:
+The current source contains **38 unit tests authored**. The exact command is:
 
 `cargo test --manifest-path crates/domains/symtropy-rock-tool-response-bench/Cargo.toml`
 
