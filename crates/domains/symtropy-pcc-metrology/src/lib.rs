@@ -966,8 +966,7 @@ pub fn evaluate_pcc_metrology(
             baseline_slew_bound * clock.baseline_clock_uncertainty_ns as f64 / 1_000_000_000.0;
         let candidate_time_bound_w =
             candidate_slew_bound * clock.candidate_clock_uncertainty_ns as f64 / 1_000_000_000.0;
-        let time_alignment_uncertainty_bound_w =
-            baseline_time_bound_w + candidate_time_bound_w;
+        let time_alignment_uncertainty_bound_w = baseline_time_bound_w + candidate_time_bound_w;
         if !time_alignment_uncertainty_bound_w.is_finite() {
             return Err(PccMetrologyError::NumericalOverflow(
                 "clock-time power uncertainty",
