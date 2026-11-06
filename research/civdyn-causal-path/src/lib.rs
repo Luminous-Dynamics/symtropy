@@ -683,8 +683,20 @@ impl CausalExperiment {
         if !close(
             self.treatment.initial_values[&self.intervention_variable_id],
             self.mechanism_ablation.arm.initial_values[&self.intervention_variable_id],
+        ) || !close(
+            self.treatment.final_values[&self.intervention_variable_id],
+            self.mechanism_ablation.arm.final_values[&self.intervention_variable_id],
         ) {
             return Err(CausalPathError::AblationChangedPrimaryIntervention);
+        }
+        if !close(
+            self.treatment.final_values[block_id],
+            self.treatment.initial_values[block_id],
+        ) || !close(
+            self.mechanism_ablation.arm.final_values[block_id],
+            self.mechanism_ablation.arm.initial_values[block_id],
+        ) {
+            return Err(CausalPathError::AblationSwitchStateChanged(block_id.to_owned()));
         }
         if close(
             self.mechanism_ablation.arm.final_values[mechanism_id],
@@ -842,6 +854,7 @@ pub enum CausalPathError {
     AblationExogenousSnapshotMismatch,
     AblationInitialStateMismatch,
     AblationChangedPrimaryIntervention,
+    AblationSwitchStateChanged(String),
     MechanismAblationDidNotBlock(String),
 }
 
@@ -982,6 +995,9 @@ impl fmt::Display for CausalPathError {
             }
             Self::AblationChangedPrimaryIntervention => {
                 write!(f, "mechanism ablation arm must preserve the primary intervention assignment")
+            }
+            Self::AblationSwitchStateChanged(id) => {
+                write!(f, "mechanism ablation switch {id} changed during the run")
             }
             Self::MechanismAblationDidNotBlock(id) => {
                 write!(f, "mechanism ablation did not suppress mediator {id} to its control value")
@@ -1257,6 +1273,20 @@ mod tests {
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::AblationInitialStateMismatch)
+        ));
+    }
+
+    #[test]
+    fn ablation_switch_assignment_must_remain_fixed_during_the_run() {
+        let mut invalid = experiment();
+        invalid
+            .mechanism_ablation
+            .arm
+            .final_values
+            .insert("mechanism_blocked".into(), 0.0);
+        assert!(matches!(
+            invalid.validate(),
+            Err(CausalPathError::AblationSwitchStateChanged(_))
         ));
     }
 
