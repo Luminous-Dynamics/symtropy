@@ -297,7 +297,6 @@ pub fn evaluate_case(case: &Value) -> Value {
 
     // Finite workcell capacities; shared demands use half-open time intervals.
     let mut capacities: BTreeMap<&str, f64> = BTreeMap::new();
-    let mut capacity_units = BTreeMap::new();
     for capacity in items(input, "resource_capacities") {
         let id = text(capacity, "id");
         let unit = text(capacity, "unit");
@@ -312,7 +311,6 @@ pub fn evaluate_case(case: &Value) -> Value {
         if capacities.insert(id, amount).is_some() {
             result.record(Disposition::Unsupported, "DUPLICATE_RESOURCE_CAPACITY_ID");
         }
-        capacity_units.insert(id, unit);
     }
 
     let mut work_package_ids = BTreeSet::new();
