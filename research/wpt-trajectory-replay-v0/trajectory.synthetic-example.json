@@ -9,7 +9,6 @@
   "trajectory_samples": [
     {
       "sample_id": "pose-000",
-      "timestamp_ms": 0,
       "x_mm": 0,
       "y_mm": -120,
       "z_mm": 180,
@@ -19,11 +18,11 @@
       "speed_mps": 2,
       "axle_load_n": 45000,
       "left_wheel_y_mm": -850,
-      "right_wheel_y_mm": 650
+      "right_wheel_y_mm": 650,
+      "timestamp_ns": 0
     },
     {
       "sample_id": "pose-001",
-      "timestamp_ms": 100,
       "x_mm": 200,
       "y_mm": -40,
       "z_mm": 181,
@@ -33,11 +32,11 @@
       "speed_mps": 2.1,
       "axle_load_n": 45000,
       "left_wheel_y_mm": -770,
-      "right_wheel_y_mm": 730
+      "right_wheel_y_mm": 730,
+      "timestamp_ns": 100000000
     },
     {
       "sample_id": "pose-002",
-      "timestamp_ms": 200,
       "x_mm": 410,
       "y_mm": 20,
       "z_mm": 182,
@@ -47,7 +46,8 @@
       "speed_mps": 2.1,
       "axle_load_n": 45000,
       "left_wheel_y_mm": -710,
-      "right_wheel_y_mm": 790
+      "right_wheel_y_mm": 790,
+      "timestamp_ns": 200000000
     }
   ],
   "electromagnetic_projections": [
@@ -62,9 +62,9 @@
       "coupling_ppm": 720000,
       "useful_power_w": 65000,
       "vehicle_dc_power_w": 71000,
-      "measurement_timestamp_ms": 0,
-      "clock_offset_ms": 0,
-      "clock_uncertainty_ms": 1
+      "measurement_timestamp_ns": 0,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
     },
     {
       "projection_id": "em-001",
@@ -77,9 +77,9 @@
       "coupling_ppm": 760000,
       "useful_power_w": 69000,
       "vehicle_dc_power_w": 75000,
-      "measurement_timestamp_ms": 100,
-      "clock_offset_ms": 0,
-      "clock_uncertainty_ms": 1
+      "measurement_timestamp_ns": 100000000,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
     },
     {
       "projection_id": "em-002",
@@ -92,9 +92,9 @@
       "coupling_ppm": 790000,
       "useful_power_w": 72000,
       "vehicle_dc_power_w": 78000,
-      "measurement_timestamp_ms": 200,
-      "clock_offset_ms": 0,
-      "clock_uncertainty_ms": 1
+      "measurement_timestamp_ns": 200000000,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
     }
   ],
   "pavement_projections": [
@@ -108,9 +108,9 @@
       "tensile_strain_microstrain": 185,
       "heat_flux_w_m2": 110,
       "interface_condition": "INTACT",
-      "measurement_timestamp_ms": 0,
-      "clock_offset_ms": 0,
-      "clock_uncertainty_ms": 1
+      "measurement_timestamp_ns": 0,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
     },
     {
       "projection_id": "road-001",
@@ -122,9 +122,9 @@
       "tensile_strain_microstrain": 192,
       "heat_flux_w_m2": 118,
       "interface_condition": "INTACT",
-      "measurement_timestamp_ms": 100,
-      "clock_offset_ms": 0,
-      "clock_uncertainty_ms": 1
+      "measurement_timestamp_ns": 100000000,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
     },
     {
       "projection_id": "road-002",
@@ -136,9 +136,9 @@
       "tensile_strain_microstrain": 205,
       "heat_flux_w_m2": 126,
       "interface_condition": "INTACT",
-      "measurement_timestamp_ms": 200,
-      "clock_offset_ms": 0,
-      "clock_uncertainty_ms": 1
+      "measurement_timestamp_ns": 200000000,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
     }
   ]
 }
