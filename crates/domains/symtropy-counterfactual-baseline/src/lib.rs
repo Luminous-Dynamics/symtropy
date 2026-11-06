@@ -1112,14 +1112,14 @@ pub fn evaluate_baseline_bounded_event(
                 point_id: point.point_id.clone(),
             });
         }
-        if let Some(expected_start_ns) = previous_end_ns {
-            if point.interval_start_ns != expected_start_ns {
-                return Err(BaselineQualificationError::NonContiguousEventIntervals {
-                    index,
-                    expected_start_ns,
-                    observed_start_ns: point.interval_start_ns,
-                });
-            }
+        if let Some(expected_start_ns) = previous_end_ns
+            && point.interval_start_ns != expected_start_ns
+        {
+            return Err(BaselineQualificationError::NonContiguousEventIntervals {
+                index,
+                expected_start_ns,
+                observed_start_ns: point.interval_start_ns,
+            });
         }
         let end_ns = point
             .interval_start_ns
