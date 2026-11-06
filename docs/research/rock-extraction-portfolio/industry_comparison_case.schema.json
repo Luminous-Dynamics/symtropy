@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/industry-comparison-case-v0.1.json",
+  "title": "Symtropy Industry Comparison Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "comparison_profile",
+    "records",
+    "requested_pairs"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "machine_model_ref",
+        "manufacturer_ref",
+        "trial_id",
+        "metric_family",
+        "metric_definition_ref",
+        "display_name",
+        "value_lower",
+        "value_upper",
+        "unit",
+        "direction",
+        "numerator_basis_ref",
+        "denominator_basis_ref",
+        "operating_boundary_ref",
+        "task_profile_ref",
+        "geology_profile_ref",
+        "geometry_profile_ref",
+        "acceptance_profile_ref",
+        "comparison_protocol_ref",
+        "machine_configuration_class_ref",
+        "machine_configuration_ref",
+        "source_ref",
+        "source_class",
+        "published_at",
+        "value_semantics",
+        "uncertainty_status"
+      ],
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "machine_model_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "manufacturer_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "trial_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metric_family": {
+          "enum": [
+            "ADVANCE",
+            "VOLUME_RATE",
+            "DOWNTIME",
+            "POWER",
+            "ROCK_STRENGTH",
+            "ENERGY_INTENSITY",
+            "WEAR",
+            "AVAILABILITY",
+            "OTHER"
+          ]
+        },
+        "metric_definition_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "$ref": "#/$defs/ref"
+        },
+        "value_lower": {
+          "type": "number"
+        },
+        "value_upper": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "direction": {
+          "enum": [
+            "HIGHER_IS_BETTER",
+            "LOWER_IS_BETTER",
+            "REFERENCE_ONLY"
+          ]
+        },
+        "numerator_basis_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "denominator_basis_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operating_boundary_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "task_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "geology_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "geometry_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "acceptance_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "comparison_protocol_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "machine_configuration_class_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "machine_configuration_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_class": {
+          "enum": [
+            "INDEPENDENT_FIELD_TRIAL",
+            "PEER_REVIEWED_TRIAL",
+            "OPERATOR_REPORTED",
+            "MANUFACTURER_PUBLISHED",
+            "SECONDARY_REPORT",
+            "MARKETING_CAPABILITY",
+            "SYNTHETIC_CONFORMANCE"
+          ]
+        },
+        "published_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "value_semantics": {
+          "enum": [
+            "MEASURED_POINT",
+            "REPORTED_MEAN",
+            "REPORTED_LOWER_BOUND",
+            "REPORTED_UPPER_BOUND",
+            "MARKETING_CLAIM",
+            "TARGET_REFERENCE"
+          ]
+        },
+        "uncertainty_status": {
+          "enum": [
+            "QUANTIFIED",
+            "UNQUANTIFIED",
+            "NOT_APPLICABLE"
+          ]
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "record_a_id",
+        "record_b_id"
+      ],
+      "properties": {
+        "pair_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "record_a_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "record_b_id": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "PUBLIC_EVIDENCE_WITH_SYNTHETIC_CONTROLS",
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MEASURED"
+      ]
+    },
+    "comparison_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparison_profile_ref",
+        "decision_owner_ref",
+        "no_implicit_normalization"
+      ],
+      "properties": {
+        "comparison_profile_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "decision_owner_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "no_implicit_normalization": {
+          "const": true
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "requested_pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/pair"
+      }
+    }
+  }
+}
