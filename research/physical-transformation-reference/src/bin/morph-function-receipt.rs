@@ -442,7 +442,7 @@ fn run() -> Result<(), String> {
 
     println!(
         concat!(
-            "{{\"schema_version\":\"morph-function-receipt-v0.2\",",
+            "{{\"schema_version\":\"morph-function-receipt-v0.3\",",
             "\"benchmark_id\":\"MORPH-FUNCTION-001\",",
             "\"source_commit\":\"{}\",\"source_tree_sha\":\"{}\",",
             "\"request_sha256\":\"{}\",\"evidence_class\":\"synthetic\",",

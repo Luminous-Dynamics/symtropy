@@ -71,14 +71,14 @@ pub struct EquilibriumSummary {
     /// Applied loads plus support reactions; ideal static equilibrium is zero.
     pub net_force_residual_x_n: f64,
     pub net_force_residual_y_n: f64,
-    /// Moment reference point: center of the input geometry bounding box (metres).
+    /// Moment reference point: member-length-weighted centroid of truss centerlines (metres).
     pub moment_reference_x_m: f64,
     pub moment_reference_y_m: f64,
-    /// Geometry bounding-box diagonal used as characteristic length (metres).
+    /// Maximum pairwise Euclidean node distance (point-set diameter), in metres.
     pub characteristic_length_m: f64,
-    /// Moment about the recorded geometry bounding-box center, in N m.
+    /// Moment about the recorded centerline centroid, in N m.
     pub net_moment_residual_nm: f64,
-    /// Non-cancelling sum of absolute applied and support-reaction force components (N).
+    /// Sum of Euclidean magnitudes of applied and support-reaction force vectors (N).
     pub force_normalization_scale_n: f64,
     /// force_normalization_scale_n * characteristic_length_m (N m).
     pub moment_normalization_scale_nm: f64,
@@ -187,34 +187,8 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
         }
     }
 
-    // Normalize moments about the center of the geometry's bounding box.
-    // This keeps the moment residual independent of a global coordinate translation.
-    let min_x = nodes
-        .iter()
-        .map(|node| node.x_m)
-        .fold(f64::INFINITY, f64::min);
-    let max_x = nodes
-        .iter()
-        .map(|node| node.x_m)
-        .fold(f64::NEG_INFINITY, f64::max);
-    let min_y = nodes
-        .iter()
-        .map(|node| node.y_m)
-        .fold(f64::INFINITY, f64::min);
-    let max_y = nodes
-        .iter()
-        .map(|node| node.y_m)
-        .fold(f64::NEG_INFINITY, f64::max);
-    let extent_x_m = max_x - min_x;
-    let extent_y_m = max_y - min_y;
-    require_finite(extent_x_m, "truss x extent")?;
-    require_finite(extent_y_m, "truss y extent")?;
-    let moment_reference_x_m = min_x + extent_x_m * 0.5;
-    let moment_reference_y_m = min_y + extent_y_m * 0.5;
-    require_finite(moment_reference_x_m, "moment reference x")?;
-    require_finite(moment_reference_y_m, "moment reference y")?;
-    let characteristic_length_m = extent_x_m.hypot(extent_y_m);
-    require_positive_finite(characteristic_length_m, "truss characteristic length")?;
+    let (moment_reference_x_m, moment_reference_y_m, characteristic_length_m) =
+        reference_geometry(&nodes, &bar_geometry)?;
 
     let dof_count = nodes
         .len()
@@ -287,14 +261,14 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     let mut reaction_sum_x = 0.0_f64;
     let mut reaction_sum_y = 0.0_f64;
     let mut reaction_moment = 0.0_f64;
-    let mut sum_abs_applied_force_n = 0.0_f64;
-    let mut sum_abs_reaction_force_n = 0.0_f64;
+    let mut sum_applied_force_magnitudes_n = 0.0_f64;
+    let mut sum_reaction_force_magnitudes_n = 0.0_f64;
     let mut applied_sum_x = 0.0_f64;
     let mut applied_sum_y = 0.0_f64;
     let mut applied_moment = 0.0_f64;
 
     for (index, node) in nodes.iter().enumerate() {
-        sum_abs_applied_force_n += node.force_x_n.abs() + node.force_y_n.abs();
+        sum_applied_force_magnitudes_n += node.force_x_n.hypot(node.force_y_n);
         applied_sum_x += node.force_x_n;
         applied_sum_y += node.force_y_n;
         let relative_x_m = node.x_m - moment_reference_x_m;
@@ -324,7 +298,7 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
 
         let reaction_x_value = reaction_x.unwrap_or(0.0);
         let reaction_y_value = reaction_y.unwrap_or(0.0);
-        sum_abs_reaction_force_n += reaction_x_value.abs() + reaction_y_value.abs();
+        sum_reaction_force_magnitudes_n += reaction_x_value.hypot(reaction_y_value);
         let reaction_node_moment =
             relative_x_m * reaction_y_value - relative_y_m * reaction_x_value;
         require_finite(reaction_node_moment, "support reaction moment")?;
@@ -346,12 +320,12 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     require_finite(applied_moment, "sum of applied moments")?;
     require_finite(reaction_moment, "sum of support moments")?;
     require_finite(
-        sum_abs_applied_force_n,
-        "sum of absolute applied force components",
+        sum_applied_force_magnitudes_n,
+        "sum of applied force-vector magnitudes",
     )?;
     require_finite(
-        sum_abs_reaction_force_n,
-        "sum of absolute support reaction components",
+        sum_reaction_force_magnitudes_n,
+        "sum of support reaction-vector magnitudes",
     )?;
 
     let net_force_x = applied_sum_x + reaction_sum_x;
@@ -361,9 +335,10 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     require_finite(net_force_y, "net y-force residual")?;
     require_finite(net_moment, "net moment residual")?;
 
-    // Sum of absolute component magnitudes is non-cancelling and homogeneous
-    // in force units. No fixed 1 N floor is permitted.
-    let force_scale = sum_abs_applied_force_n + sum_abs_reaction_force_n;
+    // Vector magnitudes are non-cancelling, homogeneous in force units and
+    // invariant under orthogonal coordinate transformations. No fixed 1 N
+    // floor is permitted.
+    let force_scale = sum_applied_force_magnitudes_n + sum_reaction_force_magnitudes_n;
     require_finite(force_scale, "force normalization scale")?;
     let normalized_force_residual = normalized_residual(
         net_force_x.hypot(net_force_y),
@@ -381,42 +356,41 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
     let normalized_moment_residual =
         normalized_residual(net_moment.abs(), moment_scale, "global moment residual")?;
 
-    // Normwise backward error for K_ff u_f = F_f:
-    // ||K_ff u_f - F_f||_inf / (||K_ff||_inf ||u_f||_inf + ||F_f||_inf).
-    let mut free_stiffness_inf_norm = 0.0_f64;
+    // Orthogonally invariant normwise backward error for K_ff u_f = F_f:
+    // ||K_ff u_f - F_f||_2 / (||K_ff||_F ||u_f||_2 + ||F_f||_2).
+    // Stable hypot accumulation avoids squaring large intermediate values.
+    let mut free_stiffness_frobenius_norm = 0.0_f64;
     for row in &free_dofs {
-        let mut row_sum = 0.0_f64;
         for column in &free_dofs {
-            row_sum += stiffness[*row][*column].abs();
-            require_finite(row_sum, "free-DOF stiffness row sum")?;
+            free_stiffness_frobenius_norm =
+                free_stiffness_frobenius_norm.hypot(stiffness[*row][*column]);
         }
-        free_stiffness_inf_norm = free_stiffness_inf_norm.max(row_sum);
     }
-    let free_displacement_inf_norm = free_dofs
-        .iter()
-        .map(|dof| displacement[*dof].abs())
-        .fold(0.0_f64, f64::max);
-    let free_load_inf_norm = free_dofs
-        .iter()
-        .map(|dof| loads[*dof].abs())
-        .fold(0.0_f64, f64::max);
-    let stiffness_displacement_scale = free_stiffness_inf_norm * free_displacement_inf_norm;
+    let mut free_displacement_l2_norm = 0.0_f64;
+    let mut free_load_l2_norm = 0.0_f64;
+    let mut free_residual_l2_norm = 0.0_f64;
+    for dof in &free_dofs {
+        free_displacement_l2_norm = free_displacement_l2_norm.hypot(displacement[*dof]);
+        free_load_l2_norm = free_load_l2_norm.hypot(loads[*dof]);
+        free_residual_l2_norm = free_residual_l2_norm.hypot(internal[*dof] - loads[*dof]);
+    }
+    let stiffness_displacement_scale = free_stiffness_frobenius_norm * free_displacement_l2_norm;
     require_finite(
         stiffness_displacement_scale,
         "free-DOF stiffness-displacement scale",
     )?;
-    if free_stiffness_inf_norm > 0.0
-        && free_displacement_inf_norm > 0.0
+    if free_stiffness_frobenius_norm > 0.0
+        && free_displacement_l2_norm > 0.0
         && stiffness_displacement_scale == 0.0
     {
         return Err(
             "free-DOF stiffness-displacement scale underflowed; residual is unresolved".to_owned(),
         );
     }
-    let free_dof_scale = stiffness_displacement_scale + free_load_inf_norm;
+    let free_dof_scale = stiffness_displacement_scale + free_load_l2_norm;
     require_finite(free_dof_scale, "free-DOF backward-error scale")?;
     let normalized_free_dof_residual = normalized_residual(
-        max_free_dof_residual_n,
+        free_residual_l2_norm,
         free_dof_scale,
         "free-DOF backward error",
     )?;
@@ -491,6 +465,88 @@ struct BarGeometry {
     cosine: f64,
     sine: f64,
     axial_stiffness: f64,
+}
+
+/// Return the member-length-weighted centroid of the truss centerlines and
+/// the node-set diameter. The linework centroid is rigid-motion covariant and,
+/// unlike an unweighted node centroid, is unchanged when a member is split into
+/// collinear sub-members without changing the represented centerline geometry.
+fn reference_geometry(
+    nodes: &[TrussNode],
+    bar_geometry: &BTreeMap<String, BarGeometry>,
+) -> Check<(f64, f64, f64)> {
+    if nodes.is_empty() || bar_geometry.is_empty() {
+        return Err("reference geometry requires nodes and bars".to_owned());
+    }
+
+    let min_x = nodes
+        .iter()
+        .map(|node| node.x_m)
+        .fold(f64::INFINITY, f64::min);
+    let min_y = nodes
+        .iter()
+        .map(|node| node.y_m)
+        .fold(f64::INFINITY, f64::min);
+
+    let mut total_bar_length_m = 0.0_f64;
+    for geometry in bar_geometry.values() {
+        require_positive_finite(geometry.length, "reference bar length")?;
+        total_bar_length_m += geometry.length;
+        require_finite(total_bar_length_m, "total reference bar length")?;
+    }
+    require_positive_finite(total_bar_length_m, "total reference bar length")?;
+
+    let mut centroid_offset_x_m = 0.0_f64;
+    let mut centroid_offset_y_m = 0.0_f64;
+    for geometry in bar_geometry.values() {
+        let start = nodes
+            .get(geometry.i)
+            .ok_or_else(|| "reference bar start node index is invalid".to_owned())?;
+        let end = nodes
+            .get(geometry.j)
+            .ok_or_else(|| "reference bar end node index is invalid".to_owned())?;
+        let dx = end.x_m - start.x_m;
+        let dy = end.y_m - start.y_m;
+        require_finite(dx, "reference bar x delta")?;
+        require_finite(dy, "reference bar y delta")?;
+
+        // Work with offsets from the minimum coordinate rather than summing
+        // absolute coordinates, reducing overflow/cancellation risk.
+        let midpoint_offset_x_m = (start.x_m - min_x) + 0.5 * dx;
+        let midpoint_offset_y_m = (start.y_m - min_y) + 0.5 * dy;
+        require_finite(midpoint_offset_x_m, "reference bar midpoint x offset")?;
+        require_finite(midpoint_offset_y_m, "reference bar midpoint y offset")?;
+
+        let weight = geometry.length / total_bar_length_m;
+        centroid_offset_x_m += weight * midpoint_offset_x_m;
+        centroid_offset_y_m += weight * midpoint_offset_y_m;
+        require_finite(centroid_offset_x_m, "linework centroid x accumulation")?;
+        require_finite(centroid_offset_y_m, "linework centroid y accumulation")?;
+    }
+    let moment_reference_x_m = min_x + centroid_offset_x_m;
+    let moment_reference_y_m = min_y + centroid_offset_y_m;
+    require_finite(moment_reference_x_m, "moment reference x")?;
+    require_finite(moment_reference_y_m, "moment reference y")?;
+
+    // The maximum distance between nodes is also the diameter of the union of
+    // straight centerline segments: a convex distance maximum occurs at endpoints.
+    let mut characteristic_length_m = 0.0_f64;
+    for i in 0..nodes.len() {
+        for j in (i + 1)..nodes.len() {
+            let dx = nodes[i].x_m - nodes[j].x_m;
+            let dy = nodes[i].y_m - nodes[j].y_m;
+            require_finite(dx, "node-pair x separation")?;
+            require_finite(dy, "node-pair y separation")?;
+            characteristic_length_m = characteristic_length_m.max(dx.hypot(dy));
+        }
+    }
+    require_positive_finite(characteristic_length_m, "truss characteristic length")?;
+
+    Ok((
+        moment_reference_x_m,
+        moment_reference_y_m,
+        characteristic_length_m,
+    ))
 }
 
 fn assemble_bar_stiffness(stiffness: &mut [Vec<f64>], bar: &BarGeometry) -> Check<()> {
@@ -805,25 +861,25 @@ mod tests {
         );
         close(
             result.equilibrium.characteristic_length_m,
-            5.0_f64.sqrt(),
+            2.0,
             1.0e-15,
             "characteristic length",
         );
         close(
             result.equilibrium.force_normalization_scale_n,
-            3_000.0,
+            1_000.0 + 1_000.0 * 2.0_f64.sqrt(),
             1.0e-8,
             "force normalization scale",
         );
         close(
             result.equilibrium.moment_normalization_scale_nm,
-            3_000.0 * 5.0_f64.sqrt(),
+            (1_000.0 + 1_000.0 * 2.0_f64.sqrt()) * 2.0,
             1.0e-8,
             "moment normalization scale",
         );
         close(
             result.equilibrium.free_dof_backward_error_scale_n,
-            2_000.0,
+            1_000.0 + 1_000.0 * 2.0_f64.sqrt(),
             1.0e-6,
             "free-DOF backward-error scale",
         );
@@ -1154,6 +1210,579 @@ mod tests {
                 "geometric similarity free-DOF residual",
             );
         }
+    }
+
+    fn test_bar_geometry(
+        nodes: &[TrussNode],
+        edges: &[(&str, usize, usize)],
+    ) -> BTreeMap<String, BarGeometry> {
+        let mut geometry = BTreeMap::new();
+        for (id, i, j) in edges {
+            let dx = nodes[*j].x_m - nodes[*i].x_m;
+            let dy = nodes[*j].y_m - nodes[*i].y_m;
+            let length = dx.hypot(dy);
+            geometry.insert(
+                (*id).to_owned(),
+                BarGeometry {
+                    i: *i,
+                    j: *j,
+                    length,
+                    cosine: dx / length,
+                    sine: dy / length,
+                    axial_stiffness: 1.0,
+                },
+            );
+        }
+        geometry
+    }
+
+    fn geometry_test_node(id: &str, x_m: f64, y_m: f64) -> TrussNode {
+        TrussNode {
+            id: id.to_owned(),
+            x_m,
+            y_m,
+            restrained_x: false,
+            restrained_y: false,
+            force_x_n: 0.0,
+            force_y_n: 0.0,
+        }
+    }
+
+    #[test]
+    fn linework_reference_is_rigid_motion_covariant_and_subdivision_invariant() {
+        let nodes = vec![
+            geometry_test_node("A", 0.0, 0.0),
+            geometry_test_node("B", 4.0, 0.0),
+            geometry_test_node("C", 4.0, 1.0),
+            geometry_test_node("D", 0.0, 3.0),
+        ];
+        let edges = [
+            ("AB", 0, 1),
+            ("BC", 1, 2),
+            ("CD", 2, 3),
+            ("DA", 3, 0),
+            ("AC", 0, 2),
+        ];
+        let base_geometry = test_bar_geometry(&nodes, &edges);
+        let (base_x, base_y, base_diameter) =
+            reference_geometry(&nodes, &base_geometry).expect("base linework reference");
+        close(base_diameter, 5.0, 1.0e-12, "asymmetric point-set diameter");
+
+        // The reference point must transform with a rigid rotation and translation.
+        let angle = 37.0_f64.to_radians();
+        let (sin, cos) = angle.sin_cos();
+        let mut transformed_nodes = nodes.clone();
+        for node in &mut transformed_nodes {
+            let x = node.x_m;
+            let y = node.y_m;
+            node.x_m = cos * x - sin * y + 17.0;
+            node.y_m = sin * x + cos * y - 9.0;
+        }
+        let transformed_geometry = test_bar_geometry(&transformed_nodes, &edges);
+        let (transformed_x, transformed_y, transformed_diameter) =
+            reference_geometry(&transformed_nodes, &transformed_geometry)
+                .expect("transformed linework reference");
+        close(
+            transformed_x,
+            cos * base_x - sin * base_y + 17.0,
+            1.0e-12,
+            "rigidly transformed linework centroid x",
+        );
+        close(
+            transformed_y,
+            sin * base_x + cos * base_y - 9.0,
+            1.0e-12,
+            "rigidly transformed linework centroid y",
+        );
+        close(
+            transformed_diameter,
+            base_diameter,
+            1.0e-12,
+            "rigid-motion-invariant asymmetric diameter",
+        );
+
+        // Splitting AB at its midpoint changes node count, not the represented
+        // centerline measure. The length-weighted centroid must therefore stay fixed.
+        let mut split_nodes = nodes.clone();
+        split_nodes.push(geometry_test_node("M", 2.0, 0.0));
+        let split_edges = [
+            ("AM", 0, 4),
+            ("MB", 4, 1),
+            ("BC", 1, 2),
+            ("CD", 2, 3),
+            ("DA", 3, 0),
+            ("AC", 0, 2),
+        ];
+        let split_geometry = test_bar_geometry(&split_nodes, &split_edges);
+        let (split_x, split_y, split_diameter) = reference_geometry(&split_nodes, &split_geometry)
+            .expect("subdivided linework reference");
+        close(split_x, base_x, 1.0e-12, "subdivision-invariant centroid x");
+        close(split_y, base_y, 1.0e-12, "subdivision-invariant centroid y");
+        close(
+            split_diameter,
+            base_diameter,
+            1.0e-12,
+            "subdivision-invariant diameter",
+        );
+    }
+
+    #[test]
+    fn residual_scales_and_backward_error_are_invariant_under_global_rotation() {
+        let base_input = symmetric_two_bar_truss();
+        let base = solve(&base_input).expect("base truss");
+        let mut rotated_input = base_input.clone();
+        let angle = std::f64::consts::FRAC_PI_4;
+        let (sin, cos) = angle.sin_cos();
+        for node in &mut rotated_input.nodes {
+            let x = node.x_m;
+            let y = node.y_m;
+            let fx = node.force_x_n;
+            let fy = node.force_y_n;
+            node.x_m = cos * x - sin * y;
+            node.y_m = sin * x + cos * y;
+            node.force_x_n = cos * fx - sin * fy;
+            node.force_y_n = sin * fx + cos * fy;
+        }
+
+        let rotated = solve(&rotated_input).expect("rotated truss");
+        let expected_reference_x = cos * base.equilibrium.moment_reference_x_m
+            - sin * base.equilibrium.moment_reference_y_m;
+        let expected_reference_y = sin * base.equilibrium.moment_reference_x_m
+            + cos * base.equilibrium.moment_reference_y_m;
+        close(
+            rotated.equilibrium.moment_reference_x_m,
+            expected_reference_x,
+            1.0e-12,
+            "rotated centroid x",
+        );
+        close(
+            rotated.equilibrium.moment_reference_y_m,
+            expected_reference_y,
+            1.0e-12,
+            "rotated centroid y",
+        );
+        close(
+            rotated.equilibrium.characteristic_length_m,
+            base.equilibrium.characteristic_length_m,
+            1.0e-12,
+            "rotation-invariant point-set diameter",
+        );
+        close(
+            rotated.equilibrium.force_normalization_scale_n,
+            base.equilibrium.force_normalization_scale_n,
+            1.0e-9,
+            "rotation-invariant force scale",
+        );
+        close(
+            rotated.equilibrium.moment_normalization_scale_nm,
+            base.equilibrium.moment_normalization_scale_nm,
+            1.0e-9,
+            "rotation-invariant moment scale",
+        );
+        close(
+            rotated.equilibrium.free_dof_backward_error_scale_n,
+            base.equilibrium.free_dof_backward_error_scale_n,
+            1.0e-8,
+            "rotation-invariant free-DOF backward-error scale",
+        );
+        for (name, actual, expected) in [
+            (
+                "force residual",
+                rotated.equilibrium.normalized_force_residual,
+                base.equilibrium.normalized_force_residual,
+            ),
+            (
+                "moment residual",
+                rotated.equilibrium.normalized_moment_residual,
+                base.equilibrium.normalized_moment_residual,
+            ),
+            (
+                "free-DOF backward error",
+                rotated.equilibrium.normalized_free_dof_residual,
+                base.equilibrium.normalized_free_dof_residual,
+            ),
+        ] {
+            let tolerance = 1.0e-12_f64.max(expected.abs() * 1.0e-10);
+            close(actual, expected, tolerance, name);
+        }
+
+        let base_apex = node(&base, "apex");
+        let rotated_apex = node(&rotated, "apex");
+        close(
+            rotated_apex.displacement_x_m,
+            cos * base_apex.displacement_x_m - sin * base_apex.displacement_y_m,
+            1.0e-12,
+            "rotated apex displacement x",
+        );
+        close(
+            rotated_apex.displacement_y_m,
+            sin * base_apex.displacement_x_m + cos * base_apex.displacement_y_m,
+            1.0e-12,
+            "rotated apex displacement y",
+        );
+    }
+
+    #[test]
+    fn asymmetric_non_square_geometry_scales_are_rotation_invariant() {
+        let input = PlanarTrussInput {
+            nodes: vec![
+                TrussNode {
+                    id: "A".to_owned(),
+                    x_m: 0.0,
+                    y_m: 0.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+                TrussNode {
+                    id: "B".to_owned(),
+                    x_m: 4.0,
+                    y_m: 0.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+                TrussNode {
+                    id: "C".to_owned(),
+                    x_m: 1.0,
+                    y_m: 1.0,
+                    restrained_x: false,
+                    restrained_y: false,
+                    force_x_n: 200.0,
+                    force_y_n: -500.0,
+                },
+                TrussNode {
+                    id: "D".to_owned(),
+                    x_m: 3.0,
+                    y_m: 2.0,
+                    restrained_x: false,
+                    restrained_y: false,
+                    force_x_n: -100.0,
+                    force_y_n: 250.0,
+                },
+            ],
+            bars: vec![
+                TrussBar {
+                    id: "AB".to_owned(),
+                    node_i: "A".to_owned(),
+                    node_j: "B".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "AC".to_owned(),
+                    node_i: "A".to_owned(),
+                    node_j: "C".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "BC".to_owned(),
+                    node_i: "B".to_owned(),
+                    node_j: "C".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "BD".to_owned(),
+                    node_i: "B".to_owned(),
+                    node_j: "D".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "CD".to_owned(),
+                    node_i: "C".to_owned(),
+                    node_j: "D".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+            ],
+        };
+        let base = solve(&input).expect("asymmetric non-square truss");
+        close(
+            base.equilibrium.characteristic_length_m,
+            4.0,
+            1.0e-12,
+            "asymmetric geometry point-set diameter",
+        );
+
+        let angle = std::f64::consts::FRAC_PI_4;
+        let (sin, cos) = angle.sin_cos();
+        let mut rotated_input = input.clone();
+        for node in &mut rotated_input.nodes {
+            let x = node.x_m;
+            let y = node.y_m;
+            let fx = node.force_x_n;
+            let fy = node.force_y_n;
+            node.x_m = cos * x - sin * y;
+            node.y_m = sin * x + cos * y;
+            node.force_x_n = cos * fx - sin * fy;
+            node.force_y_n = sin * fx + cos * fy;
+        }
+        let rotated = solve(&rotated_input).expect("rotated asymmetric non-square truss");
+
+        let expected_centroid_x = cos * base.equilibrium.moment_reference_x_m
+            - sin * base.equilibrium.moment_reference_y_m;
+        let expected_centroid_y = sin * base.equilibrium.moment_reference_x_m
+            + cos * base.equilibrium.moment_reference_y_m;
+        close(
+            rotated.equilibrium.moment_reference_x_m,
+            expected_centroid_x,
+            1.0e-12,
+            "asymmetric rotated centroid x",
+        );
+        close(
+            rotated.equilibrium.moment_reference_y_m,
+            expected_centroid_y,
+            1.0e-12,
+            "asymmetric rotated centroid y",
+        );
+        for (name, actual, expected) in [
+            (
+                "asymmetric diameter",
+                rotated.equilibrium.characteristic_length_m,
+                base.equilibrium.characteristic_length_m,
+            ),
+            (
+                "asymmetric force scale",
+                rotated.equilibrium.force_normalization_scale_n,
+                base.equilibrium.force_normalization_scale_n,
+            ),
+            (
+                "asymmetric moment scale",
+                rotated.equilibrium.moment_normalization_scale_nm,
+                base.equilibrium.moment_normalization_scale_nm,
+            ),
+            (
+                "asymmetric backward-error scale",
+                rotated.equilibrium.free_dof_backward_error_scale_n,
+                base.equilibrium.free_dof_backward_error_scale_n,
+            ),
+        ] {
+            close(
+                actual,
+                expected,
+                1.0e-7_f64.max(expected.abs() * 1.0e-10),
+                name,
+            );
+        }
+        for (name, actual, expected) in [
+            (
+                "asymmetric force residual",
+                rotated.equilibrium.normalized_force_residual,
+                base.equilibrium.normalized_force_residual,
+            ),
+            (
+                "asymmetric moment residual",
+                rotated.equilibrium.normalized_moment_residual,
+                base.equilibrium.normalized_moment_residual,
+            ),
+            (
+                "asymmetric backward error",
+                rotated.equilibrium.normalized_free_dof_residual,
+                base.equilibrium.normalized_free_dof_residual,
+            ),
+        ] {
+            close(
+                actual,
+                expected,
+                1.0e-10_f64.max(expected.abs() * 1.0e-8),
+                name,
+            );
+        }
+
+        for id in ["C", "D"] {
+            let before = node(&base, id);
+            let after = node(&rotated, id);
+            close(
+                after.displacement_x_m,
+                cos * before.displacement_x_m - sin * before.displacement_y_m,
+                1.0e-12,
+                &format!("{id} rotated displacement x"),
+            );
+            close(
+                after.displacement_y_m,
+                sin * before.displacement_x_m + cos * before.displacement_y_m,
+                1.0e-12,
+                &format!("{id} rotated displacement y"),
+            );
+        }
+    }
+
+    #[test]
+    fn four_by_one_rectangle_diameter_is_rotation_invariant() {
+        let input = PlanarTrussInput {
+            nodes: vec![
+                TrussNode {
+                    id: "A".to_owned(),
+                    x_m: 0.0,
+                    y_m: 0.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 100.0,
+                    force_y_n: 30.0,
+                },
+                TrussNode {
+                    id: "B".to_owned(),
+                    x_m: 4.0,
+                    y_m: 0.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+                TrussNode {
+                    id: "C".to_owned(),
+                    x_m: 4.0,
+                    y_m: 1.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+                TrussNode {
+                    id: "D".to_owned(),
+                    x_m: 0.0,
+                    y_m: 1.0,
+                    restrained_x: true,
+                    restrained_y: true,
+                    force_x_n: 0.0,
+                    force_y_n: 0.0,
+                },
+            ],
+            bars: vec![
+                TrussBar {
+                    id: "AB".to_owned(),
+                    node_i: "A".to_owned(),
+                    node_j: "B".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "BC".to_owned(),
+                    node_i: "B".to_owned(),
+                    node_j: "C".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "CD".to_owned(),
+                    node_i: "C".to_owned(),
+                    node_j: "D".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+                TrussBar {
+                    id: "DA".to_owned(),
+                    node_i: "D".to_owned(),
+                    node_j: "A".to_owned(),
+                    area_m2: 0.01,
+                    youngs_modulus_pa: 200.0e9,
+                },
+            ],
+        };
+        let base = solve(&input).expect("4-by-1 rectangle");
+        let expected_diameter = 17.0_f64.sqrt();
+        close(
+            base.equilibrium.characteristic_length_m,
+            expected_diameter,
+            1.0e-12,
+            "4-by-1 rectangle point-set diameter",
+        );
+        close(
+            base.equilibrium.moment_reference_x_m,
+            2.0,
+            1.0e-12,
+            "4-by-1 rectangle centroid x",
+        );
+        close(
+            base.equilibrium.moment_reference_y_m,
+            0.5,
+            1.0e-12,
+            "4-by-1 rectangle centroid y",
+        );
+
+        let angle = std::f64::consts::FRAC_PI_4;
+        let (sin, cos) = angle.sin_cos();
+        let mut rotated_input = input;
+        for node in &mut rotated_input.nodes {
+            let x = node.x_m;
+            let y = node.y_m;
+            let fx = node.force_x_n;
+            let fy = node.force_y_n;
+            node.x_m = cos * x - sin * y;
+            node.y_m = sin * x + cos * y;
+            node.force_x_n = cos * fx - sin * fy;
+            node.force_y_n = sin * fx + cos * fy;
+        }
+        let rotated_min_x = rotated_input
+            .nodes
+            .iter()
+            .map(|node| node.x_m)
+            .fold(f64::INFINITY, f64::min);
+        let rotated_max_x = rotated_input
+            .nodes
+            .iter()
+            .map(|node| node.x_m)
+            .fold(f64::NEG_INFINITY, f64::max);
+        let rotated_min_y = rotated_input
+            .nodes
+            .iter()
+            .map(|node| node.y_m)
+            .fold(f64::INFINITY, f64::min);
+        let rotated_max_y = rotated_input
+            .nodes
+            .iter()
+            .map(|node| node.y_m)
+            .fold(f64::NEG_INFINITY, f64::max);
+        let legacy_rotated_bbox_diagonal =
+            (rotated_max_x - rotated_min_x).hypot(rotated_max_y - rotated_min_y);
+        close(
+            legacy_rotated_bbox_diagonal,
+            5.0,
+            1.0e-12,
+            "legacy axis-aligned bbox diagonal after rotation",
+        );
+        assert!(
+            (legacy_rotated_bbox_diagonal - expected_diameter).abs() > 0.5,
+            "the legacy bbox diagonal must expose the orientation-dependent counterexample"
+        );
+
+        let rotated = solve(&rotated_input).expect("rotated 4-by-1 rectangle");
+
+        close(
+            rotated.equilibrium.characteristic_length_m,
+            expected_diameter,
+            1.0e-12,
+            "rotated 4-by-1 rectangle point-set diameter",
+        );
+        close(
+            rotated.equilibrium.moment_reference_x_m,
+            cos * 2.0 - sin * 0.5,
+            1.0e-12,
+            "rotated 4-by-1 rectangle centroid x",
+        );
+        close(
+            rotated.equilibrium.moment_reference_y_m,
+            sin * 2.0 + cos * 0.5,
+            1.0e-12,
+            "rotated 4-by-1 rectangle centroid y",
+        );
+        close(
+            rotated.equilibrium.force_normalization_scale_n,
+            base.equilibrium.force_normalization_scale_n,
+            1.0e-10,
+            "rotated 4-by-1 rectangle force scale",
+        );
+        close(
+            rotated.equilibrium.moment_normalization_scale_nm,
+            base.equilibrium.moment_normalization_scale_nm,
+            1.0e-10,
+            "rotated 4-by-1 rectangle moment scale",
+        );
     }
 
     #[test]

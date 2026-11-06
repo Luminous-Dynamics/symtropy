@@ -112,7 +112,7 @@ jobs:
             --source-commit "$source_commit" --source-tree-sha "$source_tree_sha" > "$temp_dir/second.json"
           cmp "$temp_dir/first.json" "$temp_dir/second.json"
           jq -e --arg source_commit "$source_commit" --arg tree "$source_tree_sha" '
-            .schema_version == "morph-function-receipt-v0.2"
+            .schema_version == "morph-function-receipt-v0.3"
             and .benchmark_id == "MORPH-FUNCTION-001"
             and .source_commit == $source_commit
             and .source_tree_sha == $tree

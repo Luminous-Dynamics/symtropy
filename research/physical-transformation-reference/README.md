@@ -84,11 +84,11 @@ The implementation intentionally caps the dense reference at 128 nodes / 512 bar
 Offline research only. This crate cannot authorize or control demolition/construction equipment, certify a structure, interpret building codes, or predict collapse. Real-site decisions require validated physics, qualified engineering review, applicable approvals, and independently assessed hazard controls.
 
 
-## Morphology/function benchmark receipt v0.2
+## Morphology/function benchmark receipt v0.3
 
 The additive `morph-function-receipt` binary computes a request-bound JSON receipt for the synthetic square-truss function benchmark. It reuses the existing planar-truss solver; it does not introduce a second mechanics implementation.
 
-The frozen input contract remains `morph_function_request_v0_1.txt` (SHA-256 `18c78aa05c911dcb0b7566ac670565d27774cb73e82b46424fcaf420097a499e`). The receipt output schema is now `morph-function-receipt-v0.2`: it contains all per-case displacement vectors, member axial force/stress/strain, normalized equilibrium residuals, the bounding-box-center moment reference, characteristic length, all three normalization denominators, serviceability thresholds, and explicit expected mechanism rejections. This is an output-schema version change; the frozen request bytes are unchanged. It enumerates:
+The frozen input contract remains `morph_function_request_v0_1.txt` (SHA-256 `18c78aa05c911dcb0b7566ac670565d27774cb73e82b46424fcaf420097a499e`). The receipt output schema is now `morph-function-receipt-v0.3`: it contains all per-case displacement vectors, member axial force/stress/strain, normalized equilibrium residuals, the node-coordinate centroid moment reference, point-set diameter, all three normalization denominators, serviceability thresholds, and explicit expected mechanism rejections. This is an output-schema version change; the frozen request bytes are unchanged. It enumerates:
 
 - 5 load-envelope cases × (2 braced topologies + 1 unbraced mechanism control) = 15 dispositions;
 - 27 area/modulus/load parameter points × (2 braced topologies + 1 unbraced mechanism control) = 81 dispositions;
@@ -108,4 +108,17 @@ cargo run --locked \
   --source-tree-sha "$source_tree_sha"
 ```
 
-The dedicated workflow should be updated/reviewed to check the frozen request digest, exact source commit/tree, deterministic byte-for-byte replay, case census, per-case dispositions and residual gates for receipt schema v0.2. The new output includes the reference point and scales so residual values are independently interpretable. It uploads the receipt as a separate artifact. This benchmark remains limited to a synthetic 2D small-displacement, linear-elastic, pin-jointed axial-truss model; it does not establish physical validation, external benchmark reproduction, building-code compliance, or real-structure safety.
+The dedicated workflow checks the frozen request digest, exact source commit/tree, deterministic byte-for-byte replay, case census, per-case dispositions and residual gates for receipt schema v0.3. The new output includes the reference point and scales so residual values are independently interpretable. It uploads the receipt as a separate artifact. This benchmark remains limited to a synthetic 2D small-displacement, linear-elastic, pin-jointed axial-truss model; it does not establish physical validation, external benchmark reproduction, building-code compliance, or real-structure safety.
+
+
+### Rotation-covariant residual normalization (v0.3)
+
+The truss diagnostics now use:
+- Sum of Euclidean magnitudes of applied and support-reaction force vectors (rather than the coordinate-dependent sum of absolute Cartesian components).
+- Member-length-weighted centroid of the truss centerlines as the moment reference. Unlike an unweighted node centroid, it remains unchanged when a straight member is split into collinear sub-members; it also transforms covariantly under rigid motion.
+- Maximum pairwise Euclidean node distance as characteristic length (point-set diameter, independent of axis-aligned bounding-box orientation).
+- Euclidean residual/load/displacement norms with the Frobenius norm of the reduced stiffness matrix for the free-DOF backward error.
+
+The exact-head workflow now expects receipt schema `morph-function-receipt-v0.3`. The square morphology/function corpus retains its reference point (0.5, 0.5) and diameter (√2 m), so the frozen request bytes and analytic displacement values are unchanged. The schema version changes because the reference-point and normalization-scale conventions have changed.
+
+The planar-truss unit tests include a 45° rigid-rotation metamorphic control on a fixture whose support DOFs remain fully restrained/free under rotation, plus an asymmetric non-square linework fixture checked under rigid rotation/translation and member subdivision. The model still supports only axis-aligned per-DOF restraints; arbitrary angled support constraints remain outside its input contract.
