@@ -1197,6 +1197,67 @@ mod tests {
     }
 
     #[test]
+    fn channel_input_order_does_not_change_named_forecasts_or_covariance() {
+        let model_forward = model("m", 0.7, 1.0);
+        let mut model_reversed = model_forward.clone();
+        model_reversed.channels.reverse();
+        let history = history(vec![
+            observation(
+                "s1",
+                "session-a",
+                0,
+                &[("joint-angle", 0.3), ("contact-force", 0.6)],
+            ),
+            observation(
+                "s2",
+                "session-a",
+                1,
+                &[("joint-angle", 0.4), ("contact-force", 0.8)],
+            ),
+        ]);
+        let forward = forecast_next(
+            &model_forward,
+            &history,
+            "session-a",
+            2,
+            "baseline",
+            MultivariateConfig::default(),
+        )
+        .unwrap();
+        let reversed = forecast_next(
+            &model_reversed,
+            &history,
+            "session-a",
+            2,
+            "baseline",
+            MultivariateConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(forward.channel_ids, reversed.channel_ids);
+        for (left, right) in forward
+            .predictive_means
+            .iter()
+            .zip(&reversed.predictive_means)
+        {
+            assert!((left - right).abs() < 1.0e-10);
+        }
+        for (left_row, right_row) in forward
+            .predictive_covariance
+            .iter()
+            .zip(&reversed.predictive_covariance)
+        {
+            for (left, right) in left_row.iter().zip(right_row) {
+                assert!((left - right).abs() < 1.0e-10);
+            }
+        }
+        let determinant = forward.predictive_covariance[0][0]
+            * forward.predictive_covariance[1][1]
+            - forward.predictive_covariance[0][1]
+                * forward.predictive_covariance[1][0];
+        assert!(determinant > 0.0);
+    }
+
+    #[test]
     fn failed_update_does_not_mutate_history() {
         let mut history = history(Vec::new());
         let mut invalid = observation("s1", "session-a", 0, &[("joint-angle", 0.0)]);
