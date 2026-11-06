@@ -109,6 +109,7 @@ struct Scenario {
     active_zone_start_s_mm: i64,
     active_zone_end_s_mm: i64,
     alignment_limit_mm: u64,
+    maximum_kinematic_mismatch_ppm: u64,
     wheels: Vec<Wheel>,
     samples: Vec<Sample>,
 }
