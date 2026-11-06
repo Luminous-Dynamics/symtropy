@@ -1,0 +1,270 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-FRAGMENT-TRANSPORT-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "profile": {
+    "profile_id": "PROFILE-UNDERCUT-VACUUM-001",
+    "task_profile_ref": "task:accepted-rock-removal-v1",
+    "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+    "acceptance_profile_ref": "acceptance:floor-profile-v1",
+    "site_context_ref": "site:synthetic-test-mine",
+    "machine_configuration_ref": "machine:synthetic-undercutter-r2",
+    "transport_configuration_ref": "transport:installed-205m-hose-r3",
+    "transport_capacity_profile_ref": "capacity:installed-205m-hose-r3",
+    "energy_boundary_ref": "energy:machine-and-vacuum-system-v1",
+    "resource_ledger_ref": "resource-ledger:synthetic-001",
+    "mass_basis": "DRY_SOLID_MASS",
+    "clock_sync_protocol_ref": "clock:ptp-sync-v1",
+    "stage_order": [
+      "CAPTURE",
+      "CONVEY",
+      "SEPARATE",
+      "DISCHARGE"
+    ]
+  },
+  "intervals": [
+    {
+      "interval_id": "WINDOW-001",
+      "trial_id": "TRIAL-001",
+      "configuration_ref": "machine:synthetic-undercutter-r2",
+      "start_ms": 1000000,
+      "end_ms": 1060000,
+      "time_uncertainty_ms": 1000,
+      "clock_sync_ref": "clock:campaign-001",
+      "generated_mass": {
+        "value_kg": 100,
+        "standard_uncertainty_kg": 2,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:floor-feed-scale",
+        "source_ref": "artifact:generated-mass-001"
+      },
+      "recovered_mass": {
+        "value_kg": 80,
+        "standard_uncertainty_kg": 2,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:discharge-scale",
+        "source_ref": "artifact:recovered-mass-001"
+      },
+      "residual_mass": {
+        "value_kg": 15,
+        "standard_uncertainty_kg": 1,
+        "evidence_role": "DERIVED_FROM_INDEPENDENT_MEASUREMENTS",
+        "calibration_ref": "cal:floor-survey",
+        "source_ref": "artifact:residual-survey-001",
+        "lineage_ref": "lineage:floor-volume-times-dry-density-001"
+      },
+      "rejected_mass": {
+        "value_kg": 3,
+        "standard_uncertainty_kg": 1,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:reject-bin-scale",
+        "source_ref": "artifact:reject-mass-001"
+      },
+      "fragment_bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "mass_kg": 20,
+          "standard_uncertainty_kg": 1,
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:psd-sieve-r1",
+          "source_ref": "artifact:psd-bin-0-5-001"
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "mass_kg": 25,
+          "standard_uncertainty_kg": 1,
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:psd-sieve-r1",
+          "source_ref": "artifact:psd-bin-5-10-001"
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "mass_kg": 35,
+          "standard_uncertainty_kg": 1,
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:psd-sieve-r1",
+          "source_ref": "artifact:psd-bin-10-20-001"
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "mass_kg": 20,
+          "standard_uncertainty_kg": 1,
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:psd-sieve-r1",
+          "source_ref": "artifact:psd-bin-20-inf-001"
+        }
+      ],
+      "stage_capacities": [
+        {
+          "stage": "CAPTURE",
+          "capacity_lower_kg_s": 1.9,
+          "capacity_upper_kg_s": 2.1,
+          "transport_configuration_ref": "transport:installed-205m-hose-r3",
+          "capacity_window_ref": "capacity-window:capture-001",
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:capture-load-cell",
+          "source_ref": "artifact:capture-capacity-001",
+          "transport_capacity_profile_ref": "capacity:installed-205m-hose-r3"
+        },
+        {
+          "stage": "CONVEY",
+          "capacity_lower_kg_s": 1.2,
+          "capacity_upper_kg_s": 1.4,
+          "transport_configuration_ref": "transport:installed-205m-hose-r3",
+          "capacity_window_ref": "capacity-window:convey-001",
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:convey-load-cell",
+          "source_ref": "artifact:convey-capacity-001",
+          "transport_capacity_profile_ref": "capacity:installed-205m-hose-r3"
+        },
+        {
+          "stage": "SEPARATE",
+          "capacity_lower_kg_s": 1.8,
+          "capacity_upper_kg_s": 2,
+          "transport_configuration_ref": "transport:installed-205m-hose-r3",
+          "capacity_window_ref": "capacity-window:separate-001",
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:separator-load-cell",
+          "source_ref": "artifact:separate-capacity-001",
+          "transport_capacity_profile_ref": "capacity:installed-205m-hose-r3"
+        },
+        {
+          "stage": "DISCHARGE",
+          "capacity_lower_kg_s": 1.8,
+          "capacity_upper_kg_s": 2.1,
+          "transport_configuration_ref": "transport:installed-205m-hose-r3",
+          "capacity_window_ref": "capacity-window:discharge-001",
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:discharge-load-cell",
+          "source_ref": "artifact:discharge-capacity-001",
+          "transport_capacity_profile_ref": "capacity:installed-205m-hose-r3"
+        }
+      ]
+    },
+    {
+      "interval_id": "WINDOW-002",
+      "trial_id": "TRIAL-001",
+      "configuration_ref": "machine:synthetic-undercutter-r2",
+      "start_ms": 1060000,
+      "end_ms": 1120000,
+      "time_uncertainty_ms": 1000,
+      "clock_sync_ref": "clock:campaign-001",
+      "generated_mass": {
+        "value_kg": 60,
+        "standard_uncertainty_kg": 1,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:floor-feed-scale",
+        "source_ref": "artifact:generated-mass-002"
+      },
+      "recovered_mass": {
+        "value_kg": 56,
+        "standard_uncertainty_kg": 1,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:discharge-scale",
+        "source_ref": "artifact:recovered-mass-002"
+      },
+      "residual_mass": {
+        "value_kg": 2,
+        "standard_uncertainty_kg": 0.5,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:floor-survey",
+        "source_ref": "artifact:residual-survey-002"
+      },
+      "rejected_mass": {
+        "value_kg": 1,
+        "standard_uncertainty_kg": 0.5,
+        "evidence_role": "INDEPENDENT_MEASUREMENT",
+        "calibration_ref": "cal:reject-bin-scale",
+        "source_ref": "artifact:reject-mass-002"
+      },
+      "fragment_bins": [
+        {
+          "lower_mm": 0,
+          "upper_mm": 5,
+          "mass_kg": 15,
+          "standard_uncertainty_kg": 0.5,
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:psd-sieve-r1",
+          "source_ref": "artifact:psd-bin-0-5-002"
+        },
+        {
+          "lower_mm": 5,
+          "upper_mm": 10,
+          "mass_kg": 15,
+          "standard_uncertainty_kg": 0.5,
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:psd-sieve-r1",
+          "source_ref": "artifact:psd-bin-5-10-002"
+        },
+        {
+          "lower_mm": 10,
+          "upper_mm": 20,
+          "mass_kg": 20,
+          "standard_uncertainty_kg": 0.5,
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:psd-sieve-r1",
+          "source_ref": "artifact:psd-bin-10-20-002"
+        },
+        {
+          "lower_mm": 20,
+          "upper_mm": null,
+          "mass_kg": 10,
+          "standard_uncertainty_kg": 0.5,
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:psd-sieve-r1",
+          "source_ref": "artifact:psd-bin-20-inf-002"
+        }
+      ],
+      "stage_capacities": [
+        {
+          "stage": "CAPTURE",
+          "capacity_lower_kg_s": 0.95,
+          "capacity_upper_kg_s": 1.05,
+          "transport_configuration_ref": "transport:installed-205m-hose-r3",
+          "capacity_window_ref": "capacity-window:capture-002",
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:capture-load-cell",
+          "source_ref": "artifact:capture-capacity-002",
+          "transport_capacity_profile_ref": "capacity:installed-205m-hose-r3"
+        },
+        {
+          "stage": "CONVEY",
+          "capacity_lower_kg_s": 1.3,
+          "capacity_upper_kg_s": 1.45,
+          "transport_configuration_ref": "transport:installed-205m-hose-r3",
+          "capacity_window_ref": "capacity-window:convey-002",
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:convey-load-cell",
+          "source_ref": "artifact:convey-capacity-002",
+          "transport_capacity_profile_ref": "capacity:installed-205m-hose-r3"
+        },
+        {
+          "stage": "SEPARATE",
+          "capacity_lower_kg_s": 1.5,
+          "capacity_upper_kg_s": 1.7,
+          "transport_configuration_ref": "transport:installed-205m-hose-r3",
+          "capacity_window_ref": "capacity-window:separate-002",
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:separator-load-cell",
+          "source_ref": "artifact:separate-capacity-002",
+          "transport_capacity_profile_ref": "capacity:installed-205m-hose-r3"
+        },
+        {
+          "stage": "DISCHARGE",
+          "capacity_lower_kg_s": 1.5,
+          "capacity_upper_kg_s": 1.7,
+          "transport_configuration_ref": "transport:installed-205m-hose-r3",
+          "capacity_window_ref": "capacity-window:discharge-002",
+          "evidence_role": "INDEPENDENT_MEASUREMENT",
+          "calibration_ref": "cal:discharge-load-cell",
+          "source_ref": "artifact:discharge-capacity-002",
+          "transport_capacity_profile_ref": "capacity:installed-205m-hose-r3"
+        }
+      ]
+    }
+  ]
+}
