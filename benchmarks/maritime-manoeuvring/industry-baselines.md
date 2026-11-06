@@ -22,6 +22,29 @@ Authoritative links:
 
 The ITTC procedure identifies hydrodynamic force prediction, model structure, numerical method, software, time/space resolution and experimental setup as contributors to prediction uncertainty. A single trajectory match must not be treated as universal model validity.
 
+## 2026 IHO operational product profiles
+
+The IHO's Standards-in-Force register was updated on **30 October 2026**. Besides the established navigation/hydrographic products, it now lists several profiles directly relevant to port and MASS operating-domain evidence:
+
+| IHO product | Edition / in-force date | Useful evidence role | Claim ceiling |
+|---|---|---|---|
+| S-102 Bathymetric Surface | 3.0.0 / 1 Jan 2026 | Bathymetry with product-specific coverage/quality metadata | Not an under-keel or navigability verdict by itself |
+| S-104 Water Level Information for Surface Navigation | 2.0.0 / 1 Jan 2026 | Time-bounded water-level inputs | Not a forecast validity or clearance policy by itself |
+| S-111 Surface Currents | 2.0.0 / 1 Jan 2026 | Surface-current inputs | Does not establish full-depth currents or manoeuvring force response |
+| S-122 Marine Protected Areas | 2.0.0 / 10 Oct 2026 | Protected-area spatial evidence | Not a complete ecological impact / authorization record |
+| S-123 Marine Radio Services | 2.0.0 / 10 Oct 2026 | Radio-service locations/services | Not proof of live end-to-end link coverage, latency or ROC availability |
+| S-127 Marine Traffic Management | 2.0.0 / 10 Oct 2026 | VTS, pilotage, routing-measure and ship-reporting service context | Simplified supplementary geometry; not detailed ENC, live resource status or route authorization |
+| S-129 Under Keel Clearance Management | 2.0.0 / 1 Jan 2026 | Under-keel clearance data/product context | Does not independently validate a local clearance model or authorize a passage |
+| S-131 Marine Harbour Infrastructure | 2.0.0 / 10 Oct 2026 | Harbour infrastructure product references | Not actual live berth availability, structural adequacy or manoeuvring approval |
+
+IHO sources:
+- Standards in force, page updated 30 October 2026: https://iho.int/en/standards-in-force-0
+- S-127 registry detail: https://registry.iho.int/productspec/view.do?category=product_ID&domainS=ALL&idx=232&product_ID=S-127&searchValue=&statusS=5
+
+The S-127 registry explicitly describes VTS, pilotage, routing measures and ship-reporting systems, including service areas and service information, and notes that the product is supplementary to ENC with simplified geometry. This is useful for #3798 mobile-resource context and #3893 mode/communications evidence, but is not a dynamic port-operation authority.
+
+All product use must pin the exact IHO product specification and edition, S-100 framework version, producer/source identity, jurisdiction, dataset/cell, issue/update sequence, coverage, validity/currentness, datum/CRS, quality/uncertainty, licence/rights and exact raw bytes/digest. A schema-conforming product is not proof of physical correctness, source authenticity, currentness, licence or authorization.
+
 ## 2. Current 2026 research comparators
 
 | Study | Modelled scope | Reported result / comparator | Gap it sets for our benchmark |
