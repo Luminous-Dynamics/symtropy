@@ -114,9 +114,8 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
     };
     if tug.capability_evidence.state != EvidenceState::Current
         || tug.position_evidence.state != EvidenceState::Current
-        || !tug
-            .position_evidence
-            .covers_tick(input.decision_tick)
+        || tug.position_evidence.valid_from_tick > input.decision_tick
+        || tug.position_evidence.valid_through_tick < input.decision_tick
     {
         return false;
     }
@@ -130,10 +129,8 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
         if task.required_tug_count != 1
             || task.required_bollard_pull_kn > tug.bollard_pull_kn
             || tug.capability_evidence.state != EvidenceState::Current
-            || !tug.capability_evidence.covers(TickWindow {
-                start_tick: task.operation.start_tick,
-                end_tick: task.operation.end_tick,
-            })
+            || tug.capability_evidence.valid_from_tick > task.operation.start_tick
+            || tug.capability_evidence.valid_through_tick < task.operation.end_tick
         {
             return false;
         }
