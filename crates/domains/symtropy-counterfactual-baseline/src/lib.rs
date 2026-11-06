@@ -426,6 +426,7 @@ pub struct DispatchEventPoint {
     measured_dispatch_power_kw: f64,
     metrology_expanded_uncertainty_kw: f64,
     evidence_id: String,
+    source_digest: String,
 }
 
 impl DispatchEventPoint {
@@ -441,6 +442,7 @@ impl DispatchEventPoint {
         measured_dispatch_power_kw: f64,
         metrology_expanded_uncertainty_kw: f64,
         evidence_id: impl Into<String>,
+        source_digest: impl Into<String>,
     ) -> Result<Self, BaselineQualificationError> {
         let point = Self {
             point_id: point_id.into(),
@@ -453,11 +455,13 @@ impl DispatchEventPoint {
             measured_dispatch_power_kw,
             metrology_expanded_uncertainty_kw,
             evidence_id: evidence_id.into(),
+            source_digest: source_digest.into(),
         };
         for (field, value) in [
             ("event point ID", point.point_id.as_str()),
             ("event regime ID", point.regime_id.as_str()),
             ("event evidence ID", point.evidence_id.as_str()),
+            ("event trace source digest", point.source_digest.as_str()),
         ] {
             require_id(field, value)?;
         }
@@ -506,6 +510,8 @@ pub struct EventRecoveryEvidence {
     observation_horizon_end_ns: u64,
     evidence_id: String,
     source_digest: String,
+    workload_reconciliation_receipt_id: String,
+    physical_state_reconciliation_receipt_id: String,
     workload_obligations_reconciled: bool,
     physical_resource_states_reconciled: bool,
 }
@@ -517,6 +523,8 @@ impl EventRecoveryEvidence {
         observation_horizon_end_ns: u64,
         evidence_id: impl Into<String>,
         source_digest: impl Into<String>,
+        workload_reconciliation_receipt_id: impl Into<String>,
+        physical_state_reconciliation_receipt_id: impl Into<String>,
         workload_obligations_reconciled: bool,
         physical_resource_states_reconciled: bool,
     ) -> Result<Self, BaselineQualificationError> {
@@ -526,11 +534,21 @@ impl EventRecoveryEvidence {
             observation_horizon_end_ns,
             evidence_id: evidence_id.into(),
             source_digest: source_digest.into(),
+            workload_reconciliation_receipt_id: workload_reconciliation_receipt_id.into(),
+            physical_state_reconciliation_receipt_id: physical_state_reconciliation_receipt_id.into(),
             workload_obligations_reconciled,
             physical_resource_states_reconciled,
         };
         require_id("event recovery evidence ID", &evidence.evidence_id)?;
         require_id("event recovery source digest", &evidence.source_digest)?;
+        require_id(
+            "workload reconciliation receipt ID",
+            &evidence.workload_reconciliation_receipt_id,
+        )?;
+        require_id(
+            "physical-state reconciliation receipt ID",
+            &evidence.physical_state_reconciliation_receipt_id,
+        )?;
         if !(event_start_ns < dispatch_end_ns && dispatch_end_ns < observation_horizon_end_ns) {
             return Err(BaselineQualificationError::InvalidEventRecoveryHorizon {
                 event_start_ns,
@@ -539,6 +557,14 @@ impl EventRecoveryEvidence {
             });
         }
         Ok(evidence)
+    }
+
+    pub fn workload_reconciliation_receipt_id(&self) -> &str {
+        &self.workload_reconciliation_receipt_id
+    }
+
+    pub fn physical_state_reconciliation_receipt_id(&self) -> &str {
+        &self.physical_state_reconciliation_receipt_id
     }
 
     pub const fn is_complete(&self) -> bool {
@@ -591,6 +617,8 @@ pub struct BaselineEventReport {
     pub event_and_recovery_included_in_supplied_horizon: bool,
     pub recovery_evidence_id: String,
     pub recovery_source_digest: String,
+    pub workload_reconciliation_receipt_id: String,
+    pub physical_state_reconciliation_receipt_id: String,
     pub workload_obligations_reconciled: bool,
     pub physical_resource_states_reconciled: bool,
     pub event_start_ns: u64,
@@ -687,6 +715,11 @@ pub enum BaselineQualificationError {
     },
     DuplicateEventPoint {
         point_id: String,
+    },
+    EventPointSourceDigestMismatch {
+        point_id: String,
+        expected: String,
+        observed: String,
     },
     InvalidEventRecoveryHorizon {
         event_start_ns: u64,
@@ -843,6 +876,10 @@ impl fmt::Display for BaselineQualificationError {
             Self::DuplicateEventPoint { point_id } => {
                 write!(f, "duplicate event point ID {point_id}")
             }
+            Self::EventPointSourceDigestMismatch { point_id, expected, observed } => write!(
+                f,
+                "event point {point_id} source digest {observed} differs from pinned horizon digest {expected}"
+            ),
             Self::InvalidEventRecoveryHorizon {
                 event_start_ns,
                 dispatch_end_ns,
@@ -1179,6 +1216,13 @@ pub fn evaluate_baseline_bounded_event(
     let mut qualifying_interval_count = 0usize;
 
     for (index, point) in points.iter().enumerate() {
+        if point.source_digest != recovery_evidence.source_digest {
+            return Err(BaselineQualificationError::EventPointSourceDigestMismatch {
+                point_id: point.point_id.clone(),
+                expected: recovery_evidence.source_digest.clone(),
+                observed: point.source_digest.clone(),
+            });
+        }
         if !point_ids.insert(point.point_id.as_str()) {
             return Err(BaselineQualificationError::DuplicateEventPoint {
                 point_id: point.point_id.clone(),
@@ -1369,6 +1413,12 @@ pub fn evaluate_baseline_bounded_event(
         event_and_recovery_included_in_supplied_horizon: true,
         recovery_evidence_id: recovery_evidence.evidence_id.clone(),
         recovery_source_digest: recovery_evidence.source_digest.clone(),
+        workload_reconciliation_receipt_id: recovery_evidence
+            .workload_reconciliation_receipt_id
+            .clone(),
+        physical_state_reconciliation_receipt_id: recovery_evidence
+            .physical_state_reconciliation_receipt_id
+            .clone(),
         workload_obligations_reconciled: recovery_evidence.workload_obligations_reconciled,
         physical_resource_states_reconciled: recovery_evidence.physical_resource_states_reconciled,
         event_start_ns: recovery_evidence.event_start_ns,
