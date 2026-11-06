@@ -161,7 +161,6 @@
       "method_configuration": {
         "kind": "LASER_ASSISTED_PDC",
         "wavelength_m": 0.000001064,
-        "delivered_workpiece_energy_j": 450,
         "spot_major_axis_m": 0.004,
         "spot_minor_axis_m": 0.002,
         "incidence_angle_rad": 0.15,
