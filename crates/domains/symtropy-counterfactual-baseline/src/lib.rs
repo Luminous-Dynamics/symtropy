@@ -350,6 +350,14 @@ impl BaselineQualificationReport {
         &self.calibration_method
     }
 
+    pub const fn calibration_evaluation_groups_disjoint(&self) -> bool {
+        self.calibration_evaluation_groups_disjoint
+    }
+
+    pub const fn forecast_issue_time_checked(&self) -> bool {
+        self.forecast_issue_time_checked
+    }
+
     pub fn regimes(&self) -> &[RegimeBaselineReceipt] {
         &self.regimes
     }
