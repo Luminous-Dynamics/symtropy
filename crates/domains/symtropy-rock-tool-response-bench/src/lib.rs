@@ -969,6 +969,19 @@ mod tests {
     }
 
     #[test]
+    fn odc_encoder_observation_source_must_bind_to_its_channel() {
+        let mut data = fixture();
+        data["records"][2]["artifacts"][0]["channel_refs"] = json!([
+            "thrust-force",
+            "cutting-torque",
+            "traction-speed"
+        ]);
+        let report = validate_bundle(&data);
+        assert!(has(&report, ValidationCode::ArtifactChannelMismatch));
+        assert!(has(&report, ValidationCode::MissingObservationSource));
+    }
+
+    #[test]
     fn odc_speed_observation_calibration_must_match_encoder_channel() {
         let mut data = fixture();
         data["records"][2]["observations"][0]["calibration_ref"] = json!("WRONG-CALIBRATION");
