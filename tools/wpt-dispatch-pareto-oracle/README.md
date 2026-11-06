@@ -36,7 +36,7 @@ The shared-resource interface can represent linearized shared converter, thermal
 
 ## Known-truth fixture
 
-The two-receiver fixture has 10 mWh requested, 8 mWh source capacity, two segment capacities, and one shared segment-A coupling-envelope budget. It produces 122 feasible integer allocations and a 7-point Pareto frontier.
+The two-receiver fixture has 10 mWh requested, 8 mWh source capacity, two segment capacities, and one shared segment-A coupling-envelope budget. It produces 89 feasible integer allocations and a 7-point Pareto frontier.
 
 Two interpretable frontier endpoints are:
 - Lower-stress solution: 8 mWh total, worst satisfaction 0.60, Jain fairness 0.941176, stress 8 units.
