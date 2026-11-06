@@ -365,6 +365,7 @@ pub struct RouteService {
 pub struct ScenarioCheck {
     pub scenario_id: String,
     pub failed_segment_id: Option<String>,
+    pub failed_feeder_id: Option<String>,
     pub total_required_kwh: u64,
     pub total_delivered_kwh: u64,
     pub feasible: bool,
@@ -393,6 +394,7 @@ fn evaluate_service_scenario(
     scenario: &Scenario,
     selected_segments: &[usize],
     failed_segment: Option<usize>,
+    failed_feeder: Option<usize>,
 ) -> Result<ScenarioCheck, String> {
     let source = 0;
     let feeder_start = 1;
@@ -402,6 +404,9 @@ fn evaluate_service_scenario(
     let mut graph = vec![Vec::<Edge>::new(); sink + 1];
 
     for (index, feeder) in scenario.feeders.iter().enumerate() {
+        if Some(index) == failed_feeder {
+            continue;
+        }
         add_edge(
             &mut graph,
             source,
@@ -415,6 +420,9 @@ fn evaluate_service_scenario(
             continue;
         }
         let segment = &scenario.segments[*segment_index];
+        if Some(segment.feeder_index) == failed_feeder {
+            continue;
+        }
         let segment_node = segment_start + *segment_index;
         let feeder_node = feeder_start + segment.feeder_index;
         add_edge(
@@ -459,11 +467,20 @@ fn evaluate_service_scenario(
     route_service.sort_by_key(|row| row.route_id.clone());
 
     Ok(ScenarioCheck {
-        scenario_id: failed_segment.map_or_else(
-            || "NORMAL".to_string(),
-            |index| format!("SEGMENT_OUTAGE:{}", scenario.segments[index].segment_id),
-        ),
+        scenario_id: match (failed_segment, failed_feeder) {
+            (None, None) => "NORMAL".to_string(),
+            (Some(index), None) => {
+                format!("SEGMENT_OUTAGE:{}", scenario.segments[index].segment_id)
+            }
+            (None, Some(index)) => {
+                format!("FEEDER_OUTAGE:{}", scenario.feeders[index].feeder_id)
+            }
+            (Some(_), Some(_)) => {
+                return Err("internal outage scenario cannot remove both a segment and feeder".into());
+            }
+        },
         failed_segment_id: failed_segment.map(|index| scenario.segments[index].segment_id.clone()),
+        failed_feeder_id: failed_feeder.map(|index| scenario.feeders[index].feeder_id.clone()),
         total_required_kwh: scenario.total_required_kwh,
         total_delivered_kwh,
         feasible: total_delivered_kwh == scenario.total_required_kwh,
@@ -482,7 +499,7 @@ fn selected_segment_ids(scenario: &Scenario, selected: &[usize]) -> Vec<String> 
 
 /// Enumerate every install/uninstall subset and return the minimum-CAPEX design
 /// that preserves every route's useful-energy floor in normal operation and
-/// after each single installed-segment outage.
+/// after each single installed-segment or single feeder outage (one at a time).
 pub fn evaluate_corridor(value: &Value) -> Result<CorridorDesignReport, String> {
     let scenario = parse_scenario(value)?;
     let candidate_count = scenario.segments.len();
@@ -503,15 +520,35 @@ pub fn evaluate_corridor(value: &Value) -> Result<CorridorDesignReport, String> 
                 .ok_or_else(|| "design capex overflowed u64".to_string())
         })?;
 
-        let normal = evaluate_service_scenario(&scenario, &selected_segments, None)?;
+        let normal = evaluate_service_scenario(&scenario, &selected_segments, None, None)?;
         if !normal.feasible {
             continue;
         }
         let mut scenario_checks = vec![normal];
         let mut robust = true;
         for failed_segment in &selected_segments {
-            let check =
-                evaluate_service_scenario(&scenario, &selected_segments, Some(*failed_segment))?;
+            let check = evaluate_service_scenario(
+                &scenario,
+                &selected_segments,
+                Some(*failed_segment),
+                None,
+            )?;
+            if !check.feasible {
+                robust = false;
+                break;
+            }
+            scenario_checks.push(check);
+        }
+        if !robust {
+            continue;
+        }
+        for failed_feeder in 0..scenario.feeders.len() {
+            let check = evaluate_service_scenario(
+                &scenario,
+                &selected_segments,
+                None,
+                Some(failed_feeder),
+            )?;
             if !check.feasible {
                 robust = false;
                 break;
@@ -558,7 +595,7 @@ pub fn evaluate_corridor(value: &Value) -> Result<CorridorDesignReport, String> 
         robust_feasible_design_count,
         minimum_capex_units,
         best_designs,
-        claim_ceiling: "Exact minimum-CAPEX enumeration for bounded synthetic corridor graphs and N-1 single-segment outages only; does not validate feeder N-1, physical WPT coupling, AC/EMT constraints, construction cost, pavement life, traffic demand, uncertainty or field service.",
+        claim_ceiling: "Exact minimum-CAPEX enumeration for bounded synthetic corridor graphs and N-1 single-segment and single-feeder outages (one component at a time) only; does not validate simultaneous/common-mode failures, physical WPT coupling, AC/EMT constraints, construction cost, pavement life, traffic demand, uncertainty or field service.",
     })
 }
 
@@ -582,8 +619,8 @@ mod tests {
         let report = evaluate_corridor(&fixture()).unwrap();
         assert_eq!(report.candidate_segment_count, 6);
         assert_eq!(report.subsets_evaluated, 63);
-        assert_eq!(report.robust_feasible_design_count, 35);
-        assert_eq!(report.minimum_capex_units, Some(15));
+        assert_eq!(report.robust_feasible_design_count, 25);
+        assert_eq!(report.minimum_capex_units, Some(16));
         assert_eq!(report.best_designs.len(), 1);
         let best = &report.best_designs[0];
         assert_eq!(
@@ -591,10 +628,11 @@ mod tests {
             vec![
                 "a-route-east".to_string(),
                 "a-route-west".to_string(),
-                "a-shared".to_string()
+                "b-route-east".to_string(),
+                "b-route-west".to_string()
             ]
         );
-        assert_eq!(best.scenario_checks.len(), 4);
+        assert_eq!(best.scenario_checks.len(), 7);
         assert!(best.scenario_checks.iter().all(|check| check.feasible));
         assert!(best.scenario_checks.iter().all(|check| {
             check
@@ -615,16 +653,36 @@ mod tests {
     }
 
     #[test]
-    fn segment_outage_scenarios_are_only_generated_for_selected_modules() {
+    fn selected_segment_and_declared_feeder_outages_are_all_checked() {
         let report = evaluate_corridor(&fixture()).unwrap();
         let best = &report.best_designs[0];
-        let failed = best
+        let failed_segments = best
             .scenario_checks
             .iter()
             .filter_map(|check| check.failed_segment_id.as_deref())
             .collect::<BTreeSet<_>>();
-        assert_eq!(failed.len(), best.selected_segment_ids.len());
-        assert_eq!(failed.len(), 3);
+        let failed_feeders = best
+            .scenario_checks
+            .iter()
+            .filter_map(|check| check.failed_feeder_id.as_deref())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(failed_segments.len(), 4);
+        assert_eq!(
+            failed_feeders,
+            BTreeSet::from(["feeder-north", "feeder-south"])
+        );
+        assert_eq!(best.scenario_checks.len(), 7);
+    }
+
+    #[test]
+    fn one_feeder_is_not_mistaken_for_redundant_supply() {
+        let mut scenario = fixture();
+        for segment in scenario["candidate_segments"].as_array_mut().unwrap() {
+            segment["feeder_id"] = Value::String("feeder-north".into());
+        }
+        let report = evaluate_corridor(&scenario).unwrap();
+        assert_eq!(report.minimum_capex_units, None);
+        assert!(report.best_designs.is_empty());
     }
 
     #[test]
