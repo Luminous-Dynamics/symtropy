@@ -6,7 +6,7 @@
 //! timing, frame identity, transform receipts and one-to-one coverage only.
 
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_SAMPLES: usize = 512;
 
@@ -46,6 +46,12 @@ fn unsigned_field(value: &Value, key: &str, path: &str) -> Result<u64, String> {
         .ok_or_else(|| fail(&format!("{path}.{key}"), "must be a non-negative integer"))
 }
 
+fn signed_field(value: &Value, key: &str, path: &str) -> Result<i64, String> {
+    field(value, key, path)?
+        .as_i64()
+        .ok_or_else(|| fail(&format!("{path}.{key}"), "must be an integer"))
+}
+
 fn number_field(value: &Value, key: &str, path: &str) -> Result<f64, String> {
     let number = field(value, key, path)?
         .as_f64()
@@ -77,7 +83,7 @@ fn validate_digest(digest: &str, path: &str) -> Result<(), String> {
 fn validate_sample(
     value: &Value,
     index: usize,
-    seen: &mut BTreeSet<String>,
+    sample_timestamps: &mut BTreeMap<String, u64>,
 ) -> Result<u64, String> {
     let path = format!("$.trajectory_samples[{index}]");
     exact_keys(
@@ -99,10 +105,13 @@ fn validate_sample(
         &path,
     )?;
     let sample_id = string_field(value, "sample_id", &path)?.to_string();
-    if !seen.insert(sample_id.clone()) {
+    let timestamp = unsigned_field(value, "timestamp_ms", &path)?;
+    if sample_timestamps
+        .insert(sample_id.clone(), timestamp)
+        .is_some()
+    {
         return Err(fail(&path, format!("duplicate sample_id {sample_id}")));
     }
-    let timestamp = unsigned_field(value, "timestamp_ms", &path)?;
     for key in [
         "x_mm",
         "y_mm",
@@ -131,9 +140,9 @@ fn validate_projection_group(
     kind: &str,
     trajectory_id: &str,
     frame_id: &str,
-    samples: &BTreeSet<String>,
+    sample_timestamps: &BTreeMap<String, u64>,
 ) -> Result<BTreeSet<String>, String> {
-    if projections.len() != samples.len() {
+    if projections.len() != sample_timestamps.len() {
         return Err(fail(
             &format!("$.{kind}"),
             format!("exactly one {kind} projection is required per trajectory sample"),
@@ -153,6 +162,9 @@ fn validate_projection_group(
             "coupling_ppm",
             "useful_power_w",
             "vehicle_dc_power_w",
+            "measurement_timestamp_ms",
+            "clock_offset_ms",
+            "clock_uncertainty_ms",
         ]
     } else {
         &[
@@ -165,6 +177,9 @@ fn validate_projection_group(
             "tensile_strain_microstrain",
             "heat_flux_w_m2",
             "interface_condition",
+            "measurement_timestamp_ms",
+            "clock_offset_ms",
+            "clock_uncertainty_ms",
         ]
     };
 
@@ -187,10 +202,19 @@ fn validate_projection_group(
             ));
         }
         let sample_id = string_field(projection, "sample_id", &path)?.to_string();
-        if !samples.contains(&sample_id) {
+        let canonical_timestamp = sample_timestamps.get(&sample_id).ok_or_else(|| {
+            fail(&path, format!("unknown trajectory sample_id {sample_id}"))
+        })?;
+        let measurement_timestamp = unsigned_field(projection, "measurement_timestamp_ms", &path)?;
+        let clock_offset = signed_field(projection, "clock_offset_ms", &path)?;
+        let clock_uncertainty = unsigned_field(projection, "clock_uncertainty_ms", &path)?;
+        let corrected_timestamp =
+            i128::from(measurement_timestamp) + i128::from(clock_offset);
+        let timestamp_error = (corrected_timestamp - i128::from(*canonical_timestamp)).abs();
+        if timestamp_error > i128::from(clock_uncertainty) {
             return Err(fail(
                 &path,
-                format!("unknown trajectory sample_id {sample_id}"),
+                "corrected measurement timestamp exceeds declared clock uncertainty",
             ));
         }
         if !projected_samples.insert(sample_id.clone()) {
@@ -235,7 +259,7 @@ fn validate_projection_group(
         }
     }
 
-    if projected_samples != *samples {
+    if projected_samples != sample_timestamps.keys().cloned().collect() {
         return Err(fail(
             &format!("$.{kind}"),
             "projection lane does not cover the canonical sample set exactly",
@@ -296,10 +320,10 @@ pub fn validate_trajectory_episode(value: &Value) -> Result<TrajectoryReplayRepo
             format!("must contain 1..={MAX_SAMPLES} samples"),
         ));
     }
-    let mut samples = BTreeSet::new();
+    let mut sample_timestamps = BTreeMap::new();
     let mut previous_timestamp = None::<u64>;
     for (index, row) in sample_rows.iter().enumerate() {
-        let timestamp = validate_sample(row, index, &mut samples)?;
+        let timestamp = validate_sample(row, index, &mut sample_timestamps)?;
         if previous_timestamp.is_some_and(|previous| timestamp <= previous) {
             return Err(fail(
                 &format!("$.trajectory_samples[{index}]"),
@@ -316,14 +340,14 @@ pub fn validate_trajectory_episode(value: &Value) -> Result<TrajectoryReplayRepo
         "electromagnetic_projections",
         &trajectory_id,
         &frame_id,
-        &samples,
+        &sample_timestamps,
     )?;
     validate_projection_group(
         pavement,
         "pavement_projections",
         &trajectory_id,
         &frame_id,
-        &samples,
+        &sample_timestamps,
     )?;
 
     Ok(TrajectoryReplayReport {
@@ -331,7 +355,7 @@ pub fn validate_trajectory_episode(value: &Value) -> Result<TrajectoryReplayRepo
         sample_count: sample_rows.len(),
         electromagnetic_projection_count: electromagnetic.len(),
         pavement_projection_count: pavement.len(),
-        checked_sample_ids: samples.into_iter().collect(),
+        checked_sample_ids: sample_timestamps.into_keys().collect(),
         claim_ceiling: "Synthetic trajectory lineage, timestamp order, coordinate-frame agreement and projection coverage only; does not validate electromagnetic coupling, pavement mechanics, thermal response, EMC, safety or field performance.",
     })
 }
@@ -459,6 +483,26 @@ mod tests {
             validate_trajectory_episode(&scenario)
                 .unwrap_err()
                 .contains("lowercase SHA-256")
+        );
+    }
+
+    #[test]
+    fn projection_clock_offset_must_align_with_the_canonical_pose_within_uncertainty() {
+        let mut scenario = fixture();
+        scenario["electromagnetic_projections"][0]["measurement_timestamp_ms"] =
+            Value::from(30);
+        scenario["electromagnetic_projections"][0]["clock_offset_ms"] = Value::from(-30);
+        scenario["electromagnetic_projections"][0]["clock_uncertainty_ms"] = Value::from(0);
+        assert!(validate_trajectory_episode(&scenario).is_ok());
+
+        let mut scenario = fixture();
+        scenario["pavement_projections"][0]["measurement_timestamp_ms"] = Value::from(3);
+        scenario["pavement_projections"][0]["clock_offset_ms"] = Value::from(0);
+        scenario["pavement_projections"][0]["clock_uncertainty_ms"] = Value::from(1);
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("corrected measurement timestamp exceeds declared clock uncertainty")
         );
     }
 
