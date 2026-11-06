@@ -53,7 +53,11 @@ impl ContextOfUse {
     pub const fn required_roles(self) -> &'static [EvidenceRole] {
         use EvidenceRole as R;
         match self {
-            Self::DeepWaterStandard => &[R::VesselConfiguration, R::ManoeuvringModel, R::ModelValidation],
+            Self::DeepWaterStandard => &[
+                R::VesselConfiguration,
+                R::ManoeuvringModel,
+                R::ModelValidation,
+            ],
             Self::ShallowWater => &[
                 R::VesselConfiguration,
                 R::ManoeuvringModel,
@@ -434,7 +438,8 @@ pub fn stopping_metrics(
         let previous_speed = speed(previous);
         let current_speed = speed(current);
         if previous_speed > speed_threshold_mps && current_speed <= speed_threshold_mps {
-            let fraction = (previous_speed - speed_threshold_mps) / (previous_speed - current_speed);
+            let fraction =
+                (previous_speed - speed_threshold_mps) / (previous_speed - current_speed);
             crossing = Some((
                 previous.time_s + fraction * (current.time_s - previous.time_s),
                 previous.x_m + fraction * (current.x_m - previous.x_m),
