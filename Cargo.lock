@@ -9323,10 +9323,12 @@ name = "symtropy-physics"
 version = "0.2.1"
 dependencies = [
  "arrayvec",
+ "blake3",
  "criterion",
  "nalgebra 0.34.2",
  "proptest",
  "serde",
+ "serde_json",
  "symtropy-math",
 ]
 
@@ -9393,18 +9395,6 @@ dependencies = [
  "symtropy-math",
  "symtropy-physics",
 ]
-
-[[package]]
-name = "symtropy-road-actor-adapter"
-version = "0.1.0"
-dependencies = [
- "blake3",
- "symtropy-road-actors",
-]
-
-[[package]]
-name = "symtropy-road-actors"
-version = "0.1.0"
 
 [[package]]
 name = "symtropy-symthaea-adapter"
