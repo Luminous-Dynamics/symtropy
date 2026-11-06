@@ -34,8 +34,7 @@ fn reference_fits(
             return true;
         }
         let gap = clearance.saturating_mul(2);
-        let separated = x
-            .checked_add(vessel.length_mm)
+        x.checked_add(vessel.length_mm)
             .and_then(|end| end.checked_add(gap))
             .is_some_and(|right| right <= other.x_mm)
             || other
@@ -50,8 +49,7 @@ fn reference_fits(
                 .y_mm
                 .checked_add(other.beam_mm)
                 .and_then(|end| end.checked_add(gap))
-                .is_some_and(|top| top <= y);
-        separated
+                .is_some_and(|top| top <= y)
     })
 }
 
