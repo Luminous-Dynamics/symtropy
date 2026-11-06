@@ -375,7 +375,6 @@ struct Edge {
 #[derive(Debug, Clone)]
 struct EdgeRecord {
     from: usize,
-    edge_index: usize,
     to: usize,
     capacity_mwh: u64,
     kind: &'static str,
@@ -405,7 +404,6 @@ fn add_edge(
     });
     records.push(EdgeRecord {
         from,
-        edge_index: forward_index,
         to,
         capacity_mwh,
         kind,
