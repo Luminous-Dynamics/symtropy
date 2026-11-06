@@ -62,7 +62,7 @@ jobs:
               rows = list(csv.DictReader(handle))
 
           assert len(rows) == 9, f"expected 3 arm + 4 edge + 1 paired + 1 negative rows, got {len(rows)}"
-          assert all(len(row) == 16 for row in rows)
+          assert all(len(row) == 19 for row in rows)
 
           arms = {row["arm_id"]: row for row in rows if row["record_type"] == "arm_outcome"}
           assert set(arms) == {"control", "treatment", "negative_control"}
@@ -78,8 +78,10 @@ jobs:
 
           edges = [row for row in rows if row["record_type"] == "path_edge"]
           assert len(edges) == 4
-          assert all(row["complete"] if "complete" in row else row["path_complete"] == "true" for row in edges)
+          assert all(row["path_complete"] == "true" for row in edges)
           assert all(row["transition_applied"] == "true" for row in edges)
+          assert all(row["source_changed"] == "true" for row in edges)
+          assert all(float(row["treatment_source_value"]) != float(row["control_source_value"]) for row in edges)
 
           paired = next(row for row in rows if row["record_type"] == "paired_effect")
           assert paired["qualified"] == "true"
