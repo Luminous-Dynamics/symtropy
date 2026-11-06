@@ -572,6 +572,9 @@ pub fn select_coordination_model_open_set(
         return Err(CoordinationError::InvalidAbsoluteFitThreshold);
     }
     validate_trace(&observed.samples)?;
+    if observed.samples.len() != observed.config.sample_count {
+        return Err(CoordinationError::InvalidTraceLength);
+    }
 
     let mut seen = BTreeMap::new();
     let mut scores = Vec::with_capacity(candidates.len());
@@ -1387,6 +1390,27 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn six_leg_selector_rejects_truncated_observation_trace_without_panicking() {
+        let config = base_config();
+        let mut observed = simulate(config, CoordinationModel::Independent, &[]).unwrap();
+        observed.samples.pop();
+        assert_eq!(
+            select_coordination_model_open_set(
+                &observed,
+                &[
+                    CoordinationModel::Independent,
+                    CoordinationModel::FeedbackDriven,
+                ],
+                100,
+                0.01,
+                0.01,
+                -10.0,
+            ),
+            Err(CoordinationError::InvalidTraceLength)
+        );
     }
 
     #[test]
