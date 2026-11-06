@@ -95,6 +95,7 @@ pub enum BenchmarkError {
     EmptySeedSet,
     DuplicateSeed,
     DuplicateGenerator,
+    SingularVectorAr1Fit,
     InvalidTraceLength,
     NonFiniteTrace,
     NonMonotonicTraceTimestamp,
@@ -658,6 +659,266 @@ pub fn select_frozen_forecast(
 }
 
 #[derive(Debug, Clone, PartialEq)]
+
+
+/// Candidate identity for a mechanistic generator or a purely predictive
+/// baseline. A selected VAR(1) means predictive equivalence, not a biological
+/// oscillator or other neural mechanism.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CandidateFamily {
+    Mechanistic(Mechanism),
+    VectorAr1,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct VectorAr1Forecast {
+    pub transition: [[f64; 2]; 2],
+    pub intercept: [f64; 2],
+    pub baseline_log_score: f64,
+    /// Action-blind autoregressive continuation, frozen at the action index.
+    pub predicted_suffix: Vec<SyntheticSample>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CompetingModelDecision {
+    Selected {
+        family: CandidateFamily,
+        log_score: f64,
+        margin_over_runner_up: f64,
+    },
+    Abstained {
+        best_candidate: CandidateFamily,
+        margin_over_runner_up: f64,
+    },
+}
+
+/// Fit a bivariate VAR(1) with intercept using only the pre-action prefix.
+/// The model then continues its fitted recurrence without representing the
+/// intervention. This is an intentionally strong predictive baseline, not a
+/// mechanistic claim.
+pub fn fit_vector_ar1_forecast(
+    observed_prefix: &[SyntheticSample],
+    intervention: Intervention,
+    base_config: SimulationConfig,
+) -> Result<VectorAr1Forecast, BenchmarkError> {
+    base_config.validate()?;
+    validate_trace(observed_prefix)?;
+    if observed_prefix.len() < 3 || observed_prefix.len() >= base_config.sample_count {
+        return Err(BenchmarkError::InvalidTraceLength);
+    }
+
+    for (index, sample) in observed_prefix.iter().enumerate() {
+        let expected_timestamp = index as f64 * base_config.sample_interval;
+        if sample.timestamp != expected_timestamp {
+            return Err(BenchmarkError::TimestampMismatch);
+        }
+    }
+    let action_index = match intervention {
+        Intervention::FeedbackCutFrom { sample_index }
+        | Intervention::PhasePulseAt { sample_index, .. } => sample_index,
+        Intervention::None => return Err(BenchmarkError::InvalidInterventionAlignment),
+    };
+    if action_index != observed_prefix.len() {
+        return Err(BenchmarkError::InvalidInterventionAlignment);
+    }
+    validate_intervention(intervention, base_config)?;
+
+    let pair_count = (observed_prefix.len() - 1) as f64;
+    let mut previous_mean = [0.0; 2];
+    let mut next_mean = [0.0; 2];
+    for pair_index in 0..(observed_prefix.len() - 1) {
+        let previous = observed_prefix[pair_index];
+        let next = observed_prefix[pair_index + 1];
+        previous_mean[0] += previous.x;
+        previous_mean[1] += previous.y;
+        next_mean[0] += next.x;
+        next_mean[1] += next.y;
+    }
+    for coordinate in 0..2 {
+        previous_mean[coordinate] /= pair_count;
+        next_mean[coordinate] /= pair_count;
+    }
+
+    let mut covariance_previous = [[0.0; 2]; 2];
+    let mut cross_covariance = [[0.0; 2]; 2];
+    for pair_index in 0..(observed_prefix.len() - 1) {
+        let previous = [
+            observed_prefix[pair_index].x - previous_mean[0],
+            observed_prefix[pair_index].y - previous_mean[1],
+        ];
+        let next = [
+            observed_prefix[pair_index + 1].x - next_mean[0],
+            observed_prefix[pair_index + 1].y - next_mean[1],
+        ];
+        for row in 0..2 {
+            for column in 0..2 {
+                covariance_previous[row][column] += previous[row] * previous[column];
+                cross_covariance[row][column] += next[row] * previous[column];
+            }
+        }
+    }
+
+    let determinant = covariance_previous[0][0] * covariance_previous[1][1]
+        - covariance_previous[0][1] * covariance_previous[1][0];
+    if !determinant.is_finite() || determinant <= 1.0e-12 {
+        return Err(BenchmarkError::SingularVectorAr1Fit);
+    }
+    let inverse = [
+        [
+            covariance_previous[1][1] / determinant,
+            -covariance_previous[0][1] / determinant,
+        ],
+        [
+            -covariance_previous[1][0] / determinant,
+            covariance_previous[0][0] / determinant,
+        ],
+    ];
+    let transition = [
+        [
+            cross_covariance[0][0] * inverse[0][0]
+                + cross_covariance[0][1] * inverse[1][0],
+            cross_covariance[0][0] * inverse[0][1]
+                + cross_covariance[0][1] * inverse[1][1],
+        ],
+        [
+            cross_covariance[1][0] * inverse[0][0]
+                + cross_covariance[1][1] * inverse[1][0],
+            cross_covariance[1][0] * inverse[0][1]
+                + cross_covariance[1][1] * inverse[1][1],
+        ],
+    ];
+    let intercept = [
+        next_mean[0]
+            - transition[0][0] * previous_mean[0]
+            - transition[0][1] * previous_mean[1],
+        next_mean[1]
+            - transition[1][0] * previous_mean[0]
+            - transition[1][1] * previous_mean[1],
+    ];
+    if !transition.iter().flatten().all(|value| value.is_finite())
+        || !intercept.iter().all(|value| value.is_finite())
+    {
+        return Err(BenchmarkError::NumericalFailure);
+    }
+
+    let mut training_prediction = Vec::with_capacity(observed_prefix.len() - 1);
+    for index in 1..observed_prefix.len() {
+        let previous = observed_prefix[index - 1];
+        let prediction = apply_vector_ar1(
+            transition,
+            intercept,
+            [previous.x, previous.y],
+        );
+        training_prediction.push(SyntheticSample {
+            timestamp: observed_prefix[index].timestamp,
+            x: prediction[0],
+            y: prediction[1],
+        });
+    }
+    let baseline_log_score = predictive_log_score(
+        &observed_prefix[1..],
+        &training_prediction,
+        base_config.observation_variance,
+    )?;
+
+    let mut state = [
+        observed_prefix.last().unwrap().x,
+        observed_prefix.last().unwrap().y,
+    ];
+    let mut predicted_suffix = Vec::with_capacity(base_config.sample_count - action_index);
+    for index in action_index..base_config.sample_count {
+        state = apply_vector_ar1(transition, intercept, state);
+        if !state.iter().all(|value| value.is_finite()) {
+            return Err(BenchmarkError::NumericalFailure);
+        }
+        predicted_suffix.push(SyntheticSample {
+            timestamp: index as f64 * base_config.sample_interval,
+            x: state[0],
+            y: state[1],
+        });
+    }
+
+    Ok(VectorAr1Forecast {
+        transition,
+        intercept,
+        baseline_log_score,
+        predicted_suffix,
+    })
+}
+
+fn apply_vector_ar1(
+    transition: [[f64; 2]; 2],
+    intercept: [f64; 2],
+    state: [f64; 2],
+) -> [f64; 2] {
+    [
+        transition[0][0] * state[0] + transition[0][1] * state[1] + intercept[0],
+        transition[1][0] * state[0] + transition[1][1] * state[1] + intercept[1],
+    ]
+}
+
+/// Compare frozen mechanistic forecasts against one fitted vector-AR(1)
+/// predictor on the same held-out suffix and common likelihood.
+pub fn select_competing_models(
+    observed_suffix: &[SyntheticSample],
+    mechanistic_forecasts: &[FrozenForecast],
+    vector_ar1_forecast: &VectorAr1Forecast,
+    observation_variance: f64,
+    minimum_score_margin: f64,
+) -> Result<CompetingModelDecision, BenchmarkError> {
+    if mechanistic_forecasts.is_empty() {
+        return Err(BenchmarkError::EmptyCandidateSet);
+    }
+    if !minimum_score_margin.is_finite() || minimum_score_margin < 0.0 {
+        return Err(BenchmarkError::InvalidScoreMargin);
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut scores = Vec::with_capacity(mechanistic_forecasts.len() + 1);
+    for forecast in mechanistic_forecasts {
+        if !seen.insert(forecast.mechanism) {
+            return Err(BenchmarkError::DuplicateCandidate);
+        }
+        let score = predictive_log_score(
+            observed_suffix,
+            &forecast.predicted_suffix,
+            observation_variance,
+        )?;
+        scores.push((CandidateFamily::Mechanistic(forecast.mechanism), score));
+    }
+    let ar1_score = predictive_log_score(
+        observed_suffix,
+        &vector_ar1_forecast.predicted_suffix,
+        observation_variance,
+    )?;
+    scores.push((CandidateFamily::VectorAr1, ar1_score));
+
+    scores.sort_by(|left, right| {
+        right
+            .1
+            .total_cmp(&left.1)
+            .then_with(|| left.0.cmp(&right.0))
+    });
+    let best = scores[0];
+    let runner_up = scores[1];
+    let margin = best.1 - runner_up.1;
+    if !margin.is_finite() {
+        return Err(BenchmarkError::NumericalFailure);
+    }
+    if margin <= minimum_score_margin {
+        Ok(CompetingModelDecision::Abstained {
+            best_candidate: best.0,
+            margin_over_runner_up: margin,
+        })
+    } else {
+        Ok(CompetingModelDecision::Selected {
+            family: best.0,
+            log_score: best.1,
+            margin_over_runner_up: margin,
+        })
+    }
+}
+
 pub struct MonteCarloSpec {
     pub generating_mechanisms: Vec<Mechanism>,
     pub candidates: Vec<Mechanism>,
