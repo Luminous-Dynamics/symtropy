@@ -11,8 +11,14 @@ use civdyn_config_sensitivity::{
 
 const CSV_COLUMNS: usize = 21;
 
-fn digest(character: char) -> String {
-    format!("sha256:{}", character.to_string().repeat(64))
+fn digest(configuration_id: &str) -> String {
+    let hex = match configuration_id {
+        "baseline" => "9afe41bfd460d43d14a60ef5abc91f8460013a930bcbfbe37a51824c6228a63c",
+        "semantic_permutation" => "a36bbe6bb553ab53fcf47a1eefbe7d2a4eac6e38a8685b5ccd44a762860ca0d9",
+        "position_biased_order" => "f2f9975f32913ea7ceea4392d18547d62f8c57790dcf3f07ec5cfc43aa734f7e",
+        _ => panic!("unknown synthetic configuration ID"),
+    };
+    format!("sha256:{hex}")
 }
 
 fn facets(order: &str) -> ConfigurationFacets {
@@ -39,11 +45,11 @@ fn decisions(selected: &[usize]) -> Vec<DecisionRecord> {
         .collect()
 }
 
-fn run(id: &str, digest_char: char, order: &str, selected: &[usize]) -> ConfigurationRun {
+fn run(id: &str, order: &str, selected: &[usize]) -> ConfigurationRun {
     ConfigurationRun {
         configuration: ConfigurationIdentity {
             configuration_id: id.into(),
-            configuration_digest: digest(digest_char),
+            configuration_digest: digest(id),
             model_id: "synthetic_reference_model".into(),
             model_version: "v1".into(),
             facets: facets(order),
@@ -58,7 +64,7 @@ fn fixture() -> ConfigurationBenchmark {
         baseline_configuration_id: "baseline".into(),
         reference_cohort_id: "cohort_a".into(),
         runs: vec![
-            run("baseline", 'a', "natural_order", &[0, 1, 2, 3, 6, 7]),
+            run("baseline", "natural_order", &[0, 1, 2, 3, 6, 7]),
             run(
                 "semantic_permutation",
                 'b',
