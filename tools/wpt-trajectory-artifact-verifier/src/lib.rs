@@ -352,11 +352,11 @@ fn transform_position(
         source.z_mm as i128,
     ];
     let mut output = [0_i64; 3];
-    for axis in 0..3 {
+    for (axis, output_coordinate) in output.iter_mut().enumerate() {
         let mut sum = 0_i128;
-        for column in 0..3 {
+        for (column, input_coordinate) in input.iter().enumerate() {
             let product = (transform.matrix_ppm[axis][column] as i128)
-                .checked_mul(input[column])
+                .checked_mul(*input_coordinate)
                 .ok_or_else(|| fail(path, "coordinate-transform multiplication overflowed"))?;
             sum = sum
                 .checked_add(product)
@@ -365,7 +365,7 @@ fn transform_position(
         let transformed = round_divide_ppm(sum)
             .checked_add(transform.translation_mm[axis] as i128)
             .ok_or_else(|| fail(path, "coordinate-transform translation overflowed"))?;
-        output[axis] = i64::try_from(transformed)
+        *output_coordinate = i64::try_from(transformed)
             .map_err(|_| fail(path, "transformed coordinate is outside i64 millimetres"))?;
     }
     Ok(Position {
