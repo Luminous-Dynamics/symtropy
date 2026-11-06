@@ -153,16 +153,20 @@ fn string_flags(run: &Value) -> Result<BTreeSet<String>, String> {
     Ok(flags)
 }
 
-fn report(
+struct EligibilityReportContext {
     run_id: String,
     asset_id: String,
     segment_id: String,
-    state: EligibilityState,
     target_event_cif: f64,
     maximum_target_event_cif: f64,
     horizon_hours: f64,
     minimum_censoring_survival: f64,
     maximum_ipcw_weight: f64,
+}
+
+fn report(
+    context: &EligibilityReportContext,
+    state: EligibilityState,
     recommended_action: RecommendedAction,
     reasons: Vec<String>,
 ) -> EligibilityReport {
@@ -171,17 +175,17 @@ fn report(
         EligibilityState::DecisionSupportEligible | EligibilityState::PolicyRiskExceeded
     );
     EligibilityReport {
-        run_id,
-        asset_id,
-        segment_id,
+        run_id: context.run_id.clone(),
+        asset_id: context.asset_id.clone(),
+        segment_id: context.segment_id.clone(),
         state,
         forecast_eligible_for_decision_support: eligible,
-        target_event_cif,
-        maximum_target_event_cif,
+        target_event_cif: context.target_event_cif,
+        maximum_target_event_cif: context.maximum_target_event_cif,
         risk_policy_exceeded: state == EligibilityState::PolicyRiskExceeded,
-        horizon_hours,
-        minimum_censoring_survival,
-        maximum_ipcw_weight,
+        horizon_hours: context.horizon_hours,
+        minimum_censoring_survival: context.minimum_censoring_survival,
+        maximum_ipcw_weight: context.maximum_ipcw_weight,
         recommended_action,
         reasons,
         claim_ceiling: "Decision-support eligibility only. No energization authorization, safety certification, field RUL validation or standards compliance is implied.",
@@ -586,25 +590,23 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         ));
     }
 
+    let report_context = EligibilityReportContext {
+        run_id,
+        asset_id,
+        segment_id,
+        target_event_cif: target_cif,
+        maximum_target_event_cif: maximum_risk,
+        horizon_hours: horizon,
+        minimum_censoring_survival: minimum_g,
+        maximum_ipcw_weight: maximum_weight,
+    };
     let mut reasons = Vec::new();
     if !hard_limits_pass {
         reasons.push(
             "one or more authorization, electrical, thermal, grid/PCC, stability or handover hard limits failed"
                 .into(),
         );
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::HardLimitViolation,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            RecommendedAction::DeenergizeAndEscalate,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::HardLimitViolation, RecommendedAction::DeenergizeAndEscalate, reasons));
     }
 
     if evidence_kind == "SYNTHETIC_KNOWN_TRUTH"
@@ -614,35 +616,11 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         reasons.push(
             "synthetic/simulated evidence cannot qualify an operational health forecast".into(),
         );
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::SyntheticOnlyNotEligible,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            RecommendedAction::ConservativeFallbackNoUprating,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::SyntheticOnlyNotEligible, RecommendedAction::ConservativeFallbackNoUprating, reasons));
     }
     if flags.contains("SOURCE_INCOMPLETE") || flags.contains("CALIBRATION_DRIFT") {
         reasons.push("source provenance is incomplete or calibration drift is declared".into());
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::NotEvaluable,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            RecommendedAction::ConservativeFallbackNoUprating,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::NotEvaluable, RecommendedAction::ConservativeFallbackNoUprating, reasons));
     }
 
     let identity_digests = validate_digest_fields(
@@ -661,19 +639,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
     );
     if identity_digests.is_err() || forecast_digests.is_err() {
         reasons.push("one or more asset/model/outcome/calibration digests are invalid".into());
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::NotEvaluable,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            RecommendedAction::ConservativeFallbackNoUprating,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::NotEvaluable, RecommendedAction::ConservativeFallbackNoUprating, reasons));
     }
 
     let calibration_status = string_field(forecast, "calibration_status", "$.forecast")?;
@@ -681,19 +647,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
     let policy_digest = string_field(policy, "policy_sha256", "$.dispatch_policy")?;
     if !valid_sha256(policy_digest) {
         reasons.push("dispatch policy digest is invalid".into());
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::NotEvaluable,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            RecommendedAction::ConservativeFallbackNoUprating,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::NotEvaluable, RecommendedAction::ConservativeFallbackNoUprating, reasons));
     }
     let source_locator = field(forecast, "source_locator", "$.forecast")?;
     if evidence_kind == "PUBLISHED_MEASURED"
@@ -702,19 +656,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
             .is_none_or(|value| value.trim().is_empty())
     {
         reasons.push("published-measured forecasts require a non-empty source locator".into());
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::NotEvaluable,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            RecommendedAction::ConservativeFallbackNoUprating,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::NotEvaluable, RecommendedAction::ConservativeFallbackNoUprating, reasons));
     }
     if calibration_status != "CALIBRATED"
         || ![
@@ -731,19 +673,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         reasons.push(
             "forecast calibration, horizon support or hazard/CIF coherence is insufficient".into(),
         );
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::NotEvaluable,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            RecommendedAction::ConservativeFallbackNoUprating,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::NotEvaluable, RecommendedAction::ConservativeFallbackNoUprating, reasons));
     }
 
     if censoring_status != "SUPPORTED"
@@ -760,36 +690,12 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
             "censoring support, positivity or weight bounds are not qualified for this horizon"
                 .into(),
         );
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::NotEvaluable,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            RecommendedAction::ConservativeFallbackNoUprating,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::NotEvaluable, RecommendedAction::ConservativeFallbackNoUprating, reasons));
     }
 
     if domain_status == "UNKNOWN" {
         reasons.push("operating-domain support is unknown".into());
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::NotEvaluable,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            RecommendedAction::ConservativeFallbackNoUprating,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::NotEvaluable, RecommendedAction::ConservativeFallbackNoUprating, reasons));
     }
     let outside_domain = domain_status == "OUT_OF_DOMAIN"
         || material != validated_material
@@ -803,19 +709,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
             "material, route, temperature or duty cycle is outside calibrated domain support"
                 .into(),
         );
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::OutOfDomain,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            RecommendedAction::ConservativeFallbackNoUprating,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::OutOfDomain, RecommendedAction::ConservativeFallbackNoUprating, reasons));
     }
 
     let risk_exceeded = target_cif > maximum_risk;
@@ -828,36 +722,12 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         } else {
             RecommendedAction::DerateOrReserveMaintenance
         };
-        return Ok(report(
-            run_id,
-            asset_id,
-            segment_id,
-            EligibilityState::PolicyRiskExceeded,
-            target_cif,
-            maximum_risk,
-            horizon,
-            minimum_g,
-            maximum_weight,
-            action,
-            reasons,
-        ));
+        return Ok(report(&report_context, EligibilityState::PolicyRiskExceeded, action, reasons));
     }
 
     reasons
         .push("forecast evidence gates pass; result may inform supervisory allocation only".into());
-    Ok(report(
-        run_id,
-        asset_id,
-        segment_id,
-        EligibilityState::DecisionSupportEligible,
-        target_cif,
-        maximum_risk,
-        horizon,
-        minimum_g,
-        maximum_weight,
-        RecommendedAction::MayInformAllocationOnly,
-        reasons,
-    ))
+    Ok(report(&report_context, EligibilityState::DecisionSupportEligible, RecommendedAction::MayInformAllocationOnly, reasons))
 }
 
 pub fn bundled_fixture() -> Result<Value, String> {
