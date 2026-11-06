@@ -1,0 +1,88 @@
+{
+  "schema_version": "wpt-health-dispatch-eligibility-v0",
+  "run_id": "synthetic-health-dispatch-eligibility-001",
+  "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+  "asset_identity": {
+    "asset_id": "synthetic-asset-001",
+    "segment_id": "synthetic-segment-001",
+    "installation_id": "synthetic-installation-001",
+    "route_id": "synthetic-route-heavy-duty-01",
+    "material_lot_id": "synthetic-material-lot-01",
+    "asset_state_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "forecast": {
+    "estimand": "TARGET_EVENT_CIF_AT_HORIZON",
+    "target_event_code": "STRUCTURAL_CRACK_LIMIT",
+    "horizon_hours": 720,
+    "target_event_cif": 0.03,
+    "event_free_survival": 0.91,
+    "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "outcome_data_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "calibration_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "calibration_population_id": "synthetic-population-01",
+    "calibration_stratum_id": "synthetic-asphalt-temperature-high",
+    "calibration_method": "A_CALIBRATION",
+    "calibration_status": "CALIBRATED",
+    "calibration_horizon_max_hours": 1440,
+    "hazard_cif_coherence_verified": true,
+    "source_locator": null,
+    "competing_event_codes": [
+      "ROAD_RECONSTRUCTION",
+      "PLANNED_REPLACEMENT"
+    ],
+    "cause_specific_cumulative_incidence": [
+      {
+        "event_code": "STRUCTURAL_CRACK_LIMIT",
+        "probability": 0.03
+      },
+      {
+        "event_code": "ROAD_RECONSTRUCTION",
+        "probability": 0.04
+      },
+      {
+        "event_code": "PLANNED_REPLACEMENT",
+        "probability": 0.02
+      }
+    ]
+  },
+  "censoring_support": {
+    "assumption": "INDEPENDENT_RIGHT_CENSORING",
+    "estimator_id": "synthetic-reverse-km-v0",
+    "minimum_g_observed": 0.72,
+    "minimum_g_required": 0.1,
+    "maximum_ipcw_weight": 1.3888888889,
+    "maximum_ipcw_weight_allowed": 5,
+    "support_status": "SUPPORTED"
+  },
+  "domain_support": {
+    "support_status": "IN_DOMAIN",
+    "material_family": "PG76-22-asphalt",
+    "validated_material_family": "PG76-22-asphalt",
+    "ambient_temperature_c": 38,
+    "minimum_validated_temperature_c": -5,
+    "maximum_validated_temperature_c": 55,
+    "duty_cycle_percent": 42,
+    "maximum_validated_duty_cycle_percent": 75,
+    "route_class": "urban-freight-corridor",
+    "validated_route_class": "urban-freight-corridor"
+  },
+  "hard_limits": {
+    "receiver_authorized": true,
+    "electrical_limits_pass": true,
+    "thermal_limits_pass": true,
+    "grid_pcc_envelope_pass": true,
+    "network_stability_pass": true,
+    "segment_handover_safe": true
+  },
+  "dispatch_policy": {
+    "policy_id": "synthetic-maintenance-aware-dispatch-policy-01",
+    "maximum_target_event_cif": 0.05,
+    "planned_service_horizon_hours": 720,
+    "maintenance_lead_time_hours": 168,
+    "decision_mode": "SOFT_HEALTH_CONSTRAINT_ONLY",
+    "policy_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "quality_flags": [
+    "SYNTHETIC_ONLY"
+  ]
+}
