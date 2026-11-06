@@ -10,7 +10,7 @@ This crate validates cross-field and cross-reference semantics in the v0.1 JSON 
 - ATCP / laser-PDC / ODC discriminator consistency and method-specific fields;
 - finite positive kinematic/signal quantities;
 - laser ON, source-energized sham and mechanical OFF baseline energy semantics;
-- ODC speed ratio recomputation from independently measured angular/traction encoder observations, matching calibrations, raw artifacts and eccentricity;
+- ODC feed–oscillation ratio Rv = v/(omega*e) recomputation from independent encoder observations and eccentricity; eccentricity ratio Re = e/a recomputation from eccentricity and source-defined cutterhead radius; both definitions are explicit;
 - unique channels/artifacts, channel-to-raw-artifact linkage and clock-domain agreement;
 - calibration, uncertainty, synchronization and anti-alias metadata;
 - signal bandwidth not exceeding sample_rate / 2;
