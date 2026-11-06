@@ -318,7 +318,9 @@ fn exact_temporal_oracle(
 
 #[test]
 fn exact_oracle_returns_complete_pareto_frontier_for_synthetic_lock_to_rail_case() {
-    let case = valid_case();
+    let mut case = valid_case();
+    // Keep the exhaustive proof finite while preserving both declared alternatives.
+    case.demand.delivery_window.end_tick = 36;
     let result = exact_temporal_oracle(&case, 10_000).expect("valid frozen case");
 
     assert_eq!(result.termination, SearchTermination::ExhaustiveComplete);
