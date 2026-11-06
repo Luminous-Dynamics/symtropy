@@ -105,6 +105,7 @@ pub struct DcNetworkModel {
     topology_id: String,
     topology_digest: String,
     topology_effective_at_ns: u64,
+    base_mva: f64,
     slack_bus_id: String,
     buses: Vec<DcBus>,
     branches: Vec<DcBranch>,
@@ -118,6 +119,7 @@ impl DcNetworkModel {
         topology_id: impl Into<String>,
         topology_digest: impl Into<String>,
         topology_effective_at_ns: u64,
+        base_mva: f64,
         buses: Vec<DcBus>,
         branches: Vec<DcBranch>,
     ) -> Result<Self, DcNetworkError> {
@@ -127,6 +129,7 @@ impl DcNetworkModel {
             topology_id: topology_id.into(),
             topology_digest: topology_digest.into(),
             topology_effective_at_ns,
+            base_mva,
             slack_bus_id: String::new(),
             buses,
             branches,
@@ -135,6 +138,12 @@ impl DcNetworkModel {
         require_id("network model digest", &model.model_digest)?;
         require_id("topology ID", &model.topology_id)?;
         require_id("topology digest", &model.topology_digest)?;
+        if !base_mva.is_finite() || base_mva <= 0.0 {
+            return Err(DcNetworkError::InvalidQuantity {
+                field: "network MVA base",
+                value: base_mva,
+            });
+        }
         if model.buses.is_empty() {
             return Err(DcNetworkError::EmptyNetwork);
         }
@@ -197,6 +206,10 @@ impl DcNetworkModel {
 
     pub const fn topology_effective_at_ns(&self) -> u64 {
         self.topology_effective_at_ns
+    }
+
+    pub const fn base_mva(&self) -> f64 {
+        self.base_mva
     }
 
     pub fn slack_bus_id(&self) -> &str {
@@ -385,6 +398,7 @@ pub struct DcNetworkDeliverabilityReport {
     pub topology_id: String,
     pub topology_digest: String,
     pub topology_effective_at_ns: u64,
+    pub base_mva: f64,
     pub slack_bus_id: String,
     pub interval_count: usize,
     pub requested_load_reduction_energy_mwh: f64,
@@ -684,6 +698,7 @@ pub fn evaluate_dc_network_deliverability(
         topology_id: network.topology_id.clone(),
         topology_digest: network.topology_digest.clone(),
         topology_effective_at_ns: network.topology_effective_at_ns,
+        base_mva: network.base_mva,
         slack_bus_id: network.slack_bus_id.clone(),
         interval_count: intervals.len(),
         requested_load_reduction_energy_mwh: requested_reduction_energy_mwh,
@@ -827,7 +842,7 @@ fn solve_dc_flows(
                 bus_id: bus_id.clone(),
             }
         })?;
-        rhs[index] = *value;
+        rhs[index] = *value / network.base_mva;
     }
 
     for branch in &network.branches {
@@ -861,7 +876,7 @@ fn solve_dc_flows(
         } else {
             let from_angle = angle_by_bus.get(branch.from_bus.as_str()).copied().unwrap_or(0.0);
             let to_angle = angle_by_bus.get(branch.to_bus.as_str()).copied().unwrap_or(0.0);
-            (from_angle - to_angle) / branch.reactance_pu
+            (from_angle - to_angle) / branch.reactance_pu * network.base_mva
         };
         if !flow_mw.is_finite() {
             return Err(DcNetworkError::NumericalOverflow("branch flow"));
