@@ -1145,17 +1145,19 @@ mod tests {
     #[test]
     fn rejects_zero_hazard_for_an_observed_event_cause() {
         let mut run = fixture();
-        let aggregate_hazard =
-            0.10058986952713125 + 3.0 * 0.020117973905426252;
+        let aggregate_hazard = 0.10058986952713125 + 3.0 * 0.020117973905426252;
         let redistributed_hazard = aggregate_hazard / 3.0;
-        for (index, hazard) in run["subjects"][0]
-            ["predicted_cause_specific_hazard_rates_per_hour"]
+        for (index, hazard) in run["subjects"][0]["predicted_cause_specific_hazard_rates_per_hour"]
             .as_array_mut()
             .unwrap()
             .iter_mut()
             .enumerate()
         {
-            let rate = if index == 0 { 0.0 } else { redistributed_hazard };
+            let rate = if index == 0 {
+                0.0
+            } else {
+                redistributed_hazard
+            };
             hazard["rates_per_interval"] = Value::Array(vec![Value::from(rate); 3]);
         }
         for (index, cause) in run["subjects"][0]["predicted_cumulative_incidence"]
