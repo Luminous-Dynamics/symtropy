@@ -36,7 +36,7 @@ The shared-resource interface can represent linearized shared converter, thermal
 
 ## Known-truth fixture
 
-The two-receiver fixture has 10 mWh requested, 8 mWh source capacity, two segment capacities, and one shared segment-A coupling-envelope budget. It produces 89 feasible integer allocations and a 7-point Pareto frontier.
+The two-receiver fixture has 10 mWh requested, 8 mWh source capacity, two segment capacities, and one shared segment-A coupling-envelope budget. It produces 89 feasible integer allocations and a 6-point Pareto frontier.
 
 Two interpretable frontier endpoints are:
 - Lower-stress solution: 8 mWh total, worst satisfaction 0.60, Jain fairness 0.941176, stress 8 units.
@@ -53,3 +53,21 @@ Tests cover the hand-computable frontier, shared-resource enforcement, impossibl
 ## Claim ceiling
 
 This is an exact oracle for bounded synthetic integer-capacity instances and the explicitly declared linear shared-resource constraints only. It does not infer physical coupling, validate a multiport model, prove robust feasibility under uncertainty, replace nonlinear AC/EMT analysis, establish safety/EMC compliance or authorize energization. Synthetic algorithm parity is not measured field WPT performance.
+
+### Complete exact frontier
+
+The six objective vectors (total delivered mWh, worst satisfaction ppm, Jain fairness ppm, stress units) are:
+
+| Total mWh | Worst satisfaction | Jain fairness | Stress units |
+|---:|---:|---:|---:|
+| 8 | 800,000 | 1,000,000 | 11 |
+| 8 | 600,000 | 941,176 | 8 |
+| 7 | 600,000 | 980,000 | 7 |
+| 6 | 600,000 | 1,000,000 | 6 |
+| 5 | 400,000 | 961,538 | 5 |
+| 4 | 400,000 | 1,000,000 | 4 |
+
+Satisfaction is quantized to parts per million before Jain's index is calculated. These are exact outputs for the integer fixture, not estimates of real vehicle service or physical asset stress.
+
+The reference count was corrected after a separate enumeration: there are 89 feasible link-allocation vectors, not 122; the frontier has six unique objective vectors, not seven. The test also checks pairwise non-dominance and invariance under reordering receivers, segment slots, receiver slots, shared resources and links.
+
