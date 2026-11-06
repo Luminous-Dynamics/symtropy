@@ -32,6 +32,7 @@ These are intentionally small synthetic generators for benchmark semantics. The 
 - Paired-seed Monte Carlo summaries for conditional accuracy, false confident selection and abstention, with Wilson 95% intervals.
 - A fitted bivariate VAR(1) predictive baseline using only the pre-action prefix. The VAR forecast is action-blind; a VAR win is predictive equivalence, not evidence for a neural mechanism.
 - Candidate-family selection with a score-margin threshold and explicit abstention.
+- Open-set frozen-forecast selection with a separate absolute predictive-fit floor: a large margin cannot force a winner when every model is a poor fit; the decision distinguishes poor model-set coverage from an adequate but unresolved tie. The fit floor must be calibrated on held-out controls with matching variance, horizon and preprocessing.
 - **Maximin intervention design:** rank feasible candidate actions by the minimum pairwise post-onset forecast RMSE across all competing mechanism pairs, divided by declared action cost. This avoids choosing an experiment that separates easy pairs while leaving one rival pair indistinguishable.
 - **Parameter-scenario robustness:** evaluate the same action across a supplied set of plausible damping/coupling/frequency/phase configurations and maximize the worst separation across both model pairs and parameter scenarios. Scenarios must share the same sample grid.
 - **Finite-hypothesis Bayesian expected information gain:** supply explicit mechanism/parameter hypotheses with prior weights; simulate Monte Carlo outcomes under a common Gaussian observation model; estimate expected log posterior-to-prior information gain for each candidate action; report standard error and rank by information nats per unit cost.
@@ -40,7 +41,7 @@ These are intentionally small synthetic generators for benchmark semantics. The 
 - Strictly increasing timestamps and exact paired timestamp-grid identity for prediction scoring.
 - Standalone Cargo crate with a dedicated Rust 1.96.0 formatting / test / strict-Clippy workflow.
 
-The 52 deterministic tests cover:
+The 56 deterministic tests cover:
 - baseline observational equivalence and mandatory abstention;
 - feedback-cut divergence and both directions of fitted-model selection;
 - driven-attractor relaxation, hybrid phase correction and phase pulses;
@@ -52,11 +53,14 @@ The 52 deterministic tests cover:
 - held-out response selection after fitting;
 - paired-seed Monte Carlo summaries, forced-abstention accounting, duplicate-seed/generator rejection and a known-answer Wilson interval;
 - VAR(1) recovery of the rotational baseline, predictive equivalence requiring abstention, sensory-feedback selection over an action-blind VAR(1), and singular-fit/time-grid rejection;
+- open-set poor-absolute-fit abstention despite a large closed-set margin, adequate-and-separated selection, adequate-but-ambiguous abstention and threshold validation;
 - cost-normalized intervention design, worst-pairwise selection, infeasible-action exclusion, unresolved-pair abstention and malformed candidate rejection.
 
 ## What is deliberately not implemented
 
 This V0 does not fit feedback decay/coupling, implement continuous Bayesian parameter posteriors, calibrated posterior predictive coverage, stochastic process noise, missingness, irregular observation timestamps, VAR(p), ordinary/switching SSM estimators, six-leg coupled mechanics, contact dynamics or engine-specific runtime comparisons. Its frequency profile-likelihood set is grid-based, profiles only over initial phase, assumes the declared independent Gaussian observation noise, and uses a user-selected likelihood-drop cutoff. A usual asymptotic one-parameter 95% likelihood-ratio cutoff is only approximate and may fail under short records, aliases, boundaries or other non-regular conditions. The mechanistic grid fitter estimates only angular frequency and initial phase; feedback decay/coupling are fixed common hyperparameters.
+
+The open-set fit floor is not a universal constant: it must be set from independent calibration controls at a matching observation variance, horizon, and preprocessing pipeline. It is a model criticism gate, not automatic discovery of the missing mechanism.
 
 The paired-seed Monte Carlo currently uses small deterministic seed sets and known synthetic parameter grids; it is a harness proof, not a powered performance evaluation. Wilson intervals quantify binomial rates over the chosen synthetic seeds; they do not establish biological generalization.
 
