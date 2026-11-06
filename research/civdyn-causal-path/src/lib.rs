@@ -1190,14 +1190,15 @@ mod tests {
             .initial_values
             .insert("authorized_transfer_m3".into(), 2.0);
         let edge = invalid.required_path_edge_ids[1].clone();
-        invalid
+        let receipt = invalid
             .mechanism_ablation
             .arm
             .transitions
             .iter_mut()
             .find(|receipt| receipt.edge_id == edge)
-            .unwrap()
-            .target_before = 2.0;
+            .unwrap();
+        receipt.target_before = 2.0;
+        receipt.applied = true;
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::AblationInitialStateMismatch)
@@ -1222,6 +1223,15 @@ mod tests {
             .unwrap();
         receipt.target_after = 1.0;
         receipt.applied = true;
+        let next_edge = invalid.required_path_edge_ids[1].clone();
+        invalid
+            .mechanism_ablation
+            .arm
+            .transitions
+            .iter_mut()
+            .find(|receipt| receipt.edge_id == next_edge)
+            .unwrap()
+            .source_value = 1.0;
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::MechanismAblationDidNotBlock(_))
