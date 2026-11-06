@@ -841,9 +841,9 @@ fn verify_decisions<'a>(
             && decision.next_policy_state_digest.is_some();
         if decision.command_latch_tick.is_some() != decision.command_latch_event_sequence.is_some()
             || decision.decision_event_sequence <= decision.input_cutoff_event_sequence
-            || decision.command_latch_event_sequence.is_some_and(|sequence| {
-                sequence <= decision.decision_event_sequence
-            })
+            || decision
+                .command_latch_event_sequence
+                .is_some_and(|sequence| sequence <= decision.decision_event_sequence)
         {
             return Err(HandoffError::InvalidEventOrdering);
         }
