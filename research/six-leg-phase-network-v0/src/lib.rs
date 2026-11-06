@@ -884,7 +884,7 @@ mod tests {
             CoordinationModel::CentrallyCoupled,
             &[Intervention::CouplingEdgeCut {
                 sample_index: 400,
-                source: Leg::RightMiddle,
+                source: Leg::RightRear,
                 target: Leg::LeftMiddle,
                 reciprocal: true,
             }],
