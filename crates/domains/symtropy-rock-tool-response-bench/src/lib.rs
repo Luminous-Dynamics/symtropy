@@ -45,6 +45,7 @@ pub enum ValidationCode {
     ArtifactParentMissing,
     ArtifactLineageCycle,
     OdcSpeedRatioMismatch,
+    LaserEnergyBoundaryMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -368,7 +369,7 @@ fn validate_method_config(
         ),
         "LASER_ASSISTED_PDC" => (
             &["wavelength_m", "source_electrical_input_j", "workpiece_incident_optical_energy_j", "spot_major_axis_m", "spot_minor_axis_m", "incidence_angle_rad", "beam_to_cutter_offset_m", "preheat_to_cut_delay_s", "back_rake_rad", "side_rake_rad", "cutter_spacing_m", "depth_of_cut_m", "cutting_speed_m_s", "laser_state"],
-            &["wavelength_m", "source_electrical_input_j", "workpiece_incident_optical_energy_j", "spot_major_axis_m", "spot_minor_axis_m", "cutter_spacing_m", "depth_of_cut_m", "cutting_speed_m_s"],
+            &["wavelength_m", "spot_major_axis_m", "spot_minor_axis_m", "cutter_spacing_m", "depth_of_cut_m", "cutting_speed_m_s"],
             &["kind", "wavelength_m", "source_electrical_input_j", "optical_output_energy_j", "workpiece_incident_optical_energy_j", "absorbed_energy_estimate_j", "spot_major_axis_m", "spot_minor_axis_m", "incidence_angle_rad", "standoff_m", "beam_to_cutter_offset_m", "preheat_to_cut_delay_s", "back_rake_rad", "side_rake_rad", "cutter_spacing_m", "depth_of_cut_m", "cutting_speed_m_s", "laser_state"],
         ),
         "ODC" => (
@@ -405,13 +406,28 @@ fn validate_method_config(
     }
 
     if mechanism == "LASER_ASSISTED_PDC" {
-        for field in ["optical_output_energy_j", "absorbed_energy_estimate_j", "standoff_m", "preheat_to_cut_delay_s"] {
+        for field in ["source_electrical_input_j", "optical_output_energy_j", "workpiece_incident_optical_energy_j", "absorbed_energy_estimate_j", "standoff_m", "preheat_to_cut_delay_s"] {
             if config.get(field).is_some() {
                 require_non_negative(config, field, record_id.clone(), &format!("method_configuration.{field}"), issues);
             }
         }
-        if !matches!(non_empty_string(config, "laser_state"), Some("ON" | "OFF_SHAM" | "OFF_BASELINE")) {
-            push(issues, record_id.clone(), ValidationCode::InvalidNumber, "laser_state must be ON, OFF_SHAM or OFF_BASELINE");
+        let source = number(config, "source_electrical_input_j");
+        let optical = number(config, "optical_output_energy_j");
+        let incident = number(config, "workpiece_incident_optical_energy_j");
+        let absorbed = number(config, "absorbed_energy_estimate_j");
+        let arm_valid = match non_empty_string(config, "laser_state") {
+            Some("ON") => source.is_some_and(|v| v > 0.0) && incident.is_some_and(|v| v > 0.0),
+            Some("OFF_SHAM") => source.is_some_and(|v| v > 0.0)
+                && incident == Some(0.0)
+                && absorbed.is_none_or(|v| v == 0.0),
+            Some("OFF_BASELINE") => source == Some(0.0)
+                && optical.is_none_or(|v| v == 0.0)
+                && incident == Some(0.0)
+                && absorbed.is_none_or(|v| v == 0.0),
+            _ => false,
+        };
+        if !arm_valid {
+            push(issues, record_id.clone(), ValidationCode::LaserEnergyBoundaryMismatch, "laser ON, OFF_SHAM and OFF_BASELINE energy fields do not match the declared arm");
         }
     }
 
@@ -732,6 +748,40 @@ mod tests {
         let mut data = fixture();
         data["records"][0]["artifacts"][0]["parent_artifact_refs"] = json!(["SYN-ART-ATCP-RAW"]);
         assert!(has(&validate_bundle(&data), ValidationCode::ArtifactLineageCycle));
+    }
+
+    #[test]
+    fn laser_off_baseline_is_a_valid_mechanical_control() {
+        let mut data = fixture();
+        let config = &mut data["records"][1]["method_configuration"];
+        config["laser_state"] = json!("OFF_BASELINE");
+        config["source_electrical_input_j"] = json!(0.0);
+        config["optical_output_energy_j"] = json!(0.0);
+        config["workpiece_incident_optical_energy_j"] = json!(0.0);
+        config["absorbed_energy_estimate_j"] = json!(0.0);
+        assert!(validate_bundle(&data).is_valid());
+    }
+
+    #[test]
+    fn laser_off_sham_requires_zero_workpiece_exposure() {
+        let mut data = fixture();
+        let config = &mut data["records"][1]["method_configuration"];
+        config["laser_state"] = json!("OFF_SHAM");
+        config["source_electrical_input_j"] = json!(900.0);
+        config["optical_output_energy_j"] = json!(600.0);
+        config["workpiece_incident_optical_energy_j"] = json!(0.0);
+        config["absorbed_energy_estimate_j"] = json!(0.0);
+        assert!(validate_bundle(&data).is_valid());
+    }
+
+    #[test]
+    fn laser_baseline_cannot_claim_laser_energy() {
+        let mut data = fixture();
+        let config = &mut data["records"][1]["method_configuration"];
+        config["laser_state"] = json!("OFF_BASELINE");
+        config["source_electrical_input_j"] = json!(900.0);
+        config["workpiece_incident_optical_energy_j"] = json!(0.0);
+        assert!(has(&validate_bundle(&data), ValidationCode::LaserEnergyBoundaryMismatch));
     }
 
     #[test]
