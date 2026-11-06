@@ -27,6 +27,7 @@ fn tug() -> TugResource {
         tug_id: "tug-1".to_owned(),
         revision: "tug-r1".to_owned(),
         position_node_id: "origin".to_owned(),
+        capability_class_id: "harbour-assist".to_owned(),
         bollard_pull_kn: 100,
         capability_evidence: evidence("tug-capability"),
         position_evidence: evidence("tug-position"),
@@ -58,6 +59,7 @@ fn task(task_id: &str, segment: &str, start: u64, location: &str) -> AssistanceT
         location_node_id: location.to_owned(),
         kind: AssistanceKind::Escort,
         required_tug_count: 1,
+        accepted_tug_class_ids: vec!["harbour-assist".to_owned()],
         required_bollard_pull_kn: 30,
         required_pilot_qualification: None,
     }
@@ -127,6 +129,7 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
 
     for task in tasks {
         if task.required_tug_count != 1
+            || !task.accepted_tug_class_ids.iter().any(|class| class == &tug.capability_class_id)
             || task.required_bollard_pull_kn > tug.bollard_pull_kn
             || tug.capability_evidence.state != EvidenceState::Current
             || tug.capability_evidence.valid_from_tick > task.operation.start_tick
