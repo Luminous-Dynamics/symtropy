@@ -1,0 +1,298 @@
+{
+  "schema_id": "org.luminousdynamics.symtropy.road-actor-policy-conformance",
+  "schema_version": "0.1.0",
+  "status": "specification_only_not_executed",
+  "purpose": "Conformance fixture for deterministic, observation-mediated synthetic actor policies. It is not a human-behaviour dataset.",
+  "timebase": {
+    "clock": "scenario_tick",
+    "ticks_per_second": 10,
+    "timestamp_type": "u64",
+    "ordering": "strictly_monotonic_per_run",
+    "physics_dt_seconds": 0.1,
+    "tick_to_physics_dt_policy": "one_physics_step_per_scenario_tick"
+  },
+  "coordinate_convention": {
+    "frame": "ENU",
+    "distance_unit": "metre",
+    "speed_unit": "metre_per_second",
+    "angle_unit": "radian",
+    "actor_pose_representation": "position_xy_and_heading"
+  },
+  "observation_statuses": [
+    "observed",
+    "stale",
+    "missing",
+    "occluded",
+    "unsupported"
+  ],
+  "action_vocabulary": [
+    "wait",
+    "enter_crossing",
+    "continue",
+    "pause",
+    "retreat",
+    "complete"
+  ],
+  "policy_profiles": [
+    {
+      "policy_id": "cautious_pause_v1",
+      "policy_family": "deterministic_threshold_fsm",
+      "version": "0.1.0",
+      "reaction_delay_ticks": 1,
+      "bounds": {
+        "max_speed_mps": 1.5,
+        "max_acceleration_mps2": 1,
+        "max_deceleration_mps2": 1.5
+      },
+      "rules": [
+        {
+          "priority": 1,
+          "when": "actor_state == crossing AND ego_ttc_status == observed AND ego_ttc_s <= 2.5",
+          "action": "pause",
+          "reason": "observed_ego_conflict_within_threshold"
+        },
+        {
+          "priority": 2,
+          "when": "actor_state == waiting AND ego_ttc_status == observed AND ego_ttc_s >= 3.5",
+          "action": "enter_crossing",
+          "reason": "observed_gap_exceeds_entry_threshold"
+        },
+        {
+          "priority": 3,
+          "when": "ego_ttc_status IN [stale, missing, occluded, unsupported]",
+          "action": "hold_current_action",
+          "reason": "cue_not_freshly_observed"
+        }
+      ],
+      "fallback": "hold_current_action"
+    },
+    {
+      "policy_id": "committed_after_entry_v1",
+      "policy_family": "deterministic_threshold_fsm",
+      "version": "0.1.0",
+      "reaction_delay_ticks": 1,
+      "bounds": {
+        "max_speed_mps": 1.5,
+        "max_acceleration_mps2": 1,
+        "max_deceleration_mps2": 1.5
+      },
+      "rules": [
+        {
+          "priority": 1,
+          "when": "actor_state == waiting AND ego_ttc_status == observed AND ego_ttc_s <= 1.5",
+          "action": "wait",
+          "reason": "observed_gap_below_entry_threshold"
+        },
+        {
+          "priority": 2,
+          "when": "actor_state == waiting AND ego_ttc_status == observed AND ego_ttc_s > 1.5",
+          "action": "enter_crossing",
+          "reason": "observed_gap_exceeds_entry_threshold"
+        },
+        {
+          "priority": 3,
+          "when": "actor_state == crossing",
+          "action": "continue",
+          "reason": "committed_crossing_policy"
+        },
+        {
+          "priority": 4,
+          "when": "ego_ttc_status IN [stale, missing, occluded, unsupported]",
+          "action": "hold_current_action",
+          "reason": "cue_not_freshly_observed"
+        }
+      ],
+      "fallback": "hold_current_action"
+    }
+  ],
+  "synthetic_scenario": {
+    "scenario_id": "single_crossing_ego_intervention_v0_1",
+    "description": "A synthetic pedestrian-like actor crosses a single ego lane. The case exists to test policy causality and replay, not to approximate a human population.",
+    "ego": {
+      "entity_id": "ego_0",
+      "initial_position_m": [
+        0,
+        0
+      ],
+      "heading_rad": 0,
+      "initial_speed_mps": 5,
+      "nominal_action_branches": [
+        "continue",
+        "yield",
+        "accelerate"
+      ]
+    },
+    "actor": {
+      "actor_id": "pedestrian_0",
+      "runtime_body_type": "kinematic",
+      "initial_position_m": [
+        8,
+        -2
+      ],
+      "heading_rad": 1.5707963267948966,
+      "initial_speed_mps": 0,
+      "policy_state": "waiting"
+    },
+    "conflict_zone": {
+      "center_m": [
+        8,
+        0
+      ],
+      "radius_m": 1
+    },
+    "allowed_actor_cues": [
+      {
+        "cue_id": "visible_ego_range",
+        "value_type": "f64",
+        "unit": "metre",
+        "source": "synthetic_actor_perception",
+        "may_be_occluded": true,
+        "delivery_delay_ticks": 1
+      },
+      {
+        "cue_id": "visible_ego_speed",
+        "value_type": "f64",
+        "unit": "metre_per_second",
+        "source": "synthetic_actor_perception",
+        "may_be_occluded": true,
+        "delivery_delay_ticks": 1
+      },
+      {
+        "cue_id": "estimated_ego_ttc",
+        "value_type": "f64",
+        "unit": "second",
+        "source": "derived_from_delivered_visible_range_and_speed_only",
+        "may_be_occluded": true,
+        "delivery_delay_ticks": 1
+      }
+    ],
+    "forbidden_actor_inputs": [
+      "future_ego_commands",
+      "ego_controller_internal_state",
+      "full_physics_world",
+      "hidden_scenario_labels",
+      "holdout_family_id",
+      "privileged_future_ground_truth"
+    ],
+    "exogenous_streams": [
+      {
+        "domain": "scene_disturbance",
+        "source_policy": "pre_materialized_by_scenario_and_tick",
+        "shared_across_counterfactual_branches_until_causal_divergence": true
+      },
+      {
+        "domain": "actor_perception_noise",
+        "source_policy": "pre_materialized_by_actor_and_tick",
+        "shared_across_counterfactual_branches_until_visibility_or_physics_causally_diverges": true
+      },
+      {
+        "domain": "evaluator_reference",
+        "source_policy": "independent_domain_not_visible_to_actor_policy",
+        "shared_with_actor_policy": false
+      }
+    ]
+  },
+  "conformance_cases": [
+    {
+      "case_id": "future_ego_command_noninterference",
+      "control_type": "negative",
+      "mutation": "Change only an ego command scheduled at tick 12.",
+      "comparison_window": "actor policy inputs, outputs, states and receipts for ticks 0 through 11",
+      "expected": "canonical actor traces are identical",
+      "failure_means": "future-command leakage"
+    },
+    {
+      "case_id": "hidden_state_noninterference",
+      "control_type": "negative",
+      "mutation": "Change a simulator-only ego controller mode while preserving the actor's canonical allowed observation bytes.",
+      "comparison_window": "actor policy output for the same actor state and tick",
+      "expected": "canonical actor transition is identical",
+      "failure_means": "hidden-state access"
+    },
+    {
+      "case_id": "observation_delivery_delay",
+      "control_type": "negative",
+      "mutation": "Make a changed ego-speed cue visible at tick 4 but deliver it at tick 6.",
+      "comparison_window": "actor outputs at ticks 4 and 5 versus tick 6 onward",
+      "expected": "no response attributable to the changed cue before tick 6",
+      "failure_means": "observation timestamp or delivery-order violation"
+    },
+    {
+      "case_id": "occlusion_blocks_cue",
+      "control_type": "negative",
+      "mutation": "Mark visible_ego_speed as occluded without changing hidden world speed.",
+      "comparison_window": "policy input and transition",
+      "expected": "speed value is unavailable; policy follows its declared non-observed fallback",
+      "failure_means": "occluded cue treated as observed"
+    },
+    {
+      "case_id": "stale_and_missing_are_typed",
+      "control_type": "negative",
+      "mutation": "Replace a fresh TTC cue with stale and then missing statuses in separate runs.",
+      "comparison_window": "transition receipts and expected outcome counts",
+      "expected": "statuses remain distinct and no missing value is encoded as numeric zero",
+      "failure_means": "missingness collapse or denominator suppression"
+    },
+    {
+      "case_id": "ego_intervention_is_observation_mediated",
+      "control_type": "positive",
+      "mutation": "Compare continue, yield and accelerate ego branches with their delivered visible-motion cues.",
+      "comparison_window": "actor trace after the first branch-specific cue delivery",
+      "expected": "policy response may diverge only after the relevant cue is delivered; pre-delivery traces match",
+      "failure_means": "clairvoyant response or absence of declared causal sensitivity"
+    },
+    {
+      "case_id": "policy_profiles_are_distinguishable",
+      "control_type": "positive",
+      "mutation": "Run both policy profiles with a crossing-state actor and observed TTC of 2.0 seconds.",
+      "comparison_window": "next accepted actor action after reaction delay",
+      "expected": "cautious_pause_v1 pauses; committed_after_entry_v1 continues",
+      "failure_means": "policy identity is decorative or policy implementations collapse"
+    },
+    {
+      "case_id": "fresh_process_replay",
+      "control_type": "positive",
+      "mutation": "Reconstruct initial world, stable actor map, policy digests and materialized exogenous trace in a fresh process.",
+      "comparison_window": "every actor receipt and world snapshot by tick",
+      "expected": "bitwise equality under the same named runtime profile",
+      "failure_means": "unrecorded dependency or non-deterministic execution"
+    },
+    {
+      "case_id": "fixed_script_is_not_interactive",
+      "control_type": "control",
+      "mutation": "Run the fixed trajectory baseline under multiple ego-action histories.",
+      "comparison_window": "actor trajectory and benchmark labels",
+      "expected": "the baseline remains marked open_loop_script and cannot satisfy interactive_policy acceptance",
+      "failure_means": "script replay mislabeled as interaction"
+    },
+    {
+      "case_id": "invalid_identity_time_or_bounds",
+      "control_type": "negative",
+      "mutation": "Inject duplicate actor IDs, duplicate per-actor sequence, backward tick, NaN, infinity or out-of-profile speed.",
+      "comparison_window": "adapter result and completeness report",
+      "expected": "rejected or explicitly modified-with-receipt; never silently accepted",
+      "failure_means": "identity/time/bounds contract violation"
+    }
+  ],
+  "acceptance_targets": {
+    "required_negative_controls_pass_rate": 1,
+    "future_or_hidden_state_leaks": 0,
+    "silently_collapsed_missing_or_occluded_observations": 0,
+    "same_runtime_fresh_process_replay_mismatches": 0,
+    "policy_profile_discrimination_cases_pass_rate": 1,
+    "status": "prospective_targets_not_results"
+  },
+  "claim_ceiling": [
+    "deterministic synthetic actor policy conformance",
+    "observation-mediated response under declared information boundaries",
+    "same-runtime replay under named execution profile"
+  ],
+  "explicitly_not_proven": [
+    "human behavioural fidelity",
+    "real-world actor frequency distributions",
+    "collision-risk reduction",
+    "physical simulator fidelity",
+    "vehicle safety or roadworthiness",
+    "SAE Level 4 or Level 5 capability"
+  ]
+}
