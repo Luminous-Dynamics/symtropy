@@ -61,7 +61,6 @@ fn observation(
     .expect("valid no-dispatch observation")
 }
 
-
 fn recovery_evidence(
     start_ns: u64,
     dispatch_end_ns: u64,
