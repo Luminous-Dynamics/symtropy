@@ -343,7 +343,13 @@ fn main() {
     ablation[4] = "boolean".into();
     ablation[7] = result.ablation_protocol_valid.to_string();
     ablation[8] = result.blocked_mechanism_suppressed.to_string();
-    ablation[9] = "transfer_eligible".into();
+    ablation[9] = experiment
+        .edges
+        .iter()
+        .find(|edge| {
+            edge.to_variable == experiment.mechanism_ablation.blocked_mechanism_variable_id
+        })
+        .map_or_else(String::new, |edge| edge.id.clone());
     ablation[10] = result.primary_intervention_preserved.to_string();
     ablation[11] = fmt(result.control_outcome);
     ablation[12] = fmt(result.mechanism_ablation_outcome);
