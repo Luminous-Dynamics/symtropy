@@ -11,8 +11,10 @@ A demand reduction caused by an uncommanded breaker trip or ride-through failure
 - Piecewise contiguous voltage/frequency envelope segments with operator-specified RoCoF bounds and connection behavior.
 - Explicit stay-connected and momentary-cessation zones with an allowed disconnected-duration bound.
 - Waveform digest, measurement-chain digest, clock model, timestamp uncertainty, RMS window and measurement bandwidth binding.
+- Initial event-start coverage, maximum inter-sample gap and Nyquist consistency between the sample cadence and claimed measurement bandwidth.
 - Chronology, sample-gap, observation-horizon and measurement-quality checks with fail-closed abstention.
 - Active-power recovery after declared stable-voltage/frequency dwell, with recovery deadline, minimum pre-event-power fraction, maximum absolute ramp and overshoot.
+- Optional operator-defined reactive-power range and maximum PCC current envelope; missing required Q/current samples cause abstention rather than being silently ignored.
 - Explicit intentional-demand-response credit is false for every result.
 
 ## Limits
