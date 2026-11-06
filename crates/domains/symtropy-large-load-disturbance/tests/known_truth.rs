@@ -4,7 +4,8 @@
 use symtropy_large_load_disturbance::{
     ActivePowerRecoveryRequirement, ConnectionRequirement, DisturbanceError,
     DisturbanceEventIdentity, DisturbanceRequirementSet, DisturbanceTraceContract,
-    PccDisturbanceSample, RideThroughSegment, evaluate_disturbance_conformance,
+    PccDisturbanceSample, ReactiveCurrentRequirement, RideThroughSegment,
+    evaluate_disturbance_conformance,
 };
 
 fn requirement_with_rule(
@@ -479,4 +480,48 @@ fn sample_cadence_cannot_claim_unobservable_bandwidth() {
         error,
         DisturbanceError::SamplingCadenceCannotResolveBandwidth { .. }
     ));
+}
+
+#[test]
+fn operator_reactive_power_and_current_envelope_is_enforced() {
+    let requirement = requirement().with_reactive_current_requirement(
+        ReactiveCurrentRequirement::new(-5.0, 5.0, 1.2).unwrap(),
+    );
+    let mut trace = passing_trace();
+    trace[3] = PccDisturbanceSample::new(
+        10_000_000_000 + 2_500_000_000,
+        0.96,
+        50.0,
+        90.0,
+        Some(6.0),
+        Some(1.3),
+        true,
+    ).unwrap();
+    let report = evaluate_disturbance_conformance(&event(), &requirement, &contract(), &trace)
+        .unwrap();
+    assert!(report.reactive_current_assessed);
+    assert!(!report.reactive_current_compliant);
+    assert!(!report.qualified);
+    assert_eq!(report.maximum_reactive_power_mvar, Some(6.0));
+    assert_eq!(report.maximum_current_pu, Some(1.3));
+}
+
+#[test]
+fn required_reactive_current_measurements_missing_causes_abstention() {
+    let requirement = requirement().with_reactive_current_requirement(
+        ReactiveCurrentRequirement::new(-5.0, 5.0, 1.2).unwrap(),
+    );
+    let mut trace = passing_trace();
+    trace[3] = PccDisturbanceSample::new(
+        10_000_000_000 + 2_500_000_000,
+        0.96,
+        50.0,
+        90.0,
+        None,
+        Some(1.0),
+        true,
+    ).unwrap();
+    let error = evaluate_disturbance_conformance(&event(), &requirement, &contract(), &trace)
+        .unwrap_err();
+    assert!(matches!(error, DisturbanceError::MissingReactivePowerSample { .. }));
 }
