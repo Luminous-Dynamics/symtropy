@@ -965,7 +965,8 @@ mod tests {
     #[test]
     fn duplicate_strategy_identity_is_a_case_error() {
         let mut data = fixture();
-        data["strategies"][1]["strategy_id"] = data["strategies"][0]["strategy_id"].clone();
+        let duplicate_id = data["strategies"][0]["strategy_id"].clone();
+        data["strategies"][1]["strategy_id"] = duplicate_id;
         let result = evaluate_case(&data);
         assert!(result.is_err());
     }
