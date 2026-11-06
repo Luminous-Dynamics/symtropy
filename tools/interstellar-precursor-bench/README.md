@@ -2,7 +2,7 @@
 
 A dependency-free Rust reference calculator for one deliberately narrow problem: a spacecraft starts at rest, accelerates at constant **proper acceleration** to a declared cruise fraction of light speed, coasts, and decelerates at the same proper acceleration to rest at a stationary target.
 
-It is a kinematics oracle, not a propulsion model or vehicle design tool.
+It is a kinematics oracle, not a propulsion model or vehicle design tool. Because it decelerates to rest relative to the assumed target frame, this is a stop-at-target profile, not a flyby and not an orbital-capture solution.
 
 ## Run
 
@@ -11,7 +11,7 @@ From this directory:
 ```sh
 cargo test
 cargo run --release
-cargo run --release -- --input fixtures/proxima-4p24ly-flyby-0p1c.input
+cargo run --release -- --input fixtures/proxima-4p24ly-stop-at-target-0p1c.input
 ```
 
 No external Rust crates are required.
