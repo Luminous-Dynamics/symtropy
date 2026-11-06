@@ -157,6 +157,7 @@ pub enum ValidationCode {
     ProfileMismatch,
     InvalidNumericValue,
     InvalidUncertainty,
+    AggregateMetricOutOfRange,
     NonIndependentEnergyEvidence,
     NonIndependentOutputEvidence,
     NonIndependentTimeEvidence,
@@ -305,6 +306,11 @@ pub fn compare_trials(
     let baseline_metrics = aggregate_arm(&baseline);
     let candidate_metrics = aggregate_arm(&candidate);
 
+    if !arm_metrics_are_valid(&baseline_metrics) || !arm_metrics_are_valid(&candidate_metrics) {
+        push_issue(&mut issues, None, ValidationCode::AggregateMetricOutOfRange);
+        return Err(ValidationErrors(issues));
+    }
+
     let candidate_output_rate_change_fraction =
         candidate_metrics.accepted_output_rate_m3_per_hour
             / baseline_metrics.accepted_output_rate_m3_per_hour
@@ -314,6 +320,13 @@ pub fn compare_trials(
         candidate_metrics.full_system_energy_kwh_per_accepted_m3
             / baseline_metrics.full_system_energy_kwh_per_accepted_m3
             - 1.0;
+
+    if !candidate_output_rate_change_fraction.is_finite()
+        || !candidate_energy_intensity_change_fraction.is_finite()
+    {
+        push_issue(&mut issues, None, ValidationCode::AggregateMetricOutOfRange);
+        return Err(ValidationErrors(issues));
+    }
 
     Ok(ComparisonSummary {
         profile_id: profile.profile_id.clone(),
@@ -466,6 +479,14 @@ fn validate_trial(
     if !trial.time.evidence_role.is_independent_measurement() {
         push_issue(issues, id, ValidationCode::NonIndependentTimeEvidence);
     }
+}
+
+fn arm_metrics_are_valid(metrics: &ArmMetrics) -> bool {
+    is_positive_finite(metrics.total_accepted_solid_volume_m3)
+        && is_positive_finite(metrics.total_full_cycle_energy_kwh)
+        && is_positive_finite(metrics.total_full_cycle_hours)
+        && is_positive_finite(metrics.accepted_output_rate_m3_per_hour)
+        && is_positive_finite(metrics.full_system_energy_kwh_per_accepted_m3)
 }
 
 fn aggregate_arm(trials: &[&TrialRecord]) -> ArmMetrics {
@@ -835,6 +856,16 @@ mod tests {
         ];
         let errors = compare_trials(&profile(), &trials).unwrap_err();
         assert!(has_code(&errors, ValidationCode::MissingBaselineArm));
+    }
+
+
+    #[test]
+    fn aggregate_overflow_is_rejected_even_when_individual_values_are_finite() {
+        let mut trials = four_trials();
+        trials[0].energy.total_energy_kwh = f64::MAX;
+        trials[1].energy.total_energy_kwh = f64::MAX;
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::AggregateMetricOutOfRange));
     }
 
 }
