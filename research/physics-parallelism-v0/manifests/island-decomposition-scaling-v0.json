@@ -99,10 +99,13 @@
     "peak_memory_bytes"
   ],
   "comparison": {
-    "baseline": "pre-single-pass-per-component-rescan",
+    "baseline": "benchmark_only_reproduction_of_pre_single_pass_per_component_rescan",
     "candidate": "union_find_plus_root_to_island_single_pass",
     "exact_same_input": true,
+    "partition_equivalence_asserted_before_timing": true,
     "repeat_count_minimum": 20,
+    "legacy_reference_max_body_count": 10000,
+    "candidate_max_body_count": 100000,
     "performance_claim_requires_correctness_gate": true,
     "performance_numbers_measured": false
   }
