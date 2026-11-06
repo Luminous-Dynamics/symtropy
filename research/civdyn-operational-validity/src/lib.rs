@@ -13,14 +13,22 @@
 
 use core::fmt;
 
-pub const MIN_INDEPENDENT_SAMPLES: usize = 30;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MetricSpec {
     pub metric_id: String,
     pub unit: String,
     /// A separate scope such as root_posts, comments, region_01 or network_core.
     pub stratum_id: String,
+    /// Declared independent unit for empirical observations (e.g. non-overlapping time window).
+    pub observed_independent_unit: String,
+    /// Declared independent unit for simulation replications (e.g. independent seed run).
+    pub simulated_independent_unit: String,
+    /// Minimum sample counts are design-specific, not universal constants.
+    pub minimum_observed_samples: usize,
+    pub minimum_simulated_samples: usize,
+    /// Dependence assessment and sample-size justification from the source design.
+    pub dependence_assessment: String,
+    pub sample_size_rationale: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -32,6 +40,8 @@ pub struct NumericSample {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SampleSet {
     pub unit: String,
+    /// Caller-declared independent unit; this is checked against MetricSpec but cannot be proven from IDs.
+    pub independent_unit: String,
     pub samples: Vec<NumericSample>,
 }
 
@@ -76,6 +86,9 @@ pub enum ValidationError {
     EmptyMetricId,
     EmptyUnit,
     EmptyStratumId,
+    EmptyDependenceAssessment,
+    EmptySampleSizeRationale,
+    MinimumSampleCountTooSmall { side: &'static str, minimum: usize },
     UnitMismatch {
         side: &'static str,
         expected: String,
@@ -85,6 +98,11 @@ pub enum ValidationError {
         side: &'static str,
         actual: usize,
         minimum: usize,
+    },
+    IndependentUnitMismatch {
+        side: &'static str,
+        expected: String,
+        actual: String,
     },
     EmptySampleId {
         side: &'static str,
@@ -107,6 +125,9 @@ impl fmt::Display for ValidationError {
             Self::EmptyMetricId => write!(f, "metric_id must not be empty"),
             Self::EmptyUnit => write!(f, "metric unit must not be empty"),
             Self::EmptyStratumId => write!(f, "stratum_id must not be empty"),
+            Self::EmptyDependenceAssessment => write!(f, "dependence_assessment must not be empty"),
+            Self::EmptySampleSizeRationale => write!(f, "sample_size_rationale must not be empty"),
+            Self::MinimumSampleCountTooSmall { side, minimum } => write!(f, "{side} minimum sample count must be at least 2 for variance and t intervals, got {minimum}"),
             Self::UnitMismatch {
                 side,
                 expected,
@@ -121,7 +142,11 @@ impl fmt::Display for ValidationError {
                 minimum,
             } => write!(
                 f,
-                "{side} has {actual} independent samples; at least {minimum} required"
+                "{side} has {actual} independent samples; at least {minimum} required by this metric design"
+            ),
+            Self::IndependentUnitMismatch { side, expected, actual } => write!(
+                f,
+                "{side} independent unit mismatch: expected {expected}, got {actual}"
             ),
             Self::EmptySampleId { side, index } => {
                 write!(f, "{side} sample at index {index} has an empty ID")
@@ -154,8 +179,20 @@ pub fn compare_metric(
     simulated: &SampleSet,
 ) -> Result<OperationalComparison, ValidationError> {
     validate_spec(&metric)?;
-    validate_sample_set("observed", &metric.unit, observed)?;
-    validate_sample_set("simulated", &metric.unit, simulated)?;
+    validate_sample_set(
+        "observed",
+        &metric.unit,
+        &metric.observed_independent_unit,
+        metric.minimum_observed_samples,
+        observed,
+    )?;
+    validate_sample_set(
+        "simulated",
+        &metric.unit,
+        &metric.simulated_independent_unit,
+        metric.minimum_simulated_samples,
+        simulated,
+    )?;
 
     let observed_values = sorted_values(observed);
     let simulated_values = sorted_values(simulated);
@@ -189,12 +226,28 @@ fn validate_spec(metric: &MetricSpec) -> Result<(), ValidationError> {
     if metric.stratum_id.trim().is_empty() {
         return Err(ValidationError::EmptyStratumId);
     }
+    if metric.dependence_assessment.trim().is_empty() {
+        return Err(ValidationError::EmptyDependenceAssessment);
+    }
+    if metric.sample_size_rationale.trim().is_empty() {
+        return Err(ValidationError::EmptySampleSizeRationale);
+    }
+    for (side, minimum) in [
+        ("observed", metric.minimum_observed_samples),
+        ("simulated", metric.minimum_simulated_samples),
+    ] {
+        if minimum < 2 {
+            return Err(ValidationError::MinimumSampleCountTooSmall { side, minimum });
+        }
+    }
     Ok(())
 }
 
 fn validate_sample_set(
     side: &'static str,
     expected_unit: &str,
+    expected_independent_unit: &str,
+    minimum_samples: usize,
     sample_set: &SampleSet,
 ) -> Result<(), ValidationError> {
     if sample_set.unit != expected_unit {
@@ -204,11 +257,18 @@ fn validate_sample_set(
             actual: sample_set.unit.clone(),
         });
     }
-    if sample_set.samples.len() < MIN_INDEPENDENT_SAMPLES {
+    if sample_set.independent_unit != expected_independent_unit {
+        return Err(ValidationError::IndependentUnitMismatch {
+            side,
+            expected: expected_independent_unit.to_owned(),
+            actual: sample_set.independent_unit.clone(),
+        });
+    }
+    if sample_set.samples.len() < minimum_samples {
         return Err(ValidationError::TooFewIndependentSamples {
             side,
             actual: sample_set.samples.len(),
-            minimum: MIN_INDEPENDENT_SAMPLES,
+            minimum: minimum_samples,
         });
     }
 
@@ -270,11 +330,40 @@ fn summarize(sorted: &[f64]) -> SampleSummary {
     }
 }
 
-/// Conservative two-sided 99% t critical values. Each bucket uses the
-/// critical value for the smallest degrees of freedom in that bucket.
-/// Samples smaller than 30 are rejected by the public validation contract.
+/// Conservative two-sided 99% Student-t critical values.
+/// For n=2..29 the values are the corresponding df=n-1 quantiles.
+/// Larger ranges use the critical value for the smallest df in the bucket,
+/// remaining conservative as the sample size increases.
 fn conservative_t_99_critical(sample_count: usize) -> f64 {
     match sample_count {
+        2 => 63.657,
+        3 => 9.925,
+        4 => 5.841,
+        5 => 4.604,
+        6 => 4.032,
+        7 => 3.707,
+        8 => 3.499,
+        9 => 3.355,
+        10 => 3.250,
+        11 => 3.169,
+        12 => 3.106,
+        13 => 3.055,
+        14 => 3.012,
+        15 => 2.977,
+        16 => 2.947,
+        17 => 2.921,
+        18 => 2.898,
+        19 => 2.878,
+        20 => 2.861,
+        21 => 2.845,
+        22 => 2.831,
+        23 => 2.819,
+        24 => 2.807,
+        25 => 2.797,
+        26 => 2.787,
+        27 => 2.779,
+        28 => 2.771,
+        29 => 2.763,
         30..=39 => 2.756,
         40..=59 => 2.708,
         60..=119 => 2.660,
@@ -367,9 +456,10 @@ fn wasserstein_one(left: &[f64], right: &[f64]) -> f64 {
 mod tests {
     use super::*;
 
-    fn set(prefix: &str, values: &[f64], unit: &str) -> SampleSet {
+    fn set(prefix: &str, values: &[f64], unit: &str, independent_unit: &str) -> SampleSet {
         SampleSet {
             unit: unit.to_owned(),
+            independent_unit: independent_unit.to_owned(),
             samples: values
                 .iter()
                 .enumerate()
@@ -386,6 +476,12 @@ mod tests {
             metric_id: "activity".into(),
             unit: "posts/day".into(),
             stratum_id: stratum.into(),
+            observed_independent_unit: "non_overlapping_empirical_window".into(),
+            simulated_independent_unit: "independent_simulation_run".into(),
+            minimum_observed_samples: 30,
+            minimum_simulated_samples: 30,
+            dependence_assessment: "Empirical windows do not overlap; each simulation run uses an independent seed.".into(),
+            sample_size_rationale: "This synthetic fixture mirrors the 30-window/30-run source study protocol; a different source requires its own power/dependence rationale.".into(),
         }
     }
 
@@ -398,8 +494,8 @@ mod tests {
         let values = values_0_to_29();
         let result = compare_metric(
             metric("all"),
-            &set("obs", &values, "posts/day"),
-            &set("sim", &values, "posts/day"),
+            &set("obs", &values, "posts/day", "non_overlapping_empirical_window"),
+            &set("sim", &values, "posts/day", "independent_simulation_run"),
         )
         .unwrap();
 
@@ -419,8 +515,8 @@ mod tests {
         let simulated = observed.iter().map(|value| value + 1.0).collect::<Vec<_>>();
         let result = compare_metric(
             metric("all"),
-            &set("obs", &observed, "posts/day"),
-            &set("sim", &simulated, "posts/day"),
+            &set("obs", &observed, "posts/day", "non_overlapping_empirical_window"),
+            &set("sim", &simulated, "posts/day", "independent_simulation_run"),
         )
         .unwrap();
 
@@ -458,14 +554,14 @@ mod tests {
 
         let root = compare_metric(
             metric("root_posts"),
-            &set("obs_root", &observed, "posts/day"),
-            &set("sim_root", &root_sim, "posts/day"),
+            &set("obs_root", &observed, "posts/day", "non_overlapping_empirical_window"),
+            &set("sim_root", &root_sim, "posts/day", "independent_simulation_run"),
         )
         .unwrap();
         let comments = compare_metric(
             metric("comments"),
-            &set("obs_comments", &observed, "posts/day"),
-            &set("sim_comments", &comment_sim, "posts/day"),
+            &set("obs_comments", &observed, "posts/day", "non_overlapping_empirical_window"),
+            &set("sim_comments", &comment_sim, "posts/day", "independent_simulation_run"),
         )
         .unwrap();
 
@@ -492,7 +588,7 @@ mod tests {
 
     #[test]
     fn too_few_samples_fail_closed() {
-        let values = vec![1.0; MIN_INDEPENDENT_SAMPLES - 1];
+        let values = vec![1.0; 29];
         assert!(matches!(
             compare_metric(
                 metric("all"),
@@ -500,6 +596,63 @@ mod tests {
                 &set("sim", &values, "posts/day"),
             ),
             Err(ValidationError::TooFewIndependentSamples { .. })
+        ));
+    }
+
+    #[test]
+    fn metric_specific_sample_minima_can_be_below_thirty() {
+        let values = (0..8).map(f64::from).collect::<Vec<_>>();
+        let mut specification = metric("small_sample_reference");
+        specification.minimum_observed_samples = 8;
+        specification.minimum_simulated_samples = 8;
+        specification.sample_size_rationale = "Eight independent units are justified by the predeclared exact small-sample reference fixture; not an empirical inference claim.".into();
+        let result = compare_metric(
+            specification,
+            &set("obs_small", &values, "posts/day", "non_overlapping_empirical_window"),
+            &set("sim_small", &values, "posts/day", "independent_simulation_run"),
+        ).unwrap();
+        assert_eq!(result.observed.sample_count, 8);
+        assert!(result.observed.mean_99_ci_half_width > 0.0);
+        let standard_error = result.observed.sample_standard_deviation / (8.0_f64).sqrt();
+        assert!((result.observed.mean_99_ci_half_width - 3.499 * standard_error).abs() < 1e-9);
+    }
+
+    #[test]
+    fn independent_unit_mismatch_fails_closed() {
+        let values = values_0_to_29();
+        assert!(matches!(
+            compare_metric(
+                metric("all"),
+                &set("obs", &values, "posts/day", "overlapping_empirical_rows"),
+                &set("sim", &values, "posts/day", "independent_simulation_run"),
+            ),
+            Err(ValidationError::IndependentUnitMismatch { side: "observed", .. })
+        ));
+    }
+
+    #[test]
+    fn empty_design_rationale_and_minimum_below_two_fail_closed() {
+        let values = values_0_to_29();
+        let mut missing_rationale = metric("all");
+        missing_rationale.sample_size_rationale.clear();
+        assert!(matches!(
+            compare_metric(
+                missing_rationale,
+                &set("obs", &values, "posts/day", "non_overlapping_empirical_window"),
+                &set("sim", &values, "posts/day", "independent_simulation_run"),
+            ),
+            Err(ValidationError::EmptySampleSizeRationale)
+        ));
+
+        let mut invalid_minimum = metric("all");
+        invalid_minimum.minimum_observed_samples = 1;
+        assert!(matches!(
+            compare_metric(
+                invalid_minimum,
+                &set("obs", &values, "posts/day", "non_overlapping_empirical_window"),
+                &set("sim", &values, "posts/day", "independent_simulation_run"),
+            ),
+            Err(ValidationError::MinimumSampleCountTooSmall { side: "observed", .. })
         ));
     }
 
