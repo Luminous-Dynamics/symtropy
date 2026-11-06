@@ -187,8 +187,7 @@ impl GaussianState {
     }
 
     fn reset_session(&mut self, model: &MultivariateMechanism, session_id: &str) {
-        let phase_variance = model.phase_innovation_sd.powi(2)
-            / (1.0 - model.phase_phi.powi(2));
+        let phase_variance = model.phase_innovation_sd.powi(2) / (1.0 - model.phase_phi.powi(2));
         self.mean[0] = 0.0;
         for index in 1..self.mean.len() {
             self.covariance[0][index] = 0.0;
