@@ -668,7 +668,7 @@ fn expected_post_experiment_value(
             }]);
         }
 
-        if predictive_probability <= PROBABILITY_TOLERANCE {
+        if predictive_probability <= 0.0 {
             // This outcome has zero prior predictive support. Its posterior is
             // undefined, but it contributes exactly zero expected value.
             continue;
@@ -1111,9 +1111,9 @@ mod tests {
             for outcome in experiment["outcomes"].as_array_mut().unwrap() {
                 outcome["likelihoods"].as_array_mut().unwrap().reverse();
             }
-            for action in case["actions"].as_array_mut().unwrap() {
-                action["utilities"].as_array_mut().unwrap().reverse();
-            }
+        }
+        for action in case["actions"].as_array_mut().unwrap() {
+            action["utilities"].as_array_mut().unwrap().reverse();
         }
         let after = evaluate_case(&case).expect("after");
         let before_evsi = golden_experiment(&before, "pressure-differential-probe").evsi;
@@ -1162,8 +1162,11 @@ mod tests {
     #[test]
     fn tie_breaking_is_deterministic() {
         let mut case = fixture();
-        case["experiments"][1]["cost"]["value"] = serde_json::json!(2.0);
+        case["experiments"][1]["cost"]["value"] = serde_json::json!(5.0);
+        case["experiments"][1]["outcomes"] =
+            case["experiments"][0]["outcomes"].clone();
         let report = evaluate_case(&case).expect("stable sort");
+        assert!((report.experiment_values[0].net_evsi - report.experiment_values[1].net_evsi).abs() < 1e-9);
         assert_eq!(
             report.experiment_values[0].experiment_id,
             "pressure-differential-probe"
