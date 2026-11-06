@@ -536,10 +536,10 @@ mod tests {
 
     #[test]
     fn duplicate_hypothesis_and_candidate_ids_fail_closed() {
-        let mut hypotheses = hypotheses();
-        hypotheses[1].hypothesis_id = hypotheses[0].hypothesis_id;
+        let mut duplicate_hypotheses = hypotheses();
+        duplicate_hypotheses[1].hypothesis_id = duplicate_hypotheses[0].hypothesis_id;
         assert_eq!(
-            select_intervention(&hypotheses, &[], &constraints()),
+            select_intervention(&duplicate_hypotheses, &[], &constraints()),
             Err(DesignError::DuplicateHypothesisId)
         );
 
@@ -585,17 +585,18 @@ mod tests {
             Err(DesignError::InvalidPriorWeight)
         );
 
-        let mut constraints = constraints();
-        constraints.observation_variances[0] = 0.0;
+        let mut invalid_constraints = constraints();
+        invalid_constraints.observation_variances[0] = 0.0;
         assert_eq!(
-            select_intervention(&hypotheses(), &[], &constraints),
+            select_intervention(&hypotheses(), &[], &invalid_constraints),
             Err(DesignError::InvalidObservationVariances)
         );
 
-        let mut candidate = candidate(1, 1.0, true, &[0.0, 0.0, 0.0], &[1.0, 0.0, 0.0]);
-        candidate.candidate_digest = [0; 32];
+        let mut invalid_candidate =
+            candidate(1, 1.0, true, &[0.0, 0.0, 0.0], &[1.0, 0.0, 0.0]);
+        invalid_candidate.candidate_digest = [0; 32];
         assert_eq!(
-            select_intervention(&hypotheses(), &[candidate], &constraints()),
+            select_intervention(&hypotheses(), &[invalid_candidate], &constraints()),
             Err(DesignError::MissingCandidateDigest)
         );
     }
