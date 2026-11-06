@@ -22,7 +22,7 @@ RunManifest records:
 - Initial-state digest.
 - Action/intervention assignment digest, intervention-presence bit and optional per-run delivery-receipt digest.
 - Raw trajectory digest and metric-version identifier.
-- Timestep, control frequency, sensor frequency, duration and recorded sample count.
+- Timestep, control frequency, sensor frequency, declared sensor/actuator latency, integrator, solver name/tolerance/iteration count, duration and recorded sample count.
 - Optional hardware profile: platform, CPU, accelerator, OS build, driver and calibration-record digest.
 
 An intervention requires a delivery receipt. Hardware-tier evidence requires a hardware profile and calibration-record digest. Placeholder or malformed lowercase SHA-256 hex strings, malformed Git object IDs, nonpositive timebases and underspecified sample counts fail closed.
@@ -42,7 +42,7 @@ It requires these fields to match:
 - Initial-state digest.
 - Action assignment and intervention presence.
 - Metric version.
-- Timestep, control frequency, sensor frequency, duration and sample count.
+- Timestep, control frequency, sensor frequency, sensor/actuator latency, duration and sample count.
 
 This is deliberately strict. If the engines cannot implement an identical sensor/actuator/physics contract, the comparison must be declared non-paired or the unsupported difference must be surfaced explicitly. Do not silently substitute a different contact model, sensor, actuator, delay, control frequency or asset and still label the result paired.
 
@@ -63,7 +63,7 @@ Those responsibilities belong to independent adapters, immutable artifact stores
 
 ## Tests
 
-11 deterministic tests cover canonical-encoding stability, cross-engine pair acceptance, physical/sensor/timebase/seed mismatch rejection, action delivery-receipt requirements, hardware profile and calibration requirements, malformed digests/commit IDs, invalid timebase/sample count, missing required strings and unknown schema versions.
+14 deterministic tests cover canonical-encoding stability, cross-engine pair acceptance with engine-specific solver disclosures, physical/sensor/timebase/seed/latency mismatch rejection, action delivery-receipt requirements, hardware profile and calibration requirements, malformed digests/commit IDs, invalid solver settings, invalid timebase/sample count, missing required strings and unknown schema versions.
 
 ## Run
 
