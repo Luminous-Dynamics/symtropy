@@ -334,6 +334,81 @@ mod tests {
     }
 
     #[test]
+    fn contacts_and_constraints_are_assigned_exactly_once() {
+        use crate::constraint::DistanceConstraint;
+
+        let (bodies, map) = make_bodies(6);
+        let contacts = vec![
+            ContactManifold::single(
+                BodyHandle(1),
+                BodyHandle(2),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            ContactManifold::single(
+                BodyHandle(2),
+                BodyHandle(3),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            // Preserve the known endpoint in an island when the other handle
+            // is absent from the supplied body map.
+            ContactManifold::single(
+                BodyHandle(4),
+                BodyHandle(999),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            // Both endpoints absent: this edge belongs to no island.
+            ContactManifold::single(
+                BodyHandle(998),
+                BodyHandle(999),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+        ];
+        let constraints: Vec<Box<dyn Constraint<3>>> = vec![
+            Box::new(DistanceConstraint {
+                body_a: BodyHandle(0),
+                body_b: BodyHandle(4),
+                rest_length: 1.0,
+                stiffness: 1.0,
+            }),
+            Box::new(DistanceConstraint {
+                body_a: BodyHandle(5),
+                body_b: BodyHandle(997),
+                rest_length: 1.0,
+                stiffness: 1.0,
+            }),
+            Box::new(DistanceConstraint {
+                body_a: BodyHandle(996),
+                body_b: BodyHandle(997),
+                rest_length: 1.0,
+                stiffness: 1.0,
+            }),
+        ];
+
+        let islands = build_islands(&bodies, &contacts, &constraints, &map);
+        let mut contact_indices: Vec<_> = islands
+            .iter()
+            .flat_map(|island| island.contact_indices.iter().copied())
+            .collect();
+        let mut constraint_indices: Vec<_> = islands
+            .iter()
+            .flat_map(|island| island.constraint_indices.iter().copied())
+            .collect();
+        contact_indices.sort_unstable();
+        constraint_indices.sort_unstable();
+
+        assert_eq!(contact_indices, vec![0, 1, 2]);
+        assert_eq!(constraint_indices, vec![0, 1]);
+    }
+
+    #[test]
     fn empty_world() {
         let islands = build_islands::<3>(&[], &[], &[], &HashMap::new());
         assert!(islands.is_empty());
