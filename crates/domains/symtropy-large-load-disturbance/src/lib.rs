@@ -276,6 +276,16 @@ impl DisturbanceTraceContract {
                 value: minimum_measurement_bandwidth_hz,
             });
         }
+        // The declared sample cadence must satisfy Nyquist for the required
+        // observable bandwidth. Do not claim dynamics the trace cannot resolve.
+        let nyquist_limit_hz = 500_000_000.0 / maximum_sample_gap_ns as f64;
+        if minimum_measurement_bandwidth_hz > nyquist_limit_hz {
+            return Err(DisturbanceError::SamplingCadenceCannotResolveBandwidth {
+                maximum_sample_gap_ns,
+                required_bandwidth_hz: minimum_measurement_bandwidth_hz,
+                nyquist_limit_hz,
+            });
+        }
         Ok(Self {
             maximum_clock_uncertainty_ns,
             maximum_sample_gap_ns,
@@ -503,6 +513,7 @@ pub enum DisturbanceError {
     },
     RequirementHorizonMismatch,
     InvalidTraceContract,
+    SamplingCadenceCannotResolveBandwidth { maximum_sample_gap_ns: u64, required_bandwidth_hz: f64, nyquist_limit_hz: f64 },
     RequirementIdentityMismatch,
     PccIdentityMismatch,
     ClockUncertaintyExceedsContract {
