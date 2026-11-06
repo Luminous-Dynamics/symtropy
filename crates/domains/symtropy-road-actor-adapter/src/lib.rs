@@ -19,7 +19,7 @@ pub const STEP_SCHEMA_ID: &str = "symtropy.road-actor-path-step.v0.1";
 const ROUTE_DOMAIN: &[u8] = b"symtropy.road-actor-path.route.v0.1\0";
 const STEP_DOMAIN: &[u8] = b"symtropy.road-actor-path.step.v0.1\0";
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AdapterError {
     InvalidIdentifier,
     NonFiniteGeometry,
