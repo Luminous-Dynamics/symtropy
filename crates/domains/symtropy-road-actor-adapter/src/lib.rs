@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Bounded route-progress -> kinematic-pose adapter for synthetic road actors.
 //!
 //! This crate does not own actor policy, physics integration, or human behaviour.
