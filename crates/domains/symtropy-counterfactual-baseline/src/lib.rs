@@ -830,29 +830,39 @@ pub fn qualify_counterfactual_baseline(
             .clamp(1, calibration_residuals.len());
         let lower_residual_quantile_kw = calibration_residuals[rank - 1];
 
-        let evaluation_errors: Vec<f64> = evaluation_samples
-            .iter()
-            .map(|sample| {
-                sample.predicted_no_dispatch_power_kw - sample.observed_no_dispatch_power_kw
-            })
+        // Give each independent evaluation block equal weight. Long sessions
+        // must not dominate bias/MAE/RMSE merely because they contain more rows.
+        let mut group_errors: BTreeMap<&str, Vec<f64>> = BTreeMap::new();
+        let mut group_actual_magnitudes: BTreeMap<&str, Vec<f64>> = BTreeMap::new();
+        for sample in evaluation_samples {
+            let error =
+                sample.predicted_no_dispatch_power_kw - sample.observed_no_dispatch_power_kw;
+            group_errors
+                .entry(sample.group_id.as_str())
+                .or_default()
+                .push(error);
+            group_actual_magnitudes
+                .entry(sample.group_id.as_str())
+                .or_default()
+                .push(sample.observed_no_dispatch_power_kw.abs());
+        }
+        let group_biases: Vec<f64> = group_errors.values().map(|errors| mean(errors)).collect();
+        let group_maes: Vec<f64> = group_errors
+            .values()
+            .map(|errors| errors.iter().map(|error| error.abs()).sum::<f64>() / errors.len() as f64)
             .collect();
-        let evaluation_bias_kw = mean(&evaluation_errors);
-        let evaluation_mae_kw = evaluation_errors
-            .iter()
-            .map(|error| error.abs())
-            .sum::<f64>()
-            / evaluation_errors.len() as f64;
-        let evaluation_rmse_kw = (evaluation_errors
-            .iter()
-            .map(|error| error.powi(2))
-            .sum::<f64>()
-            / evaluation_errors.len() as f64)
-            .sqrt();
-        let mean_absolute_actual_kw = evaluation_samples
-            .iter()
-            .map(|sample| sample.observed_no_dispatch_power_kw.abs())
-            .sum::<f64>()
-            / evaluation_samples.len() as f64;
+        let group_mses: Vec<f64> = group_errors
+            .values()
+            .map(|errors| errors.iter().map(|error| error.powi(2)).sum::<f64>() / errors.len() as f64)
+            .collect();
+        let group_actual_scales: Vec<f64> = group_actual_magnitudes
+            .values()
+            .map(|values| values.iter().sum::<f64>() / values.len() as f64)
+            .collect();
+        let evaluation_bias_kw = mean(&group_biases);
+        let evaluation_mae_kw = mean(&group_maes);
+        let evaluation_rmse_kw = mean(&group_mses).sqrt();
+        let mean_absolute_actual_kw = mean(&group_actual_scales);
         if !mean_absolute_actual_kw.is_finite() || mean_absolute_actual_kw <= EPSILON {
             return Err(BaselineQualificationError::InvalidNormalizedPowerScale {
                 regime_id: regime_id.to_owned(),
