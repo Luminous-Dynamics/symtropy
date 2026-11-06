@@ -161,7 +161,6 @@
       "method_configuration": {
         "kind": "LASER_ASSISTED_PDC",
         "wavelength_m": 0.000001064,
-        "incident_optical_energy_j": 600,
         "delivered_workpiece_energy_j": 450,
         "spot_major_axis_m": 0.004,
         "spot_minor_axis_m": 0.002,
@@ -174,7 +173,11 @@
         "cutter_spacing_m": 0.006,
         "depth_of_cut_m": 0.009,
         "cutting_speed_m_s": 0.01,
-        "laser_state": "ON"
+        "laser_state": "ON",
+        "source_electrical_input_j": 900,
+        "optical_output_energy_j": 600,
+        "workpiece_incident_optical_energy_j": 450,
+        "absorbed_energy_estimate_j": 380
       },
       "environment": {
         "temperature_k": 293.15,
@@ -290,7 +293,7 @@
         "angular_speed_rad_s": 31.4,
         "traction_speed_m_s": 0.01,
         "depth_of_cut_m": 0.003,
-        "speed_ratio": 0.318,
+        "speed_ratio": 0.3184713375796179,
         "speed_ratio_definition": "v/(omega*e)",
         "cutter_edge_profile_ref": "SYN-ODC-EDGE"
       },
