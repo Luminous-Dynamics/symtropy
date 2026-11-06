@@ -303,7 +303,8 @@
     },
     "matched_pair_ref": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "Required by the cross-record validator for RandomizedMatchedPair and ObservationalMatched designs; one baseline and one candidate record must share each pair reference."
     }
   },
   "additionalProperties": false
