@@ -908,24 +908,53 @@ fn evaluation_digest(
     hex(h.finalize().as_bytes())
 }
 
-fn independent_hypothesis_families(hypotheses: &[Hypothesis]) -> BTreeSet<String> {
-    hypotheses
-        .iter()
-        .map(|hypothesis| {
-            if let Some(group) = &hypothesis.common_mode_group {
-                format!("common-mode:{group}")
-            } else {
-                let mut lineage = hypothesis.source_lineage_digests.clone();
-                lineage.sort();
-                lineage.dedup();
-                let mut h = blake3::Hasher::new_derive_key(
-                    "Symtropy ROAD-HYPOTHESIS-PORTFOLIO lineage family v0.1",
-                );
-                hash_strings(&mut h, &lineage);
-                format!("lineage:{}", hex(h.finalize().as_bytes()))
+fn independent_hypothesis_families(hypotheses: &[Hypothesis]) -> BTreeSet<usize> {
+    let mut parents: Vec<usize> = (0..hypotheses.len()).collect();
+    for left in 0..hypotheses.len() {
+        for right in (left + 1)..hypotheses.len() {
+            let a = &hypotheses[left];
+            let b = &hypotheses[right];
+            let same_common_mode_group = a.common_mode_group.is_some()
+                && a.common_mode_group == b.common_mode_group;
+            let shared_ancestor = a
+                .source_lineage_digests
+                .iter()
+                .any(|source| b.source_lineage_digests.contains(source));
+            if same_common_mode_group || shared_ancestor {
+                union(&mut parents, left, right);
             }
-        })
+        }
+    }
+    (0..parents.len())
+        .map(|index| find_root(&mut parents, index))
         .collect()
+}
+
+fn find_root(parents: &mut [usize], index: usize) -> usize {
+    let mut root = index;
+    while parents[root] != root {
+        root = parents[root];
+    }
+    let mut current = index;
+    while parents[current] != current {
+        let next = parents[current];
+        parents[current] = root;
+        current = next;
+    }
+    root
+}
+
+fn union(parents: &mut [usize], left: usize, right: usize) {
+    let left_root = find_root(parents, left);
+    let right_root = find_root(parents, right);
+    if left_root != right_root {
+        let (root, child) = if left_root < right_root {
+            (left_root, right_root)
+        } else {
+            (right_root, left_root)
+        };
+        parents[child] = root;
+    }
 }
 
 fn coverage_summaries(obligations: &[CoverageObligation]) -> Vec<AxisCoverageSummary> {
