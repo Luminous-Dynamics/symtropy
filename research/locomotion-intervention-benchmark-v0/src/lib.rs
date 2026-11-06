@@ -2914,7 +2914,7 @@ mod tests {
     }
 
     #[test]
-    fn robust_design_uses_phase_pulse_to_separate_intrinsic_from_hybrid_feedback_across_coupling_scenarios() {
+    fn robust_design_phase_pulse_separates_intrinsic_from_hybrid() {
         let mechanisms = [
             Mechanism::IntrinsicOscillator,
             Mechanism::HybridFeedbackCoupled,
