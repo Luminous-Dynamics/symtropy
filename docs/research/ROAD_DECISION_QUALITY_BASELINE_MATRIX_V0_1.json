@@ -1,0 +1,130 @@
+{
+  "schema": "luminous.road-decision-quality-baselines.v0.1",
+  "frozen_as_of": "2026-11-06",
+  "records": [
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 navtest",
+      "method": "PlanWAM",
+      "score": 93.8,
+      "unit": "points",
+      "protocol": "open-loop scoring track; 85k train / 18k validation; navtest 12,146 scenes",
+      "source": "https://arxiv.org/abs/2610.11382",
+      "claim": "paper-reported; reproduce checkpoint and protocol"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 navtest",
+      "method": "World4Scorer",
+      "score": 94,
+      "unit": "points",
+      "protocol": "navtest; candidate scoring with inertial re-ranking",
+      "source": "https://github.com/World4Scorer/World4Scorer",
+      "claim": "official release reported"
+    },
+    {
+      "track": "navsim_v2",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navtest",
+      "method": "World4Scorer + inertial re-ranking",
+      "score": 93,
+      "unit": "points",
+      "protocol": "navtest; reports 91.4 without inertial re-ranking",
+      "source": "https://github.com/World4Scorer/World4Scorer",
+      "claim": "official release reported"
+    },
+    {
+      "track": "navsim_v2",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navtest",
+      "method": "PlanWAM",
+      "score": 90.9,
+      "unit": "points",
+      "protocol": "navtest; PDMS is not this metric",
+      "source": "https://arxiv.org/abs/2610.11382",
+      "claim": "paper-reported"
+    },
+    {
+      "track": "bench2drive",
+      "metric": "Driving Score",
+      "benchmark_version": "Bench2Drive-220",
+      "method": "World4Scorer adapted system",
+      "score": 73.27,
+      "unit": "points",
+      "protocol": "official 1000-clip subset; route-point input and deployment rules; reported success 46.36%",
+      "source": "https://github.com/World4Scorer/World4Scorer",
+      "claim": "adapted subset; not directly comparable with full leaderboard"
+    },
+    {
+      "track": "bench2drive",
+      "metric": "Driving Score",
+      "benchmark_version": "current public leaderboard snapshot",
+      "method": "AlignDrive",
+      "score": 89.07,
+      "unit": "points",
+      "protocol": "leaderboard result; exact deployment configuration must be reproduced",
+      "source": "https://carlaleaderboard-bench2drive.hf.space/",
+      "claim": "public leaderboard snapshot; scope needs verification"
+    },
+    {
+      "track": "hugsim",
+      "metric": "HD-Score",
+      "benchmark_version": "zero-shot, 436 public scenarios",
+      "method": "PlanWAM",
+      "score": 38.7,
+      "unit": "points",
+      "secondary_metric": "Route Completion",
+      "secondary_score": 53.7,
+      "secondary_unit": "percent",
+      "protocol": "paper-reported zero-shot evaluation without HUGSIM-specific fine-tuning",
+      "source": "https://jinchan9.github.io/PlanWAM_project_page/",
+      "claim": "paper-reported; first reproduction target"
+    },
+    {
+      "track": "hugsim",
+      "metric": "HD-Score",
+      "benchmark_version": "current public aggregator snapshot",
+      "method": "DriveZero-Scale",
+      "score": 46.6,
+      "unit": "points",
+      "protocol": "aggregator's listed public task; verify exact scope and split before comparison",
+      "source": "https://scholarcompass.net/en/tasks/autonomous-driving/benchmarks/hugsim",
+      "claim": "aggregator snapshot; not assumed protocol-equivalent to PlanWAM"
+    },
+    {
+      "track": "wosac",
+      "metric": "Realism Score",
+      "benchmark_version": "2025 challenge snapshot",
+      "method": "SMART-R1",
+      "score": 78.58,
+      "unit": "points",
+      "secondary_metrics": {
+        "Kinematics": 49.44,
+        "Interactivity": 81.1,
+        "Map Adherence": 92.01
+      },
+      "protocol": "multi-agent motion simulation",
+      "source": "https://www.sota2.com/research/sota/motion-simulation-on-waymo-open-sim-agents-challenge-2025",
+      "claim": "leaderboard snapshot; challenge-year specific"
+    },
+    {
+      "track": "reactsim_bench",
+      "metric": "test scenario count",
+      "benchmark_version": "2026 paper",
+      "method": "ReactSim-Bench",
+      "score": 2636,
+      "unit": "scenarios",
+      "protocol": "three deviation categories; reactive behavior evaluated with collision, map-based, and kinematic feasibility metrics",
+      "source": "https://arxiv.org/abs/2606.14058",
+      "claim": "benchmark size, not model score"
+    }
+  ],
+  "interpretation_rules": [
+    "Never compare PDMS and EPDMS as if they were identical.",
+    "Do not compare adapted Bench2Drive-220 results to full leaderboard results without matching routes, inputs, permitted data, controllers, and deployment rules.",
+    "Do not compare HUGSIM public aggregator results with paper zero-shot scores until split and evaluation scope match.",
+    "Keep world-model prediction, planner score, closed-loop driving, multi-agent realism, and decision-quality evidence as separate tracks."
+  ]
+}
