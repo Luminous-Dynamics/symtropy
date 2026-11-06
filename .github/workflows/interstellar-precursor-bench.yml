@@ -1,0 +1,43 @@
+name: interstellar-precursor-bench
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/interstellar-precursor-bench.yml"
+      - "tools/interstellar-precursor-bench/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/interstellar-precursor-bench.yml"
+      - "tools/interstellar-precursor-bench/**"
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: kinematics reference and frozen fixture
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/interstellar-precursor-bench/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path tools/interstellar-precursor-bench/Cargo.toml
+
+      - name: Execute frozen reference case
+        run: |
+          cargo run --manifest-path tools/interstellar-precursor-bench/Cargo.toml --release -- \
+            --input tools/interstellar-precursor-bench/fixtures/proxima-4p24ly-stop-at-target-0p1c.input \
+            | tee interstellar-precursor-report.json
+          grep -q '"evidence_class": "illustrative_model_output"' interstellar-precursor-report.json
