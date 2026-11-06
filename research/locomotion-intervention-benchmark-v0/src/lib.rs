@@ -11,6 +11,7 @@ use std::collections::BTreeSet;
 pub enum Mechanism {
     IntrinsicOscillator,
     DampedFocus,
+    FeedbackAttractor,
     SensoryFeedbackDriven,
     HybridFeedbackCoupled,
 }
@@ -138,8 +139,16 @@ pub fn simulate(
     config.validate()?;
     validate_intervention(intervention, config)?;
 
+    if mechanism == Mechanism::FeedbackAttractor && config.feedback_coupling <= 0.0 {
+        return Err(BenchmarkError::InvalidFeedbackCoupling);
+    }
+
     let mut phase = config.initial_phase;
     let mut amplitude = 1.0_f64;
+    let mut attractor_state = [
+        config.initial_phase.cos(),
+        config.initial_phase.sin(),
+    ];
     let mut samples = Vec::with_capacity(config.sample_count);
     let mut latent_truth = Vec::with_capacity(config.sample_count);
     let mut previous_time = 0.0;
@@ -165,6 +174,24 @@ pub fn simulate(
                 Mechanism::DampedFocus => {
                     phase += config.angular_frequency * elapsed;
                     amplitude *= (-config.feedback_decay_rate * elapsed).exp();
+                }
+                Mechanism::FeedbackAttractor => {
+                    let drive_phase =
+                        config.initial_phase + config.angular_frequency * timestamp;
+                    let relaxation = (-config.feedback_coupling * elapsed).exp();
+                    let drive = [drive_phase.cos(), drive_phase.sin()];
+                    if feedback_present {
+                        attractor_state[0] =
+                            relaxation * attractor_state[0] + (1.0 - relaxation) * drive[0];
+                        attractor_state[1] =
+                            relaxation * attractor_state[1] + (1.0 - relaxation) * drive[1];
+                    } else {
+                        let decay = (-config.feedback_decay_rate * elapsed).exp();
+                        attractor_state[0] *= decay;
+                        attractor_state[1] *= decay;
+                    }
+                    phase = attractor_state[1].atan2(attractor_state[0]);
+                    amplitude = attractor_state[0].hypot(attractor_state[1]);
                 }
                 Mechanism::SensoryFeedbackDriven => {
                     if feedback_present {
@@ -197,12 +224,25 @@ pub fn simulate(
         } = intervention
         {
             if sample_index == pulse_index {
-                phase += delta_phase_radians;
+                if mechanism == Mechanism::FeedbackAttractor {
+                    let (sin_phase, cos_phase) = delta_phase_radians.sin_cos();
+                    attractor_state = [
+                        cos_phase * attractor_state[0] - sin_phase * attractor_state[1],
+                        sin_phase * attractor_state[0] + cos_phase * attractor_state[1],
+                    ];
+                    phase = attractor_state[1].atan2(attractor_state[0]);
+                    amplitude = attractor_state[0].hypot(attractor_state[1]);
+                } else {
+                    phase += delta_phase_radians;
+                }
             }
         }
 
-        let x = amplitude * phase.cos();
-        let y = amplitude * phase.sin();
+        let (x, y) = if mechanism == Mechanism::FeedbackAttractor {
+            (attractor_state[0], attractor_state[1])
+        } else {
+            (amplitude * phase.cos(), amplitude * phase.sin())
+        };
         if !phase.is_finite() || !amplitude.is_finite() || !x.is_finite() || !y.is_finite() {
             return Err(BenchmarkError::NumericalFailure);
         }
@@ -542,6 +582,38 @@ mod tests {
         assert!((oscillator.latent_truth.last().unwrap().amplitude - 1.0).abs() < 1.0e-12);
         assert!(feedback.latent_truth.last().unwrap().amplitude < 0.01);
         assert!(trajectory_rmse(&oscillator.samples, &feedback.samples).unwrap() > 0.1);
+    }
+
+
+    #[test]
+    fn feedback_attractor_tracks_drive_but_relaxes_without_sensory_input() {
+        let intervention = Intervention::FeedbackCutFrom { sample_index: 20 };
+        let trace =
+            simulate(Mechanism::FeedbackAttractor, intervention, config()).unwrap();
+        assert!(trace.latent_truth[10].amplitude > 0.5);
+        assert!(trace.latent_truth[30].amplitude > 0.5);
+        assert!(trace.latent_truth.last().unwrap().amplitude < 0.01);
+        assert!(trace.samples[10].x.is_finite());
+        assert!(trace.samples[10].y.is_finite());
+    }
+
+    #[test]
+    fn feedback_attractor_phase_pulse_is_relaxed_toward_external_drive() {
+        let pulse = Intervention::PhasePulseAt {
+            sample_index: 20,
+            delta_phase_radians: 0.6,
+        };
+        let baseline =
+            simulate(Mechanism::FeedbackAttractor, Intervention::None, config()).unwrap();
+        let perturbed = simulate(Mechanism::FeedbackAttractor, pulse, config()).unwrap();
+        let offset = phase_offset(
+            &perturbed.samples,
+            &baseline.samples,
+            config().sample_count - 1,
+        )
+        .unwrap()
+        .unwrap();
+        assert!(offset.abs() < 0.02);
     }
 
     #[test]
