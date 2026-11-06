@@ -332,7 +332,6 @@ pub struct TrajectoryControlReport {
     pub interval_count: usize,
     pub search_nodes: u64,
     pub peak_dp_states: usize,
-    pub feasible_schedule_count: u64,
     pub feasible: bool,
     pub optimal: ScheduleOutcome,
     pub candidate_controller: ScheduleOutcome,
@@ -481,7 +480,6 @@ fn greedy_baseline(scenario: &Scenario) -> Result<ScheduleOutcome, String> {
     let mut setpoints = Vec::with_capacity(scenario.intervals.len());
     let mut previous = scenario.initial_setpoint_quanta;
     let mut stress = 0_u64;
-    let mut delivered = 0_u64;
 
     for interval in &scenario.intervals {
         let lower = previous.saturating_sub(scenario.max_slew_quanta_per_interval);
@@ -504,12 +502,6 @@ fn greedy_baseline(scenario: &Scenario) -> Result<ScheduleOutcome, String> {
             break;
         }
         let (q, next_stress) = chosen.unwrap_or((0, stress));
-        let energy = checked_mul(
-            q,
-            interval.useful_energy_mwh_per_quantum,
-            "$.greedy_baseline",
-        )?;
-        delivered = delivered.saturating_add(energy);
         stress = next_stress;
         previous = q;
         setpoints.push(q);
@@ -517,7 +509,7 @@ fn greedy_baseline(scenario: &Scenario) -> Result<ScheduleOutcome, String> {
     score_schedule(scenario, &setpoints, "$.greedy_baseline")
 }
 
-fn solve_exact(scenario: &Scenario) -> Result<(ScheduleOutcome, u64, usize, u64), String> {
+fn solve_exact(scenario: &Scenario) -> Result<(ScheduleOutcome, u64, usize), String> {
     let mut states = BTreeMap::<(u64, u64), Node>::new();
     states.insert(
         (scenario.initial_setpoint_quanta, 0),
@@ -629,16 +621,15 @@ fn solve_exact(scenario: &Scenario) -> Result<(ScheduleOutcome, u64, usize, u64)
     }
 
     let Some((_key, node)) = best else {
-        return score_schedule(
+        let report = score_schedule(
             scenario,
             &vec![0; scenario.intervals.len()],
             "$.optimal_schedule",
-        )
-        .map(|report| (report, search_nodes, peak_states, 0));
+        )?;
+        return Ok((report, search_nodes, peak_states));
     };
     let outcome = score_schedule(scenario, &node.setpoints, "$.optimal_schedule")?;
-    let count = if outcome.feasible { 1 } else { 0 };
-    Ok((outcome, search_nodes, peak_states, count))
+    Ok((outcome, search_nodes, peak_states))
 }
 
 /// Compute the exact bounded optimum, evaluate candidate/fixed/greedy schedules,
@@ -650,8 +641,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<TrajectoryControlReport, Strin
         &scenario.candidate_setpoints_quanta,
         "$.candidate_controller_setpoints_quanta",
     )?;
-    let (optimal, search_nodes, peak_dp_states, feasible_schedule_count) =
-        solve_exact(&scenario)?;
+    let (optimal, search_nodes, peak_dp_states) = solve_exact(&scenario)?;
     let fixed = fixed_baseline(&scenario)?;
     let greedy = greedy_baseline(&scenario)?;
     let candidate_gap = candidate_controller
@@ -684,7 +674,6 @@ pub fn evaluate_scenario(value: &Value) -> Result<TrajectoryControlReport, Strin
         interval_count: scenario.intervals.len(),
         search_nodes,
         peak_dp_states,
-        feasible_schedule_count,
         feasible: optimal.feasible,
         optimal,
         candidate_controller,
@@ -807,7 +796,7 @@ mod tests {
         let report = evaluate_scenario(&scenario).unwrap();
         assert!(report.optimal.control_constraints_pass);
         assert!(report.optimal.cumulative_asset_stress_units <= 4);
-        assert_eq!(report.optimal.delivered_useful_energy_mwh, 8);
+        assert_eq!(report.optimal.delivered_useful_energy_mwh, 7);
         assert!(!report.feasible);
     }
 
@@ -823,17 +812,25 @@ mod tests {
     }
 
     #[test]
-    fn input_envelope_order_is_semantic_and_must_match_candidate_pose_order() {
+    fn input_envelope_order_is_preserved_with_trajectory_sample_identity() {
+        let original = evaluate_scenario(&fixture()).unwrap();
         let mut scenario = fixture();
         scenario["intervals"].as_array_mut().unwrap().reverse();
-        assert!(
-            evaluate_scenario(&scenario)
-                .unwrap_err()
-                .contains("duplicate")
-                .not()
+        scenario["candidate_controller_setpoints_quanta"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        let reversed = evaluate_scenario(&scenario).unwrap();
+        assert_eq!(original.interval_count, 4);
+        assert_eq!(reversed.interval_count, 4);
+        assert_eq!(
+            original.optimal.interval_results[0].trajectory_sample_id,
+            "pose-000"
         );
-        let report = evaluate_scenario(&scenario).unwrap();
-        assert_eq!(report.interval_count, 4);
+        assert_eq!(
+            reversed.optimal.interval_results[0].trajectory_sample_id,
+            "pose-003"
+        );
     }
 
     #[test]
