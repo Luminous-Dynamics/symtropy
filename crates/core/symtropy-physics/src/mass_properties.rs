@@ -335,11 +335,7 @@ mod tests {
 
     #[test]
     fn anisotropic_operator_supports_products_of_inertia_and_inverse_solve() {
-        let matrix = vec![
-            4.0, 0.5, 0.0,
-            0.5, 3.0, 0.25,
-            0.0, 0.25, 2.0,
-        ];
+        let matrix = vec![4.0, 0.5, 0.0, 0.5, 3.0, 0.25, 0.0, 0.25, 2.0];
         let inertia = RotationalInertiaOperator::<3>::try_from_row_major(matrix).unwrap();
         let omega = vec![0.5, -1.0, 2.0];
         let momentum = inertia.apply(&omega).unwrap();
@@ -362,17 +358,13 @@ mod tests {
         );
         assert_eq!(
             RotationalInertiaOperator::<3>::try_from_row_major(vec![
-                1.0, 0.5, 0.0,
-                0.0, 1.0, 0.0,
-                0.0, 0.0, 1.0,
+                1.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
             ]),
             Err(MassPropertiesError::NotSymmetric)
         );
         assert_eq!(
             RotationalInertiaOperator::<3>::try_from_row_major(vec![
-                1.0, 0.0, 0.0,
-                0.0, -1.0, 0.0,
-                0.0, 0.0, 1.0,
+                1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0,
             ]),
             Err(MassPropertiesError::NotPositiveDefinite)
         );
@@ -386,11 +378,7 @@ mod tests {
             Err(MassPropertiesError::InvalidMass)
         ));
         assert!(matches!(
-            MassProperties::<3>::try_new(
-                1.0,
-                SVector::from([0.0, f64::NAN, 0.0]),
-                inertia
-            ),
+            MassProperties::<3>::try_new(1.0, SVector::from([0.0, f64::NAN, 0.0]), inertia),
             Err(MassPropertiesError::InvalidCenterOfMass)
         ));
     }
