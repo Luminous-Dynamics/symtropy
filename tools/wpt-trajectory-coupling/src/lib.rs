@@ -826,6 +826,42 @@ mod tests {
     }
 
     #[test]
+    fn single_sample_clock_shift_breaks_kinematic_consistency() {
+        let mut scenario = fixture();
+        scenario["samples"][1]["time_ms"] = Value::from(1100);
+        assert!(
+            evaluate_trajectory(&scenario)
+                .unwrap_err()
+                .contains("odometry/speed mismatch")
+        );
+    }
+
+    #[test]
+    fn lateral_axis_sign_cannot_be_silently_inverted() {
+        let mut scenario = fixture();
+        scenario["coordinate_frame"]["lateral_positive"] = Value::String("RIGHT".into());
+        assert!(
+            evaluate_trajectory(&scenario)
+                .unwrap_err()
+                .contains("lateral LEFT axes")
+        );
+    }
+
+    #[test]
+    fn swapped_meter_channels_suppress_conversion_efficiency() {
+        let mut scenario = fixture();
+        for sample in scenario["samples"].as_array_mut().unwrap() {
+            let input = sample["roadway_dc_input_power_w"].clone();
+            sample["roadway_dc_input_power_w"] =
+                sample["vehicle_receiver_dc_output_power_w"].clone();
+            sample["vehicle_receiver_dc_output_power_w"] = input;
+        }
+        let report = evaluate_trajectory(&scenario).unwrap();
+        assert!(report.vehicle_receiver_dc_output_energy_uwh > report.roadway_dc_input_energy_uwh);
+        assert_eq!(report.pass_level_conversion_efficiency_ppm, None);
+    }
+
+    #[test]
     fn sample_gap_must_remain_within_declared_support() {
         let mut scenario = fixture();
         scenario["max_sample_gap_ms"] = Value::from(500);
