@@ -152,6 +152,26 @@ fn check_measurement(
     }
 }
 
+fn check_required_measurement(
+    parent: &Value,
+    key: &str,
+    path: &str,
+    errors: &mut Vec<Violation>,
+) -> Option<(f64, f64)> {
+    match parent.get(key) {
+        Some(value) => check_measurement(value, &format!("{path}.{key}"), errors),
+        None => {
+            push(
+                errors,
+                "MISSING_MASS_MEASUREMENT",
+                &format!("{path}.{key}"),
+                "required mass measurement is missing",
+            );
+            None
+        }
+    }
+}
+
 fn check_fragment_bins(
     interval: &Value,
     path: &str,
@@ -186,6 +206,15 @@ fn check_fragment_bins(
         let bin_path = format!("{path}.fragment_bins[{index}]");
         let lower = finite(bin, "lower_mm");
         let upper_value = bin.get("upper_mm");
+        if upper_value.is_none() {
+            all_valid = false;
+            push(
+                errors,
+                "MISSING_PSD_UPPER_BOUND",
+                &format!("{bin_path}.upper_mm"),
+                "upper_mm is required; use null only for the final open-ended bin",
+            );
+        }
         let upper = match upper_value {
             Some(Value::Null) => None,
             Some(_) => finite(bin, "upper_mm"),
@@ -337,6 +366,7 @@ fn validate_stage_capacities(
     interval: &Value,
     path: &str,
     transport_configuration_ref: &str,
+    transport_capacity_profile_ref: &str,
     stage_order: &[String],
     errors: &mut Vec<Violation>,
 ) -> Option<Vec<(String, f64, f64)>> {
@@ -395,6 +425,14 @@ fn validate_stage_capacities(
                 "INSTALLED_CONFIGURATION_MISMATCH",
                 &format!("{stage_path}.transport_configuration_ref"),
                 "capacity evidence must match the exact installed transport configuration, not a factory or nameplate reference",
+            );
+        }
+        if non_empty(stage, "transport_capacity_profile_ref") != Some(transport_capacity_profile_ref) {
+            push(
+                errors,
+                "CAPACITY_PROFILE_MISMATCH",
+                &format!("{stage_path}.transport_capacity_profile_ref"),
+                "stage capacity evidence must bind to the declared transport capacity profile",
             );
         }
         for key in ["capacity_window_ref", "calibration_ref", "source_ref"] {
@@ -558,7 +596,9 @@ pub fn evaluate(value: &Value) -> Result<EvaluationReport, Vec<Violation>> {
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
-    if declared_stage_order.iter().map(String::as_str).collect::<Vec<_>>() != STAGES {
+    if declared_stage_order.len() != STAGES.len()
+        || declared_stage_order.iter().zip(STAGES).any(|(actual, expected)| actual.as_str() != expected)
+    {
         push(
             &mut errors,
             "INVALID_PROFILE_STAGE_ORDER",
@@ -664,24 +704,17 @@ pub fn evaluate(value: &Value) -> Result<EvaluationReport, Vec<Violation>> {
             }
         }
 
-        let generated = interval
-            .get("generated_mass")
-            .and_then(|v| check_measurement(v, &format!("{path}.generated_mass"), &mut errors));
-        let recovered = interval
-            .get("recovered_mass")
-            .and_then(|v| check_measurement(v, &format!("{path}.recovered_mass"), &mut errors));
-        let residual = interval
-            .get("residual_mass")
-            .and_then(|v| check_measurement(v, &format!("{path}.residual_mass"), &mut errors));
-        let rejected = interval
-            .get("rejected_mass")
-            .and_then(|v| check_measurement(v, &format!("{path}.rejected_mass"), &mut errors));
+        let generated = check_required_measurement(interval, "generated_mass", &path, &mut errors);
+        let recovered = check_required_measurement(interval, "recovered_mass", &path, &mut errors);
+        let residual = check_required_measurement(interval, "residual_mass", &path, &mut errors);
+        let rejected = check_required_measurement(interval, "rejected_mass", &path, &mut errors);
 
         let psd = check_fragment_bins(interval, &path, generated, &mut errors);
         let stages = validate_stage_capacities(
             interval,
             &path,
             transport_configuration_ref,
+            non_empty(profile, "transport_capacity_profile_ref").unwrap_or(""),
             &declared_stage_order,
             &mut errors,
         );
@@ -1098,6 +1131,28 @@ mod tests {
         let mut v = fixture();
         v["intervals"] = json!([]);
         assert_eq!(evaluate(&v).expect_err("empty").first().unwrap().code, "EMPTY_INTERVALS");
+    }
+
+
+    #[test]
+    fn rejects_missing_fragment_upper_boundary() {
+        let mut v = fixture();
+        v["intervals"][0]["fragment_bins"][0].as_object_mut().unwrap().remove("upper_mm");
+        assert!(has(&v, "MISSING_PSD_UPPER_BOUND"));
+    }
+
+    #[test]
+    fn rejects_capacity_profile_mismatch() {
+        let mut v = fixture();
+        v["intervals"][0]["stage_capacities"][0]["transport_capacity_profile_ref"] = json!("capacity:factory-line");
+        assert!(has(&v, "CAPACITY_PROFILE_MISMATCH"));
+    }
+
+    #[test]
+    fn rejects_missing_required_mass_measurement() {
+        let mut v = fixture();
+        v["intervals"][0].as_object_mut().unwrap().remove("generated_mass");
+        assert!(has(&v, "MISSING_MASS_MEASUREMENT"));
     }
 
     #[test]
