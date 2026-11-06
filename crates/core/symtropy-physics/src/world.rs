@@ -786,7 +786,8 @@ impl<const D: usize> PhysicsWorld<D> {
                 continue;
             }
             let vel_i = self.bodies[i].linear_velocity;
-            let Some(sphere_i) = self.bodies[i].collider.as_any().downcast_ref::<Sphere<D>>() else {
+            let Some(sphere_i) = self.bodies[i].collider.as_any().downcast_ref::<Sphere<D>>()
+            else {
                 continue;
             };
             let radius_i = sphere_i.radius;
@@ -830,7 +831,8 @@ impl<const D: usize> PhysicsWorld<D> {
                     continue;
                 }
 
-                if let Some(sphere_j) = self.bodies[j].collider.as_any().downcast_ref::<Sphere<D>>() {
+                if let Some(sphere_j) = self.bodies[j].collider.as_any().downcast_ref::<Sphere<D>>()
+                {
                     let pos_j0 = pre_integration_positions[j];
                     let vel_j = if self.bodies[j].is_dynamic() && !self.bodies[j].sleeping {
                         self.bodies[j].linear_velocity
