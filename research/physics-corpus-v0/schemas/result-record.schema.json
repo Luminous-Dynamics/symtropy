@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-physics-result-v0.schema.json",
+  "title": "Symtropy Physics Qualification Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "scenario_digest",
+    "source_commit",
+    "toolchain",
+    "platform",
+    "solver_profile",
+    "execution",
+    "rollout_coverage",
+    "metrics",
+    "acceptance",
+    "evidence_class"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "campaign_id": { "type": "string", "minLength": 1 },
+    "scenario_digest": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+    "source_commit": { "type": "string", "pattern": "^[a-fA-F0-9]{40}([a-fA-F0-9]{24})?$" },
+    "dirty_tree_digest": { "type": ["string", "null"], "pattern": "^[a-fA-F0-9]{64}$" },
+    "toolchain": {
+      "type": "object",
+      "required": ["rustc", "cargo", "optimization_profile"],
+      "properties": {
+        "rustc": { "type": "string" },
+        "cargo": { "type": "string" },
+        "optimization_profile": { "type": "string" },
+        "target_triple": { "type": "string" }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "required": ["os", "architecture", "cpu_model", "logical_cpu_count"],
+      "properties": {
+        "os": { "type": "string" },
+        "kernel": { "type": "string" },
+        "architecture": { "type": "string" },
+        "cpu_model": { "type": "string" },
+        "physical_core_count": { "type": ["integer", "null"], "minimum": 1 },
+        "logical_cpu_count": { "type": "integer", "minimum": 1 },
+        "memory_bytes": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    },
+    "solver_profile": {
+      "type": "object",
+      "required": ["integrator", "solver_iterations", "timestep_seconds", "backend"],
+      "properties": {
+        "integrator": { "type": "string" },
+        "solver_iterations": { "type": "integer", "minimum": 1 },
+        "timestep_seconds": { "type": "number", "exclusiveMinimum": 0 },
+        "substeps": { "type": "integer", "minimum": 1 },
+        "backend": { "type": "string" },
+        "deterministic_profile": { "type": "string" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": ["rollout_count", "worker_count", "warmup_campaigns", "measured_campaigns"],
+      "properties": {
+        "rollout_count": { "type": "integer", "minimum": 1 },
+        "worker_count": { "type": "integer", "minimum": 1 },
+        "warmup_campaigns": { "type": "integer", "minimum": 0 },
+        "measured_campaigns": { "type": "integer", "minimum": 1 },
+        "thread_lifecycle_included": { "type": "boolean" }
+      }
+    },
+    "rollout_coverage": {
+      "type": "object",
+      "required": ["expected", "completed", "missing", "duplicate", "unexpected", "failed"],
+      "properties": {
+        "expected": { "type": "integer", "minimum": 1 },
+        "completed": { "type": "integer", "minimum": 0 },
+        "missing": { "type": "integer", "minimum": 0 },
+        "duplicate": { "type": "integer", "minimum": 0 },
+        "unexpected": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "value", "unit", "evidence"],
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": "number" },
+          "unit": { "type": "string" },
+          "threshold": { "type": ["number", "null"] },
+          "lower_ci_95": { "type": ["number", "null"] },
+          "upper_ci_95": { "type": ["number", "null"] },
+          "evidence": { "enum": ["measured", "derived", "analytic", "reference", "unsupported"] }
+        }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "required": ["status", "determinism", "physical_validation"],
+      "properties": {
+        "status": { "enum": ["pass", "fail", "inconclusive", "measurement_only"] },
+        "determinism": { "enum": ["bitwise_same_host", "bitwise_cross_platform", "tolerance_bounded", "not_tested", "unsupported"] },
+        "physical_validation": { "enum": ["validated_at_points", "verified_only", "not_validated", "not_applicable"] },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "energy_receipt_digest": { "type": ["string", "null"], "pattern": "^[a-fA-F0-9]{64}$" },
+    "evidence_class": { "enum": ["reproducibility", "numerical_verification", "physical_validation", "performance", "energy_performance"] }
+  }
+}

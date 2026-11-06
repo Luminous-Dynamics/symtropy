@@ -194,3 +194,264 @@ impl<const D: usize> WorldSnapshot<D> {
         }
     }
 }
+
+/// One completed independent simulation, bound to its stable rollout ID.
+///
+/// The ID is derived from the frozen input corpus, never from worker index or
+/// completion order. Results from parallel execution must be passed through
+/// [`order_batch_results`] before comparison or receipt generation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BatchRolloutSnapshot<const D: usize> {
+    /// Stable ID of this rollout within the frozen campaign.
+    pub rollout_id: u64,
+    /// Canonical bitwise world snapshot after the declared horizon.
+    pub snapshot: WorldSnapshot<D>,
+}
+
+/// Structural errors in an independent-rollout result set.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BatchResultError {
+    /// A campaign with zero expected rollouts cannot produce a meaningful result set.
+    EmptyCampaign,
+    /// A result ID cannot be represented as a host index.
+    RolloutIdOutOfRange { rollout_id: u64 },
+    /// A result ID is outside the declared campaign.
+    UnexpectedRolloutId {
+        rollout_id: u64,
+        expected_rollouts: usize,
+    },
+    /// More than one result was supplied for the same rollout ID.
+    DuplicateRolloutId { rollout_id: u64 },
+    /// No result was supplied for an expected rollout ID.
+    MissingRolloutId { rollout_id: u64 },
+}
+
+/// Validate and order a batch of independent-rollout snapshots by stable ID.
+///
+/// Completion order is deliberately ignored. Missing, duplicate and unexpected
+/// IDs fail closed; a caller must not silently shorten the denominator or let
+/// a duplicate replace a missing rollout.
+pub fn order_batch_results<const D: usize>(
+    expected_rollouts: usize,
+    results: Vec<BatchRolloutSnapshot<D>>,
+) -> Result<Vec<BatchRolloutSnapshot<D>>, BatchResultError> {
+    if expected_rollouts == 0 {
+        return Err(BatchResultError::EmptyCampaign);
+    }
+
+    let mut slots: Vec<Option<BatchRolloutSnapshot<D>>> = std::iter::repeat_with(|| None)
+        .take(expected_rollouts)
+        .collect();
+
+    for result in results {
+        let index = usize::try_from(result.rollout_id).map_err(|_| {
+            BatchResultError::RolloutIdOutOfRange {
+                rollout_id: result.rollout_id,
+            }
+        })?;
+        if index >= expected_rollouts {
+            return Err(BatchResultError::UnexpectedRolloutId {
+                rollout_id: result.rollout_id,
+                expected_rollouts,
+            });
+        }
+        if slots[index].is_some() {
+            return Err(BatchResultError::DuplicateRolloutId {
+                rollout_id: result.rollout_id,
+            });
+        }
+        slots[index] = Some(result);
+    }
+
+    slots
+        .into_iter()
+        .enumerate()
+        .map(|(index, result)| {
+            result.ok_or(BatchResultError::MissingRolloutId {
+                rollout_id: index as u64,
+            })
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod batch_replay_tests {
+    use super::{
+        BatchResultError, BatchRolloutSnapshot, ReplayTape, WorldCommand, WorldSnapshot,
+        apply_commands, order_batch_results,
+    };
+    use crate::world::PhysicsWorld;
+    use nalgebra::SVector;
+    use rayon::ThreadPoolBuilder;
+    use rayon::prelude::*;
+    use std::sync::Mutex;
+    use symtropy_math::Point;
+
+    const ROLLOUTS: usize = 16;
+    const TICKS: usize = 90;
+
+    fn run_rollout(rollout_id: u64) -> BatchRolloutSnapshot<3> {
+        let offset = (rollout_id % 7) as f64 * 0.015;
+        let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, -9.81, 0.0]));
+        let mut handles = Vec::new();
+
+        for body_index in 0..5 {
+            let x = (body_index % 3) as f64 * 0.82 + offset;
+            let y = 2.0 + (body_index / 3) as f64 * 0.86;
+            let mass = 1.0 + (body_index % 3) as f64 * 0.25;
+            let handle = world.add_sphere(Point::new([x, y, 0.0]), 0.5, mass);
+            if let Some(body) = world.body_mut(handle) {
+                body.linear_damping = 0.0;
+                body.angular_damping = 0.0;
+                let vx = ((rollout_id * 13 + body_index as u64 * 7) % 11) as f64 * 0.01;
+                body.linear_velocity = SVector::from([vx, 0.0, 0.0]);
+            }
+            handles.push(handle);
+        }
+
+        let mut tape = ReplayTape::<3>::default();
+        for tick in 0..TICKS {
+            let commands = if tick % 30 == 0 {
+                let body_index = (tick / 30) % handles.len();
+                vec![WorldCommand::ApplyForce {
+                    body: handles[body_index],
+                    force: Box::new(SVector::from([0.05 + offset, 0.0, 0.0])),
+                }]
+            } else {
+                Vec::new()
+            };
+            tape.push_frame(1.0 / 120.0, commands);
+        }
+
+        for frame in &tape.frames {
+            apply_commands(&mut world, &frame.commands).unwrap();
+            world.step(frame.dt);
+        }
+
+        let invariants = world.invariant_snapshot();
+        assert!(
+            invariants.is_numerically_healthy(1e-9),
+            "rollout {rollout_id} produced a numerically unhealthy state"
+        );
+        assert_eq!(invariants.non_finite_body_count, 0);
+
+        BatchRolloutSnapshot {
+            rollout_id,
+            snapshot: WorldSnapshot::capture(&world),
+        }
+    }
+
+    fn run_parallel(rollouts: usize, workers: usize) -> Vec<BatchRolloutSnapshot<3>> {
+        assert!(workers > 0);
+        let completed = Mutex::new(Vec::with_capacity(rollouts));
+
+        std::thread::scope(|scope| {
+            for worker in 0..workers {
+                let completed = &completed;
+                scope.spawn(move || {
+                    for rollout_id in (worker..rollouts).step_by(workers) {
+                        let result = run_rollout(rollout_id as u64);
+                        completed.lock().unwrap().push(result);
+                    }
+                });
+            }
+        });
+
+        order_batch_results(rollouts, completed.into_inner().unwrap()).unwrap()
+    }
+
+    #[test]
+    fn independent_rollouts_are_bitwise_equal_across_worker_counts() {
+        let sequential: Vec<_> = (0..ROLLOUTS)
+            .map(|rollout_id| run_rollout(rollout_id as u64))
+            .collect();
+
+        for workers in [1, 2, 4, 8] {
+            let parallel = run_parallel(ROLLOUTS, workers);
+            assert_eq!(
+                parallel, sequential,
+                "rollout outputs changed at worker count {workers}"
+            );
+        }
+    }
+
+    #[test]
+    fn empty_campaign_is_not_treated_as_a_valid_result() {
+        assert_eq!(
+            order_batch_results::<3>(0, Vec::new()),
+            Err(BatchResultError::EmptyCampaign)
+        );
+    }
+
+    fn run_with_rayon(rollouts: usize, workers: usize) -> Vec<BatchRolloutSnapshot<3>> {
+        let pool = ThreadPoolBuilder::new()
+            .num_threads(workers)
+            .build()
+            .unwrap();
+        let completed: Vec<_> = pool.install(|| {
+            (0..rollouts)
+                .into_par_iter()
+                .map(|rollout_id| run_rollout(rollout_id as u64))
+                .collect()
+        });
+        order_batch_results(rollouts, completed).unwrap()
+    }
+
+    #[test]
+    fn independent_rollouts_are_bitwise_equal_across_persistent_rayon_pools() {
+        let sequential: Vec<_> = (0..ROLLOUTS)
+            .map(|rollout_id| run_rollout(rollout_id as u64))
+            .collect();
+
+        for workers in [1, 2, 4, 8] {
+            let parallel = run_with_rayon(ROLLOUTS, workers);
+            assert_eq!(
+                parallel, sequential,
+                "persistent Rayon outputs changed at worker count {workers}"
+            );
+        }
+    }
+
+    #[test]
+    fn batch_ordering_is_independent_of_completion_order() {
+        let later = run_rollout(1);
+        let earlier = run_rollout(0);
+        let ordered = order_batch_results(2, vec![later, earlier]).unwrap();
+
+        assert_eq!(ordered[0].rollout_id, 0);
+        assert_eq!(ordered[1].rollout_id, 1);
+        assert_eq!(ordered[0].snapshot, run_rollout(0).snapshot);
+        assert_eq!(ordered[1].snapshot, run_rollout(1).snapshot);
+    }
+
+    #[test]
+    fn batch_corpus_rejects_duplicate_missing_and_unexpected_ids() {
+        let first = run_rollout(0);
+        let second = run_rollout(1);
+        let duplicate = second.clone();
+        assert_eq!(
+            order_batch_results(2, vec![first.clone(), second, duplicate]),
+            Err(BatchResultError::DuplicateRolloutId { rollout_id: 1 })
+        );
+
+        assert_eq!(
+            order_batch_results(2, vec![first.clone()]),
+            Err(BatchResultError::MissingRolloutId { rollout_id: 1 })
+        );
+
+        let unexpected = BatchRolloutSnapshot {
+            rollout_id: 2,
+            snapshot: WorldSnapshot {
+                bodies: Vec::new(),
+                collision_events: Vec::new(),
+            },
+        };
+        assert_eq!(
+            order_batch_results(2, vec![first, unexpected]),
+            Err(BatchResultError::UnexpectedRolloutId {
+                rollout_id: 2,
+                expected_rollouts: 2
+            })
+        );
+    }
+}
