@@ -21,125 +21,6 @@ enum Disposition {
     Unsupported,
     Unknown,
     Infeasible,
-    #[test]
-    fn duplicate_capability_receipts_never_leak_a_favorable_projection() {
-        let receipt = serde_json::json!({
-            "target_id":"panel-line",
-            "status":"LocallyClosed",
-            "operationally_reachable":true,
-            "locally_closed":true,
-            "evidence_state":"synthetic_current",
-            "source_owner":"symthaea",
-            "source_contract":"CIV-BOOT-002",
-            "source_revision":"fixture-v0.1",
-            "source_receipt_id":"synthetic:duplicate",
-            "source_subject_digest":"synthetic-subject:DUPLICATE-RECEIPT-CONTROL",
-            "scenario_id":"DUPLICATE-RECEIPT-CONTROL",
-            "selected_route_id":"route-local",
-            "reason_codes":[]
-        });
-        let case = serde_json::json!({
-            "case_id":"DUPLICATE-RECEIPT-CONTROL",
-            "input":{"capability_assessments":[receipt.clone(),receipt]}
-        });
-        let actual = evaluate_case(&case);
-        assert_eq!(actual["disposition"], "Unsupported");
-        assert_eq!(actual["unknown_evidence"], serde_json::json!(["panel-line"]));
-        assert_eq!(actual["locally_closed_targets"], serde_json::json!([]));
-        assert_eq!(actual["selected_routes"], serde_json::json!([]));
-        assert!(actual["reason_codes"].as_array().unwrap()
-            .iter().any(|value| value == "DUPLICATE_CAPABILITY_ASSESSMENT"));
-    }
-
-    #[test]
-    fn mismatched_receipt_subject_digest_abstains_and_cannot_select_route() {
-        let case = serde_json::json!({
-            "case_id":"SUBJECT-DIGEST-CONTROL",
-            "input":{"capability_assessments":[{
-                "target_id":"panel-line",
-                "status":"LocallyClosed",
-                "operationally_reachable":true,
-                "locally_closed":true,
-                "evidence_state":"synthetic_current",
-                "source_owner":"symthaea",
-                "source_contract":"CIV-BOOT-002",
-                "source_revision":"fixture-v0.1",
-                "source_receipt_id":"synthetic:wrong-subject",
-                "source_subject_digest":"synthetic-subject:OTHER-CASE",
-                "scenario_id":"SUBJECT-DIGEST-CONTROL",
-                "selected_route_id":"route-unbound",
-                "reason_codes":[]
-            }]}
-        });
-        let actual = evaluate_case(&case);
-        assert_eq!(actual["disposition"], "Unknown");
-        assert_eq!(actual["unknown_evidence"], serde_json::json!(["panel-line"]));
-        assert_eq!(actual["locally_closed_targets"], serde_json::json!([]));
-        assert_eq!(actual["selected_routes"], serde_json::json!([]));
-        assert!(actual["reason_codes"].as_array().unwrap()
-            .iter().any(|value| value == "CAPABILITY_RECEIPT_SUBJECT_DIGEST_MISMATCH"));
-    }
-
-    #[test]
-    fn contradictory_receipt_status_cannot_project_selected_route() {
-        let case = serde_json::json!({
-            "case_id":"STATUS-CONTRADICTION-CONTROL",
-            "input":{"capability_assessments":[{
-                "target_id":"panel-line",
-                "status":"LocallyClosed",
-                "operationally_reachable":true,
-                "locally_closed":false,
-                "evidence_state":"synthetic_current",
-                "source_owner":"symthaea",
-                "source_contract":"CIV-BOOT-002",
-                "source_revision":"fixture-v0.1",
-                "source_receipt_id":"synthetic:contradiction",
-                "source_subject_digest":"synthetic-subject:STATUS-CONTRADICTION-CONTROL",
-                "scenario_id":"STATUS-CONTRADICTION-CONTROL",
-                "selected_route_id":"route-must-not-leak",
-                "reason_codes":[]
-            }]}
-        });
-        let actual = evaluate_case(&case);
-        assert_eq!(actual["disposition"], "Unsupported");
-        assert_eq!(actual["selected_routes"], serde_json::json!([]));
-        assert_eq!(actual["locally_closed_targets"], serde_json::json!([]));
-    }
-
-    #[test]
-    fn workcell_resource_demands_must_match_capacity_units() {
-        let case = serde_json::json!({
-            "case_id":"WORKCELL-UNIT-CONTROL",
-            "input":{
-                "resource_capacities":[{"id":"cell","unit":"workcell","capacity":1}],
-                "work_packages":[{
-                    "id":"task",
-                    "start_tick":0,
-                    "end_tick":1,
-                    "resource_demands":[{"resource_id":"cell","quantity":1,"unit":"m3"}]
-                }]
-            }
-        });
-        let actual = evaluate_case(&case);
-        assert_eq!(actual["disposition"], "Unsupported");
-        assert!(actual["reason_codes"].as_array().unwrap()
-            .iter().any(|value| value == "WORK_PACKAGE_RESOURCE_DEMAND_UNIT_MISMATCH"));
-    }
-
-    #[test]
-    fn work_package_permutation_preserves_normalized_reference_result() {
-        let corpus = corpus();
-        let mut case = corpus["cases"].as_array().unwrap().iter()
-            .find(|value| value["case_id"] == "CK-WP-001")
-            .expect("workcell contention case").clone();
-        let baseline = evaluate_case(&case);
-        case["input"]["work_packages"].as_array_mut().unwrap().reverse();
-        for package in case["input"]["work_packages"].as_array_mut().unwrap() {
-            package["resource_demands"].as_array_mut().unwrap().reverse();
-        }
-        let permuted = evaluate_case(&case);
-        assert_eq!(baseline, permuted);
-    }
 
 }
 
@@ -627,4 +508,124 @@ mod tests {
         });
         assert_eq!(evaluate_case(&case)["disposition"], "FeasibleForSyntheticCase");
     }
+    #[test]
+    fn duplicate_capability_receipts_never_leak_a_favorable_projection() {
+        let receipt = serde_json::json!({
+            "target_id":"panel-line",
+            "status":"LocallyClosed",
+            "operationally_reachable":true,
+            "locally_closed":true,
+            "evidence_state":"synthetic_current",
+            "source_owner":"symthaea",
+            "source_contract":"CIV-BOOT-002",
+            "source_revision":"fixture-v0.1",
+            "source_receipt_id":"synthetic:duplicate",
+            "source_subject_digest":"synthetic-subject:DUPLICATE-RECEIPT-CONTROL",
+            "scenario_id":"DUPLICATE-RECEIPT-CONTROL",
+            "selected_route_id":"route-local",
+            "reason_codes":[]
+        });
+        let case = serde_json::json!({
+            "case_id":"DUPLICATE-RECEIPT-CONTROL",
+            "input":{"capability_assessments":[receipt.clone(),receipt]}
+        });
+        let actual = evaluate_case(&case);
+        assert_eq!(actual["disposition"], "Unsupported");
+        assert_eq!(actual["unknown_evidence"], serde_json::json!(["panel-line"]));
+        assert_eq!(actual["locally_closed_targets"], serde_json::json!([]));
+        assert_eq!(actual["selected_routes"], serde_json::json!([]));
+        assert!(actual["reason_codes"].as_array().unwrap()
+            .iter().any(|value| value == "DUPLICATE_CAPABILITY_ASSESSMENT"));
+    }
+
+    #[test]
+    fn mismatched_receipt_subject_digest_abstains_and_cannot_select_route() {
+        let case = serde_json::json!({
+            "case_id":"SUBJECT-DIGEST-CONTROL",
+            "input":{"capability_assessments":[{
+                "target_id":"panel-line",
+                "status":"LocallyClosed",
+                "operationally_reachable":true,
+                "locally_closed":true,
+                "evidence_state":"synthetic_current",
+                "source_owner":"symthaea",
+                "source_contract":"CIV-BOOT-002",
+                "source_revision":"fixture-v0.1",
+                "source_receipt_id":"synthetic:wrong-subject",
+                "source_subject_digest":"synthetic-subject:OTHER-CASE",
+                "scenario_id":"SUBJECT-DIGEST-CONTROL",
+                "selected_route_id":"route-unbound",
+                "reason_codes":[]
+            }]}
+        });
+        let actual = evaluate_case(&case);
+        assert_eq!(actual["disposition"], "Unknown");
+        assert_eq!(actual["unknown_evidence"], serde_json::json!(["panel-line"]));
+        assert_eq!(actual["locally_closed_targets"], serde_json::json!([]));
+        assert_eq!(actual["selected_routes"], serde_json::json!([]));
+        assert!(actual["reason_codes"].as_array().unwrap()
+            .iter().any(|value| value == "CAPABILITY_RECEIPT_SUBJECT_DIGEST_MISMATCH"));
+    }
+
+    #[test]
+    fn contradictory_receipt_status_cannot_project_selected_route() {
+        let case = serde_json::json!({
+            "case_id":"STATUS-CONTRADICTION-CONTROL",
+            "input":{"capability_assessments":[{
+                "target_id":"panel-line",
+                "status":"LocallyClosed",
+                "operationally_reachable":true,
+                "locally_closed":false,
+                "evidence_state":"synthetic_current",
+                "source_owner":"symthaea",
+                "source_contract":"CIV-BOOT-002",
+                "source_revision":"fixture-v0.1",
+                "source_receipt_id":"synthetic:contradiction",
+                "source_subject_digest":"synthetic-subject:STATUS-CONTRADICTION-CONTROL",
+                "scenario_id":"STATUS-CONTRADICTION-CONTROL",
+                "selected_route_id":"route-must-not-leak",
+                "reason_codes":[]
+            }]}
+        });
+        let actual = evaluate_case(&case);
+        assert_eq!(actual["disposition"], "Unsupported");
+        assert_eq!(actual["selected_routes"], serde_json::json!([]));
+        assert_eq!(actual["locally_closed_targets"], serde_json::json!([]));
+    }
+
+    #[test]
+    fn workcell_resource_demands_must_match_capacity_units() {
+        let case = serde_json::json!({
+            "case_id":"WORKCELL-UNIT-CONTROL",
+            "input":{
+                "resource_capacities":[{"id":"cell","unit":"workcell","capacity":1}],
+                "work_packages":[{
+                    "id":"task",
+                    "start_tick":0,
+                    "end_tick":1,
+                    "resource_demands":[{"resource_id":"cell","quantity":1,"unit":"m3"}]
+                }]
+            }
+        });
+        let actual = evaluate_case(&case);
+        assert_eq!(actual["disposition"], "Unsupported");
+        assert!(actual["reason_codes"].as_array().unwrap()
+            .iter().any(|value| value == "WORK_PACKAGE_RESOURCE_DEMAND_UNIT_MISMATCH"));
+    }
+
+    #[test]
+    fn work_package_permutation_preserves_normalized_reference_result() {
+        let corpus = corpus();
+        let mut case = corpus["cases"].as_array().unwrap().iter()
+            .find(|value| value["case_id"] == "CK-WP-001")
+            .expect("workcell contention case").clone();
+        let baseline = evaluate_case(&case);
+        case["input"]["work_packages"].as_array_mut().unwrap().reverse();
+        for package in case["input"]["work_packages"].as_array_mut().unwrap() {
+            package["resource_demands"].as_array_mut().unwrap().reverse();
+        }
+        let permuted = evaluate_case(&case);
+        assert_eq!(baseline, permuted);
+    }
+
 }
