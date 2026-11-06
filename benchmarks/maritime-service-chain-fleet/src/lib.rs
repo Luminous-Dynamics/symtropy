@@ -1860,6 +1860,92 @@ mod tests {
     }
 
     #[test]
+    fn independent_fleet_enumerator_matches_twenty_frozen_resource_variants() {
+        for case_index in 0..20_u64 {
+            let mut first = valid_fleet_case(
+                &format!("case-a-{case_index}"),
+                &format!("demand-a-{case_index}"),
+                "participant-a",
+                "vessel-a",
+            );
+            let mut second = valid_fleet_case(
+                &format!("case-b-{case_index}"),
+                &format!("demand-b-{case_index}"),
+                "participant-b",
+                "vessel-b",
+            );
+
+            let first_alternative = if case_index % 2 == 0 {
+                "fast-high-energy"
+            } else {
+                "slow-low-energy"
+            };
+            let second_alternative = if case_index % 3 == 0 {
+                "slow-low-energy"
+            } else {
+                "fast-high-energy"
+            };
+            first
+                .voyage_alternatives
+                .retain(|alternative| alternative.alternative_id == first_alternative);
+            second
+                .voyage_alternatives
+                .retain(|alternative| alternative.alternative_id == second_alternative);
+
+            let water_capacity = 4_000 + (case_index % 7) * 1_000;
+            let shore_capacity = 800 + (case_index % 5) * 400;
+            let berth_capacity = 1 + (case_index % 2);
+            let terminal_capacity = 10 + (case_index % 3) * 10;
+            let lock_capacity = 1 + (case_index % 2);
+            let channel_capacity = 1 + (case_index % 2);
+            let capacities = [
+                ("water-budget-01", "water-calendar", water_capacity),
+                ("shore-01", "shore-calendar", shore_capacity),
+                ("berth-01", "berth-calendar", berth_capacity),
+                ("terminal-01", "handling-calendar", terminal_capacity),
+                ("lock-01", "lock-calendar", lock_capacity),
+                ("channel-window-01", "channel-calendar", channel_capacity),
+            ];
+
+            for case in [&mut first, &mut second] {
+                for (resource_id, evidence_id, capacity) in capacities {
+                    case.resources
+                        .iter_mut()
+                        .find(|resource| resource.resource_id == resource_id)
+                        .expect("frozen resource")
+                        .availability[0]
+                        .capacity = capacity;
+                    case.evidence
+                        .iter_mut()
+                        .find(|item| item.evidence_id == evidence_id)
+                        .expect("frozen capacity evidence")
+                        .covered_capacity_windows
+                        .as_mut()
+                        .expect("capacity window evidence")[0]
+                        .capacity = capacity;
+                }
+                case.demand.delivery_window.end_tick =
+                    40 + (case_index % 7) * 5;
+            }
+
+            let workload = fleet_workload(vec![first, second]);
+            let production = exact_fleet_oracle(&workload, 500_000)
+                .expect("valid frozen differential workload");
+            assert_eq!(
+                production.termination,
+                SearchTermination::ExhaustiveComplete,
+                "production search must complete for variant {case_index}"
+            );
+            let independent = independent_reference_frontier(&workload);
+            assert_eq!(
+                production.frontier,
+                independent,
+                "production/reference frontier mismatch in variant {case_index}"
+            );
+        }
+    }
+
+    #[test]
     fn multi_demand_oracle_schedules_two_vessels_when_lock_slots_are_sequential() {
         let mut first = valid_fleet_case("case-a", "demand-a", "participant-a", "vessel-a");
         first
