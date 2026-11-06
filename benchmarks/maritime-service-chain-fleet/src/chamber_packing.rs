@@ -309,13 +309,16 @@ pub fn exact_chamber_packing(
         });
     }
 
-    let mut vessel_order: Vec<usize> = (0..vessels.len()).collect();
-    vessel_order.sort_by(|left, right| vessels[*left].vessel_id.cmp(&vessels[*right].vessel_id));
+    let mut canonical_chambers = chambers.to_vec();
+    canonical_chambers.sort_by(|left, right| left.chamber_id.cmp(&right.chamber_id));
+    let mut canonical_vessels = vessels.to_vec();
+    canonical_vessels.sort_by(|left, right| left.vessel_id.cmp(&right.vessel_id));
+    let vessel_order: Vec<usize> = (0..canonical_vessels.len()).collect();
 
     let mut search = PackingSearch {
-        chambers,
-        vessels,
-        placements: Vec::with_capacity(vessels.len()),
+        chambers: &canonical_chambers,
+        vessels: &canonical_vessels,
+        placements: Vec::with_capacity(canonical_vessels.len()),
         states_explored: 0,
         max_states,
         budget_exhausted: false,
@@ -326,8 +329,8 @@ pub fn exact_chamber_packing(
             .placements
             .iter()
             .map(|placement| {
-                let chamber = &chambers[placement.chamber_index];
-                let vessel = &vessels[placement.vessel_index];
+                let chamber = &canonical_chambers[placement.chamber_index];
+                let vessel = &canonical_vessels[placement.vessel_index];
                 ChamberPlacement {
                     vessel_id: vessel.vessel_id.clone(),
                     chamber_id: chamber.chamber_id.clone(),
@@ -507,10 +510,12 @@ mod tests {
     #[test]
     fn input_permutation_has_identical_canonical_output() {
         let chambers = [chamber("c1", 100, 60, 1), chamber("c2", 80, 60, 1)];
+        let reversed_chambers = [chambers[1].clone(), chambers[0].clone()];
         let first = [vessel("v1", 50, 20), vessel("v2", 40, 20)];
-        let second = [vessel("v2", 40, 20), vessel("v1", 50, 20)];
+        let reversed_vessels = [vessel("v2", 40, 20), vessel("v1", 50, 20)];
         let forward = exact_chamber_packing(&chambers, &first, 10_000).unwrap();
-        let reverse = exact_chamber_packing(&chambers, &second, 10_000).unwrap();
+        let reverse =
+            exact_chamber_packing(&reversed_chambers, &reversed_vessels, 10_000).unwrap();
         assert_eq!(forward, reverse);
     }
 }
