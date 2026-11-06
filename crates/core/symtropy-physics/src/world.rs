@@ -466,11 +466,9 @@ impl<const D: usize> PhysicsWorld<D> {
 
         // 1b. Continuous Collision Detection (CCD): fast-moving bodies can
         // tunnel straight through thin colliders within a single discrete
-        // step. For bodies exceeding `ccd::CCD_SPEED_THRESHOLD`, sweep the
-        // pre-integration position forward along the post-integration
-        // velocity and clamp to the time-of-impact if a hit is found, so
-        // narrowphase (step 3) sees a body sitting at the surface instead of
-        // having skipped past it.
+        // step. Sweep spheres when their absolute speed exceeds the guard or
+        // their per-step displacement exceeds a declared fraction of radius.
+        // Clamp to the time-of-impact so narrowphase sees the body at contact.
         self.run_ccd_pass(&pre_integration_positions, dt);
 
         // 2. Broadphase: find potentially colliding pairs (incremental static cache)
@@ -770,8 +768,10 @@ impl<const D: usize> PhysicsWorld<D> {
     /// Continuous collision detection sweep for fast-moving bodies.
     ///
     /// Only spheres are supported (matching `ccd.rs`'s analytical solvers).
-    /// For each dynamic, non-sleeping sphere body whose speed exceeds
-    /// `ccd::CCD_SPEED_THRESHOLD`, sweeps against every other body's
+    /// A dynamic, non-sleeping sphere is swept when its speed exceeds the
+    /// absolute guard or its per-step displacement exceeds a fraction of its
+    /// radius. This is a scale-aware activation heuristic, not a proof of no
+    /// tunnelling when a sweep is skipped. The sphere is swept against every other body's
     /// pre-integration position:
     /// - vs. `HalfSpace` colliders: `ccd::sphere_halfspace`
     /// - vs. `Sphere` colliders: `ccd::sphere_sphere`
@@ -790,14 +790,14 @@ impl<const D: usize> PhysicsWorld<D> {
                 continue;
             }
             let vel_i = self.bodies[i].linear_velocity;
-            if vel_i.norm() <= ccd::CCD_SPEED_THRESHOLD {
-                continue;
-            }
             let Some(sphere_i) = self.bodies[i].collider.as_any().downcast_ref::<Sphere<D>>()
             else {
                 continue;
             };
             let radius_i = sphere_i.radius;
+            if !ccd::should_sweep_sphere(vel_i.norm(), radius_i, dt) {
+                continue;
+            }
             let pos_i0 = pre_integration_positions[i];
 
             let mut earliest: Option<ccd::CcdHit<D>> = None;
