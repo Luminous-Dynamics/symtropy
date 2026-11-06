@@ -34,15 +34,7 @@ fn definition() -> PortfolioDefinition {
             "sha256:domains-v1",
         )
         .unwrap(),
-        PortfolioContract::new(
-            "frequency-response-v1",
-            2,
-            2,
-            9_000,
-            9_000,
-            1_000,
-        )
-        .unwrap(),
+        PortfolioContract::new("frequency-response-v1", 2, 2, 9_000, 9_000, 1_000).unwrap(),
         vec![
             asset("a", "site-a", 60.0, &["region", "control"]),
             asset("b", "site-b", 50.0, &["region", "control", "telecom"]),
@@ -56,7 +48,11 @@ fn definition() -> PortfolioDefinition {
     .unwrap()
 }
 
-fn outcome(asset_id: &str, delivered: f64, availability: AssetAvailability) -> AssetDeliveryOutcome {
+fn outcome(
+    asset_id: &str,
+    delivered: f64,
+    availability: AssetAvailability,
+) -> AssetDeliveryOutcome {
     AssetDeliveryOutcome::new(
         asset_id,
         delivered,
@@ -89,18 +85,18 @@ fn event(
             format!("sha256:event-{event_id}"),
         )
         .unwrap(),
-        vec![
-            outcome("a", a.0, a.1),
-            outcome("b", b.0, b.1),
-        ],
+        vec![outcome("a", a.0, a.1), outcome("b", b.0, b.1)],
         domain_states
             .iter()
-            .map(|(id, state)| FailureDomainObservation::new(
-                *id,
-                *state,
-                format!("domain-evidence-{id}-{event_id}"),
-                format!("sha256:domain-{id}-{event_id}"),
-            ).unwrap())
+            .map(|(id, state)| {
+                FailureDomainObservation::new(
+                    *id,
+                    *state,
+                    format!("domain-evidence-{id}-{event_id}"),
+                    format!("sha256:domain-{id}-{event_id}"),
+                )
+                .unwrap()
+            })
             .collect(),
     )
 }
@@ -187,7 +183,11 @@ fn shared_control_plane_failure_causes_observed_joint_shortfall_without_causal_c
     assert_eq!(report.passed_event_count, 1);
     assert_eq!(report.passed_incident_group_count, 1);
     assert_eq!(report.maximum_event_shortfall_kw, 100.0);
-    let control = report.failure_domains.iter().find(|d| d.domain_id == "control").unwrap();
+    let control = report
+        .failure_domains
+        .iter()
+        .find(|d| d.domain_id == "control")
+        .unwrap();
     assert_eq!(control.failed_event_count, 1);
     assert_eq!(control.portfolio_passes_when_failed, 0);
 }
@@ -215,12 +215,18 @@ fn missing_asset_outcome_is_rejected_not_assumed_zero_or_nominal() {
 #[test]
 fn duplicate_asset_outcome_is_rejected() {
     let observation = event(
-        "e1", "g1", "normal", 0, 100.0,
+        "e1",
+        "g1",
+        "normal",
+        0,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &normal_states(),
     );
-    observation.asset_outcomes.push(outcome("a", 60.0, AssetAvailability::Available));
+    observation
+        .asset_outcomes
+        .push(outcome("a", 60.0, AssetAvailability::Available));
     let error = evaluate_portfolio_resilience(&definition(), &[observation]).unwrap_err();
     assert!(matches!(
         error,
@@ -231,10 +237,17 @@ fn duplicate_asset_outcome_is_rejected() {
 #[test]
 fn omitted_failure_domain_state_is_rejected_but_explicit_unknown_is_preserved() {
     let missing = event(
-        "e1", "g1", "normal", 0, 100.0,
+        "e1",
+        "g1",
+        "normal",
+        0,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
-        &[("region", FailureDomainState::Normal), ("control", FailureDomainState::Normal)],
+        &[
+            ("region", FailureDomainState::Normal),
+            ("control", FailureDomainState::Normal),
+        ],
     );
     assert!(matches!(
         evaluate_portfolio_resilience(&definition(), &[missing]).unwrap_err(),
@@ -242,7 +255,11 @@ fn omitted_failure_domain_state_is_rejected_but_explicit_unknown_is_preserved() 
     ));
 
     let unknown = event(
-        "unknown", "g-unknown", "normal", 0, 100.0,
+        "unknown",
+        "g-unknown",
+        "normal",
+        0,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &[
@@ -252,13 +269,21 @@ fn omitted_failure_domain_state_is_rejected_but_explicit_unknown_is_preserved() 
         ],
     );
     let normal = event(
-        "normal", "g-normal", "normal", 10_000_000_000_000, 100.0,
+        "normal",
+        "g-normal",
+        "normal",
+        10_000_000_000_000,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &normal_states(),
     );
     let report = evaluate_portfolio_resilience(&definition(), &[unknown, normal]).unwrap();
-    let region = report.failure_domains.iter().find(|domain| domain.domain_id == "region").unwrap();
+    let region = report
+        .failure_domains
+        .iter()
+        .find(|domain| domain.domain_id == "region")
+        .unwrap();
     assert_eq!(region.unknown_event_count, 1);
     assert_eq!(region.normal_event_count, 1);
     let region_state = report.events[0]
@@ -293,14 +318,19 @@ fn unknown_asset_availability_cannot_mint_delivery_credit() {
         AssetAvailability::Unknown,
         "response-a",
         "sha256:a",
-    ).unwrap();
+    )
+    .unwrap();
     assert_eq!(result.delivered_lower_bound_kw(), 0.0);
 }
 
 #[test]
 fn delivered_lower_bound_cannot_exceed_offered_capacity() {
     let observation = event(
-        "e1", "g1", "normal", 0, 100.0,
+        "e1",
+        "g1",
+        "normal",
+        0,
+        100.0,
         (61.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &normal_states(),
@@ -319,19 +349,31 @@ fn repeated_dispatch_episodes_share_one_incident_group_and_use_worst_margin() {
         &definition(),
         &[
             event(
-                "episode-1", "one-heatwave", "heatwave", 0, 100.0,
+                "episode-1",
+                "one-heatwave",
+                "heatwave",
+                0,
+                100.0,
                 (60.0, AssetAvailability::Available),
                 (50.0, AssetAvailability::Available),
                 &states,
             ),
             event(
-                "episode-2", "one-heatwave", "heatwave", 10_000_000_000_000, 100.0,
+                "episode-2",
+                "one-heatwave",
+                "heatwave",
+                10_000_000_000_000,
+                100.0,
                 (60.0, AssetAvailability::Available),
                 (0.0, AssetAvailability::Unavailable),
                 &states,
             ),
             event(
-                "independent", "separate-storm", "storm", 20_000_000_000_000, 100.0,
+                "independent",
+                "separate-storm",
+                "storm",
+                20_000_000_000_000,
+                100.0,
                 (60.0, AssetAvailability::Available),
                 (50.0, AssetAvailability::Available),
                 &states,
@@ -344,7 +386,11 @@ fn repeated_dispatch_episodes_share_one_incident_group_and_use_worst_margin() {
     assert_eq!(report.independent_incident_group_count, 2);
     assert_eq!(report.passed_event_count, 2);
     assert_eq!(report.passed_incident_group_count, 1);
-    let heatwave = report.incident_groups.iter().find(|g| g.incident_group_id == "one-heatwave").unwrap();
+    let heatwave = report
+        .incident_groups
+        .iter()
+        .find(|g| g.incident_group_id == "one-heatwave")
+        .unwrap();
     assert!(!heatwave.passed);
     assert_eq!(heatwave.maximum_shortfall_kw, 40.0);
     assert_eq!(report.empirical_upper_tail_mean_incident_shortfall_kw, 40.0);
@@ -355,20 +401,32 @@ fn overlapping_domain_memberships_are_not_summed_into_portfolio_capacity() {
     let definition = definition();
     assert_eq!(definition.total_offered_capacity_kw(), 110.0);
     assert_eq!(definition.largest_failure_domain_capacity_kw(), 110.0);
-    assert_eq!(definition.largest_failure_domain_share_basis_points(), 10_000.0);
+    assert_eq!(
+        definition.largest_failure_domain_share_basis_points(),
+        10_000.0
+    );
 }
 
 #[test]
 fn event_and_incident_group_counts_are_separate_contract_gates() {
-    let contract = PortfolioContract::new("frequency-response-v1", 3, 2, 9_000, 9_000, 1_000).unwrap();
+    let contract =
+        PortfolioContract::new("frequency-response-v1", 3, 2, 9_000, 9_000, 1_000).unwrap();
     let definition = PortfolioDefinition::new(
         PortfolioIdentity::new("p", "frequency-response-v1", "sha256:a", "sha256:d").unwrap(),
         contract,
-        vec![asset("a", "sa", 100.0, &["region"]), asset("b", "sb", 100.0, &["region"])],
+        vec![
+            asset("a", "sa", 100.0, &["region"]),
+            asset("b", "sb", 100.0, &["region"]),
+        ],
         vec![domain("region", "weather")],
-    ).unwrap();
+    )
+    .unwrap();
     let mut observation = event(
-        "e1", "g1", "normal", 0, 100.0,
+        "e1",
+        "g1",
+        "normal",
+        0,
+        100.0,
         (100.0, AssetAvailability::Available),
         (100.0, AssetAvailability::Available),
         &[("region", FailureDomainState::Normal)],
@@ -384,13 +442,21 @@ fn event_and_incident_group_counts_are_separate_contract_gates() {
 fn input_order_does_not_change_sorted_event_or_group_receipts() {
     let states = normal_states();
     let a = event(
-        "z", "group-z", "storm", 10_000_000_000_000, 100.0,
+        "z",
+        "group-z",
+        "storm",
+        10_000_000_000_000,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &states,
     );
     let b = event(
-        "a", "group-a", "heatwave", 0, 100.0,
+        "a",
+        "group-a",
+        "heatwave",
+        0,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &states,
@@ -406,13 +472,21 @@ fn input_order_does_not_change_sorted_event_or_group_receipts() {
 fn duplicate_event_id_and_inconsistent_incident_scenario_are_rejected() {
     let states = normal_states();
     let a = event(
-        "same", "g1", "heatwave", 0, 100.0,
+        "same",
+        "g1",
+        "heatwave",
+        0,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &states,
     );
     let b = event(
-        "same", "g2", "heatwave", 10_000_000_000_000, 100.0,
+        "same",
+        "g2",
+        "heatwave",
+        10_000_000_000_000,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &states,
@@ -423,13 +497,21 @@ fn duplicate_event_id_and_inconsistent_incident_scenario_are_rejected() {
     ));
 
     let a = event(
-        "e1", "same-group", "heatwave", 0, 100.0,
+        "e1",
+        "same-group",
+        "heatwave",
+        0,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &states,
     );
     let b = event(
-        "e2", "same-group", "grid-event", 10_000_000_000_000, 100.0,
+        "e2",
+        "same-group",
+        "grid-event",
+        10_000_000_000_000,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &states,
@@ -443,7 +525,11 @@ fn duplicate_event_id_and_inconsistent_incident_scenario_are_rejected() {
 #[test]
 fn domain_observed_state_is_descriptive_even_when_outcome_does_not_follow_it() {
     let degraded = event(
-        "weather-degraded", "heatwave-1", "heatwave", 0, 100.0,
+        "weather-degraded",
+        "heatwave-1",
+        "heatwave",
+        0,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &[
@@ -453,13 +539,21 @@ fn domain_observed_state_is_descriptive_even_when_outcome_does_not_follow_it() {
         ],
     );
     let normal = event(
-        "weather-normal", "separate-storm", "storm", 10_000_000_000_000, 100.0,
+        "weather-normal",
+        "separate-storm",
+        "storm",
+        10_000_000_000_000,
+        100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
         &normal_states(),
     );
     let report = evaluate_portfolio_resilience(&definition(), &[degraded, normal]).unwrap();
-    let region = report.failure_domains.iter().find(|domain| domain.domain_id == "region").unwrap();
+    let region = report
+        .failure_domains
+        .iter()
+        .find(|domain| domain.domain_id == "region")
+        .unwrap();
     assert_eq!(region.degraded_event_count, 1);
     assert_eq!(region.portfolio_passes_when_degraded, 1);
     assert_eq!(report.passed_event_count, 2);
@@ -478,7 +572,8 @@ fn invalid_portfolio_offer_and_product_contract_mismatch_are_rejected() {
             contract,
             vec![asset("a", "sa", 1.0, &["region"])],
             vec![domain("region", "weather")],
-        ).unwrap_err(),
+        )
+        .unwrap_err(),
         symtropy_flexibility_portfolio::PortfolioResilienceError::ProductContractMismatch
     ));
 }
@@ -489,25 +584,37 @@ fn event_receipt_retains_each_response_and_domain_evidence_reference() {
         &definition(),
         &[
             event(
-                "e1", "g1", "heatwave", 0, 100.0,
+                "e1",
+                "g1",
+                "heatwave",
+                0,
+                100.0,
                 (60.0, AssetAvailability::Available),
                 (50.0, AssetAvailability::Available),
                 &normal_states(),
             ),
             event(
-                "e2", "g2", "storm", 10_000_000_000_000, 100.0,
+                "e2",
+                "g2",
+                "storm",
+                10_000_000_000_000,
+                100.0,
                 (60.0, AssetAvailability::Available),
                 (50.0, AssetAvailability::Available),
                 &normal_states(),
             ),
         ],
-    ).unwrap();
+    )
+    .unwrap();
     let receipt = &report.events[0];
     assert_eq!(receipt.asset_outcomes.len(), 2);
     assert_eq!(receipt.asset_outcomes[0].response_receipt_id, "response-a");
     assert_eq!(receipt.asset_outcomes[0].source_digest, "sha256:response-a");
     assert_eq!(receipt.failure_domain_observations.len(), 3);
-    assert_eq!(receipt.failure_domain_observations[0].evidence_id, "domain-evidence-control-e1");
+    assert_eq!(
+        receipt.failure_domain_observations[0].evidence_id,
+        "domain-evidence-control-e1"
+    );
 }
 
 #[test]
@@ -515,13 +622,21 @@ fn repeated_dispatch_events_do_not_satisfy_independent_incident_group_minimum() 
     let states = normal_states();
     let events = [
         event(
-            "episode-1", "same-storm", "storm", 0, 100.0,
+            "episode-1",
+            "same-storm",
+            "storm",
+            0,
+            100.0,
             (60.0, AssetAvailability::Available),
             (50.0, AssetAvailability::Available),
             &states,
         ),
         event(
-            "episode-2", "same-storm", "storm", 10_000_000_000_000, 100.0,
+            "episode-2",
+            "same-storm",
+            "storm",
+            10_000_000_000_000,
+            100.0,
             (60.0, AssetAvailability::Available),
             (50.0, AssetAvailability::Available),
             &states,
@@ -544,17 +659,23 @@ fn duplicate_site_pcc_and_duplicate_asset_failure_memberships_are_rejected() {
             asset("a2", "same-site", 60.0, &["region"]),
         ],
         vec![domain("region", "weather")],
-    ).unwrap_err();
+    )
+    .unwrap_err();
     assert!(matches!(
         duplicate_site,
         symtropy_flexibility_portfolio::PortfolioResilienceError::DuplicateSitePcc { .. }
     ));
     assert!(matches!(
         PortfolioAsset::new(
-            "a", "site-a", "pcc-a", "pcc", 50.0,
+            "a",
+            "site-a",
+            "pcc-a",
+            "pcc",
+            50.0,
             vec!["region".into(), "region".into()],
             "asset-evidence-a",
-        ).unwrap_err(),
+        )
+        .unwrap_err(),
         symtropy_flexibility_portfolio::PortfolioResilienceError::DuplicateAssetFailureDomain { .. }
     ));
 }
