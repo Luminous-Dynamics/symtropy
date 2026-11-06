@@ -274,8 +274,8 @@ impl CausalExperiment {
             && self.negative_control.independent_outcome.unit
                 == variable_map[self.outcome_variable_id.as_str()].unit;
 
-        let ablation_exogenous_matched = self.mechanism_ablation.arm.exogenous_snapshot_id
-            == self.control.exogenous_snapshot_id;
+        let ablation_exogenous_matched =
+            self.mechanism_ablation.arm.exogenous_snapshot_id == self.control.exogenous_snapshot_id;
         let ablation_inputs_matched = only_one_initial_value_differs(
             &self.treatment,
             &self.mechanism_ablation.arm,
@@ -294,13 +294,14 @@ impl CausalExperiment {
                 [&self.mechanism_ablation.blocked_mechanism_variable_id],
             self.treatment.final_values[&self.mechanism_ablation.blocked_mechanism_variable_id],
         );
-        let ablation_outcome_agrees = close(
-            self.mechanism_ablation.arm.final_values[&self.outcome_variable_id],
-            ablation_value,
-        ) && self.mechanism_ablation.arm.independent_outcome.variable_id
-            == self.outcome_variable_id
-            && self.mechanism_ablation.arm.independent_outcome.unit
-                == variable_map[self.outcome_variable_id.as_str()].unit;
+        let ablation_outcome_agrees =
+            close(
+                self.mechanism_ablation.arm.final_values[&self.outcome_variable_id],
+                ablation_value,
+            ) && self.mechanism_ablation.arm.independent_outcome.variable_id
+                == self.outcome_variable_id
+                && self.mechanism_ablation.arm.independent_outcome.unit
+                    == variable_map[self.outcome_variable_id.as_str()].unit;
         let ablation_protocol_valid = ablation_exogenous_matched
             && ablation_inputs_matched
             && primary_intervention_preserved
@@ -640,7 +641,10 @@ impl CausalExperiment {
         variables: &BTreeMap<&str, &CausalVariable>,
     ) -> Result<(), CausalPathError> {
         let block_id = self.mechanism_ablation.block_variable_id.as_str();
-        let mechanism_id = self.mechanism_ablation.blocked_mechanism_variable_id.as_str();
+        let mechanism_id = self
+            .mechanism_ablation
+            .blocked_mechanism_variable_id
+            .as_str();
         if block_id == self.intervention_variable_id
             || block_id == self.negative_control_variable_id
             || block_id == self.outcome_variable_id
@@ -658,39 +662,43 @@ impl CausalExperiment {
             .get(mechanism_id)
             .ok_or_else(|| CausalPathError::UnknownVariable(mechanism_id.to_owned()))?;
         if block.stage != CausalStage::Intervention {
-            return Err(CausalPathError::AblationSwitchWrongStage(block_id.to_owned()));
+            return Err(CausalPathError::AblationSwitchWrongStage(
+                block_id.to_owned(),
+            ));
         }
         if self.required_path_edge_ids.iter().any(|edge_id| {
             let edge = self.edges.iter().find(|candidate| candidate.id == *edge_id);
-            edge.is_some_and(|item| {
-                item.from_variable == block_id || item.to_variable == block_id
-            })
+            edge.is_some_and(|item| item.from_variable == block_id || item.to_variable == block_id)
         }) {
-            return Err(CausalPathError::AblationSwitchOnRequiredPath(block_id.to_owned()));
+            return Err(CausalPathError::AblationSwitchOnRequiredPath(
+                block_id.to_owned(),
+            ));
         }
-        if !matches!(mechanism.stage, CausalStage::Mechanism | CausalStage::Intermediate) {
-            return Err(CausalPathError::AblationTargetWrongStage(mechanism_id.to_owned()));
+        if !matches!(
+            mechanism.stage,
+            CausalStage::Mechanism | CausalStage::Intermediate
+        ) {
+            return Err(CausalPathError::AblationTargetWrongStage(
+                mechanism_id.to_owned(),
+            ));
         }
         let mechanism_is_on_required_path = self.required_path_edge_ids.iter().any(|edge_id| {
-            self.edges.iter().find(|edge| edge.id == *edge_id).is_some_and(|edge| {
-                edge.from_variable == mechanism_id || edge.to_variable == mechanism_id
-            })
+            self.edges
+                .iter()
+                .find(|edge| edge.id == *edge_id)
+                .is_some_and(|edge| {
+                    edge.from_variable == mechanism_id || edge.to_variable == mechanism_id
+                })
         });
         if !mechanism_is_on_required_path {
             return Err(CausalPathError::AblationTargetNotOnRequiredPath(
                 mechanism_id.to_owned(),
             ));
         }
-        if self.mechanism_ablation.arm.exogenous_snapshot_id
-            != self.control.exogenous_snapshot_id
-        {
+        if self.mechanism_ablation.arm.exogenous_snapshot_id != self.control.exogenous_snapshot_id {
             return Err(CausalPathError::AblationExogenousSnapshotMismatch);
         }
-        if !only_one_initial_value_differs(
-            &self.treatment,
-            &self.mechanism_ablation.arm,
-            block_id,
-        ) {
+        if !only_one_initial_value_differs(&self.treatment, &self.mechanism_ablation.arm, block_id) {
             return Err(CausalPathError::AblationInitialStateMismatch);
         }
         if !close(
@@ -709,7 +717,9 @@ impl CausalExperiment {
             self.mechanism_ablation.arm.final_values[block_id],
             self.mechanism_ablation.arm.initial_values[block_id],
         ) {
-            return Err(CausalPathError::AblationSwitchStateChanged(block_id.to_owned()));
+            return Err(CausalPathError::AblationSwitchStateChanged(
+                block_id.to_owned(),
+            ));
         }
         if close(
             self.mechanism_ablation.arm.final_values[mechanism_id],
@@ -962,7 +972,10 @@ impl fmt::Display for CausalPathError {
                 "run {run} outcome receipt does not match the control resource, region and tick"
             ),
             Self::DuplicateIndependentOutcomeRecord(record_id) => {
-                write!(f, "independent outcome record key is reused across arms: {record_id}")
+                write!(
+                    f,
+                    "independent outcome record key is reused across arms: {record_id}"
+                )
             }
             Self::ExogenousSnapshotMismatch(run) => {
                 write!(f, "run {run} does not use the matched exogenous snapshot")
@@ -993,31 +1006,55 @@ impl fmt::Display for CausalPathError {
                 "mechanism ablation switch, blocked mediator, primary intervention, outcome and negative-control roles must be distinct"
             ),
             Self::AblationSwitchWrongStage(id) => {
-                write!(f, "mechanism ablation switch {id} must be an intervention-stage variable")
+                write!(
+                    f,
+                    "mechanism ablation switch {id} must be an intervention-stage variable"
+                )
             }
             Self::AblationSwitchOnRequiredPath(id) => {
-                write!(f, "mechanism ablation switch {id} must not be a node on the required path")
+                write!(
+                    f,
+                    "mechanism ablation switch {id} must not be a node on the required path"
+                )
             }
             Self::AblationTargetWrongStage(id) => {
-                write!(f, "mechanism ablation target {id} must be a mechanism or intermediate variable")
+                write!(
+                    f,
+                    "mechanism ablation target {id} must be a mechanism or intermediate variable"
+                )
             }
             Self::AblationTargetNotOnRequiredPath(id) => {
-                write!(f, "mechanism ablation target {id} must lie on the required intervention-to-outcome path")
+                write!(
+                    f,
+                    "mechanism ablation target {id} must lie on the required intervention-to-outcome path"
+                )
             }
             Self::AblationExogenousSnapshotMismatch => {
-                write!(f, "mechanism ablation arm does not use the matched exogenous snapshot")
+                write!(
+                    f,
+                    "mechanism ablation arm does not use the matched exogenous snapshot"
+                )
             }
             Self::AblationInitialStateMismatch => {
-                write!(f, "mechanism ablation arm must differ from treatment only in the declared ablation switch")
+                write!(
+                    f,
+                    "mechanism ablation arm must differ from treatment only in the declared ablation switch"
+                )
             }
             Self::AblationChangedPrimaryIntervention => {
-                write!(f, "mechanism ablation arm must preserve the primary intervention assignment")
+                write!(
+                    f,
+                    "mechanism ablation arm must preserve the primary intervention assignment"
+                )
             }
             Self::AblationSwitchStateChanged(id) => {
                 write!(f, "mechanism ablation switch {id} changed during the run")
             }
             Self::MechanismAblationDidNotBlock(id) => {
-                write!(f, "mechanism ablation did not suppress mediator {id} to its control value")
+                write!(
+                    f,
+                    "mechanism ablation did not suppress mediator {id} to its control value"
+                )
             }
         }
     }
@@ -1412,8 +1449,10 @@ mod tests {
     #[test]
     fn independent_outcome_record_keys_must_be_unique_across_arms() {
         let mut invalid = experiment();
-        invalid.negative_control.independent_outcome.source_record_id =
-            invalid.control.independent_outcome.source_record_id.clone();
+        invalid
+            .negative_control
+            .independent_outcome
+            .source_record_id = invalid.control.independent_outcome.source_record_id.clone();
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::DuplicateIndependentOutcomeRecord(_))
@@ -1423,8 +1462,7 @@ mod tests {
     #[test]
     fn ablation_target_must_be_on_the_required_path() {
         let mut invalid = experiment();
-        invalid.mechanism_ablation.blocked_mechanism_variable_id =
-            "unrelated_intermediate".into();
+        invalid.mechanism_ablation.blocked_mechanism_variable_id = "unrelated_intermediate".into();
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::AblationTargetNotOnRequiredPath(_))
@@ -1444,16 +1482,15 @@ mod tests {
     #[test]
     fn ablation_target_must_be_on_the_required_path() {
         let mut invalid = experiment();
-        invalid.mechanism_ablation.blocked_mechanism_variable_id =
-            "authorized_transfer_m3".into();
-        invalid.mechanism_ablation.arm.final_values.insert(
-            "authorized_transfer_m3".into(),
-            0.0,
-        );
+        invalid.mechanism_ablation.blocked_mechanism_variable_id = "authorized_transfer_m3".into();
+        invalid
+            .mechanism_ablation
+            .arm
+            .final_values
+            .insert("authorized_transfer_m3".into(), 0.0);
         assert!(invalid.validate().is_ok());
 
-        invalid.mechanism_ablation.blocked_mechanism_variable_id =
-            "reputation_counter".into();
+        invalid.mechanism_ablation.blocked_mechanism_variable_id = "reputation_counter".into();
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::AblationVariableRolesOverlap)
