@@ -28,6 +28,7 @@ These are intentionally small synthetic generators for benchmark semantics. The 
 - Feedback-cut and instantaneous phase-pulse interventions.
 - Trajectory RMSE, wrapped phase offset and common-variance Gaussian predictive log score.
 - Equal-budget frequency/initial-phase grid fitting on a pre-action prefix; outcome-blind forecasts are frozen before scoring the held-out suffix.
+- Frequency profile-likelihood sets that profile over phase at each frequency and return every accepted frequency interval under a declared log-likelihood drop. Resolved, multimodal, broad and boundary-limited fits are labeled explicitly.
 - Paired-seed Monte Carlo summaries for conditional accuracy, false confident selection and abstention, with Wilson 95% intervals.
 - A fitted bivariate VAR(1) predictive baseline using only the pre-action prefix. The VAR forecast is action-blind; a VAR win is predictive equivalence, not evidence for a neural mechanism.
 - Candidate-family selection with a score-margin threshold and explicit abstention.
@@ -39,7 +40,7 @@ These are intentionally small synthetic generators for benchmark semantics. The 
 - Strictly increasing timestamps and exact paired timestamp-grid identity for prediction scoring.
 - Standalone Cargo crate with a dedicated Rust 1.96.0 formatting / test / strict-Clippy workflow.
 
-The 46 deterministic tests cover:
+The 52 deterministic tests cover:
 - baseline observational equivalence and mandatory abstention;
 - feedback-cut divergence and both directions of fitted-model selection;
 - driven-attractor relaxation, hybrid phase correction and phase pulses;
@@ -47,6 +48,7 @@ The 46 deterministic tests cover:
 - deterministic observation noise and variance recovery;
 - timestamp and paired-grid integrity;
 - equal-budget frequency/phase fitting and outcome-blind forecast freezing;
+- profile-likelihood recovery on a well-sampled trace, exact sampling-alias multimodality, boundary-limited fit detection and invalid cutoff/time-grid rejection;
 - held-out response selection after fitting;
 - paired-seed Monte Carlo summaries, forced-abstention accounting, duplicate-seed/generator rejection and a known-answer Wilson interval;
 - VAR(1) recovery of the rotational baseline, predictive equivalence requiring abstention, sensory-feedback selection over an action-blind VAR(1), and singular-fit/time-grid rejection;
@@ -54,11 +56,11 @@ The 46 deterministic tests cover:
 
 ## What is deliberately not implemented
 
-This V0 does not fit feedback decay/coupling, implement Bayesian model evidence, profile-likelihood parameter intervals, calibrated posterior predictive coverage, stochastic process noise, missingness, irregular observation timestamps, VAR(p), ordinary/switching SSM estimators, six-leg coupled mechanics, contact dynamics or engine-specific runtime comparisons. The mechanistic grid fitter estimates only angular frequency and initial phase; feedback decay/coupling are fixed common hyperparameters. The fit margin is a grid diagnostic, not a posterior or calibrated parameter interval.
+This V0 does not fit feedback decay/coupling, implement continuous Bayesian parameter posteriors, calibrated posterior predictive coverage, stochastic process noise, missingness, irregular observation timestamps, VAR(p), ordinary/switching SSM estimators, six-leg coupled mechanics, contact dynamics or engine-specific runtime comparisons. Its frequency profile-likelihood set is grid-based, profiles only over initial phase, assumes the declared independent Gaussian observation noise, and uses a user-selected likelihood-drop cutoff. A usual asymptotic one-parameter 95% likelihood-ratio cutoff is only approximate and may fail under short records, aliases, boundaries or other non-regular conditions. The mechanistic grid fitter estimates only angular frequency and initial phase; feedback decay/coupling are fixed common hyperparameters.
 
 The paired-seed Monte Carlo currently uses small deterministic seed sets and known synthetic parameter grids; it is a harness proof, not a powered performance evaluation. Wilson intervals quantify binomial rates over the chosen synthetic seeds; they do not establish biological generalization.
 
-The maximin intervention designer uses deterministic model-prediction disagreement divided by declared cost; its multi-scenario extension is a finite-scenario worst-case approximation. The new EIG selector carries an explicit discrete prior over user-declared mechanism/parameter hypotheses and computes Monte Carlo expected information gain under a fixed common Gaussian observation model. It is not continuous parameter posterior inference; its prior support is only as complete as the supplied finite hypotheses, and the variance model does not include process uncertainty or missingness. Next work should add profile-likelihood practical identifiability and sequential outcome-updated planning. The phase pulse and feedback cut are idealized synthetic actions; measured interventions require authenticated assignment/delivery receipts and actual timing/latency.
+The maximin intervention designer uses deterministic model-prediction disagreement divided by declared cost; its multi-scenario extension is a finite-scenario worst-case approximation. The new EIG selector carries an explicit discrete prior over user-declared mechanism/parameter hypotheses and computes Monte Carlo expected information gain under a fixed common Gaussian observation model. It is not continuous parameter posterior inference; its prior support is only as complete as the supplied finite hypotheses, and the variance model does not include process uncertainty or missingness. Profile-likelihood practical identifiability is now included as a grid confidence-set diagnostic; sequential outcome-updated planning remains next work. The phase pulse and feedback cut are idealized synthetic actions; measured interventions require authenticated assignment/delivery receipts and actual timing/latency.
 
 ## Required next benchmark increments
 
