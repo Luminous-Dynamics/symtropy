@@ -211,7 +211,7 @@ fn execute_arm(
     }
 }
 
-fn reference_experiment() -> (CausalExperiment, [ArmDiagnostics; 3]) {
+fn reference_experiment() -> (CausalExperiment, [ArmDiagnostics; 4]) {
     let control = execute_arm("control", false, false, false);
     let treatment = execute_arm("treatment", true, false, false);
     let negative_control = execute_arm("negative_control", false, true, false);
