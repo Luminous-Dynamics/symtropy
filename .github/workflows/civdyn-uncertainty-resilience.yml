@@ -1,0 +1,109 @@
+name: CivDyn uncertainty-aware resilience reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-uncertainty-resilience/**"
+      - "research/civdyn-cross-scale-resilience/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-uncertainty-resilience.yml"
+  push:
+    paths:
+      - "research/civdyn-uncertainty-resilience/**"
+      - "research/civdyn-cross-scale-resilience/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-uncertainty-resilience.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute uncertainty resilience reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-uncertainty-resilience/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-uncertainty-resilience/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-uncertainty-resilience/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-uncertainty-resilience/Cargo.toml --all-targets
+
+      - name: Execute LHS ensemble and Morris sensitivity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-uq-evidence
+          cargo run --locked --manifest-path research/civdyn-uncertainty-resilience/Cargo.toml --bin uncertainty-resilience-sweep \
+            | tee target/civdyn-uq-evidence/uncertainty-resilience.csv
+
+      - name: Verify ensemble, tail and Morris design contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          path = Path("target/civdyn-uq-evidence/uncertainty-resilience.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) == 384, f"expected 48 ensemble + 336 Morris rows, got {len(rows)}"
+          assert all(len(row) == 17 for row in rows)
+          ensemble = [r for r in rows if r["record_type"] == "parameter_ensemble"]
+          morris = [r for r in rows if r["record_type"] == "morris_effect"]
+          assert len(ensemble) == 48
+          assert len(morris) == 336
+          assert all(r["sample_count"] == "30" for r in ensemble)
+          assert all(r["sample_count"] == "30" for r in morris)
+          assert len({(r["shock"], r["policy"]) for r in ensemble}) == 12
+          assert len({(r["shock"], r["policy"], r["metric"]) for r in ensemble}) == 48
+          assert all(float(r["p05"]) <= float(r["p50"]) <= float(r["p95"]) for r in ensemble)
+          assert all(0.0 <= float(r["service_floor_breach_fraction"]) <= 1.0 for r in ensemble)
+          assert all(0.0 <= float(r["recovery_success_fraction"]) <= 1.0 for r in ensemble)
+          assert len({(r["shock"], r["policy"], r["metric"], r["factor"]) for r in morris}) == 336
+          assert all(float(r["morris_mu_star"]) >= 0.0 for r in morris)
+          assert all(float(r["morris_sigma"]) >= 0.0 for r in morris)
+          assert all(math.isfinite(float(r["morris_mu_star"])) and math.isfinite(float(r["morris_sigma"])) for r in morris)
+
+          water = [r for r in ensemble if r["shock"] == "water_supply"]
+          energy = [r for r in ensemble if r["shock"] == "energy_supply"]
+          assert len(water) == len(energy) == 16
+          assert {r["metric"] for r in water} == {
+              "total_unmet_water_m3", "total_unmet_energy_kwh",
+              "minimum_water_coverage", "minimum_energy_coverage"
+          }
+
+          print("CIVDYN-UQ-001 LHS strata, ensemble portfolio, unit-separated metrics, tails and Morris elementary effects verified.")
+          PY
+
+          {
+            echo "## CIVDYN-UQ-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-uq-evidence/uncertainty-resilience.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: deterministic synthetic parameter design, not posterior prediction or stochastic replications"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload uncertainty and resilience evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-uncertainty-resilience
+          path: target/civdyn-uq-evidence/uncertainty-resilience.csv
+          if-no-files-found: error
+          retention-days: 30
