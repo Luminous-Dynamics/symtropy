@@ -59,6 +59,15 @@ pub struct RunManifest {
     pub timestep_seconds: f64,
     pub control_frequency_hz: f64,
     pub sensor_frequency_hz: f64,
+    /// Recorded for audit. Engine-specific solver choices need not be identical
+    /// across backends, but must be disclosed in a fair comparison.
+    pub integrator_name: String,
+    pub solver_name: String,
+    pub solver_tolerance: f64,
+    pub solver_iterations: u32,
+    /// Effective end-to-end delays declared by the sensor/actuator contract.
+    pub sensor_latency_seconds: f64,
+    pub actuator_latency_seconds: f64,
     pub duration_seconds: f64,
     pub recorded_samples: u64,
     /// May differ for throughput benchmarks; recorded but not paired-gated.
@@ -91,6 +100,8 @@ pub enum EvidenceError {
     InvalidSha256,
     InvalidEngineCommit,
     InvalidTimebase,
+    InvalidNumericalConfiguration,
+    InvalidLatency,
     InvalidDuration,
     InvalidSampleCount,
     MissingInterventionReceipt,
@@ -115,6 +126,8 @@ impl RunManifest {
             self.morphology_name.as_str(),
             self.terrain_name.as_str(),
             self.metric_version.as_str(),
+            self.integrator_name.as_str(),
+            self.solver_name.as_str(),
         ] {
             require_text(value)?;
         }
@@ -153,6 +166,19 @@ impl RunManifest {
             || self.sensor_frequency_hz <= 0.0
         {
             return Err(EvidenceError::InvalidTimebase);
+        }
+        if !self.solver_tolerance.is_finite()
+            || self.solver_tolerance <= 0.0
+            || self.solver_iterations == 0
+        {
+            return Err(EvidenceError::InvalidNumericalConfiguration);
+        }
+        if !self.sensor_latency_seconds.is_finite()
+            || self.sensor_latency_seconds < 0.0
+            || !self.actuator_latency_seconds.is_finite()
+            || self.actuator_latency_seconds < 0.0
+        {
+            return Err(EvidenceError::InvalidLatency);
         }
         if !self.duration_seconds.is_finite() || self.duration_seconds <= 0.0 {
             return Err(EvidenceError::InvalidDuration);
@@ -223,6 +249,12 @@ impl RunManifest {
         bytes.extend_from_slice(&self.timestep_seconds.to_bits().to_le_bytes());
         bytes.extend_from_slice(&self.control_frequency_hz.to_bits().to_le_bytes());
         bytes.extend_from_slice(&self.sensor_frequency_hz.to_bits().to_le_bytes());
+        push_string(&mut bytes, &self.integrator_name);
+        push_string(&mut bytes, &self.solver_name);
+        bytes.extend_from_slice(&self.solver_tolerance.to_bits().to_le_bytes());
+        bytes.extend_from_slice(&self.solver_iterations.to_le_bytes());
+        bytes.extend_from_slice(&self.sensor_latency_seconds.to_bits().to_le_bytes());
+        bytes.extend_from_slice(&self.actuator_latency_seconds.to_bits().to_le_bytes());
         bytes.extend_from_slice(&self.duration_seconds.to_bits().to_le_bytes());
         bytes.extend_from_slice(&self.recorded_samples.to_le_bytes());
 
@@ -337,6 +369,8 @@ pub fn validate_paired_comparison(
     if left.timestep_seconds != right.timestep_seconds
         || left.control_frequency_hz != right.control_frequency_hz
         || left.sensor_frequency_hz != right.sensor_frequency_hz
+        || left.sensor_latency_seconds != right.sensor_latency_seconds
+        || left.actuator_latency_seconds != right.actuator_latency_seconds
     {
         return Err(EvidenceError::PairedRunMismatch(PairedRunMismatch::Timebase));
     }
@@ -439,6 +473,20 @@ mod tests {
             timestep_seconds: 0.0001,
             control_frequency_hz: 1000.0,
             sensor_frequency_hz: 500.0,
+            integrator_name: if engine == "flygym" {
+                "semi-implicit-euler".to_owned()
+            } else {
+                "implicit-fast".to_owned()
+            },
+            solver_name: if engine == "flygym" {
+                "mujoco-constraint-solver".to_owned()
+            } else {
+                "newton-solver".to_owned()
+            },
+            solver_tolerance: 1.0e-8,
+            solver_iterations: 100,
+            sensor_latency_seconds: 0.002,
+            actuator_latency_seconds: 0.001,
             duration_seconds: 2.0,
             recorded_samples: 20_001,
             hardware_profile: Some(HardwareProfile {
@@ -581,6 +629,59 @@ mod tests {
         run = manifest("run-a", "flygym");
         run.recorded_samples = 1;
         assert_eq!(run.validate(), Err(EvidenceError::InvalidSampleCount));
+    }
+
+
+    #[test]
+    fn paired_comparison_rejects_sensor_and_actuator_latency_mismatches() {
+        let flygym = manifest("run-flygym", "flygym");
+        let mut mujoco = manifest("run-mujoco", "mujoco");
+        mujoco.sensor_latency_seconds = 0.004;
+        assert_eq!(
+            validate_paired_comparison(&flygym, &mujoco),
+            Err(EvidenceError::PairedRunMismatch(PairedRunMismatch::Timebase))
+        );
+
+        mujoco = manifest("run-mujoco", "mujoco");
+        mujoco.actuator_latency_seconds = 0.003;
+        assert_eq!(
+            validate_paired_comparison(&flygym, &mujoco),
+            Err(EvidenceError::PairedRunMismatch(PairedRunMismatch::Timebase))
+        );
+    }
+
+    #[test]
+    fn records_engine_specific_integrator_and_solver_without_false_equality_gate() {
+        let flygym = manifest("run-flygym", "flygym");
+        let mujoco = manifest("run-mujoco", "mujoco");
+        assert_ne!(flygym.integrator_name, mujoco.integrator_name);
+        assert_ne!(flygym.solver_name, mujoco.solver_name);
+        assert_eq!(validate_paired_comparison(&flygym, &mujoco), Ok(()));
+        assert_ne!(
+            flygym.canonical_bytes().unwrap(),
+            mujoco.canonical_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_solver_settings_and_negative_latency() {
+        let mut run = manifest("run-a", "flygym");
+        run.solver_tolerance = 0.0;
+        assert_eq!(
+            run.validate(),
+            Err(EvidenceError::InvalidNumericalConfiguration)
+        );
+
+        run = manifest("run-a", "flygym");
+        run.solver_iterations = 0;
+        assert_eq!(
+            run.validate(),
+            Err(EvidenceError::InvalidNumericalConfiguration)
+        );
+
+        run = manifest("run-a", "flygym");
+        run.sensor_latency_seconds = -0.001;
+        assert_eq!(run.validate(), Err(EvidenceError::InvalidLatency));
     }
 
     #[test]
