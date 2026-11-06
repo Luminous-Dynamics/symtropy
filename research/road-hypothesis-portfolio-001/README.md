@@ -43,7 +43,7 @@ The Rust reference provides:
 - Exact rational residual utility bounds with per-action evidence, calibration protocol, source lineage and minimum independent-unit counts. The residual scope, estimand and independent-unit definition are explicit. Counterfactual residual utility bounds cannot be justified by observational factual records alone: they require a controlled-intervention assignment protocol or a qualified natural-experiment identification package, and the evidence must not reuse training or sealed challenge lineage.
 - Robust feasibility distinct from utility ranking. Unknown or PotentialViolation excludes an action.
 - Conservative rectangular regret upper bound: `max(0, max_b U_upper(b) - L(a))`. It is explicitly a rectangular relaxation, not an attainable joint physical world.
-- Append-only portfolio revisions: prior challenged hypotheses remain byte-identical; a new model/mechanism is a new identity with explicit lineage.
+- Append-only portfolio revisions: prior challenged hypotheses and coverage records remain byte-identical. New hypotheses use new identities; new coverage evidence appends a successor record bound to the exact prior axis/stratum. Superseded historical rows remain in the digest but no longer count as active obligations. Forked or cross-stratum supersession is rejected.
 - A portfolio digest and evaluation digest that bind the manifest, exact challenge receipts, residual bounds and decision disposition.
 
 ## Exact conformance targets
@@ -60,6 +60,7 @@ The Rust reference provides:
 - Zero residual interval inferred from absence of observed failures.
 - Zero robust action when residual safety feasibility is unknown or potentially violated.
 - 100% evaluation-digest change on any challenge or residual evidence mutation.
+- 100% of coverage status changes preserve the prior record and append a single non-forking, same-stratum successor.
 - Never emit a completeness-relative-to-reality claim.
 
 These are contract/conformance targets, not measured empirical results. The assignment/identification and calibration digests are declarations bound into the evaluation receipt; this Rust reference does not independently authenticate the external study or re-estimate its causal effects.
