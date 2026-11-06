@@ -148,7 +148,10 @@ fn execute_arm(
             "safeguard_enabled".into(),
             if safeguard_enabled { 1.0 } else { 0.0 },
         ),
-        ("mechanism_blocked".into(), if mechanism_blocked { 1.0 } else { 0.0 }),
+        (
+            "mechanism_blocked".into(),
+            if mechanism_blocked { 1.0 } else { 0.0 },
+        ),
         ("transfer_eligible".into(), 0.0),
         ("authorized_transfer_m3".into(), 0.0),
         ("delivered_water_m3".into(), 0.0),
@@ -242,7 +245,10 @@ fn reference_experiment() -> (CausalExperiment, [ArmDiagnostics; 4]) {
             arm: mechanism_ablation.arm.clone(),
         },
     };
-    (experiment, [control, treatment, negative_control, mechanism_ablation])
+    (
+        experiment,
+        [control, treatment, negative_control, mechanism_ablation],
+    )
 }
 
 fn fmt(value: f64) -> String {
