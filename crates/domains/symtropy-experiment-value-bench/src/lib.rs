@@ -626,6 +626,7 @@ fn current_decision_value(case: &Value) -> (f64, Vec<String>) {
         }
     }
 
+    best_actions.sort();
     (best_value, best_actions)
 }
 
@@ -651,14 +652,25 @@ fn expected_post_experiment_value(
             likelihood_by_state.insert(id, probability);
         }
 
-        let predictive_probability: f64 = states
-            .iter()
-            .zip(prior.iter())
-            .map(|(state, p)| {
-                let state_id = text(state, "state_id").expect("validated state");
-                p * likelihood_by_state[state_id]
-            })
-            .sum();
+        let mut predictive_probability = 0.0;
+        let mut nonzero_product_underflowed = false;
+        for (state, prior_probability) in states.iter().zip(prior.iter()) {
+            let state_id = text(state, "state_id").expect("validated state");
+            let likelihood = likelihood_by_state[state_id];
+            let product = prior_probability * likelihood;
+            if *prior_probability > 0.0 && likelihood > 0.0 && product == 0.0 {
+                nonzero_product_underflowed = true;
+            }
+            predictive_probability += product;
+        }
+
+        if nonzero_product_underflowed {
+            return Err(vec![Violation {
+                code: "PREDICTIVE_PROBABILITY_UNDERFLOW".to_owned(),
+                path: "$.experiments".to_owned(),
+                detail: "a mathematically non-zero prior-times-likelihood product underflowed to zero; refusing to treat it as an impossible outcome".to_owned(),
+            }]);
+        }
 
         if !predictive_probability.is_finite() {
             return Err(vec![Violation {
@@ -1073,6 +1085,18 @@ mod tests {
         let report = evaluate_case(&case).expect("zero predictive outcome is harmless");
         let pressure = golden_experiment(&report, "pressure-differential-probe");
         assert!((pressure.evsi - 17.2).abs() < 1e-9);
+    }
+
+    #[test]
+    fn tiny_nonzero_prior_underflow_is_rejected() {
+        let mut case = fixture();
+        case["states"][0]["prior_probability"] = serde_json::json!(5.0e-324);
+        case["states"][1]["prior_probability"] = serde_json::json!(1.0);
+        let result = evaluate_case(&case);
+        assert!(matches!(
+            result,
+            Err(errors) if has_code(&errors, "PREDICTIVE_PROBABILITY_UNDERFLOW")
+        ));
     }
 
     #[test]
