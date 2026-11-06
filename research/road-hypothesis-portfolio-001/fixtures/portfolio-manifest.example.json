@@ -1,0 +1,158 @@
+{
+  "schema": "symtropy.road-hypothesis-portfolio.v0.1",
+  "portfolio_id": "road-portfolio-001",
+  "revision_sequence": 1,
+  "supersedes_portfolio_digest": null,
+  "odd_scope_digest": "sha256:odd-city-1",
+  "utility_scale_id": "utility-0-to-100",
+  "utility_semantics_id": "higher-is-better-v1",
+  "training_lineage_roots": [
+    "sha256:training-root"
+  ],
+  "action_ids": [
+    "continue",
+    "yield"
+  ],
+  "hypotheses": [
+    {
+      "hypothesis_id": "H-weather",
+      "model_family_id": "structural-scm",
+      "version_digest": "sha256:version-a",
+      "mechanism_class_ids": [
+        "weather-shared-cause",
+        "pedestrian-yield-response"
+      ],
+      "causal_graph_digest": "sha256:graph-a",
+      "stochastic_contract_digest": "sha256:stoch-a",
+      "source_lineage_digests": [
+        "sha256:shared-training"
+      ],
+      "common_mode_group": "weather-common",
+      "applicability_scope_digest": "sha256:odd-city-1",
+      "excluded_mechanisms": [],
+      "supersedes_hypothesis_id": null
+    },
+    {
+      "hypothesis_id": "H-weather-copy",
+      "model_family_id": "learned-world-model",
+      "version_digest": "sha256:version-b",
+      "mechanism_class_ids": [
+        "weather-shared-cause",
+        "pedestrian-yield-response"
+      ],
+      "causal_graph_digest": "sha256:graph-b",
+      "stochastic_contract_digest": "sha256:stoch-b",
+      "source_lineage_digests": [
+        "sha256:shared-training"
+      ],
+      "common_mode_group": "weather-common",
+      "applicability_scope_digest": "sha256:odd-city-1",
+      "excluded_mechanisms": [],
+      "supersedes_hypothesis_id": null
+    }
+  ],
+  "coverage_obligations": [
+    {
+      "obligation_id": "ODD-rain-night-occluded",
+      "axis": "odd_range",
+      "stratum_digest": "sha256:stratum-ODD-rain-night-occluded",
+      "state": "covered",
+      "minimum_independent_units": 5,
+      "independent_unit_count": 5,
+      "evidence_class": "controlled_intervention",
+      "evidence_manifest_digest": "sha256:evidence-ODD-rain-night-occluded",
+      "source_lineage_digest": "sha256:lineage-ODD-rain-night-occluded",
+      "challenge_protocol_digest": "sha256:challenge-v1",
+      "not_applicable_rationale": null
+    },
+    {
+      "obligation_id": "yielding-reciprocity",
+      "axis": "behavioural_competency",
+      "stratum_digest": "sha256:stratum-yielding-reciprocity",
+      "state": "covered",
+      "minimum_independent_units": 5,
+      "independent_unit_count": 5,
+      "evidence_class": "controlled_intervention",
+      "evidence_manifest_digest": "sha256:evidence-yielding-reciprocity",
+      "source_lineage_digest": "sha256:lineage-yielding-reciprocity",
+      "challenge_protocol_digest": "sha256:challenge-v1",
+      "not_applicable_rationale": null
+    },
+    {
+      "obligation_id": "shared-weather-descendants",
+      "axis": "causal_mechanism",
+      "stratum_digest": "sha256:stratum-shared-weather-descendants",
+      "state": "covered",
+      "minimum_independent_units": 5,
+      "independent_unit_count": 5,
+      "evidence_class": "controlled_intervention",
+      "evidence_manifest_digest": "sha256:evidence-shared-weather-descendants",
+      "source_lineage_digest": "sha256:lineage-shared-weather-descendants",
+      "challenge_protocol_digest": "sha256:challenge-v1",
+      "not_applicable_rationale": null
+    },
+    {
+      "obligation_id": "road-rule-crossing",
+      "axis": "rule_safety",
+      "stratum_digest": "sha256:stratum-road-rule-crossing",
+      "state": "covered",
+      "minimum_independent_units": 5,
+      "independent_unit_count": 5,
+      "evidence_class": "controlled_intervention",
+      "evidence_manifest_digest": "sha256:evidence-road-rule-crossing",
+      "source_lineage_digest": "sha256:lineage-road-rule-crossing",
+      "challenge_protocol_digest": "sha256:challenge-v1",
+      "not_applicable_rationale": null
+    }
+  ],
+  "challenge_requirements": [
+    {
+      "hypothesis_id": "H-weather",
+      "strategy": "random",
+      "protocol_digest": "sha256:H-weather-random",
+      "minimum_budget_units": 100
+    },
+    {
+      "hypothesis_id": "H-weather",
+      "strategy": "coverage_guided",
+      "protocol_digest": "sha256:H-weather-coverage_guided",
+      "minimum_budget_units": 100
+    },
+    {
+      "hypothesis_id": "H-weather",
+      "strategy": "expert",
+      "protocol_digest": "sha256:H-weather-expert",
+      "minimum_budget_units": 100
+    },
+    {
+      "hypothesis_id": "H-weather",
+      "strategy": "reinforcement_learning",
+      "protocol_digest": "sha256:H-weather-reinforcement_learning",
+      "minimum_budget_units": 100
+    },
+    {
+      "hypothesis_id": "H-weather-copy",
+      "strategy": "random",
+      "protocol_digest": "sha256:H-weather-copy-random",
+      "minimum_budget_units": 100
+    },
+    {
+      "hypothesis_id": "H-weather-copy",
+      "strategy": "coverage_guided",
+      "protocol_digest": "sha256:H-weather-copy-coverage_guided",
+      "minimum_budget_units": 100
+    },
+    {
+      "hypothesis_id": "H-weather-copy",
+      "strategy": "expert",
+      "protocol_digest": "sha256:H-weather-copy-expert",
+      "minimum_budget_units": 100
+    },
+    {
+      "hypothesis_id": "H-weather-copy",
+      "strategy": "reinforcement_learning",
+      "protocol_digest": "sha256:H-weather-copy-reinforcement_learning",
+      "minimum_budget_units": 100
+    }
+  ]
+}
