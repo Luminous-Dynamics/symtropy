@@ -261,7 +261,13 @@ fn omitted_failure_domain_state_is_rejected_but_explicit_unknown_is_preserved() 
     let region = report.failure_domains.iter().find(|domain| domain.domain_id == "region").unwrap();
     assert_eq!(region.unknown_event_count, 1);
     assert_eq!(region.normal_event_count, 1);
-    assert_eq!(report.events[0].failure_domain_observations[0].state, FailureDomainState::Unknown);
+    let region_state = report.events[0]
+        .failure_domain_observations
+        .iter()
+        .find(|domain| domain.domain_id == "region")
+        .unwrap()
+        .state;
+    assert_eq!(region_state, FailureDomainState::Unknown);
 }
 #[test]
 fn unavailable_asset_cannot_report_nonzero_lower_bound_delivery() {
