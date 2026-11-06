@@ -272,15 +272,17 @@ impl RouteLedger {
             {
                 return Err("trajectory sample IDs must be unique and non-empty".into());
             }
-            if previous_trajectory_timestamp
-                .is_some_and(|previous| sample.timestamp_ns <= previous)
+            if previous_trajectory_timestamp.is_some_and(|previous| sample.timestamp_ns <= previous)
             {
                 return Err("trajectory sample timestamps must be strictly increasing".into());
             }
             previous_trajectory_timestamp = Some(sample.timestamp_ns);
         }
         if self.trajectory_samples[0].timestamp_ns < self.route_start_ns
-            || self.trajectory_samples.last().map(|sample| sample.timestamp_ns)
+            || self
+                .trajectory_samples
+                .last()
+                .map(|sample| sample.timestamp_ns)
                 != Some(self.route_end_ns)
         {
             return Err("trajectory sample range must terminate at route_end_ns and remain within route bounds".into());
@@ -309,7 +311,9 @@ impl RouteLedger {
                 return Err("segment geometry digest must be sha256".into());
             }
             if segment.trajectory_sample_ids.len() < 2 {
-                return Err("each segment requires at least two canonical trajectory sample IDs".into());
+                return Err(
+                    "each segment requires at least two canonical trajectory sample IDs".into(),
+                );
             }
             let mut segment_sample_ids = HashSet::new();
             let mut previous_sample_index = None::<usize>;
@@ -319,13 +323,16 @@ impl RouteLedger {
                 if !segment_sample_ids.insert(sample_id) {
                     return Err("segment trajectory sample IDs must be unique".into());
                 }
-                let Some((sample_index, sample_timestamp)) =
-                    trajectory_sample_index.get(sample_id)
+                let Some((sample_index, sample_timestamp)) = trajectory_sample_index.get(sample_id)
                 else {
-                    return Err("segment trajectory sample ID is absent from the route trajectory".into());
+                    return Err(
+                        "segment trajectory sample ID is absent from the route trajectory".into(),
+                    );
                 };
                 if previous_sample_index.is_some_and(|previous| *sample_index != previous + 1) {
-                    return Err("segment trajectory samples must be a contiguous canonical sequence".into());
+                    return Err(
+                        "segment trajectory samples must be a contiguous canonical sequence".into(),
+                    );
                 }
                 first_sample_timestamp.get_or_insert(*sample_timestamp);
                 last_sample_timestamp = Some(*sample_timestamp);
@@ -334,7 +341,10 @@ impl RouteLedger {
             if first_sample_timestamp != Some(segment.start_ns)
                 || last_sample_timestamp != Some(segment.end_ns)
             {
-                return Err("segment trajectory endpoint timestamps must match segment start_ns/end_ns".into());
+                return Err(
+                    "segment trajectory endpoint timestamps must match segment start_ns/end_ns"
+                        .into(),
+                );
             }
             if segment.start_ns < self.route_start_ns
                 || segment.end_ns > self.route_end_ns
@@ -1124,19 +1134,39 @@ mod tests {
 
         let mut ledger = fixture();
         ledger.trajectory_artifact_digest = "not-a-digest".into();
-        assert!(ledger.validate().unwrap_err().contains("trajectory artifact digest"));
+        assert!(
+            ledger
+                .validate()
+                .unwrap_err()
+                .contains("trajectory artifact digest")
+        );
 
         let mut ledger = fixture();
         ledger.segments[0].trajectory_sample_ids[1] = "MISSING-POSE".into();
-        assert!(ledger.validate().unwrap_err().contains("absent from the route trajectory"));
+        assert!(
+            ledger
+                .validate()
+                .unwrap_err()
+                .contains("absent from the route trajectory")
+        );
 
         let mut ledger = fixture();
         ledger.segments[0].trajectory_sample_ids = vec!["POSE-001".into(), "POSE-000".into()];
-        assert!(ledger.validate().unwrap_err().contains("contiguous canonical sequence"));
+        assert!(
+            ledger
+                .validate()
+                .unwrap_err()
+                .contains("contiguous canonical sequence")
+        );
 
         let mut ledger = fixture();
         ledger.segments[0].trajectory_sample_ids = vec!["POSE-000".into(), "POSE-002".into()];
-        assert!(ledger.validate().unwrap_err().contains("contiguous canonical sequence"));
+        assert!(
+            ledger
+                .validate()
+                .unwrap_err()
+                .contains("contiguous canonical sequence")
+        );
     }
 
     #[test]
