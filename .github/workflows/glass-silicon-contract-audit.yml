@@ -1,0 +1,885 @@
+name: GLASS-SILICON Contract Audit
+
+on:
+  pull_request:
+    paths:
+      - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
+      - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+      - "docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
+      - "docs/tech/glass-acquisition-campaign-transcript-v0.1.schema.json"
+      - "docs/tech/glass-causal-trial-v0.1.schema.json"
+      - "docs/tech/GLASS_ADAPTIVE_SEARCH_SPACE_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-search-space-base-v0.1.schema.json"
+      - "docs/tech/glass-search-space-proposal-v0.1.schema.json"
+      - "docs/tech/glass-search-space-campaign-input-v0.1.schema.json"
+      - "docs/tech/glass-search-space-outcome-oracle-v0.1.schema.json"
+      - "docs/tech/glass-search-space-live-catalog-v0.1.schema.json"
+      - "docs/tech/glass-search-space-live-oracle-v0.1.schema.json"
+      - "docs/tech/glass-search-space-budget-frontier-scorecard-v0.1.schema.json"
+      - "docs/tech/GLASS_LIVE_POLICY_LOOP_PROTOCOL_V0_1.md"
+      - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
+      - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
+      - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-relationship-graph-v0.1.schema.json"
+      - "docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
+      - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
+      - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
+      - "docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
+      - "tools/glass-silicon-contract-audit/**"
+      - ".github/workflows/glass-silicon-contract-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/tech/GLASS_SILICON_PROCESS_BENCHMARK_SUITE_V0_1.md"
+      - "docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+      - "docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
+      - "docs/tech/glass-acquisition-campaign-transcript-v0.1.schema.json"
+      - "docs/tech/glass-causal-trial-v0.1.schema.json"
+      - "docs/tech/GLASS_ADAPTIVE_SEARCH_SPACE_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-search-space-base-v0.1.schema.json"
+      - "docs/tech/glass-search-space-proposal-v0.1.schema.json"
+      - "docs/tech/glass-search-space-campaign-input-v0.1.schema.json"
+      - "docs/tech/glass-search-space-outcome-oracle-v0.1.schema.json"
+      - "docs/tech/glass-search-space-live-catalog-v0.1.schema.json"
+      - "docs/tech/glass-search-space-live-oracle-v0.1.schema.json"
+      - "docs/tech/glass-search-space-budget-frontier-scorecard-v0.1.schema.json"
+      - "docs/tech/GLASS_LIVE_POLICY_LOOP_PROTOCOL_V0_1.md"
+      - "tools/glass-silicon-contract-audit/fixtures/acquisition-policy-comparison.synthetic.json"
+      - "docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
+      - "docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
+      - "docs/tech/glass-relationship-graph-v0.1.schema.json"
+      - "docs/tech/glass-silicon-process-benchmark-v0.1.json"
+      - "docs/tech/glass-silicon-process-benchmark-v0.1.schema.json"
+      - "tools/glass-silicon-contract-audit/**"
+      - ".github/workflows/glass-silicon-contract-audit.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: glass-silicon-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-audit:
+    name: Contract and mass-ledger audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Test verifier and mutation controls
+        run: cargo test --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml
+
+      - name: Audit evaluation receipt schema and fail-closed fixtures
+        shell: bash
+        run: |
+          schema="docs/tech/GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json"
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.evaluation_class.enum == ["UNSEALED_RETROSPECTIVE", "SEALED_CONFIRMATORY"] and .properties.dataset.properties.test_set_commitment.properties.scheme.const == "sha256-salted-v1"' "$schema" > /dev/null
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-eval-receipt tools/glass-silicon-contract-audit/fixtures/evaluation-receipt-unsealed.synthetic.json > evaluation-receipt-unsealed.json
+          grep -q '"status": "PASS"' evaluation-receipt-unsealed.json
+          jq -e '.verified_evaluation_class == "UNSEALED_RETROSPECTIVE" and .metrics_checked == 1' evaluation-receipt-unsealed.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-eval-receipt tools/glass-silicon-contract-audit/fixtures/evaluation-receipt-claimed-sealed.synthetic.json > evaluation-receipt-sealed.json
+          sealed_status=$?
+          set -e
+          test "$sealed_status" -eq 3
+          grep -q '"status": "UNRESOLVED"' evaluation-receipt-sealed.json
+          grep -q 'SEALED_CLAIM_NOT_VERIFIED:' evaluation-receipt-sealed.json
+          grep -q '"verified_evaluation_class": "UNSEALED_RETROSPECTIVE"' evaluation-receipt-sealed.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-eval-receipt tools/glass-silicon-contract-audit/fixtures/evaluation-receipt-budget-overrun.synthetic.json > evaluation-receipt-overrun.json
+          overrun_status=$?
+          set -e
+          test "$overrun_status" -eq 2
+          grep -q '"status": "FAIL"' evaluation-receipt-overrun.json
+          grep -q 'RESOURCE_OVERRUN:' evaluation-receipt-overrun.json
+
+      - name: Audit frozen benchmark contract
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-corpus
+          docs/tech/glass-silicon-process-benchmark-v0.1.schema.json
+          docs/tech/glass-silicon-process-benchmark-v0.1.json
+
+      - name: Audit feasibility-first protocol contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          protocol="docs/tech/GLASS_FEASIBILITY_GATE_BENCHMARK_V0_1.md"
+          test -s "$protocol"
+          grep -q 'model the no-go region' "$protocol"
+          grep -q 'non-glass-forming' "$protocol"
+          grep -q 'GFRI-ML' "$protocol"
+          grep -q 'unattempted, unknown or censored' "$protocol"
+          grep -q 'false-feasible' "$protocol"
+          grep -q 'system/family-held-out' "$protocol"
+          grep -q 'UNRESOLVED' "$protocol"
+          grep -q 'DOI 10.1111/jace.70616' "$protocol"
+          grep -q 'DOI 10.1111/jace.70980' "$protocol"
+          grep -q 'DOI 10.1016/j.jnoncrysol.2026.123990' "$protocol"
+          grep -q 'audit-grouped-split <manifest.json>' "$protocol"
+          grep -q 'group key occurring in more than one split' "$protocol"
+          grep -q 'outcome labels and predictor features are forbidden' "$protocol"
+          grep -q 'SHA-256 fingerprint of the raw manifest bytes' "$protocol"
+          grep -q 'audit-false-feasible-bound <summary.json>' "$protocol"
+          grep -q 'Hoeffding upper confidence bound' "$protocol"
+          grep -q '600 independent negative units' "$protocol"
+          grep -q 'Held-out evaluation integrity: declarations are not isolation' "$protocol"
+          grep -q 'GLASS_SEALED_EVALUATION_RECEIPT_V0_1.schema.json' "$protocol"
+          grep -q 'audit-eval-receipt <receipt.json>' "$protocol"
+          grep -q 'SEALED_CONFIRMATORY' "$protocol"
+          echo "Feasibility-gate and held-out evaluation trust-boundary controls: PASS"
+
+      - name: Audit OOD acquisition-value protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          protocol="docs/tech/GLASS_SILICON_DECISION_VALUE_BENCHMARK_V0_1.md"
+          test -s "$protocol"
+          grep -q 'issue #2778' "$protocol"
+          grep -q '10.1038/s41524-026-02368-4' "$protocol"
+          grep -q '10.1038/s41467-023-42992-y' "$protocol"
+          grep -qi 'random selection' "$protocol"
+          grep -qi 'calibrated uncertainty' "$protocol"
+          grep -qi 'out-of-distribution' "$protocol"
+          grep -q 'same total budget' "$protocol"
+          grep -q 'audit-acquisition-policies' "$protocol"
+          grep -q 'glass-acquisition-policy-comparison-v0.1.schema.json' "$protocol"
+          grep -q 'glass-acquisition-outcome-oracle-v0.1.schema.json' "$protocol"
+          grep -q 'GLASS-CLOSED-LOOP-001 #2785' "$protocol"
+          grep -q 'proceedings.mlr.press/v306/malik26a.html' "$protocol"
+          grep -q 'audit-acquisition-transcript <transcript.json>' "$protocol"
+          grep -q 'glass-acquisition-campaign-transcript-v0.1.schema.json' "$protocol"
+          grep -q 'request/result pairing' "$protocol"
+          grep -q 'calibration alone' "$protocol"
+          grep -q 'GLASS-CAUSAL-TRIAL-001 #2787' "$protocol"
+          grep -q 'audit-causal-trial <trial.json>' "$protocol"
+          grep -q 'glass-causal-trial-v0.1.schema.json' "$protocol"
+          grep -q 'randomization p-value' "$protocol"
+          grep -q 'GLASS-SPACE-EXPANSION-001 #2788' "$protocol"
+          grep -q 's43246-026-01304-9' "$protocol"
+          grep -q 'A larger candidate pool, more unique compositions' "$protocol"
+          echo "OOD acquisition-value protocol and matched-budget baselines: PASS"
+
+      - name: Audit separated acquisition input/oracle schemas and known answer
+        shell: bash
+        run: |
+          set -euo pipefail
+          public_schema="docs/tech/glass-acquisition-policy-comparison-v0.1.schema.json"
+          oracle_schema="docs/tech/glass-acquisition-outcome-oracle-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.benchmark_id.const == "glass-silicon-decision-value-synthetic-v0.1" and
+            .properties.acquisition_policy_comparison.properties.protocol_version.const == 1 and
+            .properties.acquisition_policy_comparison.properties.random_seeds.minItems >= 10 and
+            .properties.acquisition_policy_comparison.properties.random_seeds.uniqueItems == true and
+            .properties.measurements.items.properties.selection_features.required == ["uncalibrated_uncertainty", "calibrated_uncertainty", "novelty", "estimated_voi"] and
+            .additionalProperties == false and
+            ((.properties | has("actions")) | not) and
+            ((.properties | has("scenarios")) | not) and
+            ((.properties.measurements.items.required | index("observation_by_scenario")) == null)
+          ' "$public_schema" > /dev/null
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.evidence_class.const == "synthetic_evaluator_only" and
+            (.required | index("measurement_outcomes")) != null and
+            .additionalProperties == false
+          ' "$oracle_schema" > /dev/null
+
+          public_input="tools/glass-silicon-contract-audit/fixtures/acquisition-policy-input.synthetic.json"
+          sealed_oracle="tools/glass-silicon-contract-audit/fixtures/acquisition-outcome-oracle.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-acquisition-policies "$public_input" "$sealed_oracle" > acquisition-policy-comparison-report.json
+          public_digest="$(sha256sum "$public_input" | awk '{print $1}')"
+          oracle_digest="$(sha256sum "$sealed_oracle" | awk '{print $1}')"
+          jq -e --arg public_digest "$public_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_acquisition_policy_comparison" and
+            .input_sha256 == $public_digest and
+            .oracle_sha256 == $oracle_digest and
+            .random_seed_count == 16 and
+            .available_measurements == 3 and
+            .budget_eligible_measurements == 2 and
+            .pre_measurement_worst_case_regret == 5.0 and
+            (.policies | length) == 5 and
+            ([.policies[] | select(.policy == "random")][0].runs | length) == 16 and
+            ([.policies[] | select(.policy == "calibrated_uncertainty")][0].runs[0].selected_measurement_id == "measure-noise") and
+            ([.policies[] | select(.policy == "calibrated_uncertainty")][0].runs[0].gross_worst_case_regret_reduction == 0.0) and
+            ([.policies[] | select(.policy == "novelty")][0].runs[0].selected_measurement_id == "measure-regime") and
+            ([.policies[] | select(.policy == "novelty")][0].runs[0].gross_worst_case_regret_reduction == 5.0) and
+            ([.policies[] | select(.policy == "cost_aware_voi")][0].runs[0].selected_measurement_id == "measure-regime") and
+            ([.policies[] | .runs[] | select(.selected_measurement_id == "measure-expensive")] | length) == 0
+          ' acquisition-policy-comparison-report.json
+          echo "Separated policy-visible catalog and sealed oracle known answer: PASS"
+
+      - name: Audit acquisition campaign transcript schema and known answer
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/tech/glass-acquisition-campaign-transcript-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.events.maxItems == 10000 and
+            (.properties.events.items.oneOf | length) == 3 and
+            .properties.events.items.oneOf[0].properties.event_type.const == "measurement_requested" and
+            .properties.events.items.oneOf[1].properties.event_type.const == "measurement_result" and
+            .properties.events.items.oneOf[2].properties.event_type.const == "decision" and
+            (.required | index("measurement_cost_catalog")) != null and
+            .properties.measurement_cost_catalog.items.properties.cost_units.exclusiveMinimum == 0 and
+            .properties.measurement_cost_catalog.items.properties.duration_seconds.minimum == 0 and
+            .additionalProperties == false
+          ' "$schema" > /dev/null
+
+          fixture="tools/glass-silicon-contract-audit/fixtures/acquisition-campaign-transcript.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-acquisition-transcript "$fixture" > acquisition-campaign-transcript-report.json
+          digest="$(sha256sum "$fixture" | awk '{print $1}')"
+          jq -e --arg digest "$digest" '
+            .status == "PASS" and
+            .audit_kind == "acquisition_campaign_transcript" and
+            .transcript_sha256 == $digest and
+            .events_checked == 3 and
+            .measurement_requests == 1 and
+            .measurement_results == 1 and
+            .total_cost_units == 2.0 and
+            .total_duration_seconds == 20.0 and
+            .final_decision_status == "UNRESOLVED"
+          ' acquisition-campaign-transcript-report.json
+          echo "Acquisition campaign transcript ordering and charged-budget known answer: PASS"
+
+      - name: Audit paired causal trial schema and synthetic effect
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/tech/glass-causal-trial-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.benchmark_id.const == "glass-causal-trial-synthetic-v0-1" and
+            .properties.preregistration.properties.design.const == "balanced_paired_randomized_crossover" and
+            .properties.blocks.minItems >= 2 and
+            .properties.blocks.maxItems <= 20 and
+            .additionalProperties == false
+          ' "$schema" > /dev/null
+
+          fixture="tools/glass-silicon-contract-audit/fixtures/causal-trial-paired-block.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-causal-trial "$fixture" > causal-trial-report.json
+          digest="$(sha256sum "$fixture" | awk '{print $1}')"
+          jq -e --arg digest "$digest" '
+            .status == "PASS" and
+            .claim_status == "SUPPORTED" and
+            .audit_kind == "paired_block_causal_trial" and
+            .trial_sha256 == $digest and
+            .blocks_declared == 8 and
+            .complete_pairs == 8 and
+            .control_then_treatment_blocks == 4 and
+            .treatment_then_control_blocks == 4 and
+            .mean_relative_reduction >= 0.05 and
+            .relative_reduction_ci95[0] >= 0.05 and
+            .exact_two_sided_randomization_p <= 0.05
+          ' causal-trial-report.json
+          echo "Paired-block causal effect and randomized inference known answer: PASS"
+
+      - name: Audit relationship graph JSON schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/tech/glass-relationship-graph-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.allowed_splits.const == ["train", "validation", "test"] and
+            .properties.edges.items.properties.state.enum == ["verified", "candidate", "contradicted", "unknown"] and
+            .properties.nodes.items.properties.split_required.type == "boolean" and
+            (.properties.nodes.items.required | index("split_required")) != null and
+            .properties.relation_profile.const == "provenance_identity_v0" and
+            .properties.leakage_edge_types.const == ["derived_from", "replicate_of", "same_record"] and
+            .additionalProperties == false
+          ' "$schema" > /dev/null
+          echo "Relationship graph schema and relationship-state contract: PASS"
+
+      - name: Audit relationship-aware evidence protocol contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          protocol="docs/tech/GLASS_RELATIONSHIP_GRAPH_BENCHMARK_V0_1.md"
+          test -s "$protocol"
+          grep -q 'one evidence graph, multiple relation profiles' "$protocol"
+          grep -q 'Unknown is not false' "$protocol"
+          grep -q 'connected components' "$protocol"
+          grep -q 'transitive-leak' "$protocol"
+          grep -q 'not-reject-all' "$protocol"
+          grep -qi 'downstream dependency testing' "$protocol"
+          grep -q 'UNRESOLVED' "$protocol"
+          grep -q 'raw and canonical graph hashes' "$protocol"
+          grep -q 'glass-relationship-graph-v0.1.schema.json' "$protocol"
+          grep -q 'split_required' "$protocol"
+          grep -q 'unregistered relation profile' "$protocol"
+          echo "Relationship-aware evidence contract and anti-leakage requirements: PASS"
+
+      - name: Audit relationship graph known-answer controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="tools/glass-silicon-contract-audit/fixtures/relationship-graph-valid.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-relationship-graph "$manifest" > relationship-graph-valid-report.json
+          digest="$(sha256sum "$manifest" | awk '{print $1}')"
+          jq -e --arg digest "$digest" '
+            .status == "PASS" and
+            .audit_kind == "relationship_graph_split_isolation" and
+            .schema_version == 1 and
+            .graph_sha256 == $digest and
+            (.canonical_graph_sha256 | test("^[0-9a-f]{64}$")) and
+            .nodes_checked == 6 and
+            .edges_checked == 3 and
+            .assignments_checked == 3 and
+            .split_counts.train == 1 and
+            .split_counts.validation == 1 and
+            .split_counts.test == 1 and
+            (.witness_paths | length) == 0
+          ' relationship-graph-valid-report.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-relationship-graph \
+            tools/glass-silicon-contract-audit/fixtures/relationship-graph-transitive-leak.synthetic.json > relationship-graph-leak-report.json
+          leak_status=$?
+          set -e
+          test "$leak_status" -eq 2
+          jq -e '
+            .status == "FAIL" and
+            (.findings | any(startswith("RELATION_LEAKAGE:"))) and
+            (.witness_paths | length) > 0
+          ' relationship-graph-leak-report.json
+
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- audit-relationship-graph \
+            tools/glass-silicon-contract-audit/fixtures/relationship-graph-uncertain-link.synthetic.json > relationship-graph-uncertain-report.json
+          uncertain_status=$?
+          set -e
+          test "$uncertain_status" -eq 3
+          jq -e '
+            .status == "UNRESOLVED" and
+            (.findings | any(startswith("RELATION_UNCERTAIN_CROSS_SPLIT:")))
+          ' relationship-graph-uncertain-report.json
+
+      - name: Audit grouped-split leakage manifest
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-grouped-split
+          tools/glass-silicon-contract-audit/fixtures/grouped-split-manifest.synthetic.json
+
+      - name: Assert grouped-split known answer
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-grouped-split tools/glass-silicon-contract-audit/fixtures/grouped-split-manifest.synthetic.json > grouped-split-report.json
+          grep -q '"status": "PASS"' grouped-split-report.json
+          fixture="tools/glass-silicon-contract-audit/fixtures/grouped-split-manifest.synthetic.json"
+          expected_sha256="$(sha256sum "$fixture" | awk '{print $1}')"
+          jq -e --arg digest "$expected_sha256" '
+            .status == "PASS" and
+            .evidence_class == "synthetic" and
+            .manifest_sha256 == $digest and
+            (.manifest_sha256 | test("^[0-9a-f]{64}$")) and
+            .records_checked == 7 and
+            .split_counts.train == 3 and
+            .split_counts.validation == 2 and
+            .split_counts.test == 2 and
+            (.grouping_fields | sort) == ["composition_family_id", "synthesis_campaign_id"] and
+            (.findings | length) == 0
+          ' grouped-split-report.json
+
+      - name: Audit false-feasible upper confidence bound
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-false-feasible-bound
+          tools/glass-silicon-contract-audit/fixtures/false-feasible-bound.synthetic.json
+
+      - name: Assert 600-negative false-feasible threshold
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-false-feasible-bound tools/glass-silicon-contract-audit/fixtures/false-feasible-bound.synthetic.json > false-feasible-bound-report.json
+          grep -q '"status": "PASS"' false-feasible-bound-report.json
+          jq -e '
+            .independent_negative_units == 600 and
+            .false_feasible_count == 0 and
+            .confidence_level == 0.95 and
+            .target_upper_bound == 0.05 and
+            .target_met == true and
+            .hoeffding_upper_bound <= 0.05 and
+            .hoeffding_upper_bound > 0.0499
+          ' false-feasible-bound-report.json
+
+      - name: Abstain when negative sample is underpowered
+        shell: bash
+        run: |
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-false-feasible-bound tools/glass-silicon-contract-audit/fixtures/false-feasible-bound-underpowered.synthetic.json > false-feasible-underpowered.json
+          status=$?
+          set -e
+          test "$status" -eq 3
+          grep -q '"status": "UNRESOLVED"' false-feasible-underpowered.json
+          jq -e '.independent_negative_units == 599 and .target_met == false and .hoeffding_upper_bound > 0.05' false-feasible-underpowered.json
+
+      - name: Audit synthetic staged-feasibility corpus
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-feasibility
+          tools/glass-silicon-contract-audit/fixtures/glass-feasibility-gate.synthetic.json
+
+      - name: Assert staged-feasibility known answers
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-feasibility tools/glass-silicon-contract-audit/fixtures/glass-feasibility-gate.synthetic.json > feasibility-report.json
+          grep -q '"status": "PASS"' feasibility-report.json
+          jq -e '
+            ([.candidates[] | select(.candidate_id == "control-feasible")][0].derived_disposition == "FEASIBLE") and
+            ([.candidates[] | select(.candidate_id == "control-non-forming")][0].derived_disposition == "INFEASIBLE") and
+            ([.candidates[] | select(.candidate_id == "control-joint-property-failure")][0].derived_disposition == "INFEASIBLE") and
+            ([.candidates[] | select(.candidate_id == "control-unknown-measurement")][0].derived_disposition == "UNRESOLVED") and
+            ([.candidates[] | select(.candidate_id == "control-out-of-domain")][0].derived_disposition == "UNRESOLVED") and
+            ([.candidates[] | select(.candidate_id == "control-stale-process-evidence")][0].derived_disposition == "UNRESOLVED") and
+            ([.candidates[] | select(.candidate_id == "control-non-forming")][0].blocking_gates == ["glass_formation"])
+          ' feasibility-report.json
+
+      - name: Compare feasibility-gated one-step and adaptive policies
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-feasibility-gated.synthetic.json"
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-decision-value "$fixture" > feasibility-gated-myopic.json
+          grep -q '"status": "PASS"' feasibility-gated-myopic.json
+          jq -e '
+            .pre_measurement_worst_case_regret == 10.0 and
+            .oracle_measurement_id == "a-screen-formation" and
+            .oracle_worst_case_regret_after == 10.0 and
+            .oracle_gross_regret_reduction == 0.0
+          ' feasibility-gated-myopic.json
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign "$fixture" > feasibility-gated-adaptive.json
+          grep -q '"status": "PASS"' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 10.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 4.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 12.0' feasibility-gated-adaptive.json
+          grep -q '"adaptive_oracle_max_measurements_on_path": 2' feasibility-gated-adaptive.json
+          jq -e '
+            .policy_tree.measurement_id == "a-screen-formation" and
+            .policy_tree.observation_branches["non-forming"].node_type == "STOP" and
+            .policy_tree.observation_branches["non-forming"].action_id == "reject" and
+            .policy_tree.observation_branches["forming"].node_type == "MEASURE" and
+            .policy_tree.observation_branches["forming"].measurement_id == "b-characterize-route" and
+            .policy_tree.observation_branches["forming"].observation_branches["route-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["forming"].observation_branches["route-b"].action_id == "route-b"
+          ' feasibility-gated-adaptive.json
+
+      - name: Audit synthetic decision-value pool and exact one-step oracle
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-decision-value
+          tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json
+
+      - name: Assert synthetic decision-value known answer
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-decision-value tools/glass-silicon-contract-audit/fixtures/decision-value-pool.synthetic.json > decision-value-report.json
+          grep -q '"status": "PASS"' decision-value-report.json
+          grep -q '"oracle_measurement_id": "measure-regime"' decision-value-report.json
+          grep -q '"pre_measurement_worst_case_regret": 5.0' decision-value-report.json
+          grep -q '"oracle_worst_case_regret_after": 0.0' decision-value-report.json
+          grep -q '"oracle_gross_regret_reduction": 5.0' decision-value-report.json
+          grep -q '"measurement_id": "measure-expensive"' decision-value-report.json
+          grep -q '"within_budget": false' decision-value-report.json
+
+      - name: Audit adaptive synthetic campaign oracle
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-adaptive-campaign
+          tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool.synthetic.json
+
+      - name: Assert adaptive campaign known answer
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool.synthetic.json > adaptive-campaign-report.json
+          grep -q '"status": "PASS"' adaptive-campaign-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 6.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 2.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 20.0' adaptive-campaign-report.json
+          grep -q '"adaptive_oracle_max_measurements_on_path": 2' adaptive-campaign-report.json
+          grep -q '"measurement_id": "measure-alpha"' adaptive-campaign-report.json
+          grep -q '"measurement_id": "measure-beta"' adaptive-campaign-report.json
+
+      - name: Audit adaptive drift and failed-measurement stress fixture
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          audit-adaptive-campaign
+          tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json
+
+      - name: Assert recovery from drift and invalid primary observations
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json > adaptive-drift-report.json
+          grep -q '"status": "PASS"' adaptive-drift-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 6.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 4.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 20.0' adaptive-drift-report.json
+          grep -q '"measurement_id": "measure-primary"' adaptive-drift-report.json
+          grep -q '"measurement_id": "measure-secondary"' adaptive-drift-report.json
+          grep -q '"observation_branches": {' adaptive-drift-report.json
+
+      - name: Compare myopic and adaptive policies under drift and failed observations
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-decision-value tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json > drift-myopic-report.json
+          grep -q '"status": "PASS"' drift-myopic-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' drift-myopic-report.json
+          grep -q '"oracle_worst_case_regret_after": 6.0' drift-myopic-report.json
+          grep -q '"oracle_gross_regret_reduction": 0.0' drift-myopic-report.json
+
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-drift-failure.synthetic.json > adaptive-drift-report.json
+          grep -q '"status": "PASS"' adaptive-drift-report.json
+          grep -q '"pre_measurement_worst_case_regret": 6.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_worst_case_regret": 0.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_gross_regret_reduction": 6.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_path_cost_units": 4.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_path_duration_seconds": 20.0' adaptive-drift-report.json
+          grep -q '"adaptive_oracle_max_measurements_on_path": 2' adaptive-drift-report.json
+          grep -q '"measurement_id": "measure-primary"' adaptive-drift-report.json
+          grep -q '"measurement_id": "measure-secondary"' adaptive-drift-report.json
+          grep -q '"action_id": "route-a"' adaptive-drift-report.json
+          grep -q '"observation_branches": {' adaptive-drift-report.json
+          jq -e '
+            .policy_tree.measurement_id == "measure-primary" and
+            .policy_tree.observation_branches["signal-a"].node_type == "STOP" and
+            .policy_tree.observation_branches["signal-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["signal-b"].node_type == "MEASURE" and
+            .policy_tree.observation_branches["signal-b"].measurement_id == "measure-secondary" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["signal-a"].node_type == "STOP" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["signal-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["no-signal"].node_type == "STOP" and
+            .policy_tree.observation_branches["signal-b"].observation_branches["no-signal"].action_id == "route-b" and
+            .policy_tree.observation_branches["invalid"].node_type == "MEASURE" and
+            .policy_tree.observation_branches["invalid"].measurement_id == "measure-secondary" and
+            .policy_tree.observation_branches["invalid"].observation_branches["signal-a"].action_id == "route-a" and
+            .policy_tree.observation_branches["invalid"].observation_branches["signal-b"].action_id == "route-b"
+          ' adaptive-drift-report.json
+
+      - name: Abstain when no robust action exists and budget blocks resolution
+        shell: bash
+        run: |
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            audit-adaptive-campaign tools/glass-silicon-contract-audit/fixtures/adaptive-decision-pool-budget-blocked.synthetic.json > adaptive-blocked-report.json
+          status=$?
+          set -e
+          test "$status" -eq 3
+          grep -q '"status": "UNRESOLVED"' adaptive-blocked-report.json
+          grep -q 'NO_FEASIBLE_ADAPTIVE_POLICY:' adaptive-blocked-report.json
+
+      - name: Accept balanced synthetic ledger
+        run: >
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --
+          check-mass
+          tools/glass-silicon-contract-audit/fixtures/mass-balanced.synthetic.json
+
+      - name: Reject unbalanced synthetic ledger
+        shell: bash
+        run: |
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            check-mass tools/glass-silicon-contract-audit/fixtures/mass-unbalanced.synthetic.json > unbalanced-report.json
+          status=$?
+          set -e
+          test "$status" -eq 2
+          grep -q '"status": "FAIL"' unbalanced-report.json
+
+      - name: Abstain on incomplete synthetic ledger
+        shell: bash
+        run: |
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            check-mass tools/glass-silicon-contract-audit/fixtures/mass-census-incomplete.synthetic.json > incomplete-report.json
+          status=$?
+          set -e
+          test "$status" -eq 3
+          grep -q '"status": "UNRESOLVED"' incomplete-report.json
+
+      - name: Hash synthetic artifact and preserve admission block
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml -- \
+            hash-artifacts \
+            tools/glass-silicon-contract-audit/fixtures/hash-receipt-corpus.synthetic.json \
+            local-hash-selftest-v1 \
+            tools/glass-silicon-contract-audit/fixtures > hash-receipt.json
+          grep -q '"status": "HASHED_PENDING_ADMISSION"' hash-receipt.json
+          grep -q '"md5_matches": true' hash-receipt.json
+          grep -q '"observed_sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"' hash-receipt.json
+          grep -q '"rights_status": "unresolved"' hash-receipt.json
+          grep -q '"manifest_admission_status": "blocked"' hash-receipt.json
+
+
+      - name: Audit adaptive search-space proposal schema and known answer
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_schema="docs/tech/glass-search-space-base-v0.1.schema.json"
+          proposal_schema="docs/tech/glass-search-space-proposal-v0.1.schema.json"
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.hard_constraints.minItems == 1 and .properties.candidate_families.minItems == 1 and .additionalProperties == false' "$base_schema" > /dev/null
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.parent_space_sha256.pattern == "^[a-fA-F0-9]{64}$" and .properties.hard_constraint_changes.maxItems == 0 and .properties.generation_cost_units.exclusiveMinimum == 0 and .additionalProperties == false' "$proposal_schema" > /dev/null
+
+          base="tools/glass-silicon-contract-audit/fixtures/base-space.synthetic.json"
+          proposal="tools/glass-silicon-contract-audit/fixtures/space-proposal-helpful.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-search-space -- "$base" "$proposal" > search-space-proposal-report.json
+          base_digest="$(sha256sum "$base" | awk '{print $1}')"
+          proposal_digest="$(sha256sum "$proposal" | awk '{print $1}')"
+          jq -e --arg base_digest "$base_digest" --arg proposal_digest "$proposal_digest" '
+            .status == "PASS" and
+            .audit_kind == "adaptive_search_space_proposal" and
+            .base_space_sha256 == $base_digest and
+            .proposal_sha256 == $proposal_digest and
+            .candidate_family_count_before == 2 and
+            .candidate_family_count_after == 3 and
+            .hard_constraints_unchanged == true and
+            .disposition == "PROPOSED_NOT_ADMITTED" and
+            (.resulting_space_sha256 | type == "string" and length == 64)
+          ' search-space-proposal-report.json
+
+          jq '.hard_constraint_changes = [{"constraint_id":"accepted-grade-output","operation":"weaken","replacement_definition":"Any output counts"}]' "$proposal" > search-space-proposal-weakening.json
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-search-space -- "$base" search-space-proposal-weakening.json > search-space-proposal-weakening-report.json
+          weakening_status=$?
+          set -e
+          test "$weakening_status" -eq 2
+          grep -q 'HARD_CONSTRAINT_MUTATION_ATTEMPTED' search-space-proposal-weakening-report.json
+
+          jq '.parent_space_sha256 = "0000000000000000000000000000000000000000000000000000000000000000"' "$proposal" > search-space-proposal-stale.json
+          set +e
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-search-space -- "$base" search-space-proposal-stale.json > search-space-proposal-stale-report.json
+          stale_status=$?
+          set -e
+          test "$stale_status" -eq 3
+          grep -q 'PARENT_SPACE_MISMATCH' search-space-proposal-stale-report.json
+          echo "Adaptive search-space schema, parent binding, hard-constraint and stale-parent controls: PASS"
+
+
+      - name: Audit matched-budget adaptive search-space campaigns
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_schema="docs/tech/glass-search-space-base-v0.1.schema.json"
+          proposal_schema="docs/tech/glass-search-space-proposal-v0.1.schema.json"
+          public_schema="docs/tech/glass-search-space-campaign-input-v0.1.schema.json"
+          oracle_schema="docs/tech/glass-search-space-outcome-oracle-v0.1.schema.json"
+
+          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.hard_constraints.minItems == 1 and .properties.candidate_families.minItems == 1 and .additionalProperties == false' "$base_schema" > /dev/null
+          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.parent_space_sha256.pattern == "^[a-fA-F0-9]{64}$" and .properties.hard_constraint_changes.maxItems == 0 and .properties.generation_cost_units.exclusiveMinimum == 0 and .additionalProperties == false' "$proposal_schema" > /dev/null
+          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.evidence_class.const == "synthetic" and .properties.budgets.additionalProperties == false and .additionalProperties == false' "$public_schema" > /dev/null
+          jq -e '.[ "$schema" ] == "https://json-schema.org/draft/2020-12/schema" and .properties.evidence_class.const == "synthetic_evaluator_only" and .properties.action_cost_catalog.minItems == 4 and .additionalProperties == false' "$oracle_schema" > /dev/null
+
+          public="tools/glass-silicon-contract-audit/fixtures/search-space-campaign-input.synthetic.json"
+          oracle="tools/glass-silicon-contract-audit/fixtures/search-space-outcome-oracle.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin audit-search-space-trial -- "$public" "$oracle" > search-space-campaign-report.json
+          public_digest="$(sha256sum "$public" | awk '{print $1}')"
+          oracle_digest="$(sha256sum "$oracle" | awk '{print $1}')"
+          jq -e --arg public_digest "$public_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_adaptive_search_space_campaign" and
+            .input_sha256 == $public_digest and
+            .oracle_sha256 == $oracle_digest and
+            .environment_count == 4 and
+            .campaigns_checked == 16 and
+            .action_cost_catalog_checked == 4 and
+            ([.campaign_results[] | select(.cost_units_charged != 5.0)] | length) == 0 and
+            ([.campaign_results[] | select(.duration_seconds_charged > 25.0)] | length) == 0 and
+            ([.campaign_results[] | select(.environment_id == "helpful" and .policy_class == "fixed_space")][0].best_verified_feasible_utility == 4.0) and
+            ([.campaign_results[] | select(.environment_id == "helpful" and .policy_class == "llm_expansion")][0].best_verified_feasible_utility == 10.0) and
+            ([.campaign_results[] | select(.environment_id == "neutral" and .policy_class == "llm_expansion")][0].best_verified_feasible_utility == 6.0) and
+            ([.campaign_results[] | select(.environment_id == "harmful" and .policy_class == "fixed_space")][0].best_verified_feasible_utility == 8.0) and
+            ([.campaign_results[] | select(.environment_id == "harmful" and .policy_class == "llm_expansion")][0].best_verified_feasible_utility == 6.0) and
+            ([.campaign_results[] | select(.environment_id == "misleading_prior" and .policy_class == "llm_expansion")][0].false_feasible_predictions == 1)
+          ' search-space-campaign-report.json
+          echo "Sealed adaptive-space campaign matrix, evaluator-owned budget accounting, and helpful/neutral/harmful/prior-bias known answers: PASS"
+
+
+      - name: Run live observation-conditioned search-space policies
+        shell: bash
+        run: |
+          set -euo pipefail
+          catalog_schema="docs/tech/glass-search-space-live-catalog-v0.1.schema.json"
+          oracle_schema="docs/tech/glass-search-space-live-oracle-v0.1.schema.json"
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.candidate_families.minItems >= 1 and (.properties.policy_contract.properties.classes.const | index("gp_ei_fixed_space")) != null and (.properties.candidate_families.items.required | index("features")) != null and .additionalProperties == false' "$catalog_schema" > /dev/null
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema" and .properties.evidence_class.const == "synthetic_evaluator_only" and .properties.action_cost_catalog.minItems >= 4 and .additionalProperties == false' "$oracle_schema" > /dev/null
+
+          catalog="tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog.synthetic.json"
+          oracle="tools/glass-silicon-contract-audit/fixtures/search-space-live-outcome-oracle.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- "$catalog" "$oracle" > search-space-live-loop-report.json
+          catalog_digest="$(sha256sum "$catalog" | awk '{print $1}')"
+          oracle_digest="$(sha256sum "$oracle" | awk '{print $1}')"
+          jq -e --arg catalog_digest "$catalog_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_live_policy_event_loop" and
+            .input_sha256 == $catalog_digest and
+            .oracle_sha256 == $oracle_digest and
+            .environment_count == 4 and
+            .policy_count == 6 and
+            .episodes_checked == 24 and
+            ([.episodes[] | select(.cost_units_charged != 5.0)] | length) == 0 and
+            ([.episodes[] | select(.duration_seconds_charged > 25.0)] | length) == 0 and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "fixed_space")][0].best_verified_feasible_utility == 4.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "random_expansion")][0].best_verified_feasible_utility == 6.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "rule_based_expansion")][0].best_verified_feasible_utility == 8.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "prior_guided_expansion")][0].best_verified_feasible_utility == 10.0) and
+            ([.episodes[] | select(.environment_id == "harmful" and .policy_class == "prior_guided_expansion")][0].best_verified_feasible_utility == 8.0) and
+            ([.episodes[] | select(.environment_id == "harmful" and .policy_class == "static_prior_expansion")][0].best_verified_feasible_utility == 6.0) and
+            ([.episodes[] | select(.environment_id == "misleading_prior" and .policy_class == "prior_guided_expansion")][0].false_feasible_predictions == 1) and
+            ([.episodes[] | select(.policy_class == "gp_ei_fixed_space" and (.expansions != 0 or .evaluations != 5 or .cost_units_charged != 5.0))] | length) == 0 and
+            ([.episodes[] | select(.terminal_simple_regret == null or .terminal_simple_regret < 0)] | length) == 0 and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "fixed_space")][0].terminal_simple_regret == 6.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "gp_ei_fixed_space")][0].terminal_simple_regret == 6.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "prior_guided_expansion")][0].terminal_simple_regret == 0.0)
+          ' search-space-live-loop-report.json
+          replay_report="search-space-live-loop-replay-report.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
+            --replay search-space-live-loop-report.json "$catalog" "$oracle" > "$replay_report"
+          jq -e --arg catalog_digest "$catalog_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "independent_live_policy_transcript_replay" and
+            .input_sha256 == $catalog_digest and
+            .oracle_sha256 == $oracle_digest and
+            .episodes_checked == 24 and
+            .events_checked >= 90 and
+            .policy_actions_checked == .events_checked and
+            .cost_units_recomputed == 120.0
+          ' "$replay_report"
+          # Pressure-test policy selection under a genuinely constrained evaluation budget.
+          tight_catalog="tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog-tight-budget.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- "$tight_catalog" "$oracle" > search-space-live-tight-budget-report.json
+          tight_digest="$(sha256sum "$tight_catalog" | awk '{print $1}')"
+          jq -e --arg tight_digest "$tight_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_live_policy_event_loop" and
+            .input_sha256 == $tight_digest and
+            .oracle_sha256 == $oracle_digest and
+            .environment_count == 4 and
+            .policy_count == 6 and
+            .episodes_checked == 24 and
+            ([.episodes[] | select(.cost_units_charged != 3.0)] | length) == 0 and
+            ([.episodes[] | select(.duration_seconds_charged > 25.0)] | length) == 0 and
+            ([.episodes[] | select(.policy_class == "gp_ei_fixed_space" and (.expansions != 0 or .evaluations != 3))] | length) == 0 and
+            ([.episodes[] | select(.expansions != 0)] | length) == 0 and
+            ([.auxiliary_controls[] | select(.expansions != 0 or .evaluations != 3 or .cost_units_charged != 3.0)] | length) == 0
+          ' search-space-live-tight-budget-report.json
+          tight_replay_report="search-space-live-tight-budget-replay-report.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
+            --replay search-space-live-tight-budget-report.json "$tight_catalog" "$oracle" > "$tight_replay_report"
+          jq -e --arg tight_digest "$tight_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "independent_live_policy_transcript_replay" and
+            .input_sha256 == $tight_digest and
+            .oracle_sha256 == $oracle_digest and
+            .episodes_checked == 24 and
+            .cost_units_recomputed == 72.0
+          ' "$tight_replay_report"
+          echo "Three-unit budget-pressure lane and independent transcript replay: PASS"
+
+          # Add a second budget point that permits selected expansions plus one follow-up evaluation.
+          four_unit_catalog="tools/glass-silicon-contract-audit/fixtures/search-space-live-policy-catalog-four-unit.synthetic.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- "$four_unit_catalog" "$oracle" > search-space-live-four-unit-report.json
+          four_unit_digest="$(sha256sum "$four_unit_catalog" | awk '{print $1}')"
+          jq -e --arg four_unit_digest "$four_unit_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "synthetic_live_policy_event_loop" and
+            .input_sha256 == $four_unit_digest and
+            .oracle_sha256 == $oracle_digest and
+            .environment_count == 4 and
+            .policy_count == 6 and
+            .episodes_checked == 24 and
+            ([.episodes[] | select(.cost_units_charged != 4.0)] | length) == 0 and
+            ([.episodes[] | select(.duration_seconds_charged > 25.0)] | length) == 0 and
+            ([.episodes[] | select(.policy_class == "gp_ei_fixed_space" and (.expansions != 0 or .evaluations != 4))] | length) == 0 and
+            ([.episodes[] | select(.policy_class == "prior_guided_expansion" and .expansions != 0)] | length) == 0 and
+            ([.auxiliary_controls[] | select(.expansions != 0 or .evaluations != 4 or .cost_units_charged != 4.0)] | length) == 0 and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "random_expansion")][0].best_verified_feasible_utility == 6.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "rule_based_expansion")][0].best_verified_feasible_utility == 8.0) and
+            ([.episodes[] | select(.environment_id == "helpful" and .policy_class == "static_prior_expansion")][0].best_verified_feasible_utility == 10.0)
+          ' search-space-live-four-unit-report.json
+          four_unit_replay="search-space-live-four-unit-replay-report.json"
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
+            --replay search-space-live-four-unit-report.json "$four_unit_catalog" "$oracle" > "$four_unit_replay"
+          jq -e --arg four_unit_digest "$four_unit_digest" --arg oracle_digest "$oracle_digest" '
+            .status == "PASS" and
+            .audit_kind == "independent_live_policy_transcript_replay" and
+            .input_sha256 == $four_unit_digest and
+            .oracle_sha256 == $oracle_digest and
+            .episodes_checked == 24 and
+            .cost_units_recomputed == 96.0
+          ' "$four_unit_replay"
+          echo "Four-unit expansion frontier and independent transcript replay: PASS"
+
+          # Pair the same four regimes across the 3/4/5-unit frontier only after each
+          # report has passed independent transcript replay. Keep per-environment
+          # comparisons separate so a helpful-prior win cannot hide a harmful-prior loss.
+          frontier_schema="docs/tech/glass-search-space-budget-frontier-scorecard-v0.1.schema.json"
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .properties.schema_version.const == 1 and
+            .properties.audit_kind.const == "synthetic_paired_budget_frontier_scorecard" and
+            .additionalProperties == false and
+            .properties.environmentwise_metrics.type == "array" and
+            ((.properties.environmentwise_metrics.items.required | index("gp_ei_comparison_status")) != null) and
+            .properties.policy_frontier.type == "array" and
+            ((.properties.policy_frontier.items.required | index("gp_ei_unresolved_environment_count")) != null)
+          ' "$frontier_schema" > /dev/null
+          cargo run --locked --manifest-path tools/glass-silicon-contract-audit/Cargo.toml --bin run-search-space-loop -- \
+            --frontier \
+            "search-space-live-tight-budget-report.json" "$tight_catalog" \
+            "search-space-live-four-unit-report.json" "$four_unit_catalog" \
+            "search-space-live-loop-report.json" "$catalog" "$oracle" > search-space-budget-frontier-scorecard.json
+          jq -e '
+            .status == "PASS" and
+            .audit_kind == "synthetic_paired_budget_frontier_scorecard" and
+            .budget_points == 3 and
+            ([.lane_receipts[] | select(.replay_status != "PASS")] | length) == 0 and
+            ([.lane_receipts[].budget_units] == [3, 4, 5]) and
+            (.environmentwise_metrics | length) == 72 and
+            (.policy_frontier | length) == 18 and
+            ([.environmentwise_metrics[] | select(.budget_units == 4 and .environment_id == "harmful")] | length) == 6 and
+            ([.policy_frontier[] | select(.environment_count != 4 or (.gp_ei_comparable_environment_count + .gp_ei_unresolved_environment_count) != 4 or (.seeded_random_comparable_environment_count + .seeded_random_unresolved_environment_count) != 4)] | length) == 0 and
+            ([.environmentwise_metrics[] | select(.feasible_discovery_status == "NO_VERIFIED_FEASIBLE_CANDIDATE_FOUND" and (.gp_ei_comparison_status != "UNRESOLVED_NO_VERIFIED_UTILITY" or .delta_utility_vs_gp_ei != null))] | length) == 0 and
+            (has("global_mean_utility") | not) and
+            (has("pooled_utility_winner") | not)
+          ' search-space-budget-frontier-scorecard.json
+          echo "Replay-verified, environment-stratified 3/4/5-unit frontier scorecard: PASS"
+          echo "Live observation-conditioned loop and independent transcript replay: PASS"

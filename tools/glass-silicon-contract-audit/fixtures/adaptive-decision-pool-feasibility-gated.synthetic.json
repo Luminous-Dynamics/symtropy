@@ -1,0 +1,118 @@
+{
+  "benchmark_id": "glass-silicon-decision-value-synthetic-v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic planning/control fixture only. It does not validate glass formation, material properties, furnace routes, sensor accuracy, or manufacturing performance.",
+  "utility_unit": "synthetic accepted-output utility units",
+  "cost_unit": "synthetic reference-call units",
+  "max_measurement_cost": 4,
+  "max_duration_seconds": 12,
+  "max_measurement_steps": 2,
+  "producer_access": {
+    "ground_truth": false,
+    "unobserved_utilities": false,
+    "oracle_scores": false,
+    "future_outcomes": false
+  },
+  "scenarios": [
+    {
+      "id": "no-glass",
+      "latent_gate": "non-forming",
+      "latent_route": "none"
+    },
+    {
+      "id": "forming-route-a",
+      "latent_gate": "forming",
+      "latent_route": "route-a"
+    },
+    {
+      "id": "forming-route-b",
+      "latent_gate": "forming",
+      "latent_route": "route-b"
+    }
+  ],
+  "actions": [
+    {
+      "id": "reject",
+      "utility_by_scenario": {
+        "no-glass": 0,
+        "forming-route-a": 0,
+        "forming-route-b": 0
+      },
+      "feasible_by_scenario": {
+        "no-glass": true,
+        "forming-route-a": true,
+        "forming-route-b": true
+      }
+    },
+    {
+      "id": "route-a",
+      "utility_by_scenario": {
+        "no-glass": 0,
+        "forming-route-a": 10,
+        "forming-route-b": 0
+      },
+      "feasible_by_scenario": {
+        "no-glass": false,
+        "forming-route-a": true,
+        "forming-route-b": false
+      }
+    },
+    {
+      "id": "route-b",
+      "utility_by_scenario": {
+        "no-glass": 0,
+        "forming-route-a": 0,
+        "forming-route-b": 10
+      },
+      "feasible_by_scenario": {
+        "no-glass": false,
+        "forming-route-a": false,
+        "forming-route-b": true
+      }
+    }
+  ],
+  "constraint_controls": [
+    {
+      "action_id": "route-a",
+      "scenario_id": "no-glass",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-a",
+      "scenario_id": "forming-route-b",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-b",
+      "scenario_id": "no-glass",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-b",
+      "scenario_id": "forming-route-a",
+      "must_be_feasible": false
+    }
+  ],
+  "measurements": [
+    {
+      "id": "a-screen-formation",
+      "cost_units": 1,
+      "duration_seconds": 2,
+      "observation_by_scenario": {
+        "no-glass": "non-forming",
+        "forming-route-a": "forming",
+        "forming-route-b": "forming"
+      }
+    },
+    {
+      "id": "b-characterize-route",
+      "cost_units": 3,
+      "duration_seconds": 10,
+      "observation_by_scenario": {
+        "no-glass": "route-b",
+        "forming-route-a": "route-a",
+        "forming-route-b": "route-b"
+      }
+    }
+  ]
+}

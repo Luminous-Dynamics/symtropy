@@ -1,0 +1,607 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "glass-space-expansion-trial-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic campaign accounting and hidden-oracle scoring only; no materials or industrial claim is validated.",
+  "budgets": {
+    "max_cost_units": 5,
+    "max_duration_seconds": 25
+  },
+  "initial_candidate_family_ids": [
+    "glass-a",
+    "silicon-a",
+    "glass-b",
+    "glass-c",
+    "silicon-b"
+  ],
+  "campaigns": [
+    {
+      "campaign_id": "helpful-fixed-space",
+      "environment_id": "helpful",
+      "policy_id": "fixed-gp-ei-v1",
+      "policy_class": "fixed_space",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "helpful-fixed-space-eval-glass-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-a",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 2,
+          "event_id": "helpful-fixed-space-eval-silicon-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "silicon-a",
+          "claimed_feasible": false
+        },
+        {
+          "event_seq": 3,
+          "event_id": "helpful-fixed-space-eval-glass-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-b",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "helpful-fixed-space-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 5,
+          "event_id": "helpful-fixed-space-eval-silicon-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "silicon-b",
+          "claimed_feasible": false
+        }
+      ]
+    },
+    {
+      "campaign_id": "helpful-random-expansion",
+      "environment_id": "helpful",
+      "policy_id": "random-expansion-v1",
+      "policy_class": "random_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "helpful-random-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "random-family",
+          "expansion_method": "random",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "helpful-random-expansion-eval-glass-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-a",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "helpful-random-expansion-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "helpful-random-expansion-eval-random-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "random-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "helpful-rule-based-expansion",
+      "environment_id": "helpful",
+      "policy_id": "domain-rule-expansion-v1",
+      "policy_class": "rule_based_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "helpful-rule-based-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "rule-family",
+          "expansion_method": "rule_based",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "helpful-rule-based-expansion-eval-glass-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-a",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "helpful-rule-based-expansion-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "helpful-rule-based-expansion-eval-rule-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "rule-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "helpful-llm-expansion",
+      "environment_id": "helpful",
+      "policy_id": "llm-outer-loop-v1",
+      "policy_class": "llm_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "helpful-llm-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "llm-family",
+          "expansion_method": "llm",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "helpful-llm-expansion-eval-glass-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-a",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "helpful-llm-expansion-eval-llm-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "llm-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "neutral-fixed-space",
+      "environment_id": "neutral",
+      "policy_id": "fixed-gp-ei-v1",
+      "policy_class": "fixed_space",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "neutral-fixed-space-eval-glass-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-a",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 2,
+          "event_id": "neutral-fixed-space-eval-silicon-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "silicon-a",
+          "claimed_feasible": false
+        },
+        {
+          "event_seq": 3,
+          "event_id": "neutral-fixed-space-eval-glass-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-b",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "neutral-fixed-space-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 5,
+          "event_id": "neutral-fixed-space-eval-silicon-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "silicon-b",
+          "claimed_feasible": false
+        }
+      ]
+    },
+    {
+      "campaign_id": "neutral-random-expansion",
+      "environment_id": "neutral",
+      "policy_id": "random-expansion-v1",
+      "policy_class": "random_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "neutral-random-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "random-family",
+          "expansion_method": "random",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "neutral-random-expansion-eval-glass-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-a",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "neutral-random-expansion-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "neutral-random-expansion-eval-random-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "random-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "neutral-rule-based-expansion",
+      "environment_id": "neutral",
+      "policy_id": "domain-rule-expansion-v1",
+      "policy_class": "rule_based_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "neutral-rule-based-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "rule-family",
+          "expansion_method": "rule_based",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "neutral-rule-based-expansion-eval-glass-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-a",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "neutral-rule-based-expansion-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "neutral-rule-based-expansion-eval-rule-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "rule-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "neutral-llm-expansion",
+      "environment_id": "neutral",
+      "policy_id": "llm-outer-loop-v1",
+      "policy_class": "llm_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "neutral-llm-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "llm-family",
+          "expansion_method": "llm",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "neutral-llm-expansion-eval-glass-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-a",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "neutral-llm-expansion-eval-llm-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "llm-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "harmful-fixed-space",
+      "environment_id": "harmful",
+      "policy_id": "fixed-gp-ei-v1",
+      "policy_class": "fixed_space",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "harmful-fixed-space-eval-glass-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-a",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 2,
+          "event_id": "harmful-fixed-space-eval-silicon-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "silicon-a",
+          "claimed_feasible": false
+        },
+        {
+          "event_seq": 3,
+          "event_id": "harmful-fixed-space-eval-glass-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-b",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "harmful-fixed-space-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 5,
+          "event_id": "harmful-fixed-space-eval-silicon-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "silicon-b",
+          "claimed_feasible": false
+        }
+      ]
+    },
+    {
+      "campaign_id": "harmful-random-expansion",
+      "environment_id": "harmful",
+      "policy_id": "random-expansion-v1",
+      "policy_class": "random_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "harmful-random-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "random-family",
+          "expansion_method": "random",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "harmful-random-expansion-eval-glass-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-b",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "harmful-random-expansion-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "harmful-random-expansion-eval-random-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "random-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "harmful-rule-based-expansion",
+      "environment_id": "harmful",
+      "policy_id": "domain-rule-expansion-v1",
+      "policy_class": "rule_based_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "harmful-rule-based-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "rule-family",
+          "expansion_method": "rule_based",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "harmful-rule-based-expansion-eval-glass-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-b",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "harmful-rule-based-expansion-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "harmful-rule-based-expansion-eval-rule-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "rule-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "harmful-llm-expansion",
+      "environment_id": "harmful",
+      "policy_id": "llm-outer-loop-v1",
+      "policy_class": "llm_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "harmful-llm-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "llm-family",
+          "expansion_method": "llm",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "harmful-llm-expansion-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "harmful-llm-expansion-eval-llm-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "llm-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "misleading_prior-fixed-space",
+      "environment_id": "misleading_prior",
+      "policy_id": "fixed-gp-ei-v1",
+      "policy_class": "fixed_space",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "misleading_prior-fixed-space-eval-glass-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-a",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 2,
+          "event_id": "misleading_prior-fixed-space-eval-silicon-a",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "silicon-a",
+          "claimed_feasible": false
+        },
+        {
+          "event_seq": 3,
+          "event_id": "misleading_prior-fixed-space-eval-glass-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-b",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "misleading_prior-fixed-space-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 5,
+          "event_id": "misleading_prior-fixed-space-eval-silicon-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "silicon-b",
+          "claimed_feasible": false
+        }
+      ]
+    },
+    {
+      "campaign_id": "misleading_prior-random-expansion",
+      "environment_id": "misleading_prior",
+      "policy_id": "random-expansion-v1",
+      "policy_class": "random_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "misleading_prior-random-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "random-family",
+          "expansion_method": "random",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "misleading_prior-random-expansion-eval-glass-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-b",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "misleading_prior-random-expansion-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "misleading_prior-random-expansion-eval-random-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "random-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "misleading_prior-rule-based-expansion",
+      "environment_id": "misleading_prior",
+      "policy_id": "domain-rule-expansion-v1",
+      "policy_class": "rule_based_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "misleading_prior-rule-based-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "rule-family",
+          "expansion_method": "rule_based",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "misleading_prior-rule-based-expansion-eval-glass-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-b",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "misleading_prior-rule-based-expansion-eval-glass-c",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-c",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 4,
+          "event_id": "misleading_prior-rule-based-expansion-eval-rule-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "rule-family",
+          "claimed_feasible": true
+        }
+      ]
+    },
+    {
+      "campaign_id": "misleading_prior-llm-expansion",
+      "environment_id": "misleading_prior",
+      "policy_id": "llm-outer-loop-v1",
+      "policy_class": "llm_expansion",
+      "events": [
+        {
+          "event_seq": 1,
+          "event_id": "misleading_prior-llm-expansion-expand",
+          "event_type": "expand_space",
+          "candidate_family_id": "llm-family",
+          "expansion_method": "llm",
+          "proposal_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_seq": 2,
+          "event_id": "misleading_prior-llm-expansion-eval-glass-b",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "glass-b",
+          "claimed_feasible": true
+        },
+        {
+          "event_seq": 3,
+          "event_id": "misleading_prior-llm-expansion-eval-llm-family",
+          "event_type": "evaluate_candidate",
+          "candidate_family_id": "llm-family",
+          "claimed_feasible": true
+        }
+      ]
+    }
+  ]
+}

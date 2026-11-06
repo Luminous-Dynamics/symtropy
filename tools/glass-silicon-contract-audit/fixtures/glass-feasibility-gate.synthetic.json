@@ -1,0 +1,216 @@
+{
+  "benchmark_id": "glass-feasibility-gate-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic staged-gate contract only. Does not validate glass chemistry, process models, product qualification, or manufacturing performance.",
+  "gate_order": [
+    "composition_validity",
+    "glass_formation",
+    "process_window",
+    "joint_product_qualification",
+    "manufacturing_feasibility"
+  ],
+  "candidates": [
+    {
+      "id": "control-feasible",
+      "expected_disposition": "FEASIBLE",
+      "gates": {
+        "composition_validity": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Composition parses and declared fractions sum to the required total.",
+          "source_ref": "fixture:control-feasible/composition_validity"
+        },
+        "glass_formation": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Synthetic control declares a glass-forming result under its stated test condition.",
+          "source_ref": "fixture:control-feasible/glass_formation"
+        },
+        "process_window": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Synthetic control declares that its required process window is met.",
+          "source_ref": "fixture:control-feasible/process_window"
+        },
+        "joint_product_qualification": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "All mandatory synthetic property limits are satisfied.",
+          "source_ref": "fixture:control-feasible/joint_product_qualification"
+        },
+        "manufacturing_feasibility": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Synthetic accepted-yield and resource constraints are satisfied.",
+          "source_ref": "fixture:control-feasible/manufacturing_feasibility"
+        }
+      }
+    },
+    {
+      "id": "control-non-forming",
+      "expected_disposition": "INFEASIBLE",
+      "gates": {
+        "composition_validity": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Composition is syntactically and arithmetically valid.",
+          "source_ref": "fixture:control-non-forming/composition_validity"
+        },
+        "glass_formation": {
+          "status": "FAIL",
+          "evidence_class": "synthetic",
+          "basis": "The declared synthetic experiment is a confirmed non-glass-forming result under the specified conditions.",
+          "source_ref": "fixture:control-non-forming/glass_formation"
+        },
+        "process_window": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Downstream process assessment was not attempted after the formation failure."
+        },
+        "joint_product_qualification": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Product-property testing was not attempted after the formation failure."
+        },
+        "manufacturing_feasibility": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Manufacturing feasibility was not assessed after the formation failure."
+        }
+      }
+    },
+    {
+      "id": "control-joint-property-failure",
+      "expected_disposition": "INFEASIBLE",
+      "gates": {
+        "composition_validity": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Composition contract is satisfied.",
+          "source_ref": "fixture:control-joint-property-failure/composition_validity"
+        },
+        "glass_formation": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Glass formation was confirmed in the synthetic control.",
+          "source_ref": "fixture:control-joint-property-failure/glass_formation"
+        },
+        "process_window": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "The declared process window is met.",
+          "source_ref": "fixture:control-joint-property-failure/process_window"
+        },
+        "joint_product_qualification": {
+          "status": "FAIL",
+          "evidence_class": "synthetic",
+          "basis": "At least one mandatory product property is outside its declared limit.",
+          "source_ref": "fixture:control-joint-property-failure/joint_product_qualification"
+        },
+        "manufacturing_feasibility": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Manufacturing stage was not tested after a mandatory product-qualification failure."
+        }
+      }
+    },
+    {
+      "id": "control-unknown-measurement",
+      "expected_disposition": "UNRESOLVED",
+      "gates": {
+        "composition_validity": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Composition parses and declared fractions pass.",
+          "source_ref": "fixture:control-unknown-measurement/composition_validity"
+        },
+        "glass_formation": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Synthetic formation result is available.",
+          "source_ref": "fixture:control-unknown-measurement/glass_formation"
+        },
+        "process_window": {
+          "status": "UNKNOWN",
+          "evidence_class": "synthetic",
+          "basis": "No qualified process-window evidence is available; do not impute a nominal value."
+        },
+        "joint_product_qualification": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Required product qualification was not attempted while process feasibility remains unknown."
+        },
+        "manufacturing_feasibility": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Manufacturing feasibility was not attempted while an upstream gate remains unresolved."
+        }
+      }
+    },
+    {
+      "id": "control-out-of-domain",
+      "expected_disposition": "UNRESOLVED",
+      "gates": {
+        "composition_validity": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Formula syntax and normalization pass.",
+          "source_ref": "fixture:control-out-of-domain/composition_validity"
+        },
+        "glass_formation": {
+          "status": "OUT_OF_DOMAIN",
+          "evidence_class": "synthetic",
+          "basis": "Candidate lies outside the validated composition family; no extrapolated pass is allowed."
+        },
+        "process_window": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Process assessment is blocked pending domain qualification."
+        },
+        "joint_product_qualification": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Product properties are not qualified outside the admitted domain."
+        },
+        "manufacturing_feasibility": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Manufacturing feasibility is unresolved outside the admitted domain."
+        }
+      }
+    },
+    {
+      "id": "control-stale-process-evidence",
+      "expected_disposition": "UNRESOLVED",
+      "gates": {
+        "composition_validity": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "Composition contract is satisfied.",
+          "source_ref": "fixture:control-stale-process-evidence/composition_validity"
+        },
+        "glass_formation": {
+          "status": "PASS",
+          "evidence_class": "synthetic",
+          "basis": "The formation result is available.",
+          "source_ref": "fixture:control-stale-process-evidence/glass_formation"
+        },
+        "process_window": {
+          "status": "STALE",
+          "evidence_class": "synthetic",
+          "basis": "The only process-window record is stale for the declared equipment/configuration."
+        },
+        "joint_product_qualification": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Qualification is blocked pending current process-window evidence."
+        },
+        "manufacturing_feasibility": {
+          "status": "NOT_ATTEMPTED",
+          "evidence_class": "synthetic",
+          "basis": "Manufacturing feasibility is blocked pending current process-window evidence."
+        }
+      }
+    }
+  ]
+}

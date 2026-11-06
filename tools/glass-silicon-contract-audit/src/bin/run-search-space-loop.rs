@@ -1,0 +1,2693 @@
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::env;
+use std::fs;
+use std::io::{Read, Write};
+use std::path::Path;
+use std::process::{Command, ExitCode, Stdio};
+
+const BENCHMARK_ID: &str = "glass-space-expansion-live-loop-synthetic-v0-1";
+const POLICY_CLASSES: [&str; 6] = [
+    "fixed_space",
+    "gp_ei_fixed_space",
+    "random_expansion",
+    "rule_based_expansion",
+    "prior_guided_expansion",
+    "static_prior_expansion",
+];
+const CLAIM_CEILING: &str = "Synthetic live event-loop mechanics only; no material model, physical feasibility, state-of-the-art result, or industrial benefit is validated.";
+
+#[derive(Clone, Debug, PartialEq)]
+enum Action {
+    Evaluate(String),
+    Expand(String),
+    Stop(String),
+}
+
+#[derive(Clone, Debug)]
+struct Tariff {
+    cost: f64,
+    seconds: f64,
+}
+
+#[derive(Clone, Debug)]
+struct Observation {
+    candidate_id: String,
+    feasible: bool,
+    utility: f64,
+}
+
+fn sha256(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}
+
+fn fail(report: &mut Value, level: &str, code: &str, detail: &str) {
+    let current = report.get("status").and_then(Value::as_str).unwrap_or("PASS");
+    let next = if current == "FAIL" || level == "FAIL" {
+        "FAIL"
+    } else if current == "UNRESOLVED" || level == "UNRESOLVED" {
+        "UNRESOLVED"
+    } else {
+        "PASS"
+    };
+    report["status"] = json!(next);
+    if let Some(findings) = report.get_mut("findings").and_then(Value::as_array_mut) {
+        findings.push(json!({"code": code, "detail": detail}));
+    }
+}
+
+fn only_keys(value: &Value, allowed: &[&str], path: &str, report: &mut Value) {
+    let Some(map) = value.as_object() else {
+        fail(report, "FAIL", "OBJECT_REQUIRED", &format!("{path} must be a JSON object"));
+        return;
+    };
+    for key in map.keys() {
+        if !allowed.contains(&key.as_str()) {
+            fail(report, "FAIL", "UNKNOWN_PROPERTY", &format!("{path}.{key} is not permitted"));
+        }
+    }
+}
+
+fn valid_slug(s: &str) -> bool {
+    !s.is_empty()
+        && s.as_bytes()[0].is_ascii_lowercase()
+        && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_')
+}
+
+fn req_string<'a>(v: &'a Value, field: &str, report: &mut Value, path: &str) -> Option<&'a str> {
+    match v.get(field).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()) {
+        Some(s) => Some(s),
+        None => {
+            fail(report, "FAIL", "STRING_REQUIRED", &format!("{path}.{field} must be a non-empty string"));
+            None
+        }
+    }
+}
+
+fn finite_number(v: &Value, field: &str, report: &mut Value, path: &str, positive: bool) -> Option<f64> {
+    match v.get(field).and_then(Value::as_f64) {
+        Some(n) if n.is_finite() && (if positive { n > 0.0 } else { n >= 0.0 }) => Some(n),
+        _ => {
+            fail(report, "FAIL", "NUMBER_INVALID", &format!("{path}.{field} must be finite and {}", if positive { "greater than zero" } else { "non-negative" }));
+            None
+        }
+    }
+}
+
+fn allowed_policy(policy: &str) -> bool {
+    POLICY_CLASSES.contains(&policy) || policy == "uniform_random_fixed_space"
+}
+
+fn tariff_key_for_method(method: &str) -> Option<&'static str> {
+    match method {
+        "random" => Some("expand_random"),
+        "rule_based" => Some("expand_rule_based"),
+        "prior_guided" => Some("expand_prior_guided"),
+        _ => None,
+    }
+}
+
+fn method_for_policy(policy: &str) -> Option<&'static str> {
+    match policy {
+        "random_expansion" => Some("random"),
+        "rule_based_expansion" => Some("rule_based"),
+        "prior_guided_expansion" | "static_prior_expansion" => Some("prior_guided"),
+        _ => None,
+    }
+}
+
+
+fn candidate_features(candidate: &Value) -> Option<[f64; 2]> {
+    let features = candidate.get("features")?.as_array()?;
+    if features.len() != 2 {
+        return None;
+    }
+    let x = features[0].as_f64()?;
+    let y = features[1].as_f64()?;
+    if !x.is_finite() || !y.is_finite() {
+        return None;
+    }
+    Some([x, y])
+}
+
+fn rbf_kernel(a: [f64; 2], b: [f64; 2], lengthscale: f64) -> f64 {
+    let dx = a[0] - b[0];
+    let dy = a[1] - b[1];
+    let distance_squared = dx * dx + dy * dy;
+    (-0.5 * distance_squared / (lengthscale * lengthscale)).exp()
+}
+
+fn normal_pdf(z: f64) -> f64 {
+    (-0.5 * z * z).exp() / (2.0 * std::f64::consts::PI).sqrt()
+}
+
+// Abramowitz-Stegun-style approximation. Adequate for deterministic ranking in this synthetic finite-pool baseline.
+fn normal_cdf(z: f64) -> f64 {
+    let x = z.abs();
+    let t = 1.0 / (1.0 + 0.231_641_9 * x);
+    let poly = t * (0.319_381_530
+        + t * (-0.356_563_782
+            + t * (1.781_477_937
+                + t * (-1.821_255_978 + t * 1.330_274_429))));
+    let tail = normal_pdf(x) * poly;
+    if z >= 0.0 { 1.0 - tail } else { tail }
+}
+
+fn cholesky_lower(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
+    let n = matrix.len();
+    if n == 0 || matrix.iter().any(|row| row.len() != n) {
+        return None;
+    }
+    let mut lower = vec![vec![0.0; n]; n];
+    for i in 0..n {
+        for j in 0..=i {
+            let mut residual = matrix[i][j];
+            for k in 0..j {
+                residual -= lower[i][k] * lower[j][k];
+            }
+            if i == j {
+                if !residual.is_finite() || residual <= 1e-12 {
+                    return None;
+                }
+                lower[i][j] = residual.sqrt();
+            } else {
+                if lower[j][j] <= 0.0 {
+                    return None;
+                }
+                lower[i][j] = residual / lower[j][j];
+            }
+        }
+    }
+    Some(lower)
+}
+
+fn solve_from_cholesky(lower: &[Vec<f64>], rhs: &[f64]) -> Option<Vec<f64>> {
+    let n = lower.len();
+    if n == 0 || rhs.len() != n {
+        return None;
+    }
+    let mut forward = vec![0.0; n];
+    for i in 0..n {
+        let mut value = rhs[i];
+        for j in 0..i {
+            value -= lower[i][j] * forward[j];
+        }
+        if lower[i][i] <= 0.0 {
+            return None;
+        }
+        forward[i] = value / lower[i][i];
+    }
+
+    let mut solution = vec![0.0; n];
+    for i in (0..n).rev() {
+        let mut value = forward[i];
+        for j in (i + 1)..n {
+            value -= lower[j][i] * solution[j];
+        }
+        solution[i] = value / lower[i][i];
+    }
+    solution.iter().all(|x| x.is_finite()).then_some(solution)
+}
+
+fn gp_ei_score_candidate(view: &Value, candidate_id: &str) -> Option<f64> {
+    let candidates = view.get("visible_candidates")?.as_array()?;
+    let train_observations = view.get("observations")?.as_array()?;
+    if train_observations.is_empty() {
+        return None;
+    }
+    let candidate_map: HashMap<&str, &Value> = candidates.iter()
+        .filter_map(|candidate| Some((candidate.get("id")?.as_str()?, candidate)))
+        .collect();
+
+    let mut train_x = Vec::<[f64; 2]>::new();
+    let mut train_y = Vec::<f64>::new();
+    for observation in train_observations {
+        let id = observation.get("candidate_family_id")?.as_str()?;
+        let candidate = candidate_map.get(id)?;
+        train_x.push(candidate_features(candidate)?);
+        let utility = observation.get("utility")?.as_f64()?;
+        if !utility.is_finite() {
+            return None;
+        }
+        // This baseline is explicitly normalized for the frozen synthetic utility range [0, 10].
+        train_y.push(utility / 10.0);
+    }
+    let target = *candidate_map.get(candidate_id)?;
+    let target_x = candidate_features(target)?;
+
+    // Frozen finite-pool GP-EI v0.1: unit RBF amplitude, lengthscale 0.85, observation-noise variance 0.05, xi 0.01.
+    const LENGTHSCALE: f64 = 0.85;
+    const NOISE_VARIANCE: f64 = 0.05;
+    const XI: f64 = 0.01;
+    let n = train_x.len();
+    let mut kernel = vec![vec![0.0; n]; n];
+    for i in 0..n {
+        for j in 0..n {
+            kernel[i][j] = rbf_kernel(train_x[i], train_x[j], LENGTHSCALE);
+        }
+        kernel[i][i] += NOISE_VARIANCE;
+    }
+    let lower = cholesky_lower(&kernel)?;
+    let alpha = solve_from_cholesky(&lower, &train_y)?;
+    let k_star: Vec<f64> = train_x.iter().map(|x| rbf_kernel(*x, target_x, LENGTHSCALE)).collect();
+    let mean: f64 = k_star.iter().zip(alpha.iter()).map(|(k, a)| k * a).sum();
+
+    // var(f*) = k(x*,x*) - || L^{-1}k* ||^2, with unit prior variance.
+    let mut forward = vec![0.0; n];
+    for i in 0..n {
+        let mut value = k_star[i];
+        for j in 0..i {
+            value -= lower[i][j] * forward[j];
+        }
+        forward[i] = value / lower[i][i];
+    }
+    let variance = (1.0 - forward.iter().map(|v| v * v).sum::<f64>()).max(0.0);
+    let sigma = variance.sqrt();
+    let best_y = train_y.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    if !mean.is_finite() || !sigma.is_finite() || !best_y.is_finite() {
+        return None;
+    }
+    let improvement = mean - best_y - XI;
+    if sigma <= 1e-12 {
+        return Some(improvement.max(0.0));
+    }
+    let z = improvement / sigma;
+    let ei = improvement * normal_cdf(z) + sigma * normal_pdf(z);
+    ei.is_finite().then_some(ei.max(0.0))
+}
+
+fn gp_ei_next_candidate(view: &Value) -> Option<String> {
+    let candidates = view.get("visible_candidates")?.as_array()?;
+    candidates.iter()
+        .filter(|candidate| candidate.get("evaluated").and_then(Value::as_bool) == Some(false))
+        .filter_map(|candidate| {
+            let id = candidate.get("id")?.as_str()?;
+            let score = gp_ei_score_candidate(view, id)?;
+            Some((id.to_owned(), score))
+        })
+        .max_by(|a, b| {
+            a.1.total_cmp(&b.1).then_with(|| b.0.cmp(&a.0))
+        })
+        .map(|(id, _)| id)
+}
+
+fn uniform_random_next_candidate(view: &Value) -> Option<String> {
+    let candidates = view.get("visible_candidates")?.as_array()?;
+    let campaign_seed = view.get("campaign_seed").and_then(Value::as_u64).unwrap_or(0);
+    let view_digest = sha256(&serde_json::to_vec(view).ok()?);
+    candidates.iter()
+        .filter(|candidate| candidate.get("evaluated").and_then(Value::as_bool) == Some(false))
+        .filter_map(|candidate| {
+            let id = candidate.get("id")?.as_str()?;
+            let rank = sha256(format!("uniform-random-v1|{campaign_seed}|{view_digest}|{id}").as_bytes());
+            Some((rank, id.to_owned()))
+        })
+        .min_by(|a, b| a.0.cmp(&b.0))
+        .map(|(_, id)| id)
+}
+
+fn choose_action(policy: &str, view: &Value, expansion_decision_made: bool) -> Action {
+    let expanded = view.get("expansion_used").and_then(Value::as_bool).unwrap_or(false);
+    let observations = view.get("observations").and_then(Value::as_array).cloned().unwrap_or_default();
+
+    // Static expansion is a deliberately non-adaptive control. It expands before observing any result.
+    if policy == "static_prior_expansion" && !expanded
+        && expansion_method_available(view, "prior_guided")
+    {
+        return Action::Expand("prior_guided".to_owned());
+    }
+
+    // Seeded hash-ranking is a reproducible uniform-random control over currently visible,
+    // unevaluated candidates. It never consults selector scores or sealed outcomes.
+    if policy == "uniform_random_fixed_space" {
+        return uniform_random_next_candidate(view)
+            .map(Action::Evaluate)
+            .unwrap_or_else(|| Action::Stop("NO_UNMEASURED_VISIBLE_CANDIDATES".to_owned()));
+    }
+
+    // Observation-conditioned arms begin with the same public screening candidate; the static-expansion control intentionally expands first.
+    if observations.is_empty() {
+        let candidates = view.get("visible_candidates").and_then(Value::as_array).cloned().unwrap_or_default();
+        let rank_field = if expanded { "selector_score" } else { "screen_priority" };
+        let best = candidates.into_iter().filter(|c| c.get("evaluated").and_then(Value::as_bool) == Some(false))
+            .max_by(|a, b| {
+                a.get(rank_field).and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY)
+                    .total_cmp(&b.get(rank_field).and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY))
+            });
+        return best.and_then(|c| c.get("id").and_then(Value::as_str).map(|s| Action::Evaluate(s.to_owned())))
+            .unwrap_or_else(|| Action::Stop("NO_UNMEASURED_VISIBLE_CANDIDATES".to_owned()));
+    }
+
+    // Fixed-space Gaussian-process expected improvement: rank only still-visible candidates
+    // using the GP posterior computed from observations revealed by earlier actions.
+    if policy == "gp_ei_fixed_space" {
+        return gp_ei_next_candidate(view)
+            .map(Action::Evaluate)
+            .unwrap_or_else(|| Action::Stop("GP_EI_POSTERIOR_UNRESOLVED".to_owned()));
+    }
+
+    // Adaptive outer-loop policies decide whether to expand only after the first screening result.
+    if !expansion_decision_made {
+        if let (Some(method), Some(threshold)) = (method_for_policy(policy), expansion_threshold_from_view(view, policy)) {
+            let first = &observations[0];
+            let value = first.get("utility").and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY);
+            let feasible = first.get("feasible").and_then(Value::as_bool).unwrap_or(false);
+            if (!feasible || value < threshold) && expansion_method_available(view, method) {
+                return Action::Expand(method.to_owned());
+            }
+        }
+    }
+
+    let last = observations.last().cloned().unwrap_or(Value::Null);
+    let last_id = last.get("candidate_family_id").and_then(Value::as_str).unwrap_or("");
+    let last_feasible = last.get("feasible").and_then(Value::as_bool).unwrap_or(false);
+    let expanded_ids: HashSet<String> = view.get("expanded_candidate_ids").and_then(Value::as_array)
+        .into_iter().flatten().filter_map(Value::as_str).map(str::to_owned).collect();
+    let recovery = expanded_ids.contains(last_id) && !last_feasible;
+
+    let candidates = view.get("visible_candidates").and_then(Value::as_array).cloned().unwrap_or_default();
+    let best = candidates.into_iter().filter(|c| c.get("evaluated").and_then(Value::as_bool) == Some(false))
+        .max_by(|a, b| {
+            let field = if recovery { "failure_fallback_score" } else { "selector_score" };
+            a.get(field).and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY)
+                .total_cmp(&b.get(field).and_then(Value::as_f64).unwrap_or(f64::NEG_INFINITY))
+        });
+    best.and_then(|c| c.get("id").and_then(Value::as_str).map(|s| Action::Evaluate(s.to_owned())))
+        .unwrap_or_else(|| Action::Stop("NO_UNMEASURED_VISIBLE_CANDIDATES".to_owned()))
+}
+
+// Thresholds are copied into the policy's public view; no evaluator regime or outcome map is passed.
+fn expansion_threshold_from_view(view: &Value, policy: &str) -> Option<f64> {
+    view.get("public_thresholds")?.get(policy)?.as_f64()
+}
+
+fn expansion_method_available(view: &Value, method: &str) -> bool {
+    view.get("available_expansion_methods")
+        .and_then(Value::as_array)
+        .is_some_and(|methods| methods.iter().any(|item| item.as_str() == Some(method)))
+}
+
+fn affordable_expansion_methods(
+    tariffs: &HashMap<String, Tariff>,
+    expansion_used: bool,
+    remaining_cost: f64,
+    remaining_seconds: f64,
+) -> Vec<String> {
+    if expansion_used {
+        return Vec::new();
+    }
+    // An expansion is useful only if the same budget can also pay for at least
+    // one evaluation of a newly exposed candidate. Otherwise it is not an eligible
+    // action for this benchmark version (unless an explicit no-evaluation action is added).
+    let Some(evaluation) = tariffs.get("evaluate_candidate") else {
+        return Vec::new();
+    };
+    [
+        ("random", "expand_random"),
+        ("rule_based", "expand_rule_based"),
+        ("prior_guided", "expand_prior_guided"),
+    ]
+    .into_iter()
+    .filter_map(|(method, tariff_key)| {
+        tariffs.get(tariff_key)
+            .filter(|tariff| {
+                tariff.cost + evaluation.cost <= remaining_cost + 1e-9
+                    && tariff.seconds + evaluation.seconds <= remaining_seconds + 1e-9
+            })
+            .map(|_| method.to_owned())
+    })
+    .collect()
+}
+
+fn tariff_view(tariffs: &HashMap<String, Tariff>, action_type: &str) -> Value {
+    tariffs.get(action_type).map_or(Value::Null, |tariff| {
+        json!({
+            "cost_units": tariff.cost,
+            "duration_seconds": tariff.seconds
+        })
+    })
+}
+
+fn action_costs_view(tariffs: &HashMap<String, Tariff>) -> Value {
+    json!({
+        "evaluate_candidate": tariff_view(tariffs, "evaluate_candidate"),
+        "expand_random": tariff_view(tariffs, "expand_random"),
+        "expand_rule_based": tariff_view(tariffs, "expand_rule_based"),
+        "expand_prior_guided": tariff_view(tariffs, "expand_prior_guided")
+    })
+}
+
+fn build_public_view(
+    catalog: &Value,
+    policy: &str,
+    visible: &BTreeSet<String>,
+    evaluated: &HashSet<String>,
+    observations: &[Observation],
+    expanded_candidate_ids: &[String],
+    expansion_used: bool,
+    remaining_cost: f64,
+    remaining_seconds: f64,
+    tariffs: &HashMap<String, Tariff>,
+) -> Value {
+    let visible_candidates = catalog.get("candidate_families").and_then(Value::as_array).into_iter().flatten()
+        .filter(|c| c.get("id").and_then(Value::as_str).is_some_and(|id| visible.contains(id)))
+        .map(|c| {
+            let id = c.get("id").and_then(Value::as_str).unwrap_or("");
+            json!({
+                "id": id,
+                "domain": c.get("domain").cloned().unwrap_or(Value::Null),
+                "features": c.get("features").cloned().unwrap_or(Value::Null),
+                "screen_priority": c.get("screen_priority").cloned().unwrap_or(Value::Null),
+                "predicted_feasible": c.get("predicted_feasible").cloned().unwrap_or(Value::Null),
+                "selector_score": c.get("selector_scores").and_then(|v| v.get(policy)).cloned().unwrap_or(Value::Null),
+                "failure_fallback_score": c.get("failure_fallback_score").cloned().unwrap_or(Value::Null),
+                "is_expansion_candidate": c.get("initially_visible").and_then(Value::as_bool) == Some(false),
+                "evaluated": evaluated.contains(id)
+            })
+        })
+        .collect::<Vec<_>>();
+    let obs = observations.iter().map(|o| json!({
+        "candidate_family_id": o.candidate_id,
+        "feasible": o.feasible,
+        "utility": o.utility
+    })).collect::<Vec<_>>();
+    let available_expansions = affordable_expansion_methods(
+        tariffs, expansion_used, remaining_cost, remaining_seconds
+    );
+    let action_costs = action_costs_view(tariffs);
+    json!({
+        "policy_id": policy,
+        "campaign_seed": catalog.get("policy_contract").and_then(|v| v.get("random_seed")).and_then(Value::as_u64).unwrap_or(0),
+        "visible_candidates": visible_candidates,
+        "observations": obs,
+        "expanded_candidate_ids": expanded_candidate_ids,
+        "expansion_used": expansion_used,
+        "available_expansion_methods": available_expansions,
+        "action_costs": action_costs,
+        "public_thresholds": catalog.get("policy_contract").and_then(|v| v.get("thresholds")).cloned().unwrap_or_else(|| json!({})),
+        "remaining_cost_units": remaining_cost,
+        "remaining_duration_seconds": remaining_seconds
+    })
+}
+
+fn get_tariffs(oracle: &Value, report: &mut Value) -> HashMap<String, Tariff> {
+    let mut tariffs = HashMap::new();
+    let Some(items) = oracle.get("action_cost_catalog").and_then(Value::as_array) else {
+        fail(report, "FAIL", "TARIFF_CATALOG_REQUIRED", "oracle.action_cost_catalog must be an array");
+        return tariffs;
+    };
+    for (i, item) in items.iter().enumerate() {
+        only_keys(item, &["action_type", "cost_units", "duration_seconds"], &format!("oracle.action_cost_catalog[{i}]"), report);
+        let Some(key) = req_string(item, "action_type", report, &format!("oracle.action_cost_catalog[{i}]")) else { continue };
+        let Some(cost) = finite_number(item, "cost_units", report, &format!("oracle.action_cost_catalog[{i}]"), true) else { continue };
+        let Some(seconds) = finite_number(item, "duration_seconds", report, &format!("oracle.action_cost_catalog[{i}]"), false) else { continue };
+        if tariffs.insert(key.to_owned(), Tariff { cost, seconds }).is_some() {
+            fail(report, "FAIL", "TARIFF_DUPLICATE", &format!("duplicate action tariff {key}"));
+        }
+    }
+    for key in ["evaluate_candidate", "expand_random", "expand_rule_based", "expand_prior_guided"] {
+        if !tariffs.contains_key(key) {
+            fail(report, "FAIL", "TARIFF_MISSING", &format!("missing evaluator-owned tariff {key}"));
+        }
+    }
+    tariffs
+}
+
+fn run_one_with_executor<F>(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str, executor: &mut F) -> Value
+where
+    F: FnMut(&str, &Value, bool) -> Result<Action, String>,
+{
+    let campaign_seed = catalog.get("policy_contract").and_then(|v| v.get("random_seed")).and_then(Value::as_u64).unwrap_or(0);
+    let campaign_id = if policy == "uniform_random_fixed_space" {
+        format!("{environment_id}-{policy}-seed-{campaign_seed}")
+    } else {
+        format!("{environment_id}-{policy}")
+    };
+    let mut report = json!({
+        "status": "PASS",
+        "campaign_id": campaign_id,
+        "campaign_seed": campaign_seed,
+        "environment_id": environment_id,
+        "policy_class": policy,
+        "policy_id": format!("synthetic-live-loop-{policy}-v1"),
+        "input_sha256": null,
+        "oracle_sha256": null,
+        "events": [],
+        "evaluations": 0,
+        "expansions": 0,
+        "verified_feasible_discoveries": 0,
+        "false_feasible_predictions": 0,
+        "best_verified_feasible_utility": null,
+        "oracle_best_feasible_utility": null,
+        "terminal_simple_regret": null,
+        "first_feasible_cost_units": null,
+        "cost_units_charged": 0.0,
+        "duration_seconds_charged": 0.0,
+        "terminal_disposition": "NOT_STARTED",
+        "findings": [],
+        "claim_ceiling": CLAIM_CEILING
+    });
+    if !allowed_policy(policy) {
+        fail(&mut report, "FAIL", "POLICY_CLASS_INVALID", &format!("unregistered policy class {policy}"));
+        report["terminal_disposition"] = json!("REJECTED");
+        return report;
+    }
+    if catalog.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID)
+        || oracle.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID) {
+        fail(&mut report, "FAIL", "BENCHMARK_ID_MISMATCH", "catalog and oracle must use the live-loop benchmark ID");
+        report["terminal_disposition"] = json!("REJECTED");
+        return report;
+    }
+    let Some(envs) = oracle.get("environments").and_then(Value::as_array) else {
+        fail(&mut report, "FAIL", "ENVIRONMENTS_REQUIRED", "sealed oracle has no environment array");
+        report["terminal_disposition"] = json!("REJECTED");
+        return report;
+    };
+    let Some(env) = envs.iter().find(|e| e.get("environment_id").and_then(Value::as_str) == Some(environment_id)) else {
+        fail(&mut report, "UNRESOLVED", "ENVIRONMENT_MISSING", &format!("sealed oracle has no environment {environment_id}"));
+        report["terminal_disposition"] = json!("UNRESOLVED");
+        return report;
+    };
+    let Some(outcome_rows) = env.get("outcomes").and_then(Value::as_array) else {
+        fail(&mut report, "UNRESOLVED", "OUTCOMES_MISSING", "sealed environment has no outcome array");
+        report["terminal_disposition"] = json!("UNRESOLVED");
+        return report;
+    };
+    let outcomes: HashMap<String, (bool, f64)> = outcome_rows.iter().filter_map(|row| {
+        let id = row.get("candidate_family_id")?.as_str()?.to_owned();
+        let feasible = row.get("feasible")?.as_bool()?;
+        let utility = row.get("utility")?.as_f64()?;
+        utility.is_finite().then_some((id, (feasible, utility)))
+    }).collect();
+    let oracle_best_feasible_utility = outcomes.values()
+        .filter(|(feasible, _)| *feasible)
+        .map(|(_, utility)| *utility)
+        .reduce(f64::max);
+    report["oracle_best_feasible_utility"] = oracle_best_feasible_utility.map_or(Value::Null, |v| json!(v));
+    if oracle_best_feasible_utility.is_none() {
+        fail(&mut report, "UNRESOLVED", "NO_FEASIBLE_ORACLE_REFERENCE", "sealed environment has no feasible reference outcome, so simple regret is undefined");
+    }
+    let tariffs = get_tariffs(oracle, &mut report);
+    let max_cost = catalog.get("budgets").and_then(|v| v.get("max_cost_units")).and_then(Value::as_f64).unwrap_or(0.0);
+    let max_seconds = catalog.get("budgets").and_then(|v| v.get("max_duration_seconds")).and_then(Value::as_f64).unwrap_or(0.0);
+    if !max_cost.is_finite() || max_cost <= 0.0 || !max_seconds.is_finite() || max_seconds <= 0.0 {
+        fail(&mut report, "FAIL", "BUDGET_INVALID", "public cost and duration caps must be finite and positive");
+        report["terminal_disposition"] = json!("REJECTED");
+        return report;
+    }
+
+    let family_rows = catalog.get("candidate_families").and_then(Value::as_array).cloned().unwrap_or_default();
+    let mut family_by_id: HashMap<String, Value> = HashMap::new();
+    for (i, family) in family_rows.iter().enumerate() {
+        only_keys(family, &["id", "domain", "initially_visible", "screen_priority", "predicted_feasible", "selector_scores", "failure_fallback_score", "features"], &format!("catalog.candidate_families[{i}]"), &mut report);
+        let Some(id) = family.get("id").and_then(Value::as_str) else {
+            fail(&mut report, "FAIL", "FAMILY_ID_REQUIRED", "each public family requires a string ID");
+            continue;
+        };
+        if !valid_slug(id) {
+            fail(&mut report, "FAIL", "FAMILY_ID_INVALID", &format!("invalid candidate family ID {id}"));
+        }
+        if family_by_id.insert(id.to_owned(), family.clone()).is_some() {
+            fail(&mut report, "FAIL", "FAMILY_ID_DUPLICATE", &format!("duplicate candidate family ID {id}"));
+        }
+    }
+    let Some(initial_ids) = catalog.get("candidate_families").and_then(Value::as_array) else {
+        fail(&mut report, "FAIL", "CANDIDATE_CATALOG_REQUIRED", "candidate_families must be an array");
+        report["terminal_disposition"] = json!("REJECTED");
+        return report;
+    };
+    let mut visible: BTreeSet<String> = initial_ids.iter().filter(|c| c.get("initially_visible").and_then(Value::as_bool) == Some(true))
+        .filter_map(|c| c.get("id").and_then(Value::as_str).map(str::to_owned)).collect();
+    let mut evaluated = HashSet::new();
+    let mut expanded_candidate_ids = Vec::new();
+    let mut observations = Vec::<Observation>::new();
+    let mut expansion_used = false;
+    let mut expansion_decision_made = policy == "fixed_space" || policy == "static_prior_expansion";
+    let mut cost_used = 0.0_f64;
+    let mut seconds_used = 0.0_f64;
+    let mut feasible_hits = 0_usize;
+    let mut false_feasible = 0_usize;
+    let mut best_utility: Option<f64> = None;
+    let mut first_feasible_cost: Option<f64> = None;
+    let mut terminal = "NO_ACTION".to_owned();
+
+    for seq in 1..=16 {
+        let remaining_cost = (max_cost - cost_used).max(0.0);
+        let remaining_seconds = (max_seconds - seconds_used).max(0.0);
+        if remaining_cost < tariffs.get("evaluate_candidate").map(|t| t.cost).unwrap_or(f64::INFINITY)
+            || remaining_seconds < tariffs.get("evaluate_candidate").map(|t| t.seconds).unwrap_or(f64::INFINITY) {
+            terminal = "BUDGET_EXHAUSTED".to_owned();
+            break;
+        }
+        let view = build_public_view(catalog, policy, &visible, &evaluated, &observations,
+            &expanded_candidate_ids, expansion_used, remaining_cost, remaining_seconds, &tariffs);
+        let consideration_due = !expansion_decision_made
+            && observations.len() == 1
+            && method_for_policy(policy).is_some();
+        let action = match executor(policy, &view, expansion_decision_made) {
+            Ok(action) => action,
+            Err(error) => {
+                fail(&mut report, "FAIL", "POLICY_EXECUTOR_FAILED", &error);
+                terminal = "POLICY_EXECUTOR_FAILED".to_owned();
+                break;
+            }
+        };
+        if consideration_due {
+            expansion_decision_made = true;
+        }
+        let view_bytes = serde_json::to_vec(&view).unwrap_or_default();
+        let view_digest = sha256(&view_bytes);
+
+        match action {
+            Action::Stop(reason) => {
+                terminal = reason;
+                break;
+            }
+            Action::Evaluate(candidate_id) => {
+                if !visible.contains(&candidate_id) {
+                    fail(&mut report, "FAIL", "CANDIDATE_NOT_VISIBLE", &format!("policy attempted to evaluate hidden candidate {candidate_id}"));
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                }
+                if !evaluated.insert(candidate_id.clone()) {
+                    fail(&mut report, "FAIL", "CANDIDATE_DUPLICATE_EVALUATION", &format!("policy attempted to re-evaluate {candidate_id}"));
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                }
+                let Some(family) = family_by_id.get(&candidate_id) else {
+                    fail(&mut report, "FAIL", "FAMILY_DEFINITION_MISSING", &format!("public family definition missing for {candidate_id}"));
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                };
+                let Some(tariff) = tariffs.get("evaluate_candidate") else {
+                    fail(&mut report, "FAIL", "TARIFF_MISSING", "missing evaluation tariff");
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                };
+                if cost_used + tariff.cost > max_cost + 1e-9 || seconds_used + tariff.seconds > max_seconds + 1e-9 {
+                    fail(&mut report, "FAIL", "ACTION_WOULD_OVERRUN_BUDGET", "candidate evaluation would exceed the shared budget");
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                }
+
+                // Charge first. Only after the charge does the evaluator reveal the selected outcome.
+                cost_used += tariff.cost;
+                seconds_used += tariff.seconds;
+                let mut event = json!({
+                    "event_seq": seq,
+                    "action_type": "evaluate_candidate",
+                    "candidate_family_id": candidate_id,
+                    "decision_view_sha256": view_digest,
+                    "cost_units_charged": tariff.cost,
+                    "duration_seconds_charged": tariff.seconds,
+                    "predicted_feasible_before_observation": family.get("predicted_feasible").cloned().unwrap_or(Value::Null),
+                    "observed_outcome": null
+                });
+                let Some((feasible, utility)) = outcomes.get(&candidate_id).copied() else {
+                    report["events"].as_array_mut().unwrap().push(event);
+                    fail(&mut report, "UNRESOLVED", "SEALED_OUTCOME_MISSING", &format!("missing outcome for {environment_id}/{candidate_id}; it is not converted to zero"));
+                    terminal = "UNRESOLVED_OUTCOME".to_owned();
+                    break;
+                };
+                let prediction = family.get("predicted_feasible").and_then(Value::as_bool);
+                if prediction == Some(true) && !feasible {
+                    false_feasible += 1;
+                }
+                if feasible {
+                    feasible_hits += 1;
+                    best_utility = Some(best_utility.map_or(utility, |old| old.max(utility)));
+                    if first_feasible_cost.is_none() {
+                        first_feasible_cost = Some(cost_used);
+                    }
+                }
+                event["observed_outcome"] = json!({"feasible": feasible, "utility": utility});
+                report["events"].as_array_mut().unwrap().push(event);
+                observations.push(Observation { candidate_id, feasible, utility });
+                terminal = "BUDGET_OR_CANDIDATES_PENDING".to_owned();
+            }
+            Action::Expand(method) => {
+                if expansion_used {
+                    fail(&mut report, "FAIL", "REPEATED_EXPANSION", "v0.1 permits at most one expansion per episode");
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                }
+                if method_for_policy(policy) != Some(method.as_str()) {
+                    fail(&mut report, "FAIL", "EXPANSION_METHOD_POLICY_MISMATCH", &format!("policy {policy} may not use expansion method {method}"));
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                }
+                let Some(tariff_key) = tariff_key_for_method(&method) else {
+                    fail(&mut report, "FAIL", "EXPANSION_METHOD_INVALID", &format!("unsupported expansion method {method}"));
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                };
+                let Some(tariff) = tariffs.get(tariff_key) else {
+                    fail(&mut report, "FAIL", "TARIFF_MISSING", &format!("missing expansion tariff {tariff_key}"));
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                };
+                if cost_used + tariff.cost > max_cost + 1e-9 || seconds_used + tariff.seconds > max_seconds + 1e-9 {
+                    fail(&mut report, "FAIL", "ACTION_WOULD_OVERRUN_BUDGET", "space expansion would exceed the shared budget");
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                }
+                let Some(option) = catalog.get("expansion_options").and_then(Value::as_array).into_iter().flatten()
+                    .find(|o| o.get("method").and_then(Value::as_str) == Some(method.as_str())) else {
+                    fail(&mut report, "UNRESOLVED", "EXPANSION_OPTION_MISSING", &format!("no public proposal option for method {method}"));
+                    terminal = "UNRESOLVED_EXPANSION".to_owned();
+                    break;
+                };
+                let Some(candidate_id) = option.get("candidate_family_id").and_then(Value::as_str) else {
+                    fail(&mut report, "FAIL", "EXPANSION_CANDIDATE_MISSING", "expansion option lacks candidate_family_id");
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                };
+                if !option.get("proposal_sha256").and_then(Value::as_str).is_some_and(|s| s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit())) {
+                    fail(&mut report, "FAIL", "PROPOSAL_DIGEST_INVALID", "expansion proposal requires a SHA-256 digest");
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                }
+                if !option.get("evidence_refs").and_then(Value::as_array).is_some_and(|a| !a.is_empty()) {
+                    fail(&mut report, "UNRESOLVED", "PROPOSAL_EVIDENCE_MISSING", "expansion proposal has no evidence references");
+                    terminal = "UNRESOLVED_EXPANSION".to_owned();
+                    break;
+                }
+                if visible.contains(candidate_id) || !family_by_id.contains_key(candidate_id) {
+                    fail(&mut report, "FAIL", "EXPANSION_CANDIDATE_INVALID", "expansion target must be a registered, not-yet-visible public family");
+                    terminal = "REJECTED_ACTION".to_owned();
+                    break;
+                }
+
+                // Charge generation/expansion before the proposed family is revealed to the policy.
+                cost_used += tariff.cost;
+                seconds_used += tariff.seconds;
+                visible.insert(candidate_id.to_owned());
+                expanded_candidate_ids.push(candidate_id.to_owned());
+                expansion_used = true;
+                report["events"].as_array_mut().unwrap().push(json!({
+                    "event_seq": seq,
+                    "action_type": "expand_space",
+                    "expansion_method": method,
+                    "candidate_family_id": candidate_id,
+                    "proposal_sha256": option.get("proposal_sha256").cloned().unwrap_or(Value::Null),
+                    "decision_view_sha256": view_digest,
+                    "cost_units_charged": tariff.cost,
+                    "duration_seconds_charged": tariff.seconds,
+                    "observed_outcome": null
+                }));
+                terminal = "BUDGET_OR_CANDIDATES_PENDING".to_owned();
+            }
+        }
+    }
+
+    // If every visible candidate was evaluated, the loop may finish on STOP instead of a budget error.
+    if terminal == "BUDGET_OR_CANDIDATES_PENDING" && report.get("status").and_then(Value::as_str) == Some("PASS") {
+        terminal = "COMPLETED".to_owned();
+    }
+    report["evaluations"] = json!(observations.len());
+    report["expansions"] = json!(expanded_candidate_ids.len());
+    report["verified_feasible_discoveries"] = json!(feasible_hits);
+    report["false_feasible_predictions"] = json!(false_feasible);
+    report["best_verified_feasible_utility"] = best_utility.map_or(Value::Null, |v| json!(v));
+    let simple_regret = match (oracle_best_feasible_utility, best_utility) {
+        (Some(optimum), Some(incumbent)) => Some((optimum - incumbent).max(0.0)),
+        _ => None,
+    };
+    report["terminal_simple_regret"] = simple_regret.map_or(Value::Null, |v| json!(v));
+    report["first_feasible_cost_units"] = first_feasible_cost.map_or(Value::Null, |v| json!(v));
+    report["cost_units_charged"] = json!(cost_used);
+    report["duration_seconds_charged"] = json!(seconds_used);
+    report["terminal_disposition"] = json!(terminal);
+    report
+}
+
+fn run_one(catalog: &Value, oracle: &Value, environment_id: &str, policy: &str) -> Value {
+    let mut direct = |policy: &str, view: &Value, expansion_decision_made: bool| {
+        Ok(choose_action(policy, view, expansion_decision_made))
+    };
+    run_one_with_executor(catalog, oracle, environment_id, policy, &mut direct)
+}
+
+fn mean(values: &[f64]) -> Option<f64> {
+    if values.is_empty() || values.iter().any(|v| !v.is_finite()) {
+        return None;
+    }
+    Some(values.iter().sum::<f64>() / values.len() as f64)
+}
+
+fn sample_standard_deviation(values: &[f64]) -> Option<f64> {
+    if values.len() < 2 || values.iter().any(|v| !v.is_finite()) {
+        return None;
+    }
+    let avg = mean(values)?;
+    let variance = values.iter().map(|v| (v - avg).powi(2)).sum::<f64>() / (values.len() - 1) as f64;
+    variance.is_finite().then_some(variance.sqrt())
+}
+
+fn summarize_auxiliary_controls(controls: &[Value]) -> Vec<Value> {
+    let mut groups = BTreeMap::<String, Vec<&Value>>::new();
+    for control in controls {
+        if let Some(environment_id) = control.get("environment_id").and_then(Value::as_str) {
+            groups.entry(environment_id.to_owned()).or_default().push(control);
+        }
+    }
+    groups.into_iter().map(|(environment_id, rows)| {
+        let regrets = rows.iter().filter_map(|row| row.get("terminal_simple_regret").and_then(Value::as_f64)).collect::<Vec<_>>();
+        let utilities = rows.iter().filter_map(|row| row.get("best_verified_feasible_utility").and_then(Value::as_f64)).collect::<Vec<_>>();
+        let first_feasible_costs = rows.iter().filter_map(|row| row.get("first_feasible_cost_units").and_then(Value::as_f64)).collect::<Vec<_>>();
+        let costs = rows.iter().filter_map(|row| row.get("cost_units_charged").and_then(Value::as_f64)).collect::<Vec<_>>();
+        let durations = rows.iter().filter_map(|row| row.get("duration_seconds_charged").and_then(Value::as_f64)).collect::<Vec<_>>();
+        let hits = rows.iter().filter_map(|row| row.get("verified_feasible_discoveries").and_then(Value::as_u64).map(|n| n as f64)).collect::<Vec<_>>();
+        let false_feasible = rows.iter().filter_map(|row| row.get("false_feasible_predictions").and_then(Value::as_u64).map(|n| n as f64)).collect::<Vec<_>>();
+        json!({
+            "environment_id": environment_id,
+            "seed_count": rows.len(),
+            "mean_best_verified_feasible_utility": mean(&utilities),
+            "mean_terminal_simple_regret": mean(&regrets),
+            "sample_sd_terminal_simple_regret": sample_standard_deviation(&regrets),
+            "mean_first_feasible_cost_units": mean(&first_feasible_costs),
+            "mean_verified_feasible_discoveries": mean(&hits),
+            "mean_false_feasible_predictions": mean(&false_feasible),
+            "mean_cost_units_charged": mean(&costs),
+            "mean_duration_seconds_charged": mean(&durations),
+            "claim_ceiling": "Synthetic uniform-random baseline seed-sweep summary only."
+        })
+    }).collect()
+}
+
+fn run_all_with_executor<F>(public_raw: &[u8], oracle_raw: &[u8], executor: &mut F) -> Value
+where
+    F: FnMut(&str, &Value, bool) -> Result<Action, String>,
+{
+    let input_digest = sha256(public_raw);
+    let oracle_digest = sha256(oracle_raw);
+    let mut top = json!({
+        "status": "PASS",
+        "audit_kind": "synthetic_live_policy_event_loop",
+        "benchmark_id": BENCHMARK_ID,
+        "input_sha256": input_digest,
+        "oracle_sha256": oracle_digest,
+        "policy_count": POLICY_CLASSES.len(),
+        "policy_execution_mode": "in_process_reference",
+        "auxiliary_control_count": 0,
+        "auxiliary_controls": [],
+        "auxiliary_control_summary": [],
+        "environment_count": 0,
+        "episodes_checked": 0,
+        "episodes": [],
+        "findings": [],
+        "claim_ceiling": CLAIM_CEILING
+    });
+    let public: Value = match serde_json::from_slice(public_raw) {
+        Ok(v) => v,
+        Err(e) => {
+            fail(&mut top, "FAIL", "PUBLIC_JSON_INVALID", &e.to_string());
+            return top;
+        }
+    };
+    let oracle: Value = match serde_json::from_slice(oracle_raw) {
+        Ok(v) => v,
+        Err(e) => {
+            fail(&mut top, "FAIL", "ORACLE_JSON_INVALID", &e.to_string());
+            return top;
+        }
+    };
+    only_keys(&public, &["schema_version","benchmark_id","evidence_class","claim_ceiling","budgets","policy_contract","candidate_families","expansion_options"], "public", &mut top);
+    only_keys(&oracle, &["schema_version","benchmark_id","evidence_class","claim_ceiling","action_cost_catalog","environments"], "oracle", &mut top);
+    if public.get("schema_version").and_then(Value::as_u64) != Some(1)
+        || oracle.get("schema_version").and_then(Value::as_u64) != Some(1)
+        || public.get("evidence_class").and_then(Value::as_str) != Some("synthetic")
+        || oracle.get("evidence_class").and_then(Value::as_str) != Some("synthetic_evaluator_only") {
+        fail(&mut top, "FAIL", "INPUT_CONTRACT_INVALID", "schema_version or evidence_class is invalid");
+        return top;
+    }
+    if public.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID)
+        || oracle.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID) {
+        fail(&mut top, "FAIL", "BENCHMARK_ID_MISMATCH", "public catalog and sealed oracle must use the live-loop benchmark ID");
+        return top;
+    }
+    let Some(seed_values) = public.get("policy_contract").and_then(|v| v.get("random_seeds")).and_then(Value::as_array) else {
+        fail(&mut top, "FAIL", "RANDOM_SEEDS_REQUIRED", "policy_contract.random_seeds must be a predeclared array of integer seeds");
+        return top;
+    };
+    if seed_values.len() < 20 {
+        fail(&mut top, "FAIL", "RANDOM_SEED_PANEL_TOO_SMALL", "the uniform-random control requires at least 20 preregistered seeds");
+        return top;
+    }
+    let mut seed_set = BTreeSet::new();
+    let mut random_seeds = Vec::<u64>::new();
+    for seed_value in seed_values {
+        let Some(seed) = seed_value.as_u64() else {
+            fail(&mut top, "FAIL", "RANDOM_SEED_INVALID", "every random seed must be a non-negative integer");
+            continue;
+        };
+        if !seed_set.insert(seed) {
+            fail(&mut top, "FAIL", "RANDOM_SEED_DUPLICATE", &format!("random seed {seed} is duplicated"));
+        }
+        random_seeds.push(seed);
+    }
+    if random_seeds.len() != seed_values.len() {
+        return top;
+    }
+    if public.get("claim_ceiling").and_then(Value::as_str).is_none()
+        || oracle.get("claim_ceiling").and_then(Value::as_str).is_none() {
+        fail(&mut top, "FAIL", "CLAIM_CEILING_MISSING", "both inputs must declare a claim ceiling");
+    }
+    let Some(environments) = oracle.get("environments").and_then(Value::as_array) else {
+        fail(&mut top, "FAIL", "ENVIRONMENTS_REQUIRED", "sealed oracle has no environments array");
+        return top;
+    };
+    let mut episodes = Vec::new();
+    for env in environments {
+        let Some(env_id) = env.get("environment_id").and_then(Value::as_str) else {
+            fail(&mut top, "FAIL", "ENVIRONMENT_ID_MISSING", "every evaluator environment needs an ID");
+            continue;
+        };
+        for policy in POLICY_CLASSES {
+            let mut episode = run_one_with_executor(&public, &oracle, env_id, policy, executor);
+            if let Some(o) = episode.as_object_mut() {
+                o.insert("input_sha256".to_owned(), json!(input_digest));
+                o.insert("oracle_sha256".to_owned(), json!(oracle_digest));
+            }
+            if episode.get("status").and_then(Value::as_str) == Some("FAIL") {
+                fail(&mut top, "FAIL", "EPISODE_FAILED", &format!("episode {env_id}/{policy} failed protocol checks"));
+            } else if episode.get("status").and_then(Value::as_str) == Some("UNRESOLVED") {
+                fail(&mut top, "UNRESOLVED", "EPISODE_UNRESOLVED", &format!("episode {env_id}/{policy} could not be fully scored"));
+            }
+            episodes.push(episode);
+        }
+    }
+    let mut auxiliary_controls = Vec::new();
+    for env in environments {
+        let Some(env_id) = env.get("environment_id").and_then(Value::as_str) else { continue };
+        for seed in &random_seeds {
+            let mut seeded_public = public.clone();
+            seeded_public["policy_contract"]["random_seed"] = json!(seed);
+            let mut control = run_one_with_executor(&seeded_public, &oracle, env_id, "uniform_random_fixed_space", executor);
+            if let Some(object) = control.as_object_mut() {
+                object.insert("input_sha256".to_owned(), json!(input_digest));
+                object.insert("oracle_sha256".to_owned(), json!(oracle_digest));
+            }
+            if control.get("status").and_then(Value::as_str) == Some("FAIL") {
+                fail(&mut top, "FAIL", "AUXILIARY_CONTROL_FAILED", &format!("uniform-random baseline failed in environment {env_id}, seed {seed}"));
+            } else if control.get("status").and_then(Value::as_str) == Some("UNRESOLVED") {
+                fail(&mut top, "UNRESOLVED", "AUXILIARY_CONTROL_UNRESOLVED", &format!("uniform-random baseline unresolved in environment {env_id}, seed {seed}"));
+            }
+            auxiliary_controls.push(control);
+        }
+    }
+
+    top["environment_count"] = json!(environments.len());
+    top["episodes_checked"] = json!(episodes.len());
+    top["episodes"] = json!(episodes);
+    top["auxiliary_control_count"] = json!(auxiliary_controls.len());
+    top["auxiliary_controls"] = json!(auxiliary_controls);
+    top["auxiliary_control_summary"] = json!(summarize_auxiliary_controls(&auxiliary_controls));
+    top
+}
+
+
+fn build_replay_view(
+    catalog: &Value,
+    policy: &str,
+    visible: &BTreeSet<String>,
+    evaluated: &HashSet<String>,
+    observations: &[Value],
+    expanded_candidate_ids: &[String],
+    expansion_used: bool,
+    remaining_cost: f64,
+    remaining_seconds: f64,
+    tariffs: &HashMap<String, Tariff>,
+) -> Value {
+    let visible_candidates = catalog.get("candidate_families").and_then(Value::as_array).into_iter().flatten()
+        .filter(|c| c.get("id").and_then(Value::as_str).is_some_and(|id| visible.contains(id)))
+        .map(|c| {
+            let id = c.get("id").and_then(Value::as_str).unwrap_or("");
+            json!({
+                "id": id,
+                "domain": c.get("domain").cloned().unwrap_or(Value::Null),
+                "features": c.get("features").cloned().unwrap_or(Value::Null),
+                "screen_priority": c.get("screen_priority").cloned().unwrap_or(Value::Null),
+                "predicted_feasible": c.get("predicted_feasible").cloned().unwrap_or(Value::Null),
+                "selector_score": c.get("selector_scores").and_then(|v| v.get(policy)).cloned().unwrap_or(Value::Null),
+                "failure_fallback_score": c.get("failure_fallback_score").cloned().unwrap_or(Value::Null),
+                "is_expansion_candidate": c.get("initially_visible").and_then(Value::as_bool) == Some(false),
+                "evaluated": evaluated.contains(id)
+            })
+        }).collect::<Vec<_>>();
+    let available_expansions = affordable_expansion_methods(
+        tariffs, expansion_used, remaining_cost, remaining_seconds
+    );
+    let action_costs = action_costs_view(tariffs);
+    json!({
+        "policy_id": policy,
+        "campaign_seed": catalog.get("policy_contract").and_then(|v| v.get("random_seed")).and_then(Value::as_u64).unwrap_or(0),
+        "visible_candidates": visible_candidates,
+        "observations": observations,
+        "expanded_candidate_ids": expanded_candidate_ids,
+        "expansion_used": expansion_used,
+        "available_expansion_methods": available_expansions,
+        "action_costs": action_costs,
+        "public_thresholds": catalog.get("policy_contract").and_then(|v| v.get("thresholds")).cloned().unwrap_or_else(|| json!({})),
+        "remaining_cost_units": remaining_cost,
+        "remaining_duration_seconds": remaining_seconds
+    })
+}
+
+fn audit_replay(report_raw: &[u8], public_raw: &[u8], oracle_raw: &[u8]) -> Value {
+    let report_digest = sha256(report_raw);
+    let public_digest = sha256(public_raw);
+    let oracle_digest = sha256(oracle_raw);
+    let mut audit = json!({
+        "status": "PASS",
+        "audit_kind": "independent_live_policy_transcript_replay",
+        "benchmark_id": BENCHMARK_ID,
+        "report_sha256": report_digest,
+        "input_sha256": public_digest,
+        "oracle_sha256": oracle_digest,
+        "episodes_checked": 0,
+        "events_checked": 0,
+        "evaluations_replayed": 0,
+        "expansions_replayed": 0,
+        "cost_units_recomputed": 0.0,
+        "duration_seconds_recomputed": 0.0,
+        "findings": [],
+        "claim_ceiling": "Transcript integrity and declared synthetic outcome replay only; no process isolation, material truth, or industrial result is established."
+    });
+    let report: Value = match serde_json::from_slice(report_raw) {
+        Ok(v) => v,
+        Err(e) => {
+            fail(&mut audit, "FAIL", "REPORT_JSON_INVALID", &e.to_string());
+            return audit;
+        }
+    };
+    let catalog: Value = match serde_json::from_slice(public_raw) {
+        Ok(v) => v,
+        Err(e) => {
+            fail(&mut audit, "FAIL", "PUBLIC_JSON_INVALID", &e.to_string());
+            return audit;
+        }
+    };
+    let oracle: Value = match serde_json::from_slice(oracle_raw) {
+        Ok(v) => v,
+        Err(e) => {
+            fail(&mut audit, "FAIL", "ORACLE_JSON_INVALID", &e.to_string());
+            return audit;
+        }
+    };
+    only_keys(&report, &["status","audit_kind","benchmark_id","input_sha256","oracle_sha256","policy_count","policy_execution_mode","auxiliary_control_count","auxiliary_controls","auxiliary_control_summary","environment_count","episodes_checked","episodes","findings","claim_ceiling"], "run_report", &mut audit);
+    if report.get("audit_kind").and_then(Value::as_str) != Some("synthetic_live_policy_event_loop")
+        || report.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID) {
+        fail(&mut audit, "FAIL", "RUN_REPORT_KIND_INVALID", "input report is not a live policy event-loop report for this benchmark");
+    }
+    if report.get("policy_count").and_then(Value::as_u64) != Some(POLICY_CLASSES.len() as u64) {
+        fail(&mut audit, "FAIL", "POLICY_COUNT_MISMATCH", "run report's policy count does not match the registered policy list");
+    }
+    if report.get("input_sha256").and_then(Value::as_str) != Some(public_digest.as_str()) {
+        fail(&mut audit, "FAIL", "PUBLIC_DIGEST_MISMATCH", "live-loop report does not bind to the exact public catalog bytes supplied to replay");
+    }
+    if report.get("oracle_sha256").and_then(Value::as_str) != Some(oracle_digest.as_str()) {
+        fail(&mut audit, "FAIL", "ORACLE_DIGEST_MISMATCH", "live-loop report does not bind to the exact sealed oracle bytes supplied to replay");
+    }
+    if catalog.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID)
+        || oracle.get("benchmark_id").and_then(Value::as_str) != Some(BENCHMARK_ID) {
+        fail(&mut audit, "FAIL", "BENCHMARK_ID_MISMATCH", "public catalog and oracle benchmark IDs do not match the replay contract");
+    }
+    let max_cost = catalog.get("budgets").and_then(|v| v.get("max_cost_units")).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    let max_seconds = catalog.get("budgets").and_then(|v| v.get("max_duration_seconds")).and_then(Value::as_f64).unwrap_or(f64::NAN);
+    if !max_cost.is_finite() || max_cost <= 0.0 || !max_seconds.is_finite() || max_seconds <= 0.0 {
+        fail(&mut audit, "FAIL", "BUDGET_INVALID", "public budget caps are missing or invalid");
+        return audit;
+    }
+
+    let families = catalog.get("candidate_families").and_then(Value::as_array).cloned().unwrap_or_default();
+    let mut family_by_id: HashMap<String, Value> = HashMap::new();
+    for (i, family) in families.iter().enumerate() {
+        let Some(id) = family.get("id").and_then(Value::as_str) else {
+            fail(&mut audit, "FAIL", "FAMILY_ID_MISSING", &format!("catalog candidate {i} lacks an ID"));
+            continue;
+        };
+        if family_by_id.insert(id.to_owned(), family.clone()).is_some() {
+            fail(&mut audit, "FAIL", "FAMILY_ID_DUPLICATE", &format!("catalog candidate ID {id} is duplicated"));
+        }
+    }
+    let tariffs = get_tariffs(&oracle, &mut audit);
+    let Some(oracle_envs) = oracle.get("environments").and_then(Value::as_array) else {
+        fail(&mut audit, "FAIL", "ENVIRONMENTS_REQUIRED", "sealed oracle has no environment array");
+        return audit;
+    };
+    let Some(auxiliary_controls) = report.get("auxiliary_controls").and_then(Value::as_array) else {
+        fail(&mut audit, "FAIL", "AUXILIARY_CONTROLS_REQUIRED", "run report has no auxiliary control results");
+        return audit;
+    };
+    let Some(seed_values) = catalog.get("policy_contract").and_then(|v| v.get("random_seeds")).and_then(Value::as_array) else {
+        fail(&mut audit, "FAIL", "RANDOM_SEEDS_REQUIRED", "public catalog lacks its preregistered random seed panel");
+        return audit;
+    };
+    let mut random_seeds = Vec::<u64>::new();
+    for value in seed_values {
+        if let Some(seed) = value.as_u64() {
+            random_seeds.push(seed);
+        } else {
+            fail(&mut audit, "FAIL", "RANDOM_SEED_INVALID", "public catalog contains a non-integer seed");
+        }
+    }
+    let expected_aux_count = oracle_envs.len() * random_seeds.len();
+    if report.get("auxiliary_control_count").and_then(Value::as_u64) != Some(auxiliary_controls.len() as u64)
+        || auxiliary_controls.len() != expected_aux_count {
+        fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_COUNT_MISMATCH", &format!("expected {expected_aux_count} uniform-random environment/seed controls"));
+    }
+    let mut auxiliary_keys = HashSet::<(String, u64)>::new();
+    for (i, control) in auxiliary_controls.iter().enumerate() {
+        let env_id = control.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        let Some(seed) = control.get("campaign_seed").and_then(Value::as_u64) else {
+            fail(&mut audit, "FAIL", "AUXILIARY_SEED_MISSING", &format!("auxiliary control {i} lacks campaign_seed"));
+            continue;
+        };
+        if !auxiliary_keys.insert((env_id.to_owned(), seed)) {
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_DUPLICATE", &format!("duplicate uniform-random control for environment {env_id}, seed {seed}"));
+        }
+        if control.get("policy_class").and_then(Value::as_str) != Some("uniform_random_fixed_space") {
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_POLICY_INVALID", &format!("auxiliary control {i} is not the registered uniform-random baseline"));
+        }
+        if control.get("input_sha256").and_then(Value::as_str) != Some(public_digest.as_str())
+            || control.get("oracle_sha256").and_then(Value::as_str) != Some(oracle_digest.as_str()) {
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_DIGEST_MISMATCH", &format!("uniform-random control {env_id}, seed {seed} is not bound to the exact public/oracle inputs"));
+        }
+        let mut seeded_catalog = catalog.clone();
+        seeded_catalog["policy_contract"]["random_seed"] = json!(seed);
+        let mut expected = run_one(&seeded_catalog, &oracle, env_id, "uniform_random_fixed_space");
+        if let Some(object) = expected.as_object_mut() {
+            object.insert("input_sha256".to_owned(), json!(public_digest));
+            object.insert("oracle_sha256".to_owned(), json!(oracle_digest));
+        }
+        if &expected != control {
+            fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_REPLAY_MISMATCH", &format!("uniform-random control {env_id}, seed {seed} does not replay"));
+        }
+    }
+    for env in oracle_envs {
+        let env_id = env.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        for seed in &random_seeds {
+            if !auxiliary_keys.contains(&(env_id.to_owned(), *seed)) {
+                fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_ENVIRONMENT_SEED_MISSING", &format!("uniform-random control missing for {env_id}, seed {seed}"));
+            }
+        }
+    }
+    let expected_auxiliary_summary = json!(summarize_auxiliary_controls(auxiliary_controls));
+    if report.get("auxiliary_control_summary") != Some(&expected_auxiliary_summary) {
+        fail(&mut audit, "FAIL", "AUXILIARY_CONTROL_SUMMARY_MISMATCH", "aggregate seed-sweep metrics do not match the individual auxiliary control receipts");
+    }
+
+    let Some(episodes) = report.get("episodes").and_then(Value::as_array) else {
+        fail(&mut audit, "FAIL", "EPISODES_REQUIRED", "run report has no episodes array");
+        return audit;
+    };
+
+    let mut episodes_checked = 0usize;
+    let mut events_checked = 0usize;
+    let mut policy_actions_checked = 0usize;
+    let mut evals_replayed = 0usize;
+    let mut expansions_replayed = 0usize;
+    let mut total_cost = 0.0f64;
+    let mut total_seconds = 0.0f64;
+    let mut episode_ids = HashSet::new();
+
+    for (episode_index, episode) in episodes.iter().enumerate() {
+        let env_id = episode.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        let policy = episode.get("policy_class").and_then(Value::as_str).unwrap_or("");
+        let campaign_id = episode.get("campaign_id").and_then(Value::as_str).unwrap_or("");
+        if !valid_slug(env_id) || !allowed_policy(policy) || campaign_id.is_empty() {
+            fail(&mut audit, "FAIL", "EPISODE_IDENTITY_INVALID", &format!("episode {episode_index} has invalid identity fields"));
+            continue;
+        }
+        if !episode_ids.insert(campaign_id.to_owned()) {
+            fail(&mut audit, "FAIL", "EPISODE_ID_DUPLICATE", &format!("duplicate campaign ID {campaign_id}"));
+        }
+        if episode.get("status").and_then(Value::as_str) == Some("FAIL") {
+            fail(&mut audit, "FAIL", "SOURCE_EPISODE_FAILED", &format!("episode {campaign_id} is already marked FAIL"));
+        }
+        if episode.get("input_sha256").and_then(Value::as_str) != Some(public_digest.as_str())
+            || episode.get("oracle_sha256").and_then(Value::as_str) != Some(oracle_digest.as_str()) {
+            fail(&mut audit, "FAIL", "EPISODE_DIGEST_MISMATCH", &format!("episode {campaign_id} does not bind to the supplied inputs"));
+        }
+        let Some(env) = oracle_envs.iter().find(|e| e.get("environment_id").and_then(Value::as_str) == Some(env_id)) else {
+            fail(&mut audit, "UNRESOLVED", "ENVIRONMENT_MISSING", &format!("sealed oracle has no environment {env_id}"));
+            continue;
+        };
+        let outcome_rows = env.get("outcomes").and_then(Value::as_array).cloned().unwrap_or_default();
+        let outcome_by_id: HashMap<String, (bool, f64)> = outcome_rows.iter().filter_map(|row| {
+            let id = row.get("candidate_family_id")?.as_str()?.to_owned();
+            let feasible = row.get("feasible")?.as_bool()?;
+            let utility = row.get("utility")?.as_f64()?;
+            utility.is_finite().then_some((id, (feasible, utility)))
+        }).collect();
+        let oracle_best_feasible_utility = outcome_by_id.values()
+            .filter(|(feasible, _)| *feasible)
+            .map(|(_, utility)| *utility)
+            .reduce(f64::max);
+        if !close(episode.get("oracle_best_feasible_utility").and_then(Value::as_f64), oracle_best_feasible_utility) {
+            fail(&mut audit, "FAIL", "ORACLE_BEST_UTILITY_MISMATCH", &format!("episode {campaign_id} oracle optimum does not match sealed feasible outcomes"));
+        }
+        let mut visible: BTreeSet<String> = families.iter()
+            .filter(|f| f.get("initially_visible").and_then(Value::as_bool) == Some(true))
+            .filter_map(|f| f.get("id").and_then(Value::as_str).map(str::to_owned)).collect();
+        let mut evaluated = HashSet::new();
+        let mut observations = Vec::<Value>::new();
+        let mut expanded_ids = Vec::<String>::new();
+        let mut expansion_used = false;
+        let mut expansion_decision_made = policy == "fixed_space" || policy == "static_prior_expansion";
+        let mut cost_used = 0.0f64;
+        let mut seconds_used = 0.0f64;
+        let mut feasible_hits = 0usize;
+        let mut false_feasible = 0usize;
+        let mut best_utility: Option<f64> = None;
+        let mut first_feasible_cost: Option<f64> = None;
+        let Some(events) = episode.get("events").and_then(Value::as_array) else {
+            fail(&mut audit, "FAIL", "EVENTS_REQUIRED", &format!("episode {campaign_id} has no event array"));
+            continue;
+        };
+        if events.is_empty() {
+            fail(&mut audit, "FAIL", "EVENTS_EMPTY", &format!("episode {campaign_id} has no events"));
+        }
+
+        for (event_index, event) in events.iter().enumerate() {
+            let event_type = event.get("action_type").and_then(Value::as_str).unwrap_or("");
+            let allowed_keys: &[&str] = match event_type {
+                "evaluate_candidate" => &["event_seq","action_type","candidate_family_id","decision_view_sha256","cost_units_charged","duration_seconds_charged","predicted_feasible_before_observation","observed_outcome"],
+                "expand_space" => &["event_seq","action_type","expansion_method","candidate_family_id","proposal_sha256","decision_view_sha256","cost_units_charged","duration_seconds_charged","observed_outcome"],
+                _ => {
+                    fail(&mut audit, "FAIL", "EVENT_TYPE_INVALID", &format!("episode {campaign_id} has invalid action type {event_type}"));
+                    continue;
+                }
+            };
+            only_keys(event, allowed_keys, &format!("episode {campaign_id}.events[{event_index}]"), &mut audit);
+            if event.get("event_seq").and_then(Value::as_u64) != Some((event_index + 1) as u64) {
+                fail(&mut audit, "FAIL", "EVENT_SEQUENCE_INVALID", &format!("episode {campaign_id} event sequence is not consecutive"));
+            }
+            let Some(candidate_id) = event.get("candidate_family_id").and_then(Value::as_str) else {
+                fail(&mut audit, "FAIL", "EVENT_CANDIDATE_ID_MISSING", &format!("episode {campaign_id} event {event_index} lacks a candidate ID"));
+                continue;
+            };
+
+            let view = build_replay_view(
+                &catalog, policy, &visible, &evaluated, &observations, &expanded_ids,
+                expansion_used, (max_cost - cost_used).max(0.0), (max_seconds - seconds_used).max(0.0),
+                &tariffs
+            );
+            let expected_view_digest = sha256(&serde_json::to_vec(&view).unwrap_or_default());
+            if event.get("decision_view_sha256").and_then(Value::as_str) != Some(expected_view_digest.as_str()) {
+                fail(&mut audit, "FAIL", "DECISION_VIEW_DIGEST_MISMATCH", &format!("episode {campaign_id} event {event_index} view digest is not reproducible from the prior public state"));
+            }
+
+            let consideration_due = !expansion_decision_made
+                && observations.len() == 1
+                && method_for_policy(policy).is_some();
+            let expected_action = choose_action(policy, &view, expansion_decision_made);
+            if consideration_due {
+                expansion_decision_made = true;
+            }
+            let action_matches = match &expected_action {
+                Action::Evaluate(expected_id) => event_type == "evaluate_candidate" && candidate_id == expected_id,
+                Action::Expand(expected_method) => {
+                    event_type == "expand_space"
+                        && event.get("expansion_method").and_then(Value::as_str) == Some(expected_method.as_str())
+                }
+                Action::Stop(reason) => {
+                    fail(&mut audit, "FAIL", "POLICY_ACTION_AFTER_STOP", &format!("episode {campaign_id} event {event_index} occurs after deterministic policy would stop: {reason}"));
+                    false
+                }
+            };
+            policy_actions_checked += 1;
+            if !action_matches {
+                fail(&mut audit, "FAIL", "POLICY_ACTION_MISMATCH", &format!("episode {campaign_id} event {event_index} does not match the registered deterministic policy action for the reconstructed public view"));
+            }
+
+            let (tariff_key, method) = if event_type == "evaluate_candidate" {
+                ("evaluate_candidate", None)
+            } else {
+                let Some(m) = event.get("expansion_method").and_then(Value::as_str) else {
+                    fail(&mut audit, "FAIL", "EXPANSION_METHOD_REQUIRED", &format!("episode {campaign_id} expansion has no method"));
+                    continue;
+                };
+                let Some(key) = tariff_key_for_method(m) else {
+                    fail(&mut audit, "FAIL", "EXPANSION_METHOD_INVALID", &format!("episode {campaign_id} has unknown expansion method {m}"));
+                    continue;
+                };
+                (key, Some(m))
+            };
+            let Some(tariff) = tariffs.get(tariff_key) else {
+                fail(&mut audit, "FAIL", "TARIFF_MISSING", &format!("episode {campaign_id} missing tariff {tariff_key}"));
+                continue;
+            };
+            let declared_cost = event.get("cost_units_charged").and_then(Value::as_f64).unwrap_or(f64::NAN);
+            let declared_seconds = event.get("duration_seconds_charged").and_then(Value::as_f64).unwrap_or(f64::NAN);
+            if (declared_cost - tariff.cost).abs() > 1e-9 || (declared_seconds - tariff.seconds).abs() > 1e-9 {
+                fail(&mut audit, "FAIL", "ACTION_CHARGE_MISMATCH", &format!("episode {campaign_id} event {event_index} does not match evaluator-owned tariff"));
+            }
+            cost_used += tariff.cost;
+            seconds_used += tariff.seconds;
+            if cost_used > max_cost + 1e-9 || seconds_used > max_seconds + 1e-9 {
+                fail(&mut audit, "FAIL", "RESOURCE_BUDGET_OVERRUN", &format!("episode {campaign_id} exceeds the registered cost or duration cap"));
+            }
+            if event.get("observed_outcome").is_some_and(|v| !v.is_null()) && event_type == "expand_space" {
+                fail(&mut audit, "FAIL", "EXPANSION_REVEALED_OUTCOME", &format!("expansion event in {campaign_id} reveals a sealed outcome"));
+            }
+
+            if event_type == "expand_space" {
+                expansions_replayed += 1;
+                if expansion_used {
+                    fail(&mut audit, "FAIL", "MULTIPLE_EXPANSIONS", &format!("episode {campaign_id} has more than one expansion"));
+                }
+                if method_for_policy(policy) != method {
+                    fail(&mut audit, "FAIL", "EXPANSION_POLICY_MISMATCH", &format!("episode {campaign_id} policy {policy} did not declare method {method:?}"));
+                }
+                let Some(option) = catalog.get("expansion_options").and_then(Value::as_array).into_iter().flatten()
+                    .find(|o| o.get("method").and_then(Value::as_str) == method) else {
+                    fail(&mut audit, "UNRESOLVED", "EXPANSION_OPTION_MISSING", &format!("episode {campaign_id} has no registered method option"));
+                    continue;
+                };
+                if option.get("candidate_family_id").and_then(Value::as_str) != Some(candidate_id)
+                    || event.get("proposal_sha256").and_then(Value::as_str) != option.get("proposal_sha256").and_then(Value::as_str) {
+                    fail(&mut audit, "FAIL", "EXPANSION_RECEIPT_MISMATCH", &format!("episode {campaign_id} expansion ID/digest differs from the registered proposal"));
+                }
+                if visible.contains(candidate_id) || !family_by_id.contains_key(candidate_id) {
+                    fail(&mut audit, "FAIL", "EXPANSION_VISIBILITY_INVALID", &format!("episode {campaign_id} expands an already visible or unregistered family {candidate_id}"));
+                }
+                if !option.get("evidence_refs").and_then(Value::as_array).is_some_and(|a| !a.is_empty()) {
+                    fail(&mut audit, "UNRESOLVED", "EXPANSION_EVIDENCE_MISSING", &format!("episode {campaign_id} expansion option has no evidence references"));
+                }
+                visible.insert(candidate_id.to_owned());
+                expanded_ids.push(candidate_id.to_owned());
+                expansion_used = true;
+            } else {
+                evals_replayed += 1;
+                if !visible.contains(candidate_id) {
+                    fail(&mut audit, "FAIL", "CANDIDATE_NOT_VISIBLE", &format!("episode {campaign_id} evaluates {candidate_id} before it was revealed"));
+                }
+                if !evaluated.insert(candidate_id.to_owned()) {
+                    fail(&mut audit, "FAIL", "CANDIDATE_DUPLICATE_EVALUATION", &format!("episode {campaign_id} evaluates {candidate_id} more than once"));
+                }
+                let Some(family) = family_by_id.get(candidate_id) else {
+                    fail(&mut audit, "FAIL", "CANDIDATE_UNREGISTERED", &format!("episode {campaign_id} evaluates unknown family {candidate_id}"));
+                    continue;
+                };
+                if event.get("predicted_feasible_before_observation") != family.get("predicted_feasible") {
+                    fail(&mut audit, "FAIL", "PREDICTION_RECEIPT_MISMATCH", &format!("episode {campaign_id} predicted feasibility differs from public catalog"));
+                }
+                let Some((feasible, utility)) = outcome_by_id.get(candidate_id).copied() else {
+                    if event.get("observed_outcome").is_some_and(|v| !v.is_null()) {
+                        fail(&mut audit, "FAIL", "MISSING_OUTCOME_DISCLOSED", &format!("episode {campaign_id} exposes a result absent from sealed oracle"));
+                    } else {
+                        fail(&mut audit, "UNRESOLVED", "SEALED_OUTCOME_MISSING", &format!("episode {campaign_id} has no oracle outcome for {candidate_id}"));
+                    }
+                    continue;
+                };
+                let expected = json!({"feasible":feasible,"utility":utility});
+                if event.get("observed_outcome") != Some(&expected) {
+                    fail(&mut audit, "FAIL", "OBSERVATION_ORACLE_MISMATCH", &format!("episode {campaign_id} observed result differs from sealed oracle"));
+                }
+                if family.get("predicted_feasible").and_then(Value::as_bool) == Some(true) && !feasible {
+                    false_feasible += 1;
+                }
+                observations.push(json!({"candidate_family_id":candidate_id,"feasible":feasible,"utility":utility}));
+                if feasible {
+                    feasible_hits += 1;
+                    best_utility = Some(best_utility.map_or(utility, |v| v.max(utility)));
+                    if first_feasible_cost.is_none() {
+                        first_feasible_cost = Some(cost_used);
+                    }
+                }
+            }
+            events_checked += 1;
+        }
+
+        if !close(episode.get("cost_units_charged").and_then(Value::as_f64), Some(cost_used)) {
+            fail(&mut audit, "FAIL", "TOTAL_COST_MISMATCH", &format!("episode {campaign_id} total cost does not replay"));
+        }
+        if !close(episode.get("duration_seconds_charged").and_then(Value::as_f64), Some(seconds_used)) {
+            fail(&mut audit, "FAIL", "TOTAL_DURATION_MISMATCH", &format!("episode {campaign_id} total duration does not replay"));
+        }
+        if episode.get("evaluations").and_then(Value::as_u64) != Some(observations.len() as u64) {
+            fail(&mut audit, "FAIL", "EVALUATION_COUNT_MISMATCH", &format!("episode {campaign_id} evaluation count does not replay"));
+        }
+        if episode.get("expansions").and_then(Value::as_u64) != Some(expanded_ids.len() as u64) {
+            fail(&mut audit, "FAIL", "EXPANSION_COUNT_MISMATCH", &format!("episode {campaign_id} expansion count does not replay"));
+        }
+        if episode.get("verified_feasible_discoveries").and_then(Value::as_u64) != Some(feasible_hits as u64) {
+            fail(&mut audit, "FAIL", "FEASIBLE_HIT_COUNT_MISMATCH", &format!("episode {campaign_id} feasible-hit count does not replay"));
+        }
+        if episode.get("false_feasible_predictions").and_then(Value::as_u64) != Some(false_feasible as u64) {
+            fail(&mut audit, "FAIL", "FALSE_FEASIBLE_COUNT_MISMATCH", &format!("episode {campaign_id} false-feasible count does not replay"));
+        }
+        if !close(episode.get("best_verified_feasible_utility").and_then(Value::as_f64), best_utility) {
+            fail(&mut audit, "FAIL", "BEST_UTILITY_MISMATCH", &format!("episode {campaign_id} best verified feasible utility does not replay"));
+        }
+        let expected_simple_regret = match (oracle_best_feasible_utility, best_utility) {
+            (Some(optimum), Some(incumbent)) => Some((optimum - incumbent).max(0.0)),
+            _ => None,
+        };
+        if !close(episode.get("terminal_simple_regret").and_then(Value::as_f64), expected_simple_regret) {
+            fail(&mut audit, "FAIL", "SIMPLE_REGRET_MISMATCH", &format!("episode {campaign_id} terminal simple regret does not replay"));
+        }
+        if !close(episode.get("first_feasible_cost_units").and_then(Value::as_f64), first_feasible_cost) {
+            fail(&mut audit, "FAIL", "FIRST_FEASIBLE_COST_MISMATCH", &format!("episode {campaign_id} first feasible cost does not replay"));
+        }
+        total_cost += cost_used;
+        total_seconds += seconds_used;
+        episodes_checked += 1;
+    }
+
+    if report.get("episodes_checked").and_then(Value::as_u64) != Some(episodes.len() as u64) {
+        fail(&mut audit, "FAIL", "EPISODE_COUNT_MISMATCH", "reported episode count does not match episode array length");
+    }
+    let expected_episode_count = oracle_envs.len() * POLICY_CLASSES.len();
+    if episodes.len() != expected_episode_count {
+        fail(&mut audit, "FAIL", "POLICY_ENVIRONMENT_COVERAGE_MISMATCH", &format!("expected {expected_episode_count} environment/policy pairs but replay received {}", episodes.len()));
+    }
+    let mut pairs = HashSet::new();
+    for episode in episodes {
+        let env = episode.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        let policy = episode.get("policy_class").and_then(Value::as_str).unwrap_or("");
+        if !pairs.insert((env.to_owned(), policy.to_owned())) {
+            fail(&mut audit, "FAIL", "POLICY_ENVIRONMENT_PAIR_DUPLICATE", &format!("duplicate episode for {env}/{policy}"));
+        }
+    }
+    for env in oracle_envs {
+        let env_id = env.get("environment_id").and_then(Value::as_str).unwrap_or("");
+        for policy in POLICY_CLASSES {
+            if !pairs.contains(&(env_id.to_owned(), policy.to_owned())) {
+                fail(&mut audit, "FAIL", "POLICY_ENVIRONMENT_PAIR_MISSING", &format!("missing episode for {env_id}/{policy}"));
+            }
+        }
+    }
+    audit["episodes_checked"] = json!(episodes_checked);
+    audit["events_checked"] = json!(events_checked);
+    audit["policy_actions_checked"] = json!(policy_actions_checked);
+    audit["evaluations_replayed"] = json!(evals_replayed);
+    audit["expansions_replayed"] = json!(expansions_replayed);
+    audit["cost_units_recomputed"] = json!(total_cost);
+    audit["duration_seconds_recomputed"] = json!(total_seconds);
+    audit
+}
+
+fn run_all(public_raw: &[u8], oracle_raw: &[u8]) -> Value {
+    let mut direct = |policy: &str, view: &Value, expansion_decision_made: bool| {
+        Ok(choose_action(policy, view, expansion_decision_made))
+    };
+    run_all_with_executor(public_raw, oracle_raw, &mut direct)
+}
+
+fn action_to_value(action: &Action) -> Value {
+    match action {
+        Action::Evaluate(candidate_id) => json!({
+            "action_type": "evaluate_candidate",
+            "candidate_family_id": candidate_id
+        }),
+        Action::Expand(method) => json!({
+            "action_type": "expand_space",
+            "expansion_method": method
+        }),
+        Action::Stop(reason) => json!({
+            "action_type": "stop",
+            "reason": reason
+        })
+    }
+}
+
+fn action_from_value(value: &Value) -> Result<Action, String> {
+    let Some(action_type) = value.get("action_type").and_then(Value::as_str) else {
+        return Err("policy response requires action_type".to_owned());
+    };
+    let allowed: &[&str] = match action_type {
+        "evaluate_candidate" => &["action_type", "candidate_family_id"],
+        "expand_space" => &["action_type", "expansion_method"],
+        "stop" => &["action_type", "reason"],
+        other => return Err(format!("unrecognized policy action_type {other}")),
+    };
+    let Some(object) = value.as_object() else {
+        return Err("policy response must be an object".to_owned());
+    };
+    if let Some(key) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
+        return Err(format!("policy response contains undeclared field {key}"));
+    }
+    match action_type {
+        "evaluate_candidate" => {
+            let id = value.get("candidate_family_id").and_then(Value::as_str)
+                .ok_or_else(|| "evaluate_candidate requires candidate_family_id".to_owned())?;
+            if !valid_slug(id) {
+                return Err("candidate_family_id must be a lowercase slug".to_owned());
+            }
+            Ok(Action::Evaluate(id.to_owned()))
+        }
+        "expand_space" => {
+            let method = value.get("expansion_method").and_then(Value::as_str)
+                .ok_or_else(|| "expand_space requires expansion_method".to_owned())?;
+            if !["random", "rule_based", "prior_guided"].contains(&method) {
+                return Err(format!("unsupported expansion_method {method}"));
+            }
+            Ok(Action::Expand(method.to_owned()))
+        }
+        "stop" => {
+            let reason = value.get("reason").and_then(Value::as_str)
+                .filter(|reason| !reason.trim().is_empty())
+                .ok_or_else(|| "stop requires a non-empty reason".to_owned())?;
+            Ok(Action::Stop(reason.to_owned()))
+        }
+        _ => unreachable!()
+    }
+}
+
+fn request_policy_subprocess(
+    executable: &Path,
+    policy: &str,
+    public_view: &Value,
+    expansion_decision_made: bool,
+) -> Result<Action, String> {
+    let request = json!({
+        "schema_version": 1,
+        "policy_class": policy,
+        "public_view": public_view,
+        "expansion_decision_made": expansion_decision_made
+    });
+    let request_bytes = serde_json::to_vec(&request)
+        .map_err(|e| format!("cannot serialize policy request: {e}"))?;
+    let mut child = Command::new(executable)
+        .arg("--policy-child")
+        .env_clear()
+        .current_dir(std::env::temp_dir())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("cannot start policy subprocess: {e}"))?;
+    {
+        // Take ownership of the pipe so it is closed before waiting; the child reads stdin to EOF.
+        let mut stdin = child.stdin.take()
+            .ok_or_else(|| "policy subprocess stdin was not created".to_owned())?;
+        stdin.write_all(&request_bytes)
+            .map_err(|e| format!("cannot write policy request: {e}"))?;
+    }
+    let output = child.wait_with_output()
+        .map_err(|e| format!("cannot collect policy subprocess output: {e}"))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "policy subprocess exited with {}: {}",
+            output.status,
+            stderr.trim()
+        ));
+    }
+    let response: Value = serde_json::from_slice(&output.stdout)
+        .map_err(|e| format!("policy subprocess did not return one valid JSON action: {e}"))?;
+    action_from_value(&response)
+}
+
+fn run_all_subprocess(public_raw: &[u8], oracle_raw: &[u8], executable: &Path) -> Value {
+    let mut isolated_adapter = |policy: &str, view: &Value, expansion_decision_made: bool| {
+        request_policy_subprocess(executable, policy, view, expansion_decision_made)
+    };
+    let mut report = run_all_with_executor(public_raw, oracle_raw, &mut isolated_adapter);
+    report["policy_execution_mode"] = json!("child_process_serialized_public_state_v1");
+    report
+}
+
+fn run_policy_child() -> ExitCode {
+    let mut raw = Vec::new();
+    if let Err(error) = std::io::stdin().read_to_end(&mut raw) {
+        eprintln!("cannot read policy request: {error}");
+        return ExitCode::from(2);
+    }
+    let request: Value = match serde_json::from_slice(&raw) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("invalid policy request JSON: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let Some(object) = request.as_object() else {
+        eprintln!("policy request must be an object");
+        return ExitCode::from(2);
+    };
+    let allowed = ["schema_version", "policy_class", "public_view", "expansion_decision_made"];
+    if let Some(key) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
+        eprintln!("policy request contains undeclared field {key}");
+        return ExitCode::from(2);
+    }
+    if request.get("schema_version").and_then(Value::as_u64) != Some(1) {
+        eprintln!("policy request schema_version must equal 1");
+        return ExitCode::from(2);
+    }
+    let Some(policy) = request.get("policy_class").and_then(Value::as_str) else {
+        eprintln!("policy request needs policy_class");
+        return ExitCode::from(2);
+    };
+    if !allowed_policy(policy) {
+        eprintln!("policy request contains unregistered policy_class {policy}");
+        return ExitCode::from(2);
+    }
+    let Some(view) = request.get("public_view") else {
+        eprintln!("policy request needs public_view");
+        return ExitCode::from(2);
+    };
+    let Some(expansion_decision_made) = request.get("expansion_decision_made").and_then(Value::as_bool) else {
+        eprintln!("policy request needs boolean expansion_decision_made");
+        return ExitCode::from(2);
+    };
+    let action = choose_action(policy, view, expansion_decision_made);
+    println!("{}", serde_json::to_string(&action_to_value(&action)).expect("action serializes"));
+    ExitCode::SUCCESS
+}
+
+fn close(left: Option<f64>, right: Option<f64>) -> bool {
+    match (left, right) {
+        (Some(a), Some(b)) => a.is_finite() && b.is_finite() && (a - b).abs() <= 1e-9,
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+
+fn audit_budget_frontier(lanes: &[(&[u8], &[u8])], oracle_raw: &[u8]) -> Value {
+    let oracle_digest = sha256(oracle_raw);
+    let mut audit = json!({
+        "schema_version": 1,
+        "status": "PASS",
+        "audit_kind": "synthetic_paired_budget_frontier_scorecard",
+        "benchmark_id": BENCHMARK_ID,
+        "oracle_sha256": oracle_digest,
+        "budget_points": 0,
+        "lane_receipts": [],
+        "environmentwise_metrics": [],
+        "policy_frontier": [],
+        "findings": [],
+        "claim_ceiling": "Cross-budget synthetic harness scorecard only; not a material-performance or state-of-the-art claim. Environment-specific outcomes are preserved; no pooled utility winner is declared."
+    });
+    if lanes.len() != 3 {
+        fail(&mut audit, "FAIL", "BUDGET_LANE_COUNT_INVALID", "budget-frontier scorecard requires exactly three report/catalog pairs (3, 4, and 5 cost units)");
+        return audit;
+    }
+
+    let expected_budgets = [3.0, 4.0, 5.0];
+    let mut parsed_reports = Vec::<Value>::new();
+    let mut lane_receipts = Vec::<Value>::new();
+
+    for (index, (report_raw, catalog_raw)) in lanes.iter().enumerate() {
+        let report: Value = match serde_json::from_slice(report_raw) {
+            Ok(value) => value,
+            Err(error) => {
+                fail(&mut audit, "FAIL", "BUDGET_REPORT_JSON_INVALID", &format!("budget lane {} report is invalid JSON: {error}", index + 1));
+                continue;
+            }
+        };
+        let catalog: Value = match serde_json::from_slice(catalog_raw) {
+            Ok(value) => value,
+            Err(error) => {
+                fail(&mut audit, "FAIL", "BUDGET_CATALOG_JSON_INVALID", &format!("budget lane {} catalog is invalid JSON: {error}", index + 1));
+                continue;
+            }
+        };
+        let budget = catalog.get("budgets").and_then(|v| v.get("max_cost_units")).and_then(Value::as_f64);
+        if !close(budget, Some(expected_budgets[index])) {
+            fail(&mut audit, "FAIL", "BUDGET_POINT_MISMATCH", &format!("lane {} must use the preregistered {}-unit budget", index + 1, expected_budgets[index]));
+        }
+        if report.get("status").and_then(Value::as_str) != Some("PASS")
+            || report.get("audit_kind").and_then(Value::as_str) != Some("synthetic_live_policy_event_loop")
+            || report.get("input_sha256").and_then(Value::as_str) != Some(sha256(catalog_raw).as_str())
+            || report.get("oracle_sha256").and_then(Value::as_str) != Some(oracle_digest.as_str()) {
+            fail(&mut audit, "FAIL", "BUDGET_REPORT_BINDING_INVALID", &format!("lane {} report must PASS and bind to the exact catalog and shared oracle bytes", index + 1));
+        }
+
+        // Independently replay every input before using it in a cross-budget comparison.
+        let replay = audit_replay(report_raw, catalog_raw, oracle_raw);
+        if replay.get("status").and_then(Value::as_str) != Some("PASS") {
+            fail(&mut audit, "FAIL", "BUDGET_LANE_REPLAY_FAILED", &format!("lane {} did not independently replay as PASS", index + 1));
+        }
+        lane_receipts.push(json!({
+            "budget_units": budget,
+            "report_sha256": sha256(report_raw),
+            "catalog_sha256": sha256(catalog_raw),
+            "oracle_sha256": oracle_digest,
+            "replay_status": replay.get("status").cloned().unwrap_or(Value::Null),
+            "episodes_replayed": replay.get("episodes_checked").cloned().unwrap_or(Value::Null),
+            "events_replayed": replay.get("events_checked").cloned().unwrap_or(Value::Null),
+            "cost_units_recomputed": replay.get("cost_units_recomputed").cloned().unwrap_or(Value::Null)
+        }));
+        parsed_reports.push(report);
+    }
+
+    if audit.get("status").and_then(Value::as_str) != Some("PASS") || parsed_reports.len() != 3 {
+        audit["lane_receipts"] = json!(lane_receipts);
+        return audit;
+    }
+    audit["budget_points"] = json!(3);
+    audit["lane_receipts"] = json!(lane_receipts);
+
+    // Build matched comparisons within each environment and the same budget.
+    // Never collapse helpful, neutral, harmful and misleading-prior environments into
+    // a single pooled mean that could hide a policy regression.
+    let mut metrics = Vec::<Value>::new();
+    for (lane_index, report) in parsed_reports.iter().enumerate() {
+        let budget = expected_budgets[lane_index];
+        let episodes = report.get("episodes").and_then(Value::as_array).cloned().unwrap_or_default();
+        let random_summaries = report.get("auxiliary_control_summary").and_then(Value::as_array).cloned().unwrap_or_default();
+
+        for episode in &episodes {
+            let environment = episode.get("environment_id").and_then(Value::as_str).unwrap_or("");
+            let policy = episode.get("policy_class").and_then(Value::as_str).unwrap_or("");
+            let best_utility = episode.get("best_verified_feasible_utility").and_then(Value::as_f64);
+            let gp_ei_utility = episodes.iter()
+                .find(|candidate| candidate.get("environment_id").and_then(Value::as_str) == Some(environment)
+                    && candidate.get("policy_class").and_then(Value::as_str) == Some("gp_ei_fixed_space"))
+                .and_then(|candidate| candidate.get("best_verified_feasible_utility").and_then(Value::as_f64));
+            let fixed_utility = episodes.iter()
+                .find(|candidate| candidate.get("environment_id").and_then(Value::as_str) == Some(environment)
+                    && candidate.get("policy_class").and_then(Value::as_str) == Some("fixed_space"))
+                .and_then(|candidate| candidate.get("best_verified_feasible_utility").and_then(Value::as_f64));
+            let random_mean = random_summaries.iter()
+                .find(|summary| summary.get("environment_id").and_then(Value::as_str) == Some(environment))
+                .and_then(|summary| summary.get("mean_best_verified_feasible_utility").and_then(Value::as_f64));
+            let delta = |candidate: Option<f64>, baseline: Option<f64>| -> Option<f64> {
+                match (candidate, baseline) {
+                    (Some(left), Some(right)) if left.is_finite() && right.is_finite() => Some(left - right),
+                    _ => None
+                }
+            };
+            let gp_delta = delta(best_utility, gp_ei_utility);
+            let fixed_delta = delta(best_utility, fixed_utility);
+            let random_delta = delta(best_utility, random_mean);
+            let discovery_status = if best_utility.is_some() {
+                "VERIFIED_FEASIBLE_FOUND"
+            } else {
+                "NO_VERIFIED_FEASIBLE_CANDIDATE_FOUND"
+            };
+            let comparison_status = |value: Option<f64>| {
+                if value.is_some() { "COMPARABLE" } else { "UNRESOLVED_NO_VERIFIED_UTILITY" }
+            };
+            let cost = episode.get("cost_units_charged").and_then(Value::as_f64);
+            metrics.push(json!({
+                "budget_units": budget,
+                "environment_id": environment,
+                "policy_class": policy,
+                "feasible_discovery_status": discovery_status,
+                "best_verified_feasible_utility": best_utility,
+                "terminal_simple_regret": episode.get("terminal_simple_regret").cloned().unwrap_or(Value::Null),
+                "utility_per_charged_unit": match (best_utility, cost) {
+                    (Some(utility), Some(cost)) if cost > 0.0 => json!(utility / cost),
+                    _ => Value::Null
+                },
+                "first_feasible_cost_units": episode.get("first_feasible_cost_units").cloned().unwrap_or(Value::Null),
+                "false_feasible_predictions": episode.get("false_feasible_predictions").cloned().unwrap_or(Value::Null),
+                "expansions": episode.get("expansions").cloned().unwrap_or(Value::Null),
+                "evaluations": episode.get("evaluations").cloned().unwrap_or(Value::Null),
+                "cost_units_charged": cost,
+                "delta_utility_vs_gp_ei": gp_delta,
+                "gp_ei_comparison_status": comparison_status(gp_delta),
+                "delta_utility_vs_fixed_space": fixed_delta,
+                "fixed_space_comparison_status": comparison_status(fixed_delta),
+                "delta_utility_vs_seeded_random_mean": random_delta,
+                "seeded_random_comparison_status": comparison_status(random_delta)
+            }));
+        }
+    }
+
+    let mut frontier = Vec::<Value>::new();
+    for budget in expected_budgets {
+        for policy in POLICY_CLASSES {
+            let rows = metrics.iter().filter(|row| {
+                close(row.get("budget_units").and_then(Value::as_f64), Some(budget))
+                    && row.get("policy_class").and_then(Value::as_str) == Some(policy)
+            }).collect::<Vec<_>>();
+            let gp_deltas = rows.iter().filter_map(|row| row.get("delta_utility_vs_gp_ei").and_then(Value::as_f64)).collect::<Vec<_>>();
+            let random_deltas = rows.iter().filter_map(|row| row.get("delta_utility_vs_seeded_random_mean").and_then(Value::as_f64)).collect::<Vec<_>>();
+            let count = |values: &[f64], relation: &str| -> usize {
+                values.iter().filter(|value| match relation {
+                    "better" => **value > 1e-9,
+                    "worse" => **value < -1e-9,
+                    _ => value.abs() <= 1e-9
+                }).count()
+            };
+            let gp_unresolved_environments = rows.iter()
+                .filter(|row| row.get("delta_utility_vs_gp_ei").and_then(Value::as_f64).is_none())
+                .filter_map(|row| row.get("environment_id").and_then(Value::as_str).map(str::to_owned))
+                .collect::<Vec<_>>();
+            let random_unresolved_environments = rows.iter()
+                .filter(|row| row.get("delta_utility_vs_seeded_random_mean").and_then(Value::as_f64).is_none())
+                .filter_map(|row| row.get("environment_id").and_then(Value::as_str).map(str::to_owned))
+                .collect::<Vec<_>>();
+            let minimum_gp_delta = gp_deltas.iter().copied().reduce(f64::min);
+            let minimum_random_delta = random_deltas.iter().copied().reduce(f64::min);
+            let gp_all_comparable = gp_unresolved_environments.is_empty();
+            let random_all_comparable = random_unresolved_environments.is_empty();
+            // Do not silently drop a regime where no verified feasible utility exists.
+            // A worst-case delta is only reported when every environment is comparable.
+            frontier.push(json!({
+                "budget_units": budget,
+                "policy_class": policy,
+                "environment_count": rows.len(),
+                "gp_ei_comparable_environment_count": gp_deltas.len(),
+                "gp_ei_unresolved_environment_count": gp_unresolved_environments.len(),
+                "gp_ei_unresolved_environments": gp_unresolved_environments,
+                "gp_ei_better_environments": count(&gp_deltas, "better"),
+                "gp_ei_tied_environments": count(&gp_deltas, "tie"),
+                "gp_ei_worse_environments": count(&gp_deltas, "worse"),
+                "worst_environment_delta_vs_gp_ei": if gp_all_comparable { minimum_gp_delta.map_or(Value::Null, |value| json!(value)) } else { Value::Null },
+                "seeded_random_comparable_environment_count": random_deltas.len(),
+                "seeded_random_unresolved_environment_count": random_unresolved_environments.len(),
+                "seeded_random_unresolved_environments": random_unresolved_environments,
+                "seeded_random_better_environments": count(&random_deltas, "better"),
+                "seeded_random_tied_environments": count(&random_deltas, "tie"),
+                "seeded_random_worse_environments": count(&random_deltas, "worse"),
+                "worst_environment_delta_vs_seeded_random_mean": if random_all_comparable { minimum_random_delta.map_or(Value::Null, |value| json!(value)) } else { Value::Null },
+                "claim_ceiling": "Environment-stratified synthetic comparison only; unresolved utility comparisons are explicit and invalidate a worst-case delta."
+            }));
+        }
+    }
+
+    if metrics.len() != 72 {
+        fail(&mut audit, "FAIL", "ENVIRONMENTWISE_METRIC_COVERAGE_INVALID", &format!("expected 72 rows (3 budgets × 4 environments × 6 policies), observed {}", metrics.len()));
+    }
+    if frontier.len() != 18 || frontier.iter().any(|row| row.get("environment_count").and_then(Value::as_u64) != Some(4)) {
+        fail(&mut audit, "FAIL", "POLICY_FRONTIER_COVERAGE_INVALID", "expected 18 summaries, each preserving all four environments");
+    }
+    audit["environmentwise_metrics"] = json!(metrics);
+    audit["policy_frontier"] = json!(frontier);
+    audit
+}
+
+fn main() -> ExitCode {
+    let args: Vec<String> = env::args().collect();
+    if args.len() == 2 && args[1] == "--policy-child" {
+        return run_policy_child();
+    }
+    if args.len() == 9 && args[1] == "--frontier" {
+        let paths = [&args[2], &args[3], &args[4], &args[5], &args[6], &args[7], &args[8]];
+        let mut raw_files = Vec::<Vec<u8>>::new();
+        for path in paths {
+            match fs::read(path) {
+                Ok(bytes) => raw_files.push(bytes),
+                Err(error) => {
+                    eprintln!("cannot read {}: {error}", path);
+                    return ExitCode::from(2);
+                }
+            }
+        }
+        let lanes = [
+            (raw_files[0].as_slice(), raw_files[1].as_slice()),
+            (raw_files[2].as_slice(), raw_files[3].as_slice()),
+            (raw_files[4].as_slice(), raw_files[5].as_slice())
+        ];
+        let scorecard = audit_budget_frontier(&lanes, raw_files[6].as_slice());
+        let status = scorecard.get("status").and_then(Value::as_str).unwrap_or("FAIL");
+        let code = match status { "PASS" => 0, "UNRESOLVED" => 3, _ => 2 };
+        println!("{}", serde_json::to_string_pretty(&scorecard).expect("budget frontier scorecard serializes"));
+        return ExitCode::from(code);
+    }
+    if args.len() == 5 && args[1] == "--replay" {
+        let report_raw = match fs::read(&args[2]) {
+            Ok(bytes) => bytes,
+            Err(e) => { eprintln!("cannot read {}: {e}", args[2]); return ExitCode::from(2); }
+        };
+        let public_raw = match fs::read(&args[3]) {
+            Ok(bytes) => bytes,
+            Err(e) => { eprintln!("cannot read {}: {e}", args[3]); return ExitCode::from(2); }
+        };
+        let oracle_raw = match fs::read(&args[4]) {
+            Ok(bytes) => bytes,
+            Err(e) => { eprintln!("cannot read {}: {e}", args[4]); return ExitCode::from(2); }
+        };
+        let replay = audit_replay(&report_raw, &public_raw, &oracle_raw);
+        let status = replay.get("status").and_then(Value::as_str).unwrap_or("FAIL");
+        let code = match status { "PASS" => 0, "UNRESOLVED" => 3, _ => 2 };
+        println!("{}", serde_json::to_string_pretty(&replay).expect("replay report serializes"));
+        return ExitCode::from(code);
+    }
+    if args.len() != 3 {
+        eprintln!("Usage:\n  run-search-space-loop <public-policy-catalog.json> <sealed-outcome-oracle.json>\n  run-search-space-loop --replay <loop-report.json> <public-policy-catalog.json> <sealed-outcome-oracle.json>\n  run-search-space-loop --frontier <report-3.json> <catalog-3.json> <report-4.json> <catalog-4.json> <report-5.json> <catalog-5.json> <sealed-oracle.json>");
+        return ExitCode::from(64);
+    }
+    let public_raw = match fs::read(&args[1]) {
+        Ok(bytes) => bytes,
+        Err(e) => { eprintln!("cannot read {}: {e}", args[1]); return ExitCode::from(2); }
+    };
+    let oracle_raw = match fs::read(&args[2]) {
+        Ok(bytes) => bytes,
+        Err(e) => { eprintln!("cannot read {}: {e}", args[2]); return ExitCode::from(2); }
+    };
+    let executable = match env::current_exe() {
+        Ok(path) => path,
+        Err(error) => {
+            eprintln!("cannot resolve policy host executable: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let report = run_all_subprocess(&public_raw, &oracle_raw, &executable);
+    let status = report.get("status").and_then(Value::as_str).unwrap_or("FAIL");
+    let code = match status { "PASS" => 0, "UNRESOLVED" => 3, _ => 2 };
+    println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
+    ExitCode::from(code)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const PUBLIC: &[u8] = include_bytes!("../../fixtures/search-space-live-policy-catalog.synthetic.json");
+    const TIGHT_BUDGET_PUBLIC: &[u8] = include_bytes!("../../fixtures/search-space-live-policy-catalog-tight-budget.synthetic.json");
+    const FOUR_UNIT_PUBLIC: &[u8] = include_bytes!("../../fixtures/search-space-live-policy-catalog-four-unit.synthetic.json");
+    const ORACLE: &[u8] = include_bytes!("../../fixtures/search-space-live-outcome-oracle.synthetic.json");
+
+    fn values() -> (Value, Value) {
+        (serde_json::from_slice(PUBLIC).unwrap(), serde_json::from_slice(ORACLE).unwrap())
+    }
+
+    fn fixture_tariffs() -> HashMap<String, Tariff> {
+        let oracle: Value = serde_json::from_slice(ORACLE).unwrap();
+        let mut report = json!({"status": "PASS", "findings": []});
+        get_tariffs(&oracle, &mut report)
+    }
+    fn run_env(public: &Value, oracle: &Value, env: &str, policy: &str) -> Value {
+        run_one(public, oracle, env, policy)
+    }
+    fn action_signature(events: &[Value]) -> Vec<(String, String)> {
+        events.iter().map(|e| (
+            e["action_type"].as_str().unwrap_or("").to_owned(),
+            if e["action_type"] == "expand_space" {
+                e["expansion_method"].as_str().unwrap_or("").to_owned()
+            } else {
+                e["candidate_family_id"].as_str().unwrap_or("").to_owned()
+            }
+        )).collect()
+    }
+
+    #[test]
+    fn policy_response_rejects_unrecognized_fields() {
+        let response = json!({
+            "action_type": "evaluate_candidate",
+            "candidate_family_id": "glass-a",
+            "oracle_utility": 999.0
+        });
+        assert!(action_from_value(&response).is_err());
+    }
+
+    #[test]
+    fn policy_response_requires_registered_action_and_candidate_slug() {
+        assert!(action_from_value(&json!({"action_type":"delete_evaluator"})).is_err());
+        assert!(action_from_value(&json!({"action_type":"evaluate_candidate","candidate_family_id":"../oracle.json"})).is_err());
+        assert!(action_from_value(&json!({"action_type":"expand_space","expansion_method":"llm"})).is_err());
+        assert!(action_from_value(&json!({"action_type":"stop"})).is_err());
+        assert_eq!(action_from_value(&json!({"action_type":"evaluate_candidate","candidate_family_id":"glass-a"})).unwrap(), Action::Evaluate("glass-a".to_owned()));
+    }
+
+
+    #[test]
+    fn uniform_random_action_is_invariant_to_unobserved_oracle_changes() {
+        let (mut public, oracle) = values();
+        public["policy_contract"]["random_seed"] = json!(17);
+        let original = run_env(&public, &oracle, "helpful", "uniform_random_fixed_space");
+        let original_events = original["events"].as_array().unwrap();
+        let first_id = original_events[0]["candidate_family_id"].as_str().unwrap();
+        let next_id = original_events[1]["candidate_family_id"].as_str().unwrap();
+
+        let mut mutated_oracle = oracle.clone();
+        let env = mutated_oracle["environments"].as_array_mut().unwrap()
+            .iter_mut().find(|e| e["environment_id"] == "helpful").unwrap();
+        let outcome = env["outcomes"].as_array_mut().unwrap()
+            .iter_mut().find(|o| o["candidate_family_id"] == next_id).unwrap();
+        let changed_feasibility = !outcome["feasible"].as_bool().unwrap();
+        outcome["feasible"] = json!(changed_feasibility);
+        outcome["utility"] = json!(9.75);
+
+        let mutated = run_env(&public, &mutated_oracle, "helpful", "uniform_random_fixed_space");
+        let mutated_events = mutated["events"].as_array().unwrap();
+        assert_eq!(mutated_events[0]["candidate_family_id"], first_id);
+        assert_eq!(mutated_events[1]["candidate_family_id"], next_id);
+        assert_eq!(mutated_events[1]["decision_view_sha256"], original_events[1]["decision_view_sha256"]);
+        assert_ne!(mutated_events[1]["observed_outcome"], original_events[1]["observed_outcome"]);
+    }
+
+
+
+    #[test]
+    fn every_policy_action_is_invariant_to_unobserved_outcome_mutations() {
+        // Metamorphic noninterference check: for a given public history, changing a
+        // still-hidden evaluator outcome must not change any action selected before
+        // that candidate's observation could be revealed. This is stronger than
+        // checking the random baseline alone, but is still a harness-level property,
+        // not a proof of OS sandbox security.
+        let (public, oracle) = values();
+        let policy_classes = [
+            "fixed_space",
+            "gp_ei_fixed_space",
+            "random_expansion",
+            "rule_based_expansion",
+            "prior_guided_expansion",
+            "static_prior_expansion",
+            "uniform_random_fixed_space",
+        ];
+        let environments = ["helpful", "neutral", "harmful", "misleading_prior"];
+
+        for environment_id in environments {
+            let oracle_environment = oracle["environments"].as_array().unwrap()
+                .iter()
+                .find(|env| env["environment_id"] == environment_id)
+                .unwrap();
+
+            for policy in policy_classes {
+                let original = run_env(&public, &oracle, environment_id, policy);
+                assert_eq!(original["status"], "PASS", "{environment_id}/{policy}");
+                let original_events = original["events"].as_array().unwrap();
+
+                for (step, event) in original_events.iter().enumerate() {
+                    let observed_before: HashSet<String> = original_events[..step].iter()
+                        .filter(|prior| prior["action_type"] == "evaluate_candidate")
+                        .filter_map(|prior| prior["candidate_family_id"].as_str().map(str::to_owned))
+                        .collect();
+
+                    for outcome in oracle_environment["outcomes"].as_array().unwrap() {
+                        let Some(candidate_id) = outcome["candidate_family_id"].as_str() else {
+                            continue;
+                        };
+                        if observed_before.contains(candidate_id) {
+                            continue;
+                        }
+
+                        let old_feasible = outcome["feasible"].as_bool().unwrap();
+                        let mut counterfactual_oracle = oracle.clone();
+                        let target_environment = counterfactual_oracle["environments"].as_array_mut().unwrap()
+                            .iter_mut()
+                            .find(|env| env["environment_id"] == environment_id)
+                            .unwrap();
+                        let target_outcome = target_environment["outcomes"].as_array_mut().unwrap()
+                            .iter_mut()
+                            .find(|candidate| candidate["candidate_family_id"] == candidate_id)
+                            .unwrap();
+                        target_outcome["feasible"] = json!(!old_feasible);
+                        target_outcome["utility"] = json!(if old_feasible { 0.0 } else { 10.0 });
+
+                        let counterfactual = run_env(&public, &counterfactual_oracle, environment_id, policy);
+                        let counterfactual_events = counterfactual["events"].as_array().unwrap();
+                        assert!(
+                            counterfactual_events.len() > step,
+                            "counterfactual campaign ended before decision {step}: {environment_id}/{policy}, hidden={candidate_id}"
+                        );
+
+                        // All action choices through this step are made before the changed
+                        // outcome can affect the visible observation history. Compare the
+                        // action and exact decision-view digest, not evaluator score fields.
+                        for index in 0..=step {
+                            let baseline = &original_events[index];
+                            let altered = &counterfactual_events[index];
+                            for field in [
+                                "action_type",
+                                "candidate_family_id",
+                                "expansion_method",
+                                "decision_view_sha256",
+                            ] {
+                                assert_eq!(
+                                    baseline.get(field),
+                                    altered.get(field),
+                                    "hidden outcome changed pre-observation decision: env={environment_id}, policy={policy}, target={candidate_id}, step={step}, event={index}, field={field}"
+                                );
+                            }
+                        }
+
+                        // Mutating a still-hidden outcome must change the evaluator result
+                        // if and when the corresponding observation is actually revealed.
+                        if event["action_type"] == "evaluate_candidate"
+                            && event["candidate_family_id"] == candidate_id
+                        {
+                            assert_ne!(
+                                event["observed_outcome"],
+                                counterfactual_events[step]["observed_outcome"],
+                                "counterfactual mutation did not reach the revealed observation: {environment_id}/{policy}/{candidate_id}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn random_seed_summary_reports_variance_and_is_bound_to_individual_runs() {
+        let report = run_all(PUBLIC, ORACLE);
+        let summaries = report["auxiliary_control_summary"].as_array().unwrap();
+        assert_eq!(summaries.len(), 4);
+        for summary in summaries {
+            assert_eq!(summary["seed_count"], 20);
+            assert!(summary["mean_terminal_simple_regret"].as_f64().is_some());
+            assert!(summary["sample_sd_terminal_simple_regret"].as_f64().is_some());
+            assert!(summary["mean_first_feasible_cost_units"].as_f64().is_some());
+            assert!(summary["mean_cost_units_charged"].as_f64().unwrap() <= 5.0);
+        }
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "PASS");
+    }
+
+    #[test]
+    fn auxiliary_uniform_random_baseline_is_included_and_independently_replayed() {
+        let report = run_all(PUBLIC, ORACLE);
+        assert_eq!(report["status"], "PASS");
+        assert_eq!(report["policy_count"], 6);
+        assert_eq!(report["episodes_checked"], 24);
+        assert_eq!(report["auxiliary_control_count"], 80);
+        for control in report["auxiliary_controls"].as_array().unwrap() {
+            assert_eq!(control["policy_class"], "uniform_random_fixed_space");
+            assert_eq!(control["expansions"], 0);
+            assert_eq!(control["evaluations"], 5);
+            assert_eq!(control["cost_units_charged"], 5.0);
+            assert!(control["campaign_seed"].as_u64().is_some());
+        }
+        let first_candidates = report["auxiliary_controls"].as_array().unwrap().iter()
+            .filter(|c| c["environment_id"] == "helpful")
+            .map(|c| c["events"][0]["candidate_family_id"].as_str().unwrap().to_owned())
+            .collect::<HashSet<_>>();
+        assert!(first_candidates.len() > 1, "seed sweep should explore more than one first candidate");
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "PASS");
+        assert_eq!(replay["episodes_checked"], 24);
+    }
+
+
+    #[test]
+    fn uniform_random_fixed_space_is_a_real_score_independent_baseline() {
+        let (public, oracle) = values();
+        for environment in ["helpful", "neutral", "harmful", "misleading_prior"] {
+            let report = run_env(&public, &oracle, environment, "uniform_random_fixed_space");
+            assert_eq!(report["status"], "PASS");
+            assert_eq!(report["expansions"], 0);
+            assert_eq!(report["evaluations"], 5);
+            assert_eq!(report["cost_units_charged"], 5.0);
+            let ids: Vec<String> = report["events"].as_array().unwrap().iter()
+                .map(|event| event["candidate_family_id"].as_str().unwrap().to_owned()).collect();
+            assert_eq!(ids.iter().collect::<HashSet<_>>().len(), ids.len());
+            assert!(ids.iter().all(|id| public["candidate_families"].as_array().unwrap().iter()
+                .any(|candidate| candidate["id"] == id && candidate["initially_visible"] == true)));
+        }
+    }
+
+    #[test]
+    fn uniform_random_order_is_deterministic_for_identical_public_state() {
+        let (public, _oracle) = values();
+        let visible: BTreeSet<String> = public["candidate_families"].as_array().unwrap().iter()
+            .filter(|c| c["initially_visible"] == true)
+            .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
+        let view = build_public_view(&public, "uniform_random_fixed_space", &visible,
+            &HashSet::new(), &[], &[], false, 5.0, 25.0, &fixture_tariffs());
+        let first = uniform_random_next_candidate(&view).unwrap();
+        let second = uniform_random_next_candidate(&view).unwrap();
+        assert_eq!(first, second);
+        assert!(visible.contains(&first));
+    }
+
+
+    #[test]
+    fn three_unit_budget_stress_lane_preserves_budget_parity_and_replay() {
+        let report = run_all(TIGHT_BUDGET_PUBLIC, ORACLE);
+        assert_eq!(report["status"], "PASS");
+        assert_eq!(report["policy_count"], 6);
+        assert_eq!(report["episodes_checked"], 24);
+        for episode in report["episodes"].as_array().unwrap() {
+            assert_eq!(episode["cost_units_charged"], 3.0, "{}", episode["campaign_id"]);
+            assert!(episode["duration_seconds_charged"].as_f64().unwrap() <= 25.0);
+        }
+
+        // GP-EI and uniform random now face a genuine selection problem: they cannot
+        // exhaust all five initially visible candidates under a three-evaluation cap.
+        for episode in report["episodes"].as_array().unwrap()
+            .iter().filter(|episode| episode["policy_class"] == "gp_ei_fixed_space")
+        {
+            assert_eq!(episode["expansions"], 0);
+            assert_eq!(episode["evaluations"], 3);
+        }
+        for control in report["auxiliary_controls"].as_array().unwrap() {
+            assert_eq!(control["expansions"], 0);
+            assert_eq!(control["evaluations"], 3);
+            assert_eq!(control["cost_units_charged"], 3.0);
+        }
+
+        // With only two units left after screening, no expansion can leave enough
+        // budget for both its own charge and a follow-up candidate evaluation. No
+        // registered policy may burn the remaining budget on an unmeasurable proposal.
+        assert!(report["episodes"].as_array().unwrap().iter()
+            .all(|episode| episode["expansions"] == 0));
+
+        let report_raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&report_raw, TIGHT_BUDGET_PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "PASS");
+        assert_eq!(replay["episodes_checked"], 24);
+        assert_eq!(replay["cost_units_recomputed"], 72.0);
+    }
+
+    #[test]
+    fn four_unit_budget_frontier_compares_affordable_expansion_with_fixed_space() {
+        let report = run_all(FOUR_UNIT_PUBLIC, ORACLE);
+        assert_eq!(report["status"], "PASS");
+        assert_eq!(report["policy_count"], 6);
+        assert_eq!(report["episodes_checked"], 24);
+
+        for episode in report["episodes"].as_array().unwrap() {
+            assert_eq!(episode["cost_units_charged"], 4.0, "{}", episode["campaign_id"]);
+            assert!(episode["duration_seconds_charged"].as_f64().unwrap() <= 25.0);
+        }
+
+        for episode in report["episodes"].as_array().unwrap()
+            .iter().filter(|episode| episode["policy_class"] == "gp_ei_fixed_space")
+        {
+            assert_eq!(episode["expansions"], 0);
+            assert_eq!(episode["evaluations"], 4);
+        }
+        for control in report["auxiliary_controls"].as_array().unwrap() {
+            assert_eq!(control["expansions"], 0);
+            assert_eq!(control["evaluations"], 4);
+            assert_eq!(control["cost_units_charged"], 4.0);
+        }
+
+        let episodes = report["episodes"].as_array().unwrap();
+        let episode_for = |environment: &str, policy: &str| {
+            episodes.iter().find(|episode| {
+                episode["environment_id"] == environment && episode["policy_class"] == policy
+            }).unwrap()
+        };
+        assert_eq!(episode_for("helpful", "random_expansion")["expansions"], 1);
+        assert_eq!(episode_for("helpful", "random_expansion")["best_verified_feasible_utility"], 6.0);
+        assert_eq!(episode_for("helpful", "rule_based_expansion")["expansions"], 1);
+        assert_eq!(episode_for("helpful", "rule_based_expansion")["best_verified_feasible_utility"], 8.0);
+        assert_eq!(episode_for("helpful", "static_prior_expansion")["expansions"], 1);
+        assert_eq!(episode_for("helpful", "static_prior_expansion")["best_verified_feasible_utility"], 10.0);
+
+        // An expansion is accepted in a campaign only when the follow-up evaluation
+        // is budget-feasible; no expansion may consume the budget and remain untested.
+        for episode in episodes {
+            let events = episode["events"].as_array().unwrap();
+            for (index, event) in events.iter().enumerate()
+                .filter(|(_, event)| event["action_type"] == "expand_space")
+            {
+                let expanded_id = event["candidate_family_id"].as_str().unwrap();
+                assert!(events[index + 1..].iter().any(|later| {
+                    later["action_type"] == "evaluate_candidate"
+                        && later["candidate_family_id"] == expanded_id
+                }), "{}: expanded candidate {expanded_id} was never measured", episode["campaign_id"]);
+            }
+        }
+
+        // Once a screening action has been charged, a three-unit prior-guided
+        // expansion cannot leave one unit for the required follow-up evaluation.
+        assert!(episodes.iter()
+            .filter(|episode| episode["policy_class"] == "prior_guided_expansion")
+            .all(|episode| episode["expansions"] == 0));
+
+        let report_raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&report_raw, FOUR_UNIT_PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "PASS");
+        assert_eq!(replay["episodes_checked"], 24);
+        assert_eq!(replay["cost_units_recomputed"], 96.0);
+    }
+
+    #[test]
+    fn budget_frontier_scorecard_replays_lanes_and_preserves_each_environment() {
+        let report3 = serde_json::to_vec(&run_all(TIGHT_BUDGET_PUBLIC, ORACLE)).unwrap();
+        let report4 = serde_json::to_vec(&run_all(FOUR_UNIT_PUBLIC, ORACLE)).unwrap();
+        let report5 = serde_json::to_vec(&run_all(PUBLIC, ORACLE)).unwrap();
+        let lanes = [
+            (report3.as_slice(), TIGHT_BUDGET_PUBLIC),
+            (report4.as_slice(), FOUR_UNIT_PUBLIC),
+            (report5.as_slice(), PUBLIC)
+        ];
+        let scorecard = audit_budget_frontier(&lanes, ORACLE);
+        assert_eq!(scorecard["status"], "PASS");
+        assert_eq!(scorecard["schema_version"], 1);
+        assert_eq!(scorecard["budget_points"], 3);
+        assert_eq!(scorecard["lane_receipts"].as_array().unwrap().len(), 3);
+        assert_eq!(scorecard["environmentwise_metrics"].as_array().unwrap().len(), 72);
+        assert_eq!(scorecard["policy_frontier"].as_array().unwrap().len(), 18);
+        assert!(scorecard.get("global_mean_utility").is_none());
+        assert!(scorecard.get("pooled_utility_winner").is_none());
+
+        let rows = scorecard["environmentwise_metrics"].as_array().unwrap();
+        for budget in [3.0, 4.0, 5.0] {
+            for environment in ["helpful", "neutral", "harmful", "misleading_prior"] {
+                for policy in POLICY_CLASSES {
+                    assert_eq!(rows.iter().filter(|row| {
+                        close(row["budget_units"].as_f64(), Some(budget))
+                            && row["environment_id"] == environment
+                            && row["policy_class"] == policy
+                    }).count(), 1);
+                }
+            }
+        }
+        let helpful_four_unit = rows.iter().find(|row| {
+            row["budget_units"] == 4.0
+                && row["environment_id"] == "helpful"
+                && row["policy_class"] == "rule_based_expansion"
+        }).unwrap();
+        assert_eq!(helpful_four_unit["best_verified_feasible_utility"], 8.0);
+        assert_eq!(helpful_four_unit["delta_utility_vs_gp_ei"].as_f64().is_some(), true);
+        assert_eq!(helpful_four_unit["gp_ei_comparison_status"], "COMPARABLE");
+
+        let harmful_static = rows.iter().find(|row| {
+            row["budget_units"] == 4.0
+                && row["environment_id"] == "harmful"
+                && row["policy_class"] == "static_prior_expansion"
+        }).unwrap();
+        assert_eq!(harmful_static["feasible_discovery_status"], "NO_VERIFIED_FEASIBLE_CANDIDATE_FOUND");
+        assert_eq!(harmful_static["gp_ei_comparison_status"], "UNRESOLVED_NO_VERIFIED_UTILITY");
+        assert!(harmful_static["delta_utility_vs_gp_ei"].is_null());
+
+        let frontier = scorecard["policy_frontier"].as_array().unwrap();
+        let static_four_unit = frontier.iter().find(|row| {
+            row["budget_units"] == 4.0 && row["policy_class"] == "static_prior_expansion"
+        }).unwrap();
+        assert!(static_four_unit["gp_ei_unresolved_environment_count"].as_u64().unwrap() > 0);
+        assert!(static_four_unit["worst_environment_delta_vs_gp_ei"].is_null());
+        assert_eq!(
+            static_four_unit["gp_ei_comparable_environment_count"].as_u64().unwrap()
+                + static_four_unit["gp_ei_unresolved_environment_count"].as_u64().unwrap(),
+            4
+        );
+    }
+
+    #[test]
+    fn budget_frontier_scorecard_rejects_a_forged_lane_metric() {
+        let report3 = serde_json::to_vec(&run_all(TIGHT_BUDGET_PUBLIC, ORACLE)).unwrap();
+        let mut report4_value = run_all(FOUR_UNIT_PUBLIC, ORACLE);
+        report4_value["episodes"][0]["terminal_simple_regret"] = json!(999.0);
+        let report4 = serde_json::to_vec(&report4_value).unwrap();
+        let report5 = serde_json::to_vec(&run_all(PUBLIC, ORACLE)).unwrap();
+        let lanes = [
+            (report3.as_slice(), TIGHT_BUDGET_PUBLIC),
+            (report4.as_slice(), FOUR_UNIT_PUBLIC),
+            (report5.as_slice(), PUBLIC)
+        ];
+        let scorecard = audit_budget_frontier(&lanes, ORACLE);
+        assert_eq!(scorecard["status"], "FAIL");
+        assert!(scorecard["findings"].as_array().unwrap().iter()
+            .any(|finding| finding["code"] == "BUDGET_LANE_REPLAY_FAILED"));
+    }
+
+    #[test]
+    fn live_loop_runs_all_policy_regime_pairs_with_budget_parity() {
+        let report = run_all(PUBLIC, ORACLE);
+        assert_eq!(report["status"], "PASS");
+        assert_eq!(report["episodes_checked"], 24);
+        assert_eq!(report["environment_count"], 4);
+        for e in report["episodes"].as_array().unwrap() {
+            assert_eq!(e["cost_units_charged"], 5.0, "{}", e["campaign_id"]);
+            assert!(e["duration_seconds_charged"].as_f64().unwrap() <= 25.0, "{}", e["campaign_id"]);
+        }
+    }
+
+    #[test]
+    fn gp_ei_fixed_space_uses_revealed_utilities_and_never_expands() {
+        let (public, oracle) = values();
+        for environment in ["helpful", "neutral", "harmful", "misleading_prior"] {
+            let report = run_env(&public, &oracle, environment, "gp_ei_fixed_space");
+            assert_eq!(report["status"], "PASS");
+            assert_eq!(report["expansions"], 0);
+            assert_eq!(report["evaluations"], 5);
+            assert_eq!(report["cost_units_charged"], 5.0);
+            assert_eq!(report["duration_seconds_charged"], 25.0);
+            assert!(report["events"].as_array().unwrap().iter().all(|event| event["action_type"] == "evaluate_candidate"));
+        }
+    }
+
+    #[test]
+    fn gp_ei_candidate_ranking_is_deterministic_and_only_returns_unmeasured_candidates() {
+        let (public, _oracle) = values();
+        let initial: BTreeSet<String> = public["candidate_families"].as_array().unwrap().iter()
+            .filter(|c| c["initially_visible"] == true)
+            .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
+        let observations = vec![Observation { candidate_id: "glass-a".to_owned(), feasible: true, utility: 4.0 }];
+        let evaluated = HashSet::from(["glass-a".to_owned()]);
+        let view = build_public_view(&public, "gp_ei_fixed_space", &initial, &evaluated, &observations, &[], false, 4.0, 20.0, &fixture_tariffs());
+        let first = gp_ei_next_candidate(&view).unwrap();
+        let second = gp_ei_next_candidate(&view).unwrap();
+        assert_eq!(first, second);
+        assert_ne!(first, "glass-a");
+        assert!(initial.contains(&first));
+        assert!(gp_ei_score_candidate(&view, &first).unwrap().is_finite());
+    }
+
+    #[test]
+    fn gp_ei_cholesky_solver_rejects_non_positive_definite_matrix() {
+        let singular = vec![vec![1.0, 2.0], vec![2.0, 1.0]];
+        assert!(cholesky_lower(&singular).is_none());
+        let valid = vec![vec![1.1, 0.4], vec![0.4, 1.1]];
+        let lower = cholesky_lower(&valid).unwrap();
+        let solution = solve_from_cholesky(&lower, &[1.0, 0.0]).unwrap();
+        assert!(solution.iter().all(|x| x.is_finite()));
+    }
+
+    #[test]
+    fn adaptive_expansion_is_triggered_by_revealed_screen_result() {
+        let (public, oracle) = values();
+        let helpful = run_env(&public, &oracle, "helpful", "random_expansion");
+        let neutral = run_env(&public, &oracle, "neutral", "random_expansion");
+        assert_eq!(helpful["expansions"], 1);
+        assert_eq!(neutral["expansions"], 0);
+        assert_eq!(helpful["events"][0]["candidate_family_id"], "glass-a");
+        assert_eq!(helpful["events"][1]["action_type"], "expand_space");
+        assert_eq!(neutral["events"][0]["candidate_family_id"], "glass-a");
+        assert_eq!(neutral["events"][1]["action_type"], "evaluate_candidate");
+    }
+
+    #[test]
+    fn static_expansion_is_separated_from_observation_conditioned_expansion() {
+        let (public, oracle) = values();
+        let static_report = run_env(&public, &oracle, "harmful", "static_prior_expansion");
+        let adaptive = run_env(&public, &oracle, "harmful", "prior_guided_expansion");
+        assert_eq!(static_report["events"][0]["action_type"], "expand_space");
+        assert_eq!(adaptive["events"][0]["action_type"], "evaluate_candidate");
+        assert_eq!(static_report["expansions"], 1);
+        assert_eq!(adaptive["expansions"], 0);
+        assert_eq!(static_report["best_verified_feasible_utility"], 6.0);
+        assert_eq!(adaptive["best_verified_feasible_utility"], 8.0);
+    }
+
+    #[test]
+    fn prior_guided_policy_surfaces_misleading_prior_false_feasible() {
+        let (public, oracle) = values();
+        let report = run_env(&public, &oracle, "misleading_prior", "prior_guided_expansion");
+        assert_eq!(report["expansions"], 1);
+        assert_eq!(report["false_feasible_predictions"], 1);
+        assert!(report["events"].as_array().unwrap().iter().any(|e| {
+            e["candidate_family_id"] == "llm-family" && e["observed_outcome"]["feasible"] == false
+        }));
+    }
+
+    #[test]
+    fn hidden_outcome_change_cannot_change_actions_before_that_outcome_is_revealed() {
+        let (public, oracle) = values();
+        let original = run_env(&public, &oracle, "helpful", "random_expansion");
+        let mut changed = oracle.clone();
+        let env = changed["environments"].as_array_mut().unwrap().iter_mut().find(|e| e["environment_id"] == "helpful").unwrap();
+        let row = env["outcomes"].as_array_mut().unwrap().iter_mut().find(|r| r["candidate_family_id"] == "random-family").unwrap();
+        row["feasible"] = json!(false);
+        row["utility"] = json!(0.0);
+        let mutated = run_env(&public, &changed, "helpful", "random_expansion");
+        let orig_events = original["events"].as_array().unwrap();
+        let mutated_events = mutated["events"].as_array().unwrap();
+        assert_eq!(action_signature(&orig_events[..3]), action_signature(&mutated_events[..3]));
+        assert_eq!(orig_events[2]["decision_view_sha256"], mutated_events[2]["decision_view_sha256"]);
+        assert_ne!(orig_events[2]["observed_outcome"], mutated_events[2]["observed_outcome"]);
+        assert_eq!(orig_events[3]["candidate_family_id"], "glass-b");
+        assert_eq!(mutated_events[3]["candidate_family_id"], "glass-c");
+    }
+
+    #[test]
+    fn policy_view_does_not_contain_evaluator_environment_or_unseen_outcomes() {
+        let (public, _oracle) = values();
+        let initial: BTreeSet<String> = public["candidate_families"].as_array().unwrap().iter()
+            .filter(|c| c["initially_visible"] == true)
+            .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
+        let view = build_public_view(&public, "random_expansion", &initial, &HashSet::new(), &[], &[], false, 5.0, 25.0, &fixture_tariffs());
+        let text = serde_json::to_string(&view).unwrap();
+        assert!(!text.contains("helpful"));
+        assert!(!text.contains("harmful"));
+        assert!(!text.contains("outcomes"));
+        assert!(!text.contains("utility"));
+    }
+
+    #[test]
+    fn hidden_outcomes_cannot_be_injected_into_public_catalog() {
+        let (mut public, oracle) = values();
+        public["candidate_families"][0]["hidden_outcome"] = json!({"feasible":true,"utility":999999.0});
+        let report = run_all(serde_json::to_string(&public).unwrap().as_bytes(), &serde_json::to_vec(&oracle).unwrap());
+        assert_eq!(report["status"], "FAIL");
+        assert!(report["findings"].as_array().unwrap().iter().any(|f| f["code"] == "EPISODE_FAILED"));
+    }
+
+    #[test]
+    fn candidate_cannot_be_evaluated_before_expansion_reveals_it() {
+        let (public, oracle) = values();
+        let mut visible = BTreeSet::new();
+        visible.insert("glass-a".to_owned());
+        let view = json!({
+            "observations": [{"candidate_family_id":"glass-a","feasible":true,"utility":4.0}],
+            "visible_candidates": [{"id":"glass-a","evaluated":true}],
+            "expansion_used": false,
+            "expanded_candidate_ids": [],
+            "public_thresholds": {"random_expansion": 5.5},
+            "remaining_cost_units": 4.0,"remaining_duration_seconds":20.0
+        });
+        let action = choose_action("random_expansion", &view, true);
+        assert_eq!(action, Action::Stop("NO_UNMEASURED_VISIBLE_CANDIDATES".to_owned()));
+        let report = run_env(&public, &oracle, "helpful", "random_expansion");
+        assert_eq!(report["events"][1]["action_type"], "expand_space");
+        assert_eq!(report["events"][2]["candidate_family_id"], "random-family");
+    }
+
+    #[test]
+    fn evaluator_owned_costs_are_charged_before_outcome_exposure() {
+        let (public, oracle) = values();
+        let report = run_env(&public, &oracle, "helpful", "prior_guided_expansion");
+        assert_eq!(report["events"][0]["cost_units_charged"], 1.0);
+        assert_eq!(report["events"][0]["observed_outcome"]["utility"], 4.0);
+        assert_eq!(report["events"][1]["cost_units_charged"], 3.0);
+        assert_eq!(report["events"][1]["observed_outcome"], Value::Null);
+        assert_eq!(report["events"][2]["cost_units_charged"], 1.0);
+        assert_eq!(report["cost_units_charged"], 5.0);
+    }
+
+    #[test]
+    fn missing_selected_outcome_is_unresolved_not_zero() {
+        let (public, mut oracle) = values();
+        let env = oracle["environments"].as_array_mut().unwrap().iter_mut().find(|e| e["environment_id"] == "helpful").unwrap();
+        env["outcomes"].as_array_mut().unwrap().retain(|r| r["candidate_family_id"] != "llm-family");
+        let report = run_env(&public, &oracle, "helpful", "prior_guided_expansion");
+        assert_eq!(report["status"], "UNRESOLVED");
+        assert_eq!(report["terminal_disposition"], "UNRESOLVED_OUTCOME");
+        assert_eq!(report["best_verified_feasible_utility"], 4.0);
+    }
+
+    #[test]
+    fn duplicate_candidate_ids_fail_closed() {
+        let (mut public, oracle) = values();
+        let first = public["candidate_families"][0].clone();
+        public["candidate_families"].as_array_mut().unwrap().push(first);
+        let report = run_all(serde_json::to_string(&public).unwrap().as_bytes(), &serde_json::to_vec(&oracle).unwrap());
+        assert_eq!(report["status"], "FAIL");
+        assert!(report["episodes"].as_array().unwrap().iter().any(|e| e["status"] == "FAIL"));
+    }
+
+    #[test]
+    fn current_loop_is_deterministic_for_exact_public_and_oracle_bytes() {
+        let first = run_all(PUBLIC, ORACLE);
+        let second = run_all(PUBLIC, ORACLE);
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn independent_replay_recomputes_the_full_live_loop_receipt() {
+        let report = run_all(PUBLIC, ORACLE);
+        let report_raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&report_raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "PASS");
+        assert_eq!(replay["episodes_checked"], 24);
+        assert!(replay["events_checked"].as_u64().unwrap() >= 90);
+        assert_eq!(replay["cost_units_recomputed"], 120.0);
+    }
+
+    #[test]
+    fn independent_replay_rejects_a_missing_policy_environment_pair() {
+        let mut report = run_all(PUBLIC, ORACLE);
+        report["episodes"].as_array_mut().unwrap().retain(|e| {
+            !(e["environment_id"] == "harmful" && e["policy_class"] == "gp_ei_fixed_space")
+        });
+        report["episodes_checked"] = json!(report["episodes"].as_array().unwrap().len());
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "POLICY_ENVIRONMENT_PAIR_MISSING"));
+    }
+
+    #[test]
+    fn simple_regret_measures_missed_feasible_utility_without_entering_policy_state() {
+        let (public, oracle) = values();
+        let fixed = run_env(&public, &oracle, "helpful", "fixed_space");
+        let expanded = run_env(&public, &oracle, "helpful", "prior_guided_expansion");
+        assert_eq!(fixed["oracle_best_feasible_utility"], 10.0);
+        assert_eq!(fixed["best_verified_feasible_utility"], 4.0);
+        assert_eq!(fixed["terminal_simple_regret"], 6.0);
+        assert_eq!(expanded["terminal_simple_regret"], 0.0);
+        let initial: BTreeSet<String> = public["candidate_families"].as_array().unwrap().iter()
+            .filter(|c| c["initially_visible"] == true)
+            .filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
+        let view = build_public_view(&public, "fixed_space", &initial, &HashSet::new(), &[], &[], false, 5.0, 25.0, &fixture_tariffs());
+        let serialized = serde_json::to_string(&view).unwrap();
+        assert!(!serialized.contains("oracle_best_feasible_utility"));
+        assert!(!serialized.contains("terminal_simple_regret"));
+    }
+
+    #[test]
+    fn independent_replay_rejects_forged_simple_regret() {
+        let mut report = run_all(PUBLIC, ORACLE);
+        report["episodes"].as_array_mut().unwrap()[0]["terminal_simple_regret"] = json!(0.0);
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "SIMPLE_REGRET_MISMATCH"));
+    }
+
+    #[test]
+    fn independent_replay_rejects_a_legal_but_policy_inconsistent_action() {
+        let mut report = run_all(PUBLIC, ORACLE);
+        let first_event = &mut report["episodes"].as_array_mut().unwrap()[0]["events"].as_array_mut().unwrap()[0];
+        assert_eq!(first_event["action_type"], "evaluate_candidate");
+        first_event["candidate_family_id"] = json!("glass-b");
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "POLICY_ACTION_MISMATCH"));
+    }
+
+    #[test]
+    fn independent_replay_rejects_forged_observation_values() {
+        let (public, oracle) = values();
+        let mut report = run_all(PUBLIC, ORACLE);
+        let event = report["episodes"].as_array_mut().unwrap()[0]["events"].as_array_mut().unwrap()
+            .iter_mut().find(|e| e["action_type"] == "evaluate_candidate").unwrap();
+        event["observed_outcome"]["utility"] = json!(9999.0);
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, &serde_json::to_vec(&public).unwrap(), &serde_json::to_vec(&oracle).unwrap());
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "OBSERVATION_ORACLE_MISMATCH"));
+    }
+
+    #[test]
+    fn independent_replay_rejects_underreported_action_cost() {
+        let report = run_all(PUBLIC, ORACLE);
+        let mut report = report;
+        report["episodes"].as_array_mut().unwrap()[0]["events"][0]["cost_units_charged"] = json!(0.01);
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "ACTION_CHARGE_MISMATCH"));
+    }
+
+    #[test]
+    fn independent_replay_rejects_stale_view_digest() {
+        let mut report = run_all(PUBLIC, ORACLE);
+        report["episodes"].as_array_mut().unwrap()[0]["events"][0]["decision_view_sha256"] = json!("0".repeat(64));
+        let raw = serde_json::to_vec(&report).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, ORACLE);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "DECISION_VIEW_DIGEST_MISMATCH"));
+    }
+
+    #[test]
+    fn independent_replay_refuses_relabelled_oracle_bytes() {
+        let report = run_all(PUBLIC, ORACLE);
+        let raw = serde_json::to_vec(&report).unwrap();
+        let mut changed: Value = serde_json::from_slice(ORACLE).unwrap();
+        changed["environments"][0]["outcomes"][0]["utility"] = json!(1234.0);
+        let changed_raw = serde_json::to_vec(&changed).unwrap();
+        let replay = audit_replay(&raw, PUBLIC, &changed_raw);
+        assert_eq!(replay["status"], "FAIL");
+        assert!(replay["findings"].as_array().unwrap().iter().any(|f| f["code"] == "ORACLE_DIGEST_MISMATCH"));
+    }
+
+}

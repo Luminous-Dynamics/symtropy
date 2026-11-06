@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "receipt_id": "synthetic-budget-overrun-v0-1",
+  "evidence_class": "synthetic",
+  "evaluation_class": "UNSEALED_RETROSPECTIVE",
+  "claim_ceiling": "Synthetic receipt contract control only. No rights, hidden-label separation, model validity, or physical outcome is proven.",
+  "dataset": {
+    "dataset_id": "synthetic-glass-testset",
+    "version": "v0.1",
+    "rights_status": "not_applicable",
+    "rights_evidence_ref": null,
+    "test_set_commitment": {
+      "scheme": "sha256-salted-v1",
+      "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "custodian_ref": "synthetic-custodian-fixture-only"
+    }
+  },
+  "split": {
+    "manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "group_fields": [
+      "composition-family-id"
+    ],
+    "independent_unit_definition": "one synthetic composition family",
+    "independent_unit_count": 3,
+    "frozen_at": "2026-10-24T08:05:00Z"
+  },
+  "protocol": {
+    "protocol_id": "glass-sealed-eval-001-v0-1",
+    "pre_registered_at": "2026-10-24T08:00:00Z",
+    "primary_endpoint": "false-feasible-rate",
+    "budget_units_cap": 12,
+    "max_calls": 100
+  },
+  "submission": {
+    "submitted_at": "2026-10-24T08:30:00Z",
+    "source_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "model_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "environment_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "policy_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "config_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+  },
+  "evaluation": {
+    "evaluator_id": "synthetic-evaluator",
+    "runner_image_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "verifier_version": "0.1.0",
+    "custody_attestation_ref": null,
+    "isolation_attestation_ref": null,
+    "run_log_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "output_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "started_at": "2026-10-24T08:31:00Z",
+    "finished_at": "2026-10-24T08:32:00Z",
+    "calls_used": 10,
+    "budget_units_used": 13
+  },
+  "results": {
+    "disposition": "PASS",
+    "metrics": [
+      {
+        "name": "toy-feasible-rate",
+        "value": 0.5,
+        "unit": "fraction",
+        "sample_count": 2,
+        "result_source_ref": "fixture:synthetic-evaluation-receipt"
+      }
+    ],
+    "failed_attempts": 0,
+    "abstentions": 0,
+    "exclusions": 0
+  }
+}

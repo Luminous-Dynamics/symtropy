@@ -1,0 +1,180 @@
+{
+  "benchmark_id": "glass-silicon-decision-value-synthetic-v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic robustness stress test only. Sensor drift, ambiguous failure and measurements here are hypothetical; no industrial sensor or manufacturing result is validated.",
+  "utility_unit": "synthetic accepted-output utility units",
+  "cost_unit": "synthetic reference-call units",
+  "max_measurement_cost": 4,
+  "max_duration_seconds": 20,
+  "max_measurement_steps": 2,
+  "producer_access": {
+    "ground_truth": false,
+    "unobserved_utilities": false,
+    "oracle_scores": false,
+    "future_outcomes": false
+  },
+  "scenarios": [
+    {
+      "id": "a-clean",
+      "latent_process_regime": "route-a",
+      "instrument_state": "primary-valid"
+    },
+    {
+      "id": "a-drift",
+      "latent_process_regime": "route-a",
+      "instrument_state": "primary-drifted"
+    },
+    {
+      "id": "a-failed",
+      "latent_process_regime": "route-a",
+      "instrument_state": "primary-invalid"
+    },
+    {
+      "id": "b-clean",
+      "latent_process_regime": "route-b",
+      "instrument_state": "primary-valid"
+    },
+    {
+      "id": "b-drift",
+      "latent_process_regime": "route-b",
+      "instrument_state": "primary-drifted"
+    },
+    {
+      "id": "b-failed",
+      "latent_process_regime": "route-b",
+      "instrument_state": "primary-invalid"
+    }
+  ],
+  "actions": [
+    {
+      "id": "conventional",
+      "utility_by_scenario": {
+        "a-clean": 4,
+        "a-drift": 4,
+        "a-failed": 4,
+        "b-clean": 4,
+        "b-drift": 4,
+        "b-failed": 4
+      },
+      "feasible_by_scenario": {
+        "a-clean": true,
+        "a-drift": true,
+        "a-failed": true,
+        "b-clean": true,
+        "b-drift": true,
+        "b-failed": true
+      }
+    },
+    {
+      "id": "route-a",
+      "utility_by_scenario": {
+        "a-clean": 10,
+        "a-drift": 10,
+        "a-failed": 10,
+        "b-clean": 0,
+        "b-drift": 0,
+        "b-failed": 0
+      },
+      "feasible_by_scenario": {
+        "a-clean": true,
+        "a-drift": true,
+        "a-failed": true,
+        "b-clean": false,
+        "b-drift": false,
+        "b-failed": false
+      }
+    },
+    {
+      "id": "route-b",
+      "utility_by_scenario": {
+        "a-clean": 0,
+        "a-drift": 0,
+        "a-failed": 0,
+        "b-clean": 10,
+        "b-drift": 10,
+        "b-failed": 10
+      },
+      "feasible_by_scenario": {
+        "a-clean": false,
+        "a-drift": false,
+        "a-failed": false,
+        "b-clean": true,
+        "b-drift": true,
+        "b-failed": true
+      }
+    }
+  ],
+  "constraint_controls": [
+    {
+      "action_id": "route-a",
+      "scenario_id": "b-clean",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-a",
+      "scenario_id": "b-drift",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-a",
+      "scenario_id": "b-failed",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-b",
+      "scenario_id": "a-clean",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-b",
+      "scenario_id": "a-drift",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-b",
+      "scenario_id": "a-failed",
+      "must_be_feasible": false
+    }
+  ],
+  "measurements": [
+    {
+      "id": "measure-primary",
+      "cost_units": 1,
+      "duration_seconds": 5,
+      "observation_by_scenario": {
+        "a-clean": "signal-a",
+        "a-drift": "signal-b",
+        "a-failed": "invalid",
+        "b-clean": "signal-b",
+        "b-drift": "invalid",
+        "b-failed": "invalid"
+      }
+    },
+    {
+      "id": "measure-secondary",
+      "cost_units": 3,
+      "duration_seconds": 15,
+      "observation_by_scenario": {
+        "a-clean": "no-signal",
+        "a-drift": "signal-a",
+        "a-failed": "signal-a",
+        "b-clean": "no-signal",
+        "b-drift": "signal-b",
+        "b-failed": "signal-b"
+      }
+    },
+    {
+      "id": "measure-perfect-overbudget",
+      "cost_units": 5,
+      "duration_seconds": 25,
+      "observation_by_scenario": {
+        "a-clean": "route-a",
+        "a-drift": "route-a",
+        "a-failed": "route-a",
+        "b-clean": "route-b",
+        "b-drift": "route-b",
+        "b-failed": "route-b"
+      }
+    }
+  ]
+}

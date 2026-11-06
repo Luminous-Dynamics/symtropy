@@ -1,0 +1,24 @@
+{
+  "artifact_admission": [
+    {
+      "artifact_id": "local-hash-selftest-v1",
+      "source_ref": "synthetic-selftest-only",
+      "record_status": "publicly_listed_not_downloaded",
+      "rights_status": "unresolved",
+      "rights_evidence_ref": null,
+      "rights_reviewed_on": null,
+      "sha256_status": "pending",
+      "benchmark_admission_status": "blocked",
+      "claim_ceiling": "Synthetic hash self-test only; no external source data or reuse rights are implied.",
+      "files": [
+        {
+          "filename": "hash-receipt-abc.synthetic.txt",
+          "size_display": "3 Bytes",
+          "published_checksum_algorithm": "MD5",
+          "published_checksum": "900150983cd24fb0d6963f7d28e17f72",
+          "sha256": null
+        }
+      ]
+    }
+  ]
+}
