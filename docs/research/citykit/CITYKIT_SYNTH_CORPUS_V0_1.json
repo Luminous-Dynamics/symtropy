@@ -552,7 +552,8 @@
             "resource_demands": [
               {
                 "resource_id": "panel-cell",
-                "quantity": 1
+                "quantity": 1,
+                "unit": "workcell"
               }
             ]
           },
@@ -563,7 +564,8 @@
             "resource_demands": [
               {
                 "resource_id": "panel-cell",
-                "quantity": 1
+                "quantity": 1,
+                "unit": "workcell"
               }
             ]
           }
