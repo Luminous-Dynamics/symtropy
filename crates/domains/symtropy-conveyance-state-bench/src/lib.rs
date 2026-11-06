@@ -57,7 +57,7 @@ fn uint(value: &Value, key: &str) -> Option<u64> {
     value.get(key).and_then(Value::as_u64)
 }
 
-fn dimension_key(group: &Value, dimension: &str) -> Option<&str> {
+fn dimension_key<'a>(group: &'a Value, dimension: &str) -> Option<&'a str> {
     match dimension {
         "SITE" => text(group, "site_id"),
         "CAMPAIGN" => text(group, "campaign_id"),
