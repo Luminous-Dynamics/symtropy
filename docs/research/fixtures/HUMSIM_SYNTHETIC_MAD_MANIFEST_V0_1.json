@@ -38,18 +38,42 @@
         "factor_id": "context",
         "weight_interpretation": "Equal synthetic design weights, not population prevalence.",
         "levels": [
-          {"level_id": "scenario_0", "target_weight": 0.3333333333, "support_count": 60},
-          {"level_id": "scenario_1", "target_weight": 0.3333333333, "support_count": 60},
-          {"level_id": "scenario_2", "target_weight": 0.3333333334, "support_count": 60}
+          {
+            "level_id": "scenario_0",
+            "target_weight": 0.3333333333,
+            "support_count": 60
+          },
+          {
+            "level_id": "scenario_1",
+            "target_weight": 0.3333333333,
+            "support_count": 60
+          },
+          {
+            "level_id": "scenario_2",
+            "target_weight": 0.3333333334,
+            "support_count": 60
+          }
         ]
       },
       {
         "factor_id": "declared-cohort",
         "weight_interpretation": "Equal synthetic design weights, not demographic prevalence.",
         "levels": [
-          {"level_id": "declared_cohort_0", "target_weight": 0.3333333333, "support_count": 20},
-          {"level_id": "declared_cohort_1", "target_weight": 0.3333333333, "support_count": 20},
-          {"level_id": "declared_cohort_2", "target_weight": 0.3333333334, "support_count": 20}
+          {
+            "level_id": "declared_cohort_0",
+            "target_weight": 0.3333333333,
+            "support_count": 20
+          },
+          {
+            "level_id": "declared_cohort_1",
+            "target_weight": 0.3333333333,
+            "support_count": 20
+          },
+          {
+            "level_id": "declared_cohort_2",
+            "target_weight": 0.3333333334,
+            "support_count": 20
+          }
         ]
       }
     ],
@@ -85,7 +109,11 @@
       "unit": "squared-probability-sum per trial",
       "direction": "lower-is-better",
       "aggregation": "mean across matched synthetic participant-context trials",
-      "strata": ["all", "context", "declared-cohort"],
+      "strata": [
+        "all",
+        "context",
+        "declared-cohort"
+      ],
       "uncertainty_method": "none; deterministic fixture",
       "proper_scoring_rule": "multiclass Brier score"
     },
@@ -95,7 +123,11 @@
       "unit": "probability distance",
       "direction": "lower-is-better",
       "aggregation": "half L1 distance between empirical and generated action frequencies",
-      "strata": ["all", "context", "declared-cohort"],
+      "strata": [
+        "all",
+        "context",
+        "declared-cohort"
+      ],
       "uncertainty_method": "none; deterministic fixture",
       "proper_scoring_rule": null
     },
@@ -105,7 +137,11 @@
       "unit": "bits",
       "direction": "lower-is-better",
       "aggregation": "Jensen-Shannon divergence between empirical and generated action frequencies",
-      "strata": ["all", "context", "declared-cohort"],
+      "strata": [
+        "all",
+        "context",
+        "declared-cohort"
+      ],
       "uncertainty_method": "none; deterministic fixture",
       "proper_scoring_rule": null
     },
@@ -115,7 +151,9 @@
       "unit": "probability distance",
       "direction": "lower-is-better",
       "aggregation": "TVD between adjacent-step transition distributions",
-      "strata": ["all"],
+      "strata": [
+        "all"
+      ],
       "uncertainty_method": "none; deterministic fixture",
       "proper_scoring_rule": null
     }
@@ -184,5 +222,112 @@
     "deviations": [],
     "failed_controls": []
   },
-  "composite_score_policy": "no-universal-composite"
+  "composite_score_policy": "no-universal-composite",
+  "execution_stack": {
+    "components": [
+      {
+        "component_id": "simulator-core",
+        "role": "simulator",
+        "version": "0.1.0",
+        "configuration_digest": "789d2c310027a338c75465248de2e2f1df06d3a7a776d7dd9dd86939e275677a",
+        "behavior_affecting": true,
+        "notes": "Deterministic synthetic benchmark driver."
+      },
+      {
+        "component_id": "response-oracle",
+        "role": "response-generator",
+        "version": "0.1.0",
+        "configuration_digest": "9ff17377b6acd74ae9f6ad18b665167964e0dd467636bf8a015e7592c35eb823",
+        "behavior_affecting": true,
+        "notes": "Hand-authored structured-context oracle; not a human or LLM model."
+      },
+      {
+        "component_id": "context-policy",
+        "role": "context-policy",
+        "version": "0.1.0",
+        "configuration_digest": "6725ee872fc3ec919b683c1112fcface9313ae0a85ea26d716b59bee1866a245",
+        "behavior_affecting": true,
+        "notes": "Maps the fixed step index to the declared context."
+      },
+      {
+        "component_id": "scheduler-v1",
+        "role": "scheduler",
+        "version": "0.1.0",
+        "configuration_digest": "24f549858efc0c1cce61fafbeb08be738a0d511b30b3443cfc8e08e26e99876e",
+        "behavior_affecting": true,
+        "notes": "Serial participant-major, then step-major execution."
+      },
+      {
+        "component_id": "typed-action-parser",
+        "role": "action-parser",
+        "version": "0.1.0",
+        "configuration_digest": "485772edbbdbd3ccd9c31cbb62cc9ade66c772a8e393a258ba52912f7b85c472",
+        "behavior_affecting": true,
+        "notes": "Typed categorical option indices; no free-text repair."
+      },
+      {
+        "component_id": "complete-event-capture",
+        "role": "event-capture",
+        "version": "0.1.0",
+        "configuration_digest": "7eba38cc65b8b9a7eabc1bda9aa1dce2491006f1da10964f3b25954eef56ca03",
+        "behavior_affecting": true,
+        "notes": "One record per declared participant/context/step."
+      },
+      {
+        "component_id": "randomness-policy",
+        "role": "randomness",
+        "version": "0.1.0",
+        "configuration_digest": "ee33f10cb8b183964f33cbc0219085ed1abb54201c816d25b18e0bcf39dc2486",
+        "behavior_affecting": true,
+        "notes": "Deterministic fixture; no RNG source is used."
+      },
+      {
+        "component_id": "profile-memory-not-applicable",
+        "role": "memory",
+        "version": "not-applicable",
+        "configuration_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "behavior_affecting": false,
+        "notes": "No persisted persona memory or retrieval in this synthetic fixture."
+      },
+      {
+        "component_id": "exposure-not-applicable",
+        "role": "exposure-policy",
+        "version": "not-applicable",
+        "configuration_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "behavior_affecting": false,
+        "notes": "No feed or social exposure mechanism is simulated."
+      }
+    ],
+    "fallback_policy": "abort",
+    "fallback_events": [],
+    "unseeded_random_sources": [],
+    "scheduler_policy": {
+      "scheduler_id": "serial-deterministic-v1",
+      "update_order": "lexicographic participant ID, then ascending step index",
+      "parallelism": 1,
+      "tie_breaking_rule": "Stable option index; no randomized scheduling."
+    },
+    "exposure_policy": {
+      "policy_id": "no-social-exposure",
+      "eligibility_rule": "not-applicable: choices are assigned directly by the synthetic fixture",
+      "ordering_rule": "not-applicable: no social feed is present",
+      "state_visibility": "only the declared context and participant fixture record are visible"
+    },
+    "action_validation_policy": {
+      "parser_component_id": "typed-action-parser",
+      "validator_component_id": "typed-action-parser",
+      "invalid_action_policy": "abort",
+      "retry_limit": 0,
+      "repair_policy": "none; invalid categorical index fails the run"
+    },
+    "event_capture_policy": {
+      "capture_component_id": "complete-event-capture",
+      "required_event_kinds": [
+        "participant_context_step_prediction",
+        "generated_choice"
+      ],
+      "dropped_event_count": 0,
+      "drop_policy": "fail-closed"
+    }
+  }
 }
