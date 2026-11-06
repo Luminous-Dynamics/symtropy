@@ -80,6 +80,8 @@ jobs:
           assert all(row["demand_weighted_service_deficit_area"] == "" for row in rows if row["record_type"] != "scenario_summary")
           assert summaries["hospital"]["recovery_after_ticks"] == "2"
           assert float(summaries["road_access"]["minimum_service"]) == 1.0
+          assert summaries["road_access"]["recovery_after_ticks"] == ""
+          assert summaries["fuel"]["recovery_after_ticks"] == ""
           assert float(criticalities["grid"]["marginal_service_deficit_area"]) > 0.0
           assert float(criticalities["fuel"]["marginal_service_deficit_area"]) == 0.0
           assert all(0.0 <= float(row["effective_service"]) <= 1.0 for row in ticks)
