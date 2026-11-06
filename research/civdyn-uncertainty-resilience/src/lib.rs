@@ -343,8 +343,18 @@ impl MorrisTrajectory {
             if changed != vec![self.factor_order[step]] {
                 return Err(UncertaintyError::MorrisMustChangeOneFactorPerStep);
             }
-            if (before[changed[0]] - after[changed[0]]).abs() - MORRIS_DELTA > 1e-12 {
+            let changed_factor = changed[0];
+            if ((before[changed_factor] - after[changed_factor]).abs() - MORRIS_DELTA).abs()
+                > 1e-12
+            {
                 return Err(UncertaintyError::InvalidMorrisStepSize);
+            }
+            let observed_direction =
+                if after[changed_factor] > before[changed_factor] { 1 } else { -1 };
+            if self.directions[changed_factor] != observed_direction {
+                return Err(UncertaintyError::MorrisDirectionMismatch {
+                    factor: Factor::ALL[changed_factor],
+                });
             }
         }
         Ok(())
@@ -680,6 +690,9 @@ pub enum UncertaintyError {
     },
     MorrisMustChangeOneFactorPerStep,
     InvalidMorrisStepSize,
+    MorrisDirectionMismatch {
+        factor: Factor,
+    },
     EmptyOutcomeEnsemble,
     MissingShockPolicyEnsemble {
         shock: ShockKind,
@@ -734,6 +747,9 @@ impl fmt::Display for UncertaintyError {
             }
             Self::InvalidMorrisStepSize => {
                 write!(f, "Morris trajectory step differs from delta=2/3")
+            }
+            Self::MorrisDirectionMismatch { factor } => {
+                write!(f, "Morris step direction disagrees with {}", factor.name())
             }
             Self::EmptyOutcomeEnsemble => write!(f, "parameter outcome ensemble must not be empty"),
             Self::MissingShockPolicyEnsemble { shock, policy } => {
@@ -877,28 +893,28 @@ mod tests {
     }
 
     #[test]
-    fn zero_severity_water_shock_is_no_worse_than_complete_supply_loss() {
+    fn greater_shock_retention_is_no_worse_than_zero_retention() {
         let reference = reference_scenarios().remove(0);
-        let zero_loss = ParameterSet {
-            water_shock_retention: 1.0.min(0.6),
+        let partial_supply = ParameterSet {
+            water_shock_retention: 0.6,
             ..ParameterSet::BASELINE
         };
-        let full_loss = ParameterSet {
+        let zero_supply = ParameterSet {
             water_shock_retention: 0.0,
             ..ParameterSet::BASELINE
         };
-        let zero_outcome = run_scenario(
-            &apply_parameters(&reference, zero_loss).unwrap(),
+        let partial_outcome = run_scenario(
+            &apply_parameters(&reference, partial_supply).unwrap(),
             InterventionPolicy::ProportionalSolidarity,
         )
         .unwrap();
-        let full_outcome = run_scenario(
-            &apply_parameters(&reference, full_loss).unwrap(),
+        let zero_outcome = run_scenario(
+            &apply_parameters(&reference, zero_supply).unwrap(),
             InterventionPolicy::ProportionalSolidarity,
         )
         .unwrap();
         assert!(
-            zero_outcome.total_unmet_water_m3 <= full_outcome.total_unmet_water_m3 + 1e-9
+            partial_outcome.total_unmet_water_m3 <= zero_outcome.total_unmet_water_m3 + 1e-9
         );
     }
 }
