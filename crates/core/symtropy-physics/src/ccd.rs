@@ -57,14 +57,17 @@ pub const CCD_SWEPT_RADIUS_FRACTION: f64 = 0.5;
 /// the absolute threshold. This is an activation heuristic, not a proof of
 /// collision-free motion when it returns false.
 pub fn should_sweep_sphere(speed: f64, radius: f64, dt: f64) -> bool {
-    if !speed.is_finite() || !radius.is_finite() || !dt.is_finite() || speed < 0.0 || radius < 0.0
+    if !speed.is_finite()
+        || !radius.is_finite()
+        || !dt.is_finite()
+        || speed < 0.0
+        || radius < 0.0
         || dt < 0.0
     {
         return false;
     }
 
-    speed > CCD_SPEED_THRESHOLD
-        || speed * dt > radius * CCD_SWEPT_RADIUS_FRACTION
+    speed > CCD_SPEED_THRESHOLD || speed * dt > radius * CCD_SWEPT_RADIUS_FRACTION
 }
 
 fn vector_is_finite<const D: usize>(value: &SVector<f64, D>) -> bool {
@@ -179,8 +182,7 @@ pub fn sphere_sphere_checked<const D: usize>(
         return Err(CcdInputError::NonFiniteIntermediate);
     }
 
-    let closest_separation =
-        relative_position + relative_velocity * closest_time;
+    let closest_separation = relative_position + relative_velocity * closest_time;
     let closest_distance_squared = closest_separation.dot(&closest_separation);
     if !vector_is_finite(&closest_separation) || !closest_distance_squared.is_finite() {
         return Err(CcdInputError::NonFiniteIntermediate);
@@ -189,13 +191,14 @@ pub fn sphere_sphere_checked<const D: usize>(
     let radial_squared = radius_squared - closest_distance_squared;
     let grazing_tolerance = 64.0
         * f64::EPSILON
-        * radius_squared.max(closest_distance_squared).max(f64::MIN_POSITIVE);
+        * radius_squared
+            .max(closest_distance_squared)
+            .max(f64::MIN_POSITIVE);
     if radial_squared < -grazing_tolerance {
         return Ok(None);
     }
 
-    let half_chord_time =
-        (radial_squared.max(0.0) / relative_speed_squared).sqrt();
+    let half_chord_time = (radial_squared.max(0.0) / relative_speed_squared).sqrt();
     let toi = closest_time - half_chord_time;
     if !half_chord_time.is_finite() || !toi.is_finite() {
         return Err(CcdInputError::NonFiniteIntermediate);
@@ -323,11 +326,7 @@ pub fn sphere_halfspace_checked<const D: usize>(
         return Err(CcdInputError::NonFiniteIntermediate);
     }
 
-    Ok(Some(CcdHit {
-        toi,
-        point,
-        normal,
-    }))
+    Ok(Some(CcdHit { toi, point, normal }))
 }
 
 /// Compatibility wrapper for [`sphere_halfspace_checked`].
@@ -470,7 +469,6 @@ mod ccd_qualification_tests {
         assert!(!should_sweep_sphere(f64::NAN, 0.5, 0.016));
     }
 }
-
 
 #[cfg(test)]
 mod tests {
