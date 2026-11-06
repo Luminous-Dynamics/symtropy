@@ -10,10 +10,10 @@ Implements the geometric measurement contract tracked by [issue #3888](https://g
 
 ## v0.1 contract
 
-- A map declares one coordinate frame, registration evidence, spatial resolution, bounds, observation time and registration uncertainty.
+- A map declares its trial, task, site, machine instance, exact machine configuration, coordinate frame, registration evidence, spatial resolution, bounds, observation time and registration uncertainty.
 - Every grid cell is represented exactly once. Duplicate, out-of-bounds or missing cells are rejected; missing coverage is never assumed to be clear floor.
 - Each cell carries a non-negative residual-thickness interval and independent measurement, calibration and source references.
-- Each support footprint is bound to the exact map frame and an external machine/site acceptance-profile reference. No universal thickness threshold is supplied.
+- Each support footprint is bound to the exact map frame, site, machine instance and configuration, plus an external machine/site acceptance-profile reference. No universal thickness threshold is supplied.
 - Per-support cells are classified CLEAR, OBSTRUCTED or AMBIGUOUS by comparing the measurement interval with that support profile's declared threshold.
 - If map registration uncertainty exceeds the support profile's declared limit, the entire support footprint is UNKNOWN.
 - Residual volume is reported as an interval in mm^3 from measured thickness intervals and map cell area. It is not converted to mass.
