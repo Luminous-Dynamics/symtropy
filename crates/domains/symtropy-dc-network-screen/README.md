@@ -12,7 +12,7 @@ Positive non-slack bus injection means net generation or demand reduction. A dat
 - Exactly one slack bus; duplicate buses/branches and unknown bus references rejected.
 - Positive per-unit branch reactance, caller-supplied normal and emergency ratings.
 - Chronological baseline and flexible injection profiles with a signed per-bus load-reduction map.
-- Explicit topology maximum-age and numerical tolerances.
+- Explicit topology maximum-age and numerical tolerances; the snapshot must remain within its freshness contract through the interval end.
 - DC susceptance matrix assembled from in-service branches; Gaussian elimination with partial pivoting.
 - Baseline and flexible signed branch flows, branch flow deltas and absolute-magnitude relief.
 - Normal-rating checks for the intact topology.
@@ -33,7 +33,7 @@ cargo test -p symtropy-dc-network-screen
 cargo clippy -p symtropy-dc-network-screen --all-targets -- -D warnings
 ```
 
-All tests are synthetic known truth. No operator network model or live grid data is included.
+Energy is MW × hours = MWh (no additional 1,000 divisor). All tests are synthetic known truth. No operator network model or live grid data is included.
 
 ## Maximum feasible dispatch fraction
 
