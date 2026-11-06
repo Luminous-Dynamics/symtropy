@@ -452,8 +452,6 @@ impl SeededNormal {
     }
 }
 
-
-
 /// Equal-budget grid used to fit baseline angular frequency and initial phase.
 /// Feedback decay and coupling stay frozen in the shared SimulationConfig.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -544,8 +542,7 @@ pub fn predict_intervention_candidates(
         let mut second_best_score = f64::NEG_INFINITY;
 
         for frequency_index in 0..grid.frequency_steps {
-            let frequency_fraction =
-                frequency_index as f64 / (grid.frequency_steps - 1) as f64;
+            let frequency_fraction = frequency_index as f64 / (grid.frequency_steps - 1) as f64;
             let frequency = grid.minimum_angular_frequency
                 + (grid.maximum_angular_frequency - grid.minimum_angular_frequency)
                     * frequency_fraction;
@@ -576,8 +573,7 @@ pub fn predict_intervention_candidates(
             }
         }
 
-        let (fitted_config, baseline_log_score) =
-            best.ok_or(BenchmarkError::NumericalFailure)?;
+        let (fitted_config, baseline_log_score) = best.ok_or(BenchmarkError::NumericalFailure)?;
         let parameter_margin = if second_best_score.is_finite() {
             (baseline_log_score - second_best_score).max(0.0)
         } else {
@@ -1148,7 +1144,6 @@ mod tests {
         );
     }
 
-
     fn fit_grid() -> FrequencyPhaseGrid {
         FrequencyPhaseGrid {
             minimum_angular_frequency: 3.5,
@@ -1161,12 +1156,7 @@ mod tests {
     #[test]
     fn equal_budget_prefix_fit_freezes_only_the_post_action_suffix() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
-        let generated = simulate(
-            Mechanism::IntrinsicOscillator,
-            intervention,
-            config(),
-        )
-        .unwrap();
+        let generated = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
         let forecasts = predict_intervention_candidates(
             &generated.samples[..30],
             &CANDIDATES,
@@ -1192,12 +1182,7 @@ mod tests {
     #[test]
     fn observationally_equivalent_candidates_fit_equally_but_forecast_differently() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
-        let generated = simulate(
-            Mechanism::IntrinsicOscillator,
-            intervention,
-            config(),
-        )
-        .unwrap();
+        let generated = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
         let forecasts = predict_intervention_candidates(
             &generated.samples[..30],
             &CANDIDATES,
@@ -1207,10 +1192,7 @@ mod tests {
         )
         .unwrap();
 
-        assert!(
-            (forecasts[0].baseline_log_score - forecasts[1].baseline_log_score).abs()
-                < 1.0e-9
-        );
+        assert!((forecasts[0].baseline_log_score - forecasts[1].baseline_log_score).abs() < 1.0e-9);
         assert!(
             trajectory_rmse(
                 &forecasts[0].predicted_suffix,
@@ -1230,8 +1212,7 @@ mod tests {
             config(),
         )
         .unwrap();
-        let noisy =
-            add_gaussian_observation_noise(&generated.samples, 0.01, 0xA11CE).unwrap();
+        let noisy = add_gaussian_observation_noise(&generated.samples, 0.01, 0xA11CE).unwrap();
         let forecasts = predict_intervention_candidates(
             &noisy[..30],
             &CANDIDATES,
