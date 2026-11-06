@@ -459,6 +459,8 @@ impl PairedPowerInterval {
 pub struct ClockAlignmentEvidence {
     baseline_clock_uncertainty_ns: u64,
     candidate_clock_uncertainty_ns: u64,
+    baseline_maximum_absolute_power_slew_w_per_s: Option<f64>,
+    candidate_maximum_absolute_power_slew_w_per_s: Option<f64>,
     alignment_model_id: String,
 }
 
@@ -476,8 +478,33 @@ impl ClockAlignmentEvidence {
         Ok(Self {
             baseline_clock_uncertainty_ns,
             candidate_clock_uncertainty_ns,
+            baseline_maximum_absolute_power_slew_w_per_s: None,
+            candidate_maximum_absolute_power_slew_w_per_s: None,
             alignment_model_id,
         })
+    }
+
+    /// Attach externally validated conservative absolute power-slew bounds.
+    ///
+    /// The evaluator converts each clock-time uncertainty into a deterministic
+    /// power-error bound and adds both sides conservatively. Bounds must apply
+    /// to the complete event window and measurement boundary.
+    pub fn with_maximum_power_slew_bounds(
+        mut self,
+        baseline_w_per_s: f64,
+        candidate_w_per_s: f64,
+    ) -> Result<Self, PccMetrologyError> {
+        for (field, value) in [
+            ("baseline maximum absolute power slew", baseline_w_per_s),
+            ("candidate maximum absolute power slew", candidate_w_per_s),
+        ] {
+            if !value.is_finite() || value < 0.0 {
+                return Err(PccMetrologyError::InvalidQuantity { field, value });
+            }
+        }
+        self.baseline_maximum_absolute_power_slew_w_per_s = Some(baseline_w_per_s);
+        self.candidate_maximum_absolute_power_slew_w_per_s = Some(candidate_w_per_s);
+        Ok(self)
     }
 
     pub const fn combined_uncertainty_ns(&self) -> u64 {
@@ -567,6 +594,9 @@ pub struct PccMetrologyIntervalReceipt {
     pub measured_reduction_w: f64,
     pub reduction_standard_uncertainty_w: f64,
     pub expanded_uncertainty_w: f64,
+    /// Deterministic power-error allowance induced by clock-time uncertainty
+    /// and the caller-supplied conservative absolute power-slew bounds.
+    pub time_alignment_uncertainty_bound_w: f64,
     pub conservative_reduction_lower_bound_w: f64,
     pub relative_expanded_uncertainty: f64,
     pub response_threshold_pass: bool,
@@ -662,6 +692,10 @@ pub enum PccMetrologyError {
     ClockUncertaintyExceedsContract {
         combined_uncertainty_ns: u64,
         maximum_ns: u64,
+    },
+    MissingClockSlewBounds {
+        baseline_clock_uncertainty_ns: u64,
+        candidate_clock_uncertainty_ns: u64,
     },
     PairedTimestampMismatch {
         index: usize,
@@ -768,6 +802,13 @@ impl fmt::Display for PccMetrologyError {
                 f,
                 "combined paired clock uncertainty {combined_uncertainty_ns} ns exceeds contract maximum {maximum_ns} ns"
             ),
+            Self::MissingClockSlewBounds {
+                baseline_clock_uncertainty_ns,
+                candidate_clock_uncertainty_ns,
+            } => write!(
+                f,
+                "clock-time uncertainty ({baseline_clock_uncertainty_ns} ns baseline, {candidate_clock_uncertainty_ns} ns candidate) requires externally validated absolute power-slew bounds"
+            ),
             Self::PairedTimestampMismatch {
                 index,
                 baseline_start_ns,
@@ -825,6 +866,19 @@ pub fn evaluate_pcc_metrology(
             maximum_ns: contract.maximum_clock_uncertainty_ns,
         });
     }
+    let (baseline_slew_bound, candidate_slew_bound) = match (
+        clock.baseline_maximum_absolute_power_slew_w_per_s,
+        clock.candidate_maximum_absolute_power_slew_w_per_s,
+    ) {
+        (Some(baseline), Some(candidate)) => (baseline, candidate),
+        _ if combined_clock_uncertainty_ns == 0 => (0.0, 0.0),
+        _ => {
+            return Err(PccMetrologyError::MissingClockSlewBounds {
+                baseline_clock_uncertainty_ns: clock.baseline_clock_uncertainty_ns,
+                candidate_clock_uncertainty_ns: clock.candidate_clock_uncertainty_ns,
+            });
+        }
+    };
 
     let mut receipts = Vec::with_capacity(intervals.len());
     let mut gross_reduction_energy_wh = 0.0;
@@ -905,7 +959,22 @@ pub fn evaluate_pcc_metrology(
             });
         }
         let reduction_standard_uncertainty_w = response_variance.max(0.0).sqrt();
-        let expanded_uncertainty_w = contract.coverage_factor * reduction_standard_uncertainty_w;
+        // Timing uncertainty is not folded into a Gaussian RSS budget. It is
+        // a deterministic worst-case bound: max|dP/dt| × max|clock error|,
+        // summed across baseline and candidate to avoid assuming cancellation.
+        let baseline_time_bound_w =
+            baseline_slew_bound * clock.baseline_clock_uncertainty_ns as f64 / 1_000_000_000.0;
+        let candidate_time_bound_w =
+            candidate_slew_bound * clock.candidate_clock_uncertainty_ns as f64 / 1_000_000_000.0;
+        let time_alignment_uncertainty_bound_w =
+            baseline_time_bound_w + candidate_time_bound_w;
+        if !time_alignment_uncertainty_bound_w.is_finite() {
+            return Err(PccMetrologyError::NumericalOverflow(
+                "clock-time power uncertainty",
+            ));
+        }
+        let expanded_uncertainty_w = contract.coverage_factor * reduction_standard_uncertainty_w
+            + time_alignment_uncertainty_bound_w;
         let conservative_reduction_lower_bound_w = measured_reduction_w - expanded_uncertainty_w;
         let relative_expanded_uncertainty = if measured_reduction_w.abs() > f64::EPSILON {
             expanded_uncertainty_w / measured_reduction_w.abs()
@@ -947,6 +1016,7 @@ pub fn evaluate_pcc_metrology(
             measured_reduction_w,
             reduction_standard_uncertainty_w,
             expanded_uncertainty_w,
+            time_alignment_uncertainty_bound_w,
             conservative_reduction_lower_bound_w,
             relative_expanded_uncertainty,
             response_threshold_pass,
@@ -967,7 +1037,7 @@ pub fn evaluate_pcc_metrology(
         clock_alignment_model_id: clock.alignment_model_id.clone(),
         combined_clock_uncertainty_ns,
         coverage_factor: contract.coverage_factor,
-        coverage_assumption: "caller-specified coverage factor applied to a first-order covariance-aware standard-uncertainty budget; no universal confidence probability asserted".to_owned(),
+        coverage_assumption: "caller-specified coverage factor applied to first-order covariance-aware electrical standard uncertainty, plus a deterministic max-slew × clock-error bound; no universal confidence probability asserted".to_owned(),
         minimum_response_w: contract.minimum_response_w,
         interval_count: intervals.len(),
         qualifying_interval_count,
