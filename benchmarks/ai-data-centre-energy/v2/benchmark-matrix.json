@@ -345,25 +345,24 @@
     {
       "id": "large-load-disturbance-conformance",
       "evidence_class": "SYNTHETIC_KNOWN_TRUTH_THEN_OPERATOR_WAVEFORM_REPLAY",
-      "source": "GRID-DISTURBANCE-001 #3851; ESIG Large Load Modeling/Disturbance/Performance Requirements (2026); CIGRE C4-10506-2026; NERC LL Action Plan",
+      "source": "GRID-DISTURBANCE-001 #3851; ESIG 2026 large-load modeling/disturbance/performance reports; CIGRE C4-10506-2026; NERC Large Loads Action Plan",
       "domain": "pcc_voltage_frequency_ride_through_and_recovery",
-      "baseline": "frozen operator-specific voltage/frequency/RoCoF curve, PCC waveform identity and measurement-chain limits",
-      "target": "100% envelope boundary known-truth agreement; zero involuntary trip classified as intentional DR; 100% fail-closed on critical gaps, stale requirement or invalid timebase; no sub-cycle or EMT claim from RMS traces",
+      "baseline": "frozen operator-specific voltage/frequency/RoCoF envelope, PCC waveform digest and measurement-chain limits",
+      "target": "100% boundary-fixture agreement; zero involuntary trips classified as intentional DR; fail closed on critical gaps, stale requirement and invalid timebase; no sub-cycle/EMT claim from RMS traces",
       "primary_metrics": [
         "voltage_ride_through_compliance",
         "frequency_ride_through_compliance",
         "rocof_tolerance",
         "grid_connection_continuity",
-        "multi_disturbance_survival",
+        "momentary_cessation_duration",
         "post_fault_active_power_recovery_time",
         "active_power_recovery_ramp",
-        "reactive_current_compliance_if_measured",
-        "oscillatory_recovery_index",
+        "recovery_overshoot_fraction",
         "uncommanded_trip_false_credit_rate",
         "waveform_abstention_rate"
       ],
-      "status": "RESEARCH_ISSUE_OPEN_IMPLEMENTATION_NOT_STARTED",
-      "claim_ceiling": "observable PCC trace conformance to pinned operator envelope only; not internal converter stability, EMT, protection certification, AC stability or ELCC"
+      "status": "RUST_TRACE_CONFORMANCE_IMPLEMENTED_CI_PENDING",
+      "claim_ceiling": "observable PCC RMS trace conformance only; not converter internal stability, positive-sequence/EMT model validity, protection, harmonic compliance, interconnection certification, market accreditation or ELCC"
     }
   ],
   "result_requirements": {
@@ -419,6 +418,9 @@
     "N-0 deliverability cannot be promoted to N-1 firm deliverability without explicit contingency validation",
     "uncommanded load trip during a voltage/frequency disturbance is not intentional demand response and must not earn flexibility credit",
     "PCC RMS trace conformance does not prove sub-cycle converter stability, harmonic compliance or EMT model validity",
+    "disturbance performance is a separate qualification axis from dispatch flexibility",
+    "uncommanded load trip during a voltage/frequency disturbance is not intentional demand response and must never earn flexibility credit",
+    "PCC RMS trace conformance does not prove sub-cycle converter stability, harmonic compliance, unbalanced-fault response or EMT model validity",
     "disturbance performance is a separate qualification axis from dispatch flexibility"
   ],
   "metadata": {
