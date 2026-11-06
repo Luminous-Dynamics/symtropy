@@ -675,7 +675,7 @@ fn observation_source_digest_must_match_pinned_partition() {
 
 #[test]
 fn event_response_is_not_qualified_until_work_and_resource_recovery_are_reconciled() {
-    let baseline = qualified_report();
+    let baseline = qualified_report_with_shape(2, 3_600_000_000_000);
     let points = [
         DispatchEventPoint::new(
             "event-1",
@@ -960,5 +960,27 @@ fn event_plus_recovery_must_match_qualified_baseline_trajectory_shape() {
     assert!(matches!(
         error,
         symtropy_counterfactual_baseline::BaselineQualificationError::EventTrajectoryShapeMismatch { .. }
+    ));
+}
+
+#[test]
+fn every_event_point_must_share_the_pinned_recovery_trace_digest() {
+    let baseline = qualified_report_with_shape(2, 3_600_000_000_000);
+    let points = [
+        DispatchEventPoint::new(
+            "dispatch-1", DispatchEventPhase::Dispatch, "normal", 0, 0, 3_600_000_000_000,
+            100.0, 80.0, 0.0, "pcc-dispatch-1", "sha256:wrong-source",
+        ).unwrap(),
+        DispatchEventPoint::new(
+            "recovery-1", DispatchEventPhase::Recovery, "normal", 0, 3_600_000_000_000, 3_600_000_000_000,
+            100.0, 100.0, 0.0, "pcc-recovery-1", "sha256:recovery-receipt",
+        ).unwrap(),
+    ];
+    let evidence = recovery_evidence(0, 3_600_000_000_000, 7_200_000_000_000, true);
+    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_counterfactual_baseline::BaselineQualificationError::EventPointSourceDigestMismatch { .. }
     ));
 }
