@@ -525,3 +525,16 @@ fn required_reactive_current_measurements_missing_causes_abstention() {
         .unwrap_err();
     assert!(matches!(error, DisturbanceError::MissingReactivePowerSample { .. }));
 }
+
+#[test]
+fn initial_measurement_gap_from_event_start_abstains() {
+    let trace = vec![
+        sample(100_000_000, 0.85, 50.0, 70.0, true),
+        sample(150_000_000, 0.86, 50.0, 71.0, true),
+        sample(200_000_000, 0.87, 50.0, 72.0, true),
+    ];
+    let policy = DisturbanceTraceContract::new(10_000, 50_000_000, 20_000_000, 0.4, 3).unwrap();
+    let error = evaluate_disturbance_conformance(&event(), &requirement(), &policy, &trace)
+        .unwrap_err();
+    assert!(matches!(error, DisturbanceError::InitialSampleGapExceedsContract { .. }));
+}
