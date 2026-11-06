@@ -1234,6 +1234,16 @@ mod tests {
             ),
             Err(CoordinationError::InvalidCentralCouplingGain)
         );
+        config = CoordinationConfig::default();
+        config.central_coupling_gain = 0.0;
+        assert_eq!(
+            simulate(
+                CoordinationModel::CoupledHopfOscillators,
+                Intervention::default(),
+                config
+            ),
+            Err(CoordinationError::InvalidCentralCouplingGain)
+        );
     }
 
     #[test]
