@@ -258,6 +258,7 @@ pub enum CoordinationError {
     InvalidHopfParameters,
     InvalidInterventionStep,
     InvalidAmplitudePulse,
+    AmplitudePulseUnsupported,
     InvalidPhasePulse,
     InvalidFeedbackDelay,
     InvalidFrequencyDetune,
