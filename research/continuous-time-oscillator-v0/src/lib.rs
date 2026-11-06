@@ -1,9 +1,3 @@
-pub mod filter;
-pub use filter::{
-    ChannelMeasurement, ChannelSpec, FilterError, FilterUpdate, ObservationForecast,
-    OscillatorObservationFilter, PhaseEstimate,
-};
-
 //! Exact continuous-time transition for a two-dimensional damped oscillator.
 //!
 //! State convention:
@@ -14,6 +8,13 @@ pub use filter::{
 //! Q(dt) = P_inf - A(dt) P_inf A(dt)^T.
 //!
 //! This module is a numerical reference kernel, not a fitted biological model.
+
+
+pub mod filter;
+pub use filter::{
+    ChannelMeasurement, ChannelSpec, FilterError, FilterUpdate, ObservationForecast,
+    OscillatorObservationFilter, PhaseEstimate,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct OscillatorParameters {
