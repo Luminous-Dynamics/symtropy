@@ -37,3 +37,21 @@ cargo check --locked --manifest-path research/civdyn-causal-path/Cargo.toml --al
 cargo test --locked --manifest-path research/civdyn-causal-path/Cargo.toml --all-targets
 cargo run --locked --manifest-path research/civdyn-causal-path/Cargo.toml --bin causal-path-sweep
 ```
+
+
+## Paired-run statistical controls
+
+The `paired_effects` module evaluates at least 30 matched control/treatment runs by unique seed. It reports the paired mean difference, sample standard deviation and a conservative two-sided 95% Student-t interval in the outcome's native unit. The v0.1 critical values are conservative lookup buckets, not a general-purpose statistical library.
+
+- A positive control passes only when the complete confidence interval is in the declared positive direction.
+- A negative/equivalence control passes only when the *entire* interval lies inside the predeclared equivalence margin. Failure to reject zero is not an equivalence pass.
+- An outcome that moves without a declared graph path is reported as movement without a declared path, not credited to the asserted mechanism.
+- Matched observational rows remain descriptive-only; the confirmatory gate requires the caller to declare a common-random-number simulation design.
+
+The pairing design and seed correspondence are protocol assertions supplied to this crate; it does not independently prove that PRNG state or all exogenous inputs match. The paired t interval assumes the paired differences and sampling design make that summary appropriate. The minimum of 30 is a v0 gate, not a universal sample-size guarantee.
+
+## Time-lagged dependency graphs
+
+The `temporal_graph` module requires the zero-lag graph to be acyclic while permitting explicit delayed feedback loops. Each edge declares a mechanism ID and, when units change, a unit-transformation ID. This makes temporal feedback and dimensional changes visible rather than silently flattening them into a static DAG.
+
+These modules strengthen computational conformance; they do not establish real-world causal identification, rule out unmeasured confounding or validate the model's causal assumptions.
