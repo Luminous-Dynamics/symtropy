@@ -2266,12 +2266,14 @@ mod tests {
         let mut changed_challenges = previous.clone();
         changed_challenges.revision_sequence = 2;
         changed_challenges.supersedes_portfolio_digest = Some(previous.portfolio_digest().unwrap());
-        changed_challenges.challenge_requirements.push(ChallengeRequirement {
-            hypothesis_id: "H-weather".into(),
-            strategy: ChallengeStrategy::Random,
-            protocol_digest: d("extra-random-protocol"),
-            minimum_budget_units: 100,
-        });
+        changed_challenges
+            .challenge_requirements
+            .push(ChallengeRequirement {
+                hypothesis_id: "H-weather".into(),
+                strategy: ChallengeStrategy::Random,
+                protocol_digest: d("extra-random-protocol"),
+                minimum_budget_units: 100,
+            });
         changed_challenges.challenge_requirements.retain(|entry| {
             !(entry.hypothesis_id == "H-weather-copy"
                 && entry.strategy == ChallengeStrategy::Expert)
