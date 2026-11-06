@@ -214,7 +214,7 @@ fn missing_asset_outcome_is_rejected_not_assumed_zero_or_nominal() {
 
 #[test]
 fn duplicate_asset_outcome_is_rejected() {
-    let mut observation = event(
+    let observation = event(
         "e1", "g1", "normal", 0, 100.0,
         (60.0, AssetAvailability::Available),
         (50.0, AssetAvailability::Available),
@@ -283,7 +283,7 @@ fn unknown_asset_availability_cannot_mint_delivery_credit() {
         "response-a",
         "sha256:a",
     ).unwrap();
-    assert_eq!(result.delivered_lower_bound_kw, 0.0);
+    assert_eq!(result.delivered_lower_bound_kw(), 0.0);
 }
 
 #[test]
@@ -342,14 +342,13 @@ fn repeated_dispatch_episodes_share_one_incident_group_and_use_worst_margin() {
 fn overlapping_domain_memberships_are_not_summed_into_portfolio_capacity() {
     let definition = definition();
     assert_eq!(definition.total_offered_capacity_kw(), 110.0);
-    assert_eq!(definition.largest_failure_domain_capacity_kw, 110.0);
-    assert_eq!(definition.largest_failure_domain_share_basis_points, 10_000.0);
+    assert_eq!(definition.largest_failure_domain_capacity_kw(), 110.0);
+    assert_eq!(definition.largest_failure_domain_share_basis_points(), 10_000.0);
 }
 
 #[test]
 fn event_and_incident_group_counts_are_separate_contract_gates() {
-    let mut contract = PortfolioContract::new("frequency-response-v1", 3, 2, 9_000, 9_000, 1_000).unwrap();
-    contract.minimum_event_count = 3;
+    let contract = PortfolioContract::new("frequency-response-v1", 3, 2, 9_000, 9_000, 1_000).unwrap();
     let definition = PortfolioDefinition::new(
         PortfolioIdentity::new("p", "frequency-response-v1", "sha256:a", "sha256:d").unwrap(),
         contract,
@@ -362,7 +361,6 @@ fn event_and_incident_group_counts_are_separate_contract_gates() {
         (100.0, AssetAvailability::Available),
         &[("region", FailureDomainState::Normal)],
     );
-    observation.event.start_ns = 0;
     let error = evaluate_portfolio_resilience(&definition, &[observation]).unwrap_err();
     assert!(matches!(
         error,
