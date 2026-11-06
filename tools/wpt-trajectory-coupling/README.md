@@ -57,6 +57,7 @@ The fixtures are hand-computable software controls, not measurements or performa
 - Synthetic known-truth evidence only.
 - 2–1,024 ordered samples and 2–16 wheel channels.
 - Strict sample index, monotonically increasing time and forward progress.
+- Speed/odometry mismatch is checked against an explicit protocol tolerance.
 - Declared maximum sample gap; gaps above it fail closed.
 - Exact wheel identity coverage at every sample.
 - Signed integer millimetre coordinates and explicit longitudinal/lateral axis directions.
@@ -67,7 +68,7 @@ The fixtures are hand-computable software controls, not measurements or performa
 
 `cargo test --locked -p wpt-trajectory-coupling`
 
-Eight tests cover known-truth outputs, coordinate translation, sample order/progress, sample gaps, wheel-channel completeness, ambiguous energy balance, explicit missing thermal channels and fail-closed identifiers/fields/evidence.
+Nine tests cover known-truth outputs, coordinate translation, sample order/progress, speed/odometry agreement, sample gaps, wheel-channel completeness, ambiguous energy balance, explicit missing thermal channels and fail-closed identifiers/fields/evidence.
 
 ## Claim ceiling
 
