@@ -135,9 +135,18 @@
       "family": "electrical_pulse",
       "application_evidence": [
         {
-          "application": "granite_and_other_rock_lab_breakage",
+          "application": "granite_pdc_precracking_assist_sparc",
+          "tier": "R2",
+          "basis": "2025 controlled drilling study reports underwater low-energy pulses (~80 J/pulse), cracks up to 9.4 mm, up to 56% lower specific cutting energy before PDC mechanical cutting, and cracking tests at elevated pressure (~300 atm). This is cutting-energy evidence, not a full-cycle mine productivity result.",
+          "sources": [
+            "https://doi.org/10.1016/j.renene.2025.122351",
+            "https://doi.org/10.1115/1.4056752"
+          ]
+        },
+        {
+          "application": "granite_and_other_rock_lab_ehd_ed_mechanism",
           "tier": "R1-R2",
-          "basis": "Laboratory literature exists; EHD shockwave and electric-discharge mechanisms are not consistently distinguished across studies.",
+          "basis": "2026 review surveys granite and other rock experiments but identifies disagreement between EHD shockwave and electric-discharge arc mechanisms, sensitivity to fluid/polarity/pulse settings, limited high-pressure modelling, and absence of standardized benchmarks.",
           "sources": [
             "https://doi.org/10.1109/TPS.2026.3705317",
             "https://doi.org/10.1007/s40948-023-00550-2"
@@ -498,6 +507,35 @@
         "thermal_mass_balance",
         "mineral_reaction",
         "archaeological_context_fit"
+      ]
+    },
+    {
+      "id": "pulsed_thermal_plasma_jet",
+      "mechanism": "high_temperature_pulsed_plasma_jet_thermal_spallation_and_melting",
+      "family": "thermal_plasma_jet",
+      "application_evidence": [
+        {
+          "application": "granite_laboratory_drilling_and_thermal_removal",
+          "tier": "R2",
+          "basis": "A 2024 granite laboratory study comparing pulsed versus constant plasma jet reports 54.74% lower specific energy, 17.81% higher penetration rate and 50.06% lower electrode wear in its own test boundary. A 2025 thermal study identifies a spalling-to-melting transition and a heat-affected region. These are laboratory comparisons, not a production tunnel result.",
+          "sources": [
+            "https://doi.org/10.1016/j.geoen.2023.212466",
+            "https://doi.org/10.1016/j.petsci.2024.12.017"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Sustained production-scale granite or basalt tunnel excavation.",
+        "A full-cycle comparison including power conversion, cooling, ventilation, debris removal and maintenance."
+      ],
+      "primary_metrics": [
+        "net_energy_per_removed_solid_volume",
+        "penetration_rate",
+        "spall_vs_melt_fraction",
+        "heat_affected_zone",
+        "electrode_wear",
+        "cooling_and_gas_burden",
+        "fragment_recovery"
       ]
     }
   ]
