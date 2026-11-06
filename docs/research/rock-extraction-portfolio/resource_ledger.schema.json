@@ -1,0 +1,625 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/rock-extraction-portfolio/resource_ledger.schema.json",
+  "title": "Rock Extraction Typed Resource Ledger v0.1",
+  "description": "Validates typed native resource observations and conversion chain shape. It does not prove source authenticity, physical calibration, graph completeness, metering completeness or conversion correctness.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "ledger_id",
+    "trial_ref",
+    "comparison_profile_ref",
+    "boundary",
+    "subsystem_inventory",
+    "resource_observations",
+    "conversion_stages",
+    "aggregate_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "ledger_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trial_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "comparison_profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "boundary": {
+      "type": "object",
+      "required": [
+        "boundary_ref",
+        "scope",
+        "time_window",
+        "included_subsystems"
+      ],
+      "properties": {
+        "boundary_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "enum": [
+            "MachineInput",
+            "FacilityInput",
+            "DeclaredSystem",
+            "FullCycle"
+          ]
+        },
+        "time_window": {
+          "$ref": "#/$defs/timeWindow"
+        },
+        "included_subsystems": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "excluded_subsystems": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "acceptance_output_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "subsystem_inventory": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/subsystem"
+      }
+    },
+    "resource_observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/resourceObservation"
+      }
+    },
+    "conversion_stages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conversionStage"
+      }
+    },
+    "aggregate_policy": {
+      "type": "object",
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "NativeVectorOnly",
+            "CommonEnergyInputBasis"
+          ]
+        },
+        "common_energy_basis": {
+          "enum": [
+            "FinalEnergyAtBoundary",
+            "PrimaryEnergy",
+            "Exergy",
+            "ToolInterfaceMechanicalWork",
+            "DeliveredProcessEnergy",
+            "EstimatedAbsorbedEnergy"
+          ]
+        },
+        "output_unit": {
+          "enum": [
+            "J",
+            "kJ",
+            "MJ",
+            "kWh"
+          ]
+        },
+        "conversion_model_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requested_by_protocol_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "CommonEnergyInputBasis"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "common_energy_basis",
+              "output_unit"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "resourceObservation": {
+      "type": "object",
+      "required": [
+        "observation_id",
+        "physical_flow_ref",
+        "resource_class",
+        "resource_type",
+        "dimension",
+        "quantity",
+        "unit",
+        "standard_uncertainty",
+        "flow_role",
+        "accounting_treatment",
+        "boundary_ref",
+        "subsystem_ref",
+        "time_window",
+        "evidence_role",
+        "meter_or_sensor_ref",
+        "calibration_ref",
+        "source_artifact_ref"
+      ],
+      "properties": {
+        "observation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physical_flow_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_class": {
+          "enum": [
+            "EnergyCarrier",
+            "MaterialResource"
+          ]
+        },
+        "resource_type": {
+          "enum": [
+            "GridElectricity",
+            "DieselFuel",
+            "NaturalGas",
+            "HydraulicFluid",
+            "PneumaticAir",
+            "OpticalRadiation",
+            "MechanicalWork",
+            "ThermalEnergy",
+            "Water",
+            "Abrasive",
+            "Coolant",
+            "Cryogen",
+            "ProcessGas",
+            "Chemical",
+            "FilterMedia",
+            "Other"
+          ]
+        },
+        "dimension": {
+          "enum": [
+            "Energy",
+            "Mass",
+            "Volume",
+            "Count"
+          ]
+        },
+        "quantity": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "flow_role": {
+          "enum": [
+            "ExternalBoundaryInput",
+            "InternalTransfer",
+            "ProcessDelivery",
+            "ConversionLoss",
+            "RecoveredOutput",
+            "WasteOutput",
+            "StorageChange"
+          ]
+        },
+        "accounting_treatment": {
+          "enum": [
+            "CountTowardCommonEnergyTotal",
+            "NativeVectorOnly",
+            "ReconciliationOnly",
+            "DoNotAggregate"
+          ]
+        },
+        "boundary_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subsystem_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_window": {
+          "$ref": "#/$defs/timeWindow"
+        },
+        "energy_basis": {
+          "enum": [
+            "FinalEnergyAtBoundary",
+            "PrimaryEnergy",
+            "Exergy",
+            "ToolInterfaceMechanicalWork",
+            "DeliveredProcessEnergy",
+            "EstimatedAbsorbedEnergy"
+          ]
+        },
+        "evidence_role": {
+          "$ref": "#/$defs/evidenceRole"
+        },
+        "meter_or_sensor_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_artifact_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineage_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conversion_model_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_resource_note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "dimension": {
+                "const": "Energy"
+              }
+            },
+            "required": [
+              "dimension"
+            ]
+          },
+          "then": {
+            "required": [
+              "energy_basis"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "dimension": {
+                "enum": [
+                  "Mass",
+                  "Volume",
+                  "Count"
+                ]
+              }
+            },
+            "required": [
+              "dimension"
+            ]
+          },
+          "then": {
+            "properties": {
+              "energy_basis": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "accounting_treatment": {
+                "const": "CountTowardCommonEnergyTotal"
+              }
+            },
+            "required": [
+              "accounting_treatment"
+            ]
+          },
+          "then": {
+            "properties": {
+              "resource_class": {
+                "const": "EnergyCarrier"
+              },
+              "dimension": {
+                "const": "Energy"
+              },
+              "flow_role": {
+                "const": "ExternalBoundaryInput"
+              }
+            },
+            "required": [
+              "energy_basis"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evidence_role": {
+                "const": "DerivedFromIndependentMeasurements"
+              }
+            },
+            "required": [
+              "evidence_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "lineage_ref"
+            ]
+          }
+        }
+      ]
+    },
+    "conversionStage": {
+      "type": "object",
+      "required": [
+        "stage_id",
+        "stage_type",
+        "subsystem_ref",
+        "input_observation_refs",
+        "output_observation_refs",
+        "loss_observation_refs",
+        "evidence_role",
+        "time_window"
+      ],
+      "properties": {
+        "stage_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stage_type": {
+          "enum": [
+            "ElectricToOptical",
+            "ElectricToMechanical",
+            "ElectricToHydraulic",
+            "FuelToMechanical",
+            "OpticalDelivery",
+            "HydraulicToMechanical",
+            "MechanicalToRock",
+            "MechanicalToCrushing",
+            "FluidToJet",
+            "ThermalToRock",
+            "Other"
+          ]
+        },
+        "subsystem_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_observation_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "output_observation_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "loss_observation_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_role": {
+          "$ref": "#/$defs/evidenceRole"
+        },
+        "conversion_model_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conversion_model_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_window": {
+          "$ref": "#/$defs/timeWindow"
+        },
+        "source_artifact_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_role": {
+                "enum": [
+                  "DerivedFromIndependentMeasurements",
+                  "ModelEstimate",
+                  "Simulation"
+                ]
+              }
+            },
+            "required": [
+              "evidence_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "conversion_model_ref",
+              "conversion_model_revision"
+            ]
+          }
+        }
+      ]
+    },
+    "subsystem": {
+      "type": "object",
+      "required": [
+        "subsystem_ref",
+        "energy_input_expected",
+        "expected_resource_types"
+      ],
+      "properties": {
+        "subsystem_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "energy_input_expected": {
+          "type": "boolean"
+        },
+        "expected_resource_types": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "GridElectricity",
+              "DieselFuel",
+              "NaturalGas",
+              "HydraulicFluid",
+              "PneumaticAir",
+              "OpticalRadiation",
+              "MechanicalWork",
+              "ThermalEnergy",
+              "Water",
+              "Abrasive",
+              "Coolant",
+              "Cryogen",
+              "ProcessGas",
+              "Chemical",
+              "FilterMedia",
+              "Other"
+            ]
+          }
+        },
+        "zero_input_reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inactivity_reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "energy_input_expected": {
+                "const": true
+              }
+            },
+            "required": [
+              "energy_input_expected"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "properties": {
+                  "zero_input_reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "zero_input_reason"
+                ]
+              },
+              {
+                "properties": {
+                  "inactivity_reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "inactivity_reason"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "timeWindow": {
+      "type": "object",
+      "required": [
+        "start_time",
+        "end_time"
+      ],
+      "properties": {
+        "start_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidenceRole": {
+      "enum": [
+        "IndependentMeasurement",
+        "DerivedFromIndependentMeasurements",
+        "ProcessSensor",
+        "OperatorReported",
+        "ModelEstimate",
+        "Simulation"
+      ]
+    }
+  }
+}
