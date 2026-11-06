@@ -1,3 +1,9 @@
+pub mod filter;
+pub use filter::{
+    ChannelMeasurement, ChannelSpec, FilterError, FilterUpdate, ObservationForecast,
+    OscillatorObservationFilter, PhaseEstimate,
+};
+
 //! Exact continuous-time transition for a two-dimensional damped oscillator.
 //!
 //! State convention:
