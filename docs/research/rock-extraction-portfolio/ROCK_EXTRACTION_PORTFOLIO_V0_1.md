@@ -293,6 +293,7 @@ The first gate is trustworthy measurement and reproducibility, not an arbitrary 
 ## 10. Integration with existing Symtropy / Luminous owners
 
 - **#1952** — owns the comparative rock-breakage tournament, full-cycle denominator, technology family registry and result acceptance.
+- **#3812** — owns the preregistered trial manifest and measured full-cycle comparison validator; it validates boundaries but does not duplicate MSE or physical solvers.
 - **#1588 / PR #1603** — material-aware tool/rock interaction and spatial-delta contracts; no unqualified fracture law.
 - **#1593** — measured mechanical specific energy (MSE) utility and input provenance.
 - **#1594** — validated acoustic propagation / AE diagnostics. Keep diagnostic AE separate from active ultrasound and ultrasonic tool actuation.
