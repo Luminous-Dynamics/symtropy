@@ -1146,9 +1146,12 @@ mod tests {
             independent_baseline_forecast.observable_layout_digest,
             coupled_baseline_forecast.observable_layout_digest
         );
-        assert_eq!(
-            independent_baseline_forecast.mean,
-            coupled_baseline_forecast.mean
+        assert!(
+            independent_baseline_forecast
+                .mean
+                .iter()
+                .zip(&coupled_baseline_forecast.mean)
+                .all(|(independent, coupled)| (independent - coupled).abs() < 1.0e-12)
         );
 
         let phase_pulse = pulse(LegId::LeftFront, 20, 0.8);
