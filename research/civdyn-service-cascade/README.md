@@ -25,7 +25,7 @@ The graph is topologically sorted independent of declaration order. Cycles, unkn
 - Demand-weighted service-deficit area over beneficiary endpoints.
 - Counterfactual component criticality: additional demand-weighted service deficit when a node is forced offline for a declared interval.
 
-The demand-weighted service-deficit area is a task-level service-loss measure, not a universal resilience score. Node-specific and beneficiary-level vectors remain visible.
+The demand-weighted service-deficit area is exported in its own CSV column and is a task-level service-loss measure, not a universal resilience score. Component marginal service-deficit area remains a separate counterfactual metric. Node-specific and beneficiary-level vectors remain visible.
 
 ## Synthetic reference
 
