@@ -16,7 +16,7 @@ The roster is the exact distribution of opponents faced by every focal strategy.
 
 ## Metrics
 
-- Roster-conditional expected payoff and rank.
+- Roster-conditional expected payoff and one-based average competition rank. Equal payoffs share rank (the balanced roster gives all three strategies rank 2.0); deterministic name order is serialization only.
 - Best-response payoff and per-strategy exploitability against that same roster.
 - Directed pairwise dominance edges and oriented three-cycles.
 - Spearman rank correlation between rosters, with average ranks for ties; all-tied rankings return no correlation value.
