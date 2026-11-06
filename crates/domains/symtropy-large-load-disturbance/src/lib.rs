@@ -513,7 +513,11 @@ pub enum DisturbanceError {
     },
     RequirementHorizonMismatch,
     InvalidTraceContract,
-    SamplingCadenceCannotResolveBandwidth { maximum_sample_gap_ns: u64, required_bandwidth_hz: f64, nyquist_limit_hz: f64 },
+    SamplingCadenceCannotResolveBandwidth {
+        maximum_sample_gap_ns: u64,
+        required_bandwidth_hz: f64,
+        nyquist_limit_hz: f64,
+    },
     RequirementIdentityMismatch,
     PccIdentityMismatch,
     ClockUncertaintyExceedsContract {
@@ -534,7 +538,10 @@ pub enum DisturbanceError {
         minimum: usize,
     },
     SampleBeforeEventStart,
-    InitialSampleGapExceedsContract { gap_ns: u64, maximum_gap_ns: u64 },
+    InitialSampleGapExceedsContract {
+        gap_ns: u64,
+        maximum_gap_ns: u64,
+    },
     DuplicateOrReversedTimestamp {
         index: usize,
         previous_ns: u64,
