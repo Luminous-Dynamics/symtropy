@@ -110,6 +110,7 @@ pub enum TrajectoryError {
     AssignmentDeliveryMismatch,
     DeliveryNotVerified,
     DeliveryFidelityBelowThreshold,
+    InvalidDeliveryFidelity,
     InterferenceNotControlled,
     CarryoverNotCleared,
     NonFiniteObservation,
@@ -169,6 +170,9 @@ fn validate_delivery(
     }
     if !observation.value.is_finite() || !observation.delivery_fidelity.is_finite() {
         return Err(TrajectoryError::NonFiniteObservation);
+    }
+    if !(0.0..=1.0).contains(&observation.delivery_fidelity) {
+        return Err(TrajectoryError::InvalidDeliveryFidelity);
     }
     if !observation.assignment_design_valid {
         return Err(TrajectoryError::AssignmentDesignInvalid);
@@ -261,8 +265,6 @@ fn validate_next_identity(
         {
             return Err(TrajectoryError::SessionReopened(session_id.to_owned()));
         }
-    } else if session_id.is_empty() {
-        return Err(TrajectoryError::EmptyIdentifier("session_id"));
     }
     Ok(())
 }
@@ -349,8 +351,22 @@ fn history_fingerprint(
         push_bytes(&mut bytes, observation.sample_id.as_bytes());
         push_bytes(&mut bytes, observation.session_id.as_bytes());
         bytes.extend_from_slice(&observation.time_index.to_be_bytes());
+        push_bytes(&mut bytes, observation.assigned_action_id.as_bytes());
         push_bytes(&mut bytes, observation.delivered_action_id.as_bytes());
         bytes.extend_from_slice(&observation.value.to_bits().to_be_bytes());
+        bytes.extend_from_slice(&observation.delivery_fidelity.to_bits().to_be_bytes());
+        bytes.extend_from_slice(&[
+            observation.assignment_design_valid as u8,
+            observation.delivery_verified as u8,
+            observation.interference_controlled as u8,
+            observation.carryover_cleared as u8,
+        ]);
+        bytes.push(match observation.evidence_tier {
+            EvidenceTier::SyntheticFixture => 0,
+            EvidenceTier::InSilicoGenerated => 1,
+            EvidenceTier::PreprintMeasured => 2,
+            EvidenceTier::PeerReviewedMeasured => 3,
+        });
     }
     let mut hash = 0xcbf29ce484222325_u64;
     for byte in bytes {
@@ -726,8 +742,7 @@ mod tests {
     #[test]
     fn duplicate_samples_and_non_monotonic_times_are_rejected() {
         let existing = observation("sample-1", "session-a", 2, 0.0);
-        let mut duplicate = observation("sample-1", "session-a", 3, 0.0);
-        duplicate.sample_id = existing.sample_id.clone();
+        let duplicate = observation("sample-1", "session-a", 3, 0.0);
         let duplicate_history = history(vec![existing.clone()]);
         assert_eq!(
             forecast_next(
