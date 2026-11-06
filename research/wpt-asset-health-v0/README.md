@@ -113,3 +113,14 @@ The synthetic example `asset-lifecycle-outcomes.synthetic-example.json` contains
 
 
 Lifecycle outcome provenance is validated separately from condition-observation provenance. A MEASURED time-to-event outcome requires source-record identity and a raw artifact digest; a PUBLISHED_MEASURED outcome requires a source locator. This does not infer the event from incomplete evidence and does not convert censored observations into failures.
+
+## Exact-head test and claim boundary
+
+The Rust contract package is a parser/semantic validator for versioned condition observations and lifecycle outcome records. Its package gate is:
+
+`cargo test --locked -p wpt-asset-health-contract`
+
+The test suite is intended to prove record semantics (including target failure vs right-censoring vs competing events), UTC duration consistency, provenance requirements, identity uniqueness and split isolation. It does not estimate an RUL model or establish predictive accuracy. A synthetic lifecycle outcome is never a measured asset outcome; a successful validator run cannot create field evidence.
+
+For a measured outcome, preserve the source-record identity and raw artifact digest alongside the time/event record. For a published measurement, preserve a locator to the underlying report. Missing provenance is a validation failure, not an invitation to impute event truth.
+
