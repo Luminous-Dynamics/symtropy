@@ -27,6 +27,10 @@ pub struct EvidenceReceipt {
     pub evidence_id: String,
     pub source_id: String,
     pub source_revision: String,
+    /// Exact resource ID or directed route-leg key to which this receipt applies.
+    pub subject_id: String,
+    /// Exact resource configuration or route revision for that subject.
+    pub subject_revision: String,
     pub state: EvidenceState,
     pub valid_from_tick: u64,
     pub valid_through_tick: u64,
@@ -38,6 +42,8 @@ impl EvidenceReceipt {
         if self.evidence_id.trim().is_empty()
             || self.source_id.trim().is_empty()
             || self.source_revision.trim().is_empty()
+            || self.subject_id.trim().is_empty()
+            || self.subject_revision.trim().is_empty()
             || self.claim_ceiling.trim().is_empty()
             || self.valid_from_tick > self.valid_through_tick
         {
@@ -458,7 +464,7 @@ fn check_resource_sequence(
                     resource_id.to_owned(),
                 ));
                 current_node = task.location_node_id.clone();
-                ready_tick = task.operation.start_tick;
+                ready_tick = task.operation.end_tick;
                 previous_end = Some(task.operation.end_tick);
                 continue;
             };
@@ -555,6 +561,15 @@ pub fn evaluate_mobile_assistance(
         }
         tug.capability_evidence.validate()?;
         tug.position_evidence.validate()?;
+        if tug.capability_evidence.subject_id != tug.tug_id
+            || tug.position_evidence.subject_id != tug.tug_id
+            || tug.capability_evidence.subject_revision != tug.revision
+            || tug.position_evidence.subject_revision != tug.revision
+        {
+            return Err(MobileError::InvalidEvidenceReceipt(
+                tug.capability_evidence.evidence_id.clone(),
+            ));
+        }
         validate_availability(&tug.tug_id, &tug.availability)?;
         if tug_by_id.insert(tug.tug_id.as_str(), tug).is_some() {
             return Err(MobileError::DuplicateTug(tug.tug_id.clone()));
@@ -572,6 +587,15 @@ pub fn evaluate_mobile_assistance(
         }
         pilot.qualification_evidence.validate()?;
         pilot.position_evidence.validate()?;
+        if pilot.qualification_evidence.subject_id != pilot.pilot_id
+            || pilot.position_evidence.subject_id != pilot.pilot_id
+            || pilot.qualification_evidence.subject_revision != pilot.revision
+            || pilot.position_evidence.subject_revision != pilot.revision
+        {
+            return Err(MobileError::InvalidEvidenceReceipt(
+                pilot.qualification_evidence.evidence_id.clone(),
+            ));
+        }
         validate_availability(&pilot.pilot_id, &pilot.availability)?;
         let mut qualifications = BTreeSet::new();
         if pilot
@@ -599,6 +623,14 @@ pub fn evaluate_mobile_assistance(
             ));
         }
         leg.evidence.validate()?;
+        let expected_subject = format!("{}->{}", leg.from_node_id, leg.to_node_id);
+        if leg.evidence.subject_id != expected_subject
+            || leg.evidence.subject_revision != leg.route_revision
+        {
+            return Err(MobileError::InvalidEvidenceReceipt(
+                leg.evidence.evidence_id.clone(),
+            ));
+        }
         let key = (
             leg.from_node_id.as_str(),
             leg.to_node_id.as_str(),
