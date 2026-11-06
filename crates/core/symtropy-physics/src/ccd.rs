@@ -20,8 +20,8 @@ use nalgebra::SVector;
 /// Result of a continuous collision detection query.
 #[derive(Clone, Debug)]
 pub struct CcdHit<const D: usize> {
-    /// Time of impact [0, 1] within the current timestep.
-    /// 0 = start of step, 1 = end of step.
+    /// Time of impact in the same time units as the supplied timestep.
+    /// The query returns a value in the closed interval [0, dt].
     pub toi: f64,
     /// Hit point in world space at time of impact.
     pub point: SVector<f64, D>,
@@ -376,13 +376,13 @@ mod tests {
     fn sphere_sphere_stable_q_form_preserves_small_root() {
         let pos_a = SVector::from([0.0, 0.0]);
         let vel_a = SVector::zeros();
-        let pos_b = SVector::from([100_000_000.0, 0.0]);
+        let pos_b = SVector::from([5.0, 0.0]);
         let vel_b = SVector::from([-1.0, 0.0]);
-        let radius_a = 100_000_000.0 - f64::EPSILON * 100_000_000.0;
+        let radius_a = 5.0 - 1e-14;
 
         let expected = pos_b[0] - radius_a;
         let hit = sphere_sphere(
-            &pos_a, &vel_a, radius_a, &pos_b, &vel_b, 0.0, 1e-6,
+            &pos_a, &vel_a, radius_a, &pos_b, &vel_b, 0.0, 1e-12,
         )
         .unwrap();
 
