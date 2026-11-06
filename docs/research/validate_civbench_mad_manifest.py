@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 from pathlib import Path
 
@@ -59,6 +60,34 @@ def semantic_errors(candidate):
             errors.append("tier-1 reference fixtures must not silently mix empirical sources")
         if design["inference_claimed"]:
             errors.append("tier-1 synthetic reference fixtures cannot claim population inference")
+
+    passport = candidate["configuration_passport"]
+    if passport["configuration_id"] != candidate["evaluation_id"]:
+        errors.append("configuration passport ID must match the evaluation ID")
+
+    canonical_fields = {
+        "benchmark_id": candidate["benchmark_id"],
+        "evaluation_id": candidate["evaluation_id"],
+        "configuration_id": passport["configuration_id"],
+        "data_split_digest": passport["data_split_digest"],
+        "model_id": passport["model"]["model_id"],
+        "model_version": passport["model"]["model_version"],
+        "task_contract_digest": passport["task_contract_digest"],
+        **passport["facets"],
+    }
+    canonical_bytes = "\\n".join(
+        f"{key}={canonical_fields[key] if canonical_fields[key] is not None else 'null'}"
+        for key in sorted(canonical_fields)
+    ).encode("utf-8")
+    computed_digest = hashlib.sha256(canonical_bytes).hexdigest()
+    if passport["configuration_digest"] != computed_digest:
+        errors.append("configuration passport digest does not match canonical decision configuration")
+    if passport["configuration_digest"] != candidate["reproduction"]["configuration_digest"]:
+        errors.append("reproduction and configuration passport digests disagree")
+    if passport["model"]["model_id"] != candidate["reproduction"]["model_identifier"]:
+        errors.append("reproduction model identifier and configuration passport model disagree")
+    if passport["data_split_digest"] != candidate["reproduction"]["data_manifest_digest"]:
+        errors.append("configuration passport and reproduction data split digests disagree")
 
     stack = candidate["execution_stack"]
     components = stack["components"]
@@ -165,6 +194,14 @@ def expect_semantic_rejection(candidate, expected_fragment):
             f"expected execution-stack negative control to reject with {expected_fragment!r}; got {errors}"
         )
 
+
+# A decision-relevant persona change without a new matching digest must fail.
+configuration_changed_without_reaudit = copy.deepcopy(manifest)
+configuration_changed_without_reaudit["configuration_passport"]["facets"]["persona_id"] = "changed-persona"
+expect_semantic_rejection(
+    configuration_changed_without_reaudit,
+    "configuration passport digest does not match",
+)
 
 # Negative controls demonstrate that the manifest validator itself detects
 # hidden defaults, unseeded RNG, unbound scheduler IDs and silent event loss.
