@@ -535,7 +535,8 @@ impl EventRecoveryEvidence {
             evidence_id: evidence_id.into(),
             source_digest: source_digest.into(),
             workload_reconciliation_receipt_id: workload_reconciliation_receipt_id.into(),
-            physical_state_reconciliation_receipt_id: physical_state_reconciliation_receipt_id.into(),
+            physical_state_reconciliation_receipt_id: physical_state_reconciliation_receipt_id
+                .into(),
             workload_obligations_reconciled,
             physical_resource_states_reconciled,
         };
@@ -876,7 +877,11 @@ impl fmt::Display for BaselineQualificationError {
             Self::DuplicateEventPoint { point_id } => {
                 write!(f, "duplicate event point ID {point_id}")
             }
-            Self::EventPointSourceDigestMismatch { point_id, expected, observed } => write!(
+            Self::EventPointSourceDigestMismatch {
+                point_id,
+                expected,
+                observed,
+            } => write!(
                 f,
                 "event point {point_id} source digest {observed} differs from pinned horizon digest {expected}"
             ),
@@ -1050,12 +1055,14 @@ pub fn qualify_counterfactual_baseline(
             .ok_or(BaselineQualificationError::NoSharedOperatingRegimes)?;
         for (group_id, shape) in calibration_shapes.iter().chain(evaluation_shapes.iter()) {
             if shape != &expected_trajectory_shape {
-                return Err(BaselineQualificationError::BaselineTrajectoryShapeMismatch {
-                    regime_id: regime_id.to_owned(),
-                    group_id: (*group_id).to_owned(),
-                    expected: expected_trajectory_shape.clone(),
-                    observed: shape.clone(),
-                });
+                return Err(
+                    BaselineQualificationError::BaselineTrajectoryShapeMismatch {
+                        regime_id: regime_id.to_owned(),
+                        group_id: (*group_id).to_owned(),
+                        expected: expected_trajectory_shape.clone(),
+                        observed: shape.clone(),
+                    },
+                );
             }
         }
         let mut calibration_residuals: Vec<f64> = group_lower_residuals.values().copied().collect();
@@ -1366,7 +1373,10 @@ pub fn evaluate_baseline_bounded_event(
             duration_ns: point.interval_duration_ns,
         })
         .collect();
-    let used_regimes: BTreeSet<&str> = points.iter().map(|point| point.regime_id.as_str()).collect();
+    let used_regimes: BTreeSet<&str> = points
+        .iter()
+        .map(|point| point.regime_id.as_str())
+        .collect();
     for regime_id in used_regimes {
         let expected_shape = &qualified_baseline
             .regime(regime_id)
@@ -1439,7 +1449,10 @@ fn trajectory_shapes<'a>(
 ) -> Result<BTreeMap<&'a str, Vec<BaselineTrajectoryIntervalShape>>, BaselineQualificationError> {
     let mut grouped: BTreeMap<&str, Vec<&NoDispatchObservation>> = BTreeMap::new();
     for sample in samples {
-        grouped.entry(sample.group_id.as_str()).or_default().push(*sample);
+        grouped
+            .entry(sample.group_id.as_str())
+            .or_default()
+            .push(*sample);
     }
 
     let mut shapes = BTreeMap::new();
@@ -1455,13 +1468,15 @@ fn trajectory_shapes<'a>(
             if let Some(expected_start_ns) = previous_end_ns
                 && sample.interval_start_ns != expected_start_ns
             {
-                return Err(BaselineQualificationError::NonContiguousBaselineTrajectory {
-                    regime_id: regime_id.to_owned(),
-                    group_id: group_id.to_owned(),
-                    index,
-                    expected_start_ns,
-                    observed_start_ns: sample.interval_start_ns,
-                });
+                return Err(
+                    BaselineQualificationError::NonContiguousBaselineTrajectory {
+                        regime_id: regime_id.to_owned(),
+                        group_id: group_id.to_owned(),
+                        index,
+                        expected_start_ns,
+                        observed_start_ns: sample.interval_start_ns,
+                    },
+                );
             }
             let end_ns = sample
                 .interval_start_ns
