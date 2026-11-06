@@ -78,141 +78,143 @@ fn water_use_ml(case: &ServiceChainCase) -> u128 {
         .sum()
 }
 
-fn enumerate_segment_placements(
-    case: &ServiceChainCase,
-    alternative: &VoyageAlternative,
-    segment_index: usize,
-    previous_end_tick: Option<u64>,
-    placements: &mut Vec<OperationPlacement>,
-    idle_wait_ticks: u128,
-    states_explored: &mut u64,
+struct TemporalSearch<'a> {
+    case: &'a ServiceChainCase,
+    states_explored: u64,
     max_states: u64,
-    budget_exhausted: &mut bool,
-    plans: &mut Vec<OraclePlan>,
-) {
-    if *budget_exhausted {
-        return;
-    }
+    budget_exhausted: bool,
+    plans: Vec<OraclePlan>,
+}
 
-    if segment_index == alternative.operation_timings.len() {
-        let Some(last) = placements.last() else {
-            return;
-        };
-        let delivery_tick = last.end_tick;
-        if delivery_tick < case.demand.delivery_window.start_tick
-            || delivery_tick >= case.demand.delivery_window.end_tick
-        {
+impl TemporalSearch<'_> {
+    fn enumerate_segment_placements(
+        &mut self,
+        alternative: &VoyageAlternative,
+        segment_index: usize,
+        previous_end_tick: Option<u64>,
+        placements: &mut Vec<OperationPlacement>,
+        idle_wait_ticks: u128,
+    ) {
+        if self.budget_exhausted {
             return;
         }
-        let objective = ObjectiveVector {
-            delivery_tick,
-            idle_wait_ticks,
-            propulsion_wh: u128::from(alternative.energy.propulsion_wh),
-            auxiliary_wh: u128::from(alternative.energy.auxiliary_wh),
-            shore_power_import_wh: u128::from(alternative.energy.shore_power_import_wh),
-            inland_transfer_wh: u128::from(alternative.energy.inland_transfer_wh),
-            water_ml: water_use_ml(case),
-        };
-        plans.push(OraclePlan {
-            alternative_id: alternative.alternative_id.clone(),
-            placements: placements.clone(),
-            objective,
-        });
-        return;
-    }
 
-    let timing = &alternative.operation_timings[segment_index];
-    let Some(segment) = case
-        .route_segments
-        .iter()
-        .position(|segment| segment.segment_id == timing.segment_id)
-    else {
-        return;
-    };
-
-    // The channel transit is anchored at the conservative latest arrival
-    // tick. Subsequent operations may start at any integer tick after the
-    // preceding operation, provided every resource calendar covers the full
-    // half-open interval.
-    let (mut start_tick, maximum_start_tick) = if segment_index == 0 {
-        let Some(arrival_tick) = alternative.arrival_window.end_tick.checked_sub(1) else {
-            return;
-        };
-        let Some(start_tick) = arrival_tick.checked_sub(timing.duration_ticks) else {
-            return;
-        };
-        if start_tick < case.decision_tick {
+        if segment_index == alternative.operation_timings.len() {
+            let Some(last) = placements.last() else {
+                return;
+            };
+            let delivery_tick = last.end_tick;
+            if delivery_tick < self.case.demand.delivery_window.start_tick
+                || delivery_tick >= self.case.demand.delivery_window.end_tick
+            {
+                return;
+            }
+            let objective = ObjectiveVector {
+                delivery_tick,
+                idle_wait_ticks,
+                propulsion_wh: u128::from(alternative.energy.propulsion_wh),
+                auxiliary_wh: u128::from(alternative.energy.auxiliary_wh),
+                shore_power_import_wh: u128::from(alternative.energy.shore_power_import_wh),
+                inland_transfer_wh: u128::from(alternative.energy.inland_transfer_wh),
+                water_ml: water_use_ml(self.case),
+            };
+            self.plans.push(OraclePlan {
+                alternative_id: alternative.alternative_id.clone(),
+                placements: placements.clone(),
+                objective,
+            });
             return;
         }
-        (start_tick, start_tick)
-    } else {
-        let Some(earliest) = previous_end_tick else {
-            return;
-        };
-        let Some(latest) = case
-            .demand
-            .delivery_window
-            .end_tick
-            .checked_sub(timing.duration_ticks)
-            .and_then(|value| value.checked_sub(1))
+
+        let timing = alternative.operation_timings[segment_index].clone();
+        let Some(segment) = self
+            .case
+            .route_segments
+            .iter()
+            .position(|segment| segment.segment_id == timing.segment_id)
         else {
             return;
         };
-        if earliest > latest {
-            return;
-        }
-        (earliest, latest)
-    };
 
-    loop {
-        if *states_explored >= max_states {
-            *budget_exhausted = true;
-            return;
-        }
-        *states_explored += 1;
-
-        let Some(end_tick) = start_tick.checked_add(timing.duration_ticks) else {
-            return;
-        };
-        if end_tick < case.demand.delivery_window.end_tick
-            && resource_use_fits(case, segment, start_tick, end_tick)
-        {
-            let idle = previous_end_tick
-                .map(|previous| u128::from(start_tick - previous))
-                .unwrap_or(0);
-            placements.push(OperationPlacement {
-                segment_id: timing.segment_id.clone(),
-                start_tick,
-                end_tick,
-            });
-            enumerate_segment_placements(
-                case,
-                alternative,
-                segment_index + 1,
-                Some(end_tick),
-                placements,
-                idle_wait_ticks + idle,
-                states_explored,
-                max_states,
-                budget_exhausted,
-                plans,
-            );
-            placements.pop();
-            if *budget_exhausted {
+        // The channel transit is anchored at the conservative latest arrival
+        // tick. Subsequent operations may start at any integer tick after the
+        // preceding operation, provided every resource calendar covers the full
+        // half-open interval.
+        let (mut start_tick, maximum_start_tick) = if segment_index == 0 {
+            let Some(arrival_tick) = alternative.arrival_window.end_tick.checked_sub(1) else {
+                return;
+            };
+            let Some(start_tick) = arrival_tick.checked_sub(timing.duration_ticks) else {
+                return;
+            };
+            if start_tick < self.case.decision_tick {
                 return;
             }
-        }
-
-        if start_tick == maximum_start_tick {
-            break;
-        }
-        let Some(next) = start_tick.checked_add(1) else {
-            break;
+            (start_tick, start_tick)
+        } else {
+            let Some(earliest) = previous_end_tick else {
+                return;
+            };
+            let Some(latest) = self
+                .case
+                .demand
+                .delivery_window
+                .end_tick
+                .checked_sub(timing.duration_ticks)
+                .and_then(|value| value.checked_sub(1))
+            else {
+                return;
+            };
+            if earliest > latest {
+                return;
+            }
+            (earliest, latest)
         };
-        start_tick = next;
+
+        loop {
+            if self.states_explored >= self.max_states {
+                self.budget_exhausted = true;
+                return;
+            }
+            self.states_explored += 1;
+
+            let Some(end_tick) = start_tick.checked_add(timing.duration_ticks) else {
+                return;
+            };
+            if end_tick < self.case.demand.delivery_window.end_tick
+                && resource_use_fits(self.case, segment, start_tick, end_tick)
+            {
+                let idle = previous_end_tick
+                    .map(|previous| u128::from(start_tick - previous))
+                    .unwrap_or(0);
+                placements.push(OperationPlacement {
+                    segment_id: timing.segment_id.clone(),
+                    start_tick,
+                    end_tick,
+                });
+                self.enumerate_segment_placements(
+                    alternative,
+                    segment_index + 1,
+                    Some(end_tick),
+                    placements,
+                    idle_wait_ticks + idle,
+                );
+                placements.pop();
+                if self.budget_exhausted {
+                    return;
+                }
+            }
+
+            if start_tick == maximum_start_tick {
+                break;
+            }
+            let Some(next) = start_tick.checked_add(1) else {
+                break;
+            };
+            start_tick = next;
+        }
     }
 }
-
 fn dominates(left: ObjectiveVector, right: ObjectiveVector) -> bool {
     let no_worse = left.delivery_tick <= right.delivery_tick
         && left.idle_wait_ticks <= right.idle_wait_ticks
@@ -283,32 +285,25 @@ fn exact_temporal_oracle(
 ) -> Result<OracleResult, ValidationError> {
     validate_case(case)?;
 
-    let mut states_explored = 0;
-    let mut budget_exhausted = false;
-    let mut candidates = Vec::new();
+    let mut search = TemporalSearch {
+        case,
+        states_explored: 0,
+        max_states,
+        budget_exhausted: false,
+        plans: Vec::new(),
+    };
 
     for alternative in &case.voyage_alternatives {
-        enumerate_segment_placements(
-            case,
-            alternative,
-            0,
-            None,
-            &mut Vec::new(),
-            0,
-            &mut states_explored,
-            max_states,
-            &mut budget_exhausted,
-            &mut candidates,
-        );
-        if budget_exhausted {
+        search.enumerate_segment_placements(alternative, 0, None, &mut Vec::new(), 0);
+        if search.budget_exhausted {
             break;
         }
     }
 
     Ok(OracleResult {
-        frontier: pareto_frontier(candidates),
-        states_explored,
-        termination: if budget_exhausted {
+        frontier: pareto_frontier(search.plans),
+        states_explored: search.states_explored,
+        termination: if search.budget_exhausted {
             SearchTermination::BudgetExhausted
         } else {
             SearchTermination::ExhaustiveComplete
