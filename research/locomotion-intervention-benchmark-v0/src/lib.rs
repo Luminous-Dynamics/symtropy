@@ -1567,4 +1567,95 @@ mod tests {
         .unwrap();
         assert!(correct_score > wrong_score);
     }
+
+    fn monte_carlo_spec() -> MonteCarloSpec {
+        MonteCarloSpec {
+            generating_mechanisms: vec![
+                Mechanism::IntrinsicOscillator,
+                Mechanism::SensoryFeedbackDriven,
+            ],
+            candidates: vec![
+                Mechanism::IntrinsicOscillator,
+                Mechanism::SensoryFeedbackDriven,
+            ],
+            seeds: vec![11, 23, 37, 49, 61, 73],
+            intervention: Intervention::FeedbackCutFrom { sample_index: 30 },
+            base_config: config(),
+            fit_grid: FrequencyPhaseGrid {
+                minimum_angular_frequency: 3.5,
+                maximum_angular_frequency: 4.5,
+                frequency_steps: 21,
+                phase_steps: 48,
+            },
+            observation_noise_variance: 0.01,
+            minimum_score_margin: 1.0e-6,
+        }
+    }
+
+    #[test]
+    fn paired_seed_monte_carlo_reports_accuracy_false_confidence_and_abstention() {
+        let summaries = run_paired_seed_evaluation(monte_carlo_spec()).unwrap();
+        assert_eq!(summaries.len(), 2);
+
+        for summary in &summaries {
+            assert_eq!(summary.trials, 6);
+            assert_eq!(summary.selected_count, 6);
+            assert_eq!(summary.correct_count, 6);
+            assert_eq!(summary.incorrect_confident_count, 0);
+            assert_eq!(summary.abstention_count, 0);
+            let accuracy = summary.accuracy_when_selected_95.unwrap();
+            assert_eq!(accuracy.successes, 6);
+            assert_eq!(accuracy.trials, 6);
+            assert_eq!(accuracy.rate, 1.0);
+            assert_eq!(summary.false_confident_rate_95.rate, 0.0);
+            assert_eq!(summary.abstention_rate_95.rate, 0.0);
+            assert!(summary.mean_score_margin.is_finite());
+        }
+    }
+
+    #[test]
+    fn monte_carlo_preserves_abstention_when_score_margin_is_unresolved() {
+        let mut spec = monte_carlo_spec();
+        spec.minimum_score_margin = f64::MAX;
+        let summaries = run_paired_seed_evaluation(spec).unwrap();
+
+        for summary in &summaries {
+            assert_eq!(summary.selected_count, 0);
+            assert_eq!(summary.correct_count, 0);
+            assert_eq!(summary.incorrect_confident_count, 0);
+            assert_eq!(summary.abstention_count, summary.trials);
+            assert_eq!(summary.accuracy_when_selected_95, None);
+            assert_eq!(summary.abstention_rate_95.rate, 1.0);
+        }
+    }
+
+    #[test]
+    fn monte_carlo_rejects_duplicate_seeds_and_generating_mechanisms() {
+        let mut duplicate_seed_spec = monte_carlo_spec();
+        duplicate_seed_spec.seeds[1] = duplicate_seed_spec.seeds[0];
+        assert_eq!(
+            run_paired_seed_evaluation(duplicate_seed_spec),
+            Err(BenchmarkError::DuplicateSeed)
+        );
+
+        let mut duplicate_generator_spec = monte_carlo_spec();
+        duplicate_generator_spec
+            .generating_mechanisms
+            .push(Mechanism::IntrinsicOscillator);
+        assert_eq!(
+            run_paired_seed_evaluation(duplicate_generator_spec),
+            Err(BenchmarkError::DuplicateGenerator)
+        );
+    }
+
+    #[test]
+    fn wilson_interval_matches_known_small_sample_reference() {
+        let interval = wilson_interval(5, 10);
+        assert!((interval.rate - 0.5).abs() < 1.0e-12);
+        assert!((interval.lower_95 - 0.23659309).abs() < 1.0e-7);
+        assert!((interval.upper_95 - 0.76340691).abs() < 1.0e-7);
+        assert_eq!(interval.successes, 5);
+        assert_eq!(interval.trials, 10);
+    }
+
 }
