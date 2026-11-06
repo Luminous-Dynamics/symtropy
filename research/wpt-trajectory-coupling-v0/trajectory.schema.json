@@ -60,6 +60,7 @@
     },
     "declared_lateral_alignment_limit_mm": { "type": "integer", "minimum": 0 },
     "max_sample_gap_ms": { "type": "integer", "minimum": 1, "maximum": 60000 },
+    "max_kinematic_mismatch_ppm": { "type": "integer", "minimum": 0, "maximum": 1000000 },
     "samples": {
       "type": "array", "minItems": 2, "maxItems": 1024,
       "items": {
