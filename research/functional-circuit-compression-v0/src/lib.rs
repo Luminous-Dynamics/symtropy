@@ -682,7 +682,10 @@ mod tests {
         );
         let report = certified(compress_exact(&input, &CompressionConfig::default()).unwrap());
         assert_eq!(report.minimal_circuits.len(), 1);
-        assert_eq!(report.minimal_circuits[0].component_ids, vec!["a".to_owned(), "b".to_owned()]);
+        assert_eq!(
+            report.minimal_circuits[0].component_ids,
+            vec!["a".to_owned(), "b".to_owned()]
+        );
     }
 
     #[test]
