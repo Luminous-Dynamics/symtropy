@@ -141,6 +141,13 @@ impl KnowledgeDataset {
             if item_by_id.insert(item.item_id.as_str(), item).is_some() {
                 return Err(KnowledgeError::DuplicateItemId(item.item_id.clone()));
             }
+            if item.epistemic_status == EpistemicStatus::Verified
+                && item.evidence_source_families.is_empty()
+            {
+                return Err(KnowledgeError::VerifiedWithoutEvidence {
+                    item_id: item.item_id.clone(),
+                });
+            }
             let mut source_families = BTreeSet::new();
             for family in &item.evidence_source_families {
                 if family.trim().is_empty() {
@@ -344,6 +351,9 @@ pub enum KnowledgeError {
     EmptyEvidenceFamily {
         item_id: String,
     },
+    VerifiedWithoutEvidence {
+        item_id: String,
+    },
     DuplicateEvidenceFamily {
         item_id: String,
         family_id: String,
@@ -421,6 +431,9 @@ impl fmt::Display for KnowledgeError {
             }
             Self::EmptyEvidenceFamily { item_id } => {
                 write!(f, "item {item_id} has an empty evidence source family")
+            }
+            Self::VerifiedWithoutEvidence { item_id } => {
+                write!(f, "verified item {item_id} has no declared evidence source family")
             }
             Self::DuplicateEvidenceFamily { item_id, family_id } => {
                 write!(f, "item {item_id} repeats evidence family {family_id}")
@@ -868,6 +881,16 @@ mod tests {
         assert!(hydro_recovery.recoverable);
         assert_eq!(myth_recovery.surviving_verified_copy_count, 0);
         assert!(!myth_recovery.recoverable);
+    }
+
+    #[test]
+    fn verified_status_requires_at_least_one_declared_evidence_family() {
+        let mut dataset = reference_dataset();
+        dataset.items[0].evidence_source_families.clear();
+        assert!(matches!(
+            dataset.validate(),
+            Err(KnowledgeError::VerifiedWithoutEvidence { .. })
+        ));
     }
 
     #[test]
