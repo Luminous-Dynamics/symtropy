@@ -223,3 +223,15 @@ All thresholds below are proposed research targets, not current achievements or 
 ## 9. Claim ceiling
 
 A benchmark pass establishes only the metrics, model boundary, data split, operating conditions and claim class represented by its receipt. It does not itself prove utility acceptance, grid-code compliance, market accreditation, transmission deliverability, field performance or universal SOTA superiority.
+
+## 10. Dataset scope guardrail: high-resolution GPU traces
+
+The Scientific Data 2026 workload dataset (32 H100/B200 8-GPU node sessions, 40 RTX 3060 sessions, more than 1.8 million samples) is useful for accelerator and node-scale power model evaluation. The dataset README reports 15-minute sessions with 20 ms node-scale and 100 ms single-machine sampling. It is not a facility-PCC measurement chain, a three-hour dispatch demonstration, a cooling/ambient dataset or evidence of cross-data-centre correlation. Use it for per-GPU/node power prediction, workload phase characterization and within-node synchrony only.
+
+The repository identifies the data as CC BY-NC-ND 4.0. This benchmark does not copy or transform its source files into Symtropy. Any reuse, derivative analysis or distribution must undergo a separate licence and use review; CI fixtures remain synthetic and source digests/metadata only.
+
+## 11. Counterfactual baseline and M&V
+
+PR #3772 qualifies the PCC meter chain, but it does not establish the no-dispatch counterfactual. Issue #3802 / GRID-BASELINE-MV-001 introduces a separate gate: no-dispatch calibration groups and evaluation groups must be disjoint; forecasts must be issued before target intervals; baseline residuals include no-dispatch meter uncertainty; lower-tail residuals are calibrated at the independent-group level using the worst interval residual per calibration block; and evaluation regimes without calibration coverage abstain. Holdout bias, normalized error, block lower-bound coverage and false-positive reduction rate are reported by operating regime.
+
+An event response lower bound is formed from the baseline lower prediction bound minus the upper PCC measured-load bound. It is model-based impact estimation, not causal identification. Recovery horizon completeness must be explicitly declared; event interval bounds are not a joint event-horizon probability bound without cross-interval dependence evidence.
