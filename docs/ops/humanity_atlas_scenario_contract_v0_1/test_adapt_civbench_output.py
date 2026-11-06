@@ -227,6 +227,27 @@ class CivBenchAtlasAdapterTests(unittest.TestCase):
         self.assertFalse(changed["deterministic"])
         self.assertEqual(changed["validation"]["evidence"], [])
 
+    def test_declared_nondeterministic_engine_stays_false_even_if_one_replay_matches(self) -> None:
+        dataset = self.dataset("service-cascade")
+        scenario_doc = json.loads(fixture_scenario("service-cascade", dataset, self.model_sha))
+        scenario_doc["engine"]["deterministic"] = False
+        scenario = canonical_json(scenario_doc)
+        report = self.service_csv(scenario_doc["scenario_id"])
+        envelope = self.adapt("service-cascade", report, scenario, dataset, replay=report)
+        self.validate_run(envelope)
+        self.assertFalse(envelope["deterministic"])
+        self.assertEqual(envelope["validation"]["evidence"], [])
+
+    def test_maximum_length_scenario_id_produces_schema_valid_run_id(self) -> None:
+        dataset = self.dataset("service-cascade")
+        scenario_doc = json.loads(fixture_scenario("service-cascade", dataset, self.model_sha))
+        scenario_doc["scenario_id"] = "a" * 180
+        scenario = canonical_json(scenario_doc)
+        report = self.service_csv(scenario_doc["scenario_id"])
+        envelope = self.adapt("service-cascade", report, scenario, dataset)
+        self.validate_run(envelope)
+        self.assertLessEqual(len(envelope["run_id"]), 200)
+
     def test_dataset_digest_mismatch_fails_closed(self) -> None:
         dataset = self.dataset("service-cascade")
         scenario_doc = json.loads(fixture_scenario("service-cascade", dataset, self.model_sha))
