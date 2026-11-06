@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/wpt-asset-health-v0/asset-lifecycle-outcome.schema.json",
+  "title": "WPT Asset Survival / Lifecycle Outcome Dataset v0",
+  "description": "One target-failure, competing-event, or right-censored time-to-event record per physical asset. It is not an asset condition observation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "estimand_id",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-asset-lifecycle-outcomes-v0"
+    },
+    "estimand_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome_id",
+          "asset_id",
+          "segment_id",
+          "material_lot_id",
+          "installation_id",
+          "route_id",
+          "environmental_campaign_id",
+          "at_risk_start_utc",
+          "outcome_or_censor_utc",
+          "duration_hours",
+          "outcome_kind",
+          "event_code",
+          "censor_reason",
+          "event_definition_digest",
+          "split",
+          "evidence_kind",
+          "method_id",
+          "source_record_ids",
+          "raw_artifact_sha256",
+          "source_locator",
+          "quality_flags"
+        ],
+        "properties": {
+          "outcome_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "segment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "material_lot_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "installation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "route_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "environmental_campaign_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "at_risk_start_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "outcome_or_censor_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_hours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "outcome_kind": {
+            "enum": [
+              "TARGET_FAILURE",
+              "RIGHT_CENSORED",
+              "COMPETING_EVENT"
+            ]
+          },
+          "event_code": {
+            "enum": [
+              "STRUCTURAL_CRACK_LIMIT",
+              "RUTTING_LIMIT",
+              "INSULATION_RESISTANCE_LIMIT",
+              "COIL_OPEN_CIRCUIT",
+              "THERMAL_LIMIT",
+              "SERVICE_AVAILABILITY_LIMIT",
+              "PLANNED_REPLACEMENT",
+              "UNRELATED_ASSET_FAILURE",
+              "ROAD_RECONSTRUCTION",
+              "OTHER",
+              null
+            ]
+          },
+          "censor_reason": {
+            "enum": [
+              "STUDY_END",
+              "LOST_TO_FOLLOW_UP",
+              "ADMINISTRATIVE_CENSOR",
+              "OTHER",
+              null
+            ]
+          },
+          "event_definition_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "split": {
+            "enum": [
+              "TRAIN",
+              "CALIBRATION",
+              "TEST"
+            ]
+          },
+          "evidence_kind": {
+            "enum": [
+              "MEASURED",
+              "PUBLISHED_MEASURED",
+              "SIMULATED",
+              "SYNTHETIC_KNOWN_TRUTH",
+              "INFERRED"
+            ]
+          },
+          "method_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_record_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "raw_artifact_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "source_locator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quality_flags": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "SYNTHETIC_ONLY",
+                "RIGHT_CENSORED",
+                "COMPETING_RISK",
+                "SOURCE_INCOMPLETE"
+              ]
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}
