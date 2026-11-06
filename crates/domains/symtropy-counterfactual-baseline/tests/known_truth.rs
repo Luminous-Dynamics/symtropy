@@ -80,24 +80,59 @@ fn recovery_evidence(
 }
 
 fn qualified_report() -> symtropy_counterfactual_baseline::BaselineQualificationReport {
+    qualified_report_with_shape(1, 1_000_000_000)
+}
+
+fn qualified_report_with_shape(
+    interval_count: usize,
+    interval_duration_ns: u64,
+) -> symtropy_counterfactual_baseline::BaselineQualificationReport {
     let mut rows = Vec::new();
-    for i in 0..40 {
-        rows.push(observation(
-            i,
-            &format!("cal-group-{i}"),
-            BaselineFold::Calibration,
-            100.0,
-            100.0,
-        ));
-    }
-    for i in 0..20 {
-        rows.push(observation(
-            100 + i,
-            &format!("eval-group-{i}"),
-            BaselineFold::Evaluation,
-            100.0,
-            100.0,
-        ));
+    for fold in [BaselineFold::Calibration, BaselineFold::Evaluation] {
+        let group_count = match fold {
+            BaselineFold::Calibration => 40,
+            BaselineFold::Evaluation => 20,
+        };
+        for group_index in 0..group_count {
+            let group_id = match fold {
+                BaselineFold::Calibration => format!("cal-group-{group_index}"),
+                BaselineFold::Evaluation => format!("eval-group-{group_index}"),
+            };
+            let sample_base = match fold {
+                BaselineFold::Calibration => 0,
+                BaselineFold::Evaluation => 10_000,
+            } + group_index * interval_count;
+            let group_start_ns =
+                (group_index * 100 + if fold == BaselineFold::Evaluation { 10_000 } else { 0 })
+                    as u64
+                    * interval_duration_ns
+                    * interval_count as u64;
+            for interval_index in 0..interval_count {
+                let sample_id = sample_base + interval_index;
+                let start_ns = group_start_ns + interval_index as u64 * interval_duration_ns;
+                let source_digest = match fold {
+                    BaselineFold::Calibration => "sha256:calibration",
+                    BaselineFold::Evaluation => "sha256:evaluation",
+                };
+                rows.push(
+                    NoDispatchObservation::new(
+                        format!("trajectory-sample-{sample_id}"),
+                        &group_id,
+                        "normal",
+                        source_digest,
+                        0,
+                        start_ns,
+                        interval_duration_ns,
+                        100.0,
+                        100.0,
+                        0.0,
+                        fold,
+                        false,
+                    )
+                    .expect("valid trajectory observation"),
+                );
+            }
+        }
     }
     qualify_counterfactual_baseline(&identity(), &contract(), &rows).expect("baseline qualifies")
 }
@@ -274,7 +309,7 @@ fn split_conformal_tail_requires_enough_calibration_samples() {
 
 #[test]
 fn baseline_and_meter_uncertainty_are_both_subtracted_from_delivery() {
-    let baseline = qualified_report();
+    let baseline = qualified_report_with_shape(2, 3_600_000_000_000);
     let points = [
         DispatchEventPoint::new(
             "event-1",
@@ -323,7 +358,7 @@ fn baseline_and_meter_uncertainty_are_both_subtracted_from_delivery() {
 
 #[test]
 fn rebound_is_preserved_and_reduces_net_event_energy() {
-    let baseline = qualified_report();
+    let baseline = qualified_report_with_shape(2, 3_600_000_000_000);
     let points = [
         DispatchEventPoint::new(
             "event-1",
