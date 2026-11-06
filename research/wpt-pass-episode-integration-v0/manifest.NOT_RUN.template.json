@@ -1,0 +1,13 @@
+{
+  "schema_version": "wpt-pass-episode-integration-v0",
+  "manifest_id": "wpt-pass-template-not-run",
+  "disposition": "NOT_RUN",
+  "pass": null,
+  "artifacts": [],
+  "joins": null,
+  "policy": {
+    "maximum_artifact_bytes": 1000000,
+    "maximum_clock_uncertainty_ns": 500,
+    "implicit_alignment_forbidden": true
+  }
+}
