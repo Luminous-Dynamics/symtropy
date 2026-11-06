@@ -18,8 +18,8 @@ use symtropy_road_actor_adapter::{
 };
 use symtropy_road_actors::{
     ActorAction, ActorPolicy, ActorPolicyState, AllowedActorObservation, CautiousPausePolicy,
-    CueKind, CueValue, MotionBounds, ObservationCue, ObservationError, ObservationProvenance,
-    PolicyError, ScenarioActorId, ScenarioTick,
+    CommittedAfterEntryPolicy, CueKind, CueValue, MotionBounds, ObservationCue,
+    ObservationError, ObservationProvenance, PolicyError, ScenarioActorId, ScenarioTick,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -171,6 +171,54 @@ impl EventSequencer {
     }
 }
 
+/// Explicit synthetic policy profiles supported by the reciprocal conformance producer.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ActorPolicyProfile {
+    /// Waits for a sufficient gap and can pause while crossing on a fresh conflict cue.
+    CautiousPause,
+    /// Waits for entry, then continues after committing to the crossing.
+    CommittedAfterEntry,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum ActorPolicyInstance {
+    CautiousPause(CautiousPausePolicy),
+    CommittedAfterEntry(CommittedAfterEntryPolicy),
+}
+
+impl ActorPolicyInstance {
+    fn new(profile: ActorPolicyProfile, bounds: MotionBounds) -> Result<Self, ProducerError> {
+        match profile {
+            ActorPolicyProfile::CautiousPause => Ok(Self::CautiousPause(
+                CautiousPausePolicy::new(bounds, 2.5, 3.5, 0)?,
+            )),
+            ActorPolicyProfile::CommittedAfterEntry => Ok(Self::CommittedAfterEntry(
+                CommittedAfterEntryPolicy::new(bounds, 3.5, 0)?,
+            )),
+        }
+    }
+}
+
+impl ActorPolicy for ActorPolicyInstance {
+    fn profile_id(&self) -> &'static str {
+        match self {
+            Self::CautiousPause(policy) => policy.profile_id(),
+            Self::CommittedAfterEntry(policy) => policy.profile_id(),
+        }
+    }
+
+    fn transition(
+        &self,
+        prior: ActorPolicyState,
+        observation: &AllowedActorObservation,
+    ) -> Result<symtropy_road_actors::ActorTransition, PolicyError> {
+        match self {
+            Self::CautiousPause(policy) => policy.transition(prior, observation),
+            Self::CommittedAfterEntry(policy) => policy.transition(prior, observation),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 struct ActorRouteSpec<'a> {
     actor_id: &'a str,
@@ -184,7 +232,7 @@ struct ActorRouteSpec<'a> {
 #[derive(Clone, Debug)]
 struct ActorRuntime {
     id: ScenarioActorId,
-    policy: CautiousPausePolicy,
+    policy: ActorPolicyInstance,
     state: ActorPolicyState,
     route: StraightRoute,
     motion_profile: MotionProfile,
@@ -197,7 +245,7 @@ struct ActorRuntime {
 impl ActorRuntime {
     fn new(
         route_spec: ActorRouteSpec<'_>,
-        policy: CautiousPausePolicy,
+        policy: ActorPolicyInstance,
         motion_profile: MotionProfile,
         clock: TickClock,
     ) -> Result<Self, ProducerError> {
@@ -261,13 +309,28 @@ pub struct ReciprocalPolicyProducer {
 
 impl ReciprocalPolicyProducer {
     pub fn new(branch_id: impl Into<String>) -> Result<Self, ProducerError> {
+        Self::new_with_profiles(
+            branch_id,
+            ActorPolicyProfile::CautiousPause,
+            ActorPolicyProfile::CautiousPause,
+        )
+    }
+
+    /// Construct the synthetic two-agent producer with independently selected
+    /// policy profiles. Profile choices are configuration, not hidden policy input.
+    pub fn new_with_profiles(
+        branch_id: impl Into<String>,
+        ego_profile: ActorPolicyProfile,
+        other_actor_profile: ActorPolicyProfile,
+    ) -> Result<Self, ProducerError> {
         let branch_id = branch_id.into();
         if branch_id.trim().is_empty() {
             return Err(ProducerError::EmptyBranchId);
         }
 
         let bounds = MotionBounds::new(1.5)?;
-        let policy = CautiousPausePolicy::new(bounds, 2.5, 3.5, 0)?;
+        let ego_policy = ActorPolicyInstance::new(ego_profile, bounds)?;
+        let other_actor_policy = ActorPolicyInstance::new(other_actor_profile, bounds)?;
         let motion_profile = MotionProfile::new(bounds, 5.0, 5.0)?;
         let clock = TickClock::new(10)?;
 
@@ -280,7 +343,7 @@ impl ReciprocalPolicyProducer {
                 end: Point2::new(100.0, 0.0)?,
                 observation_source_id: 1,
             },
-            policy,
+            ego_policy,
             motion_profile,
             clock,
         )?;
@@ -293,7 +356,7 @@ impl ReciprocalPolicyProducer {
                 end: Point2::new(50.0, 50.0)?,
                 observation_source_id: 2,
             },
-            policy,
+            other_actor_policy,
             motion_profile,
             clock,
         )?;
@@ -598,6 +661,31 @@ mod tests {
         let step = producer.step([2.0, 4.0]).unwrap();
         assert_eq!(step.ego.action, ActorAction::Pause);
         assert_eq!(step.other_actor.action, ActorAction::Continue);
+    }
+
+    #[test]
+    fn cautious_ego_and_committed_actor_are_compared_on_the_same_reciprocal_cues() {
+        let mut producer = ReciprocalPolicyProducer::new_with_profiles(
+            "cautious-vs-committed",
+            ActorPolicyProfile::CautiousPause,
+            ActorPolicyProfile::CommittedAfterEntry,
+        )
+        .unwrap();
+
+        let entry = producer.step([4.0, 4.0]).unwrap();
+        assert_eq!(entry.ego.action, ActorAction::EnterCrossing);
+        assert_eq!(entry.other_actor.action, ActorAction::EnterCrossing);
+        assert_eq!(entry.ego.policy_profile_id, CautiousPausePolicy::PROFILE_ID);
+        assert_eq!(
+            entry.other_actor.policy_profile_id,
+            CommittedAfterEntryPolicy::PROFILE_ID
+        );
+        producer.record_physics_commit("f".repeat(64)).unwrap();
+
+        let conflict = producer.step([2.0, 2.0]).unwrap();
+        assert_eq!(conflict.ego.action, ActorAction::Pause);
+        assert_eq!(conflict.other_actor.action, ActorAction::Continue);
+        conflict.validate_event_order().unwrap();
     }
 
     #[test]
