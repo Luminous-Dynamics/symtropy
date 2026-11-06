@@ -238,9 +238,9 @@
   ],
   "reproduction": {
     "code_commit": "da9abeb20e19b5f822e3e4eb239838a4011b0208",
-    "configuration_digest": "civdyn-cross-scale-resilience-v0.1; 3 shocks; 4 policies; 10 ticks; basin-district-household topology",
+    "configuration_digest": "62d4d8ad927ecbc724b556468241812fa6ff4e937a03f752eb91f6b0f0168b37",
     "data_manifest_digest": null,
-    "model_identifier": null,
+    "model_identifier": "civdyn-resilience-001-reference-kernel",
     "runtime_environment": "Rust edition 2024; deterministic benchmark crate; exact-head GitHub Actions workflow",
     "command": "cargo run --locked --manifest-path research/civdyn-cross-scale-resilience/Cargo.toml --bin cross-scale-resilience-sweep",
     "humanity_atlas_run_artifact_ref": "Not applicable: synthetic benchmark reference execution; no full Humanity Atlas scenario artifact is claimed."
@@ -258,5 +258,129 @@
     "deviations": [],
     "failed_controls": []
   },
-  "composite_score_policy": "no-universal-composite"
+  "composite_score_policy": "no-universal-composite",
+  "configuration_passport": {
+    "configuration_id": "CIVDYN-RESILIENCE-SYNTHETIC-SHOCK-PORTFOLIO-001",
+    "configuration_digest": "62d4d8ad927ecbc724b556468241812fa6ff4e937a03f752eb91f6b0f0168b37",
+    "canonicalization": "sorted-key-value-lines-v1",
+    "model": {
+      "model_id": "civdyn-resilience-001-reference-kernel",
+      "model_version": "0.1.0"
+    },
+    "facets": {
+      "persona_id": "synthetic-reference-no-persona",
+      "interview_protocol_id": "not-applicable-no-interview",
+      "facilitator_id": "not-applicable-no-facilitator",
+      "aggregation_rule_id": "native-metric-vector-no-composite",
+      "order_profile_id": "stable-deterministic-order",
+      "prompt_template_id": "not-applicable-no-llm",
+      "tool_policy_id": "none",
+      "evidence_snapshot_id": "synthetic:CIVDYN-RESILIENCE-SYNTHETIC-SHOCK-PORTFOLIO-001",
+      "decoding_policy_id": "deterministic-reference"
+    },
+    "task_contract_digest": "9311e375f5b3bf2593ee5ff413423189d6613f1720fbc3bb9f5bf4b41a550450",
+    "data_split_digest": null,
+    "re_audit_policy": "any-decision-relevant-change"
+  },
+  "execution_stack": {
+    "components": [
+      {
+        "component_id": "reference-simulator",
+        "role": "simulator",
+        "version": "0.1.0",
+        "configuration_digest": "8a096055700fb7c4e5f7d17beea5d8bc0baf9df687cb94f4459a819ee1f6958f",
+        "behavior_affecting": true,
+        "notes": "Deterministic authored benchmark kernel."
+      },
+      {
+        "component_id": "reference-response-generator",
+        "role": "response-generator",
+        "version": "0.1.0",
+        "configuration_digest": "77216075a59b2f0416763f74d4fdf63957b9314181d6e253f20d9e6876b7c57f",
+        "behavior_affecting": true,
+        "notes": "Synthetic oracle or explicit deterministic controller; not a human or LLM."
+      },
+      {
+        "component_id": "reference-scheduler",
+        "role": "scheduler",
+        "version": "0.1.0",
+        "configuration_digest": "1624928e7aac04f009765da1e0120d19ffe3028414ff2df1c75201b5b77c8c5b",
+        "behavior_affecting": true,
+        "notes": "Stable serial execution in declared input order."
+      },
+      {
+        "component_id": "typed-action-parser",
+        "role": "action-parser",
+        "version": "0.1.0",
+        "configuration_digest": "b5ebea2d4ae05a8b340590186ea305e26d180e5147d5227614a9ec25c9ae5375",
+        "behavior_affecting": true,
+        "notes": "Typed, source-defined structured input parser."
+      },
+      {
+        "component_id": "typed-action-validator",
+        "role": "action-validator",
+        "version": "0.1.0",
+        "configuration_digest": "8ff2edab8a71b0c7b0db0fd1a3397360dea1749a7f40bdf780fc6ef7c3cabb65",
+        "behavior_affecting": true,
+        "notes": "Reject invalid or out-of-contract inputs; no silent repair."
+      },
+      {
+        "component_id": "complete-event-capture",
+        "role": "event-capture",
+        "version": "0.1.0",
+        "configuration_digest": "148dc02181ca09d556c5ab843cf8a90a2c043e1228499242c21bcba4ade2b1c9",
+        "behavior_affecting": true,
+        "notes": "Capture every declared input, step, output and metric; missing records fail closed."
+      },
+      {
+        "component_id": "measurement-kernel",
+        "role": "measurement",
+        "version": "0.1.0",
+        "configuration_digest": "49d20655a49bb0465669dda695c5ba4c75b6e3c9badabb42350fe33a33cfec54",
+        "behavior_affecting": true,
+        "notes": "Native-unit, task-specific metric calculations."
+      },
+      {
+        "component_id": "deterministic-randomness-policy",
+        "role": "randomness",
+        "version": "0.1.0",
+        "configuration_digest": "9e12b773fa81848394ef37f1efe0f1398b925c40ea5fc49e45de0391d10b346a",
+        "behavior_affecting": true,
+        "notes": "No unseeded random source is used by this deterministic fixture."
+      }
+    ],
+    "fallback_policy": "abort",
+    "fallback_events": [],
+    "unseeded_random_sources": [],
+    "scheduler_policy": {
+      "scheduler_id": "reference-scheduler",
+      "update_order": "stable declared fixture order; deterministic serial execution",
+      "parallelism": 1,
+      "tie_breaking_rule": "stable identifier then stable input index"
+    },
+    "exposure_policy": {
+      "policy_id": "exposure-not-applicable",
+      "eligibility_rule": "not applicable to this deterministic reference fixture",
+      "ordering_rule": "explicit deterministic fixture order",
+      "state_visibility": "all declared synthetic inputs are visible to the benchmark runner"
+    },
+    "action_validation_policy": {
+      "parser_component_id": "typed-action-parser",
+      "validator_component_id": "typed-action-validator",
+      "invalid_action_policy": "abort",
+      "retry_limit": 0,
+      "repair_policy": "none; malformed input fails closed"
+    },
+    "event_capture_policy": {
+      "capture_component_id": "complete-event-capture",
+      "required_event_kinds": [
+        "declared_input",
+        "run_output",
+        "metric_record",
+        "negative_control_result"
+      ],
+      "dropped_event_count": 0,
+      "drop_policy": "fail-closed"
+    }
+  }
 }
