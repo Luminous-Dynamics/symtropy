@@ -436,6 +436,7 @@ pub enum DcNetworkError {
     UnknownBus { bus_id: String },
     UnknownInjectionBus { bus_id: String },
     PccBusMismatch { expected_bus_id: String, observed_bus_id: String },
+    PccBusMapsToSlack { bus_id: String },
     SlackBusInjectionSupplied { bus_id: String },
     UnknownContingencyBranch { branch_id: String },
     UnknownBranchFlow { branch_id: String },
@@ -468,6 +469,7 @@ impl fmt::Display for DcNetworkError {
             Self::UnknownBus { bus_id } => write!(f, "network references unknown bus {bus_id}"),
             Self::UnknownInjectionBus { bus_id } => write!(f, "injection references unknown bus {bus_id}"),
             Self::PccBusMismatch { expected_bus_id, observed_bus_id } => write!(f, "site flexibility is pinned to PCC bus {expected_bus_id}, but load-reduction action is assigned to {observed_bus_id}"),
+            Self::PccBusMapsToSlack { bus_id } => write!(f, "PCC bus {bus_id} cannot be the balancing slack bus"),
             Self::SlackBusInjectionSupplied { bus_id } => write!(f, "slack bus {bus_id} is balanced implicitly and must not appear in the injection map"),
             Self::UnknownContingencyBranch { branch_id } => write!(f, "contingency references unknown branch {branch_id}"),
             Self::UnknownBranchFlow { branch_id } => write!(f, "missing solved branch flow for {branch_id}"),
@@ -512,7 +514,7 @@ pub fn evaluate_dc_network_deliverability(
             bus_id: identity.pcc_bus_id.clone(),
         })?;
     if pcc_bus.is_slack {
-        return Err(DcNetworkError::SlackBusInjectionSupplied {
+        return Err(DcNetworkError::PccBusMapsToSlack {
             bus_id: identity.pcc_bus_id.clone(),
         });
     }
