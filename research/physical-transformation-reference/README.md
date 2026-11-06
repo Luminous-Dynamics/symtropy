@@ -115,10 +115,10 @@ The dedicated workflow checks the frozen request digest, exact source commit/tre
 
 The truss diagnostics now use:
 - Sum of Euclidean magnitudes of applied and support-reaction force vectors (rather than the coordinate-dependent sum of absolute Cartesian components).
-- Arithmetic centroid of node coordinates as the moment reference (translation- and rotation-covariant).
+- Member-length-weighted centroid of the truss centerlines as the moment reference. Unlike an unweighted node centroid, it remains unchanged when a straight member is split into collinear sub-members; it also transforms covariantly under rigid motion.
 - Maximum pairwise Euclidean node distance as characteristic length (point-set diameter, independent of axis-aligned bounding-box orientation).
 - Euclidean residual/load/displacement norms with the Frobenius norm of the reduced stiffness matrix for the free-DOF backward error.
 
 The exact-head workflow now expects receipt schema `morph-function-receipt-v0.3`. The square morphology/function corpus retains its reference point (0.5, 0.5) and diameter (√2 m), so the frozen request bytes and analytic displacement values are unchanged. The schema version changes because the reference-point and normalization-scale conventions have changed.
 
-The planar-truss unit tests include a 45° rigid-rotation metamorphic control on a fixture whose support DOFs remain fully restrained/free under rotation. The model still supports only axis-aligned per-DOF restraints; arbitrary angled support constraints remain outside its input contract.
+The planar-truss unit tests include a 45° rigid-rotation metamorphic control on a fixture whose support DOFs remain fully restrained/free under rotation, plus an asymmetric non-square linework fixture checked under rigid rotation/translation and member subdivision. The model still supports only axis-aligned per-DOF restraints; arbitrary angled support constraints remain outside its input contract.
