@@ -26,7 +26,9 @@ jobs:
       - name: Format producer
         run: cargo fmt --manifest-path research/road-egci-reciprocal-loop-001/Cargo.toml -- --check
       - name: Validate machine-readable fixtures
-        run: python3 -m json.tool research/road-egci-reciprocal-loop-001/fixtures/reciprocal-cases.json > /dev/null
+        run: |
+          python3 -m json.tool research/road-egci-reciprocal-loop-001/fixtures/reciprocal-cases.json > /dev/null
+          python3 -m json.tool research/road-egci-handoff-001/fixtures/handoff_cases.json > /dev/null
       - name: Run paired reciprocal conformance tests
         run: cargo test --manifest-path research/road-egci-reciprocal-loop-001/Cargo.toml --locked
       - name: Strict Clippy

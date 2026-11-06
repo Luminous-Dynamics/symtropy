@@ -23,7 +23,7 @@ use symtropy_physics::{
     PhysicsWorld,
     body::{BodyHandle, BodyType, RigidBody},
     replay::{
-        ReplayEvidenceContext, ReplayEvidenceReceipt, ReplayTape, WorldCommand,
+        ReplayEvidenceContext, ReplayTape, WorldCommand,
         WorldSnapshot, apply_commands, execute_with_evidence, verify_replay_evidence,
     },
 };
@@ -39,9 +39,9 @@ use symtropy_road_actors::{
 
 const DT: f64 = 0.2;
 const TICK_HZ: u64 = 5;
-const TICK_COUNT: u64 = 3;
+const TICK_COUNT: u64 = 4;
 const CONFLICT_X_M: f64 = 3.0;
-const ACTOR_ZONE_HALF_WIDTH_M: f64 = 0.15;
+const ACTOR_ZONE_HALF_WIDTH_M: f64 = 0.08;
 const ACTOR_ID: &str = "actor-1";
 const EGO_ID: &str = "ego";
 const EPISODE_SCHEMA: &str = "symtropy.road-egci-reciprocal-episode.v0.2";
@@ -140,10 +140,10 @@ pub fn run_reciprocal_experiment() -> Result<ReciprocalExperiment, String> {
     let manifest = ExperimentManifest {
         experiment_id: "road-egci-reciprocal-crossing-v0.1".into(),
         scenario_digest: digest("scenario:two-kinematic-bodies:straight-crossing:v0.1"),
-        odd_scope_digest: digest("odd:single-intersection:two-agents:three-ticks"),
+        odd_scope_digest: digest("odd:single-intersection:two-agents:four-ticks"),
         initial_world_snapshot_digest: base.export.parent_snapshot_digest.clone(),
         physics_profile_digest: digest("symtropy-physics:2d:kinematic-spheres:zero-gravity:v0.2"),
-        execution_profile_digest: digest("single-threaded:5hz:dt=0.2:three-frames:runtime-replay"),
+        execution_profile_digest: digest("single-threaded:5hz:dt=0.2:four-frames:runtime-replay"),
         observation_schedule_digest: digest("observation-schedule:delivered-at-tick:phase-aware-v0.2"),
         action_domain_digest,
         units_profile_digest: digest("SI:metres:seconds:metres-per-second:radians"),
@@ -213,7 +213,7 @@ remove action vectors    let mut ego_visible = Vec::<String>::new();
     let mut actor_prior_receipts = Vec::<String>::new();
 
     let mut actor_state = ActorPolicyState::waiting();
-    let mut actor_progress_m = 0.8;
+    let mut actor_progress_m = 0.3;
     let mut actor_measured_speed_mps = 0.0;
     let mut ego_state = EgoPolicyState::initial();
 
@@ -224,9 +224,9 @@ remove action vectors    let mut ego_visible = Vec::<String>::new();
         let actor_body = live_world
             .body(actor_handle)
             .ok_or_else(|| "actor body disappeared from PhysicsWorld".to_owned())?;
-        let ego_x = ego_body.position()[0];
+        let ego_x = ego_body.transform.translation.0[0];
         let ego_speed = ego_body.linear_velocity[0].max(0.0);
-        let actor_y = actor_body.position()[1];
+        let actor_y = actor_body.transform.translation.0[1];
 
         let actor_in_conflict_zone = actor_y.abs() <= ACTOR_ZONE_HALF_WIDTH_M;
         let actor_ttc_seconds = if tick == 0 {
@@ -279,7 +279,7 @@ remove action vectors    let mut ego_visible = Vec::<String>::new();
 
         // The actor policy receives only one validated TTC cue, never the ego's
         // policy state or command. TTC is computed from the last realized world.
-        let provenance = ObservationProvenance::new(1, 10_000 + tick)
+        let provenance = ObservationProvenance::new(1, phase)
             .ok_or_else(|| "invalid observation provenance".to_owned())?;
         let actor_observation = AllowedActorObservation::new(
             ScenarioTick(tick),
@@ -338,8 +338,7 @@ remove action vectors    let mut ego_visible = Vec::<String>::new();
         let cutoff = event_base(tick);
         let (ego_decision_sequence, actor_decision_sequence) = (cutoff + 1, cutoff + 2);
         let (ego_latch_sequence, actor_latch_sequence) = (cutoff + 3, cutoff + 4);
-        let physics_sequence = cutoff + 5;
-
+        
         let ego_receipt_id = format!("decision-{EGO_ID}-{tick}");
         let actor_receipt_id = format!("decision-{ACTOR_ID}-{tick}");
         let ego_visible_digest = permitted_history_digest(
@@ -408,7 +407,7 @@ remove action vectors    let mut ego_visible = Vec::<String>::new();
 
         ego_prior_receipts.push(ego_receipt_id);
         actor_prior_receipts.push(actor_receipt_id);
-remove action vector pushes        // Both decisions are complete before either command is latched.
+        // Both decisions are complete before either command is latched.
         let commands = vec![ego_command, actor_command];
         tape.push_frame(DT, commands.clone());
         apply_commands(&mut live_world, &commands).map_err(|error| format!("{error:?}"))?;
@@ -465,8 +464,9 @@ remove action vector pushes        // Both decisions are complete before either 
             child_snapshot_digest: child_snapshot.clone(),
             joint_action_digest: joint_action_digest(&tick_decisions),
             physics_step_receipt_digest: digest(&format!(
-                "physics-step-receipt-v0.1:{}:{tick}:{child_snapshot}",
-                replay_receipt.receipt_digest
+                "physics-step-commitment-v0.1:{}:{}:{tick}:{child_snapshot}",
+                replay_receipt.receipt_digest,
+                replay_receipt.input_tape_digest
             )),
             disposition: TransitionDisposition::Completed,
         });
@@ -503,7 +503,7 @@ remove action vector pushes        // Both decisions are complete before either 
             disposition: ReplayDisposition::ExactSameRuntimeBytes,
         },
     };
-    let payload_root = branch_payload_root(&branch);
+    let payload_root = branch.payload_root();
     branch.replay.expected_branch_payload_root = payload_root.clone();
     branch.replay.replayed_branch_payload_root = Some(payload_root);
 
@@ -821,117 +821,6 @@ fn joint_action_digest(decisions: &[PolicyDecision]) -> String {
     hex(h.finalize().as_bytes())
 }
 
-fn branch_payload_root(branch: &BranchExport) -> String {
-    let mut h = Hasher::new_derive_key("Symtropy EGCI branch payload v0.2");
-    hash_str(&mut h, &branch.branch_id);
-    hash_str(&mut h, &branch.parent_snapshot_digest);
-    hash_str(&mut h, &branch.intervention_digest);
-    h.update(&[match branch.outcome {
-        BranchOutcome::Completed => 0,
-        BranchOutcome::TaskFailed => 1,
-        BranchOutcome::TimedOut => 2,
-        BranchOutcome::ExecutionFailed => 3,
-        BranchOutcome::Censored => 4,
-    }]);
-    h.update(&[match branch.candidate_universe {
-        CandidateUniverseDisposition::ExhaustiveWithinDeclaredScope => 0,
-        CandidateUniverseDisposition::Incomplete => 1,
-    }]);
-    h.update(&[match branch.hypothesis_set {
-        HypothesisSetDisposition::ExhaustiveWithinDeclaredModelFamily => 0,
-        HypothesisSetDisposition::IncompleteOrBudgetLimited => 1,
-    }]);
-
-    let mut correspondences: Vec<_> = branch.correspondences.iter().collect();
-    correspondences.sort_by(|left, right| left.hypothesis_id.cmp(&right.hypothesis_id));
-    hash_len(&mut h, correspondences.len());
-    for item in correspondences {
-        hash_str(&mut h, &item.hypothesis_id);
-        hash_str(&mut h, &item.correspondence_digest);
-        hash_str(&mut h, &item.causal_dispositions_digest);
-        hash_str(&mut h, &item.projection_input_digest);
-        hash_str(&mut h, &item.draw_bundle_digest);
-        hash_str(&mut h, &item.verifier_profile_digest);
-        hash_str(&mut h, &item.verifier_receipt_digest);
-    }
-
-    let mut observations: Vec<_> = branch.observations.iter().collect();
-    observations.sort_by(|left, right| {
-        (&left.recipient_actor_id, &left.cue_id)
-            .cmp(&(&right.recipient_actor_id, &right.cue_id))
-    });
-    hash_len(&mut h, observations.len());
-    for cue in observations {
-        hash_str(&mut h, &cue.cue_id);
-        hash_str(&mut h, &cue.source_event_id);
-        hash_str(&mut h, &cue.recipient_actor_id);
-        hash_str(&mut h, &cue.observation_payload_digest);
-        hash_u64(&mut h, cue.observed_tick);
-        hash_u64(&mut h, cue.generated_tick);
-        hash_u64(&mut h, cue.generated_event_sequence);
-        hash_opt_u64(&mut h, cue.delivered_tick);
-        hash_opt_u64(&mut h, cue.delivered_event_sequence);
-        hash_u64(&mut h, cue.delivery_sequence);
-        hash_str(&mut h, &cue.visibility_profile_digest);
-        h.update(&[match cue.disposition {
-            ObservationDisposition::Delivered => 0,
-            ObservationDisposition::Occluded => 1,
-            ObservationDisposition::Dropped => 2,
-            ObservationDisposition::Stale => 3,
-        }]);
-    }
-
-    let mut decisions: Vec<_> = branch.decisions.iter().collect();
-    decisions.sort_by(|left, right| {
-        (left.tick, &left.actor_id).cmp(&(right.tick, &right.actor_id))
-    });
-    hash_len(&mut h, decisions.len());
-    for decision in decisions {
-        hash_str(&mut h, &decision.decision_receipt_id);
-        hash_str(&mut h, &decision.actor_id);
-        hash_u64(&mut h, decision.tick);
-        hash_u64(&mut h, decision.input_cutoff_event_sequence);
-        hash_u64(&mut h, decision.decision_event_sequence);
-        hash_str(&mut h, &decision.policy_digest);
-        hash_str(&mut h, &decision.config_digest);
-        hash_str(&mut h, &decision.prior_policy_state_digest);
-        hash_opt_str(&mut h, decision.next_policy_state_digest.as_deref());
-        hash_strs(&mut h, &decision.visible_cue_ids);
-        hash_strs(&mut h, &decision.consumed_cue_ids);
-        hash_strs(&mut h, &decision.prior_action_receipt_ids);
-        hash_str(&mut h, &decision.permitted_history_digest);
-        hash_u64(&mut h, decision.deadline_tick);
-        hash_opt_u64(&mut h, decision.command_latch_tick);
-        hash_opt_u64(&mut h, decision.command_latch_event_sequence);
-        hash_opt_str(&mut h, decision.action_id.as_deref());
-        hash_opt_str(&mut h, decision.action_payload_digest.as_deref());
-        h.update(&[match decision.disposition {
-            DecisionDisposition::Completed => 0,
-            DecisionDisposition::TimedOut => 1,
-            DecisionDisposition::Failed => 2,
-            DecisionDisposition::Missing => 3,
-        }]);
-    }
-
-    let mut transitions: Vec<_> = branch.transitions.iter().collect();
-    transitions.sort_by_key(|transition| transition.tick);
-    hash_len(&mut h, transitions.len());
-    for transition in transitions {
-        hash_u64(&mut h, transition.tick);
-        hash_u64(&mut h, transition.physics_event_sequence);
-        hash_str(&mut h, &transition.parent_snapshot_digest);
-        hash_str(&mut h, &transition.child_snapshot_digest);
-        hash_str(&mut h, &transition.joint_action_digest);
-        hash_str(&mut h, &transition.physics_step_receipt_digest);
-        h.update(&[match transition.disposition {
-            TransitionDisposition::Completed => 0,
-            TransitionDisposition::Failed => 1,
-            TransitionDisposition::Censored => 2,
-            TransitionDisposition::Missing => 3,
-        }]);
-    }
-    hex(h.finalize().as_bytes())
-}
 
 fn observation_phase(tick: u64) -> u64 {
     if tick == 0 {
@@ -1044,16 +933,22 @@ mod tests {
         // after the first physics step and observation delivery at tick 1.
         assert_eq!(decision(base, ACTOR_ID, 1).action_id.as_deref(), Some("continue"));
         assert_eq!(decision(fast, ACTOR_ID, 1).action_id.as_deref(), Some("pause"));
+        assert_eq!(decision(base, ACTOR_ID, 2).action_id.as_deref(), Some("continue"));
+        assert_eq!(decision(fast, ACTOR_ID, 2).action_id.as_deref(), Some("pause"));
 
         // Actor-to-ego: those actor actions produce different realized actor
         // positions; ego reacts only to the resulting tick-2 delivered zone cue.
+        assert_eq!(decision(base, EGO_ID, 1).action_id.as_deref(), Some("continue"));
+        assert_eq!(decision(fast, EGO_ID, 1).action_id.as_deref(), Some("continue"));
         assert_eq!(decision(base, EGO_ID, 2).action_id.as_deref(), Some("continue"));
-        assert_eq!(decision(fast, EGO_ID, 2).action_id.as_deref(), Some("yield"));
+        assert_eq!(decision(fast, EGO_ID, 2).action_id.as_deref(), Some("continue"));
+        assert_eq!(decision(base, EGO_ID, 3).action_id.as_deref(), Some("yield"));
+        assert_eq!(decision(fast, EGO_ID, 3).action_id.as_deref(), Some("continue"));
 
         assert_eq!(experiment.handoff.branches.len(), 2);
         assert!(experiment.handoff.branches.iter().all(|branch| {
             branch.queries.len() == 1
-                && branch.queries[0].query.steps.len() == 3
+                && branch.queries[0].query.steps.len() == 4
                 && !branch.queries[0].query.complete
         }));
     }
@@ -1089,7 +984,7 @@ mod tests {
         let cue = branch.observations.iter_mut().find(|cue| cue.cue_id == "actor-ego-ttc-1").unwrap();
         // Tick 1's shared cutoff is 16. Delivery at 16 is not in the closed input.
         cue.delivered_event_sequence = Some(16);
-        let payload_root = branch_payload_root(branch);
+        let payload_root = branch.payload_root();
         branch.replay.expected_branch_payload_root = payload_root.clone();
         branch.replay.replayed_branch_payload_root = Some(payload_root);
         experiment.anchor.expected_episode_root = experiment.episode.episode_root().unwrap();
@@ -1107,12 +1002,19 @@ mod tests {
                 let first = decision(branch, actor, 0);
                 let second = decision(branch, actor, 1);
                 let third = decision(branch, actor, 2);
+                let fourth = decision(branch, actor, 3);
                 assert_eq!(second.prior_policy_state_digest, first.next_policy_state_digest.clone().unwrap());
                 assert_eq!(third.prior_policy_state_digest, second.next_policy_state_digest.clone().unwrap());
+                assert_eq!(fourth.prior_policy_state_digest, third.next_policy_state_digest.clone().unwrap());
                 assert_eq!(second.prior_action_receipt_ids, vec![first.decision_receipt_id.clone()]);
                 assert_eq!(third.prior_action_receipt_ids, vec![
                     first.decision_receipt_id.clone(),
                     second.decision_receipt_id.clone(),
+                ]);
+                assert_eq!(fourth.prior_action_receipt_ids, vec![
+                    first.decision_receipt_id.clone(),
+                    second.decision_receipt_id.clone(),
+                    third.decision_receipt_id.clone(),
                 ]);
             }
         }
