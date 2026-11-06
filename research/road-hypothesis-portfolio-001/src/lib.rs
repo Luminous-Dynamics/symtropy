@@ -2519,24 +2519,37 @@ mod tests {
 
     #[test]
     fn coverage_supersession_must_be_acyclic_and_strictly_later() {
-        let mut portfolio = manifest();
-        let a = portfolio.coverage_obligations[0].clone();
-        let b = portfolio.coverage_obligations[1].clone();
-        portfolio.coverage_obligations[0].supersedes_obligation_id =
-            Some(b.obligation_id.clone());
-        portfolio.coverage_obligations[1].supersedes_obligation_id =
-            Some(a.obligation_id.clone());
+        let mut cyclic = manifest();
+        let parent = cyclic.coverage_obligations[0].clone();
+        cyclic.coverage_obligations.push(CoverageObligation {
+            obligation_id: "cyclic-successor".into(),
+            revision_sequence: 1,
+            axis: parent.axis,
+            stratum_digest: parent.stratum_digest.clone(),
+            state: CoverageState::Covered,
+            minimum_independent_units: 5,
+            independent_unit_count: 8,
+            evidence_class: Some(EvidenceClass::ControlledIntervention),
+            evidence_manifest_digest: Some(d("cycle-evidence")),
+            source_lineage_digest: Some(d("cycle-lineage")),
+            challenge_protocol_digest: Some(d("cycle-protocol")),
+            not_applicable_rationale: None,
+            supersedes_obligation_id: Some(parent.obligation_id.clone()),
+        });
+        cyclic.coverage_obligations[0].supersedes_obligation_id =
+            Some("cyclic-successor".into());
         assert_eq!(
-            portfolio.validate(),
+            cyclic.validate(),
             Err(PortfolioError::InvalidCoverageEvidence)
         );
 
         let mut non_monotone = manifest();
+        let parent = non_monotone.coverage_obligations[0].clone();
         non_monotone.coverage_obligations.push(CoverageObligation {
             obligation_id: "same-revision-successor".into(),
             revision_sequence: 1,
-            axis: non_monotone.coverage_obligations[0].axis,
-            stratum_digest: non_monotone.coverage_obligations[0].stratum_digest.clone(),
+            axis: parent.axis,
+            stratum_digest: parent.stratum_digest,
             state: CoverageState::Covered,
             minimum_independent_units: 5,
             independent_unit_count: 8,
@@ -2545,9 +2558,7 @@ mod tests {
             source_lineage_digest: Some(d("successor-lineage")),
             challenge_protocol_digest: Some(d("successor-protocol")),
             not_applicable_rationale: None,
-            supersedes_obligation_id: Some(
-                non_monotone.coverage_obligations[0].obligation_id.clone()
-            ),
+            supersedes_obligation_id: Some(parent.obligation_id),
         });
         assert_eq!(
             non_monotone.validate(),
