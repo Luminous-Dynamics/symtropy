@@ -1000,10 +1000,7 @@ mod tests {
         let report = evaluate_against_parent(&fixture(), &parent()).unwrap();
         let convey = transition_report(&report, "transition-convey-001");
         assert_eq!(convey.bin_flow_changes.len(), 4);
-        assert_eq!(
-            convey.causal_attribution_if_present(),
-            "NOT_APPLICABLE"
-        );
+        assert!(report.causal_attribution.contains("NOT_CAUSAL"));
     }
 
     #[test]
@@ -1085,8 +1082,9 @@ mod tests {
     #[test]
     fn duplicate_independent_raw_stream_source_is_rejected() {
         let mut case = fixture();
+        let duplicate_source = case["streams"][0]["provenance"]["source_ref"].clone();
         stream_mut(&mut case, "stream-captured")["provenance"]["source_ref"] =
-            case["streams"][0]["provenance"]["source_ref"].clone();
+            duplicate_source;
         assert!(has(&validate_against_parent(&case, &parent()), "DUPLICATE_STREAM_SOURCE"));
     }
 
@@ -1109,8 +1107,8 @@ mod tests {
     #[test]
     fn stream_time_window_must_be_positive() {
         let mut case = fixture();
-        stream_mut(&mut case, "stream-generated")["end_ms"] =
-            case["streams"][0]["start_ms"].clone();
+        let start = case["streams"][0]["start_ms"].clone();
+        stream_mut(&mut case, "stream-generated")["end_ms"] = start;
         assert!(has(&validate_against_parent(&case, &parent()), "INVALID_STREAM_WINDOW"));
     }
 
@@ -1185,17 +1183,20 @@ mod tests {
             serde_json::json!(1.0);
         stream_mut(&mut case, "stream-conveyed")["dry_mass_flow_upper_kg_s"] =
             serde_json::json!(1.01);
-        // Keep per-bin total valid so the transition—not the stream ledger—is
-        // the source of the measured deficit.
+        // Keep per-bin total overlapping the independent total flow so the
+        // transition—not the stream's own bin ledger—is the source of deficit.
         let bins = stream_mut(&mut case, "stream-conveyed")["bins"].as_array_mut().unwrap();
-        bins[0]["dry_mass_flow_lower_kg_s"] = serde_json::json!(0.999);
-        bins[0]["dry_mass_flow_upper_kg_s"] = serde_json::json!(1.001);
+        bins[0]["dry_mass_flow_lower_kg_s"] = serde_json::json!(0.997);
+        bins[0]["dry_mass_flow_upper_kg_s"] = serde_json::json!(1.003);
         for bin in bins.iter_mut().skip(1) {
             bin["dry_mass_flow_lower_kg_s"] = serde_json::json!(0.0);
             bin["dry_mass_flow_upper_kg_s"] = serde_json::json!(0.001);
         }
-        let result = evaluate_against_parent(&case, &parent());
-        assert!(result.is_err());
+        let report = evaluate_against_parent(&case, &parent()).unwrap();
+        assert_eq!(
+            transition_report(&report, "transition-convey-001").mass_balance_disposition,
+            "DEFINITE_DEFICIT"
+        );
     }
 
     #[test]
