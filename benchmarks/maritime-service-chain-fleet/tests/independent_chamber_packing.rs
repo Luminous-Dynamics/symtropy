@@ -237,7 +237,6 @@ fn complete_grid_fill_has_a_canonical_non_overlapping_witness() {
     ));
 }
 
-
 #[test]
 fn scalar_lockage_capacity_does_not_imply_physical_chamber_fit() {
     let lock_resource = Resource {
