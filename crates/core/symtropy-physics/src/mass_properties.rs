@@ -16,7 +16,6 @@
 
 use nalgebra::DMatrix;
 use nalgebra::SVector;
-use serde::{Deserialize, Serialize};
 
 /// Number of independent bivector coordinates in so(D).
 pub const fn rotational_dof_count<const D: usize>() -> usize {
@@ -58,7 +57,7 @@ pub enum MassPropertiesError {
 /// The operator is represented as a dense row-major P-by-P matrix, where
 /// P = D(D-1)/2. This is suitable for the small dimensions supported by this
 /// crate; larger-D sparse/block structures can be introduced separately.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RotationalInertiaOperator<const D: usize> {
     matrix_row_major: Vec<f64>,
 }
@@ -254,7 +253,7 @@ impl<const D: usize> RotationalInertiaOperator<D> {
 ///
 /// The inertia operator is body-frame data and must be transformed or used
 /// with body-frame angular variables consistently by any integrator.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MassProperties<const D: usize> {
     mass_kg: f64,
     center_of_mass_m: SVector<f64, D>,
