@@ -2568,4 +2568,45 @@ mod transformed_halfspace_tests {
 
         assert!(world.static_tree_dirty);
     }
+    #[test]
+    fn ccd_pre_integration_position_buffer_reuses_capacity_and_refreshes_values() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handles: Vec<_> = (0..20)
+            .map(|index| {
+                world.add_sphere(
+                    Point::new([index as f64 * 5.0, 0.0, 0.0]),
+                    0.5,
+                    1.0,
+                )
+            })
+            .collect();
+        world.body_mut(handles[0]).unwrap().linear_velocity = SVector::from([1.0, 0.0, 0.0]);
+
+        world.step(0.1);
+        let first_capacity = world.pre_integration_positions.capacity();
+        assert!(first_capacity >= handles.len());
+        assert_eq!(world.pre_integration_positions.len(), handles.len());
+
+        let expected_start = world.body(handles[0]).unwrap().position();
+        world.step(0.1);
+        assert_eq!(world.pre_integration_positions[0], expected_start);
+        assert_eq!(world.pre_integration_positions.capacity(), first_capacity);
+
+        for index in 20..40 {
+            world.add_sphere(
+                Point::new([index as f64 * 5.0, 0.0, 0.0]),
+                0.5,
+                1.0,
+            );
+        }
+        world.step(0.1);
+        assert_eq!(world.pre_integration_positions.len(), 40);
+        let grown_capacity = world.pre_integration_positions.capacity();
+        assert!(grown_capacity >= 40);
+
+        world.step(0.1);
+        assert_eq!(world.pre_integration_positions.capacity(), grown_capacity);
+    }
+
+
 }
