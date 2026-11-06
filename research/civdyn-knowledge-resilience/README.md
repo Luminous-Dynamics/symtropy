@@ -12,7 +12,7 @@ This benchmark does not equate content delivery with learning. It reports:
 - delayed retention at an explicit interval;
 - independent teaching to another learner.
 
-A claim may be acquired while epistemically refuted. That does not upgrade its truth status; refuted-item uptake and onward teaching remain separately measurable.
+Carrier-state counts are exported as denominators alongside acquisition and comprehension counts. A claim may be acquired while epistemically refuted. That does not upgrade its truth status; refuted-item uptake and onward teaching remain separately measurable.
 
 ## Knowledge and evidence lineage
 
