@@ -1,0 +1,306 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/road-hypothesis-portfolio.v0.1.schema.json",
+  "title": "ROAD hypothesis portfolio manifest v0.1",
+  "description": "Finite portfolio declaration; completeness is relative to the declared scope only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "portfolio_id",
+    "revision_sequence",
+    "supersedes_portfolio_digest",
+    "odd_scope_digest",
+    "utility_scale_id",
+    "utility_semantics_id",
+    "training_lineage_roots",
+    "action_ids",
+    "hypotheses",
+    "coverage_obligations",
+    "challenge_requirements"
+  ],
+  "properties": {
+    "schema": {
+      "const": "symtropy.road-hypothesis-portfolio.v0.1"
+    },
+    "portfolio_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "supersedes_portfolio_digest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "odd_scope_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "utility_scale_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "utility_semantics_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "training_lineage_roots": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "action_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "hypotheses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/hypothesis"
+      }
+    },
+    "coverage_obligations": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "$ref": "#/$defs/coverage"
+      }
+    },
+    "challenge_requirements": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "$ref": "#/$defs/challengeRequirement"
+      }
+    }
+  },
+  "$defs": {
+    "excludedMechanism": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mechanism_id",
+        "rationale"
+      ],
+      "properties": {
+        "mechanism_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis_id",
+        "model_family_id",
+        "version_digest",
+        "mechanism_class_ids",
+        "causal_graph_digest",
+        "stochastic_contract_digest",
+        "source_lineage_digests",
+        "common_mode_group",
+        "applicability_scope_digest",
+        "excluded_mechanisms",
+        "supersedes_hypothesis_id"
+      ],
+      "properties": {
+        "hypothesis_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_family_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanism_class_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "causal_graph_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stochastic_contract_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_lineage_digests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "common_mode_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "applicability_scope_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "excluded_mechanisms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/excludedMechanism"
+          }
+        },
+        "supersedes_hypothesis_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "obligation_id",
+        "axis",
+        "stratum_digest",
+        "state",
+        "minimum_independent_units",
+        "independent_unit_count",
+        "evidence_class",
+        "evidence_manifest_digest",
+        "source_lineage_digest",
+        "challenge_protocol_digest",
+        "not_applicable_rationale"
+      ],
+      "properties": {
+        "obligation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "axis": {
+          "enum": [
+            "odd_range",
+            "behavioural_competency",
+            "causal_mechanism",
+            "rule_safety"
+          ]
+        },
+        "stratum_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "enum": [
+            "covered",
+            "not_covered",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "minimum_independent_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "independent_unit_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_class": {
+          "enum": [
+            "observed_factual",
+            "controlled_intervention",
+            "qualified_natural_experiment",
+            "simulation_generated",
+            "model_generated",
+            "formal_reference",
+            "human_adjudication",
+            null
+          ]
+        },
+        "evidence_manifest_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_lineage_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "challenge_protocol_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "not_applicable_rationale": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "challengeRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis_id",
+        "strategy",
+        "protocol_digest",
+        "minimum_budget_units"
+      ],
+      "properties": {
+        "hypothesis_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "strategy": {
+          "enum": [
+            "random",
+            "coverage_guided",
+            "expert",
+            "reinforcement_learning"
+          ]
+        },
+        "protocol_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_budget_units": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
