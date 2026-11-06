@@ -28,6 +28,8 @@ This complements planner benchmarks. It does not replace them.
 | **DriveReferee** | NAVSIM navtest 92.02 PDMS and 91.56 EPDMS for its reported full system | Predict the missing geometry, then apply explicit collision/drivable-area rules. The safety verdict itself need not be learned | The cited result uses a 16B system. The paper's matched-candidate/matched-map ablations are more informative than the headline score alone |
 | **MM-Future** | NAVSIM navtest 94.0 PDMS; 91.5 EPDMS; HUGSIM zero-shot 32.3 HD-Score | Multiple paired scene/action futures; joint and reciprocal evolution of action and world hypotheses | Multi-mode paired futures are not directly comparable to single-mode or action-only systems without a fixed sampling budget |
 | **DriveUniTok / DriveUniWAM** | DriveUniWAM reports 91.54 PDMS after RL post-training among evaluated WAM-based planners | One decodable continuous latent for appearance, projected LiDAR depth and ego motion | Preprint result; separate modalities and post-training choices must be held fixed when reproducing |
+| **WA-JEPA** | NAVSIM-v2 navtest 91.7 EPDMS; HUGSIM reported HD-Score 0.4462 across 436 scenarios | V-JEPA-native future masking, latent flow matching and joint future/action prediction | The project page's #1 claim is relative to its publication comparison. The 0.4462 HUGSIM scale differs from some papers' percentage-style HD-Score reporting; do not compare until scorer/version normalization is verified |
+| **ReWorld** | Reports closed-loop PDMS 89.1 → 90.4 without RL/post-processing; FVD 81.3 → 61.9 (23.9% lower) | Directly shapes intermediate video/action representations and hard negatives near safety-critical boundaries | Its “closed-loop PDMS” is a different reported evaluation track from NAVSIM-v1 PDMS or NAVSIM-v2 EPDMS; reproduce the exact simulator protocol before comparing |
 | **ReWAM** | Reports state-of-the-art NAVSIM results; the abstract gives no exact score | Explicit Level-k reciprocal response hierarchy: ego and other-agent policies condition on one another | Numeric comparison requires the complete paper's same-version tables, splits and candidate budgets. No score is inferred here |
 | **DriveVLA-W0 / DriveWorld-VLA** | Current literature/leaderboard reports differ by NAVSIM task and version | Dense future supervision and shared latent-space world/action prediction | Treat as a reproduction family, not one single number |
 | **PDM-Lite / Autoware / other reference stacks** | Used as strong classical/reference systems in several benchmark and measurement programmes | Essential non-WAM baselines; can clarify whether gains come from model architecture or candidate search / post-processing | Lock exact software build, route interface, tuning and expert privilege |
@@ -42,6 +44,8 @@ This complements planner benchmarks. It does not replace them.
 - MM-Future: https://arxiv.org/abs/2609.20377
 - ReWAM: https://arxiv.org/abs/2609.39245
 - DriveUniTok: https://arxiv.org/abs/2610.35044
+- WA-JEPA project page (arXiv:2608.20974): https://wa-jepa.github.io/ ; https://arxiv.org/abs/2608.20974
+- ReWorld: https://arxiv.org/abs/2606.27504
 - DriveWorld-VLA: https://proceedings.mlr.press/v306/jia26f.html
 - Bench2Drive self-reported method table (version 0.0.3; last updated 2026-09-24): https://github.com/autonomousvision/Bench2Drive-Leaderboard
 
@@ -64,7 +68,9 @@ Source: https://www.nist.gov/programs-projects/measurement-science-automated-veh
 
 ### Production evidence is a different league
 
-Production AV evidence is not just a higher NAVSIM score. For context, Waymo's safety dashboard reports 271.3 million rider-only miles through June 2026 and reports materially lower crash rates than its matched human benchmarks, including a 94.05% reduction for serious-injury-or-worse crashes in its current dashboard methodology. A separate IIHS analysis published 2026-07-23 reported a 68% lower police-reportable crash rate for its studied Waymo sample, while noting limits in federal AV crash reporting.
+Production AV evidence is not just a higher NAVSIM score. Waymo's live safety dashboard currently reports **271.3 million rider-only miles through June 2026**. It reports about **95% fewer serious-injury-or-worse crashes**, **82% fewer injury-causing crashes**, and publishes location-specific rates, 95% confidence intervals, event definitions and a matched human benchmark methodology. This is company-published retrospective fleet evidence, not an independent certification.
+
+A separate IIHS analysis published 2026-07-23 reported a **68% lower police-reportable crash rate** for its studied Waymo sample, while noting limits in federal AV crash reporting. Its study population and outcome definition are not the same as the Waymo dashboard's matched-market dashboard.
 
 These numbers must not be merged: they use different event thresholds, denominators, samples and human baselines. They show the evidence scale and methodological discipline a credible L4 claim eventually needs. A simulator result, finite oracle, synthetic interaction or receipt hash cannot establish fleet-level safety.
 
@@ -97,6 +103,12 @@ Integer simulation ticks cannot prove whether a cue arrived before a policy snap
 ### F. From scalar benchmark scores to evidence-qualified claims
 
 Each conclusion should carry its evidence class: observed, simulated, predicted, counterfactual, replayed, or externally authenticated. A counterfactual advantage cannot be promoted when the action is outside model support. The correct output in that case is an explicit abstention or an interval too wide to rank actions.
+
+### G. From one future mode to a structured distribution of reciprocal futures
+
+The literature is now testing three related, distinct ideas: planning-shaped future representations (PlanWAM), V-JEPA-native latent futures and flow-matched action coupling (WA-JEPA), and multiple paired scene/action hypotheses with bidirectional evolution (MM-Future). ReWAM adds an explicit Level-k strategic response hierarchy. These should be treated as complementary axes, not a single architecture ladder: representation quality, mode coverage, reciprocal response and candidate scoring need separate ablations and matched inference budgets.
+
+The new producer work should therefore not stop at one deterministic TTC feedback loop. The next ROAD-DIR experiment should freeze the ego/other policy profiles and compare (a) passive-agent replay, (b) a single reciprocal mode, (c) a small calibrated response-mode set, and (d) a Level-k best-response approximation. Measure mode coverage, response calibration, interaction regret, oscillation/deadlock and action selection under identical rollout and compute budgets.
 
 ## 5. Proposed new benchmark: ROAD-DIR v0.1
 
