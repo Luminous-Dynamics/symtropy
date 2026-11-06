@@ -10,7 +10,7 @@ The required path is:
 
 `safeguard enabled → transfer eligibility → authorized water transfer → delivered water → household water coverage`
 
-The household coverage value and source record identifier are read from the actual `World::step` report. The resource ledger independently checks water conservation.
+The household coverage value and served-water amount are read from the actual `World::step` report. The CSV includes a deterministic row key constructed from arm, tick and region to identify that ledger-derived record in the artifact; this is not a ledger-issued signature or external digest. The resource ledger independently checks water conservation.
 
 ## Conformance gates
 
