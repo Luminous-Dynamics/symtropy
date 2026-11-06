@@ -276,10 +276,10 @@ Current authored tests cover:
 - required synchronization uncertainty, anti-alias reference and sample-rate/bandwidth relationship;
 - calibration and non-negative uncertainty;
 - rejection of model/simulation evidence as a required independent diagnostic channel;
-- mechanism-specific diagnostic channel presence;
+- mechanism-specific diagnostic channel presence and unit semantics;
 - derived observation lineage;
 - artifact self-cycle detection;
-- ODC speed-ratio recomputation;
+- ODC speed-ratio recomputation from independently measured encoder observations, raw-channel bindings and matching calibration references;
 - laser ON, OFF_SHAM and OFF_BASELINE energy semantics;
 - deterministic issue ordering and JSON parse errors.
 
@@ -290,8 +290,13 @@ The laser control distinction is explicit:
 
 This allows the physical mechanical control to be represented without claiming laser delivery.
 
-The current source contains **38 unit tests authored**. The exact command is:
+The current source contains **44 unit tests authored**. The exact command is:
 
 `cargo test --manifest-path crates/domains/symtropy-rock-tool-response-bench/Cargo.toml`
 
 Execution remains unverified because this environment has no Cargo, rustc or rustfmt. Do not interpret authored tests or structural checks as a Rust compile/test pass. The validator checks SHA-256 digest syntax; only the artifact-ingestion boundary can verify digest-to-byte correspondence. It does not validate physical calibration or infer a fracture mechanism.
+
+
+The ODC kinematic evidence path was tightened after review: the configuration now references independent angular-speed and traction-speed observations; each observation must use rad/s or m/s respectively, match the corresponding encoder channel's calibration, and cite a raw artifact that actually contains that channel. The stored speed ratio is recomputed from those observed values and eccentricity, not just from configuration scalars. The ODC fixture now contains four synchronized channels (thrust, torque, angular speed, traction speed). This remains schema/semantic validation of synthetic records; no physical encoder calibration or ODC machine performance is established.
+
+A further follow-on issue, #3839, tracks the broader need to distinguish setpoints from actual measured values for ATCP and laser-PDC energy stages, including protocol-specific synchronization tolerances.
