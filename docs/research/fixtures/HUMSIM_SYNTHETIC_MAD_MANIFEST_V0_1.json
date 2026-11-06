@@ -38,18 +38,42 @@
         "factor_id": "context",
         "weight_interpretation": "Equal synthetic design weights, not population prevalence.",
         "levels": [
-          {"level_id": "scenario_0", "target_weight": 0.3333333333, "support_count": 60},
-          {"level_id": "scenario_1", "target_weight": 0.3333333333, "support_count": 60},
-          {"level_id": "scenario_2", "target_weight": 0.3333333334, "support_count": 60}
+          {
+            "level_id": "scenario_0",
+            "target_weight": 0.3333333333,
+            "support_count": 60
+          },
+          {
+            "level_id": "scenario_1",
+            "target_weight": 0.3333333333,
+            "support_count": 60
+          },
+          {
+            "level_id": "scenario_2",
+            "target_weight": 0.3333333334,
+            "support_count": 60
+          }
         ]
       },
       {
         "factor_id": "declared-cohort",
         "weight_interpretation": "Equal synthetic design weights, not demographic prevalence.",
         "levels": [
-          {"level_id": "declared_cohort_0", "target_weight": 0.3333333333, "support_count": 20},
-          {"level_id": "declared_cohort_1", "target_weight": 0.3333333333, "support_count": 20},
-          {"level_id": "declared_cohort_2", "target_weight": 0.3333333334, "support_count": 20}
+          {
+            "level_id": "declared_cohort_0",
+            "target_weight": 0.3333333333,
+            "support_count": 20
+          },
+          {
+            "level_id": "declared_cohort_1",
+            "target_weight": 0.3333333333,
+            "support_count": 20
+          },
+          {
+            "level_id": "declared_cohort_2",
+            "target_weight": 0.3333333334,
+            "support_count": 20
+          }
         ]
       }
     ],
@@ -85,7 +109,11 @@
       "unit": "squared-probability-sum per trial",
       "direction": "lower-is-better",
       "aggregation": "mean across matched synthetic participant-context trials",
-      "strata": ["all", "context", "declared-cohort"],
+      "strata": [
+        "all",
+        "context",
+        "declared-cohort"
+      ],
       "uncertainty_method": "none; deterministic fixture",
       "proper_scoring_rule": "multiclass Brier score"
     },
@@ -95,7 +123,11 @@
       "unit": "probability distance",
       "direction": "lower-is-better",
       "aggregation": "half L1 distance between empirical and generated action frequencies",
-      "strata": ["all", "context", "declared-cohort"],
+      "strata": [
+        "all",
+        "context",
+        "declared-cohort"
+      ],
       "uncertainty_method": "none; deterministic fixture",
       "proper_scoring_rule": null
     },
@@ -105,7 +137,11 @@
       "unit": "bits",
       "direction": "lower-is-better",
       "aggregation": "Jensen-Shannon divergence between empirical and generated action frequencies",
-      "strata": ["all", "context", "declared-cohort"],
+      "strata": [
+        "all",
+        "context",
+        "declared-cohort"
+      ],
       "uncertainty_method": "none; deterministic fixture",
       "proper_scoring_rule": null
     },
@@ -115,7 +151,9 @@
       "unit": "probability distance",
       "direction": "lower-is-better",
       "aggregation": "TVD between adjacent-step transition distributions",
-      "strata": ["all"],
+      "strata": [
+        "all"
+      ],
       "uncertainty_method": "none; deterministic fixture",
       "proper_scoring_rule": null
     }
@@ -164,9 +202,9 @@
   ],
   "reproduction": {
     "code_commit": "d433f090014fa1deba9a3da36ed545841c45b78a",
-    "configuration_digest": "synthetic-fixture-v0.1; no external model or dataset",
+    "configuration_digest": "37653ca6e38082f57a9eb210b1979ac9743c6cd45dadcde195bda9695e6b0020",
     "data_manifest_digest": null,
-    "model_identifier": null,
+    "model_identifier": "civdyn-humsim-001-reference-kernel",
     "runtime_environment": "Rust edition 2024; deterministic dependency-free crate; GitHub Actions exact-head run",
     "command": "cargo run --locked --manifest-path research/civdyn-human-fidelity/Cargo.toml --bin human-fidelity-sweep",
     "humanity_atlas_run_artifact_ref": "Not applicable: local benchmark-validation fixture, not a full Humanity Atlas scenario run."
@@ -184,5 +222,129 @@
     "deviations": [],
     "failed_controls": []
   },
-  "composite_score_policy": "no-universal-composite"
+  "composite_score_policy": "no-universal-composite",
+  "configuration_passport": {
+    "configuration_id": "HUMSIM-SYNTHETIC-MODE-COLLAPSE-CONTROL-001",
+    "configuration_digest": "37653ca6e38082f57a9eb210b1979ac9743c6cd45dadcde195bda9695e6b0020",
+    "canonicalization": "sorted-key-value-lines-v1",
+    "model": {
+      "model_id": "civdyn-humsim-001-reference-kernel",
+      "model_version": "0.1.0"
+    },
+    "facets": {
+      "persona_id": "synthetic-reference-no-persona",
+      "interview_protocol_id": "not-applicable-no-interview",
+      "facilitator_id": "not-applicable-no-facilitator",
+      "aggregation_rule_id": "native-metric-vector-no-composite",
+      "order_profile_id": "stable-deterministic-order",
+      "prompt_template_id": "not-applicable-no-llm",
+      "tool_policy_id": "none",
+      "evidence_snapshot_id": "synthetic:HUMSIM-SYNTHETIC-MODE-COLLAPSE-CONTROL-001",
+      "decoding_policy_id": "deterministic-reference"
+    },
+    "task_contract_digest": "641cf70a7ba5179469197cfc7bdf4015b9b1f79fa0a783067f7dd1739cfbac06",
+    "data_split_digest": null,
+    "re_audit_policy": "any-decision-relevant-change"
+  },
+  "execution_stack": {
+    "components": [
+      {
+        "component_id": "reference-simulator",
+        "role": "simulator",
+        "version": "0.1.0",
+        "configuration_digest": "4b2bae44dd08d0cd08b2d741c528aa8446b6f26afcc7042f9e31070d7c0a26e3",
+        "behavior_affecting": true,
+        "notes": "Deterministic authored benchmark kernel."
+      },
+      {
+        "component_id": "reference-response-generator",
+        "role": "response-generator",
+        "version": "0.1.0",
+        "configuration_digest": "26d5424b8733649c5215ad86a609894bd16a02bac0772114830614ff1ac0b76e",
+        "behavior_affecting": true,
+        "notes": "Synthetic oracle or explicit deterministic controller; not a human or LLM."
+      },
+      {
+        "component_id": "reference-scheduler",
+        "role": "scheduler",
+        "version": "0.1.0",
+        "configuration_digest": "901c9fe9d4a5c2d20ceda2598b21fc9175b28c8a324378de844ceb8f1d506a06",
+        "behavior_affecting": true,
+        "notes": "Stable serial execution in declared input order."
+      },
+      {
+        "component_id": "typed-action-parser",
+        "role": "action-parser",
+        "version": "0.1.0",
+        "configuration_digest": "a9600ce4c5086ce8ea29ff73edb9de51d7458e09973cf3cad033805100326820",
+        "behavior_affecting": true,
+        "notes": "Typed, source-defined structured input parser."
+      },
+      {
+        "component_id": "typed-action-validator",
+        "role": "action-validator",
+        "version": "0.1.0",
+        "configuration_digest": "466053a0e8da88d7e024a39ef6a06ada79423a4dfa196f1f8a769759940c80e6",
+        "behavior_affecting": true,
+        "notes": "Reject invalid or out-of-contract inputs; no silent repair."
+      },
+      {
+        "component_id": "complete-event-capture",
+        "role": "event-capture",
+        "version": "0.1.0",
+        "configuration_digest": "70f538ee63e0b37c98980ed408f3685136f9fd4f70ab43f916c3b5a66f2dbf40",
+        "behavior_affecting": true,
+        "notes": "Capture every declared input, step, output and metric; missing records fail closed."
+      },
+      {
+        "component_id": "measurement-kernel",
+        "role": "measurement",
+        "version": "0.1.0",
+        "configuration_digest": "c816556228370b7ad6d31123b3ea8d81a9dcc4cf20ac33b19987a39fb8306c8f",
+        "behavior_affecting": true,
+        "notes": "Native-unit, task-specific metric calculations."
+      },
+      {
+        "component_id": "deterministic-randomness-policy",
+        "role": "randomness",
+        "version": "0.1.0",
+        "configuration_digest": "92b784a07be7991d63af53f7ee5479e92d47238d4d9a43e9ba6b2cb14f88ecaf",
+        "behavior_affecting": true,
+        "notes": "No unseeded random source is used by this deterministic fixture."
+      }
+    ],
+    "fallback_policy": "abort",
+    "fallback_events": [],
+    "unseeded_random_sources": [],
+    "scheduler_policy": {
+      "scheduler_id": "reference-scheduler",
+      "update_order": "stable declared fixture order; deterministic serial execution",
+      "parallelism": 1,
+      "tie_breaking_rule": "stable identifier then stable input index"
+    },
+    "exposure_policy": {
+      "policy_id": "exposure-not-applicable",
+      "eligibility_rule": "not applicable to this deterministic reference fixture",
+      "ordering_rule": "explicit deterministic fixture order",
+      "state_visibility": "all declared synthetic inputs are visible to the benchmark runner"
+    },
+    "action_validation_policy": {
+      "parser_component_id": "typed-action-parser",
+      "validator_component_id": "typed-action-validator",
+      "invalid_action_policy": "abort",
+      "retry_limit": 0,
+      "repair_policy": "none; malformed input fails closed"
+    },
+    "event_capture_policy": {
+      "capture_component_id": "complete-event-capture",
+      "required_event_kinds": [
+        "declared_input",
+        "run_output",
+        "metric_record",
+        "negative_control_result"
+      ],
+      "dropped_event_count": 0,
+      "drop_policy": "fail-closed"
+    }
+  }
 }
