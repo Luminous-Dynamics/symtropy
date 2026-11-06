@@ -13,7 +13,7 @@ The two lanes must not use independently assembled lane-position or time series.
 
 ## Episode contract
 
-Each canonical pose contains timestamp, x/y/z, yaw/pitch/roll, speed, axle load and left/right wheel-path positions. Every pose has exactly one electromagnetic projection and one pavement projection. Duplicate IDs, missing poses, time reversal, frame mismatch, bad transform digests, invalid physical domains and unsupported evidence are rejected.
+Each canonical pose contains timestamp, x/y/z, yaw/pitch/roll, speed, axle load and left/right wheel-path positions. Every pose has exactly one electromagnetic projection and one pavement projection. Duplicate IDs, missing poses, time reversal, frame mismatch, bad transform digests, clock misalignment beyond the declared uncertainty, invalid physical domains and unsupported evidence are rejected.
 
 ## Bounded validation
 
@@ -31,7 +31,7 @@ Fraunhofer IISB's robot-assisted IPT bench provides a repeatable laboratory misa
 
 Run cargo test --locked -p wpt-trajectory-replay-contract.
 
-Eight Rust tests cover shared sample coverage, timestamp monotonicity, duplicate sample IDs, unknown sample references, coordinate-frame agreement, projection completeness, trajectory/transform binding and synthetic-only admission.
+Eight Rust tests cover shared sample coverage, timestamp monotonicity, duplicate sample IDs, unknown sample references, coordinate-frame agreement, projection completeness, trajectory/transform binding, clock-offset correction and synthetic-only admission.
 
 ## Claim ceiling
 
