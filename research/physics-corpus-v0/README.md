@@ -260,6 +260,10 @@ Official research links:
 
 ## Future scenario families
 
+1. Anisotropic rotational dynamics: asymmetric-top motion, off-axis products of inertia,
+   long-rod torque response, compound parallel-axis mass properties and frame
+   covariance. This is tracked in [PHYS-INERTIA-001 #3871](https://github.com/Luminous-Dynamics/symtropy/issues/3871); the current scalar-average inertia
+   implementation is not a valid physical comparator for non-spherical bodies.
 The first batch workload is only one lane. Extend the corpus with separately
 frozen manifests for:
 
