@@ -437,7 +437,7 @@ fn check_resource_sequence(
             ) else {
                 // Without a route leg, travel feasibility is unknown.
                 current_node = task.location_node_id.clone();
-                ready_tick = task.operation.start_tick;
+                ready_tick = task.operation.end_tick;
                 previous_end = Some(task.operation.end_tick);
                 continue;
             };
@@ -652,13 +652,13 @@ pub fn evaluate_mobile_assistance(
             ));
         }
 
-        let total_pull: u64 = assignment
+        let total_pull: u128 = assignment
             .tug_ids
             .iter()
             .filter_map(|id| tug_by_id.get(id.as_str()))
-            .map(|tug| u64::from(tug.bollard_pull_kn))
+            .map(|tug| u128::from(tug.bollard_pull_kn))
             .sum();
-        if total_pull < u64::from(task.required_bollard_pull_kn) {
+        if total_pull < u128::from(task.required_bollard_pull_kn) {
             violations.insert(MobileViolation::InsufficientBollardPull(
                 task.task_id.clone(),
             ));
