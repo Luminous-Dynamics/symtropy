@@ -382,6 +382,12 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
                 "every declared wheel must have exactly one load observation",
             ));
         }
+        if !wheel_load_total_kn.is_finite() {
+            return Err(fail(
+                &format!("{path}.wheel_loads"),
+                "total wheel load is not finite",
+            ));
+        }
 
         samples.push(Sample {
             sample_index,
@@ -439,7 +445,6 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         active_zone_start_s_mm,
         active_zone_end_s_mm,
         alignment_limit_mm: alignment_limit,
-        max_sample_gap_ms,
         maximum_kinematic_mismatch_ppm,
         wheels,
         samples,
@@ -493,6 +498,23 @@ pub struct TrajectoryCouplingReport {
 
 fn max_optional(values: impl Iterator<Item = Option<f64>>) -> Option<f64> {
     values.flatten().reduce(f64::max)
+}
+
+fn max_optional_millidegrees(
+    values: impl Iterator<Item = Option<f64>>,
+    path: &str,
+) -> Result<Option<i64>, String> {
+    let Some(value) = max_optional(values) else {
+        return Ok(None);
+    };
+    let millidegrees = (value * 1000.0).round();
+    if !millidegrees.is_finite()
+        || millidegrees < i64::MIN as f64
+        || millidegrees >= i64::MAX as f64
+    {
+        return Err(fail(path, "temperature is outside the millidegree representation"));
+    }
+    Ok(Some(millidegrees as i64))
 }
 
 fn integrate_power_uwh(samples: &[Sample], roadway_input: bool) -> Result<u64, String> {
@@ -639,17 +661,17 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
     let sample_count = scenario.samples.len() as u64;
     let lateral_alignment_coverage_ppm =
         (aligned_samples * PPM + sample_count / 2) / sample_count;
-    let maximum_coil_temperature_millidegrees_c =
-        max_optional(scenario.samples.iter().map(|sample| sample.coil_temperature_c))
-            .map(|value| (value * 1000.0).round() as i64);
-    let maximum_interface_temperature_millidegrees_c =
-        max_optional(
-            scenario
-                .samples
-                .iter()
-                .map(|sample| sample.pavement_interface_temperature_c),
-        )
-        .map(|value| (value * 1000.0).round() as i64);
+    let maximum_coil_temperature_millidegrees_c = max_optional_millidegrees(
+        scenario.samples.iter().map(|sample| sample.coil_temperature_c),
+        "$.samples.coil_temperature_c",
+    )?;
+    let maximum_interface_temperature_millidegrees_c = max_optional_millidegrees(
+        scenario
+            .samples
+            .iter()
+            .map(|sample| sample.pavement_interface_temperature_c),
+        "$.samples.pavement_interface_temperature_c",
+    )?;
     let missing_coil_temperature_samples = scenario
         .samples
         .iter()
