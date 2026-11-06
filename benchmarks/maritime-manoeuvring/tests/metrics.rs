@@ -16,7 +16,7 @@ fn sample(time_s: f64, x_m: f64, y_m: f64, heading_rad: f64) -> TrajectorySample
     }
 }
 
-fn right_turn() -> Trajectory {
+fn positive_heading_turn() -> Trajectory {
     let headings = [0.0, 45.0, 90.0, 135.0, 180.0];
     let samples = headings
         .iter()
@@ -70,8 +70,8 @@ fn manifest(context: ContextOfUse) -> ManoeuvringManifest {
 }
 
 #[test]
-fn right_turn_metrics_match_hand_calculated_circle() {
-    let result = turning_circle_metrics(&right_turn()).expect("valid turning circle");
+fn positive_heading_turn_metrics_match_hand_calculated_circle() {
+    let result = turning_circle_metrics(&positive_heading_turn()).expect("valid turning circle");
     assert!((result.advance_at_90_m - 10.0).abs() < 1.0e-9);
     assert!((result.transfer_at_90_m - 10.0).abs() < 1.0e-9);
     assert!((result.tactical_diameter_at_180_m - 20.0).abs() < 1.0e-9);
@@ -80,7 +80,7 @@ fn right_turn_metrics_match_hand_calculated_circle() {
 }
 
 #[test]
-fn left_turn_reports_signed_transfer_and_positive_tactical_diameter() {
+fn negative_heading_turn_reports_signed_transfer_and_positive_tactical_diameter() {
     let headings = [0.0, -45.0, -90.0, -135.0, -180.0];
     let samples = headings
         .iter()
@@ -135,7 +135,7 @@ fn wrapped_heading_samples_are_unwrapped_before_crossing_detection() {
 
 #[test]
 fn turning_circle_rejects_missing_180_degree_crossing() {
-    let mut trajectory = right_turn();
+    let mut trajectory = positive_heading_turn();
     trajectory.samples.pop();
     assert_eq!(
         turning_circle_metrics(&trajectory),
@@ -145,7 +145,7 @@ fn turning_circle_rejects_missing_180_degree_crossing() {
 
 #[test]
 fn turning_circle_rejects_ambiguous_heading_jump() {
-    let mut trajectory = right_turn();
+    let mut trajectory = positive_heading_turn();
     trajectory.samples[1].heading_rad = std::f64::consts::PI;
     assert_eq!(
         turning_circle_metrics(&trajectory),
@@ -254,7 +254,7 @@ fn stopping_metrics_uses_command_sample_not_trajectory_origin() {
 
 #[test]
 fn stopping_metrics_rejects_bad_threshold_and_missing_stop() {
-    let trajectory = right_turn();
+    let trajectory = positive_heading_turn();
     assert_eq!(
         stopping_metrics(&trajectory, 0, 0.0),
         Err(TrajectoryError::InvalidSpeedThreshold)
@@ -268,7 +268,7 @@ fn stopping_metrics_rejects_bad_threshold_and_missing_stop() {
 #[test]
 fn stopping_metrics_rejects_invalid_command_index() {
     assert_eq!(
-        stopping_metrics(&right_turn(), 100, 0.5),
+        stopping_metrics(&positive_heading_turn(), 100, 0.5),
         Err(TrajectoryError::InvalidCommandIndex)
     );
 }
