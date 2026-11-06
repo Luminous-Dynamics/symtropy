@@ -54,7 +54,10 @@ impl PortfolioIdentity {
         for (field, value) in [
             ("portfolio ID", identity.portfolio_id.as_str()),
             ("product contract ID", identity.product_contract_id.as_str()),
-            ("asset manifest digest", identity.asset_manifest_digest.as_str()),
+            (
+                "asset manifest digest",
+                identity.asset_manifest_digest.as_str(),
+            ),
             (
                 "failure-domain manifest digest",
                 identity.failure_domain_manifest_digest.as_str(),
