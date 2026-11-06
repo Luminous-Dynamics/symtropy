@@ -403,8 +403,7 @@ fn clock_time_uncertainty_is_propagated_through_declared_power_slew() {
 
 #[test]
 fn nonzero_clock_uncertainty_without_slew_bounds_abstains() {
-    let clock = ClockAlignmentEvidence::new(5, 5, "clock-model-1")
-        .expect("valid clock");
+    let clock = ClockAlignmentEvidence::new(5, 5, "clock-model-1").expect("valid clock");
     let error = evaluate_pcc_metrology(
         &identity(),
         &calibration(1.0, 0.0),
