@@ -93,8 +93,10 @@
         "standard_uncertainty_kwh",
         "basis",
         "boundary_ref",
+        "energy_accounting_ref",
         "included_subsystems",
         "evidence_role",
+        "calibration_ref",
         "source_ref"
       ],
       "properties": {
@@ -135,6 +137,14 @@
         "source_ref": {
           "type": "string",
           "minLength": 1
+        },
+        "energy_accounting_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false
@@ -146,6 +156,7 @@
         "standard_uncertainty_m3",
         "basis",
         "evidence_role",
+        "calibration_ref",
         "source_ref"
       ],
       "properties": {
@@ -169,6 +180,10 @@
         "source_ref": {
           "type": "string",
           "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false
@@ -180,6 +195,7 @@
         "standard_uncertainty_hours",
         "basis",
         "evidence_role",
+        "calibration_ref",
         "source_ref"
       ],
       "properties": {
@@ -201,6 +217,10 @@
           ]
         },
         "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
           "type": "string",
           "minLength": 1
         }
