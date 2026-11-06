@@ -716,8 +716,9 @@ mod tests {
             7
         );
         assert_eq!(report.fixed_baseline_optimality_gap_mwh, Some(4));
-        assert_eq!(report.greedy_baseline.delivered_useful_energy_mwh, 10);
-        assert_eq!(report.greedy_optimality_gap_mwh, None);
+        assert_eq!(report.greedy_baseline.delivered_useful_energy_mwh, 9);
+        assert_eq!(report.greedy_optimality_gap_mwh, Some(2));
+        assert!(report.greedy_baseline.control_constraints_pass);
     }
 
     #[test]
