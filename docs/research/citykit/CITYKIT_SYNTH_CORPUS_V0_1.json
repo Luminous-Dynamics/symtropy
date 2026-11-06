@@ -647,9 +647,7 @@
           "NO_FEASIBLE_ROUTE_AFTER_DISRUPTION"
         ],
         "unmet_services": [],
-        "import_dependent_targets": [
-          "panel-stock"
-        ],
+        "import_dependent_targets": [],
         "unreachable_targets": [
           "panel-stock"
         ],
@@ -723,9 +721,7 @@
           "REQUIRED_CAPABILITY_EVIDENCE_REVOKED"
         ],
         "unmet_services": [],
-        "import_dependent_targets": [
-          "panel-stock"
-        ],
+        "import_dependent_targets": [],
         "unreachable_targets": [],
         "unknown_evidence": [
           "certified-supplier"
