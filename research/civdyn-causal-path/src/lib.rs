@@ -196,7 +196,12 @@ impl CausalExperiment {
                 .iter()
                 .find(|receipt| receipt.edge_id == *edge_id);
             let receipt = treatment_receipt.expect("validate_run guarantees every edge receipt");
-            let complete = receipt.applied
+            let control_source_value = control_receipt
+                .expect("validate_run guarantees every control edge receipt")
+                .source_value;
+            let source_changed = !close(receipt.source_value, control_source_value);
+            let complete = source_changed
+                && receipt.applied
                 && !close(receipt.target_before, receipt.target_after)
                 && control_receipt.is_some_and(|control| {
                     !control.applied && close(control.target_before, control.target_after)
@@ -210,6 +215,8 @@ impl CausalExperiment {
                 from_variable: edge.from_variable.clone(),
                 to_variable: edge.to_variable.clone(),
                 treatment_source_value: receipt.source_value,
+                control_source_value,
+                source_changed,
                 treatment_target_delta: receipt.target_after - receipt.target_before,
                 treatment_transition_applied: receipt.applied,
                 control_transition_applied: control_receipt.is_some_and(|item| item.applied),
@@ -576,6 +583,8 @@ pub struct PathEdgeResult {
     pub from_variable: String,
     pub to_variable: String,
     pub treatment_source_value: f64,
+    pub control_source_value: f64,
+    pub source_changed: bool,
     pub treatment_target_delta: f64,
     pub treatment_transition_applied: bool,
     pub control_transition_applied: bool,
@@ -972,22 +981,43 @@ mod tests {
     }
 
     #[test]
-    fn missing_downstream_transition_withholds_the_effect_claim() {
+    fn disconnected_downstream_path_withholds_effect_even_when_ledger_outcome_changes() {
         let mut broken = experiment();
-        let edge = broken.required_path_edge_ids[2].clone();
+        broken
+            .treatment
+            .final_values
+            .insert("delivered_water_m3".into(), 0.0);
+
+        let authorization_to_delivery = broken.required_path_edge_ids[2].clone();
         let receipt = broken
             .treatment
             .transitions
             .iter_mut()
-            .find(|receipt| receipt.edge_id == edge)
+            .find(|receipt| receipt.edge_id == authorization_to_delivery)
             .unwrap();
+        receipt.target_after = 0.0;
         receipt.applied = false;
-        receipt.target_before = receipt.target_after;
-        let result = broken.evaluate().unwrap_err();
-        assert!(
-            matches!(result, CausalPathError::AppliedFlagMismatch { .. })
-                || matches!(result, CausalPathError::TransitionStateMismatch { .. })
+
+        let delivery_to_service = broken.required_path_edge_ids[3].clone();
+        let receipt = broken
+            .treatment
+            .transitions
+            .iter_mut()
+            .find(|receipt| receipt.edge_id == delivery_to_service)
+            .unwrap();
+        receipt.source_value = 0.0;
+        receipt.target_after = 1.0;
+        receipt.applied = true;
+
+        let result = broken.evaluate().unwrap();
+        assert_eq!(result.observed_treatment_effect, 1.0);
+        assert!(!result.mechanism_path_complete);
+        assert_eq!(
+            result.first_broken_edge.as_deref(),
+            Some("authorization_to_delivery")
         );
+        assert!(!result.qualified);
+        assert_eq!(result.qualified_treatment_effect, None);
     }
 
     #[test]
