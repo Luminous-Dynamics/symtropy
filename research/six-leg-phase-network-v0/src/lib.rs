@@ -202,6 +202,7 @@ impl LegPhaseSample {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SixLegTrace {
+    pub config: SixLegConfig,
     pub model: CoordinationModel,
     pub interventions: Vec<Intervention>,
     pub samples: Vec<LegPhaseSample>,
@@ -223,6 +224,8 @@ pub enum CoordinationError {
     InvalidPhasePulse,
     DuplicateInterventionSample,
     SelfCouplingCut,
+    CouplingEdgeAbsent,
+    InsufficientActiveLegs,
     NonFiniteState,
     InvalidCoordinationThreshold,
     InvalidRecoveryWindow,
@@ -284,6 +287,7 @@ pub fn simulate(
     }
 
     Ok(SixLegTrace {
+        config,
         model,
         interventions: interventions.to_vec(),
         samples,
@@ -319,8 +323,18 @@ fn validate_interventions(
                 return Err(CoordinationError::InvalidPhasePulse);
             }
             Intervention::CouplingEdgeCut {
-                source, target, ..
-            } if source == target => return Err(CoordinationError::SelfCouplingCut),
+                source, target, reciprocal, ..
+            } => {
+                if source == target {
+                    return Err(CoordinationError::SelfCouplingCut);
+                }
+                if config.coupling_gains[source.index()][target.index()] <= 0.0
+                    || (reciprocal
+                        && config.coupling_gains[target.index()][source.index()] <= 0.0)
+                {
+                    return Err(CoordinationError::CouplingEdgeAbsent);
+                }
+            }
             _ => {}
         }
     }
@@ -501,11 +515,7 @@ pub fn coordination_metrics(
         .filter(|index| sample.enabled[*index])
         .collect::<Vec<_>>();
     if active.len() < 2 {
-        return Ok(CoordinationMetrics {
-            pairwise_phase_error_radians: 0.0,
-            target_aligned_order_parameter: 1.0,
-            maximum_pairwise_phase_error_radians: 0.0,
-        });
+        return Err(CoordinationError::InsufficientActiveLegs);
     }
 
     let mut squared_error = 0.0;
@@ -709,7 +719,7 @@ mod tests {
     fn independent_heterogeneous_oscillators_accumulate_relative_phase_drift() {
         let mut config = base_config();
         config.natural_angular_frequencies = [1.7, 1.85, 2.0, 2.15, 2.3, 2.45];
-        config.initial_phases = [0.0; LEG_COUNT];
+        config.initial_phases = config.preferred_phase_offsets;
         let trace = simulate(config, CoordinationModel::Independent, &[]).unwrap();
         let initial = coordination_metrics(&trace.samples[0], config.preferred_phase_offsets)
             .unwrap();
@@ -928,6 +938,7 @@ mod tests {
             });
         }
         let trace = SixLegTrace {
+            config: base_config(),
             model: CoordinationModel::Independent,
             interventions: vec![],
             samples,
@@ -1026,6 +1037,54 @@ mod tests {
         assert_eq!(
             recovery_result(&trace, config.preferred_phase_offsets, 2, 0.1, 0),
             Err(CoordinationError::InvalidRecoveryWindow)
+        );
+    }
+
+    #[test]
+    fn coordination_metrics_abstain_when_only_one_leg_is_observed() {
+        let mut sample = LegPhaseSample {
+            timestamp: 0.0,
+            phases: [0.0; LEG_COUNT],
+            enabled: [false; LEG_COUNT],
+            feedback_enabled: [true; LEG_COUNT],
+        };
+        sample.enabled[Leg::LeftFront.index()] = true;
+        assert_eq!(
+            coordination_metrics(&sample, SixLegConfig::tripod()),
+            Err(CoordinationError::InsufficientActiveLegs)
+        );
+    }
+
+    #[test]
+    fn coupling_ablation_rejects_a_nonexistent_edge() {
+        let config = base_config();
+        assert_eq!(
+            simulate(
+                config,
+                CoordinationModel::CentrallyCoupled,
+                &[Intervention::CouplingEdgeCut {
+                    sample_index: 100,
+                    source: Leg::LeftFront,
+                    target: Leg::LeftFront,
+                    reciprocal: true,
+                }]
+            ),
+            Err(CoordinationError::SelfCouplingCut)
+        );
+        let mut disconnected = config;
+        disconnected.coupling_gains[0][1] = 0.0;
+        assert_eq!(
+            simulate(
+                disconnected,
+                CoordinationModel::CentrallyCoupled,
+                &[Intervention::CouplingEdgeCut {
+                    sample_index: 100,
+                    source: Leg::LeftFront,
+                    target: Leg::LeftMiddle,
+                    reciprocal: false,
+                }]
+            ),
+            Err(CoordinationError::CouplingEdgeAbsent)
         );
     }
 
