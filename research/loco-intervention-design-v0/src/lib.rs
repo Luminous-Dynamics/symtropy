@@ -128,7 +128,9 @@ impl DesignConstraints {
 ///
 /// For equal diagonal Gaussian covariance, pairwise KL is:
 ///
-///     0.5 * sum_k((mean_i[k] - mean_j[k])^2 / variance[k])
+/// ```text
+/// 0.5 * sum_k((mean_i[k] - mean_j[k])^2 / variance[k])
+/// ```
 ///
 /// The expected diagnostic is prior weighted over unordered pairs, with pair
 /// weights normalized to sum to one. Neither quantity is called Bayesian EIG.
