@@ -62,7 +62,7 @@ jobs:
               rows = list(csv.DictReader(handle))
 
           assert len(rows) == 11, f"expected 4 arm + 4 edge + 1 paired + 1 negative + 1 ablation rows, got {len(rows)}"
-          assert all(len(row) == 19 for row in rows)
+          assert all(len(row) == 29 for row in rows)
 
           arms = {row["arm_id"]: row for row in rows if row["record_type"] == "arm_outcome"}
           assert set(arms) == {"control", "treatment", "negative_control", "mechanism_ablation"}
@@ -100,13 +100,20 @@ jobs:
           ablation = next(row for row in rows if row["record_type"] == "mechanism_ablation")
           assert ablation["qualified"] == "true"
           assert ablation["path_complete"] == "true"
-          assert ablation["first_broken_edge"] == "safeguard_to_eligibility"
-          assert ablation["transition_applied"] == "true"
-          assert ablation["value"] == "true"
-          assert ablation["control_outcome"] == ablation["treatment_outcome"] == "0.000000"
-          assert ablation["source_changed"] == "true"
-          assert float(ablation["treatment_source_value"]) == 0.0
-          assert float(ablation["control_source_value"]) == 1.0
+          assert ablation["first_broken_edge"] == ""
+          assert ablation["transition_applied"] == ""
+          assert ablation["control_outcome"] == "0.000000"
+          assert ablation["treatment_outcome"] == "1.000000"
+          assert ablation["ablation_block_variable_id"] == "mechanism_blocked"
+          assert ablation["ablation_block_switch_changed"] == "true"
+          assert ablation["ablation_primary_intervention_preserved"] == "true"
+          assert ablation["ablation_blocked_mediator_variable_id"] == "transfer_eligible"
+          assert ablation["ablation_mediator_suppressed"] == "true"
+          assert ablation["ablation_protocol_valid"] == "true"
+          assert ablation["mechanism_necessity_supported"] == "true"
+          assert ablation["ablation_outcome"] == "0.000000"
+          assert ablation["ablation_effect"] == "0.000000"
+          assert ablation["observed_treatment_effect"] == "1.000000"
 
           print("CIVDYN causal path, single-intervention match, independent ledger outcome, mediator ablation, conservation and negative control verified.")
           PY
