@@ -232,8 +232,7 @@ mod tests {
 
         let body = &world.bodies[0];
         let analytic_position =
-            INITIAL_HEIGHT + INITIAL_VELOCITY * DURATION
-                + 0.5 * GRAVITY * DURATION * DURATION;
+            INITIAL_HEIGHT + INITIAL_VELOCITY * DURATION + 0.5 * GRAVITY * DURATION * DURATION;
         let analytic_velocity = INITIAL_VELOCITY + GRAVITY * DURATION;
         let actual_position = body.transform.translation.0[1];
         let actual_velocity = body.linear_velocity[1];
