@@ -43,8 +43,7 @@ fn reference_fits(
                 .checked_add(other.length_mm)
                 .and_then(|end| end.checked_add(gap))
                 .is_some_and(|right| right <= x)
-            || y
-                .checked_add(vessel.beam_mm)
+            || y.checked_add(vessel.beam_mm)
                 .and_then(|end| end.checked_add(gap))
                 .is_some_and(|top| top <= other.y_mm)
             || other
@@ -80,12 +79,7 @@ fn reference_pack_recursive(
                     length_mm: vessel.length_mm,
                     beam_mm: vessel.beam_mm,
                 });
-                if reference_pack_recursive(
-                    chambers,
-                    vessels,
-                    vessel_index + 1,
-                    placed,
-                ) {
+                if reference_pack_recursive(chambers, vessels, vessel_index + 1, placed) {
                     return true;
                 }
                 placed.pop();
@@ -100,18 +94,20 @@ fn reference_pack(chambers: &[ChamberSpec], vessels: &[VesselFootprint]) -> bool
     reference_pack_recursive(chambers, vessels, 0, &mut placed)
 }
 
-fn same_feasibility(
-    actual: &ChamberPackingResult,
-    expected_feasible: bool,
-    label: &str,
-) {
+fn same_feasibility(actual: &ChamberPackingResult, expected_feasible: bool, label: &str) {
     let actual_feasible = actual.termination == PackingTermination::Feasible;
     assert_eq!(actual_feasible, expected_feasible, "{label}: {actual:?}");
     if actual.termination == PackingTermination::Infeasible {
-        assert!(actual.placements.is_empty(), "{label}: partial placements leaked");
+        assert!(
+            actual.placements.is_empty(),
+            "{label}: partial placements leaked"
+        );
     }
     if actual.termination == PackingTermination::BudgetExhausted {
-        assert!(actual.placements.is_empty(), "{label}: partial placements leaked");
+        assert!(
+            actual.placements.is_empty(),
+            "{label}: partial placements leaked"
+        );
     }
 }
 
@@ -146,10 +142,8 @@ fn exact_edge_candidate_search_matches_grid_oracle_for_all_tiny_vessel_pairs() {
                                         beam_mm: second_beam,
                                     },
                                 ];
-                                let expected = reference_pack(
-                                    std::slice::from_ref(&chamber),
-                                    &vessels,
-                                );
+                                let expected =
+                                    reference_pack(std::slice::from_ref(&chamber), &vessels);
                                 let actual = exact_chamber_packing(
                                     std::slice::from_ref(&chamber),
                                     &vessels,
