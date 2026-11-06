@@ -302,7 +302,10 @@
         "speed_ratio_definition": "v/(omega*e)",
         "cutter_edge_profile_ref": "SYN-ODC-EDGE",
         "angular_speed_observation_ref": "angular_speed_rad_s",
-        "traction_speed_observation_ref": "traction_speed_m_s"
+        "traction_speed_observation_ref": "traction_speed_m_s",
+        "cutterhead_radius_m": 0.05,
+        "eccentric_ratio": 0.02,
+        "eccentric_ratio_definition": "e/a"
       },
       "environment": {
         "temperature_k": 293.15,
