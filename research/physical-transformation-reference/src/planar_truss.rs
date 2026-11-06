@@ -71,12 +71,12 @@ pub struct EquilibriumSummary {
     /// Applied loads plus support reactions; ideal static equilibrium is zero.
     pub net_force_residual_x_n: f64,
     pub net_force_residual_y_n: f64,
-    /// Moment reference point: arithmetic centroid of input node coordinates (metres).
+    /// Moment reference point: member-length-weighted centroid of truss centerlines (metres).
     pub moment_reference_x_m: f64,
     pub moment_reference_y_m: f64,
     /// Maximum pairwise Euclidean node distance (point-set diameter), in metres.
     pub characteristic_length_m: f64,
-    /// Moment about the recorded node-coordinate centroid, in N m.
+    /// Moment about the recorded centerline centroid, in N m.
     pub net_moment_residual_nm: f64,
     /// Sum of Euclidean magnitudes of applied and support-reaction force vectors (N).
     pub force_normalization_scale_n: f64,
@@ -187,48 +187,8 @@ pub fn solve(input: &PlanarTrussInput) -> Check<PlanarTrussResult> {
         }
     }
 
-    // Use the arithmetic centroid of node coordinates as a translation- and
-    // rotation-covariant moment reference. Divide each offset before summing so
-    // the intermediate sum remains bounded by the coordinate extent.
-    let min_x = nodes
-        .iter()
-        .map(|node| node.x_m)
-        .fold(f64::INFINITY, f64::min);
-    let min_y = nodes
-        .iter()
-        .map(|node| node.y_m)
-        .fold(f64::INFINITY, f64::min);
-    let node_count = nodes.len() as f64;
-    let mut centroid_offset_x_m = 0.0_f64;
-    let mut centroid_offset_y_m = 0.0_f64;
-    for node in &nodes {
-        let offset_x = node.x_m - min_x;
-        let offset_y = node.y_m - min_y;
-        require_finite(offset_x, "node centroid x offset")?;
-        require_finite(offset_y, "node centroid y offset")?;
-        centroid_offset_x_m += offset_x / node_count;
-        centroid_offset_y_m += offset_y / node_count;
-        require_finite(centroid_offset_x_m, "node centroid x accumulation")?;
-        require_finite(centroid_offset_y_m, "node centroid y accumulation")?;
-    }
-    let moment_reference_x_m = min_x + centroid_offset_x_m;
-    let moment_reference_y_m = min_y + centroid_offset_y_m;
-    require_finite(moment_reference_x_m, "moment reference x")?;
-    require_finite(moment_reference_y_m, "moment reference y")?;
-
-    // The point-set diameter is independent of global-axis orientation. The
-    // O(n²) scan is small under this reference model's node cap.
-    let mut characteristic_length_m = 0.0_f64;
-    for i in 0..nodes.len() {
-        for j in (i + 1)..nodes.len() {
-            let dx = nodes[i].x_m - nodes[j].x_m;
-            let dy = nodes[i].y_m - nodes[j].y_m;
-            require_finite(dx, "node-pair x separation")?;
-            require_finite(dy, "node-pair y separation")?;
-            characteristic_length_m = characteristic_length_m.max(dx.hypot(dy));
-        }
-    }
-    require_positive_finite(characteristic_length_m, "truss characteristic length")?;
+    let (moment_reference_x_m, moment_reference_y_m, characteristic_length_m) =
+        reference_geometry(&nodes, &bar_geometry)?;
 
     let dof_count = nodes
         .len()
@@ -507,6 +467,88 @@ struct BarGeometry {
     cosine: f64,
     sine: f64,
     axial_stiffness: f64,
+}
+
+/// Return the member-length-weighted centroid of the truss centerlines and
+/// the node-set diameter. The linework centroid is rigid-motion covariant and,
+/// unlike an unweighted node centroid, is unchanged when a member is split into
+/// collinear sub-members without changing the represented centerline geometry.
+fn reference_geometry(
+    nodes: &[TrussNode],
+    bar_geometry: &BTreeMap<String, BarGeometry>,
+) -> Check<(f64, f64, f64)> {
+    if nodes.is_empty() || bar_geometry.is_empty() {
+        return Err("reference geometry requires nodes and bars".to_owned());
+    }
+
+    let min_x = nodes
+        .iter()
+        .map(|node| node.x_m)
+        .fold(f64::INFINITY, f64::min);
+    let min_y = nodes
+        .iter()
+        .map(|node| node.y_m)
+        .fold(f64::INFINITY, f64::min);
+
+    let mut total_bar_length_m = 0.0_f64;
+    for geometry in bar_geometry.values() {
+        require_positive_finite(geometry.length, "reference bar length")?;
+        total_bar_length_m += geometry.length;
+        require_finite(total_bar_length_m, "total reference bar length")?;
+    }
+    require_positive_finite(total_bar_length_m, "total reference bar length")?;
+
+    let mut centroid_offset_x_m = 0.0_f64;
+    let mut centroid_offset_y_m = 0.0_f64;
+    for geometry in bar_geometry.values() {
+        let start = nodes
+            .get(geometry.i)
+            .ok_or_else(|| "reference bar start node index is invalid".to_owned())?;
+        let end = nodes
+            .get(geometry.j)
+            .ok_or_else(|| "reference bar end node index is invalid".to_owned())?;
+        let dx = end.x_m - start.x_m;
+        let dy = end.y_m - start.y_m;
+        require_finite(dx, "reference bar x delta")?;
+        require_finite(dy, "reference bar y delta")?;
+
+        // Work with offsets from the minimum coordinate rather than summing
+        // absolute coordinates, reducing overflow/cancellation risk.
+        let midpoint_offset_x_m = (start.x_m - min_x) + 0.5 * dx;
+        let midpoint_offset_y_m = (start.y_m - min_y) + 0.5 * dy;
+        require_finite(midpoint_offset_x_m, "reference bar midpoint x offset")?;
+        require_finite(midpoint_offset_y_m, "reference bar midpoint y offset")?;
+
+        let weight = geometry.length / total_bar_length_m;
+        centroid_offset_x_m += weight * midpoint_offset_x_m;
+        centroid_offset_y_m += weight * midpoint_offset_y_m;
+        require_finite(centroid_offset_x_m, "linework centroid x accumulation")?;
+        require_finite(centroid_offset_y_m, "linework centroid y accumulation")?;
+    }
+    let moment_reference_x_m = min_x + centroid_offset_x_m;
+    let moment_reference_y_m = min_y + centroid_offset_y_m;
+    require_finite(moment_reference_x_m, "moment reference x")?;
+    require_finite(moment_reference_y_m, "moment reference y")?;
+
+    // The maximum distance between nodes is also the diameter of the union of
+    // straight centerline segments: a convex distance maximum occurs at endpoints.
+    let mut characteristic_length_m = 0.0_f64;
+    for i in 0..nodes.len() {
+        for j in (i + 1)..nodes.len() {
+            let dx = nodes[i].x_m - nodes[j].x_m;
+            let dy = nodes[i].y_m - nodes[j].y_m;
+            require_finite(dx, "node-pair x separation")?;
+            require_finite(dy, "node-pair y separation")?;
+            characteristic_length_m = characteristic_length_m.max(dx.hypot(dy));
+        }
+    }
+    require_positive_finite(characteristic_length_m, "truss characteristic length")?;
+
+    Ok((
+        moment_reference_x_m,
+        moment_reference_y_m,
+        characteristic_length_m,
+    ))
 }
 
 fn assemble_bar_stiffness(stiffness: &mut [Vec<f64>], bar: &BarGeometry) -> Check<()> {
@@ -815,7 +857,7 @@ mod tests {
         );
         close(
             result.equilibrium.moment_reference_y_m,
-            1.0 / 3.0,
+            0.5,
             1.0e-15,
             "moment reference y",
         );
