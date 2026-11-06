@@ -52,54 +52,7 @@ impl PortfolioIdentity {
             failure_domain_manifest_digest: failure_domain_manifest_digest.into(),
         };
         for (field, value) in [
-            ("portfolio ID", identity.portfolio_id.as_str()),
-            ("product contract ID", identity.product_contract_id.as_str()),
-                "asset manifest digest",
-                identity.asset_manifest_digest.as_str(),
-            ),
-            (
-            (
-                "failure-domain manifest digest",
-                identity.failure_domain_manifest_digest.as_str(),
-            ),
-        ] {
-            require_id(field, value)?;
-        }
-        Ok(identity)
-    }
-}
-
-/// Product-specific portfolio success criteria. Rates are declared in basis
-/// points; they are policy inputs, not universal grid-product rules.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct PortfolioContract {
-    product_contract_id: String,
-    minimum_event_count: usize,
-    minimum_independent_incident_groups: usize,
-    minimum_event_pass_fraction_basis_points: u16,
-    minimum_incident_group_pass_fraction_basis_points: u16,
-    shortfall_tail_alpha_basis_points: u16,
-}
-
-impl PortfolioContract {
-    pub fn new(
-        product_contract_id: impl Into<String>,
-        minimum_event_count: usize,
-        minimum_independent_incident_groups: usize,
-        minimum_event_pass_fraction_basis_points: u16,
-        minimum_incident_group_pass_fraction_basis_points: u16,
-        shortfall_tail_alpha_basis_points: u16,
-    ) -> Result<Self, PortfolioResilienceError> {
-        let product_contract_id = product_contract_id.into();
-        require_id("product contract ID", &product_contract_id)?;
-        if minimum_event_count == 0 || minimum_independent_incident_groups == 0 {
-            return Err(PortfolioResilienceError::InvalidMinimumCount);
-        }
-        for (field, value) in [
-                "minimum event pass fraction",
-                minimum_event_pass_fraction_basis_points,
-            ),
-            (
+            ("minimum event pass fraction", minimum_event_pass_fraction_basis_points),
             (
                 "minimum incident-group pass fraction",
                 minimum_incident_group_pass_fraction_basis_points,
