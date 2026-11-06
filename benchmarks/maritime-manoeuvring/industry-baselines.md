@@ -48,6 +48,28 @@ The Luminous differentiator must therefore be tested at the system boundary:
 
 DCSA PC 2.0.0 is an interoperability baseline, not an authorization system: the specification explicitly leaves authentication and authorization out of scope.
 
+## MASS operating-domain and port-digital-twin baseline
+
+The IMO adopted the non-mandatory International Code of Safety for Maritime Autonomous Surface Ships (MASS Code, resolution MSC.595(111)) in May 2026; it took effect on 1 July 2026. The IMO identifies vessel-specific modes of operation, risk assessment, navigation, connectivity, remote operations, cybersecurity, emergency response and human oversight as central concerns. The master retains overall responsibility even when not onboard. The IMO FAQ says the mode description should define its conditions and limits and actions when conditions leave those limits. The MASS Safety Certificate requires an approval process; enhanced automation alone does not make a ship a MASS.
+
+Authoritative sources:
+- IMO adoption announcement (22 May 2026): https://www.imo.org/en/mediacentre/pressbriefings/pages/imo-adopts-mass-code.aspx
+- IMO autonomous shipping FAQ: https://www.imo.org/en/mediacentre/hottopics/pages/autonomous-shipping.aspx
+- IMO MSC 111 summary: https://www.imo.org/en/mediacentre/meetingsummaries/pages/temporary-msc-111.aspx
+
+**Implication:** a maritime digital twin needs more than a vessel state estimate or an optimizer. It needs configuration-bound, function-specific, time-valid mode envelopes; named human/remote responsibility; explicit transition/acknowledgement and recovery semantics; and clear abstention when evidence becomes stale or conditions fall outside the declared domain.
+
+The new workstream [MARITIME-ODD-001 #3893](https://github.com/Luminous-Dynamics/symtropy/issues/3893) owns this maritime profile. It reuses Symthaea SE-RTA #3779 for generic runtime assurance and Mycelix mobility configuration/authority objects. It does not implement navigation control, an autonomous-vessel controller or MASS certification.
+
+A 3 April 2026 *Journal of Shipping and Trade* port-authority digital-twin adoption study draws on 77 Port of Barcelona interviews and 12 international-port interviews, identifies 80 use cases and evaluates them against nine criteria. It reports that many port authorities remain early in adoption, with high implementation costs and uncertain benefits constraining deployment. It supports prioritizing decision value relative to data/integration cost—not an assumption that comprehensive port twins are already standard practice:
+https://doi.org/10.1186/s41072-026-00234-6
+
+An April 2026 *Maritime Economics & Logistics* paper on the EU CRISTAL project couples inland-waterway water-level forecasting with port-call coordination. It highlights data-granularity and interoperability limits and provides a useful comparator for information-led reliability improvements before infrastructure expansion:
+https://doi.org/10.1057/s41278-026-00352-9
+
+A June 2026 *Marine Geology* study reports adaptive Delft3D sediment-transport calibration across storm/calm regimes, compared with static calibration and validated with ADCP and RTK-GPS observations at Nushahr Beach. This supports regime-conditioned evaluation, but only with frozen calibration/hold-out groups and transition-window tests; the reported site-specific gain is not portable as a universal target:
+https://doi.org/10.1016/j.margeo.2026.107739
+
 ## 4. Matched comparison protocol
 
 ### Optimizer arms
@@ -130,6 +152,7 @@ Initial improvement targets should be declared only after the exact matched base
 ## 6. Workstream links
 
 - Symtropy manoeuvring evidence contract: https://github.com/Luminous-Dynamics/symtropy/issues/3865
+- Symtropy MASS operating-domain profile: https://github.com/Luminous-Dynamics/symtropy/issues/3893
 - Draft contract / independent metric slice: https://github.com/Luminous-Dynamics/symtropy/pull/3878
 - Symtropy mobile pilot/tug and spatial traffic scheduling: https://github.com/Luminous-Dynamics/symtropy/issues/3798
 - Symtropy coupled coastal-to-inland service-chain benchmark: https://github.com/Luminous-Dynamics/symtropy/issues/3683
