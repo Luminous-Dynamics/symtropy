@@ -3020,6 +3020,86 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn finite_hypothesis_eig_respects_nonuniform_prior_entropy_within_sampling_error() {
+        let hypotheses = [
+            information_hypothesis(
+                "intrinsic",
+                Mechanism::IntrinsicOscillator,
+                config(),
+                0.9,
+            ),
+            information_hypothesis(
+                "sensory",
+                Mechanism::SensoryFeedbackDriven,
+                config(),
+                0.1,
+            ),
+        ];
+        let candidates = [design_candidate(
+            "feedback-cut",
+            Intervention::FeedbackCutFrom { sample_index: 20 },
+            20,
+            1.0,
+            true,
+        )];
+        let decision = design_intervention_by_expected_information_gain(
+            &hypotheses,
+            &candidates,
+            0.04,
+            2048,
+            0xB4A9_2026,
+            0.0,
+        )
+        .unwrap();
+        let ExpectedInformationDecision::Selected { design } = decision else {
+            panic!("expected information gain for identifiable hypotheses");
+        };
+        let prior_entropy = -(0.9_f64 * 0.9_f64.ln() + 0.1_f64 * 0.1_f64.ln());
+        assert!(design.expected_information_nats > 0.2);
+        assert!(design.expected_information_nats <= prior_entropy + 0.06);
+        assert!(design.standard_error_nats < 0.06);
+    }
+
+    #[test]
+    fn finite_hypothesis_eig_selects_lower_cost_action_and_ignores_infeasible_candidates() {
+        let hypotheses = [
+            information_hypothesis(
+                "intrinsic",
+                Mechanism::IntrinsicOscillator,
+                config(),
+                0.5,
+            ),
+            information_hypothesis(
+                "sensory",
+                Mechanism::SensoryFeedbackDriven,
+                config(),
+                0.5,
+            ),
+        ];
+        let cut = Intervention::FeedbackCutFrom { sample_index: 20 };
+        let candidates = [
+            design_candidate("expensive-cut", cut, 20, 10.0, true),
+            design_candidate("cheap-cut", cut, 20, 1.0, true),
+            design_candidate("blocked-cheap-cut", cut, 20, 0.01, false),
+        ];
+        let decision = design_intervention_by_expected_information_gain(
+            &hypotheses,
+            &candidates,
+            0.04,
+            512,
+            0xC057_2026,
+            0.0,
+        )
+        .unwrap();
+        let ExpectedInformationDecision::Selected { design } = decision else {
+            panic!("expected a positive information-per-cost action");
+        };
+        assert_eq!(design.candidate_id, "cheap-cut");
+        assert!(design.information_per_cost > 0.0);
+    }
+
     #[test]
     fn wilson_interval_matches_known_small_sample_reference() {
         let interval = wilson_interval(5, 10);
