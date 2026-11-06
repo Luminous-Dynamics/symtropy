@@ -684,6 +684,16 @@ impl PortfolioManifest {
                 return Err(PortfolioError::NonAppendOnlyRevision);
             }
         }
+        for prior in &previous.coverage_obligations {
+            if !current.coverage_obligations.iter().any(|candidate| candidate == prior) {
+                return Err(PortfolioError::NonAppendOnlyRevision);
+            }
+        }
+        for prior in &previous.challenge_requirements {
+            if !current.challenge_requirements.iter().any(|candidate| candidate == prior) {
+                return Err(PortfolioError::NonAppendOnlyRevision);
+            }
+        }
         for prior_action in &previous.action_ids {
             if !current.action_ids.contains(prior_action) {
                 return Err(PortfolioError::NonAppendOnlyRevision);
@@ -1309,9 +1319,7 @@ fn assess_residual(
     })
 }
 
-fn validate_coverage_for_digest(_obligation: &CoverageObligation) {}
-
-fn hash_hypothesis(h: &mut blake3::Hasher, value: &Hypothesis) {
+remove no-op helperfn hash_hypothesis(h: &mut blake3::Hasher, value: &Hypothesis) {
     hash_str(h, &value.hypothesis_id);
     hash_str(h, &value.model_family_id);
     hash_str(h, &value.version_digest);
@@ -1575,8 +1583,8 @@ mod tests {
             budget_units: 100,
             holdout_parent_lineage_digests: vec![d("sealed-holdout-parent-v1")],
             outcome,
-            counterexample_digest: found.then(|| d(&format!("counterexample-{id}"))),
-            replay_receipt_digest: found.then(|| d(&format!("replay-{id}"))),
+            counterexample_digest: found.then_some(d(&format!("counterexample-{id}"))),
+            replay_receipt_digest: found.then_some(d(&format!("replay-{id}"))),
             counterexample_replay_verified: found,
         }
     }
@@ -1906,10 +1914,7 @@ mod tests {
             Some(&residual()),
         )
         .unwrap();
-        assert_eq!(
-            report.challenge.non_discovery_proves_absence,
-            false
-        );
+        assert!(!report.challenge.non_discovery_proves_absence);
         assert_eq!(report.challenge.qualified_challenges, 8);
         assert_eq!(report.challenge.unresolved_challenges, 0);
         assert!(report.challenge.strategies.iter().all(|entry| entry.attempts == 2));
@@ -2130,6 +2135,29 @@ mod tests {
             });
         }
         PortfolioManifest::validate_append_only_revision(&previous, &current).unwrap();
+    }
+
+    #[test]
+    fn append_only_revision_cannot_remove_prior_coverage_or_challenge_obligations() {
+        let previous = manifest();
+
+        let mut changed_coverage = previous.clone();
+        changed_coverage.revision_sequence = 2;
+        changed_coverage.supersedes_portfolio_digest = Some(previous.portfolio_digest().unwrap());
+        changed_coverage.coverage_obligations.pop();
+        assert_eq!(
+            PortfolioManifest::validate_append_only_revision(&previous, &changed_coverage),
+            Err(PortfolioError::NonAppendOnlyRevision)
+        );
+
+        let mut changed_challenges = previous.clone();
+        changed_challenges.revision_sequence = 2;
+        changed_challenges.supersedes_portfolio_digest = Some(previous.portfolio_digest().unwrap());
+        changed_challenges.challenge_requirements.pop();
+        assert_eq!(
+            PortfolioManifest::validate_append_only_revision(&previous, &changed_challenges),
+            Err(PortfolioError::NonAppendOnlyRevision)
+        );
     }
 
     #[test]
