@@ -347,6 +347,44 @@
           "missing_samples": 0,
           "range_exceeded": false,
           "anti_alias_filter_ref": "SYN-AA-ODC"
+        },
+        {
+          "channel_id": "angular-speed",
+          "quantity": "angular_speed",
+          "unit": "rad/s",
+          "measurement_location": "spindle_encoder",
+          "sensor_ref": "SYN-ENCODER",
+          "calibration_ref": "SYN-CAL-ENCODER",
+          "standard_uncertainty": 0.001,
+          "measurement_role": "IndependentMeasurement",
+          "sample_rate_hz": 50000,
+          "bandwidth_hz": 10000,
+          "clock_domain_ref": "SYN-CLOCK-3",
+          "synchronization_uncertainty_ns": 1000,
+          "anti_alias_filter_ref": "SYN-AA-ODC",
+          "raw_artifact_ref": "SYN-ART-ODC-RAW",
+          "saturated_samples": 0,
+          "missing_samples": 0,
+          "range_exceeded": false
+        },
+        {
+          "channel_id": "traction-speed",
+          "quantity": "traction_speed",
+          "unit": "m/s",
+          "measurement_location": "traction_encoder",
+          "sensor_ref": "SYN-ENCODER",
+          "calibration_ref": "SYN-CAL-ENCODER",
+          "standard_uncertainty": 0.001,
+          "measurement_role": "IndependentMeasurement",
+          "sample_rate_hz": 50000,
+          "bandwidth_hz": 10000,
+          "clock_domain_ref": "SYN-CLOCK-3",
+          "synchronization_uncertainty_ns": 1000,
+          "anti_alias_filter_ref": "SYN-AA-ODC",
+          "raw_artifact_ref": "SYN-ART-ODC-RAW",
+          "saturated_samples": 0,
+          "missing_samples": 0,
+          "range_exceeded": false
         }
       ],
       "artifacts": [
@@ -360,7 +398,9 @@
           "clock_domain_ref": "SYN-CLOCK-3",
           "channel_refs": [
             "thrust-force",
-            "cutting-torque"
+            "cutting-torque",
+            "angular-speed",
+            "traction-speed"
           ],
           "parent_artifact_refs": [],
           "evidence_role": "IndependentMeasurement"
