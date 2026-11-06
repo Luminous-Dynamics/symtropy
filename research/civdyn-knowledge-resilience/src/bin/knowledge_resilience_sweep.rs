@@ -43,6 +43,7 @@ fn empty_row(record_type: &str, item_id: &str) -> Vec<String> {
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
     ]
 }
 
