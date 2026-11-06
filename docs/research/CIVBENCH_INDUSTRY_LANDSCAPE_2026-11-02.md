@@ -740,3 +740,17 @@ The programme should claim to beat the state of the art only on a named benchmar
 6. Convert the Shashe–Limpopo HIST-001 case into an uncertainty-preserving archaeological data ingestion and held-out-site reconstruction benchmark.
 
 The governing rule remains: no increase in sophistication, aggregate score, collective intelligence proxy or simulation realism is allowed to compensate for missing evidence, disconnected mechanisms, poor calibration, or worse outcomes for a hidden subgroup.
+
+
+### Component-digest semantics and exact causal-path qualification (6 November 2026)
+
+The eight-fixture MAD branch [PR #3771](https://github.com/Luminous-Dynamics/symtropy/pull/3771) now canonicalizes every execution-stack component descriptor using `sorted-key-value-lines-v1` over:
+- `component_id`;
+- role;
+- version;
+- behavior-affecting flag;
+- notes.
+
+The validator recomputes each descriptor digest. This establishes the identity of the *declared component inventory*, not a signature of compiled code or proof that runtime behavior matches the declaration. Source commit, runtime artifacts and exact outputs remain tied to the Humanity Atlas run receipt. The exact-head all-manifest run [#42234375524](https://github.com/Luminous-Dynamics/symtropy/actions/runs/42234375524) passed: 8 manifests across 8 benchmark IDs, schema and semantic checks, configuration passports, execution-stack references and injected negative controls.
+
+The matched causal-path implementation also passed exact-head hosted CI in [run #42233601189](https://github.com/Luminous-Dynamics/symtropy/actions/runs/42233601189): 14 library tests, 1 binary test, formatting, strict Clippy, locked compilation, ledger execution, mediator ablation, conservation and counter-only negative control. Draft [PR #3803](https://github.com/Luminous-Dynamics/symtropy/pull/3803) remains a deterministic synthetic reference; it does not establish an empirical policy effect.
