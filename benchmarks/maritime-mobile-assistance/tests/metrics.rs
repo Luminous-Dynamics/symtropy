@@ -6,11 +6,20 @@ use maritime_mobile_assistance_contract::{
 use maritime_service_chain_fleet::OperationPlacement;
 use maritime_service_chain_contract::TickWindow;
 
-fn receipt(id: &str, state: EvidenceState, start: u64, end: u64) -> EvidenceReceipt {
+fn receipt(
+    id: &str,
+    state: EvidenceState,
+    start: u64,
+    end: u64,
+    subject_id: &str,
+    subject_revision: &str,
+) -> EvidenceReceipt {
     EvidenceReceipt {
         evidence_id: id.to_owned(),
         source_id: format!("source-{id}"),
-        source_revision: "revision-1".to_owned(),
+        source_revision: "source-revision-1".to_owned(),
+        subject_id: subject_id.to_owned(),
+        subject_revision: subject_revision.to_owned(),
         state,
         valid_from_tick: start,
         valid_through_tick: end,
@@ -30,12 +39,16 @@ fn tug(id: &str, node: &str, bollard_pull_kn: u32) -> TugResource {
             EvidenceState::Current,
             0,
             40,
+            id,
+            "tug-config-1",
         ),
         position_evidence: receipt(
             &format!("{id}-position"),
             EvidenceState::Current,
             0,
             0,
+            id,
+            "tug-config-1",
         ),
         availability: vec![TickWindow {
             start_tick: 0,
@@ -55,12 +68,16 @@ fn pilot(id: &str, node: &str, qualifications: &[&str]) -> PilotResource {
             EvidenceState::Current,
             0,
             40,
+            id,
+            "pilot-roster-1",
         ),
         position_evidence: receipt(
             &format!("{id}-position"),
             EvidenceState::Current,
             0,
             0,
+            id,
+            "pilot-roster-1",
         ),
         availability: vec![TickWindow {
             start_tick: 0,
@@ -116,6 +133,8 @@ fn leg(from: &str, to: &str, duration: u64) -> RepositionLeg {
             EvidenceState::Current,
             0,
             40,
+            &format!("{from}->{to}"),
+            "route-r1",
         ),
     }
 }
