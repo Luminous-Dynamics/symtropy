@@ -10,7 +10,7 @@ fn site(site_id: &str, samples_kw: &[f64], clock_uncertainty_ns: u64) -> FleetSi
         site_id,
         "region-a",
         "pcc",
-        &format!("sha256:{site_id}"),
+        format!("sha256:{site_id}"),
         "alignment-v1",
         0,
         1_000_000_000,
