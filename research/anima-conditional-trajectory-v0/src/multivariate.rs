@@ -1015,7 +1015,7 @@ mod tests {
 
     #[test]
     fn observing_one_channel_updates_the_shared_latent_state_for_another() {
-        let model = model("m", 0.0, 1.0);
+        let model = model("m", 0.8, 1.0);
         let empty = history(Vec::new());
         let before = forecast_next(
             &model,
