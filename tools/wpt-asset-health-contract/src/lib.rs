@@ -314,11 +314,10 @@ pub fn validate_observation(schema: &Value, observation: &Value) -> Result<(), S
         exposure.get("ambient_max_c").and_then(Value::as_f64),
     ) && minimum > maximum
     {
-            return Err(fail(
-                "$.exposure",
-                "ambient_min_c cannot exceed ambient_max_c",
-            ));
-        }
+        return Err(fail(
+            "$.exposure",
+            "ambient_min_c cannot exceed ambient_max_c",
+        ));
     }
 
     let quality_flags = object_field(observation, "quality_flags", "$")?
