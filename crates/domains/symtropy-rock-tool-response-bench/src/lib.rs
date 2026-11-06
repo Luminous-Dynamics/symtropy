@@ -596,14 +596,16 @@ mod tests {
     #[test]
     fn duplicate_record_identity_is_rejected() {
         let mut data = fixture();
-        data["records"][1]["record_id"] = data["records"][0]["record_id"].clone();
+        let duplicate_id = data["records"][0]["record_id"].clone();
+        data["records"][1]["record_id"] = duplicate_id;
         assert!(has(&validate_bundle(&data), ValidationCode::DuplicateRecordId));
     }
 
     #[test]
     fn reused_physical_specimen_is_rejected() {
         let mut data = fixture();
-        data["records"][1]["material"]["specimen_ref"] = data["records"][0]["material"]["specimen_ref"].clone();
+        let reused_specimen = data["records"][0]["material"]["specimen_ref"].clone();
+        data["records"][1]["material"]["specimen_ref"] = reused_specimen;
         assert!(has(&validate_bundle(&data), ValidationCode::DuplicateSpecimenId));
     }
 
