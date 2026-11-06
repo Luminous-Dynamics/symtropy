@@ -521,7 +521,7 @@ fn solve_exact(scenario: &Scenario) -> Result<(ScheduleOutcome, u64, usize), Str
     let mut search_nodes = 0_u64;
     let mut peak_states = 1_usize;
 
-    for (interval_index, interval) in scenario.intervals.iter().enumerate() {
+    for interval in &scenario.intervals {
         let mut next = BTreeMap::<(u64, u64), Node>::new();
         for ((previous_setpoint, stress_used), node) in &states {
             let lower = previous_setpoint
@@ -594,10 +594,6 @@ fn solve_exact(scenario: &Scenario) -> Result<(ScheduleOutcome, u64, usize), Str
         states = next;
         if states.is_empty() {
             break;
-        }
-        let remaining_intervals = scenario.intervals.len() - interval_index - 1;
-        if remaining_intervals == 0 {
-            continue;
         }
     }
 
