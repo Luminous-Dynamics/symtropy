@@ -2583,7 +2583,11 @@ mod transformed_halfspace_tests {
             "sphere tunneled through the plane: y={}",
             body.position()[1]
         );
-        assert!(body.position()[1] < 0.002, "unexpected CCD clamp: y={}", body.position()[1]);
+        assert!(
+            body.position()[1] < 0.002,
+            "unexpected CCD clamp: y={}",
+            body.position()[1]
+        );
     }
 
 }
