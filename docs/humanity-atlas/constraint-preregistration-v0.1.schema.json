@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/humanity-atlas/constraint-preregistration-v0.1.schema.json",
+  "title": "Humanity Atlas Constraint Pre-registration v0.1",
+  "description": "Content-addressed declaration of constraint semantics before analysis; does not prove signer identity or trusted timestamp.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "artifact_type",
+    "constraint_id",
+    "metric_id",
+    "comparator",
+    "threshold",
+    "threshold_upper",
+    "scope",
+    "non_compensable",
+    "declared_at",
+    "rationale",
+    "registered_by"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "0.1"
+    },
+    "artifact_type": {
+      "const": "humanity_atlas_constraint_preregistration"
+    },
+    "constraint_id": {
+      "type": "string",
+      "minLength": 2
+    },
+    "metric_id": {
+      "type": "string",
+      "minLength": 2
+    },
+    "comparator": {
+      "enum": [
+        "<=",
+        ">=",
+        "between"
+      ]
+    },
+    "threshold": {
+      "type": "number"
+    },
+    "threshold_upper": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "scope": {
+      "enum": [
+        "overall",
+        "overall_and_subgroups"
+      ]
+    },
+    "non_compensable": {
+      "const": true
+    },
+    "declared_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 12
+    },
+    "registered_by": {
+      "type": "string",
+      "minLength": 3
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "comparator": {
+            "const": "between"
+          }
+        },
+        "required": [
+          "comparator"
+        ]
+      },
+      "then": {
+        "properties": {
+          "threshold_upper": {
+            "type": "number"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "threshold_upper": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}
