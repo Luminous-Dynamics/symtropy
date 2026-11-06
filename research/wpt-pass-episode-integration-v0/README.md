@@ -165,3 +165,20 @@ Synthetic fixtures and offline replay only. No high-power construction, energiza
 - [Asphalt thermal-mechanical response, Applied Thermal Engineering (2026)](https://doi.org/10.1016/j.applthermaleng.2026.132099)
 - [Rahman et al., MPC misalignment compensation (2026)](https://doi.org/10.3390/en19112640)
 - [FMI 3.0 standard](https://fmi-standard.org/)
+
+
+## 10. Machine-readable starting artifacts
+
+- [manifest.schema.json](./manifest.schema.json) defines the closed v0 manifest shape, artifact roles, pass identity, route windows, projection joins, asset/controller bindings and bounded policy fields.
+- [manifest.NOT_RUN.template.json](./manifest.NOT_RUN.template.json) is deliberately an empty NOT_RUN template. It contains no fabricated IDs, artifact hashes, sensor data or pass result. It is not a benchmark fixture and cannot qualify a pass.
+
+### Fixture compatibility finding
+
+The current component fixtures cannot simply be concatenated and called one integrated pass:
+- #3887's canonical replay fixture is a three-pose synthetic-wander episode.
+- #3908's coupling fixture is a different three-sample synthetic-pass episode.
+- #3923's artifact verifier fixture is a two-pose known-truth trajectory.
+- #3928's control fixture is a four-interval trajectory-control episode.
+- #3895 has its own route ledger and pose-window fixture.
+
+Their identities, sample counts and schemas are not presently one shared episode. P1/P2 must create one canonical master synthetic pass and versioned adapters or regenerated domain fixtures that preserve the same pose IDs, timestamps, coordinate lineage and exact trajectory digest. Until that exists, cross-package composition must fail rather than be inferred from similar-looking sample labels.
