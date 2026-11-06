@@ -525,8 +525,12 @@ impl PortfolioManifest {
         require(&self.odd_scope_digest, "odd_scope_digest")?;
         require(&self.utility_scale_id, "utility_scale_id")?;
         require(&self.utility_semantics_id, "utility_semantics_id")?;
+        let mut training_roots = BTreeSet::new();
         for root in &self.training_lineage_roots {
             require(root, "training_lineage_root")?;
+            if !training_roots.insert(root.as_str()) {
+                return Err(PortfolioError::InvalidHypothesisLineage);
+            }
         }
         if self.hypotheses.is_empty()
             || self.action_ids.is_empty()
@@ -780,10 +784,10 @@ pub fn evaluate_portfolio(
     let challenges_complete = challenge.unresolved_challenges == 0;
 
     let residual = assess_residual(manifest, residual_envelope, challenge_receipts)?;
-    let disposition = if falsified {
-        PortfolioDisposition::PortfolioFalsified
-    } else if !odd_scope_match {
+    let disposition = if !odd_scope_match {
         PortfolioDisposition::OutOfScope
+    } else if falsified {
+        PortfolioDisposition::PortfolioFalsified
     } else if !coverage_complete || !challenges_complete {
         PortfolioDisposition::PortfolioIncomplete
     } else if residual.disposition == ResidualDisposition::ResidualRiskUnbounded {
@@ -896,6 +900,11 @@ fn evaluation_digest(
                 hash_u64(&mut h, bound.utility_upper.denominator);
                 hash_str(&mut h, &bound.evidence_digest);
                 hash_str(&mut h, &bound.calibration_protocol_digest);
+                let mut lineage = bound.source_lineage_digests.clone();
+                lineage.sort();
+                hash_strings(&mut h, &lineage);
+                hash_u64(&mut h, bound.minimum_independent_units);
+                hash_u64(&mut h, bound.independent_unit_count);
                 hash_u8(&mut h, match bound.feasibility {
                     FeasibilityDisposition::Guaranteed => 0,
                     FeasibilityDisposition::PotentialViolation => 1,
@@ -1819,9 +1828,7 @@ mod tests {
 
         let mut low_budget = challenge_set();
         for receipt in &mut low_budget {
-            if receipt.hypothesis_id == "H-weather" {
-                receipt.budget_units = 1;
-            }
+            receipt.budget_units = 1;
         }
         let report = evaluate_portfolio(
             &manifest(),
