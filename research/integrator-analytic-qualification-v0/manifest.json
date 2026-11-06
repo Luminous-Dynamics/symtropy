@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-integrator-analytic-qualification-v0",
+  "status": "analytic_translational_update_verification",
+  "source_module": "crates/core/symtropy-physics/src/integrator.rs",
+  "method": {
+    "name": "semi_implicit_euler",
+    "update_order": [
+      "velocity += acceleration * dt",
+      "position += velocity_updated * dt"
+    ],
+    "conservative_form": "symplectic_for_separable_hamiltonian_systems",
+    "unconditional_stability_claimed": false,
+    "harmonic_oscillator_linear_stability": "0 < omega * dt < 2"
+  },
+  "fixtures": [
+    {
+      "id": "constant-gravity-discrete-recurrence",
+      "dimension": 3,
+      "duration_seconds": 1.0,
+      "dt_seconds": 0.01,
+      "steps": 100,
+      "initial_position_m": [0.0, 10.0, 0.0],
+      "initial_velocity_m_per_s": [0.0, 1.5, 0.0],
+      "gravity_m_per_s2": [0.0, -9.81, 0.0],
+      "analytic_velocity": "v0 + g*T",
+      "analytic_position": "x0 + v0*T + 0.5*g*T*(T+dt)",
+      "acceptance": {
+        "velocity_abs_error_m_per_s": 1e-11,
+        "position_abs_error_m": 1e-10
+      }
+    },
+    {
+      "id": "constant-gravity-first-order-refinement",
+      "duration_seconds": 1.0,
+      "dt_seconds": [0.1, 0.05, 0.025],
+      "continuous_reference": "x0 + v0*T + 0.5*g*T^2",
+      "expected_global_order": 1,
+      "acceptance": {
+        "log2_error_ratio_abs_from_order": 1e-10
+      }
+    },
+    {
+      "id": "undamped-harmonic-energy-envelope",
+      "omega_rad_per_s": 2.0,
+      "dt_seconds": 0.05,
+      "omega_dt": 0.1,
+      "steps": 2000,
+      "damping": 0.0,
+      "external_work": 0.0,
+      "energy_reference_j": 2.0,
+      "maximum_relative_energy_envelope_deviation": 0.06
+    }
+  ],
+  "not_claimed": [
+    "unconditional_stability_for_hamiltonian_systems",
+    "asymmetric_rigid_body_rotational_accuracy",
+    "contact_and_constraint_solver_validation",
+    "physical_experiment_validation",
+    "industry_superiority"
+  ]
+}

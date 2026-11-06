@@ -30,7 +30,12 @@ pub fn nan_zeroed_count() -> u64 {
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+///
+/// For conservative separable Hamiltonian systems the undamped update is
+/// symplectic, but symplecticity is not unconditional stability. Stability and
+/// error depend on the system and timestep. For the linear harmonic oscillator
+/// the linear stability region requires 0 < omega * dt < 2. Damping, contacts,
+/// force clamping and finite precision further modify the simulated dynamics.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
@@ -179,6 +184,118 @@ pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &
 mod tests {
     use super::*;
     use crate::body::BodyHandle;
+
+    fn run_free_fall(dt: f64, duration: f64) -> RigidBody<3> {
+        let steps = (duration / dt).round() as usize;
+        assert!((steps as f64 * dt - duration).abs() < 1e-12);
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(90), Point::new([0.0, 10.0, 0.0]), 0.1, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = SVector::from([0.0, 1.5, 0.0]);
+        let gravity = SVector::from([0.0, -9.81, 0.0]);
+
+        for _ in 0..steps {
+            integrate(&mut body, &gravity, dt);
+        }
+        body
+    }
+
+    #[test]
+    fn free_fall_matches_the_exact_semi_implicit_discrete_recurrence() {
+        let dt = 0.01;
+        let duration = 1.0;
+        let y0 = 10.0;
+        let v0 = 1.5;
+        let gravity = -9.81;
+        let body = run_free_fall(dt, duration);
+
+        // v_n = v_0 + n*g*h
+        // y_n = y_0 + n*v_0*h + g*h^2*n*(n+1)/2
+        // The extra +g*h*duration/2 is the expected semi-implicit
+        // discretization term relative to the continuous trajectory.
+        let steps = (duration / dt).round() as f64;
+        let expected_velocity = v0 + gravity * duration;
+        let expected_position =
+            y0 + steps * v0 * dt + gravity * dt * dt * steps * (steps + 1.0) / 2.0;
+
+        assert!(
+            (body.linear_velocity[1] - expected_velocity).abs() < 1e-11,
+            "velocity={} expected={expected_velocity}",
+            body.linear_velocity[1]
+        );
+        assert!(
+            (body.transform.translation.0[1] - expected_position).abs() < 1e-10,
+            "position={} expected={expected_position}",
+            body.transform.translation.0[1]
+        );
+    }
+
+    #[test]
+    fn free_fall_position_error_has_first_order_timestep_convergence() {
+        let duration = 1.0;
+        let y0 = 10.0;
+        let v0 = 1.5;
+        let gravity = -9.81;
+        let exact_position = y0 + v0 * duration + 0.5 * gravity * duration * duration;
+
+        let error = |dt| {
+            let body = run_free_fall(dt, duration);
+            (body.transform.translation.0[1] - exact_position).abs()
+        };
+        let coarse_error = error(0.1);
+        let medium_error = error(0.05);
+        let fine_error = error(0.025);
+
+        let coarse_order = (coarse_error / medium_error).log2();
+        let medium_order = (medium_error / fine_error).log2();
+
+        assert!(
+            (coarse_order - 1.0).abs() < 1e-10,
+            "coarse observed order={coarse_order}"
+        );
+        assert!(
+            (medium_order - 1.0).abs() < 1e-10,
+            "medium observed order={medium_order}"
+        );
+    }
+
+    #[test]
+    fn undamped_harmonic_oscillator_has_bounded_energy_inside_stability_region() {
+        let omega: f64 = 2.0;
+        let dt: f64 = 0.05;
+        assert!(omega * dt < 2.0);
+
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(91), Point::new([1.0, 0.0, 0.0]), 0.1, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        let zero_gravity = SVector::zeros();
+        let initial_energy = 0.5 * omega * omega;
+
+        let mut minimum_energy = f64::INFINITY;
+        let mut maximum_energy = f64::NEG_INFINITY;
+        for _ in 0..2_000 {
+            let x = body.transform.translation.0[0];
+            body.apply_force(SVector::from([-omega * omega * x, 0.0, 0.0]));
+            integrate(&mut body, &zero_gravity, dt);
+
+            let x = body.transform.translation.0[0];
+            let v = body.linear_velocity[0];
+            let energy = 0.5 * v * v + 0.5 * omega * omega * x * x;
+            minimum_energy = minimum_energy.min(energy);
+            maximum_energy = maximum_energy.max(energy);
+        }
+
+        let maximum_relative_deviation = ((maximum_energy - initial_energy)
+            .abs()
+            .max((minimum_energy - initial_energy).abs()))
+            / initial_energy;
+        assert!(
+            maximum_relative_deviation < 0.06,
+            "energy envelope deviation={maximum_relative_deviation}"
+        );
+    }
 
     #[test]
     fn free_fall_3d() {
