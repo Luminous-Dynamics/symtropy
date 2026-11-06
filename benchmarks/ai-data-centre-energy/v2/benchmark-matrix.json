@@ -272,6 +272,41 @@
         "rebound_peak"
       ],
       "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "gpu-workload-trace-15min-highres",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.6084/m9.figshare.31654879.v1",
+      "domain": "accelerator_and_node_workload_power_dynamics",
+      "baseline": "72 sessions (32 H100/B200 8-GPU nodes and 40 RTX 3060 sessions), >1.8M samples; reported per-session duration 15 min; node-scale 20ms and consumer-scale 100ms",
+      "target": "evaluate component/node power prediction and intra-node phase correlation on held-out session/hardware splits; never infer facility PCC, 3h sustain, cooling load or cross-site correlation from this dataset",
+      "primary_metrics": [
+        "per_gpu_power_model_error",
+        "node_aggregate_power_error",
+        "ramp_quantile_error",
+        "within_node_gpu_correlation",
+        "held_out_session_generalization",
+        "out_of_domain_abstention"
+      ],
+      "status": "SOURCE_REVIEWED_SCOPE_LIMITED"
+    },
+    {
+      "id": "counterfactual-baseline-mv",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "source": "PR #3802 / GRID-BASELINE-MV-001",
+      "domain": "counterfactual_baseline_and_event_impact",
+      "baseline": "separate no-dispatch calibration and evaluation groups; block-minimum residual calibration; lower-bound holdout coverage and no-dispatch false-positive reduction rate",
+      "target": "zero future-information leakage; calibration/evaluation groups disjoint; per-regime holdout coverage above pre-registered minimum; false-positive reduction rate <=1% stretch; no event claim without declared recovery horizon",
+      "primary_metrics": [
+        "absolute_normalized_bias",
+        "normalized_mae",
+        "block_lower_residual_quantile_kw",
+        "holdout_block_coverage",
+        "false_positive_reduction_rate",
+        "event_baseline_lower_bound_kw",
+        "conservative_net_energy_kwh"
+      ],
+      "status": "IMPLEMENTATION_IN_REVIEW"
     }
   ],
   "result_requirements": {
@@ -315,6 +350,8 @@
     "a successful PRAS run is not NTCSA model reproduction",
     "MLPerf tokens-per-joule is not grid-service qualification",
     "a k-factor is not a universal confidence level",
-    "a software evaluator does not certify instrument transformers or grid-code compliance"
+    "a software evaluator does not certify instrument transformers or grid-code compliance",
+    "the 15-minute H100/B200/RTX workload dataset is component/node evidence, not a facility PCC or three-hour field-response trace",
+    "a lower prediction bound calibrated on no-dispatch holdout data is model-based M&V, not causal identification or a joint event-horizon probability bound"
   ]
 }
