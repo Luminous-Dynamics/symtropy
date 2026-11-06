@@ -21,7 +21,7 @@ The graph is topologically sorted independent of declaration order. Cycles, unkn
 
 - Node service trajectories by tick.
 - Minimum service, service-deficit area and time below 50% / 90%.
-- Sustained recovery after the declared shock window.
+- Sustained recovery after the declared shock window, recorded only for nodes that actually fell below the service threshold before recovery began (unaffected nodes have no recovery time).
 - Demand-weighted service-deficit area over beneficiary endpoints.
 - Counterfactual component criticality: additional demand-weighted service deficit when a node is forced offline for a declared interval.
 
