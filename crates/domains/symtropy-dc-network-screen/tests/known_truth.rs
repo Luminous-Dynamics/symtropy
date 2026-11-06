@@ -352,3 +352,23 @@ fn pcc_load_reduction_must_be_applied_at_the_pinned_bus() {
     ).unwrap_err();
     assert!(matches!(error, DcNetworkError::PccBusMismatch { .. }));
 }
+
+#[test]
+fn pcc_identity_must_resolve_to_a_non_slack_bus_in_the_topology() {
+    let unknown_pcc = DcFlexibilityIdentity::new(
+        "site", "pcc", "missing-bus", "sha256:baseline", "sha256:flex",
+    ).unwrap();
+    let interval = DcFlexInterval::new(0, 1_000, injections(0.0, 0.0), BTreeMap::new()).unwrap();
+    let error = evaluate_dc_network_deliverability(
+        &unknown_pcc, &triangle(), &contract(false), &[interval.clone()], &[],
+    ).unwrap_err();
+    assert!(matches!(error, DcNetworkError::UnknownBus { .. }));
+
+    let slack_pcc = DcFlexibilityIdentity::new(
+        "site", "pcc", "S", "sha256:baseline", "sha256:flex",
+    ).unwrap();
+    let error = evaluate_dc_network_deliverability(
+        &slack_pcc, &triangle(), &contract(false), &[interval], &[],
+    ).unwrap_err();
+    assert!(matches!(error, DcNetworkError::PccBusMapsToSlack { .. }));
+}
