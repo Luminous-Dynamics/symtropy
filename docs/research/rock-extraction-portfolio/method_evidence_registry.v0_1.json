@@ -537,6 +537,35 @@
         "cooling_and_gas_burden",
         "fragment_recovery"
       ]
+    },
+    {
+      "id": "high_voltage_pulse_mineral_liberation",
+      "mechanism": "dielectric_breakdown_and_selective_intergranular_fragmentation_in_particulate_feed",
+      "family": "mineral_processing_and_beneficiation",
+      "application_evidence": [
+        {
+          "application": "ore_mineral_liberation_and_preconcentration",
+          "tier": "R1-R2",
+          "basis": "2021 review describes high-voltage pulse applications in mineral liberation, pre-weakening and pre-concentration; it also identifies energy, equipment wear, water processing and throughput challenges. A 2025 review surveys discharge-parameter optimization and heterogeneity effects. Treat as a distinct mineral-processing pathway, not in-situ tunnel excavation.",
+          "sources": [
+            "https://doi.org/10.1016/j.powtec.2021.09.034",
+            "https://doi.org/10.1016/j.mineng.2025.109356"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "A general replacement for conventional tunnel-face excavation.",
+        "A universally beneficial energy or recovery gain across ores and feed-size distributions."
+      ],
+      "primary_metrics": [
+        "liberated_mineral_fraction",
+        "concentrate_grade_and_recovery",
+        "specific_energy_per_tonne",
+        "downstream_grinding_energy",
+        "equipment_wear",
+        "water_processing_burden",
+        "feed_throughput"
+      ]
     }
   ]
 }
