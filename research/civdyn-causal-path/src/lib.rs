@@ -122,13 +122,17 @@ impl CausalExperiment {
 
         let intervention = variable_map
             .get(&self.intervention_variable_id)
-            .ok_or_else(|| CausalPathError::UnknownVariable(self.intervention_variable_id.clone()))?;
+            .ok_or_else(|| {
+                CausalPathError::UnknownVariable(self.intervention_variable_id.clone())
+            })?;
         let outcome = variable_map
             .get(&self.outcome_variable_id)
             .ok_or_else(|| CausalPathError::UnknownVariable(self.outcome_variable_id.clone()))?;
         let negative = variable_map
             .get(&self.negative_control_variable_id)
-            .ok_or_else(|| CausalPathError::UnknownVariable(self.negative_control_variable_id.clone()))?;
+            .ok_or_else(|| {
+                CausalPathError::UnknownVariable(self.negative_control_variable_id.clone())
+            })?;
 
         if intervention.stage != CausalStage::Intervention {
             return Err(CausalPathError::WrongVariableStage {
@@ -220,12 +224,12 @@ impl CausalExperiment {
         let exogenous_inputs_matched = self.control.exogenous_snapshot_id
             == self.treatment.exogenous_snapshot_id
             && self.control.exogenous_snapshot_id == self.negative_control.exogenous_snapshot_id;
-        let single_intervention_difference =
-            only_one_initial_value_differs(&self.control, &self.treatment, &self.intervention_variable_id);
-        let independent_outcome_agrees = self
-            .treatment
-            .independent_outcome
-            .variable_id
+        let single_intervention_difference = only_one_initial_value_differs(
+            &self.control,
+            &self.treatment,
+            &self.intervention_variable_id,
+        );
+        let independent_outcome_agrees = self.treatment.independent_outcome.variable_id
             == self.outcome_variable_id
             && self.control.independent_outcome.variable_id == self.outcome_variable_id
             && self.negative_control.independent_outcome.variable_id == self.outcome_variable_id
@@ -330,28 +334,31 @@ impl CausalExperiment {
             }
             let from = variables[edge.from_variable.as_str()];
             let to = variables[edge.to_variable.as_str()];
-            let from_rank = from.stage.rank().ok_or_else(|| {
-                CausalPathError::WrongVariableStage {
-                    variable_id: from.id.clone(),
-                    expected: CausalStage::Intervention,
-                    actual: from.stage,
-                }
-            })?;
-            let to_rank = to.stage.rank().ok_or_else(|| {
-                CausalPathError::WrongVariableStage {
+            let from_rank =
+                from.stage
+                    .rank()
+                    .ok_or_else(|| CausalPathError::WrongVariableStage {
+                        variable_id: from.id.clone(),
+                        expected: CausalStage::Intervention,
+                        actual: from.stage,
+                    })?;
+            let to_rank = to
+                .stage
+                .rank()
+                .ok_or_else(|| CausalPathError::WrongVariableStage {
                     variable_id: to.id.clone(),
                     expected: CausalStage::Outcome,
                     actual: to.stage,
-                }
-            })?;
+                })?;
             if to_rank <= from_rank || previous_stage.is_some_and(|rank| from_rank < rank) {
                 return Err(CausalPathError::InvalidStageOrder(edge_id.clone()));
             }
             previous_stage = Some(to_rank);
             previous_target = Some(edge.to_variable.as_str());
         }
-        let first = edges[ self.required_path_edge_ids[0].as_str() ];
-        let last = edges[ self.required_path_edge_ids[self.required_path_edge_ids.len() - 1].as_str() ];
+        let first = edges[self.required_path_edge_ids[0].as_str()];
+        let last =
+            edges[self.required_path_edge_ids[self.required_path_edge_ids.len() - 1].as_str()];
         if first.from_variable != self.intervention_variable_id
             || last.to_variable != self.outcome_variable_id
         {
@@ -364,7 +371,10 @@ impl CausalExperiment {
         &self,
         variables: &BTreeMap<&str, &CausalVariable>,
     ) -> Result<(), CausalPathError> {
-        let mut indegree = variables.keys().map(|id| (*id, 0usize)).collect::<BTreeMap<_, _>>();
+        let mut indegree = variables
+            .keys()
+            .map(|id| (*id, 0usize))
+            .collect::<BTreeMap<_, _>>();
         let mut outgoing: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
         for edge in &self.edges {
             *indegree
@@ -408,7 +418,9 @@ impl CausalExperiment {
         }
         if run.initial_values.len() != variables.len()
             || run.final_values.len() != variables.len()
-            || variables.keys().any(|id| !run.initial_values.contains_key(*id) || !run.final_values.contains_key(*id))
+            || variables.keys().any(|id| {
+                !run.initial_values.contains_key(*id) || !run.final_values.contains_key(*id)
+            })
         {
             return Err(CausalPathError::RunStateSchemaMismatch(run.arm_id.clone()));
         }
@@ -439,7 +451,11 @@ impl CausalExperiment {
                     edge_id: receipt.edge_id.clone(),
                 });
             }
-            for value in [receipt.source_value, receipt.target_before, receipt.target_after] {
+            for value in [
+                receipt.source_value,
+                receipt.target_before,
+                receipt.target_after,
+            ] {
                 if !value.is_finite() {
                     return Err(CausalPathError::NonFiniteTransition {
                         run_id: run.arm_id.clone(),
@@ -476,13 +492,14 @@ impl CausalExperiment {
             || outcome.source_record_id.trim().is_empty()
             || !outcome.value.is_finite()
         {
-            return Err(CausalPathError::InvalidIndependentOutcome(run.arm_id.clone()));
+            return Err(CausalPathError::InvalidIndependentOutcome(
+                run.arm_id.clone(),
+            ));
         }
-        if !close(
-            run.final_values[&self.outcome_variable_id],
-            outcome.value,
-        ) {
-            return Err(CausalPathError::IndependentOutcomeMismatch(run.arm_id.clone()));
+        if !close(run.final_values[&self.outcome_variable_id], outcome.value) {
+            return Err(CausalPathError::IndependentOutcomeMismatch(
+                run.arm_id.clone(),
+            ));
         }
         Ok(())
     }
@@ -493,7 +510,9 @@ impl CausalExperiment {
     ) -> Result<(), CausalPathError> {
         for run in [&self.control, &self.treatment, &self.negative_control] {
             if run.exogenous_snapshot_id != self.control.exogenous_snapshot_id {
-                return Err(CausalPathError::ExogenousSnapshotMismatch(run.arm_id.clone()));
+                return Err(CausalPathError::ExogenousSnapshotMismatch(
+                    run.arm_id.clone(),
+                ));
             }
         }
         for id in variables.keys() {
@@ -508,7 +527,9 @@ impl CausalExperiment {
             }
             let negative = self.negative_control.initial_values[*id];
             if !close(control, negative) {
-                return Err(CausalPathError::NegativeControlInitialStateChanged((*id).to_owned()));
+                return Err(CausalPathError::NegativeControlInitialStateChanged(
+                    (*id).to_owned(),
+                ));
             }
         }
         if close(
@@ -536,10 +557,13 @@ impl CausalExperiment {
                 self.control.final_values[id],
                 self.negative_control.final_values[id],
             ) {
-                return Err(CausalPathError::NegativeControlChangedOutcomeState(id.clone()));
+                return Err(CausalPathError::NegativeControlChangedOutcomeState(
+                    id.clone(),
+                ));
             }
         }
-        if self.control.independent_outcome.value != self.negative_control.independent_outcome.value {
+        if self.control.independent_outcome.value != self.negative_control.independent_outcome.value
+        {
             return Err(CausalPathError::NegativeControlChangedIndependentOutcome);
         }
         Ok(())
@@ -652,38 +676,103 @@ impl fmt::Display for CausalPathError {
             Self::UnknownVariable(id) => write!(f, "unknown causal variable: {id}"),
             Self::UnknownEdge(id) => write!(f, "unknown causal edge: {id}"),
             Self::SelfEdge(id) => write!(f, "causal edge {id} is a self-edge"),
-            Self::VariableRolesOverlap => write!(f, "intervention, outcome and negative-control variables must be distinct"),
-            Self::WrongVariableStage { variable_id, expected, actual } => {
-                write!(f, "variable {variable_id} expected stage {expected:?}, got {actual:?}")
+            Self::VariableRolesOverlap => write!(
+                f,
+                "intervention, outcome and negative-control variables must be distinct"
+            ),
+            Self::WrongVariableStage {
+                variable_id,
+                expected,
+                actual,
+            } => {
+                write!(
+                    f,
+                    "variable {variable_id} expected stage {expected:?}, got {actual:?}"
+                )
             }
-            Self::NegativeControlOnRequiredPath => write!(f, "negative-control variable cannot be on the required causal path"),
+            Self::NegativeControlOnRequiredPath => write!(
+                f,
+                "negative-control variable cannot be on the required causal path"
+            ),
             Self::DiscontinuousPath(id) => write!(f, "required path is discontinuous at edge {id}"),
             Self::InvalidStageOrder(id) => write!(f, "causal stage order is invalid at edge {id}"),
-            Self::PathEndpointsMismatch => write!(f, "required path must start at the intervention and end at the measured outcome"),
+            Self::PathEndpointsMismatch => write!(
+                f,
+                "required path must start at the intervention and end at the measured outcome"
+            ),
             Self::CyclicGraph => write!(f, "causal graph must be acyclic"),
-            Self::InvalidRunIdentity => write!(f, "run ID and exogenous snapshot ID must not be empty"),
-            Self::RunStateSchemaMismatch(run) => write!(f, "run {run} does not contain exactly the declared state variables"),
-            Self::NonFiniteState { run_id, variable_id, value } => write!(f, "run {run_id} variable {variable_id} has non-finite value {value}"),
-            Self::TransitionReceiptCountMismatch { run_id, expected, actual } => {
-                write!(f, "run {run_id} has {actual} transition receipts; expected {expected}")
+            Self::InvalidRunIdentity => {
+                write!(f, "run ID and exogenous snapshot ID must not be empty")
             }
-            Self::DuplicateTransitionReceipt { run_id, edge_id } => write!(f, "run {run_id} has duplicate receipt for edge {edge_id}"),
-            Self::NonFiniteTransition { run_id, edge_id } => write!(f, "run {run_id} edge {edge_id} has non-finite transition values"),
-            Self::TransitionStateMismatch { run_id, edge_id } => write!(f, "run {run_id} receipt {edge_id} does not match its state snapshot"),
-            Self::AppliedFlagMismatch { run_id, edge_id } => write!(f, "run {run_id} receipt {edge_id} applied flag disagrees with target state change"),
-            Self::InvalidIndependentOutcome(run) => write!(f, "run {run} has an incomplete or invalid independent outcome receipt"),
-            Self::IndependentOutcomeMismatch(run) => write!(f, "run {run} ledger outcome differs from declared final state"),
-            Self::ExogenousSnapshotMismatch(run) => write!(f, "run {run} does not use the matched exogenous snapshot"),
-            Self::InterventionNotChanged => write!(f, "treatment and control intervention assignments are identical"),
-            Self::UncontrolledInitialState(id) => write!(f, "initial state variable {id} changed outside the declared intervention"),
-            Self::NegativeControlInitialStateChanged(id) => write!(f, "negative control initial state changed at {id}"),
-            Self::NegativeControlDidNotActivate => write!(f, "negative-control marker did not change"),
-            Self::NegativeControlChangedOutcomeState(id) => write!(f, "negative control unexpectedly changed {id}"),
-            Self::NegativeControlChangedIndependentOutcome => write!(f, "negative control changed the independent measured outcome"),
+            Self::RunStateSchemaMismatch(run) => write!(
+                f,
+                "run {run} does not contain exactly the declared state variables"
+            ),
+            Self::NonFiniteState {
+                run_id,
+                variable_id,
+                value,
+            } => write!(f, "run {run_id} variable {variable_id} has non-finite value {value}"),
+            Self::TransitionReceiptCountMismatch {
+                run_id,
+                expected,
+                actual,
+            } => {
+                write!(
+                    f,
+                    "run {run_id} has {actual} transition receipts; expected {expected}"
+                )
+            }
+            Self::DuplicateTransitionReceipt { run_id, edge_id } => {
+                write!(f, "run {run_id} has duplicate receipt for edge {edge_id}")
+            }
+            Self::NonFiniteTransition { run_id, edge_id } => write!(
+                f,
+                "run {run_id} edge {edge_id} has non-finite transition values"
+            ),
+            Self::TransitionStateMismatch { run_id, edge_id } => write!(
+                f,
+                "run {run_id} receipt {edge_id} does not match its state snapshot"
+            ),
+            Self::AppliedFlagMismatch { run_id, edge_id } => write!(
+                f,
+                "run {run_id} receipt {edge_id} applied flag disagrees with target state change"
+            ),
+            Self::InvalidIndependentOutcome(run) => write!(
+                f,
+                "run {run} has an incomplete or invalid independent outcome receipt"
+            ),
+            Self::IndependentOutcomeMismatch(run) => write!(
+                f,
+                "run {run} ledger outcome differs from declared final state"
+            ),
+            Self::ExogenousSnapshotMismatch(run) => {
+                write!(f, "run {run} does not use the matched exogenous snapshot")
+            }
+            Self::InterventionNotChanged => write!(
+                f,
+                "treatment and control intervention assignments are identical"
+            ),
+            Self::UncontrolledInitialState(id) => write!(
+                f,
+                "initial state variable {id} changed outside the declared intervention"
+            ),
+            Self::NegativeControlInitialStateChanged(id) => {
+                write!(f, "negative control initial state changed at {id}")
+            }
+            Self::NegativeControlDidNotActivate => {
+                write!(f, "negative-control marker did not change")
+            }
+            Self::NegativeControlChangedOutcomeState(id) => {
+                write!(f, "negative control unexpectedly changed {id}")
+            }
+            Self::NegativeControlChangedIndependentOutcome => write!(
+                f,
+                "negative control changed the independent measured outcome"
+            ),
         }
     }
 }
-
 impl std::error::Error for CausalPathError {}
 
 fn close(left: f64, right: f64) -> bool {
@@ -880,19 +969,28 @@ mod tests {
     fn missing_downstream_transition_withholds_the_effect_claim() {
         let mut broken = experiment();
         let edge = broken.required_path_edge_ids[2].clone();
-        let receipt = broken.treatment.transitions.iter_mut()
-            .find(|receipt| receipt.edge_id == edge).unwrap();
+        let receipt = broken
+            .treatment
+            .transitions
+            .iter_mut()
+            .find(|receipt| receipt.edge_id == edge)
+            .unwrap();
         receipt.applied = false;
         receipt.target_before = receipt.target_after;
         let result = broken.evaluate().unwrap_err();
-        assert!(matches!(result, CausalPathError::AppliedFlagMismatch { .. }) ||
-            matches!(result, CausalPathError::TransitionStateMismatch { .. }));
+        assert!(
+            matches!(result, CausalPathError::AppliedFlagMismatch { .. })
+                || matches!(result, CausalPathError::TransitionStateMismatch { .. })
+        );
     }
 
     #[test]
     fn unrelated_initial_state_change_fails_the_matched_pair_design() {
         let mut invalid = experiment();
-        invalid.treatment.initial_values.insert("authorized_transfer_m3".into(), 2.0);
+        invalid
+            .treatment
+            .initial_values
+            .insert("authorized_transfer_m3".into(), 2.0);
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::UncontrolledInitialState(_))
@@ -941,13 +1039,19 @@ mod tests {
             target_after: 1.0,
             applied: false,
         });
-        invalid.negative_control.transitions.push(TransitionReceipt {
-            edge_id: "outcome_back_to_intervention".into(),
-            source_value: 0.0,
-            target_before: 0.0,
-            target_after: 0.0,
-            applied: false,
-        });
-        assert!(matches!(invalid.validate(), Err(CausalPathError::CyclicGraph)));
+        invalid
+            .negative_control
+            .transitions
+            .push(TransitionReceipt {
+                edge_id: "outcome_back_to_intervention".into(),
+                source_value: 0.0,
+                target_before: 0.0,
+                target_after: 0.0,
+                applied: false,
+            });
+        assert!(matches!(
+            invalid.validate(),
+            Err(CausalPathError::CyclicGraph)
+        ));
     }
 }
