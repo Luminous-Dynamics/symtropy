@@ -255,3 +255,13 @@ Failure-domain memberships can overlap. V0.1 reports the largest single-domain o
 - Shared-domain stratification is descriptive and never interpreted as causality.
 - Overlapping failure-domain memberships cannot be added into total portfolio capacity.
 - Future confidence intervals and scenario generation require separate independent-group statistical and empirical-validation protocols.
+
+## 12. Locational network deliverability (GRID-LOC-DELIV-001 #3826)
+
+Add a separate network gate between the PCC trajectory and the system-adequacy result. A response at the site meter does not prove that the response relieves the binding interface or feeder. Report three separate quantities: (1) site-meter response; (2) response deliverable at the relevant bus/interface under the frozen topology and contingency; and (3) probabilistic adequacy contribution.
+
+The first synthetic crate will freeze the network model, topology timestamp, PCC-to-bus mapping, branch/interface ratings, monitored constraints and contingency set. It will implement DC power-flow/PTDF screening and LODF-based contingency checks with hand-computed three-bus fixtures. It must fail closed on islands, singular topology, stale snapshots, missing injection mapping, incorrect sign and rating violations. The report must disclose binding constraints and topology.
+
+DC screening is not AC power-flow validation. Voltage, reactive power, losses, distribution transformer/feeder constraints require an independent AC solver on identical inputs. Protection, RMS/EMT transient stability and HIL remain separate gates. An N-0 result is not an N-1 result. Network deliverability is not ELCC, and a PRAS 0.9 adequacy result is not a nodal AC certificate.
+
+Benchmark known truths: analytic three-bus PTDF shifts; equal MW response at high- and low-sensitivity buses; relief of one constraint with overload of another; N-1 reversal; islanding; bad bus mapping; sign reversal; stale topology; DC screen pass/AC voltage failure; correlated portfolio sites and cross-product double-counting. Targets are 100% known-truth fixture agreement within declared numerical tolerance and 100% fail-closed on invalid topology/mapping.
