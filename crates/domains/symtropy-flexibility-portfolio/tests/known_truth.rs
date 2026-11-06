@@ -347,6 +347,7 @@ fn repeated_dispatch_episodes_share_one_incident_group_and_use_worst_margin() {
     let heatwave = report.incident_groups.iter().find(|g| g.incident_group_id == "one-heatwave").unwrap();
     assert!(!heatwave.passed);
     assert_eq!(heatwave.maximum_shortfall_kw, 40.0);
+    assert_eq!(report.empirical_upper_tail_mean_incident_shortfall_kw, 40.0);
 }
 
 #[test]
@@ -507,4 +508,53 @@ fn event_receipt_retains_each_response_and_domain_evidence_reference() {
     assert_eq!(receipt.asset_outcomes[0].source_digest, "sha256:response-a");
     assert_eq!(receipt.failure_domain_observations.len(), 3);
     assert_eq!(receipt.failure_domain_observations[0].evidence_id, "domain-evidence-control-e1");
+}
+
+#[test]
+fn repeated_dispatch_events_do_not_satisfy_independent_incident_group_minimum() {
+    let states = normal_states();
+    let events = [
+        event(
+            "episode-1", "same-storm", "storm", 0, 100.0,
+            (60.0, AssetAvailability::Available),
+            (50.0, AssetAvailability::Available),
+            &states,
+        ),
+        event(
+            "episode-2", "same-storm", "storm", 10_000_000_000_000, 100.0,
+            (60.0, AssetAvailability::Available),
+            (50.0, AssetAvailability::Available),
+            &states,
+        ),
+    ];
+    let error = evaluate_portfolio_resilience(&definition(), &events).unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_flexibility_portfolio::PortfolioResilienceError::InsufficientIncidentGroups { .. }
+    ));
+}
+
+#[test]
+fn duplicate_site_pcc_and_duplicate_asset_failure_memberships_are_rejected() {
+    let duplicate_site = PortfolioDefinition::new(
+        PortfolioIdentity::new("p", "product", "sha256:a", "sha256:d").unwrap(),
+        PortfolioContract::new("product", 1, 1, 9_000, 9_000, 1_000).unwrap(),
+        vec![
+            asset("a1", "same-site", 50.0, &["region"]),
+            asset("a2", "same-site", 60.0, &["region"]),
+        ],
+        vec![domain("region", "weather")],
+    ).unwrap_err();
+    assert!(matches!(
+        duplicate_site,
+        symtropy_flexibility_portfolio::PortfolioResilienceError::DuplicateSitePcc { .. }
+    ));
+    assert!(matches!(
+        PortfolioAsset::new(
+            "a", "site-a", "pcc-a", "pcc", 50.0,
+            vec!["region".into(), "region".into()],
+            "asset-evidence-a",
+        ).unwrap_err(),
+        symtropy_flexibility_portfolio::PortfolioResilienceError::DuplicateAssetFailureDomain { .. }
+    ));
 }
