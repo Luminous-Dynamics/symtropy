@@ -1,0 +1,348 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/measurement-distribution/0.1",
+  "schema_version": "0.1.0",
+  "protocol_id": "CIVBENCH-MAD-001",
+  "evaluation_id": "CIVDYN-CFG-SYNTHETIC-ORDER-SURFACE-001",
+  "benchmark_id": "CIVDYN-CFG-001",
+  "construct": {
+    "name": "decision configuration sensitivity and option-order invariance",
+    "intended_use": "Verify that complete configuration identity is explicit and that semantic order invariance can be distinguished from deliberate position-biased changes over matched synthetic cases and declared slices.",
+    "claim_tier": "tier-1-reference",
+    "claim_ceiling": "Tier 1 deterministic configuration-sensitivity software reference only; no human fairness effect, normative fairness judgement or empirical generalization claim."
+  },
+  "units": {
+    "observational_unit": "case × configuration × declared cohort",
+    "resampling_unit": "none",
+    "independent_unit": "One deterministic 12-case × configuration comparison fixture",
+    "dependence_statement": "The same 12 case identifiers are paired across configurations; configuration contrasts are designed comparisons, not independent samples.",
+    "clustered_observations": false,
+    "independence_claimed": false
+  },
+  "sources": [
+    {
+      "source_id": "CIVDYN-CFG-001-SYNTHETIC-FIXTURE-V0",
+      "epistemic_status": "synthetic-test-fixture",
+      "version": "0.1.0",
+      "retrieved_at": "2026-11-06",
+      "license": "AGPL-3.0-or-later",
+      "content_digest": null,
+      "source_family": "locally-authored-synthetic-fixture",
+      "missingness_semantics": "Fixture cells are declared and complete; absent, unsupported and not-applicable values are not encoded as zero."
+    }
+  ],
+  "evaluation_distribution": {
+    "sampling_frame": "Two configurations evaluated over 12 matched cases with declared cohort slices and semantic option-order controls.",
+    "factors": [
+      {
+        "factor_id": "configuration_profile",
+        "weight_interpretation": "Equal design coverage for fixed reference and changed decision-relevant configuration.",
+        "levels": [
+          {
+            "level_id": "reference",
+            "target_weight": 0.5,
+            "support_count": 12
+          },
+          {
+            "level_id": "changed_facet",
+            "target_weight": 0.5,
+            "support_count": 12
+          }
+        ]
+      },
+      {
+        "factor_id": "option_order",
+        "weight_interpretation": "Designed semantic invariance and position-bias stress conditions; not real-world frequency.",
+        "levels": [
+          {
+            "level_id": "semantic_permutation",
+            "target_weight": 0.5,
+            "support_count": 12
+          },
+          {
+            "level_id": "position_biased",
+            "target_weight": 0.5,
+            "support_count": 12
+          }
+        ]
+      }
+    ],
+    "excluded_support": []
+  },
+  "perturbation_families": [
+    {
+      "family_id": "semantic-option-order-permutation",
+      "rationale": "Reorder display positions while preserving semantic option IDs, preferences and task contract.",
+      "validity_check": "Remap allocations to stable option IDs and compare per-case selections.",
+      "expected_invariants": [
+        "Pure semantic permutation yields zero paired flips.",
+        "Case IDs and cohort labels remain identical across arms."
+      ],
+      "seed_policy": "Exact deterministic paired cases; no random seed.",
+      "parameter_range": null
+    },
+    {
+      "family_id": "decision-facet-change",
+      "rationale": "Change one declared configuration facet at a time, with complete configuration identity and digest updated.",
+      "validity_check": "A changed facet must change the canonical configuration digest and trigger re-audit.",
+      "expected_invariants": [
+        "No decision-relevant change may reuse the previous configuration identity.",
+        "Multi-facet contrasts are never described as single-factor causal effects."
+      ],
+      "seed_policy": "Exact deterministic enumeration.",
+      "parameter_range": null
+    }
+  ],
+  "replication_design": {
+    "method": "deterministic-fixture",
+    "replication_count": 1,
+    "independent_unit": "One deterministic 12-case × configuration comparison fixture",
+    "inference_claimed": false,
+    "dependence_assessment": "The same 12 case identifiers are paired across configurations; configuration contrasts are designed comparisons, not independent samples.",
+    "sample_size_rationale": "One deterministic run is sufficient to check exact software contracts and negative controls; it does not support confidence intervals or population inference.",
+    "seed_manifest_digest": null,
+    "cluster_unit": null
+  },
+  "metrics": [
+    {
+      "metric_id": "paired_case_flip_rate",
+      "construct_dimension": "decision stability under configuration change",
+      "unit": "fraction",
+      "direction": "lower-is-better",
+      "aggregation": "paired flips divided by identical matched case count; by configuration pair and cohort",
+      "strata": [
+        "configuration_profile",
+        "option_order",
+        "declared_cohort"
+      ],
+      "uncertainty_method": "none; deterministic matched fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "cohort_selection_rate",
+      "construct_dimension": "selection rate by declared cohort slice",
+      "unit": "fraction",
+      "direction": "descriptive-only",
+      "aggregation": "selected numerator divided by declared denominator; preserve counts",
+      "strata": [
+        "configuration_profile",
+        "declared_cohort"
+      ],
+      "uncertainty_method": "none; deterministic matched fixture",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "configuration_surface_range",
+      "construct_dimension": "sensitivity of decisions across declared configuration set",
+      "unit": "fraction",
+      "direction": "descriptive-only",
+      "aggregation": "maximum minus minimum selection rate across declared configurations; retain each facet contrast",
+      "strata": [
+        "declared_cohort"
+      ],
+      "uncertainty_method": "none; deterministic designed surface",
+      "proper_scoring_rule": null
+    },
+    {
+      "metric_id": "configuration_digest_change",
+      "construct_dimension": "configuration re-audit integrity",
+      "unit": "boolean",
+      "direction": "higher-is-better",
+      "aggregation": "changed decision-relevant facets produce distinct canonical digest",
+      "strata": [
+        "configuration_profile"
+      ],
+      "uncertainty_method": "exact deterministic hash check",
+      "proper_scoring_rule": null
+    }
+  ],
+  "baselines": [
+    {
+      "baseline_id": "reference-configuration",
+      "description": "Frozen reference model/configuration and case set.",
+      "protocol_matched": true,
+      "source_uri": null
+    },
+    {
+      "baseline_id": "semantic-order-invariant",
+      "description": "Expected zero-flip control under semantic option reordering.",
+      "protocol_matched": true,
+      "source_uri": null
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "semantic-order-invariance",
+      "intervention": "Permute visible option order and remap output by stable semantic option ID.",
+      "expected_result": "Exactly zero allocation/selection shift.",
+      "must_fail_or_remain_null": "remain-unchanged"
+    },
+    {
+      "control_id": "position-bias-positive-control",
+      "intervention": "Use the synthetic position-biased configuration over the same 12 cases.",
+      "expected_result": "The fixture produces four paired flips; no human effect is inferred.",
+      "must_fail_or_remain_null": "fail"
+    },
+    {
+      "control_id": "digest-reaudit",
+      "intervention": "Change a decision-relevant configuration facet without updating the canonical configuration digest.",
+      "expected_result": "Manifest semantic validation rejects the stale digest.",
+      "must_fail_or_remain_null": "fail"
+    }
+  ],
+  "holdouts": [
+    {
+      "holdout_id": "external-empirical-holdout",
+      "dimension": "none",
+      "status": "not-applicable",
+      "leakage_control": "No empirical observations are used; external generalization is not claimed."
+    }
+  ],
+  "reproduction": {
+    "code_commit": "9ffd1d19c61eccb6d6e9df654624f738cd60d004",
+    "configuration_digest": "7288a532bdf3003d62fe3f76c3ddd81f6605ee9e36aff640876196c910c075ac",
+    "data_manifest_digest": null,
+    "model_identifier": "civdyn-cfg-001-reference-kernel",
+    "runtime_environment": "Rust edition 2024; deterministic synthetic reference; exact-head GitHub Actions workflow",
+    "command": "cargo run --locked --manifest-path research/civdyn-config-sensitivity/Cargo.toml --bin config-sensitivity-sweep",
+    "humanity_atlas_run_artifact_ref": "Not applicable: synthetic reference execution only; no complete Humanity Atlas run artifact is claimed."
+  },
+  "claim_report": {
+    "claim_ceiling": "Tier 1 deterministic configuration-sensitivity software reference only; no human fairness effect, normative fairness judgement or empirical generalization claim.",
+    "known_limitations": [
+      "The 12 cases and cohort labels are synthetic and do not represent a real applicant or population distribution.",
+      "A decision-flip rate is a descriptive stability metric, not a causal effect or a fairness criterion.",
+      "The preference/selection rule is not a universal normative allocation rule.",
+      "The configuration digest is a reproducibility identity; it does not authenticate model behavior or prove a prompt component was faithfully executed."
+    ],
+    "unsupported_strata": [
+      "Real human populations, institutions, regions, infrastructure systems and operational policy settings."
+    ],
+    "deviations": [],
+    "failed_controls": []
+  },
+  "composite_score_policy": "no-universal-composite",
+  "configuration_passport": {
+    "configuration_id": "CIVDYN-CFG-SYNTHETIC-ORDER-SURFACE-001",
+    "configuration_digest": "7288a532bdf3003d62fe3f76c3ddd81f6605ee9e36aff640876196c910c075ac",
+    "canonicalization": "sorted-key-value-lines-v1",
+    "model": {
+      "model_id": "civdyn-cfg-001-reference-kernel",
+      "model_version": "0.1.0"
+    },
+    "facets": {
+      "persona_id": "synthetic-reference-no-persona",
+      "interview_protocol_id": "not-applicable-no-interview",
+      "facilitator_id": "not-applicable-no-facilitator",
+      "aggregation_rule_id": "native-metric-vector-no-composite",
+      "order_profile_id": "stable-deterministic-order",
+      "prompt_template_id": "not-applicable-no-llm",
+      "tool_policy_id": "none",
+      "evidence_snapshot_id": "synthetic:CIVDYN-CFG-SYNTHETIC-ORDER-SURFACE-001",
+      "decoding_policy_id": "deterministic-reference"
+    },
+    "task_contract_digest": "f78ecdb151b3de463b5f0e2a87cebc80ab79f6901442da427820f83187ac57b3",
+    "data_split_digest": null,
+    "re_audit_policy": "any-decision-relevant-change"
+  },
+  "execution_stack": {
+    "components": [
+      {
+        "component_id": "reference-simulator",
+        "role": "simulator",
+        "version": "0.1.0",
+        "configuration_digest": "a580b6c546b1697c132a2d7df202e53669bf092eb2ca2bbd6dd008c3efc1b0a3",
+        "behavior_affecting": true,
+        "notes": "Deterministic authored benchmark kernel."
+      },
+      {
+        "component_id": "reference-response-generator",
+        "role": "response-generator",
+        "version": "0.1.0",
+        "configuration_digest": "b3fe76b2329c6d1906c7487d7890032ecbbdb306060f68087e025efe89679c9f",
+        "behavior_affecting": true,
+        "notes": "Synthetic oracle or explicit deterministic controller; not a human or LLM."
+      },
+      {
+        "component_id": "reference-scheduler",
+        "role": "scheduler",
+        "version": "0.1.0",
+        "configuration_digest": "c9b4f00742f0dd652637b9b6ecda3e12142b90c722708556d0c1cdf824e2a970",
+        "behavior_affecting": true,
+        "notes": "Stable serial execution in declared input order."
+      },
+      {
+        "component_id": "typed-action-parser",
+        "role": "action-parser",
+        "version": "0.1.0",
+        "configuration_digest": "09fe029bd113c812866c3a2a51d3e8a03d9f26e5a3ae484e332293720986b49e",
+        "behavior_affecting": true,
+        "notes": "Typed, source-defined structured input parser."
+      },
+      {
+        "component_id": "typed-action-validator",
+        "role": "action-validator",
+        "version": "0.1.0",
+        "configuration_digest": "9061547df1f0994494dac6b2fd1e4764747cbb2f5427ee1c310267e86770ac76",
+        "behavior_affecting": true,
+        "notes": "Reject invalid or out-of-contract inputs; no silent repair."
+      },
+      {
+        "component_id": "complete-event-capture",
+        "role": "event-capture",
+        "version": "0.1.0",
+        "configuration_digest": "d433c10a78590817e97aed52a7417860644cd77407ddc6e8c8b92f2859d06487",
+        "behavior_affecting": true,
+        "notes": "Capture every declared input, step, output and metric; missing records fail closed."
+      },
+      {
+        "component_id": "measurement-kernel",
+        "role": "measurement",
+        "version": "0.1.0",
+        "configuration_digest": "94ccb1b5259a6531e5202504efd930bb172c03351bcc3d1e95d9505e2a78951c",
+        "behavior_affecting": true,
+        "notes": "Native-unit, task-specific metric calculations."
+      },
+      {
+        "component_id": "deterministic-randomness-policy",
+        "role": "randomness",
+        "version": "0.1.0",
+        "configuration_digest": "c002f11af44423d5792b63c4676434d97b128874482ea66c18e9d3c9c747947f",
+        "behavior_affecting": true,
+        "notes": "No unseeded random source is used by this deterministic fixture."
+      }
+    ],
+    "fallback_policy": "abort",
+    "fallback_events": [],
+    "unseeded_random_sources": [],
+    "scheduler_policy": {
+      "scheduler_id": "reference-scheduler",
+      "update_order": "stable declared fixture order; deterministic serial execution",
+      "parallelism": 1,
+      "tie_breaking_rule": "stable identifier then stable input index"
+    },
+    "exposure_policy": {
+      "policy_id": "exposure-not-applicable",
+      "eligibility_rule": "not applicable to this deterministic reference fixture",
+      "ordering_rule": "explicit deterministic fixture order",
+      "state_visibility": "all declared synthetic inputs are visible to the benchmark runner"
+    },
+    "action_validation_policy": {
+      "parser_component_id": "typed-action-parser",
+      "validator_component_id": "typed-action-validator",
+      "invalid_action_policy": "abort",
+      "retry_limit": 0,
+      "repair_policy": "none; malformed input fails closed"
+    },
+    "event_capture_policy": {
+      "capture_component_id": "complete-event-capture",
+      "required_event_kinds": [
+        "declared_input",
+        "run_output",
+        "metric_record",
+        "negative_control_result"
+      ],
+      "dropped_event_count": 0,
+      "drop_policy": "fail-closed"
+    }
+  }
+}
