@@ -766,3 +766,28 @@ The study compares six simulation approaches on a 43-hour multi-camera office ac
 **CivBench response:** extend HUMSIM with event/local/daily/long-horizon views; score transition fidelity and dwell-time distributions alongside within-person variance, routine fragmentation and temporal autocorrelation. Do not reward a simulator for matching group-level activity by making every individual repetitive. Real multi-camera data requires explicit licensing, privacy and ethics gates.
 
 Implementation: [CIVDYN-HUMSIM-001 issue #3665](https://github.com/Luminous-Dynamics/symtropy/issues/3665).
+
+
+## 16. Whole-of-event service cascades and knowledge resilience
+
+### From asset failure to downstream service disruption
+
+CIVDYN-CASCADE-001 ([issue #3894](https://github.com/Luminous-Dynamics/symtropy/issues/3894), [draft PR #3896](https://github.com/Luminous-Dynamics/symtropy/pull/3896)) adds a typed service-dependency graph with ALL/ANY redundancy, progressive functionality, sustained recovery and counterfactual component criticality. It distinguishes internal infrastructure nodes from beneficiary service endpoints to prevent double-counting. The reference is synthetic and does not replace specialist physical network solvers.
+
+Research anchors:
+- Hoff et al. (2025), coupled power/water network cascades and 120,000 stochastic simulations: https://doi.org/10.1061/AOMJAH.AOENG-0045
+- Tong et al. (2026), Fault Tree + Dynamic Bayesian Network for water/electricity/road resilience: https://doi.org/10.1016/j.ress.2026.112541
+- Zhang et al. (11 October 2026), infrastructure resilience state-of-the-art review: https://doi.org/10.1061/NHREFO.NHENG-2965
+- Schneider et al. (2025), DISruptionMap for cascading dependent-service disruption: https://doi.org/10.1038/s41598-025-89469-0
+
+### Knowledge as durable capability, not content diffusion
+
+CIVDYN-KNOW-001 ([issue #3897](https://github.com/Luminous-Dynamics/symtropy/issues/3897), [draft PR #3898](https://github.com/Luminous-Dynamics/symtropy/pull/3898)) separates delivery, acquisition, comprehension, performance, delayed retention, independent teaching, evidence lineage, source-family independence, and archive recovery.
+
+Research anchors:
+- Mackintosh et al. (19 September 2026), intentional knowledge transmission and cumulative culture: https://doi.org/10.1038/s41598-026-62734-6
+- Walker & Fay (21 February 2026), attention filtering and external representations in large-group cumulative culture: https://doi.org/10.1038/s41598-026-40973-x
+- "Propagation and preservation of AI-discovered problem-solving strategies in human culture" (Nature Communications, 2026): https://doi.org/10.1038/s41467-026-76113-2
+- "On the transmission of texts: Written cultures as complex systems" (PNAS Nexus, 7 July 2026): https://doi.org/10.1093/pnasnexus/pgag207
+
+The implementation uses synthetic traces only; it does not reproduce these human experiments or historical manuscript corpora.
