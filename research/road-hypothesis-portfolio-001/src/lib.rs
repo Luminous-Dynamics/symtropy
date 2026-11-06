@@ -1855,7 +1855,6 @@ mod tests {
         .unwrap();
 
         let mut altered_challenges = challenge_set();
-        altered_challenges[0].budget_units += 1;
         // Keep the entire comparison fair: all arms use the same changed budget.
         for receipt in &mut altered_challenges {
             receipt.budget_units += 1;
@@ -2253,7 +2252,12 @@ mod tests {
         let mut changed_coverage = previous.clone();
         changed_coverage.revision_sequence = 2;
         changed_coverage.supersedes_portfolio_digest = Some(previous.portfolio_digest().unwrap());
-        changed_coverage.coverage_obligations.pop();
+        changed_coverage
+            .coverage_obligations
+            .push(obligation("extra-odd-stratum", CoverageAxis::OddRange));
+        changed_coverage
+            .coverage_obligations
+            .retain(|entry| entry.obligation_id != "yielding");
         assert_eq!(
             PortfolioManifest::validate_append_only_revision(&previous, &changed_coverage),
             Err(PortfolioError::NonAppendOnlyRevision)
@@ -2262,7 +2266,16 @@ mod tests {
         let mut changed_challenges = previous.clone();
         changed_challenges.revision_sequence = 2;
         changed_challenges.supersedes_portfolio_digest = Some(previous.portfolio_digest().unwrap());
-        changed_challenges.challenge_requirements.pop();
+        changed_challenges.challenge_requirements.push(ChallengeRequirement {
+            hypothesis_id: "H-weather".into(),
+            strategy: ChallengeStrategy::Random,
+            protocol_digest: d("extra-random-protocol"),
+            minimum_budget_units: 100,
+        });
+        changed_challenges.challenge_requirements.retain(|entry| {
+            !(entry.hypothesis_id == "H-weather-copy"
+                && entry.strategy == ChallengeStrategy::Expert)
+        });
         assert_eq!(
             PortfolioManifest::validate_append_only_revision(&previous, &changed_challenges),
             Err(PortfolioError::NonAppendOnlyRevision)
