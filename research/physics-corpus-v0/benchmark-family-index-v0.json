@@ -11,6 +11,13 @@
       "metrics": ["position_error", "velocity_error", "order_of_convergence", "mechanical_energy_drift"]
     },
     {
+      "id": "anisotropic_rotational_dynamics",
+      "examples": ["asymmetric_top", "long_rod_torque", "compound_parallel_axis", "off_axis_products_of_inertia"],
+      "status": "planned_mass_properties_and_bivector_inertia_operator",
+      "research_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3871",
+      "metrics": ["angular_momentum_error", "rotational_energy_drift", "frame_covariance_error", "torque_work_residual"]
+    },
+    {
       "id": "ccd_and_contact",
       "examples": ["sphere_plane", "sphere_sphere_grazing", "thin_wall_projectile", "rotating_thin_box"],
       "status": "analytical_sphere_toi_hardening_open_general_convex_not_implemented",
