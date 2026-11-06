@@ -48,7 +48,7 @@ Neither point dominates the other. This is the intended output: expose the actua
 
 `cargo test --locked -p wpt-dispatch-pareto-oracle`
 
-Tests cover the hand-computable frontier, shared-resource enforcement, impossible individual service floors, energy-quantum integrity, unknown resources, half-open departure deadlines, duplicate IDs, unknown fields, evidence-kind admission and input-order determinism.
+The 11 Rust tests cover the hand-computable frontier, shared-resource enforcement and witnesses, impossible individual service floors, energy-quantum integrity, unknown resources, half-open departure deadlines, duplicate IDs, unknown fields, synthetic-only evidence, input-row permutation invariance and pairwise frontier non-dominance.
 
 ## Claim ceiling
 
