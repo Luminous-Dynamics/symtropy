@@ -1924,13 +1924,12 @@ mod tests {
                         .expect("capacity window evidence")[0]
                         .capacity = capacity;
                 }
-                case.demand.delivery_window.end_tick =
-                    40 + (case_index % 7) * 5;
+                case.demand.delivery_window.end_tick = 40 + (case_index % 7) * 5;
             }
 
             let workload = fleet_workload(vec![first, second]);
-            let production = exact_fleet_oracle(&workload, 500_000)
-                .expect("valid frozen differential workload");
+            let production =
+                exact_fleet_oracle(&workload, 500_000).expect("valid frozen differential workload");
             assert_eq!(
                 production.termination,
                 SearchTermination::ExhaustiveComplete,
@@ -1938,8 +1937,7 @@ mod tests {
             );
             let independent = independent_reference_frontier(&workload);
             assert_eq!(
-                production.frontier,
-                independent,
+                production.frontier, independent,
                 "production/reference frontier mismatch in variant {case_index}"
             );
         }
