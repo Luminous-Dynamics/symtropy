@@ -201,6 +201,23 @@
           "if": {
             "properties": {
               "evidence_role": {
+                "const": "IndependentMeasurement"
+              }
+            },
+            "required": [
+              "evidence_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "calibration_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evidence_role": {
                 "const": "DerivedFromIndependentMeasurements"
               }
             },
@@ -210,7 +227,8 @@
           },
           "then": {
             "required": [
-              "lineage_ref"
+              "lineage_ref",
+              "calibration_ref"
             ]
           }
         }
