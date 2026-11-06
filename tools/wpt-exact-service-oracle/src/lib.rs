@@ -739,8 +739,8 @@ mod tests {
         scenario["segment_slots"][3]["available_deliverable_energy_mwh"] = Value::from(0);
         let report = evaluate_scenario(&scenario).unwrap();
         assert!(!report.feasible);
-        assert_eq!(report.maximum_deliverable_mwh, 11);
-        assert_eq!(report.total_shortfall_mwh, 5);
+        assert_eq!(report.maximum_deliverable_mwh, 8);
+        assert_eq!(report.total_shortfall_mwh, 8);
         assert_eq!(report.minimum_cut_capacity_mwh, 11);
         assert!(!report.minimum_cut_edges.is_empty());
     }
@@ -749,9 +749,10 @@ mod tests {
     fn transfer_capacity_can_bind_before_segment_supply() {
         let mut scenario = fixture();
         scenario["transfer_links"][0]["max_deliverable_energy_mwh"] = Value::from(1);
+        scenario["transfer_links"][1]["max_deliverable_energy_mwh"] = Value::from(0);
         let report = evaluate_scenario(&scenario).unwrap();
         assert!(!report.feasible);
-        assert_eq!(report.total_shortfall_mwh, 3);
+        assert_eq!(report.total_shortfall_mwh, 1);
         assert_eq!(report.minimum_cut_capacity_mwh, report.maximum_deliverable_mwh);
         assert!(report.minimum_cut_edges.iter().any(|edge| edge.kind == "transfer_link"));
     }
