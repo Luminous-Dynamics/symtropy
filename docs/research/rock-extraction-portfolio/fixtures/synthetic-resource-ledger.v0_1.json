@@ -1,0 +1,426 @@
+{
+  "schema_version": 1,
+  "ledger_id": "SYN-LASER-PDC-RESOURCE-LEDGER-001",
+  "trial_ref": "SYN-FULL-CYCLE-TRIAL-001",
+  "comparison_profile_ref": "SYN-LASER-PDC-COMPARISON-001",
+  "boundary": {
+    "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+    "scope": "FullCycle",
+    "time_window": {
+      "start_time": "2026-01-01T00:00:00Z",
+      "end_time": "2026-01-01T01:00:00Z"
+    },
+    "included_subsystems": [
+      "laser_source",
+      "cutter_drive",
+      "cooling_pump",
+      "ventilation_fan",
+      "extraction_conveyor",
+      "downstream_crusher",
+      "controls_standby"
+    ],
+    "excluded_subsystems": [],
+    "acceptance_output_ref": "SYN-ACCEPTED-SOLID-VOLUME-001"
+  },
+  "subsystem_inventory": [
+    {
+      "subsystem_ref": "laser_source",
+      "energy_input_expected": true,
+      "expected_resource_types": [
+        "GridElectricity"
+      ]
+    },
+    {
+      "subsystem_ref": "cutter_drive",
+      "energy_input_expected": true,
+      "expected_resource_types": [
+        "GridElectricity",
+        "MechanicalWork"
+      ]
+    },
+    {
+      "subsystem_ref": "cooling_pump",
+      "energy_input_expected": true,
+      "expected_resource_types": [
+        "GridElectricity",
+        "Water"
+      ]
+    },
+    {
+      "subsystem_ref": "ventilation_fan",
+      "energy_input_expected": true,
+      "expected_resource_types": [
+        "GridElectricity"
+      ]
+    },
+    {
+      "subsystem_ref": "extraction_conveyor",
+      "energy_input_expected": true,
+      "expected_resource_types": [
+        "GridElectricity"
+      ]
+    },
+    {
+      "subsystem_ref": "downstream_crusher",
+      "energy_input_expected": true,
+      "expected_resource_types": [
+        "GridElectricity"
+      ]
+    },
+    {
+      "subsystem_ref": "controls_standby",
+      "energy_input_expected": true,
+      "expected_resource_types": [
+        "GridElectricity"
+      ]
+    }
+  ],
+  "resource_observations": [
+    {
+      "observation_id": "laser-grid-input",
+      "physical_flow_ref": "flow-laser-electric",
+      "resource_class": "EnergyCarrier",
+      "resource_type": "GridElectricity",
+      "dimension": "Energy",
+      "quantity": 15,
+      "unit": "kWh",
+      "standard_uncertainty": 0.15,
+      "flow_role": "ExternalBoundaryInput",
+      "accounting_treatment": "CountTowardCommonEnergyTotal",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "laser_source",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "energy_basis": "FinalEnergyAtBoundary",
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-LASER-ELECTRIC-METER",
+      "calibration_ref": "SYN-CAL-LASER-ELECTRIC",
+      "source_artifact_ref": "SYN-ART-LASER-METER"
+    },
+    {
+      "observation_id": "laser-optical-output",
+      "physical_flow_ref": "flow-laser-optical",
+      "resource_class": "EnergyCarrier",
+      "resource_type": "OpticalRadiation",
+      "dimension": "Energy",
+      "quantity": 5,
+      "unit": "kWh",
+      "standard_uncertainty": 0.1,
+      "flow_role": "InternalTransfer",
+      "accounting_treatment": "DoNotAggregate",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "laser_source",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "energy_basis": "DeliveredProcessEnergy",
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-OPTICAL-POWER-METER",
+      "calibration_ref": "SYN-CAL-OPTICAL",
+      "source_artifact_ref": "SYN-ART-LASER-OPTICAL"
+    },
+    {
+      "observation_id": "laser-workpiece-incident",
+      "physical_flow_ref": "flow-laser-workpiece",
+      "resource_class": "EnergyCarrier",
+      "resource_type": "OpticalRadiation",
+      "dimension": "Energy",
+      "quantity": 3.5,
+      "unit": "kWh",
+      "standard_uncertainty": 0.12,
+      "flow_role": "ProcessDelivery",
+      "accounting_treatment": "DoNotAggregate",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "laser_source",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "energy_basis": "DeliveredProcessEnergy",
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-WORKPIECE-OPTICAL-METER",
+      "calibration_ref": "SYN-CAL-WORKPIECE-OPTICAL",
+      "source_artifact_ref": "SYN-ART-LASER-WORKPIECE"
+    },
+    {
+      "observation_id": "laser-optics-loss",
+      "physical_flow_ref": "flow-laser-loss",
+      "resource_class": "EnergyCarrier",
+      "resource_type": "ThermalEnergy",
+      "dimension": "Energy",
+      "quantity": 1.5,
+      "unit": "kWh",
+      "standard_uncertainty": 0.2,
+      "flow_role": "ConversionLoss",
+      "accounting_treatment": "DoNotAggregate",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "laser_source",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "energy_basis": "DeliveredProcessEnergy",
+      "evidence_role": "DerivedFromIndependentMeasurements",
+      "meter_or_sensor_ref": "SYN-OPTICS-THERMAL-SENSOR",
+      "calibration_ref": "SYN-CAL-OPTICS-THERMAL",
+      "source_artifact_ref": "SYN-ART-LASER-WORKPIECE",
+      "lineage_ref": "SYN-LINEAGE-LASER-LOSS",
+      "conversion_model_ref": "SYN-OPTICS-LOSS-MODEL"
+    },
+    {
+      "observation_id": "cutter-drive-electric",
+      "physical_flow_ref": "flow-cutter-drive-electric",
+      "resource_class": "EnergyCarrier",
+      "resource_type": "GridElectricity",
+      "dimension": "Energy",
+      "quantity": 12,
+      "unit": "kWh",
+      "standard_uncertainty": 0.12,
+      "flow_role": "ExternalBoundaryInput",
+      "accounting_treatment": "CountTowardCommonEnergyTotal",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "cutter_drive",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "energy_basis": "FinalEnergyAtBoundary",
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-CUTTER-DRIVE-METER",
+      "calibration_ref": "SYN-CAL-CUTTER-DRIVE",
+      "source_artifact_ref": "SYN-ART-CUTTER-DRIVE"
+    },
+    {
+      "observation_id": "cooling-electric",
+      "physical_flow_ref": "flow-cooling-electric",
+      "resource_class": "EnergyCarrier",
+      "resource_type": "GridElectricity",
+      "dimension": "Energy",
+      "quantity": 4,
+      "unit": "kWh",
+      "standard_uncertainty": 0.04,
+      "flow_role": "ExternalBoundaryInput",
+      "accounting_treatment": "CountTowardCommonEnergyTotal",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "cooling_pump",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "energy_basis": "FinalEnergyAtBoundary",
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-COOLING-METER",
+      "calibration_ref": "SYN-CAL-COOLING",
+      "source_artifact_ref": "SYN-ART-COOLING"
+    },
+    {
+      "observation_id": "cooling-water-input",
+      "physical_flow_ref": "flow-water-input",
+      "resource_class": "MaterialResource",
+      "resource_type": "Water",
+      "dimension": "Volume",
+      "quantity": 400,
+      "unit": "L",
+      "standard_uncertainty": 5,
+      "flow_role": "ExternalBoundaryInput",
+      "accounting_treatment": "NativeVectorOnly",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "cooling_pump",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-WATER-METER",
+      "calibration_ref": "SYN-CAL-WATER",
+      "source_artifact_ref": "SYN-ART-WATER"
+    },
+    {
+      "observation_id": "cooling-water-return",
+      "physical_flow_ref": "flow-water-return",
+      "resource_class": "MaterialResource",
+      "resource_type": "Water",
+      "dimension": "Volume",
+      "quantity": 300,
+      "unit": "L",
+      "standard_uncertainty": 5,
+      "flow_role": "RecoveredOutput",
+      "accounting_treatment": "DoNotAggregate",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "cooling_pump",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-WATER-RETURN-METER",
+      "calibration_ref": "SYN-CAL-WATER-RETURN",
+      "source_artifact_ref": "SYN-ART-WATER-RETURN"
+    },
+    {
+      "observation_id": "ventilation-electric",
+      "physical_flow_ref": "flow-ventilation-electric",
+      "resource_class": "EnergyCarrier",
+      "resource_type": "GridElectricity",
+      "dimension": "Energy",
+      "quantity": 2,
+      "unit": "kWh",
+      "standard_uncertainty": 0.02,
+      "flow_role": "ExternalBoundaryInput",
+      "accounting_treatment": "CountTowardCommonEnergyTotal",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "ventilation_fan",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "energy_basis": "FinalEnergyAtBoundary",
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-VENT-METER",
+      "calibration_ref": "SYN-CAL-VENT",
+      "source_artifact_ref": "SYN-ART-VENT"
+    },
+    {
+      "observation_id": "conveyor-electric",
+      "physical_flow_ref": "flow-conveyor-electric",
+      "resource_class": "EnergyCarrier",
+      "resource_type": "GridElectricity",
+      "dimension": "Energy",
+      "quantity": 3,
+      "unit": "kWh",
+      "standard_uncertainty": 0.03,
+      "flow_role": "ExternalBoundaryInput",
+      "accounting_treatment": "CountTowardCommonEnergyTotal",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "extraction_conveyor",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "energy_basis": "FinalEnergyAtBoundary",
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-CONVEYOR-METER",
+      "calibration_ref": "SYN-CAL-CONVEYOR",
+      "source_artifact_ref": "SYN-ART-CONVEYOR"
+    },
+    {
+      "observation_id": "crusher-electric",
+      "physical_flow_ref": "flow-crusher-electric",
+      "resource_class": "EnergyCarrier",
+      "resource_type": "GridElectricity",
+      "dimension": "Energy",
+      "quantity": 5,
+      "unit": "kWh",
+      "standard_uncertainty": 0.05,
+      "flow_role": "ExternalBoundaryInput",
+      "accounting_treatment": "CountTowardCommonEnergyTotal",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "downstream_crusher",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "energy_basis": "FinalEnergyAtBoundary",
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-CRUSHER-METER",
+      "calibration_ref": "SYN-CAL-CRUSHER",
+      "source_artifact_ref": "SYN-ART-CRUSHER"
+    },
+    {
+      "observation_id": "controls-electric",
+      "physical_flow_ref": "flow-controls-electric",
+      "resource_class": "EnergyCarrier",
+      "resource_type": "GridElectricity",
+      "dimension": "Energy",
+      "quantity": 2,
+      "unit": "kWh",
+      "standard_uncertainty": 0.02,
+      "flow_role": "ExternalBoundaryInput",
+      "accounting_treatment": "CountTowardCommonEnergyTotal",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "controls_standby",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "energy_basis": "FinalEnergyAtBoundary",
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-CONTROLS-METER",
+      "calibration_ref": "SYN-CAL-CONTROLS",
+      "source_artifact_ref": "SYN-ART-CONTROLS"
+    },
+    {
+      "observation_id": "abrasive-consumption",
+      "physical_flow_ref": "flow-abrasive-input",
+      "resource_class": "MaterialResource",
+      "resource_type": "Abrasive",
+      "dimension": "Mass",
+      "quantity": 12,
+      "unit": "kg",
+      "standard_uncertainty": 0.2,
+      "flow_role": "ExternalBoundaryInput",
+      "accounting_treatment": "NativeVectorOnly",
+      "boundary_ref": "SYN-FULL-CYCLE-BOUNDARY-001",
+      "subsystem_ref": "laser_source",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "evidence_role": "IndependentMeasurement",
+      "meter_or_sensor_ref": "SYN-ABRASIVE-SCALE",
+      "calibration_ref": "SYN-CAL-ABRASIVE",
+      "source_artifact_ref": "SYN-ART-ABRASIVE"
+    }
+  ],
+  "conversion_stages": [
+    {
+      "stage_id": "laser-electric-to-optical",
+      "stage_type": "ElectricToOptical",
+      "subsystem_ref": "laser_source",
+      "input_observation_refs": [
+        "laser-grid-input"
+      ],
+      "output_observation_refs": [
+        "laser-optical-output"
+      ],
+      "loss_observation_refs": [
+        "laser-optics-loss"
+      ],
+      "evidence_role": "DerivedFromIndependentMeasurements",
+      "conversion_model_ref": "SYN-LASER-CONVERSION-MODEL",
+      "conversion_model_revision": "0.1",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "source_artifact_ref": "SYN-ART-LASER-METER"
+    },
+    {
+      "stage_id": "laser-optical-delivery",
+      "stage_type": "OpticalDelivery",
+      "subsystem_ref": "laser_source",
+      "input_observation_refs": [
+        "laser-optical-output"
+      ],
+      "output_observation_refs": [
+        "laser-workpiece-incident"
+      ],
+      "loss_observation_refs": [],
+      "evidence_role": "IndependentMeasurement",
+      "time_window": {
+        "start_time": "2026-01-01T00:00:00Z",
+        "end_time": "2026-01-01T01:00:00Z"
+      },
+      "source_artifact_ref": "SYN-ART-LASER-WORKPIECE"
+    }
+  ],
+  "aggregate_policy": {
+    "mode": "CommonEnergyInputBasis",
+    "common_energy_basis": "FinalEnergyAtBoundary",
+    "output_unit": "kWh",
+    "requested_by_protocol_ref": "SYN-RESOURCE-PROTOCOL-001"
+  }
+}
