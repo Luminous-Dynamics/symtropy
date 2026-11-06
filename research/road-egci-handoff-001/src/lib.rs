@@ -839,7 +839,6 @@ fn build_joint_steps(
 
     let mut steps = Vec::new();
     for transition in transitions {
-
         require(
             &transition.physics_step_receipt_digest,
             "transition.physics_step_receipt_digest",
@@ -1106,7 +1105,6 @@ fn json_string(output: &mut String, value: &str) {
     }
     output.push('"');
 }
-
 
 fn write_manifest_json(out: &mut String, m: &ExperimentManifest) {
     out.push_str("{\"experiment_id\":");
