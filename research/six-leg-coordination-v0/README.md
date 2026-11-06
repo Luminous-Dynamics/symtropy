@@ -6,6 +6,7 @@ Standalone, dependency-free Rust synthetic benchmark for [LOCO-COORD-001 / #3843
 
 - **Independent intrinsic oscillators:** each leg advances at its own angular frequency and does not correct relative phase errors.
 - **Centrally coupled oscillators:** six intrinsic phases interact through a Kuramoto-style all-to-all coupling term whose stable phase differences are the declared tripod template.
+- **Coupled six-node Hopf oscillators:** coupled phase plus radial dynamics with a stable limit-cycle amplitude; this is a closer oscillator-core comparator for engineering DRL-CPG systems.
 - **Sensory-reference attractor:** each leg's two-dimensional state tracks an external periodic proprioceptive/contact reference. With feedback cut, its state decays toward rest; there is no autonomous phase oscillator.
 - **Hybrid oscillator:** intrinsic phase progression, central coordination and sensory-reference correction coexist.
 
@@ -34,8 +35,9 @@ Interventions are represented separately from observable output and may be compo
 - Feedback delay introduced from a chosen step.
 - One leg becoming unavailable.
 - One leg's intrinsic frequency being detuned.
+- A local Hopf-amplitude suppression pulse (supported only by the Hopf model).
 
-This allows held-out combinations such as a local phase pulse during feedback delay or leg failure. A real experiment must bind intervention intent to measured assignment/delivery, onset, duration, affected leg, latency and fidelity.
+This allows held-out combinations such as a local phase pulse during feedback delay or leg failure. Amplitude pulses are rejected by models without a radial state rather than silently ignored. A real experiment must bind intervention intent to measured assignment/delivery, onset, duration, affected leg, latency and fidelity.
 
 ## Metrics
 
@@ -50,7 +52,7 @@ The simulator also retains active/unavailable leg flags. A missing leg is not in
 
 ## Deterministic tests
 
-15 known-truth tests are authored:
+19 known-truth tests are authored:
 - fixed leg order and declared tripod pattern;
 - independent oscillators fail to recover a local phase pulse;
 - central coupling recovers a local pulse;
@@ -61,6 +63,8 @@ The simulator also retains active/unavailable leg flags. A missing leg is not in
 - coupled network maintains coordination across the remaining five legs after one leg failure;
 - central coupling rejects a modest per-leg frequency detuning;
 - hybrid feedback preserves recovery after central coupling ablation;
+- Hopf amplitude suppression/recovery and phase-pulse recovery;
+- unsupported amplitude actions and invalid Hopf parameters fail closed;
 - timestamp chronology and paired-grid integrity;
 - invalid action, delay, threshold and configuration controls;
 - abstention when fewer than two legs remain observable.
