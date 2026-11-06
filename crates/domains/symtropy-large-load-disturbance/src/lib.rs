@@ -409,7 +409,9 @@ pub struct DisturbanceConformanceReport {
     pub event_id: String,
     pub requirement_id: String,
     pub requirement_version: String,
+    pub jurisdiction: String,
     pub requirement_source_digest: String,
+    pub nominal_frequency_hz: f64,
     pub pcc_id: String,
     pub waveform_digest: String,
     pub measurement_chain_digest: String,
@@ -668,8 +670,10 @@ pub fn evaluate_disturbance_conformance(
         let elapsed = last.timestamp_ns - event.event_start_ns;
         for (zi, segment) in requirement.segments.iter().enumerate() {
             let overlap_start = elapsed.max(segment.start_elapsed_ns);
-            if requirement.required_observation_horizon_ns > overlap_start {
-                let duration = requirement.required_observation_horizon_ns - overlap_start;
+            let overlap_end = requirement.required_observation_horizon_ns
+                .min(segment.end_elapsed_ns);
+            if overlap_end > overlap_start {
+                let duration = overlap_end - overlap_start;
                 zone_disconnected[zi] = zone_disconnected[zi].saturating_add(duration);
                 total_disconnected = total_disconnected.saturating_add(duration);
             }
@@ -725,7 +729,9 @@ pub fn evaluate_disturbance_conformance(
         event_id: event.event_id.clone(),
         requirement_id: event.requirement_id.clone(),
         requirement_version: event.requirement_version.clone(),
+        jurisdiction: requirement.jurisdiction.clone(),
         requirement_source_digest: event.requirement_source_digest.clone(),
+        nominal_frequency_hz: requirement.nominal_frequency_hz,
         pcc_id: event.pcc_id.clone(),
         waveform_digest: event.waveform_digest.clone(),
         measurement_chain_digest: event.measurement_chain_digest.clone(),
