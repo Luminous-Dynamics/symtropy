@@ -46,3 +46,15 @@ cargo clippy -p symtropy-flexibility-portfolio --all-targets -- -D warnings
 ```
 
 All current fixtures are synthetic known truth.
+
+## Receipt/provenance preservation
+
+Each event receipt carries one nested receipt per enrolled asset: asset/site/PCC identity, offered capacity, delivered lower-bound capacity, explicit availability state, upstream response receipt ID and source digest. It also carries every failure-domain state with the corresponding event evidence ID and source digest. The report is therefore replayable back to the evidence identifiers used for each per-site delivery and each observed shared-domain condition. The digests and IDs are references supplied by the upstream evidence owner; this crate does not authenticate the underlying bytes.
+
+## Incident-group tail shortfall
+
+For every independent incident group, the evaluator selects the worst shortfall among that group's dispatch episodes. These group-maximum shortfalls are sorted from largest to smallest. The empirical upper-tail mean uses the largest `ceil(N × alpha)` group shortfalls, where `N` is the number of independent incident groups and `alpha` is the contract's basis-point tail fraction. It is a descriptive stress-panel statistic, not a future CVaR probability estimate or a substitute for a validated statistical confidence bound.
+
+## Overlapping failure domains
+
+Failure-domain memberships can overlap (for example, a site may share both a utility region and a telecom carrier with other assets). The largest single-domain offered-capacity share is reported, and every event retains its domain membership/state receipts. Individual domain member-capacity totals are descriptive and may overlap; they are never summed into a second portfolio capacity total. V0.1 intentionally does not emit a Herfindahl index across overlapping domains because that would require an explicit, defensible allocation of each asset's capacity among its memberships.
