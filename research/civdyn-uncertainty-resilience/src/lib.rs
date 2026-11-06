@@ -411,8 +411,7 @@ pub fn morris_design(
             };
             base_levels[factor] = starting_level;
             directions[factor] = if direction_up { 1 } else { -1 };
-            base[factor] =
-                f64::from(starting_level) / f64::from(MORRIS_LEVELS - 1);
+            base[factor] = f64::from(starting_level) / f64::from(MORRIS_LEVELS - 1);
         }
 
         let mut factor_order = core::array::from_fn(|index| index);
