@@ -2632,7 +2632,7 @@ mod checked_ccd_diagnostic_tests {
         let obstacle_handle = world.add_body(obstacle);
 
         let pre_integration_positions: Vec<_> =
-            world.bodies.iter().map(RigidBody::position).collect();
+            world.bodies.iter().map(|body| body.position()).collect();
         world.run_ccd_pass(&pre_integration_positions, 0.016);
 
         assert!(world.ccd_diagnostics().iter().any(|diagnostic| {
