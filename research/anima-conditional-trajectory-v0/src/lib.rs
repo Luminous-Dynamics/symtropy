@@ -1,10 +1,10 @@
-pub mod multivariate;
-
 //! History-conditioned scalar AR(1) trajectory likelihood with animal random effects.
 //!
 //! V0 supports one scalar observation per time index, an AR(1) within-session
 //! term, and one Gaussian animal-level random intercept shared across sessions.
 //! It is a synthetic inference kernel, not a biological locomotion model.
+
+pub mod multivariate;
 
 use std::collections::{BTreeMap, BTreeSet};
 
