@@ -34,25 +34,38 @@ The authors explicitly say the trial demonstrates technical feasibility and iden
 
 Source: https://doi.org/10.1007/s42461-026-01722-w
 
-### 2.2 Coarse-particle horizontal pneumatic conveying
+### 2.2 Manufacturer figures are denominator-specific
+
+Komatsu's MC51 product pages illustrate why a benchmark needs a denominator dictionary:
+- The Australian page lists 30 m³/h as **in-situ material handling**, and a typical maximum cut rate of 20 m³/h.
+- The US page lists **up to 60 m³/h remove cut material**.
+- Both pages describe a 320 kW machine power figure and a maximum 5.2 m × 5.2 m tunnel profile; the product page lists rock hardness up to 250 MPa.
+
+These are manufacturer specifications, not independently matched underground production measurements. Do not treat 30, 20 and 60 m³/h as the same measurand or infer a field productivity lead from them. A matched comparison needs the same solid/loose/in-situ volume basis, accepted-output rule, time boundary, geology and included system boundary.
+
+Sources:
+- https://www.komatsu.com/en-au/products/equipment/hard-rock-continuous-miners/mc51
+- https://www.komatsu.com/en-us/products/equipment/hard-rock-continuous-miners/mc51
+
+### 2.3 Coarse-particle horizontal pneumatic conveying
 
 Ma et al., *Powder Technology* 482 (October 2026), article 122715, DOI 10.1016/j.powtec.2026.122715, use an experimentally validated CFD–DEM model to examine horizontal coarse-particle conveying. They identify transitions among stratified flow, sedimentation and dune formation; particle diameter changes local pressure response and flow regime, and pressure-drop behaviour differs by regime. Their study focuses on 2 and 4 mm particles and does not qualify a mine-scale rock vacuum line.
 
 Source: https://doi.org/10.1016/j.powtec.2026.122715
 
-### 2.3 Vertical plug-flow behaviour
+### 2.4 Vertical plug-flow behaviour
 
 Erken, Ooi & Hanley, *Chemical Engineering Science* 328 (15 June 2026), article 123719, DOI 10.1016/j.ces.2026.123719, use CFD–DEM to investigate vertical dense-phase plug conveying. Plug coalescence, particle shape, friction and inlet velocity influence pressure fluctuations and blockage mechanisms. The simulated/experimental basis is a 3 m laboratory pipe, so its quantitative limits cannot be transferred to long mine installations.
 
 Source: https://doi.org/10.1016/j.ces.2026.123719
 
-### 2.4 Electrical-current condition identification
+### 2.5 Electrical-current condition identification
 
 A 2026 *Measurement* study, DOI 10.1016/j.measurement.2026.121117, reports electrical drive-current signals for condition identification in a very dilute-phase pneumatic conveying test. It reports >96.4% classification accuracy across its tested conditions, including no-load, light-load, blockage and water accumulation. This is a low-sensor-cost research direction, not a hard-rock, long-hose or underground qualification. We should test current + pressure fusion, not assume the result transfers.
 
 Source: https://doi.org/10.1016/j.measurement.2026.121117
 
-### 2.5 Near-blockage pressure signals
+### 2.6 Near-blockage pressure signals
 
 Mittal & Mallick, *Powder Technology* 464 (2025), article 121243, DOI 10.1016/j.powtec.2025.121243, examine pressure fluctuations in dense-phase conveying as airflow is reduced toward blockage. Pressure-signal behaviour changes near blockage. Dense-phase fine-powder results are an adjacent sensing precedent; the test protocol must be revalidated for the coarse, abrasive and possibly dilute-phase rock regime.
 
