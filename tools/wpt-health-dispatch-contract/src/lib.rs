@@ -63,10 +63,7 @@ fn fail(path: &str, message: impl AsRef<str>) -> String {
     format!("{path}: {}", message.as_ref())
 }
 
-fn object<'a>(
-    value: &'a Value,
-    path: &str,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
     value
         .as_object()
         .ok_or_else(|| fail(path, "must be an object"))
@@ -118,11 +115,7 @@ fn valid_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn validate_digest_fields(
-    value: &Value,
-    fields: &[&str],
-    path: &str,
-) -> Result<(), String> {
+fn validate_digest_fields(value: &Value, fields: &[&str], path: &str) -> Result<(), String> {
     for key in fields {
         let digest = string_field(value, key, path)?;
         if !valid_sha256(digest) {
@@ -230,8 +223,13 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
 
     let run_id = string_field(run, "run_id", "$")?.to_string();
     let evidence_kind = string_field(run, "evidence_kind", "$")?;
-    if !["MEASURED", "PUBLISHED_MEASURED", "SIMULATED", "SYNTHETIC_KNOWN_TRUTH"]
-        .contains(&evidence_kind)
+    if ![
+        "MEASURED",
+        "PUBLISHED_MEASURED",
+        "SIMULATED",
+        "SYNTHETIC_KNOWN_TRUTH",
+    ]
+    .contains(&evidence_kind)
     {
         return Err(fail("$.evidence_kind", "unknown evidence kind"));
     }
@@ -251,8 +249,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         "$.asset_identity",
     )?;
     let asset_id = string_field(identity, "asset_id", "$.asset_identity")?.to_string();
-    let segment_id =
-        string_field(identity, "segment_id", "$.asset_identity")?.to_string();
+    let segment_id = string_field(identity, "segment_id", "$.asset_identity")?.to_string();
     string_field(identity, "installation_id", "$.asset_identity")?;
     string_field(identity, "route_id", "$.asset_identity")?;
     string_field(identity, "material_lot_id", "$.asset_identity")?;
@@ -292,8 +289,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
     let horizon = number_field(forecast, "horizon_hours", "$.forecast")?;
     let target_cif = number_field(forecast, "target_event_cif", "$.forecast")?;
     let event_free_survival = number_field(forecast, "event_free_survival", "$.forecast")?;
-    let maximum_horizon =
-        number_field(forecast, "calibration_horizon_max_hours", "$.forecast")?;
+    let maximum_horizon = number_field(forecast, "calibration_horizon_max_hours", "$.forecast")?;
     if horizon <= 0.0 || maximum_horizon <= 0.0 {
         return Err(fail(
             "$.forecast",
@@ -331,7 +327,10 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         "ROAD_RECONSTRUCTION",
     ];
     if !allowed_target_codes.contains(&target_code) {
-        return Err(fail("$.forecast.target_event_code", "unknown target event code"));
+        return Err(fail(
+            "$.forecast.target_event_code",
+            "unknown target event code",
+        ));
     }
 
     let competing_rows = field(forecast, "competing_event_codes", "$.forecast")?
@@ -342,7 +341,12 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         let code = row
             .as_str()
             .filter(|value| !value.trim().is_empty())
-            .ok_or_else(|| fail("$.forecast.competing_event_codes", "all codes must be non-empty strings"))?;
+            .ok_or_else(|| {
+                fail(
+                    "$.forecast.competing_event_codes",
+                    "all codes must be non-empty strings",
+                )
+            })?;
         if !allowed_competing_codes.contains(&code) {
             return Err(fail(
                 &format!("$.forecast.competing_event_codes[{index}]"),
@@ -414,7 +418,9 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
     if (cause_probability_sum - 1.0).abs() > 1e-9 {
         return Err(fail(
             "$.forecast.cause_specific_cumulative_incidence",
-            format!("event-free survival plus all cause-specific CIFs must sum to 1 (got {cause_probability_sum})"),
+            format!(
+                "event-free survival plus all cause-specific CIFs must sum to 1 (got {cause_probability_sum})"
+            ),
         ));
     }
     if (selected_target_cif.unwrap_or(-1.0) - target_cif).abs() > 1e-9 {
@@ -440,10 +446,12 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
     )?;
     let minimum_g = number_field(censoring, "minimum_g_observed", "$.censoring_support")?;
     let required_g = number_field(censoring, "minimum_g_required", "$.censoring_support")?;
-    let maximum_weight =
-        number_field(censoring, "maximum_ipcw_weight", "$.censoring_support")?;
-    let allowed_weight =
-        number_field(censoring, "maximum_ipcw_weight_allowed", "$.censoring_support")?;
+    let maximum_weight = number_field(censoring, "maximum_ipcw_weight", "$.censoring_support")?;
+    let allowed_weight = number_field(
+        censoring,
+        "maximum_ipcw_weight_allowed",
+        "$.censoring_support",
+    )?;
     let censoring_assumption = string_field(censoring, "assumption", "$.censoring_support")?;
     string_field(censoring, "estimator_id", "$.censoring_support")?;
     let censoring_status = string_field(censoring, "support_status", "$.censoring_support")?;
@@ -459,7 +467,10 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         || maximum_weight < 0.0
         || allowed_weight <= 0.0
     {
-        return Err(fail("$.censoring_support", "invalid censoring support bounds"));
+        return Err(fail(
+            "$.censoring_support",
+            "invalid censoring support bounds",
+        ));
     }
 
     let domain = field(run, "domain_support", "$")?;
@@ -487,16 +498,24 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         ));
     }
     let material = string_field(domain, "material_family", "$.domain_support")?;
-    let validated_material =
-        string_field(domain, "validated_material_family", "$.domain_support")?;
+    let validated_material = string_field(domain, "validated_material_family", "$.domain_support")?;
     let ambient = number_field(domain, "ambient_temperature_c", "$.domain_support")?;
-    let min_temperature =
-        number_field(domain, "minimum_validated_temperature_c", "$.domain_support")?;
-    let max_temperature =
-        number_field(domain, "maximum_validated_temperature_c", "$.domain_support")?;
+    let min_temperature = number_field(
+        domain,
+        "minimum_validated_temperature_c",
+        "$.domain_support",
+    )?;
+    let max_temperature = number_field(
+        domain,
+        "maximum_validated_temperature_c",
+        "$.domain_support",
+    )?;
     let duty_cycle = number_field(domain, "duty_cycle_percent", "$.domain_support")?;
-    let maximum_duty =
-        number_field(domain, "maximum_validated_duty_cycle_percent", "$.domain_support")?;
+    let maximum_duty = number_field(
+        domain,
+        "maximum_validated_duty_cycle_percent",
+        "$.domain_support",
+    )?;
     let route = string_field(domain, "route_class", "$.domain_support")?;
     let validated_route = string_field(domain, "validated_route_class", "$.domain_support")?;
     if min_temperature > max_temperature
@@ -547,8 +566,7 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         "$.dispatch_policy",
     )?;
     string_field(policy, "policy_id", "$.dispatch_policy")?;
-    let maximum_risk =
-        number_field(policy, "maximum_target_event_cif", "$.dispatch_policy")?;
+    let maximum_risk = number_field(policy, "maximum_target_event_cif", "$.dispatch_policy")?;
     let service_horizon =
         number_field(policy, "planned_service_horizon_hours", "$.dispatch_policy")?;
     let maintenance_lead_time =
@@ -593,7 +611,9 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         || evidence_kind == "SIMULATED"
         || flags.contains("SYNTHETIC_ONLY")
     {
-        reasons.push("synthetic/simulated evidence cannot qualify an operational health forecast".into());
+        reasons.push(
+            "synthetic/simulated evidence cannot qualify an operational health forecast".into(),
+        );
         return Ok(report(
             run_id,
             asset_id,
@@ -677,7 +697,9 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
     }
     let source_locator = field(forecast, "source_locator", "$.forecast")?;
     if evidence_kind == "PUBLISHED_MEASURED"
-        && source_locator.as_str().is_none_or(|value| value.trim().is_empty())
+        && source_locator
+            .as_str()
+            .is_none_or(|value| value.trim().is_empty())
     {
         reasons.push("published-measured forecasts require a non-empty source locator".into());
         return Ok(report(
@@ -706,7 +728,9 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         || horizon > maximum_horizon
         || !bool_field(forecast, "hazard_cif_coherence_verified", "$.forecast")?
     {
-        reasons.push("forecast calibration, horizon support or hazard/CIF coherence is insufficient".into());
+        reasons.push(
+            "forecast calibration, horizon support or hazard/CIF coherence is insufficient".into(),
+        );
         return Ok(report(
             run_id,
             asset_id,
@@ -732,7 +756,10 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         || maximum_weight > allowed_weight
         || flags.contains("CENSORING_SUPPORT_LIMITED")
     {
-        reasons.push("censoring support, positivity or weight bounds are not qualified for this horizon".into());
+        reasons.push(
+            "censoring support, positivity or weight bounds are not qualified for this horizon"
+                .into(),
+        );
         return Ok(report(
             run_id,
             asset_id,
@@ -772,7 +799,10 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         || duty_cycle > maximum_duty
         || flags.contains("DOMAIN_SHIFT");
     if outside_domain {
-        reasons.push("material, route, temperature or duty cycle is outside calibrated domain support".into());
+        reasons.push(
+            "material, route, temperature or duty cycle is outside calibrated domain support"
+                .into(),
+        );
         return Ok(report(
             run_id,
             asset_id,
@@ -813,7 +843,8 @@ pub fn evaluate_eligibility(run: &Value) -> Result<EligibilityReport, String> {
         ));
     }
 
-    reasons.push("forecast evidence gates pass; result may inform supervisory allocation only".into());
+    reasons
+        .push("forecast evidence gates pass; result may inform supervisory allocation only".into());
     Ok(report(
         run_id,
         asset_id,
@@ -866,8 +897,7 @@ mod tests {
     #[test]
     fn rejects_cif_vector_that_does_not_sum_with_survival_to_one() {
         let mut run = fixture();
-        run["forecast"]["cause_specific_cumulative_incidence"][1]["probability"] =
-            Value::from(0.5);
+        run["forecast"]["cause_specific_cumulative_incidence"][1]["probability"] = Value::from(0.5);
         assert!(
             evaluate_eligibility(&run)
                 .unwrap_err()
@@ -1039,8 +1069,7 @@ mod tests {
     fn unknown_or_dependent_censoring_is_not_evaluable() {
         let mut run = fixture();
         promote_fixture_to_measured_for_policy_unit_test(&mut run);
-        run["censoring_support"]["assumption"] =
-            Value::String("UNKNOWN_OR_DEPENDENT".into());
+        run["censoring_support"]["assumption"] = Value::String("UNKNOWN_OR_DEPENDENT".into());
         let report = evaluate_eligibility(&run).unwrap();
         assert_eq!(report.state, EligibilityState::NotEvaluable);
     }
@@ -1111,6 +1140,10 @@ mod tests {
     fn unknown_properties_fail_closed() {
         let mut run = fixture();
         run["forecast"]["future_risk_adjustment"] = Value::from(0.01);
-        assert!(evaluate_eligibility(&run).unwrap_err().contains("unknown property"));
+        assert!(
+            evaluate_eligibility(&run)
+                .unwrap_err()
+                .contains("unknown property")
+        );
     }
 }
