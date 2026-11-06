@@ -747,7 +747,10 @@
                 "speed_ratio",
                 "speed_ratio_definition",
                 "angular_speed_observation_ref",
-                "traction_speed_observation_ref"
+                "traction_speed_observation_ref",
+                "cutterhead_radius_m",
+                "eccentric_ratio",
+                "eccentric_ratio_definition"
               ],
               "properties": {
                 "kind": {
@@ -791,6 +794,18 @@
                 "traction_speed_observation_ref": {
                   "type": "string",
                   "minLength": 1
+                },
+                "cutterhead_radius_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "description": "Source-paper parameter a: cutterhead radius, not automatically interchangeable with a separate shaft or sleeve radius."
+                },
+                "eccentric_ratio": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "eccentric_ratio_definition": {
+                  "const": "e/a"
                 }
               },
               "additionalProperties": false
