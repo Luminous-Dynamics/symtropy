@@ -23,6 +23,7 @@ fn tug(id: &str, node: &str, bollard_pull_kn: u32) -> TugResource {
         tug_id: id.to_owned(),
         revision: "tug-config-1".to_owned(),
         position_node_id: node.to_owned(),
+        capability_class_id: "harbour-assist".to_owned(),
         bollard_pull_kn,
         capability_evidence: receipt(
             &format!("{id}-capability"),
@@ -94,6 +95,11 @@ fn task(
         location_node_id: location.to_owned(),
         kind: AssistanceKind::Berthing,
         required_tug_count: tug_count,
+        accepted_tug_class_ids: if tug_count == 0 {
+            Vec::new()
+        } else {
+            vec!["harbour-assist".to_owned()]
+        },
         required_bollard_pull_kn: required_pull,
         required_pilot_qualification: pilot_qualification.map(str::to_owned),
     }
@@ -211,6 +217,19 @@ fn joint_tug_requirement_needs_distinct_named_units() {
             .contains(&MobileViolation::InsufficientTugCount(
                 "task-a".to_owned()
             ))
+    );
+}
+
+#[test]
+fn wrong_tug_class_is_rejected_even_when_bollard_pull_is_sufficient() {
+    let mut input = workload();
+    input.tugs[0].capability_class_id = "escort-only".to_owned();
+    let report = evaluate_mobile_assistance(&input).expect("valid workload");
+    assert_eq!(report.disposition, MobileDisposition::Infeasible);
+    assert!(
+        report
+            .violations
+            .contains(&MobileViolation::TugClassMismatch("task-a".to_owned()))
     );
 }
 
