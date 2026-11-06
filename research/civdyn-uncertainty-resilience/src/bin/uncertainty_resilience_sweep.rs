@@ -54,12 +54,8 @@ fn main() {
     let scenarios = reference_scenarios();
     let lhs = latin_hypercube(DEFAULT_ENSEMBLE_SIZE, DESIGN_SEED)
         .expect("declared Latin-hypercube design must validate");
-    let lhs_outcomes = run_latin_hypercube_ensemble(
-        &scenarios,
-        DEFAULT_ENSEMBLE_SIZE,
-        DESIGN_SEED,
-    )
-    .expect("Latin-hypercube resilience portfolio must execute");
+    let lhs_outcomes = run_latin_hypercube_ensemble(&scenarios, DEFAULT_ENSEMBLE_SIZE, DESIGN_SEED)
+        .expect("Latin-hypercube resilience portfolio must execute");
     let ensemble = summarize_ensemble(&lhs_outcomes)
         .expect("each shock/policy combination must have ensemble outcomes");
 
