@@ -1284,7 +1284,7 @@ mod tests {
     #[test]
     fn held_out_feedback_cut_selects_the_feedback_only_model() {
         let mut config = base_config();
-        config.natural_angular_frequencies = [0.0; LEG_COUNT];
+        config.natural_angular_frequencies = [2.0; LEG_COUNT];
         config.feedback_delay_times = [0.0; LEG_COUNT];
         let action = Intervention::FeedbackCut {
             sample_index: 600,
@@ -1313,21 +1313,30 @@ mod tests {
     }
 
     #[test]
-    fn identical_coordination_predictions_trigger_open_set_ambiguity_abstention() {
-        let config = base_config();
-        let observed = simulate(config, CoordinationModel::CentrallyCoupled, &[]).unwrap();
+    fn distinct_but_equivalent_models_trigger_open_set_ambiguity_abstention() {
+        let mut config = base_config();
+        config.coupling_gains = [[0.0; LEG_COUNT]; LEG_COUNT];
+        config.feedback_gains = [0.0; LEG_COUNT];
+        let observed = simulate(config, CoordinationModel::Independent, &[]).unwrap();
         let decision = select_coordination_model_open_set(
             &observed,
             &[
-                CoordinationModel::CentrallyCoupled,
-                CoordinationModel::CentrallyCoupled,
+                CoordinationModel::Independent,
+                CoordinationModel::Hybrid,
             ],
             100,
             0.01,
             0.0,
             -10.0,
-        );
-        assert_eq!(decision, Err(CoordinationError::DuplicateModelCandidate));
+        )
+        .unwrap();
+        assert!(matches!(
+            decision,
+            CoordinationSelection::Abstained {
+                reason: CoordinationAbstentionReason::InsufficientSeparation,
+                ..
+            }
+        ));
     }
 
     #[test]
@@ -1357,17 +1366,19 @@ mod tests {
 
     #[test]
     fn open_set_coordination_gate_distinguishes_ambiguity_from_poor_fit() {
-        let config = base_config();
-        let observed = simulate(config, CoordinationModel::CentrallyCoupled, &[]).unwrap();
+        let mut config = base_config();
+        config.coupling_gains = [[0.0; LEG_COUNT]; LEG_COUNT];
+        config.feedback_gains = [0.0; LEG_COUNT];
+        let observed = simulate(config, CoordinationModel::Independent, &[]).unwrap();
         let decision = select_coordination_model_open_set(
             &observed,
             &[
-                CoordinationModel::CentrallyCoupled,
+                CoordinationModel::Independent,
                 CoordinationModel::Hybrid,
             ],
             100,
             0.01,
-            f64::MAX,
+            -10.0,
             -10.0,
         )
         .unwrap();
