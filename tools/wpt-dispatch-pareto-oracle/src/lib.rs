@@ -520,10 +520,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
                     .ok_or_else(|| fail(&resource_path, "missing shared resource slot"))?;
             let units_per_quantum = uint_field(resource_row, "units_per_quantum", &resource_path)?;
             if units_per_quantum == 0 {
-                return Err(fail(
-                    &resource_path,
-                    "units_per_quantum must be positive",
-                ));
+                return Err(fail(&resource_path, "units_per_quantum must be positive"));
             }
             resource_uses.push((resource_slot_index, units_per_quantum));
         }
@@ -720,8 +717,7 @@ fn candidate_point(
             used_units: *used_units,
         })
         .collect::<Vec<_>>();
-    shared_resource_allocations
-        .sort_by_key(|row| (row.resource_id.clone(), row.interval_index));
+    shared_resource_allocations.sort_by_key(|row| (row.resource_id.clone(), row.interval_index));
 
     let link_allocations = scenario
         .links
@@ -1134,7 +1130,10 @@ mod tests {
         reversed["receivers"].as_array_mut().unwrap().reverse();
         reversed["segment_slots"].as_array_mut().unwrap().reverse();
         reversed["receiver_slots"].as_array_mut().unwrap().reverse();
-        reversed["shared_resource_slots"].as_array_mut().unwrap().reverse();
+        reversed["shared_resource_slots"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
         reversed["transfer_links"].as_array_mut().unwrap().reverse();
         let second = evaluate_scenario(&reversed).unwrap();
         assert_eq!(first.pareto_frontier, second.pareto_frontier);
