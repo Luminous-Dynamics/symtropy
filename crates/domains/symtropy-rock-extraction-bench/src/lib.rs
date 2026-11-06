@@ -752,4 +752,89 @@ mod tests {
         assert_eq!(first.candidate.total_full_cycle_energy_kwh, second.candidate.total_full_cycle_energy_kwh);
         assert_eq!(first.candidate_output_rate_change_fraction, second.candidate_output_rate_change_fraction);
     }
+
+    #[test]
+    fn missing_energy_accounting_reference_is_rejected() {
+        let mut trials = four_trials();
+        trials[2].energy.energy_accounting_ref.clear();
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::EmptyTrialReference));
+    }
+
+    #[test]
+    fn missing_output_calibration_reference_is_rejected() {
+        let mut trials = four_trials();
+        trials[2].accepted_output.calibration_ref.clear();
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::EmptyTrialReference));
+    }
+
+    #[test]
+    fn negative_standard_uncertainty_is_rejected() {
+        let mut trials = four_trials();
+        trials[2].energy.standard_uncertainty_kwh = -0.1;
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::InvalidUncertainty));
+    }
+
+    #[test]
+    fn duplicate_subsystem_entry_in_a_trial_is_rejected() {
+        let mut trials = four_trials();
+        trials[2].energy.included_subsystems.push("cooling".to_owned());
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::DuplicateIncludedSubsystem));
+    }
+
+    #[test]
+    fn changed_acceptance_profile_is_rejected() {
+        let mut trials = four_trials();
+        trials[2].acceptance_profile_ref = "acceptance:volume-only:v1".to_owned();
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::ProfileMismatch));
+    }
+
+    #[test]
+    fn operator_reported_elapsed_time_is_not_primary_time_evidence() {
+        let mut trials = four_trials();
+        trials[2].time.evidence_role = EvidenceRole::OperatorReported;
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::NonIndependentTimeEvidence));
+    }
+
+    #[test]
+    fn zero_accepted_solid_volume_is_rejected() {
+        let mut trials = four_trials();
+        trials[2].accepted_output.accepted_solid_volume_m3 = 0.0;
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::InvalidNumericValue));
+    }
+
+    #[test]
+    fn duplicate_profile_subsystem_inventory_is_rejected() {
+        let mut comparison_profile = profile();
+        comparison_profile.included_subsystems.push("cooling".to_owned());
+        let errors = compare_trials(&comparison_profile, &four_trials()).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::DuplicateRequiredSubsystem));
+    }
+
+    #[test]
+    fn missing_candidate_arm_is_rejected() {
+        let trials = vec![
+            trial("base-1", TrialArm::MechanicalBaseline, 0.10, 12.0, 2.0),
+            trial("base-2", TrialArm::MechanicalBaseline, 0.10, 10.0, 2.0),
+        ];
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::MissingCandidateArm));
+    }
+
+    #[test]
+    fn missing_baseline_arm_is_rejected() {
+        let trials = vec![
+            trial("candidate-1", TrialArm::Candidate, 0.12, 10.0, 1.8),
+            trial("candidate-2", TrialArm::Candidate, 0.12, 9.0, 1.8),
+        ];
+        let errors = compare_trials(&profile(), &trials).unwrap_err();
+        assert!(has_code(&errors, ValidationCode::MissingBaselineArm));
+    }
+
 }
