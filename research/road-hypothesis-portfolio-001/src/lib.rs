@@ -335,7 +335,16 @@ pub struct ActionResidualBound {
 pub struct ResidualEnvelope {
     pub utility_scale_id: String,
     pub utility_semantics_id: String,
+    /// Residual bounds are valid only for the exact ODD declared by the portfolio.
+    pub scope_digest: String,
+    /// The counterfactual quantity and independent experimental unit are explicit.
+    pub estimand_digest: String,
+    pub independent_unit_definition_digest: String,
     pub evidence_class: ResidualEvidenceClass,
+    /// Controlled interventions need an assignment protocol; natural experiments
+    /// need a separately reviewed identification-assumptions package.
+    pub assignment_protocol_digest: Option<String>,
+    pub identification_assumptions_digest: Option<String>,
     pub evidence_digest: String,
     pub calibration_protocol_digest: String,
     /// V0.1 implements the explicitly conservative rectangular relaxation.
@@ -911,6 +920,11 @@ fn evaluation_digest(
             hash_u8(&mut h, 1);
             hash_str(&mut h, &envelope.utility_scale_id);
             hash_str(&mut h, &envelope.utility_semantics_id);
+            hash_str(&mut h, &envelope.scope_digest);
+            hash_str(&mut h, &envelope.estimand_digest);
+            hash_str(&mut h, &envelope.independent_unit_definition_digest);
+            hash_opt_str(&mut h, envelope.assignment_protocol_digest.as_deref());
+            hash_opt_str(&mut h, envelope.identification_assumptions_digest.as_deref());
             hash_u8(
                 &mut h,
                 match envelope.evidence_class {
@@ -1241,13 +1255,32 @@ fn assess_residual(
     {
         return Err(PortfolioError::UtilityScaleMismatch);
     }
+    let evidence_identification_qualified = match envelope.evidence_class {
+        ResidualEvidenceClass::ControlledIntervention => {
+            envelope
+                .assignment_protocol_digest
+                .as_deref()
+                .is_some_and(|digest| !digest.trim().is_empty())
+                && envelope.identification_assumptions_digest.is_none()
+        }
+        ResidualEvidenceClass::QualifiedNaturalExperiment => {
+            envelope
+                .identification_assumptions_digest
+                .as_deref()
+                .is_some_and(|digest| !digest.trim().is_empty())
+                && envelope.assignment_protocol_digest.is_none()
+        }
+        ResidualEvidenceClass::ObservedFactual
+        | ResidualEvidenceClass::SimulationGenerated
+        | ResidualEvidenceClass::ModelGenerated
+        | ResidualEvidenceClass::FormalReference
+        | ResidualEvidenceClass::HumanAdjudication => false,
+    };
     if !envelope.rectangular_relaxation
-        || !matches!(
-            envelope.evidence_class,
-            ResidualEvidenceClass::ObservedFactual
-                | ResidualEvidenceClass::ControlledIntervention
-                | ResidualEvidenceClass::QualifiedNaturalExperiment
-        )
+        || !evidence_identification_qualified
+        || envelope.scope_digest != manifest.odd_scope_digest
+        || envelope.estimand_digest.trim().is_empty()
+        || envelope.independent_unit_definition_digest.trim().is_empty()
         || envelope.evidence_digest.trim().is_empty()
         || envelope.calibration_protocol_digest.trim().is_empty()
     {
@@ -1713,7 +1746,12 @@ mod tests {
         ResidualEnvelope {
             utility_scale_id: "utility-0-to-100".into(),
             utility_semantics_id: "higher-is-better-v1".into(),
+            scope_digest: d("odd-city-1"),
+            estimand_digest: d("branch-specific-action-utility-v1"),
+            independent_unit_definition_digest: d("independent-drive-episode-v1"),
             evidence_class: ResidualEvidenceClass::ControlledIntervention,
+            assignment_protocol_digest: Some(d("randomized-safe-intervention-v1")),
+            identification_assumptions_digest: None,
             evidence_digest: d("residual-evidence"),
             calibration_protocol_digest: d("residual-calibration"),
             rectangular_relaxation: true,
@@ -2093,9 +2131,31 @@ mod tests {
     }
 
     #[test]
-    fn model_dependent_or_uncalibrated_residual_is_unbounded() {
+    fn model_dependent_factual_or_uncalibrated_residual_is_unbounded() {
+        for evidence_class in [
+            ResidualEvidenceClass::ObservedFactual,
+            ResidualEvidenceClass::SimulationGenerated,
+            ResidualEvidenceClass::ModelGenerated,
+            ResidualEvidenceClass::FormalReference,
+            ResidualEvidenceClass::HumanAdjudication,
+        ] {
+            let mut envelope = residual();
+            envelope.evidence_class = evidence_class;
+            let report = evaluate_portfolio(
+                &manifest(),
+                &d("odd-city-1"),
+                &challenge_set(),
+                Some(&envelope),
+            )
+            .unwrap();
+            assert_eq!(
+                report.residual.disposition,
+                ResidualDisposition::ResidualRiskUnbounded
+            );
+        }
+
         let mut envelope = residual();
-        envelope.evidence_class = ResidualEvidenceClass::ModelGenerated;
+        envelope.calibration_protocol_digest.clear();
         let report = evaluate_portfolio(
             &manifest(),
             &d("odd-city-1"),
@@ -2109,7 +2169,7 @@ mod tests {
         );
 
         let mut envelope = residual();
-        envelope.calibration_protocol_digest.clear();
+        envelope.scope_digest = d("different-odd");
         let report = evaluate_portfolio(
             &manifest(),
             &d("odd-city-1"),
@@ -2119,6 +2179,38 @@ mod tests {
         .unwrap();
         assert_eq!(
             report.residual.disposition,
+            ResidualDisposition::ResidualRiskUnbounded
+        );
+    }
+
+    #[test]
+    fn natural_experiment_residual_needs_identification_assumptions() {
+        let mut envelope = residual();
+        envelope.evidence_class = ResidualEvidenceClass::QualifiedNaturalExperiment;
+        envelope.assignment_protocol_digest = None;
+        envelope.identification_assumptions_digest = Some(d("natural-experiment-dag-overlap-sensitivity"));
+        let qualified = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&envelope),
+        )
+        .unwrap();
+        assert_eq!(
+            qualified.residual.disposition,
+            ResidualDisposition::BoundedRectangularRelaxation
+        );
+
+        envelope.identification_assumptions_digest = None;
+        let unqualified = evaluate_portfolio(
+            &manifest(),
+            &d("odd-city-1"),
+            &challenge_set(),
+            Some(&envelope),
+        )
+        .unwrap();
+        assert_eq!(
+            unqualified.residual.disposition,
             ResidualDisposition::ResidualRiskUnbounded
         );
     }
@@ -2288,7 +2380,8 @@ mod tests {
             });
         changed_challenges.challenge_requirements.retain(|entry| {
             !(entry.hypothesis_id == "H-weather-copy"
-                && entry.strategy == ChallengeStrategy::Expert)
+                && entry.strategy == ChallengeStrategy::Expert
+                && entry.protocol_digest == d("challenge-expert-copy"))
         });
         assert_eq!(
             PortfolioManifest::validate_append_only_revision(&previous, &changed_challenges),
