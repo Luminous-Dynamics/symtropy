@@ -582,6 +582,20 @@ impl CausalExperiment {
                 ));
             }
         }
+        let reference_outcome = &self.control.independent_outcome;
+        for run in [
+            &self.treatment,
+            &self.negative_control,
+            &self.mechanism_ablation.arm,
+        ] {
+            let outcome = &run.independent_outcome;
+            if outcome.resource != reference_outcome.resource
+                || outcome.region_id != reference_outcome.region_id
+                || outcome.tick != reference_outcome.tick
+            {
+                return Err(CausalPathError::OutcomeIdentityMismatch(run.arm_id.clone()));
+            }
+        }
         for id in variables.keys() {
             let control = self.control.initial_values[*id];
             let treatment = self.treatment.initial_values[*id];
@@ -643,6 +657,16 @@ impl CausalExperiment {
         }
         if !matches!(mechanism.stage, CausalStage::Mechanism | CausalStage::Intermediate) {
             return Err(CausalPathError::AblationTargetWrongStage(mechanism_id.to_owned()));
+        }
+        let mechanism_is_on_required_path = self.required_path_edge_ids.iter().any(|edge_id| {
+            self.edges.iter().find(|edge| edge.id == *edge_id).is_some_and(|edge| {
+                edge.from_variable == mechanism_id || edge.to_variable == mechanism_id
+            })
+        });
+        if !mechanism_is_on_required_path {
+            return Err(CausalPathError::AblationTargetNotOnRequiredPath(
+                mechanism_id.to_owned(),
+            ));
         }
         if self.mechanism_ablation.arm.exogenous_snapshot_id
             != self.control.exogenous_snapshot_id
@@ -802,6 +826,7 @@ pub enum CausalPathError {
     },
     InvalidIndependentOutcome(String),
     IndependentOutcomeMismatch(String),
+    OutcomeIdentityMismatch(String),
     ExogenousSnapshotMismatch(String),
     InterventionNotChanged,
     UncontrolledInitialState(String),
@@ -813,6 +838,7 @@ pub enum CausalPathError {
     AblationSwitchWrongStage(String),
     AblationSwitchOnRequiredPath(String),
     AblationTargetWrongStage(String),
+    AblationTargetNotOnRequiredPath(String),
     AblationExogenousSnapshotMismatch,
     AblationInitialStateMismatch,
     AblationChangedPrimaryIntervention,
@@ -904,6 +930,10 @@ impl fmt::Display for CausalPathError {
                 f,
                 "run {run} ledger outcome differs from declared final state"
             ),
+            Self::OutcomeIdentityMismatch(run) => write!(
+                f,
+                "run {run} outcome receipt does not match the control resource, region and tick"
+            ),
             Self::ExogenousSnapshotMismatch(run) => {
                 write!(f, "run {run} does not use the matched exogenous snapshot")
             }
@@ -940,6 +970,9 @@ impl fmt::Display for CausalPathError {
             }
             Self::AblationTargetWrongStage(id) => {
                 write!(f, "mechanism ablation target {id} must be a mechanism or intermediate variable")
+            }
+            Self::AblationTargetNotOnRequiredPath(id) => {
+                write!(f, "mechanism ablation target {id} must lie on the required intervention-to-outcome path")
             }
             Self::AblationExogenousSnapshotMismatch => {
                 write!(f, "mechanism ablation arm does not use the matched exogenous snapshot")
@@ -1316,6 +1349,35 @@ mod tests {
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::UncontrolledInitialState(_))
+        ));
+    }
+
+    #[test]
+    fn outcome_receipts_must_refer_to_the_same_resource_region_and_tick() {
+        let mut invalid = experiment();
+        invalid.negative_control.independent_outcome.region_id = "different_household".into();
+        assert!(matches!(
+            invalid.validate(),
+            Err(CausalPathError::OutcomeIdentityMismatch(_))
+        ));
+    }
+
+    #[test]
+    fn ablation_target_must_be_on_the_required_path() {
+        let mut invalid = experiment();
+        invalid.mechanism_ablation.blocked_mechanism_variable_id =
+            "authorized_transfer_m3".into();
+        invalid.mechanism_ablation.arm.final_values.insert(
+            "authorized_transfer_m3".into(),
+            0.0,
+        );
+        assert!(invalid.validate().is_ok());
+
+        invalid.mechanism_ablation.blocked_mechanism_variable_id =
+            "reputation_counter".into();
+        assert!(matches!(
+            invalid.validate(),
+            Err(CausalPathError::AblationVariableRolesOverlap)
         ));
     }
 
