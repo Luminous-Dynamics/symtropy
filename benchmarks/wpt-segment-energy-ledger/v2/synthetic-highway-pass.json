@@ -1,0 +1,539 @@
+{
+  "schema_version": "wpt-segment-energy-ledger-v2",
+  "route_run_id": "SYNTHETIC-HIGHWAY-PASS-001",
+  "evidence_class": "synthetic_known_truth",
+  "power_flow_direction": "grid_to_vehicle",
+  "route_geometry_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "route_start_ns": 0,
+  "route_end_ns": 16000000000,
+  "segments": [
+    {
+      "segment_id": "SEG-1",
+      "vehicle_id": "TRUCK-1",
+      "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "start_ns": 0,
+      "end_ns": 6000000000,
+      "phases": [
+        {
+          "phase": "inverter_rise",
+          "start_ns": 0,
+          "end_ns": 1000000000,
+          "spc_input": {
+            "measurement_id": "SEG-1-SPC-0",
+            "meter_id": "METER-SEG-1-SPC-0",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-1-EVPC-0",
+            "meter_id": "METER-SEG-1-EVPC-0",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "phase": "pre_power",
+          "start_ns": 1000000000,
+          "end_ns": 2000000000,
+          "spc_input": {
+            "measurement_id": "SEG-1-SPC-1",
+            "meter_id": "METER-SEG-1-SPC-1",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-1-EVPC-1",
+            "meter_id": "METER-SEG-1-EVPC-1",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "phase": "transfer_ramp_up",
+          "start_ns": 2000000000,
+          "end_ns": 3000000000,
+          "spc_input": {
+            "measurement_id": "SEG-1-SPC-2",
+            "meter_id": "METER-SEG-1-SPC-2",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-1-EVPC-2",
+            "meter_id": "METER-SEG-1-EVPC-2",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "phase": "active_transfer",
+          "start_ns": 3000000000,
+          "end_ns": 4000000000,
+          "spc_input": {
+            "measurement_id": "SEG-1-SPC-3",
+            "meter_id": "METER-SEG-1-SPC-3",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-1-EVPC-3",
+            "meter_id": "METER-SEG-1-EVPC-3",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "phase": "transfer_ramp_down",
+          "start_ns": 4000000000,
+          "end_ns": 5000000000,
+          "spc_input": {
+            "measurement_id": "SEG-1-SPC-4",
+            "meter_id": "METER-SEG-1-SPC-4",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-1-EVPC-4",
+            "meter_id": "METER-SEG-1-EVPC-4",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "phase": "inverter_fall",
+          "start_ns": 5000000000,
+          "end_ns": 6000000000,
+          "spc_input": {
+            "measurement_id": "SEG-1-SPC-5",
+            "meter_id": "METER-SEG-1-SPC-5",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-1-EVPC-5",
+            "meter_id": "METER-SEG-1-EVPC-5",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        }
+      ],
+      "segment_spc_input": {
+        "measurement_id": "SEG-1-SPC-TOTAL",
+        "meter_id": "METER-SEG-1-SPC-TOTAL",
+        "measurement_plane_id": "SPC_INPUT",
+        "energy_wh": 60,
+        "deterministic_absolute_bound_wh": 0.01,
+        "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "segment_evpc_output": {
+        "measurement_id": "SEG-1-EVPC-TOTAL",
+        "meter_id": "METER-SEG-1-EVPC-TOTAL",
+        "measurement_plane_id": "EVPC_OUTPUT",
+        "energy_wh": 54,
+        "deterministic_absolute_bound_wh": 0.01,
+        "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "boundary_measurements": [
+        {
+          "boundary": "grid_ac_input",
+          "quantity": {
+            "measurement_id": "SEG-1-GRID",
+            "meter_id": "METER-SEG-1-GRID",
+            "measurement_plane_id": "GRID_AC_INPUT",
+            "energy_wh": 90,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "boundary": "roadway_inverter_dc_input",
+          "quantity": {
+            "measurement_id": "SEG-1-INV",
+            "meter_id": "METER-SEG-1-INV",
+            "measurement_plane_id": "ROADWAY_INVERTER_DC_INPUT",
+            "energy_wh": 70,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "boundary": "vehicle_dc_bus_output",
+          "quantity": {
+            "measurement_id": "SEG-1-VDC",
+            "meter_id": "METER-SEG-1-VDC",
+            "measurement_plane_id": "VEHICLE_DC_BUS_OUTPUT",
+            "energy_wh": 65,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "boundary": "battery_terminal_input",
+          "quantity": {
+            "measurement_id": "SEG-1-BAT",
+            "meter_id": "METER-SEG-1-BAT",
+            "measurement_plane_id": "BATTERY_TERMINAL_INPUT",
+            "energy_wh": 48,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "boundary": "bess_dc_output",
+          "quantity": {
+            "measurement_id": "SEG-1-BESS",
+            "meter_id": "METER-SEG-1-BESS",
+            "measurement_plane_id": "BESS_DC_OUTPUT",
+            "energy_wh": 55,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        }
+      ],
+      "trajectory_sample_ids": [
+        "POSE-000",
+        "POSE-001"
+      ]
+    },
+    {
+      "segment_id": "SEG-2",
+      "vehicle_id": "TRUCK-1",
+      "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "start_ns": 10000000000,
+      "end_ns": 16000000000,
+      "phases": [
+        {
+          "phase": "inverter_rise",
+          "start_ns": 10000000000,
+          "end_ns": 11000000000,
+          "spc_input": {
+            "measurement_id": "SEG-2-SPC-0",
+            "meter_id": "METER-SEG-2-SPC-0",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-2-EVPC-0",
+            "meter_id": "METER-SEG-2-EVPC-0",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "phase": "pre_power",
+          "start_ns": 11000000000,
+          "end_ns": 12000000000,
+          "spc_input": {
+            "measurement_id": "SEG-2-SPC-1",
+            "meter_id": "METER-SEG-2-SPC-1",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-2-EVPC-1",
+            "meter_id": "METER-SEG-2-EVPC-1",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "phase": "transfer_ramp_up",
+          "start_ns": 12000000000,
+          "end_ns": 13000000000,
+          "spc_input": {
+            "measurement_id": "SEG-2-SPC-2",
+            "meter_id": "METER-SEG-2-SPC-2",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-2-EVPC-2",
+            "meter_id": "METER-SEG-2-EVPC-2",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "phase": "active_transfer",
+          "start_ns": 13000000000,
+          "end_ns": 14000000000,
+          "spc_input": {
+            "measurement_id": "SEG-2-SPC-3",
+            "meter_id": "METER-SEG-2-SPC-3",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-2-EVPC-3",
+            "meter_id": "METER-SEG-2-EVPC-3",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "phase": "transfer_ramp_down",
+          "start_ns": 14000000000,
+          "end_ns": 15000000000,
+          "spc_input": {
+            "measurement_id": "SEG-2-SPC-4",
+            "meter_id": "METER-SEG-2-SPC-4",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-2-EVPC-4",
+            "meter_id": "METER-SEG-2-EVPC-4",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "phase": "inverter_fall",
+          "start_ns": 15000000000,
+          "end_ns": 16000000000,
+          "spc_input": {
+            "measurement_id": "SEG-2-SPC-5",
+            "meter_id": "METER-SEG-2-SPC-5",
+            "measurement_plane_id": "SPC_INPUT",
+            "energy_wh": 10,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "evpc_output": {
+            "measurement_id": "SEG-2-EVPC-5",
+            "meter_id": "METER-SEG-2-EVPC-5",
+            "measurement_plane_id": "EVPC_OUTPUT",
+            "energy_wh": 9,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        }
+      ],
+      "segment_spc_input": {
+        "measurement_id": "SEG-2-SPC-TOTAL",
+        "meter_id": "METER-SEG-2-SPC-TOTAL",
+        "measurement_plane_id": "SPC_INPUT",
+        "energy_wh": 60,
+        "deterministic_absolute_bound_wh": 0.01,
+        "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "segment_evpc_output": {
+        "measurement_id": "SEG-2-EVPC-TOTAL",
+        "meter_id": "METER-SEG-2-EVPC-TOTAL",
+        "measurement_plane_id": "EVPC_OUTPUT",
+        "energy_wh": 54,
+        "deterministic_absolute_bound_wh": 0.01,
+        "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "boundary_measurements": [
+        {
+          "boundary": "grid_ac_input",
+          "quantity": {
+            "measurement_id": "SEG-2-GRID",
+            "meter_id": "METER-SEG-2-GRID",
+            "measurement_plane_id": "GRID_AC_INPUT",
+            "energy_wh": 90,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "boundary": "roadway_inverter_dc_input",
+          "quantity": {
+            "measurement_id": "SEG-2-INV",
+            "meter_id": "METER-SEG-2-INV",
+            "measurement_plane_id": "ROADWAY_INVERTER_DC_INPUT",
+            "energy_wh": 70,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "boundary": "vehicle_dc_bus_output",
+          "quantity": {
+            "measurement_id": "SEG-2-VDC",
+            "meter_id": "METER-SEG-2-VDC",
+            "measurement_plane_id": "VEHICLE_DC_BUS_OUTPUT",
+            "energy_wh": 65,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "boundary": "battery_terminal_input",
+          "quantity": {
+            "measurement_id": "SEG-2-BAT",
+            "meter_id": "METER-SEG-2-BAT",
+            "measurement_plane_id": "BATTERY_TERMINAL_INPUT",
+            "energy_wh": 48,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "boundary": "bess_dc_output",
+          "quantity": {
+            "measurement_id": "SEG-2-BESS",
+            "meter_id": "METER-SEG-2-BESS",
+            "measurement_plane_id": "BESS_DC_OUTPUT",
+            "energy_wh": 55,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        }
+      ],
+      "trajectory_sample_ids": [
+        "POSE-002",
+        "POSE-003"
+      ]
+    }
+  ],
+  "idle_intervals": [
+    {
+      "interval_id": "WAIT-1",
+      "start_ns": 6000000000,
+      "end_ns": 10000000000,
+      "boundary_measurements": [
+        {
+          "boundary": "grid_ac_input",
+          "quantity": {
+            "measurement_id": "WAIT-GRID",
+            "meter_id": "METER-WAIT-GRID",
+            "measurement_plane_id": "GRID_AC_INPUT",
+            "energy_wh": 5,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "boundary": "roadway_inverter_dc_input",
+          "quantity": {
+            "measurement_id": "WAIT-INVERTER",
+            "meter_id": "METER-WAIT-INVERTER",
+            "measurement_plane_id": "ROADWAY_INVERTER_DC_INPUT",
+            "energy_wh": 20,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        },
+        {
+          "boundary": "bess_dc_output",
+          "quantity": {
+            "measurement_id": "WAIT-BESS",
+            "meter_id": "METER-WAIT-BESS",
+            "measurement_plane_id": "BESS_DC_OUTPUT",
+            "energy_wh": 2,
+            "deterministic_absolute_bound_wh": 0.01,
+            "calibration_receipt_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_artifact_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        }
+      ]
+    }
+  ],
+  "trajectory_id": "SYNTHETIC-LATERAL-WANDER-001",
+  "trajectory_artifact_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "trajectory_coordinate_frame_id": "SYNTHETIC-ROAD-FRAME",
+  "trajectory_samples": [
+    {
+      "sample_id": "POSE-000",
+      "timestamp_ns": 0
+    },
+    {
+      "sample_id": "POSE-001",
+      "timestamp_ns": 6000000000
+    },
+    {
+      "sample_id": "POSE-002",
+      "timestamp_ns": 10000000000
+    },
+    {
+      "sample_id": "POSE-003",
+      "timestamp_ns": 16000000000
+    }
+  ]
+}
