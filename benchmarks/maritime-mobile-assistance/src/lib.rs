@@ -263,6 +263,13 @@ pub enum MobileError {
     InvalidAssignment(String),
 }
 
+fn unique_nonempty_identifiers(values: &[String]) -> bool {
+    let mut seen = BTreeSet::new();
+    values
+        .iter()
+        .all(|value| !value.trim().is_empty() && seen.insert(value))
+}
+
 fn validate_availability(
     resource_id: &str,
     windows: &[TickWindow],
@@ -534,9 +541,7 @@ pub fn evaluate_mobile_assistance(
                 && (task.required_bollard_pull_kn != 0 || !task.accepted_tug_class_ids.is_empty()))
             || (task.required_tug_count > 0
                 && (task.required_bollard_pull_kn == 0 || task.accepted_tug_class_ids.is_empty()))
-            || task.accepted_tug_class_ids.iter().any(|item| item.trim().is_empty())
-            || task.accepted_tug_class_ids.iter().collect::<BTreeSet<_>>().len()
-                != task.accepted_tug_class_ids.len()
+            || !unique_nonempty_identifiers(&task.accepted_tug_class_ids)
             || task
                 .required_pilot_qualification
                 .as_ref()
