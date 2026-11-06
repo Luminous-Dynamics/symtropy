@@ -30,7 +30,11 @@ pub fn nan_zeroed_count() -> u64 {
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+///
+/// For separable Hamiltonian systems this update is symplectic, but symplecticity
+/// does not imply unconditional stability for arbitrary timestep/frequency.
+/// For the linear harmonic oscillator it is linearly stable only when
+/// 0 < dt * omega < 2; larger ratios have an exponentially growing mode.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
@@ -179,6 +183,56 @@ pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &
 mod tests {
     use super::*;
     use crate::body::BodyHandle;
+
+    fn harmonic_oscillator_peak(
+        dt: f64,
+        omega: f64,
+        steps: usize,
+    ) -> (f64, f64) {
+        let mut body = RigidBody::<2>::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([1.0, 0.0]),
+            0.1,
+            1.0,
+        );
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        let gravity = SVector::zeros();
+        let mut max_position = 0.0_f64;
+        let mut max_velocity = 0.0_f64;
+
+        for _ in 0..steps {
+            let x = body.transform.translation.0[0];
+            body.apply_force(SVector::from([-omega * omega * x, 0.0]));
+            integrate(&mut body, &gravity, dt);
+            max_position = max_position.max(body.transform.translation.0[0].abs());
+            max_velocity = max_velocity.max(body.linear_velocity[0].abs());
+        }
+
+        (max_position, max_velocity)
+    }
+
+    #[test]
+    fn semi_implicit_euler_is_bounded_below_harmonic_stability_limit() {
+        let (max_position, max_velocity) = harmonic_oscillator_peak(0.5, 1.0, 2_000);
+
+        assert!(max_position < 2.0, "stable case position envelope={max_position}");
+        assert!(max_velocity < 2.0, "stable case velocity envelope={max_velocity}");
+    }
+
+    #[test]
+    fn semi_implicit_euler_exhibits_unstable_mode_above_harmonic_stability_limit() {
+        let (max_position, max_velocity) = harmonic_oscillator_peak(2.1, 1.0, 5);
+
+        assert!(
+            max_position > 40.0,
+            "dt*omega > 2 should amplify the unstable mode, max_position={max_position}"
+        );
+        assert!(
+            max_velocity > 30.0,
+            "dt*omega > 2 should amplify velocity, max_velocity={max_velocity}"
+        );
+    }
 
     #[test]
     fn free_fall_3d() {
