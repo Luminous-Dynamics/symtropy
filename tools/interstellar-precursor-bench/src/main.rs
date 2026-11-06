@@ -162,6 +162,24 @@ fn evaluate(input: &MissionInput) -> Result<MissionReport, String> {
     let peak_kinetic_energy_j =
         (gamma - 1.0) * input.spacecraft_mass_kg * C_M_S * C_M_S;
 
+    let computed_values = [
+        ("lorentz_factor", gamma),
+        ("acceleration_coordinate_seconds", acceleration_coordinate_seconds),
+        ("acceleration_proper_seconds", acceleration_proper_seconds),
+        ("one_leg_distance_m", one_leg_distance_m),
+        ("total_distance_m", total_distance_m),
+        ("cruise_distance_m", cruise_distance_m),
+        ("cruise_coordinate_seconds", cruise_coordinate_seconds),
+        ("coordinate_seconds", coordinate_seconds),
+        ("proper_seconds", proper_seconds),
+        ("peak_kinetic_energy_j", peak_kinetic_energy_j),
+    ];
+    for (name, value) in computed_values {
+        if !value.is_finite() {
+            return Err(format!("computed {name} is not finite; input exceeds numeric range"));
+        }
+    }
+
     Ok(MissionReport {
         scenario_id: input.scenario_id.clone(),
         distance_ly: input.distance_ly,
@@ -212,10 +230,10 @@ fn render_json(report: &MissionReport) -> String {
 }
 
 fn run() -> Result<(), String> {
-    let mut args = env::args().skip(1);
-    let input_path = match (args.next().as_deref(), args.next()) {
-        (None, None) => "fixtures/proxima-4p24ly-stop-at-target-0p1c.input".to_owned(),
-        (Some("--input"), Some(path)) if args.next().is_none() => path,
+    let args: Vec<String> = env::args().skip(1).collect();
+    let input_path = match args.as_slice() {
+        [] => "fixtures/proxima-4p24ly-stop-at-target-0p1c.input".to_owned(),
+        [flag, path] if flag == "--input" => path.clone(),
         _ => return Err("usage: interstellar-precursor-bench [--input PATH]".to_owned()),
     };
 
