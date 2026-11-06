@@ -1,7 +1,7 @@
 use maritime_manoeuvring_contract::{
     ContextOfUse, EvidenceRef, EvidenceRole, EvidenceState, ManifestDisposition,
-    ManoeuvringManifest, Trajectory, TrajectoryError, TrajectorySample, stopping_metrics,
-    turning_circle_metrics, zig_zag_metrics, ZigZagCommand,
+    ManoeuvringManifest, Trajectory, TrajectoryError, TrajectorySample, ZigZagCommand,
+    stopping_metrics, turning_circle_metrics, zig_zag_metrics,
 };
 
 fn sample(time_s: f64, x_m: f64, y_m: f64, heading_rad: f64) -> TrajectorySample {
@@ -521,8 +521,7 @@ fn twenty_twenty_zig_zag_uses_the_same_metric_definition() {
             rudder_deg: 20.0,
         },
     ];
-    let metrics = zig_zag_metrics(&trajectory, &commands, 20.0)
-        .expect("valid 20/20 zig-zag");
+    let metrics = zig_zag_metrics(&trajectory, &commands, 20.0).expect("valid 20/20 zig-zag");
     assert!((metrics.first_overshoot_deg - 10.0).abs() < 1.0e-9);
     assert!((metrics.second_overshoot_deg - 12.0).abs() < 1.0e-9);
 }
