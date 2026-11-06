@@ -2452,6 +2452,7 @@ mod tests {
     #[test]
     fn coverage_successor_must_match_parent_stratum_and_cannot_fork() {
         let mut portfolio = manifest();
+        portfolio.revision_sequence = 2;
         let parent = portfolio.coverage_obligations[0].clone();
         let successor = CoverageObligation {
             obligation_id: "ODD-successor-a".into(),
