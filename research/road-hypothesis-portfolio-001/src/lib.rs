@@ -2261,7 +2261,7 @@ mod tests {
         ));
         changed_coverage
             .coverage_obligations
-            .retain(|entry| entry.obligation_id != "yielding-reciprocity");
+            .retain(|entry| entry.obligation_id != "yielding");
         assert_eq!(
             PortfolioManifest::validate_append_only_revision(&previous, &changed_coverage),
             Err(PortfolioError::NonAppendOnlyRevision)
