@@ -288,7 +288,7 @@
         "component_id": "reference-simulator",
         "role": "simulator",
         "version": "0.1.0",
-        "configuration_digest": "8a096055700fb7c4e5f7d17beea5d8bc0baf9df687cb94f4459a819ee1f6958f",
+        "configuration_digest": "25049f5e845fd22465e9ad3c79337876ee7793d14fd3fce71525bfdfc054c5b5",
         "behavior_affecting": true,
         "notes": "Deterministic authored benchmark kernel."
       },
@@ -296,7 +296,7 @@
         "component_id": "reference-response-generator",
         "role": "response-generator",
         "version": "0.1.0",
-        "configuration_digest": "77216075a59b2f0416763f74d4fdf63957b9314181d6e253f20d9e6876b7c57f",
+        "configuration_digest": "a4139c79c5ecd5f63496574534f692bdafbaded85fc7a70056f46b8cf45aa247",
         "behavior_affecting": true,
         "notes": "Synthetic oracle or explicit deterministic controller; not a human or LLM."
       },
@@ -304,7 +304,7 @@
         "component_id": "reference-scheduler",
         "role": "scheduler",
         "version": "0.1.0",
-        "configuration_digest": "1624928e7aac04f009765da1e0120d19ffe3028414ff2df1c75201b5b77c8c5b",
+        "configuration_digest": "5003c6f621f4df0a12838588a15f8c6fd980a7c761ad39ee39b42969e54fcdcc",
         "behavior_affecting": true,
         "notes": "Stable serial execution in declared input order."
       },
@@ -312,7 +312,7 @@
         "component_id": "typed-action-parser",
         "role": "action-parser",
         "version": "0.1.0",
-        "configuration_digest": "b5ebea2d4ae05a8b340590186ea305e26d180e5147d5227614a9ec25c9ae5375",
+        "configuration_digest": "7b11eddfafcea6ac4ce3207e85c6ca3c09e62b48e403b21c796ebe16074aeaf6",
         "behavior_affecting": true,
         "notes": "Typed, source-defined structured input parser."
       },
@@ -320,7 +320,7 @@
         "component_id": "typed-action-validator",
         "role": "action-validator",
         "version": "0.1.0",
-        "configuration_digest": "8ff2edab8a71b0c7b0db0fd1a3397360dea1749a7f40bdf780fc6ef7c3cabb65",
+        "configuration_digest": "33966c35cac0b54be4733ee4cbc130e40a113815b68d9a0fb30a1f1dbb7877f4",
         "behavior_affecting": true,
         "notes": "Reject invalid or out-of-contract inputs; no silent repair."
       },
@@ -328,7 +328,7 @@
         "component_id": "complete-event-capture",
         "role": "event-capture",
         "version": "0.1.0",
-        "configuration_digest": "148dc02181ca09d556c5ab843cf8a90a2c043e1228499242c21bcba4ade2b1c9",
+        "configuration_digest": "406036d900ef516d31350d9a373e5be7e57787e453ed6d7cf42577de090842f5",
         "behavior_affecting": true,
         "notes": "Capture every declared input, step, output and metric; missing records fail closed."
       },
@@ -336,7 +336,7 @@
         "component_id": "measurement-kernel",
         "role": "measurement",
         "version": "0.1.0",
-        "configuration_digest": "49d20655a49bb0465669dda695c5ba4c75b6e3c9badabb42350fe33a33cfec54",
+        "configuration_digest": "27e7ec5d9b1702a8101ce7fb41672ff39390b71e1b62272a16d39c0c23e8a9b2",
         "behavior_affecting": true,
         "notes": "Native-unit, task-specific metric calculations."
       },
@@ -344,7 +344,7 @@
         "component_id": "deterministic-randomness-policy",
         "role": "randomness",
         "version": "0.1.0",
-        "configuration_digest": "9e12b773fa81848394ef37f1efe0f1398b925c40ea5fc49e45de0391d10b346a",
+        "configuration_digest": "d1ec263c9b15e596d57fb45597a2022d5401c27e7f072b858def9531d9791c1f",
         "behavior_affecting": true,
         "notes": "No unseeded random source is used by this deterministic fixture."
       }
@@ -381,6 +381,7 @@
       ],
       "dropped_event_count": 0,
       "drop_policy": "fail-closed"
-    }
+    },
+    "component_digest_canonicalization": "sorted-key-value-lines-v1"
   }
 }
