@@ -64,7 +64,8 @@
       "source_lineage_digest": "sha256:lineage-ODD-rain-night-occluded",
       "challenge_protocol_digest": "sha256:challenge-v1",
       "not_applicable_rationale": null,
-      "supersedes_obligation_id": null
+      "supersedes_obligation_id": null,
+      "revision_sequence": 1
     },
     {
       "obligation_id": "yielding-reciprocity",
@@ -78,7 +79,8 @@
       "source_lineage_digest": "sha256:lineage-yielding-reciprocity",
       "challenge_protocol_digest": "sha256:challenge-v1",
       "not_applicable_rationale": null,
-      "supersedes_obligation_id": null
+      "supersedes_obligation_id": null,
+      "revision_sequence": 1
     },
     {
       "obligation_id": "shared-weather-descendants",
@@ -92,7 +94,8 @@
       "source_lineage_digest": "sha256:lineage-shared-weather-descendants",
       "challenge_protocol_digest": "sha256:challenge-v1",
       "not_applicable_rationale": null,
-      "supersedes_obligation_id": null
+      "supersedes_obligation_id": null,
+      "revision_sequence": 1
     },
     {
       "obligation_id": "road-rule-crossing",
@@ -106,7 +109,8 @@
       "source_lineage_digest": "sha256:lineage-road-rule-crossing",
       "challenge_protocol_digest": "sha256:challenge-v1",
       "not_applicable_rationale": null,
-      "supersedes_obligation_id": null
+      "supersedes_obligation_id": null,
+      "revision_sequence": 1
     }
   ],
   "challenge_requirements": [
