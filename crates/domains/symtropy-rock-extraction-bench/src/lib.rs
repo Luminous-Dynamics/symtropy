@@ -96,9 +96,13 @@ pub struct EnergyObservation {
     pub standard_uncertainty_kwh: f64,
     pub basis: EnergyBasis,
     pub boundary_ref: String,
+    /// Declares how energy inputs and conversion losses are accounted for.
+    pub energy_accounting_ref: String,
+    pub calibration_ref: String,
     /// Must exactly match the comparison profile's declared inventory.
     pub included_subsystems: Vec<String>,
     pub evidence_role: EvidenceRole,
+    pub calibration_ref: String,
     pub source_ref: String,
 }
 
@@ -108,6 +112,7 @@ pub struct AcceptedOutputObservation {
     pub standard_uncertainty_m3: f64,
     pub basis: VolumeBasis,
     pub evidence_role: EvidenceRole,
+    pub calibration_ref: String,
     pub source_ref: String,
 }
 
@@ -117,6 +122,7 @@ pub struct TimeObservation {
     pub standard_uncertainty_hours: f64,
     pub basis: TimeBasis,
     pub evidence_role: EvidenceRole,
+    pub calibration_ref: String,
     pub source_ref: String,
 }
 
@@ -383,8 +389,12 @@ fn validate_trial(
         &trial.machine_profile_ref,
         &trial.tool_profile_ref,
         &trial.energy.boundary_ref,
+        &trial.energy.energy_accounting_ref,
+        &trial.energy.calibration_ref,
         &trial.energy.source_ref,
+        &trial.accepted_output.calibration_ref,
         &trial.accepted_output.source_ref,
+        &trial.time.calibration_ref,
         &trial.time.source_ref,
     ];
 
@@ -567,8 +577,11 @@ mod tests {
                 standard_uncertainty_kwh: energy * 0.01,
                 basis: EnergyBasis::FacilityElectricalInput,
                 boundary_ref: profile.energy_boundary_ref,
+                energy_accounting_ref: "energy-accounting:site-input-v1".to_owned(),
+                calibration_ref: "calibration:facility-meter-7:v1".to_owned(),
                 included_subsystems: profile.included_subsystems,
                 evidence_role: EvidenceRole::IndependentMeasurement,
+                calibration_ref: "calibration:facility-meter-7:v1".to_owned(),
                 source_ref: format!("meter:{id}"),
             },
             accepted_output: AcceptedOutputObservation {
@@ -576,6 +589,7 @@ mod tests {
                 standard_uncertainty_m3: volume * 0.01,
                 basis: VolumeBasis::AcceptedSolidVolume,
                 evidence_role: EvidenceRole::IndependentMeasurement,
+                calibration_ref: "calibration:laser-scan-scale:v1".to_owned(),
                 source_ref: format!("scan-weigh:{id}"),
             },
             time: TimeObservation {
@@ -583,6 +597,7 @@ mod tests {
                 standard_uncertainty_hours: hours * 0.01,
                 basis: TimeBasis::FullCycle,
                 evidence_role: EvidenceRole::IndependentMeasurement,
+                calibration_ref: "calibration:clock-sync:v1".to_owned(),
                 source_ref: format!("clock-log:{id}"),
             },
         }
