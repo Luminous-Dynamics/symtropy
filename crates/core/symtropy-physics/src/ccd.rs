@@ -76,9 +76,9 @@ fn vector_is_finite<const D: usize>(value: &SVector<f64, D>) -> bool {
 }
 
 fn vector_max_abs<const D: usize>(value: &SVector<f64, D>) -> f64 {
-    value.iter().fold(0.0_f64, |maximum, component| {
-        maximum.max(component.abs())
-    })
+    value
+        .iter()
+        .fold(0.0_f64, |maximum, component| maximum.max(component.abs()))
 }
 
 /// Scaled Euclidean norm that avoids squaring large finite components.
@@ -106,7 +106,6 @@ fn valid_query_interval(dt: f64) -> Result<(), CcdQueryError> {
     }
     Ok(())
 }
-
 
 /// Speed threshold below which CCD is not applied (optimization).
 /// Bodies moving slower than this per step won't tunnel through typical geometry.
@@ -244,7 +243,12 @@ pub fn sphere_sphere_checked<const D: usize>(
     }
     let sqrt_discriminant = discriminant.max(0.0).sqrt();
 
-    let q = -0.5 * (b + if b >= 0.0 { sqrt_discriminant } else { -sqrt_discriminant });
+    let q = -0.5
+        * (b + if b >= 0.0 {
+            sqrt_discriminant
+        } else {
+            -sqrt_discriminant
+        });
     let (root_a, root_b) = if q == 0.0 {
         let root = -b / (2.0 * a);
         (root, root)
