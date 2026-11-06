@@ -831,12 +831,7 @@ mod tests {
 
     #[test]
     fn zero_variance_noise_is_an_exact_copy_and_invalid_noise_fails_closed() {
-        let trace = simulate(
-            Mechanism::IntrinsicOscillator,
-            Intervention::None,
-            config(),
-        )
-        .unwrap();
+        let trace = simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
         assert_eq!(
             add_gaussian_observation_noise(&trace.samples, 0.0, 99).unwrap(),
             trace.samples
@@ -879,12 +874,7 @@ mod tests {
 
     #[test]
     fn rejects_nonmonotonic_observation_timestamps() {
-        let trace = simulate(
-            Mechanism::IntrinsicOscillator,
-            Intervention::None,
-            config(),
-        )
-        .unwrap();
+        let trace = simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
         let mut invalid = trace.samples.clone();
         invalid[2].timestamp = invalid[1].timestamp;
         assert_eq!(
@@ -899,12 +889,7 @@ mod tests {
 
     #[test]
     fn refuses_to_compare_predictions_on_a_different_time_grid() {
-        let trace = simulate(
-            Mechanism::IntrinsicOscillator,
-            Intervention::None,
-            config(),
-        )
-        .unwrap();
+        let trace = simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
         let mut shifted = trace.samples.clone();
         shifted[10].timestamp += 0.001;
         assert_eq!(
@@ -919,12 +904,8 @@ mod tests {
 
     #[test]
     fn rejects_invalid_candidate_sets_and_score_margin() {
-        let observed = simulate(
-            Mechanism::IntrinsicOscillator,
-            Intervention::None,
-            config(),
-        )
-        .unwrap();
+        let observed =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
         assert_eq!(
             select_mechanism(
                 &observed.samples,
