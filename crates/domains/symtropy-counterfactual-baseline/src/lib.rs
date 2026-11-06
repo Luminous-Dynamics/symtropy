@@ -482,6 +482,9 @@ pub struct BaselineEventReport {
     pub gross_reduction_energy_kwh: f64,
     pub gross_rebound_energy_kwh: f64,
     pub net_reduction_energy_kwh: f64,
+    /// Sum of interval conservative lower-bound energy contributions. This is
+    /// not a joint probability bound without cross-interval dependence.
+    pub conservative_net_reduction_energy_kwh: f64,
     pub minimum_response_kw: f64,
     pub event_qualified: bool,
     /// Interval bounds are not automatically a joint event-horizon probability.
@@ -509,6 +512,7 @@ pub enum BaselineQualificationError {
     InsufficientCalibrationGroups { regime_id: String, observed_groups: usize, required_groups: usize },
     InsufficientEvaluationGroups { regime_id: String, observed_groups: usize, required_groups: usize },
     NoSharedOperatingRegimes,
+    EvaluationRegimeMissingCalibration { regime_id: String },
     InvalidNormalizedPowerScale { regime_id: String },
     BaselineNotQualified,
     BaselineIdentityMismatch,
@@ -538,6 +542,7 @@ impl fmt::Display for BaselineQualificationError {
             Self::InsufficientCalibrationGroups { regime_id, observed_groups, required_groups } => write!(f, "regime {regime_id} has {observed_groups} independent calibration groups; requires {required_groups}"),
             Self::InsufficientEvaluationGroups { regime_id, observed_groups, required_groups } => write!(f, "regime {regime_id} has {observed_groups} independent evaluation groups; requires {required_groups}"),
             Self::NoSharedOperatingRegimes => write!(f, "calibration and evaluation sets have no shared operating regimes"),
+            Self::EvaluationRegimeMissingCalibration { regime_id } => write!(f, "evaluation operating regime {regime_id} has no disjoint calibration residual partition"),
             Self::InvalidNormalizedPowerScale { regime_id } => write!(f, "regime {regime_id} has a zero or invalid normalization scale"),
             Self::BaselineNotQualified => write!(f, "baseline model did not pass its pre-registered holdout qualification"),
             Self::BaselineIdentityMismatch => write!(f, "event model identity does not match qualified baseline identity"),
@@ -606,11 +611,14 @@ pub fn qualify_counterfactual_baseline(
         });
     }
 
-    let regimes: BTreeSet<&str> = calibration
-        .keys()
-        .copied()
-        .filter(|regime| evaluation.contains_key(regime))
-        .collect();
+    for regime_id in evaluation.keys() {
+        if !calibration.contains_key(regime_id) {
+            return Err(BaselineQualificationError::EvaluationRegimeMissingCalibration {
+                regime_id: (*regime_id).to_owned(),
+            });
+        }
+    }
+    let regimes: BTreeSet<&str> = evaluation.keys().copied().collect();
     if regimes.is_empty() {
         return Err(BaselineQualificationError::NoSharedOperatingRegimes);
     }
@@ -777,6 +785,7 @@ pub fn evaluate_baseline_bounded_event(
     let mut gross_reduction_energy_kwh = 0.0;
     let mut gross_rebound_energy_kwh = 0.0;
     let mut net_reduction_energy_kwh = 0.0;
+    let mut conservative_net_reduction_energy_kwh = 0.0;
     let mut qualifying_interval_count = 0usize;
 
     for (index, point) in points.iter().enumerate() {
@@ -832,12 +841,23 @@ pub fn evaluate_baseline_bounded_event(
             qualifying_interval_count += 1;
         }
         let point_energy_kwh = reduction_point_estimate_kw * duration_hours;
+        if !point_energy_kwh.is_finite() {
+            return Err(BaselineQualificationError::NumericalOverflow("point-estimate event energy"));
+        }
         if point_energy_kwh >= 0.0 {
             gross_reduction_energy_kwh += point_energy_kwh;
         } else {
             gross_rebound_energy_kwh += -point_energy_kwh;
         }
         net_reduction_energy_kwh += point_energy_kwh;
+        conservative_net_reduction_energy_kwh += conservative_reduction_energy_kwh;
+        if !gross_reduction_energy_kwh.is_finite()
+            || !gross_rebound_energy_kwh.is_finite()
+            || !net_reduction_energy_kwh.is_finite()
+            || !conservative_net_reduction_energy_kwh.is_finite()
+        {
+            return Err(BaselineQualificationError::NumericalOverflow("aggregate event energy"));
+        }
 
         receipts.push(BaselineEventIntervalReceipt {
             point_id: point.point_id.clone(),
@@ -873,6 +893,7 @@ pub fn evaluate_baseline_bounded_event(
         gross_reduction_energy_kwh,
         gross_rebound_energy_kwh,
         net_reduction_energy_kwh,
+        conservative_net_reduction_energy_kwh,
         minimum_response_kw: qualified_baseline.minimum_response_kw,
         event_qualified,
         event_lower_bound_is_joint_probability: false,
