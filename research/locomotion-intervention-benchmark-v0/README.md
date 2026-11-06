@@ -27,14 +27,19 @@ These are intentionally small synthetic generators for benchmark semantics. The 
 - Trajectory RMSE and phase offset diagnostics.
 - Gaussian predictive log score under a common declared observation variance.
 - Candidate-family selection with a score-margin threshold and explicit abstention.
+- Equal-budget baseline fitting of angular frequency and initial phase for every candidate, using the same bounded grid and the same pre-intervention observations.
+- Frozen post-action forecasts generated without access to held-out outcomes, then scored by a separate function on the held-out suffix.
+- Baseline parameter-score margin reported so frequency/phase grid ties and aliasing ambiguity remain visible.
 - Strictly increasing observable timestamps; malformed/duplicate time samples are rejected, and paired prediction scores require exact timestamp-grid identity.
 - Input validation for sample count, time units, parameter ranges, intervention indices, candidate uniqueness, trace finiteness and score thresholds.
 
-The 20 deterministic tests cover baseline observational equivalence, correct abstention under non-identifiability, divergence after feedback cut, both directions of model selection, phase-pulse persistence versus feedback correction, damped transient decay, feedback-attractor tracking and relaxation, hybrid phase correction, low-amplitude phase abstention, seeded-noise reproducibility and variance recovery, noisy held-out model selection, timestamp chronology and paired time-grid identity, malformed inputs, duplicate candidates and predictive-score ranking.
+The 27 deterministic tests cover baseline observational equivalence, correct abstention under non-identifiability, divergence after feedback cut, both directions of model selection, phase-pulse persistence versus feedback correction, damped transient decay, feedback-attractor tracking and relaxation, hybrid phase correction, low-amplitude phase abstention, seeded-noise reproducibility and variance recovery, noisy held-out model selection, timestamp chronology and paired time-grid identity, malformed inputs, duplicate candidates and predictive-score ranking, equal-budget frequency/phase fitting, baseline observational equivalence after fitting, outcome-blind forecast freezing, held-out feedback-cut and phase-pulse selection, action/prefix alignment and fit-grid validation.
 
 ## What is deliberately not implemented
 
-This V0 does not fit parameters, represent stochastic process noise, implement Bayesian model evidence, estimate confidence intervals, handle irregular timestamps (the sample interval is fixed in this fixture), perform multiple independent seeded trials, model missing data, learn intervention responses, couple six physical legs, simulate contacts or compare FlyGym runtime. Its scalar score comparison is a known-truth demonstration, not a full SOTA benchmark.
+The equal-budget fitter estimates only angular frequency and initial phase by a declared grid search. Feedback decay and coupling remain fixed, common hyperparameters; this is not a full parameter-estimation contest. The score-margin is a grid diagnostic, not a calibrated posterior or confidence interval.
+
+This V0 does not represent stochastic process noise, implement Bayesian model evidence, estimate calibrated uncertainty, handle irregular timestamps (the sample interval is fixed in this fixture), perform multiple independent Monte Carlo benchmark replications, model missing data, learn intervention responses, couple six physical legs, simulate contacts or compare FlyGym runtime. Its scalar score comparison is a known-truth demonstration, not a full SOTA benchmark.
 
 The phase-pulse and feedback-cut operations are idealized synthetic controls. In a measured dataset, every action must be tied to a verified assignment/delivery receipt and actual timing/latency.
 
