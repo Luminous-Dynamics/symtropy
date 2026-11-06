@@ -532,8 +532,8 @@ mod tests {
         simulated.push(100.0);
         let result = compare_metric(
             metric("root_posts"),
-            &set("obs", &observed, "posts/day"),
-            &set("sim", &simulated, "posts/day"),
+            &set("obs", &observed, "posts/day", "non_overlapping_empirical_window"),
+            &set("sim", &simulated, "posts/day", "independent_simulation_run"),
         )
         .unwrap();
 
@@ -576,8 +576,8 @@ mod tests {
         assert!(matches!(
             compare_metric(
                 metric("all"),
-                &set("obs", &values, "posts/day"),
-                &set("sim", &values, "users/day"),
+                &set("obs", &values, "posts/day", "non_overlapping_empirical_window"),
+                &set("sim", &values, "users/day", "independent_simulation_run"),
             ),
             Err(ValidationError::UnitMismatch {
                 side: "simulated",
@@ -592,8 +592,8 @@ mod tests {
         assert!(matches!(
             compare_metric(
                 metric("all"),
-                &set("obs", &values, "posts/day"),
-                &set("sim", &values, "posts/day"),
+                &set("obs", &values, "posts/day", "non_overlapping_empirical_window"),
+                &set("sim", &values, "posts/day", "independent_simulation_run"),
             ),
             Err(ValidationError::TooFewIndependentSamples { .. })
         ));
@@ -662,7 +662,7 @@ mod tests {
         let mut duplicate = set("obs", &values, "posts/day");
         duplicate.samples[1].sample_id = duplicate.samples[0].sample_id.clone();
         assert!(matches!(
-            compare_metric(metric("all"), &duplicate, &set("sim", &values, "posts/day"),),
+            compare_metric(metric("all"), &duplicate, &set("sim", &values, "posts/day", "independent_simulation_run"),),
             Err(ValidationError::DuplicateSampleId { .. })
         ));
 
@@ -671,7 +671,7 @@ mod tests {
         assert!(matches!(
             compare_metric(
                 metric("all"),
-                &set("obs", &values, "posts/day"),
+                &set("obs", &values, "posts/day", "non_overlapping_empirical_window"),
                 &non_finite,
             ),
             Err(ValidationError::NonFiniteValue { .. })
@@ -686,8 +686,8 @@ mod tests {
         assert!(matches!(
             compare_metric(
                 invalid,
-                &set("obs", &values, "posts/day"),
-                &set("sim", &values, "posts/day"),
+                &set("obs", &values, "posts/day", "non_overlapping_empirical_window"),
+                &set("sim", &values, "posts/day", "independent_simulation_run"),
             ),
             Err(ValidationError::EmptyStratumId)
         ));
