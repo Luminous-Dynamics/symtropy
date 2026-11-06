@@ -327,7 +327,7 @@ fn baseline_and_meter_uncertainty_are_both_subtracted_from_delivery() {
             85.0,
             2.0,
             "pcc-receipt-1",
-        "sha256:recovery-receipt",
+            "sha256:recovery-receipt",
         )
         .expect("valid dispatch point"),
         DispatchEventPoint::new(
@@ -341,7 +341,7 @@ fn baseline_and_meter_uncertainty_are_both_subtracted_from_delivery() {
             100.0,
             0.0,
             "pcc-recovery-receipt-1",
-                "sha256:recovery-receipt",
+            "sha256:recovery-receipt",
         )
         .expect("valid recovery point"),
     ];
@@ -378,7 +378,7 @@ fn rebound_is_preserved_and_reduces_net_event_energy() {
             80.0,
             0.0,
             "pcc-1",
-                "sha256:recovery-receipt",
+            "sha256:recovery-receipt",
         )
         .unwrap(),
         DispatchEventPoint::new(
@@ -392,7 +392,7 @@ fn rebound_is_preserved_and_reduces_net_event_energy() {
             110.0,
             0.0,
             "pcc-2",
-        "sha256:recovery-receipt",
+            "sha256:recovery-receipt",
         )
         .unwrap(),
     ];
@@ -442,7 +442,7 @@ fn unqualified_baseline_cannot_be_used_for_event_credit() {
         80.0,
         0.0,
         "pcc-1",
-            "sha256:recovery-receipt",
+        "sha256:recovery-receipt",
     )
     .unwrap();
     let evidence = recovery_evidence(0, 1_000, 2_000, true);
@@ -526,7 +526,7 @@ fn non_contiguous_recovery_horizon_is_rejected() {
             80.0,
             0.0,
             "pcc-1",
-        "sha256:recovery-receipt",
+            "sha256:recovery-receipt",
         )
         .unwrap(),
         DispatchEventPoint::new(
@@ -540,7 +540,7 @@ fn non_contiguous_recovery_horizon_is_rejected() {
             110.0,
             0.0,
             "pcc-2",
-        "sha256:recovery-receipt",
+            "sha256:recovery-receipt",
         )
         .unwrap(),
     ];
@@ -736,7 +736,7 @@ fn event_cannot_qualify_without_at_least_one_recovery_interval() {
         80.0,
         0.0,
         "pcc-dispatch-1",
-            "sha256:recovery-receipt",
+        "sha256:recovery-receipt",
     )
     .unwrap()];
     let evidence = recovery_evidence(0, 1_000, 2_000, true);
