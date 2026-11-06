@@ -1,25 +1,22 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-//! Thermodynamic closure: unifying consciousness energy and physics energy.
+//! Thermodynamic-inspired resource accounting for consciousness/physics coupling.
 //!
-//! This module implements the novel Joules-per-Phi energy accounting system.
-//! Every action costs physical energy from the consciousness budget. Collision
-//! impulses dissipate energy as heat. The total energy is tracked and conserved.
+//! The entity EnergyBudget and ThermodynamicLedger are configurable simulation
+//! models. Their default values are not calibrated SI joules, and impulse-derived
+//! costs are not physical energy. The legacy ledger is model-resource telemetry,
+//! not a whole-system first-law balance. Actual mechanical friction heat is
+//! recorded separately from those model costs.
 //!
-//! # Key Quantities
-//!
-//! - **Landauer bound**: minimum energy per bit of information processing
-//!   (k_B * T * ln(2) ≈ 2.87 × 10⁻²¹ J at body temperature 310K)
-//! - **Joules-per-Phi**: novel metric — how many Joules does it cost to
-//!   maintain a given Φ level? No one has published this.
-//! - **Conservation error**: measures violation of energy conservation law.
-//!   Should remain < 1% for a valid simulation.
+//! The Landauer constant below is a physical reference for one logically
+//! irreversible bit erasure at a declared bath temperature. It is not a generic
+//! cost per cognitive operation, FLOP, prediction error or Shannon bit.
 
-/// Landauer bound at body temperature (310K): k_B * T * ln(2).
-/// Minimum energy to erase one bit of information.
-/// Ref: Landauer (1961), "Irreversibility and Heat Generation"
-pub const LANDAUER_BOUND_310K: f64 = 2.87e-21; // Joules per bit
+/// Landauer heat lower bound for one logically irreversible bit erasure at
+/// 310 K, under the relevant thermal-bath assumptions: k_B * T * ln(2).
+/// It is not a universal computation energy floor.
+pub const LANDAUER_BOUND_310K: f64 = 2.966_678_181_248_014_7e-21; // J / erased bit
 
 /// Body (baseline) temperature for consciousness clarity calculations.
 /// At or below this temperature, no penalty applies.
@@ -59,34 +56,34 @@ pub fn smooth_temperature_penalty(temperature_k: f64) -> f64 {
     (TEMP_CLARITY_FLOOR + (1.0 - TEMP_CLARITY_FLOOR) * sigmoid).clamp(TEMP_CLARITY_FLOOR, 1.0)
 }
 
-/// Default energy per cognitive operation (empirical estimate).
-/// Cortical synapses operate at ~16.6× Landauer limit.
-/// Ref: Laughlin & Sejnowski (2003)
+/// Legacy scenario scale for a cognitive-operation cost. This is a model
+/// parameter, not an empirical measurement of joules per operation or proof
+/// that one cognitive operation erases one physical bit.
 pub const ENERGY_PER_COGNITIVE_OP: f64 = LANDAUER_BOUND_310K * 16.6;
 
-/// Tunable thermodynamic constants for the enforcement layer.
+/// Tunable ALife resource-policy constants.
 ///
-/// These values determine how quickly energy depletes and regenerates.
-/// Calibrated so that solo play survives ~4 minutes, cooperation sustains indefinitely.
+/// Unless independently calibrated, these values are model resource units,
+/// not SI joules. Their scenario tuning controls simulated depletion and
+/// regeneration outcomes; it does not establish biological metabolism.
 #[derive(Debug, Clone)]
 pub struct ThermodynamicConstants {
-    /// Starting Joules for a new entity.
+    /// Initial simulated resource units for a new entity.
     pub initial_energy: f64,
-    /// Maximum energy an entity can hold.
+    /// Maximum simulated resource units an entity can hold.
     pub max_energy: f64,
-    /// Joules per physics-unit of displacement (walking).
-    /// At WALK_SPEED=100 u/s, 64Hz: ~0.0078 J/tick for movement.
+    /// Model resource units charged per physics-unit of displacement.
     pub movement_cost_per_unit: f64,
     /// Sprint cost multiplier (applied on top of movement_cost_per_unit).
     pub sprint_cost_multiplier: f64,
-    /// Joules per tick to maintain consciousness (Φ > 0).
-    /// Higher Φ costs more: actual = base * (1.0 + phi * 0.5).
+    /// Model resource units per tick to maintain consciousness (Φ > 0).
     pub consciousness_maintenance_per_tick: f64,
-    /// Fraction of collision impulse magnitude drained as energy.
+    /// Model resource units drained per unit of collision impulse magnitude.
+    /// This is a gameplay/resource policy, not a momentum-to-joule conversion.
     pub collision_energy_drain: f64,
-    /// Joules per tick gained when harmony resonance > 0.5 with a nearby agent.
+    /// Model resource units regenerated per tick near a harmonious agent.
     pub harmony_resonance_regen_rate: f64,
-    /// Joules per tick gained when standing in an energy well.
+    /// Model resource units regenerated per tick inside an energy well.
     pub energy_well_regen_rate: f64,
     /// Slow background regeneration (too slow alone).
     pub ambient_regen_rate: f64,
@@ -134,21 +131,27 @@ impl Default for ThermodynamicConstants {
     }
 }
 
-/// Thermodynamic ledger: tracks energy flow through the consciousness-physics system.
+/// Legacy per-tick model-resource telemetry.
+///
+/// Despite the historical name and field names, this is not an SI energy
+/// ledger and tick_balance is not a first-law conservation metric. Values
+/// are configured model-resource costs and historical policy terms. Use the
+/// typed physics energy-balance API with measured boundary flows for any
+/// physical conservation claim.
 #[derive(Debug, Clone)]
 pub struct ThermodynamicLedger {
-    /// Total energy input this tick (forces applied, work done).
+    /// Legacy model-resource cost accumulator for actions this tick.
     pub energy_in: f64,
-    /// Total energy output this tick (dissipated as heat via damping/friction).
+    /// Legacy model-resource cost/penalty accumulator for telemetry.
     pub energy_out: f64,
-    /// Phi-weighted energy integral: Σ(energy_i × phi_i) across all entities.
-    /// Used to compute Joules-per-Phi.
+    /// Model-resource-cost-weighted Phi integral across all entities.
+    /// Used by the legacy model-units-per-Phi diagnostic.
     pub phi_energy_integral: f64,
     /// Total Phi change this tick: Σ|Δphi_i|.
     pub phi_change_total: f64,
-    /// Cumulative energy consumed across all ticks.
+    /// Cumulative model-resource cost recorded across all ticks.
     pub lifetime_energy: f64,
-    /// Cumulative conservation error across all ticks.
+    /// Cumulative legacy telemetry residual (not a physical conservation error).
     pub lifetime_error: f64,
     /// Number of ticks processed.
     pub tick_count: u64,
@@ -176,7 +179,8 @@ impl ThermodynamicLedger {
         self.phi_energy_integral += energy_cost * phi;
     }
 
-    /// Record energy dissipated (friction, damping, collision heat).
+    /// Record a legacy model-resource penalty. Do not pass impulse magnitudes
+    /// or measured mechanical heat here and interpret the result as joules.
     pub fn record_dissipation(&mut self, energy: f64) {
         self.energy_out += energy;
     }
