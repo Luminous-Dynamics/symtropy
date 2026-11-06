@@ -202,9 +202,9 @@
   ],
   "reproduction": {
     "code_commit": "d433f090014fa1deba9a3da36ed545841c45b78a",
-    "configuration_digest": "synthetic-fixture-v0.1; no external model or dataset",
+    "configuration_digest": "0c7e21d1d4989729bbef4057fc9df72d20b203f271e0e3e29484d680380030fd",
     "data_manifest_digest": null,
-    "model_identifier": null,
+    "model_identifier": "civdyn_human_fidelity_synthetic_reference",
     "runtime_environment": "Rust edition 2024; deterministic dependency-free crate; GitHub Actions exact-head run",
     "command": "cargo run --locked --manifest-path research/civdyn-human-fidelity/Cargo.toml --bin human-fidelity-sweep",
     "humanity_atlas_run_artifact_ref": "Not applicable: local benchmark-validation fixture, not a full Humanity Atlas scenario run."
@@ -337,5 +337,28 @@
       "dropped_event_count": 0,
       "drop_policy": "fail-closed"
     }
+  },
+  "configuration_passport": {
+    "configuration_id": "HUMSIM-SYNTHETIC-MODE-COLLAPSE-CONTROL-001",
+    "configuration_digest": "0c7e21d1d4989729bbef4057fc9df72d20b203f271e0e3e29484d680380030fd",
+    "canonicalization": "sorted-key-value-lines-v1",
+    "model": {
+      "model_id": "civdyn_human_fidelity_synthetic_reference",
+      "model_version": "0.1.0"
+    },
+    "facets": {
+      "persona_id": "synthetic_structured_context",
+      "interview_protocol_id": "three_context_choice_sequence_v0",
+      "facilitator_id": "not_applicable",
+      "aggregation_rule_id": "per_trial_multiclass_choice",
+      "order_profile_id": "scenario_0_to_2",
+      "prompt_template_id": "not_applicable_no_llm",
+      "tool_policy_id": "none",
+      "evidence_snapshot_id": "HUMSIM-SYNTHETIC-FIXTURE-V0",
+      "decoding_policy_id": "deterministic"
+    },
+    "task_contract_digest": "31a384cd16c906e37be34880aa5e15905bbae3a0348a3234a4d7f2a7439f5792",
+    "data_split_digest": null,
+    "re_audit_policy": "any-decision-relevant-change"
   }
 }
