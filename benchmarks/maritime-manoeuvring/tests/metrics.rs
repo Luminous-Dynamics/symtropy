@@ -1,7 +1,7 @@
 use maritime_manoeuvring_contract::{
-    stopping_metrics, turning_circle_metrics, ContextOfUse, EvidenceRef, EvidenceRole,
-    EvidenceState, ManifestDisposition, ManoeuvringManifest, Trajectory, TrajectoryError,
-    TrajectorySample,
+    ContextOfUse, EvidenceRef, EvidenceRole, EvidenceState, ManifestDisposition,
+    ManoeuvringManifest, Trajectory, TrajectoryError, TrajectorySample, stopping_metrics,
+    turning_circle_metrics,
 };
 
 fn sample(time_s: f64, x_m: f64, y_m: f64, heading_rad: f64) -> TrajectorySample {
@@ -23,7 +23,12 @@ fn right_turn() -> Trajectory {
         .enumerate()
         .map(|(index, heading)| {
             let angle = heading.to_radians();
-            sample(index as f64, 10.0 * angle.sin(), 10.0 * (1.0 - angle.cos()), angle)
+            sample(
+                index as f64,
+                10.0 * angle.sin(),
+                10.0 * (1.0 - angle.cos()),
+                angle,
+            )
         })
         .collect();
     Trajectory {
@@ -82,7 +87,12 @@ fn left_turn_reports_signed_transfer_and_positive_tactical_diameter() {
         .enumerate()
         .map(|(index, heading)| {
             let angle = heading.to_radians();
-            sample(index as f64, -10.0 * angle.sin(), -10.0 * (1.0 - angle.cos()), angle)
+            sample(
+                index as f64,
+                -10.0 * angle.sin(),
+                -10.0 * (1.0 - angle.cos()),
+                angle,
+            )
         })
         .collect();
     let trajectory = Trajectory {
@@ -149,10 +159,42 @@ fn stopping_metrics_interpolate_first_threshold_crossing() {
         vessel_id: "stopping-vessel".to_owned(),
         vessel_length_m: 100.0,
         samples: vec![
-            TrajectorySample { time_s: 0.0, x_m: 0.0, y_m: 0.0, heading_rad: 0.0, surge_mps: 10.0, sway_mps: 0.0, yaw_rate_rad_s: 0.0 },
-            TrajectorySample { time_s: 1.0, x_m: 9.0, y_m: 0.0, heading_rad: 0.0, surge_mps: 8.0, sway_mps: 0.0, yaw_rate_rad_s: 0.0 },
-            TrajectorySample { time_s: 2.0, x_m: 14.0, y_m: 0.0, heading_rad: 0.0, surge_mps: 2.0, sway_mps: 0.0, yaw_rate_rad_s: 0.0 },
-            TrajectorySample { time_s: 3.0, x_m: 15.0, y_m: 0.0, heading_rad: 0.0, surge_mps: 0.0, sway_mps: 0.0, yaw_rate_rad_s: 0.0 },
+            TrajectorySample {
+                time_s: 0.0,
+                x_m: 0.0,
+                y_m: 0.0,
+                heading_rad: 0.0,
+                surge_mps: 10.0,
+                sway_mps: 0.0,
+                yaw_rate_rad_s: 0.0,
+            },
+            TrajectorySample {
+                time_s: 1.0,
+                x_m: 9.0,
+                y_m: 0.0,
+                heading_rad: 0.0,
+                surge_mps: 8.0,
+                sway_mps: 0.0,
+                yaw_rate_rad_s: 0.0,
+            },
+            TrajectorySample {
+                time_s: 2.0,
+                x_m: 14.0,
+                y_m: 0.0,
+                heading_rad: 0.0,
+                surge_mps: 2.0,
+                sway_mps: 0.0,
+                yaw_rate_rad_s: 0.0,
+            },
+            TrajectorySample {
+                time_s: 3.0,
+                x_m: 15.0,
+                y_m: 0.0,
+                heading_rad: 0.0,
+                surge_mps: 0.0,
+                sway_mps: 0.0,
+                yaw_rate_rad_s: 0.0,
+            },
         ],
     };
     let result = stopping_metrics(&trajectory, 0, 1.0).expect("stop crossing");
@@ -167,10 +209,42 @@ fn stopping_metrics_uses_command_sample_not_trajectory_origin() {
         vessel_id: "stop-after-turn".to_owned(),
         vessel_length_m: 50.0,
         samples: vec![
-            TrajectorySample { time_s: 0.0, x_m: 0.0, y_m: 0.0, heading_rad: 0.0, surge_mps: 10.0, sway_mps: 0.0, yaw_rate_rad_s: 0.0 },
-            TrajectorySample { time_s: 1.0, x_m: 10.0, y_m: 0.0, heading_rad: 0.0, surge_mps: 8.0, sway_mps: 0.0, yaw_rate_rad_s: 0.0 },
-            TrajectorySample { time_s: 2.0, x_m: 10.0, y_m: 5.0, heading_rad: std::f64::consts::FRAC_PI_2, surge_mps: 4.0, sway_mps: 0.0, yaw_rate_rad_s: 0.0 },
-            TrajectorySample { time_s: 3.0, x_m: 10.0, y_m: 7.0, heading_rad: std::f64::consts::FRAC_PI_2, surge_mps: 0.0, sway_mps: 0.0, yaw_rate_rad_s: 0.0 },
+            TrajectorySample {
+                time_s: 0.0,
+                x_m: 0.0,
+                y_m: 0.0,
+                heading_rad: 0.0,
+                surge_mps: 10.0,
+                sway_mps: 0.0,
+                yaw_rate_rad_s: 0.0,
+            },
+            TrajectorySample {
+                time_s: 1.0,
+                x_m: 10.0,
+                y_m: 0.0,
+                heading_rad: 0.0,
+                surge_mps: 8.0,
+                sway_mps: 0.0,
+                yaw_rate_rad_s: 0.0,
+            },
+            TrajectorySample {
+                time_s: 2.0,
+                x_m: 10.0,
+                y_m: 5.0,
+                heading_rad: std::f64::consts::FRAC_PI_2,
+                surge_mps: 4.0,
+                sway_mps: 0.0,
+                yaw_rate_rad_s: 0.0,
+            },
+            TrajectorySample {
+                time_s: 3.0,
+                x_m: 10.0,
+                y_m: 7.0,
+                heading_rad: std::f64::consts::FRAC_PI_2,
+                surge_mps: 0.0,
+                sway_mps: 0.0,
+                yaw_rate_rad_s: 0.0,
+            },
         ],
     };
     let result = stopping_metrics(&trajectory, 1, 1.0).expect("stop after command");
@@ -201,7 +275,9 @@ fn stopping_metrics_rejects_invalid_command_index() {
 
 #[test]
 fn manifest_is_ready_only_when_context_roles_are_reviewed_and_current() {
-    let report = manifest(ContextOfUse::TugAssisted).evaluate().expect("valid manifest");
+    let report = manifest(ContextOfUse::TugAssisted)
+        .evaluate()
+        .expect("valid manifest");
     assert_eq!(report.disposition, ManifestDisposition::ReadyForComparison);
     assert!(report.missing_roles.is_empty());
     assert!(report.unresolved_roles.is_empty());
@@ -210,7 +286,8 @@ fn manifest_is_ready_only_when_context_roles_are_reviewed_and_current() {
 #[test]
 fn manifest_does_not_infer_missing_shallow_water_evidence() {
     let mut case = manifest(ContextOfUse::ShallowWater);
-    case.evidence.retain(|item| item.role != EvidenceRole::Bathymetry);
+    case.evidence
+        .retain(|item| item.role != EvidenceRole::Bathymetry);
     let report = case.evaluate().expect("structural manifest");
     assert_eq!(report.disposition, ManifestDisposition::NeedsEvidence);
     assert_eq!(report.missing_roles, vec![EvidenceRole::Bathymetry]);
@@ -222,9 +299,7 @@ fn manifest_rejects_evidence_published_after_decision_cutoff() {
     case.evidence[0].published_at_s = 1.5;
     assert_eq!(
         case.evaluate(),
-        Err(maritime_manoeuvring_contract::ManifestError::FutureEvidence(
-            "e-0".to_owned()
-        ))
+        Err(maritime_manoeuvring_contract::ManifestError::FutureEvidence("e-0".to_owned()))
     );
 }
 
@@ -240,14 +315,20 @@ fn stale_unknown_and_unsupported_are_not_promoted_to_ready() {
     let mut unknown = manifest(ContextOfUse::DeepWaterStandard);
     unknown.evidence[0].state = EvidenceState::Unknown;
     assert_eq!(
-        unknown.evaluate().expect("valid unknown record").disposition,
+        unknown
+            .evaluate()
+            .expect("valid unknown record")
+            .disposition,
         ManifestDisposition::NeedsEvidence
     );
 
     let mut unsupported = manifest(ContextOfUse::DeepWaterStandard);
     unsupported.evidence[0].state = EvidenceState::Unsupported;
     assert_eq!(
-        unsupported.evaluate().expect("valid unsupported record").disposition,
+        unsupported
+            .evaluate()
+            .expect("valid unsupported record")
+            .disposition,
         ManifestDisposition::Unsupported
     );
 }
@@ -286,8 +367,6 @@ fn manifest_rejects_evidence_bound_to_a_different_case() {
     case.evidence[0].case_id = "other-case".to_owned();
     assert_eq!(
         case.evaluate(),
-        Err(maritime_manoeuvring_contract::ManifestError::EvidenceCaseMismatch(
-            "e-0".to_owned()
-        ))
+        Err(maritime_manoeuvring_contract::ManifestError::EvidenceCaseMismatch("e-0".to_owned()))
     );
 }
