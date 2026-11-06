@@ -1109,17 +1109,22 @@ fn solve_linear_system(
             rhs.swap(pivot_row, column);
         }
         let diagonal = matrix[column][column];
-        for col in column..n {
-            matrix[column][col] /= diagonal;
+        for value in matrix[column].iter_mut().skip(column) {
+            *value /= diagonal;
         }
         rhs[column] /= diagonal;
+        let pivot_values = matrix[column].clone();
         for row in 0..n {
             if row == column {
                 continue;
             }
             let factor = matrix[row][column];
-            for col in column..n {
-                matrix[row][col] -= factor * matrix[column][col];
+            for (value, pivot_value) in matrix[row]
+                .iter_mut()
+                .skip(column)
+                .zip(pivot_values.iter().skip(column))
+            {
+                *value -= factor * pivot_value;
             }
             rhs[row] -= factor * rhs[column];
         }
