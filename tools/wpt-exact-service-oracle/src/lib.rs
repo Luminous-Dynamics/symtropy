@@ -20,10 +20,7 @@ fn fail(path: &str, message: impl AsRef<str>) -> String {
     format!("{path}: {}", message.as_ref())
 }
 
-fn object<'a>(
-    value: &'a Value,
-    path: &str,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
     value
         .as_object()
         .ok_or_else(|| fail(path, "must be an object"))
@@ -352,11 +349,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             segment_id,
             receiver_id,
             interval_index: interval as usize,
-            max_deliverable_energy_mwh: uint_field(
-                row,
-                "max_deliverable_energy_mwh",
-                &path,
-            )?,
+            max_deliverable_energy_mwh: uint_field(row, "max_deliverable_energy_mwh", &path)?,
         });
     }
 
@@ -473,12 +466,7 @@ fn send_flow(
     0
 }
 
-fn max_flow(
-    graph: &mut [Vec<Edge>],
-    source: usize,
-    sink: usize,
-    flow_limit_mwh: u64,
-) -> u64 {
+fn max_flow(graph: &mut [Vec<Edge>], source: usize, sink: usize, flow_limit_mwh: u64) -> u64 {
     let mut total_flow = 0_u64;
     loop {
         if total_flow == flow_limit_mwh {
@@ -684,12 +672,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         demand_edge_records.insert(receiver_id.clone(), (from, edge_index));
     }
 
-    let delivered = max_flow(
-        &mut graph,
-        source,
-        sink,
-        scenario.total_minimum_service_mwh,
-    );
+    let delivered = max_flow(&mut graph, source, sink, scenario.total_minimum_service_mwh);
     let mut receiver_allocations = Vec::with_capacity(scenario.receivers.len());
     for (receiver_id, receiver) in &scenario.receivers {
         let (from, edge_index) = demand_edge_records[receiver_id];
@@ -742,8 +725,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
                 receiver_id: slot.receiver_id.clone(),
                 interval_index: slot.interval_index,
                 max_acceptance_mwh: slot.max_acceptance_mwh,
-                allocated_mwh: slot.max_acceptance_mwh
-                    - graph[from][edge_index].residual_mwh,
+                allocated_mwh: slot.max_acceptance_mwh - graph[from][edge_index].residual_mwh,
             }
         })
         .collect::<Vec<_>>();
@@ -754,10 +736,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     let mut minimum_cut_edges = Vec::new();
     let mut minimum_cut_capacity_mwh = 0_u64;
     for record in &records {
-        if record.capacity_mwh > 0
-            && reachable[record.from]
-            && !reachable[record.to]
-        {
+        if record.capacity_mwh > 0 && reachable[record.from] && !reachable[record.to] {
             minimum_cut_capacity_mwh = minimum_cut_capacity_mwh
                 .checked_add(record.capacity_mwh)
                 .ok_or_else(|| "minimum-cut capacity overflowed u64".to_string())?;
@@ -818,7 +797,12 @@ mod tests {
         assert_eq!(report.maximum_deliverable_mwh, 16);
         assert_eq!(report.total_shortfall_mwh, 0);
         assert_eq!(report.minimum_cut_capacity_mwh, 16);
-        assert!(report.receiver_allocations.iter().all(|row| row.shortfall_mwh == 0));
+        assert!(
+            report
+                .receiver_allocations
+                .iter()
+                .all(|row| row.shortfall_mwh == 0)
+        );
         assert_eq!(
             report
                 .segment_allocations
@@ -843,9 +827,12 @@ mod tests {
                 .sum::<u64>(),
             16
         );
-        assert!(report.transfer_allocations.iter().all(|row| {
-            row.allocated_mwh <= row.transfer_capacity_mwh
-        }));
+        assert!(
+            report
+                .transfer_allocations
+                .iter()
+                .all(|row| row.allocated_mwh <= row.transfer_capacity_mwh)
+        );
     }
 
     #[test]
@@ -857,7 +844,7 @@ mod tests {
         assert!(!report.feasible);
         assert_eq!(report.maximum_deliverable_mwh, 8);
         assert_eq!(report.total_shortfall_mwh, 8);
-        assert_eq!(report.minimum_cut_capacity_mwh, 11);
+        assert_eq!(report.minimum_cut_capacity_mwh, 8);
         assert!(!report.minimum_cut_edges.is_empty());
     }
 
@@ -869,15 +856,27 @@ mod tests {
         let report = evaluate_scenario(&scenario).unwrap();
         assert!(!report.feasible);
         assert_eq!(report.total_shortfall_mwh, 1);
-        assert_eq!(report.minimum_cut_capacity_mwh, report.maximum_deliverable_mwh);
-        assert!(report.minimum_cut_edges.iter().any(|edge| edge.kind == "transfer_link"));
+        assert_eq!(
+            report.minimum_cut_capacity_mwh,
+            report.maximum_deliverable_mwh
+        );
+        assert!(
+            report
+                .minimum_cut_edges
+                .iter()
+                .any(|edge| edge.kind == "transfer_link")
+        );
     }
 
     #[test]
     fn missing_segment_slot_is_rejected_instead_of_assumed_unlimited() {
         let mut scenario = fixture();
         scenario["transfer_links"][0]["segment_id"] = Value::String("unknown-segment".into());
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("missing segment slot"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("missing segment slot")
+        );
     }
 
     #[test]
@@ -902,18 +901,30 @@ mod tests {
     fn duplicate_receiver_ids_and_unknown_properties_are_rejected() {
         let mut scenario = fixture();
         scenario["receivers"][1]["receiver_id"] = Value::String("vehicle-01".into());
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("duplicate receiver_id"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("duplicate receiver_id")
+        );
 
         let mut scenario = fixture();
         scenario["optimizer_shortcut"] = Value::Bool(true);
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("unknown property"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("unknown property")
+        );
     }
 
     #[test]
     fn receiver_window_is_half_open_and_rejects_late_receiver_slot() {
         let mut scenario = fixture();
         scenario["receiver_slots"][1]["interval_index"] = Value::from(1);
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("service window"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("service window")
+        );
     }
 
     #[test]
@@ -922,13 +933,20 @@ mod tests {
         scenario["receiver_slots"][0]["max_acceptance_mwh"] = Value::from(0);
         let report = evaluate_scenario(&scenario).unwrap();
         assert!(!report.feasible);
-        assert_eq!(report.minimum_cut_capacity_mwh, report.maximum_deliverable_mwh);
+        assert_eq!(
+            report.minimum_cut_capacity_mwh,
+            report.maximum_deliverable_mwh
+        );
     }
 
     #[test]
     fn integer_energy_arithmetic_detects_total_demand_overflow() {
         let mut scenario = fixture();
         scenario["receivers"][0]["minimum_service_mwh"] = Value::from(u64::MAX);
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("overflowed u64"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("overflowed u64")
+        );
     }
 }
