@@ -279,7 +279,7 @@ Current authored tests cover:
 - mechanism-specific diagnostic channel presence and unit semantics;
 - derived observation lineage;
 - artifact self-cycle detection;
-- ODC speed-ratio recomputation from independently measured encoder observations, raw-channel bindings and matching calibration references;
+- ODC feed–oscillation ratio Rv = v/(omega*e) recomputation from independent encoder observations, raw-channel bindings and matching calibration references; eccentricity ratio Re = e/a recomputation from source-defined cutterhead radius;
 - laser ON, OFF_SHAM and OFF_BASELINE energy semantics;
 - deterministic issue ordering and JSON parse errors.
 
@@ -290,7 +290,7 @@ The laser control distinction is explicit:
 
 This allows the physical mechanical control to be represented without claiming laser delivery.
 
-The current source contains **44 unit tests authored**. The exact command is:
+The current source contains **45 unit tests authored**. The exact command is:
 
 `cargo test --manifest-path crates/domains/symtropy-rock-tool-response-bench/Cargo.toml`
 
@@ -300,3 +300,5 @@ Execution remains unverified because this environment has no Cargo, rustc or rus
 The ODC kinematic evidence path was tightened after review: the configuration now references independent angular-speed and traction-speed observations; each observation must use rad/s or m/s respectively, match the corresponding encoder channel's calibration, and cite a raw artifact that actually contains that channel. The stored speed ratio is recomputed from those observed values and eccentricity, not just from configuration scalars. The ODC fixture now contains four synchronized channels (thrust, torque, angular speed, traction speed). This remains schema/semantic validation of synthetic records; no physical encoder calibration or ODC machine performance is established.
 
 A further follow-on issue, #3839, tracks the broader need to distinguish setpoints from actual measured values for ATCP and laser-PDC energy stages, including protocol-specific synchronization tolerances.
+
+The ODC geometry bundle now also records the source-defined eccentricity ratio Re = e/a, where a is the cutterhead radius in Zhang et al. (2026), alongside Rv = v/(omega*e). The semantic validator recomputes Re from eccentricity and cutterhead radius and rejects a mismatch. These ratios remain mechanism/profile-specific descriptors; the raw variables are always retained. Reference: https://doi.org/10.3390/machines14070829.
