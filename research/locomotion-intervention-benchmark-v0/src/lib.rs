@@ -3289,7 +3289,6 @@ mod tests {
         alias_config.sample_count = 12;
         alias_config.sample_interval = std::f64::consts::PI;
         alias_config.angular_frequency = 0.5;
-        alias_config.damping_rate = 0.0;
         let generated = simulate(
             Mechanism::IntrinsicOscillator,
             Intervention::None,
