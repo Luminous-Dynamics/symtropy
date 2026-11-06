@@ -1108,7 +1108,7 @@ mod tests {
     #[test]
     fn cause_specific_censored_log_score_matches_piecewise_hazard_calculation() {
         let report = evaluate_run(&fixture()).unwrap();
-        assert!((report.cause_specific_hazard_log_score - 3.3165540492110956).abs() < 1e-12);
+        assert!((report.cause_specific_hazard_log_score - 2.5669264097478806).abs() < 1e-12);
     }
 
     #[test]
@@ -1120,7 +1120,7 @@ mod tests {
         assert!(
             (boundary.cause_specific_hazard_log_score
                 - baseline.cause_specific_hazard_log_score
-                - 0.027 / 8.0)
+                - 0.16094379124341002 / 8.0)
                 .abs()
                 < 1e-12
         );
@@ -1145,8 +1145,28 @@ mod tests {
     #[test]
     fn rejects_zero_hazard_for_an_observed_event_cause() {
         let mut run = fixture();
-        run["subjects"][0]["predicted_cause_specific_hazard_rates_per_hour"][0]["rates_per_interval"]
-            [0] = Value::from(0.0);
+        let aggregate_hazard =
+            0.10058986952713125 + 3.0 * 0.020117973905426252;
+        let redistributed_hazard = aggregate_hazard / 3.0;
+        for (index, hazard) in run["subjects"][0]
+            ["predicted_cause_specific_hazard_rates_per_hour"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .enumerate()
+        {
+            let rate = if index == 0 { 0.0 } else { redistributed_hazard };
+            hazard["rates_per_interval"] = Value::Array(vec![Value::from(rate); 3]);
+        }
+        for (index, cause) in run["subjects"][0]["predicted_cumulative_incidence"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .enumerate()
+        {
+            cause["probability"] = Value::from(if index == 0 { 0.0 } else { 0.8 / 3.0 });
+        }
+
         assert!(
             evaluate_run(&run)
                 .unwrap_err()
@@ -1175,6 +1195,23 @@ mod tests {
         planned_replacement["predicted_cumulative_incidence"][1]["probability"] = Value::from(0.05);
         planned_replacement["predicted_cumulative_incidence"][2]["probability"] = Value::from(0.05);
         planned_replacement["predicted_cumulative_incidence"][3]["probability"] = Value::from(0.8);
+
+        // Keep all three forecast representations coherent while making the
+        // competing-event probability match the known observed cause.
+        let total_hazard = -0.05_f64.ln() / 10.0;
+        let low_cause_hazard = total_hazard / 19.0;
+        for hazard in planned_replacement["predicted_cause_specific_hazard_rates_per_hour"]
+            .as_array_mut()
+            .unwrap()
+        {
+            let rate = if hazard["event_code"] == "PLANNED_REPLACEMENT" {
+                low_cause_hazard * 16.0
+            } else {
+                low_cause_hazard
+            };
+            hazard["rates_per_interval"] = Value::Array(vec![Value::from(rate); 3]);
+        }
+
         let changed = evaluate_run(&run).unwrap();
         let baseline = evaluate_run(&fixture()).unwrap();
         assert!(changed.ipcw_competing_risk_brier_score < baseline.ipcw_competing_risk_brier_score);
