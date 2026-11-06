@@ -464,13 +464,11 @@ impl<const D: usize> PhysicsWorld<D> {
             }
         }
 
-        // 1b. Continuous Collision Detection (CCD): fast-moving bodies can
-        // tunnel straight through thin colliders within a single discrete
-        // step. For bodies exceeding `ccd::CCD_SPEED_THRESHOLD`, sweep the
-        // pre-integration position forward along the post-integration
-        // velocity and clamp to the time-of-impact if a hit is found, so
-        // narrowphase (step 3) sees a body sitting at the surface instead of
-        // having skipped past it.
+        // 1b. Continuous Collision Detection (CCD): a body can cross a
+        // collider between discrete samples even at modest absolute speed.
+        // Activate sweeps from dimensionless travel distance relative to the
+        // sphere radius; sphere pairs use relative displacement and the
+        // smaller radius. Clamp to the earliest TOI before narrowphase.
         self.run_ccd_pass(&pre_integration_positions, dt);
 
         // 2. Broadphase: find potentially colliding pairs (incremental static cache)
@@ -767,20 +765,18 @@ impl<const D: usize> PhysicsWorld<D> {
         // based on the physics step time (dt).
     }
 
-    /// Continuous collision detection sweep for fast-moving bodies.
+    /// Continuous collision detection sweep for spherical colliders.
     ///
-    /// Only spheres are supported (matching `ccd.rs`'s analytical solvers).
-    /// For each dynamic, non-sleeping sphere body whose speed exceeds
-    /// `ccd::CCD_SPEED_THRESHOLD`, sweeps against every other body's
-    /// pre-integration position:
-    /// - vs. `HalfSpace` colliders: `ccd::sphere_halfspace`
-    /// - vs. `Sphere` colliders: `ccd::sphere_sphere`
+    /// Activation uses a dimensionless swept-displacement criterion rather
+    /// than one absolute speed threshold:
+    /// - sphere vs. halfspace: `|v| * dt / radius`;
+    /// - sphere vs. sphere: `|v_i - v_j| * dt / min(radius_i, radius_j)`.
     ///
-    /// The earliest time-of-impact (TOI) across all candidates is used to
-    /// clamp the body's position to `pos_start + vel * toi`, preventing
-    /// tunneling before narrowphase (step 3) runs. Other collider shapes are
-    /// not covered by CCD; fast-moving bodies with e.g. box colliders can
-    /// still tunnel (a known scope limit of the current CCD module).
+    /// A sweep is selected when the ratio reaches
+    /// `ccd::CCD_SWEEP_FRACTION`. This is a work-selection heuristic, not an
+    /// accuracy guarantee. The earliest TOI clamps the dynamic sphere to its
+    /// own position at impact before narrowphase. Other collider shapes and
+    /// rotational sweeps are not covered; those cases can still tunnel.
     fn run_ccd_pass(&mut self, pre_integration_positions: &[SVector<f64, D>], dt: f64) {
         let n = self.bodies.len();
         debug_assert_eq!(n, pre_integration_positions.len());
