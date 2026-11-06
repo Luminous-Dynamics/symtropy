@@ -1134,7 +1134,7 @@ mod tests {
 
     #[test]
     fn trajectory_artifact_identity_and_segment_pose_windows_are_required() {
-        let mut ledger = fixture();
+        let ledger = fixture();
         assert!(ledger.validate().is_ok());
 
         let mut ledger = fixture();
