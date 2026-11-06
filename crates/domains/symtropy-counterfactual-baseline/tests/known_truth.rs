@@ -422,3 +422,118 @@ fn non_contiguous_recovery_horizon_is_rejected() {
         symtropy_counterfactual_baseline::BaselineQualificationError::NonContiguousEventIntervals { .. }
     ));
 }
+
+#[test]
+fn residual_quantile_weights_independent_blocks_not_autocorrelated_rows() {
+    let mut rows = Vec::new();
+    for i in 0..3 {
+        rows.push(observation(
+            i,
+            "one-bad-session",
+            BaselineFold::Calibration,
+            100.0,
+            80.0,
+        ));
+    }
+    for i in 3..42 {
+        rows.push(observation(
+            i,
+            &format!("cal-group-{i}"),
+            BaselineFold::Calibration,
+            100.0,
+            100.0,
+        ));
+    }
+    for i in 0..20 {
+        rows.push(observation(
+            100 + i,
+            &format!("eval-group-{i}"),
+            BaselineFold::Evaluation,
+            100.0,
+            100.0,
+        ));
+    }
+    let report = qualify_counterfactual_baseline(&identity(), &contract(), &rows)
+        .expect("baseline qualification report");
+    assert_eq!(report.regime("normal").unwrap().calibration_group_count, 40);
+    assert_eq!(report.regime("normal").unwrap().lower_residual_quantile_kw, 0.0);
+}
+
+#[test]
+fn evaluation_regime_without_calibration_abstains() {
+    let mut rows = Vec::new();
+    for i in 0..40 {
+        rows.push(observation(
+            i,
+            &format!("cal-{i}"),
+            BaselineFold::Calibration,
+            100.0,
+            100.0,
+        ));
+    }
+    for i in 0..20 {
+        rows.push(NoDispatchObservation::new(
+            format!("hot-eval-{i}"),
+            format!("hot-group-{i}"),
+            "heatwave",
+            "sha256:evaluation",
+            0,
+            (100 + i) as u64 * 1_000_000_000,
+            1_000_000_000,
+            100.0,
+            100.0,
+            0.0,
+            BaselineFold::Evaluation,
+            false,
+        ).unwrap());
+    }
+    let error = qualify_counterfactual_baseline(&identity(), &contract(), &rows)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_counterfactual_baseline::BaselineQualificationError::EvaluationRegimeMissingCalibration { .. }
+    ));
+}
+
+#[test]
+fn observation_source_digest_must_match_pinned_partition() {
+    let mut rows = Vec::new();
+    for i in 0..40 {
+        rows.push(observation(
+            i,
+            &format!("cal-{i}"),
+            BaselineFold::Calibration,
+            100.0,
+            100.0,
+        ));
+    }
+    rows.push(NoDispatchObservation::new(
+        "wrong-source",
+        "eval-group",
+        "normal",
+        "sha256:wrong-evaluation-source",
+        0,
+        100_000_000_000,
+        1_000_000_000,
+        100.0,
+        100.0,
+        0.0,
+        BaselineFold::Evaluation,
+        false,
+    ).unwrap());
+    for i in 1..20 {
+        rows.push(observation(
+            100 + i,
+            &format!("eval-{i}"),
+            BaselineFold::Evaluation,
+            100.0,
+            100.0,
+        ));
+    }
+    let error = qualify_counterfactual_baseline(&identity(), &contract(), &rows)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_counterfactual_baseline::BaselineQualificationError::SourceDigestMismatch { .. }
+    ));
+}
