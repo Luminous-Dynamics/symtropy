@@ -663,6 +663,27 @@ pub enum BaselineQualificationError {
     DuplicateEventPoint {
         point_id: String,
     },
+    InvalidEventRecoveryHorizon {
+        event_start_ns: u64,
+        dispatch_end_ns: u64,
+        observation_horizon_end_ns: u64,
+    },
+    EventHorizonStartMismatch {
+        expected_start_ns: u64,
+        observed_start_ns: u64,
+    },
+    EventHorizonEndMismatch {
+        expected_end_ns: u64,
+        observed_end_ns: u64,
+    },
+    EventIntervalStraddlesDispatchEnd {
+        index: usize,
+        dispatch_end_ns: u64,
+    },
+    DispatchRecoveryPhaseOrderViolation {
+        index: usize,
+    },
+    MissingRecoveryIntervals,
     EmptyEvent,
     TimestampOverflow,
     NumericalOverflow(&'static str),
@@ -770,6 +791,40 @@ impl fmt::Display for BaselineQualificationError {
             Self::DuplicateEventPoint { point_id } => {
                 write!(f, "duplicate event point ID {point_id}")
             }
+            Self::InvalidEventRecoveryHorizon {
+                event_start_ns,
+                dispatch_end_ns,
+                observation_horizon_end_ns,
+            } => write!(
+                f,
+                "event recovery horizon must satisfy start < dispatch end < observed-through; got {event_start_ns}, {dispatch_end_ns}, {observation_horizon_end_ns}"
+            ),
+            Self::EventHorizonStartMismatch {
+                expected_start_ns,
+                observed_start_ns,
+            } => write!(
+                f,
+                "event trace starts at {observed_start_ns}; recovery evidence requires {expected_start_ns}"
+            ),
+            Self::EventHorizonEndMismatch {
+                expected_end_ns,
+                observed_end_ns,
+            } => write!(
+                f,
+                "event trace ends at {observed_end_ns}; recovery evidence requires {expected_end_ns}"
+            ),
+            Self::EventIntervalStraddlesDispatchEnd { index, dispatch_end_ns } => write!(
+                f,
+                "event interval {index} straddles dispatch-end boundary {dispatch_end_ns}"
+            ),
+            Self::DispatchRecoveryPhaseOrderViolation { index } => write!(
+                f,
+                "dispatch/recovery phase order is invalid at interval {index}"
+            ),
+            Self::MissingRecoveryIntervals => write!(
+                f,
+                "event evidence requires at least one recovery interval after dispatch ends"
+            ),
             Self::EmptyEvent => write!(f, "event evaluation requires at least one interval"),
             Self::TimestampOverflow => write!(f, "timestamp arithmetic overflow"),
             Self::NumericalOverflow(field) => write!(f, "numerical overflow computing {field}"),
