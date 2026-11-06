@@ -9,7 +9,7 @@
       "method": "PlanWAM",
       "score": 93.8,
       "unit": "points",
-      "protocol": "open-loop scoring track; 85k train / 18k validation; navtest 12,146 scenes",
+      "protocol": "open-loop scoring track; 85k train / 18k validation; navtest 12,146 scenes; K=64 candidates, 8 waypoints, 4 s planning horizon",
       "source": "https://arxiv.org/abs/2610.11382",
       "claim": "paper-reported; reproduce checkpoint and protocol"
     },
@@ -20,7 +20,7 @@
       "method": "World4Scorer",
       "score": 94,
       "unit": "points",
-      "protocol": "navtest; candidate scoring with inertial re-ranking",
+      "protocol": "navtest; candidate scoring with inertial re-ranking; generator proposes 64 candidates; separate 16-candidate bank supplies additional simulator-labelled training states; released NAVSIM checkpoint 35.5M parameters",
       "source": "https://github.com/World4Scorer/World4Scorer",
       "claim": "official release reported"
     },
@@ -31,7 +31,7 @@
       "method": "World4Scorer + inertial re-ranking",
       "score": 93,
       "unit": "points",
-      "protocol": "navtest; reports 91.4 without inertial re-ranking",
+      "protocol": "navtest; reports 91.4 without inertial re-ranking; generator proposes 64 candidates; separate 16-candidate bank supplies additional simulator-labelled training states; released NAVSIM checkpoint 35.5M parameters",
       "source": "https://github.com/World4Scorer/World4Scorer",
       "claim": "official release reported"
     },
@@ -42,7 +42,7 @@
       "method": "PlanWAM",
       "score": 90.9,
       "unit": "points",
-      "protocol": "navtest; PDMS is not this metric",
+      "protocol": "navtest; PDMS is not this metric; project configuration K=64 candidates",
       "source": "https://arxiv.org/abs/2610.11382",
       "claim": "paper-reported"
     },
@@ -53,7 +53,7 @@
       "method": "World4Scorer adapted system",
       "score": 73.27,
       "unit": "points",
-      "protocol": "official 1000-clip subset; route-point input and deployment rules; reported success 46.36%",
+      "protocol": "official 1000-clip subset; route-point input and deployment rules; reported success 46.36%; generator proposes 64 candidates; separate 16-candidate bank supplies additional simulator-labelled training states; released NAVSIM checkpoint 35.5M parameters",
       "source": "https://github.com/World4Scorer/World4Scorer",
       "claim": "adapted subset; not directly comparable with full leaderboard"
     },
@@ -175,6 +175,20 @@
       "protocol": "ground-truth perception input; separated privileged section",
       "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
       "claim": "privileged reference; not comparable with ordinary sensor-only systems"
+    },
+    {
+      "track": "hugsim",
+      "metric": "HD-Score",
+      "benchmark_version": "current public aggregator snapshot",
+      "method": "SimVTA (extra data)",
+      "score": 38.8,
+      "unit": "points",
+      "secondary_metric": "Route Completion",
+      "secondary_score": 51.5,
+      "secondary_unit": "percent",
+      "protocol": "aggregator marks extra data; exact split and evaluation details must be pinned before direct comparison",
+      "source": "https://scholarcompass.net/en/tasks/autonomous-driving/benchmarks/hugsim",
+      "claim": "aggregator snapshot; not assumed protocol-equivalent to PlanWAM"
     }
   ],
   "interpretation_rules": [
@@ -183,6 +197,7 @@
     "Do not compare HUGSIM public aggregator results with paper zero-shot scores until split and evaluation scope match.",
     "Keep world-model prediction, planner score, closed-loop driving, multi-agent realism, and decision-quality evidence as separate tracks.",
     "Bench2Drive 0.0.3 rows are self-reported results copied from papers and vary by data, expert, training and inference compute; ground-truth-perception rows are privileged and must be separated.",
-    "Do not treat the 90.2 DriveVLA-W0 one-camera PDMS row and its separate dagger-marked 93.0 entry as the same configuration."
+    "Do not treat the 90.2 DriveVLA-W0 one-camera PDMS row and its separate dagger-marked 93.0 entry as the same configuration.",
+    "PlanWAM and World4Scorer both use K=64 candidate configurations; the EGCI selector reproduction ladder must include K=64 and charge generation, scoring, continuation and replay costs separately."
   ]
 }

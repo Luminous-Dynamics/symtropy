@@ -40,6 +40,8 @@ Numbers below are protocol-specific reference points, not a single ordered ranki
 - World4Scorer is an outcome-grounded candidate scorer: simulator outcomes supervise generated candidates while the logged future anchors the shared predictor. Its 93.0 EPDMS, 94.0 PDMS, and 73.27 adapted Bench2Drive-220 scores belong to separate evaluation tracks.
 - The official Bench2Drive 0.0.3 repository says its leaderboard is self-reported and copied from publications, and that methods vary in datasets, experts, pre-training, training compute and inference compute. It separates ground-truth-perception privileged methods below a divider. Its last-updated date is 24 September 2026; treat 96.34 (BridgeDrive/LEAD) as a published leaderboard reference, not a controlled apples-to-apples architecture comparison.
 - DriveVLA-W0's official NAVSIM table lists a 90.2 PDMS one-camera row and a separate dagger-marked 93.0 row. This matrix records the 90.2 row only until the symbol/configuration note is pinned in the reproduction manifest.
+- PlanWAM uses (K=64) trajectory candidates, 8 waypoints and a 4-second planning horizon in its project-page configuration. This makes (K=64) a required candidate-count operating point for any selector reproduction, not an optional scale-up.
+- - World4Scorer generates 64 candidate trajectories and uses a separate 16-candidate bank for additional simulator-labelled training states. Its released NAVSIM checkpoint is 35.5M parameters. It reports 94.0 PDMS on NAVSIM-v1, 93.0 EPDMS with inertial re-ranking on NAVSIM-v2, and 73.27 Driving Score on the adapted Bench2Drive-220 track. These scores remain distinct protocol tracks.
 - PlanWAM's key research idea is *planning-shaped future representation*: trajectory-planning objectives shape a future latent, then a history-only prior predicts it at inference. Its NAVSIM and HUGSIM results should be reproduced independently.
 - DriveVLA-W0 is a dense-supervision/data-scaling comparator: future-image prediction supplies self-supervision to a VLA, with a lightweight action expert for inference.
 - ReWAM is the interaction-modeling comparator: a Level-k response hierarchy models mutually influential ego/other-agent actions. It is conceptually aligned with reciprocity; its paper's NAVSIM claims still need exact reproduction.
@@ -160,9 +162,13 @@ For primary research claims, aim for at least 100 independently defined scenario
 - Use family-clustered intervals and disclose multiplicity, censoring, failed runs, and abstentions.
 - Publish raw submetrics and failure slices. A larger aggregate must not conceal worse collision rate, comfort, feasibility, or ODD coverage.
 
-## 8. Immediate execution order
+## 8. Matched-compute selector protocol
 
-1. Reproduce PlanWAM and World4Scorer NAVSIM-v1/v2 baselines with exact checkpoints and code.
+For the Luminous selector study, the candidate-count sweep must include (K=64), because both PlanWAM and World4Scorer publish 64-candidate configurations. Extend the initial (K=1,2,4,8,16,32) ladder to (K=1,2,4,8,16,32,64). Candidate generation, candidate scoring, repeated continuations, support filtering and post-selection replay must each be included in the compute ledger.
+
+## 9. Immediate execution order
+
+1. Reproduce PlanWAM and World4Scorer NAVSIM-v1/v2 baselines with exact checkpoints and code; include their K=64 operating point.
 2. Reproduce current Bench2Drive full-stack leader and the distinct World4Scorer adapted track.
 3. Reproduce PlanWAM HUGSIM zero-shot, then investigate the public 46.6 HD-Score result under a matching protocol.
 4. Run ReactSim-Bench and WOSAC as agent-response realism tracks.
