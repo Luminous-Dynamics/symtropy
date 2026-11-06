@@ -583,6 +583,7 @@ mod tests {
         );
 
         run.has_intervention = false;
+        run.action_delivery_receipt_sha256 = Some(digest('f'));
         assert_eq!(
             run.validate(),
             Err(EvidenceError::UnexpectedInterventionReceipt)
