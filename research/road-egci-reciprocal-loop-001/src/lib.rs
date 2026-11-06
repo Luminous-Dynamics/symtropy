@@ -287,7 +287,7 @@ remove action vectors    let mut ego_visible = Vec::<String>::new();
                 CueKind::EgoTimeToConflictSeconds,
                 provenance,
                 CueValue::TimeToConflictSeconds(actor_ttc_seconds),
-                ScenarioTick(tick),
+                ScenarioTick(tick.saturating_sub(1)),
                 ScenarioTick(tick),
             )],
         )
@@ -675,7 +675,9 @@ fn observation_delivery(
         source_event_id: source_event_id.into(),
         recipient_actor_id: recipient_actor_id.into(),
         observation_payload_digest,
-        observed_tick: tick,
+        // The cue is derived from the last committed physics snapshot and
+        // delivered to the policy in the current decision epoch.
+        observed_tick: tick.saturating_sub(1),
         generated_tick: tick,
         generated_event_sequence,
         delivered_tick: Some(tick),
@@ -968,6 +970,18 @@ mod tests {
             for transition in &branch.transitions {
                 let at_tick: Vec<_> = branch.decisions.iter().filter(|item| item.tick == transition.tick).collect();
                 assert!(at_tick.iter().all(|item| item.command_latch_event_sequence.unwrap() < transition.physics_event_sequence));
+            }
+        }
+    }
+
+    #[test]
+    fn observations_bind_prior_physics_epoch_and_current_delivery_epoch() {
+        let experiment = run_reciprocal_experiment().unwrap();
+        for branch in &experiment.episode.branches {
+            for cue in branch.observations.iter().filter(|cue| cue.generated_tick > 0) {
+                assert_eq!(cue.observed_tick + 1, cue.generated_tick);
+                assert_eq!(cue.delivered_tick, Some(cue.generated_tick));
+                assert!(cue.generated_event_sequence < cue.delivered_event_sequence.unwrap());
             }
         }
     }
