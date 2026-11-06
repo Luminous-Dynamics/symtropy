@@ -87,6 +87,12 @@ pub enum BenchmarkError {
     InvalidFeedbackDecayRate,
     InvalidFeedbackCoupling,
     InvalidObservationVariance,
+    InvalidInterventionCandidateId,
+    DuplicateInterventionCandidate,
+    InvalidInterventionCost,
+    EmptyInterventionSet,
+    NoFeasibleInterventions,
+    InvalidDesignThreshold,
     InvalidInterventionIndex,
     InvalidPhasePulse,
     InvalidScoreMargin,
@@ -1067,6 +1073,204 @@ pub fn run_paired_seed_evaluation(
     Ok(summaries)
 }
 
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct InterventionCandidate {
+    pub id: String,
+    pub intervention: Intervention,
+    /// First sample at which the intervention may affect model outputs.
+    pub onset_index: usize,
+    /// Comparable resource, risk or time cost in caller-defined units.
+    pub cost: f64,
+    /// Infeasible actions are excluded before scoring.
+    pub feasible: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PairwiseSeparation {
+    pub left: Mechanism,
+    pub right: Mechanism,
+    pub post_intervention_rmse: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct InterventionDesign {
+    pub candidate_id: String,
+    pub intervention: Intervention,
+    pub onset_index: usize,
+    pub cost: f64,
+    pub worst_pairwise_rmse: f64,
+    pub mean_pairwise_rmse: f64,
+    /// Worst-pair separation divided by action cost.
+    pub maximin_utility: f64,
+    pub pairwise: Vec<PairwiseSeparation>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum InterventionDesignDecision {
+    Selected {
+        design: InterventionDesign,
+    },
+    Abstained {
+        best_candidate_id: String,
+        maximin_utility: f64,
+        worst_pairwise_rmse: f64,
+    },
+}
+
+/// Rank candidate interventions by robust pairwise forecast disagreement.
+///
+/// Each candidate mechanism receives the same initial condition, time grid,
+/// intervention and fixed model parameters. The objective is the minimum
+/// post-onset trajectory RMSE over all pairs of candidate mechanisms, divided
+/// by the declared action cost. This maximin rule favours interventions that
+/// separate the hardest-to-distinguish pair instead of maximizing average
+/// disagreement while leaving one pair observationally equivalent.
+///
+/// This is a deterministic disagreement heuristic, not Bayesian expected
+/// information gain: it has no posterior over models, parameters or outcomes.
+/// It is useful as a transparent first-stage action selector and an oracle
+/// benchmark for later posterior-predictive planners.
+pub fn design_discriminating_intervention(
+    mechanisms: &[Mechanism],
+    candidates: &[InterventionCandidate],
+    config: SimulationConfig,
+    minimum_maximin_utility: f64,
+) -> Result<InterventionDesignDecision, BenchmarkError> {
+    config.validate()?;
+    if mechanisms.len() < 2 {
+        return Err(BenchmarkError::EmptyCandidateSet);
+    }
+    if candidates.is_empty() {
+        return Err(BenchmarkError::EmptyInterventionSet);
+    }
+    if !minimum_maximin_utility.is_finite() || minimum_maximin_utility < 0.0 {
+        return Err(BenchmarkError::InvalidDesignThreshold);
+    }
+
+    let mut ordered_mechanisms = mechanisms.to_vec();
+    ordered_mechanisms.sort();
+    let unique_mechanisms: BTreeSet<_> = ordered_mechanisms.iter().copied().collect();
+    if unique_mechanisms.len() != ordered_mechanisms.len() {
+        return Err(BenchmarkError::DuplicateCandidate);
+    }
+
+    let mut unique_ids = BTreeSet::new();
+    for candidate in candidates {
+        if candidate.id.trim().is_empty() {
+            return Err(BenchmarkError::InvalidInterventionCandidateId);
+        }
+        if !unique_ids.insert(candidate.id.clone()) {
+            return Err(BenchmarkError::DuplicateInterventionCandidate);
+        }
+        if !candidate.cost.is_finite() || candidate.cost <= 0.0 {
+            return Err(BenchmarkError::InvalidInterventionCost);
+        }
+        if candidate.onset_index >= config.sample_count {
+            return Err(BenchmarkError::InvalidInterventionIndex);
+        }
+        let action_index = match candidate.intervention {
+            Intervention::FeedbackCutFrom { sample_index }
+            | Intervention::PhasePulseAt { sample_index, .. } => sample_index,
+            Intervention::None => return Err(BenchmarkError::InvalidInterventionAlignment),
+        };
+        if action_index != candidate.onset_index {
+            return Err(BenchmarkError::InvalidInterventionAlignment);
+        }
+        validate_intervention(candidate.intervention, config)?;
+    }
+
+    let mut designs = Vec::new();
+    for candidate in candidates.iter().filter(|candidate| candidate.feasible) {
+        let mut traces = Vec::with_capacity(ordered_mechanisms.len());
+        for mechanism in &ordered_mechanisms {
+            traces.push((
+                *mechanism,
+                simulate(*mechanism, candidate.intervention, config)?,
+            ));
+        }
+
+        let mut pairwise = Vec::new();
+        let mut worst_pairwise_rmse = f64::INFINITY;
+        let mut pairwise_sum = 0.0;
+        for left_index in 0..traces.len() {
+            for right_index in (left_index + 1)..traces.len() {
+                let divergence = post_intervention_rmse(
+                    &traces[left_index].1.samples,
+                    &traces[right_index].1.samples,
+                    candidate.onset_index,
+                )?;
+                if !divergence.is_finite() {
+                    return Err(BenchmarkError::NumericalFailure);
+                }
+                worst_pairwise_rmse = worst_pairwise_rmse.min(divergence);
+                pairwise_sum += divergence;
+                pairwise.push(PairwiseSeparation {
+                    left: traces[left_index].0,
+                    right: traces[right_index].0,
+                    post_intervention_rmse: divergence,
+                });
+            }
+        }
+
+        let pair_count = pairwise.len();
+        if pair_count == 0 {
+            return Err(BenchmarkError::EmptyCandidateSet);
+        }
+        let mean_pairwise_rmse = pairwise_sum / pair_count as f64;
+        let maximin_utility = worst_pairwise_rmse / candidate.cost;
+        if !mean_pairwise_rmse.is_finite() || !maximin_utility.is_finite() {
+            return Err(BenchmarkError::NumericalFailure);
+        }
+
+        designs.push(InterventionDesign {
+            candidate_id: candidate.id.clone(),
+            intervention: candidate.intervention,
+            onset_index: candidate.onset_index,
+            cost: candidate.cost,
+            worst_pairwise_rmse,
+            mean_pairwise_rmse,
+            maximin_utility,
+            pairwise,
+        });
+    }
+
+    if designs.is_empty() {
+        return Err(BenchmarkError::NoFeasibleInterventions);
+    }
+    designs.sort_by(|left, right| {
+        right
+            .maximin_utility
+            .total_cmp(&left.maximin_utility)
+            .then_with(|| left.candidate_id.cmp(&right.candidate_id))
+    });
+
+    let best = designs.remove(0);
+    if best.maximin_utility <= minimum_maximin_utility {
+        Ok(InterventionDesignDecision::Abstained {
+            best_candidate_id: best.candidate_id,
+            maximin_utility: best.maximin_utility,
+            worst_pairwise_rmse: best.worst_pairwise_rmse,
+        })
+    } else {
+        Ok(InterventionDesignDecision::Selected { design: best })
+    }
+}
+
+fn post_intervention_rmse(
+    left: &[SyntheticSample],
+    right: &[SyntheticSample],
+    onset_index: usize,
+) -> Result<f64, BenchmarkError> {
+    if onset_index >= left.len() || left.len() != right.len() {
+        return Err(BenchmarkError::InvalidTraceLength);
+    }
+    validate_trace(left)?;
+    validate_trace(right)?;
+    validate_aligned_timestamps(left, right)?;
+    trajectory_rmse(&left[onset_index..], &right[onset_index..])
+}
+
 fn wilson_interval(successes: usize, trials: usize) -> BinomialInterval {
     // Wilson score interval with z = 1.959963984540054 (two-sided 95%).
     let z = 1.959_963_984_540_054_f64;
@@ -1861,12 +2065,8 @@ mod tests {
             quick_fit_grid(),
         )
         .unwrap();
-        let ar1 = fit_vector_ar1_forecast(
-            &generated.samples[..30],
-            intervention,
-            config(),
-        )
-        .unwrap();
+        let ar1 =
+            fit_vector_ar1_forecast(&generated.samples[..30], intervention, config()).unwrap();
         let decision = select_competing_models(
             &generated.samples[30..],
             &mechanistic,
@@ -2015,6 +2215,195 @@ mod tests {
         assert_eq!(
             run_paired_seed_evaluation(duplicate_generator_spec),
             Err(BenchmarkError::DuplicateGenerator)
+        );
+    }
+
+
+    fn design_candidate(
+        id: &str,
+        intervention: Intervention,
+        onset_index: usize,
+        cost: f64,
+        feasible: bool,
+    ) -> InterventionCandidate {
+        InterventionCandidate {
+            id: id.to_owned(),
+            intervention,
+            onset_index,
+            cost,
+            feasible,
+        }
+    }
+
+    #[test]
+    fn robust_design_selects_feedback_cut_over_weaker_phase_pulse() {
+        let mechanisms = [
+            Mechanism::IntrinsicOscillator,
+            Mechanism::SensoryFeedbackDriven,
+        ];
+        let candidates = [
+            design_candidate(
+                "phase-pulse",
+                Intervention::PhasePulseAt {
+                    sample_index: 20,
+                    delta_phase_radians: 0.6,
+                },
+                20,
+                1.0,
+                true,
+            ),
+            design_candidate(
+                "feedback-cut",
+                Intervention::FeedbackCutFrom { sample_index: 20 },
+                20,
+                1.0,
+                true,
+            ),
+        ];
+        let decision =
+            design_discriminating_intervention(&mechanisms, &candidates, config(), 0.0).unwrap();
+        let InterventionDesignDecision::Selected { design } = decision else {
+            panic!("expected a discriminating action");
+        };
+        assert_eq!(design.candidate_id, "feedback-cut");
+        assert_eq!(design.pairwise.len(), 1);
+        assert!(design.worst_pairwise_rmse > 0.1);
+        assert_eq!(
+            design.maximin_utility,
+            design.worst_pairwise_rmse / design.cost
+        );
+    }
+
+    #[test]
+    fn intervention_design_normalizes_by_declared_cost() {
+        let mechanisms = [
+            Mechanism::IntrinsicOscillator,
+            Mechanism::SensoryFeedbackDriven,
+        ];
+        let candidates = [
+            design_candidate(
+                "expensive-cut",
+                Intervention::FeedbackCutFrom { sample_index: 20 },
+                20,
+                100.0,
+                true,
+            ),
+            design_candidate(
+                "cheap-pulse",
+                Intervention::PhasePulseAt {
+                    sample_index: 20,
+                    delta_phase_radians: 0.6,
+                },
+                20,
+                0.01,
+                true,
+            ),
+        ];
+        let decision =
+            design_discriminating_intervention(&mechanisms, &candidates, config(), 0.0).unwrap();
+        let InterventionDesignDecision::Selected { design } = decision else {
+            panic!("expected a feasible action");
+        };
+        assert_eq!(design.candidate_id, "cheap-pulse");
+    }
+
+    #[test]
+    fn intervention_design_abstains_when_a_model_pair_remains_equivalent() {
+        let mechanisms = [
+            Mechanism::IntrinsicOscillator,
+            Mechanism::HybridFeedbackCoupled,
+        ];
+        let candidates = [design_candidate(
+            "feedback-cut",
+            Intervention::FeedbackCutFrom { sample_index: 20 },
+            20,
+            1.0,
+            true,
+        )];
+        let decision =
+            design_discriminating_intervention(&mechanisms, &candidates, config(), 1.0e-6)
+                .unwrap();
+        assert!(matches!(
+            decision,
+            InterventionDesignDecision::Abstained {
+                worst_pairwise_rmse,
+                ..
+            } if worst_pairwise_rmse <= 1.0e-12
+        ));
+    }
+
+    #[test]
+    fn infeasible_interventions_are_excluded_before_utility_ranking() {
+        let mechanisms = [
+            Mechanism::IntrinsicOscillator,
+            Mechanism::SensoryFeedbackDriven,
+        ];
+        let candidates = [
+            design_candidate(
+                "forbidden-cut",
+                Intervention::FeedbackCutFrom { sample_index: 20 },
+                20,
+                1.0e-6,
+                false,
+            ),
+            design_candidate(
+                "allowed-pulse",
+                Intervention::PhasePulseAt {
+                    sample_index: 20,
+                    delta_phase_radians: 0.6,
+                },
+                20,
+                1.0,
+                true,
+            ),
+        ];
+        let decision =
+            design_discriminating_intervention(&mechanisms, &candidates, config(), 0.0).unwrap();
+        let InterventionDesignDecision::Selected { design } = decision else {
+            panic!("expected one feasible action");
+        };
+        assert_eq!(design.candidate_id, "allowed-pulse");
+    }
+
+    #[test]
+    fn intervention_design_rejects_duplicate_ids_invalid_cost_and_no_feasible_actions() {
+        let mechanisms = [
+            Mechanism::IntrinsicOscillator,
+            Mechanism::SensoryFeedbackDriven,
+        ];
+        let pulse = Intervention::PhasePulseAt {
+            sample_index: 20,
+            delta_phase_radians: 0.5,
+        };
+        assert_eq!(
+            design_discriminating_intervention(
+                &mechanisms,
+                &[
+                    design_candidate("same", pulse, 20, 1.0, true),
+                    design_candidate("same", pulse, 20, 1.0, true),
+                ],
+                config(),
+                0.0
+            ),
+            Err(BenchmarkError::DuplicateInterventionCandidate)
+        );
+        assert_eq!(
+            design_discriminating_intervention(
+                &mechanisms,
+                &[design_candidate("zero-cost", pulse, 20, 0.0, true)],
+                config(),
+                0.0
+            ),
+            Err(BenchmarkError::InvalidInterventionCost)
+        );
+        assert_eq!(
+            design_discriminating_intervention(
+                &mechanisms,
+                &[design_candidate("blocked", pulse, 20, 1.0, false)],
+                config(),
+                0.0
+            ),
+            Err(BenchmarkError::NoFeasibleInterventions)
         );
     }
 
