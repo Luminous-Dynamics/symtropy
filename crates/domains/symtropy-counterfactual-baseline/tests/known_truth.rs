@@ -267,7 +267,7 @@ fn baseline_and_meter_uncertainty_are_both_subtracted_from_delivery() {
         "pcc-receipt-1",
     )
     .expect("valid event point");
-    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &[point])
+    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &[point], true)
         .expect("event report");
 
     assert_eq!(report.intervals[0].baseline_lower_power_bound_kw, 100.0);
@@ -307,7 +307,7 @@ fn rebound_is_preserved_and_reduces_net_event_energy() {
         )
         .unwrap(),
     ];
-    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &points)
+    let report = evaluate_baseline_bounded_event(&baseline, &identity(), &points, true)
         .expect("event report");
 
     assert_eq!(report.gross_reduction_energy_kwh, 20.0);
@@ -351,7 +351,7 @@ fn unqualified_baseline_cannot_be_used_for_event_credit() {
         "pcc-1",
     )
     .unwrap();
-    let error = evaluate_baseline_bounded_event(&report, &identity(), &[point]).unwrap_err();
+    let error = evaluate_baseline_bounded_event(&report, &identity(), &[point], true).unwrap_err();
 
     assert!(matches!(
         error,
@@ -403,7 +403,7 @@ fn event_identity_regime_and_chronology_are_bound() {
     )
     .unwrap();
     assert!(matches!(
-        evaluate_baseline_bounded_event(&baseline, &other, &[point]),
+        evaluate_baseline_bounded_event(&baseline, &other, &[point], true),
         Err(symtropy_counterfactual_baseline::BaselineQualificationError::BaselineIdentityMismatch)
     ));
 }
