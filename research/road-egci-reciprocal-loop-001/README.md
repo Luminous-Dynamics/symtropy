@@ -1,6 +1,6 @@
 # ROAD-RECIPROCAL-LOOP-001 — two-sided online-policy producer v0.1
 
-**Status:** implementation candidate; exact-head CI pending.  
+**Status:** implementation candidate; exact-head CI is required before any protocol-conformance claim. The workflow is loaded from the stack base branch.  
 **Verified substrate:** actor policy core #3489, path adapter #3748, kinematic-pose replay #3892, phase-aware handoff #3886.
 
 ## Executed protocol
