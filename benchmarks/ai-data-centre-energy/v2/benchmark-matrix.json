@@ -358,6 +358,8 @@
         "post_fault_active_power_recovery_time",
         "active_power_recovery_ramp",
         "recovery_overshoot_fraction",
+        "reactive_power_envelope_compliance",
+        "pcc_current_limit_compliance",
         "uncommanded_trip_false_credit_rate",
         "waveform_abstention_rate"
       ],
@@ -421,7 +423,9 @@
     "disturbance performance is a separate qualification axis from dispatch flexibility",
     "uncommanded load trip during a voltage/frequency disturbance is not intentional demand response and must never earn flexibility credit",
     "PCC RMS trace conformance does not prove sub-cycle converter stability, harmonic compliance, unbalanced-fault response or EMT model validity",
-    "disturbance performance is a separate qualification axis from dispatch flexibility"
+    "disturbance performance is a separate qualification axis from dispatch flexibility",
+    "a trace conformance requirement that includes reactive power or current must fail closed when the corresponding required measurement channels are missing",
+    "measurement bandwidth cannot exceed the observable Nyquist bandwidth implied by the declared sample cadence"
   ],
   "metadata": {
     "benchmark_domain_count": 14
