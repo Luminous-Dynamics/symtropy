@@ -220,7 +220,42 @@
           "minimum": 1
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "enum": [
+                  "GroupHoldout",
+                  "TemporalHoldout",
+                  "ExternalSite",
+                  "ProspectiveField"
+                ]
+              }
+            },
+            "required": [
+              "strategy"
+            ]
+          },
+          "then": {
+            "properties": {
+              "holdout_dimensions": {
+                "type": "array",
+                "minItems": 1
+              },
+              "train_groups": {
+                "type": "array",
+                "minItems": 1
+              },
+              "test_groups": {
+                "type": "array",
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
     },
     "metric": {
       "type": "object",
@@ -275,8 +310,7 @@
           "type": "number"
         },
         "r2": {
-          "type": "number",
-          "minimum": -1
+          "type": "number"
         },
         "p95_absolute_error": {
           "type": "number",
