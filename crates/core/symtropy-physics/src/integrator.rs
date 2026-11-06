@@ -233,9 +233,8 @@ mod tests {
             integrate(&mut body, &gravity, dt);
         }
 
-        let exact_position = initial_position
-            + initial_velocity * total_time
-            + gravity * (0.5 * total_time.powi(2));
+        let exact_position =
+            initial_position + initial_velocity * total_time + gravity * (0.5 * total_time.powi(2));
         let exact_velocity = initial_velocity + gravity * total_time;
         let position_error = (body.transform.translation.0 - exact_position).norm();
         let velocity_error = (body.linear_velocity - exact_velocity).norm();
