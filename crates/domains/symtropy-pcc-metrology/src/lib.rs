@@ -455,7 +455,7 @@ impl PairedPowerInterval {
 ///
 /// V0.1 requires samples to already be expressed on one corrected physical
 /// time axis. The alignment-model ID and both uncertainty bounds are retained.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ClockAlignmentEvidence {
     baseline_clock_uncertainty_ns: u64,
     candidate_clock_uncertainty_ns: u64,
