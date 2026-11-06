@@ -699,6 +699,23 @@ fn verify_decisions<'a>(
     for decision in ordered {
         let policy = policies[decision.actor_id.as_str()];
         let mut visible = BTreeSet::new();
+
+        // Check explicitly admitted cues before comparing the complete visible
+        // channel, so a same-tick post-cutoff cue reports the causal leak rather
+        // than only the secondary visible-history mismatch.
+        for cue_id in &decision.visible_cue_ids {
+            let cue = cues.get(cue_id.as_str()).ok_or(HandoffError::MissingCue)?;
+            if cue.recipient_actor_id == decision.actor_id
+                && cue.disposition == ObservationDisposition::Delivered
+                && cue.delivered_tick.is_some_and(|tick| tick <= decision.tick)
+                && cue.delivered_event_sequence.is_some_and(|sequence| {
+                    sequence > decision.input_cutoff_event_sequence
+                })
+            {
+                return Err(HandoffError::FutureCueLeak);
+            }
+        }
+
         let mut expected_visible: Vec<_> = cues
             .values()
             .filter(|cue| {
@@ -722,17 +739,6 @@ fn verify_decisions<'a>(
                 .collect::<Vec<_>>()
         {
             return Err(HandoffError::CueNotDelivered);
-        }
-
-        // Same-tick delivery after the policy input cutoff is a causal leak.
-        for cue_id in &decision.visible_cue_ids {
-            let cue = cues.get(cue_id.as_str()).ok_or(HandoffError::MissingCue)?;
-            if cue
-                .delivered_event_sequence
-                .is_some_and(|sequence| sequence > decision.input_cutoff_event_sequence)
-            {
-                return Err(HandoffError::FutureCueLeak);
-            }
         }
 
         let mut history =
@@ -1887,7 +1893,7 @@ mod tests {
             action,
         } = spec;
         let policy = policy(actor);
-        let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.1");
+        let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.2");
         hash_str(&mut h, actor);
         hash_u64(&mut h, tick);
         hash_u64(&mut h, input_cutoff_event_sequence);
