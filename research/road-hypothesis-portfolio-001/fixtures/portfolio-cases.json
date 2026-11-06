@@ -156,6 +156,21 @@
       "id": "HP-31",
       "scenario": "Held-out counterexample replayed successfully",
       "expected": "portfolio falsified"
+    },
+    {
+      "id": "HP-32",
+      "scenario": "Coverage evidence changes from Unknown to Covered",
+      "expected": "append a new same-stratum record; preserve the historical unknown record"
+    },
+    {
+      "id": "HP-33",
+      "scenario": "Coverage successor points to another stratum",
+      "expected": "reject revision"
+    },
+    {
+      "id": "HP-34",
+      "scenario": "Two successor records fork from one coverage obligation",
+      "expected": "reject"
     }
   ]
 }
