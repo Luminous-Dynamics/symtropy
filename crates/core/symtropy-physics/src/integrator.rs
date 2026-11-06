@@ -188,12 +188,8 @@ mod tests {
     fn run_free_fall(dt: f64, duration: f64) -> RigidBody<3> {
         let steps = (duration / dt).round() as usize;
         assert!((steps as f64 * dt - duration).abs() < 1e-12);
-        let mut body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(90),
-            Point::new([0.0, 10.0, 0.0]),
-            0.1,
-            1.0,
-        );
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(90), Point::new([0.0, 10.0, 0.0]), 0.1, 1.0);
         body.linear_damping = 0.0;
         body.angular_damping = 0.0;
         body.linear_velocity = SVector::from([0.0, 1.5, 0.0]);
@@ -220,9 +216,8 @@ mod tests {
         // discretization term relative to the continuous trajectory.
         let steps = (duration / dt).round() as f64;
         let expected_velocity = v0 + gravity * duration;
-        let expected_position = y0
-            + steps * v0 * dt
-            + gravity * dt * dt * steps * (steps + 1.0) / 2.0;
+        let expected_position =
+            y0 + steps * v0 * dt + gravity * dt * dt * steps * (steps + 1.0) / 2.0;
 
         assert!(
             (body.linear_velocity[1] - expected_velocity).abs() < 1e-11,
@@ -271,12 +266,8 @@ mod tests {
         let dt: f64 = 0.05;
         assert!(omega * dt < 2.0);
 
-        let mut body = RigidBody::<3>::dynamic_sphere(
-            BodyHandle(91),
-            Point::new([1.0, 0.0, 0.0]),
-            0.1,
-            1.0,
-        );
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(91), Point::new([1.0, 0.0, 0.0]), 0.1, 1.0);
         body.linear_damping = 0.0;
         body.angular_damping = 0.0;
         let zero_gravity = SVector::zeros();
