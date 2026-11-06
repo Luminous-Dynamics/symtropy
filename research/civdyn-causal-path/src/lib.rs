@@ -1095,6 +1095,7 @@ mod tests {
             ("authorized_transfer_m3".into(), 0.0),
             ("delivered_water_m3".into(), 0.0),
             ("household_water_coverage".into(), 0.0),
+            ("unrelated_intermediate".into(), 0.0),
             ("reputation_counter".into(), 0.0),
         ]);
         let treatment_final = BTreeMap::from([
@@ -1114,6 +1115,7 @@ mod tests {
             ("authorized_transfer_m3".into(), 0.0),
             ("delivered_water_m3".into(), 0.0),
             ("household_water_coverage".into(), 0.0),
+            ("unrelated_intermediate".into(), 0.0),
             ("reputation_counter".into(), 1.0),
         ]);
         let build_receipts = |initial: &BTreeMap<String, f64>,
