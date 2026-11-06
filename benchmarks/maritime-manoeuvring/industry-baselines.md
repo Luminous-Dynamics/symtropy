@@ -70,6 +70,18 @@ Source: ITTC 7.5-02-06-06 (2024 Rev. 01), pp. 7–8 and p. 12: https://www.ittc.
 
 These are independent studies with different ports, demand mixes, definitions, assumptions and objective normalization. Their percentages, monetary savings, hypervolume and IGD values are **not directly comparable**. Use published figures as evidence that a capability exists and as a guide to case design—not as a performance target copied into a different problem.
 
+### Detailed reproducibility note — Xu et al. 2026
+
+The paper's experiment section gives useful settings for a future matched recreation:
+
+- The survey-derived case uses 10 tugboats, waypoint-specific repositioning times, vessel-type tug rules and a 13-minute minimum vessel separation.
+- In the small S10 and S22 groups, the merged AAMNS Pareto front matches CPLEX on 8 of 10 instances and is described as negligibly different on the other 2. Reported mean runtimes: CPLEX 166.73 s vs AAMNS 44.19 s (S10), and 2,444.02 s vs 74.94 s (S22).
+- For S28 and S40, five instances per group and 10 runs per algorithm per instance are reported. Mean HV/IGD are AAMNS 0.832/0.044, MOSA 0.588/0.226, NSGA-II 0.552/0.257. Average S28/S40 runtimes are 106.19 s, 130.07 s and 116.91 s respectively (AAMNS, MOSA, NSGA-II). The paper reports paired Wilcoxon p < 0.001 for instance-wise mean HV/IGD.
+- Environment: MATLAB R2022b, Intel Core i7-6700 CPU, 16 GB RAM. Vessel/tug/berth IDs were anonymized; records were derived from field surveys.
+- Their objective normalization pools all algorithms' runs per instance, uses the pooled non-dominated set as IGD reference and HV point (1,1). Their service-level upper bound is FCFS weighted wait.
+
+A parity reproduction must repeat the published normalization, data-derived constraints, FCFS bound, run count and solver settings as closely as the available artifacts allow. Our cross-study benchmark must separately use a preregistered fixed normalization/reference point. Report both. These paper-specific numbers are not evidence that Symtropy has been outperformed or surpassed yet.
+
 ## 3. Commercial interoperability baseline
 
 A basic ETA dashboard, vessel queue, berth calendar or tug-assignment UI is not a defensible novelty claim. Commercial port-call products already support shared operational pictures and coordination of services such as berthing, pilotage, towage, cargo operations and bunkering. DCSA Port Call 2.0.0 provides a standard event vocabulary and API for interoperable exchange.
