@@ -577,12 +577,26 @@ mod tests {
     #[test]
     fn phase_offset_abstains_when_feedback_driven_output_has_decayed_to_zero() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 2 };
-        let baseline =
-            simulate(Mechanism::SensoryFeedbackDriven, Intervention::None, config()).unwrap();
-        let cut =
-            simulate(Mechanism::SensoryFeedbackDriven, intervention, config()).unwrap();
-        let offset = phase_offset(&cut.samples, &baseline.samples, config().sample_count - 1)
-            .unwrap();
+        let mut low_amplitude_config = config();
+        low_amplitude_config.feedback_decay_rate = 20.0;
+        let baseline = simulate(
+            Mechanism::SensoryFeedbackDriven,
+            Intervention::None,
+            low_amplitude_config,
+        )
+        .unwrap();
+        let cut = simulate(
+            Mechanism::SensoryFeedbackDriven,
+            intervention,
+            low_amplitude_config,
+        )
+        .unwrap();
+        let offset = phase_offset(
+            &cut.samples,
+            &baseline.samples,
+            low_amplitude_config.sample_count - 1,
+        )
+        .unwrap();
         assert_eq!(offset, None);
     }
 
