@@ -144,11 +144,6 @@ impl Scenario {
                             parent_id: input.parent_id.clone(),
                         });
                     }
-                    if !ids.contains_key(input.parent_id.as_str()) {
-                        // A later node may be declared after this child; defer the
-                        // resolution pass until all node IDs have been indexed.
-                        continue;
-                    }
                 }
             }
         }
@@ -378,6 +373,10 @@ pub enum CascadeError {
         end: usize,
         tick_count: usize,
     },
+    NonMonotoneOutageCounterfactual {
+        node_id: String,
+        marginal_deficit: f64,
+    },
 }
 
 impl fmt::Display for CascadeError {
@@ -467,6 +466,13 @@ impl fmt::Display for CascadeError {
                 f,
                 "invalid outage window [{start}, {end}) for {tick_count} ticks"
             ),
+            Self::NonMonotoneOutageCounterfactual {
+                node_id,
+                marginal_deficit,
+            } => write!(
+                f,
+                "outage counterfactual for {node_id} reduced service deficit by {marginal_deficit}"
+            ),
         }
     }
 }
@@ -484,6 +490,12 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioOutcome, CascadeError
         .map(|node| node.beneficiary_demand_weight)
         .sum::<f64>();
 
+    let node_index_by_id = scenario
+        .nodes
+        .iter()
+        .enumerate()
+        .map(|(index, node)| (node.id.as_str(), index))
+        .collect::<BTreeMap<_, _>>();
     let mut ticks = Vec::with_capacity(tick_count);
     for (tick_index, own_availability) in scenario.own_availability_by_tick.iter().enumerate() {
         let mut service_levels = vec![0.0; node_count];
@@ -494,10 +506,9 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioOutcome, CascadeError
             for group in &node.dependency_groups {
                 let mut group_values = Vec::with_capacity(group.inputs.len());
                 for input in &group.inputs {
-                    let parent_index = scenario
-                        .nodes
-                        .iter()
-                        .position(|parent| parent.id == input.parent_id)
+                    let parent_index = node_index_by_id
+                        .get(input.parent_id.as_str())
+                        .copied()
                         .expect("validated dependency parent must exist");
                     let parent_service = service_levels[parent_index];
                     let factor = dependency_factor(parent_service, input);
@@ -622,7 +633,10 @@ pub fn node_criticalities(
         let marginal = outage.demand_weighted_service_deficit_area
             - baseline.demand_weighted_service_deficit_area;
         if marginal < -TOLERANCE {
-            return Err(CascadeError::DependencyCycle);
+            return Err(CascadeError::NonMonotoneOutageCounterfactual {
+                node_id: scenario.nodes[node_index].id.clone(),
+                marginal_deficit: marginal,
+            });
         }
         results.push(NodeCriticality {
             node_id: scenario.nodes[node_index].id.clone(),
