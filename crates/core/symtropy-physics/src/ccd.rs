@@ -138,9 +138,7 @@ pub fn sphere_sphere<const D: usize>(
         normal
     };
     let point = pos_a_t + normal * radius_a;
-    if !point.iter().all(|value| value.is_finite())
-        || !normal.iter().all(|value| value.is_finite())
-    {
+    if !point.iter().all(|value| value.is_finite()) || !normal.iter().all(|value| value.is_finite()) {
         return None;
     }
 
@@ -338,8 +336,7 @@ mod tests {
 
         assert!(sphere_halfspace(&position, &velocity, 0.5, &zero_normal, 0.0, 1.0).is_none());
         assert!(
-            sphere_halfspace(&position, &invalid_velocity, 0.5, &valid_normal, 0.0, 1.0)
-                .is_none()
+            sphere_halfspace(&position, &invalid_velocity, 0.5, &valid_normal, 0.0, 1.0).is_none()
         );
         assert!(sphere_halfspace(&position, &velocity, -0.5, &valid_normal, 0.0, 1.0).is_none());
         assert!(sphere_halfspace(&position, &velocity, 0.5, &valid_normal, 0.0, -1.0).is_none());
