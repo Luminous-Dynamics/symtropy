@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
 
 pub const SCHEMA_VERSION: &str = "wpt-segment-energy-ledger-v2";
+const MAX_TRAJECTORY_SAMPLES: usize = 512;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -259,8 +260,12 @@ impl RouteLedger {
         if !valid_sha256(&self.trajectory_artifact_digest) {
             return Err("trajectory artifact digest must be sha256".into());
         }
-        if self.trajectory_samples.len() < 2 {
-            return Err("route trajectory requires at least two canonical samples".into());
+        if self.trajectory_samples.len() < 2
+            || self.trajectory_samples.len() > MAX_TRAJECTORY_SAMPLES
+        {
+            return Err(format!(
+                "route trajectory requires 2..={MAX_TRAJECTORY_SAMPLES} canonical samples"
+            ));
         }
         let mut trajectory_sample_index = BTreeMap::new();
         let mut previous_trajectory_timestamp = None::<u64>;
@@ -1167,6 +1172,18 @@ mod tests {
                 .unwrap_err()
                 .contains("contiguous canonical sequence")
         );
+    }
+
+    #[test]
+    fn trajectory_sample_count_is_bounded() {
+        let mut ledger = fixture();
+        for index in 4..=MAX_TRAJECTORY_SAMPLES {
+            ledger.trajectory_samples.push(TrajectorySampleReference {
+                sample_id: format!("POSE-{index:03}"),
+                timestamp_ns: 16_000_000_000 + (index as u64 - 3) * 1_000_000_000,
+            });
+        }
+        assert!(ledger.validate().unwrap_err().contains("2..=512 canonical samples"));
     }
 
     #[test]
