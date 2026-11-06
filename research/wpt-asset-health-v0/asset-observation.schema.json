@@ -420,7 +420,8 @@
         "maximum_gradient_c_per_m",
         "thermal_dose_c_hour",
         "temperature_reference_id",
-        "spatial_temperature_profile"
+        "spatial_temperature_profile",
+        "spatial_heat_flux_profile"
       ],
       "properties": {
         "maximum_coil_temperature_c": {
@@ -489,6 +490,49 @@
                 "type": "number"
               },
               "temperature_c": {
+                "type": "number"
+              },
+              "method_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "spatial_heat_flux_profile": {
+          "type": "array",
+          "description": "Spatially indexed conductive/convective heat-flux observations, kept separate from temperature and thermal dose.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sensor_id",
+              "coordinate_frame_id",
+              "x_mm",
+              "y_mm",
+              "depth_mm",
+              "heat_flux_w_m2",
+              "method_id"
+            ],
+            "properties": {
+              "sensor_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "coordinate_frame_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "x_mm": {
+                "type": "number"
+              },
+              "y_mm": {
+                "type": "number"
+              },
+              "depth_mm": {
+                "type": "number"
+              },
+              "heat_flux_w_m2": {
                 "type": "number"
               },
               "method_id": {
