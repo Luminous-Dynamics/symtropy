@@ -19,14 +19,16 @@ These are intentionally small synthetic generators for benchmark semantics. They
 
 ## Implemented tasks
 
-- Deterministic synthetic trace generation with fixed parameters and irregularity-ready timestamps.
+- Deterministic synthetic trace generation with fixed parameters and observable-only sample records.
+- Separate latent-truth side channel for known-answer test oracles; the scorer receives only observable samples.
+- Seeded SplitMix64 + Box–Muller Gaussian observation noise with an explicit variance parameter.
 - Feedback-cut and instantaneous phase-pulse interventions.
 - Trajectory RMSE and phase offset diagnostics.
 - Gaussian predictive log score under a common declared observation variance.
 - Candidate-family selection with a score-margin threshold and explicit abstention.
 - Input validation for sample count, time units, parameter ranges, intervention indices, candidate uniqueness, trace finiteness and score thresholds.
 
-The 12 deterministic tests cover baseline observational equivalence, correct abstention under non-identifiability, divergence after feedback cut, both directions of model selection, phase-pulse persistence versus feedback correction, damped transient decay, hybrid phase correction, low-amplitude phase abstention, malformed inputs, duplicate candidates and predictive-score ranking.
+The 16 deterministic tests cover baseline observational equivalence, correct abstention under non-identifiability, divergence after feedback cut, both directions of model selection, phase-pulse persistence versus feedback correction, damped transient decay, hybrid phase correction, low-amplitude phase abstention, seeded-noise reproducibility and variance recovery, noisy held-out model selection, malformed inputs, duplicate candidates and predictive-score ranking.
 
 ## What is deliberately not implemented
 
