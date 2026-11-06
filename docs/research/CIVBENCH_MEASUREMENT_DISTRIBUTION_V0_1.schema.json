@@ -677,7 +677,10 @@
                 "minLength": 1
               },
               "configuration_digest": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "pattern": "^[a-f0-9]{64}$"
               },
               "behavior_affecting": {
