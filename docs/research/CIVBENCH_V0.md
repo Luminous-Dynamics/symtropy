@@ -43,6 +43,35 @@ These are open draft PRs at the time of this specification. Their authored tests
 Repository audit and specific validation gaps are recorded in [CIVILIZATION_BASELINE_AUDIT_2026-11-02.md](CIVILIZATION_BASELINE_AUDIT_2026-11-02.md). In particular, the existing multiworld simulator is the engine to compose and audit; this specification does not propose a parallel general-purpose simulator.
 
 
+
+## 2A. Configuration passport and re-audit identity
+
+For decision, deliberation and human-behaviour simulation tasks, the generic configuration digest is not sufficient as a descriptive record. The manifest must expose the decision-relevant facets that the digest covers:
+
+- model ID/version and inference/decoding policy;
+- persona/profile and profile-completeness source;
+- interview/elicitation protocol;
+- facilitator/chair/role assignment;
+- deliberation protocol and aggregation rule;
+- option, applicant, speaker and prompt order;
+- prompt/template version;
+- tool permissions and external-tool policy;
+- memory/retrieval policy and evidence snapshot;
+- execution-stack component/scheduler identifiers (see CIVBENCH-MAD-001).
+
+The caller must compute a canonical digest over the complete task, data/split and configuration manifest. A changed digest is a new audit identity. A digest validates identity only; it does not establish source truth, fairness or empirical validity.
+
+For paired configuration comparisons:
+- hold case IDs, task outcomes and declared slice labels fixed;
+- report per-case flips and rate changes;
+- report numerator/denominator for every slice;
+- only call a contrast a single-facet effect when exactly one facet changed;
+- do not silently choose a new reference group if a ratio denominator is zero;
+- treat pure semantic permutations as negative controls;
+- re-audit any decision-relevant change.
+
+Reference implementation: [CIVDYN-CFG-001 issue #3849](https://github.com/Luminous-Dynamics/symtropy/issues/3849), [draft PR #3850](https://github.com/Luminous-Dynamics/symtropy/pull/3850).
+
 ## 3. Evaluation tracks
 
 ### CIV-1 — Historical information and forecast integrity
