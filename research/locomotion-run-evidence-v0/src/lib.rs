@@ -238,10 +238,7 @@ impl RunManifest {
         }
 
         bytes.push(u8::from(self.has_intervention));
-        push_optional_string(
-            &mut bytes,
-            self.action_delivery_receipt_sha256.as_deref(),
-        );
+        push_optional_string(&mut bytes, self.action_delivery_receipt_sha256.as_deref());
         push_string(&mut bytes, &self.raw_trajectory_sha256);
         push_string(&mut bytes, &self.metric_version);
         bytes.extend_from_slice(&self.terrain_seed.to_le_bytes());
@@ -266,10 +263,7 @@ impl RunManifest {
                 push_optional_string(&mut bytes, profile.accelerator_model.as_deref());
                 push_string(&mut bytes, &profile.os_build);
                 push_optional_string(&mut bytes, profile.driver_version.as_deref());
-                push_optional_string(
-                    &mut bytes,
-                    profile.calibration_record_sha256.as_deref(),
-                );
+                push_optional_string(&mut bytes, profile.calibration_record_sha256.as_deref());
             }
             None => bytes.push(0),
         }
@@ -372,10 +366,14 @@ pub fn validate_paired_comparison(
         || left.sensor_latency_seconds != right.sensor_latency_seconds
         || left.actuator_latency_seconds != right.actuator_latency_seconds
     {
-        return Err(EvidenceError::PairedRunMismatch(PairedRunMismatch::Timebase));
+        return Err(EvidenceError::PairedRunMismatch(
+            PairedRunMismatch::Timebase,
+        ));
     }
     if left.duration_seconds != right.duration_seconds {
-        return Err(EvidenceError::PairedRunMismatch(PairedRunMismatch::Duration));
+        return Err(EvidenceError::PairedRunMismatch(
+            PairedRunMismatch::Duration,
+        ));
     }
     if left.recorded_samples != right.recorded_samples {
         return Err(EvidenceError::PairedRunMismatch(
@@ -465,7 +463,11 @@ mod tests {
             initial_state_sha256: digest('9'),
             action_assignment_sha256: digest('a'),
             has_intervention: true,
-            action_delivery_receipt_sha256: Some(digest(if engine == "flygym" { 'b' } else { 'c' })),
+            action_delivery_receipt_sha256: Some(digest(if engine == "flygym" {
+                'b'
+            } else {
+                'c'
+            })),
             raw_trajectory_sha256: digest(if engine == "flygym" { 'd' } else { 'e' }),
             metric_version: "locomotion-metrics-v1".to_owned(),
             terrain_seed: 42,
@@ -558,7 +560,9 @@ mod tests {
         mujoco.sensor_frequency_hz = 250.0;
         assert_eq!(
             validate_paired_comparison(&flygym, &mujoco),
-            Err(EvidenceError::PairedRunMismatch(PairedRunMismatch::Timebase))
+            Err(EvidenceError::PairedRunMismatch(
+                PairedRunMismatch::Timebase
+            ))
         );
 
         mujoco = manifest("run-mujoco", "mujoco");
@@ -573,7 +577,10 @@ mod tests {
     fn interventions_require_a_delivery_receipt() {
         let mut run = manifest("run-a", "flygym");
         run.action_delivery_receipt_sha256 = None;
-        assert_eq!(run.validate(), Err(EvidenceError::MissingInterventionReceipt));
+        assert_eq!(
+            run.validate(),
+            Err(EvidenceError::MissingInterventionReceipt)
+        );
 
         run.has_intervention = false;
         assert_eq!(
@@ -592,7 +599,6 @@ mod tests {
         assert_eq!(run.validate(), Err(EvidenceError::MissingHardwareProfile));
     }
 
-
     #[test]
     fn hardware_tier_requires_a_calibration_record_digest() {
         let mut run = manifest("run-hardware", "mujoco");
@@ -605,7 +611,10 @@ mod tests {
             Err(EvidenceError::MissingHardwareCalibration)
         );
 
-        run.hardware_profile.as_mut().unwrap().calibration_record_sha256 = Some(digest('f'));
+        run.hardware_profile
+            .as_mut()
+            .unwrap()
+            .calibration_record_sha256 = Some(digest('f'));
         assert_eq!(run.validate(), Ok(()));
     }
 
@@ -630,7 +639,6 @@ mod tests {
         run.recorded_samples = 1;
         assert_eq!(run.validate(), Err(EvidenceError::InvalidSampleCount));
     }
-
 
     #[test]
     fn paired_comparison_rejects_sensor_and_actuator_latency_mismatches() {
