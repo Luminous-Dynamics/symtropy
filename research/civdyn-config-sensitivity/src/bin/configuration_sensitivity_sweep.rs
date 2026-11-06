@@ -13,9 +13,9 @@ const CSV_COLUMNS: usize = 21;
 
 fn digest(order_profile: &str) -> String {
     let hex = match order_profile {
-        "natural_order" => "63c88127d4ac50ed04ae859548f8e71038efad4713c5dde2a35f67c18243a417",
-        "permuted_stable_ids" => "667af5de0212891440373b6bd6cb01c1f33b508a722b538fef7e0945acb69ff7",
-        "position_biased" => "6913b4938e87701fac3a76ca5195f87ec4ef3a50ce2cadb77bf1339d8c1903df",
+        "natural_order" => "ae5e5474fbe52fef23bf3a126b451e129c8dcd60aa1c731710b99ad0666568e5",
+        "permuted_stable_ids" => "6cc2099b2d5254063ab7807924f709f99987c26b58b110c95adc2e09d2177b24",
+        "position_biased" => "5b11e822179093210be42195d905ec3d2574a3282cb5a2826c05e8029610c448",
         _ => panic!("unknown synthetic order profile"),
     };
     format!("sha256:{hex}")
