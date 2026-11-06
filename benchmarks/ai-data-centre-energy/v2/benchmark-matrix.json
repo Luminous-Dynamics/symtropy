@@ -325,21 +325,22 @@
     {
       "id": "locational-network-deliverability",
       "evidence_class": "SYNTHETIC_KNOWN_TRUTH_THEN_INDEPENDENT_SOLVER",
-      "source": "GRID-LOC-DELIV-001 #3826; IEA Electricity 2026 Grids; ESIG Large Loads RA April 2026",
+      "source": "GRID-LOC-DELIV-001 #3826; PR #3827; IEA Electricity 2026 Grids; ESIG Large Loads RA April 2026",
       "domain": "pcc_to_nodal_constraint_deliverability",
-      "baseline": "frozen topology, bus/PCC mapping, monitored interfaces and contingency set; three-bus PTDF/LODF arithmetic known-truth fixtures before independent AC solver comparison",
+      "baseline": "frozen topology and PCC/bus mapping, explicit MVA base, branch reactance/rating, chronological signed injection trajectory, explicit N-1 outage set",
       "target": "100% known-truth PTDF/flow agreement within declared tolerance; 100% fail-closed for stale topology/islanding/missing mapping; no DC screening result promoted to AC feasibility or N-1 capability",
       "primary_metrics": [
-        "locational_deliverable_mw",
-        "binding_constraint_margin_mw",
-        "n_0_vs_n_1_deliverability",
-        "interface_flow_delta_mw",
-        "duration_under_constraint",
-        "voltage_reactive_margin_when_ac_validated",
+        "requested_response_mw",
+        "maximum_network_deliverable_mw",
+        "maximum_feasible_action_fraction",
+        "branch_flow_delta_mw",
+        "absolute_flow_relief_mw",
+        "binding_branch_margin_mw",
+        "n_1_feasibility",
         "topology_abstention_rate"
       ],
-      "status": "RESEARCH_ISSUE_OPEN_SYNTHETIC_NETWORK_CRATE_NOT_STARTED",
-      "claim_ceiling": "DC linear screening only in first implementation; not AC feasibility, protection, RMS/EMT, market accreditation or ELCC"
+      "status": "RUST_DC_SCREENING_CRATE_OPEN_CI_PENDING",
+      "claim_ceiling": "linear active-power DC screening only; not AC voltage/reactive feasibility, protection, RMS/EMT, distribution hosting capacity, market accreditation or ELCC"
     }
   ],
   "result_requirements": {
