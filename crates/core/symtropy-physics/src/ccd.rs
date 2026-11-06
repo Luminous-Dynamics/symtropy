@@ -268,7 +268,7 @@ pub fn sphere_halfspace_checked<const D: usize>(
     if !normal_scale.is_finite() {
         return Err(CcdInputError::NonFiniteIntermediate);
     }
-    if normal_scale <= 1e-15 {
+    if normal_scale == 0.0 {
         return Err(CcdInputError::DegeneratePlaneNormal);
     }
 
@@ -347,7 +347,6 @@ pub fn sphere_halfspace<const D: usize>(
         .flatten()
 }
 
-/// Speed threshold below which the absolute-speed guard alone does not trigger CCD.
 #[cfg(test)]
 mod ccd_qualification_tests {
     use super::*;
