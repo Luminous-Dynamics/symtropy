@@ -79,6 +79,31 @@ pub enum SelectionDecision {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OpenSetAbstentionReason {
+    /// The supplied family is not adequate for the observed held-out suffix.
+    PoorAbsoluteFit,
+    /// At least two candidates remain predictively indistinguishable.
+    InsufficientSeparation,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum OpenSetSelectionDecision {
+    Selected {
+        mechanism: Mechanism,
+        log_score: f64,
+        mean_log_density_per_coordinate: f64,
+        margin_over_runner_up: f64,
+    },
+    Abstained {
+        best_candidate: Mechanism,
+        reason: OpenSetAbstentionReason,
+        log_score: f64,
+        mean_log_density_per_coordinate: f64,
+        margin_over_runner_up: f64,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BenchmarkError {
     InvalidSampleCount,
     InvalidSampleInterval,
@@ -102,6 +127,7 @@ pub enum BenchmarkError {
     InvalidInterventionIndex,
     InvalidPhasePulse,
     InvalidScoreMargin,
+    InvalidAbsoluteFitThreshold,
     InvalidFitGrid,
     InvalidProfileLikelihoodCutoff,
     InvalidInterventionAlignment,
@@ -841,6 +867,92 @@ pub fn select_frozen_forecast(
         Ok(SelectionDecision::Selected {
             mechanism: best.0,
             log_score: best.1,
+            margin_over_runner_up: margin,
+        })
+    }
+}
+
+/// Open-set alternative to the closed-set frozen forecast selector.
+///
+/// The caller supplies a minimum acceptable average log predictive density
+/// per scalar coordinate. This threshold must be calibrated on separate
+/// controls with the same observation variance, horizon and preprocessing.
+/// A large score margin is insufficient when even the best candidate is a
+/// poor fit: the result is then PoorAbsoluteFit, not a closed-set winner.
+pub fn select_frozen_forecast_open_set(
+    observed_suffix: &[SyntheticSample],
+    forecasts: &[FrozenForecast],
+    observation_variance: f64,
+    minimum_score_margin: f64,
+    minimum_mean_log_density_per_coordinate: f64,
+) -> Result<OpenSetSelectionDecision, BenchmarkError> {
+    if forecasts.len() < 2 {
+        return Err(BenchmarkError::EmptyCandidateSet);
+    }
+    if !minimum_score_margin.is_finite() || minimum_score_margin < 0.0 {
+        return Err(BenchmarkError::InvalidScoreMargin);
+    }
+    if !minimum_mean_log_density_per_coordinate.is_finite() {
+        return Err(BenchmarkError::InvalidAbsoluteFitThreshold);
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut scores = Vec::with_capacity(forecasts.len());
+    for forecast in forecasts {
+        if !seen.insert(forecast.mechanism) {
+            return Err(BenchmarkError::DuplicateCandidate);
+        }
+        let score = predictive_log_score(
+            observed_suffix,
+            &forecast.predicted_suffix,
+            observation_variance,
+        )?;
+        let coordinate_count = (2 * observed_suffix.len()) as f64;
+        let mean_log_density_per_coordinate = score / coordinate_count;
+        if !mean_log_density_per_coordinate.is_finite() {
+            return Err(BenchmarkError::NumericalFailure);
+        }
+        scores.push((
+            forecast.mechanism,
+            score,
+            mean_log_density_per_coordinate,
+        ));
+    }
+
+    scores.sort_by(|left, right| {
+        right
+            .1
+            .total_cmp(&left.1)
+            .then_with(|| left.0.cmp(&right.0))
+    });
+    let best = scores[0];
+    let runner_up = scores[1];
+    let margin = best.1 - runner_up.1;
+    if !margin.is_finite() {
+        return Err(BenchmarkError::NumericalFailure);
+    }
+
+    if best.2 < minimum_mean_log_density_per_coordinate {
+        Ok(OpenSetSelectionDecision::Abstained {
+            best_candidate: best.0,
+            reason: OpenSetAbstentionReason::PoorAbsoluteFit,
+            log_score: best.1,
+            mean_log_density_per_coordinate: best.2,
+            margin_over_runner_up: margin,
+        })
+    } else if margin <= minimum_score_margin {
+        Ok(OpenSetSelectionDecision::Abstained {
+            best_candidate: best.0,
+            reason: OpenSetAbstentionReason::InsufficientSeparation,
+            log_score: best.1,
+            mean_log_density_per_coordinate: best.2,
+            margin_over_runner_up: margin,
+        })
+    } else {
+        Ok(OpenSetSelectionDecision::Selected {
+            mechanism: best.0,
+            log_score: best.1,
+            mean_log_density_per_coordinate: best.2,
             margin_over_runner_up: margin,
         })
     }
@@ -2408,6 +2520,175 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn open_set_gate_abstains_when_every_candidate_is_a_poor_fit_even_with_a_large_margin() {
+        let observed = (0..8)
+            .map(|index| SyntheticSample {
+                timestamp: index as f64 * 0.05,
+                x: 0.0,
+                y: 0.0,
+            })
+            .collect::<Vec<_>>();
+        let forecasts = vec![
+            FrozenForecast {
+                mechanism: Mechanism::IntrinsicOscillator,
+                fitted_angular_frequency: 4.0,
+                fitted_initial_phase: 0.0,
+                baseline_log_score: 0.0,
+                baseline_parameter_score_margin: 0.0,
+                predicted_suffix: observed
+                    .iter()
+                    .map(|sample| SyntheticSample { x: 1.0, ..*sample })
+                    .collect(),
+            },
+            FrozenForecast {
+                mechanism: Mechanism::SensoryFeedbackDriven,
+                fitted_angular_frequency: 4.0,
+                fitted_initial_phase: 0.0,
+                baseline_log_score: 0.0,
+                baseline_parameter_score_margin: 0.0,
+                predicted_suffix: observed
+                    .iter()
+                    .map(|sample| SyntheticSample { x: 2.0, ..*sample })
+                    .collect(),
+            },
+        ];
+
+        let decision =
+            select_frozen_forecast_open_set(&observed, &forecasts, 0.01, 0.0, -10.0).unwrap();
+        assert!(matches!(
+            decision,
+            OpenSetSelectionDecision::Abstained {
+                reason: OpenSetAbstentionReason::PoorAbsoluteFit,
+                margin_over_runner_up,
+                ..
+            } if margin_over_runner_up > 100.0
+        ));
+    }
+
+    #[test]
+    fn open_set_gate_selects_when_best_fit_is_adequate_and_separated() {
+        let observed = (0..8)
+            .map(|index| SyntheticSample {
+                timestamp: index as f64 * 0.05,
+                x: 0.0,
+                y: 0.0,
+            })
+            .collect::<Vec<_>>();
+        let forecasts = vec![
+            FrozenForecast {
+                mechanism: Mechanism::IntrinsicOscillator,
+                fitted_angular_frequency: 4.0,
+                fitted_initial_phase: 0.0,
+                baseline_log_score: 0.0,
+                baseline_parameter_score_margin: 0.0,
+                predicted_suffix: observed.clone(),
+            },
+            FrozenForecast {
+                mechanism: Mechanism::SensoryFeedbackDriven,
+                fitted_angular_frequency: 4.0,
+                fitted_initial_phase: 0.0,
+                baseline_log_score: 0.0,
+                baseline_parameter_score_margin: 0.0,
+                predicted_suffix: observed
+                    .iter()
+                    .map(|sample| SyntheticSample { x: 1.0, ..*sample })
+                    .collect(),
+            },
+        ];
+
+        let decision =
+            select_frozen_forecast_open_set(&observed, &forecasts, 0.01, 1.0, -10.0).unwrap();
+        assert!(matches!(
+            decision,
+            OpenSetSelectionDecision::Selected {
+                mechanism: Mechanism::IntrinsicOscillator,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn open_set_gate_distinguishes_adequate_but_ambiguous_from_poor_fit() {
+        let observed = (0..8)
+            .map(|index| SyntheticSample {
+                timestamp: index as f64 * 0.05,
+                x: 0.0,
+                y: 0.0,
+            })
+            .collect::<Vec<_>>();
+        let forecasts = vec![
+            FrozenForecast {
+                mechanism: Mechanism::IntrinsicOscillator,
+                fitted_angular_frequency: 4.0,
+                fitted_initial_phase: 0.0,
+                baseline_log_score: 0.0,
+                baseline_parameter_score_margin: 0.0,
+                predicted_suffix: observed.clone(),
+            },
+            FrozenForecast {
+                mechanism: Mechanism::SensoryFeedbackDriven,
+                fitted_angular_frequency: 4.0,
+                fitted_initial_phase: 0.0,
+                baseline_log_score: 0.0,
+                baseline_parameter_score_margin: 0.0,
+                predicted_suffix: observed.clone(),
+            },
+        ];
+
+        let decision = select_frozen_forecast_open_set(
+            &observed,
+            &forecasts,
+            0.01,
+            1.0e-6,
+            -10.0,
+        )
+        .unwrap();
+        assert!(matches!(
+            decision,
+            OpenSetSelectionDecision::Abstained {
+                reason: OpenSetAbstentionReason::InsufficientSeparation,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn open_set_gate_rejects_nonfinite_absolute_fit_threshold() {
+        let observed = (0..3)
+            .map(|index| SyntheticSample {
+                timestamp: index as f64 * 0.05,
+                x: 0.0,
+                y: 0.0,
+            })
+            .collect::<Vec<_>>();
+        let forecasts = [
+            Mechanism::IntrinsicOscillator,
+            Mechanism::SensoryFeedbackDriven,
+        ]
+        .iter()
+        .map(|mechanism| FrozenForecast {
+            mechanism: *mechanism,
+            fitted_angular_frequency: 4.0,
+            fitted_initial_phase: 0.0,
+            baseline_log_score: 0.0,
+            baseline_parameter_score_margin: 0.0,
+            predicted_suffix: observed.clone(),
+        })
+        .collect::<Vec<_>>();
+
+        assert_eq!(
+            select_frozen_forecast_open_set(
+                &observed,
+                &forecasts,
+                0.01,
+                1.0e-6,
+                f64::NAN,
+            ),
+            Err(BenchmarkError::InvalidAbsoluteFitThreshold)
+        );
     }
 
     #[test]
