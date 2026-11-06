@@ -146,6 +146,10 @@ class CivBenchAtlasAdapterTests(unittest.TestCase):
                 "1", "2", "2", "2", "1", "1", "1", "1", "1", "1", "1", "1", "0", "0", "0", "0", "", "",
             ],
             [
+                "item_summary", "silt_myth", "aggregate", "", "refuted", "water_systems",
+                "1", "2", "2", "2", "1", "1", "1", "1", "1", "1", "1", "1", "0", "0", "0", "0", "", "",
+            ],
+            [
                 "transmission_event", "hydrology_skill", "demonstration", "agent_a->agent_c",
                 "", "", "", "", "", "true", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
             ],
