@@ -197,7 +197,8 @@
         "evidence_manifest_digest",
         "source_lineage_digest",
         "challenge_protocol_digest",
-        "not_applicable_rationale"
+        "not_applicable_rationale",
+        "supersedes_obligation_id"
       ],
       "properties": {
         "obligation_id": {
@@ -267,6 +268,13 @@
             "string",
             "null"
           ]
+        },
+        "supersedes_obligation_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
         }
       }
     },
