@@ -1148,6 +1148,250 @@ mod tests {
         );
     }
 
+
+    fn fit_grid() -> FrequencyPhaseGrid {
+        FrequencyPhaseGrid {
+            minimum_angular_frequency: 3.5,
+            maximum_angular_frequency: 4.5,
+            frequency_steps: 101,
+            phase_steps: 360,
+        }
+    }
+
+    #[test]
+    fn equal_budget_prefix_fit_freezes_only_the_post_action_suffix() {
+        let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            intervention,
+            config(),
+        )
+        .unwrap();
+        let forecasts = predict_intervention_candidates(
+            &generated.samples[..30],
+            &CANDIDATES,
+            intervention,
+            config(),
+            fit_grid(),
+        )
+        .unwrap();
+
+        assert_eq!(forecasts.len(), CANDIDATES.len());
+        for forecast in &forecasts {
+            assert_eq!(forecast.predicted_suffix.len(), config().sample_count - 30);
+            assert_eq!(
+                forecast.predicted_suffix[0].timestamp,
+                30.0 * config().sample_interval
+            );
+            assert!((forecast.fitted_angular_frequency - 4.0).abs() <= 0.011);
+            assert!(forecast.baseline_log_score.is_finite());
+            assert!(forecast.baseline_parameter_score_margin.is_finite());
+        }
+    }
+
+    #[test]
+    fn observationally_equivalent_candidates_fit_equally_but_forecast_differently() {
+        let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            intervention,
+            config(),
+        )
+        .unwrap();
+        let forecasts = predict_intervention_candidates(
+            &generated.samples[..30],
+            &CANDIDATES,
+            intervention,
+            config(),
+            fit_grid(),
+        )
+        .unwrap();
+
+        assert!(
+            (forecasts[0].baseline_log_score - forecasts[1].baseline_log_score).abs()
+                < 1.0e-9
+        );
+        assert!(
+            trajectory_rmse(
+                &forecasts[0].predicted_suffix,
+                &forecasts[1].predicted_suffix
+            )
+            .unwrap()
+                > 0.1
+        );
+    }
+
+    #[test]
+    fn held_out_suffix_selects_generator_after_equal_budget_baseline_fit() {
+        let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            intervention,
+            config(),
+        )
+        .unwrap();
+        let noisy =
+            add_gaussian_observation_noise(&generated.samples, 0.01, 0xA11CE).unwrap();
+        let forecasts = predict_intervention_candidates(
+            &noisy[..30],
+            &CANDIDATES,
+            intervention,
+            config(),
+            fit_grid(),
+        )
+        .unwrap();
+        let decision = select_frozen_forecast(
+            &noisy[30..],
+            &forecasts,
+            config().observation_variance,
+            1.0e-6,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            decision,
+            SelectionDecision::Selected {
+                mechanism: Mechanism::IntrinsicOscillator,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn phase_pulse_predictions_are_frozen_before_the_suffix_is_scored() {
+        let intervention = Intervention::PhasePulseAt {
+            sample_index: 30,
+            delta_phase_radians: 0.5,
+        };
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            intervention,
+            config(),
+        )
+        .unwrap();
+        let forecasts = predict_intervention_candidates(
+            &generated.samples[..30],
+            &CANDIDATES,
+            intervention,
+            config(),
+            fit_grid(),
+        )
+        .unwrap();
+        let decision = select_frozen_forecast(
+            &generated.samples[30..],
+            &forecasts,
+            config().observation_variance,
+            1.0e-6,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            decision,
+            SelectionDecision::Selected {
+                mechanism: Mechanism::IntrinsicOscillator,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn rejects_an_action_not_aligned_to_first_held_out_sample() {
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
+        assert_eq!(
+            predict_intervention_candidates(
+                &generated.samples[..30],
+                &CANDIDATES,
+                Intervention::FeedbackCutFrom { sample_index: 29 },
+                config(),
+                fit_grid(),
+            ),
+            Err(BenchmarkError::InvalidInterventionAlignment)
+        );
+        assert_eq!(
+            predict_intervention_candidates(
+                &generated.samples[..30],
+                &CANDIDATES,
+                Intervention::None,
+                config(),
+                fit_grid(),
+            ),
+            Err(BenchmarkError::InvalidInterventionAlignment)
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_fit_grid_and_prefix_time_grid() {
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
+        let mut invalid_grid = fit_grid();
+        invalid_grid.frequency_steps = 1;
+        assert_eq!(
+            predict_intervention_candidates(
+                &generated.samples[..30],
+                &CANDIDATES,
+                Intervention::FeedbackCutFrom { sample_index: 30 },
+                config(),
+                invalid_grid,
+            ),
+            Err(BenchmarkError::InvalidFitGrid)
+        );
+
+        let mut shifted_prefix = generated.samples[..30].to_vec();
+        shifted_prefix[5].timestamp += 0.001;
+        assert_eq!(
+            predict_intervention_candidates(
+                &shifted_prefix,
+                &CANDIDATES,
+                Intervention::FeedbackCutFrom { sample_index: 30 },
+                config(),
+                fit_grid(),
+            ),
+            Err(BenchmarkError::TimestampMismatch)
+        );
+    }
+
+    #[test]
+    fn baseline_fit_rejects_single_or_duplicate_candidate_families() {
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
+        assert_eq!(
+            predict_intervention_candidates(
+                &generated.samples[..30],
+                &[Mechanism::IntrinsicOscillator],
+                Intervention::FeedbackCutFrom { sample_index: 30 },
+                config(),
+                fit_grid(),
+            ),
+            Err(BenchmarkError::EmptyCandidateSet)
+        );
+        assert_eq!(
+            predict_intervention_candidates(
+                &generated.samples[..30],
+                &[
+                    Mechanism::IntrinsicOscillator,
+                    Mechanism::IntrinsicOscillator,
+                ],
+                Intervention::FeedbackCutFrom { sample_index: 30 },
+                config(),
+                fit_grid(),
+            ),
+            Err(BenchmarkError::DuplicateCandidate)
+        );
+    }
+
     #[test]
     fn predictive_score_rewards_the_matching_intervention_prediction() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 20 };
