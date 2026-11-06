@@ -17,9 +17,11 @@ lane; it does not yet establish full step-loop collision response correctness.
 - Zero/non-finite normals, non-finite offsets, invalid radius/timestep and
   non-finite input state do not manufacture NaN-valued hits.
 
-The existing `Option<CcdHit>` API is retained for compatibility. Invalid input
-and no collision remain indistinguishable at this layer; a future checked API
-may return a typed validation error without breaking existing callers.
+The existing `Option<CcdHit>` API is retained for compatibility. New
+`sphere_sphere_checked` and `sphere_halfspace_checked` entry points return
+`Result<Option<CcdHit>, CcdInputError>`: valid no-hit queries return `Ok(None)`,
+while malformed inputs return a typed error. The legacy APIs still map both
+cases to `None`.
 
 ## Numerical method
 
@@ -52,6 +54,10 @@ t_hit = (s(0) - radius) / (-n̂ · v)
 - Sphere-halfspace closed-form TOI and world-space contact point.
 - Positive scaling invariance of the plane normal representation.
 - Returned plane normal is unit length.
+- Contact-point surface residuals meet analytic tolerances.
+- Galilean invariance under a common velocity boost.
+- TOI and contact point obey time reparameterization.
+- Checked APIs distinguish invalid inputs from valid no-hit queries.
 - Already-penetrating and moving-away cases remain distinct.
 - Negative controls for zero normal, non-finite offset, negative radius,
   non-finite/negative timestep and invalid sphere parameters.
