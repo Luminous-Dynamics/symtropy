@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wpt-trajectory-artifact-bundle-v0.schema.json",
+  "title": "WPT synchronized trajectory artifact bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "bundle_id", "evidence_kind", "quality_flags", "artifacts", "policy"],
+  "properties": {
+    "schema_version": { "const": "wpt-trajectory-artifact-bundle-v0" },
+    "bundle_id": { "type": "string", "minLength": 1 },
+    "evidence_kind": { "const": "SYNTHETIC_KNOWN_TRUTH" },
+    "quality_flags": { "const": ["SYNTHETIC_ONLY"] },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trajectory", "em_projection", "pavement_projection", "em_transform", "pavement_transform"],
+      "properties": {
+        "trajectory": { "$ref": "#/$defs/artifact" },
+        "em_projection": { "$ref": "#/$defs/artifact" },
+        "pavement_projection": { "$ref": "#/$defs/artifact" },
+        "em_transform": { "$ref": "#/$defs/artifact" },
+        "pavement_transform": { "$ref": "#/$defs/artifact" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maximum_bundle_artifact_bytes", "maximum_clock_uncertainty_ns"],
+      "properties": {
+        "maximum_bundle_artifact_bytes": { "type": "integer", "minimum": 1 },
+        "maximum_clock_uncertainty_ns": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "media_type", "sha256", "bytes_base64"],
+      "properties": {
+        "artifact_id": { "type": "string", "minLength": 1 },
+        "media_type": { "const": "application/json" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "bytes_base64": { "type": "string", "minLength": 4 }
+      }
+    }
+  }
+}
