@@ -160,6 +160,52 @@
         "accepted": false,
         "reason": "non_contiguous_event_intervals"
       }
+    },
+    {
+      "case_id": "recovery-evidence-missing",
+      "phases": [
+        "Dispatch"
+      ],
+      "event_end_ns": 1000,
+      "observation_end_ns": 2000,
+      "expected": {
+        "accepted": false,
+        "reason": "missing_recovery_intervals"
+      }
+    },
+    {
+      "case_id": "dispatch-interval-straddles-end",
+      "dispatch_end_ns": 1000,
+      "interval": {
+        "start_ns": 0,
+        "end_ns": 2000,
+        "phase": "Dispatch"
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "event_interval_straddles_dispatch_end"
+      }
+    },
+    {
+      "case_id": "trace-ends-before-recovery-evidence",
+      "declared_observation_horizon_end_ns": 3000,
+      "actual_trace_end_ns": 2000,
+      "expected": {
+        "accepted": false,
+        "reason": "event_horizon_end_mismatch"
+      }
+    },
+    {
+      "case_id": "dispatch-resumes-after-recovery",
+      "phases": [
+        "Dispatch",
+        "Recovery",
+        "Dispatch"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "dispatch_recovery_phase_order_violation"
+      }
     }
   ],
   "negative_controls": [
@@ -176,6 +222,39 @@
     "event_baseline_identity_mismatch",
     "event_pcc_metrology_uncertainty_omitted",
     "rebound_dropped_from_event_accounting",
-    "recovery_horizon_not_declared_complete"
-  ]
+    "recovery_horizon_not_declared_complete",
+    "event_recovery_evidence_missing",
+    "dispatch_end_not_aligned_to_interval_boundary",
+    "recovery_trace_does_not_reach_declared_observation_end",
+    "dispatch_phase_resumes_after_recovery",
+    "no_recovery_interval_in_trace",
+    "event_performance_fraction_uses_recovery_intervals_in_denominator"
+  ],
+  "event_protocol": {
+    "phase_values": [
+      "Dispatch",
+      "Recovery"
+    ],
+    "required_horizon_evidence": {
+      "event_start_ns": 0,
+      "dispatch_end_ns": 3600000000000,
+      "observation_horizon_end_ns": 7200000000000,
+      "evidence_id": "sha256:recovery-receipt-id",
+      "source_digest": "sha256:recovery-source",
+      "workload_obligations_reconciled": true,
+      "physical_resource_states_reconciled": true
+    },
+    "validation": [
+      "first trace interval starts at event_start_ns",
+      "final trace interval ends at observation_horizon_end_ns",
+      "trace is contiguous",
+      "at least one Dispatch interval exists",
+      "at least one Recovery interval exists",
+      "no interval straddles dispatch_end_ns",
+      "Dispatch intervals cannot resume after Recovery begins",
+      "response fraction denominator includes Dispatch intervals only",
+      "gross reduction and rebound energy include both phases",
+      "event qualification requires both workload and physical-state reconciliation"
+    ]
+  }
 }
