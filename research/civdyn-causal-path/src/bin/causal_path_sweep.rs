@@ -4,8 +4,8 @@
 //! One-tick matched intervention experiment backed by the shared resource ledger.
 
 use civdyn_causal_path::{
-    CausalEdge, CausalExperiment, CausalStage, CausalVariable, IndependentOutcomeReceipt,
-    RunArm, TransitionReceipt,
+    CausalEdge, CausalExperiment, CausalStage, CausalVariable, IndependentOutcomeReceipt, RunArm,
+    TransitionReceipt,
 };
 use civdyn_resource_ledger::{
     Production, Region, ResourceVector, StepInput, TransferPolicy, TransferRequest, World,
@@ -147,10 +147,7 @@ fn execute_arm(arm_id: &str, safeguard_enabled: bool, decoy_counter: bool) -> Ar
         ("transfer_eligible".into(), if eligible { 1.0 } else { 0.0 }),
         ("authorized_transfer_m3".into(), authorized_water_m3),
         ("delivered_water_m3".into(), delivered_water_m3),
-        (
-            "household_water_coverage".into(),
-            household_water_coverage,
-        ),
+        ("household_water_coverage".into(), household_water_coverage),
         (
             "reputation_counter".into(),
             if decoy_counter { 1.0 } else { 0.0 },
@@ -228,7 +225,11 @@ fn fmt(value: f64) -> String {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "causal-path CSV schema must remain stable");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "causal-path CSV schema must remain stable"
+    );
     println!("{}", fields.join(","));
 }
 
@@ -329,6 +330,9 @@ mod tests {
         assert_eq!(arms[0].reservoir_closing_water_m3, 20.0);
         assert_eq!(arms[1].reservoir_closing_water_m3, 10.0);
         assert_eq!(arms[2].reservoir_closing_water_m3, 20.0);
-        assert!(arms.iter().all(|arm| arm.max_water_conservation_residual_m3 < 1e-9));
+        assert!(
+            arms.iter()
+                .all(|arm| arm.max_water_conservation_residual_m3 < 1e-9)
+        );
     }
 }
