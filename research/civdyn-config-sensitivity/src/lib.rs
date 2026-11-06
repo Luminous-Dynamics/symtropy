@@ -52,7 +52,10 @@ impl ConfigurationFacets {
         Ok(())
     }
 
-    fn single_changed_facet(&self, other: &Self) -> Option<(&'static str, &str, &str)> {
+    fn single_changed_facet<'a>(
+        &'a self,
+        other: &'a Self,
+    ) -> Option<(&'static str, &'a str, &'a str)> {
         let left = self.values();
         let right = other.values();
         let mut changed = None;
@@ -765,9 +768,8 @@ mod tests {
         ));
 
         let mut duplicate = fixture();
-        duplicate.runs[1]
-            .decisions
-            .push(duplicate.runs[1].decisions[0].clone());
+        let repeated_decision = duplicate.runs[1].decisions[0].clone();
+        duplicate.runs[1].decisions.push(repeated_decision);
         assert!(matches!(
             duplicate.validate(),
             Err(ConfigurationError::DuplicateCaseId { .. })
