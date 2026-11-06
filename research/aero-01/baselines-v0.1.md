@@ -103,7 +103,21 @@ Sources:
 - Manufacturer warranty and battery replacement assumptions where electric/hybrid aircraft are evaluated.
 - South African registration, design approval, flight-test and operation pathway reviewed against current SACAA guidance and the intended aircraft category.
 
-## 6. Next analysis
+## 6. South African regulatory decision gate
+
+Do not select a development or prototype route by assuming an amateur-built pathway will support a future commercial aircraft.
+
+SACAA's published guidance lists distinct engineering materials and application processes for Type Certification, Design Organisation Approval, Experimental Certificate of Airworthiness and Amateur-Built Aircraft. Its public FAQ describes amateur-built projects as construction/assembly by natural persons for their own education, recreation and experimental purposes, and notes operational limitations that include no commercial or remunerated activity. This makes the intended end product and applicant structure a first-order programme decision.
+
+Before physical design freeze, request a pre-application discussion with the SACAA Engineering Office and qualified South African certification specialists. Bring a concise concept description, intended aircraft category and mission, propulsion/energy novelty, applicant/manufacturing intent, development/test sequence, and the proposed basis for design assurance and continued airworthiness. Obtain the authority's written direction on the applicable route and scope.
+
+Official starting points:
+- SACAA Airworthiness / Engineering guidance and listed Technical Guidance Materials: https://www.caa.co.za/industry-information/airworthiness/
+- SACAA public FAQ, including amateur-built aircraft purpose and limitations: https://www.caa.co.za/information-for-the-public/frequently-asked-questions/
+
+This is not a regulatory determination. The competent authority determines the applicable requirements and approvals for the actual product and applicant.
+
+## 7. Next analysis
 
 1. Freeze Wren 2 / Wayfarer 4 mission cards and a common reserve policy.
 2. Normalize C0 reference missions from approved aircraft manuals, not headline web specs alone.
