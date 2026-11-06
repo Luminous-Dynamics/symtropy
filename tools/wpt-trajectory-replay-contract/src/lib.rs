@@ -74,7 +74,11 @@ fn validate_digest(digest: &str, path: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_sample(value: &Value, index: usize, seen: &mut BTreeSet<String>) -> Result<u64, String> {
+fn validate_sample(
+    value: &Value,
+    index: usize,
+    seen: &mut BTreeSet<String>,
+) -> Result<u64, String> {
     let path = format!("$.trajectory_samples[{index}]");
     exact_keys(
         value,
@@ -132,9 +136,7 @@ fn validate_projection_group(
     if projections.len() != samples.len() {
         return Err(fail(
             &format!("$.{kind}"),
-            format!(
-                "exactly one {kind} projection is required per trajectory sample"
-            ),
+            format!("exactly one {kind} projection is required per trajectory sample"),
         ));
     }
 
@@ -173,7 +175,10 @@ fn validate_projection_group(
         exact_keys(projection, allowed, &path)?;
         let projection_id = string_field(projection, "projection_id", &path)?.to_string();
         if !projection_ids.insert(projection_id.clone()) {
-            return Err(fail(&path, format!("duplicate projection_id {projection_id}")));
+            return Err(fail(
+                &path,
+                format!("duplicate projection_id {projection_id}"),
+            ));
         }
         if string_field(projection, "trajectory_id", &path)? != trajectory_id {
             return Err(fail(
@@ -183,7 +188,10 @@ fn validate_projection_group(
         }
         let sample_id = string_field(projection, "sample_id", &path)?.to_string();
         if !samples.contains(&sample_id) {
-            return Err(fail(&path, format!("unknown trajectory sample_id {sample_id}")));
+            return Err(fail(
+                &path,
+                format!("unknown trajectory sample_id {sample_id}"),
+            ));
         }
         if !projected_samples.insert(sample_id.clone()) {
             return Err(fail(
@@ -360,11 +368,19 @@ mod tests {
         let mut scenario = fixture();
         scenario["trajectory_samples"][1]["sample_id"] =
             scenario["trajectory_samples"][0]["sample_id"].clone();
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("duplicate sample_id"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("duplicate sample_id")
+        );
 
         let mut scenario = fixture();
         scenario["trajectory_samples"][2]["timestamp_ms"] = Value::from(50);
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("strictly increasing"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("strictly increasing")
+        );
     }
 
     #[test]
@@ -372,7 +388,11 @@ mod tests {
         let mut scenario = fixture();
         scenario["electromagnetic_projections"][0]["sample_id"] =
             Value::String("unrecorded-pose".into());
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("unknown trajectory sample_id"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("unknown trajectory sample_id")
+        );
     }
 
     #[test]
@@ -380,23 +400,45 @@ mod tests {
         let mut scenario = fixture();
         scenario["electromagnetic_projections"][0]["coordinate_frame_id"] =
             Value::String("other-frame".into());
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("coordinate frame"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("coordinate frame")
+        );
 
         let mut scenario = fixture();
         scenario["pavement_projections"][0]["coordinate_frame_id"] =
             Value::String("other-frame".into());
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("coordinate frame"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("coordinate frame")
+        );
     }
 
     #[test]
     fn each_lane_requires_exactly_one_projection_per_pose() {
         let mut scenario = fixture();
-        scenario["electromagnetic_projections"].as_array_mut().unwrap().pop();
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("exactly one electromagnetic_projections"));
+        scenario["electromagnetic_projections"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("exactly one electromagnetic_projections")
+        );
 
         let mut scenario = fixture();
-        scenario["pavement_projections"].as_array_mut().unwrap().pop();
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("exactly one pavement_projections"));
+        scenario["pavement_projections"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("exactly one pavement_projections")
+        );
     }
 
     #[test]
@@ -404,34 +446,58 @@ mod tests {
         let mut scenario = fixture();
         scenario["pavement_projections"][0]["trajectory_id"] =
             Value::String("different-trajectory".into());
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("does not match canonical trajectory"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("does not match canonical trajectory")
+        );
 
         let mut scenario = fixture();
         scenario["electromagnetic_projections"][0]["transform_sha256"] =
             Value::String("not-a-digest".into());
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("lowercase SHA-256"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("lowercase SHA-256")
+        );
     }
 
     #[test]
     fn invalid_motion_and_non_synthetic_evidence_fail_closed() {
         let mut scenario = fixture();
         scenario["trajectory_samples"][0]["speed_mps"] = Value::from(-1);
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("speed_mps must be non-negative"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("speed_mps must be non-negative")
+        );
 
         let mut scenario = fixture();
         scenario["evidence_kind"] = Value::String("MEASURED".into());
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("synthetic known-truth"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("synthetic known-truth")
+        );
     }
 
     #[test]
     fn unknown_properties_and_duplicate_projection_ids_fail_closed() {
         let mut scenario = fixture();
         scenario["trajectory_samples"][0]["invented_alignment_score"] = Value::from(1);
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("unknown property"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("unknown property")
+        );
 
         let mut scenario = fixture();
         let duplicate = scenario["electromagnetic_projections"][0]["projection_id"].clone();
         scenario["electromagnetic_projections"][1]["projection_id"] = duplicate;
-        assert!(validate_trajectory_episode(&scenario).unwrap_err().contains("duplicate projection_id"));
+        assert!(
+            validate_trajectory_episode(&scenario)
+                .unwrap_err()
+                .contains("duplicate projection_id")
+        );
     }
 }
