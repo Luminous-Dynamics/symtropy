@@ -1708,6 +1708,23 @@ mod tests {
             node.force_x_n = cos * fx - sin * fy;
             node.force_y_n = sin * fx + cos * fy;
         }
+        let rotated_min_x = rotated_input.nodes.iter().map(|node| node.x_m).fold(f64::INFINITY, f64::min);
+        let rotated_max_x = rotated_input.nodes.iter().map(|node| node.x_m).fold(f64::NEG_INFINITY, f64::max);
+        let rotated_min_y = rotated_input.nodes.iter().map(|node| node.y_m).fold(f64::INFINITY, f64::min);
+        let rotated_max_y = rotated_input.nodes.iter().map(|node| node.y_m).fold(f64::NEG_INFINITY, f64::max);
+        let legacy_rotated_bbox_diagonal =
+            (rotated_max_x - rotated_min_x).hypot(rotated_max_y - rotated_min_y);
+        close(
+            legacy_rotated_bbox_diagonal,
+            5.0,
+            1.0e-12,
+            "legacy axis-aligned bbox diagonal after rotation",
+        );
+        assert!(
+            (legacy_rotated_bbox_diagonal - expected_diameter).abs() > 0.5,
+            "the legacy bbox diagonal must expose the orientation-dependent counterexample"
+        );
+
         let rotated = solve(&rotated_input).expect("rotated 4-by-1 rectangle");
 
         close(
