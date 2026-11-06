@@ -300,7 +300,9 @@
         "depth_of_cut_m": 0.003,
         "speed_ratio": 0.3184713375796179,
         "speed_ratio_definition": "v/(omega*e)",
-        "cutter_edge_profile_ref": "SYN-ODC-EDGE"
+        "cutter_edge_profile_ref": "SYN-ODC-EDGE",
+        "angular_speed_observation_ref": "angular_speed_rad_s",
+        "traction_speed_observation_ref": "traction_speed_m_s"
       },
       "environment": {
         "temperature_k": 293.15,
@@ -366,8 +368,30 @@
       ],
       "observations": [
         {
+          "metric_id": "angular_speed_rad_s",
+          "value": 31.4,
+          "unit": "rad/s",
+          "measurement_role": "IndependentMeasurement",
+          "standard_uncertainty": 0.05,
+          "calibration_ref": "SYN-CAL-ENCODER",
+          "source_artifact_refs": [
+            "SYN-ART-ODC-RAW"
+          ]
+        },
+        {
+          "metric_id": "traction_speed_m_s",
+          "value": 0.01,
+          "unit": "m/s",
+          "measurement_role": "IndependentMeasurement",
+          "standard_uncertainty": 0.0001,
+          "calibration_ref": "SYN-CAL-ENCODER",
+          "source_artifact_refs": [
+            "SYN-ART-ODC-RAW"
+          ]
+        },
+        {
           "metric_id": "rv_recomputed",
-          "value": 0.3184713376,
+          "value": 0.3184713375796179,
           "unit": "1",
           "measurement_role": "DerivedFromIndependentMeasurements",
           "standard_uncertainty": 0.001,
