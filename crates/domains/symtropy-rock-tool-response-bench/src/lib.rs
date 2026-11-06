@@ -666,6 +666,13 @@ mod tests {
     }
 
     #[test]
+    fn atcp_waveform_artifacts_must_resolve() {
+        let mut data = fixture();
+        data["records"][0]["method_configuration"]["torsional_waveform_artifact_ref"] = json!("MISSING-TORSIONAL-WAVEFORM");
+        assert!(has(&validate_bundle(&data), ValidationCode::MissingArtifactReference));
+    }
+
+    #[test]
     fn artifact_must_reference_its_channels() {
         let mut data = fixture();
         data["records"][0]["artifacts"][0]["channel_refs"] = json!([]);
