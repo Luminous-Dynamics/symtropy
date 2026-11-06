@@ -1,3 +1,5 @@
+pub mod multivariate;
+
 //! History-conditioned scalar AR(1) trajectory likelihood with animal random effects.
 //!
 //! V0 supports one scalar observation per time index, an AR(1) within-session
