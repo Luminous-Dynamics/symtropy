@@ -1,0 +1,100 @@
+name: CivDyn authority and voting-power audit reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-authority-audit/**"
+      - ".github/workflows/civdyn-authority-audit.yml"
+  push:
+    paths:
+      - "research/civdyn-authority-audit/**"
+      - ".github/workflows/civdyn-authority-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute authority audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-authority-audit/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-authority-audit/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-authority-audit/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-authority-audit/Cargo.toml --all-targets
+
+      - name: Execute weighted-voting and authority topology fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-authority-evidence
+          cargo run --locked --manifest-path research/civdyn-authority-audit/Cargo.toml --bin authority-audit-sweep \
+            | tee target/civdyn-authority-evidence/authority-audit.csv
+
+      - name: Verify exact power indices, coalitions and appeal separation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/civdyn-authority-evidence/authority-audit.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+          assert all(len(row) == 23 for row in rows)
+
+          actors = {
+              (row["scenario"], row["actor_id"]): row
+              for row in rows if row["record_type"] == "actor_power"
+          }
+          assert abs(float(actors[("equal_majority", "a")]["normalized_banzhaf_power"]) - 1/3) < 1e-6
+          assert abs(float(actors[("weighted_supermajority", "large")]["normalized_banzhaf_power"]) - 0.6) < 1e-6
+          assert abs(float(actors[("weighted_supermajority", "large")]["shapley_shubik_power"]) - 2/3) < 1e-6
+          assert actors[("concentrated_majority", "majority")]["dictator"] == "true"
+          assert actors[("concentrated_majority", "majority")]["veto_player"] == "true"
+          assert actors[("concentrated_majority", "minority")]["normalized_banzhaf_power"] == "0.000000"
+
+          coalitions = [r for r in rows if r["record_type"] == "minimal_winning_coalition"]
+          assert len([r for r in coalitions if r["scenario"] == "weighted_supermajority"]) == 2
+          topology = next(r for r in rows if r["record_type"] == "topology_summary")
+          assert topology["raw_banzhaf_swings"] == "4"
+          assert topology["appeal_channel_available"] == "true"
+          assert topology["appeal_adjudicator_independent"] == "true"
+          assert topology["declared_policy_satisfied"] == "false"
+
+          conflicts = [r for r in rows if r["record_type"] == "role_conflict"]
+          assert len(conflicts) == 4
+          print("CIVDYN-AUTH-001 exact Banzhaf/Shapley indices, minimal winning coalitions, role-conflict and independent-appeal controls verified.")
+          PY
+
+          {
+            echo "## CIVDYN-AUTH-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-authority-evidence/authority-audit.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: formal weighted-voting and permission topology only"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload authority audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-authority-audit
+          path: target/civdyn-authority-evidence/authority-audit.csv
+          if-no-files-found: error
+          retention-days: 30
