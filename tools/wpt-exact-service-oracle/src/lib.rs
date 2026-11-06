@@ -851,8 +851,17 @@ mod tests {
     #[test]
     fn transfer_capacity_can_bind_before_segment_supply() {
         let mut scenario = fixture();
-        scenario["transfer_links"][0]["max_deliverable_energy_mwh"] = Value::from(1);
-        scenario["transfer_links"][1]["max_deliverable_energy_mwh"] = Value::from(0);
+        for link in scenario["transfer_links"].as_array_mut().unwrap() {
+            match link["link_id"].as_str() {
+                Some("a0-to-v1") => {
+                    link["max_deliverable_energy_mwh"] = Value::from(1);
+                }
+                Some("b0-to-v1") => {
+                    link["max_deliverable_energy_mwh"] = Value::from(0);
+                }
+                _ => {}
+            }
+        }
         let report = evaluate_scenario(&scenario).unwrap();
         assert!(!report.feasible);
         assert_eq!(report.total_shortfall_mwh, 1);
