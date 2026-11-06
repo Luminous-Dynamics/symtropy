@@ -58,17 +58,6 @@
       "claim": "adapted subset; not directly comparable with full leaderboard"
     },
     {
-      "track": "bench2drive",
-      "metric": "Driving Score",
-      "benchmark_version": "current public leaderboard snapshot",
-      "method": "AlignDrive",
-      "score": 89.07,
-      "unit": "points",
-      "protocol": "leaderboard result; exact deployment configuration must be reproduced",
-      "source": "https://carlaleaderboard-bench2drive.hf.space/",
-      "claim": "public leaderboard snapshot; scope needs verification"
-    },
-    {
       "track": "hugsim",
       "metric": "HD-Score",
       "benchmark_version": "zero-shot, 436 public scenarios",
@@ -119,12 +108,81 @@
       "protocol": "three deviation categories; reactive behavior evaluated with collision, map-based, and kinematic feasibility metrics",
       "source": "https://arxiv.org/abs/2606.14058",
       "claim": "benchmark size, not model score"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 test table",
+      "method": "DriveVLA-W0 (official one-camera row marked *)",
+      "score": 90.2,
+      "unit": "points",
+      "protocol": "official repository NAVSIM table; one-camera sensor row; separate dagger-marked 93.0 entry deliberately not conflated with this row",
+      "source": "https://github.com/BraveGroup/DriveVLA-W0",
+      "claim": "official repository table; checkpoint/configuration must be pinned"
+    },
+    {
+      "track": "bench2drive",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 89.25,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive 0.0.3 self-reported leaderboard (non-privileged section)",
+      "method": "BridgeDrive (LEAD-trained)",
+      "score": 96.34,
+      "unit": "points",
+      "protocol": "leaderboard table last updated 2026-09-24; copied from publication; methods vary across expert/data/training/inference compute",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "claim": "self-reported public reference; not a matched reproduction"
+    },
+    {
+      "track": "bench2drive",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 86.81,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive 0.0.3 self-reported leaderboard (non-privileged section)",
+      "method": "TFv6",
+      "score": 95.28,
+      "unit": "points",
+      "protocol": "leaderboard table last updated 2026-09-24; copied from publication; methods vary across expert/data/training/inference compute",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "claim": "self-reported public reference; not a matched reproduction"
+    },
+    {
+      "track": "bench2drive_privileged",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 92.27,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive 0.0.3 privileged section (ground-truth perception)",
+      "method": "PDM-Lite",
+      "score": 97.02,
+      "unit": "points",
+      "protocol": "ground-truth perception input; separated privileged section",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "claim": "privileged reference; not comparable with ordinary sensor-only systems"
+    },
+    {
+      "track": "bench2drive_privileged",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 96.59,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive 0.0.3 privileged section (ground-truth perception)",
+      "method": "LEAD",
+      "score": 96.78,
+      "unit": "points",
+      "protocol": "ground-truth perception input; separated privileged section",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "claim": "privileged reference; not comparable with ordinary sensor-only systems"
     }
   ],
   "interpretation_rules": [
     "Never compare PDMS and EPDMS as if they were identical.",
     "Do not compare adapted Bench2Drive-220 results to full leaderboard results without matching routes, inputs, permitted data, controllers, and deployment rules.",
     "Do not compare HUGSIM public aggregator results with paper zero-shot scores until split and evaluation scope match.",
-    "Keep world-model prediction, planner score, closed-loop driving, multi-agent realism, and decision-quality evidence as separate tracks."
+    "Keep world-model prediction, planner score, closed-loop driving, multi-agent realism, and decision-quality evidence as separate tracks.",
+    "Bench2Drive 0.0.3 rows are self-reported results copied from papers and vary by data, expert, training and inference compute; ground-truth-perception rows are privileged and must be separated.",
+    "Do not treat the 90.2 DriveVLA-W0 one-camera PDMS row and its separate dagger-marked 93.0 entry as the same configuration."
   ]
 }
