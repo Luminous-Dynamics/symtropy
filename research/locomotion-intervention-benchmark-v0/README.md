@@ -12,10 +12,11 @@ This benchmark constructs matched trajectories, then applies a held-out feedback
 
 - **Intrinsic oscillator:** a stable phase cycle continues when sensory feedback is removed.
 - **Damped focus:** a rotating transient whose amplitude decays without requiring a limit cycle.
-- **Sensory-feedback-driven:** follows a periodic external drive; after feedback cut, amplitude decays.
+- **Feedback attractor:** a stable two-coordinate state tracks a periodic external target, then relaxes to the origin after feedback removal. It has no autonomous limit cycle.
+- **Sensory-feedback-driven:** directly follows a periodic external drive; after feedback cut, amplitude decays.
 - **Hybrid feedback-coupled:** has an intrinsic phase while sensory input pulls phase toward the drive, correcting a perturbation.
 
-These are intentionally small synthetic generators for benchmark semantics. They are not connectome models, organism-level locomotion simulations or claims about any animal.
+These are intentionally small synthetic generators for benchmark semantics. The feedback attractor is a first-order driven stable-state tracker, not a reproduction of the physical attractoring controller in the hexapod literature. They are not connectome models, organism-level locomotion simulations or claims about any animal.
 
 ## Implemented tasks
 
@@ -26,9 +27,10 @@ These are intentionally small synthetic generators for benchmark semantics. They
 - Trajectory RMSE and phase offset diagnostics.
 - Gaussian predictive log score under a common declared observation variance.
 - Candidate-family selection with a score-margin threshold and explicit abstention.
+- Strictly increasing observable timestamps; malformed/duplicate time samples are rejected.
 - Input validation for sample count, time units, parameter ranges, intervention indices, candidate uniqueness, trace finiteness and score thresholds.
 
-The 16 deterministic tests cover baseline observational equivalence, correct abstention under non-identifiability, divergence after feedback cut, both directions of model selection, phase-pulse persistence versus feedback correction, damped transient decay, hybrid phase correction, low-amplitude phase abstention, seeded-noise reproducibility and variance recovery, noisy held-out model selection, malformed inputs, duplicate candidates and predictive-score ranking.
+The 19 deterministic tests cover baseline observational equivalence, correct abstention under non-identifiability, divergence after feedback cut, both directions of model selection, phase-pulse persistence versus feedback correction, damped transient decay, feedback-attractor tracking and relaxation, hybrid phase correction, low-amplitude phase abstention, seeded-noise reproducibility and variance recovery, noisy held-out model selection, timestamp chronology, malformed inputs, duplicate candidates and predictive-score ranking.
 
 ## What is deliberately not implemented
 
