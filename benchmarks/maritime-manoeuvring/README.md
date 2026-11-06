@@ -72,13 +72,13 @@ See [industry-baselines.md](industry-baselines.md) for the 2026 standards, peer-
 
 ## Frozen test coverage
 
-The current suite contains 24 hand-checkable synthetic controls for:
+The current suite contains 25 hand-checkable synthetic controls for:
 
 - right- and left-hand turning circles;
 - heading wrap across 2π;
 - missing turning thresholds and ambiguous heading increments;
 - 10°/10° zig-zag first and second overshoots;
-- invalid rudder sequence, early reversal, unobserved target/peak and non-aligned command-time controls;
+- invalid rudder sequence, early reversal, unobserved target/peak, unconfirmed zero-yaw plateau and non-aligned command-time controls;
 - interpolated stopping threshold;
 - stopping from a non-origin command sample;
 - missing, stale, unknown, unsupported and future-published evidence;
