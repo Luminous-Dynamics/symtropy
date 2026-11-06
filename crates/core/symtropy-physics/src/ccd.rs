@@ -16,7 +16,7 @@
 use nalgebra::SVector;
 
 /// Result of a continuous collision detection query.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CcdHit<const D: usize> {
     /// Time of impact in seconds from step start, in [0, dt].
     pub toi: f64,
