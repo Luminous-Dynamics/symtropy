@@ -11,12 +11,12 @@ use civdyn_config_sensitivity::{
 
 const CSV_COLUMNS: usize = 21;
 
-fn digest(configuration_id: &str) -> String {
-    let hex = match configuration_id {
-        "baseline" => "9afe41bfd460d43d14a60ef5abc91f8460013a930bcbfbe37a51824c6228a63c",
-        "semantic_permutation" => "a36bbe6bb553ab53fcf47a1eefbe7d2a4eac6e38a8685b5ccd44a762860ca0d9",
-        "position_biased_order" => "f2f9975f32913ea7ceea4392d18547d62f8c57790dcf3f07ec5cfc43aa734f7e",
-        _ => panic!("unknown synthetic configuration ID"),
+fn digest(order_profile: &str) -> String {
+    let hex = match order_profile {
+        "natural_order" => "63c88127d4ac50ed04ae859548f8e71038efad4713c5dde2a35f67c18243a417",
+        "permuted_stable_ids" => "667af5de0212891440373b6bd6cb01c1f33b508a722b538fef7e0945acb69ff7",
+        "position_biased" => "6913b4938e87701fac3a76ca5195f87ec4ef3a50ce2cadb77bf1339d8c1903df",
+        _ => panic!("unknown synthetic order profile"),
     };
     format!("sha256:{hex}")
 }
@@ -49,7 +49,7 @@ fn run(id: &str, order: &str, selected: &[usize]) -> ConfigurationRun {
     ConfigurationRun {
         configuration: ConfigurationIdentity {
             configuration_id: id.into(),
-            configuration_digest: digest(id),
+            configuration_digest: digest(order),
             model_id: "synthetic_reference_model".into(),
             model_version: "v1".into(),
             facets: facets(order),
@@ -67,13 +67,11 @@ fn fixture() -> ConfigurationBenchmark {
             run("baseline", "natural_order", &[0, 1, 2, 3, 6, 7]),
             run(
                 "semantic_permutation",
-                'b',
                 "permuted_stable_ids",
                 &[0, 1, 2, 3, 6, 7],
             ),
             run(
                 "position_biased_order",
-                'c',
                 "position_biased",
                 &[0, 1, 6, 7, 8, 9],
             ),
