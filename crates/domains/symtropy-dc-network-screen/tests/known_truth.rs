@@ -15,6 +15,7 @@ fn network(branches: Vec<DcBranch>) -> DcNetworkModel {
         "topology-a",
         "sha256:topology",
         0,
+        1.0,
         vec![
             DcBus::new("S", true).unwrap(),
             DcBus::new("A", false).unwrap(),
@@ -158,6 +159,7 @@ fn stale_topology_is_rejected() {
         "topology",
         "sha256:topology",
         10_000,
+        1.0,
         vec![DcBus::new("S", true).unwrap(), DcBus::new("A", false).unwrap()],
         vec![DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap()],
     )
@@ -181,6 +183,7 @@ fn stale_topology_by_age_is_rejected_even_when_interval_is_after_effective_time(
         "topology",
         "sha256:topology",
         0,
+        1.0,
         vec![DcBus::new("S", true).unwrap(), DcBus::new("A", false).unwrap()],
         vec![DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap()],
     )
@@ -295,4 +298,41 @@ fn maximum_deliverable_fraction_is_one_when_no_branch_binds() {
     assert!(report.network_deliverable);
     assert!((report.intervals[0].maximum_network_feasible_action_fraction.unwrap() - 1.0).abs() < 1e-12);
     assert!((report.intervals[0].maximum_network_deliverable_reduction_mw - 5.0).abs() < 1e-12);
+}
+
+#[test]
+fn explicit_mva_base_preserves_mw_flow_units() {
+    let model_1mva = triangle();
+    let model_1000mva = DcNetworkModel::new(
+        "three-bus-1000mva",
+        "sha256:model-1000",
+        "topology-a",
+        "sha256:topology",
+        0,
+        1_000.0,
+        vec![
+            DcBus::new("S", true).unwrap(),
+            DcBus::new("A", false).unwrap(),
+            DcBus::new("B", false).unwrap(),
+        ],
+        vec![
+            DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap(),
+            DcBranch::new("A-B", "A", "B", 0.1, 40.0, 60.0).unwrap(),
+            DcBranch::new("S-B", "S", "B", 0.1, 45.0, 80.0).unwrap(),
+        ],
+    ).unwrap();
+    let interval = DcFlexInterval::new(
+        0, 1_000, injections(100.0, 0.0), BTreeMap::from([("B".to_owned(), 30.0)])
+    ).unwrap();
+    let report_1mva = evaluate_dc_network_deliverability(
+        &identity(), &model_1mva, &contract(false), &[interval.clone()], &[]
+    ).unwrap();
+    let report_1000mva = evaluate_dc_network_deliverability(
+        &identity(), &model_1000mva, &contract(false), &[interval], &[]
+    ).unwrap();
+    for branch_id in ["S-A", "A-B", "S-B"] {
+        let a = report_1mva.intervals[0].branch_flows.iter().find(|f| f.branch_id == branch_id).unwrap();
+        let b = report_1000mva.intervals[0].branch_flows.iter().find(|f| f.branch_id == branch_id).unwrap();
+        assert!((a.flexible_flow_mw - b.flexible_flow_mw).abs() < 1e-10);
+    }
 }
