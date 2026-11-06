@@ -57,5 +57,5 @@ It does **not** establish a feasible starship, propulsion architecture, crewed m
 ## Evidence ceiling
 
 - Evidence class: illustrative analytical model output.
-- Benchmark status: initial research slice; not yet compiled or CI-qualified on this branch.
+- Benchmark status: initial research slice; a focused exact-head workflow has been added, but no successful CI result is yet established. Queued is not pass.
 - No flight, hardware, mission, or technology-readiness claim is implied.
