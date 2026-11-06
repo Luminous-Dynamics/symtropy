@@ -1250,10 +1250,8 @@ mod tests {
                 assert!((left - right).abs() < 1.0e-10);
             }
         }
-        let determinant = forward.predictive_covariance[0][0]
-            * forward.predictive_covariance[1][1]
-            - forward.predictive_covariance[0][1]
-                * forward.predictive_covariance[1][0];
+        let determinant = forward.predictive_covariance[0][0] * forward.predictive_covariance[1][1]
+            - forward.predictive_covariance[0][1] * forward.predictive_covariance[1][0];
         assert!(determinant > 0.0);
     }
 
