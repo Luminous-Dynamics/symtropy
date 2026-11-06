@@ -251,9 +251,11 @@ class CivBenchAtlasAdapterTests(unittest.TestCase):
         dataset = self.dataset("service-cascade")
         scenario = fixture_scenario("service-cascade", dataset, self.model_sha)
         scenario_id = json.loads(scenario)["scenario_id"]
-        report = self.service_csv(scenario_id).replace(b'"1"', b'"nan"', 1)
+        report = self.service_csv(scenario_id)
+        malformed = report.replace(b",0,1,1,", b",0,nan,1,", 1)
+        self.assertNotEqual(report, malformed)
         with self.assertRaises(AdapterError):
-            self.adapt("service-cascade", report, scenario, dataset)
+            self.adapt("service-cascade", malformed, scenario, dataset)
 
     def test_calibration_promotion_without_receipt_is_rejected_by_run_schema(self) -> None:
         dataset = self.dataset("service-cascade")
