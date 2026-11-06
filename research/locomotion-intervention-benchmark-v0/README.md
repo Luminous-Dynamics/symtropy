@@ -27,10 +27,10 @@ These are intentionally small synthetic generators for benchmark semantics. The 
 - Trajectory RMSE and phase offset diagnostics.
 - Gaussian predictive log score under a common declared observation variance.
 - Candidate-family selection with a score-margin threshold and explicit abstention.
-- Strictly increasing observable timestamps; malformed/duplicate time samples are rejected.
+- Strictly increasing observable timestamps; malformed/duplicate time samples are rejected, and paired prediction scores require exact timestamp-grid identity.
 - Input validation for sample count, time units, parameter ranges, intervention indices, candidate uniqueness, trace finiteness and score thresholds.
 
-The 19 deterministic tests cover baseline observational equivalence, correct abstention under non-identifiability, divergence after feedback cut, both directions of model selection, phase-pulse persistence versus feedback correction, damped transient decay, feedback-attractor tracking and relaxation, hybrid phase correction, low-amplitude phase abstention, seeded-noise reproducibility and variance recovery, noisy held-out model selection, timestamp chronology, malformed inputs, duplicate candidates and predictive-score ranking.
+The 20 deterministic tests cover baseline observational equivalence, correct abstention under non-identifiability, divergence after feedback cut, both directions of model selection, phase-pulse persistence versus feedback correction, damped transient decay, feedback-attractor tracking and relaxation, hybrid phase correction, low-amplitude phase abstention, seeded-noise reproducibility and variance recovery, noisy held-out model selection, timestamp chronology and paired time-grid identity, malformed inputs, duplicate candidates and predictive-score ranking.
 
 ## What is deliberately not implemented
 
