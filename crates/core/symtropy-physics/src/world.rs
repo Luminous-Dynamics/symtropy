@@ -76,8 +76,12 @@ pub trait PhysicsCallback<const D: usize> {
     /// physical impacts (e.g., calculating trauma, adjusting internal state).
     fn on_collision(&mut self, event: &CollisionEvent<D>);
 
-    /// Called after each physics step to record energy dissipated.
-    fn record_dissipation(&mut self, energy: f64);
+    /// Record mechanical kinetic energy converted to friction heat, in joules.
+    ///
+    /// The physics engine computes this as the pre/post kinetic-energy
+    /// difference of both bodies across each tangential friction impulse.
+    /// This is not a collision-impulse magnitude or an abstract resource cost.
+    fn record_dissipation(&mut self, energy_joules: f64);
 
     /// Record mechanical work performed (or energy recovered) by an actuator.
     /// Positive work = energy consumed (motor driving motion).
@@ -136,6 +140,9 @@ pub struct PhysicsWorld<const D: usize> {
     pub collision_events: Vec<CollisionEvent<D>>,
     /// Sensor overlap events from the last step.
     pub sensor_events: Vec<crate::contact::SensorEvent>,
+    /// Positive kinetic-energy gain caused by the friction impulse solve on the last step.
+    /// A correct dissipative friction impulse should leave this at zero.
+    pub last_friction_energy_injection_joules: f64,
     /// Contact cache for warm-starting (previous frame's impulses).
     contact_cache: ContactCache<D>,
     /// Warm-starting from the previous frame (swapped at frame boundaries).
@@ -209,6 +216,7 @@ impl<const D: usize> PhysicsWorld<D> {
             contacts: Vec::new(),
             collision_events: Vec::new(),
             sensor_events: Vec::new(),
+            last_friction_energy_injection_joules: 0.0,
             contact_cache: ContactCache::new(),
             prev_cache: ContactCache::new(),
             solver_iterations: 4,
@@ -417,9 +425,10 @@ impl<const D: usize> PhysicsWorld<D> {
     }
 
     fn step_internal(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
-        // 0. Clear events from previous step
+        // 0. Clear events and per-step energy diagnostics from previous step.
         self.collision_events.clear();
         self.sensor_events.clear();
+        self.last_friction_energy_injection_joules = 0.0;
         // Warm-starting: swap caches so prev_cache has last frame's impulses
         std::mem::swap(&mut self.contact_cache, &mut self.prev_cache);
         self.contact_cache.begin_frame();
@@ -1190,6 +1199,9 @@ impl<const D: usize> PhysicsWorld<D> {
                     let j_t_desired = -v_t_mag / denom_t;
                     let j_t = j_t_desired.clamp(-mu * point_bound, mu * point_bound);
                     let friction_impulse = tangent * j_t;
+                    let kinetic_energy_before =
+                        self.bodies[a].kinetic_energy() + self.bodies[b].kinetic_energy();
+
                     integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
                     integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
 
@@ -1198,7 +1210,16 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
                     integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
 
-                    total_friction_dissipation += j_t.abs() * 0.1;
+                    let kinetic_energy_after =
+                        self.bodies[a].kinetic_energy() + self.bodies[b].kinetic_energy();
+                    let friction_energy_loss = kinetic_energy_before - kinetic_energy_after;
+                    if friction_energy_loss.is_finite() {
+                        if friction_energy_loss > 0.0 {
+                            total_friction_dissipation += friction_energy_loss;
+                        } else if friction_energy_loss < 0.0 {
+                            self.last_friction_energy_injection_joules += -friction_energy_loss;
+                        }
+                    }
                 }
             }
         }
