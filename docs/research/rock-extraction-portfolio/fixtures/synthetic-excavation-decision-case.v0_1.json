@@ -1,0 +1,324 @@
+{
+  "schema_version": 1,
+  "case_id": "SYN-EXCAVATION-DECISION-001",
+  "profile": {
+    "profile_id": "SYN-HARD-ROCK-TUNNEL-001",
+    "task_profile_ref": "SYN-TASK-ACCEPTED-SOLID-M3",
+    "energy_boundary_ref": "SYN-FULL-CYCLE-ENERGY-BOUNDARY",
+    "minimum_evidence_tier": "R2",
+    "primary_outcomes_require_independent_measurements": true,
+    "objectives": [
+      {
+        "metric_id": "accepted_output_rate",
+        "unit": "m3/h",
+        "direction": "MAXIMIZE"
+      },
+      {
+        "metric_id": "full_cycle_energy_intensity",
+        "unit": "kWh/m3",
+        "direction": "MINIMIZE"
+      },
+      {
+        "metric_id": "cutter_wear_intensity",
+        "unit": "mg/m3",
+        "direction": "MINIMIZE"
+      }
+    ],
+    "constraints": [
+      {
+        "metric_id": "overbreak_fraction",
+        "unit": "1",
+        "relation": "AT_MOST",
+        "threshold": 0.05
+      }
+    ]
+  },
+  "strategies": [
+    {
+      "strategy_id": "MECHANICAL-BASELINE",
+      "strategy_type": "MECHANICAL_BASELINE",
+      "evidence_tier": "R4",
+      "geology_support": "SUPPORTED",
+      "machine_support": "SUPPORTED",
+      "engineering_qualification_status": "QUALIFIED_FOR_DECLARED_TASK",
+      "engineering_qualification_ref": "SYN-ENGINEERING-QUALIFICATION-BASELINE",
+      "resource_boundary_status": "COMPLETE",
+      "energy_boundary_ref": "SYN-FULL-CYCLE-ENERGY-BOUNDARY",
+      "configuration_ref": "SYN-MECHANICAL-DISC-CONFIG",
+      "outcomes": [
+        {
+          "metric_id": "accepted_output_rate",
+          "lower": 8,
+          "upper": 10,
+          "unit": "m3/h",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-BASELINE-OUTPUT",
+          "calibration_ref": "SYN-CAL-VOLUME"
+        },
+        {
+          "metric_id": "full_cycle_energy_intensity",
+          "lower": 12,
+          "upper": 14,
+          "unit": "kWh/m3",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-BASELINE-ENERGY",
+          "calibration_ref": "SYN-CAL-ENERGY"
+        },
+        {
+          "metric_id": "cutter_wear_intensity",
+          "lower": 1.2,
+          "upper": 1.5,
+          "unit": "mg/m3",
+          "evidence_role": "DerivedFromIndependentMeasurements",
+          "source_ref": "SYN-TRIAL-BASELINE-WEAR",
+          "calibration_ref": "SYN-CAL-WEAR",
+          "lineage_ref": "SYN-LINEAGE-WEAR"
+        },
+        {
+          "metric_id": "overbreak_fraction",
+          "lower": 0.01,
+          "upper": 0.03,
+          "unit": "1",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-BASELINE-OVERBREAK",
+          "calibration_ref": "SYN-CAL-SURVEY"
+        }
+      ],
+      "source_refs": [
+        "SYN-TRIAL-BASELINE"
+      ]
+    },
+    {
+      "strategy_id": "HPWJ-DISC-HYBRID",
+      "strategy_type": "HYBRID",
+      "evidence_tier": "R2",
+      "geology_support": "SUPPORTED",
+      "machine_support": "SUPPORTED",
+      "engineering_qualification_status": "QUALIFIED_FOR_DECLARED_TASK",
+      "engineering_qualification_ref": "SYN-ENGINEERING-QUALIFICATION-HPWJ",
+      "resource_boundary_status": "COMPLETE",
+      "energy_boundary_ref": "SYN-FULL-CYCLE-ENERGY-BOUNDARY",
+      "configuration_ref": "SYN-HPWJ-DISC-CONFIG",
+      "outcomes": [
+        {
+          "metric_id": "accepted_output_rate",
+          "lower": 10.5,
+          "upper": 12,
+          "unit": "m3/h",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-HPWJ-OUTPUT",
+          "calibration_ref": "SYN-CAL-VOLUME"
+        },
+        {
+          "metric_id": "full_cycle_energy_intensity",
+          "lower": 8,
+          "upper": 10,
+          "unit": "kWh/m3",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-HPWJ-ENERGY",
+          "calibration_ref": "SYN-CAL-ENERGY"
+        },
+        {
+          "metric_id": "cutter_wear_intensity",
+          "lower": 1,
+          "upper": 1.2,
+          "unit": "mg/m3",
+          "evidence_role": "DerivedFromIndependentMeasurements",
+          "source_ref": "SYN-TRIAL-HPWJ-WEAR",
+          "calibration_ref": "SYN-CAL-WEAR",
+          "lineage_ref": "SYN-LINEAGE-HPWJ-WEAR"
+        },
+        {
+          "metric_id": "overbreak_fraction",
+          "lower": 0.02,
+          "upper": 0.04,
+          "unit": "1",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-HPWJ-OVERBREAK",
+          "calibration_ref": "SYN-CAL-SURVEY"
+        }
+      ],
+      "source_refs": [
+        "SYN-TRIAL-HPWJ",
+        "SYN-HPWJ-KERF-PROTOCOL"
+      ]
+    },
+    {
+      "strategy_id": "OSCILLATING-DISC",
+      "strategy_type": "HYBRID",
+      "evidence_tier": "R2",
+      "geology_support": "SUPPORTED",
+      "machine_support": "SUPPORTED",
+      "engineering_qualification_status": "QUALIFIED_FOR_DECLARED_TASK",
+      "engineering_qualification_ref": "SYN-ENGINEERING-QUALIFICATION-ODC",
+      "resource_boundary_status": "COMPLETE",
+      "energy_boundary_ref": "SYN-FULL-CYCLE-ENERGY-BOUNDARY",
+      "configuration_ref": "SYN-ODC-CONFIG",
+      "outcomes": [
+        {
+          "metric_id": "accepted_output_rate",
+          "lower": 9.5,
+          "upper": 11.5,
+          "unit": "m3/h",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-ODC-OUTPUT",
+          "calibration_ref": "SYN-CAL-VOLUME"
+        },
+        {
+          "metric_id": "full_cycle_energy_intensity",
+          "lower": 9.5,
+          "upper": 11.5,
+          "unit": "kWh/m3",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-ODC-ENERGY",
+          "calibration_ref": "SYN-CAL-ENERGY"
+        },
+        {
+          "metric_id": "cutter_wear_intensity",
+          "lower": 0.8,
+          "upper": 1.4,
+          "unit": "mg/m3",
+          "evidence_role": "DerivedFromIndependentMeasurements",
+          "source_ref": "SYN-TRIAL-ODC-WEAR",
+          "calibration_ref": "SYN-CAL-WEAR",
+          "lineage_ref": "SYN-LINEAGE-ODC-WEAR"
+        },
+        {
+          "metric_id": "overbreak_fraction",
+          "lower": 0.01,
+          "upper": 0.025,
+          "unit": "1",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-ODC-OVERBREAK",
+          "calibration_ref": "SYN-CAL-SURVEY"
+        }
+      ],
+      "source_refs": [
+        "SYN-TRIAL-ODC"
+      ]
+    },
+    {
+      "strategy_id": "ATCP-HIGH-TEMP",
+      "strategy_type": "HYBRID",
+      "evidence_tier": "R3",
+      "geology_support": "UNKNOWN",
+      "machine_support": "UNKNOWN",
+      "engineering_qualification_status": "UNKNOWN",
+      "resource_boundary_status": "INCOMPLETE",
+      "energy_boundary_ref": "SYN-FULL-CYCLE-ENERGY-BOUNDARY",
+      "configuration_ref": "SYN-ATCP-CONFIG",
+      "outcomes": [
+        {
+          "metric_id": "accepted_output_rate",
+          "lower": 12,
+          "upper": 15,
+          "unit": "m3/h",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-ATCP-OUTPUT",
+          "calibration_ref": "SYN-CAL-VOLUME"
+        },
+        {
+          "metric_id": "full_cycle_energy_intensity",
+          "lower": 7,
+          "upper": 11,
+          "unit": "kWh/m3",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-ATCP-ENERGY",
+          "calibration_ref": "SYN-CAL-ENERGY"
+        },
+        {
+          "metric_id": "cutter_wear_intensity",
+          "lower": 1.1,
+          "upper": 1.8,
+          "unit": "mg/m3",
+          "evidence_role": "DerivedFromIndependentMeasurements",
+          "source_ref": "SYN-TRIAL-ATCP-WEAR",
+          "calibration_ref": "SYN-CAL-WEAR",
+          "lineage_ref": "SYN-LINEAGE-ATCP-WEAR"
+        },
+        {
+          "metric_id": "overbreak_fraction",
+          "lower": 0.02,
+          "upper": 0.08,
+          "unit": "1",
+          "evidence_role": "IndependentMeasurement",
+          "source_ref": "SYN-TRIAL-ATCP-OVERBREAK",
+          "calibration_ref": "SYN-CAL-SURVEY"
+        }
+      ],
+      "source_refs": [
+        "SYN-TRIAL-ATCP"
+      ]
+    },
+    {
+      "strategy_id": "LASER-PDC-UNQUALIFIED",
+      "strategy_type": "HYBRID",
+      "evidence_tier": "R1",
+      "geology_support": "SUPPORTED",
+      "machine_support": "SUPPORTED",
+      "engineering_qualification_status": "NOT_QUALIFIED",
+      "resource_boundary_status": "INCOMPLETE",
+      "energy_boundary_ref": "SYN-FULL-CYCLE-ENERGY-BOUNDARY",
+      "configuration_ref": "SYN-LASER-PDC-CONFIG",
+      "outcomes": [
+        {
+          "metric_id": "accepted_output_rate",
+          "lower": 13,
+          "upper": 16,
+          "unit": "m3/h",
+          "evidence_role": "ModelEstimate",
+          "source_ref": "SYN-MODEL-LASER-OUTPUT"
+        },
+        {
+          "metric_id": "full_cycle_energy_intensity",
+          "lower": 5,
+          "upper": 8,
+          "unit": "kWh/m3",
+          "evidence_role": "Simulation",
+          "source_ref": "SYN-SIM-LASER-ENERGY"
+        },
+        {
+          "metric_id": "cutter_wear_intensity",
+          "lower": 0.6,
+          "upper": 1.1,
+          "unit": "mg/m3",
+          "evidence_role": "ModelEstimate",
+          "source_ref": "SYN-MODEL-LASER-WEAR"
+        },
+        {
+          "metric_id": "overbreak_fraction",
+          "lower": 0.01,
+          "upper": 0.04,
+          "unit": "1",
+          "evidence_role": "Simulation",
+          "source_ref": "SYN-SIM-LASER-OVERBREAK"
+        }
+      ],
+      "source_refs": [
+        "SYN-LASER-PDC-LAB-STUDY"
+      ]
+    }
+  ],
+  "experiment_options": [
+    {
+      "experiment_id": "EXPERIMENT-BASALT-SISTER-COHORT",
+      "targets": [
+        "geology_support",
+        "accepted_output_rate",
+        "full_cycle_energy_intensity"
+      ],
+      "cost_ref": "SYN-EXPERIMENT-COST-001",
+      "protocol_ref": "SYN-MATCHED-BASALT-PROTOCOL"
+    },
+    {
+      "experiment_id": "EXPERIMENT-ATCP-RESOURCE-AUDIT",
+      "targets": [
+        "resource_boundary_status",
+        "machine_support",
+        "engineering_qualification_status"
+      ],
+      "cost_ref": "SYN-EXPERIMENT-COST-002",
+      "protocol_ref": "SYN-ATCP-FULL-CYCLE-AUDIT"
+    }
+  ]
+}
