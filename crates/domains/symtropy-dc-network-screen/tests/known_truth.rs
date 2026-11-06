@@ -38,6 +38,7 @@ fn identity() -> DcFlexibilityIdentity {
     DcFlexibilityIdentity::new(
         "dc-site",
         "pcc-b",
+        "B",
         "sha256:baseline",
         "sha256:flexible",
     )
@@ -335,4 +336,19 @@ fn explicit_mva_base_preserves_mw_flow_units() {
         let b = report_1000mva.intervals[0].branch_flows.iter().find(|f| f.branch_id == branch_id).unwrap();
         assert!((a.flexible_flow_mw - b.flexible_flow_mw).abs() < 1e-10);
     }
+}
+
+#[test]
+fn pcc_load_reduction_must_be_applied_at_the_pinned_bus() {
+    let error = evaluate_dc_network_deliverability(
+        &identity(),
+        &triangle(),
+        &contract(false),
+        &[DcFlexInterval::new(
+            0, 1_000, injections(0.0, 0.0),
+            BTreeMap::from([("A".to_owned(), 5.0)]),
+        ).unwrap()],
+        &[],
+    ).unwrap_err();
+    assert!(matches!(error, DcNetworkError::PccBusMismatch { .. }));
 }
