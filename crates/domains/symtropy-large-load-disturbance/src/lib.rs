@@ -188,9 +188,7 @@ impl ReactiveCurrentRequirement {
                 return Err(DisturbanceError::InvalidQuantity { field, value });
             }
         }
-        if minimum_reactive_power_mvar > maximum_reactive_power_mvar
-            || maximum_current_pu <= 0.0
-        {
+        if minimum_reactive_power_mvar > maximum_reactive_power_mvar || maximum_current_pu <= 0.0 {
             return Err(DisturbanceError::InvalidReactiveCurrentRequirement);
         }
         Ok(Self {
@@ -559,8 +557,12 @@ pub enum DisturbanceError {
     InvalidDisconnectionAllowance,
     InvalidRecoveryRequirement,
     InvalidReactiveCurrentRequirement,
-    MissingReactivePowerSample { timestamp_ns: u64 },
-    MissingCurrentSample { timestamp_ns: u64 },
+    MissingReactivePowerSample {
+        timestamp_ns: u64,
+    },
+    MissingCurrentSample {
+        timestamp_ns: u64,
+    },
     EmptyRequirementEnvelope,
     NonContiguousRequirementEnvelope {
         index: usize,
@@ -832,14 +834,17 @@ pub fn evaluate_disturbance_conformance(
         let zone = &requirement.segments[zone_index];
 
         if let Some(reactive_requirement) = &requirement.reactive_current {
-            let reactive_power = sample.reactive_power_mvar.ok_or(
-                DisturbanceError::MissingReactivePowerSample {
+            let reactive_power =
+                sample
+                    .reactive_power_mvar
+                    .ok_or(DisturbanceError::MissingReactivePowerSample {
+                        timestamp_ns: sample.timestamp_ns,
+                    })?;
+            let current = sample
+                .current_pu
+                .ok_or(DisturbanceError::MissingCurrentSample {
                     timestamp_ns: sample.timestamp_ns,
-                },
-            )?;
-            let current = sample.current_pu.ok_or(DisturbanceError::MissingCurrentSample {
-                timestamp_ns: sample.timestamp_ns,
-            })?;
+                })?;
             minimum_reactive_power = minimum_reactive_power.min(reactive_power);
             maximum_reactive_power = maximum_reactive_power.max(reactive_power);
             maximum_current = maximum_current.max(current);
