@@ -35,6 +35,23 @@ fn vector_is_finite<const D: usize>(value: &SVector<f64, D>) -> bool {
     value.iter().all(|component| component.is_finite())
 }
 
+/// Compute a finite vector norm without squaring unscaled large components.
+fn stable_vector_norm<const D: usize>(value: &SVector<f64, D>) -> Option<f64> {
+    if !vector_is_finite(value) {
+        return None;
+    }
+    let scale = value.amax();
+    if scale == 0.0 {
+        return Some(0.0);
+    }
+    if !scale.is_finite() {
+        return None;
+    }
+    let scaled_norm = (value / scale).norm();
+    let norm = scale * scaled_norm;
+    norm.is_finite().then_some(norm)
+}
+
 /// Normalize a finite vector without overflowing on large magnitudes.
 fn stable_unit_vector<const D: usize>(value: &SVector<f64, D>) -> Option<SVector<f64, D>> {
     if !vector_is_finite(value) {
@@ -100,15 +117,18 @@ pub fn sphere_sphere<const D: usize>(
         return None;
     }
 
+    let distance = stable_vector_norm(&dp)?;
     let a = dv.dot(&dv);
     let b = 2.0 * dp.dot(&dv);
-    let c = dp.dot(&dp) - r * r;
+    // Factoring the difference of squares avoids losing the small gap when
+    // center distance and combined radius are nearly equal.
+    let c = (distance - r) * (distance + r);
     if !a.is_finite() || !b.is_finite() || !c.is_finite() {
         return None;
     }
 
     // Already overlapping or touching at t=0.
-    if c <= 0.0 {
+    if distance <= r {
         let normal = stable_unit_vector(&dp).unwrap_or_else(axis_fallback);
         return Some(CcdHit {
             toi: 0.0,
