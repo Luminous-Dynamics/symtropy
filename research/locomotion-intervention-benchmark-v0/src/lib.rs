@@ -1073,7 +1073,6 @@ pub fn run_paired_seed_evaluation(
     Ok(summaries)
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct InterventionCandidate {
     pub id: String,
@@ -2218,7 +2217,6 @@ mod tests {
         );
     }
 
-
     fn design_candidate(
         id: &str,
         intervention: Intervention,
@@ -2321,8 +2319,7 @@ mod tests {
             true,
         )];
         let decision =
-            design_discriminating_intervention(&mechanisms, &candidates, config(), 1.0e-6)
-                .unwrap();
+            design_discriminating_intervention(&mechanisms, &candidates, config(), 1.0e-6).unwrap();
         assert!(matches!(
             decision,
             InterventionDesignDecision::Abstained {
