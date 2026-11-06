@@ -138,7 +138,8 @@ pub fn sphere_sphere<const D: usize>(
         normal
     };
     let point = pos_a_t + normal * radius_a;
-    if !point.iter().all(|value| value.is_finite()) || !normal.iter().all(|value| value.is_finite()) {
+    if !point.iter().all(|value| value.is_finite()) || !normal.iter().all(|value| value.is_finite())
+    {
         return None;
     }
 
