@@ -54,7 +54,8 @@
         "sha256",
         "media_type",
         "byte_length",
-        "channel_refs"
+        "channel_refs",
+        "evidence_role"
       ],
       "properties": {
         "artifact_id": {
@@ -119,6 +120,9 @@
         "transform_parameters_sha256": {
           "type": "string",
           "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "evidence_role": {
+          "$ref": "#/$defs/evidenceRole"
         }
       },
       "additionalProperties": false
