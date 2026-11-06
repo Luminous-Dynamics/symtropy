@@ -1,0 +1,161 @@
+{
+  "schema": "symtropy.road-hypothesis-portfolio-fixtures.v0.1",
+  "claim_ceiling": "Finite conformance only. The portfolio does not prove completeness relative to reality.",
+  "cases": [
+    {
+      "id": "HP-01",
+      "scenario": "Complete declared coverage and evidence contract",
+      "expected": "complete for declared scope"
+    },
+    {
+      "id": "HP-02",
+      "scenario": "Missing critical attribute combination",
+      "expected": "incomplete"
+    },
+    {
+      "id": "HP-03",
+      "scenario": "Unknown coverage item",
+      "expected": "incomplete"
+    },
+    {
+      "id": "HP-04",
+      "scenario": "Missing behavioural competency",
+      "expected": "incomplete"
+    },
+    {
+      "id": "HP-05",
+      "scenario": "Explicit common-mode clones",
+      "expected": "count once"
+    },
+    {
+      "id": "HP-06",
+      "scenario": "Partial source-lineage overlap chain",
+      "expected": "transitively count once"
+    },
+    {
+      "id": "HP-07",
+      "scenario": "New version with shared training ancestry",
+      "expected": "not independent corroboration"
+    },
+    {
+      "id": "HP-08",
+      "scenario": "Different sealed holdout",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-09",
+      "scenario": "Different holdout parent lineage set",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-10",
+      "scenario": "Unequal search budgets",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-11",
+      "scenario": "Missing falsification strategy",
+      "expected": "reject manifest"
+    },
+    {
+      "id": "HP-12",
+      "scenario": "Missing challenge receipt",
+      "expected": "incomplete"
+    },
+    {
+      "id": "HP-13",
+      "scenario": "Insufficient search budget",
+      "expected": "incomplete"
+    },
+    {
+      "id": "HP-14",
+      "scenario": "Unblinded challenge receipt",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-15",
+      "scenario": "Holdout lineage overlaps training",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-16",
+      "scenario": "Counterexample lacks replay receipt",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-17",
+      "scenario": "Counterexample replay not verified",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-18",
+      "scenario": "Budgeted non-discovery",
+      "expected": "not proof of absence"
+    },
+    {
+      "id": "HP-19",
+      "scenario": "Missing residual envelope",
+      "expected": "unbounded risk"
+    },
+    {
+      "id": "HP-20",
+      "scenario": "Model-generated residual interval",
+      "expected": "unbounded risk"
+    },
+    {
+      "id": "HP-21",
+      "scenario": "Residual data overlaps training ancestry",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-22",
+      "scenario": "Residual data overlaps sealed challenge set",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-23",
+      "scenario": "Insufficient independent residual units",
+      "expected": "reject"
+    },
+    {
+      "id": "HP-24",
+      "scenario": "Residual bound omits a declared action",
+      "expected": "unbounded risk"
+    },
+    {
+      "id": "HP-25",
+      "scenario": "Residual feasibility is unknown",
+      "expected": "exclude action"
+    },
+    {
+      "id": "HP-26",
+      "scenario": "Rectangular extrema are not jointly attainable",
+      "expected": "label conservative relaxation"
+    },
+    {
+      "id": "HP-27",
+      "scenario": "Prior challenged hypothesis edited in place",
+      "expected": "reject revision"
+    },
+    {
+      "id": "HP-28",
+      "scenario": "Revision changes utility scale",
+      "expected": "reject revision"
+    },
+    {
+      "id": "HP-29",
+      "scenario": "Challenge or residual input mutation",
+      "expected": "evaluation digest changes"
+    },
+    {
+      "id": "HP-30",
+      "scenario": "Evaluation ODD mismatch",
+      "expected": "out of scope"
+    },
+    {
+      "id": "HP-31",
+      "scenario": "Held-out counterexample replayed successfully",
+      "expected": "portfolio falsified"
+    }
+  ]
+}
