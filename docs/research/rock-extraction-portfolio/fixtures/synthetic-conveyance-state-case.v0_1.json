@@ -1,0 +1,310 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-CONVEYANCE-STATE-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "campaign_context": {
+    "campaign_id": "campaign-fixture-set",
+    "clock_sync_protocol_ref": "clock-protocol:ptp-v1",
+    "label_protocol_ref": "label-protocol:independent-event-v1",
+    "dataset_source_ref": "artifact:synthetic-conveyance-windows-v1"
+  },
+  "channels": [
+    {
+      "channel_id": "dp-line",
+      "kind": "PRESSURE_DIFFERENTIAL",
+      "unit": "kPa",
+      "instrument_ref": "instrument:dp-01",
+      "calibration_ref": "cal:dp-01",
+      "physical_location_ref": "location:line-segment-01",
+      "source_artifact_ref": "source:dp-stream",
+      "sample_rate_hz": 20,
+      "clock_domain_ref": "clock-domain:daq-01"
+    },
+    {
+      "channel_id": "blower-current",
+      "kind": "BLOWER_CURRENT",
+      "unit": "A",
+      "instrument_ref": "instrument:current-clamp-01",
+      "calibration_ref": "cal:current-01",
+      "physical_location_ref": "location:blower-vfd",
+      "source_artifact_ref": "source:current-stream",
+      "sample_rate_hz": 100,
+      "clock_domain_ref": "clock-domain:daq-01"
+    },
+    {
+      "channel_id": "airflow",
+      "kind": "AIRFLOW",
+      "unit": "m3/s",
+      "instrument_ref": "instrument:airflow-01",
+      "calibration_ref": "cal:airflow-01",
+      "physical_location_ref": "location:line-inlet",
+      "source_artifact_ref": "source:airflow-stream",
+      "sample_rate_hz": 10,
+      "clock_domain_ref": "clock-domain:daq-01"
+    },
+    {
+      "channel_id": "recovered-mass",
+      "kind": "RECOVERED_MASS_RATE",
+      "unit": "kg/s",
+      "instrument_ref": "instrument:mass-flow-01",
+      "calibration_ref": "cal:mass-flow-01",
+      "physical_location_ref": "location:discharge",
+      "source_artifact_ref": "source:mass-stream",
+      "sample_rate_hz": 2,
+      "clock_domain_ref": "clock-domain:daq-01"
+    }
+  ],
+  "groups": [
+    {
+      "group_id": "group-train-001",
+      "site_id": "site-lab-01",
+      "campaign_id": "campaign-001",
+      "path_configuration_ref": "path-config-A",
+      "machine_configuration_ref": "machine-config-A",
+      "material_cohort_ref": "rock-cohort-01",
+      "temporal_block_ref": "time-block-A",
+      "parent_rock_block_ref": "rock-block-A"
+    },
+    {
+      "group_id": "group-calibration-001",
+      "site_id": "site-lab-01",
+      "campaign_id": "campaign-002",
+      "path_configuration_ref": "path-config-B",
+      "machine_configuration_ref": "machine-config-B",
+      "material_cohort_ref": "rock-cohort-01",
+      "temporal_block_ref": "time-block-B",
+      "parent_rock_block_ref": "rock-block-B"
+    },
+    {
+      "group_id": "group-test-001",
+      "site_id": "site-lab-01",
+      "campaign_id": "campaign-003",
+      "path_configuration_ref": "path-config-C",
+      "machine_configuration_ref": "machine-config-C",
+      "material_cohort_ref": "rock-cohort-01",
+      "temporal_block_ref": "time-block-C",
+      "parent_rock_block_ref": "rock-block-C"
+    }
+  ],
+  "split": {
+    "heldout_dimensions": [
+      "PATH_CONFIGURATION"
+    ],
+    "train_group_ids": [
+      "group-train-001"
+    ],
+    "calibration_group_ids": [
+      "group-calibration-001"
+    ],
+    "test_group_ids": [
+      "group-test-001"
+    ]
+  },
+  "windows": [
+    {
+      "window_id": "window-train-001",
+      "group_id": "group-train-001",
+      "start_ms": 0,
+      "end_ms": 10000,
+      "time_uncertainty_ms": 2,
+      "clock_sync_ref": "clock:ptp-01",
+      "channel_observations": [
+        {
+          "channel_id": "dp-line",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:dp-line:window",
+          "quality_ref": "quality:dp-line:window"
+        },
+        {
+          "channel_id": "blower-current",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:blower-current:window",
+          "quality_ref": "quality:blower-current:window"
+        },
+        {
+          "channel_id": "airflow",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:airflow:window",
+          "quality_ref": "quality:airflow:window"
+        },
+        {
+          "channel_id": "recovered-mass",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:recovered-mass:window",
+          "quality_ref": "quality:recovered-mass:window"
+        }
+      ]
+    },
+    {
+      "window_id": "window-calibration-001",
+      "group_id": "group-calibration-001",
+      "start_ms": 10000,
+      "end_ms": 20000,
+      "time_uncertainty_ms": 2,
+      "clock_sync_ref": "clock:ptp-01",
+      "channel_observations": [
+        {
+          "channel_id": "dp-line",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:dp-line:window",
+          "quality_ref": "quality:dp-line:window"
+        },
+        {
+          "channel_id": "blower-current",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:blower-current:window",
+          "quality_ref": "quality:blower-current:window"
+        },
+        {
+          "channel_id": "airflow",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:airflow:window",
+          "quality_ref": "quality:airflow:window"
+        },
+        {
+          "channel_id": "recovered-mass",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:recovered-mass:window",
+          "quality_ref": "quality:recovered-mass:window"
+        }
+      ]
+    },
+    {
+      "window_id": "window-test-001",
+      "group_id": "group-test-001",
+      "start_ms": 20000,
+      "end_ms": 30000,
+      "time_uncertainty_ms": 2,
+      "clock_sync_ref": "clock:ptp-01",
+      "channel_observations": [
+        {
+          "channel_id": "dp-line",
+          "availability": "DEGRADED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 3,
+          "source_ref": "source:dp-corrupted",
+          "quality_ref": "quality:pressure-tap-fault",
+          "unavailable_reason": "Pressure tap suspected fouled; retain degraded channel, do not impute."
+        },
+        {
+          "channel_id": "blower-current",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:blower-current:window",
+          "quality_ref": "quality:blower-current:window"
+        },
+        {
+          "channel_id": "airflow",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:airflow:window",
+          "quality_ref": "quality:airflow:window"
+        },
+        {
+          "channel_id": "recovered-mass",
+          "availability": "OBSERVED",
+          "clock_sync_ref": "clock:ptp-01",
+          "time_uncertainty_ms": 2,
+          "source_ref": "source:recovered-mass:window",
+          "quality_ref": "quality:recovered-mass:window"
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "event_id": "event-normal-001",
+      "window_id": "window-train-001",
+      "state_labels": [
+        "NOMINAL_STABLE"
+      ],
+      "onset_ms": 1000,
+      "end_ms": 9000,
+      "detection_deadline_ms": 1500,
+      "clear_time_ms": 9000,
+      "severity": "NONE",
+      "critical": false,
+      "evidence_role": "INDEPENDENT_EVENT_EVIDENCE",
+      "evidence_method": "WITNESSED_NORMAL_OPERATION",
+      "evidence_ref": "evidence:witness-normal-001",
+      "adjudicator_ref": "adjudicator:reviewer-01",
+      "clock_sync_ref": "clock:ptp-01",
+      "time_uncertainty_ms": 2
+    },
+    {
+      "event_id": "event-filter-001",
+      "window_id": "window-calibration-001",
+      "state_labels": [
+        "FILTER_CYCLONE_LOADING"
+      ],
+      "onset_ms": 12000,
+      "end_ms": 19500,
+      "detection_deadline_ms": 12500,
+      "clear_time_ms": null,
+      "severity": "MAJOR",
+      "critical": false,
+      "evidence_role": "INDEPENDENT_EVENT_EVIDENCE",
+      "evidence_method": "WITNESSED_PHYSICAL_INSPECTION",
+      "evidence_ref": "evidence:filter-inspection-001",
+      "adjudicator_ref": "adjudicator:reviewer-01",
+      "clock_sync_ref": "clock:ptp-01",
+      "time_uncertainty_ms": 2
+    },
+    {
+      "event_id": "event-blockage-001",
+      "window_id": "window-test-001",
+      "state_labels": [
+        "DEVELOPING_BLOCKAGE"
+      ],
+      "onset_ms": 22000,
+      "end_ms": 29500,
+      "detection_deadline_ms": 22500,
+      "clear_time_ms": null,
+      "severity": "CRITICAL",
+      "critical": true,
+      "evidence_role": "INDEPENDENT_EVENT_EVIDENCE",
+      "evidence_method": "SEEDED_RESTRICTION_TEST",
+      "evidence_ref": "evidence:seeded-restriction-001",
+      "adjudicator_ref": "adjudicator:reviewer-02",
+      "clock_sync_ref": "clock:ptp-01",
+      "time_uncertainty_ms": 2
+    },
+    {
+      "event_id": "event-sensor-fault-001",
+      "window_id": "window-test-001",
+      "state_labels": [
+        "PRESSURE_SENSOR_FAULT"
+      ],
+      "onset_ms": 22000,
+      "end_ms": 29500,
+      "detection_deadline_ms": 22500,
+      "clear_time_ms": null,
+      "severity": "MAJOR",
+      "critical": false,
+      "evidence_role": "INDEPENDENT_EVENT_EVIDENCE",
+      "evidence_method": "CALIBRATION_DIAGNOSTIC",
+      "evidence_ref": "evidence:pressure-tap-diagnostic-001",
+      "adjudicator_ref": "adjudicator:reviewer-02",
+      "clock_sync_ref": "clock:ptp-01",
+      "time_uncertainty_ms": 2
+    }
+  ]
+}

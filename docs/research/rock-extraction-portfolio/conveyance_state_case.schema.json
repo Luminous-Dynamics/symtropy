@@ -1,0 +1,432 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/conveyance-state-case-v0.1.json",
+  "title": "Symtropy Conveyance State Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "campaign_context",
+    "channels",
+    "groups",
+    "split",
+    "windows",
+    "events"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "group_id",
+        "site_id",
+        "campaign_id",
+        "path_configuration_ref",
+        "machine_configuration_ref",
+        "material_cohort_ref",
+        "temporal_block_ref",
+        "parent_rock_block_ref"
+      ],
+      "properties": {
+        "group_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "site_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "campaign_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "path_configuration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "machine_configuration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "material_cohort_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "temporal_block_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "parent_rock_block_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "kind",
+        "unit",
+        "instrument_ref",
+        "calibration_ref",
+        "physical_location_ref",
+        "source_artifact_ref",
+        "sample_rate_hz",
+        "clock_domain_ref"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "kind": {
+          "enum": [
+            "PRESSURE_ABSOLUTE",
+            "PRESSURE_DIFFERENTIAL",
+            "AIRFLOW",
+            "BLOWER_CURRENT",
+            "BLOWER_VOLTAGE",
+            "ELECTRICAL_POWER",
+            "PARTICLE_FEED_RATE",
+            "PSD_CONTEXT",
+            "RECOVERED_MASS_RATE",
+            "FILTER_DIFFERENTIAL_PRESSURE",
+            "TEMPERATURE",
+            "VIBRATION"
+          ]
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "instrument_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "calibration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "physical_location_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "sample_rate_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "clock_domain_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "channel_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "availability",
+        "clock_sync_ref",
+        "time_uncertainty_ms"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "availability": {
+          "enum": [
+            "OBSERVED",
+            "DEGRADED",
+            "MISSING"
+          ]
+        },
+        "clock_sync_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "time_uncertainty_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "quality_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "unavailable_reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window_id",
+        "group_id",
+        "start_ms",
+        "end_ms",
+        "time_uncertainty_ms",
+        "clock_sync_ref",
+        "channel_observations"
+      ],
+      "properties": {
+        "window_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "group_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "start_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "time_uncertainty_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "clock_sync_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "channel_observations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/channel_observation"
+          }
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "window_id",
+        "state_labels",
+        "onset_ms",
+        "end_ms",
+        "detection_deadline_ms",
+        "clear_time_ms",
+        "severity",
+        "critical",
+        "evidence_role",
+        "evidence_method",
+        "evidence_ref",
+        "adjudicator_ref",
+        "clock_sync_ref",
+        "time_uncertainty_ms"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "window_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "state_labels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "NOMINAL_STABLE",
+              "STARTUP_SHUTDOWN_TRANSIENT",
+              "HIGH_SOLIDS_LOADING",
+              "STRATIFIED_FLOW",
+              "DUNE_DEPOSITION",
+              "PARTIAL_RESTRICTION",
+              "DEVELOPING_BLOCKAGE",
+              "COMPLETE_BLOCKAGE",
+              "WATER_ACCUMULATION",
+              "FILTER_CYCLONE_LOADING",
+              "AIR_LEAK_DISCONNECTION",
+              "BLOWER_VFD_FAULT",
+              "PRESSURE_SENSOR_FAULT",
+              "AIRFLOW_SENSOR_FAULT",
+              "UNKNOWN_OUT_OF_DOMAIN"
+            ]
+          }
+        },
+        "onset_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "detection_deadline_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clear_time_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "severity": {
+          "enum": [
+            "NONE",
+            "MINOR",
+            "MAJOR",
+            "CRITICAL"
+          ]
+        },
+        "critical": {
+          "type": "boolean"
+        },
+        "evidence_role": {
+          "const": "INDEPENDENT_EVENT_EVIDENCE"
+        },
+        "evidence_method": {
+          "enum": [
+            "WITNESSED_NORMAL_OPERATION",
+            "WITNESSED_PHYSICAL_INSPECTION",
+            "SEEDED_RESTRICTION_TEST",
+            "LINE_INSPECTION",
+            "RECOVERED_MASS_RECONCILIATION",
+            "CALIBRATION_DIAGNOSTIC",
+            "VFD_FAULT_DIAGNOSTIC"
+          ]
+        },
+        "evidence_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "adjudicator_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "clock_sync_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "time_uncertainty_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MEASURED"
+      ]
+    },
+    "campaign_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaign_id",
+        "clock_sync_protocol_ref",
+        "label_protocol_ref",
+        "dataset_source_ref"
+      ],
+      "properties": {
+        "campaign_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "clock_sync_protocol_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "label_protocol_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "dataset_source_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/channel"
+      }
+    },
+    "groups": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/group"
+      }
+    },
+    "split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "heldout_dimensions",
+        "train_group_ids",
+        "calibration_group_ids",
+        "test_group_ids"
+      ],
+      "properties": {
+        "heldout_dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "SITE",
+              "CAMPAIGN",
+              "PATH_CONFIGURATION",
+              "MACHINE_CONFIGURATION",
+              "MATERIAL_COHORT",
+              "TEMPORAL_BLOCK",
+              "PARENT_ROCK_BLOCK"
+            ]
+          }
+        },
+        "train_group_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "calibration_group_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "test_group_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        }
+      }
+    },
+    "windows": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/window"
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    }
+  }
+}
