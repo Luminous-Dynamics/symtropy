@@ -1,0 +1,29 @@
+name: Road reciprocal policy producer v0.1
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "research/road-reciprocal-producer-001/**"
+      - ".github/workflows/road-reciprocal-policy-producer.yml"
+      - "crates/domains/symtropy-road-actors/**"
+      - "crates/domains/symtropy-road-actor-adapter/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  producer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Format producer
+        run: cargo fmt --manifest-path research/road-reciprocal-producer-001/Cargo.toml -- --check
+      - name: Test reciprocal producer
+        run: cargo test --manifest-path research/road-reciprocal-producer-001/Cargo.toml --all-targets
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path research/road-reciprocal-producer-001/Cargo.toml --all-targets -- -D warnings
