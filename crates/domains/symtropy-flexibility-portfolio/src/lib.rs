@@ -875,6 +875,13 @@ pub fn evaluate_portfolio_resilience(
                 member_offered_kw,
                 member_delivered_kw,
             );
+            if !accumulator.member_offered_kw_sum.is_finite()
+                || !accumulator.member_delivered_kw_sum.is_finite()
+            {
+                return Err(PortfolioResilienceError::NumericalOverflow(
+                    "failure-domain member totals",
+                ));
+            }
         }
     }
 
@@ -940,6 +947,11 @@ pub fn evaluate_portfolio_resilience(
         .min(group_shortfalls.len());
     let empirical_upper_tail_mean_incident_shortfall_kw =
         group_shortfalls.iter().take(tail_count).sum::<f64>() / tail_count as f64;
+    if !empirical_upper_tail_mean_incident_shortfall_kw.is_finite() {
+        return Err(PortfolioResilienceError::NumericalOverflow(
+            "incident shortfall tail mean",
+        ));
+    }
 
     let mut scenarios_work: BTreeMap<&str, Vec<(&str, bool, usize)>> = BTreeMap::new();
     for group in &group_receipts {
