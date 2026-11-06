@@ -372,3 +372,25 @@ fn pcc_identity_must_resolve_to_a_non_slack_bus_in_the_topology() {
     ).unwrap_err();
     assert!(matches!(error, DcNetworkError::PccBusMapsToSlack { .. }));
 }
+
+#[test]
+fn baseline_overload_can_require_a_nonzero_minimum_dispatch_fraction() {
+    let report = evaluate_dc_network_deliverability(
+        &identity(),
+        &triangle(),
+        &contract(false),
+        &[DcFlexInterval::new(
+            0,
+            1_000,
+            injections(0.0, -100.0),
+            BTreeMap::from([("B".to_owned(), 60.0)]),
+        ).unwrap()],
+        &[],
+    ).unwrap();
+    let interval = &report.intervals[0];
+    assert!(!interval.branch_flows.iter().find(|flow| flow.branch_id == "S-B").unwrap().baseline_over_limit == false);
+    assert!(interval.basecase_flexible_feasible);
+    assert!((interval.minimum_network_feasible_action_fraction.unwrap() - 0.5416666667).abs() < 1e-8);
+    assert!((interval.maximum_network_feasible_action_fraction.unwrap() - 1.0).abs() < 1e-12);
+    assert!(report.network_deliverable);
+}
