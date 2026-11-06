@@ -754,3 +754,15 @@ The eight-fixture MAD branch [PR #3771](https://github.com/Luminous-Dynamics/sym
 The validator recomputes each descriptor digest. This establishes the identity of the *declared component inventory*, not a signature of compiled code or proof that runtime behavior matches the declaration. Source commit, runtime artifacts and exact outputs remain tied to the Humanity Atlas run receipt. The exact-head all-manifest run [#42234375524](https://github.com/Luminous-Dynamics/symtropy/actions/runs/42234375524) passed: 8 manifests across 8 benchmark IDs, schema and semantic checks, configuration passports, execution-stack references and injected negative controls.
 
 The matched causal-path implementation also passed exact-head hosted CI in [run #42233601189](https://github.com/Luminous-Dynamics/symtropy/actions/runs/42233601189): 14 library tests, 1 binary test, formatting, strict Clippy, locked compilation, ledger execution, mediator ablation, conservation and counter-only negative control. Draft [PR #3803](https://github.com/Luminous-Dynamics/symtropy/pull/3803) remains a deterministic synthetic reference; it does not establish an empirical policy effect.
+
+
+## 15. Long-horizon activity fidelity and temporal-scale trade-offs
+
+**Cheng et al. (EMNLP 2026), "Measuring the Behavioral Fidelity of Long-Horizon Human Activity Simulations".**
+https://aclanthology.org/2026.emnlp-main.625/
+
+The study compares six simulation approaches on a 43-hour multi-camera office activity dataset. Statistical transition and time-of-day priors improve some aggregate activity and local transition distributions but can over-segment routines and suppress within-person variability.
+
+**CivBench response:** extend HUMSIM with event/local/daily/long-horizon views; score transition fidelity and dwell-time distributions alongside within-person variance, routine fragmentation and temporal autocorrelation. Do not reward a simulator for matching group-level activity by making every individual repetitive. Real multi-camera data requires explicit licensing, privacy and ethics gates.
+
+Implementation: [CIVDYN-HUMSIM-001 issue #3665](https://github.com/Luminous-Dynamics/symtropy/issues/3665).
