@@ -1365,27 +1365,25 @@ mod tests {
     }
 
     #[test]
-    fn open_set_coordination_gate_distinguishes_ambiguity_from_poor_fit() {
-        let mut config = base_config();
-        config.coupling_gains = [[0.0; LEG_COUNT]; LEG_COUNT];
-        config.feedback_gains = [0.0; LEG_COUNT];
+    fn open_set_coordination_gate_selects_an_adequate_separated_candidate() {
+        let config = base_config();
         let observed = simulate(config, CoordinationModel::Independent, &[]).unwrap();
         let decision = select_coordination_model_open_set(
             &observed,
             &[
                 CoordinationModel::Independent,
-                CoordinationModel::Hybrid,
+                CoordinationModel::FeedbackDriven,
             ],
             100,
             0.01,
-            -10.0,
+            0.01,
             -10.0,
         )
         .unwrap();
         assert!(matches!(
             decision,
-            CoordinationSelection::Abstained {
-                reason: CoordinationAbstentionReason::InsufficientSeparation,
+            CoordinationSelection::Selected {
+                model: CoordinationModel::Independent,
                 ..
             }
         ));
