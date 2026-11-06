@@ -1799,6 +1799,172 @@ mod tests {
         );
     }
 
+
+    fn quick_fit_grid() -> FrequencyPhaseGrid {
+        FrequencyPhaseGrid {
+            minimum_angular_frequency: 3.5,
+            maximum_angular_frequency: 4.5,
+            frequency_steps: 21,
+            phase_steps: 72,
+        }
+    }
+
+    #[test]
+    fn vector_ar1_recovers_the_rotational_baseline_and_freezes_its_suffix() {
+        let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            intervention,
+            config(),
+        )
+        .unwrap();
+        let forecast = fit_vector_ar1_forecast(
+            &generated.samples[..30],
+            intervention,
+            config(),
+        )
+        .unwrap();
+        let angle = config().angular_frequency * config().sample_interval;
+        let (sin_angle, cos_angle) = angle.sin_cos();
+
+        assert!((forecast.transition[0][0] - cos_angle).abs() < 1.0e-10);
+        assert!((forecast.transition[0][1] + sin_angle).abs() < 1.0e-10);
+        assert!((forecast.transition[1][0] - sin_angle).abs() < 1.0e-10);
+        assert!((forecast.transition[1][1] - cos_angle).abs() < 1.0e-10);
+        assert!(forecast.intercept.iter().all(|value| value.abs() < 1.0e-10));
+        assert_eq!(forecast.predicted_suffix.len(), config().sample_count - 30);
+        assert_eq!(
+            forecast.predicted_suffix[0].timestamp,
+            30.0 * config().sample_interval
+        );
+    }
+
+    #[test]
+    fn vector_ar1_is_a_predictive_equivalent_not_evidence_for_an_oscillator() {
+        let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            intervention,
+            config(),
+        )
+        .unwrap();
+        let mechanistic = predict_intervention_candidates(
+            &generated.samples[..30],
+            &CANDIDATES,
+            intervention,
+            config(),
+            quick_fit_grid(),
+        )
+        .unwrap();
+        let ar1 = fit_vector_ar1_forecast(
+            &generated.samples[..30],
+            intervention,
+            config(),
+        )
+        .unwrap();
+
+        let oscillator = mechanistic
+            .iter()
+            .find(|forecast| forecast.mechanism == Mechanism::IntrinsicOscillator)
+            .unwrap();
+        assert!(
+            trajectory_rmse(&oscillator.predicted_suffix, &ar1.predicted_suffix).unwrap() < 0.03
+        );
+        let decision = select_competing_models(
+            &generated.samples[30..],
+            &mechanistic,
+            &ar1,
+            config().observation_variance,
+            2.0,
+        )
+        .unwrap();
+        assert!(matches!(
+            decision,
+            CompetingModelDecision::Abstained { .. }
+        ));
+    }
+
+    #[test]
+    fn fitted_sensory_model_beats_action_blind_var1_after_feedback_cut() {
+        let intervention = Intervention::FeedbackCutFrom { sample_index: 30 };
+        let generated = simulate(
+            Mechanism::SensoryFeedbackDriven,
+            intervention,
+            config(),
+        )
+        .unwrap();
+        let candidates = [
+            Mechanism::SensoryFeedbackDriven,
+            Mechanism::IntrinsicOscillator,
+        ];
+        let mechanistic = predict_intervention_candidates(
+            &generated.samples[..30],
+            &candidates,
+            intervention,
+            config(),
+            quick_fit_grid(),
+        )
+        .unwrap();
+        let ar1 = fit_vector_ar1_forecast(
+            &generated.samples[..30],
+            intervention,
+            config(),
+        )
+        .unwrap();
+        let decision = select_competing_models(
+            &generated.samples[30..],
+            &mechanistic,
+            &ar1,
+            config().observation_variance,
+            1.0e-6,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            decision,
+            CompetingModelDecision::Selected {
+                family: CandidateFamily::Mechanistic(Mechanism::SensoryFeedbackDriven),
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn vector_ar1_rejects_singular_and_misaligned_baseline_records() {
+        let constant = (0..30)
+            .map(|index| SyntheticSample {
+                timestamp: index as f64 * config().sample_interval,
+                x: 1.0,
+                y: 0.0,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            fit_vector_ar1_forecast(
+                &constant,
+                Intervention::FeedbackCutFrom { sample_index: 30 },
+                config(),
+            ),
+            Err(BenchmarkError::SingularVectorAr1Fit)
+        );
+
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
+        let mut shifted = generated.samples[..30].to_vec();
+        shifted[4].timestamp += 0.001;
+        assert_eq!(
+            fit_vector_ar1_forecast(
+                &shifted,
+                Intervention::FeedbackCutFrom { sample_index: 30 },
+                config(),
+            ),
+            Err(BenchmarkError::TimestampMismatch)
+        );
+    }
+
     #[test]
     fn predictive_score_rewards_the_matching_intervention_prediction() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 20 };
