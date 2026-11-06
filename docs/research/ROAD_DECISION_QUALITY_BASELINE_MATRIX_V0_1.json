@@ -189,6 +189,38 @@
       "protocol": "aggregator marks extra data; exact split and evaluation details must be pinned before direct comparison",
       "source": "https://scholarcompass.net/en/tasks/autonomous-driving/benchmarks/hugsim",
       "claim": "aggregator snapshot; not assumed protocol-equivalent to PlanWAM"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM navtest (paper-reported)",
+      "method": "ReWAM",
+      "score": 90.6,
+      "unit": "points",
+      "protocol": "Level-k reciprocal WAM; four front-camera frames at 2Hz; eight predicted poses at 0.5s intervals; up to 10 other agents within 80m",
+      "source": "https://arxiv.org/abs/2609.39245",
+      "claim": "paper-reported; reproduce exact checkpoint, response depth and evaluation protocol"
+    },
+    {
+      "track": "navsim_v1_critical_interaction",
+      "metric": "PDMS",
+      "benchmark_version": "ReWAM critical-interaction subset (553 tokens)",
+      "method": "ReWAM",
+      "score": 88.72,
+      "unit": "points",
+      "comparisons": [
+        {
+          "method": "DriveLaW",
+          "score": 84.13
+        },
+        {
+          "method": "DiffusionDrive",
+          "score": 86.18
+        }
+      ],
+      "protocol": "553 critical-interaction tokens; not comparable with full navtest aggregate",
+      "source": "https://arxiv.org/abs/2609.39245",
+      "claim": "paper-reported interaction-stratified result"
     }
   ],
   "interpretation_rules": [
@@ -198,6 +230,7 @@
     "Keep world-model prediction, planner score, closed-loop driving, multi-agent realism, and decision-quality evidence as separate tracks.",
     "Bench2Drive 0.0.3 rows are self-reported results copied from papers and vary by data, expert, training and inference compute; ground-truth-perception rows are privileged and must be separated.",
     "Do not treat the 90.2 DriveVLA-W0 one-camera PDMS row and its separate dagger-marked 93.0 entry as the same configuration.",
-    "PlanWAM and World4Scorer both use K=64 candidate configurations; the EGCI selector reproduction ladder must include K=64 and charge generation, scoring, continuation and replay costs separately."
+    "PlanWAM and World4Scorer both use K=64 candidate configurations; the EGCI selector reproduction ladder must include K=64 and charge generation, scoring, continuation and replay costs separately.",
+    "ReWAM is an existing reciprocal-response architecture; EGCI must not claim to invent reciprocal planning. Its contribution is independently verifiable execution, support-qualified counterfactual evaluation and evidence-audited decision quality."
   ]
 }

@@ -26,7 +26,7 @@ Numbers below are protocol-specific reference points, not a single ordered ranki
 
 | Track | Reference point (2026-11-06) | What it measures | Reproduction rule |
 |---|---|---|---|
-| NAVSIM-v1 navtest | PlanWAM: 93.8 PDMS; World4Scorer: 94.0 PDMS; DriveVLA-W0's published one-camera row: 90.2 PDMS | Standardized planning score / trajectory outcomes | Keep PDMS separate from EPDMS; record sensor count, checkpoint, post-training, route-point adaptation, candidates, and scoring code |
+| NAVSIM-v1 navtest | World4Scorer: 94.0 PDMS; PlanWAM: 93.8; ReWAM: 90.6; DriveVLA-W0's published one-camera row: 90.2 | Standardized planning score / trajectory outcomes; ReWAM also reports 88.72 PDMS on its 553-token critical-interaction subset | Keep PDMS separate from EPDMS; record sensor count, checkpoint, post-training, response depth, candidate count, and scoring code |
 | NAVSIM-v2 navtest | World4Scorer: 93.0 EPDMS with inertial re-ranking, 91.4 without; PlanWAM: 90.9 EPDMS | Extended predictive driver metrics | Report each EPDMS subscore (including lane keeping, comfort/history comfort, extended comfort, DDC, TLC), not just the aggregate |
 | Bench2Drive-220 / Bench2Drive 0.0.3 | World4Scorer reports 73.27 Driving Score / 46.36% success on its adapted Bench2Drive-220 subset. The 0.0.3 self-reported leaderboard's non-privileged section lists BridgeDrive (LEAD-trained) at 96.34 / 89.25 SR and TFv6 at 95.28 / 86.81 SR; a separate privileged section lists PDM-Lite 97.02 and LEAD 96.78 using ground-truth perception | Closed-loop full-stack driving on CARLA routes | These are not a matched comparison: the leaderboard says methods differ in data, expert, training and inference compute; its rows are copied from papers. Keep World4Scorer's adapted subset separate and ground-truth-perception entries in a privileged track |
 | HUGSIM zero-shot | PlanWAM paper: 53.7 Route Completion / 38.7 HD-Score on 436 public scenarios; a current public aggregator lists DriveZero-Scale at 46.6 HD-Score | Closed-loop generalization in a neural rendering simulator | Resolve split, public/private scope, checkpoint, and simulator version before direct comparison. First reproduce PlanWAM's 436-scenario zero-shot setting |
@@ -44,8 +44,19 @@ Numbers below are protocol-specific reference points, not a single ordered ranki
 - - World4Scorer generates 64 candidate trajectories and uses a separate 16-candidate bank for additional simulator-labelled training states. Its released NAVSIM checkpoint is 35.5M parameters. It reports 94.0 PDMS on NAVSIM-v1, 93.0 EPDMS with inertial re-ranking on NAVSIM-v2, and 73.27 Driving Score on the adapted Bench2Drive-220 track. These scores remain distinct protocol tracks.
 - PlanWAM's key research idea is *planning-shaped future representation*: trajectory-planning objectives shape a future latent, then a history-only prior predicts it at inference. Its NAVSIM and HUGSIM results should be reproduced independently.
 - DriveVLA-W0 is a dense-supervision/data-scaling comparator: future-image prediction supplies self-supervision to a VLA, with a lightweight action expert for inference.
-- ReWAM is the interaction-modeling comparator: a Level-k response hierarchy models mutually influential ego/other-agent actions. It is conceptually aligned with reciprocity; its paper's NAVSIM claims still need exact reproduction.
+- ReWAM is the interaction-modeling comparator: a Level-k response hierarchy uses role-specific ego/other action DiTs and cross-agent attention over a shared future-world representation. It reports 90.6 NAVSIM PDMS; its 553-token critical-interaction subset scores 88.72 vs 84.13 for DriveLaW and 86.18 for DiffusionDrive. Reported reasoning depth increases PDMS from 90.03 at Level-1 to 90.64 at Level-4, with no further PDMS gain at Level-5. Its evaluation uses four front-camera frames sampled at 2 Hz, eight predicted poses at 0.5-second intervals, and up to ten other agents within 80 m. These are paper-reported results and must be reproduced under its exact configuration.
 - A 2026 world-model benchmark survey catalogs 102 benchmarks and argues that evaluation claims need four coordinates: target capability, protocol, metric family, and data source. This matrix adopts that discipline.
+
+### Reproduction implications from the current leaders
+
+The leading methods already cover several important paradigms:
+
+- **Planning-shaped representation (PlanWAM):** the future latent is shaped by trajectory-planning losses, then distilled to a history-only prior. The published configuration uses 64 candidate trajectories and eight waypoints over a four-second planning horizon.
+- **Outcome-grounded candidate scoring (World4Scorer):** a shared latent predictor scores 64 generated candidates; simulator outcomes supervise the candidate bank and the logged future anchors the predictor during training. Its released NAVSIM checkpoint has 35.5M parameters.
+- **Reciprocal policy generation (ReWAM):** a finite Level-k hierarchy makes ego and other-agent action distributions conditional on preceding-level strategies. Its own depth ablation shows diminishing returns by Level-4.
+- **Anchor-guided closed-loop planning (BridgeDrive):** a diffusion bridge refines coarse expert anchors into context-aware plans and reports 96.34 Driving Score / 89.25 success rate in the Bench2Drive 0.0.3 public leaderboard.
+
+The EGCI contribution must be different: take any of these planners as a black box, preserve the exact observation/action/event lineage, test whether their selected-action advantage survives repeated held-out continuations and reciprocal responses, and expose when SAM support or identification is insufficient. Architectural novelty is not a substitute for this measurement contribution.
 
 ## 3. The Luminous comparison architecture
 
