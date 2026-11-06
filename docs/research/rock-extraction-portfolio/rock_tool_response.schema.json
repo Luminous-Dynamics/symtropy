@@ -207,9 +207,32 @@
         },
         "range_exceeded": {
           "type": "boolean"
+        },
+        "lineage_ref": {
+          "type": "string",
+          "minLength": 1
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "measurement_role": {
+                "const": "DerivedFromIndependentMeasurements"
+              }
+            },
+            "required": [
+              "measurement_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "lineage_ref"
+            ]
+          }
+        }
+      ]
     },
     "observation": {
       "type": "object",
