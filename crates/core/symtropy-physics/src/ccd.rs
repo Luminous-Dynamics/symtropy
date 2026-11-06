@@ -46,6 +46,28 @@ pub enum CcdQueryError {
     NumericalOverflow,
 }
 
+/// Primitive CCD query that produced a diagnostic.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CcdQueryKind {
+    /// Swept sphere against sphere.
+    SphereSphere,
+    /// Swept sphere against halfspace.
+    SphereHalfspace,
+}
+
+/// A CCD query that could not produce a trustworthy hit/no-hit result.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CcdQueryDiagnostic {
+    /// Moving/query body.
+    pub body_a: crate::body::BodyHandle,
+    /// Target body.
+    pub body_b: crate::body::BodyHandle,
+    /// Primitive query kind.
+    pub kind: CcdQueryKind,
+    /// Invalid-input or numerical failure.
+    pub error: CcdQueryError,
+}
+
 fn vector_is_finite<const D: usize>(value: &SVector<f64, D>) -> bool {
     value.iter().all(|component| component.is_finite())
 }
