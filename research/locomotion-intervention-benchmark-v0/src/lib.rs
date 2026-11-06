@@ -91,6 +91,7 @@ pub enum BenchmarkError {
     InvalidTraceLength,
     NonFiniteTrace,
     NonMonotonicTraceTimestamp,
+    TimestampMismatch,
     EmptyCandidateSet,
     DuplicateCandidate,
     NumericalFailure,
@@ -303,6 +304,7 @@ pub fn trajectory_rmse(
     }
     validate_trace(left)?;
     validate_trace(right)?;
+    validate_aligned_timestamps(left, right)?;
 
     let squared_error = left
         .iter()
@@ -332,6 +334,7 @@ pub fn phase_offset(
     }
     validate_trace(trace)?;
     validate_trace(baseline)?;
+    validate_aligned_timestamps(trace, baseline)?;
     let sample = trace[sample_index];
     let reference = baseline[sample_index];
     let amplitude = sample.x.hypot(sample.y);
@@ -360,6 +363,7 @@ pub fn predictive_log_score(
     }
     validate_trace(observed)?;
     validate_trace(predicted)?;
+    validate_aligned_timestamps(observed, predicted)?;
 
     let normalization = (2.0 * std::f64::consts::PI * observation_variance).ln();
     let score = observed
@@ -523,6 +527,24 @@ fn validate_trace(trace: &[SyntheticSample]) -> Result<(), BenchmarkError> {
             return Err(BenchmarkError::NonMonotonicTraceTimestamp);
         }
         previous_timestamp = Some(sample.timestamp);
+    }
+    Ok(())
+}
+
+
+fn validate_aligned_timestamps(
+    observed: &[SyntheticSample],
+    predicted: &[SyntheticSample],
+) -> Result<(), BenchmarkError> {
+    if observed.len() != predicted.len() {
+        return Err(BenchmarkError::InvalidTraceLength);
+    }
+    if observed
+        .iter()
+        .zip(predicted)
+        .any(|(left, right)| left.timestamp != right.timestamp)
+    {
+        return Err(BenchmarkError::TimestampMismatch);
     }
     Ok(())
 }
@@ -891,6 +913,27 @@ mod tests {
         assert_eq!(
             predictive_log_score(&invalid, &trace.samples, config().observation_variance),
             Err(BenchmarkError::NonMonotonicTraceTimestamp)
+        );
+    }
+
+
+    #[test]
+    fn refuses_to_compare_predictions_on_a_different_time_grid() {
+        let trace = simulate(
+            Mechanism::IntrinsicOscillator,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
+        let mut shifted = trace.samples.clone();
+        shifted[10].timestamp += 0.001;
+        assert_eq!(
+            trajectory_rmse(&trace.samples, &shifted),
+            Err(BenchmarkError::TimestampMismatch)
+        );
+        assert_eq!(
+            predictive_log_score(&trace.samples, &shifted, config().observation_variance),
+            Err(BenchmarkError::TimestampMismatch)
         );
     }
 
