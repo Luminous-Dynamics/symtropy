@@ -90,6 +90,7 @@ pub enum BenchmarkError {
     InvalidScoreMargin,
     InvalidTraceLength,
     NonFiniteTrace,
+    NonMonotonicTraceTimestamp,
     EmptyCandidateSet,
     DuplicateCandidate,
     NumericalFailure,
@@ -327,6 +328,8 @@ pub fn phase_offset(
     if trace.len() != baseline.len() || sample_index >= trace.len() {
         return Err(BenchmarkError::InvalidTraceLength);
     }
+    validate_trace(trace)?;
+    validate_trace(baseline)?;
     let sample = trace[sample_index];
     let reference = baseline[sample_index];
     let amplitude = sample.x.hypot(sample.y);
@@ -509,12 +512,15 @@ pub fn select_mechanism(
 }
 
 fn validate_trace(trace: &[SyntheticSample]) -> Result<(), BenchmarkError> {
-    if trace.iter().any(|sample| {
-        !sample.timestamp.is_finite()
-            || !sample.x.is_finite()
-            || !sample.y.is_finite()
-    }) {
-        return Err(BenchmarkError::NonFiniteTrace);
+    let mut previous_timestamp = None;
+    for sample in trace {
+        if !sample.timestamp.is_finite() || !sample.x.is_finite() || !sample.y.is_finite() {
+            return Err(BenchmarkError::NonFiniteTrace);
+        }
+        if previous_timestamp.is_some_and(|previous| sample.timestamp <= previous) {
+            return Err(BenchmarkError::NonMonotonicTraceTimestamp);
+        }
+        previous_timestamp = Some(sample.timestamp);
     }
     Ok(())
 }
@@ -862,6 +868,27 @@ mod tests {
                 config()
             ),
             Err(BenchmarkError::InvalidPhasePulse)
+        );
+    }
+
+
+    #[test]
+    fn rejects_nonmonotonic_observation_timestamps() {
+        let trace = simulate(
+            Mechanism::IntrinsicOscillator,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
+        let mut invalid = trace.samples.clone();
+        invalid[2].timestamp = invalid[1].timestamp;
+        assert_eq!(
+            trajectory_rmse(&invalid, &trace.samples),
+            Err(BenchmarkError::NonMonotonicTraceTimestamp)
+        );
+        assert_eq!(
+            predictive_log_score(&invalid, &trace.samples, config().observation_variance),
+            Err(BenchmarkError::NonMonotonicTraceTimestamp)
         );
     }
 
