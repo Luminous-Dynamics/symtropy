@@ -29,6 +29,36 @@ pub struct CcdHit<const D: usize> {
     pub normal: SVector<f64, D>,
 }
 
+/// True when every component is finite.
+#[inline]
+fn vector_is_finite<const D: usize>(value: &SVector<f64, D>) -> bool {
+    value.iter().all(|component| component.is_finite())
+}
+
+/// Normalize a finite vector without overflowing on large magnitudes.
+fn stable_unit_vector<const D: usize>(value: &SVector<f64, D>) -> Option<SVector<f64, D>> {
+    if !vector_is_finite(value) {
+        return None;
+    }
+    let scale = value.amax();
+    if scale == 0.0 || !scale.is_finite() {
+        return None;
+    }
+    let scaled = value / scale;
+    let norm = scaled.norm();
+    if norm == 0.0 || !norm.is_finite() {
+        return None;
+    }
+    Some(scaled / norm)
+}
+
+/// Deterministic fallback normal for coincident centers.
+fn axis_fallback<const D: usize>() -> SVector<f64, D> {
+    let mut normal = SVector::zeros();
+    normal[0] = 1.0;
+    normal
+}
+
 /// Speed threshold below which CCD is not applied (optimization).
 /// Bodies moving slower than this per step won't tunnel through typical geometry.
 pub const CCD_SPEED_THRESHOLD: f64 = 5.0;
@@ -49,23 +79,37 @@ pub fn sphere_sphere<const D: usize>(
     radius_b: f64,
     dt: f64,
 ) -> Option<CcdHit<D>> {
+    if !vector_is_finite(pos_a)
+        || !vector_is_finite(vel_a)
+        || !vector_is_finite(pos_b)
+        || !vector_is_finite(vel_b)
+        || !radius_a.is_finite()
+        || !radius_b.is_finite()
+        || radius_a < 0.0
+        || radius_b < 0.0
+        || !dt.is_finite()
+        || dt < 0.0
+    {
+        return None;
+    }
+
     let dp = pos_b - pos_a;
     let dv = vel_b - vel_a;
     let r = radius_a + radius_b;
+    if !vector_is_finite(&dp) || !vector_is_finite(&dv) || !r.is_finite() {
+        return None;
+    }
 
     let a = dv.dot(&dv);
     let b = 2.0 * dp.dot(&dv);
     let c = dp.dot(&dp) - r * r;
+    if !a.is_finite() || !b.is_finite() || !c.is_finite() {
+        return None;
+    }
 
-    // Already overlapping at t=0
+    // Already overlapping or touching at t=0.
     if c <= 0.0 {
-        let normal = if dp.norm() > 1e-15 {
-            dp.normalize()
-        } else {
-            let mut n = SVector::zeros();
-            n[0] = 1.0;
-            n
-        };
+        let normal = stable_unit_vector(&dp).unwrap_or_else(axis_fallback);
         return Some(CcdHit {
             toi: 0.0,
             point: pos_a + normal * radius_a,
@@ -73,58 +117,47 @@ pub fn sphere_sphere<const D: usize>(
         });
     }
 
-    // No relative motion
-    if a < 1e-20 {
+    // Only exactly zero computed relative speed is stationary. Avoid an
+    // absolute cutoff that would discard slow but valid long-horizon hits.
+    if a == 0.0 {
         return None;
     }
 
     let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        return None; // No intersection
+    if !discriminant.is_finite() || discriminant < 0.0 {
+        return None;
     }
 
-    let sqrt_disc = discriminant.sqrt();
-    let t1 = (-b - sqrt_disc) / (2.0 * a);
+    let sqrt_discriminant = discriminant.sqrt();
 
-    // We want the earliest positive t within [0, dt]
-    if t1 >= 0.0 && t1 <= dt {
-        let pos_a_t = pos_a + vel_a * t1;
-        let pos_b_t = pos_b + vel_b * t1;
-        let delta = pos_b_t - pos_a_t;
-        let normal = if delta.norm() > 1e-15 {
-            delta.normalize()
-        } else {
-            let mut n = SVector::zeros();
-            n[0] = 1.0;
-            n
-        };
-        Some(CcdHit {
-            toi: t1,
-            point: pos_a_t + normal * radius_a,
-            normal,
-        })
+    // Stable quadratic q-form. The conventional (-b ± sqrt(D)) / (2a)
+    // loses the small root when b and sqrt(D) are nearly equal.
+    let q = -0.5 * (b + sqrt_discriminant.copysign(b));
+    let (root_a, root_b) = if q == 0.0 {
+        let repeated_root = -b / (2.0 * a);
+        (repeated_root, repeated_root)
     } else {
-        let t2 = (-b + sqrt_disc) / (2.0 * a);
-        if t2 >= 0.0 && t2 <= dt {
-            let pos_a_t = pos_a + vel_a * t2;
-            let pos_b_t = pos_b + vel_b * t2;
-            let delta = pos_b_t - pos_a_t;
-            let normal = if delta.norm() > 1e-15 {
-                delta.normalize()
-            } else {
-                let mut n = SVector::zeros();
-                n[0] = 1.0;
-                n
-            };
-            Some(CcdHit {
-                toi: t2,
-                point: pos_a_t + normal * radius_a,
-                normal,
-            })
-        } else {
-            None // Intersection happens outside [0, dt]
-        }
+        (q / a, c / q)
+    };
+
+    let toi = [root_a, root_b]
+        .into_iter()
+        .filter(|root| root.is_finite() && *root >= 0.0 && *root <= dt)
+        .min_by(f64::total_cmp)?;
+
+    let pos_a_t = pos_a + vel_a * toi;
+    let pos_b_t = pos_b + vel_b * toi;
+    let delta = pos_b_t - pos_a_t;
+    if !vector_is_finite(&pos_a_t) || !vector_is_finite(&pos_b_t) || !vector_is_finite(&delta) {
+        return None;
     }
+    let normal = stable_unit_vector(&delta).unwrap_or_else(axis_fallback);
+
+    Some(CcdHit {
+        toi,
+        point: pos_a_t + normal * radius_a,
+        normal,
+    })
 }
 
 /// Swept sphere vs half-space (infinite plane): find time of impact.
@@ -139,37 +172,70 @@ pub fn sphere_halfspace<const D: usize>(
     plane_offset: f64,
     dt: f64,
 ) -> Option<CcdHit<D>> {
-    let signed_dist = plane_normal.dot(pos) - plane_offset;
+    if !vector_is_finite(pos)
+        || !vector_is_finite(vel)
+        || !vector_is_finite(plane_normal)
+        || !plane_offset.is_finite()
+        || !radius.is_finite()
+        || radius < 0.0
+        || !dt.is_finite()
+        || dt < 0.0
+    {
+        return None;
+    }
 
-    // Already penetrating
+    // Normalize the normal and offset together so equivalent representations
+    // k*n · x = k*d produce identical TOI and a unit output normal.
+    let normal_scale = plane_normal.amax();
+    if !normal_scale.is_finite() || normal_scale == 0.0 {
+        return None;
+    }
+    let scaled_normal = plane_normal / normal_scale;
+    let scaled_norm = scaled_normal.norm();
+    if !scaled_norm.is_finite() || scaled_norm == 0.0 {
+        return None;
+    }
+    let normal = scaled_normal / scaled_norm;
+    let offset = (plane_offset / normal_scale) / scaled_norm;
+    if !offset.is_finite() {
+        return None;
+    }
+
+    let signed_dist = normal.dot(pos) - offset;
+    if !signed_dist.is_finite() {
+        return None;
+    }
+
+    // Already penetrating or touching at t=0.
     if signed_dist <= radius {
-        let contact = pos - plane_normal * signed_dist;
+        let contact = pos - normal * signed_dist;
         return Some(CcdHit {
             toi: 0.0,
             point: contact,
-            normal: *plane_normal,
+            normal,
         });
     }
 
-    let vel_toward_plane = -plane_normal.dot(vel);
-    if vel_toward_plane <= 0.0 {
-        return None; // Moving away from plane
+    let vel_toward_plane = -normal.dot(vel);
+    if !vel_toward_plane.is_finite() || vel_toward_plane <= 0.0 {
+        return None;
     }
 
-    // Time to reach distance = radius from plane
     let t = (signed_dist - radius) / vel_toward_plane;
-
-    if t >= 0.0 && t <= dt {
-        let pos_t = pos + vel * t;
-        let contact = pos_t - plane_normal * radius;
-        Some(CcdHit {
-            toi: t,
-            point: contact,
-            normal: *plane_normal,
-        })
-    } else {
-        None
+    if !t.is_finite() || t < 0.0 || t > dt {
+        return None;
     }
+
+    let pos_t = pos + vel * t;
+    if !vector_is_finite(&pos_t) {
+        return None;
+    }
+    let contact = pos_t - normal * radius;
+    Some(CcdHit {
+        toi: t,
+        point: contact,
+        normal,
+    })
 }
 
 #[cfg(test)]
