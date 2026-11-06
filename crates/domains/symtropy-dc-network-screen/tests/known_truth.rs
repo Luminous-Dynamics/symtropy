@@ -9,13 +9,17 @@ use symtropy_dc_network_screen::{
 };
 
 fn network(branches: Vec<DcBranch>) -> DcNetworkModel {
+    network_with_base_mva(branches, 1.0)
+}
+
+fn network_with_base_mva(branches: Vec<DcBranch>, base_mva: f64) -> DcNetworkModel {
     DcNetworkModel::new(
         "three-bus-v1",
         "sha256:model",
         "topology-a",
         "sha256:topology",
         0,
-        1.0,
+        base_mva,
         vec![
             DcBus::new("S", true).unwrap(),
             DcBus::new("A", false).unwrap(),
@@ -393,4 +397,62 @@ fn baseline_overload_can_require_a_nonzero_minimum_dispatch_fraction() {
     assert!((interval.minimum_network_feasible_action_fraction.unwrap() - 0.5416666667).abs() < 1e-8);
     assert!((interval.maximum_network_feasible_action_fraction.unwrap() - 1.0).abs() < 1e-12);
     assert!(report.network_deliverable);
+}
+
+#[test]
+fn per_unit_flow_results_are_invariant_to_declared_mva_base() {
+    let branches = || vec![
+        DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap(),
+        DcBranch::new("A-B", "A", "B", 0.1, 100.0, 120.0).unwrap(),
+        DcBranch::new("S-B", "S", "B", 0.1, 100.0, 120.0).unwrap(),
+    ];
+    let interval = DcFlexInterval::new(
+        0, 3_600_000_000_000, injections(100.0, 0.0),
+        BTreeMap::from([("B".to_owned(), 30.0)]),
+    ).unwrap();
+    let one_mva = evaluate_dc_network_deliverability(
+        &identity(), &network_with_base_mva(branches(), 1.0), &contract(false),
+        std::slice::from_ref(&interval), &[],
+    ).unwrap();
+    let hundred_mva = evaluate_dc_network_deliverability(
+        &identity(), &network_with_base_mva(branches(), 100.0), &contract(false),
+        &[interval], &[],
+    ).unwrap();
+    for branch_id in ["S-A", "A-B", "S-B"] {
+        let a = one_mva.intervals[0].branch_flows.iter().find(|x| x.branch_id == branch_id).unwrap();
+        let b = hundred_mva.intervals[0].branch_flows.iter().find(|x| x.branch_id == branch_id).unwrap();
+        assert!((a.baseline_flow_mw - b.baseline_flow_mw).abs() < 1e-9);
+        assert!((a.flexible_flow_mw - b.flexible_flow_mw).abs() < 1e-9);
+    }
+    assert_eq!(hundred_mva.base_mva, 100.0);
+}
+
+#[test]
+fn energy_summaries_use_mw_times_hours_without_extra_scale_factor() {
+    let report = evaluate_dc_network_deliverability(
+        &identity(), &triangle(), &contract(false),
+        &[DcFlexInterval::new(
+            0, 3_600_000_000_000, injections(100.0, 0.0),
+            BTreeMap::from([("B".to_owned(), 30.0)]),
+        ).unwrap()],
+        &[],
+    ).unwrap();
+    assert!((report.requested_load_reduction_energy_mwh - 30.0).abs() < 1e-9);
+    assert!((report.maximum_network_deliverable_reduction_energy_mwh - 17.5).abs() < 1e-8);
+}
+
+#[test]
+fn topology_must_remain_fresh_until_interval_end() {
+    let model = DcNetworkModel::new(
+        "model", "sha256:model", "topology", "sha256:topology", 0, 100.0,
+        vec![DcBus::new("S", true).unwrap(), DcBus::new("A", false).unwrap()],
+        vec![DcBranch::new("S-A", "S", "A", 0.1, 100.0, 120.0).unwrap()],
+    ).unwrap();
+    let policy = DcNetworkContract::new(10_000, 1e-9, 1e-12, false).unwrap();
+    let error = evaluate_dc_network_deliverability(
+        &identity(), &model, &policy,
+        &[DcFlexInterval::new(9_990, 20, injections(0.0, 0.0), BTreeMap::new()).unwrap()],
+        &[],
+    ).unwrap_err();
+    assert!(matches!(error, DcNetworkError::StaleTopology { interval_start_ns: 10_010, .. }));
 }
