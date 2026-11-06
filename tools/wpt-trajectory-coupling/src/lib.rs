@@ -578,15 +578,9 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
             })?;
         let receiver_lateral_offset_mm = receiver_y_mm
             .checked_sub(scenario.coil_center_y_mm)
-            .ok_or_else(|| {
-                fail(
-                    "$.samples",
-                    "receiver lateral offset arithmetic overflowed",
-                )
-            })?;
-        let receiver_inside_declared_active_zone =
-            receiver_s_mm >= scenario.active_zone_start_s_mm
-                && receiver_s_mm <= scenario.active_zone_end_s_mm;
+            .ok_or_else(|| fail("$.samples", "receiver lateral offset arithmetic overflowed"))?;
+        let receiver_inside_declared_active_zone = receiver_s_mm >= scenario.active_zone_start_s_mm
+            && receiver_s_mm <= scenario.active_zone_end_s_mm;
         if receiver_inside_declared_active_zone {
             active_zone_sample_count += 1;
         }
@@ -656,10 +650,12 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
     };
 
     let sample_count = scenario.samples.len() as u64;
-    let lateral_alignment_coverage_ppm =
-        (aligned_samples * PPM + sample_count / 2) / sample_count;
+    let lateral_alignment_coverage_ppm = (aligned_samples * PPM + sample_count / 2) / sample_count;
     let maximum_coil_temperature_millidegrees_c = max_optional_millidegrees(
-        scenario.samples.iter().map(|sample| sample.coil_temperature_c),
+        scenario
+            .samples
+            .iter()
+            .map(|sample| sample.coil_temperature_c),
         "$.samples.coil_temperature_c",
     )?;
     let maximum_interface_temperature_millidegrees_c = max_optional_millidegrees(
