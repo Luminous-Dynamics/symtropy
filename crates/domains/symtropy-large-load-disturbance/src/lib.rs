@@ -779,7 +779,6 @@ fn evaluate_recovery(
         let mut last_stable = first.timestamp_ns;
         let mut valid = true;
         for sample in samples.iter().skip(i + 1) {
-            if sample.timestamp_ns > stable_end { break; }
             if sample.voltage_pu < requirement.minimum_recovered_voltage_pu
                 || sample.frequency_hz < requirement.minimum_recovered_frequency_hz
                 || sample.frequency_hz > requirement.maximum_recovered_frequency_hz
@@ -788,6 +787,7 @@ fn evaluate_recovery(
                 break;
             }
             last_stable = sample.timestamp_ns;
+            if sample.timestamp_ns >= stable_end { break; }
         }
         if valid && last_stable >= stable_end {
             stable_index = Some(i);
