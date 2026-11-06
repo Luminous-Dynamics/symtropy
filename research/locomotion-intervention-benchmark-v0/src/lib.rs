@@ -657,8 +657,6 @@ pub fn select_frozen_forecast(
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct MonteCarloSpec {
     pub generating_mechanisms: Vec<Mechanism>,
@@ -716,9 +714,7 @@ pub fn run_paired_seed_evaluation(
     if spec.seeds.is_empty() {
         return Err(BenchmarkError::EmptySeedSet);
     }
-    if !spec.observation_noise_variance.is_finite()
-        || spec.observation_noise_variance < 0.0
-    {
+    if !spec.observation_noise_variance.is_finite() || spec.observation_noise_variance < 0.0 {
         return Err(BenchmarkError::InvalidObservationVariance);
     }
     if !spec.minimum_score_margin.is_finite() || spec.minimum_score_margin < 0.0 {
@@ -754,11 +750,7 @@ pub fn run_paired_seed_evaluation(
         let mut score_margin_sum = 0.0;
 
         for seed in &spec.seeds {
-            let generated = simulate(
-                *generating_mechanism,
-                spec.intervention,
-                spec.base_config,
-            )?;
+            let generated = simulate(*generating_mechanism, spec.intervention, spec.base_config)?;
             let noisy_observations = add_gaussian_observation_noise(
                 &generated.samples,
                 spec.observation_noise_variance,
@@ -839,8 +831,7 @@ fn wilson_interval(successes: usize, trials: usize) -> BinomialInterval {
     let z_squared = z * z;
     let denominator = 1.0 + z_squared / n;
     let center = (p + z_squared / (2.0 * n)) / denominator;
-    let half_width =
-        z * ((p * (1.0 - p) / n + z_squared / (4.0 * n * n)).sqrt()) / denominator;
+    let half_width = z * ((p * (1.0 - p) / n + z_squared / (4.0 * n * n)).sqrt()) / denominator;
     BinomialInterval {
         successes,
         trials,
@@ -1657,5 +1648,4 @@ mod tests {
         assert_eq!(interval.successes, 5);
         assert_eq!(interval.trials, 10);
     }
-
 }
