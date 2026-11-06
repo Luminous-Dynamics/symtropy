@@ -68,9 +68,18 @@ impl BaselineIdentity {
             ("PCC ID", identity.pcc_id.as_str()),
             ("baseline model ID", identity.baseline_model_id.as_str()),
             ("feature-set digest", identity.feature_set_digest.as_str()),
-            ("training-data digest", identity.training_data_digest.as_str()),
-            ("calibration-data digest", identity.calibration_data_digest.as_str()),
-            ("evaluation-data digest", identity.evaluation_data_digest.as_str()),
+            (
+                "training-data digest",
+                identity.training_data_digest.as_str(),
+            ),
+            (
+                "calibration-data digest",
+                identity.calibration_data_digest.as_str(),
+            ),
+            (
+                "evaluation-data digest",
+                identity.evaluation_data_digest.as_str(),
+            ),
         ] {
             require_id(field, value)?;
         }
@@ -181,9 +190,15 @@ impl NoDispatchObservation {
             });
         }
         for (field, value) in [
-            ("predicted no-dispatch power", predicted_no_dispatch_power_kw),
+            (
+                "predicted no-dispatch power",
+                predicted_no_dispatch_power_kw,
+            ),
             ("observed no-dispatch power", observed_no_dispatch_power_kw),
-            ("observed no-dispatch expanded uncertainty", observed_expanded_uncertainty_kw),
+            (
+                "observed no-dispatch expanded uncertainty",
+                observed_expanded_uncertainty_kw,
+            ),
         ] {
             if !value.is_finite() {
                 return Err(BaselineQualificationError::InvalidQuantity { field, value });
@@ -236,13 +251,12 @@ impl BaselineQualificationContract {
                 value: residual_lower_tail_alpha_basis_points,
             });
         }
-        if minimum_calibration_groups_per_regime == 0
-            || minimum_evaluation_groups_per_regime == 0
-        {
+        if minimum_calibration_groups_per_regime == 0 || minimum_evaluation_groups_per_regime == 0 {
             return Err(BaselineQualificationError::InvalidMinimumSampleCount);
         }
-        let minimum_for_quantile =
-            (10_000usize.div_ceil(residual_lower_tail_alpha_basis_points as usize)).saturating_sub(1);
+        let minimum_for_quantile = (10_000usize
+            .div_ceil(residual_lower_tail_alpha_basis_points as usize))
+        .saturating_sub(1);
         if minimum_calibration_groups_per_regime < minimum_for_quantile {
             return Err(BaselineQualificationError::InsufficientCalibrationForTail {
                 minimum_required: minimum_for_quantile,
@@ -254,7 +268,10 @@ impl BaselineQualificationContract {
                 "maximum absolute normalized bias",
                 maximum_absolute_normalized_bias_basis_points,
             ),
-            ("maximum normalized MAE", maximum_normalized_mae_basis_points),
+                "maximum normalized MAE",
+                maximum_normalized_mae_basis_points,
+            ),
+            (
             (
                 "minimum lower-bound coverage",
                 minimum_lower_bound_coverage_basis_points,
@@ -373,7 +390,9 @@ impl BaselineQualificationReport {
     }
 
     pub fn regime(&self, regime_id: &str) -> Option<&RegimeBaselineReceipt> {
-        self.regimes.iter().find(|regime| regime.regime_id == regime_id)
+        self.regimes
+            .iter()
+            .find(|regime| regime.regime_id == regime_id)
     }
 }
 
@@ -437,7 +456,10 @@ impl DispatchEventPoint {
         for (field, value) in [
             ("event baseline forecast", predicted_no_dispatch_power_kw),
             ("measured dispatch power", measured_dispatch_power_kw),
-            ("PCC metrology expanded uncertainty", metrology_expanded_uncertainty_kw),
+            (
+                "PCC metrology expanded uncertainty",
+                metrology_expanded_uncertainty_kw,
+            ),
         ] {
             if !value.is_finite() {
                 return Err(BaselineQualificationError::InvalidQuantity { field, value });
@@ -503,28 +525,73 @@ pub struct BaselineEventReport {
 /// Fail-closed baseline qualification and event-impact errors.
 #[derive(Debug, Clone, PartialEq)]
 pub enum BaselineQualificationError {
-    MissingIdentity { field: &'static str },
-    InvalidQuantity { field: &'static str, value: f64 },
-    InvalidBasisPoints { field: &'static str, value: u16 },
+    MissingIdentity {
+        field: &'static str,
+    },
+    InvalidQuantity {
+        field: &'static str,
+        value: f64,
+    },
+    InvalidBasisPoints {
+        field: &'static str,
+        value: u16,
+    },
     InvalidMinimumSampleCount,
-    SourceDigestMismatch { fold: BaselineFold, expected: String, observed: String },
-    InsufficientCalibrationForTail { minimum_required: usize, configured: usize },
+    SourceDigestMismatch {
+        fold: BaselineFold,
+        expected: String,
+        observed: String,
+    },
+    InsufficientCalibrationForTail {
+        minimum_required: usize,
+        configured: usize,
+    },
     InvalidIntervalDuration,
-    FutureInformationLeakage { sample_id: String, forecast_issued_at_ns: u64, interval_start_ns: u64 },
-    DispatchedDataInBaselineFold { sample_id: String },
-    DuplicateSampleId { sample_id: String },
-    CalibrationEvaluationGroupOverlap { group_id: String },
+    FutureInformationLeakage {
+        sample_id: String,
+        forecast_issued_at_ns: u64,
+        interval_start_ns: u64,
+    },
+    DispatchedDataInBaselineFold {
+        sample_id: String,
+    },
+    DuplicateSampleId {
+        sample_id: String,
+    },
+    CalibrationEvaluationGroupOverlap {
+        group_id: String,
+    },
     PartitionDigestCollision,
-    InsufficientCalibrationGroups { regime_id: String, observed_groups: usize, required_groups: usize },
-    InsufficientEvaluationGroups { regime_id: String, observed_groups: usize, required_groups: usize },
+    InsufficientCalibrationGroups {
+        regime_id: String,
+        observed_groups: usize,
+        required_groups: usize,
+    },
+    InsufficientEvaluationGroups {
+        regime_id: String,
+        observed_groups: usize,
+        required_groups: usize,
+    },
     NoSharedOperatingRegimes,
-    EvaluationRegimeMissingCalibration { regime_id: String },
-    InvalidNormalizedPowerScale { regime_id: String },
+    EvaluationRegimeMissingCalibration {
+        regime_id: String,
+    },
+    InvalidNormalizedPowerScale {
+        regime_id: String,
+    },
     BaselineNotQualified,
     BaselineIdentityMismatch,
-    UnknownOperatingRegime { regime_id: String },
-    NonContiguousEventIntervals { index: usize, expected_start_ns: u64, observed_start_ns: u64 },
-    DuplicateEventPoint { point_id: String },
+    UnknownOperatingRegime {
+        regime_id: String,
+    },
+    NonContiguousEventIntervals {
+        index: usize,
+        expected_start_ns: u64,
+        observed_start_ns: u64,
+    },
+    DuplicateEventPoint {
+        point_id: String,
+    },
     EmptyEvent,
     TimestampOverflow,
     NumericalOverflow(&'static str),
@@ -534,27 +601,104 @@ impl fmt::Display for BaselineQualificationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingIdentity { field } => write!(f, "{field} must not be empty"),
-            Self::InvalidQuantity { field, value } => write!(f, "{field} must be finite and in range; got {value}"),
-            Self::InvalidBasisPoints { field, value } => write!(f, "{field} must be in 0..=10000 basis points; got {value}"),
-            Self::InvalidMinimumSampleCount => write!(f, "calibration and evaluation sample minima must be positive"),
-            Self::SourceDigestMismatch { fold, expected, observed } => write!(f, "{fold:?} sample source digest {observed} does not match pinned partition digest {expected}"),
-            Self::InsufficientCalibrationForTail { minimum_required, configured } => write!(f, "calibration sample minimum {configured} cannot support the requested lower tail; at least {minimum_required} are required"),
+            Self::InvalidQuantity { field, value } => {
+                write!(f, "{field} must be finite and in range; got {value}")
+            }
+            Self::InvalidBasisPoints { field, value } => {
+                write!(f, "{field} must be in 0..=10000 basis points; got {value}")
+            }
+            Self::InvalidMinimumSampleCount => write!(
+                f,
+                "calibration and evaluation sample minima must be positive"
+            ),
+            Self::SourceDigestMismatch {
+                fold,
+                expected,
+                observed,
+            } => write!(
+                f,
+                "{fold:?} sample source digest {observed} does not match pinned partition digest {expected}"
+            ),
+            Self::InsufficientCalibrationForTail {
+                minimum_required,
+                configured,
+            } => write!(
+                f,
+                "calibration sample minimum {configured} cannot support the requested lower tail; at least {minimum_required} are required"
+            ),
             Self::InvalidIntervalDuration => write!(f, "interval duration must be positive"),
-            Self::FutureInformationLeakage { sample_id, forecast_issued_at_ns, interval_start_ns } => write!(f, "forecast {sample_id} was issued at {forecast_issued_at_ns} after target interval start {interval_start_ns}"),
-            Self::DispatchedDataInBaselineFold { sample_id } => write!(f, "sample {sample_id} is dispatch-active and cannot qualify a no-dispatch baseline"),
-            Self::DuplicateSampleId { sample_id } => write!(f, "duplicate baseline sample ID {sample_id}"),
-            Self::CalibrationEvaluationGroupOverlap { group_id } => write!(f, "independence group {group_id} leaks across calibration and evaluation"),
-            Self::PartitionDigestCollision => write!(f, "calibration and evaluation data digests must differ"),
-            Self::InsufficientCalibrationGroups { regime_id, observed_groups, required_groups } => write!(f, "regime {regime_id} has {observed_groups} independent calibration groups; requires {required_groups}"),
-            Self::InsufficientEvaluationGroups { regime_id, observed_groups, required_groups } => write!(f, "regime {regime_id} has {observed_groups} independent evaluation groups; requires {required_groups}"),
-            Self::NoSharedOperatingRegimes => write!(f, "calibration and evaluation sets have no shared operating regimes"),
-            Self::EvaluationRegimeMissingCalibration { regime_id } => write!(f, "evaluation operating regime {regime_id} has no disjoint calibration residual partition"),
-            Self::InvalidNormalizedPowerScale { regime_id } => write!(f, "regime {regime_id} has a zero or invalid normalization scale"),
-            Self::BaselineNotQualified => write!(f, "baseline model did not pass its pre-registered holdout qualification"),
-            Self::BaselineIdentityMismatch => write!(f, "event model identity does not match qualified baseline identity"),
-            Self::UnknownOperatingRegime { regime_id } => write!(f, "event operating regime {regime_id} was not qualified"),
-            Self::NonContiguousEventIntervals { index, expected_start_ns, observed_start_ns } => write!(f, "event interval {index} starts at {observed_start_ns}; expected contiguous start {expected_start_ns}"),
-            Self::DuplicateEventPoint { point_id } => write!(f, "duplicate event point ID {point_id}"),
+            Self::FutureInformationLeakage {
+                sample_id,
+                forecast_issued_at_ns,
+                interval_start_ns,
+            } => write!(
+                f,
+                "forecast {sample_id} was issued at {forecast_issued_at_ns} after target interval start {interval_start_ns}"
+            ),
+            Self::DispatchedDataInBaselineFold { sample_id } => write!(
+                f,
+                "sample {sample_id} is dispatch-active and cannot qualify a no-dispatch baseline"
+            ),
+            Self::DuplicateSampleId { sample_id } => {
+                write!(f, "duplicate baseline sample ID {sample_id}")
+            }
+            Self::CalibrationEvaluationGroupOverlap { group_id } => write!(
+                f,
+                "independence group {group_id} leaks across calibration and evaluation"
+            ),
+            Self::PartitionDigestCollision => {
+                write!(f, "calibration and evaluation data digests must differ")
+            }
+            Self::InsufficientCalibrationGroups {
+                regime_id,
+                observed_groups,
+                required_groups,
+            } => write!(
+                f,
+                "regime {regime_id} has {observed_groups} independent calibration groups; requires {required_groups}"
+            ),
+            Self::InsufficientEvaluationGroups {
+                regime_id,
+                observed_groups,
+                required_groups,
+            } => write!(
+                f,
+                "regime {regime_id} has {observed_groups} independent evaluation groups; requires {required_groups}"
+            ),
+            Self::NoSharedOperatingRegimes => write!(
+                f,
+                "calibration and evaluation sets have no shared operating regimes"
+            ),
+            Self::EvaluationRegimeMissingCalibration { regime_id } => write!(
+                f,
+                "evaluation operating regime {regime_id} has no disjoint calibration residual partition"
+            ),
+            Self::InvalidNormalizedPowerScale { regime_id } => write!(
+                f,
+                "regime {regime_id} has a zero or invalid normalization scale"
+            ),
+            Self::BaselineNotQualified => write!(
+                f,
+                "baseline model did not pass its pre-registered holdout qualification"
+            ),
+            Self::BaselineIdentityMismatch => write!(
+                f,
+                "event model identity does not match qualified baseline identity"
+            ),
+            Self::UnknownOperatingRegime { regime_id } => {
+                write!(f, "event operating regime {regime_id} was not qualified")
+            }
+            Self::NonContiguousEventIntervals {
+                index,
+                expected_start_ns,
+                observed_start_ns,
+            } => write!(
+                f,
+                "event interval {index} starts at {observed_start_ns}; expected contiguous start {expected_start_ns}"
+            ),
+            Self::DuplicateEventPoint { point_id } => {
+                write!(f, "duplicate event point ID {point_id}")
+            }
             Self::EmptyEvent => write!(f, "event evaluation requires at least one interval"),
             Self::TimestampOverflow => write!(f, "timestamp arithmetic overflow"),
             Self::NumericalOverflow(field) => write!(f, "numerical overflow computing {field}"),
@@ -603,25 +747,35 @@ pub fn qualify_counterfactual_baseline(
         match observation.fold {
             BaselineFold::Calibration => {
                 calibration_groups.insert(observation.group_id.as_str());
-                calibration.entry(&observation.regime_id).or_default().push(observation);
+                calibration
+                    .entry(&observation.regime_id)
+                    .or_default()
+                    .push(observation);
             }
             BaselineFold::Evaluation => {
                 evaluation_groups.insert(observation.group_id.as_str());
-                evaluation.entry(&observation.regime_id).or_default().push(observation);
+                evaluation
+                    .entry(&observation.regime_id)
+                    .or_default()
+                    .push(observation);
             }
         }
     }
     if let Some(group_id) = calibration_groups.intersection(&evaluation_groups).next() {
-        return Err(BaselineQualificationError::CalibrationEvaluationGroupOverlap {
-            group_id: (*group_id).to_owned(),
-        });
+        return Err(
+            BaselineQualificationError::CalibrationEvaluationGroupOverlap {
+                group_id: (*group_id).to_owned(),
+            },
+        );
     }
 
     for regime_id in evaluation.keys() {
         if !calibration.contains_key(regime_id) {
-            return Err(BaselineQualificationError::EvaluationRegimeMissingCalibration {
-                regime_id: (*regime_id).to_owned(),
-            });
+            return Err(
+                BaselineQualificationError::EvaluationRegimeMissingCalibration {
+                    regime_id: (*regime_id).to_owned(),
+                },
+            );
         }
     }
     let regimes: BTreeSet<&str> = evaluation.keys().copied().collect();
@@ -669,24 +823,31 @@ pub fn qualify_counterfactual_baseline(
                 .and_modify(|current| *current = current.min(conservative_residual))
                 .or_insert(conservative_residual);
         }
-        let mut calibration_residuals: Vec<f64> =
-            group_lower_residuals.values().copied().collect();
+        let mut calibration_residuals: Vec<f64> = group_lower_residuals.values().copied().collect();
         calibration_residuals.sort_by(f64::total_cmp);
         let alpha = contract.residual_lower_tail_alpha_basis_points as usize;
-        let rank = ((calibration_residuals.len() + 1) * alpha / 10_000).clamp(1, calibration_residuals.len());
+        let rank = ((calibration_residuals.len() + 1) * alpha / 10_000)
+            .clamp(1, calibration_residuals.len());
         let lower_residual_quantile_kw = calibration_residuals[rank - 1];
 
         let evaluation_errors: Vec<f64> = evaluation_samples
             .iter()
-            .map(|sample| sample.predicted_no_dispatch_power_kw - sample.observed_no_dispatch_power_kw)
+            .map(|sample| {
+                sample.predicted_no_dispatch_power_kw - sample.observed_no_dispatch_power_kw
+            })
             .collect();
         let evaluation_bias_kw = mean(&evaluation_errors);
-        let evaluation_mae_kw = evaluation_errors.iter().map(|error| error.abs()).sum::<f64>()
+        let evaluation_mae_kw = evaluation_errors
+            .iter()
+            .map(|error| error.abs())
+            .sum::<f64>()
             / evaluation_errors.len() as f64;
-        let evaluation_rmse_kw = (
-            evaluation_errors.iter().map(|error| error.powi(2)).sum::<f64>()
-                / evaluation_errors.len() as f64
-        ).sqrt();
+        let evaluation_rmse_kw = (evaluation_errors
+            .iter()
+            .map(|error| error.powi(2))
+            .sum::<f64>()
+            / evaluation_errors.len() as f64)
+            .sqrt();
         let mean_absolute_actual_kw = evaluation_samples
             .iter()
             .map(|sample| sample.observed_no_dispatch_power_kw.abs())
@@ -697,10 +858,10 @@ pub fn qualify_counterfactual_baseline(
                 regime_id: regime_id.to_owned(),
             });
         }
-        let normalized_bias_basis_points = evaluation_bias_kw.abs()
-            / mean_absolute_actual_kw * BASIS_POINTS;
-        let normalized_mae_basis_points = evaluation_mae_kw
-            / mean_absolute_actual_kw * BASIS_POINTS;
+        let normalized_bias_basis_points =
+            evaluation_bias_kw.abs() / mean_absolute_actual_kw * BASIS_POINTS;
+        let normalized_mae_basis_points =
+            evaluation_mae_kw / mean_absolute_actual_kw * BASIS_POINTS;
 
         // Evaluate at the independent-group level: one bad interval means
         // that a group fails joint within-block coverage. This avoids treating
@@ -711,8 +872,7 @@ pub fn qualify_counterfactual_baseline(
             let observed_lower_bound =
                 sample.observed_no_dispatch_power_kw - sample.observed_expanded_uncertainty_kw;
             let covered = observed_lower_bound + 1.0e-9 >= lower_bound;
-            let false_positive =
-                lower_bound - observed_lower_bound >= contract.minimum_response_kw;
+            let false_positive = lower_bound - observed_lower_bound >= contract.minimum_response_kw;
             let audit = group_audit
                 .entry(sample.group_id.as_str())
                 .or_insert((true, false));
@@ -720,7 +880,10 @@ pub fn qualify_counterfactual_baseline(
             audit.1 |= false_positive;
         }
         let covered_groups = group_audit.values().filter(|(covered, _)| *covered).count();
-        let false_positive_groups = group_audit.values().filter(|(_, false_positive)| *false_positive).count();
+        let false_positive_groups = group_audit
+            .values()
+            .filter(|(_, false_positive)| *false_positive)
+            .count();
         let lower_bound_coverage_basis_points =
             covered_groups as f64 / group_audit.len() as f64 * BASIS_POINTS;
         let false_positive_reduction_rate_basis_points =
@@ -810,16 +973,17 @@ pub fn evaluate_baseline_bounded_event(
                 });
             }
         }
-        let end_ns = point.interval_start_ns
+        let end_ns = point
+            .interval_start_ns
             .checked_add(point.interval_duration_ns)
             .ok_or(BaselineQualificationError::TimestampOverflow)?;
         previous_end_ns = Some(end_ns);
 
-        let regime = qualified_baseline
-            .regime(&point.regime_id)
-            .ok_or_else(|| BaselineQualificationError::UnknownOperatingRegime {
+        let regime = qualified_baseline.regime(&point.regime_id).ok_or_else(|| {
+            BaselineQualificationError::UnknownOperatingRegime {
                 regime_id: point.regime_id.clone(),
-            })?;
+            }
+        })?;
         if !regime.qualified {
             return Err(BaselineQualificationError::BaselineNotQualified);
         }
@@ -842,14 +1006,18 @@ pub fn evaluate_baseline_bounded_event(
             || !conservative_reduction_lower_bound_kw.is_finite()
             || !conservative_reduction_energy_kwh.is_finite()
         {
-            return Err(BaselineQualificationError::NumericalOverflow("event impact"));
+            return Err(BaselineQualificationError::NumericalOverflow(
+                "event impact",
+            ));
         }
         if conservative_reduction_lower_bound_kw >= qualified_baseline.minimum_response_kw {
             qualifying_interval_count += 1;
         }
         let point_energy_kwh = reduction_point_estimate_kw * duration_hours;
         if !point_energy_kwh.is_finite() {
-            return Err(BaselineQualificationError::NumericalOverflow("point-estimate event energy"));
+            return Err(BaselineQualificationError::NumericalOverflow(
+                "point-estimate event energy",
+            ));
         }
         if point_energy_kwh >= 0.0 {
             gross_reduction_energy_kwh += point_energy_kwh;
@@ -863,7 +1031,9 @@ pub fn evaluate_baseline_bounded_event(
             || !net_reduction_energy_kwh.is_finite()
             || !conservative_net_reduction_energy_kwh.is_finite()
         {
-            return Err(BaselineQualificationError::NumericalOverflow("aggregate event energy"));
+            return Err(BaselineQualificationError::NumericalOverflow(
+                "aggregate event energy",
+            ));
         }
 
         receipts.push(BaselineEventIntervalReceipt {
