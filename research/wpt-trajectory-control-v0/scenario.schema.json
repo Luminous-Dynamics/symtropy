@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wpt-trajectory-control-v0.schema.json",
+  "title": "WPT trajectory-conditioned receiver setpoint episode",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "scenario_id", "evidence_kind", "quality_flags",
+    "trajectory_id", "coordinate_frame_id", "request", "control_limits",
+    "policy", "candidate_controller_setpoints_quanta", "intervals"
+  ],
+  "properties": {
+    "schema_version": { "const": "wpt-trajectory-control-v0" },
+    "scenario_id": { "type": "string", "minLength": 1 },
+    "evidence_kind": { "const": "SYNTHETIC_KNOWN_TRUTH" },
+    "quality_flags": { "const": ["SYNTHETIC_ONLY"] },
+    "trajectory_id": { "type": "string", "minLength": 1 },
+    "coordinate_frame_id": { "type": "string", "minLength": 1 },
+    "request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["requested_useful_energy_mwh", "minimum_service_energy_mwh", "initial_setpoint_quanta"],
+      "properties": {
+        "requested_useful_energy_mwh": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "minimum_service_energy_mwh": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "initial_setpoint_quanta": { "type": "integer", "minimum": 0, "maximum": 32 }
+      }
+    },
+    "control_limits": {
+      "type": "object", "additionalProperties": false,
+      "required": ["max_slew_quanta_per_interval", "cumulative_asset_stress_budget_units"],
+      "properties": {
+        "max_slew_quanta_per_interval": { "type": "integer", "minimum": 0, "maximum": 32 },
+        "cumulative_asset_stress_budget_units": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "policy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["maximum_search_nodes"],
+      "properties": {
+        "maximum_search_nodes": { "type": "integer", "minimum": 1, "maximum": 1000000 }
+      }
+    },
+    "candidate_controller_setpoints_quanta": {
+      "type": "array", "minItems": 2, "maxItems": 32,
+      "items": { "type": "integer", "minimum": 0 }
+    },
+    "intervals": {
+      "type": "array", "minItems": 2, "maxItems": 32,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": [
+          "trajectory_sample_id", "envelope_id", "envelope_sha256", "support_state",
+          "max_setpoint_quanta", "useful_energy_mwh_per_setpoint_quantum",
+          "asset_stress_units_per_setpoint_quantum"
+        ],
+        "properties": {
+          "trajectory_sample_id": { "type": "string", "minLength": 1 },
+          "envelope_id": { "type": "string", "minLength": 1 },
+          "envelope_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "support_state": { "const": "WITHIN_VALIDATED_SUPPORT" },
+          "max_setpoint_quanta": { "type": "integer", "minimum": 0, "maximum": 32 },
+          "useful_energy_mwh_per_setpoint_quantum": { "type": "integer", "minimum": 1 },
+          "asset_stress_units_per_setpoint_quantum": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}
