@@ -40,6 +40,8 @@ Rules:
 
 Sling TSi and Sling High Wing are especially relevant to the Wayfarer 4 benchmark because they are locally developed/manufactured South African designs with four-seat touring/utility positioning. Their published numbers do not prove superiority and should not be compared directly against the Skyhawk, DA40 NG or P2010 until payload, runway definition, atmosphere, fuel/reserve, configuration and certification/airworthiness basis are normalized. Use them as serious market/engineering comparators, not as a reason to copy their architecture.
 
+The High Wing's 160 hp turbocharged Rotax 916 iS is advertised to retain full takeoff power to 15,000 ft. This is a relevant engine-level hot/high claim, not proof of obstacle-clear performance at a specified hot/high mass, runway or temperature. AER-01 must benchmark the complete mission at declared density altitude rather than claim hot/high capability as a novelty.
+
 ## 3. Preliminary two-seat references — Wren 2 lane
 
 These are useful acquisition targets, not a normalized ranking. They differ in category, propulsion, intended operation, energy reserve and evidence maturity.
@@ -84,7 +86,7 @@ Sources:
 - NASA X-57: https://www.nasa.gov/x-57-maxwell/
 - NASA structural wing experiment: https://www.nasa.gov/centers-and-facilities/armstrong/nasa-pushes-new-wing-design-to-find-structural-limits/
 
-## 4. First observations — not yet design conclusions
+## 5. First observations — not yet design conclusions
 
 1. **Useful load is a central constraint.** A nominally four-seat aircraft can have roughly 400 kg total useful load before occupants, baggage and fuel are allocated. The energy-system architecture must therefore be evaluated against payload remaining after usable energy and reserve are included.
 2. **Cruise efficiency does not imply short-field performance.** The DA40 NG product page's 590 m takeoff-over-obstacle figure and 154 ktas maximum cruise are different mission dimensions. AER-01 must report both and cannot trade away payload or reserve to win the runway metric.
@@ -93,7 +95,7 @@ Sources:
 5. **High-aspect-ratio wings are not free efficiency.** Structural mass, aeroelasticity, flutter, gust loads, ground handling, hangar span and inspection must be priced into the mission result.
 6. **Public web specs are insufficient to freeze design requirements.** Obtain exact POH/AFM, type-data, operating limitations, option weights and applicable manuals before any performance or airworthiness comparison.
 
-## 5. Missing source acquisitions
+## 6. Missing source acquisitions
 
 - Exact current POH/AFM or approved performance data for each frozen reference variant.
 - Weight-and-balance envelope and option effects by configuration.
@@ -103,7 +105,7 @@ Sources:
 - Manufacturer warranty and battery replacement assumptions where electric/hybrid aircraft are evaluated.
 - South African registration, design approval, flight-test and operation pathway reviewed against current SACAA guidance and the intended aircraft category.
 
-## 6. South African regulatory decision gate
+## 7. South African regulatory decision gate
 
 Do not select a development or prototype route by assuming an amateur-built pathway will support a future commercial aircraft.
 
@@ -117,7 +119,7 @@ Official starting points:
 
 This is not a regulatory determination. The competent authority determines the applicable requirements and approvals for the actual product and applicant.
 
-## 7. Next analysis
+## 8. Next analysis
 
 1. Freeze Wren 2 / Wayfarer 4 mission cards and a common reserve policy.
 2. Normalize C0 reference missions from approved aircraft manuals, not headline web specs alone.
