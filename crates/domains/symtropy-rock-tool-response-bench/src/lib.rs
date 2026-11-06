@@ -41,6 +41,7 @@ pub enum ValidationCode {
     InvalidArtifactRole,
     MissingDiagnosticChannel,
     NonIndependentRequiredChannel,
+    DiagnosticChannelUnitMismatch,
     MissingObservationSource,
     MissingDerivedLineage,
     ArtifactParentMissing,
@@ -589,14 +590,14 @@ fn validate_diagnostic_channels(
     record_id: Option<String>,
     issues: &mut Vec<ValidationIssue>,
 ) {
-    let required: &[&str] = match mechanism {
-        "ATCP" => &["axial_force", "torsional_torque"],
-        "LASER_ASSISTED_PDC" => &["optical_power", "surface_temperature"],
-        "ODC" => &["thrust_force", "cutting_torque", "angular_speed", "traction_speed"],
+    let required: &[(&str, &str)] = match mechanism {
+        "ATCP" => &[("axial_force", "N"), ("torsional_torque", "Nm")],
+        "LASER_ASSISTED_PDC" => &[("optical_power", "W"), ("surface_temperature", "K")],
+        "ODC" => &[("thrust_force", "N"), ("cutting_torque", "Nm"), ("angular_speed", "rad/s"), ("traction_speed", "m/s")],
         _ => return,
     };
     let mut found = Vec::new();
-    for quantity in required {
+    for (quantity, expected_unit) in required {
         let channel = channels.iter().find(|channel| non_empty_string(channel, "quantity") == Some(*quantity));
         let Some(channel) = channel else {
             push(issues, record_id.clone(), ValidationCode::MissingDiagnosticChannel, format!("{mechanism} requires diagnostic channel {quantity}"));
@@ -604,6 +605,9 @@ fn validate_diagnostic_channels(
         };
         if non_empty_string(channel, "measurement_role") != Some("IndependentMeasurement") {
             push(issues, record_id.clone(), ValidationCode::NonIndependentRequiredChannel, format!("{mechanism} diagnostic channel {quantity} must be an IndependentMeasurement"));
+        }
+        if non_empty_string(channel, "unit") != Some(*expected_unit) {
+            push(issues, record_id.clone(), ValidationCode::DiagnosticChannelUnitMismatch, format!("{mechanism} diagnostic channel {quantity} must use {expected_unit}"));
         }
         found.push(non_empty_string(channel, "clock_domain_ref").unwrap_or_default());
     }
@@ -982,6 +986,21 @@ mod tests {
         let mut data = fixture();
         data["records"][0]["channels"][1]["clock_domain_ref"] = json!("CLOCK-OTHER");
         assert!(has(&validate_bundle(&data), ValidationCode::MissingClockDomain));
+    }
+
+    #[test]
+    fn diagnostic_channel_unit_mismatch_is_rejected() {
+        let mut data = fixture();
+        data["records"][0]["channels"][1]["unit"] = json!("kNm");
+        assert!(has(&validate_bundle(&data), ValidationCode::DiagnosticChannelUnitMismatch));
+    }
+
+    #[test]
+    fn odc_encoder_unit_mismatch_is_rejected() {
+        let mut data = fixture();
+        data["records"][2]["channels"][2]["unit"] = json!("rpm");
+        assert!(has(&validate_bundle(&data), ValidationCode::DiagnosticChannelUnitMismatch));
+        assert!(has(&validate_bundle(&data), ValidationCode::OperatingPointObservationMismatch));
     }
 
     #[test]
