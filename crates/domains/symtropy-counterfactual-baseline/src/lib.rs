@@ -74,7 +74,13 @@ impl BaselineIdentity {
         ] {
             require_id(field, value)?;
         }
-        if identity.calibration_data_digest == identity.evaluation_data_digest {
+        let partition_digests = [
+            identity.training_data_digest.as_str(),
+            identity.calibration_data_digest.as_str(),
+            identity.evaluation_data_digest.as_str(),
+        ];
+        let unique_partition_digests: BTreeSet<&str> = partition_digests.into_iter().collect();
+        if unique_partition_digests.len() != partition_digests.len() {
             return Err(BaselineQualificationError::PartitionDigestCollision);
         }
         Ok(identity)
@@ -768,6 +774,7 @@ pub fn evaluate_baseline_bounded_event(
     qualified_baseline: &BaselineQualificationReport,
     event_identity: &BaselineIdentity,
     points: &[DispatchEventPoint],
+    event_and_recovery_horizon_complete: bool,
 ) -> Result<BaselineEventReport, BaselineQualificationError> {
     if !qualified_baseline.qualified {
         return Err(BaselineQualificationError::BaselineNotQualified);
@@ -881,8 +888,9 @@ pub fn evaluate_baseline_bounded_event(
 
     let qualifying_interval_fraction_basis_points =
         qualifying_interval_count as f64 / points.len() as f64 * BASIS_POINTS;
-    let event_qualified = qualifying_interval_fraction_basis_points
-        >= qualified_baseline.minimum_event_qualifying_fraction_basis_points as f64;
+    let event_qualified = event_and_recovery_horizon_complete
+        && qualifying_interval_fraction_basis_points
+            >= qualified_baseline.minimum_event_qualifying_fraction_basis_points as f64;
 
     Ok(BaselineEventReport {
         identity: qualified_baseline.identity.clone(),
@@ -897,7 +905,7 @@ pub fn evaluate_baseline_bounded_event(
         minimum_response_kw: qualified_baseline.minimum_response_kw,
         event_qualified,
         event_lower_bound_is_joint_probability: false,
-        event_and_recovery_included_in_supplied_horizon: true,
+        event_and_recovery_included_in_supplied_horizon: event_and_recovery_horizon_complete,
         intervals: receipts,
         claim_boundary: "model-based conservative impact bound using holdout-qualified counterfactual baseline and caller-supplied expanded PCC measurement uncertainty; no causal identification is asserted".to_owned(),
     })
