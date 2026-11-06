@@ -182,8 +182,10 @@ pub struct MetaGameEvaluation {
     pub population_size: usize,
     /// Original strategy-name order.
     pub outcomes: Vec<StrategyOutcome>,
-    /// Strategy indices ordered by expected payoff (descending, stable name tie-break).
+    /// Deterministic serialization order only; ties are not interpreted as strict ranks.
     pub ranked_indices: Vec<usize>,
+    /// One-based average competition ranks in original strategy order; tied payoffs share a rank.
+    pub average_ranks: Vec<f64>,
     pub invasion_graph: InvasionGraph,
 }
 
@@ -379,12 +381,19 @@ pub fn evaluate_roster(
                     .cmp(&outcomes[*right].strategy_name)
             })
     });
+    let average_ranks = average_ranks_descending(
+        &outcomes
+            .iter()
+            .map(|outcome| outcome.expected_payoff)
+            .collect::<Vec<_>>(),
+    );
 
     Ok(MetaGameEvaluation {
         roster_id: roster.roster_id.clone(),
         population_size,
         outcomes,
         ranked_indices,
+        average_ranks,
         invasion_graph: game.invasion_graph()?,
     })
 }
@@ -581,6 +590,7 @@ mod tests {
                 .iter()
                 .all(|outcome| outcome.expected_payoff.abs() < 1e-12)
         );
+        assert_eq!(result.average_ranks, vec![2.0, 2.0, 2.0]);
         assert!(
             spearman_rank_correlation(&result, &result)
                 .unwrap()
@@ -597,6 +607,9 @@ mod tests {
         assert_eq!(game.strategy_names[rock.ranked_indices[0]], "paper");
         assert_eq!(game.strategy_names[paper.ranked_indices[0]], "scissors");
         assert_eq!(game.strategy_names[scissors.ranked_indices[0]], "rock");
+        assert_eq!(rock.average_ranks, vec![2.0, 1.0, 3.0]);
+        assert_eq!(paper.average_ranks, vec![3.0, 2.0, 1.0]);
+        assert_eq!(scissors.average_ranks, vec![1.0, 3.0, 2.0]);
     }
 
     #[test]
