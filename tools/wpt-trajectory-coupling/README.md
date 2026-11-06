@@ -74,3 +74,12 @@ Nine tests cover known-truth outputs, coordinate translation, sample order/progr
 ## Claim ceiling
 
 This package proves only deterministic coordinate transforms, sample-contract integrity and trapezoidal integration for synthetic traces. It does not calculate electromagnetic mutual inductance/coupling, power transfer from geometry, pavement stress/strain/fatigue, heat transfer, battery-side energy, human exposure, safety, standards compliance or field performance.
+
+## Physical comparators and measurement gaps
+
+- **Purdue–INDOT 2026:** 85 roadway coils embedded approximately 2.4 in below a rigid-pavement surface; a retrofitted Class-8 truck received 50–190 kW at speeds up to 65 mph, with efficiency approaching 85%; the programme reports strong misalignment tolerance without active road/vehicle alignment. This is a physical roadway demonstration, not a published joint trajectory/wheel-load/thermal trace in this v0. [USDOT ROSA P report FHWA/IN/JTRP-2026/18](https://rosap.ntl.bts.gov/view/dot/93168), [DOI](https://doi.org/10.5703/1288284318633).
+- **Honda / Taisei / Taisei Rotec, 5 October 2026:** disclosed a DC-distributed road architecture with an integrated inverter and coil per embedded ground assembly. Its one-million-wheel-load / 49 kN durability campaign, tests up to 150 kW and road demonstration from Japanese FY2027 onward are announced future activities, not completed results. [Honda](https://global.honda/en/topics/2026/c_2026-10-05beng.html).
+- **Asphalt thermo-mechanics, August 2026:** a binder-grade study reports the modelled response to a 10 °C surface rise differed materially between PG 64–22 and PG 76–22 asphalt; distributed fibre-optic observations located strain peaks in hot zones above pads. These are study-specific findings, not universal material specifications. [DOI 10.1016/j.applthermaleng.2026.132099](https://doi.org/10.1016/j.applthermaleng.2026.132099).
+
+The public comparators do not yet supply a common frozen record with receiver pose, coil-relative alignment, wheel loads, interface strain/temperature and all electrical meter planes synchronized to one clock. That missing linked trace is the research gap this contract addresses. A future measured benchmark must report transfer power, conversion boundary, receiver DC energy, battery-terminal energy, alignment tolerance, wheel-path load, temperature and pavement response as separate scoreboards.
+
