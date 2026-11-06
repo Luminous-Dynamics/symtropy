@@ -9,9 +9,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-const EPISODE_SCHEMA: &str = "symtropy.road-egci-reciprocal-episode.v0.1";
+const EPISODE_SCHEMA: &str = "symtropy.road-egci-reciprocal-episode.v0.2";
 const QUERY_SCHEMA: &str = "sam.policy-trajectory-query.v0.1";
-const HASH_DOMAIN: &str = "Symtropy EGCI reciprocal episode export v0.1";
+const HASH_DOMAIN: &str = "Symtropy EGCI reciprocal episode export v0.2";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExperimentManifest {
@@ -54,7 +54,11 @@ pub struct ObservationDelivery {
     pub observation_payload_digest: String,
     pub observed_tick: u64,
     pub generated_tick: u64,
+    /// Branch-global event ordinal at which the source observation was generated.
+    pub generated_event_sequence: u64,
     pub delivered_tick: Option<u64>,
+    /// Branch-global event ordinal at which the cue became available to its recipient.
+    pub delivered_event_sequence: Option<u64>,
     /// Monotone within each recipient's delivered observation channel.
     pub delivery_sequence: u64,
     pub visibility_profile_digest: String,
@@ -74,6 +78,10 @@ pub struct PolicyDecision {
     pub decision_receipt_id: String,
     pub actor_id: String,
     pub tick: u64,
+    /// Shared per-tick boundary after all cues admitted to this policy input have arrived.
+    pub input_cutoff_event_sequence: u64,
+    /// Branch-global event ordinal when this policy decision was committed.
+    pub decision_event_sequence: u64,
     pub policy_digest: String,
     pub config_digest: String,
     pub prior_policy_state_digest: String,
@@ -89,6 +97,8 @@ pub struct PolicyDecision {
     pub permitted_history_digest: String,
     pub deadline_tick: u64,
     pub command_latch_tick: Option<u64>,
+    /// Branch-global event ordinal when the command was latched, if latched.
+    pub command_latch_event_sequence: Option<u64>,
     pub action_id: Option<String>,
     pub action_payload_digest: Option<String>,
     pub disposition: DecisionDisposition,
@@ -105,6 +115,8 @@ pub enum TransitionDisposition {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct JointTransition {
     pub tick: u64,
+    /// Branch-global event ordinal when this physics transition committed.
+    pub physics_event_sequence: u64,
     pub parent_snapshot_digest: String,
     pub child_snapshot_digest: String,
     pub joint_action_digest: String,
@@ -205,6 +217,8 @@ pub enum HandoffError {
     DuplicateActor,
     DuplicateBranch,
     DuplicateCue,
+    DuplicateEventSequence,
+    InvalidEventOrdering,
     NonMonotoneDeliverySequence,
     DuplicateDecisionReceipt,
     DuplicateDecisionTickActor,
@@ -303,6 +317,9 @@ struct VerifiedDecision {
     actor_id: String,
     tick: u64,
     history_digest: String,
+    input_cutoff_event_sequence: u64,
+    decision_event_sequence: u64,
+    latch_event_sequence: Option<u64>,
     action_id: String,
     payload_digest: String,
     latch_tick: u64,
@@ -441,6 +458,7 @@ pub fn export_to_sam(
         let receipts = correspondence_index(&branch.correspondences)?;
         let cues = observation_index(&branch.observations)?;
         let decisions = verify_decisions(branch, &policies, &cues)?;
+        validate_branch_event_order(branch, &cues, &decisions)?;
         let steps = build_joint_steps(branch, &policies, &decisions)?;
 
         let source_complete = branch.candidate_universe
@@ -590,7 +608,11 @@ fn observation_index(
             "observation_payload_digest",
         )?;
         require(&cue.visibility_profile_digest, "visibility_profile_digest")?;
-        if cue.observed_tick > cue.generated_tick {
+        if cue.observed_tick > cue.generated_tick
+            || cue
+                .delivered_event_sequence
+                .is_some_and(|sequence| sequence <= cue.generated_event_sequence)
+        {
             return Err(HandoffError::InvalidObservationTiming);
         }
         if cue.disposition == ObservationDisposition::Delivered
@@ -600,7 +622,7 @@ fn observation_index(
         }
         match (cue.disposition, cue.delivered_tick) {
             (ObservationDisposition::Delivered, Some(delivered)) => {
-                if delivered < cue.generated_tick {
+                if delivered < cue.generated_tick || cue.delivered_event_sequence.is_none() {
                     return Err(HandoffError::InvalidObservationTiming);
                 }
             }
@@ -610,7 +632,11 @@ fn observation_index(
             | (ObservationDisposition::Stale, Some(_)) => {
                 return Err(HandoffError::InvalidObservationTiming);
             }
-            _ => {}
+            _ => {
+                if cue.delivered_event_sequence.is_some() {
+                    return Err(HandoffError::InvalidObservationTiming);
+                }
+            }
         }
         if index.insert(cue.cue_id.as_str(), cue).is_some() {
             return Err(HandoffError::DuplicateCue);
@@ -673,12 +699,32 @@ fn verify_decisions<'a>(
     for decision in ordered {
         let policy = policies[decision.actor_id.as_str()];
         let mut visible = BTreeSet::new();
+
+        // Check explicitly admitted cues before comparing the complete visible
+        // channel, so a same-tick post-cutoff cue reports the causal leak rather
+        // than only the secondary visible-history mismatch.
+        for cue_id in &decision.visible_cue_ids {
+            let cue = cues.get(cue_id.as_str()).ok_or(HandoffError::MissingCue)?;
+            if cue.recipient_actor_id == decision.actor_id
+                && cue.disposition == ObservationDisposition::Delivered
+                && cue.delivered_tick.is_some_and(|tick| tick <= decision.tick)
+                && cue
+                    .delivered_event_sequence
+                    .is_some_and(|sequence| sequence >= decision.input_cutoff_event_sequence)
+            {
+                return Err(HandoffError::FutureCueLeak);
+            }
+        }
+
         let mut expected_visible: Vec<_> = cues
             .values()
             .filter(|cue| {
                 cue.recipient_actor_id == decision.actor_id
                     && cue.disposition == ObservationDisposition::Delivered
                     && cue.delivered_tick.is_some_and(|tick| tick <= decision.tick)
+                    && cue
+                        .delivered_event_sequence
+                        .is_some_and(|sequence| sequence < decision.input_cutoff_event_sequence)
             })
             .collect();
         expected_visible.sort_by_key(|cue| (cue.delivered_tick.unwrap(), cue.delivery_sequence));
@@ -696,9 +742,10 @@ fn verify_decisions<'a>(
         }
 
         let mut history =
-            blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.1");
+            blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.2");
         hash_str(&mut history, &decision.actor_id);
         hash_u64(&mut history, decision.tick);
+        hash_u64(&mut history, decision.input_cutoff_event_sequence);
         hash_str(&mut history, &decision.prior_policy_state_digest);
         hash_str(&mut history, &policy.observation_profile_digest);
         hash_len(&mut history, decision.visible_cue_ids.len());
@@ -725,7 +772,13 @@ fn verify_decisions<'a>(
             hash_str(&mut history, &cue.observation_payload_digest);
             hash_u64(&mut history, cue.observed_tick);
             hash_u64(&mut history, cue.generated_tick);
+            hash_u64(&mut history, cue.generated_event_sequence);
             hash_u64(&mut history, delivered_tick);
+            hash_u64(
+                &mut history,
+                cue.delivered_event_sequence
+                    .ok_or(HandoffError::CueNotDelivered)?,
+            );
             hash_u64(&mut history, cue.delivery_sequence);
             hash_str(&mut history, &cue.visibility_profile_digest);
         }
@@ -790,7 +843,16 @@ fn verify_decisions<'a>(
         let complete_action = decision.action_id.is_some()
             && decision.action_payload_digest.is_some()
             && decision.command_latch_tick.is_some()
+            && decision.command_latch_event_sequence.is_some()
             && decision.next_policy_state_digest.is_some();
+        if decision.command_latch_tick.is_some() != decision.command_latch_event_sequence.is_some()
+            || decision.decision_event_sequence <= decision.input_cutoff_event_sequence
+            || decision
+                .command_latch_event_sequence
+                .is_some_and(|sequence| sequence <= decision.decision_event_sequence)
+        {
+            return Err(HandoffError::InvalidEventOrdering);
+        }
         match decision.disposition {
             DecisionDisposition::Completed => {
                 if !complete_action
@@ -820,6 +882,9 @@ fn verify_decisions<'a>(
             actor_id: decision.actor_id.clone(),
             tick: decision.tick,
             history_digest,
+            input_cutoff_event_sequence: decision.input_cutoff_event_sequence,
+            decision_event_sequence: decision.decision_event_sequence,
+            latch_event_sequence: decision.command_latch_event_sequence,
             action_id: decision.action_id.clone().unwrap_or_default(),
             payload_digest: decision.action_payload_digest.clone().unwrap_or_default(),
             latch_tick: decision.command_latch_tick.unwrap_or(u64::MAX),
@@ -827,6 +892,122 @@ fn verify_decisions<'a>(
         });
     }
     Ok(verified)
+}
+
+fn validate_branch_event_order(
+    branch: &BranchExport,
+    cues: &BTreeMap<&str, &ObservationDelivery>,
+    decisions: &[VerifiedDecision],
+) -> Result<(), HandoffError> {
+    let mut event_sequences = BTreeSet::new();
+    let mut cutoffs_by_tick = BTreeMap::new();
+
+    let mut generated_sources = BTreeMap::new();
+    for cue in cues.values() {
+        match generated_sources.insert(cue.generated_event_sequence, cue.source_event_id.as_str()) {
+            Some(existing_source) if existing_source != cue.source_event_id => {
+                return Err(HandoffError::DuplicateEventSequence);
+            }
+            Some(_) => {}
+            None => {
+                if !event_sequences.insert(cue.generated_event_sequence) {
+                    return Err(HandoffError::DuplicateEventSequence);
+                }
+            }
+        }
+        if let Some(sequence) = cue.delivered_event_sequence
+            && !event_sequences.insert(sequence)
+        {
+            return Err(HandoffError::DuplicateEventSequence);
+        }
+    }
+
+    for decision in decisions {
+        match cutoffs_by_tick.insert(decision.tick, decision.input_cutoff_event_sequence) {
+            Some(existing) if existing != decision.input_cutoff_event_sequence => {
+                return Err(HandoffError::InvalidEventOrdering);
+            }
+            _ => {}
+        }
+        if !event_sequences.insert(decision.decision_event_sequence) {
+            return Err(HandoffError::DuplicateEventSequence);
+        }
+        if let Some(sequence) = decision.latch_event_sequence
+            && !event_sequences.insert(sequence)
+        {
+            return Err(HandoffError::DuplicateEventSequence);
+        }
+    }
+
+    let mut transitions: Vec<_> = branch.transitions.iter().collect();
+    transitions.sort_by_key(|transition| transition.tick);
+    let mut prior_physics = None;
+    let mut physics_by_tick = BTreeMap::new();
+    for transition in &transitions {
+        if !event_sequences.insert(transition.physics_event_sequence) {
+            return Err(HandoffError::DuplicateEventSequence);
+        }
+        if prior_physics.is_some_and(|prior| transition.physics_event_sequence <= prior) {
+            return Err(HandoffError::InvalidEventOrdering);
+        }
+        prior_physics = Some(transition.physics_event_sequence);
+        physics_by_tick.insert(transition.tick, transition.physics_event_sequence);
+    }
+
+    let mut prior_cutoff = None;
+    for (tick, cutoff) in &cutoffs_by_tick {
+        if !event_sequences.insert(*cutoff) {
+            return Err(HandoffError::DuplicateEventSequence);
+        }
+        if prior_cutoff.is_some_and(|prior| *cutoff <= prior) {
+            return Err(HandoffError::InvalidEventOrdering);
+        }
+        prior_cutoff = Some(*cutoff);
+        let physics = physics_by_tick
+            .get(tick)
+            .ok_or(HandoffError::InvalidEventOrdering)?;
+        if cutoff >= physics {
+            return Err(HandoffError::InvalidEventOrdering);
+        }
+    }
+
+    for cue in cues.values() {
+        let generated_cutoff = cutoffs_by_tick
+            .get(&cue.generated_tick)
+            .ok_or(HandoffError::InvalidObservationTiming)?;
+        if cue.generated_event_sequence >= *generated_cutoff {
+            return Err(HandoffError::InvalidObservationTiming);
+        }
+        if cue.generated_tick > 0 {
+            let prior_tick = cue.generated_tick - 1;
+            let prior_physics = physics_by_tick
+                .get(&prior_tick)
+                .ok_or(HandoffError::InvalidObservationTiming)?;
+            if cue.generated_event_sequence <= *prior_physics {
+                return Err(HandoffError::InvalidObservationTiming);
+            }
+        }
+        if let (Some(delivered_tick), Some(delivered_sequence)) =
+            (cue.delivered_tick, cue.delivered_event_sequence)
+        {
+            let delivery_cutoff = cutoffs_by_tick
+                .get(&delivered_tick)
+                .ok_or(HandoffError::InvalidObservationTiming)?;
+            if delivered_sequence >= *delivery_cutoff {
+                return Err(HandoffError::InvalidObservationTiming);
+            }
+            if delivered_tick > 0 {
+                let prior_physics = physics_by_tick
+                    .get(&(delivered_tick - 1))
+                    .ok_or(HandoffError::InvalidObservationTiming)?;
+                if delivered_sequence <= *prior_physics {
+                    return Err(HandoffError::InvalidObservationTiming);
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn build_joint_steps(
@@ -856,6 +1037,27 @@ fn build_joint_steps(
             .collect();
         at_tick.sort_by(|a, b| a.actor_id.cmp(&b.actor_id));
 
+        if at_tick.iter().any(|decision| {
+            decision.input_cutoff_event_sequence >= transition.physics_event_sequence
+        }) {
+            return Err(HandoffError::InvalidEventOrdering);
+        }
+        let max_decision_sequence = at_tick
+            .iter()
+            .map(|decision| decision.decision_event_sequence)
+            .max();
+        let latch_sequences: Vec<_> = at_tick
+            .iter()
+            .filter_map(|decision| decision.latch_event_sequence)
+            .collect();
+        if !latch_sequences.is_empty()
+            && (*latch_sequences.iter().max().unwrap() >= transition.physics_event_sequence
+                || max_decision_sequence.is_some_and(|max_decision| {
+                    *latch_sequences.iter().min().unwrap() <= max_decision
+                }))
+        {
+            return Err(HandoffError::InvalidEventOrdering);
+        }
         if at_tick.len() != policies.len()
             || at_tick
                 .iter()
@@ -908,7 +1110,7 @@ fn joint_history_digest(
     actions: &[SamActorAction],
     decisions: &[VerifiedDecision],
 ) -> String {
-    let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI joint history v0.1");
+    let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI joint history v0.2");
     hash_u64(&mut h, tick);
     let mut selected: Vec<_> = decisions.iter().filter(|d| d.tick == tick).collect();
     selected.sort_by(|a, b| a.actor_id.cmp(&b.actor_id));
@@ -1268,8 +1470,12 @@ fn write_branch_json(out: &mut String, b: &BranchExport) {
         out.push_str(&cue.observed_tick.to_string());
         out.push_str(",\"generated_tick\":");
         out.push_str(&cue.generated_tick.to_string());
+        out.push_str(",\"generated_event_sequence\":");
+        out.push_str(&cue.generated_event_sequence.to_string());
         out.push_str(",\"delivered_tick\":");
         write_optional_u64(out, cue.delivered_tick);
+        out.push_str(",\"delivered_event_sequence\":");
+        write_optional_u64(out, cue.delivered_event_sequence);
         out.push_str(",\"delivery_sequence\":");
         out.push_str(&cue.delivery_sequence.to_string());
         out.push_str(",\"visibility_profile_digest\":");
@@ -1292,6 +1498,10 @@ fn write_branch_json(out: &mut String, b: &BranchExport) {
         json_string(out, &decision.actor_id);
         out.push_str(",\"tick\":");
         out.push_str(&decision.tick.to_string());
+        out.push_str(",\"input_cutoff_event_sequence\":");
+        out.push_str(&decision.input_cutoff_event_sequence.to_string());
+        out.push_str(",\"decision_event_sequence\":");
+        out.push_str(&decision.decision_event_sequence.to_string());
         out.push_str(",\"policy_digest\":");
         json_string(out, &decision.policy_digest);
         out.push_str(",\"config_digest\":");
@@ -1312,6 +1522,8 @@ fn write_branch_json(out: &mut String, b: &BranchExport) {
         out.push_str(&decision.deadline_tick.to_string());
         out.push_str(",\"command_latch_tick\":");
         write_optional_u64(out, decision.command_latch_tick);
+        out.push_str(",\"command_latch_event_sequence\":");
+        write_optional_u64(out, decision.command_latch_event_sequence);
         out.push_str(",\"action_id\":");
         write_optional_string(out, decision.action_id.as_deref());
         out.push_str(",\"action_payload_digest\":");
@@ -1330,6 +1542,8 @@ fn write_branch_json(out: &mut String, b: &BranchExport) {
         }
         out.push_str("{\"tick\":");
         out.push_str(&transition.tick.to_string());
+        out.push_str(",\"physics_event_sequence\":");
+        out.push_str(&transition.physics_event_sequence.to_string());
         out.push_str(",\"parent_snapshot_digest\":");
         json_string(out, &transition.parent_snapshot_digest);
         out.push_str(",\"child_snapshot_digest\":");
@@ -1420,7 +1634,7 @@ fn replay_disposition_name(value: ReplayDisposition) -> &'static str {
 }
 
 fn branch_payload_root(branch: &BranchExport) -> String {
-    let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI branch payload v0.1");
+    let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI branch payload v0.2");
     hash_str(&mut h, &branch.branch_id);
     hash_str(&mut h, &branch.parent_snapshot_digest);
     hash_str(&mut h, &branch.intervention_digest);
@@ -1459,7 +1673,9 @@ fn branch_payload_root(branch: &BranchExport) -> String {
         hash_str(&mut h, &cue.observation_payload_digest);
         hash_u64(&mut h, cue.observed_tick);
         hash_u64(&mut h, cue.generated_tick);
+        hash_u64(&mut h, cue.generated_event_sequence);
         hash_opt_u64(&mut h, cue.delivered_tick);
+        hash_opt_u64(&mut h, cue.delivered_event_sequence);
         hash_u64(&mut h, cue.delivery_sequence);
         hash_str(&mut h, &cue.visibility_profile_digest);
         h.update(&[match cue.disposition {
@@ -1477,6 +1693,8 @@ fn branch_payload_root(branch: &BranchExport) -> String {
         hash_str(&mut h, &decision.decision_receipt_id);
         hash_str(&mut h, &decision.actor_id);
         hash_u64(&mut h, decision.tick);
+        hash_u64(&mut h, decision.input_cutoff_event_sequence);
+        hash_u64(&mut h, decision.decision_event_sequence);
         hash_str(&mut h, &decision.policy_digest);
         hash_str(&mut h, &decision.config_digest);
         hash_str(&mut h, &decision.prior_policy_state_digest);
@@ -1487,6 +1705,7 @@ fn branch_payload_root(branch: &BranchExport) -> String {
         hash_str(&mut h, &decision.permitted_history_digest);
         hash_u64(&mut h, decision.deadline_tick);
         hash_opt_u64(&mut h, decision.command_latch_tick);
+        hash_opt_u64(&mut h, decision.command_latch_event_sequence);
         hash_opt_str(&mut h, decision.action_id.as_deref());
         hash_opt_str(&mut h, decision.action_payload_digest.as_deref());
         h.update(&[match decision.disposition {
@@ -1502,6 +1721,7 @@ fn branch_payload_root(branch: &BranchExport) -> String {
     hash_len(&mut h, transitions.len());
     for transition in transitions {
         hash_u64(&mut h, transition.tick);
+        hash_u64(&mut h, transition.physics_event_sequence);
         hash_str(&mut h, &transition.parent_snapshot_digest);
         hash_str(&mut h, &transition.child_snapshot_digest);
         hash_str(&mut h, &transition.joint_action_digest);
@@ -1648,6 +1868,8 @@ mod tests {
         observed: u64,
         generated: u64,
         delivered: u64,
+        generated_event_sequence: u64,
+        delivered_event_sequence: u64,
     ) -> ObservationDelivery {
         ObservationDelivery {
             cue_id: id.into(),
@@ -1656,7 +1878,9 @@ mod tests {
             observation_payload_digest: d(&format!("payload-{id}")),
             observed_tick: observed,
             generated_tick: generated,
+            generated_event_sequence,
             delivered_tick: Some(delivered),
+            delivered_event_sequence: Some(delivered_event_sequence),
             delivery_sequence: delivered,
             visibility_profile_digest: d(&format!("visibility-{recipient}")),
             disposition: ObservationDisposition::Delivered,
@@ -1666,6 +1890,9 @@ mod tests {
     struct DecisionSpec<'a> {
         actor: &'a str,
         tick: u64,
+        input_cutoff_event_sequence: u64,
+        decision_event_sequence: u64,
+        command_latch_event_sequence: u64,
         visible: Vec<String>,
         consumed: Vec<String>,
         prior: Vec<String>,
@@ -1680,6 +1907,9 @@ mod tests {
         let DecisionSpec {
             actor,
             tick,
+            input_cutoff_event_sequence,
+            decision_event_sequence,
+            command_latch_event_sequence,
             visible,
             consumed,
             prior,
@@ -1687,9 +1917,10 @@ mod tests {
             action,
         } = spec;
         let policy = policy(actor);
-        let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.1");
+        let mut h = blake3::Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.2");
         hash_str(&mut h, actor);
         hash_u64(&mut h, tick);
+        hash_u64(&mut h, input_cutoff_event_sequence);
         hash_str(&mut h, prior_state);
         hash_str(&mut h, &policy.observation_profile_digest);
         hash_len(&mut h, visible.len());
@@ -1700,7 +1931,9 @@ mod tests {
             hash_str(&mut h, &cue.observation_payload_digest);
             hash_u64(&mut h, cue.observed_tick);
             hash_u64(&mut h, cue.generated_tick);
+            hash_u64(&mut h, cue.generated_event_sequence);
             hash_u64(&mut h, cue.delivered_tick.unwrap());
+            hash_u64(&mut h, cue.delivered_event_sequence.unwrap());
             hash_u64(&mut h, cue.delivery_sequence);
             hash_str(&mut h, &cue.visibility_profile_digest);
         }
@@ -1712,6 +1945,8 @@ mod tests {
             decision_receipt_id: d(&format!("decision-{actor}-{tick}")),
             actor_id: actor.into(),
             tick,
+            input_cutoff_event_sequence,
+            decision_event_sequence,
             policy_digest: policy.policy_digest,
             config_digest: policy.config_digest,
             prior_policy_state_digest: prior_state.into(),
@@ -1722,6 +1957,7 @@ mod tests {
             permitted_history_digest: hex(h.finalize().as_bytes()),
             deadline_tick: tick + 1,
             command_latch_tick: Some(tick),
+            command_latch_event_sequence: Some(command_latch_event_sequence),
             action_id: Some(action.into()),
             action_payload_digest: Some(d(&format!("action-{actor}-{tick}"))),
             disposition: DecisionDisposition::Completed,
@@ -1731,10 +1967,10 @@ mod tests {
     fn fixture() -> (EpisodeExport, ExternalAnchor) {
         let policies = vec![policy("ego"), policy("actor-1")];
         let observations = vec![
-            cue("ego-sees-actor", "ego", 0, 0, 0),
-            cue("actor-sees-ego", "actor-1", 0, 0, 0),
-            cue("ego-sees-yield", "ego", 0, 1, 1),
-            cue("actor-sees-continue", "actor-1", 0, 1, 1),
+            cue("ego-sees-actor", "ego", 0, 0, 0, 1, 2),
+            cue("actor-sees-ego", "actor-1", 0, 0, 0, 3, 4),
+            cue("ego-sees-yield", "ego", 0, 1, 1, 11, 12),
+            cue("actor-sees-continue", "actor-1", 0, 1, 1, 13, 14),
         ];
         let mut cue_index = BTreeMap::new();
         for item in &observations {
@@ -1746,6 +1982,9 @@ mod tests {
                 DecisionSpec {
                     actor: "ego",
                     tick: 0,
+                    input_cutoff_event_sequence: 5,
+                    decision_event_sequence: 6,
+                    command_latch_event_sequence: 8,
                     visible: vec!["ego-sees-actor".into()],
                     consumed: vec!["ego-sees-actor".into()],
                     prior: vec![],
@@ -1758,6 +1997,9 @@ mod tests {
                 DecisionSpec {
                     actor: "actor-1",
                     tick: 0,
+                    input_cutoff_event_sequence: 5,
+                    decision_event_sequence: 7,
+                    command_latch_event_sequence: 9,
                     visible: vec!["actor-sees-ego".into()],
                     consumed: vec!["actor-sees-ego".into()],
                     prior: vec![],
@@ -1770,6 +2012,9 @@ mod tests {
                 DecisionSpec {
                     actor: "ego",
                     tick: 1,
+                    input_cutoff_event_sequence: 15,
+                    decision_event_sequence: 16,
+                    command_latch_event_sequence: 18,
                     visible: vec!["ego-sees-actor".into(), "ego-sees-yield".into()],
                     consumed: vec!["ego-sees-yield".into()],
                     prior: vec![d("decision-ego-0")],
@@ -1782,6 +2027,9 @@ mod tests {
                 DecisionSpec {
                     actor: "actor-1",
                     tick: 1,
+                    input_cutoff_event_sequence: 15,
+                    decision_event_sequence: 17,
+                    command_latch_event_sequence: 19,
                     visible: vec!["actor-sees-ego".into(), "actor-sees-continue".into()],
                     consumed: vec!["actor-sees-continue".into()],
                     prior: vec![d("decision-actor-1-0")],
@@ -1795,6 +2043,7 @@ mod tests {
         let mut transitions = vec![
             JointTransition {
                 tick: 0,
+                physics_event_sequence: 10,
                 parent_snapshot_digest: d("world-0"),
                 child_snapshot_digest: d("world-1"),
                 joint_action_digest: joint_action_digest(&decisions, 0),
@@ -1803,6 +2052,7 @@ mod tests {
             },
             JointTransition {
                 tick: 1,
+                physics_event_sequence: 20,
                 parent_snapshot_digest: d("world-1"),
                 child_snapshot_digest: d("world-2"),
                 joint_action_digest: joint_action_digest(&decisions, 1),
@@ -2217,6 +2467,44 @@ mod tests {
             export_to_sam(&episode, &anchor),
             Err(HandoffError::NonMonotoneDeliverySequence)
         );
+    }
+
+    #[test]
+    fn same_tick_post_physics_observation_cannot_enter_an_already_closed_policy_input() {
+        let (mut episode, anchor) = fixture();
+        let cue = episode.branches[0]
+            .observations
+            .iter_mut()
+            .find(|cue| cue.cue_id == "ego-sees-yield")
+            .unwrap();
+        // Tick 1 physics commits at event 20. This cue is generated afterward,
+        // but its integer generation and delivery ticks still say "1".
+        cue.generated_event_sequence = 21;
+        cue.delivered_event_sequence = Some(22);
+        let anchor = reanchor(&mut episode, &anchor);
+        assert_eq!(
+            export_to_sam(&episode, &anchor),
+            Err(HandoffError::FutureCueLeak)
+        );
+    }
+
+    #[test]
+    fn same_tick_predecision_delivery_remains_visible() {
+        let (episode, anchor) = fixture();
+        let handoff = export_to_sam(&episode, &anchor).unwrap();
+        assert!(
+            handoff.branches[0]
+                .queries
+                .iter()
+                .all(|query| query.query.complete)
+        );
+        assert!(episode.branches[0].decisions.iter().any(|decision| {
+            decision.actor_id == "ego"
+                && decision.tick == 1
+                && decision
+                    .consumed_cue_ids
+                    .contains(&"ego-sees-yield".to_owned())
+        }));
     }
 
     #[test]

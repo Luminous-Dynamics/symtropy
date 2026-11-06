@@ -100,6 +100,16 @@
       "id": "EH-20",
       "case": "full source episode interchange",
       "expected": "canonical episode JSON conforms to reciprocal-episode-export v0.1 schema"
+    },
+    {
+      "id": "EH-21",
+      "case": "same-integer-tick cue delivered after the policy input cutoff",
+      "expected": "reject FutureCueLeak even when delivered_tick equals decision.tick"
+    },
+    {
+      "id": "EH-22",
+      "case": "policy decision, command latch and physics commit reordered",
+      "expected": "reject InvalidEventOrdering"
     }
   ],
   "claim_ceiling": "Finite adapter conformance only; no reciprocal simulator, human behaviour, empirical support, physical validity, safety or L4/L5 claim."
