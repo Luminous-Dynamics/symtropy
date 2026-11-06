@@ -224,19 +224,18 @@ pub fn simulate(
             sample_index: pulse_index,
             delta_phase_radians,
         } = intervention
+            && sample_index == pulse_index
         {
-            if sample_index == pulse_index {
-                if mechanism == Mechanism::FeedbackAttractor {
-                    let (sin_phase, cos_phase) = delta_phase_radians.sin_cos();
-                    attractor_state = [
-                        cos_phase * attractor_state[0] - sin_phase * attractor_state[1],
-                        sin_phase * attractor_state[0] + cos_phase * attractor_state[1],
-                    ];
-                    phase = attractor_state[1].atan2(attractor_state[0]);
-                    amplitude = attractor_state[0].hypot(attractor_state[1]);
-                } else {
-                    phase += delta_phase_radians;
-                }
+            if mechanism == Mechanism::FeedbackAttractor {
+                let (sin_phase, cos_phase) = delta_phase_radians.sin_cos();
+                attractor_state = [
+                    cos_phase * attractor_state[0] - sin_phase * attractor_state[1],
+                    sin_phase * attractor_state[0] + cos_phase * attractor_state[1],
+                ];
+                phase = attractor_state[1].atan2(attractor_state[0]);
+                amplitude = attractor_state[0].hypot(attractor_state[1]);
+            } else {
+                phase += delta_phase_radians;
             }
         }
 
