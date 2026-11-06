@@ -137,7 +137,9 @@
         "sample_rate_hz",
         "bandwidth_hz",
         "clock_domain_ref",
-        "raw_artifact_ref"
+        "raw_artifact_ref",
+        "synchronization_uncertainty_ns",
+        "anti_alias_filter_ref"
       ],
       "properties": {
         "channel_id": {
