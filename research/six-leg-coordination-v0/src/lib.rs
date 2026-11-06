@@ -1126,15 +1126,13 @@ mod tests {
         assert!(recovery.is_some());
     }
 
-
     #[test]
     fn frozen_forecasts_have_stable_layout_and_separate_local_pulse_predictions() {
         let layout_digest = [0xA5; 32];
         let baseline_action = Intervention::default();
         let independent_baseline =
             run(CoordinationModel::IndependentOscillators, baseline_action).unwrap();
-        let coupled_baseline =
-            run(CoordinationModel::CoupledOscillators, baseline_action).unwrap();
+        let coupled_baseline = run(CoordinationModel::CoupledOscillators, baseline_action).unwrap();
         let independent_baseline_forecast = independent_baseline
             .freeze_observable_forecast(1, layout_digest)
             .unwrap();
@@ -1157,8 +1155,7 @@ mod tests {
         let phase_pulse = pulse(LegId::LeftFront, 20, 0.8);
         let independent_perturbed =
             run(CoordinationModel::IndependentOscillators, phase_pulse).unwrap();
-        let coupled_perturbed =
-            run(CoordinationModel::CoupledOscillators, phase_pulse).unwrap();
+        let coupled_perturbed = run(CoordinationModel::CoupledOscillators, phase_pulse).unwrap();
         let independent_prediction = independent_perturbed
             .freeze_observable_forecast(1, layout_digest)
             .unwrap();
@@ -1170,7 +1167,10 @@ mod tests {
             independent_prediction.observable_layout_digest,
             coupled_prediction.observable_layout_digest
         );
-        assert_eq!(independent_prediction.mean.len(), coupled_prediction.mean.len());
+        assert_eq!(
+            independent_prediction.mean.len(),
+            coupled_prediction.mean.len()
+        );
         assert_ne!(independent_prediction.mean, coupled_prediction.mean);
     }
 
@@ -1184,9 +1184,7 @@ mod tests {
             ..Intervention::default()
         };
         let trace = run(CoordinationModel::CoupledOscillators, intervention).unwrap();
-        let forecast = trace
-            .freeze_observable_forecast(7, [0xB6; 32])
-            .unwrap();
+        let forecast = trace.freeze_observable_forecast(7, [0xB6; 32]).unwrap();
         assert!(forecast.mean.len() < trace.samples.len() * LEG_COUNT * 2);
         assert_eq!(forecast.observable_layout_digest, [0xB6; 32]);
         assert_eq!(
