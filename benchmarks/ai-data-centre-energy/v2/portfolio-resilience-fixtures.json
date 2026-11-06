@@ -1,0 +1,178 @@
+{
+  "schema_version": "symtropy.flexibility-portfolio-resilience.v1",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "protocol_issue": 3817,
+  "units": {
+    "power": "kW",
+    "time": "ns",
+    "rates": "basis_points"
+  },
+  "cases": [
+    {
+      "id": "independent-resources-pass",
+      "offers_kw": [
+        60,
+        50
+      ],
+      "deliveries_kw": [
+        60,
+        50
+      ],
+      "required_kw": 100,
+      "expected": {
+        "event_pass": true,
+        "delivered_kw": 110,
+        "shortfall_kw": 0
+      }
+    },
+    {
+      "id": "shared-control-plane-failure",
+      "offers_kw": [
+        60,
+        50
+      ],
+      "deliveries_kw": [
+        0,
+        0
+      ],
+      "domain_state": "control=failed",
+      "required_kw": 100,
+      "expected": {
+        "event_pass": false,
+        "delivered_kw": 0,
+        "shortfall_kw": 100
+      }
+    },
+    {
+      "id": "one-heatwave-two-dispatch-episodes",
+      "group": "heatwave-1",
+      "events": [
+        {
+          "delivered_kw": 110,
+          "required_kw": 100
+        },
+        {
+          "delivered_kw": 60,
+          "required_kw": 100
+        }
+      ],
+      "expected": {
+        "incident_group_pass": false,
+        "incident_group_worst_margin_kw": -40
+      }
+    },
+    {
+      "id": "missing-asset-outcome",
+      "expected": {
+        "accepted": false,
+        "reason": "missing_asset_outcome"
+      }
+    },
+    {
+      "id": "duplicate-asset-outcome",
+      "expected": {
+        "accepted": false,
+        "reason": "duplicate_asset_outcome"
+      }
+    },
+    {
+      "id": "missing-domain-state",
+      "expected": {
+        "accepted": false,
+        "reason": "missing_domain_observation"
+      }
+    },
+    {
+      "id": "explicit-unknown-domain",
+      "expected": {
+        "retained_as_unknown": true,
+        "not_imputed_normal": true
+      }
+    },
+    {
+      "id": "unavailable-with-delivery",
+      "availability": "unavailable",
+      "delivered_kw": 1,
+      "expected": {
+        "accepted": false,
+        "reason": "availability_delivery_mismatch"
+      }
+    },
+    {
+      "id": "delivery-above-offer",
+      "offer_kw": 60,
+      "delivered_kw": 61,
+      "expected": {
+        "accepted": false,
+        "reason": "delivery_exceeds_offer"
+      }
+    },
+    {
+      "id": "overlapping-failure-domain-membership",
+      "domain_memberships": [
+        [
+          "region",
+          "control"
+        ],
+        [
+          "region",
+          "telecom"
+        ]
+      ],
+      "expected": {
+        "total_portfolio_offer_kw": 110,
+        "largest_domain_offer_kw": 110,
+        "domain_shares_not_summed": true
+      }
+    },
+    {
+      "id": "same-group-different-scenario",
+      "expected": {
+        "accepted": false,
+        "reason": "duplicate_incident_group_scenario"
+      }
+    },
+    {
+      "id": "duplicate-event-id",
+      "expected": {
+        "accepted": false,
+        "reason": "duplicate_event"
+      }
+    },
+    {
+      "id": "input-order-invariance",
+      "expected": {
+        "events_sorted": true,
+        "groups_sorted": true
+      }
+    },
+    {
+      "id": "unavailable-asset-lower-bound-zero",
+      "availability": "unavailable",
+      "delivered_kw": 0,
+      "expected": {
+        "accepted": true,
+        "credited_delivery_kw": 0
+      }
+    }
+  ],
+  "negative_controls": [
+    "missing_event_asset_outcome",
+    "duplicate_event_asset_outcome",
+    "unregistered_asset_outcome",
+    "missing_failure_domain_observation",
+    "duplicate_failure_domain_observation",
+    "unregistered_failure_domain_observation",
+    "unavailable_asset_positive_delivery",
+    "unknown_asset_positive_delivery",
+    "asset_delivery_above_offer",
+    "duplicate_asset_catalogue_id",
+    "duplicate_site_pcc_asset",
+    "unregistered_asset_failure_domain",
+    "same_incident_group_different_scenario",
+    "duplicate_event_id",
+    "invalid_event_window",
+    "portfolio_product_contract_mismatch",
+    "independent_incident_count_conflated_with_event_count"
+  ]
+}
