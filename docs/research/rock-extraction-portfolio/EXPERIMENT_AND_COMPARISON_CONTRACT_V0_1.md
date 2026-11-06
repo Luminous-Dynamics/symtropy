@@ -94,7 +94,7 @@ Every trial must match that profile exactly. The profile is a declared compariso
 Every trial binds:
 - unique trial, method, machine and tool IDs;
 - exact profile/protocol/task/material pairing/geometry/acceptance/site/metrology references;
-- energy quantity in kWh, standard uncertainty, energy basis, boundary reference, energy-accounting reference, subsystem inventory, evidence role, calibration and source;
+- energy quantity in kWh, standard uncertainty, energy basis, boundary reference, energy-accounting reference, subsystem inventory, evidence role, calibration and source; derived observations also bind a lineage reference to their upstream measured artifacts;
 - independently accepted solid volume in m³, standard uncertainty, evidence role, calibration and source;
 - full-cycle elapsed hours, standard uncertainty, evidence role, calibration and source.
 
@@ -161,7 +161,7 @@ It computes only pooled descriptive metrics and emits causal_effect_claim_allowe
 
 ## 6. Conformance and adversarial test plan
 
-The current Rust module contains 27 unit tests covering valid pooled arithmetic; modelled output; loose spoil; active-only time; mismatched energy boundaries; omitted/duplicate auxiliary subsystems; process-sensor energy; duplicate trials; changed material cohorts and acceptance profiles; adjacent-interval descriptive status; insufficient replication; missing machine/tool, calibration or energy-accounting identity; non-finite/zero values; negative uncertainty; energy-basis mismatch; single-arm and missing-arm comparisons; order invariance; and aggregate overflow.
+The current Rust module contains 29 unit tests covering valid pooled arithmetic; modelled output; loose spoil; active-only time; mismatched energy boundaries; omitted/duplicate auxiliary subsystems; process-sensor energy; duplicate trials; changed material cohorts and acceptance profiles; adjacent-interval descriptive status; insufficient replication; missing machine/tool, calibration or energy-accounting identity; missing derived-measurement lineage; non-finite/zero values; negative uncertainty; energy-basis mismatch; single-arm and missing-arm comparisons; order invariance; and aggregate overflow.
 
 Next tests to add:
 - duplicate profile subsystem IDs;
