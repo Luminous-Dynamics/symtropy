@@ -95,6 +95,10 @@ pub enum BenchmarkError {
     InvalidDesignThreshold,
     EmptyParameterScenarioSet,
     InvalidParameterScenarioGrid,
+    EmptyHypothesisSet,
+    DuplicateHypothesis,
+    InvalidHypothesisPrior,
+    InvalidMonteCarloDraws,
     InvalidInterventionIndex,
     InvalidPhasePulse,
     InvalidScoreMargin,
@@ -1298,6 +1302,291 @@ pub fn design_discriminating_intervention_across_scenarios(
         })
     } else {
         Ok(InterventionDesignDecision::Selected { design: best })
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MechanismHypothesis {
+    pub id: String,
+    pub mechanism: Mechanism,
+    pub config: SimulationConfig,
+    /// Prior probability; weights are normalized by the design routine.
+    pub prior_weight: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExpectedInformationDesign {
+    pub candidate_id: String,
+    pub intervention: Intervention,
+    pub onset_index: usize,
+    pub cost: f64,
+    pub draws: usize,
+    pub expected_information_nats: f64,
+    pub standard_error_nats: f64,
+    pub information_per_cost: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ExpectedInformationDecision {
+    Selected {
+        design: ExpectedInformationDesign,
+    },
+    Abstained {
+        best_candidate_id: String,
+        information_per_cost: f64,
+        standard_error_nats: f64,
+    },
+}
+
+/// Monte Carlo estimate of discrete-hypothesis Bayesian expected information
+/// gain for each candidate intervention.
+///
+/// A hypothesis is a declared mechanism plus one fixed parameter scenario and
+/// a prior weight. The observation model is independent Gaussian noise with
+/// the same declared variance for both observed coordinates at every sample.
+/// The likelihood is the common predictive Gaussian likelihood used elsewhere
+/// in this crate. The expected information gain is:
+///
+///     E_{h ~ prior, y ~ p(y|h,a)} [log p(y|h,a) - log sum_j p(h_j)p(y|h_j,a)]
+///
+/// This is a genuine finite-hypothesis expected information gain calculation
+/// under the supplied discrete prior and Gaussian observation model. It is
+/// not continuous parameter inference, posterior calibration, or proof that
+/// the hypothesis set contains the true biological mechanism.
+pub fn design_intervention_by_expected_information_gain(
+    hypotheses: &[MechanismHypothesis],
+    candidates: &[InterventionCandidate],
+    observation_variance: f64,
+    draws: usize,
+    seed: u64,
+    minimum_information_per_cost: f64,
+) -> Result<ExpectedInformationDecision, BenchmarkError> {
+    if hypotheses.len() < 2 {
+        return Err(BenchmarkError::EmptyHypothesisSet);
+    }
+    if candidates.is_empty() {
+        return Err(BenchmarkError::EmptyInterventionSet);
+    }
+    if !observation_variance.is_finite() || observation_variance <= 0.0 {
+        return Err(BenchmarkError::InvalidObservationVariance);
+    }
+    if draws < 2 {
+        return Err(BenchmarkError::InvalidMonteCarloDraws);
+    }
+    if !minimum_information_per_cost.is_finite() || minimum_information_per_cost < 0.0 {
+        return Err(BenchmarkError::InvalidDesignThreshold);
+    }
+
+    let mut hypothesis_ids = BTreeSet::new();
+    let mut total_prior_weight = 0.0;
+    let first_config = hypotheses[0].config;
+    first_config.validate()?;
+    for hypothesis in hypotheses {
+        if hypothesis.id.trim().is_empty() {
+            return Err(BenchmarkError::InvalidInterventionCandidateId);
+        }
+        if !hypothesis_ids.insert(hypothesis.id.clone()) {
+            return Err(BenchmarkError::DuplicateHypothesis);
+        }
+        hypothesis.config.validate()?;
+        if hypothesis.config.sample_count != first_config.sample_count
+            || hypothesis.config.sample_interval != first_config.sample_interval
+        {
+            return Err(BenchmarkError::InvalidParameterScenarioGrid);
+        }
+        if !hypothesis.prior_weight.is_finite() || hypothesis.prior_weight <= 0.0 {
+            return Err(BenchmarkError::InvalidHypothesisPrior);
+        }
+        total_prior_weight += hypothesis.prior_weight;
+        if !total_prior_weight.is_finite() {
+            return Err(BenchmarkError::InvalidHypothesisPrior);
+        }
+    }
+    if total_prior_weight <= 0.0 {
+        return Err(BenchmarkError::InvalidHypothesisPrior);
+    }
+
+    let mut prior = hypotheses
+        .iter()
+        .map(|hypothesis| hypothesis.prior_weight / total_prior_weight)
+        .collect::<Vec<_>>();
+    // Normalize once more to avoid accumulated floating point drift.
+    let normalized_total = prior.iter().sum::<f64>();
+    for probability in &mut prior {
+        *probability /= normalized_total;
+    }
+
+    let mut candidate_ids = BTreeSet::new();
+    for candidate in candidates {
+        if candidate.id.trim().is_empty() {
+            return Err(BenchmarkError::InvalidInterventionCandidateId);
+        }
+        if !candidate_ids.insert(candidate.id.clone()) {
+            return Err(BenchmarkError::DuplicateInterventionCandidate);
+        }
+        if !candidate.cost.is_finite() || candidate.cost <= 0.0 {
+            return Err(BenchmarkError::InvalidInterventionCost);
+        }
+        if candidate.onset_index >= first_config.sample_count {
+            return Err(BenchmarkError::InvalidInterventionIndex);
+        }
+        let action_index = match candidate.intervention {
+            Intervention::FeedbackCutFrom { sample_index }
+            | Intervention::PhasePulseAt { sample_index, .. } => sample_index,
+            Intervention::None => return Err(BenchmarkError::InvalidInterventionAlignment),
+        };
+        if action_index != candidate.onset_index {
+            return Err(BenchmarkError::InvalidInterventionAlignment);
+        }
+        for hypothesis in hypotheses {
+            validate_intervention(candidate.intervention, hypothesis.config)?;
+        }
+    }
+
+    let mut ordered_candidates = candidates
+        .iter()
+        .filter(|candidate| candidate.feasible)
+        .collect::<Vec<_>>();
+    ordered_candidates.sort_by(|left, right| left.id.cmp(&right.id));
+    if ordered_candidates.is_empty() {
+        return Err(BenchmarkError::NoFeasibleInterventions);
+    }
+
+    let mut designs = Vec::with_capacity(ordered_candidates.len());
+    for candidate in ordered_candidates {
+        // Freeze every hypothesis forecast before generating or scoring any
+        // candidate outcome. No held-out outcome can alter a prediction.
+        let mut forecasts = Vec::with_capacity(hypotheses.len());
+        for hypothesis in hypotheses {
+            let trace = simulate(
+                hypothesis.mechanism,
+                candidate.intervention,
+                hypothesis.config,
+            )?;
+            forecasts.push(trace.samples[candidate.onset_index..].to_vec());
+        }
+
+        // Derive a stable candidate-local seed, so reordering candidates does
+        // not change the Monte Carlo outcomes attached to a candidate ID.
+        let candidate_seed = stable_seed(seed, &candidate.id);
+        let mut random = SeededNormal::new(candidate_seed);
+        let log_prior = prior.iter().map(|value| value.ln()).collect::<Vec<_>>();
+        let mut information_sum = 0.0;
+        let mut squared_information_sum = 0.0;
+
+        for _ in 0..draws {
+            let selection = random.uniform_open();
+            let mut cumulative = 0.0;
+            let mut true_index = prior.len() - 1;
+            for (index, probability) in prior.iter().enumerate() {
+                cumulative += probability;
+                if selection < cumulative {
+                    true_index = index;
+                    break;
+                }
+            }
+
+            let noise_seed = random.next_u64();
+            let observation = add_gaussian_observation_noise(
+                &forecasts[true_index],
+                observation_variance,
+                noise_seed,
+            )?;
+
+            let mut log_likelihoods = Vec::with_capacity(hypotheses.len());
+            for forecast in &forecasts {
+                log_likelihoods.push(predictive_log_score(
+                    &observation,
+                    forecast,
+                    observation_variance,
+                )?);
+            }
+
+            let log_joint = log_prior
+                .iter()
+                .zip(&log_likelihoods)
+                .map(|(log_probability, log_likelihood)| log_probability + log_likelihood)
+                .collect::<Vec<_>>();
+            let log_marginal = log_sum_exp(&log_joint)?;
+            let information_sample = log_likelihoods[true_index] - log_marginal;
+            if !information_sample.is_finite() {
+                return Err(BenchmarkError::NumericalFailure);
+            }
+            information_sum += information_sample;
+            squared_information_sum += information_sample * information_sample;
+        }
+
+        let expected_information_nats = information_sum / draws as f64;
+        let sample_variance = ((squared_information_sum
+            - draws as f64 * expected_information_nats.powi(2))
+            / (draws - 1) as f64)
+            .max(0.0);
+        let standard_error_nats = (sample_variance / draws as f64).sqrt();
+        let information_per_cost = expected_information_nats / candidate.cost;
+        if !expected_information_nats.is_finite()
+            || !standard_error_nats.is_finite()
+            || !information_per_cost.is_finite()
+        {
+            return Err(BenchmarkError::NumericalFailure);
+        }
+
+        designs.push(ExpectedInformationDesign {
+            candidate_id: candidate.id.clone(),
+            intervention: candidate.intervention,
+            onset_index: candidate.onset_index,
+            cost: candidate.cost,
+            draws,
+            expected_information_nats,
+            standard_error_nats,
+            information_per_cost,
+        });
+    }
+
+    designs.sort_by(|left, right| {
+        right
+            .information_per_cost
+            .total_cmp(&left.information_per_cost)
+            .then_with(|| left.candidate_id.cmp(&right.candidate_id))
+    });
+    let best = designs.remove(0);
+    if best.information_per_cost <= minimum_information_per_cost {
+        Ok(ExpectedInformationDecision::Abstained {
+            best_candidate_id: best.candidate_id,
+            information_per_cost: best.information_per_cost,
+            standard_error_nats: best.standard_error_nats,
+        })
+    } else {
+        Ok(ExpectedInformationDecision::Selected { design: best })
+    }
+}
+
+fn stable_seed(seed: u64, identifier: &str) -> u64 {
+    let mut value = seed ^ 0xCBF2_9CE4_8422_2325;
+    for byte in identifier.bytes() {
+        value ^= u64::from(byte);
+        value = value.wrapping_mul(0x0000_0100_0000_01B3);
+    }
+    value
+}
+
+fn log_sum_exp(values: &[f64]) -> Result<f64, BenchmarkError> {
+    if values.is_empty() || values.iter().any(|value| !value.is_finite()) {
+        return Err(BenchmarkError::NumericalFailure);
+    }
+    let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let sum = values
+        .iter()
+        .map(|value| (*value - maximum).exp())
+        .sum::<f64>();
+    if !sum.is_finite() || sum <= 0.0 {
+        return Err(BenchmarkError::NumericalFailure);
+    }
+    let result = maximum + sum.ln();
+    if result.is_finite() {
+        Ok(result)
+    } else {
+        Err(BenchmarkError::NumericalFailure)
     }
 }
 
@@ -2528,6 +2817,235 @@ mod tests {
             Err(BenchmarkError::InvalidParameterScenarioGrid)
         );
     }
+
+    fn information_hypothesis(
+        id: &str,
+        mechanism: Mechanism,
+        config: SimulationConfig,
+        prior_weight: f64,
+    ) -> MechanismHypothesis {
+        MechanismHypothesis {
+            id: id.to_owned(),
+            mechanism,
+            config,
+            prior_weight,
+        }
+    }
+
+    #[test]
+    fn finite_hypothesis_eig_selects_a_discriminating_perturbation() {
+        let hypotheses = [
+            information_hypothesis(
+                "intrinsic",
+                Mechanism::IntrinsicOscillator,
+                config(),
+                0.5,
+            ),
+            information_hypothesis(
+                "sensory",
+                Mechanism::SensoryFeedbackDriven,
+                config(),
+                0.5,
+            ),
+        ];
+        let candidates = [
+            design_candidate(
+                "feedback-cut",
+                Intervention::FeedbackCutFrom { sample_index: 20 },
+                20,
+                1.0,
+                true,
+            ),
+            design_candidate(
+                "phase-pulse",
+                Intervention::PhasePulseAt {
+                    sample_index: 20,
+                    delta_phase_radians: 0.6,
+                },
+                20,
+                1.0,
+                true,
+            ),
+        ];
+        let decision = design_intervention_by_expected_information_gain(
+            &hypotheses,
+            &candidates,
+            0.04,
+            256,
+            0xE1_6A_2026,
+            0.0,
+        )
+        .unwrap();
+        let ExpectedInformationDecision::Selected { design } = decision else {
+            panic!("expected a positive-information action");
+        };
+        assert!(design.expected_information_nats > 0.5);
+        assert!(design.expected_information_nats <= std::f64::consts::LN_2 + 0.05);
+        assert!(design.standard_error_nats.is_finite());
+        assert!(design.information_per_cost > 0.5);
+        assert_eq!(design.draws, 256);
+    }
+
+    #[test]
+    fn finite_hypothesis_eig_is_zero_for_observationally_identical_hypotheses() {
+        let hypotheses = [
+            information_hypothesis(
+                "oscillator-copy-a",
+                Mechanism::IntrinsicOscillator,
+                config(),
+                0.8,
+            ),
+            information_hypothesis(
+                "oscillator-copy-b",
+                Mechanism::IntrinsicOscillator,
+                config(),
+                0.2,
+            ),
+        ];
+        let candidates = [design_candidate(
+            "feedback-cut",
+            Intervention::FeedbackCutFrom { sample_index: 20 },
+            20,
+            1.0,
+            true,
+        )];
+        let decision = design_intervention_by_expected_information_gain(
+            &hypotheses,
+            &candidates,
+            0.04,
+            64,
+            99,
+            1.0e-8,
+        )
+        .unwrap();
+        assert!(matches!(
+            decision,
+            ExpectedInformationDecision::Abstained {
+                information_per_cost,
+                ..
+            } if information_per_cost.abs() < 1.0e-10
+        ));
+    }
+
+    #[test]
+    fn finite_hypothesis_eig_is_deterministic_and_candidate_order_invariant() {
+        let hypotheses = [
+            information_hypothesis(
+                "intrinsic",
+                Mechanism::IntrinsicOscillator,
+                config(),
+                0.7,
+            ),
+            information_hypothesis(
+                "sensory",
+                Mechanism::SensoryFeedbackDriven,
+                config(),
+                0.3,
+            ),
+        ];
+        let cut = design_candidate(
+            "cut",
+            Intervention::FeedbackCutFrom { sample_index: 20 },
+            20,
+            1.0,
+            true,
+        );
+        let pulse = design_candidate(
+            "pulse",
+            Intervention::PhasePulseAt {
+                sample_index: 20,
+                delta_phase_radians: 0.6,
+            },
+            20,
+            1.0,
+            true,
+        );
+        let forward = design_intervention_by_expected_information_gain(
+            &hypotheses,
+            &[cut.clone(), pulse.clone()],
+            0.05,
+            128,
+            1234,
+            0.0,
+        )
+        .unwrap();
+        let reverse = design_intervention_by_expected_information_gain(
+            &hypotheses,
+            &[pulse, cut],
+            0.05,
+            128,
+            1234,
+            0.0,
+        )
+        .unwrap();
+        assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn finite_hypothesis_eig_rejects_bad_priors_scenarios_and_duplicate_ids() {
+        let mut hypotheses = [
+            information_hypothesis(
+                "intrinsic",
+                Mechanism::IntrinsicOscillator,
+                config(),
+                0.5,
+            ),
+            information_hypothesis(
+                "sensory",
+                Mechanism::SensoryFeedbackDriven,
+                config(),
+                0.5,
+            ),
+        ];
+        let candidates = [design_candidate(
+            "feedback-cut",
+            Intervention::FeedbackCutFrom { sample_index: 20 },
+            20,
+            1.0,
+            true,
+        )];
+        hypotheses[1].prior_weight = 0.0;
+        assert_eq!(
+            design_intervention_by_expected_information_gain(
+                &hypotheses,
+                &candidates,
+                0.04,
+                32,
+                1,
+                0.0
+            ),
+            Err(BenchmarkError::InvalidHypothesisPrior)
+        );
+
+        hypotheses[1].prior_weight = 0.5;
+        hypotheses[1].id = hypotheses[0].id.clone();
+        assert_eq!(
+            design_intervention_by_expected_information_gain(
+                &hypotheses,
+                &candidates,
+                0.04,
+                32,
+                1,
+                0.0
+            ),
+            Err(BenchmarkError::DuplicateHypothesis)
+        );
+
+        hypotheses[1].id = "sensory".to_owned();
+        hypotheses[1].config.sample_interval = 0.04;
+        assert_eq!(
+            design_intervention_by_expected_information_gain(
+                &hypotheses,
+                &candidates,
+                0.04,
+                32,
+                1,
+                0.0
+            ),
+            Err(BenchmarkError::InvalidParameterScenarioGrid)
+        );
+    }
+
     #[test]
     fn wilson_interval_matches_known_small_sample_reference() {
         let interval = wilson_interval(5, 10);
