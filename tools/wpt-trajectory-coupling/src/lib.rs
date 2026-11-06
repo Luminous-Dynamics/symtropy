@@ -6,7 +6,7 @@
 //! pavement stress, fatigue or battery-terminal energy.
 
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 const PPM: u64 = 1_000_000;
 const MAX_SAMPLES: usize = 1024;
@@ -480,7 +480,7 @@ fn integrate_power_uwh(samples: &[Sample], roadway_input: bool) -> Result<u64, S
     Ok(energy_uwh.round() as u64)
 }
 
-fn integrate_wheel_load_impulse_micronewton_seconds(
+fn integrate_wheel_load_impulse_micro_kn_s(
     samples: &[Sample],
 ) -> Result<u64, String> {
     let mut impulse_micro_kn_s = 0.0_f64;
@@ -591,7 +591,8 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
             && vehicle_receiver_dc_output_energy_uwh <= roadway_dc_input_energy_uwh
         {
             Some(
-                ((vehicle_receiver_dc_output_energy_uwh as u128 * PPM as u128)
+                ((vehicle_receiver_dc_output_energy_uwh as u128 * PPM as u128
+                    + roadway_dc_input_energy_uwh as u128 / 2)
                     / roadway_dc_input_energy_uwh as u128) as u64,
             )
         } else {
@@ -644,7 +645,7 @@ pub fn evaluate_trajectory(value: &Value) -> Result<TrajectoryCouplingReport, St
         vehicle_receiver_dc_output_energy_uwh,
         pass_level_conversion_efficiency_ppm,
         total_vertical_wheel_load_impulse_micro_kn_s:
-            integrate_wheel_load_impulse_micronewton_seconds(&scenario.samples)?,
+            integrate_wheel_load_impulse_micro_kn_s(&scenario.samples)?,
         maximum_coil_temperature_millidegrees_c,
         maximum_interface_temperature_millidegrees_c,
         missing_coil_temperature_samples,
