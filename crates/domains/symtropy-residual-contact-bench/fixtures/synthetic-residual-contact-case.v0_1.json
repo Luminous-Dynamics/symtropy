@@ -121,7 +121,12 @@
         "calibration_ref": "cal:cell-32",
         "source_ref": "survey:cell-32"
       }
-    ]
+    ],
+    "trial_id": "synthetic-trial-001",
+    "task_id": "synthetic-task-001",
+    "site_id": "synthetic-site-001",
+    "machine_instance_id": "synthetic-machine-001",
+    "machine_configuration_ref": "machine-config:synthetic-001"
   },
   "support_profiles": [
     {
@@ -143,7 +148,10 @@
           "x": 1,
           "y": 1
         }
-      ]
+      ],
+      "site_id": "synthetic-site-001",
+      "machine_instance_id": "synthetic-machine-001",
+      "machine_configuration_ref": "machine-config:synthetic-001"
     },
     {
       "support_id": "right-gripper",
@@ -160,7 +168,10 @@
           "x": 2,
           "y": 2
         }
-      ]
+      ],
+      "site_id": "synthetic-site-001",
+      "machine_instance_id": "synthetic-machine-001",
+      "machine_configuration_ref": "machine-config:synthetic-001"
     }
   ]
 }
