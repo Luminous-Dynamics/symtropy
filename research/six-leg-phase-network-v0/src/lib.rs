@@ -131,13 +131,12 @@ impl SixLegConfig {
         {
             return Err(CoordinationError::InvalidFeedbackDelay);
         }
-        for row in 0..LEG_COUNT {
-            for column in 0..LEG_COUNT {
-                let gain = self.coupling_gains[row][column];
-                if !gain.is_finite() || gain < 0.0 {
+        for (row_index, row) in self.coupling_gains.iter().enumerate() {
+            for (column_index, gain) in row.iter().enumerate() {
+                if !gain.is_finite() || *gain < 0.0 {
                     return Err(CoordinationError::InvalidCouplingGain);
                 }
-                if row == column && gain != 0.0 {
+                if row_index == column_index && *gain != 0.0 {
                     return Err(CoordinationError::SelfCouplingNotAllowed);
                 }
             }
@@ -424,8 +423,8 @@ fn rk4_step(
     );
 
     let mut result = [0.0; LEG_COUNT];
-    for index in 0..LEG_COUNT {
-        result[index] = state.phases[index]
+    for (index, result_phase) in result.iter_mut().enumerate() {
+        *result_phase = state.phases[index]
             + dt * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index]) / 6.0;
     }
     if result.iter().all(|phase| phase.is_finite()) {
@@ -446,8 +445,10 @@ fn add_scaled(
     scale: f64,
 ) -> [f64; LEG_COUNT] {
     let mut result = [0.0; LEG_COUNT];
-    for index in 0..LEG_COUNT {
-        result[index] = left[index] + right[index] * scale;
+    for ((result_phase, left_phase), right_phase) in
+        result.iter_mut().zip(left).zip(right)
+    {
+        *result_phase = left_phase + right_phase * scale;
     }
     result
 }
@@ -460,7 +461,7 @@ fn phase_derivative(
 ) -> [f64; LEG_COUNT] {
     let mut derivative = [0.0; LEG_COUNT];
 
-    for leg_index in 0..LEG_COUNT {
+    for (leg_index, output_rate) in derivative.iter_mut().enumerate() {
         if !state.enabled[leg_index] {
             continue;
         }
@@ -476,7 +477,7 @@ fn phase_derivative(
             model,
             CoordinationModel::CentrallyCoupled | CoordinationModel::Hybrid
         ) {
-            for other_index in 0..LEG_COUNT {
+            for (other_index, other_phase) in state.phases.iter().enumerate() {
                 if other_index == leg_index
                     || !state.enabled[other_index]
                     || !state.coupling_enabled[leg_index][other_index]
@@ -485,8 +486,7 @@ fn phase_derivative(
                 }
                 let preferred_delta = config.preferred_phase_offsets[other_index]
                     - config.preferred_phase_offsets[leg_index];
-                let phase_error =
-                    state.phases[other_index] - state.phases[leg_index] - preferred_delta;
+                let phase_error = *other_phase - state.phases[leg_index] - preferred_delta;
                 rate += config.coupling_gains[leg_index][other_index] * phase_error.sin();
             }
         }
@@ -504,7 +504,7 @@ fn phase_derivative(
             let phase_error = target_phase - state.phases[leg_index];
             rate += config.feedback_gains[leg_index] * phase_error.sin();
         }
-        derivative[leg_index] = rate;
+        *output_rate = rate;
     }
     derivative
 }
@@ -680,10 +680,10 @@ mod tests {
 
     fn base_config() -> SixLegConfig {
         let mut coupling_gains = [[0.0; LEG_COUNT]; LEG_COUNT];
-        for row in 0..LEG_COUNT {
-            for column in 0..LEG_COUNT {
-                if row != column {
-                    coupling_gains[row][column] = 2.5;
+        for (row_index, row) in coupling_gains.iter_mut().enumerate() {
+            for (column_index, gain) in row.iter_mut().enumerate() {
+                if row_index != column_index {
+                    *gain = 2.5;
                 }
             }
         }
