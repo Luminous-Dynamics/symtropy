@@ -1012,7 +1012,11 @@ mod tests {
     fn independent_archive_failure_domains_matter_more_than_copy_count() {
         let dataset = reference_dataset();
         let evaluation = evaluate(&dataset).unwrap();
-        let hydro = evaluation.items.iter().find(|item| item.item_id == "hydrology_skill").unwrap();
+        let hydro = evaluation
+            .items
+            .iter()
+            .find(|item| item.item_id == "hydrology_skill")
+            .unwrap();
         assert_eq!(hydro.verified_archive_copy_count, 3);
         assert_eq!(hydro.independent_archive_failure_domain_count, 2);
 
