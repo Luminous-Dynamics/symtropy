@@ -21,6 +21,7 @@
     "baselines",
     "negative_controls",
     "holdouts",
+    "execution_stack",
     "reproduction",
     "claim_report",
     "composite_score_policy"
@@ -617,6 +618,272 @@
     },
     "composite_score_policy": {
       "const": "no-universal-composite"
+    },
+    "execution_stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "components",
+        "fallback_policy",
+        "fallback_events",
+        "unseeded_random_sources",
+        "scheduler_policy",
+        "exposure_policy",
+        "action_validation_policy",
+        "event_capture_policy"
+      ],
+      "properties": {
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "component_id",
+              "role",
+              "version",
+              "configuration_digest",
+              "behavior_affecting"
+            ],
+            "properties": {
+              "component_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "enum": [
+                  "simulator",
+                  "base-model",
+                  "response-generator",
+                  "prompt-template",
+                  "participant-profile",
+                  "memory",
+                  "context-policy",
+                  "action-parser",
+                  "action-validator",
+                  "retry-policy",
+                  "fallback",
+                  "scheduler",
+                  "exposure-policy",
+                  "environment",
+                  "randomness",
+                  "event-capture",
+                  "measurement"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "configuration_digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "behavior_affecting": {
+                "type": "boolean"
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "fallback_policy": {
+          "enum": [
+            "none",
+            "abort",
+            "counted-declared-default",
+            "other-explicit"
+          ]
+        },
+        "fallback_events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_id",
+              "component_id",
+              "reason",
+              "action_taken"
+            ],
+            "properties": {
+              "event_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "component_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "action_taken": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "unseeded_random_sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_id",
+              "component_id",
+              "purpose"
+            ],
+            "properties": {
+              "source_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "component_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "purpose": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "scheduler_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheduler_id",
+            "update_order",
+            "parallelism",
+            "tie_breaking_rule"
+          ],
+          "properties": {
+            "scheduler_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "update_order": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parallelism": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "tie_breaking_rule": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "exposure_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy_id",
+            "eligibility_rule",
+            "ordering_rule",
+            "state_visibility"
+          ],
+          "properties": {
+            "policy_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "eligibility_rule": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ordering_rule": {
+              "type": "string",
+              "minLength": 1
+            },
+            "state_visibility": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "action_validation_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "parser_component_id",
+            "validator_component_id",
+            "invalid_action_policy",
+            "retry_limit",
+            "repair_policy"
+          ],
+          "properties": {
+            "parser_component_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "validator_component_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "invalid_action_policy": {
+              "enum": [
+                "abort",
+                "reject-and-record",
+                "counted-declared-default",
+                "other-explicit"
+              ]
+            },
+            "retry_limit": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "repair_policy": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "event_capture_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "capture_component_id",
+            "required_event_kinds",
+            "dropped_event_count",
+            "drop_policy"
+          ],
+          "properties": {
+            "capture_component_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required_event_kinds": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "dropped_event_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "drop_policy": {
+              "enum": [
+                "fail-closed",
+                "count-and-report",
+                "known-loss-model",
+                "other-explicit"
+              ]
+            }
+          }
+        }
+      }
     }
   }
 }
