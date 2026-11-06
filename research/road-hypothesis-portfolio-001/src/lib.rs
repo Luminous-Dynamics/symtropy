@@ -2257,7 +2257,10 @@ mod tests {
             .push(obligation("extra-odd-stratum", CoverageAxis::OddRange));
         changed_coverage
             .coverage_obligations
-            .retain(|entry| entry.obligation_id != "yielding");
+            .push(obligation("extra-behaviour", CoverageAxis::BehaviouralCompetency));
+        changed_coverage
+            .coverage_obligations
+            .retain(|entry| entry.obligation_id != "yielding-reciprocity");
         assert_eq!(
             PortfolioManifest::validate_append_only_revision(&previous, &changed_coverage),
             Err(PortfolioError::NonAppendOnlyRevision)
@@ -2272,6 +2275,14 @@ mod tests {
                 hypothesis_id: "H-weather".into(),
                 strategy: ChallengeStrategy::Random,
                 protocol_digest: d("extra-random-protocol"),
+                minimum_budget_units: 100,
+            });
+        changed_challenges
+            .challenge_requirements
+            .push(ChallengeRequirement {
+                hypothesis_id: "H-weather-copy".into(),
+                strategy: ChallengeStrategy::Expert,
+                protocol_digest: d("replacement-expert-protocol"),
                 minimum_budget_units: 100,
             });
         changed_challenges.challenge_requirements.retain(|entry| {
