@@ -228,3 +228,28 @@ Expected qualitative result:
 ## 12. Claim boundary
 
 This is an offline decision benchmark and deterministic evaluator. It does not control machinery, authorize an operating setting, certify geological conditions, qualify a method, or supersede engineering/site safety authority.
+
+
+## 13. Initial executable implementation slice
+
+The standalone Rust crate `crates/domains/symtropy-excavation-decision-bench/` implements the v0.1 offline evaluator.
+
+- Application-specific evidence tier and explicit geology/machine support checks.
+- External engineering-qualification status/reference.
+- Exact decision-profile, task, material-cohort, acceptance-profile, site-context and energy-boundary reference matching.
+- Complete resource-boundary and resource-ledger reference checks.
+- Independent primary outcomes with calibration; derived primary outcomes with calibration and parent lineage.
+- Conservative interval hard-constraint semantics: definite failure is Ineligible; an interval crossing the threshold is Indeterminate.
+- Robust interval-separated Pareto dominance; no scalar weighted score.
+- Explicit abstention when no strategy is eligible.
+- Deterministic sorted results and experiment-option preservation.
+
+The frozen synthetic case has five strategies and two experiment options. Its qualitative expected result is: HPWJ/disc and ODC remain on the frontier; HPWJ/disc robustly dominates the synthetic mechanical baseline; ATCP is indeterminate; laser-PDC is ineligible. All identities and numbers are synthetic.
+
+Current source contains **33 authored Rust unit tests**. Run:
+
+`cargo test --manifest-path crates/domains/symtropy-excavation-decision-bench/Cargo.toml`
+
+Cargo/rustc are not installed in this execution environment, so compilation and test execution remain unverified. Schema/fixture parse and custom semantic checks pass, but full JSON Schema 2020-12 engine validation is not claimed.
+
+The evaluator does not compute EVSI/EVPI: it preserves experiment options and exposes evidence gaps, but expected information value requires a declared utility function, observation likelihood, experiment cost and stopping rule. It must not invent a decision value from incomplete preferences or evidence.
