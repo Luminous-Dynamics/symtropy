@@ -42,7 +42,7 @@ This kernel provides a conditional-likelihood seam for #3547, not a replacement 
 
 ## Tests
 
-Nine deterministic tests cover:
+Ten deterministic tests cover:
 1. dependence on the prior observation through AR(1);
 2. reduction of animal-effect uncertainty from repeated observations;
 3. AR-state reset with animal-effect carryover across sessions;
@@ -51,7 +51,8 @@ Nine deterministic tests cover:
 6. duplicate sample and non-monotonic time rejection;
 7. explicit rejection of unknown actions;
 8. session-reopening rejection;
-9. delivery, interference and carryover gates.
+9. delivery, interference and carryover gates;
+10. explicit rejection of irregular within-session time steps.
 
 ## Run
 
