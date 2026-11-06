@@ -90,6 +90,12 @@ MIT/MITEI reported Quaise's 118 m granite field hole and an up-to-5 m/h drilling
 
 **Full-scale disc abrasion testing is a metrology lead.** Nasrabadi et al. report 12 FDAT tests on 305 mm discs in quartz-rich marble (UCS about 33.1 MPa; CAI 2.2), with specific cutter weight loss 0.14–2.09 mg/m. The study shows why wear needs load, speed and friction measurements; its tested rock is not hard granite. DOI: https://doi.org/10.1016/j.tust.2026.107672.
 
+**Conventional disc cutters are also becoming an active geological-sensing opportunity.** Pan et al. (2026) report full-scale linear cutting data across 21 rock types and 121 cutting conditions, with UCS from 21.25–355.57 MPa and Brazilian tensile strength from 1.1–15.65 MPa. They modify the semi-theoretical CSM model to predict disc-cutter normal/rolling forces and derive inverse equations to estimate UCS/BTS from measured cutter forces. This is a promising route to make excavation an active sensing process, but the authors explicitly identify remaining prediction error, rig-specific coefficients, and the lack of jointing/discontinuity and in-situ confinement representation. We should benchmark it as a forward/inverse model with leave-rock/site/rig/tool holdouts—not deploy it as a qualified real-time strength sensor. DOI: https://doi.org/10.1016/j.rockmb.2026.100317.
+
+**Manufacturer headline rates need denominator reconciliation.** Komatsu's US MC51 page lists “remove cut material up to” 60 m³/h, while its Australia page lists material handling (in situ) at 30 m³/h and a typical maximum cut rate of 20 m³/h; both pages list 320 kW and up to 250 MPa rock hardness. These are manufacturer specifications, but the 60, 30 and 20 m³/h quantities are not interchangeable or independent field measurements. Preserve region, metric label, volume basis, operating conditions and source revision in the industry benchmark. The Australia page is particularly useful for a regional reference, not proof of South African site capability. Sources: https://www.komatsu.com/en-us/products/equipment/hard-rock-continuous-miners/mc51 ; https://www.komatsu.com/en-au/products/equipment/hard-rock-continuous-miners/mc51.
+
+**Cutting-and-splitting is a fourth mechanical architecture, not another cutter variant.** Cho et al. (2026) create a prescribed saw kerf and then insert/load a wedge to propagate a tensile crack from the block base toward a free face. Scaled-model tests reported effective separation at cut-spacing/depth ratios below 2.0; numerical modelling and in-situ excavation tests on a granite slope and simulated tunnel face support feasibility. The authors report net cutting rates 20–30% above predicted roadheader rates and more than 600% above predicted impact-hammer rates for tested UCS >100 MPa rock. These comparisons are not necessarily concurrent matched machine trials, so they do not establish a causal, full-cycle productivity or lifecycle-cost advantage. The potentially distinctive value is controlled block geometry and recoverable material, which must be weighed against kerf loss, saw/wedge work, wear, handling and residual spoil. DOI: https://doi.org/10.1016/j.tust.2026.107477.
+
 ## 4. Separate excavation from mineral liberation
 
 High-voltage pulse fragmentation deserves a separate processing lane. It applies electrical pulses to particulate ore/rock to exploit dielectric-breakdown differences and preferentially break along mineral boundaries, with potential to improve liberation or pre-concentration before downstream grinding. A 2021 review describes mineral liberation, pre-weakening and pre-concentration applications, while a 2025 review focuses on discharge parameters and the effects of heterogeneity and pulse waveform. Both emphasize unresolved industrial barriers such as specific energy, equipment wear, water processing and throughput. This is not the same apparatus or objective as SPARC plasma pre-cracking ahead of a PDC bit, and it should be evaluated on feed preparation, liberated-grade/recovery, energy per tonne and downstream grinding energy—not metres per hour. Sources: https://doi.org/10.1016/j.powtec.2021.09.034 ; https://doi.org/10.1016/j.mineng.2025.109356.
@@ -196,20 +202,25 @@ Use characterized, traceable granite and basalt cohorts. Randomize matched speci
 - one assist at a time;
 - candidate hybrid combinations;
 - sham/negative control (same handling, no active assist);
-- untreated control.
+- untreated control;
+- conventional disc cutter response baseline, with normal/rolling force and independent UCS/BTS ground truth paired by physical block;
+- saw-cut + wedge-splitting arm, with cut-spacing/depth ratio, kerf width, cut depth, wedge tip geometry and wedge loading recorded separately from saw operation.
+
+The cutting-and-splitting arm must be compared against a task-equivalent mechanical baseline and must report accepted intact block output separately from fines and residual spoil. Do not compare a slope/free-face block-release test directly with confined tunnel-face production.
 
 Use specimen IDs blind to the operator where practical. Freeze primary outcomes, exclusion rules and repeat-count rationale before confirmatory testing.
 
 ### E2 — instrumentation
 
 Where applicable, capture:
-- tool force, torque, speed, feed, impact/vibration and contact state;
+- tool force, torque, speed, feed, impact/vibration and contact state; record disc-cutter normal and rolling force, penetration, spacing, cutter profile, wear state and machine compliance for reciprocal strength-inference experiments;
 - wall-clock and process time, including setup, cooling, flushing and cleaning;
 - electrical input at the facility boundary and delivered power at the subsystem;
 - fuel/chemical/cryogen/water/abrasive inputs and conversion losses;
 - rock temperature field, heat-affected depth and cooling load;
 - acoustic emission as a measured diagnostic stream, with source location/uncertainty separated from simulated AE;
 - removed solid volume and mass, loose-spoil volume, fragment-size distribution and fines;
+- saw kerf width/depth, cut spacing, wedge force-displacement/work, block separation outcome and scan/photogrammetry geometry residuals for cutting-and-splitting;
 - tool/electrode/nozzle/transducer wear and replacements;
 - maintenance, stoppages, jams, ventilation, dust and extraction burden.
 
@@ -227,7 +238,7 @@ The same sensor or model that controls/informs a process is not automatically an
 - penetration/advance rate;
 - normal and tangential force, torque and impact energy;
 - crack/damage-zone geometry and depth;
-- fragment-size distribution, overbreak, fines and usable block yield;
+- fragment-size distribution, overbreak, fines, recoverable intact-block yield and accepted block-geometry deviation;
 - wall/ground damage and support demand;
 - heat-affected volume and thermal recovery.
 
@@ -254,7 +265,9 @@ The method portfolio receives a declared rock profile, task geometry, available 
 - reject missing or unsupported capability/evidence;
 - distinguish eligible, ineligible and indeterminate method/configuration pairs;
 - preserve the evidence class of every material/tool/process claim;
+- use tool-response-based geological inference only when independently calibrated and within a validated support domain;
 - select no assist when the assist is not justified;
+- distinguish sequential cut-and-split, oscillating rolling-disc contact and axial/torsional percussion as separate mechanism families;
 - expose trade-offs across net accepted production, energy, cost, wear, heat, water and damage;
 - avoid turning a predicted fracture or simulated crack into an observed excavation result.
 
@@ -281,6 +294,7 @@ The first gate is trustworthy measurement and reproducibility, not an arbitrary 
 **Scientific comparison**
 - Reproduce published claims under the same specimen/geometry and metric before comparing them.
 - For hybrid methods, compare both assist-only and complete assist+mechanical system energy.
+- For cutting-and-splitting, reproduce the published s/d and block-release conditions, then compare against concurrent matched saw/cutter and excavation controls; the paper's predicted-roadheader and predicted-impact-hammer rate comparisons remain context, not an independent SOTA leaderboard.
 - For the 56% granite specific-cutting-energy reduction recorded in parent #1952, reproduce its exact pulse and cutting test boundaries before using it as a comparator. It is not a mine productivity or lifecycle-cost target.
 - For ultrasonic assistance, first demonstrate the effect on characterized granite and basalt; the 2025 paper's reported 15.5% sandstone and 9.9% limestone speed improvements are not hard-rock granite results.
 - For gyrotron drilling, replicate a declared borehole geometry and measured energy/volume boundary; do not compare a narrow hole with tunnel face advance.
@@ -333,3 +347,13 @@ The first gate is trustworthy measurement and reproducibility, not an arbitrary 
 25. Nasrabadi et al. (2026), *Effects of operational parameters on TBM disc cutter wear: insights from full-scale disc abrasion testing (FDAT)*. https://doi.org/10.1016/j.tust.2026.107672
 
 All papers, abstracts, company/field announcements and archaeological interpretations must retain their own evidence class. A company demonstration, a laboratory experiment, a theory paper and a production deployment are not equivalent evidence.
+
+
+Additional mechanical-fracture reference: Cho, Jeong, Yu & Lee (2026), “A new rock cutting and splitting method for hard-rock excavation: methodology, scaled model test and numerical modelling, and field validation.” https://doi.org/10.1016/j.tust.2026.107477.
+
+Dynamic material-characterization reference: the ISRM Suggested Methods list includes 2025 methods for direct-tension strength and rate-dependent shear strength / Mode II fracture toughness using a Split Hopkinson Pressure Bar. These are complementary characterizations for dynamic percussion and wedge splitting, not substitutes for tool/rock trials. https://w.isrm.net/page/show/1305.
+
+
+Additional reciprocal cutter/geology reference: Pan et al. (2026), “Mutual prediction mechanism between disc cutter cutting forces and rock strength parameters: Experimental study and field application.” https://doi.org/10.1016/j.rockmb.2026.100317.
+
+Manufacturer specification references for denominator-reconciled industry context: Komatsu MC51 US product page (remove cut material up to 60 m³/h) and Australia product page (material handling in situ 30 m³/h; typical maximum cut rate 20 m³/h). These are different manufacturer-published metrics, not an independently matched performance test. https://www.komatsu.com/en-us/products/equipment/hard-rock-continuous-miners/mc51 ; https://www.komatsu.com/en-au/products/equipment/hard-rock-continuous-miners/mc51.
