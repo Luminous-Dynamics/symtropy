@@ -195,6 +195,9 @@ impl<const D: usize> PhysicsWorld<D> {
         } else {
             SVector::zeros()
         };
+        if !self.gravity.iter().all(|value| value.is_finite()) {
+            gravitational_potential_energy = f64::NAN;
+        }
         let mechanical_energy = kinetic_energy + gravitational_potential_energy;
         let mut max_penetration_depth = 0.0_f64;
         for contact in &self.contacts {
@@ -327,6 +330,15 @@ mod tests {
         let snapshot = world.invariant_snapshot();
         assert_eq!(snapshot.non_finite_contact_count, 1);
         assert!(!snapshot.max_penetration_depth.is_finite());
+        assert!(!snapshot.is_numerically_healthy(1e-9));
+    }
+
+    #[test]
+    fn health_gate_rejects_non_finite_environment_gravity_even_for_empty_world() {
+        let world = PhysicsWorld::<3>::new(SVector::from([0.0, f64::NAN, 0.0]));
+        let snapshot = world.invariant_snapshot();
+
+        assert!(!snapshot.gravitational_potential_energy.is_finite());
         assert!(!snapshot.is_numerically_healthy(1e-9));
     }
 
