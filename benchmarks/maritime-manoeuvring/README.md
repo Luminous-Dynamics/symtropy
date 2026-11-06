@@ -30,7 +30,7 @@ cargo test --locked --manifest-path benchmarks/maritime-manoeuvring/Cargo.toml
 cargo clippy --locked --manifest-path benchmarks/maritime-manoeuvring/Cargo.toml --all-targets -- -D warnings
 ~~~
 
-The crate is an isolated Cargo workspace and has no third-party dependencies.
+The crate is an isolated Cargo workspace and has no third-party dependencies. The separate `tests/independent_oracle.rs` integration test implements test-only reference calculations without calling production metric helpers; it cross-checks turning-circle, stopping and zig-zag outputs on wrapped headings and nonuniform sample times.
 
 ## Metric conventions
 
@@ -82,7 +82,8 @@ The current suite contains 25 hand-checkable synthetic controls for:
 - interpolated stopping threshold;
 - stopping from a non-origin command sample;
 - missing, stale, unknown, unsupported and future-published evidence;
-- malformed digest, duplicate role and operation-window coverage failure.
+- malformed digest, duplicate role and operation-window coverage failure;
+- independent oracle comparisons for turning circles in both directions, rotated stopping tracks, and wrapped/irregular-time zig-zag trajectories.
 
 These fixtures test bookkeeping and metric reconstruction only. They are not
 physical validation data and do not establish model accuracy.
