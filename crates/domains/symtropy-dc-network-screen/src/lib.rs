@@ -562,10 +562,13 @@ pub fn evaluate_dc_network_deliverability(
                 maximum_age_ns: contract.maximum_topology_age_ns,
             });
         }
-        let topology_age_ns = interval.interval_start_ns - network.topology_effective_at_ns;
-        if topology_age_ns > contract.maximum_topology_age_ns {
+        // The topology snapshot must remain within its declared age for the
+        // complete interval, not merely at its first sample.
+        let topology_age_at_interval_end_ns =
+            end_ns.saturating_sub(network.topology_effective_at_ns);
+        if topology_age_at_interval_end_ns > contract.maximum_topology_age_ns {
             return Err(DcNetworkError::StaleTopology {
-                interval_start_ns: interval.interval_start_ns,
+                interval_start_ns: end_ns,
                 topology_effective_at_ns: network.topology_effective_at_ns,
                 maximum_age_ns: contract.maximum_topology_age_ns,
             });
@@ -683,7 +686,7 @@ pub fn evaluate_dc_network_deliverability(
         maximum_requested_load_reduction_mw =
             maximum_requested_load_reduction_mw.max(requested_reduction_mw);
         let duration_hours = interval.interval_duration_ns as f64 / 3_600_000_000_000.0;
-        requested_reduction_energy_mwh += requested_reduction_mw * duration_hours / 1_000.0;
+        requested_reduction_energy_mwh += requested_reduction_mw * duration_hours;
         let minimum_network_feasible_action_fraction =
             combined_action_range.map(|range| range.0);
         let maximum_network_feasible_action_fraction =
@@ -692,7 +695,7 @@ pub fn evaluate_dc_network_deliverability(
             requested_reduction_mw
                 * maximum_network_feasible_action_fraction.unwrap_or(0.0);
         maximum_network_deliverable_reduction_energy_mwh +=
-            maximum_network_deliverable_reduction_mw * duration_hours / 1_000.0;
+            maximum_network_deliverable_reduction_mw * duration_hours;
         if !maximum_network_deliverable_reduction_energy_mwh.is_finite() {
             return Err(DcNetworkError::NumericalOverflow(
                 "maximum network-deliverable flexibility energy",
