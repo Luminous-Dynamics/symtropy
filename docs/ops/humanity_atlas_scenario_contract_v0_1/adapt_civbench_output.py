@@ -366,6 +366,10 @@ def _model_manifest(paths: Iterable[Path]) -> tuple[str, bytes]:
     for path in sorted(paths, key=lambda item: item.as_posix()):
         if path.is_absolute() or ".." in path.parts:
             raise AdapterError(f"model source path must be repository-relative: {path}")
+        if path.is_symlink():
+            raise AdapterError(f"model source path must not be a symlink: {path}")
+        if not path.is_file():
+            raise AdapterError(f"model source path is not a regular file: {path}")
         raw = read_bounded(path, MAX_SOURCE_BYTES)
         entries.append({
             "path": path.as_posix(),
@@ -408,7 +412,10 @@ def build_envelope(
         "scenario-v0.1 schema",
     )
     jsonschema.Draft202012Validator.check_schema(scenario_schema)
-    jsonschema.Draft202012Validator(scenario_schema).validate(scenario)
+    try:
+        jsonschema.Draft202012Validator(scenario_schema).validate(scenario)
+    except jsonschema.ValidationError as exc:
+        raise AdapterError(f"scenario-v0.1 schema validation failed: {exc.message}") from exc
 
     # The dataset bytes are content-addressed independently and must match the
     # scenario's baseline digest exactly.
@@ -489,7 +496,10 @@ def build_envelope(
         },
     ]
 
-    deterministic: bool | None = None
+    declared_deterministic = engine.get("deterministic")
+    if not isinstance(declared_deterministic, bool):
+        raise AdapterError("scenario engine deterministic must be boolean")
+    deterministic: bool | None = False if not declared_deterministic else None
     validation_evidence: list[dict[str, str]] = []
     warnings = [
         "synthetic_fixture: this output is not an empirical observation, calibrated model, or forecast",
@@ -498,7 +508,7 @@ def build_envelope(
     ]
     if replay_bytes is not None:
         replay_sha = sha256(replay_bytes)
-        deterministic = replay_sha == csv_sha
+        deterministic = declared_deterministic and replay_sha == csv_sha
         artifacts.append({
             "artifact_id": "civbench-replay-csv",
             "role": "same-seed-repeatability-comparison",
@@ -515,10 +525,14 @@ def build_envelope(
                 "artifact_sha256": replay_sha,
                 "description": "A second output with the same scenario and seed is byte-identical to the primary domain CSV.",
             })
-        else:
+        elif declared_deterministic:
             warnings.append("repeatability_check_failed: second same-seed CSV differs byte-for-byte")
+        else:
+            warnings.append("engine_declares_nondeterministic: identical sample bytes do not establish a deterministic engine")
+    elif declared_deterministic:
+        warnings.append("determinism_unknown: engine declares deterministic but no second same-seed output was supplied")
     else:
-        warnings.append("determinism_unknown: no second same-seed output was supplied")
+        warnings.append("engine_declares_nondeterministic: determinism is false by scenario declaration")
 
     seed = engine.get("seed")
     replicates = engine.get("replicates")
@@ -527,7 +541,7 @@ def build_envelope(
     if not isinstance(replicates, int) or replicates < 1 or replicates > 1_000_000:
         raise AdapterError("scenario engine replicates is invalid")
 
-    run_id = f"{scenario_id}.{track}.{csv_sha[:16]}"
+    run_id = f"{scenario_id[:140]}.{track}.{csv_sha[:16]}"
     envelope = {
         "schema_version": RUN_SCHEMA_VERSION,
         "run_id": run_id,
@@ -646,7 +660,10 @@ def main(argv: list[str] | None = None) -> int:
             raise AdapterError("jsonschema==4.26.0 is required; schema validation cannot be skipped") from exc
         schema = strict_json(read_bounded(schema_path, MAX_OUTPUT_BYTES), "run-v0.1 schema")
         jsonschema.Draft202012Validator.check_schema(schema)
-        jsonschema.Draft202012Validator(schema).validate(envelope)
+        try:
+            jsonschema.Draft202012Validator(schema).validate(envelope)
+        except jsonschema.ValidationError as exc:
+            raise AdapterError(f"run-v0.1 schema validation failed: {exc.message}") from exc
 
         rendered = (json.dumps(envelope, ensure_ascii=False, allow_nan=False, indent=2) + "\n").encode("utf-8")
         write_atomic(args.output, rendered, args.overwrite)
