@@ -18,6 +18,7 @@ The household coverage value and source record identifier are read from the actu
 - Control and treatment differ in exactly one declared initial intervention variable.
 - Control, treatment and negative-control arms carry the same exogenous snapshot identifier.
 - Every transition receipt reconciles against the run's initial/final state snapshots.
+- Each declared path edge must change its source input between control and treatment as well as change its target; an outcome movement caused by an unmodelled alternate route cannot complete the declared path.
 - The outcome variable agrees with an independent resource-ledger receipt and its unit.
 - A sham negative-control counter changes while every physical/outcome state and the ledger result remain unchanged.
 - The paired effect is withheld (`qualified_treatment_effect = null`) unless all gates pass.
