@@ -126,12 +126,42 @@ impl ParameterSet {
 
     pub fn validate(&self) -> Result<(), UncertaintyError> {
         for (factor, value, minimum, maximum) in [
-            (Factor::BasinWaterSupply, self.basin_water_supply_multiplier, 0.7, 1.3),
-            (Factor::BasinEnergySupply, self.basin_energy_supply_multiplier, 0.7, 1.3),
-            (Factor::HouseholdDemand, self.household_demand_multiplier, 0.8, 1.2),
-            (Factor::InitialReserve, self.initial_reserve_multiplier, 0.5, 1.5),
-            (Factor::WaterShockRetention, self.water_shock_retention, 0.0, 0.6),
-            (Factor::EnergyShockRetention, self.energy_shock_retention, 0.0, 0.6),
+            (
+                Factor::BasinWaterSupply,
+                self.basin_water_supply_multiplier,
+                0.7,
+                1.3,
+            ),
+            (
+                Factor::BasinEnergySupply,
+                self.basin_energy_supply_multiplier,
+                0.7,
+                1.3,
+            ),
+            (
+                Factor::HouseholdDemand,
+                self.household_demand_multiplier,
+                0.8,
+                1.2,
+            ),
+            (
+                Factor::InitialReserve,
+                self.initial_reserve_multiplier,
+                0.5,
+                1.5,
+            ),
+            (
+                Factor::WaterShockRetention,
+                self.water_shock_retention,
+                0.0,
+                0.6,
+            ),
+            (
+                Factor::EnergyShockRetention,
+                self.energy_shock_retention,
+                0.0,
+                0.6,
+            ),
         ] {
             if !value.is_finite() || value < minimum || value > maximum {
                 return Err(UncertaintyError::ParameterOutOfRange {
@@ -143,28 +173,22 @@ impl ParameterSet {
             }
         }
         if !(2..=5).contains(&self.shock_duration_ticks) {
-            return Err(UncertaintyError::ShockDurationOutOfRange(self.shock_duration_ticks));
+            return Err(UncertaintyError::ShockDurationOutOfRange(
+                self.shock_duration_ticks,
+            ));
         }
         Ok(())
     }
 
     pub fn coordinate(&self, factor: Factor) -> f64 {
         match factor {
-            Factor::BasinWaterSupply => {
-                (self.basin_water_supply_multiplier - 0.7) / 0.6
-            }
-            Factor::BasinEnergySupply => {
-                (self.basin_energy_supply_multiplier - 0.7) / 0.6
-            }
-            Factor::HouseholdDemand => {
-                (self.household_demand_multiplier - 0.8) / 0.4
-            }
+            Factor::BasinWaterSupply => (self.basin_water_supply_multiplier - 0.7) / 0.6,
+            Factor::BasinEnergySupply => (self.basin_energy_supply_multiplier - 0.7) / 0.6,
+            Factor::HouseholdDemand => (self.household_demand_multiplier - 0.8) / 0.4,
             Factor::InitialReserve => self.initial_reserve_multiplier - 0.5,
             Factor::WaterShockRetention => self.water_shock_retention / 0.6,
             Factor::EnergyShockRetention => self.energy_shock_retention / 0.6,
-            Factor::ShockDuration => {
-                (self.shock_duration_ticks.saturating_sub(2)) as f64 / 3.0
-            }
+            Factor::ShockDuration => (self.shock_duration_ticks.saturating_sub(2)) as f64 / 3.0,
         }
     }
 }
@@ -199,14 +223,12 @@ pub fn apply_parameters(
         .resources;
 
     for (tick_index, production) in scenario.production_by_tick.iter_mut().enumerate() {
-        let in_shock = (scenario.shock_start_tick..scenario.shock_end_tick)
-            .contains(&tick_index);
+        let in_shock = (scenario.shock_start_tick..scenario.shock_end_tick).contains(&tick_index);
         let water_retention = if in_shock
             && matches!(
                 scenario.shock_kind,
                 ShockKind::WaterSupply | ShockKind::CompoundWaterAndEnergy
-            )
-        {
+            ) {
             parameters.water_shock_retention
         } else {
             1.0
@@ -215,8 +237,7 @@ pub fn apply_parameters(
             && matches!(
                 scenario.shock_kind,
                 ShockKind::EnergySupply | ShockKind::CompoundWaterAndEnergy
-            )
-        {
+            ) {
             parameters.energy_shock_retention
         } else {
             1.0
@@ -272,7 +293,10 @@ pub struct LatinHypercubeDesign {
     pub points: Vec<[f64; FACTOR_COUNT]>,
 }
 
-pub fn latin_hypercube(sample_count: usize, seed: u64) -> Result<LatinHypercubeDesign, UncertaintyError> {
+pub fn latin_hypercube(
+    sample_count: usize,
+    seed: u64,
+) -> Result<LatinHypercubeDesign, UncertaintyError> {
     if sample_count < 2 {
         return Err(UncertaintyError::TooFewDesignSamples(sample_count));
     }
@@ -344,13 +368,15 @@ impl MorrisTrajectory {
                 return Err(UncertaintyError::MorrisMustChangeOneFactorPerStep);
             }
             let changed_factor = changed[0];
-            if ((before[changed_factor] - after[changed_factor]).abs() - MORRIS_DELTA).abs()
-                > 1e-12
+            if ((before[changed_factor] - after[changed_factor]).abs() - MORRIS_DELTA).abs() > 1e-12
             {
                 return Err(UncertaintyError::InvalidMorrisStepSize);
             }
-            let observed_direction =
-                if after[changed_factor] > before[changed_factor] { 1 } else { -1 };
+            let observed_direction = if after[changed_factor] > before[changed_factor] {
+                1
+            } else {
+                -1
+            };
             if self.directions[changed_factor] != observed_direction {
                 return Err(UncertaintyError::MorrisDirectionMismatch {
                     factor: Factor::ALL[changed_factor],
@@ -436,7 +462,10 @@ impl OutputMetric {
     }
 
     pub const fn is_coverage(self) -> bool {
-        matches!(self, Self::MinimumWaterCoverage | Self::MinimumEnergyCoverage)
+        matches!(
+            self,
+            Self::MinimumWaterCoverage | Self::MinimumEnergyCoverage
+        )
     }
 
     pub fn value(self, outcome: &RunOutcome) -> f64 {
@@ -491,10 +520,7 @@ pub fn summarize_ensemble(
                 .filter(|outcome| outcome.shock_kind == shock && outcome.policy == policy)
                 .collect::<Vec<_>>();
             if selected.is_empty() {
-                return Err(UncertaintyError::MissingShockPolicyEnsemble {
-                    shock,
-                    policy,
-                });
+                return Err(UncertaintyError::MissingShockPolicyEnsemble { shock, policy });
             }
             for metric in OutputMetric::ALL {
                 let mut values = selected
@@ -559,7 +585,9 @@ pub fn evaluate_morris(
     trajectories: &[MorrisTrajectory],
 ) -> Result<Vec<MorrisEffectSummary>, UncertaintyError> {
     if reference_scenarios.len() != SHOCKS.len() {
-        return Err(UncertaintyError::ReferenceScenarioCount(reference_scenarios.len()));
+        return Err(UncertaintyError::ReferenceScenarioCount(
+            reference_scenarios.len(),
+        ));
     }
     if trajectories.is_empty() {
         return Err(UncertaintyError::TooFewDesignSamples(0));
@@ -611,9 +639,13 @@ pub fn evaluate_morris(
                 for metric_index in 0..OutputMetric::ALL.len() {
                     let values = &effects[shock_index][policy_index][factor_index][metric_index];
                     let count = values.len();
-                    let mu_star = values.iter().map(|value| value.abs()).sum::<f64>() / count as f64;
+                    let mu_star =
+                        values.iter().map(|value| value.abs()).sum::<f64>() / count as f64;
                     let mean = values.iter().sum::<f64>() / count as f64;
-                    let variance = values.iter().map(|value| (value - mean).powi(2)).sum::<f64>()
+                    let variance = values
+                        .iter()
+                        .map(|value| (value - mean).powi(2))
+                        .sum::<f64>()
                         / count as f64;
                     summaries.push(MorrisEffectSummary {
                         shock: SHOCKS[shock_index],
@@ -637,7 +669,9 @@ pub fn run_latin_hypercube_ensemble(
     seed: u64,
 ) -> Result<Vec<RunOutcome>, UncertaintyError> {
     if reference_scenarios.len() != SHOCKS.len() {
-        return Err(UncertaintyError::ReferenceScenarioCount(reference_scenarios.len()));
+        return Err(UncertaintyError::ReferenceScenarioCount(
+            reference_scenarios.len(),
+        ));
     }
     let design = latin_hypercube(sample_count, seed)?;
     let mut outcomes = Vec::with_capacity(sample_count * SHOCKS.len() * POLICIES.len());
@@ -734,7 +768,11 @@ impl fmt::Display for UncertaintyError {
                 write!(f, "Morris coordinate is outside [0,1]: {value}")
             }
             Self::InvalidMorrisPointCount(count) => {
-                write!(f, "Morris trajectory has {count} points; expected {}", FACTOR_COUNT + 1)
+                write!(
+                    f,
+                    "Morris trajectory has {count} points; expected {}",
+                    FACTOR_COUNT + 1
+                )
             }
             Self::InvalidMorrisFactorOrder => {
                 write!(f, "Morris trajectory must change every factor exactly once")
@@ -743,7 +781,10 @@ impl fmt::Display for UncertaintyError {
                 write!(f, "{} has invalid direction {direction}", factor.name())
             }
             Self::MorrisMustChangeOneFactorPerStep => {
-                write!(f, "each Morris step must change exactly one declared factor")
+                write!(
+                    f,
+                    "each Morris step must change exactly one declared factor"
+                )
             }
             Self::InvalidMorrisStepSize => {
                 write!(f, "Morris trajectory step differs from delta=2/3")
@@ -753,16 +794,28 @@ impl fmt::Display for UncertaintyError {
             }
             Self::EmptyOutcomeEnsemble => write!(f, "parameter outcome ensemble must not be empty"),
             Self::MissingShockPolicyEnsemble { shock, policy } => {
-                write!(f, "missing ensemble for {} / {}", shock.name(), policy.name())
+                write!(
+                    f,
+                    "missing ensemble for {} / {}",
+                    shock.name(),
+                    policy.name()
+                )
             }
             Self::NonFiniteOutputMetric(metric) => {
                 write!(f, "non-finite output values for {}", metric.name())
             }
             Self::ReferenceScenarioCount(count) => {
-                write!(f, "expected {} ordered reference scenarios, got {count}", SHOCKS.len())
+                write!(
+                    f,
+                    "expected {} ordered reference scenarios, got {count}",
+                    SHOCKS.len()
+                )
             }
             Self::ReferenceScenarioOrderMismatch => {
-                write!(f, "reference scenario order must match the frozen shock portfolio")
+                write!(
+                    f,
+                    "reference scenario order must match the frozen shock portfolio"
+                )
             }
         }
     }
@@ -837,7 +890,12 @@ mod tests {
         assert_eq!(high.basin_energy_supply_multiplier, 1.3);
         assert_eq!(low.shock_duration_ticks, 2);
         assert_eq!(high.shock_duration_ticks, 5);
-        assert_eq!(ParameterSet::from_unit_cube([0.5; FACTOR_COUNT]).unwrap().household_demand_multiplier, 1.0);
+        assert_eq!(
+            ParameterSet::from_unit_cube([0.5; FACTOR_COUNT])
+                .unwrap()
+                .household_demand_multiplier,
+            1.0
+        );
         ParameterSet::BASELINE.validate().unwrap();
     }
 
@@ -866,15 +924,43 @@ mod tests {
         };
         let scenario = apply_parameters(&reference, parameters).unwrap();
         assert_eq!(scenario.shock_end_tick, scenario.shock_start_tick + 3);
-        assert!((scenario.production_by_tick[scenario.shock_start_tick][0].resources.water_m3 - 10.0).abs() < 1e-12);
-        assert!((scenario.production_by_tick[scenario.shock_start_tick][0].resources.energy_kwh - 8.0).abs() < 1e-12);
-        assert_eq!(scenario.production_by_tick[scenario.shock_end_tick][0].resources.water_m3, 40.0);
-        assert_eq!(scenario.production_by_tick[scenario.shock_end_tick][0].resources.energy_kwh, 16.0);
+        assert!(
+            (scenario.production_by_tick[scenario.shock_start_tick][0]
+                .resources
+                .water_m3
+                - 10.0)
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (scenario.production_by_tick[scenario.shock_start_tick][0]
+                .resources
+                .energy_kwh
+                - 8.0)
+                .abs()
+                < 1e-12
+        );
+        assert_eq!(
+            scenario.production_by_tick[scenario.shock_end_tick][0]
+                .resources
+                .water_m3,
+            40.0
+        );
+        assert_eq!(
+            scenario.production_by_tick[scenario.shock_end_tick][0]
+                .resources
+                .energy_kwh,
+            16.0
+        );
     }
 
     #[test]
     fn morris_evaluation_emits_one_effect_per_trajectory_factor_and_output() {
-        let result = evaluate_morris(&reference_scenarios(), &morris_design(4, DESIGN_SEED).unwrap()).unwrap();
+        let result = evaluate_morris(
+            &reference_scenarios(),
+            &morris_design(4, DESIGN_SEED).unwrap(),
+        )
+        .unwrap();
         assert_eq!(
             result.len(),
             SHOCKS.len() * POLICIES.len() * FACTOR_COUNT * OutputMetric::ALL.len()
@@ -884,12 +970,20 @@ mod tests {
 
     #[test]
     fn ensemble_summarization_keeps_water_and_energy_metrics_separate() {
-        let outcomes = run_latin_hypercube_ensemble(&reference_scenarios(), 30, DESIGN_SEED).unwrap();
+        let outcomes =
+            run_latin_hypercube_ensemble(&reference_scenarios(), 30, DESIGN_SEED).unwrap();
         assert_eq!(outcomes.len(), 30 * SHOCKS.len() * POLICIES.len());
         let summaries = summarize_ensemble(&outcomes).unwrap();
-        assert_eq!(summaries.len(), SHOCKS.len() * POLICIES.len() * OutputMetric::ALL.len());
+        assert_eq!(
+            summaries.len(),
+            SHOCKS.len() * POLICIES.len() * OutputMetric::ALL.len()
+        );
         assert!(summaries.iter().all(|row| row.sample_count == 30));
-        assert!(summaries.iter().all(|row| row.p05 <= row.p50 && row.p50 <= row.p95));
+        assert!(
+            summaries
+                .iter()
+                .all(|row| row.p05 <= row.p50 && row.p50 <= row.p95)
+        );
     }
 
     #[test]
@@ -913,8 +1007,6 @@ mod tests {
             InterventionPolicy::ProportionalSolidarity,
         )
         .unwrap();
-        assert!(
-            partial_outcome.total_unmet_water_m3 <= zero_outcome.total_unmet_water_m3 + 1e-9
-        );
+        assert!(partial_outcome.total_unmet_water_m3 <= zero_outcome.total_unmet_water_m3 + 1e-9);
     }
 }
