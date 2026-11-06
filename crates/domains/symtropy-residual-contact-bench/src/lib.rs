@@ -211,7 +211,7 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
 
     let cell_size = number(map, "cell_size_mm");
     match cell_size {
-        Some(v) if v > 0.0 && (v * v).is_finite() => {}
+        Some(v) if v > 0.0 && (v * v).is_finite() && (v * v) > 0.0 => {}
         _ => push(
             &mut errors,
             "INVALID_CELL_SIZE",
@@ -294,6 +294,32 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
         }
 
         validate_cell_measurement(cell, &path, &mut errors);
+    }
+
+    if let Some(area) = cell_size.map(|v| v * v).filter(|v| *v > 0.0 && v.is_finite()) {
+        let mut lower_volume = 0.0;
+        let mut upper_volume = 0.0;
+        let mut complete_bounds = true;
+        for cell in cells {
+            match (
+                number(cell, "residual_thickness_lower_mm"),
+                number(cell, "residual_thickness_upper_mm"),
+            ) {
+                (Some(lower), Some(upper)) => {
+                    lower_volume += area * lower;
+                    upper_volume += area * upper;
+                }
+                _ => complete_bounds = false,
+            }
+        }
+        if complete_bounds && (!lower_volume.is_finite() || !upper_volume.is_finite()) {
+            push(
+                &mut errors,
+                "RESIDUAL_VOLUME_OVERFLOW",
+                "$.map.cells",
+                "residual-volume interval overflows finite arithmetic",
+            );
+        }
     }
 
     if let Some(expected) = expected_count {
@@ -841,6 +867,26 @@ mod tests {
         assert!(validate_case(&case)
             .iter()
             .any(|v| v.code == "INVALID_CELL_SIZE"));
+    }
+
+    #[test]
+    fn underflowing_cell_area_is_rejected() {
+        let mut case = fixture();
+        case["map"]["cell_size_mm"] = serde_json::json!(1.0e-200);
+        assert!(validate_case(&case)
+            .iter()
+            .any(|v| v.code == "INVALID_CELL_SIZE"));
+    }
+
+    #[test]
+    fn overflowing_residual_volume_is_rejected() {
+        let mut case = fixture();
+        case["map"]["cell_size_mm"] = serde_json::json!(1.0e100);
+        cell_mut(&mut case, 0, 0)["residual_thickness_upper_mm"] =
+            serde_json::json!(1.0e200);
+        assert!(validate_case(&case)
+            .iter()
+            .any(|v| v.code == "RESIDUAL_VOLUME_OVERFLOW"));
     }
 
     #[test]
