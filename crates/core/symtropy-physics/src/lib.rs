@@ -27,6 +27,7 @@ pub mod integrator;
 pub mod island;
 pub mod joints;
 pub mod manifold_gen;
+pub mod mass_properties;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
