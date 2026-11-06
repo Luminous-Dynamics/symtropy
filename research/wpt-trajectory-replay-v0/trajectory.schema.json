@@ -43,7 +43,7 @@
         "additionalProperties": false,
         "required": [
           "sample_id",
-          "timestamp_ms",
+          "timestamp_ns",
           "x_mm",
           "y_mm",
           "z_mm",
@@ -59,10 +59,6 @@
           "sample_id": {
             "type": "string",
             "minLength": 1
-          },
-          "timestamp_ms": {
-            "type": "integer",
-            "minimum": 0
           },
           "x_mm": {
             "type": "number"
@@ -95,6 +91,10 @@
           },
           "right_wheel_y_mm": {
             "type": "number"
+          },
+          "timestamp_ns": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       }
@@ -117,9 +117,9 @@
           "coupling_ppm",
           "useful_power_w",
           "vehicle_dc_power_w",
-          "measurement_timestamp_ms",
-          "clock_offset_ms",
-          "clock_uncertainty_ms"
+          "measurement_timestamp_ns",
+          "clock_offset_ns",
+          "clock_uncertainty_ns"
         ],
         "properties": {
           "projection_id": {
@@ -162,14 +162,14 @@
             "type": "number",
             "minimum": 0
           },
-          "measurement_timestamp_ms": {
+          "measurement_timestamp_ns": {
             "type": "integer",
             "minimum": 0
           },
-          "clock_offset_ms": {
+          "clock_offset_ns": {
             "type": "integer"
           },
-          "clock_uncertainty_ms": {
+          "clock_uncertainty_ns": {
             "type": "integer",
             "minimum": 0
           }
@@ -193,9 +193,9 @@
           "tensile_strain_microstrain",
           "heat_flux_w_m2",
           "interface_condition",
-          "measurement_timestamp_ms",
-          "clock_offset_ms",
-          "clock_uncertainty_ms"
+          "measurement_timestamp_ns",
+          "clock_offset_ns",
+          "clock_uncertainty_ns"
         ],
         "properties": {
           "projection_id": {
@@ -235,14 +235,14 @@
               "UNKNOWN"
             ]
           },
-          "measurement_timestamp_ms": {
+          "measurement_timestamp_ns": {
             "type": "integer",
             "minimum": 0
           },
-          "clock_offset_ms": {
+          "clock_offset_ns": {
             "type": "integer"
           },
-          "clock_uncertainty_ms": {
+          "clock_uncertainty_ns": {
             "type": "integer",
             "minimum": 0
           }
