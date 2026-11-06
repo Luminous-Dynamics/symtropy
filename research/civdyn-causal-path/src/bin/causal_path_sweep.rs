@@ -56,6 +56,11 @@ fn variables() -> Vec<CausalVariable> {
             unit: "fraction".into(),
         },
         CausalVariable {
+            id: "unrelated_intermediate".into(),
+            stage: CausalStage::Intermediate,
+            unit: "m3".into(),
+        },
+        CausalVariable {
             id: "reputation_counter".into(),
             stage: CausalStage::NegativeControl,
             unit: "count".into(),
@@ -148,6 +153,7 @@ fn execute_arm(
         ("authorized_transfer_m3".into(), 0.0),
         ("delivered_water_m3".into(), 0.0),
         ("household_water_coverage".into(), 0.0),
+        ("unrelated_intermediate".into(), 0.0),
         ("reputation_counter".into(), 0.0),
     ]);
     let final_values = BTreeMap::from([
@@ -160,6 +166,7 @@ fn execute_arm(
         ("authorized_transfer_m3".into(), authorized_water_m3),
         ("delivered_water_m3".into(), delivered_water_m3),
         ("household_water_coverage".into(), household_water_coverage),
+        ("unrelated_intermediate".into(), 0.0),
         (
             "reputation_counter".into(),
             if decoy_counter { 1.0 } else { 0.0 },
