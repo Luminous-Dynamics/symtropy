@@ -44,3 +44,9 @@ This is not an optimizer and does not assume monotonicity. The feasible range ca
 ## Per-unit base
 
 The frozen network model requires an explicit positive `base_mva`. Bus injections are accepted in MW and converted to per-unit by dividing by this base before solving the reduced bus-susceptance matrix. Branch flows are converted back to MW by multiplying the per-unit flow by the same base. The base is retained in the top-level report. The known-truth suite checks that changing the base from 1 MVA to 1,000 MVA preserves the physical MW results.
+
+## PCC identity and action fraction
+
+The flexibility identity pins `pcc_bus_id`. Every non-empty load-reduction action map must apply only at that bus, and the bus must exist in the frozen topology and must not be the slack bus. This is a single-site v0.1 adapter; multi-site portfolios require a separately bound asset-to-bus manifest.
+
+The action-fraction result is an interval `[lambda_min, lambda_max]` in [0, 1]. This matters when the baseline network is already overloaded: a nonzero minimum dispatch may be required to relieve the overload before the network state becomes feasible. The maximum fraction is not assumed to be one, and a lack of any common feasible fraction is reported explicitly.
