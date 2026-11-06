@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "registry_id": "symtropy.rock-extraction.method-evidence",
-  "registry_version": "0.1.2",
+  "registry_version": "0.1.3",
   "status": "literature_reference_only",
   "claim_ceiling": "This registry is a research index. It does not qualify a method, machine, site, physical model, safety case, construction design, or operational use.",
   "evidence_scale": [
@@ -70,6 +70,14 @@
           "sources": [
             "https://doi.org/10.1016/j.rockmb.2026.100317"
           ]
+        },
+        {
+          "application": "composite_sandstone_granite_full_scale_rotary_cutting",
+          "tier": "R2",
+          "basis": "Ren et al. (2026) tested sandstone/granite composite rock discs up to 3,300 mm diameter with strength contrast >110 MPa on a full-scale rotary cutting platform. Normal, rolling and side forces showed step-like variation across material strength and cutting depth; rotation speed changed force correlations. A triaxial force model was proposed. This is large-scale laboratory evidence, not an in-situ TBM field transfer dataset.",
+          "sources": [
+            "https://doi.org/10.1016/j.ijrmms.2026.106517"
+          ]
         }
       ],
       "not_demonstrated": [
@@ -85,7 +93,11 @@
         "normal_rolling_force_prediction_error",
         "inverse_ucs_brazilian_tensile_strength_error",
         "prediction_interval_coverage",
-        "leave_rock_site_rig_out_transfer"
+        "leave_rock_site_rig_out_transfer",
+        "side_force_prediction_error",
+        "composite_interface_force_transient",
+        "mixed_face_transfer_error",
+        "rotary_speed_force_coupling"
       ]
     },
     {
@@ -705,6 +717,40 @@
         "blade_and_wedge_wear",
         "fines_overbreak_and_residual_spoil",
         "full_cycle_accepted_output_rate"
+      ]
+    },
+    {
+      "id": "hpwj_prefabricated_kerf_disc_cutter",
+      "mechanism": "high_pressure_waterjet_prefabricates_kerf_then_rolling_disc_cutter_propagates_lateral_fracture",
+      "family": "hydraulic_mechanical_hybrid_preconditioning",
+      "application_evidence": [
+        {
+          "application": "granite_same_track_full_scale_disc_cutter_precutting",
+          "tier": "R2",
+          "basis": "Lu et al. (2026) performed same-track coupled tests with a 17-inch disc cutter at fixed 6 mm penetration on granite, comparing pure disc cutting with HPWJ-prefabricated kerfs 2, 4, 6 and 8 mm deep. Maximum reported reductions were 32% mean normal force, 22% peak normal force and 34% specific cutting energy at 8 mm kerf depth. Chip morphology shifted from powder-like toward lamellar fragments. JH2 simulations indicated the dense-core projected area at 8 mm kerf depth was 11.3% of the no-kerf baseline. These are cutter-boundary / mechanistic results, not a complete waterjet-pump + cutting + extraction energy or field productivity result.",
+          "sources": [
+            "https://doi.org/10.1038/s41598-026-68175-5"
+          ]
+        }
+      ],
+      "not_demonstrated": [
+        "Complete HPWJ pump, water treatment, mechanical cutter, auxiliary and extraction energy advantage.",
+        "Matched transfer across characterized granite and basalt cohorts, confinement and discontinuity regimes.",
+        "Long-duration nozzle life, water recovery, scaling/erosion management and field cutterhead availability.",
+        "Lifecycle-cost advantage over optimized mechanical-only cutting."
+      ],
+      "primary_metrics": [
+        "kerf_depth_and_width",
+        "nozzle_path_and_standoff",
+        "waterjet_source_energy",
+        "delivered_hydraulic_power",
+        "water_volume_and_recovery",
+        "mean_and_peak_normal_force",
+        "cutting_specific_energy",
+        "dense_core_geometry",
+        "crack_coalescence_and_damage_zone",
+        "fragment_size_distribution",
+        "full_cycle_energy_per_accepted_solid_volume"
       ]
     }
   ]
