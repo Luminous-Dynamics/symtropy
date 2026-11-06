@@ -33,9 +33,154 @@ pub struct CcdHit<const D: usize> {
 /// Bodies moving slower than this per step won't tunnel through typical geometry.
 pub const CCD_SPEED_THRESHOLD: f64 = 5.0;
 
+/// Invalid geometry or kinematics passed to a checked CCD query.
+///
+/// The legacy Option-returning APIs remain available for compatibility, but
+/// they intentionally conflate malformed input with a valid no-hit result.
+/// The checked APIs below preserve that distinction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CcdInputError {
+    /// Position input contains NaN or infinity.
+    NonFinitePosition,
+    /// Velocity input contains NaN or infinity.
+    NonFiniteVelocity,
+    /// Radius is NaN or infinity.
+    NonFiniteRadius,
+    /// Radius is negative.
+    NegativeRadius,
+    /// Timestep is NaN or infinity.
+    NonFiniteTimeStep,
+    /// Timestep is negative.
+    NegativeTimeStep,
+    /// Plane normal contains NaN or infinity.
+    NonFinitePlaneNormal,
+    /// Plane normal has zero or numerically degenerate length.
+    DegeneratePlaneNormal,
+    /// Plane offset is NaN or infinity.
+    NonFinitePlaneOffset,
+}
+
 #[inline]
 fn is_finite_vector<const D: usize>(value: &SVector<f64, D>) -> bool {
     value.iter().all(|component| component.is_finite())
+}
+
+fn validate_sphere_sphere_input<const D: usize>(
+    pos_a: &SVector<f64, D>,
+    vel_a: &SVector<f64, D>,
+    radius_a: f64,
+    pos_b: &SVector<f64, D>,
+    vel_b: &SVector<f64, D>,
+    radius_b: f64,
+    dt: f64,
+) -> Result<(), CcdInputError> {
+    if !is_finite_vector(pos_a) || !is_finite_vector(pos_b) {
+        return Err(CcdInputError::NonFinitePosition);
+    }
+    if !is_finite_vector(vel_a) || !is_finite_vector(vel_b) {
+        return Err(CcdInputError::NonFiniteVelocity);
+    }
+    for radius in [radius_a, radius_b] {
+        if !radius.is_finite() {
+            return Err(CcdInputError::NonFiniteRadius);
+        }
+        if radius < 0.0 {
+            return Err(CcdInputError::NegativeRadius);
+        }
+    }
+    if !dt.is_finite() {
+        return Err(CcdInputError::NonFiniteTimeStep);
+    }
+    if dt < 0.0 {
+        return Err(CcdInputError::NegativeTimeStep);
+    }
+    Ok(())
+}
+
+fn validate_sphere_halfspace_input<const D: usize>(
+    pos: &SVector<f64, D>,
+    vel: &SVector<f64, D>,
+    radius: f64,
+    plane_normal: &SVector<f64, D>,
+    plane_offset: f64,
+    dt: f64,
+) -> Result<(), CcdInputError> {
+    if !is_finite_vector(pos) {
+        return Err(CcdInputError::NonFinitePosition);
+    }
+    if !is_finite_vector(vel) {
+        return Err(CcdInputError::NonFiniteVelocity);
+    }
+    if !is_finite_vector(plane_normal) {
+        return Err(CcdInputError::NonFinitePlaneNormal);
+    }
+    let normal_length = plane_normal.norm();
+    if !normal_length.is_finite() {
+        return Err(CcdInputError::NonFinitePlaneNormal);
+    }
+    if normal_length <= 1e-15 {
+        return Err(CcdInputError::DegeneratePlaneNormal);
+    }
+    if !radius.is_finite() {
+        return Err(CcdInputError::NonFiniteRadius);
+    }
+    if radius < 0.0 {
+        return Err(CcdInputError::NegativeRadius);
+    }
+    if !plane_offset.is_finite() {
+        return Err(CcdInputError::NonFinitePlaneOffset);
+    }
+    if !dt.is_finite() {
+        return Err(CcdInputError::NonFiniteTimeStep);
+    }
+    if dt < 0.0 {
+        return Err(CcdInputError::NegativeTimeStep);
+    }
+    Ok(())
+}
+
+/// Checked swept-sphere versus sphere query.
+///
+/// Returns `Ok(None)` for valid geometry with no impact in [0, dt], and
+/// `Err(CcdInputError)` for invalid geometry or kinematic inputs. TOI is in
+/// seconds, not a normalized fraction.
+pub fn sphere_sphere_checked<const D: usize>(
+    pos_a: &SVector<f64, D>,
+    vel_a: &SVector<f64, D>,
+    radius_a: f64,
+    pos_b: &SVector<f64, D>,
+    vel_b: &SVector<f64, D>,
+    radius_b: f64,
+    dt: f64,
+) -> Result<Option<CcdHit<D>>, CcdInputError> {
+    validate_sphere_sphere_input(pos_a, vel_a, radius_a, pos_b, vel_b, radius_b, dt)?;
+    Ok(sphere_sphere(
+        pos_a, vel_a, radius_a, pos_b, vel_b, radius_b, dt,
+    ))
+}
+
+/// Checked swept-sphere versus half-space query.
+///
+/// Returns `Ok(None)` for valid geometry with no impact in [0, dt], and
+/// `Err(CcdInputError)` for invalid geometry or kinematic inputs. The plane
+/// equation is n·x = offset; positive rescaling of both terms is invariant.
+pub fn sphere_halfspace_checked<const D: usize>(
+    pos: &SVector<f64, D>,
+    vel: &SVector<f64, D>,
+    radius: f64,
+    plane_normal: &SVector<f64, D>,
+    plane_offset: f64,
+    dt: f64,
+) -> Result<Option<CcdHit<D>>, CcdInputError> {
+    validate_sphere_halfspace_input(pos, vel, radius, plane_normal, plane_offset, dt)?;
+    Ok(sphere_halfspace(
+        pos,
+        vel,
+        radius,
+        plane_normal,
+        plane_offset,
+        dt,
+    ))
 }
 
 /// Swept sphere vs sphere: find the earliest time of impact.
@@ -324,6 +469,117 @@ mod tests {
         // t = 99.5 / 1.0 = 99.5, way beyond dt=1.0
         let hit = sphere_halfspace(&pos, &vel, 0.5, &normal, 0.0, 1.0);
         assert!(hit.is_none(), "impact outside dt should not be reported");
+    }
+
+    #[test]
+    fn checked_queries_distinguish_invalid_inputs_from_valid_no_hit() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([1.0, 0.0, 0.0]);
+        let pos_b = SVector::from([0.0, 10.0, 0.0]);
+        let vel_b = SVector::zeros();
+
+        assert_eq!(
+            sphere_sphere_checked(&pos_a, &vel_a, -0.5, &pos_b, &vel_b, 0.5, 1.0),
+            Err(CcdInputError::NegativeRadius)
+        );
+        assert_eq!(
+            sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, f64::INFINITY),
+            Err(CcdInputError::NonFiniteTimeStep)
+        );
+        assert_eq!(
+            sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0),
+            Ok(None)
+        );
+
+        let zero_normal = SVector::zeros();
+        assert_eq!(
+            sphere_halfspace_checked(&pos_a, &vel_a, 0.5, &zero_normal, 0.0, 1.0),
+            Err(CcdInputError::DegeneratePlaneNormal)
+        );
+    }
+
+    #[test]
+    fn sphere_sphere_contact_residual_and_common_velocity_are_invariant() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0, 0.0, 0.0]);
+        let vel_a = SVector::from([10.0, 0.0, 0.0]);
+        let vel_b = SVector::from([-10.0, 0.0, 0.0]);
+        let boost = SVector::from([123.0, -37.0, 4.5]);
+
+        let baseline = sphere_sphere_checked(
+            &pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0,
+        )
+        .unwrap()
+        .unwrap();
+        let boosted = sphere_sphere_checked(
+            &pos_a,
+            &(vel_a + boost),
+            0.5,
+            &pos_b,
+            &(vel_b + boost),
+            0.5,
+            1.0,
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!((baseline.toi - 0.2).abs() < 1e-12);
+        assert!((baseline.toi - boosted.toi).abs() < 1e-12);
+        assert!((baseline.normal - boosted.normal).norm() < 1e-12);
+
+        let center_a_at_hit = pos_a + vel_a * baseline.toi;
+        let center_b_at_hit = pos_b + vel_b * baseline.toi;
+        assert!(((center_b_at_hit - center_a_at_hit).norm() - 1.0).abs() < 1e-11);
+        assert!(((baseline.point - center_a_at_hit).norm() - 0.5).abs() < 1e-11);
+        assert!((baseline.normal.norm() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_sphere_toi_scales_with_time_reparameterization() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0, 0.0, 0.0]);
+        let vel_a = SVector::from([10.0, 0.0, 0.0]);
+        let vel_b = SVector::from([-10.0, 0.0, 0.0]);
+
+        let original = sphere_sphere_checked(
+            &pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0,
+        )
+        .unwrap()
+        .unwrap();
+        let time_scale = 4.0;
+        let rescaled = sphere_sphere_checked(
+            &pos_a,
+            &(vel_a * time_scale),
+            0.5,
+            &pos_b,
+            &(vel_b * time_scale),
+            0.5,
+            1.0 / time_scale,
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!((original.toi - time_scale * rescaled.toi).abs() < 1e-12);
+        assert!((original.point - rescaled.point).norm() < 1e-12);
+    }
+
+    #[test]
+    fn halfspace_contact_residual_is_zero_for_non_unit_plane_normal() {
+        let pos = SVector::from([0.0, 3.0, 0.0]);
+        let velocity = SVector::from([0.0, -1.0, 0.0]);
+        let normal = SVector::from([0.0, 7.0, 0.0]);
+        let offset = 0.0;
+
+        let hit = sphere_halfspace_checked(
+            &pos, &velocity, 0.5, &normal, offset, 3.0,
+        )
+        .unwrap()
+        .unwrap();
+        let signed_plane_residual = hit.normal.dot(&hit.point) - offset / normal.norm();
+
+        assert!((hit.toi - 2.5).abs() < 1e-12);
+        assert!(signed_plane_residual.abs() < 1e-12);
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
     }
 
     #[test]
