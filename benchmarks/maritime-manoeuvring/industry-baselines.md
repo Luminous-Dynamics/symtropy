@@ -45,6 +45,20 @@ The S-127 registry explicitly describes VTS, pilotage, routing measures and ship
 
 All product use must pin the exact IHO product specification and edition, S-100 framework version, producer/source identity, jurisdiction, dataset/cell, issue/update sequence, coverage, validity/currentness, datum/CRS, quality/uncertainty, licence/rights and exact raw bytes/digest. A schema-conforming product is not proof of physical correctness, source authenticity, currentness, licence or authorization.
 
+
+### Restricted-water and interaction benchmark families in ITTC
+
+The ITTC benchmark catalogue is more useful than a single generic “restricted-water” label. Procedure 7.5-02-06-06 (2024 Rev. 01, pp. 7–8 and benchmark summary table on p. 12) identifies distinct MASHCON data families:
+
+- **Bank effects:** captive tests of a single-screw 800-TEU container carrier with surface-piercing banks and banks with a submerged platform/slope configuration.
+- **Lock approach/departure:** free-running data for a 12,000-TEU container ship at 1:80 model scale and captive data for a 1:75 bulk-carrier model.
+- **Lightering / ship-to-ship interaction:** five static tests and one dynamic rudder test with an Aframax service ship and a KVLCC2 vessel being lightered.
+- **Passing-ship interaction:** a KCS passing close to moored Neo-Panamax container and Aframax tanker hulls, including close-distance and/or high-speed conditions.
+
+These must be separate benchmark families with their own state variables, geometry, measurements and uncertainty. Bank suction/cushion, lock-approach effects, lightering interaction and passing-ship loads are not interchangeable. A free-running lock-approach record is also not equivalent to captive force data. The ITTC catalogue identifies these data sets, but each artifact still needs exact-byte, source, rights/access and metadata review before use in a reproducible run.
+
+Source: ITTC 7.5-02-06-06 (2024 Rev. 01), pp. 7–8 and p. 12: https://www.ittc.info/media/11874/75-02-06-06.pdf
+
 ## 2. Current 2026 research comparators
 
 | Study | Modelled scope | Reported result / comparator | Gap it sets for our benchmark |
