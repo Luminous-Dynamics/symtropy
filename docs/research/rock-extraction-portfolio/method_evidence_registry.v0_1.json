@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "registry_id": "symtropy.rock-extraction.method-evidence",
-  "registry_version": "0.1.1",
+  "registry_version": "0.1.2",
   "status": "literature_reference_only",
   "claim_ceiling": "This registry is a research index. It does not qualify a method, machine, site, physical model, safety case, construction design, or operational use.",
   "evidence_scale": [
@@ -62,6 +62,14 @@
           "tier": "R4-R5",
           "basis": "Established industrial method family; task and block-quality boundaries differ from tunnel advance.",
           "sources": []
+        },
+        {
+          "application": "full_scale_linear_cutting_force_and_reciprocal_strength_inference",
+          "tier": "R2-R3",
+          "basis": "Pan et al. (2026) report full-scale linear cutting data across 21 rock types and 121 conditions, then modify the semi-theoretical CSM model to predict cutter normal/rolling forces and invert those forces to estimate UCS and Brazilian tensile strength. The authors state the new model still needs accuracy improvement, its coefficients are rig-specific, and the model currently applies to intact rock blocks without discontinuities or in-situ confining stress. Treat as a reference dataset and reciprocal-inference research lead, not a transferable real-time rock-strength sensor.",
+          "sources": [
+            "https://doi.org/10.1016/j.rockmb.2026.100317"
+          ]
         }
       ],
       "not_demonstrated": [
@@ -73,7 +81,11 @@
         "cutter_wear",
         "fragment_size",
         "overbreak",
-        "support_demand"
+        "support_demand",
+        "normal_rolling_force_prediction_error",
+        "inverse_ucs_brazilian_tensile_strength_error",
+        "prediction_interval_coverage",
+        "leave_rock_site_rig_out_transfer"
       ]
     },
     {
