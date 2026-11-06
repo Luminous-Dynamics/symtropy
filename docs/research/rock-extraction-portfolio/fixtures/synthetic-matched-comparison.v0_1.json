@@ -71,7 +71,9 @@
         "evidence_role": "IndependentMeasurement",
         "calibration_ref": "synthetic:clock-calibration-v1",
         "source_ref": "synthetic:clock-log:base-001"
-      }
+      },
+      "specimen_ref": "synthetic:specimen:base-001",
+      "matched_pair_ref": "synthetic:pair-01"
     },
     {
       "schema_version": 1,
@@ -119,7 +121,9 @@
         "evidence_role": "IndependentMeasurement",
         "calibration_ref": "synthetic:clock-calibration-v1",
         "source_ref": "synthetic:clock-log:base-002"
-      }
+      },
+      "specimen_ref": "synthetic:specimen:base-002",
+      "matched_pair_ref": "synthetic:pair-02"
     },
     {
       "schema_version": 1,
@@ -167,7 +171,9 @@
         "evidence_role": "IndependentMeasurement",
         "calibration_ref": "synthetic:clock-calibration-v1",
         "source_ref": "synthetic:clock-log:candidate-001"
-      }
+      },
+      "specimen_ref": "synthetic:specimen:candidate-001",
+      "matched_pair_ref": "synthetic:pair-01"
     },
     {
       "schema_version": 1,
@@ -215,7 +221,9 @@
         "evidence_role": "IndependentMeasurement",
         "calibration_ref": "synthetic:clock-calibration-v1",
         "source_ref": "synthetic:clock-log:candidate-002"
-      }
+      },
+      "specimen_ref": "synthetic:specimen:candidate-002",
+      "matched_pair_ref": "synthetic:pair-02"
     }
   ]
 }
