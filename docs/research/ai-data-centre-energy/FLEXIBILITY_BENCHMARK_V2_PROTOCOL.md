@@ -228,7 +228,7 @@ A benchmark pass establishes only the metrics, model boundary, data split, opera
 
 The Scientific Data 2026 workload dataset (32 H100/B200 8-GPU node sessions, 40 RTX 3060 sessions, more than 1.8 million samples) is useful for accelerator and node-scale power model evaluation. The dataset README reports 15-minute sessions with 20 ms node-scale and 100 ms single-machine sampling. It is not a facility-PCC measurement chain, a three-hour dispatch demonstration, a cooling/ambient dataset or evidence of cross-data-centre correlation. Use it for per-GPU/node power prediction, workload phase characterization and within-node synchrony only.
 
-The repository identifies the data as CC BY-NC-ND 4.0. This benchmark does not copy or transform its source files into Symtropy. Any reuse, derivative analysis or distribution must undergo a separate licence and use review; CI fixtures remain synthetic and source digests/metadata only.
+The source repository README identifies the data as CC BY-NC-ND 4.0, while the Figshare DOI landing page displays CC BY 4.0. The licence is therefore unresolved pending rights-holder clarification. This benchmark does not copy or transform source files into Symtropy. Reuse, derivative analysis or distribution is blocked pending licence review; CI fixtures remain synthetic and source metadata only.
 
 ## 11. Counterfactual baseline and M&V
 
