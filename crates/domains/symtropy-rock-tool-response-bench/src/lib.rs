@@ -323,7 +323,9 @@ fn validate_record(
 
     if mechanism == Some("ODC") {
         if let (Some(config), Some(observations)) = (config, observations) {
-            validate_odc_observations(config, observations, record_id.clone(), issues);
+            if let Some(channels) = channels {
+                validate_odc_observations(config, observations, channels, &artifact_map, record_id.clone(), issues);
+            }
         }
     }
 
@@ -484,6 +486,8 @@ fn validate_method_config(
 fn validate_odc_observations(
     config: &Value,
     observations: &[Value],
+    channels: &[Value],
+    artifacts: &BTreeMap<String, &Value>,
     record_id: Option<String>,
     issues: &mut Vec<ValidationIssue>,
 ) {
@@ -510,6 +514,41 @@ fn validate_odc_observations(
         || non_empty_string(traction, "unit") != Some("m/s")
     {
         push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, "ODC traction speed must be independently measured in m/s");
+    }
+
+    let angular_channel = channels.iter().find(|channel| non_empty_string(channel, "quantity") == Some("angular_speed"));
+    let traction_channel = channels.iter().find(|channel| non_empty_string(channel, "quantity") == Some("traction_speed"));
+    let Some(angular_channel) = angular_channel else {
+        push(issues, record_id.clone(), ValidationCode::MissingDiagnosticChannel, "ODC requires an angular_speed encoder channel");
+        return;
+    };
+    let Some(traction_channel) = traction_channel else {
+        push(issues, record_id.clone(), ValidationCode::MissingDiagnosticChannel, "ODC requires a traction_speed encoder channel");
+        return;
+    };
+    if non_empty_string(angular_channel, "unit") != Some("rad/s")
+        || non_empty_string(traction_channel, "unit") != Some("m/s")
+        || non_empty_string(angular_channel, "measurement_role") != Some("IndependentMeasurement")
+        || non_empty_string(traction_channel, "measurement_role") != Some("IndependentMeasurement")
+    {
+        push(issues, record_id.clone(), ValidationCode::OperatingPointObservationMismatch, "ODC encoder channels must be independent measurements in rad/s and m/s");
+    }
+
+    for (observation, channel, label) in [
+        (angular, angular_channel, "angular"),
+        (traction, traction_channel, "traction"),
+    ] {
+        let channel_id = non_empty_string(channel, "channel_id");
+        let source_refs = observation.get("source_artifact_refs").and_then(Value::as_array);
+        let source_binds_channel = match (channel_id, source_refs) {
+            (Some(channel_id), Some(source_refs)) => source_refs.iter().filter_map(Value::as_str).any(|source_ref| {
+                artifacts.get(source_ref).is_some_and(|artifact| string_array_contains(artifact, "channel_refs", channel_id))
+            }),
+            _ => false,
+        };
+        if !source_binds_channel {
+            push(issues, record_id.clone(), ValidationCode::MissingObservationSource, format!("ODC {label} speed observation source does not bind to its independent encoder channel"));
+        }
     }
 
     let measured_omega = number(angular, "value");
@@ -553,7 +592,7 @@ fn validate_diagnostic_channels(
     let required: &[&str] = match mechanism {
         "ATCP" => &["axial_force", "torsional_torque"],
         "LASER_ASSISTED_PDC" => &["optical_power", "surface_temperature"],
-        "ODC" => &["thrust_force", "cutting_torque"],
+        "ODC" => &["thrust_force", "cutting_torque", "angular_speed", "traction_speed"],
         _ => return,
     };
     let mut found = Vec::new();
