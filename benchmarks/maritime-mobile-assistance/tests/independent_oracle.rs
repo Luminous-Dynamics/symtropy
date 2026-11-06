@@ -122,6 +122,10 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
     };
     if tug.capability_evidence.state != EvidenceState::Current
         || tug.position_evidence.state != EvidenceState::Current
+        || tug.capability_evidence.subject_id != tug.tug_id
+        || tug.position_evidence.subject_id != tug.tug_id
+        || tug.capability_evidence.subject_revision != tug.revision
+        || tug.position_evidence.subject_revision != tug.revision
         || tug.position_evidence.valid_from_tick > input.decision_tick
         || tug.position_evidence.valid_through_tick < input.decision_tick
     {
@@ -154,10 +158,13 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
         }
 
         if node != task.location_node_id {
+            let expected_subject = format!("{}->{}", node, task.location_node_id);
             let Some(leg) = input.reposition_legs.iter().find(|leg| {
                 leg.from_node_id == node
                     && leg.to_node_id == task.location_node_id
                     && leg.route_revision == task.route_revision
+                    && leg.evidence.subject_id == expected_subject
+                    && leg.evidence.subject_revision == task.route_revision
             }) else {
                 return false;
             };
