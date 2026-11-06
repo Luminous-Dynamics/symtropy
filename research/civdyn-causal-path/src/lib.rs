@@ -698,7 +698,8 @@ impl CausalExperiment {
         if self.mechanism_ablation.arm.exogenous_snapshot_id != self.control.exogenous_snapshot_id {
             return Err(CausalPathError::AblationExogenousSnapshotMismatch);
         }
-        if !only_one_initial_value_differs(&self.treatment, &self.mechanism_ablation.arm, block_id) {
+        if !only_one_initial_value_differs(&self.treatment, &self.mechanism_ablation.arm, block_id)
+        {
             return Err(CausalPathError::AblationInitialStateMismatch);
         }
         if !close(
