@@ -32,11 +32,12 @@ These are intentionally small synthetic generators for benchmark semantics. The 
 - A fitted bivariate VAR(1) predictive baseline using only the pre-action prefix. The VAR forecast is action-blind; a VAR win is predictive equivalence, not evidence for a neural mechanism.
 - Candidate-family selection with a score-margin threshold and explicit abstention.
 - **Maximin intervention design:** rank feasible candidate actions by the minimum pairwise post-onset forecast RMSE across all competing mechanism pairs, divided by declared action cost. This avoids choosing an experiment that separates easy pairs while leaving one rival pair indistinguishable.
-- Unresolved worst-case model pairs cause design abstention; infeasible actions are excluded before ranking.
+- **Parameter-scenario robustness:** evaluate the same action across a supplied set of plausible damping/coupling/frequency/phase configurations and maximize the worst separation across both model pairs and parameter scenarios. Scenarios must share the same sample grid.
+- Unresolved worst-case model pairs/scenarios cause design abstention; infeasible actions are excluded before ranking.
 - Strictly increasing timestamps and exact paired timestamp-grid identity for prediction scoring.
 - Standalone Cargo crate with a dedicated Rust 1.96.0 formatting / test / strict-Clippy workflow.
 
-The 40 deterministic tests cover:
+The 42 deterministic tests cover:
 - baseline observational equivalence and mandatory abstention;
 - feedback-cut divergence and both directions of fitted-model selection;
 - driven-attractor relaxation, hybrid phase correction and phase pulses;
@@ -55,7 +56,7 @@ This V0 does not fit feedback decay/coupling, implement Bayesian model evidence,
 
 The paired-seed Monte Carlo currently uses small deterministic seed sets and known synthetic parameter grids; it is a harness proof, not a powered performance evaluation. Wilson intervals quantify binomial rates over the chosen synthetic seeds; they do not establish biological generalization.
 
-The intervention designer uses deterministic model-prediction disagreement divided by declared cost. It is not Bayesian expected information gain: it has no posterior over models, nuisance parameters, action outcomes or intervention uncertainty. Next work should add posterior-predictive design, parameter uncertainty, profile-likelihood practical identifiability and sequential outcome-updated planning. The phase pulse and feedback cut are idealized synthetic actions; measured interventions require authenticated assignment/delivery receipts and actual timing/latency.
+The intervention designer uses deterministic model-prediction disagreement divided by declared cost. Its multi-scenario extension is a finite-scenario worst-case approximation, not a posterior-predictive distribution. Neither variant is Bayesian expected information gain: they have no posterior over models, nuisance parameters, action outcomes or intervention uncertainty. Next work should add posterior-predictive design, parameter uncertainty, profile-likelihood practical identifiability and sequential outcome-updated planning. The phase pulse and feedback cut are idealized synthetic actions; measured interventions require authenticated assignment/delivery receipts and actual timing/latency.
 
 ## Required next benchmark increments
 
