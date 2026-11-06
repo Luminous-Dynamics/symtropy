@@ -171,6 +171,16 @@ impl EventSequencer {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+struct ActorRouteSpec<'a> {
+    actor_id: &'a str,
+    route_id: &'a str,
+    coordinate_frame_id: &'a str,
+    start: Point2,
+    end: Point2,
+    observation_source_id: u64,
+}
+
 #[derive(Clone, Debug)]
 struct ActorRuntime {
     id: ScenarioActorId,
@@ -186,32 +196,27 @@ struct ActorRuntime {
 
 impl ActorRuntime {
     fn new(
-        id: &str,
-        route_id: &str,
-        frame_id: &str,
-        start: Point2,
-        end: Point2,
-        source_id: u64,
-        bounds: MotionBounds,
+        route_spec: ActorRouteSpec<'_>,
         policy: CautiousPausePolicy,
         motion_profile: MotionProfile,
         clock: TickClock,
     ) -> Result<Self, ProducerError> {
         Ok(Self {
-            id: ScenarioActorId::new(id).map_err(|_| ProducerError::InvalidActorId)?,
+            id: ScenarioActorId::new(route_spec.actor_id)
+                .map_err(|_| ProducerError::InvalidActorId)?,
             policy,
             state: ActorPolicyState::waiting(),
             route: StraightRoute::new(
-                RouteId::new(route_id)?,
-                CoordinateFrameId::new(frame_id)?,
-                start,
-                end,
+                RouteId::new(route_spec.route_id)?,
+                CoordinateFrameId::new(route_spec.coordinate_frame_id)?,
+                route_spec.start,
+                route_spec.end,
             )?,
             motion_profile,
             clock,
             progress_m: 0.0,
             measured_forward_speed_mps: 0.0,
-            source_id,
+            source_id: route_spec.observation_source_id,
         })
     }
 
@@ -267,25 +272,27 @@ impl ReciprocalPolicyProducer {
         let clock = TickClock::new(10)?;
 
         let ego = ActorRuntime::new(
-            "ego",
-            "ego-eastbound",
-            "intersection-frame",
-            Point2::new(0.0, 0.0)?,
-            Point2::new(100.0, 0.0)?,
-            1,
-            bounds,
+            ActorRouteSpec {
+                actor_id: "ego",
+                route_id: "ego-eastbound",
+                coordinate_frame_id: "intersection-frame",
+                start: Point2::new(0.0, 0.0)?,
+                end: Point2::new(100.0, 0.0)?,
+                observation_source_id: 1,
+            },
             policy,
             motion_profile,
             clock,
         )?;
         let other_actor = ActorRuntime::new(
-            "actor-1",
-            "actor-northbound",
-            "intersection-frame",
-            Point2::new(50.0, -50.0)?,
-            Point2::new(50.0, 50.0)?,
-            2,
-            bounds,
+            ActorRouteSpec {
+                actor_id: "actor-1",
+                route_id: "actor-northbound",
+                coordinate_frame_id: "intersection-frame",
+                start: Point2::new(50.0, -50.0)?,
+                end: Point2::new(50.0, 50.0)?,
+                observation_source_id: 2,
+            },
             policy,
             motion_profile,
             clock,
