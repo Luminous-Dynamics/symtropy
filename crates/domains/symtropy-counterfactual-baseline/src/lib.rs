@@ -313,6 +313,13 @@ impl BaselineQualificationContract {
     }
 }
 
+/// Frozen relative interval geometry for one complete baseline trajectory.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BaselineTrajectoryIntervalShape {
+    pub offset_from_group_start_ns: u64,
+    pub duration_ns: u64,
+}
+
 /// Per-regime baseline error and conformal-style lower-bound validation receipt.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct RegimeBaselineReceipt {
@@ -330,6 +337,8 @@ pub struct RegimeBaselineReceipt {
     pub evaluation_rmse_kw: f64,
     pub lower_bound_coverage_basis_points: f64,
     pub false_positive_reduction_rate_basis_points: f64,
+    /// The exact path shape on which this regime's lower residual is calibrated.
+    pub trajectory_shape: Vec<BaselineTrajectoryIntervalShape>,
     pub qualified: bool,
 }
 
@@ -645,6 +654,24 @@ pub enum BaselineQualificationError {
     EvaluationRegimeMissingCalibration {
         regime_id: String,
     },
+    NonContiguousBaselineTrajectory {
+        regime_id: String,
+        group_id: String,
+        index: usize,
+        expected_start_ns: u64,
+        observed_start_ns: u64,
+    },
+    BaselineTrajectoryShapeMismatch {
+        regime_id: String,
+        group_id: String,
+        expected_interval_count: usize,
+        observed_interval_count: usize,
+    },
+    EventTrajectoryShapeMismatch {
+        regime_id: String,
+        expected_interval_count: usize,
+        observed_interval_count: usize,
+    },
     InvalidNormalizedPowerScale {
         regime_id: String,
     },
@@ -762,6 +789,33 @@ impl fmt::Display for BaselineQualificationError {
             Self::EvaluationRegimeMissingCalibration { regime_id } => write!(
                 f,
                 "evaluation operating regime {regime_id} has no disjoint calibration residual partition"
+            ),
+            Self::NonContiguousBaselineTrajectory {
+                regime_id,
+                group_id,
+                index,
+                expected_start_ns,
+                observed_start_ns,
+            } => write!(
+                f,
+                "baseline trajectory group {group_id} in regime {regime_id} has a gap/overlap at interval {index}: expected {expected_start_ns}, observed {observed_start_ns}"
+            ),
+            Self::BaselineTrajectoryShapeMismatch {
+                regime_id,
+                group_id,
+                expected_interval_count,
+                observed_interval_count,
+            } => write!(
+                f,
+                "baseline trajectory group {group_id} in regime {regime_id} has {observed_interval_count} intervals; expected shape has {expected_interval_count}"
+            ),
+            Self::EventTrajectoryShapeMismatch {
+                regime_id,
+                expected_interval_count,
+                observed_interval_count,
+            } => write!(
+                f,
+                "event/recovery trace in regime {regime_id} has {observed_interval_count} intervals; qualified baseline horizon has {expected_interval_count}"
             ),
             Self::InvalidNormalizedPowerScale { regime_id } => write!(
                 f,
@@ -950,6 +1004,23 @@ pub fn qualify_counterfactual_baseline(
                 .and_modify(|current| *current = current.min(conservative_residual))
                 .or_insert(conservative_residual);
         }
+        let calibration_shapes = trajectory_shapes(calibration_samples, regime_id)?;
+        let evaluation_shapes = trajectory_shapes(evaluation_samples, regime_id)?;
+        let expected_trajectory_shape = calibration_shapes
+            .values()
+            .next()
+            .cloned()
+            .ok_or(BaselineQualificationError::NoSharedOperatingRegimes)?;
+        for (group_id, shape) in calibration_shapes.iter().chain(evaluation_shapes.iter()) {
+            if shape != &expected_trajectory_shape {
+                return Err(BaselineQualificationError::BaselineTrajectoryShapeMismatch {
+                    regime_id: regime_id.to_owned(),
+                    group_id: (*group_id).to_owned(),
+                    expected_interval_count: expected_trajectory_shape.len(),
+                    observed_interval_count: shape.len(),
+                });
+            }
+        }
         let mut calibration_residuals: Vec<f64> = group_lower_residuals.values().copied().collect();
         calibration_residuals.sort_by(f64::total_cmp);
         let alpha = contract.residual_lower_tail_alpha_basis_points as usize;
@@ -1050,6 +1121,7 @@ pub fn qualify_counterfactual_baseline(
             evaluation_rmse_kw,
             lower_bound_coverage_basis_points,
             false_positive_reduction_rate_basis_points,
+            trajectory_shape: expected_trajectory_shape,
             qualified,
         });
     }
@@ -1242,6 +1314,30 @@ pub fn evaluate_baseline_bounded_event(
     if recovery_interval_count == 0 {
         return Err(BaselineQualificationError::MissingRecoveryIntervals);
     }
+    let event_origin_ns = recovery_evidence.event_start_ns;
+    let event_shape: Vec<BaselineTrajectoryIntervalShape> = points
+        .iter()
+        .map(|point| BaselineTrajectoryIntervalShape {
+            offset_from_group_start_ns: point.interval_start_ns - event_origin_ns,
+            duration_ns: point.interval_duration_ns,
+        })
+        .collect();
+    let used_regimes: BTreeSet<&str> = points.iter().map(|point| point.regime_id.as_str()).collect();
+    for regime_id in used_regimes {
+        let expected_shape = &qualified_baseline
+            .regime(regime_id)
+            .ok_or_else(|| BaselineQualificationError::UnknownOperatingRegime {
+                regime_id: regime_id.to_owned(),
+            })?
+            .trajectory_shape;
+        if &event_shape != expected_shape {
+            return Err(BaselineQualificationError::EventTrajectoryShapeMismatch {
+                regime_id: regime_id.to_owned(),
+                expected_interval_count: expected_shape.len(),
+                observed_interval_count: event_shape.len(),
+            });
+        }
+    }
     let observed_horizon_end_ns = previous_end_ns.ok_or(BaselineQualificationError::EmptyEvent)?;
     if observed_horizon_end_ns != recovery_evidence.observation_horizon_end_ns {
         return Err(BaselineQualificationError::EventHorizonEndMismatch {
@@ -1281,6 +1377,55 @@ pub fn evaluate_baseline_bounded_event(
         intervals: receipts,
         claim_boundary: "model-based conservative impact bound using holdout-qualified counterfactual baseline and caller-supplied expanded PCC measurement uncertainty; no causal identification is asserted".to_owned(),
     })
+}
+
+
+/// Build a contiguous, relative-time trajectory shape for every independent
+/// group. Absolute start times may differ; interval offsets and durations may
+/// not. Groups with different numbers of samples are never pooled together.
+fn trajectory_shapes<'a>(
+    samples: &[&'a NoDispatchObservation],
+    regime_id: &str,
+) -> Result<BTreeMap<&'a str, Vec<BaselineTrajectoryIntervalShape>>, BaselineQualificationError> {
+    let mut grouped: BTreeMap<&str, Vec<&NoDispatchObservation>> = BTreeMap::new();
+    for sample in samples {
+        grouped.entry(sample.group_id.as_str()).or_default().push(*sample);
+    }
+
+    let mut shapes = BTreeMap::new();
+    for (group_id, mut group_samples) in grouped {
+        group_samples.sort_by_key(|sample| sample.interval_start_ns);
+        let origin_ns = group_samples
+            .first()
+            .ok_or(BaselineQualificationError::NoSharedOperatingRegimes)?
+            .interval_start_ns;
+        let mut previous_end_ns: Option<u64> = None;
+        let mut shape = Vec::with_capacity(group_samples.len());
+        for (index, sample) in group_samples.iter().enumerate() {
+            if let Some(expected_start_ns) = previous_end_ns
+                && sample.interval_start_ns != expected_start_ns
+            {
+                return Err(BaselineQualificationError::NonContiguousBaselineTrajectory {
+                    regime_id: regime_id.to_owned(),
+                    group_id: group_id.to_owned(),
+                    index,
+                    expected_start_ns,
+                    observed_start_ns: sample.interval_start_ns,
+                });
+            }
+            let end_ns = sample
+                .interval_start_ns
+                .checked_add(sample.interval_duration_ns)
+                .ok_or(BaselineQualificationError::TimestampOverflow)?;
+            previous_end_ns = Some(end_ns);
+            shape.push(BaselineTrajectoryIntervalShape {
+                offset_from_group_start_ns: sample.interval_start_ns - origin_ns,
+                duration_ns: sample.interval_duration_ns,
+            });
+        }
+        shapes.insert(group_id, shape);
+    }
+    Ok(shapes)
 }
 
 fn mean(values: &[f64]) -> f64 {
