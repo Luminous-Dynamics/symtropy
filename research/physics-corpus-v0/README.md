@@ -5,7 +5,13 @@ replay, independent-rollout throughput and engine-qualification evidence.
 
 It extends, rather than replaces, the existing `symtropy-physics` Criterion
 benchmarks, `ReplayTape`, `WorldSnapshot`, and `InvariantSnapshot` APIs.
-The first implementation slice adds:
+The family-level roadmap and exact status are indexed in
+[`benchmark-family-index-v0.json`](benchmark-family-index-v0.json). Current
+adjacent verification work includes [free-fall analytic convergence PR
+#3870](https://github.com/Luminous-Dynamics/symtropy/pull/3870) and
+[analytical CCD hardening PR
+#3868](https://github.com/Luminous-Dynamics/symtropy/pull/3868). The first
+implementation slice in this batch/replay PR adds:
 
 - Stable rollout identity independent of worker scheduling.
 - Canonical output ordering with fail-closed missing/duplicate/unexpected ID
