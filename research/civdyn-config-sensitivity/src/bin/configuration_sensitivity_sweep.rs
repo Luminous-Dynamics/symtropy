@@ -5,8 +5,8 @@
 //! No human, hiring, lending or demographic data is imported.
 
 use civdyn_config_sensitivity::{
-    ConfigurationBenchmark, ConfigurationFacets, ConfigurationIdentity, ConfigurationRun,
-    CohortMetrics, ConfigurationMetrics, DecisionRecord, SingleFacetContrast, evaluate,
+    CohortMetrics, ConfigurationBenchmark, ConfigurationFacets, ConfigurationIdentity,
+    ConfigurationMetrics, ConfigurationRun, DecisionRecord, SingleFacetContrast, evaluate,
 };
 
 const CSV_COLUMNS: usize = 21;
@@ -87,7 +87,11 @@ fn empty_row(record_type: &str, benchmark_id: &str) -> Vec<String> {
 }
 
 fn emit(row: Vec<String>) {
-    assert_eq!(row.len(), CSV_COLUMNS, "configuration CSV schema must remain fixed");
+    assert_eq!(
+        row.len(),
+        CSV_COLUMNS,
+        "configuration CSV schema must remain fixed"
+    );
     println!("{}", row.join(","));
 }
 
@@ -108,11 +112,7 @@ fn summary_row(benchmark_id: &str, metrics: &ConfigurationMetrics) {
     }
 }
 
-fn cohort_row(
-    benchmark_id: &str,
-    configuration: &ConfigurationIdentity,
-    cohort: &CohortMetrics,
-) {
+fn cohort_row(benchmark_id: &str, configuration: &ConfigurationIdentity, cohort: &CohortMetrics) {
     let mut row = empty_row("cohort_summary", benchmark_id);
     row[2] = configuration.configuration_id.clone();
     row[3] = configuration.configuration_digest.clone();
