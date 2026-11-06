@@ -399,9 +399,16 @@ impl BaselineQualificationReport {
 /// One dispatch-event interval with baseline forecast and metrology-bounded
 /// observed PCC load. The measurement uncertainty is an expanded upper bound
 /// supplied by the independent PCC metrology verifier.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum DispatchEventPhase {
+    Dispatch,
+    Recovery,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct DispatchEventPoint {
     point_id: String,
+    phase: DispatchEventPhase,
     regime_id: String,
     forecast_issued_at_ns: u64,
     interval_start_ns: u64,
@@ -416,6 +423,7 @@ impl DispatchEventPoint {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         point_id: impl Into<String>,
+        phase: DispatchEventPhase,
         regime_id: impl Into<String>,
         forecast_issued_at_ns: u64,
         interval_start_ns: u64,
@@ -427,6 +435,7 @@ impl DispatchEventPoint {
     ) -> Result<Self, BaselineQualificationError> {
         let point = Self {
             point_id: point_id.into(),
+            phase,
             regime_id: regime_id.into(),
             forecast_issued_at_ns,
             interval_start_ns,
@@ -478,10 +487,63 @@ impl DispatchEventPoint {
     }
 }
 
+/// Explicit evidence for the dispatch-end boundary and subsequent recovery
+/// observation. The caller binds useful-work and physical-state reconciliation
+/// to this source digest; a bare completion boolean cannot certify recovery.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct EventRecoveryEvidence {
+    event_start_ns: u64,
+    dispatch_end_ns: u64,
+    observation_horizon_end_ns: u64,
+    evidence_id: String,
+    source_digest: String,
+    workload_obligations_reconciled: bool,
+    physical_resource_states_reconciled: bool,
+}
+
+impl EventRecoveryEvidence {
+    pub fn new(
+        event_start_ns: u64,
+        dispatch_end_ns: u64,
+        observation_horizon_end_ns: u64,
+        evidence_id: impl Into<String>,
+        source_digest: impl Into<String>,
+        workload_obligations_reconciled: bool,
+        physical_resource_states_reconciled: bool,
+    ) -> Result<Self, BaselineQualificationError> {
+        let evidence = Self {
+            event_start_ns,
+            dispatch_end_ns,
+            observation_horizon_end_ns,
+            evidence_id: evidence_id.into(),
+            source_digest: source_digest.into(),
+            workload_obligations_reconciled,
+            physical_resource_states_reconciled,
+        };
+        require_id("event recovery evidence ID", &evidence.evidence_id)?;
+        require_id("event recovery source digest", &evidence.source_digest)?;
+        if !(event_start_ns < dispatch_end_ns
+            && dispatch_end_ns < observation_horizon_end_ns)
+        {
+            return Err(BaselineQualificationError::InvalidEventRecoveryHorizon {
+                event_start_ns,
+                dispatch_end_ns,
+                observation_horizon_end_ns,
+            });
+        }
+        Ok(evidence)
+    }
+
+    pub const fn is_complete(&self) -> bool {
+        self.workload_obligations_reconciled && self.physical_resource_states_reconciled
+    }
+}
+
 /// Per-interval conservative event-impact receipt.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct BaselineEventIntervalReceipt {
     pub point_id: String,
+    pub phase: DispatchEventPhase,
     pub regime_id: String,
     pub interval_start_ns: u64,
     pub interval_duration_ns: u64,
@@ -505,6 +567,8 @@ pub struct BaselineEventReport {
     pub identity: BaselineIdentity,
     pub baseline_qualification_passed: bool,
     pub interval_count: usize,
+    pub dispatch_interval_count: usize,
+    pub recovery_interval_count: usize,
     pub qualifying_interval_count: usize,
     pub qualifying_interval_fraction_basis_points: f64,
     pub gross_reduction_energy_kwh: f64,
@@ -518,6 +582,13 @@ pub struct BaselineEventReport {
     /// Interval bounds are not automatically a joint event-horizon probability.
     pub event_lower_bound_is_joint_probability: bool,
     pub event_and_recovery_included_in_supplied_horizon: bool,
+    pub recovery_evidence_id: String,
+    pub recovery_source_digest: String,
+    pub workload_obligations_reconciled: bool,
+    pub physical_resource_states_reconciled: bool,
+    pub event_start_ns: u64,
+    pub dispatch_end_ns: u64,
+    pub observation_horizon_end_ns: u64,
     pub intervals: Vec<BaselineEventIntervalReceipt>,
     pub claim_boundary: String,
 }
