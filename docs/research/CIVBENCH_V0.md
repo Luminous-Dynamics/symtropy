@@ -277,3 +277,12 @@ The simulation engine should be separable from Bevy rendering so headless batch 
 - Do not call a result SOTA without a named baseline, matched task, matched data, matched compute budget, and independent reproduction.
 
 **CivBench v0 succeeds when a researcher can reproduce a result, inspect its evidence, run the baselines, and identify the conditions under which the model fails.**
+
+
+## Execution-stack accountability extension
+
+CIVBENCH-MAD-001 now requires an explicit inventory of behavior-affecting execution components while continuing to reference, not duplicate, the Humanity Atlas run artifact. The inventory covers simulator/model, prompts or response generator, profile/memory, parsing and validation, retries/fallbacks, scheduler, exposure policy, environment, randomness, event capture and measurement.
+
+Every component has a version and configuration digest. Fallback policy and actual fallback events are separate fields; a silent default cannot masquerade as an ordinary model action. Unseeded random sources are declared explicitly. Scheduler order, exposure/visibility and event-capture loss policy are part of the evaluation condition.
+
+This extension is motivated by Liu (UNU Macau, 29 September 2026), *From Plausible Agents to Accountable Simulation*, which argues that parsers, defaults, schedulers and environment machinery can materially shape agent-based simulation outcomes. It is an accountability inventory, not a second run envelope or a claim that digests establish behavioral truth.
