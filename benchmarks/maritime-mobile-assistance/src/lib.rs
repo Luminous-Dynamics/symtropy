@@ -355,49 +355,51 @@ fn reposition_leg<'a>(
         return None;
     }
 
-    let matching_pair: Vec<&RepositionLeg> = legs
-        .iter()
-        .filter(|leg| {
-            leg.from_node_id == from_node_id && leg.to_node_id == to_node_id
-        })
-        .collect();
-    let Some(leg) = matching_pair
-        .iter()
-        .copied()
-        .find(|leg| leg.route_revision == route_revision)
-    else {
-        if matching_pair.is_empty() {
-            violations.insert(MobileViolation::MissingRepositionLeg {
-                resource_id: resource_id.to_owned(),
-                from_node_id: from_node_id.to_owned(),
-                to_node_id: to_node_id.to_owned(),
-            });
-        } else {
-            violations.insert(MobileViolation::RepositionRouteRevisionMismatch(
-                resource_id.to_owned(),
-            ));
+    let mut pair_found = false;
+    for leg in legs {
+        if leg.from_node_id == from_node_id && leg.to_node_id == to_node_id {
+            pair_found = true;
+            if leg.route_revision == route_revision {
+                return Some(leg);
+            }
         }
-        return None;
-    };
-    Some(leg)
+    }
+
+    if pair_found {
+        violations.insert(MobileViolation::RepositionRouteRevisionMismatch(
+            resource_id.to_owned(),
+        ));
+    } else {
+        violations.insert(MobileViolation::MissingRepositionLeg {
+            resource_id: resource_id.to_owned(),
+            from_node_id: from_node_id.to_owned(),
+            to_node_id: to_node_id.to_owned(),
+        });
+    }
+    None
+}
+
+struct ResourceSequenceContext<'a> {
+    resource_id: &'a str,
+    initial_node_id: &'a str,
+    availability: &'a [TickWindow],
+    position_evidence: &'a EvidenceReceipt,
 }
 
 fn check_resource_sequence(
-    resource_id: &str,
-    initial_node_id: &str,
-    availability: &[TickWindow],
-    position_evidence: &EvidenceReceipt,
+    context: ResourceSequenceContext<'_>,
     decision_tick: u64,
     route_legs: &[RepositionLeg],
     mut tasks: Vec<&AssistanceTask>,
     violations: &mut BTreeSet<MobileViolation>,
 ) {
-    position_evidence_violation(
+    let ResourceSequenceContext {
         resource_id,
+        initial_node_id,
+        availability,
         position_evidence,
-        decision_tick,
-        violations,
-    );
+    } = context;
+    position_evidence_violation(resource_id, position_evidence, decision_tick, violations);
     tasks.sort_by(|left, right| {
         left.operation
             .start_tick
@@ -735,10 +737,12 @@ pub fn evaluate_mobile_assistance(
     for (tug_id, tasks) in tug_tasks {
         let tug = tug_by_id[tug_id];
         check_resource_sequence(
-            tug_id,
-            &tug.position_node_id,
-            &tug.availability,
-            &tug.position_evidence,
+            ResourceSequenceContext {
+                resource_id: tug_id,
+                initial_node_id: &tug.position_node_id,
+                availability: &tug.availability,
+                position_evidence: &tug.position_evidence,
+            },
             workload.decision_tick,
             &workload.reposition_legs,
             tasks,
@@ -749,10 +753,12 @@ pub fn evaluate_mobile_assistance(
     for (pilot_id, tasks) in pilot_tasks {
         let pilot = pilot_by_id[pilot_id];
         check_resource_sequence(
-            pilot_id,
-            &pilot.position_node_id,
-            &pilot.availability,
-            &pilot.position_evidence,
+            ResourceSequenceContext {
+                resource_id: pilot_id,
+                initial_node_id: &pilot.position_node_id,
+                availability: &pilot.availability,
+                position_evidence: &pilot.position_evidence,
+            },
             workload.decision_tick,
             &workload.reposition_legs,
             tasks,
