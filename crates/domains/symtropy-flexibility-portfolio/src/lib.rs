@@ -305,6 +305,14 @@ impl PortfolioDefinition {
     pub fn total_offered_capacity_kw(&self) -> f64 {
         self.total_offered_capacity_kw
     }
+
+    pub fn largest_failure_domain_capacity_kw(&self) -> f64 {
+        self.largest_failure_domain_capacity_kw
+    }
+
+    pub fn largest_failure_domain_share_basis_points(&self) -> f64 {
+        self.largest_failure_domain_share_basis_points
+    }
 }
 
 /// Asset availability is an observed status, not a substitute for telemetry.
@@ -464,9 +472,9 @@ impl PortfolioStressEvent {
 /// must have exactly one observation for this event.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PortfolioEventObservation {
-    event: PortfolioStressEvent,
-    asset_outcomes: Vec<AssetDeliveryOutcome>,
-    failure_domain_observations: Vec<FailureDomainObservation>,
+    pub event: PortfolioStressEvent,
+    pub asset_outcomes: Vec<AssetDeliveryOutcome>,
+    pub failure_domain_observations: Vec<FailureDomainObservation>,
 }
 
 impl PortfolioEventObservation {
@@ -829,10 +837,10 @@ pub fn evaluate_portfolio_resilience(
         group_shortfalls.push(maximum_shortfall_kw);
         group_receipts.push(IncidentGroupReceipt {
             incident_group_id: incident_group_id.to_owned(),
-            scenario_id: *group_scenarios
+            scenario_id: (*group_scenarios
                 .get(incident_group_id)
-                .expect("group scenario inserted above")
-                .to_owned(),
+                .expect("group scenario inserted above"))
+            .to_owned(),
             event_count: values.len(),
             worst_margin_kw,
             maximum_shortfall_kw,
@@ -862,9 +870,9 @@ pub fn evaluate_portfolio_resilience(
         .fold(0.0, f64::max);
 
     group_shortfalls.sort_by(|a, b| b.total_cmp(a));
-    let tail_count = group_shortfalls
-        .len()
-        .div_ceil(portfolio.contract.shortfall_tail_alpha_basis_points as usize * group_shortfalls.len() / 10_000)
+    let tail_count = (group_shortfalls.len()
+        * portfolio.contract.shortfall_tail_alpha_basis_points as usize)
+        .div_ceil(10_000)
         .max(1)
         .min(group_shortfalls.len());
     let empirical_upper_tail_mean_incident_shortfall_kw =
