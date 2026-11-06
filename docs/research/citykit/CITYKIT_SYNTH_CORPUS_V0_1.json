@@ -266,7 +266,8 @@
             "source_revision": "fixture-v0.1",
             "source_receipt_id": "synthetic:cap-001",
             "reason_codes": [],
-            "scenario_id": "CK-CAP-001"
+            "scenario_id": "CK-CAP-001",
+            "source_subject_digest": "synthetic-subject:CK-CAP-001"
           }
         ]
       },
@@ -306,7 +307,8 @@
             "reason_codes": [
               "NO_FEASIBLE_PRODUCTION_ROUTE"
             ],
-            "scenario_id": "CK-CAP-002"
+            "scenario_id": "CK-CAP-002",
+            "source_subject_digest": "synthetic-subject:CK-CAP-002"
           }
         ]
       },
@@ -346,7 +348,8 @@
             "source_receipt_id": "synthetic:cap-003",
             "reason_codes": [],
             "scenario_id": "CK-CAP-003",
-            "selected_route_id": "route-b"
+            "selected_route_id": "route-b",
+            "source_subject_digest": "synthetic-subject:CK-CAP-003"
           }
         ]
       },
@@ -392,7 +395,8 @@
             "reason_codes": [
               "UNSEEDED_CAPABILITY_CYCLE"
             ],
-            "scenario_id": "CK-CAP-004"
+            "scenario_id": "CK-CAP-004",
+            "source_subject_digest": "synthetic-subject:CK-CAP-004"
           },
           {
             "target_id": "capability-b",
@@ -407,7 +411,8 @@
             "reason_codes": [
               "UNSEEDED_CAPABILITY_CYCLE"
             ],
-            "scenario_id": "CK-CAP-004"
+            "scenario_id": "CK-CAP-004",
+            "source_subject_digest": "synthetic-subject:CK-CAP-004"
           }
         ]
       },
@@ -447,7 +452,8 @@
             "source_revision": "fixture-v0.1",
             "source_receipt_id": "synthetic:cap-005",
             "reason_codes": [],
-            "scenario_id": "CK-CAP-005"
+            "scenario_id": "CK-CAP-005",
+            "source_subject_digest": "synthetic-subject:CK-CAP-005"
           }
         ]
       },
@@ -488,7 +494,8 @@
             "source_revision": "fixture-v0.1",
             "source_receipt_id": "synthetic:bracket",
             "reason_codes": [],
-            "scenario_id": "CK-CAP-006"
+            "scenario_id": "CK-CAP-006",
+            "source_subject_digest": "synthetic-subject:CK-CAP-006"
           },
           {
             "target_id": "robot-drive-unit",
@@ -501,7 +508,8 @@
             "source_revision": "fixture-v0.1",
             "source_receipt_id": "synthetic:drive",
             "reason_codes": [],
-            "scenario_id": "CK-CAP-006"
+            "scenario_id": "CK-CAP-006",
+            "source_subject_digest": "synthetic-subject:CK-CAP-006"
           }
         ]
       },
@@ -603,7 +611,8 @@
             "source_receipt_id": "synthetic:disruption-local-route",
             "reason_codes": [],
             "scenario_id": "CK-DISR-001",
-            "selected_route_id": "route-local"
+            "selected_route_id": "route-local",
+            "source_subject_digest": "synthetic-subject:CK-DISR-001"
           }
         ]
       },
@@ -651,7 +660,8 @@
             "reason_codes": [
               "NO_FEASIBLE_ROUTE_AFTER_DISRUPTION"
             ],
-            "scenario_id": "CK-DISR-002"
+            "scenario_id": "CK-DISR-002",
+            "source_subject_digest": "synthetic-subject:CK-DISR-002"
           }
         ]
       },
@@ -726,7 +736,8 @@
             "reason_codes": [
               "REQUIRED_CAPABILITY_EVIDENCE_REVOKED"
             ],
-            "scenario_id": "CK-EVID-002"
+            "scenario_id": "CK-EVID-002",
+            "source_subject_digest": "synthetic-subject:CK-EVID-002"
           }
         ]
       },
