@@ -285,7 +285,7 @@
         "component_id": "profile-memory-not-applicable",
         "role": "memory",
         "version": "not-applicable",
-        "configuration_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "configuration_digest": null,
         "behavior_affecting": false,
         "notes": "No persisted persona memory or retrieval in this synthetic fixture."
       },
@@ -293,9 +293,17 @@
         "component_id": "exposure-not-applicable",
         "role": "exposure-policy",
         "version": "not-applicable",
-        "configuration_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "configuration_digest": null,
         "behavior_affecting": false,
         "notes": "No feed or social exposure mechanism is simulated."
+      },
+      {
+        "component_id": "typed-index-validator",
+        "role": "action-validator",
+        "version": "0.1.0",
+        "configuration_digest": "d5eef610806669c89c42f65e2da43aba787d54e96c78a6c802017fbd1adf5942",
+        "behavior_affecting": true,
+        "notes": "Checks categorical index bounds; invalid choices abort the run."
       }
     ],
     "fallback_policy": "abort",
@@ -308,14 +316,14 @@
       "tie_breaking_rule": "Stable option index; no randomized scheduling."
     },
     "exposure_policy": {
-      "policy_id": "no-social-exposure",
+      "policy_id": "exposure-not-applicable",
       "eligibility_rule": "not-applicable: choices are assigned directly by the synthetic fixture",
       "ordering_rule": "not-applicable: no social feed is present",
       "state_visibility": "only the declared context and participant fixture record are visible"
     },
     "action_validation_policy": {
       "parser_component_id": "typed-action-parser",
-      "validator_component_id": "typed-action-parser",
+      "validator_component_id": "typed-index-validator",
       "invalid_action_policy": "abort",
       "retry_limit": 0,
       "repair_policy": "none; invalid categorical index fails the run"
