@@ -92,7 +92,8 @@ Every trial must match that profile exactly. The profile is a declared compariso
 ### 3.2 Required trial observations
 
 Every trial binds:
-- unique trial, method, machine and tool IDs;
+- unique trial, method, machine, tool and physical specimen IDs;
+- a matched-pair identifier when the declared study design requires paired trials; each pair must contain exactly one baseline and one candidate;
 - exact profile/protocol/task/material pairing/geometry/acceptance/site/metrology references;
 - energy quantity in kWh, standard uncertainty, energy basis, boundary reference, energy-accounting reference, subsystem inventory, evidence role, calibration and source; derived observations also bind a lineage reference to their upstream measured artifacts;
 - independently accepted solid volume in m³, standard uncertainty, evidence role, calibration and source;
