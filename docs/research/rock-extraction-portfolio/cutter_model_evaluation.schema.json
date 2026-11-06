@@ -1,0 +1,445 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/rock-extraction-portfolio/cutter_model_evaluation.schema.json",
+  "title": "Rock Cutter Model Evaluation Bundle v0.1",
+  "description": "Validates the shape of a model evaluation manifest. It does not establish dataset independence, group-disjoint splits, model validity, metric correctness or physical applicability.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "evaluation_id",
+    "evidence_class",
+    "dataset",
+    "split",
+    "model_runs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "evaluation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MODEL_EVALUATION"
+      ]
+    },
+    "dataset": {
+      "$ref": "#/$defs/dataset"
+    },
+    "split": {
+      "$ref": "#/$defs/split"
+    },
+    "model_runs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/model_run"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "dataset": {
+      "type": "object",
+      "required": [
+        "dataset_id",
+        "manifest_sha256",
+        "sample_count",
+        "source_records_sha256",
+        "group_dimensions",
+        "measurement_protocol_refs"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_records_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "group_dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "parent_block",
+              "specimen",
+              "rock_cohort",
+              "rock_family",
+              "source_study",
+              "campaign",
+              "site",
+              "tunnel",
+              "mine",
+              "rig",
+              "machine",
+              "cutter_geometry",
+              "tool_serial",
+              "wear_state",
+              "time_window"
+            ]
+          }
+        },
+        "measurement_protocol_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "domain_description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "group": {
+      "type": "object",
+      "required": [
+        "dimension",
+        "group_id"
+      ],
+      "properties": {
+        "dimension": {
+          "enum": [
+            "parent_block",
+            "specimen",
+            "rock_cohort",
+            "rock_family",
+            "source_study",
+            "campaign",
+            "site",
+            "tunnel",
+            "mine",
+            "rig",
+            "machine",
+            "cutter_geometry",
+            "tool_serial",
+            "wear_state",
+            "time_window"
+          ]
+        },
+        "group_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "split": {
+      "type": "object",
+      "required": [
+        "split_id",
+        "strategy",
+        "holdout_dimensions",
+        "train_groups",
+        "test_groups",
+        "train_sample_ids_sha256",
+        "test_sample_ids_sha256",
+        "train_sample_count",
+        "test_sample_count"
+      ],
+      "properties": {
+        "split_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "strategy": {
+          "enum": [
+            "RandomRowDiagnostic",
+            "GroupHoldout",
+            "TemporalHoldout",
+            "ExternalSite",
+            "ProspectiveField"
+          ]
+        },
+        "holdout_dimensions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "parent_block",
+              "specimen",
+              "rock_cohort",
+              "rock_family",
+              "source_study",
+              "campaign",
+              "site",
+              "tunnel",
+              "mine",
+              "rig",
+              "machine",
+              "cutter_geometry",
+              "tool_serial",
+              "wear_state",
+              "time_window"
+            ]
+          }
+        },
+        "train_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/group"
+          }
+        },
+        "test_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/group"
+          }
+        },
+        "train_sample_ids_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "test_sample_ids_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "train_sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "test_sample_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "metric": {
+      "type": "object",
+      "required": [
+        "target",
+        "unit",
+        "evaluation_partition",
+        "sample_count",
+        "mae",
+        "rmse",
+        "bias"
+      ],
+      "properties": {
+        "target": {
+          "enum": [
+            "normal_force",
+            "rolling_force",
+            "side_force",
+            "torque",
+            "force_waveform",
+            "peak_force",
+            "impulse",
+            "crack_path",
+            "damage_zone_depth",
+            "fracture_volume",
+            "removed_solid_volume",
+            "fragment_size_distribution",
+            "tool_interface_work",
+            "cutting_specific_energy"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluation_partition": {
+          "const": "TEST"
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mae": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rmse": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bias": {
+          "type": "number"
+        },
+        "r2": {
+          "type": "number",
+          "minimum": -1
+        },
+        "p95_absolute_error": {
+          "type": "number",
+          "minimum": 0
+        },
+        "normalized_rmse": {
+          "type": "number",
+          "minimum": 0
+        },
+        "prediction_interval": {
+          "type": "object",
+          "required": [
+            "nominal_coverage",
+            "observed_coverage",
+            "mean_width"
+          ],
+          "properties": {
+            "nominal_coverage": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            },
+            "observed_coverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "mean_width": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "model_run": {
+      "type": "object",
+      "required": [
+        "model_id",
+        "family",
+        "model_revision",
+        "code_sha256",
+        "configuration_sha256",
+        "training_dataset_ref",
+        "training_split_ref",
+        "metrics",
+        "compute"
+      ],
+      "properties": {
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "enum": [
+            "OriginalCSM",
+            "ModifiedCSM",
+            "TransparentRegression",
+            "SAINT",
+            "TabNet",
+            "TabM",
+            "HybridPhysicsResidual",
+            "FEM_JHC",
+            "FEM_RHT",
+            "SPH_FEM_JHC",
+            "PeridynamicsBondBased",
+            "PeridynamicsStateBased",
+            "DEM",
+            "Other"
+          ]
+        },
+        "model_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "training_dataset_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "training_split_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/metric"
+          }
+        },
+        "ood": {
+          "type": "object",
+          "required": [
+            "evaluated",
+            "abstention_rate",
+            "false_accept_rate"
+          ],
+          "properties": {
+            "evaluated": {
+              "type": "boolean"
+            },
+            "abstention_rate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "false_accept_rate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "ood_detection_recall": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "compute": {
+          "type": "object",
+          "required": [
+            "wall_clock_seconds",
+            "peak_memory_bytes",
+            "deterministic_replay"
+          ],
+          "properties": {
+            "wall_clock_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "peak_memory_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "deterministic_replay": {
+              "type": "boolean"
+            },
+            "hardware_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "solver_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
