@@ -5,7 +5,7 @@
 //! These fixtures are not human data or real-world effect estimates.
 
 use civdyn_causal_path::paired_effects::{
-    ContrastContract, ContrastDataset, EffectStatus, ExpectedResponse, PairingDesign,
+    ContrastContract, ContrastDataset, ExpectedResponse, PairingDesign,
     RunObservation, evaluate_paired_contrast,
 };
 use civdyn_causal_path::temporal_graph::{
@@ -160,6 +160,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use civdyn_causal_path::paired_effects::EffectStatus;
 
     #[test]
     fn positive_control_is_directionally_supported() {
