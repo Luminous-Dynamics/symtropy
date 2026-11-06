@@ -20,8 +20,10 @@ A maximum flow equal to the sum of all minimum obligations is a constructive fea
 - All capacities are unsigned integer mWh. No floating-point optimization or tolerance is used.
 - Time windows are half-open: `[arrival_interval, departure_interval)`.
 - All capacities share a common **deliverable-energy** boundary. The upstream metrology / energy-accounting layer must convert source measurements and losses into conservative endpoint energy bounds. This crate does not apply an efficiency factor or infer missing loss terms.
+- The submitted segment, transfer and receiver capacities must be **jointly realizable** for the simultaneous paths admitted by the graph. Individually conservative pairwise link maxima are insufficient when mutual coupling, cross-regulation, thermal interaction or switching constraints make those links incompatible when used together.
+- A coupled constraint may be represented as an additional shared resource node only when it has a valid network-flow representation. General multiport, nonlinear or configuration-dependent constraints need an exact MILP/MIQP or other suitable oracle; this max-flow result must not be used as a substitute.
 - Each receiver's obligation is a hard sink capacity. Max-flow may choose any feasible distribution; this is not a fairness objective and does not claim a unique schedule.
-- The min-cut is a certificate for the supplied network only. It is not a diagnosis of physical root cause or evidence that the capacity inputs are calibrated.
+- The returned segment-slot, transfer-link and receiver-slot allocations expose the constructive flow witness. The min-cut is a certificate for the supplied network only. Neither result diagnoses physical root cause nor proves that the capacity inputs are calibrated.
 
 ## Frozen known-truth example
 
