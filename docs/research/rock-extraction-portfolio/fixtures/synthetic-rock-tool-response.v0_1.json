@@ -109,7 +109,8 @@
             "axial-force",
             "torsional-torque"
           ],
-          "parent_artifact_refs": []
+          "parent_artifact_refs": [],
+          "evidence_role": "IndependentMeasurement"
         }
       ],
       "observations": [
@@ -238,7 +239,8 @@
             "optical-power",
             "surface-temperature"
           ],
-          "parent_artifact_refs": []
+          "parent_artifact_refs": [],
+          "evidence_role": "IndependentMeasurement"
         }
       ],
       "observations": [
@@ -358,7 +360,8 @@
             "thrust-force",
             "cutting-torque"
           ],
-          "parent_artifact_refs": []
+          "parent_artifact_refs": [],
+          "evidence_role": "IndependentMeasurement"
         }
       ],
       "observations": [
