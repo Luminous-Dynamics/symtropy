@@ -202,14 +202,13 @@ fn validate_projection_group(
             ));
         }
         let sample_id = string_field(projection, "sample_id", &path)?.to_string();
-        let canonical_timestamp = sample_timestamps.get(&sample_id).ok_or_else(|| {
-            fail(&path, format!("unknown trajectory sample_id {sample_id}"))
-        })?;
+        let canonical_timestamp = sample_timestamps
+            .get(&sample_id)
+            .ok_or_else(|| fail(&path, format!("unknown trajectory sample_id {sample_id}")))?;
         let measurement_timestamp = unsigned_field(projection, "measurement_timestamp_ns", &path)?;
         let clock_offset = signed_field(projection, "clock_offset_ns", &path)?;
         let clock_uncertainty = unsigned_field(projection, "clock_uncertainty_ns", &path)?;
-        let corrected_timestamp =
-            i128::from(measurement_timestamp) + i128::from(clock_offset);
+        let corrected_timestamp = i128::from(measurement_timestamp) + i128::from(clock_offset);
         let timestamp_error = (corrected_timestamp - i128::from(*canonical_timestamp)).abs();
         if timestamp_error > i128::from(clock_uncertainty) {
             return Err(fail(
