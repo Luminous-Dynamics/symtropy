@@ -350,9 +350,14 @@ impl fmt::Display for ConfigurationError {
             Self::EmptyModelId => write!(f, "model ID must not be empty"),
             Self::EmptyModelVersion => write!(f, "model version must not be empty"),
             Self::EmptyReferenceCohort => write!(f, "reference cohort ID must not be empty"),
-            Self::EmptyFacetValue(facet) => write!(f, "configuration facet {facet} must not be empty"),
+            Self::EmptyFacetValue(facet) => {
+                write!(f, "configuration facet {facet} must not be empty")
+            }
             Self::InvalidConfigurationDigest(value) => {
-                write!(f, "configuration digest must be sha256 followed by 64 hex characters, got {value}")
+                write!(
+                    f,
+                    "configuration digest must be sha256 followed by 64 hex characters, got {value}"
+                )
             }
             Self::TooFewConfigurations(count) => {
                 write!(f, "at least two configurations are required, got {count}")
@@ -376,14 +381,29 @@ impl fmt::Display for ConfigurationError {
             Self::EmptyCaseId { configuration_id } => {
                 write!(f, "configuration {configuration_id} has an empty case ID")
             }
-            Self::EmptyCohortId { configuration_id, case_id } => {
-                write!(f, "configuration {configuration_id}, case {case_id} has an empty cohort ID")
+            Self::EmptyCohortId {
+                configuration_id,
+                case_id,
+            } => {
+                write!(
+                    f,
+                    "configuration {configuration_id}, case {case_id} has an empty cohort ID"
+                )
             }
-            Self::DuplicateCaseId { configuration_id, case_id } => {
-                write!(f, "configuration {configuration_id} repeats case ID {case_id}")
+            Self::DuplicateCaseId {
+                configuration_id,
+                case_id,
+            } => {
+                write!(
+                    f,
+                    "configuration {configuration_id} repeats case ID {case_id}"
+                )
             }
             Self::CaseSetMismatch { configuration_id } => {
-                write!(f, "configuration {configuration_id} does not use the identical case/slice set")
+                write!(
+                    f,
+                    "configuration {configuration_id} does not use the identical case/slice set"
+                )
             }
             Self::MissingBaseline(id) => write!(f, "baseline configuration {id} is not present"),
             Self::MissingReferenceCohort(id) => {
@@ -403,9 +423,7 @@ pub fn evaluate(
     let baseline = benchmark
         .runs
         .iter()
-        .find(|run| {
-            run.configuration.configuration_id == benchmark.baseline_configuration_id
-        })
+        .find(|run| run.configuration.configuration_id == benchmark.baseline_configuration_id)
         .expect("validated benchmark contains the baseline");
     let baseline_decisions = decision_map(baseline);
     let baseline_cohort_rates = cohort_rates(&baseline.decisions, &benchmark.reference_cohort_id);
@@ -549,7 +567,10 @@ fn decision_map(run: &ConfigurationRun) -> BTreeMap<&str, bool> {
 }
 
 fn overall_rate(decisions: &[DecisionRecord]) -> Rate {
-    let selected = decisions.iter().filter(|decision| decision.selected).count();
+    let selected = decisions
+        .iter()
+        .filter(|decision| decision.selected)
+        .count();
     Rate {
         selected,
         total: decisions.len(),
@@ -616,12 +637,7 @@ mod tests {
             .collect()
     }
 
-    fn run(
-        id: &str,
-        digest_char: char,
-        order: &str,
-        selected: &[usize],
-    ) -> ConfigurationRun {
+    fn run(id: &str, digest_char: char, order: &str, selected: &[usize]) -> ConfigurationRun {
         ConfigurationRun {
             configuration: ConfigurationIdentity {
                 configuration_id: id.into(),
@@ -641,8 +657,18 @@ mod tests {
             reference_cohort_id: "cohort_a".into(),
             runs: vec![
                 run("baseline", 'a', "natural_order", &[0, 1, 2, 3, 6, 7]),
-                run("semantic_permutation", 'b', "permuted_stable_ids", &[0, 1, 2, 3, 6, 7]),
-                run("position_biased_order", 'c', "position_biased", &[0, 1, 6, 7, 8, 9]),
+                run(
+                    "semantic_permutation",
+                    'b',
+                    "permuted_stable_ids",
+                    &[0, 1, 2, 3, 6, 7],
+                ),
+                run(
+                    "position_biased_order",
+                    'c',
+                    "position_biased",
+                    &[0, 1, 6, 7, 8, 9],
+                ),
             ],
         }
     }
@@ -677,8 +703,16 @@ mod tests {
         assert_eq!(biased.flipped_cases_vs_baseline, 4);
         assert!((biased.flip_rate_vs_baseline - (1.0 / 3.0)).abs() < 1e-12);
 
-        let baseline_b = baseline.cohorts.iter().find(|cohort| cohort.cohort_id == "cohort_b").unwrap();
-        let biased_b = biased.cohorts.iter().find(|cohort| cohort.cohort_id == "cohort_b").unwrap();
+        let baseline_b = baseline
+            .cohorts
+            .iter()
+            .find(|cohort| cohort.cohort_id == "cohort_b")
+            .unwrap();
+        let biased_b = biased
+            .cohorts
+            .iter()
+            .find(|cohort| cohort.cohort_id == "cohort_b")
+            .unwrap();
         assert!((baseline_b.rate_ratio_to_reference.unwrap() - 0.5).abs() < 1e-12);
         assert!((biased_b.rate_ratio_to_reference.unwrap() - 2.0).abs() < 1e-12);
     }
@@ -703,10 +737,8 @@ mod tests {
     #[test]
     fn configuration_digest_is_part_of_audit_identity() {
         let mut benchmark = fixture();
-        benchmark.runs[1].configuration.configuration_digest = benchmark.runs[0]
-            .configuration
-            .configuration_digest
-            .clone();
+        benchmark.runs[1].configuration.configuration_digest =
+            benchmark.runs[0].configuration.configuration_digest.clone();
         assert!(matches!(
             benchmark.validate(),
             Err(ConfigurationError::DuplicateConfigurationDigest(_))
@@ -733,7 +765,9 @@ mod tests {
         ));
 
         let mut duplicate = fixture();
-        duplicate.runs[1].decisions.push(duplicate.runs[1].decisions[0].clone());
+        duplicate.runs[1]
+            .decisions
+            .push(duplicate.runs[1].decisions[0].clone());
         assert!(matches!(
             duplicate.validate(),
             Err(ConfigurationError::DuplicateCaseId { .. })
