@@ -9,9 +9,7 @@
 
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
-use wpt_health_dispatch_contract::{
-    EligibilityState, RecommendedAction, evaluate_eligibility,
-};
+use wpt_health_dispatch_contract::{EligibilityState, RecommendedAction, evaluate_eligibility};
 
 const NUMERICAL_TOLERANCE: f64 = 1e-9;
 
@@ -123,8 +121,7 @@ fn receipt_identity_matches(
 ) -> Result<bool, String> {
     let identity = field(receipt, "asset_identity", "$.health_receipt")?;
     let receipt_asset = string_field(identity, "asset_id", "$.health_receipt.asset_identity")?;
-    let receipt_segment =
-        string_field(identity, "segment_id", "$.health_receipt.asset_identity")?;
+    let receipt_segment = string_field(identity, "segment_id", "$.health_receipt.asset_identity")?;
     let receipt_route = string_field(identity, "route_id", "$.health_receipt.asset_identity")?;
     Ok(receipt_asset == asset_id && receipt_segment == segment_id && receipt_route == route_id)
 }
@@ -203,10 +200,7 @@ fn classify_candidate(receiver: &Value, index: usize) -> Result<Candidate, Strin
         (EligibilityState::DecisionSupportEligible, RecommendedAction::MayInformAllocationOnly) => {
             (true, requested, None)
         }
-        (
-            EligibilityState::PolicyRiskExceeded,
-            RecommendedAction::DerateOrReserveMaintenance,
-        ) => {
+        (EligibilityState::PolicyRiskExceeded, RecommendedAction::DerateOrReserveMaintenance) => {
             let capacity = requested * risk_derating;
             (
                 capacity > 0.0,
@@ -608,7 +602,10 @@ mod tests {
         assert_eq!(report.excluded_receiver_count, 1);
         assert!((report.total_allocated_power_kw - 8.0).abs() < 1e-7);
         assert!(report.total_allocated_power_kw <= 8.0 + 1e-7);
-        assert_eq!(allocation_for(&report, "vehicle-03").allocated_power_kw, 0.0);
+        assert_eq!(
+            allocation_for(&report, "vehicle-03").allocated_power_kw,
+            0.0
+        );
         assert!(allocation_for(&report, "vehicle-02").health_derated_capacity_kw <= 5.0 + 1e-12);
         assert!(report.jain_service_ratio_eligible.is_some());
         assert!(report.weighted_log_service_objective.is_some());
@@ -632,10 +629,10 @@ mod tests {
             Value::from(0.03);
         episode["receivers"][1]["health_receipt"]["forecast"]["event_free_survival"] =
             Value::from(0.91);
-        episode["receivers"][1]["health_receipt"]["forecast"]["cause_specific_cumulative_incidence"][0]["probability"] =
-            Value::from(0.03);
-        episode["receivers"][1]["health_receipt"]["forecast"]["cause_specific_cumulative_incidence"][2]["probability"] =
-            Value::from(0.02);
+        episode["receivers"][1]["health_receipt"]["forecast"]["cause_specific_cumulative_incidence"]
+            [0]["probability"] = Value::from(0.03);
+        episode["receivers"][1]["health_receipt"]["forecast"]["cause_specific_cumulative_incidence"]
+            [2]["probability"] = Value::from(0.02);
         episode["receivers"][1]["priority_weight"] = Value::from(1.0);
         episode["receivers"][1]["urgency_weight"] = Value::from(1.0);
         let report = evaluate_episode(&episode).unwrap();
@@ -674,7 +671,10 @@ mod tests {
         let report = evaluate_episode(&episode).unwrap();
         assert_eq!(report.state, DispatchState::Allocated);
         assert_eq!(report.eligible_receiver_count, 1);
-        assert_eq!(allocation_for(&report, "vehicle-02").allocated_power_kw, 0.0);
+        assert_eq!(
+            allocation_for(&report, "vehicle-02").allocated_power_kw,
+            0.0
+        );
         assert!(allocation_for(&report, "vehicle-01").allocated_power_kw > 0.0);
     }
 
@@ -703,34 +703,53 @@ mod tests {
         let report = evaluate_episode(&episode).unwrap();
         assert_eq!(report.state, DispatchState::Allocated);
         assert_eq!(report.eligible_receiver_count, 1);
-        assert_eq!(allocation_for(&report, "vehicle-01").allocated_power_kw, 0.0);
+        assert_eq!(
+            allocation_for(&report, "vehicle-01").allocated_power_kw,
+            0.0
+        );
     }
 
     #[test]
     fn duplicate_receiver_ids_are_rejected() {
         let mut episode = fixture();
         episode["receivers"][1]["receiver_id"] = Value::String("vehicle-01".into());
-        assert!(evaluate_episode(&episode).unwrap_err().contains("duplicate receiver_id"));
+        assert!(
+            evaluate_episode(&episode)
+                .unwrap_err()
+                .contains("duplicate receiver_id")
+        );
     }
 
     #[test]
     fn zero_priority_or_urgency_is_rejected() {
         let mut episode = fixture();
         episode["receivers"][0]["priority_weight"] = Value::from(0.0);
-        assert!(evaluate_episode(&episode).unwrap_err().contains("must be positive"));
+        assert!(
+            evaluate_episode(&episode)
+                .unwrap_err()
+                .contains("must be positive")
+        );
     }
 
     #[test]
     fn source_power_budget_must_be_finite_and_positive() {
         let mut episode = fixture();
         episode["source_power_limit_kw"] = Value::from(0.0);
-        assert!(evaluate_episode(&episode).unwrap_err().contains("must be positive"));
+        assert!(
+            evaluate_episode(&episode)
+                .unwrap_err()
+                .contains("must be positive")
+        );
     }
 
     #[test]
     fn unknown_episode_properties_fail_closed() {
         let mut episode = fixture();
         episode["optimizer_shortcut"] = Value::Bool(true);
-        assert!(evaluate_episode(&episode).unwrap_err().contains("unknown property"));
+        assert!(
+            evaluate_episode(&episode)
+                .unwrap_err()
+                .contains("unknown property")
+        );
     }
 }
