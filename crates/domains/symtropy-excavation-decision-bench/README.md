@@ -5,11 +5,12 @@ Standalone deterministic evaluator for evidence-bounded excavation strategy elig
 ## Scope
 
 The crate evaluates one decision case against one declared profile:
+- exact decision-profile, task, geological cohort, acceptance rule, site and energy-boundary identity;
 - application-specific minimum evidence tier;
 - geology and machine support;
 - external engineering-qualification status/reference;
 - common energy-boundary reference and resource-ledger completeness;
-- independently measured primary outcome intervals;
+- independently measured primary outcome intervals with calibration and derived-lineage references;
 - hard constraints;
 - robust interval-separated Pareto dominance.
 
