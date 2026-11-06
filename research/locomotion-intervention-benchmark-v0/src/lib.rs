@@ -38,13 +38,17 @@ pub struct SimulationConfig {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SyntheticSample {
+    /// Observable coordinates only. Candidate selection never receives
+    /// generator latent phase, amplitude or intervention truth metadata.
     pub timestamp: f64,
-    /// Observable coordinates; score models on these rather than latent truth.
     pub x: f64,
     pub y: f64,
-    /// Generator-known quantities, retained for known-truth diagnostics only.
-    pub latent_phase: f64,
-    pub latent_amplitude: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LatentTruthSample {
+    pub phase: f64,
+    pub amplitude: f64,
     pub feedback_present: bool,
 }
 
@@ -52,7 +56,10 @@ pub struct SyntheticSample {
 pub struct SyntheticTrace {
     pub mechanism: Mechanism,
     pub intervention: Intervention,
+    /// Observable-only record. Safe to pass to the candidate scorer.
     pub samples: Vec<SyntheticSample>,
+    /// Generator ground truth kept on a separate side channel for test oracles.
+    pub latent_truth: Vec<LatentTruthSample>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -134,6 +141,7 @@ pub fn simulate(
     let mut phase = config.initial_phase;
     let mut amplitude = 1.0_f64;
     let mut samples = Vec::with_capacity(config.sample_count);
+    let mut latent_truth = Vec::with_capacity(config.sample_count);
     let mut previous_time = 0.0;
 
     for sample_index in 0..config.sample_count {
@@ -198,12 +206,10 @@ pub fn simulate(
         if !phase.is_finite() || !amplitude.is_finite() || !x.is_finite() || !y.is_finite() {
             return Err(BenchmarkError::NumericalFailure);
         }
-        samples.push(SyntheticSample {
-            timestamp,
-            x,
-            y,
-            latent_phase: phase,
-            latent_amplitude: amplitude,
+        samples.push(SyntheticSample { timestamp, x, y });
+        latent_truth.push(LatentTruthSample {
+            phase,
+            amplitude,
             feedback_present,
         });
         previous_time = timestamp;
@@ -213,6 +219,7 @@ pub fn simulate(
         mechanism,
         intervention,
         samples,
+        latent_truth,
     })
 }
 
@@ -393,8 +400,7 @@ fn validate_trace(trace: &[SyntheticSample]) -> Result<(), BenchmarkError> {
         !sample.timestamp.is_finite()
             || !sample.x.is_finite()
             || !sample.y.is_finite()
-            || !sample.latent_phase.is_finite()
-            || !sample.latent_amplitude.is_finite()
+            
     }) {
         return Err(BenchmarkError::NonFiniteTrace);
     }
@@ -464,8 +470,8 @@ mod tests {
         let final_oscillator = oscillator.samples.last().unwrap();
         let final_feedback = feedback.samples.last().unwrap();
 
-        assert!((final_oscillator.latent_amplitude - 1.0).abs() < 1.0e-12);
-        assert!(final_feedback.latent_amplitude < 0.01);
+        assert!((oscillator.latent_truth.last().unwrap().amplitude - 1.0).abs() < 1.0e-12);
+        assert!(feedback.latent_truth.last().unwrap().amplitude < 0.01);
         assert!(trajectory_rmse(&oscillator.samples, &feedback.samples).unwrap() > 0.1);
     }
 
@@ -549,8 +555,8 @@ mod tests {
     #[test]
     fn damped_focus_can_look_rhythmic_early_but_loses_amplitude() {
         let trace = simulate(Mechanism::DampedFocus, Intervention::None, config()).unwrap();
-        assert!(trace.samples[1].latent_amplitude < 1.0);
-        assert!(trace.samples.last().unwrap().latent_amplitude < 0.01);
+        assert!(trace.latent_truth[1].amplitude < 1.0);
+        assert!(trace.latent_truth.last().unwrap().amplitude < 0.01);
         assert!(trace.samples[5].x.is_finite());
         assert!(trace.samples[5].y.is_finite());
     }
