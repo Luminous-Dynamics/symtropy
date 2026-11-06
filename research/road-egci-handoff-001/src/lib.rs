@@ -1061,9 +1061,8 @@ fn hypothesis_context_digest(
     hypothesis_id: &str,
     receipt: &CorrespondenceReceipt,
 ) -> String {
-    let mut h = blake3::Hasher::new_derive_key(
-        "Symtropy EGCI hypothesis-qualified SAM context v0.1",
-    );
+    let mut h =
+        blake3::Hasher::new_derive_key("Symtropy EGCI hypothesis-qualified SAM context v0.1");
     hash_str(&mut h, base_context_digest);
     hash_str(&mut h, branch_id);
     hash_str(&mut h, hypothesis_id);
