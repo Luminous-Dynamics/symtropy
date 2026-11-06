@@ -671,3 +671,155 @@ fn event_response_is_not_qualified_until_work_and_resource_recovery_are_reconcil
     assert_eq!(report.qualifying_interval_count, 1);
     assert!((report.net_reduction_energy_kwh - 20.0).abs() < 1e-12);
 }
+
+#[test]
+fn event_cannot_qualify_without_at_least_one_recovery_interval() {
+    let baseline = qualified_report();
+    let points = [
+        DispatchEventPoint::new(
+            "dispatch-1",
+            DispatchEventPhase::Dispatch,
+            "normal",
+            0,
+            0,
+            1_000,
+            100.0,
+            80.0,
+            0.0,
+            "pcc-dispatch-1",
+        ).unwrap(),
+    ];
+    let evidence = recovery_evidence(0, 1_000, 2_000, true);
+    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_counterfactual_baseline::BaselineQualificationError::MissingRecoveryIntervals
+    ));
+}
+
+#[test]
+fn interval_may_not_straddle_the_dispatch_end_boundary() {
+    let baseline = qualified_report();
+    let points = [
+        DispatchEventPoint::new(
+            "dispatch-straddles",
+            DispatchEventPhase::Dispatch,
+            "normal",
+            0,
+            0,
+            2_000,
+            100.0,
+            80.0,
+            0.0,
+            "pcc-straddles",
+        ).unwrap(),
+        DispatchEventPoint::new(
+            "recovery-1",
+            DispatchEventPhase::Recovery,
+            "normal",
+            0,
+            2_000,
+            1_000,
+            100.0,
+            100.0,
+            0.0,
+            "pcc-recovery-1",
+        ).unwrap(),
+    ];
+    let evidence = recovery_evidence(0, 1_000, 3_000, true);
+    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_counterfactual_baseline::BaselineQualificationError::EventIntervalStraddlesDispatchEnd { .. }
+    ));
+}
+
+#[test]
+fn observed_trace_must_reach_the_pinned_recovery_horizon_end() {
+    let baseline = qualified_report();
+    let points = [
+        DispatchEventPoint::new(
+            "dispatch-1",
+            DispatchEventPhase::Dispatch,
+            "normal",
+            0,
+            0,
+            1_000,
+            100.0,
+            80.0,
+            0.0,
+            "pcc-dispatch-1",
+        ).unwrap(),
+        DispatchEventPoint::new(
+            "recovery-1",
+            DispatchEventPhase::Recovery,
+            "normal",
+            0,
+            1_000,
+            1_000,
+            100.0,
+            100.0,
+            0.0,
+            "pcc-recovery-1",
+        ).unwrap(),
+    ];
+    let evidence = recovery_evidence(0, 1_000, 3_000, true);
+    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_counterfactual_baseline::BaselineQualificationError::EventHorizonEndMismatch { .. }
+    ));
+}
+
+#[test]
+fn dispatch_intervals_cannot_resume_after_recovery_has_started() {
+    let baseline = qualified_report();
+    let points = [
+        DispatchEventPoint::new(
+            "dispatch-1",
+            DispatchEventPhase::Dispatch,
+            "normal",
+            0,
+            0,
+            1_000,
+            100.0,
+            80.0,
+            0.0,
+            "pcc-dispatch-1",
+        ).unwrap(),
+        DispatchEventPoint::new(
+            "recovery-1",
+            DispatchEventPhase::Recovery,
+            "normal",
+            0,
+            1_000,
+            1_000,
+            100.0,
+            100.0,
+            0.0,
+            "pcc-recovery-1",
+        ).unwrap(),
+        DispatchEventPoint::new(
+            "dispatch-2",
+            DispatchEventPhase::Dispatch,
+            "normal",
+            0,
+            2_000,
+            1_000,
+            100.0,
+            80.0,
+            0.0,
+            "pcc-dispatch-2",
+        ).unwrap(),
+    ];
+    let evidence = recovery_evidence(0, 1_000, 3_000, true);
+    let error = evaluate_baseline_bounded_event(&baseline, &identity(), &evidence, &points)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        symtropy_counterfactual_baseline::BaselineQualificationError::DispatchRecoveryPhaseOrderViolation { .. }
+    ));
+}
