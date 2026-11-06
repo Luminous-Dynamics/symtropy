@@ -2754,12 +2754,13 @@ mod tests {
     }
 
     #[test]
-    fn arrival_node_must_be_a_route_node() {
+    fn arrival_node_must_be_a_route_arrival_node() {
         let mut case = valid_case();
-        case.voyage_alternatives[0].arrival_node_id = "destination".into();
+        // Origin is a declared route node, but it is not a segment arrival node.
+        case.voyage_alternatives[0].arrival_node_id = "origin".into();
         assert_eq!(
             validate_case(&case),
-            Err(ValidationError::ArrivalIntervalEvidenceMismatch(
+            Err(ValidationError::ArrivalNodeNotOnRoute(
                 "fast-high-energy".into()
             ))
         );
