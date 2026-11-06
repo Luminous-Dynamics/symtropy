@@ -415,8 +415,8 @@ pub fn forecast_next(
     };
 
     let predictive_mean = base_mean + animal_effect_loading * animal_effect.mean;
-    let predictive_variance = model.innovation_sd.powi(2)
-        + animal_effect_loading.powi(2) * animal_effect.variance;
+    let predictive_variance =
+        model.innovation_sd.powi(2) + animal_effect_loading.powi(2) * animal_effect.variance;
     if !predictive_mean.is_finite()
         || !predictive_variance.is_finite()
         || predictive_variance <= 0.0
@@ -445,15 +445,11 @@ pub fn forecast_next(
 }
 
 fn gaussian_log_density(value: f64, mean: f64, variance: f64) -> f64 {
-    -0.5 * ((2.0 * std::f64::consts::PI * variance).ln()
-        + (value - mean).powi(2) / variance)
+    -0.5 * ((2.0 * std::f64::consts::PI * variance).ln() + (value - mean).powi(2) / variance)
 }
 
 fn log_sum_exp(values: &[f64]) -> Result<f64, TrajectoryError> {
-    let maximum = values
-        .iter()
-        .copied()
-        .fold(f64::NEG_INFINITY, f64::max);
+    let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     if !maximum.is_finite() {
         return Err(TrajectoryError::NumericalFailure);
     }
@@ -464,14 +460,10 @@ fn log_sum_exp(values: &[f64]) -> Result<f64, TrajectoryError> {
     Ok(maximum + sum.ln())
 }
 
-fn validate_model_posterior(
-    posterior: &ModelPosterior,
-) -> Result<(), TrajectoryError> {
+fn validate_model_posterior(posterior: &ModelPosterior) -> Result<(), TrajectoryError> {
     if posterior.is_empty()
         || posterior.iter().any(|(id, probability)| {
-            id.trim().is_empty()
-                || !probability.is_finite()
-                || !(0.0..=1.0).contains(probability)
+            id.trim().is_empty() || !probability.is_finite() || !(0.0..=1.0).contains(probability)
         })
         || (posterior.values().sum::<f64>() - 1.0).abs() > PROBABILITY_TOLERANCE
     {
@@ -518,7 +510,10 @@ pub fn update_mechanism_posterior(
     let mut by_id = BTreeMap::new();
     for mechanism in mechanisms {
         validate_mechanism(mechanism)?;
-        if by_id.insert(mechanism.model_id.clone(), mechanism).is_some() {
+        if by_id
+            .insert(mechanism.model_id.clone(), mechanism)
+            .is_some()
+        {
             return Err(TrajectoryError::DuplicateMechanism(
                 mechanism.model_id.clone(),
             ));
@@ -561,9 +556,7 @@ pub fn update_mechanism_posterior(
     let log_marginal = log_sum_exp(&weights)?;
     let posterior_after: ModelPosterior = log_weights
         .iter()
-        .map(|(model_id, log_weight)| {
-            (model_id.clone(), (log_weight - log_marginal).exp())
-        })
+        .map(|(model_id, log_weight)| (model_id.clone(), (log_weight - log_marginal).exp()))
         .collect();
     validate_model_posterior(&posterior_after)?;
 
