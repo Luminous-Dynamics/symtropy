@@ -67,7 +67,8 @@ The distinguishing paradigm is **designing the aircraft around complete mission 
 | C2 | High-aspect-ratio wing + partial-span blown lift | Can we capture useful low-speed lift without the full distributed-propulsion mass and drag? |
 | C3 | Full blown wing + distributed propulsion | Does the larger lift effect survive complete installed-system and failure accounting? |
 | C4 | Battery-electric DEP | Which short training/local missions close at end-of-life and adverse temperature? |
-| C5 | Series-hybrid DEP | Does phase-resolved power sharing improve mission feasibility and lifecycle economics? |
+| C5P | Parallel hybrid | Does mechanical drive plus electric boost/recuperation outperform direct drive and series-electric conversion on the matched mission? |
+| C5S | Series-hybrid DEP | Does phase-aware power sharing improve the installed system after generator, motor, inverter, cable and cooling penalties? |
 | C6 | Other topology (joined/box wing, tandem/canard, lifting body, etc.) | Does any alternative produce a robust, validated advantage rather than visual novelty? |
 | C7 | Lift+cruise / tiltrotor / tiltwing / multicopter | Is VTOL access worth its hover energy, mass, transition, noise and certification cost for a mission that needs it? |
 
