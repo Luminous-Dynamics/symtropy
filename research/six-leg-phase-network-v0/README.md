@@ -23,7 +23,7 @@ The sensory-feedback phase attractor adds:
 
 A hybrid model includes local phase advance, central coupling and feedback correction. A feedback-driven model has only the external phase-attractor term; removing feedback stops autonomous phase advance. An independent model contains only local phase advance.
 
-The phase equations are integrated with a fixed-step fourth-order Runge-Kutta reference integrator. All phases are stored unwrapped in canonical leg order.
+The phase equations are integrated with a fixed-step fourth-order Runge-Kutta reference integrator. All phases are stored unwrapped in canonical leg order. The trace retains the full model configuration and scheduled interventions so each synthetic output is interpretable against its generating assumptions.
 
 ## Leg ordering and gait patterns
 
@@ -62,7 +62,7 @@ These are phase-network metrics only. They do not measure joint kinematics, stan
 
 ## Deterministic known-truth tests
 
-The 16 tests cover:
+The 18 tests cover:
 - tripod grouping and stable leg identifiers;
 - central coupling convergence to a declared phase-offset target;
 - relative drift in independent heterogeneous oscillators;
@@ -70,6 +70,8 @@ The 16 tests cover:
 - hybrid phase progression after feedback loss;
 - phase-pulse recovery with coupling versus persistent offset without coupling;
 - leg disable without zero-fill and with unaffected legs continuing;
+- abstention when fewer than two active legs remain;
+- rejection of a coupling-edge ablation when that edge is absent;
 - loss of inter-network coordination after a bridge coupling edge is removed;
 - common-phase invariance of target-alignment metrics;
 - contiguous dwell-window recovery and phase-slip diagnostics;
