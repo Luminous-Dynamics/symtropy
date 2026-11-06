@@ -259,7 +259,7 @@ fn empty_row(record_type: &str, arm_id: &str) -> Vec<String> {
 
 fn main() {
     println!(
-        "record_type,arm_id,metric,value,unit,source_record_id,exogenous_snapshot_id,qualified,path_complete,first_broken_edge,transition_applied,control_outcome,treatment_outcome,reservoir_closing_water_m3,household_served_water_m3,max_water_conservation_residual_m3,treatment_source_value,control_source_value,source_changed"
+        "record_type,arm_id,metric,value,unit,ledger_record_key,exogenous_snapshot_id,qualified,path_complete,first_broken_edge,transition_applied,control_outcome,treatment_outcome,reservoir_closing_water_m3,household_served_water_m3,max_water_conservation_residual_m3,treatment_source_value,control_source_value,source_changed"
     );
 
     let (experiment, arms) = reference_experiment();
