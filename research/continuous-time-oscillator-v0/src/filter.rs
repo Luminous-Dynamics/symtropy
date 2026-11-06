@@ -128,7 +128,7 @@ impl OscillatorObservationFilter {
         let mut covariance = zero_matrix(dimension);
         covariance[0][0] = parameters.stationary_variance;
         covariance[1][1] = parameters.stationary_variance;
-        for channel_index in 0..channels.len() {
+        for (channel_index, _) in channels.iter().enumerate() {
             covariance[2 + channel_index][2 + channel_index] = animal_effect_variance;
         }
 
@@ -220,6 +220,19 @@ impl OscillatorObservationFilter {
         timestamp: f64,
         observations: &[ChannelMeasurement],
     ) -> Result<FilterUpdate, FilterError> {
+        // Apply a complete timestamp atomically. A bad late channel or
+        // numerical overflow must not leave a partially conditioned posterior.
+        let mut candidate = self.clone();
+        let update = candidate.observe_batch_inner(timestamp, observations)?;
+        *self = candidate;
+        Ok(update)
+    }
+
+    fn observe_batch_inner(
+        &mut self,
+        timestamp: f64,
+        observations: &[ChannelMeasurement],
+    ) -> Result<FilterUpdate, FilterError> {
         if self.active_session.is_none() {
             return Err(FilterError::NoActiveSession);
         }
@@ -298,6 +311,24 @@ impl OscillatorObservationFilter {
             return Err(FilterError::NumericalFailure);
         }
         Ok(ObservationForecast { mean, variance })
+    }
+
+    /// Posterior covariance between the oscillator coordinates and one
+    /// channel's static animal effect. Useful for verifying session resets.
+    pub fn latent_effect_cross_covariance(
+        &self,
+        channel_id: &str,
+    ) -> Result<[f64; 2], FilterError> {
+        let channel_index = self
+            .channel_indices
+            .get(channel_id)
+            .copied()
+            .ok_or(FilterError::UnknownChannel)?;
+        let effect_index = 2 + channel_index;
+        Ok([
+            self.covariance[0][effect_index],
+            self.covariance[1][effect_index],
+        ])
     }
 
     /// The channel random effect is animal-level and is intentionally carried
@@ -683,11 +714,13 @@ mod tests {
         filter
             .observe_batch(0.0, &[measurement("left", 1.0)])
             .unwrap();
+        let cross_before = filter.latent_effect_cross_covariance("left").unwrap();
+        assert!(cross_before[0].abs() > 0.0);
         filter.start_session("animal-1-session-2").unwrap();
 
-        let covariance = filter.latent_covariance();
-        assert_close(covariance[0][1], 0.0, 1.0e-12);
-        assert_close(covariance[1][0], 0.0, 1.0e-12);
+        let cross_after = filter.latent_effect_cross_covariance("left").unwrap();
+        assert_close(cross_after[0], 0.0, 1.0e-12);
+        assert_close(cross_after[1], 0.0, 1.0e-12);
         assert!(filter.channel_effect_posterior("left").is_ok());
     }
 
@@ -842,6 +875,18 @@ mod tests {
             filter.start_session("session-1"),
             Err(FilterError::DuplicateSessionId)
         );
+    }
+
+
+    #[test]
+    fn a_numerical_failure_does_not_partially_commit_a_timestamp() {
+        let mut filter = filter();
+        filter.start_session("animal-1-session-1").unwrap();
+        let before_mean = filter.latent_mean();
+        let result = filter.observe_batch(0.0, &[measurement("left", f64::MAX)]);
+        assert_eq!(result, Err(FilterError::NumericalFailure));
+        assert_eq!(filter.last_timestamp(), None);
+        assert_eq!(filter.latent_mean(), before_mean);
     }
 
     #[test]
