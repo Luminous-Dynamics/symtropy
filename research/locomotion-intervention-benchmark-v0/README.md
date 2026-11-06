@@ -36,12 +36,14 @@ These are intentionally small synthetic generators for benchmark semantics. The 
 - **Maximin intervention design:** rank feasible candidate actions by the minimum pairwise post-onset forecast RMSE across all competing mechanism pairs, divided by declared action cost. This avoids choosing an experiment that separates easy pairs while leaving one rival pair indistinguishable.
 - **Parameter-scenario robustness:** evaluate the same action across a supplied set of plausible damping/coupling/frequency/phase configurations and maximize the worst separation across both model pairs and parameter scenarios. Scenarios must share the same sample grid.
 - **Finite-hypothesis Bayesian expected information gain:** supply explicit mechanism/parameter hypotheses with prior weights; simulate Monte Carlo outcomes under a common Gaussian observation model; estimate expected log posterior-to-prior information gain for each candidate action; report standard error and rank by information nats per unit cost.
-- Identical predictive hypotheses yield approximately zero information and trigger abstention; candidate-ID-derived random streams make estimates reproducible and order-invariant.
+- **Sequential posterior update:** after an intervention, score the observed suffix against every fixed mechanism/parameter hypothesis, apply Bayes' rule with log-sum-exp normalization, and return posterior weights, log marginal evidence and entropy reduction. `apply_hypothesis_posterior` updates the hypothesis priors for the next EIG selection step.
+- Posterior updates sort outputs by stable hypothesis ID, validate complete hypothesis-set identity and require exact onset/time-grid alignment. The current sequential loop is across independent reset sessions; it does not yet propagate latent body state across multiple actions within one uninterrupted gait episode.
+- Identical predictive hypotheses preserve the supplied prior and yield approximately zero information; candidate-ID-derived random streams make EIG estimates reproducible and order-invariant.
 - Unresolved worst-case model pairs/scenarios cause maximin-design abstention; near-zero EIG causes Bayesian-design abstention; infeasible actions are excluded before ranking.
 - Strictly increasing timestamps and exact paired timestamp-grid identity for prediction scoring.
 - Standalone Cargo crate with a dedicated Rust 1.96.0 formatting / test / strict-Clippy workflow.
 
-The 56 deterministic tests cover:
+The 61 deterministic tests cover:
 - baseline observational equivalence and mandatory abstention;
 - feedback-cut divergence and both directions of fitted-model selection;
 - driven-attractor relaxation, hybrid phase correction and phase pulses;
@@ -62,6 +64,8 @@ This V0 does not fit feedback decay/coupling, implement continuous Bayesian para
 
 The open-set fit floor is not a universal constant: it must be set from independent calibration controls at a matching observation variance, horizon, and preprocessing pipeline. It is a model criticism gate, not automatic discovery of the missing mechanism.
 
+The sequential posterior update currently assumes independent reset sessions and fixed finite parameter scenarios; continuous-time state carryover across multiple interventions within one gait episode and continuous nuisance-parameter posteriors remain future work.
+
 The paired-seed Monte Carlo currently uses small deterministic seed sets and known synthetic parameter grids; it is a harness proof, not a powered performance evaluation. Wilson intervals quantify binomial rates over the chosen synthetic seeds; they do not establish biological generalization.
 
 The maximin intervention designer uses deterministic model-prediction disagreement divided by declared cost; its multi-scenario extension is a finite-scenario worst-case approximation. The new EIG selector carries an explicit discrete prior over user-declared mechanism/parameter hypotheses and computes Monte Carlo expected information gain under a fixed common Gaussian observation model. It is not continuous parameter posterior inference; its prior support is only as complete as the supplied finite hypotheses, and the variance model does not include process uncertainty or missingness. Profile-likelihood practical identifiability is now included as a grid confidence-set diagnostic; sequential outcome-updated planning remains next work. The phase pulse and feedback cut are idealized synthetic actions; measured interventions require authenticated assignment/delivery receipts and actual timing/latency.
@@ -69,7 +73,7 @@ The maximin intervention designer uses deterministic model-prediction disagreeme
 ## Required next benchmark increments
 
 1. Compare finite-hypothesis EIG with maximin disagreement, random-feasible, greedy and robust baselines; add posterior uncertainty over nuisance parameters and sequential outcome-updated planning.
-2. Add parameter-uncertainty/profile-likelihood design and a sequential plan that updates model probabilities after each observed outcome.
+2. Extend sequential posterior updating from independent reset sessions to within-session state carryover, verified action receipts, nuisance-parameter posterior uncertainty and continuous-time observation likelihoods.
 3. Compare against AR(1), VAR(p), ordinary SSM, switching SSM and feedback-attractor estimators under equal fitting budgets.
 4. Add PRC, entrainment/locking range, phase slips, amplitude recovery, delayed feedback and per-leg coupling.
 5. Add MAR/MNAR dropout, asynchronous sensors, irregular timestamps, action-delivery latency and censored outcomes.
