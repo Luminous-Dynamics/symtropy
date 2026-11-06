@@ -242,8 +242,10 @@ impl GaussianState {
         loading[channel_index + 1] = 1.0;
 
         let mut covariance_loading = vec![0.0; self.mean.len()];
-        for row in 0..self.mean.len() {
-            covariance_loading[row] = self.covariance[row]
+        for (covariance_loading_row, covariance_row) in
+            covariance_loading.iter_mut().zip(&self.covariance)
+        {
+            *covariance_loading_row = covariance_row
                 .iter()
                 .zip(&loading)
                 .map(|(covariance, coefficient)| covariance * coefficient)
@@ -278,8 +280,8 @@ impl GaussianState {
         }
 
         let old_covariance = self.covariance.clone();
-        for row in 0..self.mean.len() {
-            self.mean[row] += covariance_loading[row] * residual / innovation_variance;
+        for (mean, covariance_loading_row) in self.mean.iter_mut().zip(&covariance_loading) {
+            *mean += covariance_loading_row * residual / innovation_variance;
         }
         for row in 0..self.mean.len() {
             for column in 0..self.mean.len() {
