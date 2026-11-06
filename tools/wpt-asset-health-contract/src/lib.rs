@@ -549,10 +549,16 @@ pub fn validate_lifecycle_outcomes(schema: &Value, dataset: &Value) -> Result<()
                     ));
                 }
                 if !has_flag("RIGHT_CENSORED") {
-                    return Err(fail(&path, "right-censored record must carry RIGHT_CENSORED"));
+                    return Err(fail(
+                        &path,
+                        "right-censored record must carry RIGHT_CENSORED",
+                    ));
                 }
                 if has_flag("COMPETING_RISK") {
-                    return Err(fail(&path, "right-censored record cannot carry COMPETING_RISK"));
+                    return Err(fail(
+                        &path,
+                        "right-censored record cannot carry COMPETING_RISK",
+                    ));
                 }
             }
             "COMPETING_EVENT" => {
