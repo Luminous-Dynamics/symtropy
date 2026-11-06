@@ -1305,7 +1305,6 @@ pub fn design_discriminating_intervention_across_scenarios(
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct MechanismHypothesis {
     pub id: String,
@@ -2835,18 +2834,8 @@ mod tests {
     #[test]
     fn finite_hypothesis_eig_selects_a_discriminating_perturbation() {
         let hypotheses = [
-            information_hypothesis(
-                "intrinsic",
-                Mechanism::IntrinsicOscillator,
-                config(),
-                0.5,
-            ),
-            information_hypothesis(
-                "sensory",
-                Mechanism::SensoryFeedbackDriven,
-                config(),
-                0.5,
-            ),
+            information_hypothesis("intrinsic", Mechanism::IntrinsicOscillator, config(), 0.5),
+            information_hypothesis("sensory", Mechanism::SensoryFeedbackDriven, config(), 0.5),
         ];
         let candidates = [
             design_candidate(
@@ -2930,18 +2919,8 @@ mod tests {
     #[test]
     fn finite_hypothesis_eig_is_deterministic_and_candidate_order_invariant() {
         let hypotheses = [
-            information_hypothesis(
-                "intrinsic",
-                Mechanism::IntrinsicOscillator,
-                config(),
-                0.7,
-            ),
-            information_hypothesis(
-                "sensory",
-                Mechanism::SensoryFeedbackDriven,
-                config(),
-                0.3,
-            ),
+            information_hypothesis("intrinsic", Mechanism::IntrinsicOscillator, config(), 0.7),
+            information_hypothesis("sensory", Mechanism::SensoryFeedbackDriven, config(), 0.3),
         ];
         let cut = design_candidate(
             "cut",
