@@ -241,9 +241,7 @@ fn validate_workload(workload: &FleetWorkload) -> Result<FleetContext, FleetErro
                 ResourceKind::WaterQuota
                 | ResourceKind::ShorePower
                 | ResourceKind::TerminalHandling
-                | ResourceKind::InlandTransfer => {
-                    ResourceAccountingMode::CumulativeWindowQuota
-                }
+                | ResourceKind::InlandTransfer => ResourceAccountingMode::CumulativeWindowQuota,
                 ResourceKind::ChannelWindow | ResourceKind::Lock | ResourceKind::Berth => {
                     ResourceAccountingMode::ConcurrentCapacity
                 }
@@ -1360,12 +1358,10 @@ mod tests {
                     ResourceKind::WaterQuota
                     | ResourceKind::ShorePower
                     | ResourceKind::TerminalHandling
-                    | ResourceKind::InlandTransfer => {
-                        ResourceAccountingMode::CumulativeWindowQuota
-                    }
+                    | ResourceKind::InlandTransfer => ResourceAccountingMode::CumulativeWindowQuota,
                     ResourceKind::ChannelWindow | ResourceKind::Lock | ResourceKind::Berth => {
                         ResourceAccountingMode::ConcurrentCapacity
-                    },
+                    }
                 },
             })
             .collect();
@@ -2076,7 +2072,13 @@ mod tests {
                 .capacity = 15;
         }
         assert_eq!(
-            first.resources.iter().find(|resource| resource.resource_id == "terminal-01").unwrap().availability[0].capacity,
+            first
+                .resources
+                .iter()
+                .find(|resource| resource.resource_id == "terminal-01")
+                .unwrap()
+                .availability[0]
+                .capacity,
             15
         );
         let result = exact_fleet_oracle(&fleet_workload(vec![first, second]), 50_000)
