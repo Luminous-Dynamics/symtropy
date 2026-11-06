@@ -19,7 +19,9 @@ pub enum Mechanism {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Intervention {
     None,
-    FeedbackCutFrom { sample_index: usize },
+    FeedbackCutFrom {
+        sample_index: usize,
+    },
     PhasePulseAt {
         sample_index: usize,
         delta_phase_radians: f64,
@@ -149,10 +151,7 @@ pub fn simulate(
 
     let mut phase = config.initial_phase;
     let mut amplitude = 1.0_f64;
-    let mut attractor_state = [
-        config.initial_phase.cos(),
-        config.initial_phase.sin(),
-    ];
+    let mut attractor_state = [config.initial_phase.cos(), config.initial_phase.sin()];
     let mut samples = Vec::with_capacity(config.sample_count);
     let mut latent_truth = Vec::with_capacity(config.sample_count);
     let mut previous_time = 0.0;
@@ -163,9 +162,9 @@ pub fn simulate(
             return Err(BenchmarkError::NumericalFailure);
         }
         let feedback_present = match intervention {
-            Intervention::FeedbackCutFrom { sample_index: cut_index } => {
-                sample_index < cut_index
-            }
+            Intervention::FeedbackCutFrom {
+                sample_index: cut_index,
+            } => sample_index < cut_index,
             _ => true,
         };
 
@@ -180,8 +179,7 @@ pub fn simulate(
                     amplitude *= (-config.feedback_decay_rate * elapsed).exp();
                 }
                 Mechanism::FeedbackAttractor => {
-                    let drive_phase =
-                        config.initial_phase + config.angular_frequency * timestamp;
+                    let drive_phase = config.initial_phase + config.angular_frequency * timestamp;
                     let relaxation = (-config.feedback_coupling * elapsed).exp();
                     let drive = [drive_phase.cos(), drive_phase.sin()];
                     if feedback_present {
@@ -310,8 +308,7 @@ pub fn trajectory_rmse(
         .iter()
         .zip(right)
         .map(|(left_sample, right_sample)| {
-            (left_sample.x - right_sample.x).powi(2)
-                + (left_sample.y - right_sample.y).powi(2)
+            (left_sample.x - right_sample.x).powi(2) + (left_sample.y - right_sample.y).powi(2)
         })
         .sum::<f64>();
     let rmse = (squared_error / (2.0 * left.len() as f64)).sqrt();
@@ -381,7 +378,6 @@ pub fn predictive_log_score(
         Err(BenchmarkError::NumericalFailure)
     }
 }
-
 
 /// Add deterministic, seeded, independent Gaussian observation noise to the
 /// observable coordinates. Latent truth is not accepted by or returned from
@@ -483,11 +479,8 @@ pub fn select_mechanism(
     let mut scores = Vec::with_capacity(candidates.len());
     for candidate in candidates {
         let prediction = simulate(*candidate, intervention, config)?;
-        let score = predictive_log_score(
-            observed,
-            &prediction.samples,
-            config.observation_variance,
-        )?;
+        let score =
+            predictive_log_score(observed, &prediction.samples, config.observation_variance)?;
         scores.push((*candidate, score));
     }
     scores.sort_by(|left, right| {
@@ -530,7 +523,6 @@ fn validate_trace(trace: &[SyntheticSample]) -> Result<(), BenchmarkError> {
     }
     Ok(())
 }
-
 
 fn validate_aligned_timestamps(
     observed: &[SyntheticSample],
@@ -576,21 +568,21 @@ mod tests {
 
     #[test]
     fn observationally_matched_oscillator_and_feedback_models_are_indistinguishable() {
-        let oscillator = simulate(Mechanism::IntrinsicOscillator, Intervention::None, config())
-            .unwrap();
-        let feedback =
-            simulate(Mechanism::SensoryFeedbackDriven, Intervention::None, config()).unwrap();
+        let oscillator =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
+        let feedback = simulate(
+            Mechanism::SensoryFeedbackDriven,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
         assert!(trajectory_rmse(&oscillator.samples, &feedback.samples).unwrap() < 1.0e-12);
     }
 
     #[test]
     fn selector_abstains_when_baseline_observations_do_not_identify_mechanism() {
-        let observed = simulate(
-            Mechanism::IntrinsicOscillator,
-            Intervention::None,
-            config(),
-        )
-        .unwrap();
+        let observed =
+            simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
         let decision = select_mechanism(
             &observed.samples,
             &CANDIDATES,
@@ -605,21 +597,17 @@ mod tests {
     #[test]
     fn feedback_cut_separates_intrinsic_oscillator_from_sensory_driven_rhythm() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 20 };
-        let oscillator =
-            simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
-        let feedback =
-            simulate(Mechanism::SensoryFeedbackDriven, intervention, config()).unwrap();
+        let oscillator = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
+        let feedback = simulate(Mechanism::SensoryFeedbackDriven, intervention, config()).unwrap();
         assert!((oscillator.latent_truth.last().unwrap().amplitude - 1.0).abs() < 1.0e-12);
         assert!(feedback.latent_truth.last().unwrap().amplitude < 0.01);
         assert!(trajectory_rmse(&oscillator.samples, &feedback.samples).unwrap() > 0.1);
     }
 
-
     #[test]
     fn feedback_attractor_tracks_drive_but_relaxes_without_sensory_input() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 20 };
-        let trace =
-            simulate(Mechanism::FeedbackAttractor, intervention, config()).unwrap();
+        let trace = simulate(Mechanism::FeedbackAttractor, intervention, config()).unwrap();
         assert!(trace.latent_truth[10].amplitude > 0.5);
         assert!(trace.latent_truth[20].amplitude > 0.5);
         assert!(trace.latent_truth.last().unwrap().amplitude < 0.01);
@@ -649,8 +637,7 @@ mod tests {
     #[test]
     fn held_out_feedback_cut_selects_the_intrinsic_oscillator_when_it_generated_data() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 20 };
-        let observed =
-            simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
+        let observed = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
         let decision = select_mechanism(
             &observed.samples,
             &CANDIDATES,
@@ -671,8 +658,7 @@ mod tests {
     #[test]
     fn held_out_feedback_cut_selects_the_sensory_mechanism_when_it_generated_data() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 20 };
-        let observed =
-            simulate(Mechanism::SensoryFeedbackDriven, intervention, config()).unwrap();
+        let observed = simulate(Mechanism::SensoryFeedbackDriven, intervention, config()).unwrap();
         let decision = select_mechanism(
             &observed.samples,
             &CANDIDATES,
@@ -698,12 +684,14 @@ mod tests {
         };
         let baseline_intrinsic =
             simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
-        let pulse_intrinsic =
-            simulate(Mechanism::IntrinsicOscillator, pulse, config()).unwrap();
-        let baseline_feedback =
-            simulate(Mechanism::SensoryFeedbackDriven, Intervention::None, config()).unwrap();
-        let pulse_feedback =
-            simulate(Mechanism::SensoryFeedbackDriven, pulse, config()).unwrap();
+        let pulse_intrinsic = simulate(Mechanism::IntrinsicOscillator, pulse, config()).unwrap();
+        let baseline_feedback = simulate(
+            Mechanism::SensoryFeedbackDriven,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
+        let pulse_feedback = simulate(Mechanism::SensoryFeedbackDriven, pulse, config()).unwrap();
 
         let intrinsic_offset = phase_offset(
             &pulse_intrinsic.samples,
@@ -738,8 +726,12 @@ mod tests {
             sample_index: 20,
             delta_phase_radians: 0.6,
         };
-        let baseline =
-            simulate(Mechanism::HybridFeedbackCoupled, Intervention::None, config()).unwrap();
+        let baseline = simulate(
+            Mechanism::HybridFeedbackCoupled,
+            Intervention::None,
+            config(),
+        )
+        .unwrap();
         let perturbed = simulate(Mechanism::HybridFeedbackCoupled, pulse, config()).unwrap();
         let offset = phase_offset(
             &perturbed.samples,
@@ -777,21 +769,19 @@ mod tests {
         assert_eq!(offset, None);
     }
 
-
     #[test]
     fn seeded_observation_noise_is_reproducible_and_preserves_timestamps() {
-        let trace = simulate(
-            Mechanism::IntrinsicOscillator,
-            Intervention::None,
-            config(),
-        )
-        .unwrap();
+        let trace = simulate(Mechanism::IntrinsicOscillator, Intervention::None, config()).unwrap();
         let a = add_gaussian_observation_noise(&trace.samples, 0.01, 42).unwrap();
         let b = add_gaussian_observation_noise(&trace.samples, 0.01, 42).unwrap();
         assert_eq!(a, b);
         assert_eq!(
             a.iter().map(|sample| sample.timestamp).collect::<Vec<_>>(),
-            trace.samples.iter().map(|sample| sample.timestamp).collect::<Vec<_>>()
+            trace
+                .samples
+                .iter()
+                .map(|sample| sample.timestamp)
+                .collect::<Vec<_>>()
         );
         assert_ne!(a, trace.samples);
     }
@@ -826,18 +816,10 @@ mod tests {
     #[test]
     fn noisy_held_out_feedback_cut_still_discriminates_the_generating_mechanism() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 20 };
-        let generated =
-            simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
-        let noisy =
-            add_gaussian_observation_noise(&generated.samples, 0.01, 0x5EED).unwrap();
-        let decision = select_mechanism(
-            &noisy,
-            &CANDIDATES,
-            intervention,
-            config(),
-            1.0e-6,
-        )
-        .unwrap();
+        let generated = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
+        let noisy = add_gaussian_observation_noise(&generated.samples, 0.01, 0x5EED).unwrap();
+        let decision =
+            select_mechanism(&noisy, &CANDIDATES, intervention, config(), 1.0e-6).unwrap();
         assert!(matches!(
             decision,
             SelectionDecision::Selected {
@@ -895,7 +877,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn rejects_nonmonotonic_observation_timestamps() {
         let trace = simulate(
@@ -915,7 +896,6 @@ mod tests {
             Err(BenchmarkError::NonMonotonicTraceTimestamp)
         );
     }
-
 
     #[test]
     fn refuses_to_compare_predictions_on_a_different_time_grid() {
@@ -983,12 +963,9 @@ mod tests {
     #[test]
     fn predictive_score_rewards_the_matching_intervention_prediction() {
         let intervention = Intervention::FeedbackCutFrom { sample_index: 20 };
-        let observed =
-            simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
-        let correct =
-            simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
-        let wrong =
-            simulate(Mechanism::SensoryFeedbackDriven, intervention, config()).unwrap();
+        let observed = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
+        let correct = simulate(Mechanism::IntrinsicOscillator, intervention, config()).unwrap();
+        let wrong = simulate(Mechanism::SensoryFeedbackDriven, intervention, config()).unwrap();
         let correct_score = predictive_log_score(
             &observed.samples,
             &correct.samples,
