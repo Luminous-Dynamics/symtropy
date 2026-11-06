@@ -116,9 +116,7 @@ impl OscillatorObservationFilter {
             if !channel.intercept.is_finite() {
                 return Err(FilterError::InvalidChannelIntercept);
             }
-            if !channel.observation_variance.is_finite()
-                || channel.observation_variance <= 0.0
-            {
+            if !channel.observation_variance.is_finite() || channel.observation_variance <= 0.0 {
                 return Err(FilterError::InvalidObservationVariance);
             }
         }
@@ -333,10 +331,7 @@ impl OscillatorObservationFilter {
 
     /// The channel random effect is animal-level and is intentionally carried
     /// into every later session for the same filter instance.
-    pub fn channel_effect_posterior(
-        &self,
-        channel_id: &str,
-    ) -> Result<(f64, f64), FilterError> {
+    pub fn channel_effect_posterior(&self, channel_id: &str) -> Result<(f64, f64), FilterError> {
         let channel_index = self
             .channel_indices
             .get(channel_id)
@@ -352,8 +347,7 @@ impl OscillatorObservationFilter {
         &self,
         minimum_amplitude_signal_to_noise: f64,
     ) -> Result<Option<PhaseEstimate>, FilterError> {
-        if !minimum_amplitude_signal_to_noise.is_finite()
-            || minimum_amplitude_signal_to_noise < 0.0
+        if !minimum_amplitude_signal_to_noise.is_finite() || minimum_amplitude_signal_to_noise < 0.0
         {
             return Err(FilterError::InvalidPhaseSnrThreshold);
         }
@@ -440,19 +434,13 @@ impl OscillatorObservationFilter {
             ),
             &process_covariance,
         );
-        if !self.mean.iter().all(|value| value.is_finite())
-            || !matrix_is_finite(&self.covariance)
-        {
+        if !self.mean.iter().all(|value| value.is_finite()) || !matrix_is_finite(&self.covariance) {
             return Err(FilterError::NumericalFailure);
         }
         Ok(())
     }
 
-    fn update_one(
-        &mut self,
-        channel_index: usize,
-        value: f64,
-    ) -> Result<f64, FilterError> {
+    fn update_one(&mut self, channel_index: usize, value: f64) -> Result<f64, FilterError> {
         let channel = &self.channels[channel_index];
         let mut loading = vec![0.0; self.mean.len()];
         loading[0] = channel.loading[0];
@@ -460,12 +448,9 @@ impl OscillatorObservationFilter {
         loading[2 + channel_index] = 1.0;
 
         let covariance_loading = matrix_vector_product(&self.covariance, &loading);
-        let innovation_variance =
-            dot(&loading, &covariance_loading) + channel.observation_variance;
+        let innovation_variance = dot(&loading, &covariance_loading) + channel.observation_variance;
         let innovation = value - channel.intercept - dot(&loading, &self.mean);
-        if !innovation_variance.is_finite()
-            || innovation_variance <= 0.0
-            || !innovation.is_finite()
+        if !innovation_variance.is_finite() || innovation_variance <= 0.0 || !innovation.is_finite()
         {
             return Err(FilterError::NumericalFailure);
         }
@@ -639,8 +624,7 @@ mod tests {
 
         // Innovation variance = 1.0 + 0.25 + 0.25.
         assert_close(filter.latent_mean()[0], 2.0 / 1.5, 1.0e-12);
-        let (effect_mean, effect_variance) =
-            filter.channel_effect_posterior("left").unwrap();
+        let (effect_mean, effect_variance) = filter.channel_effect_posterior("left").unwrap();
         assert_close(effect_mean, 0.25 * 2.0 / 1.5, 1.0e-12);
         assert!(effect_variance > 0.0);
         assert_eq!(result.observations_used, 1);
@@ -695,13 +679,11 @@ mod tests {
         filter
             .observe_batch(0.0, &[measurement("left", 2.0)])
             .unwrap();
-        let (effect_before, variance_before) =
-            filter.channel_effect_posterior("left").unwrap();
+        let (effect_before, variance_before) = filter.channel_effect_posterior("left").unwrap();
 
         filter.start_session("animal-1-session-2").unwrap();
         assert_eq!(filter.latent_mean(), [0.0, 0.0]);
-        let (effect_after, variance_after) =
-            filter.channel_effect_posterior("left").unwrap();
+        let (effect_after, variance_after) = filter.channel_effect_posterior("left").unwrap();
         assert_close(effect_after, effect_before, 1.0e-12);
         assert_close(variance_after, variance_before, 1.0e-12);
         assert_eq!(filter.last_timestamp(), None);
@@ -791,10 +773,7 @@ mod tests {
         );
         filter.start_session("animal-1-session-1").unwrap();
         assert_eq!(
-            filter.observe_batch(
-                0.0,
-                &[measurement("left", 1.0), measurement("left", 2.0)]
-            ),
+            filter.observe_batch(0.0, &[measurement("left", 1.0), measurement("left", 2.0)]),
             Err(FilterError::DuplicateChannelMeasurement)
         );
         assert_eq!(
@@ -866,10 +845,7 @@ mod tests {
     #[test]
     fn rejects_duplicate_or_empty_session_ids() {
         let mut filter = filter();
-        assert_eq!(
-            filter.start_session(""),
-            Err(FilterError::EmptySessionId)
-        );
+        assert_eq!(filter.start_session(""), Err(FilterError::EmptySessionId));
         filter.start_session("session-1").unwrap();
         assert_eq!(
             filter.start_session("session-1"),
