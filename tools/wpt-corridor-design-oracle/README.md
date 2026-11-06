@@ -25,24 +25,24 @@ It enumerates every non-empty segment subset and reports all minimum-capex desig
 - 6 candidate segments with different feeder assignments, route coverage, capacity and capex.
 - 63 non-empty designs exhaustively checked.
 - 35 designs satisfy normal plus every single installed-segment outage.
-- Minimum capex is 15 units; the unique minimum design is `a-route-east`, `a-route-west`, and `a-shared`.
-- Four service checks accompany the selected design: normal plus one outage for each of its three installed segments. Every route receives its full 5 / 4 kWh minimum in every check.
+- Minimum capex is 16 units; the unique minimum design is `a-route-east`, `a-route-west`, `b-route-east`, and `b-route-west`.
+- Seven service checks accompany the selected design: normal, four selected-segment outages and two feeder outages. Every route receives its full 5 / 4 kWh minimum in every check.
 
-This fixture deliberately contains a shared segment alternative: a single module can cover both routes in the normal case, but it is not enough by itself because its own outage would strand both routes. The exact search chooses the least-cost combination that preserves route service after any one installed-segment failure.
+The cheaper shared-segment alternative fails the feeder-outage or module-outage checks because it can leave both routes dependent on one common feed or module. The exact search chooses one dedicated module per route on each independent feeder.
 
 ## Exactness and limits
 
 - Candidate sets are bounded at 12 segments, 4 feeders and 8 routes (`2^12 - 1` non-empty designs maximum).
 - Energy and capex are integer kWh / integer cost units.
 - Flow enforces shared feeder and segment caps across multiple routes.
-- Each outage scenario removes one installed segment and solves a fresh max-flow recourse allocation.
+- Each outage scenario removes one installed segment or one feeder and solves a fresh max-flow recourse allocation. Segment and feeder outages are assessed one at a time, not as simultaneous failures.
 - No heuristic or truncation is used; every subset is evaluated.
 - Input row order does not change selected IDs, minimum cost or robust feasible count.
 
 ## What it does not model
 
-This v0 only proves service floors in a static aggregate capacity network under **single segment outages**. It does not protect against:
-- feeder/substation outage, source outage or shared upstream common-mode failure;
+This v0 only proves service floors in a static aggregate capacity network under **single segment or feeder outages**. It does not protect against:
+- source/substation or upstream common-mode failure, simultaneous segment+feeder failure, or correlated hazards;
 - multiple simultaneous segment failures, flood/fire/road closure or correlated hazards;
 - time-dependent vehicle trajectories, dwell, handover, arrival/departure windows or traffic;
 - coil pitch, magnetic coupling, nonlinear multiport interaction, cross-regulation, switching, thermal state or harmonic constraints;
@@ -60,4 +60,4 @@ Seven Rust tests cover the exact known-truth design, normal-only versus N-1 infe
 
 ## Claim ceiling
 
-Exact minimum-capex selection for the finite synthetic capacity graph only. It does not establish real-world corridor payback, road lifetime, grid compliance, physical interoperability, safety, field service or deployment authorization.
+Exact minimum-capex selection for the finite synthetic capacity graph with one-at-a-time N-1 segment/feeder contingencies only. It does not establish real-world corridor payback, road lifetime, grid compliance, physical interoperability, safety, field service or deployment authorization.
