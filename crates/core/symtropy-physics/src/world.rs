@@ -829,7 +829,10 @@ impl<const D: usize> PhysicsWorld<D> {
                         dt,
                     ) {
                         Ok(Some(hit)) => {
-                            if earliest.as_ref().is_none_or(|current| hit.toi < current.toi) {
+                            if earliest
+                                .as_ref()
+                                .is_none_or(|current| hit.toi < current.toi)
+                            {
                                 earliest = Some(hit);
                             }
                         }
@@ -862,7 +865,10 @@ impl<const D: usize> PhysicsWorld<D> {
                         dt,
                     ) {
                         Ok(Some(hit)) => {
-                            if earliest.as_ref().is_none_or(|current| hit.toi < current.toi) {
+                            if earliest
+                                .as_ref()
+                                .is_none_or(|current| hit.toi < current.toi)
+                            {
                                 earliest = Some(hit);
                             }
                         }
@@ -2595,12 +2601,7 @@ mod ccd_query_diagnostic_tests {
     #[test]
     fn world_records_invalid_ccd_query_instead_of_treating_it_as_a_miss() {
         let mut world = PhysicsWorld::<3>::default();
-        let mut moving = RigidBody::dynamic_sphere(
-            BodyHandle(0),
-            Point::origin(),
-            f64::NAN,
-            1.0,
-        );
+        let mut moving = RigidBody::dynamic_sphere(BodyHandle(0), Point::origin(), f64::NAN, 1.0);
         moving.linear_velocity = SVector::from([10.0, 0.0, 0.0]);
         let moving_handle = world.add_body(moving);
 
