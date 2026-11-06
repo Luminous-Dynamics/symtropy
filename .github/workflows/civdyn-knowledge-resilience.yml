@@ -59,11 +59,12 @@ jobs:
           with path.open(newline="", encoding="utf-8") as handle:
               rows = list(csv.DictReader(handle))
           assert len(rows) == 11, f"expected 2 items + 5 transmissions + 4 archive outcomes, got {len(rows)}"
-          assert all(len(row) == 21 for row in rows)
+          assert all(len(row) == 22 for row in rows)
 
           items = {row["item_id"]: row for row in rows if row["record_type"] == "item_summary"}
           hydro = items["hydrology_skill"]
           assert hydro["epistemic_status"] == "verified"
+          assert hydro["carrier_state_count"] == "4"
           assert hydro["transmission_events"] == "3"
           assert hydro["delivered_transmissions"] == "3"
           assert hydro["acquisition_count"] == "3"
@@ -78,6 +79,7 @@ jobs:
 
           myth = items["silt_myth"]
           assert myth["epistemic_status"] == "refuted"
+          assert myth["carrier_state_count"] == "2"
           assert myth["refuted_knowledge_acquisition_count"] == "1"
           assert myth["verified_archive_copy_count"] == "0"
 
