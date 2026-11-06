@@ -25,6 +25,7 @@ pub enum ValidationCode {
     InvalidNumber,
     InvalidDigest,
     InvalidEvidenceRole,
+    EvidenceRoleMismatch,
     DuplicateChannelId,
     DuplicateArtifactId,
     MissingCalibration,
@@ -195,6 +196,14 @@ fn validate_record(
             if non_empty_string(artifact, "artifact_role").is_none() {
                 push(issues, record_id.clone(), ValidationCode::InvalidArtifactRole, format!("artifact {id} has no artifact_role"));
             }
+            if !valid_role(non_empty_string(artifact, "evidence_role")) {
+                push(issues, record_id.clone(), ValidationCode::InvalidEvidenceRole, format!("artifact {id} has an unsupported evidence_role"));
+            }
+            if non_empty_string(artifact, "media_type").is_none()
+                || artifact.get("byte_length").and_then(Value::as_u64).is_none_or(|length| length == 0)
+            {
+                push(issues, record_id.clone(), ValidationCode::InvalidNumber, format!("artifact {id} requires media_type and positive byte_length"));
+            }
             if !artifact.get("channel_refs").and_then(Value::as_array).is_some() {
                 push(issues, record_id.clone(), ValidationCode::ArtifactChannelMismatch, format!("artifact {id} must declare channel_refs"));
             }
@@ -260,6 +269,9 @@ fn validate_record(
             }
             if non_empty_string(channel, "clock_domain_ref") != non_empty_string(artifact, "clock_domain_ref") {
                 push(issues, record_id.clone(), ValidationCode::ArtifactClockMismatch, format!("channel {id} and raw artifact {raw_ref} have different clock domains"));
+            }
+            if non_empty_string(channel, "measurement_role") != non_empty_string(artifact, "evidence_role") {
+                push(issues, record_id.clone(), ValidationCode::EvidenceRoleMismatch, format!("channel {id} role does not match raw artifact {raw_ref} evidence_role"));
             }
             let role = non_empty_string(artifact, "artifact_role");
             if !matches!(role, Some("RawSignal" | "ThermalImage" | "HighSpeedImage")) {
@@ -335,7 +347,21 @@ fn validate_record(
                 push(issues, record_id.clone(), ValidationCode::MissingObservationSource, format!("observation {metric_id} needs source_artifact_refs"));
             } else if let Some(sources) = sources {
                 for source in sources.iter().filter_map(Value::as_str) {
-                    if !artifact_map.contains_key(source) {
+                    if let Some(source_artifact) = artifact_map.get(source) {
+                        let source_role = non_empty_string(source_artifact, "evidence_role");
+                        let compatible = match role {
+                            Some("IndependentMeasurement") => source_role == Some("IndependentMeasurement"),
+                            Some("DerivedFromIndependentMeasurements") => matches!(source_role, Some("IndependentMeasurement" | "DerivedFromIndependentMeasurements")),
+                            Some("ProcessSensor") => source_role == Some("ProcessSensor"),
+                            Some("OperatorReported") => source_role == Some("OperatorReported"),
+                            Some("ModelEstimate") => source_role == Some("ModelEstimate"),
+                            Some("Simulation") => source_role == Some("Simulation"),
+                            _ => false,
+                        };
+                        if !compatible {
+                            push(issues, record_id.clone(), ValidationCode::EvidenceRoleMismatch, format!("observation {metric_id} role is incompatible with source artifact {source}"));
+                        }
+                    } else {
                         push(issues, record_id.clone(), ValidationCode::MissingObservationSource, format!("observation {metric_id} references missing artifact {source}"));
                     }
                 }
@@ -656,6 +682,27 @@ mod tests {
         let mut data = fixture();
         data["records"][0]["artifacts"][0]["sha256"] = json!("not-a-digest");
         assert!(has(&validate_bundle(&data), ValidationCode::InvalidDigest));
+    }
+
+    #[test]
+    fn artifact_evidence_role_must_match_channel() {
+        let mut data = fixture();
+        data["records"][0]["artifacts"][0]["evidence_role"] = json!("ModelEstimate");
+        assert!(has(&validate_bundle(&data), ValidationCode::EvidenceRoleMismatch));
+    }
+
+    #[test]
+    fn independent_observation_cannot_cite_simulation_artifact() {
+        let mut data = fixture();
+        data["records"][2]["artifacts"][0]["evidence_role"] = json!("Simulation");
+        assert!(has(&validate_bundle(&data), ValidationCode::EvidenceRoleMismatch));
+    }
+
+    #[test]
+    fn zero_length_artifact_is_rejected() {
+        let mut data = fixture();
+        data["records"][0]["artifacts"][0]["byte_length"] = json!(0);
+        assert!(has(&validate_bundle(&data), ValidationCode::InvalidNumber));
     }
 
     #[test]
