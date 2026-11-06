@@ -62,17 +62,34 @@ for component in stack["components"]:
             f"behavior-affecting component {component['component_id']} is not configuration-pinned"
         )
 
-for component_id in (
-    stack["action_validation_policy"]["parser_component_id"],
-    stack["action_validation_policy"]["validator_component_id"],
-    stack["event_capture_policy"]["capture_component_id"],
+component_by_id = {component["component_id"]: component for component in stack["components"]}
+
+for component_id, expected_role in (
+    (stack["scheduler_policy"]["scheduler_id"], "scheduler"),
+    (stack["action_validation_policy"]["parser_component_id"], "action-parser"),
+    (stack["action_validation_policy"]["validator_component_id"], "action-validator"),
+    (stack["event_capture_policy"]["capture_component_id"], "event-capture"),
 ):
     if component_id not in component_ids:
         raise SystemExit(f"execution-stack policy references unknown component: {component_id}")
+    if component_by_id[component_id]["role"] != expected_role:
+        raise SystemExit(
+            f"execution-stack component {component_id} must have role {expected_role}"
+        )
+
+if stack["exposure_policy"]["policy_id"] != "exposure-not-applicable":
+    exposure_matches = [
+        component for component in stack["components"]
+        if component["role"] == "exposure-policy"
+    ]
+    if not exposure_matches:
+        raise SystemExit("an active exposure policy needs an explicit exposure-policy component")
+
+if stack["action_validation_policy"]["retry_limit"] > 0:
+    if not any(component["role"] == "retry-policy" for component in stack["components"]):
+        raise SystemExit("a nonzero retry limit requires a declared retry-policy component")
 
 fallback_events = stack["fallback_events"]
-if len(fallback_events) != sum(1 for _ in fallback_events):
-    raise SystemExit("fallback event count mismatch")
 fallback_ids = [event["event_id"] for event in fallback_events]
 if len(fallback_ids) != len(set(fallback_ids)):
     raise SystemExit("fallback event IDs must be unique")
