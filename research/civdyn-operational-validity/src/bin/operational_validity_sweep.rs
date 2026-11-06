@@ -5,12 +5,15 @@
 //! Every value is artificial; this binary does not import empirical data.
 
 use civdyn_operational_validity::{
-    MIN_INDEPENDENT_SAMPLES, MetricSpec, NumericSample, SampleSet, compare_metric,
+    MetricSpec, NumericSample, SampleSet, compare_metric,
 };
 
-fn samples(prefix: &str, values: &[f64], unit: &str) -> SampleSet {
+const REFERENCE_SAMPLE_COUNT: usize = 30;
+
+fn samples(prefix: &str, values: &[f64], unit: &str, independent_unit: &str) -> SampleSet {
     SampleSet {
         unit: unit.to_owned(),
+        independent_unit: independent_unit.to_owned(),
         samples: values
             .iter()
             .enumerate()
@@ -23,7 +26,7 @@ fn samples(prefix: &str, values: &[f64], unit: &str) -> SampleSet {
 }
 
 fn fixture_values(base: f64, step: f64) -> Vec<f64> {
-    (0..MIN_INDEPENDENT_SAMPLES)
+    (0..REFERENCE_SAMPLE_COUNT)
         .map(|index| base + (index % 7) as f64 * step)
         .collect()
 }
@@ -72,9 +75,15 @@ fn main() {
                 metric_id: metric_id.to_owned(),
                 unit: unit.to_owned(),
                 stratum_id: stratum_id.to_owned(),
+                observed_independent_unit: "matched_non_overlapping_empirical_window".into(),
+                simulated_independent_unit: "independent_simulation_run".into(),
+                minimum_observed_samples: REFERENCE_SAMPLE_COUNT,
+                minimum_simulated_samples: REFERENCE_SAMPLE_COUNT,
+                dependence_assessment: "Empirical windows do not overlap; each simulation run uses a distinct independent seed.".into(),
+                sample_size_rationale: "This synthetic fixture follows the 30-window/30-run replicated forum study design; another dataset must specify its own dependence and power rationale.".into(),
             },
-            &samples("observed_window", &observed_values, unit),
-            &samples("simulation_run", &simulated_values, unit),
+            &samples("observed_window", &observed_values, unit, "matched_non_overlapping_empirical_window"),
+            &samples("simulation_run", &simulated_values, unit, "independent_simulation_run"),
         )
         .expect("synthetic sample sets satisfy the reference contract");
 
@@ -124,9 +133,15 @@ mod tests {
                 metric_id: "toxicity".into(),
                 unit: "classifier_score".into(),
                 stratum_id: "root_posts".into(),
+                observed_independent_unit: "matched_non_overlapping_empirical_window".into(),
+                simulated_independent_unit: "independent_simulation_run".into(),
+                minimum_observed_samples: REFERENCE_SAMPLE_COUNT,
+                minimum_simulated_samples: REFERENCE_SAMPLE_COUNT,
+                dependence_assessment: "Empirical windows do not overlap; each simulation run uses a distinct independent seed.".into(),
+                sample_size_rationale: "This synthetic fixture follows the 30-window/30-run replicated forum study design; another dataset must specify its own dependence and power rationale.".into(),
             },
-            &samples("root_obs", &root, "classifier_score"),
-            &samples("root_sim", &sim_root, "classifier_score"),
+            &samples("root_obs", &root, "classifier_score", "matched_non_overlapping_empirical_window"),
+            &samples("root_sim", &sim_root, "classifier_score", "independent_simulation_run"),
         )
         .unwrap();
         let comment_result = compare_metric(
@@ -134,9 +149,15 @@ mod tests {
                 metric_id: "toxicity".into(),
                 unit: "classifier_score".into(),
                 stratum_id: "comments".into(),
+                observed_independent_unit: "matched_non_overlapping_empirical_window".into(),
+                simulated_independent_unit: "independent_simulation_run".into(),
+                minimum_observed_samples: REFERENCE_SAMPLE_COUNT,
+                minimum_simulated_samples: REFERENCE_SAMPLE_COUNT,
+                dependence_assessment: "Empirical windows do not overlap; each simulation run uses a distinct independent seed.".into(),
+                sample_size_rationale: "This synthetic fixture follows the 30-window/30-run replicated forum study design; another dataset must specify its own dependence and power rationale.".into(),
             },
-            &samples("comment_obs", &comments, "classifier_score"),
-            &samples("comment_sim", &sim_comments, "classifier_score"),
+            &samples("comment_obs", &comments, "classifier_score", "matched_non_overlapping_empirical_window"),
+            &samples("comment_sim", &sim_comments, "classifier_score", "independent_simulation_run"),
         )
         .unwrap();
 
