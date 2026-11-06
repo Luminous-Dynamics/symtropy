@@ -82,7 +82,8 @@
       "minItems": 2,
       "items": {
         "$ref": "#/$defs/trajectory_sample"
-      }
+      },
+      "maxItems": 512
     }
   },
   "$defs": {
