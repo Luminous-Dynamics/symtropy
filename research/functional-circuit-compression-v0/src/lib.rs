@@ -88,21 +88,40 @@ pub enum CompressionError {
     EmptyOutputSet(String),
     DuplicateComponent(String),
     DuplicateScenario(String),
-    DuplicateOutput { scenario_id: String, output_id: String },
-    DuplicateDependency { component_id: String, dependency_id: String },
+    DuplicateOutput {
+        scenario_id: String,
+        output_id: String,
+    },
+    DuplicateDependency {
+        component_id: String,
+        dependency_id: String,
+    },
     SelfDependency(String),
     UnknownComponent(String),
     UnknownScenario(String),
     CostUnitMissing,
-    TooManyComponents { actual: usize, maximum: usize },
+    TooManyComponents {
+        actual: usize,
+        maximum: usize,
+    },
     InvalidComponentCost(String),
-    InvalidTolerance { scenario_id: String, output_id: String },
-    OutputDimensionMismatch { scenario_id: String },
-    NonFiniteContribution { scenario_id: String },
+    InvalidTolerance {
+        scenario_id: String,
+        output_id: String,
+    },
+    OutputDimensionMismatch {
+        scenario_id: String,
+    },
+    NonFiniteContribution {
+        scenario_id: String,
+    },
     NonFiniteArithmetic,
     ComplexityCostOverflow,
     InvalidSearchBudget,
-    SearchBudgetInsufficient { required: u64, provided: u64 },
+    SearchBudgetInsufficient {
+        required: u64,
+        provided: u64,
+    },
     NoSufficientCircuit,
 }
 
@@ -270,9 +289,7 @@ fn validate_problem(
 
     for term in &problem.terms {
         let Some(&scenario_index) = scenario_by_id.get(&term.scenario_id) else {
-            return Err(CompressionError::UnknownScenario(
-                term.scenario_id.clone(),
-            ));
+            return Err(CompressionError::UnknownScenario(term.scenario_id.clone()));
         };
         let mut required = BTreeSet::new();
         for id in &term.required_components {
@@ -303,10 +320,13 @@ fn validate_problem(
 }
 
 fn dependency_closed(mask: u64, dependency_masks: &[u64]) -> bool {
-    dependency_masks.iter().enumerate().all(|(index, required)| {
-        let bit = 1_u64 << index;
-        mask & bit == 0 || mask & required == *required
-    })
+    dependency_masks
+        .iter()
+        .enumerate()
+        .all(|(index, required)| {
+            let bit = 1_u64 << index;
+            mask & bit == 0 || mask & required == *required
+        })
 }
 
 fn add_checked(target: &mut [f64], delta: &[f64]) -> Result<(), CompressionError> {
@@ -389,9 +409,10 @@ pub fn compress_exact(
 
     let mut compiled_terms = Vec::with_capacity(problem.terms.len());
     for term in &problem.terms {
-        let required_mask = term.required_components.iter().fold(0_u64, |mask, id| {
-            mask | (1_u64 << component_index[id])
-        });
+        let required_mask = term
+            .required_components
+            .iter()
+            .fold(0_u64, |mask, id| mask | (1_u64 << component_index[id]));
         compiled_terms.push(CompiledTerm {
             scenario_index: scenario_index[&term.scenario_id],
             required_mask,
@@ -622,7 +643,10 @@ mod tests {
         );
         let report = certified(compress_exact(&input, &CompressionConfig::default()).unwrap());
         assert_eq!(report.minimal_circuits.len(), 1);
-        assert_eq!(report.minimal_circuits[0].component_ids, vec!["a".to_owned(), "b".to_owned()]);
+        assert_eq!(
+            report.minimal_circuits[0].component_ids,
+            vec!["a".to_owned(), "b".to_owned()]
+        );
         assert_eq!(report.minimal_circuits[0].worst_normalized_error, 0.0);
         assert_eq!(report.exhaustive_subsets_considered, 8);
     }
@@ -645,10 +669,7 @@ mod tests {
             .collect();
         assert_eq!(
             circuits,
-            vec![
-                vec!["route-a".to_owned()],
-                vec!["route-b".to_owned()]
-            ]
+            vec![vec!["route-a".to_owned()], vec!["route-b".to_owned()]]
         );
     }
 
@@ -768,7 +789,10 @@ mod tests {
         input.terms.reverse();
         let reordered = certified(compress_exact(&input, &CompressionConfig::default()).unwrap());
         assert_eq!(original.minimal_circuits, reordered.minimal_circuits);
-        assert_eq!(original.reference_predictions, reordered.reference_predictions);
+        assert_eq!(
+            original.reference_predictions,
+            reordered.reference_predictions
+        );
     }
 
     #[test]
