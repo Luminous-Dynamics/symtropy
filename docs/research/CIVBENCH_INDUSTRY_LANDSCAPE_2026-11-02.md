@@ -587,3 +587,8 @@ All listed PRs remain drafts. Hosted software-fixture passes do not constitute e
 ### Stack-level accountability is now part of the machine-checkable MAD protocol
 
 The [CIVBENCH-MAD-001 draft schema PR #3735](https://github.com/Luminous-Dynamics/symtropy/pull/3735) now requires execution-stack inventory and negative controls for hidden fallback, unseeded RNG, policy/component mismatch and dropped events. This operationalizes the UNU 2026 accountability warning without adding another run-envelope: Humanity Atlas remains the authoritative run-artifact contract; MAD references it and declares the evaluation conditions.
+
+
+### Operational validity sample-size discipline
+
+The `civdyn-operational-validity` reference has been updated in [draft PR #3619](https://github.com/Luminous-Dynamics/symtropy/pull/3619): minimum observed/simulated counts, independent units, dependence assessment and sample-size rationale are now declared per metric. The 30+30 fixture mirrors the June 2026 replicated-forum study only. This avoids turning one study's sampling design into a universal rule; independent-unit declarations still require source-design justification.
