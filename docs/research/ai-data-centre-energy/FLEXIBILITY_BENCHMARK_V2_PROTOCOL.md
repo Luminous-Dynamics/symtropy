@@ -268,3 +268,10 @@ Benchmark known truths: analytic three-bus PTDF shifts; equal MW response at hig
 ### Implementation status update (6 November 2026)
 
 PR #3827 (14 Rust tests authored; exact-head CI pending) opens the first Rust DC screening package: a frozen network model and topology, an explicit MVA base, slack-bus balancing, chronological non-slack injections, signed per-bus positive load reductions, branch flow deltas, normal/emergency ratings, maximum action-fraction intersections and explicit N-1 outage recomputation. The synthetic three-bus case demonstrates a 30 MW requested reduction at bus B that relieves the A-B branch by 10 MW but increases S-B absolute flow by 20 MW; with the configured 45 MW S-B limit, only 17.5 MW (58.33%) is network-feasible at N-0. The PCC bus is pinned in the identity and must resolve to a non-slack bus in the frozen topology. This is synthetic DC arithmetic, not a real-grid deliverability claim. CI is pending.
+## 13. Large-load disturbance performance (GRID-DISTURBANCE-001 #3851)
+
+Add a separate conformance gate for operator-defined voltage/frequency ride-through, RoCoF, connection continuity and post-fault P/Q recovery. A sudden facility trip during a grid disturbance is not dispatch flexibility; it can create a system disturbance comparable in consequence to a large generation loss. The conformance engine must use the exact operator requirement version and PCC measurement-chain envelope.
+
+The first slice is trace-based and bounded: voltage/frequency/RoCoF time series, facility connection status, active/reactive power, current where measured, declared UPS/backup mode, pre-event power reference, staged recovery and repeated-event behavior. It must abstain if critical samples or the required measurement bandwidth are missing.
+
+Keep dispatch and disturbance channels separate. A load reduction during an overlapping fault cannot be credited as intentional demand response without causal attribution. A trace-conformance pass is not positive-sequence dynamic model validation, EMT/PDT stability, protection coordination, harmonic compliance, grid-code certification or ELCC.
