@@ -476,7 +476,9 @@ fn evaluate_service_scenario(
                 format!("FEEDER_OUTAGE:{}", scenario.feeders[index].feeder_id)
             }
             (Some(_), Some(_)) => {
-                return Err("internal outage scenario cannot remove both a segment and feeder".into());
+                return Err(
+                    "internal outage scenario cannot remove both a segment and feeder".into(),
+                );
             }
         },
         failed_segment_id: failed_segment.map(|index| scenario.segments[index].segment_id.clone()),
