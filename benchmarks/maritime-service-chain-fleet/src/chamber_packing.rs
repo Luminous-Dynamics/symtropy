@@ -443,7 +443,7 @@ mod tests {
     fn multiple_chambers_are_considered() {
         let result = exact_chamber_packing(
             &[chamber("c1", 120, 30, 1), chamber("c2", 220, 50, 1)],
-            &[vessel("v1", 200, 40), vessel("v2", 200, 40)],
+            &[vessel("v1", 200, 40), vessel("v2", 100, 20)],
             100_000,
         )
         .unwrap();
