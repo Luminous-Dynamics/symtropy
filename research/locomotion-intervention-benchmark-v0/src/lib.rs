@@ -2449,7 +2449,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn robust_design_accounts_for_feedback_decay_uncertainty_across_scenarios() {
         let mechanisms = [
@@ -2511,12 +2510,7 @@ mod tests {
             true,
         )];
         assert_eq!(
-            design_discriminating_intervention_across_scenarios(
-                &mechanisms,
-                &candidates,
-                &[],
-                0.0
-            ),
+            design_discriminating_intervention_across_scenarios(&mechanisms, &candidates, &[], 0.0),
             Err(BenchmarkError::EmptyParameterScenarioSet)
         );
 
