@@ -69,7 +69,7 @@ fn array_field<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a [Value
 }
 
 fn quanta(value: u64, quantum_mwh: u64, path: &str) -> Result<u64, String> {
-    if value % quantum_mwh != 0 {
+    if !value.is_multiple_of(quantum_mwh) {
         return Err(fail(
             path,
             format!("energy {value} mWh is not divisible by quantum {quantum_mwh} mWh"),
@@ -762,8 +762,8 @@ fn insert_pareto(frontier: &mut Vec<ParetoPoint>, candidate: ParetoPoint) -> Res
     }
     frontier.retain(|existing| {
         !objectives_dominate(&candidate, existing)
-            && !(same_objectives(&candidate, existing)
-                && candidate
+            && (!same_objectives(&candidate, existing)
+                || candidate
                     .link_allocations
                     .iter()
                     .map(|row| row.allocated_mwh)
@@ -773,7 +773,7 @@ fn insert_pareto(frontier: &mut Vec<ParetoPoint>, candidate: ParetoPoint) -> Res
                             .iter()
                             .map(|row| row.allocated_mwh),
                     )
-                    != std::cmp::Ordering::Greater)
+                    == std::cmp::Ordering::Greater)
     });
     frontier.push(candidate);
     if frontier.len() > MAX_PARETO_POINTS {
