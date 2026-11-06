@@ -34,3 +34,9 @@ cargo clippy -p symtropy-dc-network-screen --all-targets -- -D warnings
 ```
 
 All tests are synthetic known truth. No operator network model or live grid data is included.
+
+## Maximum feasible dispatch fraction
+
+DC branch flows are affine in a scalar action fraction λ when the injection pattern is scaled from the supplied baseline to the requested flexibility vector. For every in-service branch, the evaluator solves the exact one-dimensional interval satisfying −rating ≤ F_baseline + λ(F_full − F_baseline) ≤ rating, intersects the branch intervals and then intersects required N-1 contingencies. The result reports the minimum and maximum feasible action fraction plus the corresponding maximum network-deliverable MW for the requested load-reduction vector.
+
+This is not an optimizer and does not assume monotonicity. The feasible range can begin above zero when the baseline overload is relieved only after some response. If no common fraction satisfies all required constraints, the result returns no feasible fraction. Optional contingency diagnostics do not reduce the basecase deliverability result unless N-1 is a declared contract requirement.
