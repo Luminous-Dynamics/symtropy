@@ -469,7 +469,6 @@ impl SeededNormal {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FrequencyProfileInterval {
     pub lower_angular_frequency: f64,
@@ -3251,7 +3250,6 @@ mod tests {
         assert!(design.information_per_cost > 0.0);
     }
 
-
     #[test]
     fn profile_likelihood_resolves_a_well_sampled_frequency() {
         let mut known = config();
@@ -3292,8 +3290,12 @@ mod tests {
         alias_config.sample_interval = std::f64::consts::PI;
         alias_config.angular_frequency = 0.5;
         alias_config.damping_rate = 0.0;
-        let generated =
-            simulate(Mechanism::IntrinsicOscillator, Intervention::None, alias_config).unwrap();
+        let generated = simulate(
+            Mechanism::IntrinsicOscillator,
+            Intervention::None,
+            alias_config,
+        )
+        .unwrap();
         let profile = profile_angular_frequency(
             &generated.samples,
             Mechanism::IntrinsicOscillator,
@@ -3308,14 +3310,18 @@ mod tests {
         )
         .unwrap();
 
-        assert!(profile
-            .accepted_intervals
-            .iter()
-            .any(|interval| (interval.lower_angular_frequency - 0.5).abs() <= 0.02));
-        assert!(profile
-            .accepted_intervals
-            .iter()
-            .any(|interval| (interval.lower_angular_frequency - alias_frequency).abs() <= 0.02));
+        assert!(
+            profile
+                .accepted_intervals
+                .iter()
+                .any(|interval| (interval.lower_angular_frequency - 0.5).abs() <= 0.02)
+        );
+        assert!(
+            profile
+                .accepted_intervals
+                .iter()
+                .any(|interval| (interval.lower_angular_frequency - alias_frequency).abs() <= 0.02)
+        );
         assert_eq!(
             profile.identifiability,
             FrequencyIdentifiability::Multimodal
