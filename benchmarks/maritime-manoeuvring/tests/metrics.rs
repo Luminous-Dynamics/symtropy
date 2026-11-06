@@ -499,3 +499,43 @@ fn zig_zag_requires_command_events_to_align_with_trajectory_samples() {
         Err(TrajectoryError::CommandTimeNotSampleAligned)
     );
 }
+
+#[test]
+fn twenty_twenty_zig_zag_uses_the_same_metric_definition() {
+    let mut trajectory = zig_zag_trajectory();
+    for sample in &mut trajectory.samples {
+        sample.heading_rad *= 2.0;
+        sample.yaw_rate_rad_s *= 2.0;
+    }
+    let commands = [
+        ZigZagCommand {
+            time_s: 0.0,
+            rudder_deg: 20.0,
+        },
+        ZigZagCommand {
+            time_s: 2.0,
+            rudder_deg: -20.0,
+        },
+        ZigZagCommand {
+            time_s: 9.0,
+            rudder_deg: 20.0,
+        },
+    ];
+    let metrics = zig_zag_metrics(&trajectory, &commands, 20.0)
+        .expect("valid 20/20 zig-zag");
+    assert!((metrics.first_overshoot_deg - 10.0).abs() < 1.0e-9);
+    assert!((metrics.second_overshoot_deg - 12.0).abs() < 1.0e-9);
+}
+
+#[test]
+fn zig_zag_metrics_support_negative_heading_direction() {
+    let mut trajectory = zig_zag_trajectory();
+    for sample in &mut trajectory.samples {
+        sample.heading_rad = -sample.heading_rad;
+        sample.yaw_rate_rad_s = -sample.yaw_rate_rad_s;
+    }
+    let metrics = zig_zag_metrics(&trajectory, &zig_zag_commands(), 10.0)
+        .expect("valid negative-direction zig-zag");
+    assert!((metrics.first_overshoot_deg - 5.0).abs() < 1.0e-9);
+    assert!((metrics.second_overshoot_deg - 6.0).abs() < 1.0e-9);
+}
