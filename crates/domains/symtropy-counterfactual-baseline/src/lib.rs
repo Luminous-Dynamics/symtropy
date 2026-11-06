@@ -268,7 +268,10 @@ impl BaselineQualificationContract {
                 "maximum absolute normalized bias",
                 maximum_absolute_normalized_bias_basis_points,
             ),
-            ("maximum normalized MAE", maximum_normalized_mae_basis_points),
+            (
+                "maximum normalized MAE",
+                maximum_normalized_mae_basis_points,
+            ),
             (
                 "minimum lower-bound coverage",
                 minimum_lower_bound_coverage_basis_points,
