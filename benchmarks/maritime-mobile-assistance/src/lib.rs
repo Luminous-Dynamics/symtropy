@@ -73,6 +73,8 @@ pub struct TugResource {
     pub tug_id: String,
     pub revision: String,
     pub position_node_id: String,
+    /// Opaque class identifier supplied by the port/vessel assistance profile.
+    pub capability_class_id: String,
     /// Reviewed bollard-pull capability in kN; never inferred from vessel size.
     pub bollard_pull_kn: u32,
     pub capability_evidence: EvidenceReceipt,
@@ -115,6 +117,8 @@ pub struct AssistanceTask {
     pub kind: AssistanceKind,
     /// Minimum number of distinct tugs required by an upstream reviewed profile.
     pub required_tug_count: u8,
+    /// Accepted tug classes from an upstream reviewed profile; exact identifiers.
+    pub accepted_tug_class_ids: Vec<String>,
     /// Minimum aggregate bollard pull from an upstream reviewed profile.
     pub required_bollard_pull_kn: u32,
     /// When present, one pilot with this exact qualification is mandatory.
@@ -152,6 +156,7 @@ pub enum MobileDisposition {
 pub enum MobileViolation {
     MissingTaskAssignment(String),
     InsufficientTugCount(String),
+    TugClassMismatch(String),
     InsufficientBollardPull(String),
     UnexpectedTugAssignment(String),
     MissingPilotAssignment(String),
@@ -517,8 +522,13 @@ pub fn evaluate_mobile_assistance(
             || task.location_node_id.trim().is_empty()
             || task.operation.start_tick >= task.operation.end_tick
             || task.operation.start_tick < workload.decision_tick
-            || (task.required_tug_count == 0 && task.required_bollard_pull_kn != 0)
-            || (task.required_tug_count > 0 && task.required_bollard_pull_kn == 0)
+            || (task.required_tug_count == 0
+                && (task.required_bollard_pull_kn != 0 || !task.accepted_tug_class_ids.is_empty()))
+            || (task.required_tug_count > 0
+                && (task.required_bollard_pull_kn == 0 || task.accepted_tug_class_ids.is_empty()))
+            || task.accepted_tug_class_ids.iter().any(|item| item.trim().is_empty())
+            || task.accepted_tug_class_ids.iter().collect::<BTreeSet<_>>().len()
+                != task.accepted_tug_class_ids.len()
             || task
                 .required_pilot_qualification
                 .as_ref()
@@ -536,6 +546,7 @@ pub fn evaluate_mobile_assistance(
         if tug.tug_id.trim().is_empty()
             || tug.revision.trim().is_empty()
             || tug.position_node_id.trim().is_empty()
+            || tug.capability_class_id.trim().is_empty()
             || tug.bollard_pull_kn == 0
         {
             return Err(MobileError::InvalidTug(tug.tug_id.clone()));
@@ -666,6 +677,13 @@ pub fn evaluate_mobile_assistance(
 
         for tug_id in &assignment.tug_ids {
             let tug = tug_by_id[tug_id.as_str()];
+            if !task
+                .accepted_tug_class_ids
+                .iter()
+                .any(|class_id| class_id == &tug.capability_class_id)
+            {
+                violations.insert(MobileViolation::TugClassMismatch(task.task_id.clone()));
+            }
             evidence_violation(
                 &tug.tug_id,
                 &tug.capability_evidence,
