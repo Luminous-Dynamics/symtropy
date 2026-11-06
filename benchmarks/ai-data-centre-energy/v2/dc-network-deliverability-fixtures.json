@@ -45,7 +45,8 @@
       }
     ],
     "slack_bus": "S",
-    "topology_effective_at_ns": 0
+    "topology_effective_at_ns": 0,
+    "base_mva": 1
   },
   "cases": [
     {
@@ -266,6 +267,59 @@
         "accepted": false,
         "reason": "emergency_limit_below_normal"
       }
+    },
+    {
+      "case_id": "baseline-overload-needs-minimum-dispatch",
+      "baseline_non_slack_injections_mw": {
+        "A": 0,
+        "B": -100
+      },
+      "load_reductions_mw": {
+        "B": 60
+      },
+      "expected": {
+        "S_B_baseline_over_limit": true,
+        "minimum_feasible_action_fraction": 0.5416666667,
+        "maximum_feasible_action_fraction": 1,
+        "full_action_network_deliverable": true
+      }
+    },
+    {
+      "case_id": "pcc-bus-not-in-topology",
+      "pcc_bus_id": "UNKNOWN",
+      "expected": {
+        "accepted": false,
+        "reason": "unknown_bus"
+      }
+    },
+    {
+      "case_id": "pcc-maps-to-slack",
+      "pcc_bus_id": "S",
+      "expected": {
+        "accepted": false,
+        "reason": "pcc_bus_maps_to_slack"
+      }
+    },
+    {
+      "case_id": "pcc-action-assigned-to-another-bus",
+      "pcc_bus_id": "B",
+      "load_reductions_mw": {
+        "A": 5
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "pcc_bus_mismatch"
+      }
+    },
+    {
+      "case_id": "per-unit-base-invariance",
+      "base_mva_values": [
+        1,
+        1000
+      ],
+      "expected": {
+        "branch_flow_mw_equal": true
+      }
     }
   ],
   "negative_controls": [
@@ -283,7 +337,19 @@
     "normal_rating_exceeded",
     "emergency_rating_exceeded",
     "branch-relief-overload-elsewhere",
-    "N0_result_promoted_to_N1"
+    "N0_result_promoted_to_N1",
+    "missing_or_stale_pcc_bus_identity",
+    "PCC_mapped_to_slack",
+    "site_flexibility_reassigned_to_other_bus",
+    "per_unit_base_mva_omitted_or_mismatched",
+    "baseline_already_overloaded_minimum_action_fraction_ignored"
   ],
-  "claim_boundary": "linearized active-power screening for a pinned network snapshot. No AC voltage/reactive, losses, protection, RMS/EMT, distribution hosting capacity, market accreditation or ELCC claim."
+  "claim_boundary": "linearized active-power screening for a pinned network snapshot. No AC voltage/reactive, losses, protection, RMS/EMT, distribution hosting capacity, market accreditation or ELCC claim.",
+  "identity": {
+    "site_id": "dc-site",
+    "pcc_id": "pcc-b",
+    "pcc_bus_id": "B",
+    "baseline_trace_digest": "sha256:baseline",
+    "flexible_trace_digest": "sha256:flexible"
+  }
 }
