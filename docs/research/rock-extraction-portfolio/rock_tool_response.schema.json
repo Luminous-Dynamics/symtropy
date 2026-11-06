@@ -1,0 +1,836 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/rock-extraction-portfolio/rock_tool_response.schema.json",
+  "title": "Mechanism-Resolved Rock/Tool Response Bundle v0.1",
+  "description": "Validates metadata and evidence-envelope shape only. It does not authenticate artifacts, verify cross-reference integrity, qualify calibration, infer fracture physics or authorize hardware.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "bundle_id",
+    "evidence_class",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "bundle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "LABORATORY",
+        "FULL_SCALE_RIG",
+        "FIELD"
+      ]
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "evidenceRole": {
+      "enum": [
+        "IndependentMeasurement",
+        "DerivedFromIndependentMeasurements",
+        "ProcessSensor",
+        "OperatorReported",
+        "ModelEstimate",
+        "Simulation"
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "required": [
+        "artifact_id",
+        "artifact_role",
+        "sha256",
+        "media_type",
+        "byte_length",
+        "channel_refs"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_role": {
+          "enum": [
+            "RawSignal",
+            "ProcessedSignal",
+            "ThermalImage",
+            "HighSpeedImage",
+            "DIC",
+            "CT",
+            "Fractography",
+            "FragmentMetrology",
+            "CalibrationCertificate",
+            "ProtocolAttachment",
+            "Other"
+          ]
+        },
+        "uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_domain_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "channel_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "parent_artifact_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "transform_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transform_parameters_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "channel": {
+      "type": "object",
+      "required": [
+        "channel_id",
+        "quantity",
+        "unit",
+        "sensor_ref",
+        "measurement_location",
+        "calibration_ref",
+        "standard_uncertainty",
+        "measurement_role",
+        "sample_rate_hz",
+        "bandwidth_hz",
+        "clock_domain_ref",
+        "raw_artifact_ref"
+      ],
+      "properties": {
+        "channel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_location": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "measurement_role": {
+          "$ref": "#/$defs/evidenceRole"
+        },
+        "sample_rate_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "bandwidth_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "clock_domain_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "synchronization_uncertainty_ns": {
+          "type": "number",
+          "minimum": 0
+        },
+        "anti_alias_filter_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "saturated_samples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_samples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "range_exceeded": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "metric_id",
+        "value",
+        "unit",
+        "measurement_role",
+        "standard_uncertainty",
+        "calibration_ref",
+        "source_artifact_refs"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_role": {
+          "$ref": "#/$defs/evidenceRole"
+        },
+        "standard_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_artifact_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "lineage_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "measurement_role": {
+                "const": "DerivedFromIndependentMeasurements"
+              }
+            },
+            "required": [
+              "measurement_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "lineage_ref"
+            ]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "record": {
+      "type": "object",
+      "required": [
+        "record_id",
+        "mechanism",
+        "protocol",
+        "material",
+        "machine",
+        "method_configuration",
+        "environment",
+        "channels",
+        "artifacts",
+        "observations",
+        "quality"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanism": {
+          "enum": [
+            "ATCP",
+            "LASER_ASSISTED_PDC",
+            "ODC"
+          ]
+        },
+        "protocol": {
+          "type": "object",
+          "required": [
+            "protocol_id",
+            "revision",
+            "digest_sha256",
+            "study_design",
+            "run_id"
+          ],
+          "properties": {
+            "protocol_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "digest_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "study_design": {
+              "enum": [
+                "SYNTHETIC_CONFORMANCE",
+                "RANDOMIZED_BLOCKED",
+                "RANDOMIZED_MATCHED_PAIR",
+                "OBSERVATIONAL_MATCHED",
+                "OBSERVATIONAL_ADJACENT_INTERVAL",
+                "SINGLE_ARM"
+              ]
+            },
+            "run_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "randomization_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "preregistration_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "material": {
+          "type": "object",
+          "required": [
+            "cohort_ref",
+            "specimen_ref",
+            "lithology",
+            "properties"
+          ],
+          "properties": {
+            "cohort_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "specimen_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parent_block_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "lithology": {
+              "type": "string",
+              "minLength": 1
+            },
+            "petrography_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "properties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "property",
+                  "value",
+                  "unit",
+                  "standard_uncertainty",
+                  "method_ref",
+                  "calibration_ref",
+                  "measurement_role",
+                  "source_artifact_ref"
+                ],
+                "properties": {
+                  "property": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "value": {
+                    "type": "number"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "standard_uncertainty": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "method_ref": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "calibration_ref": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "measurement_role": {
+                    "$ref": "#/$defs/evidenceRole"
+                  },
+                  "source_artifact_ref": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "machine": {
+          "type": "object",
+          "required": [
+            "machine_profile_ref",
+            "tool_profile_ref",
+            "configuration_digest_sha256"
+          ],
+          "properties": {
+            "machine_profile_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tool_profile_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "configuration_digest_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "firmware_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tool_condition_start_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tool_condition_end_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "method_configuration": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "axial_waveform_artifact_ref",
+                "torsional_waveform_artifact_ref",
+                "phase_offset_rad",
+                "axial_excitation_frequency_hz",
+                "torsional_excitation_frequency_hz",
+                "rotation_speed_rad_s",
+                "weight_on_bit_n"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "ATCP"
+                },
+                "axial_waveform_artifact_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "torsional_waveform_artifact_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "phase_offset_rad": {
+                  "type": "number"
+                },
+                "axial_excitation_frequency_hz": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "torsional_excitation_frequency_hz": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "axial_impulse_energy_j": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "torsional_impulse_energy_j": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "rotation_speed_rad_s": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "weight_on_bit_n": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "fluid_pressure_pa": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "flow_rate_m3_s": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "wavelength_m",
+                "incident_optical_energy_j",
+                "spot_major_axis_m",
+                "spot_minor_axis_m",
+                "incidence_angle_rad",
+                "beam_to_cutter_offset_m",
+                "preheat_to_cut_delay_s",
+                "back_rake_rad",
+                "side_rake_rad",
+                "cutter_spacing_m",
+                "depth_of_cut_m",
+                "cutting_speed_m_s",
+                "laser_state"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "LASER_ASSISTED_PDC"
+                },
+                "wavelength_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "incident_optical_energy_j": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "delivered_workpiece_energy_j": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "spot_major_axis_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "spot_minor_axis_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "incidence_angle_rad": {
+                  "type": "number"
+                },
+                "standoff_m": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "beam_to_cutter_offset_m": {
+                  "type": "number"
+                },
+                "preheat_to_cut_delay_s": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "back_rake_rad": {
+                  "type": "number"
+                },
+                "side_rake_rad": {
+                  "type": "number"
+                },
+                "cutter_spacing_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "depth_of_cut_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "cutting_speed_m_s": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "laser_state": {
+                  "enum": [
+                    "ON",
+                    "OFF_SHAM",
+                    "OFF_BASELINE"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "kind",
+                "disc_diameter_m",
+                "eccentricity_m",
+                "angular_speed_rad_s",
+                "traction_speed_m_s",
+                "depth_of_cut_m",
+                "speed_ratio",
+                "speed_ratio_definition"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "ODC"
+                },
+                "disc_diameter_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "eccentricity_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "angular_speed_rad_s": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "traction_speed_m_s": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "depth_of_cut_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "speed_ratio": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "speed_ratio_definition": {
+                  "const": "v/(omega*e)"
+                },
+                "cutter_edge_profile_ref": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "environment": {
+          "type": "object",
+          "required": [
+            "temperature_k",
+            "confining_pressure_pa"
+          ],
+          "properties": {
+            "temperature_k": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "confining_pressure_pa": {
+              "type": "number",
+              "minimum": 0
+            },
+            "pore_pressure_pa": {
+              "type": "number",
+              "minimum": 0
+            },
+            "fluid_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "site_context_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/channel"
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "quality": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "code",
+              "severity"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1
+              },
+              "severity": {
+                "enum": [
+                  "INFO",
+                  "WARNING",
+                  "INVALIDATING"
+                ]
+              },
+              "detail": {
+                "type": "string"
+              },
+              "artifact_refs": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mechanism": {
+                "const": "ATCP"
+              }
+            },
+            "required": [
+              "mechanism"
+            ]
+          },
+          "then": {
+            "properties": {
+              "method_configuration": {
+                "properties": {
+                  "kind": {
+                    "const": "ATCP"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mechanism": {
+                "const": "LASER_ASSISTED_PDC"
+              }
+            },
+            "required": [
+              "mechanism"
+            ]
+          },
+          "then": {
+            "properties": {
+              "method_configuration": {
+                "properties": {
+                  "kind": {
+                    "const": "LASER_ASSISTED_PDC"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mechanism": {
+                "const": "ODC"
+              }
+            },
+            "required": [
+              "mechanism"
+            ]
+          },
+          "then": {
+            "properties": {
+              "method_configuration": {
+                "properties": {
+                  "kind": {
+                    "const": "ODC"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}
