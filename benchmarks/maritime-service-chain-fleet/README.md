@@ -64,4 +64,6 @@ The implementation is a bounded exhaustive enumerator over its declared finite i
 
 The production search budget counts operation-start candidate evaluations, not every recursive call or memory allocation; future benchmark reports must preserve that exact definition.
 
-The oracle assumes fixed segment durations, fixed capacity windows and one ordered route per demand. It does not establish that upstream evidence is authentic, that a vessel is physically qualified, that a resource operator has authorized use, or that real water/energy availability matches the synthetic profile. It never controls a lock, berth, pump, vessel or shore-power asset.
+The oracle assumes fixed segment durations, fixed capacity windows and one ordered route per demand. Its `total_idle_wait_ticks` metric only sums idle gaps between consecutive route operations for the same demand; it excludes anchorage/queue wait before the first operation, berth dwell, and end-to-end cargo dwell. Those must be added by the recovery and service-chain owners before comparing door-to-door logistics performance.
+
+It does not establish that upstream evidence is authentic, that a vessel is physically qualified, that a resource operator has authorized use, or that real water/energy availability matches the synthetic profile. It never controls a lock, berth, pump, vessel or shore-power asset.
