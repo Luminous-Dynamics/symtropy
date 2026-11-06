@@ -92,6 +92,9 @@ pub enum BenchmarkError {
     InvalidScoreMargin,
     InvalidFitGrid,
     InvalidInterventionAlignment,
+    EmptySeedSet,
+    DuplicateSeed,
+    DuplicateGenerator,
     InvalidTraceLength,
     NonFiniteTrace,
     NonMonotonicTraceTimestamp,
@@ -651,6 +654,199 @@ pub fn select_frozen_forecast(
             log_score: best.1,
             margin_over_runner_up: margin,
         })
+    }
+}
+
+
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MonteCarloSpec {
+    pub generating_mechanisms: Vec<Mechanism>,
+    pub candidates: Vec<Mechanism>,
+    /// Unique deterministic seeds paired across all generating mechanisms.
+    pub seeds: Vec<u64>,
+    pub intervention: Intervention,
+    pub base_config: SimulationConfig,
+    pub fit_grid: FrequencyPhaseGrid,
+    pub observation_noise_variance: f64,
+    pub minimum_score_margin: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BinomialInterval {
+    pub successes: usize,
+    pub trials: usize,
+    pub rate: f64,
+    pub lower_95: f64,
+    pub upper_95: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MonteCarloSummary {
+    pub generating_mechanism: Mechanism,
+    pub trials: usize,
+    pub selected_count: usize,
+    pub correct_count: usize,
+    pub incorrect_confident_count: usize,
+    pub abstention_count: usize,
+    /// Conditional accuracy among non-abstained trials.
+    pub accuracy_when_selected_95: Option<BinomialInterval>,
+    /// Incorrect confident selections divided by all trials.
+    pub false_confident_rate_95: BinomialInterval,
+    /// Abstentions divided by all trials.
+    pub abstention_rate_95: BinomialInterval,
+    pub mean_score_margin: f64,
+}
+
+/// Run paired-seed synthetic trials. Each generator is evaluated with the
+/// same seeds, parameter grid, candidate set, action, prefix length and noise
+/// variance. Per-trial parameters are fitted only to the pre-action prefix;
+/// the suffix is scored after the forecasts have been frozen.
+pub fn run_paired_seed_evaluation(
+    spec: MonteCarloSpec,
+) -> Result<Vec<MonteCarloSummary>, BenchmarkError> {
+    spec.base_config.validate()?;
+    spec.fit_grid.validate()?;
+    if spec.generating_mechanisms.is_empty() {
+        return Err(BenchmarkError::EmptyCandidateSet);
+    }
+    if spec.candidates.len() < 2 {
+        return Err(BenchmarkError::EmptyCandidateSet);
+    }
+    if spec.seeds.is_empty() {
+        return Err(BenchmarkError::EmptySeedSet);
+    }
+    if !spec.observation_noise_variance.is_finite()
+        || spec.observation_noise_variance < 0.0
+    {
+        return Err(BenchmarkError::InvalidObservationVariance);
+    }
+    if !spec.minimum_score_margin.is_finite() || spec.minimum_score_margin < 0.0 {
+        return Err(BenchmarkError::InvalidScoreMargin);
+    }
+
+    let mut unique_candidates = BTreeSet::new();
+    for candidate in &spec.candidates {
+        if !unique_candidates.insert(*candidate) {
+            return Err(BenchmarkError::DuplicateCandidate);
+        }
+    }
+
+    let mut unique_generators = BTreeSet::new();
+    for mechanism in &spec.generating_mechanisms {
+        if !unique_generators.insert(*mechanism) {
+            return Err(BenchmarkError::DuplicateGenerator);
+        }
+    }
+
+    let mut unique_seeds = BTreeSet::new();
+    for seed in &spec.seeds {
+        if !unique_seeds.insert(*seed) {
+            return Err(BenchmarkError::DuplicateSeed);
+        }
+    }
+
+    let mut summaries = Vec::with_capacity(spec.generating_mechanisms.len());
+    for generating_mechanism in &spec.generating_mechanisms {
+        let mut correct_count = 0;
+        let mut incorrect_confident_count = 0;
+        let mut abstention_count = 0;
+        let mut score_margin_sum = 0.0;
+
+        for seed in &spec.seeds {
+            let generated = simulate(
+                *generating_mechanism,
+                spec.intervention,
+                spec.base_config,
+            )?;
+            let noisy_observations = add_gaussian_observation_noise(
+                &generated.samples,
+                spec.observation_noise_variance,
+                *seed,
+            )?;
+            let prefix_len = match spec.intervention {
+                Intervention::FeedbackCutFrom { sample_index }
+                | Intervention::PhasePulseAt { sample_index, .. } => sample_index,
+                Intervention::None => {
+                    return Err(BenchmarkError::InvalidInterventionAlignment);
+                }
+            };
+            let forecasts = predict_intervention_candidates(
+                &noisy_observations[..prefix_len],
+                &spec.candidates,
+                spec.intervention,
+                spec.base_config,
+                spec.fit_grid,
+            )?;
+            let decision = select_frozen_forecast(
+                &noisy_observations[prefix_len..],
+                &forecasts,
+                spec.base_config.observation_variance,
+                spec.minimum_score_margin,
+            )?;
+
+            match decision {
+                SelectionDecision::Selected {
+                    mechanism,
+                    margin_over_runner_up,
+                    ..
+                } => {
+                    score_margin_sum += margin_over_runner_up;
+                    if mechanism == *generating_mechanism {
+                        correct_count += 1;
+                    } else {
+                        incorrect_confident_count += 1;
+                    }
+                }
+                SelectionDecision::Abstained {
+                    margin_over_runner_up,
+                    ..
+                } => {
+                    score_margin_sum += margin_over_runner_up;
+                    abstention_count += 1;
+                }
+            }
+        }
+
+        let trials = spec.seeds.len();
+        let selected_count = correct_count + incorrect_confident_count;
+        let accuracy_when_selected_95 = if selected_count > 0 {
+            Some(wilson_interval(correct_count, selected_count))
+        } else {
+            None
+        };
+        summaries.push(MonteCarloSummary {
+            generating_mechanism: *generating_mechanism,
+            trials,
+            selected_count,
+            correct_count,
+            incorrect_confident_count,
+            abstention_count,
+            accuracy_when_selected_95,
+            false_confident_rate_95: wilson_interval(incorrect_confident_count, trials),
+            abstention_rate_95: wilson_interval(abstention_count, trials),
+            mean_score_margin: score_margin_sum / trials as f64,
+        });
+    }
+    Ok(summaries)
+}
+
+fn wilson_interval(successes: usize, trials: usize) -> BinomialInterval {
+    // Wilson score interval with z = 1.959963984540054 (two-sided 95%).
+    let z = 1.959_963_984_540_054_f64;
+    let n = trials as f64;
+    let p = successes as f64 / n;
+    let z_squared = z * z;
+    let denominator = 1.0 + z_squared / n;
+    let center = (p + z_squared / (2.0 * n)) / denominator;
+    let half_width =
+        z * ((p * (1.0 - p) / n + z_squared / (4.0 * n * n)).sqrt()) / denominator;
+    BinomialInterval {
+        successes,
+        trials,
+        rate: p,
+        lower_95: (center - half_width).max(0.0),
+        upper_95: (center + half_width).min(1.0),
     }
 }
 
