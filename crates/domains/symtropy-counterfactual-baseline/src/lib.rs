@@ -1072,8 +1072,8 @@ pub fn qualify_counterfactual_baseline(
 pub fn evaluate_baseline_bounded_event(
     qualified_baseline: &BaselineQualificationReport,
     event_identity: &BaselineIdentity,
+    recovery_evidence: &EventRecoveryEvidence,
     points: &[DispatchEventPoint],
-    event_and_recovery_horizon_complete: bool,
 ) -> Result<BaselineEventReport, BaselineQualificationError> {
     if !qualified_baseline.qualified {
         return Err(BaselineQualificationError::BaselineNotQualified);
@@ -1085,8 +1085,17 @@ pub fn evaluate_baseline_bounded_event(
         return Err(BaselineQualificationError::EmptyEvent);
     }
 
+    if points[0].interval_start_ns != recovery_evidence.event_start_ns {
+        return Err(BaselineQualificationError::EventHorizonStartMismatch {
+            expected_start_ns: recovery_evidence.event_start_ns,
+            observed_start_ns: points[0].interval_start_ns,
+        });
+    }
     let mut point_ids = BTreeSet::new();
     let mut previous_end_ns: Option<u64> = None;
+    let mut seen_recovery_phase = false;
+    let mut dispatch_interval_count = 0usize;
+    let mut recovery_interval_count = 0usize;
     let mut receipts = Vec::with_capacity(points.len());
     let mut gross_reduction_energy_kwh = 0.0;
     let mut gross_rebound_energy_kwh = 0.0;
@@ -1113,6 +1122,33 @@ pub fn evaluate_baseline_bounded_event(
             .interval_start_ns
             .checked_add(point.interval_duration_ns)
             .ok_or(BaselineQualificationError::TimestampOverflow)?;
+        if point.interval_start_ns < recovery_evidence.dispatch_end_ns
+            && end_ns > recovery_evidence.dispatch_end_ns
+        {
+            return Err(BaselineQualificationError::EventIntervalStraddlesDispatchEnd {
+                index,
+                dispatch_end_ns: recovery_evidence.dispatch_end_ns,
+            });
+        }
+        match point.phase {
+            DispatchEventPhase::Dispatch => {
+                if seen_recovery_phase || end_ns > recovery_evidence.dispatch_end_ns {
+                    return Err(BaselineQualificationError::DispatchRecoveryPhaseOrderViolation {
+                        index,
+                    });
+                }
+                dispatch_interval_count += 1;
+            }
+            DispatchEventPhase::Recovery => {
+                if point.interval_start_ns < recovery_evidence.dispatch_end_ns {
+                    return Err(BaselineQualificationError::DispatchRecoveryPhaseOrderViolation {
+                        index,
+                    });
+                }
+                seen_recovery_phase = true;
+                recovery_interval_count += 1;
+            }
+        }
         previous_end_ns = Some(end_ns);
 
         let regime = qualified_baseline.regime(&point.regime_id).ok_or_else(|| {
@@ -1146,7 +1182,9 @@ pub fn evaluate_baseline_bounded_event(
                 "event impact",
             ));
         }
-        if conservative_reduction_lower_bound_kw >= qualified_baseline.minimum_response_kw {
+        if point.phase == DispatchEventPhase::Dispatch
+            && conservative_reduction_lower_bound_kw >= qualified_baseline.minimum_response_kw
+        {
             qualifying_interval_count += 1;
         }
         let point_energy_kwh = reduction_point_estimate_kw * duration_hours;
@@ -1174,6 +1212,7 @@ pub fn evaluate_baseline_bounded_event(
 
         receipts.push(BaselineEventIntervalReceipt {
             point_id: point.point_id.clone(),
+            phase: point.phase,
             regime_id: point.regime_id.clone(),
             interval_start_ns: point.interval_start_ns,
             interval_duration_ns: point.interval_duration_ns,
@@ -1192,9 +1231,22 @@ pub fn evaluate_baseline_bounded_event(
         });
     }
 
+    if dispatch_interval_count == 0 {
+        return Err(BaselineQualificationError::EmptyEvent);
+    }
+    if recovery_interval_count == 0 {
+        return Err(BaselineQualificationError::MissingRecoveryIntervals);
+    }
+    let observed_horizon_end_ns = previous_end_ns.ok_or(BaselineQualificationError::EmptyEvent)?;
+    if observed_horizon_end_ns != recovery_evidence.observation_horizon_end_ns {
+        return Err(BaselineQualificationError::EventHorizonEndMismatch {
+            expected_end_ns: recovery_evidence.observation_horizon_end_ns,
+            observed_end_ns: observed_horizon_end_ns,
+        });
+    }
     let qualifying_interval_fraction_basis_points =
-        qualifying_interval_count as f64 / points.len() as f64 * BASIS_POINTS;
-    let event_qualified = event_and_recovery_horizon_complete
+        qualifying_interval_count as f64 / dispatch_interval_count as f64 * BASIS_POINTS;
+    let event_qualified = recovery_evidence.is_complete()
         && qualifying_interval_fraction_basis_points
             >= qualified_baseline.minimum_event_qualifying_fraction_basis_points as f64;
 
@@ -1202,6 +1254,8 @@ pub fn evaluate_baseline_bounded_event(
         identity: qualified_baseline.identity.clone(),
         baseline_qualification_passed: true,
         interval_count: points.len(),
+        dispatch_interval_count,
+        recovery_interval_count,
         qualifying_interval_count,
         qualifying_interval_fraction_basis_points,
         gross_reduction_energy_kwh,
@@ -1211,7 +1265,14 @@ pub fn evaluate_baseline_bounded_event(
         minimum_response_kw: qualified_baseline.minimum_response_kw,
         event_qualified,
         event_lower_bound_is_joint_probability: false,
-        event_and_recovery_included_in_supplied_horizon: event_and_recovery_horizon_complete,
+        event_and_recovery_included_in_supplied_horizon: true,
+        recovery_evidence_id: recovery_evidence.evidence_id.clone(),
+        recovery_source_digest: recovery_evidence.source_digest.clone(),
+        workload_obligations_reconciled: recovery_evidence.workload_obligations_reconciled,
+        physical_resource_states_reconciled: recovery_evidence.physical_resource_states_reconciled,
+        event_start_ns: recovery_evidence.event_start_ns,
+        dispatch_end_ns: recovery_evidence.dispatch_end_ns,
+        observation_horizon_end_ns: recovery_evidence.observation_horizon_end_ns,
         intervals: receipts,
         claim_boundary: "model-based conservative impact bound using holdout-qualified counterfactual baseline and caller-supplied expanded PCC measurement uncertainty; no causal identification is asserted".to_owned(),
     })
