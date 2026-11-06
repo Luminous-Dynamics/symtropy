@@ -44,6 +44,7 @@ The simulator accepts any finite six-element preferred-phase-offset vector. Trip
 ## Interventions
 
 - Per-leg instantaneous phase pulse at an exact sample.
+- Per-leg external phase-reference delay, with finite/nonnegative validation; heterogeneous delays can be used to test phase-coordination robustness.
 - Feedback cut for one leg or the whole network.
 - Directed coupling-edge removal, optionally reciprocal.
 - Leg disable, which freezes that leg's phase and removes it from subsequent coupling sums.
@@ -62,12 +63,14 @@ These are phase-network metrics only. They do not measure joint kinematics, stan
 
 ## Deterministic known-truth tests
 
-The 18 tests cover:
+The 20 tests cover:
 - tripod grouping and stable leg identifiers;
 - central coupling convergence to a declared phase-offset target;
 - relative drift in independent heterogeneous oscillators;
 - sensory-driven phase tracking and cessation after feedback cut;
 - hybrid phase progression after feedback loss;
+- hybrid coupling compensation under heterogeneous per-leg feedback delays, versus feedback-only phase error;
+- negative/nonfinite delay rejection;
 - phase-pulse recovery with coupling versus persistent offset without coupling;
 - leg disable without zero-fill and with unaffected legs continuing;
 - abstention when fewer than two active legs remain;
@@ -80,7 +83,7 @@ The 18 tests cover:
 
 ## Scientific boundary
 
-This is not a connectome model, neural CPG reconstruction, articulated-body simulator, contact model or biological result. The feedback input is an idealized external phase reference, not an identified sensory receptor. The phase coupling graph is a declared mathematical structure, not an inferred neural wiring diagram. A high order parameter does not establish a biological mechanism or a physically successful gait.
+This is not a connectome model, neural CPG reconstruction, articulated-body simulator, contact model or biological result. The feedback input is an idealized external phase reference, not an identified sensory receptor. The delay is applied to that reference phase; it is not a measured receptor, neural conduction or actuator delay model. The phase coupling graph is a declared mathematical structure, not an inferred neural wiring diagram. A high order parameter does not establish a biological mechanism or a physically successful gait.
 
 The intended next step is to use these synthetic generators as known-truth controls for #3829, then compare them with source-grounded FlyGym 2.1.1 telemetry and the #3345 CPG-to-contact harness under matched initial conditions, body/physics, sensory access, intervention schedule and metric definitions.
 
