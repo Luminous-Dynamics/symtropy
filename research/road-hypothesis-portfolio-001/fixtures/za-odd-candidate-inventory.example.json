@@ -1,0 +1,415 @@
+{
+  "schema": "symtropy.road-odd-za-candidate-inventory.v0.1",
+  "inventory_id": "ROAD-ODD-ZA-CANDIDATES-001",
+  "revision": 1,
+  "geography": {
+    "country": "South Africa",
+    "target_area": "City of Johannesburg / Gauteng",
+    "administrative_scope": "national_context_plus_gauteng_context",
+    "boundary_status": "not_defined"
+  },
+  "claim_ceiling": {
+    "is_validated_odd": false,
+    "coverage_credit_permitted": false,
+    "local_prevalence_established": false,
+    "notes": "This is an evidence-informed candidate register only. National and provincial statistics establish why some interaction classes merit measurement; they do not establish City of Johannesburg prevalence, local crash rates, ODD support, ADS performance, or legal scenario semantics. Every cell remains uncovered until local scope, protocol, independent units, evidence lineage and holdout are registered in the portfolio."
+  },
+  "evidence_sources": [
+    {
+      "source_id": "ZA-S1",
+      "title": "Exploring South Africa’s usual modes of Transport",
+      "publisher": "Statistics South Africa",
+      "publication_date": "2026-10-30",
+      "url": "https://www.statssa.gov.za/?p=20066",
+      "geographic_scope": "National, with province-level household taxi-use results for Gauteng",
+      "reported_fact": "For 2025, 60.6% of learners walked to school nationally; 24.0% of workers used taxis nationally; 38.5% of Gauteng households reported that at least one household member used a taxi in the week before the survey.",
+      "limitations": "Learner and worker mode shares are national. The 38.5% figure is household-level weekly use, not a trip share, vehicle share, taxi-rank flow or City of Johannesburg estimate."
+    },
+    {
+      "source_id": "ZA-S2",
+      "title": "Deputy Minister Mkhuleko Hlengwa: SAB Sharp Responsible Partnerships event",
+      "publisher": "South African Government",
+      "publication_date": "2026-10-08",
+      "url": "https://www.gov.za/news/speeches/deputy-minister-mkhuleko-hlengwa-sab-sharp-responsible-partnerships-event-08-oct-2026",
+      "geographic_scope": "National South African road safety reporting, 1 January to 27 September 2026",
+      "reported_fact": "The speech reports 3,091 pedestrian deaths in the period, approximately 42% of national road fatalities. It also reports that 88% of major crashes are linked to human behaviour, listing excessive speed, loss of control, driving into oncoming traffic, dangerous overtaking, fatigue and alcohol impairment.",
+      "limitations": "National aggregate in a government speech; not a Johannesburg risk rate, causal estimate, exposure-adjusted rate or evidence that a particular local scenario occurs at a given frequency."
+    },
+    {
+      "source_id": "ZA-S3",
+      "title": "Gauteng Roads and Transport ramps up road safety interventions",
+      "publisher": "South African Government",
+      "publication_date": "2026-01-20",
+      "url": "https://www.gov.za/news/media-statements/gauteng-roads-and-transport-ramps-road-safety-interventions-20-jan-2026",
+      "geographic_scope": "Gauteng policy and enforcement context",
+      "reported_fact": "The Gauteng Department of Roads and Transport identifies scholar-transport safety as a renewed priority and describes stronger enforcement and monitoring.",
+      "limitations": "Policy priority is not a measurement of incident frequency, exposure or actual scholar-transport behaviour in Johannesburg."
+    },
+    {
+      "source_id": "ZA-S4",
+      "title": "SA Learner Driver Manual — Rules of the Road",
+      "publisher": "National Traffic Information System (NaTIS), Department of Transport",
+      "publication_date": "2012-06-01",
+      "url": "https://www.natis.gov.za/index.php/downloads/learner-driver-manual?download=4%3Arules-of-the-road-draft1",
+      "geographic_scope": "South African road-rule learning material",
+      "reported_fact": "The manual text describes left-side roadway use on divided public roads and keeping left on the roadway.",
+      "limitations": "The surfaced manual is marked draft. Production rule semantics must be confirmed against the current consolidated National Road Traffic Act/Regulations, amendments, signs and local road controls before a safety verifier treats a rule as normative."
+    },
+    {
+      "source_id": "ZA-S5",
+      "title": "A sterling welcome and warning to our international visitors on South African roads",
+      "publisher": "South African Government / Road Traffic Management Corporation",
+      "publication_date": "2010-05-28",
+      "url": "https://www.gov.za/news/media-statements/sterling-welcome-and-warning-our-international-visitors-south-african-roads",
+      "geographic_scope": "National road-use context",
+      "reported_fact": "The RTMC communication tells international road users to keep left and pass right.",
+      "limitations": "Historical public guidance; not a substitute for current versioned statutory and road-sign semantics. A current authoritative rule pack remains required."
+    }
+  ],
+  "candidate_cells": [
+    {
+      "cell_id": "ZA-01",
+      "coverage_axis": "odd_range",
+      "candidate_scenario": "Left-side roadway operation, divided carriageways, lane selection and passing/overtaking manoeuvres on urban arterials and freeways.",
+      "interacting_road_users": [
+        "private vehicles",
+        "minibus taxis",
+        "buses",
+        "heavy vehicles",
+        "motorcycles"
+      ],
+      "evidence_status": "legal_semantics_require_versioned_confirmation",
+      "evidence_source_ids": [
+        "ZA-S4",
+        "ZA-S5"
+      ],
+      "provisional_priority": "high_contextual_priority",
+      "independent_unit": "distinct road-layout × manoeuvre × drive-day family",
+      "local_validation_needed": [
+        "versioned consolidated NRTA/regulation and traffic-sign rule pack",
+        "Johannesburg road geometry and lane-marking survey",
+        "independent observed manoeuvre episodes across arterial/freeway strata"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-02",
+      "coverage_axis": "behavioural_competency",
+      "candidate_scenario": "Pedestrian crossing of multi-lane urban arterials, including signalised, unsignalised and mid-block crossing opportunities.",
+      "interacting_road_users": [
+        "pedestrians",
+        "private vehicles",
+        "minibus taxis",
+        "buses",
+        "motorcycles"
+      ],
+      "evidence_status": "official_context_supports_relevance",
+      "evidence_source_ids": [
+        "ZA-S2"
+      ],
+      "provisional_priority": "high_contextual_priority",
+      "independent_unit": "pedestrian-crossing episode grouped by site × day × time window",
+      "local_validation_needed": [
+        "JRA/CoJ crossing and road-segment inventory",
+        "pedestrian counts by site/time and crossing type",
+        "instrumented or independently annotated conflict/near-miss episodes",
+        "held-out sites and days"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-03",
+      "coverage_axis": "odd_range",
+      "candidate_scenario": "School arrival and dismissal periods with learners walking near school gates, drop-off zones, parking manoeuvres and scholar-transport vehicles.",
+      "interacting_road_users": [
+        "learners",
+        "guardians",
+        "school transport vehicles",
+        "minibus taxis",
+        "private vehicles"
+      ],
+      "evidence_status": "official_context_supports_relevance",
+      "evidence_source_ids": [
+        "ZA-S1",
+        "ZA-S3"
+      ],
+      "provisional_priority": "high_contextual_priority",
+      "independent_unit": "school-site × school-day × arrival/dismissal session",
+      "local_validation_needed": [
+        "Johannesburg school-site and access-road sampling frame",
+        "local learner mode-share and pedestrian-exposure measurement",
+        "scholar-transport vehicle and loading-zone observations",
+        "consented and privacy-reviewed independent annotation"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-04",
+      "coverage_axis": "behavioural_competency",
+      "candidate_scenario": "Minibus taxi stopping, passenger boarding/alighting, curbside re-entry and merging into moving traffic.",
+      "interacting_road_users": [
+        "minibus taxis",
+        "passengers",
+        "pedestrians",
+        "cyclists",
+        "private vehicles",
+        "buses"
+      ],
+      "evidence_status": "official_context_supports_relevance",
+      "evidence_source_ids": [
+        "ZA-S1"
+      ],
+      "provisional_priority": "high_contextual_priority",
+      "independent_unit": "taxi-stop or rank × operating session × day",
+      "local_validation_needed": [
+        "Johannesburg taxi-stop/rank geospatial inventory",
+        "observed dwell, passenger exchange and re-entry trajectories",
+        "vehicle-class and site-level exposure counts",
+        "independent held-out ranks and corridors"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-05",
+      "coverage_axis": "causal_mechanism",
+      "candidate_scenario": "Taxi-rank circulation with queue spillback, pedestrian desire lines, vehicles entering/exiting and multiple simultaneous passenger exchanges.",
+      "interacting_road_users": [
+        "minibus taxis",
+        "pedestrians",
+        "passengers",
+        "rank marshals",
+        "private vehicles",
+        "cyclists"
+      ],
+      "evidence_status": "candidate_unverified",
+      "evidence_source_ids": [
+        "ZA-S1"
+      ],
+      "provisional_priority": "high_contextual_priority",
+      "independent_unit": "rank-site × day × peak/off-peak operating session",
+      "local_validation_needed": [
+        "rank boundary and access geometry",
+        "queue and pedestrian-flow measurements",
+        "actor identity and event-correspondence protocol",
+        "reciprocal multi-agent interaction observations on sealed rank sites"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-06",
+      "coverage_axis": "behavioural_competency",
+      "candidate_scenario": "Curbside pick-up/drop-off and informal stopping where a vehicle manoeuvre intersects pedestrian or cyclist movement.",
+      "interacting_road_users": [
+        "private vehicles",
+        "minibus taxis",
+        "ride-hailing vehicles",
+        "pedestrians",
+        "cyclists"
+      ],
+      "evidence_status": "candidate_unverified",
+      "evidence_source_ids": [],
+      "provisional_priority": "unranked_candidate",
+      "independent_unit": "curb-segment × operating session × day",
+      "local_validation_needed": [
+        "curb-use and stopping-zone inventory",
+        "observed passenger exchange and door-opening events",
+        "cyclist and pedestrian exposure measurement"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-07",
+      "coverage_axis": "rule_safety",
+      "candidate_scenario": "Signalised intersections with turning traffic, pedestrian crossing phases, conflicting approaches and delayed or missed yielding.",
+      "interacting_road_users": [
+        "pedestrians",
+        "private vehicles",
+        "minibus taxis",
+        "buses",
+        "cyclists"
+      ],
+      "evidence_status": "candidate_unverified",
+      "evidence_source_ids": [],
+      "provisional_priority": "high_contextual_priority",
+      "independent_unit": "intersection × signal-plan version × daypart",
+      "local_validation_needed": [
+        "versioned signal-group and phase plans",
+        "intersection geometry and turn restrictions",
+        "pedestrian phase and compliance observations",
+        "independent conflict and intervention episodes"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-08",
+      "coverage_axis": "rule_safety",
+      "candidate_scenario": "Unsignalised intersections, stop-controlled approaches, roundabouts and ambiguous priority/yield interactions.",
+      "interacting_road_users": [
+        "private vehicles",
+        "minibus taxis",
+        "buses",
+        "pedestrians",
+        "cyclists",
+        "motorcycles"
+      ],
+      "evidence_status": "candidate_unverified",
+      "evidence_source_ids": [],
+      "provisional_priority": "unranked_candidate",
+      "independent_unit": "junction × control type × daypart",
+      "local_validation_needed": [
+        "current traffic control and sign inventory",
+        "formal rule-to-junction mapping",
+        "observed approach and yielding episodes",
+        "held-out junctions"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-09",
+      "coverage_axis": "behavioural_competency",
+      "candidate_scenario": "Overtaking, lane changes and oncoming-traffic conflicts, including constrained visibility and mixed vehicle speed profiles.",
+      "interacting_road_users": [
+        "private vehicles",
+        "minibus taxis",
+        "buses",
+        "heavy vehicles",
+        "motorcycles"
+      ],
+      "evidence_status": "official_context_supports_relevance",
+      "evidence_source_ids": [
+        "ZA-S2"
+      ],
+      "provisional_priority": "high_contextual_priority",
+      "independent_unit": "manoeuvre episode grouped by road segment × drive-day",
+      "local_validation_needed": [
+        "local road geometry and passing restrictions",
+        "observed manoeuvre and oncoming-traffic episodes",
+        "independent fatal/serious/non-injury outcome linkage where lawful",
+        "held-out segments"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-10",
+      "coverage_axis": "odd_range",
+      "candidate_scenario": "Pedestrian presence or crossing on limited-access highways, ramps, interchanges and high-speed approaches.",
+      "interacting_road_users": [
+        "pedestrians",
+        "private vehicles",
+        "heavy vehicles",
+        "buses",
+        "emergency vehicles"
+      ],
+      "evidence_status": "official_context_supports_relevance",
+      "evidence_source_ids": [
+        "ZA-S2"
+      ],
+      "provisional_priority": "high_contextual_priority",
+      "independent_unit": "interchange/ramp × direction × observation session",
+      "local_validation_needed": [
+        "Johannesburg/Gauteng freeway and interchange ODD map",
+        "pedestrian exposure and access-point audit",
+        "controlled safe test protocol; no deliberate exposure to live high-speed traffic",
+        "out-of-ODD detection and safe-fallback tests"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-11",
+      "coverage_axis": "odd_range",
+      "candidate_scenario": "Low-light, night-time, glare, rain and reduced-visibility combinations affecting pedestrian, cyclist and vehicle detection.",
+      "interacting_road_users": [
+        "pedestrians",
+        "cyclists",
+        "motorcycles",
+        "private vehicles",
+        "minibus taxis"
+      ],
+      "evidence_status": "candidate_unverified",
+      "evidence_source_ids": [
+        "ZA-S2"
+      ],
+      "provisional_priority": "high_contextual_priority",
+      "independent_unit": "site × weather/light condition × night/day session",
+      "local_validation_needed": [
+        "local weather and illumination strata",
+        "sensor calibration and visibility measurement",
+        "factorial combination sampling, not isolated attribute coverage only",
+        "independent night and adverse-weather holdout"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-12",
+      "coverage_axis": "causal_mechanism",
+      "candidate_scenario": "Roadworks, potholes, temporary lane shifts, debris and standing water inducing evasive manoeuvres and secondary interactions.",
+      "interacting_road_users": [
+        "private vehicles",
+        "minibus taxis",
+        "buses",
+        "motorcycles",
+        "cyclists",
+        "pedestrians"
+      ],
+      "evidence_status": "candidate_unverified",
+      "evidence_source_ids": [],
+      "provisional_priority": "unranked_candidate",
+      "independent_unit": "roadwork/defect site × intervention period × drive-day",
+      "local_validation_needed": [
+        "JRA/CoJ roadworks and defect inventory with version dates",
+        "physical geometry and surface-condition measurement",
+        "before/after or controlled safe intervention protocol",
+        "independent route and maintenance-cycle holdout"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-13",
+      "coverage_axis": "behavioural_competency",
+      "candidate_scenario": "Cyclist and motorcycle interactions during passing, turning, lane filtering, blind-spot exposure and curbside door opening.",
+      "interacting_road_users": [
+        "cyclists",
+        "motorcycles",
+        "private vehicles",
+        "minibus taxis",
+        "buses",
+        "pedestrians"
+      ],
+      "evidence_status": "candidate_unverified",
+      "evidence_source_ids": [],
+      "provisional_priority": "unranked_candidate",
+      "independent_unit": "actor-dyad episode grouped by corridor × day",
+      "local_validation_needed": [
+        "local cyclist and motorcycle exposure counts",
+        "current applicable passing and road-position rules",
+        "annotated passing/turning/door-zone episodes",
+        "subgroup calibration by road-user class"
+      ],
+      "coverage_credit": false
+    },
+    {
+      "cell_id": "ZA-14",
+      "coverage_axis": "rule_safety",
+      "candidate_scenario": "Traffic-signal outage, manual traffic control, temporary signs and transition back to normal signal operation.",
+      "interacting_road_users": [
+        "pedestrians",
+        "private vehicles",
+        "minibus taxis",
+        "buses",
+        "cyclists",
+        "traffic officers"
+      ],
+      "evidence_status": "candidate_unverified",
+      "evidence_source_ids": [],
+      "provisional_priority": "unranked_candidate",
+      "independent_unit": "intersection × outage/control event × restoration session",
+      "local_validation_needed": [
+        "CoJ signal fault and restoration records",
+        "manual-control procedures and authority",
+        "verified timing of outage/restore and conflicting road users",
+        "controlled test and safe-fallback conformance"
+      ],
+      "coverage_credit": false
+    }
+  ]
+}
