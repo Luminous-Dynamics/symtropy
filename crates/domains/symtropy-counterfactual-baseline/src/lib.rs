@@ -191,8 +191,8 @@ impl NoDispatchObservation {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct BaselineQualificationContract {
     residual_lower_tail_alpha_basis_points: u16,
-    minimum_calibration_samples_per_regime: usize,
-    minimum_evaluation_samples_per_regime: usize,
+    minimum_calibration_groups_per_regime: usize,
+    minimum_evaluation_groups_per_regime: usize,
     maximum_absolute_normalized_bias_basis_points: u16,
     maximum_normalized_mae_basis_points: u16,
     minimum_lower_bound_coverage_basis_points: u16,
@@ -205,8 +205,8 @@ impl BaselineQualificationContract {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         residual_lower_tail_alpha_basis_points: u16,
-        minimum_calibration_samples_per_regime: usize,
-        minimum_evaluation_samples_per_regime: usize,
+        minimum_calibration_groups_per_regime: usize,
+        minimum_evaluation_groups_per_regime: usize,
         maximum_absolute_normalized_bias_basis_points: u16,
         maximum_normalized_mae_basis_points: u16,
         minimum_lower_bound_coverage_basis_points: u16,
@@ -220,17 +220,17 @@ impl BaselineQualificationContract {
                 value: residual_lower_tail_alpha_basis_points,
             });
         }
-        if minimum_calibration_samples_per_regime == 0
-            || minimum_evaluation_samples_per_regime == 0
+        if minimum_calibration_groups_per_regime == 0
+            || minimum_evaluation_groups_per_regime == 0
         {
             return Err(BaselineQualificationError::InvalidMinimumSampleCount);
         }
         let minimum_for_quantile =
             (10_000usize.div_ceil(residual_lower_tail_alpha_basis_points as usize)).saturating_sub(1);
-        if minimum_calibration_samples_per_regime < minimum_for_quantile {
+        if minimum_calibration_groups_per_regime < minimum_for_quantile {
             return Err(BaselineQualificationError::InsufficientCalibrationForTail {
                 minimum_required: minimum_for_quantile,
-                configured: minimum_calibration_samples_per_regime,
+                configured: minimum_calibration_groups_per_regime,
             });
         }
         for (field, value) in [
@@ -264,8 +264,8 @@ impl BaselineQualificationContract {
         }
         Ok(Self {
             residual_lower_tail_alpha_basis_points,
-            minimum_calibration_samples_per_regime,
-            minimum_evaluation_samples_per_regime,
+            minimum_calibration_groups_per_regime,
+            minimum_evaluation_groups_per_regime,
             maximum_absolute_normalized_bias_basis_points,
             maximum_normalized_mae_basis_points,
             minimum_lower_bound_coverage_basis_points,
@@ -486,8 +486,8 @@ pub enum BaselineQualificationError {
     DuplicateSampleId { sample_id: String },
     CalibrationEvaluationGroupOverlap { group_id: String },
     PartitionDigestCollision,
-    InsufficientCalibrationSamples { regime_id: String, observed: usize, required: usize },
-    InsufficientEvaluationSamples { regime_id: String, observed: usize, required: usize },
+    InsufficientCalibrationGroups { regime_id: String, observed_groups: usize, required_groups: usize },
+    InsufficientEvaluationGroups { regime_id: String, observed_groups: usize, required_groups: usize },
     NoSharedOperatingRegimes,
     InvalidNormalizedPowerScale { regime_id: String },
     BaselineNotQualified,
@@ -515,8 +515,8 @@ impl fmt::Display for BaselineQualificationError {
             Self::DuplicateSampleId { sample_id } => write!(f, "duplicate baseline sample ID {sample_id}"),
             Self::CalibrationEvaluationGroupOverlap { group_id } => write!(f, "independence group {group_id} leaks across calibration and evaluation"),
             Self::PartitionDigestCollision => write!(f, "calibration and evaluation data digests must differ"),
-            Self::InsufficientCalibrationSamples { regime_id, observed, required } => write!(f, "regime {regime_id} has {observed} calibration samples; requires {required}"),
-            Self::InsufficientEvaluationSamples { regime_id, observed, required } => write!(f, "regime {regime_id} has {observed} evaluation samples; requires {required}"),
+            Self::InsufficientCalibrationGroups { regime_id, observed_groups, required_groups } => write!(f, "regime {regime_id} has {observed_groups} independent calibration groups; requires {required_groups}"),
+            Self::InsufficientEvaluationGroups { regime_id, observed_groups, required_groups } => write!(f, "regime {regime_id} has {observed_groups} independent evaluation groups; requires {required_groups}"),
             Self::NoSharedOperatingRegimes => write!(f, "calibration and evaluation sets have no shared operating regimes"),
             Self::InvalidNormalizedPowerScale { regime_id } => write!(f, "regime {regime_id} has a zero or invalid normalization scale"),
             Self::BaselineNotQualified => write!(f, "baseline model did not pass its pre-registered holdout qualification"),
@@ -599,18 +599,18 @@ pub fn qualify_counterfactual_baseline(
     for regime_id in regimes {
         let calibration_samples = calibration.get(regime_id).expect("regime key exists");
         let evaluation_samples = evaluation.get(regime_id).expect("regime key exists");
-        if calibration_samples.len() < contract.minimum_calibration_samples_per_regime {
-            return Err(BaselineQualificationError::InsufficientCalibrationSamples {
+        if calibration_samples.len() < contract.minimum_calibration_groups_per_regime {
+            return Err(BaselineQualificationError::InsufficientCalibrationGroups {
                 regime_id: regime_id.to_owned(),
                 observed: calibration_samples.len(),
-                required: contract.minimum_calibration_samples_per_regime,
+                required: contract.minimum_calibration_groups_per_regime,
             });
         }
-        if evaluation_samples.len() < contract.minimum_evaluation_samples_per_regime {
-            return Err(BaselineQualificationError::InsufficientEvaluationSamples {
+        if evaluation_samples.len() < contract.minimum_evaluation_groups_per_regime {
+            return Err(BaselineQualificationError::InsufficientEvaluationGroups {
                 regime_id: regime_id.to_owned(),
                 observed: evaluation_samples.len(),
-                required: contract.minimum_evaluation_samples_per_regime,
+                required: contract.minimum_evaluation_groups_per_regime,
             });
         }
 
