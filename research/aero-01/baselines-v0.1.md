@@ -24,6 +24,8 @@ Rules:
 | Cessna Skyhawk (current product page) | 4 maximum occupants | 878 lb / 398 kg | 560 lb / 254 kg | 124 ktas max cruise; 640 nm max range | 960 ft ground roll; 1,630 ft takeoff distance; 575 ft landing ground roll; 1,335 ft landing distance | Page lists 53 US gal / 201 L usable fuel, 14,000 ft service ceiling and 730 fpm max climb. Exact reserve and range-condition basis are not stated on the page. |
 | Diamond DA40 NG | 4 | 407 kg | Approximately 289 kg from 407 kg useful load minus stated 118 kg usable fuel mass | 154 ktas max cruise at 16,000 ft / MCP; 934 nm at FL160 / 50% power, including climb, explicitly no reserves | 397 m ground roll / 590 m takeoff distance over obstacle; 318 m landing ground roll / 650 m landing distance | Standard equipment, MTOM 1,310 kg, empty weight 903 kg, max operating altitude 5,000 m. Manufacturer warns specifications are approximate and may change. |
 | Tecnam P2010 180 HP — hold for reconciliation | 4 | 395 kg | Not derived until exact fuel-density and loading definition are confirmed | Page headline gives 137 kt; detailed table gives 140 kt TAS. Max range listed as 720 nm. | 336 m takeoff run / 595 m takeoff distance; 237 m landing run / 521 m landing distance | Do not freeze the speed datum until the product-folder/POH revision reconciles the page's 137/140 kt figures and confirms performance conditions. |
+| Sling TSi (current manufacturer page) | 4 | 430 kg | Not derived; exact fuel/mass convention and mission reserve need approved source data | 155 ktas typical cruise at 9,500 ft; 1,000 nm maximum range; 28 L/h economy-cruise fuel burn | 330 m takeoff over 50 ft obstacle; 350 m landing over 50 ft obstacle; 940 fpm sea-level climb | Manufacturer publishes 520 kg standard empty mass and 950 kg MTOW, 160 hp Rotax 916 iS. Verify exact aircraft build/registration/airworthiness category and current manual revision; do not assume all examples share one approval basis. |
+| Sling High Wing (current manufacturer page) | 4 | 490 kg | Not derived; exact fuel/mass convention and mission reserve need approved source data | 145 ktas typical cruise at 9,500 ft; 900 nm maximum range; 28 L/h economy-cruise fuel burn | 810 m takeoff over 50 ft obstacle; 550 m landing over 50 ft obstacle; 679 fpm sea-level climb | Manufacturer publishes 630 kg standard empty mass, 1,120 kg MTOW (VLA), 160 hp Rotax 916 iS turbocharged. Tricycle and taildragger variants exist; freeze variant and weight convention before comparison. |
 
 ### Primary manufacturer sources
 
@@ -31,6 +33,12 @@ Rules:
 2. Diamond DA40 official technical specification: https://www.diamondaircraft.com/en/flight-school-solution/aircraft/da40/tech-specs/
 3. Diamond DA40 NG 2025 product folder: https://www.diamondaircraft.com/fileadmin/diamondaircraft/documents/da40/DA40_NG_Product_Folder_2025_SCREEN.pdf
 4. Tecnam P2010 180 HP official page: https://tecnam.com/aircraft/p2010-180hp/
+5. Sling TSi: https://slingaircraft.com/aircraft/sling-tsi/
+6. Sling High Wing: https://slingaircraft.com/aircraft/sling-hw/
+
+### Interpretation
+
+Sling TSi and Sling High Wing are especially relevant to the Wayfarer 4 benchmark because they are locally developed/manufactured South African designs with four-seat touring/utility positioning. Their published numbers do not prove superiority and should not be compared directly against the Skyhawk, DA40 NG or P2010 until payload, runway definition, atmosphere, fuel/reserve, configuration and certification/airworthiness basis are normalized. Use them as serious market/engineering comparators, not as a reason to copy their architecture.
 
 ## 3. Preliminary two-seat references — Wren 2 lane
 
