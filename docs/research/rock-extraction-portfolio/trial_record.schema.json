@@ -12,6 +12,7 @@
     "task_profile_ref",
     "material_cohort_ref",
     "material_pairing_ref",
+    "specimen_ref",
     "geometry_profile_ref",
     "acceptance_profile_ref",
     "site_context_ref",
@@ -295,6 +296,14 @@
           }
         }
       ]
+    },
+    "specimen_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "matched_pair_ref": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "additionalProperties": false
