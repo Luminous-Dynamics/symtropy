@@ -2745,7 +2745,7 @@ mod tests {
         ];
         let nominal = config();
         let slow_feedback = SimulationConfig {
-            feedback_decay_rate: 0.01,
+            feedback_decay_rate: 0.0001,
             ..nominal
         };
         let candidates = [
