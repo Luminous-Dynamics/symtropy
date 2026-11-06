@@ -47,12 +47,14 @@ This allows held-out combinations such as a local phase pulse during feedback de
 - Recovery time after a perturbation, requiring a declared number of consecutive in-threshold observations.
 - Explicit abstention when fewer than two legs are observable or a phase-plane amplitude is too small to define phase.
 - Exact timestamp-grid validation before paired comparisons.
+- Frozen observable-only forecast vectors for each mechanism hypothesis, with a caller-supplied nonzero layout digest binding time grid, units, canonical leg order and per-sample active-leg mask. The vector order is step-major, canonical leg order, then x/y for active legs only.
+- A forecast-vector contract matching the fields of the robust selector's ModelPrediction type in PR #3852, so model/action forecasts can be passed into the selector without exposing mechanism labels in scored means.
 
-The simulator also retains active/unavailable leg flags. A missing leg is not interpreted as a zero-valued phase observation.
+The simulator retains active/unavailable leg flags. A missing leg is omitted from the forecast vector rather than interpreted as a zero-valued phase observation.
 
 ## Deterministic tests
 
-19 known-truth tests are authored:
+21 known-truth tests are authored:
 - fixed leg order and declared tripod pattern;
 - independent oscillators fail to recover a local phase pulse;
 - central coupling recovers a local pulse;
@@ -67,9 +69,14 @@ The simulator also retains active/unavailable leg flags. A missing leg is not in
 - unsupported amplitude actions and invalid Hopf parameters fail closed;
 - timestamp chronology and paired-grid integrity;
 - invalid action, delay, threshold and configuration controls;
-- abstention when fewer than two legs remain observable.
+- abstention when fewer than two legs remain observable;
+- baseline forecasts share an identical layout and are observationally equivalent within floating-point tolerance;
+- phase-pulse forecasts for independent and coupled hypotheses separate under the shared layout;
+- failed-leg observations are omitted from frozen forecast vectors and empty layout digests fail closed.
 
 ## Industry and research comparison
+
+The forecast bridge emits the same observable-layout digest and ordered mean-vector shape consumed by PR #3852's robust pairwise predictive-KL selector. Candidate forecasts are generated before any intervention outcome is observed; every competing hypothesis for one candidate must use the same action, timestamp grid and active-leg mask. This is a shared data contract, not yet a direct Cargo dependency between the two independent research crates.
 
 The next adapter should benchmark against:
 - FlyGym / NeuroMechFly v2 using pinned robot assets, sensor definitions, contacts and solver version. The project provides joint angles, actuator forces, contact forces and anatomical positions, making it a relevant embodied sensory-feedback reference.
@@ -87,6 +94,7 @@ These systems solve overlapping but different tasks. This V0 does not claim high
 - Explicit contact mechanics, body dynamics, stance/swing trajectories, support polygon or joint torques.
 - Source-pinned FlyGym, DRL-CPG/Hopf, MuJoCo Playground or Isaac Lab adapters.
 - Real sensor/actuator assignment and delivery receipts.
+- Direct library dependency on loco-intervention-design-v0; integration currently occurs through the frozen forecast data contract.
 
 ## Run
 
