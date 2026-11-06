@@ -1046,6 +1046,11 @@ mod tests {
                 unit: "fraction".into(),
             },
             CausalVariable {
+                id: "unrelated_intermediate".into(),
+                stage: CausalStage::Intermediate,
+                unit: "m3".into(),
+            },
+            CausalVariable {
                 id: "reputation_counter".into(),
                 stage: CausalStage::NegativeControl,
                 unit: "count".into(),
@@ -1080,6 +1085,7 @@ mod tests {
             ("authorized_transfer_m3".into(), 0.0),
             ("delivered_water_m3".into(), 0.0),
             ("household_water_coverage".into(), 0.0),
+            ("unrelated_intermediate".into(), 0.0),
             ("reputation_counter".into(), 0.0),
         ]);
         let treatment_initial = BTreeMap::from([
@@ -1098,6 +1104,7 @@ mod tests {
             ("authorized_transfer_m3".into(), 10.0),
             ("delivered_water_m3".into(), 10.0),
             ("household_water_coverage".into(), 1.0),
+            ("unrelated_intermediate".into(), 0.0),
             ("reputation_counter".into(), 0.0),
         ]);
         let negative_final = BTreeMap::from([
@@ -1179,6 +1186,7 @@ mod tests {
                         ("authorized_transfer_m3".into(), 0.0),
                         ("delivered_water_m3".into(), 0.0),
                         ("household_water_coverage".into(), 0.0),
+                        ("unrelated_intermediate".into(), 0.0),
                         ("reputation_counter".into(), 0.0),
                     ]);
                     RunArm {
@@ -1349,6 +1357,17 @@ mod tests {
         assert!(matches!(
             invalid.validate(),
             Err(CausalPathError::UncontrolledInitialState(_))
+        ));
+    }
+
+    #[test]
+    fn ablation_target_must_be_on_the_required_path() {
+        let mut invalid = experiment();
+        invalid.mechanism_ablation.blocked_mechanism_variable_id =
+            "unrelated_intermediate".into();
+        assert!(matches!(
+            invalid.validate(),
+            Err(CausalPathError::AblationTargetNotOnRequiredPath(_))
         ));
     }
 
