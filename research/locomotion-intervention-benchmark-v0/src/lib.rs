@@ -2914,14 +2914,14 @@ mod tests {
     }
 
     #[test]
-    fn robust_design_accounts_for_feedback_decay_uncertainty_across_scenarios() {
+    fn robust_design_uses_phase_pulse_to_separate_intrinsic_from_hybrid_feedback_across_coupling_scenarios() {
         let mechanisms = [
             Mechanism::IntrinsicOscillator,
-            Mechanism::SensoryFeedbackDriven,
+            Mechanism::HybridFeedbackCoupled,
         ];
         let nominal = config();
-        let slow_feedback = SimulationConfig {
-            feedback_decay_rate: 0.0001,
+        let weaker_coupling = SimulationConfig {
+            feedback_coupling: 1.0,
             ..nominal
         };
         let candidates = [
@@ -2946,7 +2946,7 @@ mod tests {
         let decision = design_discriminating_intervention_across_scenarios(
             &mechanisms,
             &candidates,
-            &[nominal, slow_feedback],
+            &[nominal, weaker_coupling],
             0.0,
         )
         .unwrap();
