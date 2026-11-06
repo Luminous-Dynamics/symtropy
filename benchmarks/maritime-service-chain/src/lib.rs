@@ -1334,8 +1334,8 @@ mod tests {
                 ResourceUnit::Lockages,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 15,
-                        end_tick: 35,
+                        start_tick: 12,
+                        end_tick: 40,
                     },
                     capacity: 1,
                 }],
@@ -1346,8 +1346,8 @@ mod tests {
                 ResourceUnit::Millilitres,
                 vec![CapacityWindow {
                     window: TickWindow {
-                        start_tick: 15,
-                        end_tick: 35,
+                        start_tick: 12,
+                        end_tick: 40,
                     },
                     capacity: 5_000,
                 }],
