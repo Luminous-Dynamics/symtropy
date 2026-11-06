@@ -278,15 +278,13 @@ pub fn simulate(
 ) -> Result<HexapodTrace, CoordinationError> {
     config.validate(model)?;
     intervention.validate(config.sample_count)?;
-    if intervention.amplitude_pulse.is_some()
-        && model != CoordinationModel::CoupledHopfOscillators
+    if intervention.amplitude_pulse.is_some() && model != CoordinationModel::CoupledHopfOscillators
     {
         return Err(CoordinationError::AmplitudePulseUnsupported);
     }
 
-    let mut phases = std::array::from_fn(|leg_index| {
-        config.initial_phase + config.target_offsets[leg_index]
-    });
+    let mut phases =
+        std::array::from_fn(|leg_index| config.initial_phase + config.target_offsets[leg_index]);
     let mut attractor_states = std::array::from_fn(|leg_index| {
         let phase = config.initial_phase + config.target_offsets[leg_index];
         [phase.cos(), phase.sin()]
@@ -296,7 +294,13 @@ pub fn simulate(
 
     for step in 0..config.sample_count {
         let active = active_legs(step, intervention);
-        apply_phase_pulse(step, model, intervention, &mut phases, &mut attractor_states);
+        apply_phase_pulse(
+            step,
+            model,
+            intervention,
+            &mut phases,
+            &mut attractor_states,
+        );
         apply_amplitude_pulse(step, intervention, &mut radii);
 
         let timestamp = step as f64 * config.sample_interval;
@@ -339,9 +343,7 @@ pub fn simulate(
                 }),
             )
         };
-        if !x.iter().all(|value| value.is_finite())
-            || !y.iter().all(|value| value.is_finite())
-        {
+        if !x.iter().all(|value| value.is_finite()) || !y.iter().all(|value| value.is_finite()) {
             return Err(CoordinationError::NumericalFailure);
         }
         samples.push(HexapodSample {
@@ -380,11 +382,7 @@ fn output_radius(model: CoordinationModel, radius: f64) -> f64 {
     }
 }
 
-fn apply_amplitude_pulse(
-    step: usize,
-    intervention: Intervention,
-    radii: &mut [f64; LEG_COUNT],
-) {
+fn apply_amplitude_pulse(step: usize, intervention: Intervention, radii: &mut [f64; LEG_COUNT]) {
     if let Some(pulse) = intervention.amplitude_pulse {
         if step == pulse.step {
             radii[pulse.leg.index()] *= pulse.scale;
@@ -394,9 +392,9 @@ fn apply_amplitude_pulse(
 
 fn active_legs(step: usize, intervention: Intervention) -> [bool; LEG_COUNT] {
     std::array::from_fn(|leg_index| {
-        !intervention.leg_failure.is_some_and(|failure| {
-            step >= failure.from_step && failure.leg.index() == leg_index
-        })
+        !intervention
+            .leg_failure
+            .is_some_and(|failure| step >= failure.from_step && failure.leg.index() == leg_index)
     })
 }
 
@@ -418,10 +416,8 @@ fn apply_phase_pulse(
     if model == CoordinationModel::FeedbackAttractor {
         let (sin_delta, cos_delta) = pulse.delta_phase_radians.sin_cos();
         let [x, y] = attractor_states[leg_index];
-        attractor_states[leg_index] = [
-            cos_delta * x - sin_delta * y,
-            sin_delta * x + cos_delta * y,
-        ];
+        attractor_states[leg_index] =
+            [cos_delta * x - sin_delta * y, sin_delta * x + cos_delta * y];
     } else {
         phases[leg_index] += pulse.delta_phase_radians;
     }
@@ -480,10 +476,8 @@ fn advance_state(
         for (leg_index, radius) in radii.iter_mut().enumerate() {
             if active[leg_index] {
                 let target_squared = config.hopf_limit_cycle_amplitude.powi(2);
-                *radius += config.hopf_radial_gain
-                    * (target_squared - radius.powi(2))
-                    * *radius
-                    * elapsed;
+                *radius +=
+                    config.hopf_radial_gain * (target_squared - radius.powi(2)) * *radius * elapsed;
                 if !radius.is_finite() || *radius <= 0.0 {
                     return Err(CoordinationError::NumericalFailure);
                 }
@@ -501,9 +495,7 @@ fn advance_state(
 
         let detune = intervention
             .frequency_detune
-            .filter(|change| {
-                next_step >= change.from_step && change.leg.index() == leg_index
-            })
+            .filter(|change| next_step >= change.from_step && change.leg.index() == leg_index)
             .map_or(0.0, |change| change.delta_angular_frequency);
         let mut angular_velocity = config.angular_frequency + detune;
 
@@ -523,10 +515,8 @@ fn advance_state(
                 }
                 let desired_difference =
                     config.target_offsets[other_index] - config.target_offsets[leg_index];
-                coupling_sum += wrap_angle(
-                    (*other_phase - previous[leg_index]) - desired_difference,
-                )
-                .sin();
+                coupling_sum +=
+                    wrap_angle((*other_phase - previous[leg_index]) - desired_difference).sin();
             }
             angular_velocity +=
                 config.central_coupling_gain * coupling_sum / (active_count - 1) as f64;
@@ -541,8 +531,8 @@ fn advance_state(
             let reference_phase = config.initial_phase
                 + config.angular_frequency * reference_step as f64 * elapsed
                 + config.target_offsets[leg_index];
-            angular_velocity += config.feedback_gain
-                * wrap_angle(reference_phase - previous[leg_index]).sin();
+            angular_velocity +=
+                config.feedback_gain * wrap_angle(reference_phase - previous[leg_index]).sin();
         }
 
         *next_phase = previous[leg_index] + angular_velocity * elapsed;
@@ -617,9 +607,7 @@ pub fn phase_pattern_rmse(
         .iter()
         .enumerate()
         .filter_map(|(leg_index, phase)| {
-            phase.map(|phase| {
-                wrap_angle(phase - target_offsets[leg_index] - consensus).powi(2)
-            })
+            phase.map(|phase| wrap_angle(phase - target_offsets[leg_index] - consensus).powi(2))
         })
         .sum::<f64>();
     Ok(Some((squared_error / count as f64).sqrt()))
@@ -828,15 +816,7 @@ mod tests {
     fn independent_oscillators_do_not_recover_a_local_phase_pulse() {
         let intervention = pulse(LegId::LeftFront, 20, 0.8);
         let trace = run(CoordinationModel::IndependentOscillators, intervention).unwrap();
-        let recovery = recovery_time(
-            &trace,
-            20,
-            0.08,
-            3,
-            DEFAULT_TRIPOD_OFFSETS,
-            1.0e-9,
-        )
-        .unwrap();
+        let recovery = recovery_time(&trace, 20, 0.08, 3, DEFAULT_TRIPOD_OFFSETS, 1.0e-9).unwrap();
         assert_eq!(recovery, None);
         assert!(
             phase_pattern_rmse(
@@ -854,15 +834,7 @@ mod tests {
     fn central_coupling_recovers_a_local_phase_pulse() {
         let intervention = pulse(LegId::LeftFront, 20, 0.8);
         let trace = run(CoordinationModel::CoupledOscillators, intervention).unwrap();
-        let recovery = recovery_time(
-            &trace,
-            20,
-            0.04,
-            3,
-            DEFAULT_TRIPOD_OFFSETS,
-            1.0e-9,
-        )
-        .unwrap();
+        let recovery = recovery_time(&trace, 20, 0.04, 3, DEFAULT_TRIPOD_OFFSETS, 1.0e-9).unwrap();
         assert!(recovery.is_some_and(|time| time < 1.0));
     }
 
@@ -878,15 +850,7 @@ mod tests {
             ..Intervention::default()
         };
         let trace = run(CoordinationModel::CoupledOscillators, intervention).unwrap();
-        let recovery = recovery_time(
-            &trace,
-            20,
-            0.08,
-            3,
-            DEFAULT_TRIPOD_OFFSETS,
-            1.0e-9,
-        )
-        .unwrap();
+        let recovery = recovery_time(&trace, 20, 0.08, 3, DEFAULT_TRIPOD_OFFSETS, 1.0e-9).unwrap();
         assert_eq!(recovery, None);
     }
 
@@ -959,13 +923,9 @@ mod tests {
         .unwrap()
         .unwrap();
         assert!(wrap_angle(delayed_lag - baseline_lag).abs() > 0.3);
-        let plv = phase_locking_value(
-            &delayed.samples[step],
-            DEFAULT_TRIPOD_OFFSETS,
-            1.0e-9,
-        )
-        .unwrap()
-        .unwrap();
+        let plv = phase_locking_value(&delayed.samples[step], DEFAULT_TRIPOD_OFFSETS, 1.0e-9)
+            .unwrap()
+            .unwrap();
         assert!(plv > 0.99);
     }
 
@@ -1008,7 +968,6 @@ mod tests {
         assert!(error < 0.1);
     }
 
-
     #[test]
     fn six_node_hopf_network_recovers_a_suppressed_leg_amplitude() {
         let intervention = Intervention {
@@ -1027,10 +986,9 @@ mod tests {
         let final_sample = trace.samples.last().unwrap();
         let final_amplitude = final_sample.x[0].hypot(final_sample.y[0]);
         assert!((final_amplitude - 1.0).abs() < 1.0e-3);
-        let pattern_error =
-            phase_pattern_rmse(final_sample, DEFAULT_TRIPOD_OFFSETS, 1.0e-9)
-                .unwrap()
-                .unwrap();
+        let pattern_error = phase_pattern_rmse(final_sample, DEFAULT_TRIPOD_OFFSETS, 1.0e-9)
+            .unwrap()
+            .unwrap();
         assert!(pattern_error < 0.01);
     }
 
@@ -1049,7 +1007,6 @@ mod tests {
         .unwrap();
         assert!(recovery.is_some_and(|time| time < 1.0));
     }
-
 
     #[test]
     fn amplitude_pulse_is_rejected_for_models_without_radial_state() {
