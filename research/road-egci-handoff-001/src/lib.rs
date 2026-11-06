@@ -609,9 +609,9 @@ fn observation_index(
         )?;
         require(&cue.visibility_profile_digest, "visibility_profile_digest")?;
         if cue.observed_tick > cue.generated_tick
-            || cue.delivered_event_sequence.is_some_and(|sequence| {
-                sequence <= cue.generated_event_sequence
-            })
+            || cue
+                .delivered_event_sequence
+                .is_some_and(|sequence| sequence <= cue.generated_event_sequence)
         {
             return Err(HandoffError::InvalidObservationTiming);
         }
@@ -705,9 +705,9 @@ fn verify_decisions<'a>(
                 cue.recipient_actor_id == decision.actor_id
                     && cue.disposition == ObservationDisposition::Delivered
                     && cue.delivered_tick.is_some_and(|tick| tick <= decision.tick)
-                    && cue.delivered_event_sequence.is_some_and(|sequence| {
-                        sequence <= decision.input_cutoff_event_sequence
-                    })
+                    && cue
+                        .delivered_event_sequence
+                        .is_some_and(|sequence| sequence <= decision.input_cutoff_event_sequence)
             })
             .collect();
         expected_visible.sort_by_key(|cue| (cue.delivered_tick.unwrap(), cue.delivery_sequence));
@@ -727,9 +727,10 @@ fn verify_decisions<'a>(
         // Same-tick delivery after the policy input cutoff is a causal leak.
         for cue_id in &decision.visible_cue_ids {
             let cue = cues.get(cue_id.as_str()).ok_or(HandoffError::MissingCue)?;
-            if cue.delivered_event_sequence.is_some_and(|sequence| {
-                sequence > decision.input_cutoff_event_sequence
-            }) {
+            if cue
+                .delivered_event_sequence
+                .is_some_and(|sequence| sequence > decision.input_cutoff_event_sequence)
+            {
                 return Err(HandoffError::FutureCueLeak);
             }
         }
@@ -769,7 +770,8 @@ fn verify_decisions<'a>(
             hash_u64(&mut history, delivered_tick);
             hash_u64(
                 &mut history,
-                cue.delivered_event_sequence.ok_or(HandoffError::CueNotDelivered)?,
+                cue.delivered_event_sequence
+                    .ok_or(HandoffError::CueNotDelivered)?,
             );
             hash_u64(&mut history, cue.delivery_sequence);
             hash_str(&mut history, &cue.visibility_profile_digest);
@@ -886,7 +888,6 @@ fn verify_decisions<'a>(
     Ok(verified)
 }
 
-
 fn validate_branch_event_order(
     branch: &BranchExport,
     cues: &BTreeMap<&str, &ObservationDelivery>,
@@ -895,9 +896,18 @@ fn validate_branch_event_order(
     let mut event_sequences = BTreeSet::new();
     let mut cutoffs_by_tick = BTreeMap::new();
 
+    let mut generated_sources = BTreeMap::new();
     for cue in cues.values() {
-        if !event_sequences.insert(cue.generated_event_sequence) {
-            return Err(HandoffError::DuplicateEventSequence);
+        match generated_sources.insert(cue.generated_event_sequence, cue.source_event_id.as_str()) {
+            Some(existing_source) if existing_source != cue.source_event_id => {
+                return Err(HandoffError::DuplicateEventSequence);
+            }
+            Some(_) => {}
+            None => {
+                if !event_sequences.insert(cue.generated_event_sequence) {
+                    return Err(HandoffError::DuplicateEventSequence);
+                }
+            }
         }
         if let Some(sequence) = cue.delivered_event_sequence {
             if !event_sequences.insert(sequence) {
@@ -947,7 +957,9 @@ fn validate_branch_event_order(
             return Err(HandoffError::InvalidEventOrdering);
         }
         prior_cutoff = Some(*cutoff);
-        let physics = physics_by_tick.get(tick).ok_or(HandoffError::InvalidEventOrdering)?;
+        let physics = physics_by_tick
+            .get(tick)
+            .ok_or(HandoffError::InvalidEventOrdering)?;
         if cutoff >= physics {
             return Err(HandoffError::InvalidEventOrdering);
         }
@@ -2450,11 +2462,18 @@ mod tests {
     fn same_tick_predecision_delivery_remains_visible() {
         let (episode, anchor) = fixture();
         let handoff = export_to_sam(&episode, &anchor).unwrap();
-        assert!(handoff.branches[0].queries.iter().all(|query| query.query.complete));
+        assert!(
+            handoff.branches[0]
+                .queries
+                .iter()
+                .all(|query| query.query.complete)
+        );
         assert!(episode.branches[0].decisions.iter().any(|decision| {
             decision.actor_id == "ego"
                 && decision.tick == 1
-                && decision.consumed_cue_ids.contains(&"ego-sees-yield".to_owned())
+                && decision
+                    .consumed_cue_ids
+                    .contains(&"ego-sees-yield".to_owned())
         }));
     }
 
