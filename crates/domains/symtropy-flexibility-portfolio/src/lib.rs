@@ -389,7 +389,7 @@ impl AssetDeliveryOutcome {
                 value: delivered_lower_bound_kw,
             });
         }
-        if availability != AssetAvailability::Available && delivered_lower_bound_kw > EPSILON {
+        if availability != AssetAvailability::Available && delivered_lower_bound_kw > 0.0 {
             return Err(PortfolioResilienceError::AvailabilityDeliveryMismatch {
                 asset_id: outcome.asset_id.clone(),
                 availability,
@@ -933,7 +933,7 @@ pub fn evaluate_portfolio_resilience(
             let outcome = outcome_by_asset
                 .get(asset.asset_id.as_str())
                 .expect("complete catalogue check precedes aggregation");
-            if outcome.delivered_lower_bound_kw > asset.offered_capacity_kw + EPSILON {
+            if outcome.delivered_lower_bound_kw > asset.offered_capacity_kw {
                 return Err(PortfolioResilienceError::DeliveryExceedsOffer {
                     event_id: event.event_id.clone(),
                     asset_id: asset.asset_id.clone(),
