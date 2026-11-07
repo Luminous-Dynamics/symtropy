@@ -29,6 +29,14 @@ pub struct DirectionWindow {
     pub allowed_direction_ids: Vec<String>,
 }
 
+/// A declared direction ID is bound to an explicit endpoint orientation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChannelDirection {
+    pub direction_id: String,
+    pub from_node_id: String,
+    pub to_node_id: String,
+}
+
 /// A graph edge is a versioned abstract segment-to-edge binding.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChannelEdge {
@@ -37,6 +45,8 @@ pub struct ChannelEdge {
     pub from_node_id: String,
     pub to_node_id: String,
     pub route_revision: String,
+    /// Every allowed direction ID must resolve to exactly one endpoint mapping.
+    pub directions: Vec<ChannelDirection>,
     pub direction_windows: Vec<DirectionWindow>,
 }
 
@@ -155,6 +165,7 @@ pub enum ChannelError {
     InvalidConflictRule(String),
     UnknownConflictEdge(String),
     UnknownConflictDirection(String),
+    UnknownMovementDirection(String),
     DuplicateConflictRelation(String),
     DuplicateMovement(String),
     InvalidMovement(String),
@@ -180,12 +191,9 @@ fn unique_nonempty(values: &[String]) -> bool {
 }
 
 fn direction_exists(edge: &ChannelEdge, direction_id: &str) -> bool {
-    edge.direction_windows.iter().any(|window| {
-        window
-            .allowed_direction_ids
-            .iter()
-            .any(|id| id == direction_id)
-    })
+    edge.directions
+        .iter()
+        .any(|direction| direction.direction_id == direction_id)
 }
 
 fn relation_key(
@@ -220,6 +228,7 @@ fn validate_graph(graph: &ConflictGraph) -> Result<BTreeMap<&str, &ChannelEdge>,
             || edge.from_node_id == edge.to_node_id
             || edge.route_revision.trim().is_empty()
             || edge.route_revision != graph.route_revision
+            || edge.directions.is_empty()
             || edge.direction_windows.is_empty()
         {
             return Err(ChannelError::InvalidEdge(edge.edge_id.clone()));
@@ -231,6 +240,24 @@ fn validate_graph(graph: &ConflictGraph) -> Result<BTreeMap<&str, &ChannelEdge>,
             return Err(ChannelError::DuplicateEdgeId(edge.edge_id.clone()));
         }
 
+        let mut direction_ids = BTreeSet::new();
+        for direction in &edge.directions {
+            if direction.direction_id.trim().is_empty()
+                || direction.from_node_id.trim().is_empty()
+                || direction.to_node_id.trim().is_empty()
+                || direction.from_node_id == direction.to_node_id
+                || !((direction.from_node_id == edge.from_node_id
+                    && direction.to_node_id == edge.to_node_id)
+                    || (direction.from_node_id == edge.to_node_id
+                        && direction.to_node_id == edge.from_node_id))
+            {
+                return Err(ChannelError::InvalidEdge(edge.edge_id.clone()));
+            }
+            if !direction_ids.insert(direction.direction_id.as_str()) {
+                return Err(ChannelError::DuplicateDirectionId(edge.edge_id.clone()));
+            }
+        }
+
         let mut previous_end = None;
         for direction_window in &edge.direction_windows {
             if !direction_window.window.is_valid()
@@ -240,6 +267,13 @@ fn validate_graph(graph: &ConflictGraph) -> Result<BTreeMap<&str, &ChannelEdge>,
             }
             if !unique_nonempty(&direction_window.allowed_direction_ids) {
                 return Err(ChannelError::DuplicateDirectionId(edge.edge_id.clone()));
+            }
+            if direction_window
+                .allowed_direction_ids
+                .iter()
+                .any(|id| !direction_ids.contains(id.as_str()))
+            {
+                return Err(ChannelError::InvalidDirectionWindow(edge.edge_id.clone()));
             }
             if let Some(end_tick) = previous_end
                 && direction_window.window.start_tick < end_tick
@@ -402,6 +436,11 @@ pub fn evaluate_channel_conflicts(
         };
         if edge.edge_id != movement.edge_id {
             return Err(ChannelError::UnknownMovementEdge(movement.edge_id.clone()));
+        }
+        if !direction_exists(edge, &movement.direction_id) {
+            return Err(ChannelError::UnknownMovementDirection(
+                movement.direction_id.clone(),
+            ));
         }
         if edge.route_revision != movement.route_revision
             || graph.route_revision != movement.route_revision
