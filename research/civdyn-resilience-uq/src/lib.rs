@@ -10,13 +10,13 @@
 //! design. It does not treat Latin-hypercube points as stochastic simulation
 //! replications, empirical priors or calibrated posterior samples.
 
-use core::fmt;
 use civdyn_cross_scale_resilience::{
-    BASIN, DEFAULT_RECOVERY_THRESHOLD, FIRST_HOUSEHOLD, HOUSEHOLD_COUNT,
-    InterventionPolicy, REGION_COUNT, ResilienceError, RunOutcome, Scenario, ShockKind,
-    SHOCK_START_TICK, reference_scenario, run_scenario,
+    BASIN, DEFAULT_RECOVERY_THRESHOLD, FIRST_HOUSEHOLD, HOUSEHOLD_COUNT, InterventionPolicy,
+    REGION_COUNT, ResilienceError, RunOutcome, SHOCK_START_TICK, Scenario, ShockKind,
+    reference_scenario, run_scenario,
 };
 use civdyn_resource_ledger::{Production, ResourceVector};
+use core::fmt;
 
 pub const FACTOR_COUNT: usize = 7;
 pub const LHS_DEFAULT_POINTS: usize = 30;
@@ -111,15 +111,27 @@ impl ParameterSet {
 
     pub fn validate(self) -> Result<(), UqError> {
         for (factor, value) in [
-            (ParameterFactor::WaterSupplyMultiplier, self.water_supply_multiplier),
-            (ParameterFactor::EnergySupplyMultiplier, self.energy_supply_multiplier),
+            (
+                ParameterFactor::WaterSupplyMultiplier,
+                self.water_supply_multiplier,
+            ),
+            (
+                ParameterFactor::EnergySupplyMultiplier,
+                self.energy_supply_multiplier,
+            ),
             (ParameterFactor::DemandMultiplier, self.demand_multiplier),
             (
                 ParameterFactor::DistributedReserveMultiplier,
                 self.distributed_reserve_multiplier,
             ),
-            (ParameterFactor::WaterShockRetention, self.water_shock_retention),
-            (ParameterFactor::EnergyShockRetention, self.energy_shock_retention),
+            (
+                ParameterFactor::WaterShockRetention,
+                self.water_shock_retention,
+            ),
+            (
+                ParameterFactor::EnergyShockRetention,
+                self.energy_shock_retention,
+            ),
         ] {
             if !value.is_finite() {
                 return Err(UqError::NonFiniteParameter { factor, value });
@@ -313,21 +325,12 @@ pub struct BenchmarkReport {
 #[derive(Debug, Clone, PartialEq)]
 pub enum UqError {
     EmptyDesign,
-    InvalidUnitCoordinate {
-        factor: ParameterFactor,
-        value: f64,
-    },
-    NonFiniteParameter {
-        factor: ParameterFactor,
-        value: f64,
-    },
+    InvalidUnitCoordinate { factor: ParameterFactor, value: f64 },
+    NonFiniteParameter { factor: ParameterFactor, value: f64 },
     ParameterOutOfRange,
     InvalidTrajectoryCount,
     Resilience(ResilienceError),
-    NonFiniteOutcome {
-        metric: OutcomeMetric,
-        value: f64,
-    },
+    NonFiniteOutcome { metric: OutcomeMetric, value: f64 },
 }
 
 impl fmt::Display for UqError {
@@ -335,7 +338,11 @@ impl fmt::Display for UqError {
         match self {
             Self::EmptyDesign => write!(f, "design must contain at least one sample"),
             Self::InvalidUnitCoordinate { factor, value } => {
-                write!(f, "{} unit coordinate is outside [0, 1]: {value}", factor.name())
+                write!(
+                    f,
+                    "{} unit coordinate is outside [0, 1]: {value}",
+                    factor.name()
+                )
             }
             Self::NonFiniteParameter { factor, value } => {
                 write!(f, "{} parameter is non-finite: {value}", factor.name())
@@ -409,7 +416,11 @@ pub fn morris_design(seed: u64, trajectory_count: usize) -> Result<Vec<MorrisTra
             let positive = rng.next_u64() & 1 == 0;
             directions[factor] = if positive { 1.0 } else { -1.0 };
             base[factor] = if positive {
-                if rng.next_u64() & 1 == 0 { 0.0 } else { 1.0 / 3.0 }
+                if rng.next_u64() & 1 == 0 {
+                    0.0
+                } else {
+                    1.0 / 3.0
+                }
             } else if rng.next_u64() & 1 == 0 {
                 2.0 / 3.0
             } else {
@@ -464,17 +475,13 @@ pub fn parameterized_scenario(
         );
     }
 
-    for (tick_index, production_by_region) in
-        scenario.production_by_tick.iter_mut().enumerate()
-    {
-        let in_shock = (scenario.shock_start_tick..scenario.shock_end_tick)
-            .contains(&tick_index);
+    for (tick_index, production_by_region) in scenario.production_by_tick.iter_mut().enumerate() {
+        let in_shock = (scenario.shock_start_tick..scenario.shock_end_tick).contains(&tick_index);
         let water_retention = if in_shock
             && matches!(
                 shock_kind,
                 ShockKind::WaterSupply | ShockKind::CompoundWaterAndEnergy
-            )
-        {
+            ) {
             parameters.water_shock_retention
         } else {
             1.0
@@ -483,8 +490,7 @@ pub fn parameterized_scenario(
             && matches!(
                 shock_kind,
                 ShockKind::EnergySupply | ShockKind::CompoundWaterAndEnergy
-            )
-        {
+            ) {
             parameters.energy_shock_retention
         } else {
             1.0
@@ -532,7 +538,11 @@ pub fn run_parameterized_scenario(
         minimum_energy_coverage: outcome.minimum_energy_coverage,
         water_floor_breach_fraction: water_breaches as f64 / household_tick_count,
         energy_floor_breach_fraction: energy_breaches as f64 / household_tick_count,
-        recovery_success: if outcome.recovery_after_ticks.is_some() { 1.0 } else { 0.0 },
+        recovery_success: if outcome.recovery_after_ticks.is_some() {
+            1.0
+        } else {
+            0.0
+        },
     };
     for metric in OutcomeMetric::ALL {
         let value = metrics.value(metric);
@@ -549,9 +559,8 @@ pub fn execute_benchmark(
     morris_trajectory_count: usize,
 ) -> Result<BenchmarkReport, UqError> {
     let lhs_design = latin_hypercube_design(seed, lhs_sample_count)?;
-    let mut lhs_runs = Vec::with_capacity(
-        lhs_sample_count * ShockKind::ALL.len() * InterventionPolicy::ALL.len(),
-    );
+    let mut lhs_runs =
+        Vec::with_capacity(lhs_sample_count * ShockKind::ALL.len() * InterventionPolicy::ALL.len());
     for design_point in lhs_design {
         for shock_kind in ShockKind::ALL {
             for policy in InterventionPolicy::ALL {
@@ -569,15 +578,14 @@ pub fn execute_benchmark(
     let lhs_summaries = summarize_lhs(&lhs_runs);
 
     let trajectories = morris_design(seed ^ 0xA5A5_5A5A_D3C4_B2E1, morris_trajectory_count)?;
-    let mut morris_points = Vec::with_capacity(
-        morris_trajectory_count * (FACTOR_COUNT + 1),
-    );
+    let mut morris_points = Vec::with_capacity(morris_trajectory_count * (FACTOR_COUNT + 1));
     let factor_count = FACTOR_COUNT;
     let shock_count = ShockKind::ALL.len();
     let policy_count = InterventionPolicy::ALL.len();
     let metric_count = OutcomeMetric::ALL.len();
     let group_count = factor_count * shock_count * policy_count * metric_count;
-    let mut effects_by_group = vec![Vec::<f64>::with_capacity(morris_trajectory_count); group_count];
+    let mut effects_by_group =
+        vec![Vec::<f64>::with_capacity(morris_trajectory_count); group_count];
 
     for trajectory in trajectories {
         for (point_index, unit_coordinates) in trajectory.points.iter().enumerate() {
@@ -594,11 +602,7 @@ pub fn execute_benchmark(
             let mut outputs = Vec::with_capacity(shock_count * policy_count);
             for shock_kind in ShockKind::ALL {
                 for policy in InterventionPolicy::ALL {
-                    outputs.push(run_parameterized_scenario(
-                        shock_kind,
-                        policy,
-                        parameters,
-                    )?);
+                    outputs.push(run_parameterized_scenario(shock_kind, policy, parameters)?);
                 }
             }
             point_outputs.push(outputs);
@@ -635,16 +639,15 @@ pub fn execute_benchmark(
         for shock_kind in ShockKind::ALL {
             for policy in InterventionPolicy::ALL {
                 for metric in OutcomeMetric::ALL {
-                    let group_index = (((factor.index() * shock_count
-                        + shock_index(shock_kind))
+                    let group_index = (((factor.index() * shock_count + shock_index(shock_kind))
                         * policy_count
                         + policy_index(policy))
                         * metric_count)
                         + metric.index();
                     let effects = &effects_by_group[group_index];
                     let mean = average(effects);
-                    let mu_star = effects.iter().map(|value| value.abs()).sum::<f64>()
-                        / effects.len() as f64;
+                    let mu_star =
+                        effects.iter().map(|value| value.abs()).sum::<f64>() / effects.len() as f64;
                     let sigma = sample_stddev(effects, mean);
                     morris_effects.push(MorrisEffectSummary {
                         factor,
@@ -763,7 +766,10 @@ fn sample_stddev(values: &[f64], mean: f64) -> f64 {
     if values.len() < 2 {
         return 0.0;
     }
-    let sum = values.iter().map(|value| (value - mean).powi(2)).sum::<f64>();
+    let sum = values
+        .iter()
+        .map(|value| (value - mean).powi(2))
+        .sum::<f64>();
     (sum / (values.len() - 1) as f64).sqrt()
 }
 
@@ -813,7 +819,9 @@ mod tests {
         for factor in 0..FACTOR_COUNT {
             let mut strata = first
                 .iter()
-                .map(|point| (point.unit_coordinates[factor] * LHS_DEFAULT_POINTS as f64).floor() as usize)
+                .map(|point| {
+                    (point.unit_coordinates[factor] * LHS_DEFAULT_POINTS as f64).floor() as usize
+                })
                 .collect::<Vec<_>>();
             strata.sort_unstable();
             assert_eq!(strata, (0..LHS_DEFAULT_POINTS).collect::<Vec<_>>());
@@ -882,7 +890,10 @@ mod tests {
     #[test]
     fn full_recovery_is_not_confused_with_parameter_sampling_repetitions() {
         let report = execute_benchmark(7, 3, 2).unwrap();
-        assert_eq!(report.lhs_runs.len(), 3 * ShockKind::ALL.len() * InterventionPolicy::ALL.len());
+        assert_eq!(
+            report.lhs_runs.len(),
+            3 * ShockKind::ALL.len() * InterventionPolicy::ALL.len()
+        );
         assert_eq!(
             report.lhs_summaries.len(),
             ShockKind::ALL.len() * InterventionPolicy::ALL.len() * OutcomeMetric::ALL.len()
@@ -892,7 +903,12 @@ mod tests {
             report.morris_effects.len(),
             FACTOR_COUNT * ShockKind::ALL.len() * InterventionPolicy::ALL.len() * OutcomeMetric::ALL.len()
         );
-        assert!(report.morris_effects.iter().all(|effect| effect.trajectory_count == 2));
+        assert!(
+            report
+                .morris_effects
+                .iter()
+                .all(|effect| effect.trajectory_count == 2)
+        );
     }
 
     #[test]
