@@ -24,6 +24,8 @@ Reuse the existing Symthaea maintenance-task-card validator (#7750) and transpar
 
 ## 2. Freeze missions before optimizing
 
+The six initial machine-readable mission templates are in [mission-cards-v0.1.json](./mission-cards-v0.1.json). They intentionally leave unverified numbers null and record evidence status; they are input templates, not frozen requirements.
+
 Do not populate these cards from marketing-page headlines. Each value must be recovered from a controlling source, independently checked or marked Unknown.
 
 ### Wren 2 mission card
