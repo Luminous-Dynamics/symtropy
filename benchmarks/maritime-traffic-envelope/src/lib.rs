@@ -65,9 +65,6 @@ impl EvidenceReceipt {
             && self.valid_through_tick >= last_active_tick
     }
 
-    fn covers_tick(&self, tick: u64) -> bool {
-        self.valid_from_tick <= tick && tick <= self.valid_through_tick
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -294,6 +291,15 @@ pub fn canonical_occupancy_subject_id(
         time_basis_id,
     ] {
         push_field(&mut identity, value);
+    }
+    push_field(
+        &mut identity,
+        &operation.resource_uses.len().to_string(),
+    );
+    for usage in &operation.resource_uses {
+        push_field(&mut identity, &usage.resource_id);
+        push_field(&mut identity, &usage.amount.to_string());
+        push_field(&mut identity, &format!("{:?}", usage.unit));
     }
     identity
 }
@@ -544,6 +550,11 @@ pub fn evaluate_traffic_plan(
         }
 
         let effective = effective_occupancy(occupancy, resource)?;
+        if effective.start_tick < workload.decision_tick {
+            return Err(TrafficError::InvalidOccupancy(
+                occupancy.occupancy_id.clone(),
+            ));
+        }
         let effective_window = effective.window();
 
         if resource.evidence.state != EvidenceState::Current {
