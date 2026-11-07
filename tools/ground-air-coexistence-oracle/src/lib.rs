@@ -6,7 +6,7 @@
 //! RF or optical physics, field coexistence, aircraft operation, EMC, exposure,
 //! converter stability, or hardware protection.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
@@ -133,11 +133,10 @@ fn modality_input_boundary(value: &str) -> &'static str {
 
 fn receiver_energy_boundary(value: &str) -> &'static str {
     match value {
-        "ROAD_CAR" | "ROAD_BUS" | "ROAD_HEAVY_TRUCK" => {
-            "GROUND_VEHICLE_BATTERY_TERMINAL_INPUT"
+        "ROAD_CAR" | "ROAD_BUS" | "ROAD_HEAVY_TRUCK" => "GROUND_VEHICLE_BATTERY_TERMINAL_INPUT",
+        "UAV_DOCKED" | "UAV_HOVERING" | "UAV_FIXED_WING" | "EVTOL_DOCKED" | "EVTOL_AIRBORNE" => {
+            "AIRCRAFT_BATTERY_TERMINAL_INPUT"
         }
-        "UAV_DOCKED" | "UAV_HOVERING" | "UAV_FIXED_WING" | "EVTOL_DOCKED"
-        | "EVTOL_AIRBORNE" => "AIRCRAFT_BATTERY_TERMINAL_INPUT",
         _ => "UNKNOWN_USEFUL_ENERGY_BOUNDARY",
     }
 }
@@ -1018,7 +1017,10 @@ mod tests {
             .iter()
             .find(|row| row["domain"] == "AIR")
             .unwrap();
-        assert_eq!(air["channel_input_boundary_id"], "AIR_DOCK_CHARGER_AC_INPUT");
+        assert_eq!(
+            air["channel_input_boundary_id"],
+            "AIR_DOCK_CHARGER_AC_INPUT"
+        );
         assert_eq!(
             air["useful_energy_boundary_id"],
             "AIRCRAFT_BATTERY_TERMINAL_INPUT"
