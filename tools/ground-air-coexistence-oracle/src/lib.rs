@@ -744,10 +744,10 @@ fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, 
         let mut air_input = 0_u64;
         let mut session_rows = Vec::with_capacity(scenario.sessions.len());
         for (session_index, input_quanta) in slot_allocations.iter().enumerate() {
-            total_input += input_quanta;
+            total_input += *input_quanta;
             match scenario.sessions[session_index].domain {
-                Domain::Ground => ground_input += input_quanta,
-                Domain::Air => air_input += input_quanta,
+                Domain::Ground => ground_input += *input_quanta,
+                Domain::Air => air_input += *input_quanta,
             }
             session_rows.push(json!({
                 "session_id": scenario.sessions[session_index].session_id,
@@ -781,7 +781,11 @@ fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, 
             "delivered_useful_energy_wh": delivered,
             "minimum_service_met": delivered >= session.minimum_useful_energy_wh,
             "service_fulfillment_ratio_ppm": ratio_ppm,
-            "input_power_quanta_by_slot": best.allocations.iter().map(|slot| slot[index]).collect::<Vec<_>>()
+            "input_power_quanta_by_slot": best
+                .allocations
+                .iter()
+                .map(|slot| slot[index])
+                .collect::<Vec<_>>()
         }));
     }
 
