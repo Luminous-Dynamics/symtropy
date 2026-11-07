@@ -135,8 +135,8 @@ pub enum InertiaUnit {
 
 impl InertiaUnit {
     pub fn to_kg_m2(self, value: f64) -> Result<f64, String> {
-        if !value.is_finite() || value < 0.0 {
-            return Err("source inertia entry must be finite and >= 0".to_owned());
+        if !value.is_finite() {
+            return Err("source inertia entry must be finite".to_owned());
         }
         let converted = match self {
             Self::KilogramSquareMetre => value,
@@ -160,6 +160,9 @@ impl SourceInertiaTensor {
     pub fn kg_m2(self) -> Result<[f64; 6], String> {
         let mut converted = [0.0; 6];
         for (index, value) in self.values.into_iter().enumerate() {
+            if index < 3 && value < 0.0 {
+                return Err("source inertia diagonal entries must be >= 0".to_owned());
+            }
             converted[index] = self.unit.to_kg_m2(value)?;
         }
         Ok(converted)
@@ -646,8 +649,23 @@ impl MassEvidenceLedger {
         let record_ids: HashSet<&str> = self.records.iter().map(|record| record.item.id.as_str()).collect();
         for record in &self.records {
             if let Some(parent) = &record.parent_id {
-                if !record_ids.contains(parent.as_str()) {
-                    return Err(format!("mass item {} references missing parent {}", record.item.id, parent));
+                let parent_record = self
+                    .records
+                    .iter()
+                    .find(|candidate| candidate.item.id == *parent)
+                    .ok_or_else(|| {
+                        format!("mass item {} references missing parent {}", record.item.id, parent)
+                    })?;
+                if parent_record.accounting_role != AccountingRole::Aggregate
+                    || !parent_record
+                        .included_child_ids
+                        .iter()
+                        .any(|child| child == &record.item.id)
+                {
+                    return Err(format!(
+                        "mass item {} parent {} does not declare it as an included child",
+                        record.item.id, parent
+                    ));
                 }
             }
             for child in &record.included_child_ids {
@@ -1544,6 +1562,17 @@ mod tests {
         assert_eq!(report.mass_properties.center_of_gravity_m, None);
         assert_eq!(report.mass_properties.inertia_tensor_about_cg_kg_m2, None);
         assert_eq!(report.status, StateEvidenceStatus::Indeterminate);
+    }
+
+    #[test]
+    fn signed_products_of_inertia_are_preserved_during_unit_conversion() {
+        let converted = SourceInertiaTensor {
+            values: [10_000_000.0, 20_000_000.0, 30_000_000.0, -1_000_000.0, 0.0, 0.0],
+            unit: InertiaUnit::GramSquareCentimetre,
+        }
+        .kg_m2()
+        .expect("signed product of inertia");
+        assert_eq!(converted, [1.0, 2.0, 3.0, -0.1, 0.0, 0.0]);
     }
 
     #[test]
