@@ -502,19 +502,62 @@ impl PhaseEnergyBalance {
             }
         }
 
-        let fuel_cell_residuals = self
-            .fuel_cells
-            .iter()
-            .map(|cell| {
-                let residual = cell.fuel_energy_input_j
-                    - cell.electrical_output_to_bus_j
-                    - cell.thermal_loss_j;
-                ComponentEnergyResidual {
-                    component_id: cell.fuel_cell_id.clone(),
-                    residual_j: residual,
-                }
-            })
-            .collect::<Vec<_>>();
+        let mut fuel_cell_residuals = Vec::new();
+        for cell in &self.fuel_cells {
+            validate_digest(&cell.model_evidence_sha256, "fuel-cell model SHA-256")?;
+            if !fuel_by_id.contains_key(cell.fuel_source_id.as_str()) {
+                return Err(format!(
+                    "fuel cell {} references missing fuel source {}",
+                    cell.fuel_cell_id, cell.fuel_source_id
+                ));
+            }
+            for (name, value) in [
+                ("fuel-cell fuel_energy_input_j", cell.fuel_energy_input_j),
+                ("fuel-cell electrical_output_to_bus_j", cell.electrical_output_to_bus_j),
+                ("fuel-cell thermal_loss_j", cell.thermal_loss_j),
+                (
+                    "fuel-cell average_electrical_output_power_limit_w",
+                    cell.average_electrical_output_power_limit_w,
+                ),
+                (
+                    "fuel-cell peak_electrical_output_power_w",
+                    cell.peak_electrical_output_power_w,
+                ),
+                (
+                    "fuel-cell peak_electrical_output_power_limit_w",
+                    cell.peak_electrical_output_power_limit_w,
+                ),
+            ] {
+                validate_nonnegative(value, name)?;
+            }
+            if cell.average_electrical_output_power_limit_w <= 0.0
+                || cell.peak_electrical_output_power_limit_w <= 0.0
+            {
+                return Err("fuel-cell electrical power limits must be finite and > 0".to_owned());
+            }
+            *prime_mover_fuel_input_by_source
+                .entry(cell.fuel_source_id.as_str())
+                .or_insert(0.0) += cell.fuel_energy_input_j;
+            let residual = cell.fuel_energy_input_j
+                - cell.electrical_output_to_bus_j
+                - cell.thermal_loss_j;
+            let average_electrical_output_power_w =
+                cell.electrical_output_to_bus_j / self.duration_s;
+            if residual.abs() > self.tolerance_j
+                || average_electrical_output_power_w
+                    > cell.average_electrical_output_power_limit_w + self.tolerance_w
+                || cell.peak_electrical_output_power_w + self.tolerance_w
+                    < average_electrical_output_power_w
+                || cell.peak_electrical_output_power_w
+                    > cell.peak_electrical_output_power_limit_w + self.tolerance_w
+            {
+                infeasible = true;
+            }
+            fuel_cell_residuals.push(ComponentEnergyResidual {
+                component_id: cell.fuel_cell_id.clone(),
+                residual_j: residual,
+            });
+        }
 
         let generator_residuals = self
             .generators
@@ -753,12 +796,21 @@ impl PhaseEnergyBalance {
         {
             infeasible = true;
         }
-        if self.prime_movers.is_empty() && self.generators.is_empty() && self.stores.is_empty() {
+        if self.prime_movers.is_empty()
+            && self.generators.is_empty()
+            && self.fuel_cells.is_empty()
+            && self.stores.is_empty()
+        {
             return Err("phase energy balance has no declared energy source or store".to_owned());
         }
-        if self.motor_drives.is_empty() || self.propulsors.is_empty() {
+        if self.propulsors.is_empty() {
+            return Err("phase energy balance requires at least one propulsor record".to_owned());
+        }
+        if self.motor_drives.is_empty()
+            && total_direct_mechanical_shaft_j <= self.tolerance_j
+        {
             return Err(
-                "phase energy balance requires at least one motor-drive and propulsor record"
+                "phase requires an electric motor path or a direct mechanical propulsor shaft path"
                     .to_owned(),
             );
         }
