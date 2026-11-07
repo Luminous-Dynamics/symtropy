@@ -758,3 +758,17 @@ Results against the checked-in reference grid:
 - maximum normalized (R') residual: below the displayed precision of the independent calculation.
 
 This is a formula-level reimplementation / reference-grid cross-check, **not** execution of the Rust tests, an external numerical-relativity comparison, or a finite-(\ell) QNM validation. The near-extremal residual is an explicit conditioning signal and should remain separately tracked rather than hidden behind a global tolerance.
+
+
+## New horizon-semantics workstream — 2026-11-07
+
+A typed horizon contract is now specified in `crates/domains/symtropy-relativity/benchmarks/horizon_object_contract_v1.json`, tracked by [Symtropy BH-HORIZON-SEMANTICS-001 #4071](https://github.com/Luminous-Dynamics/symtropy/issues/4071).
+
+The contract distinguishes stationary Kerr event/Killing horizons, retrospective event-horizon reconstructions, MOTSs, apparent horizons, marginally trapped tubes, dynamical horizons, isolated horizons and unsupported/ambiguous outcomes. It requires the relevant Cauchy slice, future extent, null-normal orientation/normalization, expansion residuals, foliation/branch lineage, signature, area/flux data and finder provenance.
+
+Scientific motivation:
+- Ashtekar & Krishnan's 2025 Living Reviews article explains why event horizons are teleological and why quasi-local horizons are more useful during numerical evolution.
+- Event-horizon finders require the future spacetime development; apparent horizons are found on specified Cauchy slices.
+- External reference implementations such as BHaHAHA and SpECTRE horizon tracking should be interoperated with before a bespoke surface finder is considered.
+
+This is a semantics/schema protocol only. It does not implement an apparent-horizon finder, event-horizon reconstruction engine, dynamical-horizon flux solver, or a merger-horizon result. No such scientific claim is made.
