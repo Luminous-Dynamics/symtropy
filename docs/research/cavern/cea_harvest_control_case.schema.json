@@ -19,15 +19,32 @@
     "claim_ceiling"
   ],
   "$defs": {
-    "ref": { "type": "string", "minLength": 1 },
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
     "quantity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["value", "unit", "source_ref", "evidence_status"],
+      "required": [
+        "value",
+        "unit",
+        "source_ref",
+        "evidence_status"
+      ],
       "properties": {
-        "value": { "type": ["number", "string"] },
-        "unit": { "$ref": "#/$defs/ref" },
-        "source_ref": { "$ref": "#/$defs/ref" },
+        "value": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
         "evidence_status": {
           "enum": [
             "SOURCE_REPORTED",
@@ -37,16 +54,27 @@
             "UNKNOWN"
           ]
         },
-        "uncertainty": { "type": "string" },
-        "notes": { "type": "string" }
+        "uncertainty": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
       }
     },
     "resource_stream": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["stream_id", "resource", "unit", "measurement_boundary_ref"],
+      "required": [
+        "stream_id",
+        "resource",
+        "unit",
+        "measurement_boundary_ref"
+      ],
       "properties": {
-        "stream_id": { "$ref": "#/$defs/ref" },
+        "stream_id": {
+          "$ref": "#/$defs/ref"
+        },
         "resource": {
           "enum": [
             "ELECTRICITY",
@@ -60,12 +88,27 @@
             "OTHER"
           ]
         },
-        "unit": { "$ref": "#/$defs/ref" },
-        "measurement_boundary_ref": { "$ref": "#/$defs/ref" },
-        "meter_or_method_ref": { "type": "string", "minLength": 1 },
-        "time_series_ref": { "type": "string", "minLength": 1 },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "measurement_boundary_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "meter_or_method_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_series_ref": {
+          "type": "string",
+          "minLength": 1
+        },
         "evidence_status": {
-          "enum": ["MEASURED", "MODELLED", "SYNTHETIC", "UNKNOWN"]
+          "enum": [
+            "MEASURED",
+            "MODELLED",
+            "SYNTHETIC",
+            "UNKNOWN"
+          ]
         }
       }
     },
@@ -82,10 +125,18 @@
         "evidence_role"
       ],
       "properties": {
-        "measurement_id": { "$ref": "#/$defs/ref" },
-        "measurand": { "$ref": "#/$defs/ref" },
-        "method_ref": { "$ref": "#/$defs/ref" },
-        "instrument_ref": { "$ref": "#/$defs/ref" },
+        "measurement_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "measurand": {
+          "$ref": "#/$defs/ref"
+        },
+        "method_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "instrument_ref": {
+          "$ref": "#/$defs/ref"
+        },
         "calibration_status": {
           "enum": [
             "QUALIFIED_IN_DOMAIN",
@@ -96,8 +147,13 @@
             "NOT_APPLICABLE"
           ]
         },
-        "calibration_ref": { "type": "string", "minLength": 1 },
-        "timebase_ref": { "$ref": "#/$defs/ref" },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timebase_ref": {
+          "$ref": "#/$defs/ref"
+        },
         "evidence_role": {
           "enum": [
             "INDEPENDENT_BIOMASS_OBSERVATION",
@@ -110,15 +166,28 @@
             "SYNTHETIC_ONLY"
           ]
         },
-        "uncertainty_ref": { "type": "string", "minLength": 1 },
-        "raw_data_ref": { "type": "string", "minLength": 1 },
-        "dependence_group_ref": { "type": "string", "minLength": 1 }
+        "uncertainty_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_data_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependence_group_ref": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     }
   },
   "properties": {
-    "schema_version": { "const": 1 },
-    "case_id": { "$ref": "#/$defs/ref" },
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
     "evidence_class": {
       "enum": [
         "SOURCE_PUBLISHED_SIMULATION_SUMMARY",
@@ -139,14 +208,36 @@
         "crop_model_ref"
       ],
       "properties": {
-        "species": { "$ref": "#/$defs/ref" },
-        "cultivar_ref": { "$ref": "#/$defs/ref" },
-        "seed_lot_ref": { "type": "string", "minLength": 1 },
-        "crop_stage_ref": { "$ref": "#/$defs/ref" },
-        "plant_density": { "type": "number", "minimum": 0 },
-        "plant_density_unit": { "$ref": "#/$defs/ref" },
-        "crop_model_ref": { "$ref": "#/$defs/ref" },
-        "model_validity_ref": { "type": "string", "minLength": 1 }
+        "species": {
+          "$ref": "#/$defs/ref"
+        },
+        "cultivar_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "seed_lot_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "crop_stage_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "plant_density": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "plant_density_unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "crop_model_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "model_validity_ref": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "harvest_contract": {
@@ -161,14 +252,32 @@
         "evidence_owner_ref"
       ],
       "properties": {
-        "target_mass": { "$ref": "#/$defs/quantity" },
-        "mass_unit": { "$ref": "#/$defs/ref" },
-        "target_deadline_ref": { "$ref": "#/$defs/ref" },
-        "marketability_rule_ref": { "$ref": "#/$defs/ref" },
-        "tolerance_ref": { "$ref": "#/$defs/ref" },
-        "evidence_owner_ref": { "$ref": "#/$defs/ref" },
-        "dry_matter_requirement_ref": { "type": "string", "minLength": 1 },
-        "nutritional_service_ref": { "type": "string", "minLength": 1 }
+        "target_mass": {
+          "$ref": "#/$defs/quantity"
+        },
+        "mass_unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "target_deadline_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "marketability_rule_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "tolerance_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "evidence_owner_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "dry_matter_requirement_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nutritional_service_ref": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "facility": {
@@ -183,13 +292,29 @@
         "photon_model_ref"
       ],
       "properties": {
-        "facility_type": { "$ref": "#/$defs/ref" },
-        "zone_geometry_ref": { "$ref": "#/$defs/ref" },
-        "cultivation_area": { "type": "number", "exclusiveMinimum": 0 },
-        "area_unit": { "$ref": "#/$defs/ref" },
-        "climate_model_ref": { "$ref": "#/$defs/ref" },
-        "photon_model_ref": { "$ref": "#/$defs/ref" },
-        "hardware_configuration_ref": { "type": "string", "minLength": 1 }
+        "facility_type": {
+          "$ref": "#/$defs/ref"
+        },
+        "zone_geometry_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "cultivation_area": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "area_unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "climate_model_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "photon_model_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "hardware_configuration_ref": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "timebase": {
@@ -202,11 +327,23 @@
         "forecast_vintage_policy_ref"
       ],
       "properties": {
-        "time_zone_ref": { "$ref": "#/$defs/ref" },
-        "interval_seconds": { "type": "integer", "minimum": 1 },
-        "campaign_window_ref": { "$ref": "#/$defs/ref" },
-        "forecast_vintage_policy_ref": { "$ref": "#/$defs/ref" },
-        "wall_clock_and_biological_cycle_distinction_ref": { "type": "string", "minLength": 1 }
+        "time_zone_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "interval_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "campaign_window_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "forecast_vintage_policy_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "wall_clock_and_biological_cycle_distinction_ref": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "control_policy": {
@@ -220,7 +357,9 @@
         "fallback_policy_ref"
       ],
       "properties": {
-        "policy_id": { "$ref": "#/$defs/ref" },
+        "policy_id": {
+          "$ref": "#/$defs/ref"
+        },
         "control_layers": {
           "type": "array",
           "minItems": 1,
@@ -234,25 +373,41 @@
             ]
           }
         },
-        "optimization_objective_ref": { "$ref": "#/$defs/ref" },
+        "optimization_objective_ref": {
+          "$ref": "#/$defs/ref"
+        },
         "hard_constraint_refs": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/ref" }
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
         },
-        "fallback_policy_ref": { "$ref": "#/$defs/ref" },
-        "biomass_feedback_policy_ref": { "type": "string", "minLength": 1 },
-        "model_uncertainty_policy_ref": { "type": "string", "minLength": 1 }
+        "fallback_policy_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "biomass_feedback_policy_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_uncertainty_policy_ref": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "resource_boundaries": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/resource_stream" }
+      "items": {
+        "$ref": "#/$defs/resource_stream"
+      }
     },
     "measurements": {
       "type": "array",
-      "items": { "$ref": "#/$defs/measurement" }
+      "items": {
+        "$ref": "#/$defs/measurement"
+      }
     },
     "constraints": {
       "type": "object",
@@ -265,15 +420,33 @@
         "resource_bounds_ref"
       ],
       "properties": {
-        "harvest_contract_hard": { "type": "boolean" },
-        "crop_climate_hard": { "type": "boolean" },
-        "power_hard": { "type": "boolean" },
-        "quality_hard": { "type": "boolean" },
-        "resource_bounds_ref": { "$ref": "#/$defs/ref" },
-        "human_authority_ref": { "type": "string", "minLength": 1 },
-        "physical_authorization_ref": { "type": "string", "minLength": 1 }
+        "harvest_contract_hard": {
+          "type": "boolean"
+        },
+        "crop_climate_hard": {
+          "type": "boolean"
+        },
+        "power_hard": {
+          "type": "boolean"
+        },
+        "quality_hard": {
+          "type": "boolean"
+        },
+        "resource_bounds_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "human_authority_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physical_authorization_ref": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
-    "claim_ceiling": { "$ref": "#/$defs/ref" }
+    "claim_ceiling": {
+      "$ref": "#/$defs/ref"
+    }
   }
 }
