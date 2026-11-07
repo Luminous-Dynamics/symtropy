@@ -116,5 +116,54 @@
     "generation_pipeline/run.py": "5604a469aea0e1b5f5b9ebd94f55587f1d50cf18",
     "docs/PAS_ECS_math.md": "a03ad2e33166df20ecd2ff3bd30bb341391f75ca",
     "docs/RESULT_STORAGE.md": "f97d47ddad3dc67adf8f8f88ea2c49777a3dc8c7"
+  },
+  "metric_contract": {
+    "id": "HSB-PAPER-METRICS-SOURCECODE-CF05D330",
+    "authority": "Pinned executable implementation; do not replace outputs with locally computed metrics",
+    "implementation_notes": [
+      "calc_pas supports a three-state posterior-vector dot product when both posterior inputs are dictionaries and a scalar two-state formula otherwise",
+      "aggregate_finding_pas_raw uses an unweighted Fisher-z mean over test PAS values",
+      "aggregate_study_pas averages finding-level Fisher-z values before inverse transformation",
+      "compute_ecs_corr uses weighted Lin's concordance correlation coefficient (CCC) as main ECS"
+    ],
+    "specification_discrepancies": [
+      {
+        "document": "docs/PAS_ECS_math.md",
+        "code": "src/evaluation/stats_lib.py::aggregate_finding_pas_raw",
+        "issue": "Documentation describes effective-sample-size weighting for raw finding PAS pooling; the pinned implementation uses an unweighted Fisher-z mean"
+      },
+      {
+        "document": "docs/ECS_vs_PAS_explanation.md",
+        "code": "src/evaluation/stats_lib.py::compute_ecs_corr and weighted_ccc",
+        "issue": "Older explanation describes Z-difference/RMS ECS; the pinned main implementation and main metric docs define weighted Lin CCC"
+      }
+    ]
+  },
+  "historical_results_snapshot": {
+    "generated_at": "2026-01-30T23:22:53",
+    "source_paths": [
+      {
+        "path": "results/benchmark/simple_summary.md",
+        "blob_sha": "89934064686972c5b0a0d844cdeb4e1ddcc294ed"
+      },
+      {
+        "path": "results/benchmark/simple_studies.csv",
+        "blob_sha": "5f8ebb1a2a5ceb1fe8713437b1a6f411bf3ff3de"
+      },
+      {
+        "path": "results/benchmark/simple_findings.csv",
+        "blob_sha": "2eb2f9e6da858b3f09f1a4817deff57976627cfd"
+      }
+    ],
+    "configuration_count": 61,
+    "highest_reported_pas": {
+      "value": 0.4971,
+      "configuration": "google_gemini_3_flash_preview_v3-human-plus-demo"
+    },
+    "highest_reported_ecs_ccc": {
+      "value": 0.4589,
+      "configuration": "mixed_models_v3"
+    },
+    "interpretation": "Historical stored aggregate snapshot only. Not current SOTA, not independently reproduced here, not a confidence interval, and not directly comparable with other benchmark score scales."
   }
 }
