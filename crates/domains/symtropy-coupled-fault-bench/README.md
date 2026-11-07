@@ -30,3 +30,14 @@ The crate also compares declared combined-state pairs using the exact channel in
 ## Evidence boundary
 
 Synthetic fixture responses remain SYNTHETIC_ONLY. The additive null envelope is calculated from synthetic singleton intervals and is not physical evidence. Real measured cases require independent combined-fault records, calibrated singleton/baseline references on the exact same material/path/geometry domain, and metrologist review.
+
+
+## Structural fixture
+
+The synthetic fixture contains 5 fault hypotheses, 3 combined states and 21 unique channel response records across the 7 channels in #4005.
+
+- Blockage + filter loading: the synthetic line-pressure interval [45, 50] is disjoint from its additive screening null [30, 41], so the evaluator reports DEVIATION_OBSERVED. Other channels may remain consistent with the null.
+- Blockage + blower fault: the gravimetric additive null interval is entirely negative even though dry-solid mass flow is non-negative. The evaluator therefore reports INSUFFICIENT_EVIDENCE for that channel rather than claiming an interaction from an invalid null envelope.
+- Blockage + pressure-sensor fault: the line-pressure channel is DEGRADED and carries no numeric interval. Its interaction result is INSUFFICIENT_EVIDENCE.
+
+All intervals are fabricated conformance data. The deviation does not establish physical non-additivity.
