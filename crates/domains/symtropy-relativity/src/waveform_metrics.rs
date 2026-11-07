@@ -124,22 +124,45 @@ impl fmt::Display for WaveformMetricError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::TooFewFrequencyBins => write!(f, "at least two frequency bins are required"),
-            Self::StrainLengthMismatch => write!(f, "reference and candidate strain lengths differ"),
+            Self::StrainLengthMismatch => {
+                write!(f, "reference and candidate strain lengths differ")
+            }
             Self::PsdLengthMismatch => write!(f, "PSD length differs from strain grid length"),
-            Self::NonFiniteFrequency { index } => write!(f, "frequency at index {index} is non-finite"),
-            Self::NonIncreasingFrequencyGrid { index } => write!(f, "frequency grid is not strictly increasing at index {index}"),
-            Self::NonUniformFrequencyGrid { index } => write!(f, "frequency grid is not uniform at interval {index}"),
-            Self::FrequencyGridMismatch { index } => write!(f, "frequency grids differ at index {index}"),
-            Self::NonFiniteStrain { index } => write!(f, "strain sample at index {index} is non-finite"),
+            Self::NonFiniteFrequency { index } => {
+                write!(f, "frequency at index {index} is non-finite")
+            }
+            Self::NonIncreasingFrequencyGrid { index } => write!(
+                f,
+                "frequency grid is not strictly increasing at index {index}"
+            ),
+            Self::NonUniformFrequencyGrid { index } => {
+                write!(f, "frequency grid is not uniform at interval {index}")
+            }
+            Self::FrequencyGridMismatch { index } => {
+                write!(f, "frequency grids differ at index {index}")
+            }
+            Self::NonFiniteStrain { index } => {
+                write!(f, "strain sample at index {index} is non-finite")
+            }
             Self::NonFinitePsd { index } => write!(f, "PSD at index {index} is non-finite"),
             Self::NonPositivePsd { index } => write!(f, "PSD at index {index} must be positive"),
-            Self::InvalidFrequencyBand => write!(f, "frequency band must be finite, nonnegative, and increasing"),
-            Self::InvalidPhaseFloor => write!(f, "phase floor fraction must be finite and in [0,1)"),
-            Self::FewerThanTwoBinsInBand => write!(f, "frequency band must include at least two bins"),
+            Self::InvalidFrequencyBand => write!(
+                f,
+                "frequency band must be finite, nonnegative, and increasing"
+            ),
+            Self::InvalidPhaseFloor => {
+                write!(f, "phase floor fraction must be finite and in [0,1)")
+            }
+            Self::FewerThanTwoBinsInBand => {
+                write!(f, "frequency band must include at least two bins")
+            }
             Self::ZeroReferenceNorm => write!(f, "reference waveform has zero in-band norm"),
             Self::ZeroCandidateNorm => write!(f, "candidate waveform has zero in-band norm"),
             Self::NonFiniteAccumulation(name) => write!(f, "{name} became non-finite"),
-            Self::OverlapOutsideUnitInterval(value) => write!(f, "normalized overlap {value} violates the Cauchy-Schwarz bound"),
+            Self::OverlapOutsideUnitInterval(value) => write!(
+                f,
+                "normalized overlap {value} violates the Cauchy-Schwarz bound"
+            ),
         }
     }
 }
@@ -268,10 +291,11 @@ pub fn compare_frequency_domain(
             let reference_amplitude = reference_samples[index].amplitude();
             let candidate_amplitude = candidate_samples[index].amplitude();
             if !reference_amplitude.is_finite() || !candidate_amplitude.is_finite() {
-                return Err(WaveformMetricError::NonFiniteAccumulation("waveform amplitude"));
+                return Err(WaveformMetricError::NonFiniteAccumulation(
+                    "waveform amplitude",
+                ));
             }
-            maximum_reference_amplitude =
-                maximum_reference_amplitude.max(reference_amplitude);
+            maximum_reference_amplitude = maximum_reference_amplitude.max(reference_amplitude);
             selected.push(index);
         }
     }
@@ -279,8 +303,7 @@ pub fn compare_frequency_domain(
         return Err(WaveformMetricError::FewerThanTwoBinsInBand);
     }
 
-    let phase_floor =
-        maximum_reference_amplitude * band.reference_phase_floor_fraction;
+    let phase_floor = maximum_reference_amplitude * band.reference_phase_floor_fraction;
 
     let mut reference_norm = CompensatedSum::default();
     let mut candidate_norm = CompensatedSum::default();
@@ -317,11 +340,16 @@ pub fn compare_frequency_domain(
     let amplitude_numerator = amplitude_error_numerator.total();
     let amplitude_denominator = amplitude_error_denominator.total();
 
-    if !norm_a.is_finite() || !norm_b.is_finite()
-        || !inner_re.is_finite() || !inner_im.is_finite()
-        || !amplitude_numerator.is_finite() || !amplitude_denominator.is_finite()
+    if !norm_a.is_finite()
+        || !norm_b.is_finite()
+        || !inner_re.is_finite()
+        || !inner_im.is_finite()
+        || !amplitude_numerator.is_finite()
+        || !amplitude_denominator.is_finite()
     {
-        return Err(WaveformMetricError::NonFiniteAccumulation("waveform inner product"));
+        return Err(WaveformMetricError::NonFiniteAccumulation(
+            "waveform inner product",
+        ));
     }
     if norm_a <= 0.0 || amplitude_denominator <= 0.0 {
         return Err(WaveformMetricError::ZeroReferenceNorm);
@@ -332,24 +360,32 @@ pub fn compare_frequency_domain(
 
     let normalization = norm_a.sqrt() * norm_b.sqrt();
     if !normalization.is_finite() || normalization <= 0.0 {
-        return Err(WaveformMetricError::NonFiniteAccumulation("waveform normalization"));
+        return Err(WaveformMetricError::NonFiniteAccumulation(
+            "waveform normalization",
+        ));
     }
     let real_overlap = inner_re / normalization;
     let raw_complex_overlap = inner_re.hypot(inner_im) / normalization;
     if !real_overlap.is_finite() || !raw_complex_overlap.is_finite() {
-        return Err(WaveformMetricError::NonFiniteAccumulation("normalized overlap"));
+        return Err(WaveformMetricError::NonFiniteAccumulation(
+            "normalized overlap",
+        ));
     }
 
     // The exact Cauchy-Schwarz bound is <= 1. Permit only a tiny f64
     // roundoff excursion; do not silently clip a materially invalid result.
     if raw_complex_overlap > 1.0 + 128.0 * f64::EPSILON {
-        return Err(WaveformMetricError::OverlapOutsideUnitInterval(raw_complex_overlap));
+        return Err(WaveformMetricError::OverlapOutsideUnitInterval(
+            raw_complex_overlap,
+        ));
     }
     let overlap = raw_complex_overlap.min(1.0);
     let best_phase = inner_im.atan2(inner_re);
     let amplitude_l2 = (amplitude_numerator / amplitude_denominator).sqrt();
     if !amplitude_l2.is_finite() {
-        return Err(WaveformMetricError::NonFiniteAccumulation("relative amplitude error"));
+        return Err(WaveformMetricError::NonFiniteAccumulation(
+            "relative amplitude error",
+        ));
     }
 
     let mut phase_numerator = CompensatedSum::default();
@@ -389,7 +425,9 @@ pub fn compare_frequency_domain(
     let phase_denominator_value = phase_denominator.total();
     let phase_numerator_value = phase_numerator.total();
     if !phase_denominator_value.is_finite() || !phase_numerator_value.is_finite() {
-        return Err(WaveformMetricError::NonFiniteAccumulation("phase residual accumulation"));
+        return Err(WaveformMetricError::NonFiniteAccumulation(
+            "phase residual accumulation",
+        ));
     }
     let phase_rms = if phase_count > 0 && phase_denominator_value > 0.0 {
         Some((phase_numerator_value / phase_denominator_value).sqrt())
@@ -397,7 +435,9 @@ pub fn compare_frequency_domain(
         None
     };
     if phase_rms.is_some_and(|value| !value.is_finite()) {
-        return Err(WaveformMetricError::NonFiniteAccumulation("phase residual RMS"));
+        return Err(WaveformMetricError::NonFiniteAccumulation(
+            "phase residual RMS",
+        ));
     }
 
     Ok(WaveformComparison {
@@ -456,7 +496,8 @@ mod tests {
     #[test]
     fn identical_waveforms_have_zero_mismatch_amplitude_and_phase_error() {
         let values = base();
-        let result = compare_frequency_domain(series(&values), series(&values), psd(&PSD), band()).unwrap();
+        let result =
+            compare_frequency_domain(series(&values), series(&values), psd(&PSD), band()).unwrap();
         assert!(result.phase_maximized_mismatch < 1e-14);
         assert!(result.relative_amplitude_l2_error < 1e-14);
         assert!(result.weighted_phase_residual_rms_rad.unwrap() < 1e-14);
@@ -473,7 +514,8 @@ mod tests {
                 value.re * phase.sin() + value.im * phase.cos(),
             )
         });
-        let result = compare_frequency_domain(series(&values), series(&rotated), psd(&PSD), band()).unwrap();
+        let result =
+            compare_frequency_domain(series(&values), series(&rotated), psd(&PSD), band()).unwrap();
         assert!(result.phase_maximized_mismatch < 1e-14);
         assert!((result.best_constant_phase_offset_rad - phase).abs() < 1e-14);
         assert!(result.weighted_phase_residual_rms_rad.unwrap() < 1e-14);
@@ -483,7 +525,8 @@ mod tests {
     fn amplitude_rescaling_is_not_hidden_by_normalized_overlap() {
         let values = base();
         let scaled = values.map(|value| ComplexStrain::new(1.25 * value.re, 1.25 * value.im));
-        let result = compare_frequency_domain(series(&values), series(&scaled), psd(&PSD), band()).unwrap();
+        let result =
+            compare_frequency_domain(series(&values), series(&scaled), psd(&PSD), band()).unwrap();
         assert!(result.phase_maximized_mismatch < 1e-14);
         assert!((result.relative_amplitude_l2_error - 0.25).abs() < 1e-14);
     }
@@ -498,7 +541,8 @@ mod tests {
                 value.re * phase.sin() + value.im * phase.cos(),
             )
         });
-        let result = compare_frequency_domain(series(&values), series(&shifted), psd(&PSD), band()).unwrap();
+        let result =
+            compare_frequency_domain(series(&values), series(&shifted), psd(&PSD), band()).unwrap();
         assert!(result.phase_maximized_mismatch > 1e-8);
         assert!(result.weighted_phase_residual_rms_rad.unwrap() > 1e-5);
     }
@@ -515,8 +559,20 @@ mod tests {
         ];
         let low_noise_at_50hz = [2.0, 2.0, 2.0, 0.1, 2.0];
         let high_noise_at_50hz = [2.0, 2.0, 2.0, 20.0, 2.0];
-        let a = compare_frequency_domain(series(&values), series(&perturbed), psd(&low_noise_at_50hz), band()).unwrap();
-        let b = compare_frequency_domain(series(&values), series(&perturbed), psd(&high_noise_at_50hz), band()).unwrap();
+        let a = compare_frequency_domain(
+            series(&values),
+            series(&perturbed),
+            psd(&low_noise_at_50hz),
+            band(),
+        )
+        .unwrap();
+        let b = compare_frequency_domain(
+            series(&values),
+            series(&perturbed),
+            psd(&high_noise_at_50hz),
+            band(),
+        )
+        .unwrap();
         assert!(a.phase_maximized_mismatch > b.phase_maximized_mismatch);
     }
 
@@ -538,9 +594,18 @@ mod tests {
     fn nonuniform_frequency_grid_is_rejected() {
         static NONUNIFORM: [f64; 5] = [20.0, 30.0, 40.0, 51.0, 60.0];
         let values = base();
-        let reference = FrequencyDomainStrain { frequencies_hz: &NONUNIFORM, samples: &values };
-        let candidate = FrequencyDomainStrain { frequencies_hz: &NONUNIFORM, samples: &values };
-        let noise = OneSidedPsd { frequencies_hz: &NONUNIFORM, values_strain2_per_hz: &PSD };
+        let reference = FrequencyDomainStrain {
+            frequencies_hz: &NONUNIFORM,
+            samples: &values,
+        };
+        let candidate = FrequencyDomainStrain {
+            frequencies_hz: &NONUNIFORM,
+            samples: &values,
+        };
+        let noise = OneSidedPsd {
+            frequencies_hz: &NONUNIFORM,
+            values_strain2_per_hz: &PSD,
+        };
         assert!(matches!(
             compare_frequency_domain(reference, candidate, noise, band()),
             Err(WaveformMetricError::NonUniformFrequencyGrid { .. })
