@@ -175,10 +175,7 @@ fn parse_input(source: &str) -> Result<PhotonInput, String> {
         )?,
         optical_auxiliary_peak_kw: parse_f64(&values, "optical_auxiliary_peak_kw")?,
         available_lighting_power_kw: parse_f64(&values, "available_lighting_power_kw")?,
-        available_lighting_energy_kwh_day: parse_f64(
-            &values,
-            "available_lighting_energy_kwh_day",
-        )?,
+        available_lighting_energy_kwh_day: parse_f64(&values, "available_lighting_energy_kwh_day")?,
     })
 }
 
@@ -206,8 +203,8 @@ fn validate(input: &PhotonInput) -> Result<(), String> {
         "optical_auxiliary_electricity_wh_day",
     )?;
     non_negative(input.optical_auxiliary_peak_kw, "optical_auxiliary_peak_kw")?;
-    positive(input.available_lighting_power_kw, "available_lighting_power_kw")?;
-    positive(
+    non_negative(input.available_lighting_power_kw, "available_lighting_power_kw")?;
+    non_negative(
         input.available_lighting_energy_kwh_day,
         "available_lighting_energy_kwh_day",
     )?;
@@ -236,17 +233,13 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
     // into a conservative minimum-delivery estimate for the weakest canopy zone.
     let solar_mean_dli = at_canopy_umol / input.canopy_area_m2 / 1_000_000.0;
     let solar_floor_dli = solar_mean_dli * input.canopy_uniformity_floor;
-    let led_supplement_dli =
-        (input.target_dli_mol_m2_day - solar_floor_dli).max(0.0);
+    let led_supplement_dli = (input.target_dli_mol_m2_day - solar_floor_dli).max(0.0);
 
     // LED photon efficacy is defined at the declared electrical input boundary.
-    let led_only_photons_umol =
-        input.target_dli_mol_m2_day * 1_000_000.0 * input.canopy_area_m2;
-    let led_supplement_photons_umol =
-        led_supplement_dli * 1_000_000.0 * input.canopy_area_m2;
+    let led_only_photons_umol = input.target_dli_mol_m2_day * 1_000_000.0 * input.canopy_area_m2;
+    let led_supplement_photons_umol = led_supplement_dli * 1_000_000.0 * input.canopy_area_m2;
     let led_only_j = led_only_photons_umol / input.led_efficacy_umol_j;
-    let led_supplement_j =
-        led_supplement_photons_umol / input.led_efficacy_umol_j;
+    let led_supplement_j = led_supplement_photons_umol / input.led_efficacy_umol_j;
     let led_only_kwh = led_only_j / 3_600_000.0;
     let led_supplement_kwh = led_supplement_j / 3_600_000.0;
     let optical_aux_kwh = input.optical_auxiliary_electricity_wh_day / 1000.0;
@@ -254,8 +247,7 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
 
     let led_peak_kw = led_supplement_kwh / input.led_hours_per_day;
     let hybrid_peak_kw = led_peak_kw + input.optical_auxiliary_peak_kw;
-    let energy_saving_percent =
-        (led_only_kwh - hybrid_electricity_kwh) / led_only_kwh * 100.0;
+    let energy_saving_percent = (led_only_kwh - hybrid_electricity_kwh) / led_only_kwh * 100.0;
 
     let computed = [
         ("solar_window_seconds", solar_window_seconds),
@@ -398,9 +390,17 @@ mod tests {
         let input = parse_input(FIXTURE).expect("valid synthetic fixture");
         let report = evaluate(&input).expect("valid photon report");
         close(report.led_only_electricity_kwh_day, 2222.222222222222, 1e-9);
-        close(report.led_supplement_electricity_kwh_day, 839.8222222222222, 1e-9);
+        close(
+            report.led_supplement_electricity_kwh_day,
+            839.8222222222222,
+            1e-9,
+        );
         close(report.optical_auxiliary_electricity_kwh_day, 20.0, 1e-12);
-        close(report.hybrid_lighting_electricity_kwh_day, 859.8222222222222, 1e-9);
+        close(
+            report.hybrid_lighting_electricity_kwh_day,
+            859.8222222222222,
+            1e-9,
+        );
         assert!(report.energy_saving_vs_led_only_percent > 61.0);
     }
 
@@ -484,8 +484,7 @@ mod tests {
         let non_finite = FIXTURE.replace("target_dli_mol_m2_day=20.0", "target_dli_mol_m2_day=NaN");
         assert!(parse_input(&non_finite).unwrap_err().contains("finite"));
 
-        let zero_efficacy =
-            FIXTURE.replace("led_efficacy_umol_j=2.5", "led_efficacy_umol_j=0");
+        let zero_efficacy = FIXTURE.replace("led_efficacy_umol_j=2.5", "led_efficacy_umol_j=0");
         let input = parse_input(&zero_efficacy).expect("syntactically valid fixture");
         assert!(
             validate(&input)
