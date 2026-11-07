@@ -255,6 +255,9 @@
                 "ELIGIBLE_CONFIRMED",
                 "INELIGIBLE_CONFIRMED"
               ]
+            },
+            "legacy_exception": {
+              "type": "string"
             }
           }
         },
@@ -291,6 +294,9 @@
             },
             "excludes_vat": {
               "const": true
+            },
+            "notes": {
+              "type": "string"
             }
           }
         },
@@ -317,6 +323,15 @@
               ]
             },
             "note": {
+              "type": "string"
+            },
+            "network_surcharge_scope": {
+              "type": "string"
+            },
+            "business_surcharge_basis": {
+              "type": "string"
+            },
+            "notes": {
               "type": "string"
             }
           }
@@ -544,6 +559,74 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        },
+        "source_admission_status": {
+          "enum": [
+            "PRIMARY_TABLE_READ",
+            "OFFICIAL_NOTICE_PLUS_SECONDARY_TRANSCRIPTION",
+            "SECONDARY_ONLY",
+            "NOT_ADMITTED"
+          ]
+        },
+        "primary_pdf_audit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "url",
+            "retrieval_status",
+            "official_notice_url",
+            "data_year",
+            "publication_date"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "retrieval_status": {
+              "type": "string"
+            },
+            "official_notice_url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "data_year": {
+              "type": "integer"
+            },
+            "publication_date": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        },
+        "historical_comparison_2023": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "DGGEF",
+            "NGGEF",
+            "TLGEF",
+            "DLGEF",
+            "source_url"
+          ],
+          "properties": {
+            "DGGEF": {
+              "type": "number"
+            },
+            "NGGEF": {
+              "type": "number"
+            },
+            "TLGEF": {
+              "type": "number"
+            },
+            "DLGEF": {
+              "type": "number"
+            },
+            "source_url": {
+              "type": "string",
+              "format": "uri"
+            }
           }
         }
       }
