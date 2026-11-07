@@ -7,6 +7,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod observation_buffer;
+
 use std::collections::BTreeMap;
 
 use blake3::Hasher;
