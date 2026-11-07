@@ -413,6 +413,7 @@ fn csv_escape(value: String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use civdyn_collective_risk::TARGET;
 
     fn roster(id: &str) -> PolicyRoster {
         standard_rosters()
