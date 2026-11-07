@@ -21,7 +21,11 @@ fn blank_row() -> Vec<String> {
 }
 
 fn emit(row: Vec<String>) {
-    assert_eq!(row.len(), CSV_COLUMNS, "resilience-UQ CSV schema must remain fixed");
+    assert_eq!(
+        row.len(),
+        CSV_COLUMNS,
+        "resilience-UQ CSV schema must remain fixed"
+    );
     println!("{}", row.join(","));
 }
 
@@ -79,7 +83,10 @@ fn emit_lhs_summaries(report: &BenchmarkReport) {
     for summary in &report.lhs_summaries {
         let mut row = blank_row();
         set_common(&mut row, report, "lhs_summary");
-        row[1] = format!("lhs_ensemble_{}", report.lhs_runs.len() / (ShockKind::ALL.len() * InterventionPolicy::ALL.len()));
+        row[1] = format!(
+            "lhs_ensemble_{}",
+            report.lhs_runs.len() / (ShockKind::ALL.len() * InterventionPolicy::ALL.len())
+        );
         row[4] = shock_name(summary.shock_kind).into();
         row[5] = policy_name(summary.policy).into();
         row[6] = summary.metric.name().into();
@@ -98,7 +105,10 @@ fn emit_lhs_summaries(report: &BenchmarkReport) {
 fn emit_morris_points(report: &BenchmarkReport, point: &MorrisPointRecord) {
     let mut row = blank_row();
     set_common(&mut row, report, "morris_point");
-    row[1] = format!("morris_{:02}_{:02}", point.trajectory_index, point.point_index);
+    row[1] = format!(
+        "morris_{:02}_{:02}",
+        point.trajectory_index, point.point_index
+    );
     row[2] = format!("morris_{:02}", point.trajectory_index);
     row[7] = (FACTOR_COUNT + 1).to_string();
     for (index, value) in point.unit_coordinates.iter().enumerate() {
@@ -171,7 +181,10 @@ mod tests {
         assert_eq!(report.morris_points.len(), 2 * (FACTOR_COUNT + 1));
         assert_eq!(
             report.morris_effects.len(),
-            FACTOR_COUNT * ShockKind::ALL.len() * InterventionPolicy::ALL.len() * OutcomeMetric::ALL.len()
+            FACTOR_COUNT
+                * ShockKind::ALL.len()
+                * InterventionPolicy::ALL.len()
+                * OutcomeMetric::ALL.len()
         );
     }
 }
