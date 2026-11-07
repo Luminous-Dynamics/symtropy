@@ -4,16 +4,24 @@
 //! Continuous Collision Detection (CCD): prevents fast-moving bodies from
 //! tunneling through surfaces between frames.
 //!
-//! Uses conservative advancement with analytical solutions for common cases:
-//! - **Sphere-sphere**: Quadratic solve for earliest contact time
-//! - **Sphere-plane**: Linear solve for earliest contact time
+//! Provides validated analytical time-of-impact (TOI) queries for linear
+//! sphere trajectories:
+//! - **Sphere-sphere**: closest-approach geometry for a stable earliest hit
+//! - **Sphere-halfspace**: linear plane-crossing solve with a normalized normal
 //!
-//! # How It Works
+//! These primitives do not implement general convex shape casting, angular
+//! sweeps, or conservative advancement for arbitrary shape pairs. They are
+//! exact for the declared constant-linear-velocity sphere/halfspace model.
+//! The compatibility wrappers preserve the historical Option API; checked
+//! callers should use the try_* variants to distinguish invalid input from a
+//! valid no-hit result.
 //!
-//! After integration and before collision resolution, the CCD pass checks
-//! fast-moving bodies (speed > threshold) against static/slow geometry.
-//! If a tunneling event is detected, the body is moved back to the
-//! time of impact (TOI) and given a corrected velocity.
+//! # World integration
+//!
+//! PhysicsWorld uses these primitives for its current sphere and halfspace
+//! fast-body cases. General rotational and convex-shape CCD remain separate
+//! research requirements; deterministic query correctness alone is not a
+//! proof that an integrated simulation cannot tunnel.
 
 use nalgebra::SVector;
 
