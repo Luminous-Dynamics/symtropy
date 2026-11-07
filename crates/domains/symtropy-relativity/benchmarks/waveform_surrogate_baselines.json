@@ -193,6 +193,48 @@
       },
       "implementation": "SEOBNRv6EPHM effective-one-body waveform model; not a neural surrogate",
       "comparability": "Broadens the reference set to generic-orbit / eccentric precessing systems. Preserve the paper's waveform domain and NR validation split; mismatch values are not directly comparable to frequency-domain surrogate mismatches for different modes/domains."
+    },
+    {
+      "id": "SEOBNRv6EHM",
+      "kind": "generic_planar_orbit_EOB_waveform_model",
+      "reference": "https://doi.org/10.1103/shbg-989s",
+      "arxiv_id": null,
+      "publication_date": "2026-11-03",
+      "domain": {
+        "systems": "generic planar-orbit binary black holes",
+        "waveform_modes": [
+          "(2,2)",
+          "(2,1)",
+          "(3,3)",
+          "(3,2)",
+          "(4,4)",
+          "(4,3)"
+        ],
+        "validation_waveforms": {
+          "quasicircular": 592,
+          "eccentric": 319,
+          "dynamical_capture": 1,
+          "scattering": 2
+        },
+        "eccentricity": "up to approximately 0.9, with cited high-eccentricity comparisons at 14 periastron passages before merger",
+        "total_mass_range_solar": [
+          20,
+          200
+        ]
+      },
+      "reported_accuracy": {
+        "quasicircular_and_small_eccentricity": "comparable to previous-generation SEOBNRv5 models",
+        "high_eccentricity_mismatch_below_or_around": 0.02,
+        "reference": "SXS numerical-relativity waveforms"
+      },
+      "reported_performance": {
+        "speedup_vs_other_state_of_the_art_EOB_eccentric_models": [
+          2,
+          8
+        ]
+      },
+      "implementation": "time-domain multipolar effective-one-body waveform model, not a neural surrogate",
+      "comparability": "Distinct from generic spin-precessing SEOBNRv6EPHM and from neural reduced-order surrogates. Preserve its planar-orbit, eccentricity, modes, mass range, and SXS comparison domain."
     }
   ],
   "symtropy_differentiator": {
