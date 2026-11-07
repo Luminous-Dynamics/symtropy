@@ -3,11 +3,11 @@
 Dependency-light Rust verifier for named tug and pilot assignments against fixed operation placements emitted by the existing shared-resource fleet oracle.
 
 This crate **does not schedule vessels or choose assignments**. It verifies whether a caller-supplied assignment can satisfy:
-- named tug count and aggregate bollard-pull capability in kN;
+- named tug count, accepted tug-class identifiers and aggregate bollard-pull capability in kN;
 - exact pilot qualification identifiers;
 - resource availability and operation-window feasibility;
 - non-overlapping use of each tug and pilot;
-- waypoint-to-waypoint reposition timing against explicit route-revision-bound legs;
+- resource-specific waypoint-to-waypoint reposition timing against exact resource identity and route-revision-bound evidence legs;
 - current, time-valid capability, position, qualification and reposition evidence.
 
 ## Compose; do not duplicate
@@ -22,7 +22,7 @@ This mobile-assistance verifier consumes the fleet API's `OperationPlacement` an
 - Every tug and pilot has a stable identity, configuration revision, initial waypoint and declared availability windows.
 - Tug bollard pull is supplied in kN by an upstream evidence-backed requirement/resource profile. It is never inferred from vessel length or class.
 - Pilot qualifications are opaque identifiers supplied by the responsible source owner; this crate does not certify credentials.
-- A reposition leg is a precomputed, directional, route-revision-bound duration in integer ticks. This crate verifies it; it does not calculate the route, speed, hydrodynamic force, fuel or energy.
+- A reposition leg binds an exact tug or pilot ID, directed waypoint pair, route revision and evidence receipt. Tug and pilot legs for the same waypoints may have different durations. This crate verifies those supplied durations; it does not calculate the route, speed, hydrodynamic force, fuel or energy.
 - Travel is scheduled just in time before the next operation. The travel window, subsequent operation window, resource availability and evidence validity are checked separately.
 - Missing, stale, conflicting, unsupported, revoked or wrong-revision evidence cannot yield `ReadyForComparison`.
 - A hard resource/capability/timing conflict is `Infeasible`; missing or unresolved evidence is `NeedsEvidence`; revoked/unsupported evidence is `Unsupported`.
@@ -46,7 +46,7 @@ The unit fixtures cover:
 - insufficient reposition time;
 - insufficient tug count and bollard pull;
 - pilot qualification mismatch or omission;
-- missing reposition evidence, stale capability evidence, revoked position evidence, wrong route revision and cross-resource evidence substitution;
+- missing reposition evidence, resource-specific tug/pilot durations, rejection of tug-to-pilot evidence reuse, stale capability evidence, revoked position evidence, wrong route revision and cross-resource evidence substitution;
 - availability limits, duplicate assignments and deterministic permutation replay.
 
 A separate test-only reference path recomputes one-tug/two-task feasibility directly over **512 frozen timing combinations**. It does not call the production reposition or sequence helpers. This is a synthetic algorithmic cross-check only; it is not experimental validation of tug movement or capability.
