@@ -1703,6 +1703,7 @@ mod tests {
         second.items[index].source_position = Some(SourcePosition {
             values: [3.0, 0.0, 0.5],
             unit: LengthUnit::Metre,
+            coordinate_frame_id: "synthetic-aircraft-datum-v1".to_owned(),
         });
         second.items[index].value_source = Some(source("fixture:relocated-seat", SOURCE_B));
         assert_ne!(
