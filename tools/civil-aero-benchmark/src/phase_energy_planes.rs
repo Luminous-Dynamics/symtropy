@@ -223,8 +223,14 @@ impl PhaseEnergyBalance {
         validate_digest(&self.configuration_sha256, "configuration_sha256")?;
         validate_digest(&self.start_state_sha256, "start_state_sha256")?;
         validate_digest(&self.end_state_sha256, "end_state_sha256")?;
-        validate_digest(&self.peak_bus_power_trace_sha256, "peak_bus_power_trace_sha256")?;
-        validate_digest(expected_configuration_sha256, "expected_configuration_sha256")?;
+        validate_digest(
+            &self.peak_bus_power_trace_sha256,
+            "peak_bus_power_trace_sha256",
+        )?;
+        validate_digest(
+            expected_configuration_sha256,
+            "expected_configuration_sha256",
+        )?;
         validate_digest(expected_start_state_sha256, "expected_start_state_sha256")?;
         validate_digest(expected_end_state_sha256, "expected_end_state_sha256")?;
 
@@ -250,10 +256,19 @@ impl PhaseEnergyBalance {
         }
         for (name, value) in [
             ("peak_bus_supply_power_w", self.peak_bus_supply_power_w),
-            ("peak_bus_supply_power_limit_w", self.peak_bus_supply_power_limit_w),
-            ("continuous_bus_supply_power_limit_w", self.continuous_bus_supply_power_limit_w),
+            (
+                "peak_bus_supply_power_limit_w",
+                self.peak_bus_supply_power_limit_w,
+            ),
+            (
+                "continuous_bus_supply_power_limit_w",
+                self.continuous_bus_supply_power_limit_w,
+            ),
             ("auxiliary_load_j", self.bus_loads.auxiliary_load_j),
-            ("thermal_electrical_load_j", self.bus_loads.thermal_electrical_load_j),
+            (
+                "thermal_electrical_load_j",
+                self.bus_loads.thermal_electrical_load_j,
+            ),
             ("distribution_loss_j", self.bus_loads.distribution_loss_j),
         ] {
             validate_nonnegative(value, name)?;
@@ -265,24 +280,35 @@ impl PhaseEnergyBalance {
         }
 
         require_unique(
-            self.fuel_states.iter().map(|item| item.fuel_source_id.as_str()),
+            self.fuel_states
+                .iter()
+                .map(|item| item.fuel_source_id.as_str()),
             "fuel source",
         )?;
         require_unique(
-            self.prime_movers.iter().map(|item| item.prime_mover_id.as_str()),
+            self.prime_movers
+                .iter()
+                .map(|item| item.prime_mover_id.as_str()),
             "prime mover",
         )?;
         require_unique(
-            self.generators.iter().map(|item| item.generator_id.as_str()),
+            self.generators
+                .iter()
+                .map(|item| item.generator_id.as_str()),
             "generator",
         )?;
-        require_unique(self.stores.iter().map(|item| item.store_id.as_str()), "energy store")?;
+        require_unique(
+            self.stores.iter().map(|item| item.store_id.as_str()),
+            "energy store",
+        )?;
         require_unique(
             self.motor_drives.iter().map(|item| item.motor_id.as_str()),
             "motor drive",
         )?;
         require_unique(
-            self.propulsors.iter().map(|item| item.propulsor_id.as_str()),
+            self.propulsors
+                .iter()
+                .map(|item| item.propulsor_id.as_str()),
             "propulsor",
         )?;
 
@@ -303,7 +329,10 @@ impl PhaseEnergyBalance {
             validate_digest(&fuel.evidence_sha256, "fuel evidence SHA-256")?;
             for (name, value) in [
                 ("chemical_energy_start_j", fuel.chemical_energy_start_j),
-                ("chemical_energy_consumed_j", fuel.chemical_energy_consumed_j),
+                (
+                    "chemical_energy_consumed_j",
+                    fuel.chemical_energy_consumed_j,
+                ),
                 ("chemical_energy_end_j", fuel.chemical_energy_end_j),
                 ("required_reserve_j", fuel.required_reserve_j),
             ] {
@@ -331,13 +360,31 @@ impl PhaseEnergyBalance {
             for (name, value) in [
                 ("fuel_energy_input_j", engine.fuel_energy_input_j),
                 ("mechanical_output_j", engine.mechanical_output_j),
-                ("thermal_and_exhaust_loss_j", engine.thermal_and_exhaust_loss_j),
-                ("average_mechanical_output_power_limit_w", engine.average_mechanical_output_power_limit_w),
-                ("peak_mechanical_output_power_w", engine.peak_mechanical_output_power_w),
-                ("peak_mechanical_output_power_limit_w", engine.peak_mechanical_output_power_limit_w),
+                (
+                    "thermal_and_exhaust_loss_j",
+                    engine.thermal_and_exhaust_loss_j,
+                ),
+                (
+                    "average_mechanical_output_power_limit_w",
+                    engine.average_mechanical_output_power_limit_w,
+                ),
+                (
+                    "peak_mechanical_output_power_w",
+                    engine.peak_mechanical_output_power_w,
+                ),
+                (
+                    "peak_mechanical_output_power_limit_w",
+                    engine.peak_mechanical_output_power_limit_w,
+                ),
                 ("direct_propulsor_shaft_j", engine.direct_propulsor_shaft_j),
-                ("accessory_mechanical_load_j", engine.accessory_mechanical_load_j),
-                ("mechanical_distribution_loss_j", engine.mechanical_distribution_loss_j),
+                (
+                    "accessory_mechanical_load_j",
+                    engine.accessory_mechanical_load_j,
+                ),
+                (
+                    "mechanical_distribution_loss_j",
+                    engine.mechanical_distribution_loss_j,
+                ),
             ] {
                 validate_nonnegative(value, name)?;
             }
@@ -374,8 +421,7 @@ impl PhaseEnergyBalance {
                 || shaft_residual.abs() > self.tolerance_j
                 || average_mechanical_output_power_w
                     > engine.average_mechanical_output_power_limit_w + self.tolerance_w
-                || engine.peak_mechanical_output_power_w
-                    + self.tolerance_w
+                || engine.peak_mechanical_output_power_w + self.tolerance_w
                     < average_mechanical_output_power_w
                 || engine.peak_mechanical_output_power_w
                     > engine.peak_mechanical_output_power_limit_w + self.tolerance_w
@@ -397,9 +443,7 @@ impl PhaseEnergyBalance {
                 .get(fuel.fuel_source_id.as_str())
                 .copied()
                 .unwrap_or(0.0);
-            if (fuel.chemical_energy_consumed_j - prime_mover_fuel_input).abs()
-                > self.tolerance_j
-            {
+            if (fuel.chemical_energy_consumed_j - prime_mover_fuel_input).abs() > self.tolerance_j {
                 infeasible = true;
             }
         }
@@ -419,11 +463,23 @@ impl PhaseEnergyBalance {
             }
             for (name, value) in [
                 ("mechanical_input_j", generator.mechanical_input_j),
-                ("electrical_output_to_bus_j", generator.electrical_output_to_bus_j),
+                (
+                    "electrical_output_to_bus_j",
+                    generator.electrical_output_to_bus_j,
+                ),
                 ("conversion_loss_j", generator.conversion_loss_j),
-                ("average_electrical_output_power_limit_w", generator.average_electrical_output_power_limit_w),
-                ("peak_electrical_output_power_w", generator.peak_electrical_output_power_w),
-                ("peak_electrical_output_power_limit_w", generator.peak_electrical_output_power_limit_w),
+                (
+                    "average_electrical_output_power_limit_w",
+                    generator.average_electrical_output_power_limit_w,
+                ),
+                (
+                    "peak_electrical_output_power_w",
+                    generator.peak_electrical_output_power_w,
+                ),
+                (
+                    "peak_electrical_output_power_limit_w",
+                    generator.peak_electrical_output_power_limit_w,
+                ),
             ] {
                 validate_nonnegative(value, name)?;
             }
@@ -474,10 +530,19 @@ impl PhaseEnergyBalance {
                 ("reserve_floor_j", store.reserve_floor_j),
                 ("discharge_to_bus_j", store.discharge_to_bus_j),
                 ("charge_from_bus_j", store.charge_from_bus_j),
-                ("average_discharge_power_limit_w", store.average_discharge_power_limit_w),
+                (
+                    "average_discharge_power_limit_w",
+                    store.average_discharge_power_limit_w,
+                ),
                 ("peak_discharge_power_w", store.peak_discharge_power_w),
-                ("peak_discharge_power_limit_w", store.peak_discharge_power_limit_w),
-                ("average_charge_power_limit_w", store.average_charge_power_limit_w),
+                (
+                    "peak_discharge_power_limit_w",
+                    store.peak_discharge_power_limit_w,
+                ),
+                (
+                    "average_charge_power_limit_w",
+                    store.average_charge_power_limit_w,
+                ),
                 ("peak_charge_power_w", store.peak_charge_power_w),
                 ("peak_charge_power_limit_w", store.peak_charge_power_limit_w),
             ] {
@@ -487,7 +552,10 @@ impl PhaseEnergyBalance {
             validate_efficiency(store.charge_efficiency, "charge_efficiency")?;
             for (name, value) in [
                 ("state_of_health_fraction", store.state_of_health_fraction),
-                ("minimum_state_of_health_fraction", store.minimum_state_of_health_fraction),
+                (
+                    "minimum_state_of_health_fraction",
+                    store.minimum_state_of_health_fraction,
+                ),
             ] {
                 if !value.is_finite() || !(0.0..=1.0).contains(&value) {
                     return Err(format!("{name} must be finite and in [0, 1]"));
@@ -562,8 +630,10 @@ impl PhaseEnergyBalance {
             ] {
                 validate_nonnegative(value, name)?;
             }
-            let residual =
-                motor.bus_input_j - motor.inverter_loss_j - motor.motor_loss_j - motor.shaft_output_j;
+            let residual = motor.bus_input_j
+                - motor.inverter_loss_j
+                - motor.motor_loss_j
+                - motor.shaft_output_j;
             if residual.abs() > self.tolerance_j {
                 infeasible = true;
             }
@@ -615,13 +685,17 @@ impl PhaseEnergyBalance {
             validate_digest(&propulsor.model_evidence_sha256, "propulsor model SHA-256")?;
             for (name, value) in [
                 ("propulsor shaft_input_j", propulsor.shaft_input_j),
-                ("propulsor useful_propulsive_energy_j", propulsor.useful_propulsive_energy_j),
+                (
+                    "propulsor useful_propulsive_energy_j",
+                    propulsor.useful_propulsive_energy_j,
+                ),
                 ("propulsor propulsor_loss_j", propulsor.propulsor_loss_j),
             ] {
                 validate_nonnegative(value, name)?;
             }
-            let residual =
-                propulsor.shaft_input_j - propulsor.useful_propulsive_energy_j - propulsor.propulsor_loss_j;
+            let residual = propulsor.shaft_input_j
+                - propulsor.useful_propulsive_energy_j
+                - propulsor.propulsor_loss_j;
             if residual.abs() > self.tolerance_j {
                 infeasible = true;
             }
@@ -638,19 +712,18 @@ impl PhaseEnergyBalance {
             self.continuous_bus_supply_power_limit_w - continuous_bus_supply_power_w;
         if peak_bus_supply_power_margin_w < -self.tolerance_w
             || continuous_bus_supply_power_margin_w < -self.tolerance_w
-            || self.peak_bus_supply_power_w + self.tolerance_w
-                < continuous_bus_supply_power_w
+            || self.peak_bus_supply_power_w + self.tolerance_w < continuous_bus_supply_power_w
         {
             infeasible = true;
         }
-        if self.prime_movers.is_empty()
-            && self.generators.is_empty()
-            && self.stores.is_empty()
-        {
+        if self.prime_movers.is_empty() && self.generators.is_empty() && self.stores.is_empty() {
             return Err("phase energy balance has no declared energy source or store".to_owned());
         }
         if self.motor_drives.is_empty() || self.propulsors.is_empty() {
-            return Err("phase energy balance requires at least one motor-drive and propulsor record".to_owned());
+            return Err(
+                "phase energy balance requires at least one motor-drive and propulsor record"
+                    .to_owned(),
+            );
         }
 
         Ok(PhaseEnergyReport {
@@ -710,10 +783,7 @@ fn validate_nonempty(value: &str, name: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn require_unique<'a>(
-    values: impl Iterator<Item = &'a str>,
-    label: &str,
-) -> Result<(), String> {
+fn require_unique<'a>(values: impl Iterator<Item = &'a str>, label: &str) -> Result<(), String> {
     let mut seen = HashSet::new();
     for value in values {
         validate_nonempty(value, label)?;
@@ -809,11 +879,7 @@ mod tests {
                 distribution_loss_j: 10_000_000.0,
             },
             motor_drives: vec![motor(80_000_000.0, 4_000_000.0, 4_000_000.0, 72_000_000.0)],
-            propulsors: vec![propulsor(
-                72_000_000.0,
-                60_000_000.0,
-                12_000_000.0,
-            )],
+            propulsors: vec![propulsor(72_000_000.0, 60_000_000.0, 12_000_000.0)],
             peak_bus_power_trace_sha256: MODEL.to_owned(),
             peak_bus_supply_power_w: 40_000.0,
             peak_bus_supply_power_limit_w: 50_000.0,
@@ -874,8 +940,13 @@ mod tests {
     #[test]
     fn battery_only_discharge_closes_internal_energy_and_bus_planes() {
         let value = balance();
-        let report = value.evaluate(CONFIG, MISSION, START, END).expect("balanced battery-only phase");
-        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced battery-only phase");
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
         assert!(report.bus_residual_j.abs() < 1.0);
         assert!((report.store_results[0].transition_residual_j).abs() < 1.0);
         assert!(report.store_results[0].reserve_margin_j > 0.0);
@@ -886,7 +957,10 @@ mod tests {
         let report = generator_only()
             .evaluate(CONFIG, MISSION, START, END)
             .expect("balanced generator-only phase");
-        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
         assert!(report.fuel_residuals[0].reserve_margin_j > 0.0);
         assert!(report.generator_residuals[0].residual_j.abs() < 1.0);
     }
@@ -914,8 +988,13 @@ mod tests {
         value.peak_bus_supply_power_w = 45_000.0;
         value.peak_bus_supply_power_limit_w = 55_000.0;
         value.continuous_bus_supply_power_limit_w = 40_000.0;
-        let report = value.evaluate(CONFIG, MISSION, START, END).expect("balanced series hybrid");
-        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced series hybrid");
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
         assert!(report.bus_residual_j.abs() < 1.0);
         assert!(report.store_results[0].transition_residual_j.abs() < 1.0);
     }
@@ -953,8 +1032,13 @@ mod tests {
         value.peak_bus_supply_power_w = 50_000.0;
         value.peak_bus_supply_power_limit_w = 55_000.0;
         value.continuous_bus_supply_power_limit_w = 20_000.0;
-        let report = value.evaluate(CONFIG, MISSION, START, END).expect("balanced parallel hybrid");
-        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced parallel hybrid");
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
         assert!(report.bus_residual_j.abs() < 1.0);
         assert!(report.prime_mover_shaft_residuals[0].residual_j.abs() < 1.0);
     }
@@ -993,8 +1077,13 @@ mod tests {
         value.peak_bus_supply_power_w = 35_000.0;
         value.peak_bus_supply_power_limit_w = 40_000.0;
         value.continuous_bus_supply_power_limit_w = 30_000.0;
-        let report = value.evaluate(CONFIG, MISSION, START, END).expect("balanced charging phase");
-        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced charging phase");
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
         assert!(report.store_results[0].transition_residual_j.abs() < 1.0);
         assert!(report.store_results[0].average_charge_power_w > 0.0);
         assert_eq!(report.store_results[0].average_discharge_power_w, 0.0);
@@ -1019,20 +1108,10 @@ mod tests {
         value.fuel_states[0].chemical_energy_consumed_j = 200_000_000.0;
         value.fuel_states[0].chemical_energy_end_j = 300_000_000.0;
         value.fuel_states[0].chemical_energy_start_j = 500_000_000.0;
-        let mut capacitor = battery_store(
-            10_000_000.0,
-            0.0,
-            40_000_000.0,
-            28_888_888.888_888_89,
-        );
+        let mut capacitor = battery_store(10_000_000.0, 0.0, 40_000_000.0, 28_888_888.888_888_89);
         capacitor.store_id = "supercapacitor".to_owned();
         capacitor.kind = EnergyStoreKind::Supercapacitor;
-        let mut battery = battery_store(
-            20_000_000.0,
-            0.0,
-            200_000_000.0,
-            177_777_777.777_777_77,
-        );
+        let mut battery = battery_store(20_000_000.0, 0.0, 200_000_000.0, 177_777_777.777_777_77);
         battery.average_discharge_power_limit_w = 30_000.0;
         value.stores = vec![battery, capacitor];
         value.peak_bus_supply_power_w = 35_000.0;
@@ -1045,8 +1124,13 @@ mod tests {
         };
         value.motor_drives = vec![motor(80_000_000.0, 4_000_000.0, 4_000_000.0, 72_000_000.0)];
         value.propulsors = vec![propulsor(72_000_000.0, 60_000_000.0, 12_000_000.0)];
-        let report = value.evaluate(CONFIG, MISSION, START, END).expect("balanced battery+capacitor");
-        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced battery+capacitor");
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
         assert_eq!(report.store_results.len(), 2);
         assert_ne!(
             report.store_results[0].reserve_margin_j,
@@ -1058,7 +1142,9 @@ mod tests {
     fn insufficient_storage_reserve_is_infeasible_not_a_pass() {
         let mut value = balance();
         value.stores[0].reserve_floor_j = value.stores[0].usable_energy_end_j + 1.0;
-        let report = value.evaluate(CONFIG, MISSION, START, END).expect("report infeasible case");
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("report infeasible case");
         assert_eq!(report.status, PhaseEnergyStatus::Infeasible);
         assert!(report.store_results[0].reserve_margin_j < 0.0);
     }
@@ -1067,7 +1153,9 @@ mod tests {
     fn storage_power_overrun_is_infeasible() {
         let mut value = balance();
         value.stores[0].peak_discharge_power_w = 70_000.0;
-        let report = value.evaluate(CONFIG, MISSION, START, END).expect("report power failure");
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("report power failure");
         assert_eq!(report.status, PhaseEnergyStatus::Infeasible);
     }
 
@@ -1084,7 +1172,9 @@ mod tests {
         let mut value = generator_only();
         value.fuel_states[0].chemical_energy_end_j = 80_000_000.0;
         value.fuel_states[0].required_reserve_j = 100_000_000.0;
-        let report = value.evaluate(CONFIG, MISSION, START, END).expect("report fuel reserve failure");
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("report fuel reserve failure");
         assert_eq!(report.status, PhaseEnergyStatus::Infeasible);
         assert!(report.fuel_residuals[0].reserve_margin_j < 0.0);
     }
