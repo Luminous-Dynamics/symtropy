@@ -1019,6 +1019,15 @@ mod tests {
             "AIRCRAFT_BATTERY_TERMINAL_INPUT"
         );
 
+        let mut wrong_site = fixture();
+        wrong_site["site"]["source_power_boundary_id"] =
+            Value::String("GROUND_ROAD_INVERTER_DC_INPUT".into());
+        assert!(
+            evaluate_scenario(&wrong_site)
+                .unwrap_err()
+                .contains("SITE_PCC_GRID_AC_INPUT")
+        );
+
         let mut wrong_channel = fixture();
         wrong_channel["channels"][0]["channel_input_boundary_id"] =
             Value::String("GROUND_ROAD_INVERTER_DC_INPUT".into());
