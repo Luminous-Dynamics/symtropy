@@ -102,6 +102,8 @@ pub struct PilotResource {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepositionLeg {
+    /// Exact tug or pilot identity; travel duration is not shared across resources.
+    pub resource_id: String,
     pub from_node_id: String,
     pub to_node_id: String,
     /// Fixed travel duration in the workload's integer tick basis.
@@ -358,7 +360,10 @@ fn reposition_leg<'a>(
 
     let mut pair_found = false;
     for leg in legs {
-        if leg.from_node_id == from_node_id && leg.to_node_id == to_node_id {
+        if leg.resource_id == resource_id
+            && leg.from_node_id == from_node_id
+            && leg.to_node_id == to_node_id
+        {
             pair_found = true;
             if leg.route_revision == route_revision {
                 return Some(leg);
@@ -591,7 +596,8 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
 
     let mut leg_keys = BTreeSet::new();
     for leg in &workload.reposition_legs {
-        if leg.from_node_id.trim().is_empty()
+        if leg.resource_id.trim().is_empty()
+            || leg.from_node_id.trim().is_empty()
             || leg.to_node_id.trim().is_empty()
             || leg.from_node_id == leg.to_node_id
             || leg.duration_ticks == 0
@@ -602,7 +608,10 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
             ));
         }
         leg.evidence.validate()?;
-        let expected_subject = format!("{}->{}", leg.from_node_id, leg.to_node_id);
+        let expected_subject = format!(
+            "{}|{}->{}",
+            leg.resource_id, leg.from_node_id, leg.to_node_id
+        );
         if leg.evidence.subject_id != expected_subject
             || leg.evidence.subject_revision != leg.route_revision
         {
@@ -611,6 +620,7 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
             ));
         }
         let key = (
+            leg.resource_id.as_str(),
             leg.from_node_id.as_str(),
             leg.to_node_id.as_str(),
             leg.route_revision.as_str(),
