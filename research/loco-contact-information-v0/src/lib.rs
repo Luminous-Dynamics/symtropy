@@ -720,7 +720,13 @@ mod tests {
         observation_row: [f64; CONTACT_STATE_DIM],
         noise_variance: f64,
     ) -> MeasurementModel {
-        let mut result = model(model_id, sensor_id, channel, observation_row, noise_variance);
+        let mut result = model(
+            model_id,
+            sensor_id,
+            channel,
+            observation_row,
+            noise_variance,
+        );
         result.action_id = action_id.to_owned();
         result
     }
@@ -773,8 +779,15 @@ mod tests {
             100,
             101,
         );
-        let posterior =
-            update_with_observations(&prior(), &[measurement_model], &[measured], &execution_receipt(), 110, 20).unwrap();
+        let posterior = update_with_observations(
+            &prior(),
+            &[measurement_model],
+            &[measured],
+            &execution_receipt(),
+            110,
+            20,
+        )
+        .unwrap();
         assert!((posterior.mean[0] - 1.0).abs() < 1.0e-12);
         assert!((posterior.covariance[0][0] - 0.5).abs() < 1.0e-12);
         assert!((posterior.covariance[1][1] - 1.0).abs() < 1.0e-12);
@@ -975,14 +988,7 @@ mod tests {
         );
         o.action_execution_receipt_id = "other-execution".to_owned();
         assert_eq!(
-            update_with_observations(
-                &prior(),
-                &[m],
-                &[o],
-                &execution_receipt(),
-                20,
-                20
-            ),
+            update_with_observations(&prior(), &[m], &[o], &execution_receipt(), 20, 20),
             Err(ContactInformationError::ActionReceiptMismatch)
         );
     }
