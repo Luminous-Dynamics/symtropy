@@ -44,29 +44,29 @@ impl Rational {
             return Err(HybridMathError::DivisionByZero);
         }
 
-        let (numerator, denominator) = if denominator < 0 {
-            (
-                numerator
-                    .checked_neg()
-                    .ok_or(HybridMathError::ArithmeticOverflow)?,
-                denominator
-                    .checked_neg()
-                    .ok_or(HybridMathError::ArithmeticOverflow)?,
-            )
+        let negative = (numerator < 0) ^ (denominator < 0);
+        let divisor = gcd(numerator.unsigned_abs(), denominator.unsigned_abs());
+        let reduced_numerator = numerator.unsigned_abs() / divisor;
+        let reduced_denominator = denominator.unsigned_abs() / divisor;
+
+        let denominator =
+            i128::try_from(reduced_denominator).map_err(|_| HybridMathError::ArithmeticOverflow)?;
+        let numerator = if negative {
+            let min_magnitude = (i128::MAX as u128) + 1;
+            if reduced_numerator == min_magnitude {
+                i128::MIN
+            } else {
+                -i128::try_from(reduced_numerator)
+                    .map_err(|_| HybridMathError::ArithmeticOverflow)?
+            }
         } else {
-            (numerator, denominator)
+            i128::try_from(reduced_numerator)
+                .map_err(|_| HybridMathError::ArithmeticOverflow)?
         };
 
-        if denominator <= 0 {
-            return Err(HybridMathError::InvalidDenominator);
-        }
-
-        let divisor = gcd(numerator.unsigned_abs(), denominator as u128);
-        let divisor = i128::try_from(divisor).map_err(|_| HybridMathError::ArithmeticOverflow)?;
-
         Ok(Self {
-            numerator: numerator / divisor,
-            denominator: denominator / divisor,
+            numerator,
+            denominator,
         })
     }
 
@@ -160,22 +160,34 @@ impl Rational {
             other.numerator.unsigned_abs(),
         );
         let denominator_divisor = gcd(self.denominator as u128, other.denominator as u128);
-        let numerator_divisor =
-            i128::try_from(numerator_divisor).map_err(|_| HybridMathError::ArithmeticOverflow)?;
-        let denominator_divisor =
-            i128::try_from(denominator_divisor).map_err(|_| HybridMathError::ArithmeticOverflow)?;
 
-        let left_numerator = self.numerator / numerator_divisor;
-        let right_numerator = other.numerator / numerator_divisor;
-        let left_denominator = self.denominator / denominator_divisor;
-        let right_denominator = other.denominator / denominator_divisor;
+        let numerator_left = self.numerator.unsigned_abs() / numerator_divisor;
+        let numerator_right = other.denominator as u128 / denominator_divisor;
+        let denominator_left = self.denominator as u128 / denominator_divisor;
+        let denominator_right = other.numerator.unsigned_abs() / numerator_divisor;
 
-        let numerator = left_numerator
-            .checked_mul(right_denominator)
+        let numerator_magnitude = numerator_left
+            .checked_mul(numerator_right)
             .ok_or(HybridMathError::ArithmeticOverflow)?;
-        let denominator = left_denominator
-            .checked_mul(right_numerator)
+        let denominator_magnitude = denominator_left
+            .checked_mul(denominator_right)
             .ok_or(HybridMathError::ArithmeticOverflow)?;
+
+        let denominator = i128::try_from(denominator_magnitude)
+            .map_err(|_| HybridMathError::ArithmeticOverflow)?;
+        let is_negative = (self.numerator < 0) ^ (other.numerator < 0);
+        let min_magnitude = (i128::MAX as u128) + 1;
+        let numerator = if is_negative {
+            if numerator_magnitude == min_magnitude {
+                i128::MIN
+            } else {
+                -i128::try_from(numerator_magnitude)
+                    .map_err(|_| HybridMathError::ArithmeticOverflow)?
+            }
+        } else {
+            i128::try_from(numerator_magnitude)
+                .map_err(|_| HybridMathError::ArithmeticOverflow)?
+        };
 
         Self::new(numerator, denominator)
     }
@@ -330,13 +342,15 @@ impl EventWindow {
     }
 }
 
-/// Enumerate every total event ordering consistent with the declared event
+/// Enumerate conservative total-order linearizations for the declared event
 /// windows.
 ///
-/// If upper(A) < lower(B), A must precede B. If the windows overlap or only
-/// touch, both orders remain admissible. The input is canonicalized by event
-/// ID, and output ordering is deterministic. Exceeding maximum_orders
-/// returns an error rather than a partial list.
+/// If upper(A) < lower(B), A must precede B. If windows overlap or only touch,
+/// both linearizations are retained. This is a conservative overapproximation:
+/// it can include spurious orders, and it does not model a coupled simultaneous
+/// reset. A caller must provide a joint reset branch when simultaneity matters.
+/// The input is canonicalized by event ID. Exceeding maximum_orders returns an
+/// error rather than a partial list.
 pub fn enumerate_possible_event_orders(
     mut events: Vec<EventWindow>,
     maximum_orders: usize,
@@ -449,6 +463,8 @@ mod tests {
         assert_eq!(r(-2, -4), r(1, 2));
         assert_eq!(r(2, -4), r(-1, 2));
         assert_eq!(r(0, 19), Rational::zero());
+        assert_eq!(Rational::new(0, i128::MIN).unwrap(), Rational::zero());
+        assert_eq!(Rational::new(i128::MIN, i128::MIN).unwrap(), Rational::integer(1));
     }
 
     #[test]
@@ -457,6 +473,15 @@ mod tests {
         assert_eq!(r(5, 6).checked_sub(&r(1, 3)).unwrap(), r(1, 2));
         assert_eq!(r(2, 3).checked_mul(&r(9, 4)).unwrap(), r(3, 2));
         assert_eq!(r(3, 5).checked_div(&r(9, 10)).unwrap(), r(2, 3));
+        assert_eq!(r(2, 3).checked_div(&r(-4, 5)).unwrap(), r(-5, 6));
+        assert_eq!(
+            Rational::integer(i128::MIN).checked_div(&Rational::integer(i128::MIN)).unwrap(),
+            Rational::integer(1)
+        );
+        assert_eq!(
+            Rational::zero().checked_div(&Rational::integer(i128::MIN)).unwrap(),
+            Rational::zero()
+        );
     }
 
     #[test]
@@ -540,7 +565,7 @@ mod tests {
     }
 
     #[test]
-    fn touching_event_windows_are_not_given_an_arbitrary_order() {
+    fn touching_event_windows_retain_both_conservative_linearizations() {
         let orders =
             enumerate_possible_event_orders(vec![event("early", 0, 1), event("late", 1, 2)], 4)
                 .unwrap();
