@@ -8,7 +8,7 @@ This crate **does not schedule vessels or choose assignments**. It verifies whet
 - resource availability and operation-window feasibility;
 - non-overlapping use of each tug and pilot;
 - resource-specific waypoint-to-waypoint reposition timing against exact resource identity and route-revision-bound evidence legs;
-- current, time-valid capability, position, qualification and reposition evidence.
+- current, time-valid capability, position, qualification and reposition evidence. Evidence validity endpoints are inclusive while operation/travel windows are half-open; a receipt must cover through the final occupied tick (end minus one), not the exclusive end boundary.
 
 ## Compose; do not duplicate
 
