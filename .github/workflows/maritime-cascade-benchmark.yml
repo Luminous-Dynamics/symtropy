@@ -1,0 +1,41 @@
+name: Maritime Cascade Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/maritime-cascade-benchmark/**"
+      - "docs/research/MARITIME-CASCADE-PROPAGATION-BENCHMARK-V0_1.md"
+      - ".github/workflows/maritime-cascade-benchmark.yml"
+  push:
+    paths:
+      - "tools/maritime-cascade-benchmark/**"
+      - "docs/research/MARITIME-CASCADE-PROPAGATION-BENCHMARK-V0_1.md"
+      - ".github/workflows/maritime-cascade-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Deterministic cascade reference checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/maritime-cascade-benchmark/Cargo.toml -- --check
+      - name: Run locked unit tests
+        run: cargo test --locked --manifest-path tools/maritime-cascade-benchmark/Cargo.toml
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/maritime-cascade-benchmark/Cargo.toml --all-targets -- -D warnings
+      - name: Compare deterministic receipt to frozen oracle
+        run: cargo run --quiet --locked --manifest-path tools/maritime-cascade-benchmark/Cargo.toml -- --json > /tmp/cascade-first.json
+      - name: Verify deterministic replay and receipt bytes
+        run: |
+          cargo run --quiet --locked --manifest-path tools/maritime-cascade-benchmark/Cargo.toml -- --json > /tmp/cascade-second.json
+          cmp /tmp/cascade-first.json /tmp/cascade-second.json
+          cmp /tmp/cascade-first.json tools/maritime-cascade-benchmark/fixtures/linear-shock-v0.1.expected.json

@@ -1,0 +1,16 @@
+[package]
+name = "maritime-cascade-benchmark"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic reference propagation for synthetic maritime service disruptions"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "maritime-cascade-benchmark"
+path = "src/main.rs"
+
+[workspace]
