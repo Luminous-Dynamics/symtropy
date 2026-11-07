@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "artifact_id": "symtropy.black_hole.direct_wave_sxs_spin_sweep.v1",
+  "status": "planned_replication_manifest",
+  "created_utc": "2026-11-07",
+  "scientific_question": "Which physical predictor best explains the frequency and time-varying damping of the extracted non-QNM direct-wave component across the published SXS remnant-spin sweep?",
+  "claim_separation": [
+    "a non-QNM residual is extractable under a specified filter",
+    "its instantaneous frequency and damping can be estimated under a specified model",
+    "the component is physically associated with Kerr horizon angular velocity or surface gravity",
+    "the component can be used to test Hawking's area law"
+  ],
+  "primary_references": [
+    {
+      "kind": "peer_reviewed_observation",
+      "title": "GW250114 reveals signatures of post-merger black-hole horizon",
+      "doi": "10.1038/s41586-026-10696-0",
+      "url": "https://www.nature.com/articles/s41586-026-10696-0"
+    },
+    {
+      "kind": "counteranalysis_preprint",
+      "title": "The Direct Wave is Not a Meaningful Test of Horizon Properties",
+      "arxiv": "2607.02380",
+      "url": "https://arxiv.org/abs/2607.02380"
+    },
+    {
+      "kind": "peer_reviewed_bob_model",
+      "title": "Analyzing analytical black-hole binary merger waveforms with the backwards one-body formalism",
+      "doi": "10.1103/v6wx-spvl",
+      "url": "https://doi.org/10.1103/v6wx-spvl"
+    },
+    {
+      "kind": "peer_reviewed_direct_wave_bob",
+      "title": "Direct waves in black hole binary mergers: Insights from the backward one-body model",
+      "doi": "10.1103/kjjd-nk8f",
+      "url": "https://doi.org/10.1103/kjjd-nk8f"
+    },
+    {
+      "kind": "peer_reviewed_independent_extraction",
+      "title": "Modeling direct waves in binary black hole ringdowns",
+      "doi": "10.1103/xftt-2n6t",
+      "url": "https://doi.org/10.1103/xftt-2n6t"
+    },
+    {
+      "kind": "data_catalog",
+      "title": "SXS Gravitational Waveform Database",
+      "url": "https://data.black-holes.org/waveforms/"
+    },
+    {
+      "kind": "filter_implementation",
+      "title": "qnm_filter",
+      "url": "https://github.com/Sizheng-Ma/qnm_filter"
+    }
+  ],
+  "data_selection": {
+    "family": "equal_mass_quasicircular_nonprecessing_SXS",
+    "waveform_mode": "h22",
+    "catalog_release": "SXS public waveform database; exact release and resolutions must be pinned per retrieved waveform",
+    "resolution_selection": "not_yet_selected",
+    "extrapolation_order": "not_yet_selected",
+    "download_status": "catalog_entries_identified_not_yet_downloaded",
+    "cases": [
+      {
+        "sxs_id": "SXS:BBH:2089",
+        "final_spin_chi": 0.4942
+      },
+      {
+        "sxs_id": "SXS:BBH:2088",
+        "final_spin_chi": 0.5478
+      },
+      {
+        "sxs_id": "SXS:BBH:3919",
+        "final_spin_chi": 0.6215
+      },
+      {
+        "sxs_id": "SXS:BBH:4434",
+        "final_spin_chi": 0.6864
+      },
+      {
+        "sxs_id": "SXS:BBH:0305",
+        "final_spin_chi": 0.6921
+      },
+      {
+        "sxs_id": "SXS:BBH:2095",
+        "final_spin_chi": 0.7447
+      },
+      {
+        "sxs_id": "SXS:BBH:3927",
+        "final_spin_chi": 0.8029
+      },
+      {
+        "sxs_id": "SXS:BBH:2099",
+        "final_spin_chi": 0.8574
+      },
+      {
+        "sxs_id": "SXS:BBH:3897",
+        "final_spin_chi": 0.9075
+      },
+      {
+        "sxs_id": "SXS:BBH:0178",
+        "final_spin_chi": 0.9499
+      }
+    ],
+    "add_cases": [
+      "more systems densely sampled around final spin 0.65 to 0.75",
+      "near-extremal spins where public NR coverage and numerical uncertainty allow",
+      "additional mass ratios, precession, and eccentricity only when compatible waveforms and metadata are available"
+    ]
+  },
+  "reference_filter_configuration": {
+    "qnm_filter_repo": "https://github.com/Sizheng-Ma/qnm_filter",
+    "prograde_qnm_modes_removed": 7,
+    "retrograde_qnm_modes_removed": 2,
+    "additional_prograde_mode_removed": {
+      "ell": 3,
+      "m": 2,
+      "n": 0
+    },
+    "analyzed_strain_mode": {
+      "ell": 2,
+      "m": 2
+    },
+    "fitting_interval_definitions": null,
+    "fitting_interval_note": "The cited counteranalysis reports four fitting intervals. Exact bounds must be transcribed from the paper and supplement before execution; do not guess them."
+  },
+  "competing_models": [
+    {
+      "id": "horizon_tied",
+      "predictor": "2*Omega_H",
+      "damping": "kappa_t or explicitly derived screened model",
+      "status": "contested_hypothesis"
+    },
+    {
+      "id": "peak_news",
+      "predictor": "instantaneous News frequency at peak News amplitude",
+      "damping": "fit freely or use BOB prescription",
+      "status": "published_competing_predictor"
+    },
+    {
+      "id": "bob_prompt_plunge",
+      "predictor": "Backwards-One-Body / null-geodesic prompt-plunge dynamics",
+      "damping": "time-evolving BOB amplitude",
+      "status": "published_physical_model"
+    },
+    {
+      "id": "free_complex_frequency",
+      "predictor": "time-evolving complex frequency fit to residual",
+      "damping": "time-evolving",
+      "status": "phenomenological_reference"
+    },
+    {
+      "id": "fixed_damped_sinusoid",
+      "predictor": "constant fitted frequency",
+      "damping": "constant fitted damping time",
+      "status": "diagnostic_baseline"
+    },
+    {
+      "id": "qnm_mode_mixing",
+      "predictor": "QNM overtones and spherical-spheroidal mixing residual",
+      "damping": "mode-specific",
+      "status": "competing_waveform_explanation"
+    },
+    {
+      "id": "noise_transient",
+      "predictor": "no coherent astrophysical component",
+      "damping": "not_applicable",
+      "status": "null_model"
+    }
+  ],
+  "required_metrics": [
+    "frequency residual and bias against each predictor over time",
+    "time-dependent damping and its uncertainty",
+    "cross-resolution and extrapolation sensitivity",
+    "dependence on QNM filter basis and removed modes",
+    "fit-window/start-time stability",
+    "model evidence under matched likelihoods and priors",
+    "false-positive rate on null/noise and off-source controls",
+    "injection-recovery sensitivity and posterior coverage",
+    "actual NR remnant horizon area versus area inferred through each frequency/damping mapping"
+  ],
+  "null_controls": [
+    "noise-only and off-source segments",
+    "time slides and phase scrambles",
+    "wrong remnant mass/spin posterior samples",
+    "incorrect or incomplete QNM subtraction",
+    "time windows before and after the claimed direct-wave region",
+    "synthetic signals with no injected direct-wave component"
+  ],
+  "provenance_requirements": [
+    "exact SXS waveform file and digest",
+    "resolution and extrapolation order",
+    "qnm_filter Git commit and dependency environment",
+    "exact fitting intervals and preprocessing settings",
+    "remnant mass/spin source and posterior identifier",
+    "metric/connection/curvature code commit and benchmark fixture version"
+  ],
+  "execution_state": "specification_only_no_waveforms_downloaded_no_analysis_run"
+}
