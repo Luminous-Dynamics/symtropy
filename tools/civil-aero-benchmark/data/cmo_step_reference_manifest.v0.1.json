@@ -1,0 +1,542 @@
+{
+  "schema": "civil-aero-cmo-step-reference-manifest/0.1.0",
+  "status": "reference_metadata_with_two_clean_room_formula_pilots_committed_pending_exact_head_ci_no_full_step_coverage",
+  "observed_date": "2026-11-01",
+  "paper": {
+    "title": "Selecting test problems from benchmark suites in constrained multiobjective optimisation",
+    "authors": [
+      "Jordan N. Cork",
+      "Tea Tušar",
+      "Bogdan Filipič"
+    ],
+    "venue": "Knowledge-Based Systems",
+    "volume": 348,
+    "article_number": 116376,
+    "publication_date": "2026-08-03",
+    "doi": "10.1016/j.knosys.2026.116376",
+    "url": "https://doi.org/10.1016/j.knosys.2026.116376"
+  },
+  "external_repository": {
+    "repository": "jsi-ci/cmo",
+    "url": "https://github.com/jsi-ci/cmo",
+    "branch": "main",
+    "commit": "9ba3f0649c87005dc7675b18698c2518659dc88b",
+    "tree": "a0ccc5a94b4d6ffe0ffbffb2c1a5d2c559ef7252",
+    "spdx_license": "GPL-3.0",
+    "license_blob_sha1": "0edbeec265edccc0402caff5f846c66591140dc4",
+    "terms_status": "repository license confirmed; individual Pareto-front data terms not separately reviewed",
+    "vendoring_policy": "do_not_copy_or_vendor_upstream_code_or_pareto_front_assets_into_Apache-2.0-MIT_crate; clean-room Rust implementations only"
+  },
+  "reference_source_files": [
+    {
+      "path": "README.md",
+      "git_blob_sha1": "6381df4703b1e0dcd06677d922609d5bcce1854e",
+      "byte_length": 23069
+    },
+    {
+      "path": "cmo/problems/step.py",
+      "git_blob_sha1": "964074ad213dd28e7ddd720d7ebe6633d63e6eb7",
+      "byte_length": 10624
+    },
+    {
+      "path": "cmo/problems/factory.py",
+      "git_blob_sha1": "105bea43c5089a27354a97ef50eb972abd97f7d2",
+      "byte_length": 8722
+    },
+    {
+      "path": "cmo/problems/cdtlz.py",
+      "git_blob_sha1": "beaf428909388639a9b04405b6203fcce19f39d0",
+      "byte_length": 7223
+    },
+    {
+      "path": "cmo/problems/dcdtlz.py",
+      "git_blob_sha1": "156355c3006c252d63d643ef4d3cd63c52eb5d60",
+      "byte_length": 6638
+    },
+    {
+      "path": "cmo/problems/mw.py",
+      "git_blob_sha1": "649c4b7c12b4fe9623afd5a3db2c170686a8a793",
+      "byte_length": 17046
+    },
+    {
+      "path": "cmo/problems/cf.py",
+      "git_blob_sha1": "a3882a250dcf462faaa99ad6c152840d152c9b5a",
+      "byte_length": 20190
+    },
+    {
+      "path": "cmo/problems/rcm.py",
+      "git_blob_sha1": "ab95f971eee2bfcb8d37efe7d0d1241d4fd69dd0",
+      "byte_length": 33561
+    },
+    {
+      "path": "cmo/problems/dascmop.py",
+      "git_blob_sha1": "c9468f705e7d293e972ea3961b39d539fe7de9b5",
+      "byte_length": 8379
+    },
+    {
+      "path": "cmo/problems/zxhcf.py",
+      "git_blob_sha1": "1a74e36a6434b7bc9fc9dcad4f7e945fedff779e",
+      "byte_length": 26595
+    },
+    {
+      "path": "cmo/problems/utils.py",
+      "git_blob_sha1": "7b5a020be86fcf7657ac7f590042db94785a74d2",
+      "byte_length": 3555
+    },
+    {
+      "path": "LICENSE",
+      "git_blob_sha1": "0edbeec265edccc0402caff5f846c66591140dc4",
+      "byte_length": 35122
+    }
+  ],
+  "reference_front_directory": "cmo/problems/pf/STEP/",
+  "data_license_status": "not_separately_reviewed_no_data_downloaded_no_assets_retained",
+  "paper_run_data": {
+    "doi": "10.5281/zenodo.19734874",
+    "url": "https://doi.org/10.5281/zenodo.19734874",
+    "status": "external_pointer_only_license_not_verified_bytes_not_retained"
+  },
+  "tasks": [
+    {
+      "task_id": "STEP1",
+      "problem": "DC2-DTLZ3",
+      "objectives": 2,
+      "variables": 2,
+      "external_front_path": "cmo/problems/pf/STEP/step1_M2_D2.pf",
+      "external_front_git_blob_sha1": "35ba5ec2d630d37e6b407a1d2e298f42a9347377",
+      "external_front_byte_length": 38186,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP2",
+      "problem": "MW7",
+      "objectives": 2,
+      "variables": 2,
+      "external_front_path": "cmo/problems/pf/STEP/step2_M2_D2.pf",
+      "external_front_git_blob_sha1": "582081c8533f90cbf9ecf78e78fda6b9a4dcaa1b",
+      "external_front_byte_length": 37811,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP3",
+      "problem": "MW11",
+      "objectives": 2,
+      "variables": 2,
+      "external_front_path": "cmo/problems/pf/STEP/step3_M2_D2.pf",
+      "external_front_git_blob_sha1": "181be4ad75a9df83051c613ee7141d4dbcfb8cba",
+      "external_front_byte_length": 38092,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP4",
+      "problem": "MW11",
+      "objectives": 2,
+      "variables": 3,
+      "external_front_path": "cmo/problems/pf/STEP/step4_M2_D3.pf",
+      "external_front_git_blob_sha1": "624289241125a22517e6cbb84ba981f84dea6503",
+      "external_front_byte_length": 37671,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP5",
+      "problem": "DC2-DTLZ1",
+      "objectives": 2,
+      "variables": 3,
+      "external_front_path": "cmo/problems/pf/STEP/step5_M2_D3.pf",
+      "external_front_git_blob_sha1": "c01a55fa3684289a21863776843451a4f94790a5",
+      "external_front_byte_length": 38082,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP6",
+      "problem": "CF4",
+      "objectives": 2,
+      "variables": 3,
+      "external_front_path": "cmo/problems/pf/STEP/step6_M2_D3.pf",
+      "external_front_git_blob_sha1": "878cdcb9e0009e61dbcafc18760f4e430f5d635b",
+      "external_front_byte_length": 38430,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP7",
+      "problem": "C2-DTLZ2",
+      "objectives": 2,
+      "variables": 5,
+      "external_front_path": "cmo/problems/pf/STEP/step7_M2_D5.pf",
+      "external_front_git_blob_sha1": "57e7f785fd08e6b5ea72b24384e86de85b1a92b1",
+      "external_front_byte_length": 39290,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP8",
+      "problem": "RCM2",
+      "objectives": 2,
+      "variables": 5,
+      "external_front_path": "cmo/problems/pf/STEP/step8_M2_D5.pf",
+      "external_front_git_blob_sha1": "59ce507ff95d193861669fb1ae1819a8d30879cb",
+      "external_front_byte_length": 37645,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP9",
+      "problem": "DC2-DTLZ1",
+      "objectives": 2,
+      "variables": 5,
+      "external_front_path": "cmo/problems/pf/STEP/step9_M2_D5.pf",
+      "external_front_git_blob_sha1": "efe41728c027704cd5ffd4aa035ccb8d550862a4",
+      "external_front_byte_length": 39979,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP10",
+      "problem": "C2-DTLZ2",
+      "objectives": 2,
+      "variables": 10,
+      "external_front_path": "cmo/problems/pf/STEP/step10_M2_D10.pf",
+      "external_front_git_blob_sha1": "889d4aceec98b6ec48e4e0e7725b9d313c279422",
+      "external_front_byte_length": 38854,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP11",
+      "problem": "CF4",
+      "objectives": 2,
+      "variables": 10,
+      "external_front_path": "cmo/problems/pf/STEP/step11_M2_D10.pf",
+      "external_front_git_blob_sha1": "36e3ac3e5954b03b7b04195cc6a4e5a4252059df",
+      "external_front_byte_length": 38447,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP12",
+      "problem": "MW8",
+      "objectives": 2,
+      "variables": 10,
+      "external_front_path": "cmo/problems/pf/STEP/step12_M2_D10.pf",
+      "external_front_git_blob_sha1": "ac7b486a2b0d143f634006480e8e54ebba4ea39a",
+      "external_front_byte_length": 37812,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP13",
+      "problem": "DC2-DTLZ1",
+      "objectives": 2,
+      "variables": 30,
+      "external_front_path": "cmo/problems/pf/STEP/step13_M2_D30.pf",
+      "external_front_git_blob_sha1": "7ef272b8de4e0f55bcaecb299c6100fd82bc8429",
+      "external_front_byte_length": 38485,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP14",
+      "problem": "ZXHCF16",
+      "objectives": 2,
+      "variables": 30,
+      "external_front_path": "cmo/problems/pf/STEP/step14_M2_D30.pf",
+      "external_front_git_blob_sha1": "51ddd599bdcce8cfdfe43ab68647affa050785f5",
+      "external_front_byte_length": 33216,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP15",
+      "problem": "MW11",
+      "objectives": 2,
+      "variables": 30,
+      "external_front_path": "cmo/problems/pf/STEP/step15_M2_D30.pf",
+      "external_front_git_blob_sha1": "29b908226967dec5cac7b21f962c5a8cc946e11c",
+      "external_front_byte_length": 31248,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP16",
+      "problem": "DC2-DTLZ3",
+      "objectives": 3,
+      "variables": 2,
+      "external_front_path": "cmo/problems/pf/STEP/step16_M3_D2.pf",
+      "external_front_git_blob_sha1": "3e343f59d67545ba10c65af9610a33c2deae1ce5",
+      "external_front_byte_length": 58193,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP17",
+      "problem": "DAS-CMOP8",
+      "objectives": 3,
+      "variables": 2,
+      "external_front_path": "cmo/problems/pf/STEP/step17_M3_D2.pf",
+      "external_front_git_blob_sha1": "d37269eb543a6a706d4e9369d146cffea2c222d4",
+      "external_front_byte_length": 57932,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP18",
+      "problem": "DC1-DTLZ3",
+      "objectives": 3,
+      "variables": 2,
+      "external_front_path": "cmo/problems/pf/STEP/step18_M3_D2.pf",
+      "external_front_git_blob_sha1": "5730d70547dc69adaaa1185eeba35d4f66b4b991",
+      "external_front_byte_length": 57892,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP19",
+      "problem": "DC2-DTLZ3",
+      "objectives": 3,
+      "variables": 3,
+      "external_front_path": "cmo/problems/pf/STEP/step19_M3_D3.pf",
+      "external_front_git_blob_sha1": "f8fceeaafea5197b8e40db4a4220b19290071de1",
+      "external_front_byte_length": 58136,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP20",
+      "problem": "C3-DTLZ4",
+      "objectives": 3,
+      "variables": 3,
+      "external_front_path": "cmo/problems/pf/STEP/step20_M3_D3.pf",
+      "external_front_git_blob_sha1": "f95e8e71651de298b5e0049887e8549ef2884701",
+      "external_front_byte_length": 56911,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP21",
+      "problem": "DAS-CMOP8",
+      "objectives": 3,
+      "variables": 3,
+      "external_front_path": "cmo/problems/pf/STEP/step21_M3_D3.pf",
+      "external_front_git_blob_sha1": "317ed0edd824a61a669e7e905a26b94731f9843c",
+      "external_front_byte_length": 57967,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP22",
+      "problem": "DC2-DTLZ3",
+      "objectives": 3,
+      "variables": 5,
+      "external_front_path": "cmo/problems/pf/STEP/step22_M3_D5.pf",
+      "external_front_git_blob_sha1": "34b0dd8734f7897be634bc6714c4713a1aa95083",
+      "external_front_byte_length": 57993,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP23",
+      "problem": "C3-DTLZ4",
+      "objectives": 3,
+      "variables": 5,
+      "external_front_path": "cmo/problems/pf/STEP/step23_M3_D5.pf",
+      "external_front_git_blob_sha1": "e3af81f7c844f987718ab8cd984f09b75d26a84e",
+      "external_front_byte_length": 58006,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP24",
+      "problem": "C1-DTLZ1",
+      "objectives": 3,
+      "variables": 5,
+      "external_front_path": "cmo/problems/pf/STEP/step24_M3_D5.pf",
+      "external_front_git_blob_sha1": "63836afeea35c814801954e8b32f8e1633f835a8",
+      "external_front_byte_length": 57241,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP25",
+      "problem": "DC2-DTLZ1",
+      "objectives": 3,
+      "variables": 10,
+      "external_front_path": "cmo/problems/pf/STEP/step25_M3_D10.pf",
+      "external_front_git_blob_sha1": "6d03d1e3ed9a9298b7444bcc4a9417f2761def90",
+      "external_front_byte_length": 57565,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP26",
+      "problem": "MW8",
+      "objectives": 3,
+      "variables": 10,
+      "external_front_path": "cmo/problems/pf/STEP/step26_M3_D10.pf",
+      "external_front_git_blob_sha1": "0bddaf2278d4c605aec83912f8395d18fb060068",
+      "external_front_byte_length": 17269,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP27",
+      "problem": "C3-DTLZ4",
+      "objectives": 3,
+      "variables": 10,
+      "external_front_path": "cmo/problems/pf/STEP/step27_M3_D10.pf",
+      "external_front_git_blob_sha1": "3746f5e2a0c03a3dd0e719babf6343f09d9ade4d",
+      "external_front_byte_length": 58072,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP28",
+      "problem": "DC2-DTLZ3",
+      "objectives": 3,
+      "variables": 30,
+      "external_front_path": "cmo/problems/pf/STEP/step28_M3_D30.pf",
+      "external_front_git_blob_sha1": "4c4f08871ca9fdf46673be215dc83fe0fcde92ec",
+      "external_front_byte_length": 57659,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP29",
+      "problem": "DAS-CMOP9",
+      "objectives": 3,
+      "variables": 30,
+      "external_front_path": "cmo/problems/pf/STEP/step29_M3_D30.pf",
+      "external_front_git_blob_sha1": "832ae96cab72ddc37477c10052c31435135e47e5",
+      "external_front_byte_length": 58069,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    },
+    {
+      "task_id": "STEP30",
+      "problem": "CF8",
+      "objectives": 3,
+      "variables": 30,
+      "external_front_path": "cmo/problems/pf/STEP/step30_M3_D30.pf",
+      "external_front_git_blob_sha1": "3f91846a7d86eeafa5584093998363b05be3c4a0",
+      "external_front_byte_length": 57500,
+      "front_terms_status": "not_reviewed_external_pointer_only_not_downloaded"
+    }
+  ],
+  "published_2026_step_results": {
+    "metric": "AUC-ERD as defined in paper; not interchangeable with HV, IGD, or objective-call count",
+    "average_rank_top_five": [
+      {
+        "algorithm": "AGE",
+        "rank": 1
+      },
+      {
+        "algorithm": "NSGA-III",
+        "rank": 2
+      },
+      {
+        "algorithm": "SPEA2",
+        "rank": 3
+      },
+      {
+        "algorithm": "C-TAEA",
+        "rank": 4
+      },
+      {
+        "algorithm": "NSGA-II",
+        "rank": 5
+      }
+    ],
+    "table_10_auc_erd": [
+      {
+        "algorithm": "CCMO",
+        "auc_erd": 0.956,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "MCCMO",
+        "auc_erd": 0.9541,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "C-TAEA",
+        "auc_erd": 0.9508,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "AGE",
+        "auc_erd": 0.8904,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "SPEA2",
+        "auc_erd": 0.8891,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "NSGA-II",
+        "auc_erd": 0.8884,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "NSGA-III",
+        "auc_erd": 0.885,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "C-MOEA/D",
+        "auc_erd": 0.8678,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "NSDE",
+        "auc_erd": 0.872,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "GDE3",
+        "auc_erd": 0.87,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "NSDER",
+        "auc_erd": 0.8584,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "BiCo",
+        "auc_erd": 0.8561,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "Random search",
+        "auc_erd": 0.7234,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "Scaled SLSQP",
+        "auc_erd": 0.6588,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "Scaled CMA-ES",
+        "auc_erd": 0.7434,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      },
+      {
+        "algorithm": "Scaled COBYLA",
+        "auc_erd": 0.538,
+        "origin": "Cork et al. 2026 Table 10; literature result, not reproduced"
+      }
+    ],
+    "interpretation": "Rank and AUC-ERD differ. Task-level winners vary; neither aggregate alone establishes a universally superior algorithm."
+  },
+  "additional_state_of_art_reference": {
+    "title": "A comprehensive comparison of constrained multi-objective evolutionary algorithms",
+    "doi": "10.1007/s10462-026-11576-9",
+    "publication_date": "2026-05-25",
+    "algorithms": [
+      "C-NSGA-II",
+      "C-MOEA/D",
+      "MOEA/D-IEpsilon",
+      "CMOEA/D-SR",
+      "IDEA",
+      "ToR-NSGA-II",
+      "PPS-MOEA/D",
+      "ToP",
+      "CMOEA-MS",
+      "CCMO",
+      "C-TAEA",
+      "c-DPEA"
+    ],
+    "test_instances": 92,
+    "suites": 9,
+    "literature_finding": "c-DPEA and CCMO top the reported aggregate IGD ranks; study notes co-evolutionary exploration/feasibility benefits and gaps in changing feasible-front dimension, constraint count and diverse front geometry.",
+    "not_reproduced": true
+  },
+  "current_repository_coverage": {
+    "zdt1_zdt4_analytic_optimizer_lane": true,
+    "step_tasks_implemented": 2,
+    "full_step_coverage": false,
+    "no_cfd_validation_claim": true,
+    "implemented_pilot_tasks": [
+      "STEP7",
+      "STEP24"
+    ]
+  }
+}

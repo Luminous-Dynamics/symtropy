@@ -1,0 +1,4 @@
+case_id,parameter_basis,source_ref,source_sha256,airframe_mass_kg,payload_mass_kg,wing_area_m2,aspect_ratio,oswald_efficiency,cd0,cruise_speed_m_s,air_density_kg_m3,propulsive_efficiency,battery_energy_wh,reserve_fraction,route_distance_km,assumed_max_lift_coefficient
+synthetic_baseline,synthetic,synthetic-fixture-v0.1,-,2.0,0.5,0.55,8.0,0.8,0.035,15.0,1.225,0.65,160.0,0.2,20.0,1.2
+synthetic_drag_plus_10pct,synthetic,synthetic-fixture-v0.1,-,2.0,0.5,0.55,8.0,0.8,0.0385,15.0,1.225,0.65,160.0,0.2,20.0,1.2
+synthetic_mass_plus_10pct,synthetic,synthetic-fixture-v0.1,-,2.2,0.5,0.55,8.0,0.8,0.035,15.0,1.225,0.65,160.0,0.2,20.0,1.2
