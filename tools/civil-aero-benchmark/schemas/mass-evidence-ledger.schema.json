@@ -1,0 +1,397 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aircraft-mass-evidence-0.1.0.json",
+  "title": "Aircraft mass evidence ledger 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "configuration_sha256",
+    "aircraft_family",
+    "aircraft_model",
+    "serial_number",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aircraft-mass-evidence/0.1.0"
+    },
+    "configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "aircraft_family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "aircraft_model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "serial_number": {
+      "type": "string",
+      "minLength": 1
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "revision",
+        "locator",
+        "sha256"
+      ],
+      "properties": {
+        "reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "const": "latest"
+          }
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "effectivity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aircraft_family",
+        "aircraft_model",
+        "configuration_sha256",
+        "serial_numbers"
+      ],
+      "properties": {
+        "aircraft_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aircraft_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "serial_numbers": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "massValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit": {
+          "enum": [
+            "kg",
+            "g",
+            "lb"
+          ]
+        }
+      }
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "values",
+        "unit"
+      ],
+      "properties": {
+        "values": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        },
+        "unit": {
+          "enum": [
+            "m",
+            "cm",
+            "mm",
+            "ft",
+            "in"
+          ]
+        }
+      }
+    },
+    "inertia": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "values",
+        "unit"
+      ],
+      "properties": {
+        "values": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "unit": {
+          "enum": [
+            "kg_m2",
+            "g_cm2",
+            "lb_ft2"
+          ]
+        }
+      }
+    },
+    "geometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "position_m"
+          ],
+          "properties": {
+            "kind": {
+              "const": "point_mass"
+            },
+            "position_m": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "center_of_mass_m",
+            "inertia_tensor_about_center_kg_m2"
+          ],
+          "properties": {
+            "kind": {
+              "const": "rigid_body"
+            },
+            "center_of_mass_m": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number"
+              }
+            },
+            "inertia_tensor_about_center_kg_m2": {
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 6,
+              "items": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "unknown"
+            }
+          }
+        }
+      ]
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_id",
+        "category",
+        "mass_kg",
+        "geometry",
+        "parent_id",
+        "accounting_role",
+        "included_child_ids",
+        "evidence_class",
+        "admission",
+        "source",
+        "effectivity",
+        "source_mass",
+        "source_position",
+        "source_inertia",
+        "standard_uncertainty_kg",
+        "uncertainty_relationship"
+      ],
+      "properties": {
+        "item_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "enum": [
+            "primary_structure",
+            "secondary_structure",
+            "propulsion",
+            "energy_storage",
+            "electrical_distribution",
+            "thermal_management",
+            "flight_controls",
+            "avionics",
+            "landing_gear",
+            "interior_and_furnishings",
+            "safety_equipment",
+            "fuel_and_fluids",
+            "payload",
+            "other"
+          ]
+        },
+        "mass_kg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "geometry": {
+          "$ref": "#/$defs/geometry"
+        },
+        "parent_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "accounting_role": {
+          "enum": [
+            "leaf",
+            "aggregate"
+          ]
+        },
+        "included_child_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_class": {
+          "enum": [
+            "directly_measured",
+            "manufacturer_reported",
+            "approved_manual_or_type_data",
+            "derived_from_measured_components",
+            "engineering_estimate",
+            "synthetic_fixture",
+            "unknown"
+          ]
+        },
+        "admission": {
+          "enum": [
+            "admitted_for_screening",
+            "pending_review",
+            "rejected"
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "effectivity": {
+          "$ref": "#/$defs/effectivity"
+        },
+        "source_mass": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/massValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_position": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/position"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_inertia": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/inertia"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "standard_uncertainty_kg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "uncertainty_relationship": {
+          "enum": [
+            "independent_by_declared_model",
+            "correlated_or_unknown",
+            "not_assessed"
+          ]
+        }
+      }
+    }
+  }
+}
