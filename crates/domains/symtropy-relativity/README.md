@@ -52,6 +52,7 @@ Next gates are Kerr curvature and coordinate-invariant cross-chart checks, gener
 
 - `benchmarks/analytic_reference_cases.json`: SI-valued Schwarzschild/Kerr fixtures spanning zero, small, intermediate, retrograde, near-extremal and extremal spin.
 - `benchmarks/direct_wave_sxs_spin_sweep.json`: exact ten SXS IDs and final spins from the Kankani–McWilliams counteranalysis, filter specification, competing horizon/News/BOB models and null controls.
+- `benchmarks/geodesic_reference_cases.json`: analytic Schwarzschild circular-timelike and radial-null initial conditions, parameterizations, conserved quantities, and fixed-step reference endpoints.
 - `benchmarks/waveform_surrogate_baselines.json`: versioned literature baselines for NRSur7dq4 NN, NRSur7dq4v2, SEOBNRv5PHM_NNSur7dq10, AESur3dq8, eccentric NR surrogate and SpEC accuracy limits.
 
 These manifests describe expected references and benchmark design. They are not yet automatically loaded by the Rust tests and their literature figures have not been reproduced by this crate.
