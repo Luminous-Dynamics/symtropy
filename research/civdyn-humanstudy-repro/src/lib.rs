@@ -494,7 +494,7 @@ pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
         }
         validate_study(
             study,
-            profile.require_official_metrics,
+            profile.require_official_pas,
             profile.required_artifact_roles,
             &mut errors,
         );
