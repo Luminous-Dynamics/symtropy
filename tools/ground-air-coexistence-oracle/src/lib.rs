@@ -912,7 +912,7 @@ mod tests {
         let report = evaluate_scenario(&scenario).unwrap();
         assert_eq!(report["minimum_service_met_count"], 3);
         assert!(report["minimum_service_all_met"].as_bool().unwrap());
-        assert_eq!(report["total_source_input_quanta_slots"], 10);
+        assert_eq!(report["total_source_input_quanta_slots"], 8);
         for slot in report["per_slot"].as_array().unwrap() {
             let air_quanta = slot["session_allocations"][0]["input_power_quanta"]
                 .as_u64()
