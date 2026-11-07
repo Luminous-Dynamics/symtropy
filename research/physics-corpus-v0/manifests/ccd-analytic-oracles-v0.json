@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-ccd-analytic-oracles-v0",
+  "status": "research_only_no_engine_superiority_claim",
+  "query_contract": {
+    "checked_api": "Result<Option<CcdHit>, CcdError>",
+    "compatibility_api": "Option<CcdHit>",
+    "outcomes": ["hit", "miss", "invalid_or_inconclusive"],
+    "toi_interval": "closed_[0,dt]",
+    "normal_requirement": "finite_unit_vector",
+    "invalid_input_policy": "typed_error_in_checked_api"
+  },
+  "scenarios": [
+    {
+      "id": "sphere_sphere_head_on",
+      "family": "sphere_sphere",
+      "status": "hit",
+      "oracle": "t=(distance-radius_a-radius_b)/relative_closing_speed",
+      "tolerance": 1e-12
+    },
+    {
+      "id": "sphere_sphere_tangent",
+      "family": "sphere_sphere",
+      "status": "hit",
+      "oracle": "time_of_closest_approach_when_perpendicular_separation_equals_combined_radius",
+      "tolerance": 1e-12
+    },
+    {
+      "id": "sphere_sphere_grazing_miss",
+      "family": "sphere_sphere",
+      "status": "miss",
+      "oracle": "closest_separation_strictly_exceeds_combined_radius_by_frozen_margin",
+      "tolerance": 1e-12
+    },
+    {
+      "id": "sphere_sphere_initial_overlap",
+      "family": "sphere_sphere",
+      "status": "hit",
+      "oracle": "toi_equals_zero",
+      "tolerance": 0.0
+    },
+    {
+      "id": "sphere_sphere_zero_relative_speed",
+      "family": "sphere_sphere",
+      "status": "miss",
+      "oracle": "separated_and_relative_speed_zero",
+      "tolerance": 0.0
+    },
+    {
+      "id": "sphere_sphere_large_scale_small_radius",
+      "family": "sphere_sphere",
+      "status": "hit",
+      "oracle": "closest_approach_geometry_independent_high_precision_cross_check",
+      "inputs": {
+        "initial_separation_m": 1000000000000.0,
+        "relative_speed_m_per_s": 1000000000000.0,
+        "combined_radius_m": 1.0,
+        "dt_s": 1.0
+      },
+      "expected_toi_s": 0.999999999999,
+      "tolerance": 2e-16
+    },
+    {
+      "id": "sphere_halfspace_scaled_plane",
+      "family": "sphere_halfspace",
+      "status": "hit",
+      "oracle": "same_plane_after_scaling_normal_and_offset",
+      "inputs": {
+        "position_m": [0.0, 10.0, 0.0],
+        "velocity_m_per_s": [0.0, -100.0, 0.0],
+        "radius_m": 0.5,
+        "plane_normal_unit": [0.0, 1.0, 0.0],
+        "plane_offset_unit": 1.0,
+        "plane_scale": 7.0
+      },
+      "expected_toi_s": 0.085,
+      "tolerance": 1e-14
+    },
+    {
+      "id": "sphere_halfspace_initial_penetration",
+      "family": "sphere_halfspace",
+      "status": "hit",
+      "oracle": "toi_equals_zero",
+      "tolerance": 0.0
+    },
+    {
+      "id": "sphere_halfspace_moving_away",
+      "family": "sphere_halfspace",
+      "status": "miss",
+      "oracle": "signed_normal_velocity_non_approaching",
+      "tolerance": 0.0
+    },
+    {
+      "id": "sphere_halfspace_exact_dt_boundary",
+      "family": "sphere_halfspace",
+      "status": "hit",
+      "oracle": "toi_equals_dt_in_closed_interval",
+      "tolerance": 1e-14
+    },
+    {
+      "id": "sphere_halfspace_after_dt",
+      "family": "sphere_halfspace",
+      "status": "miss",
+      "oracle": "analytic_toi_strictly_greater_than_dt",
+      "tolerance": 1e-14
+    }
+  ],
+  "invalid_controls": [
+    "negative_radius",
+    "nan_radius",
+    "infinite_radius",
+    "negative_dt",
+    "nan_dt",
+    "infinite_dt",
+    "nan_position",
+    "infinite_velocity",
+    "zero_plane_normal",
+    "infinite_plane_offset",
+    "intermediate_overflow",
+    "zero_dimension"
+  ],
+  "reported_metrics": [
+    "toi_absolute_error_seconds",
+    "toi_relative_error",
+    "normal_angular_error_radians",
+    "false_negative_count",
+    "false_positive_count",
+    "invalid_input_misclassification_count",
+    "scale_invariance_error",
+    "body_order_symmetry_error",
+    "runtime_p50_ns",
+    "runtime_p95_ns"
+  ],
+  "evidence_separation": {
+    "analytic_query_verification": true,
+    "contact_solver_validation": false,
+    "physical_validation": false,
+    "external_engine_comparison": "not_yet_run",
+    "industry_superiority_claimed": false
+  }
+}
