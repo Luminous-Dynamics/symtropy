@@ -152,7 +152,6 @@ struct SweepSummary {
     ramp_rate: f64,
 }
 
-#[derive(Debug, Clone, Copy)]
 impl AnalysisConfig {
     pub fn validate(self) -> Result<(), TransitionError> {
         if !self.maximum_pair_rate_relative_error.is_finite()
@@ -616,7 +615,7 @@ mod tests {
         for sample in &mut missing.samples {
             sample.regime = Regime::Low;
         }
-        let mut down = trace("p", SweepDirection::Decreasing, 1.0, 2.0);
+        let down = trace("p", SweepDirection::Decreasing, 1.0, 2.0);
         let mut multiple = trace("q", SweepDirection::Increasing, 1.0, 3.0);
         multiple.samples[2].regime = Regime::High;
         multiple.samples[3].regime = Regime::Low;
