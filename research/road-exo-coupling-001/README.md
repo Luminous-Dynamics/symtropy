@@ -309,14 +309,14 @@ The bridge accepts one typed assessment envelope for every action × admitted-hy
 - the adapter schema ID and SAM build commitment;
 - the original SAM evidence-manifest identifier preserved verbatim;
 - BLAKE3 commitments to canonical support-manifest and trajectory-query bytes;
-- a BLAKE3 commitment to canonical SAM assessment bytes;
+- a BLAKE3 commitment to canonical SAM source-generated assessment-receipt bytes;
 - target policy and context digests;
 - whether the finite path universe is exhaustive;
 - query completeness, decision-point count and finite-path membership;
 - the exact SAM disposition; and
 - an unkeyed content checksum over those fields.
 
-The schema ID belongs to this **Symtropy adapter envelope**, not to a SAM-emitted wire format. SAM exposes `SupportManifest::canonical_bytes`, `TrajectoryQuery::canonical_bytes` and `Assessment::canonical_bytes`. The bridge's `seal_from_sam_artifacts` and `verify_against_sam_artifacts` hash the exact first two exports and check the third byte-for-byte against the recorded assessment fields. A shared three-vector fixture pins the formats across repositories. These are content commitments, not signatures, authentication, proof of origin, or independent verification of the SAM binary. A consumer requiring authenticity must anchor the SAM build and artifact digests through an independently controlled channel.
+The schema ID belongs to this **Symtropy adapter envelope**, not to a SAM-emitted wire format. SAM exposes canonical bytes for `SupportManifest`, `TrajectoryQuery` and `Assessment`, and `assess_with_receipt` returns an `AssessmentReceipt` that length-prefixes and binds all three exact artifacts. The bridge's `seal_from_sam_artifacts` and `verify_against_sam_artifacts` recompute that source-receipt byte string from the retained support-manifest bytes, query bytes and assessment fields, then compare it byte-for-byte before accepting the envelope. A shared four-vector fixture pins the manifest, query, result and combined receipt formats across repositories. These are content commitments, not signatures, authentication, proof of origin, or independent verification of the SAM binary. A consumer requiring authenticity must anchor the SAM build and artifact digests through an independently controlled channel.
 
 ### Five disposition rules
 
@@ -337,6 +337,6 @@ The adapter requires exactly one envelope per action × hypothesis cell. Missing
 
 ### Tests and claim ceiling
 
-Hostile fixtures cover all five dispositions, unsupported-path/Supported-utility mismatch, supported-path/unidentified-utility, missing utility evidence, one-to-one action × hypothesis coverage, duplicate/missing/orphan envelopes, support/query/assessment artifact mutation, cross-repository golden bytes and order-independent bundle digest.
+Hostile fixtures cover all five dispositions, unsupported-path/Supported-utility mismatch, supported-path/unidentified-utility, missing utility evidence, one-to-one action × hypothesis coverage, duplicate/missing/orphan envelopes, support/query/source assessment-receipt mutation, cross-repository golden bytes and order-independent bundle digest.
 
 This is a **composition adapter**, not a new support estimator, propensity estimator, causal-identification method, or safety judgment. It does not independently invoke SAM or authenticate the supplied build/manifest/query commitments. Passing tests establishes only that the adapter preserves and composes the declared finite dispositions and existing evidence/decision gates.

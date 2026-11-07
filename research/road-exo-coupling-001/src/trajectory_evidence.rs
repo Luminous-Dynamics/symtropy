@@ -58,14 +58,15 @@ pub struct SamTrajectoryAssessmentBinding {
 }
 
 impl SamTrajectoryAssessmentBinding {
-    /// Seal after checking the exact canonical manifest, query and assessment
-    /// bytes exported by SAM #10514. The caller still supplies the external
-    /// build commitment; this method does not authenticate that build.
+    /// Seal after checking the exact source-generated SAM AssessmentReceipt,
+    /// which binds the canonical support manifest, query and assessment bytes.
+    /// The caller still supplies the external build commitment; this method
+    /// does not authenticate that build.
     pub fn seal_from_sam_artifacts(
         mut self,
         support_manifest_bytes: &[u8],
         query_bytes: &[u8],
-        assessment_bytes: &[u8],
+        assessment_receipt_bytes: &[u8],
     ) -> Result<Self, TrajectoryEvidenceError> {
         if *blake3::hash(support_manifest_bytes).as_bytes() != self.support_manifest_digest {
             return Err(TrajectoryEvidenceError::SupportManifestArtifactMismatch);
@@ -73,20 +74,24 @@ impl SamTrajectoryAssessmentBinding {
         if *blake3::hash(query_bytes).as_bytes() != self.query_digest {
             return Err(TrajectoryEvidenceError::QueryArtifactMismatch);
         }
-        if self.canonical_assessment_bytes() != assessment_bytes {
+        if self.canonical_assessment_receipt_bytes(support_manifest_bytes, query_bytes)
+            != assessment_receipt_bytes
+        {
             return Err(TrajectoryEvidenceError::AssessmentArtifactMismatch);
         }
-        self.assessment_digest = *blake3::hash(assessment_bytes).as_bytes();
+        self.assessment_digest =
+            *blake3::hash(assessment_receipt_bytes).as_bytes();
         self.seal()
     }
 
-    /// Verify the retained envelope against the exact canonical SAM source
-    /// artifacts, rather than trusting the digest fields alone.
+    /// Verify the retained envelope against the exact SAM source artifacts,
+    /// including the source-generated receipt that binds the result to those
+    /// exact inputs, rather than trusting digest fields alone.
     pub fn verify_against_sam_artifacts(
         &self,
         support_manifest_bytes: &[u8],
         query_bytes: &[u8],
-        assessment_bytes: &[u8],
+        assessment_receipt_bytes: &[u8],
     ) -> Result<(), TrajectoryEvidenceError> {
         self.verify_receipt()?;
         if *blake3::hash(support_manifest_bytes).as_bytes() != self.support_manifest_digest {
@@ -95,8 +100,9 @@ impl SamTrajectoryAssessmentBinding {
         if *blake3::hash(query_bytes).as_bytes() != self.query_digest {
             return Err(TrajectoryEvidenceError::QueryArtifactMismatch);
         }
-        if self.canonical_assessment_bytes() != assessment_bytes
-            || *blake3::hash(assessment_bytes).as_bytes() != self.assessment_digest
+        if self.canonical_assessment_receipt_bytes(support_manifest_bytes, query_bytes)
+            != assessment_receipt_bytes
+            || *blake3::hash(assessment_receipt_bytes).as_bytes() != self.assessment_digest
         {
             return Err(TrajectoryEvidenceError::AssessmentArtifactMismatch);
         }
@@ -109,6 +115,19 @@ impl SamTrajectoryAssessmentBinding {
         out.push(self.disposition as u8);
         out.extend_from_slice(&self.decision_points.to_le_bytes());
         out.push(u8::from(self.matched_finite_path));
+        out
+    }
+
+    fn canonical_assessment_receipt_bytes(
+        &self,
+        support_manifest_bytes: &[u8],
+        query_bytes: &[u8],
+    ) -> Vec<u8> {
+        let mut out = Vec::new();
+        out.extend_from_slice(b"sam.policy-trajectory-support.assessment-receipt.v0.1\0");
+        push_bytes(&mut out, support_manifest_bytes);
+        push_bytes(&mut out, query_bytes);
+        push_bytes(&mut out, &self.canonical_assessment_bytes());
         out
     }
 
@@ -459,6 +478,12 @@ fn require_digest(value: &[u8; 32], field: &'static str) -> Result<(), Trajector
 
 fn push_id(out: &mut Vec<u8>, id: &StableId) {
     push_string(out, id.as_str());
+}
+
+fn push_bytes(out: &mut Vec<u8>, value: &[u8]) {
+    let len = u64::try_from(value.len()).expect("byte length fits u64");
+    out.extend_from_slice(&len.to_le_bytes());
+    out.extend_from_slice(value);
 }
 
 fn push_string(out: &mut Vec<u8>, value: &str) {
@@ -851,18 +876,35 @@ mod tests {
         let support_bytes = canonical_vector("manifest");
         let query_bytes = canonical_vector("query");
         let assessment_bytes = canonical_vector("assessment");
+        let assessment_receipt_bytes = canonical_vector("assessment_receipt");
         let mut binding = sam_binding(SamTrajectoryDisposition::SupportUnknown);
         binding.decision_points = 1;
         binding.support_manifest_digest = *blake3::hash(&support_bytes).as_bytes();
         binding.query_digest = *blake3::hash(&query_bytes).as_bytes();
         assert_eq!(binding.canonical_assessment_bytes(), assessment_bytes);
+        assert_eq!(
+            binding.canonical_assessment_receipt_bytes(&support_bytes, &query_bytes),
+            assessment_receipt_bytes
+        );
 
         let sealed = binding
-            .seal_from_sam_artifacts(&support_bytes, &query_bytes, &assessment_bytes)
+            .seal_from_sam_artifacts(&support_bytes, &query_bytes, &assessment_receipt_bytes)
             .unwrap();
         assert_eq!(
-            sealed.verify_against_sam_artifacts(&support_bytes, &query_bytes, &assessment_bytes),
+            sealed.verify_against_sam_artifacts(
+                &support_bytes,
+                &query_bytes,
+                &assessment_receipt_bytes
+            ),
             Ok(())
+        );
+        assert_eq!(
+            binding.clone().seal_from_sam_artifacts(
+                &support_bytes,
+                &query_bytes,
+                &assessment_bytes
+            ),
+            Err(TrajectoryEvidenceError::AssessmentArtifactMismatch)
         );
         assert_eq!(
             sealed.verify_against_sam_artifacts(
@@ -880,10 +922,10 @@ mod tests {
             ),
             Err(TrajectoryEvidenceError::QueryArtifactMismatch)
         );
-        let mut mutated_assessment = assessment_bytes.clone();
-        mutated_assessment.push(0);
+        let mut mutated_assessment_receipt = assessment_receipt_bytes.clone();
+        mutated_assessment_receipt.push(0);
         assert_eq!(
-            sealed.verify_against_sam_artifacts(&support_bytes, &query_bytes, &mutated_assessment),
+            sealed.verify_against_sam_artifacts(&support_bytes, &query_bytes, &mutated_assessment_receipt),
             Err(TrajectoryEvidenceError::AssessmentArtifactMismatch)
         );
     }

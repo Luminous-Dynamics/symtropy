@@ -83,7 +83,8 @@
     },
     "assessment_receipt_digest": {
       "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "BLAKE3 checksum over the Symtropy envelope fields; unkeyed and not authentication"
     },
     "evidence_manifest_id": {
       "type": "string",
@@ -91,7 +92,8 @@
     },
     "assessment_digest": {
       "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "BLAKE3 content digest of SAM AssessmentReceipt::canonical_bytes(), which binds the canonical support manifest, query and assessment result"
     }
   }
 }

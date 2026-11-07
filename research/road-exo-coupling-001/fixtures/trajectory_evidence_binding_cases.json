@@ -134,6 +134,14 @@
     {
       "id": "cross-repository-golden-vectors",
       "expected": "SAM-and-Symtropy-canonical-bytes-match"
+    },
+    {
+      "id": "assessment-result-is-cross-wired-to-different-query-or-support-manifest",
+      "expected": "reject-assessment-artifact-mismatch"
+    },
+    {
+      "id": "raw-assessment-bytes-are-not-a-source-bound-assessment-receipt",
+      "expected": "reject-assessment-artifact-mismatch"
     }
   ],
   "claim_ceiling": [
