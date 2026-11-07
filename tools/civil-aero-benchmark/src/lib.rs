@@ -15,6 +15,7 @@ pub mod external_solver;
 pub mod grid_convergence;
 pub mod input_sampling;
 pub mod integrity;
+pub mod mass_properties;
 pub mod interval_calibration;
 pub mod optimizer_qualification;
 pub mod policy_aggregate;
