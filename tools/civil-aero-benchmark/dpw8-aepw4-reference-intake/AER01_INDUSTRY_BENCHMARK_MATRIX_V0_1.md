@@ -20,6 +20,16 @@ We should not benchmark against a caricature of the industry. The relevant refer
 
 The NASA and community references establish that aircraft sizing, multidisciplinary optimization, beam-level aerostructural optimization, CFD adjoints and NASTRAN integration are existing capabilities. AER-01's intended contribution is the qualification and evidence layer that binds these engines to one exact aircraft/mission/configuration state and makes the engineering decision independently replayable.
 
+### Release and evidence snapshot (7 November 2026)
+
+- **OpenMDAO 3.45.2** was released 27 October 2026; its current documentation identifies a development build updated 2 November. Freeze the exact release/commit and environment for each baseline rather than using a moving latest install.
+- **SU2 8.6.0** was released 30 October 2026. Its release notes list FSI+CHT/aerothermoelasticity as an experimental feature. That is a reason to test it on the admitted cases, not evidence that any given AER-01 coupling configuration is already qualified.
+- **NASA Aviary** remains an actively developed OpenMDAO aircraft design/optimization tool and supports external subsystems. Its public validation guide is explicitly still under development, so use Aviary as a strong system/MDO baseline while admitting its validation evidence by individual case rather than treating it as a universal reference truth.
+- **ShapeBench** reports 103 aerodynamic optimization tasks over eight shape categories and mean pairwise optimizer-ranking Spearman correlation of 0.013 across environments. This makes cross-category validation essential.
+- **BOCoDe** reports 307 black-box optimization tasks, including 159 engineering problems, and compares 31 methods across five main problem classes. Use the existing Symtropy BOCoDe interoperability/reproduction protocol for its prescribed budgets, seed counts and all-attempt ledger; do not create a weakened local imitation and call it an official reproduction.
+
+
+
 ## 2. Paradigm shifts worth pursuing
 
 ### 2.1 Aircraft state as the engineering system of record
