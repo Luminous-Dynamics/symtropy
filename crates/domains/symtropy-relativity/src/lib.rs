@@ -282,19 +282,27 @@ impl KerrBlackHole {
         self.spin.get() * self.gravitational_radius_m()
     }
 
+    /// Dimensionless Kerr extremality gap sqrt(1 - chi^2), evaluated
+    /// as sqrt((1-|chi|)(1+|chi|)) to reduce cancellation near |chi|=1.
+    pub fn extremality_gap(self) -> f64 {
+        let absolute_spin = self.spin.get().abs();
+        ((1.0 - absolute_spin) * (1.0 + absolute_spin)).sqrt()
+    }
+
     /// Outer Boyer-Lindquist horizon radius in metres.
     pub fn outer_horizon_radius_m(self) -> f64 {
-        let rg = self.gravitational_radius_m();
-        rg * (1.0 + (1.0 - self.spin.get().powi(2)).sqrt())
+        self.gravitational_radius_m() * (1.0 + self.extremality_gap())
     }
 
     /// Horizon angular velocity Omega_H in radians per second.
     ///
     /// Uses Omega_H = a c / (r_+^2 + a^2), with a and r_+ in metres.
     pub fn horizon_angular_velocity_rad_s(self) -> f64 {
-        let a = self.kerr_parameter_m();
-        let r_plus = self.outer_horizon_radius_m();
-        a * SPEED_OF_LIGHT_M_S / (r_plus * r_plus + a * a)
+        // Algebraically equivalent closed form avoids squaring very large or
+        // very small lengths and is stable in the extremal-spin limit.
+        let chi = self.spin.get();
+        SPEED_OF_LIGHT_M_S * chi
+            / (2.0 * self.gravitational_radius_m() * (1.0 + self.extremality_gap()))
     }
 
     /// Kerr surface-gravity decay rate in inverse seconds.
@@ -303,11 +311,9 @@ impl KerrBlackHole {
     /// kappa_t = c sqrt(r_g^2 - a^2) / (2 r_g r_+).
     /// It vanishes in the extremal-spin limit.
     pub fn surface_gravity_rate_s_inv(self) -> f64 {
-        let rg = self.gravitational_radius_m();
-        let a = self.kerr_parameter_m();
-        let r_plus = self.outer_horizon_radius_m();
-        SPEED_OF_LIGHT_M_S * (rg * rg - a * a).max(0.0).sqrt()
-            / (2.0 * rg * r_plus)
+        // Stable dimensionless form of c*sqrt(r_g^2-a^2)/(2*r_g*r_+).
+        SPEED_OF_LIGHT_M_S * self.extremality_gap()
+            / (2.0 * self.gravitational_radius_m() * (1.0 + self.extremality_gap()))
     }
 
     /// Positive reference frequency in Hz for a proposed direct-wave
@@ -322,8 +328,10 @@ impl KerrBlackHole {
     ///
     /// For the extremal case |chi| = 1, the two horizons coincide.
     pub fn inner_horizon_radius_m(self) -> f64 {
-        let rg = self.gravitational_radius_m();
-        rg * (1.0 - (1.0 - self.spin.get().powi(2)).sqrt())
+        // Rationalized form avoids cancellation for slowly rotating holes:
+        // 1 - sqrt(1-chi^2) = chi^2 / (1 + sqrt(1-chi^2)).
+        let chi = self.spin.get();
+        self.gravitational_radius_m() * (chi * chi / (1.0 + self.extremality_gap()))
     }
 
     /// Outer stationary-limit surface (ergosurface) at polar angle theta.
@@ -341,10 +349,13 @@ impl KerrBlackHole {
         }
         let rg = self.gravitational_radius_m();
         let chi = self.spin.get();
-        let radicand = 1.0 - chi * chi * theta_rad.cos().powi(2);
-        // The analytic radicand is non-negative on the validated domain.
-        // max(0) protects only against a tiny negative rounding artifact.
-        Ok(rg * (1.0 + radicand.max(0.0).sqrt()))
+        let sin_theta = theta_rad.sin();
+        let cos_theta = theta_rad.cos();
+        // 1 - chi^2*cos^2(theta) = sin^2(theta)
+        //   + (1-chi^2)*cos^2(theta), avoiding cancellation near extremality.
+        let gap = self.extremality_gap();
+        let radicand = sin_theta * sin_theta + gap * gap * cos_theta * cos_theta;
+        Ok(rg * (1.0 + radicand.sqrt()))
     }
 }
 
@@ -469,6 +480,24 @@ mod tests {
         let rg = hole.gravitational_radius_m();
         close(hole.outer_horizon_radius_m(), rg, 1e-14);
         close(hole.inner_horizon_radius_m(), rg, 1e-14);
+    }
+
+    #[test]
+    fn kerr_horizon_observables_are_stable_near_both_spin_limits() {
+        let mass = solar_mass();
+        let slowly_rotating =
+            KerrBlackHole::new(mass, DimensionlessSpin::new(1.0e-10).unwrap());
+        let slowly_rotating_rg = slowly_rotating.gravitational_radius_m();
+        let expected_inner = slowly_rotating_rg * (1.0e-20 / 2.0);
+        close(slowly_rotating.inner_horizon_radius_m(), expected_inner, 1e-14);
+        assert!(slowly_rotating.horizon_angular_velocity_rad_s() > 0.0);
+
+        let near_extremal =
+            KerrBlackHole::new(mass, DimensionlessSpin::new(1.0 - f64::EPSILON).unwrap());
+        assert!(near_extremal.extremality_gap() > 0.0);
+        assert!(near_extremal.surface_gravity_rate_s_inv() > 0.0);
+        assert!(near_extremal.outer_horizon_radius_m() > near_extremal.inner_horizon_radius_m());
+        assert!(near_extremal.horizon_angular_velocity_rad_s().is_finite());
     }
 
     #[test]
