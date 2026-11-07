@@ -67,16 +67,40 @@ fn task(task_id: &str, segment: &str, start: u64, location: &str) -> AssistanceT
     }
 }
 
+fn reference_reposition_subject(leg: &RepositionLeg, time_basis_id: &str) -> String {
+    // Independently reconstruct the versioned length-prefixed evidence identity.
+    let duration = leg.duration_ticks.to_string();
+    let fields = [
+        leg.leg_id.as_str(),
+        leg.resource_id.as_str(),
+        leg.from_node_id.as_str(),
+        leg.to_node_id.as_str(),
+        leg.route_revision.as_str(),
+        duration.as_str(),
+        time_basis_id,
+    ];
+    let mut identity = String::from("maritime-reposition-evidence-v1");
+    for field in fields {
+        identity.push(':');
+        identity.push_str(&field.len().to_string());
+        identity.push(':');
+        identity.push_str(field);
+    }
+    identity
+}
+
 fn reposition(resource_id: &str, from: &str, to: &str, duration: u64, id: &str) -> RepositionLeg {
-    RepositionLeg {
+    let mut leg = RepositionLeg {
         leg_id: id.to_owned(),
         resource_id: resource_id.to_owned(),
         from_node_id: from.to_owned(),
         to_node_id: to.to_owned(),
         duration_ticks: duration,
         route_revision: "route-r1".to_owned(),
-        evidence: evidence(id, id, "route-r1"),
-    }
+        evidence: evidence(id, "", "route-r1"),
+    };
+    leg.evidence.subject_id = reference_reposition_subject(&leg, "ticks-r1");
+    leg
 }
 
 fn workload(first_start: u64, gap_after_first: u64, reposition_ticks: u64) -> MobileWorkload {
@@ -164,8 +188,9 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
                 leg.from_node_id == node
                     && leg.to_node_id == task.location_node_id
                     && leg.route_revision == task.route_revision
-                    && leg.evidence.subject_id == leg.leg_id
-                    && leg.leg_id == format!("leg-{}-{}-{}", tug.tug_id, node, task.location_node_id)
+                    && leg.resource_id == tug.tug_id
+                    && leg.evidence.subject_id
+                        == reference_reposition_subject(leg, &input.time_basis_id)
                     && leg.evidence.subject_revision == task.route_revision
             }) else {
                 return false;
