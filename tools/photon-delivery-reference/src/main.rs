@@ -259,8 +259,7 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
     // The LED uniformity floor converts mean LED DLI into the minimum-zone contribution.
     let led_only_mean_dli = input.target_dli_mol_m2_day / input.led_canopy_uniformity_floor;
     let led_only_photons_umol = led_only_mean_dli * 1_000_000.0 * input.canopy_area_m2;
-    let led_supplement_photons_umol =
-        led_requested_mean_dli * 1_000_000.0 * input.canopy_area_m2;
+    let led_supplement_photons_umol = led_requested_mean_dli * 1_000_000.0 * input.canopy_area_m2;
     let led_only_j = led_only_photons_umol / input.led_efficacy_umol_j;
     let led_supplement_j = led_supplement_photons_umol / input.led_efficacy_umol_j;
     let led_only_kwh = led_only_j / 3_600_000.0;
@@ -283,8 +282,7 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
     let led_energy_delivered_kwh = led_supplement_kwh
         .min(led_energy_available_kwh)
         .min(led_energy_by_power_limit_kwh);
-    let led_delivered_mean_dli = led_energy_delivered_kwh * 3_600_000.0
-        * input.led_efficacy_umol_j
+    let led_delivered_mean_dli = led_energy_delivered_kwh * 3_600_000.0 * input.led_efficacy_umol_j
         / 1_000_000.0
         / input.canopy_area_m2;
     let led_delivered_floor_dli = led_delivered_mean_dli * input.led_canopy_uniformity_floor;
@@ -307,9 +305,15 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         ("led_delivered_mean_dli", led_delivered_mean_dli),
         ("led_delivered_floor_dli", led_delivered_floor_dli),
         ("resource_constrained_dli", resource_constrained_dli),
-        ("resource_constrained_dli_shortfall", resource_constrained_dli_shortfall),
+        (
+            "resource_constrained_dli_shortfall",
+            resource_constrained_dli_shortfall,
+        ),
         ("led_energy_delivered_kwh", led_energy_delivered_kwh),
-        ("resource_constrained_hybrid_electricity_kwh", resource_constrained_hybrid_electricity_kwh),
+        (
+            "resource_constrained_hybrid_electricity_kwh",
+            resource_constrained_hybrid_electricity_kwh,
+        ),
         ("led_only_kwh", led_only_kwh),
         ("led_supplement_kwh", led_supplement_kwh),
         ("optical_aux_kwh", optical_aux_kwh),
@@ -335,7 +339,8 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         led_only_electricity_kwh_day: led_only_kwh,
         led_supplement_electricity_kwh_day: led_supplement_kwh,
         led_delivered_electricity_kwh_day: led_energy_delivered_kwh,
-        resource_constrained_hybrid_electricity_kwh_day: resource_constrained_hybrid_electricity_kwh,
+        resource_constrained_hybrid_electricity_kwh_day:
+            resource_constrained_hybrid_electricity_kwh,
         optical_auxiliary_electricity_kwh_day: optical_aux_kwh,
         hybrid_lighting_electricity_kwh_day: hybrid_electricity_kwh,
         led_peak_power_kw: led_peak_kw,
@@ -455,7 +460,11 @@ mod tests {
         close(report.led_supplement_dli_mol_m2_day, 7.5584, 1e-12);
         close(report.led_delivered_floor_dli_mol_m2_day, 5.6448, 1e-12);
         close(report.resource_constrained_dli_mol_m2_day, 18.0864, 1e-12);
-        close(report.resource_constrained_dli_shortfall_mol_m2_day, 1.9136, 1e-12);
+        close(
+            report.resource_constrained_dli_shortfall_mol_m2_day,
+            1.9136,
+            1e-12,
+        );
         assert!(!report.dli_met);
     }
 
@@ -477,7 +486,11 @@ mod tests {
         );
         assert!(report.requested_energy_saving_vs_led_only_percent > 61.0);
         close(report.led_delivered_electricity_kwh_day, 627.2, 1e-9);
-        close(report.resource_constrained_hybrid_electricity_kwh_day, 647.2, 1e-9);
+        close(
+            report.resource_constrained_hybrid_electricity_kwh_day,
+            647.2,
+            1e-9,
+        );
     }
 
     #[test]
@@ -488,7 +501,11 @@ mod tests {
         assert!(!report.peak_power_feasible);
         assert!(report.daily_energy_feasible);
         assert!(!report.dli_met);
-        close(report.resource_constrained_dli_shortfall_mol_m2_day, 1.9136, 1e-12);
+        close(
+            report.resource_constrained_dli_shortfall_mol_m2_day,
+            1.9136,
+            1e-12,
+        );
     }
 
     #[test]
@@ -530,7 +547,10 @@ mod tests {
     #[test]
     fn sufficient_peak_and_daily_resource_limits_allow_target_dli() {
         let high_capacity = FIXTURE
-            .replace("available_lighting_power_kw=40.0", "available_lighting_power_kw=100.0")
+            .replace(
+                "available_lighting_power_kw=40.0",
+                "available_lighting_power_kw=100.0",
+            )
             .replace(
                 "available_lighting_energy_kwh_day=960.0",
                 "available_lighting_energy_kwh_day=3000.0",
@@ -541,7 +561,11 @@ mod tests {
         assert!(report.daily_energy_feasible);
         assert!(report.dli_met);
         close(report.resource_constrained_dli_mol_m2_day, 20.0, 1e-9);
-        close(report.resource_constrained_dli_shortfall_mol_m2_day, 0.0, 0.0);
+        close(
+            report.resource_constrained_dli_shortfall_mol_m2_day,
+            0.0,
+            0.0,
+        );
     }
 
     #[test]
@@ -580,8 +604,7 @@ mod tests {
             "led_canopy_uniformity_floor=1.0",
             "led_canopy_uniformity_floor=0.0",
         );
-        let input =
-            parse_input(&zero_led_uniformity).expect("syntactically valid fixture");
+        let input = parse_input(&zero_led_uniformity).expect("syntactically valid fixture");
         assert!(
             validate(&input)
                 .unwrap_err()
