@@ -27,6 +27,8 @@ pub struct ReferenceReport {
     pub orientation_count: usize,
     pub mean_measured_value: f64,
     pub certified_value: f64,
+    pub certified_expanded_uncertainty: f64,
+    pub coverage_factor: f64,
     pub absolute_bias: f64,
     pub repeatability_envelope: f64,
     pub conservative_error_envelope: f64,
@@ -267,7 +269,11 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
             Some(value) if descriptor_in_domain(descriptor, value) => {}
             _ => push(&mut errors, "INVALID_CERTIFIED_REFERENCE_VALUE", &format!("{path}.certified_value"), "certified reference value must be finite and in the descriptor domain"),
         }
-        for key in ["certified_standard_uncertainty", "feature_dimension_mm", "maximum_abs_error"] {
+        match finite(reference, "coverage_factor") {
+            Some(value) if value >= 1.0 => {}
+            _ => push(&mut errors, "INVALID_REFERENCE_COVERAGE_FACTOR", &format!("{path}.coverage_factor"), "expanded uncertainty coverage factor must be finite and at least 1"),
+        }
+        for key in ["certified_expanded_uncertainty", "feature_dimension_mm", "maximum_abs_error"] {
             match finite(reference, key) {
                 Some(value) if value >= 0.0 && (key != "feature_dimension_mm" && key != "maximum_abs_error" || value > 0.0) => {}
                 _ => push(&mut errors, "INVALID_REFERENCE_BOUND", &format!("{path}.{key}"), "reference uncertainty must be non-negative; feature dimension and maximum error must be positive"),
@@ -587,8 +593,12 @@ fn reference_reports(
                 .fold(0.0_f64, f64::max);
             let certified = finite(reference, "certified_value").expect("validated certified value");
             let absolute_bias = (mean - certified).abs();
+            let certified_expanded_uncertainty =
+                finite(reference, "certified_expanded_uncertainty").expect("validated expanded uncertainty");
+            let coverage_factor =
+                finite(reference, "coverage_factor").expect("validated coverage factor");
             let conservative_error_envelope = absolute_bias
-                + finite(reference, "certified_standard_uncertainty").expect("validated certified uncertainty")
+                + certified_expanded_uncertainty
                 + repeatability_envelope
                 + resolution / 2.0;
             let maximum = finite(reference, "maximum_abs_error").expect("validated maximum error");
@@ -600,6 +610,8 @@ fn reference_reports(
                 orientation_count: replicates.iter().filter_map(|value| text(value, "orientation_ref")).collect::<BTreeSet<_>>().len(),
                 mean_measured_value: mean,
                 certified_value: certified,
+                certified_expanded_uncertainty,
+                coverage_factor,
                 absolute_bias,
                 repeatability_envelope,
                 conservative_error_envelope,
