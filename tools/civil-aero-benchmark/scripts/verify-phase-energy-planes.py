@@ -90,6 +90,7 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
 
     duration = positive(balance["duration_s"], "duration_s")
     tolerance = finite_nonnegative(balance["tolerance_j"], "tolerance_j")
+    tolerance_w = finite_nonnegative(balance["tolerance_w"], "tolerance_w")
     errors: list[str] = []
 
     fuels = balance["fuel_states"]
