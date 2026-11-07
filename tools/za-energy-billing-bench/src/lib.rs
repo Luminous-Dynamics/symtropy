@@ -38,6 +38,7 @@ pub enum BillingError {
     IntervalCrossesTariffBoundary,
     SaturdayEndpointNeedsConfirmation,
     NoIntervals,
+    MultipleMonthsNotSupported,
     WrongSourceProfile { supplied: String },
     InvalidInputDigest,
 }
@@ -66,6 +67,7 @@ impl fmt::Display for BillingError {
             Self::IntervalCrossesTariffBoundary => write!(f, "interval crosses a published tariff boundary; split the interval before evaluation"),
             Self::SaturdayEndpointNeedsConfirmation => write!(f, "Saturday/public-holiday 18:00-20:00 classification is blocked until the source-printed 18h00-20h0 endpoint is confirmed"),
             Self::NoIntervals => write!(f, "at least one metered interval is required"),
+            Self::MultipleMonthsNotSupported => write!(f, "v0.1 bills exactly one billing month; evaluate each month separately"),
             Self::WrongSourceProfile { supplied } => write!(f, "source profile mismatch: expected {SOURCE_PROFILE_ID}, got {supplied}"),
             Self::InvalidInputDigest => write!(f, "input manifest digest must be 64 lowercase hexadecimal characters"),
         }
@@ -129,6 +131,7 @@ pub struct EvidenceReferences {
     pub tariff_approval_reference: String,
     pub meter_boundary_reference: String,
     pub meter_calibration_reference: String,
+    pub demand_history_reference: String,
     pub calendar_mapping_reference: String,
 }
 
@@ -144,6 +147,8 @@ pub struct MeteredInterval {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BillingInput {
+    /// One calendar billing month per v0.1 evaluation (1..=12).
+    pub billing_month: u8,
     pub account: AccountEvidence,
     pub voltage_class: VoltageClass,
     pub intervals: Vec<MeteredInterval>,
@@ -176,10 +181,12 @@ pub struct BillingReport {
     pub evaluator_version: &'static str,
     pub source_profile_id: &'static str,
     pub account_id: String,
+    pub billing_month: u8,
     pub input_manifest_digest: String,
     pub tariff_approval_reference: String,
     pub meter_boundary_reference: String,
     pub meter_calibration_reference: String,
+    pub demand_history_reference: String,
     pub calendar_mapping_reference: String,
     pub season_energy: PeriodEnergy,
     pub total_active_energy_kwh: f64,
@@ -196,8 +203,10 @@ pub struct BillingReport {
     pub assessed_business_lpu_surcharge_zar: Option<f64>,
     pub assessed_vat_zar: Option<f64>,
     pub known_component_subtotal_zar: f64,
-    pub full_invoice_total_zar: Option<f64>,
-    pub invoice_reconciliation_complete: bool,
+    /// Sum of the known tariff components plus explicitly assessed account lines.
+    /// It is not represented as the complete utility invoice.
+    pub accounted_component_total_zar: Option<f64>,
+    pub required_account_line_amounts_present: bool,
     pub claim_ceiling: &'static str,
 }
 
@@ -366,6 +375,7 @@ fn validate_input_evidence(input: &BillingInput) -> Result<(), BillingError> {
     }
     require_non_empty("meter boundary reference", &input.evidence.meter_boundary_reference)?;
     require_non_empty("meter calibration reference", &input.evidence.meter_calibration_reference)?;
+    require_non_empty("demand history reference", &input.evidence.demand_history_reference)?;
     require_non_empty("calendar mapping reference", &input.evidence.calendar_mapping_reference)?;
     let digest = input.evidence.input_manifest_digest.as_str();
     if digest.len() != 64
@@ -383,6 +393,10 @@ pub fn evaluate_bill(input: &BillingInput) -> Result<BillingReport, BillingError
     validate_input_evidence(input)?;
     if input.intervals.is_empty() {
         return Err(BillingError::NoIntervals);
+    }
+    season_for_month(input.billing_month)?;
+    if input.intervals.iter().any(|interval| interval.month != input.billing_month) {
+        return Err(BillingError::MultipleMonthsNotSupported);
     }
     require_finite_non_negative("power factor", input.power_factor)?;
     if input.power_factor > 1.0 {
@@ -461,9 +475,9 @@ pub fn evaluate_bill(input: &BillingInput) -> Result<BillingReport, BillingError
             + network_surcharge_zar
             + reactive_energy_charge_zar,
     );
-    let invoice_reconciliation_complete = input.assessed_business_lpu_surcharge_zar.is_some()
+    let required_account_line_amounts_present = input.assessed_business_lpu_surcharge_zar.is_some()
         && input.assessed_vat_zar.is_some();
-    let full_invoice_total_zar = if invoice_reconciliation_complete {
+    let accounted_component_total_zar = if required_account_line_amounts_present {
         Some(round_currency(
             known_component_subtotal_zar
                 + input.assessed_business_lpu_surcharge_zar.unwrap_or(0.0)
@@ -477,10 +491,12 @@ pub fn evaluate_bill(input: &BillingInput) -> Result<BillingReport, BillingError
         evaluator_version: EVALUATOR_VERSION,
         source_profile_id: SOURCE_PROFILE_ID,
         account_id: input.evidence.account_id.clone(),
+        billing_month: input.billing_month,
         input_manifest_digest: input.evidence.input_manifest_digest.clone(),
         tariff_approval_reference: input.evidence.tariff_approval_reference.clone(),
         meter_boundary_reference: input.evidence.meter_boundary_reference.clone(),
         meter_calibration_reference: input.evidence.meter_calibration_reference.clone(),
+        demand_history_reference: input.evidence.demand_history_reference.clone(),
         calendar_mapping_reference: input.evidence.calendar_mapping_reference.clone(),
         season_energy: period_energy,
         total_active_energy_kwh: round_currency(total_active_energy_kwh),
@@ -497,9 +513,9 @@ pub fn evaluate_bill(input: &BillingInput) -> Result<BillingReport, BillingError
         assessed_business_lpu_surcharge_zar: input.assessed_business_lpu_surcharge_zar,
         assessed_vat_zar: input.assessed_vat_zar,
         known_component_subtotal_zar,
-        full_invoice_total_zar,
-        invoice_reconciliation_complete,
-        claim_ceiling: "synthetic/account-supplied component reference only; not a production invoice or savings claim",
+        accounted_component_total_zar,
+        required_account_line_amounts_present,
+        claim_ceiling: "synthetic/account-supplied tariff-component sum only; not a complete production invoice or savings claim",
     })
 }
 
@@ -528,12 +544,14 @@ mod tests {
             tariff_approval_reference: "SYNTHETIC-CP-APPROVAL".to_owned(),
             meter_boundary_reference: "SYNTHETIC-PCC-METER".to_owned(),
             meter_calibration_reference: "SYNTHETIC-METER-CALIBRATION".to_owned(),
+            demand_history_reference: "SYNTHETIC-12-MONTH-DEMAND-HISTORY".to_owned(),
             calendar_mapping_reference: "SYNTHETIC-CALENDAR-MAP".to_owned(),
         }
     }
 
     fn input_with(intervals: Vec<MeteredInterval>) -> BillingInput {
         BillingInput {
+            billing_month: 6,
             account: account(),
             voltage_class: VoltageClass::Low,
             intervals,
@@ -747,8 +765,8 @@ mod tests {
     fn subtotal_is_not_labelled_total_without_business_surcharge_and_vat() {
         let input = input_with(vec![interval(6, DayClass::Weekday, 8 * 60, 15, 100.0, 95.0)]);
         let report = evaluate_bill(&input).unwrap();
-        assert!(!report.invoice_reconciliation_complete);
-        assert_eq!(report.full_invoice_total_zar, None);
+        assert!(!report.required_account_line_amounts_present);
+        assert_eq!(report.accounted_component_total_zar, None);
     }
 
     #[test]
@@ -759,8 +777,8 @@ mod tests {
         input.assessed_vat_zar = Some(100.00);
         input.vat_line_reference = Some("SYNTHETIC-VAT-LINE".to_owned());
         let report = evaluate_bill(&input).unwrap();
-        assert!(report.invoice_reconciliation_complete);
-        assert_eq!(report.full_invoice_total_zar, Some(round_currency(report.known_component_subtotal_zar + 112.34)));
+        assert!(report.required_account_line_amounts_present);
+        assert_eq!(report.accounted_component_total_zar, Some(round_currency(report.known_component_subtotal_zar + 112.34)));
     }
 
     #[test]
@@ -788,6 +806,13 @@ mod tests {
         let mut input = input_with(vec![interval(6, DayClass::Weekday, 8 * 60, 15, 1.0, 1.0)]);
         input.reactive_energy_kvarh = -1.0;
         assert!(matches!(evaluate_bill(&input), Err(BillingError::InvalidValue { .. })));
+    }
+
+    #[test]
+    fn multi_month_trace_is_rejected_before_monthly_fixed_charges_are_applied() {
+        let mut input = input_with(vec![interval(6, DayClass::Weekday, 8 * 60, 15, 1.0, 1.0)]);
+        input.intervals.push(interval(7, DayClass::Weekday, 8 * 60, 15, 1.0, 1.0));
+        assert_eq!(evaluate_bill(&input), Err(BillingError::MultipleMonthsNotSupported));
     }
 
     #[test]
