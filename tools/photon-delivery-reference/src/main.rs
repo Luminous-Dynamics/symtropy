@@ -3,7 +3,7 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-const REQUIRED_KEYS: [&str; 18] = [
+const REQUIRED_KEYS: [&str; 19] = [
     "schema_version",
     "scenario_id",
     "evidence_class",
@@ -22,6 +22,7 @@ const REQUIRED_KEYS: [&str; 18] = [
     "optical_auxiliary_peak_kw",
     "available_lighting_power_kw",
     "available_lighting_energy_kwh_day",
+    "led_canopy_uniformity_floor",
 ];
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,6 +38,7 @@ struct PhotonInput {
     canopy_uniformity_floor: f64,
     optical_availability: f64,
     led_efficacy_umol_j: f64,
+    led_canopy_uniformity_floor: f64,
     led_hours_per_day: f64,
     optical_auxiliary_electricity_wh_day: f64,
     optical_auxiliary_peak_kw: f64,
@@ -51,6 +53,10 @@ struct PhotonReport {
     solar_mean_dli_mol_m2_day: f64,
     solar_floor_dli_mol_m2_day: f64,
     led_supplement_dli_mol_m2_day: f64,
+    led_requested_mean_dli_mol_m2_day: f64,
+    led_delivered_floor_dli_mol_m2_day: f64,
+    resource_constrained_dli_mol_m2_day: f64,
+    resource_constrained_dli_shortfall_mol_m2_day: f64,
     led_only_electricity_kwh_day: f64,
     led_supplement_electricity_kwh_day: f64,
     optical_auxiliary_electricity_kwh_day: f64,
@@ -168,6 +174,7 @@ fn parse_input(source: &str) -> Result<PhotonInput, String> {
         canopy_uniformity_floor: parse_f64(&values, "canopy_uniformity_floor")?,
         optical_availability: parse_f64(&values, "optical_availability")?,
         led_efficacy_umol_j: parse_f64(&values, "led_efficacy_umol_j")?,
+        led_canopy_uniformity_floor: parse_f64(&values, "led_canopy_uniformity_floor")?,
         led_hours_per_day: parse_f64(&values, "led_hours_per_day")?,
         optical_auxiliary_electricity_wh_day: parse_f64(
             &values,
@@ -194,6 +201,13 @@ fn validate(input: &PhotonInput) -> Result<(), String> {
     unit_interval(input.canopy_uniformity_floor, "canopy_uniformity_floor")?;
     unit_interval(input.optical_availability, "optical_availability")?;
     positive(input.led_efficacy_umol_j, "led_efficacy_umol_j")?;
+    unit_interval(
+        input.led_canopy_uniformity_floor,
+        "led_canopy_uniformity_floor",
+    )?;
+    if input.led_canopy_uniformity_floor == 0.0 {
+        return Err("led_canopy_uniformity_floor must be greater than zero".to_owned());
+    }
     positive(input.led_hours_per_day, "led_hours_per_day")?;
     if input.led_hours_per_day > 24.0 {
         return Err("led_hours_per_day must not exceed 24".to_owned());
@@ -237,10 +251,13 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
     let solar_mean_dli = at_canopy_umol / input.canopy_area_m2 / 1_000_000.0;
     let solar_floor_dli = solar_mean_dli * input.canopy_uniformity_floor;
     let led_supplement_dli = (input.target_dli_mol_m2_day - solar_floor_dli).max(0.0);
+    let led_requested_mean_dli = led_supplement_dli / input.led_canopy_uniformity_floor;
 
     // LED photon efficacy is defined at the declared electrical input boundary.
+    // The LED uniformity floor converts mean LED DLI into the minimum-zone contribution.
     let led_only_photons_umol = input.target_dli_mol_m2_day * 1_000_000.0 * input.canopy_area_m2;
-    let led_supplement_photons_umol = led_supplement_dli * 1_000_000.0 * input.canopy_area_m2;
+    let led_supplement_photons_umol =
+        led_requested_mean_dli * 1_000_000.0 * input.canopy_area_m2;
     let led_only_j = led_only_photons_umol / input.led_efficacy_umol_j;
     let led_supplement_j = led_supplement_photons_umol / input.led_efficacy_umol_j;
     let led_only_kwh = led_only_j / 3_600_000.0;
@@ -252,6 +269,26 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
     let hybrid_peak_kw = led_peak_kw + input.optical_auxiliary_peak_kw;
     let energy_saving_percent = (led_only_kwh - hybrid_electricity_kwh) / led_only_kwh * 100.0;
 
+    // Calculate what can actually be delivered after reserving power and energy
+    // for optical auxiliaries. A requested DLI is not achieved if the lighting
+    // plant cannot supply the required LED energy or peak power.
+    let led_power_available_kw =
+        (input.available_lighting_power_kw - input.optical_auxiliary_peak_kw).max(0.0);
+    let led_energy_available_kwh =
+        (input.available_lighting_energy_kwh_day - optical_aux_kwh).max(0.0);
+    let led_energy_by_power_limit_kwh = led_power_available_kw * input.led_hours_per_day;
+    let led_energy_delivered_kwh = led_supplement_kwh
+        .min(led_energy_available_kwh)
+        .min(led_energy_by_power_limit_kwh);
+    let led_delivered_mean_dli = led_energy_delivered_kwh * 3_600_000.0
+        * input.led_efficacy_umol_j
+        / 1_000_000.0
+        / input.canopy_area_m2;
+    let led_delivered_floor_dli = led_delivered_mean_dli * input.led_canopy_uniformity_floor;
+    let resource_constrained_dli = solar_floor_dli + led_delivered_floor_dli;
+    let resource_constrained_dli_shortfall =
+        (input.target_dli_mol_m2_day - resource_constrained_dli).max(0.0);
+
     let computed = [
         ("solar_window_seconds", solar_window_seconds),
         ("collected_photons_umol", collected_photons_umol),
@@ -261,6 +298,12 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         ("solar_mean_dli", solar_mean_dli),
         ("solar_floor_dli", solar_floor_dli),
         ("led_supplement_dli", led_supplement_dli),
+        ("led_requested_mean_dli", led_requested_mean_dli),
+        ("led_delivered_mean_dli", led_delivered_mean_dli),
+        ("led_delivered_floor_dli", led_delivered_floor_dli),
+        ("resource_constrained_dli", resource_constrained_dli),
+        ("resource_constrained_dli_shortfall", resource_constrained_dli_shortfall),
+        ("led_energy_delivered_kwh", led_energy_delivered_kwh),
         ("led_only_kwh", led_only_kwh),
         ("led_supplement_kwh", led_supplement_kwh),
         ("optical_aux_kwh", optical_aux_kwh),
@@ -279,6 +322,10 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         solar_mean_dli_mol_m2_day: solar_mean_dli,
         solar_floor_dli_mol_m2_day: solar_floor_dli,
         led_supplement_dli_mol_m2_day: led_supplement_dli,
+        led_requested_mean_dli_mol_m2_day: led_requested_mean_dli,
+        led_delivered_floor_dli_mol_m2_day: led_delivered_floor_dli,
+        resource_constrained_dli_mol_m2_day: resource_constrained_dli,
+        resource_constrained_dli_shortfall_mol_m2_day: resource_constrained_dli_shortfall,
         led_only_electricity_kwh_day: led_only_kwh,
         led_supplement_electricity_kwh_day: led_supplement_kwh,
         optical_auxiliary_electricity_kwh_day: optical_aux_kwh,
@@ -288,7 +335,7 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         available_lighting_power_kw: input.available_lighting_power_kw,
         available_lighting_energy_kwh_day: input.available_lighting_energy_kwh_day,
         energy_saving_vs_led_only_percent: energy_saving_percent,
-        dli_met: solar_floor_dli + led_supplement_dli >= input.target_dli_mol_m2_day,
+        dli_met: resource_constrained_dli + 1e-9 >= input.target_dli_mol_m2_day,
         peak_power_feasible: hybrid_peak_kw <= input.available_lighting_power_kw,
         daily_energy_feasible: hybrid_electricity_kwh <= input.available_lighting_energy_kwh_day,
     })
@@ -325,6 +372,10 @@ fn render_json(report: &PhotonReport) -> String {
         report.solar_mean_dli_mol_m2_day,
         report.solar_floor_dli_mol_m2_day,
         report.led_supplement_dli_mol_m2_day,
+        report.led_requested_mean_dli_mol_m2_day,
+        report.led_delivered_floor_dli_mol_m2_day,
+        report.resource_constrained_dli_mol_m2_day,
+        report.resource_constrained_dli_shortfall_mol_m2_day,
         report.led_only_electricity_kwh_day,
         report.led_supplement_electricity_kwh_day,
         report.optical_auxiliary_electricity_kwh_day,
