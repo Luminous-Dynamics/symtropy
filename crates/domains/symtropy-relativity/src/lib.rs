@@ -299,10 +299,9 @@ impl KerrBlackHole {
     /// It vanishes in the extremal-spin limit.
     pub fn surface_gravity_rate_s_inv(self) -> f64 {
         let rg = self.gravitational_radius_m();
-        let a = self.kerr_parameter_m();
-        let r_plus = self.outer_horizon_radius_m();
-        SPEED_OF_LIGHT_M_S * (rg * rg - a * a).max(0.0).sqrt()
-            / (2.0 * rg * r_plus)
+        let chi = self.spin.get();
+        let root = (1.0 - chi * chi).sqrt();
+        SPEED_OF_LIGHT_M_S * root / (2.0 * rg * (1.0 + root))
     }
 
     /// Positive reference frequency in Hz for a proposed direct-wave
@@ -318,7 +317,11 @@ impl KerrBlackHole {
     /// For the extremal case |chi| = 1, the two horizons coincide.
     pub fn inner_horizon_radius_m(self) -> f64 {
         let rg = self.gravitational_radius_m();
-        rg * (1.0 - (1.0 - self.spin.get().powi(2)).sqrt())
+        let chi = self.spin.get();
+        // Rationalized form avoids catastrophic cancellation for small spin:
+        // 1 - sqrt(1 - chi^2) = chi^2 / (1 + sqrt(1 - chi^2)).
+        let root = (1.0 - chi * chi).sqrt();
+        rg * (chi * chi) / (1.0 + root)
     }
 
     /// Outer stationary-limit surface (ergosurface) at polar angle theta.
@@ -488,6 +491,34 @@ mod tests {
         );
         close(extremal.surface_gravity_rate_s_inv(), 0.0, 1e-14);
         assert!(extremal.direct_wave_reference_frequency_hz() > 0.0);
+    }
+
+    #[test]
+    fn small_spin_inner_horizon_avoids_subtractive_cancellation() {
+        let hole = KerrBlackHole::new(
+            solar_mass(),
+            DimensionlessSpin::new(1.0e-8).unwrap(),
+        );
+        let rg = hole.gravitational_radius_m();
+        let expected = rg * 0.5e-16;
+        let actual = hole.inner_horizon_radius_m();
+        close(actual, expected, 2e-8);
+        assert!(actual > 0.0);
+    }
+
+    #[test]
+    fn near_extremal_surface_gravity_remains_positive_and_finite() {
+        let hole = KerrBlackHole::new(
+            solar_mass(),
+            DimensionlessSpin::new(1.0 - 1.0e-12).unwrap(),
+        );
+        let kappa = hole.surface_gravity_rate_s_inv();
+        assert!(kappa.is_finite() && kappa > 0.0);
+        let exact_extremal = KerrBlackHole::new(
+            solar_mass(),
+            DimensionlessSpin::new(1.0).unwrap(),
+        );
+        assert_eq!(exact_extremal.surface_gravity_rate_s_inv(), 0.0);
     }
 
     #[test]
