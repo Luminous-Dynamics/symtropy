@@ -16,28 +16,30 @@ pub const SOURCE_REPOSITORY: &str = "HumanStudy-Hub/HumanStudy-Bench";
 pub const SOURCE_COMMIT: &str = "b34d214b980be13ec5944a4d570a38bc4047b0f9";
 pub const SOURCE_ROOT_TREE: &str = "26851c1d6564c78b25600afc7de8ec435e4aa3b8";
 
-pub const FOUNDATIONAL_12_PROTOCOL_ID: &str = "HSB-FOUNDATIONAL-12-FFB1F72A";
-pub const FOUNDATIONAL_12_SOURCE_COMMIT: &str = "ffb1f72a8bab327d7f4a6b7e43e7be4d3af10f61";
-pub const FOUNDATIONAL_12_SOURCE_ROOT_TREE: &str = "75af151f4a8e256fa5c6c0375b9ea84fb741b107";
+pub const PAPER_12_PROTOCOL_ID: &str = "HSB-PAPER-12-CF05D330";
+pub const PAPER_12_SOURCE_REPOSITORY: &str = "AISmithLab/HumanStudy-Bench";
+pub const PAPER_12_SOURCE_COMMIT: &str = "cf05d330fc315168c8c8e23b4acd882f91bb7408";
+pub const PAPER_12_SOURCE_ROOT_TREE: &str = "9b56c62406fb6b77d87d5032c3c6906583aca24e";
 
-pub const FOUNDATIONAL_12_STUDY_PINS: [StudyPin; 12] = [
-    StudyPin { study_id: "study_001", tree_sha: "df60d3a30bb5d6ce523dcad55abb144cde90b933" },
-    StudyPin { study_id: "study_002", tree_sha: "c9d1fbf3c0b67a811dc43a45013f4cfde7016954" },
-    StudyPin { study_id: "study_003", tree_sha: "98a1665c1b32eeb42ecfe752230940ea266f496c" },
-    StudyPin { study_id: "study_004", tree_sha: "e2f38a701e22a0898b814cad806e3e59237db4f2" },
-    StudyPin { study_id: "study_005", tree_sha: "56406098163f0a3c5465614c16a0c053c84ab919" },
-    StudyPin { study_id: "study_006", tree_sha: "409e601fbca62c19a9f6d06aafd9d7ac37cd0786" },
-    StudyPin { study_id: "study_007", tree_sha: "52310c97898413ec2e2069520a8466f8d562107b" },
-    StudyPin { study_id: "study_008", tree_sha: "9d46f8e4c354d789f69cf5bee153a29e8075dab1" },
-    StudyPin { study_id: "study_009", tree_sha: "2b4d9aadce637f0bec5187dca85fcfb6ffea0fce" },
-    StudyPin { study_id: "study_010", tree_sha: "fbbc34f423a4a9e0ad2fd7dbe06826589fa4c0fb" },
-    StudyPin { study_id: "study_011", tree_sha: "6007118b2a17e02f09204bc1632ade82e8482c89" },
-    StudyPin { study_id: "study_012", tree_sha: "8297eacb9d31c5b819803626218b96d68eeb50fe" },
+/// Exact data/studies/study_NNN Git tree identities at the original paper repository commit.
+pub const PAPER_12_STUDY_PINS: [StudyPin; 12] = [
+    StudyPin { study_id: "study_001", tree_sha: "ada9bcfe467e82acd230f08b4970e5eff3fff7f9" },
+    StudyPin { study_id: "study_002", tree_sha: "f20390e427b48e081c07273c70fda897e04a16bf" },
+    StudyPin { study_id: "study_003", tree_sha: "bbdba6bd7f4a71270a13d889bfb71c51d633398b" },
+    StudyPin { study_id: "study_004", tree_sha: "1af52b05645a9e9f9936e2c458ad8460a521c934" },
+    StudyPin { study_id: "study_005", tree_sha: "ed29e5fe8711402977e7bb7385a6f939f1ed4bfd" },
+    StudyPin { study_id: "study_006", tree_sha: "739255d6b6746ba9e93360d07f12cf631ad7d8d2" },
+    StudyPin { study_id: "study_007", tree_sha: "480c0468a8e3f588dfb67a827f6320581847132a" },
+    StudyPin { study_id: "study_008", tree_sha: "15d397ca8e7781ed6a3efcfdbb0c6eacf825964f" },
+    StudyPin { study_id: "study_009", tree_sha: "ba78aafc24a997eeb6957a2607a9ee8475b2c45f" },
+    StudyPin { study_id: "study_010", tree_sha: "1e49238a66b4da4fc4f6bfb44cb628c39aa1b7b8" },
+    StudyPin { study_id: "study_011", tree_sha: "aa5858deda592a67e391d271c1fc3c64d8d9362e" },
+    StudyPin { study_id: "study_012", tree_sha: "1a4979759d78205621080f7fb7a261c132051886" },
 ];
 
 #[derive(Clone, Copy)]
 struct PinnedProtocol {
-    protocol_id: &'static str,
+    source_repository: &'static str,
     source_commit: &'static str,
     source_root_tree: &'static str,
     study_pins: &'static [StudyPin],
@@ -46,16 +48,16 @@ struct PinnedProtocol {
 fn pinned_protocol(protocol_id: &str) -> Option<PinnedProtocol> {
     match protocol_id {
         PROTOCOL_ID => Some(PinnedProtocol {
-            protocol_id: PROTOCOL_ID,
+            source_repository: SOURCE_REPOSITORY,
             source_commit: SOURCE_COMMIT,
             source_root_tree: SOURCE_ROOT_TREE,
             study_pins: &STUDY_PINS,
         }),
-        FOUNDATIONAL_12_PROTOCOL_ID => Some(PinnedProtocol {
-            protocol_id: FOUNDATIONAL_12_PROTOCOL_ID,
-            source_commit: FOUNDATIONAL_12_SOURCE_COMMIT,
-            source_root_tree: FOUNDATIONAL_12_SOURCE_ROOT_TREE,
-            study_pins: &FOUNDATIONAL_12_STUDY_PINS,
+        PAPER_12_PROTOCOL_ID => Some(PinnedProtocol {
+            source_repository: PAPER_12_SOURCE_REPOSITORY,
+            source_commit: PAPER_12_SOURCE_COMMIT,
+            source_root_tree: PAPER_12_SOURCE_ROOT_TREE,
+            study_pins: &PAPER_12_STUDY_PINS,
         }),
         _ => None,
     }
@@ -347,8 +349,8 @@ pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
         return Err(vec!["protocol_id does not match a pinned protocol profile".to_string()]);
     };
 
-    if receipt.source_repository != SOURCE_REPOSITORY {
-        errors.push("source_repository does not match the pinned upstream repository".to_string());
+    if receipt.source_repository != profile.source_repository {
+        errors.push("source_repository does not match the selected pinned protocol".to_string());
     }
     if receipt.source_commit != profile.source_commit {
         errors.push("source_commit does not match the selected pinned protocol".to_string());
@@ -471,30 +473,30 @@ mod tests {
     }
 
     #[test]
-    fn foundational_inventory_contains_twelve_unique_studies() {
-        let ids: BTreeSet<_> = FOUNDATIONAL_12_STUDY_PINS.iter().map(|pin| pin.study_id).collect();
-        assert_eq!(FOUNDATIONAL_12_STUDY_PINS.len(), 12);
+    fn paper_inventory_contains_twelve_unique_studies() {
+        let ids: BTreeSet<_> = PAPER_12_STUDY_PINS.iter().map(|pin| pin.study_id).collect();
+        assert_eq!(PAPER_12_STUDY_PINS.len(), 12);
         assert_eq!(ids.len(), 12);
     }
 
     #[test]
-    fn foundational_twelve_profile_passes_its_exact_receipt() {
+    fn paper_twelve_profile_passes_its_exact_receipt() {
         let receipt = BenchmarkRunReceipt {
-            protocol_id: FOUNDATIONAL_12_PROTOCOL_ID.to_string(),
-            source_repository: SOURCE_REPOSITORY.to_string(),
-            source_commit: FOUNDATIONAL_12_SOURCE_COMMIT.to_string(),
-            source_root_tree: FOUNDATIONAL_12_SOURCE_ROOT_TREE.to_string(),
-            run_id: "synthetic-foundational-12-conformance".to_string(),
+            protocol_id: PAPER_12_PROTOCOL_ID.to_string(),
+            source_repository: PAPER_12_SOURCE_REPOSITORY.to_string(),
+            source_commit: PAPER_12_SOURCE_COMMIT.to_string()
+            source_root_tree: PAPER_12_SOURCE_ROOT_TREE.to_string(),
+            run_id: "synthetic-paper-12-conformance".to_string(),
             model_id: "synthetic-reference-not-a-model".to_string(),
-            studies: FOUNDATIONAL_12_STUDY_PINS.iter().copied().map(study).collect(),
+            studies: PAPER_12_STUDY_PINS.iter().copied().map(study).collect(),
         };
         assert!(validate_run(&receipt).is_ok());
     }
 
     #[test]
-    fn community_sixteen_profile_rejects_foundational_only_receipt() {
+    fn community_sixteen_profile_rejects_paper_only_receipt() {
         let mut receipt = valid_run();
-        receipt.studies = FOUNDATIONAL_12_STUDY_PINS.iter().copied().map(study).collect();
+        receipt.studies = PAPER_12_STUDY_PINS.iter().copied().map(study).collect();
         assert!(validate_run(&receipt).is_err());
     }
 
