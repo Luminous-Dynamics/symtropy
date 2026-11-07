@@ -459,6 +459,11 @@ fn json_vec3(value: Vec3) -> String {
     )
 }
 
+fn json_usize_array(values: &[usize]) -> String {
+    let parts = values.iter().map(usize::to_string).collect::<Vec<_>>();
+    format!("[{}]", parts.join(","))
+}
+
 fn result_json() -> Result<String, String> {
     let (loads, transfer, source_total, target_total, source_work, target_work, affine_error) =
         solve_fixture()?;
@@ -479,6 +484,7 @@ fn result_json() -> Result<String, String> {
             "\"target_node_count\":4,",
             "\"target_triangle_count\":2,",
             "\"quadrature_point_count\":{},",
+            "\"target_hit_triangle_indices\":{},",
             "\"source_force_n\":{},",
             "\"target_force_n\":{},",
             "\"source_moment_nm\":{},",
@@ -501,6 +507,13 @@ fn result_json() -> Result<String, String> {
             "}}"
         ),
         loads.len(),
+        json_usize_array(
+            &transfer
+                .hits
+                .iter()
+                .map(|hit| hit.triangle_index)
+                .collect::<Vec<_>>(),
+        ),
         json_vec3(source_total.force_n),
         json_vec3(target_total.force_n),
         json_vec3(source_total.moment_nm),
@@ -516,10 +529,12 @@ fn result_json() -> Result<String, String> {
     Ok(output)
 }
 
+#[cfg(test)]
 fn rotate_z(value: Vec3) -> Vec3 {
     Vec3([-value.0[1], value.0[0], value.0[2]])
 }
 
+#[cfg(test)]
 fn rigid_transform_mesh(mesh: &SurfaceMesh, translation_m: Vec3) -> SurfaceMesh {
     SurfaceMesh {
         nodes_m: mesh
@@ -531,6 +546,7 @@ fn rigid_transform_mesh(mesh: &SurfaceMesh, translation_m: Vec3) -> SurfaceMesh 
     }
 }
 
+#[cfg(test)]
 fn rigid_transform_loads(
     loads: &[QuadratureLoad],
     translation_m: Vec3,
