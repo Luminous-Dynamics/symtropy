@@ -33,6 +33,8 @@ pub mod curvature;
 pub mod autodiff;
 /// Validated stationary black-hole metric components in a declared chart.
 pub mod metric;
+/// Equatorial Kerr light-ring / circular-null-orbit reference quantities.
+pub mod light_ring;
 /// Posterior-preserving transforms for Kerr remnant horizon observables.
 pub mod posterior;
 
