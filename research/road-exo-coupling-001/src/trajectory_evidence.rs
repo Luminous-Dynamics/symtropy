@@ -44,8 +44,12 @@ pub struct SamTrajectoryAssessmentBinding {
     pub evidence_manifest_id: String,
     pub support_manifest_digest: [u8; 32],
     pub query_digest: [u8; 32],
-    pub target_policy_digest: String,
-    pub context_digest: String,
+    /// Scope metadata copied from the SAM SupportManifest.
+    pub support_target_policy_digest: String,
+    pub support_context_digest: String,
+    /// Scope metadata copied from the SAM TrajectoryQuery.
+    pub query_target_policy_digest: String,
+    pub query_context_digest: String,
     pub path_universe_exhaustive: bool,
     pub query_complete: bool,
     pub decision_points: u64,
@@ -127,6 +131,16 @@ impl SamTrajectoryAssessmentBinding {
         out.extend_from_slice(b"sam.policy-trajectory-support.assessment-receipt.v0.1\0");
         push_bytes(&mut out, support_manifest_bytes);
         push_bytes(&mut out, query_bytes);
+        // Keep this field order byte-for-byte aligned with SAM's
+        // AssessmentReceipt::canonical_bytes() implementation.
+        push_string(&mut out, &self.evidence_manifest_id);
+        push_string(&mut out, &self.support_target_policy_digest);
+        push_string(&mut out, &self.support_context_digest);
+        out.push(u8::from(self.path_universe_exhaustive));
+        push_string(&mut out, &self.query_target_policy_digest);
+        push_string(&mut out, &self.query_context_digest);
+        out.push(u8::from(self.query_complete));
+        out.extend_from_slice(&self.decision_points.to_le_bytes());
         push_bytes(&mut out, &self.canonical_assessment_bytes());
         out
     }
@@ -158,17 +172,33 @@ impl SamTrajectoryAssessmentBinding {
             &self.sam_assessment_receipt_digest,
             "sam_assessment_receipt_digest",
         )?;
-        require_identity(&self.target_policy_digest, "target_policy_digest")?;
-        require_identity(&self.context_digest, "context_digest")?;
+        require_identity(
+            &self.support_target_policy_digest,
+            "support_target_policy_digest",
+        )?;
+        require_identity(&self.support_context_digest, "support_context_digest")?;
+        require_identity(
+            &self.query_target_policy_digest,
+            "query_target_policy_digest",
+        )?;
+        require_identity(&self.query_context_digest, "query_context_digest")?;
+
+        let scope_matches = self.support_target_policy_digest == self.query_target_policy_digest
+            && self.support_context_digest == self.query_context_digest;
 
         match self.disposition {
             SamTrajectoryDisposition::TrajectorySupported => {
-                if !self.query_complete || !self.matched_finite_path || self.decision_points == 0 {
+                if !self.query_complete
+                    || !scope_matches
+                    || !self.matched_finite_path
+                    || self.decision_points == 0
+                {
                     return Err(TrajectoryEvidenceError::InvalidSamDisposition);
                 }
             }
             SamTrajectoryDisposition::UnsupportedSequence => {
                 if !self.query_complete
+                    || !scope_matches
                     || !self.path_universe_exhaustive
                     || self.matched_finite_path
                     || self.decision_points == 0
@@ -178,6 +208,7 @@ impl SamTrajectoryAssessmentBinding {
             }
             SamTrajectoryDisposition::SupportUnknown => {
                 if !self.query_complete
+                    || !scope_matches
                     || self.path_universe_exhaustive
                     || self.matched_finite_path
                     || self.decision_points == 0
@@ -191,7 +222,11 @@ impl SamTrajectoryAssessmentBinding {
                 }
             }
             SamTrajectoryDisposition::OutOfScope => {
-                if !self.query_complete || self.matched_finite_path || self.decision_points == 0 {
+                if !self.query_complete
+                    || scope_matches
+                    || self.matched_finite_path
+                    || self.decision_points == 0
+                {
                     return Err(TrajectoryEvidenceError::InvalidSamDisposition);
                 }
             }
@@ -209,8 +244,10 @@ impl SamTrajectoryAssessmentBinding {
         push_string(&mut out, &self.evidence_manifest_id);
         out.extend_from_slice(&self.support_manifest_digest);
         out.extend_from_slice(&self.query_digest);
-        push_string(&mut out, &self.target_policy_digest);
-        push_string(&mut out, &self.context_digest);
+        push_string(&mut out, &self.support_target_policy_digest);
+        push_string(&mut out, &self.support_context_digest);
+        push_string(&mut out, &self.query_target_policy_digest);
+        push_string(&mut out, &self.query_context_digest);
         out.push(u8::from(self.path_universe_exhaustive));
         out.push(u8::from(self.query_complete));
         out.extend_from_slice(&self.decision_points.to_le_bytes());
@@ -238,6 +275,14 @@ pub struct TrajectorySupportReference {
     pub evidence_manifest_id: String,
     pub support_manifest_digest: [u8; 32],
     pub query_digest: [u8; 32],
+    pub support_target_policy_digest: String,
+    pub support_context_digest: String,
+    pub query_target_policy_digest: String,
+    pub query_context_digest: String,
+    pub path_universe_exhaustive: bool,
+    pub query_complete: bool,
+    pub decision_points: u64,
+    pub matched_finite_path: bool,
     pub sam_assessment_receipt_digest: [u8; 32],
     pub assessment_receipt_digest: [u8; 32],
 }
@@ -437,6 +482,14 @@ fn support_reference(binding: &SamTrajectoryAssessmentBinding) -> TrajectorySupp
         evidence_manifest_id: binding.evidence_manifest_id.clone(),
         support_manifest_digest: binding.support_manifest_digest,
         query_digest: binding.query_digest,
+        support_target_policy_digest: binding.support_target_policy_digest.clone(),
+        support_context_digest: binding.support_context_digest.clone(),
+        query_target_policy_digest: binding.query_target_policy_digest.clone(),
+        query_context_digest: binding.query_context_digest.clone(),
+        path_universe_exhaustive: binding.path_universe_exhaustive,
+        query_complete: binding.query_complete,
+        decision_points: binding.decision_points,
+        matched_finite_path: binding.matched_finite_path,
         sam_assessment_receipt_digest: binding.sam_assessment_receipt_digest,
         assessment_receipt_digest: binding.assessment_receipt_digest,
     }
@@ -457,6 +510,14 @@ fn certificate_bytes(certificate: &TrajectoryEvidenceBoundDecisionCertificate) -
         push_string(&mut out, &reference.evidence_manifest_id);
         out.extend_from_slice(&reference.support_manifest_digest);
         out.extend_from_slice(&reference.query_digest);
+        push_string(&mut out, &reference.support_target_policy_digest);
+        push_string(&mut out, &reference.support_context_digest);
+        push_string(&mut out, &reference.query_target_policy_digest);
+        push_string(&mut out, &reference.query_context_digest);
+        out.push(u8::from(reference.path_universe_exhaustive));
+        out.push(u8::from(reference.query_complete));
+        out.extend_from_slice(&reference.decision_points.to_le_bytes());
+        out.push(u8::from(reference.matched_finite_path));
         out.extend_from_slice(&reference.sam_assessment_receipt_digest);
         out.extend_from_slice(&reference.assessment_receipt_digest);
     }
@@ -634,9 +695,11 @@ mod tests {
             evidence_manifest_id: "evidence-v1".to_owned(),
             support_manifest_digest: [3; 32],
             query_digest: [4; 32],
+            support_target_policy_digest: "policy-v1".to_owned(),
+            support_context_digest: "context-v1".to_owned(),
+            query_target_policy_digest: "policy-v1".to_owned(),
+            query_context_digest: "context-v1".to_owned(),
             sam_assessment_receipt_digest: [0; 32],
-            target_policy_digest: "policy-digest".to_owned(),
-            context_digest: "context-digest".to_owned(),
             path_universe_exhaustive,
             query_complete,
             decision_points,
@@ -644,6 +707,9 @@ mod tests {
             disposition,
             assessment_receipt_digest: [0; 32],
         };
+        if disposition == SamTrajectoryDisposition::OutOfScope {
+            binding.query_target_policy_digest = "policy-v2".to_owned();
+        }
         binding.sam_assessment_receipt_digest =
             *blake3::hash(&binding.canonical_assessment_bytes()).as_bytes();
         binding.seal().unwrap()
@@ -957,6 +1023,21 @@ mod tests {
         binding.query_context_digest = "different-context".to_owned();
         assert_eq!(
             binding.seal(),
+            Err(TrajectoryEvidenceError::InvalidSamDisposition)
+        );
+    }
+
+    #[test]
+    fn out_of_scope_requires_a_real_policy_or_context_mismatch() {
+        let valid_out_of_scope = sam_binding(SamTrajectoryDisposition::OutOfScope);
+        assert_eq!(valid_out_of_scope.verify_receipt(), Ok(()));
+
+        let mut false_out_of_scope = valid_out_of_scope;
+        false_out_of_scope.query_target_policy_digest =
+            false_out_of_scope.support_target_policy_digest.clone();
+        false_out_of_scope.assessment_receipt_digest = [0; 32];
+        assert_eq!(
+            false_out_of_scope.seal(),
             Err(TrajectoryEvidenceError::InvalidSamDisposition)
         );
     }
