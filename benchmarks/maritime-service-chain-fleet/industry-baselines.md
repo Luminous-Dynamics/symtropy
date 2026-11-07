@@ -1,6 +1,6 @@
 # Maritime service-chain fleet: industry and research baselines
 
-Research snapshot: 6 November 2026. This is a benchmark-design note, not a claim that the fleet oracle outperforms any cited system or paper.
+Research snapshot: 7 November 2026. This is a benchmark-design note, not a claim that the fleet oracle outperforms any cited system or paper.
 
 ## What the field already does well
 
@@ -48,7 +48,7 @@ Do not call an unavailable baseline a loss or replace it with a weaker straw man
 
 ## What the current fleet oracle does—and does not—establish
 
-Current scope is a finite, integer-tick synthetic service chain with at least two demands, shared physical resource IDs and a bounded set of prequalified voyage alternatives. The current source declares 32 unit tests and 3 independent resource-accounting integration tests, includes a test-only full-fleet enumerator and a 20-variant differential sweep. The last recorded exact-head pass predates the two newest terminal/inland throughput-quota tests (30 unit tests + 3 integration tests); the newest workflow is queued, so do not describe all 32 unit tests as passed until that exact-head run succeeds. These tests are correctness evidence for the finite model only.
+Current scope is a finite, integer-tick synthetic service chain with at least two demands, shared physical resource IDs and a bounded set of prequalified voyage alternatives. The current exact head declares 32 unit tests and 3 independent resource-accounting integration tests, includes a test-only full-fleet enumerator and a 20-variant differential sweep. Exact-head formatting and test workflow passed on 7 November 2026 after the added terminal/inland throughput-quota controls were included. Workflow: https://github.com/Luminous-Dynamics/symtropy/actions/runs/42341759255. These tests are correctness evidence for the finite model only, not physical qualification or evidence of optimizer superiority.
 
 Covered model features:
 - Joint feasibility across demands rather than independent one-vessel feasibility.
@@ -76,6 +76,70 @@ The differentiation opportunity is not another ETA predictor or berth dashboard.
 5. Sol Atlas projects the source coverage and unresolved gaps; it does not turn a map layer into navigation authority.
 
 This makes evidence quality, resource semantics, participant outcome and recovery part of the optimization boundary. It is only a credible improvement if matched benchmarks show gains without hard-gate violations or distributional harm.
+
+## Fair-comparison protocol: what "better than SOTA" must mean
+
+A headline percentage from a paper, a local synthetic gain, and a commercial product feature are three different evidence classes. Do not compare them as if they were one leaderboard. Before a head-to-head claim, pin the instance, model boundary, information cutoff, candidate alternatives, hard constraints, objective definitions, hardware and compute budget.
+
+### Comparator tiers
+
+| Tier | Baselines | What a valid comparison establishes |
+|---|---|---|
+| Correctness floor | Independent exact fleet enumerator; direct per-tick and per-window resource oracles | The implementation solves the finite integer-tick model correctly on matched tiny instances |
+| Transparent operational rules | FCFS, earliest feasible, minimum wait-slack, minimum declared energy, current declared port/lock rule | Whether optimization improves over transparent, reproducible decision policies |
+| Mathematical optimization | HiGHS MILP, published CPLEX/MILP formulations, max-plus-to-MILP where in scope | Objective/frontier quality and runtime under matched decision variables, constraints and stopping budgets |
+| Multi-objective search | NSGA-II, NSGA-III, MOEA/D, SPEA-II, MOSA, and NSGA-II-AAMNS where the published formulation can be reproduced | Pareto quality under equal tuning/evaluation budgets and a fixed reference set |
+| Robust/contingent optimization | Two-stage robust/column-and-constraint generation; bounded trigger-and-recourse policy; fixed plan and greedy event-by-event replanning | Regret and tail-service performance under the same frozen uncertainty set and information cutoffs |
+| Operational systems | DCSA/IAPH/IHMA-aligned port-call workflows; commercial voyage/berth coordination platforms such as StormGeo/Portchain | Interoperability and workflow comparison; commercial feature presence is not an independently measured optimization win |
+
+### Matched experiment controls
+
+Every method must receive the same:
+1. demand roster, vessel/alternative catalogue, route and segment revisions, resource calendars, units and evidence snapshots;
+2. information cutoff and observation state (planned/requested/estimated/actual are not interchangeable);
+3. hard constraint set, including direction windows, headway, interaction topology, resource capacity and cumulative quotas when those variables are in scope;
+4. objective vector and tie-breaks, without silently changing the denominator or excluding unserved demands;
+5. time/memory/CPU budget, number of seeds/runs, solver tolerances and termination criteria.
+
+Pin the solver/library/compiler versions and machine profile. Report model-build time separately from solve time. An optimal MIP status is valid only for that model formulation; it is not proof the formulation captures a real port or its uncertainty.
+
+For published reproduction, preserve the authors' data, variable definitions, bounds, normalizations, reference point, run count and hardware as closely as source access permits. Then separately run a preregistered common-corpus experiment on a frozen instance set. Paper-specific normalizations and thresholds must not be repurposed to make our scores look better.
+
+### Required metrics (do not collapse)
+
+| Dimension | Report |
+|---|---|
+| Service | Requested, accepted, delivered and unserved amount by demand/participant/service class; explicit reconciliation |
+| Time | Arrival, anchorage, channel, lock, berth, handling, transfer and end-to-end dwell components; mean, median, p90, p95, max and CVaR where the corpus supports it |
+| Traffic | Same-segment headway violations, missing/unknown topology, crossing/merge conflicts, missed direction/tidal windows |
+| Mobile assistance | Tug/pilot compatibility, assignments, deadhead/reposition distance and time, idle time, duty/availability, fuel/energy only where a qualified model supplies it |
+| Resources | Concurrent occupancy, cumulative quota use, spare/reserve use and overcommitment, all by canonical resource ID |
+| Energy/water | Propulsion, auxiliary, shore-grid import and inland energy separated; lock water draw/return/reuse/loss with declared meter boundaries |
+| Resilience | Service lost, time back above a declared service threshold, recovery regret, branch feasibility, reserve option cost and evidence-triggered abstention |
+| Distribution | Delay and unserved amount by participant/service class, worst-group outcome, displacement caused by prioritization, allocation-policy sensitivity |
+| Search | Feasibility, optimality proof, incumbent/dual bound/gap, frontier size, hypervolume/IGD+ under frozen normalization, state/node counts, memory, p50/p95 time and termination reason |
+
+Hard-constraint violations are reported as counts and failure dispositions, never as soft penalties that can be offset by a better weighted score. If an algorithm returns a plan that fails an independent verifier, it receives no feasible-plan credit.
+
+### Pareto and uncertainty rules
+
+- Keep water, propulsion, auxiliary, shore import, inland-transfer energy, makespan, delivery, idle wait and service/fairness as separate dimensions until a justified boundary or policy explicitly combines them.
+- Freeze normalization bounds and hypervolume reference points before opening the held-out results. Report Pareto precision/recall against exact tiny fronts, epsilon indicators and IGD+; do not compare hypervolume computed with different reference points.
+- When probabilities are not calibrated, use per-scenario/worst-case or interval/range reporting. A set of hand-authored disruptions does not establish an event distribution.
+- For uncertain berth service, arrivals, tug availability or water/tide conditions, compare deterministic, robust and bounded recourse policies on the identical frozen uncertainty scenarios. State the non-anticipativity / information available at each decision node.
+- Keep hindsight/oracle solutions strictly evaluation-only. They are upper bounds, not deployable policies.
+
+### Promotion criteria for a superiority statement
+
+A "better than SOTA" claim requires all of the following, not just a better average objective:
+1. Reproduce at least one strongest, scope-matched published baseline or document a specific data/licensing blocker.
+2. Achieve 100% independent feasibility agreement on the exact tiny corpus and zero hard-constraint violations in every reported incumbent.
+3. Use a predeclared held-out case/corridor/operating-regime split, with no overlapping campaign or scenario leakage.
+4. Demonstrate a statistically and operationally meaningful improvement on a predeclared service or efficiency metric, with uncertainty intervals and no unacceptable degradation in tail delay, service coverage, fairness, water, energy or resilience.
+5. Disclose all negative cases, infeasible cases, timeouts, unsupported evidence, solver gaps and uncompleted runs.
+6. Preserve deterministic replay and exact commit/data/configuration identities for every result.
+
+The current fleet oracle is a correctness reference, not an industry-leading optimizer. Its role is to make later matched comparisons falsifiable and independently checkable.
 
 ## Qualification targets
 
