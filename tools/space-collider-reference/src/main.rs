@@ -32,7 +32,9 @@ fn lorentz_factor_from_beam(beam: BeamEnergyGeV) -> Result<LorentzFactor, String
     }
     let gamma = beam.0 / PROTON_REST_ENERGY_GEV;
     if !gamma.is_finite() || gamma < 1.0 {
-        return Err("per-beam energy is below proton rest energy or numerically invalid".to_owned());
+        return Err(
+            "per-beam energy is below proton rest energy or numerically invalid".to_owned(),
+        );
     }
     Ok(LorentzFactor(gamma))
 }
@@ -161,13 +163,6 @@ fn render_reference_report() -> Result<String, String> {
     ))
 }
 
-fn close(actual: f64, expected: f64, tolerance: f64) {
-    assert!(
-        (actual - expected).abs() <= tolerance,
-        "actual {actual}, expected {expected}, tolerance {tolerance}"
-    );
-}
-
 fn main() -> ExitCode {
     match render_reference_report() {
         Ok(report) => {
@@ -184,6 +179,13 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn close(actual: f64, expected: f64, tolerance: f64) {
+        assert!(
+            (actual - expected).abs() <= tolerance,
+            "actual {actual}, expected {expected}, tolerance {tolerance}"
+        );
+    }
 
     #[test]
     fn one_pev_center_of_mass_means_half_pev_per_beam() {
@@ -208,32 +210,30 @@ mod tests {
         let lhc_gamma = lorentz_factor_from_beam(lhc_beam).expect("valid LHC beam");
         let candidate_gamma =
             lorentz_factor_from_beam(BeamEnergyGeV(GEV_PER_PEV)).expect("valid beam");
-        close(candidate_gamma.0 / lhc_gamma.0, 142.857_142_857_142_86, 1e-12);
+        close(
+            candidate_gamma.0 / lhc_gamma.0,
+            142.857_142_857_142_86,
+            1e-12,
+        );
     }
 
     #[test]
     fn forty_seven_thousand_km_orbit_has_about_six_point_four_hz_revolution() {
-        let frequency =
-            orbital_revolution_frequency_hz(47_000_000.0).expect("valid circumference");
+        let frequency = orbital_revolution_frequency_hz(47_000_000.0).expect("valid circumference");
         close(frequency, 6.378_562_936_170_213, 1e-12);
     }
 
     #[test]
     fn rigidity_reference_reproduces_the_preprint_table_radius() {
-        let radius = required_ring_radius_m(
-            CenterOfMassEnergyGeV(GEV_PER_PEV),
-            2.0,
-            0.7,
-        )
-        .expect("valid magnet parameters");
+        let radius = required_ring_radius_m(CenterOfMassEnergyGeV(GEV_PER_PEV), 2.0, 0.7)
+            .expect("valid magnet parameters");
         close(radius / 1000.0, 1191.300_339_993_400_3, 1e-9);
     }
 
     #[test]
     fn forty_seven_thousand_km_at_two_tesla_reaches_about_six_point_three_pev_cm() {
         let radius_m = 47_000_000.0 / (2.0 * std::f64::consts::PI);
-        let cm = max_center_of_mass_energy_gev(radius_m, 2.0, 0.7)
-            .expect("valid ring and field");
+        let cm = max_center_of_mass_energy_gev(radius_m, 2.0, 0.7).expect("valid ring and field");
         close(cm.0 / GEV_PER_PEV, 6.279_090_229_555_815, 1e-12);
     }
 
