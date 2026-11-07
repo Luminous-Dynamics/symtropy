@@ -182,17 +182,17 @@ It allocates integer input-power quanta over discrete time slots subject to:
 - total source-energy budget across the episode;
 - per-channel and per-session input-power caps;
 - session availability windows and requested useful-energy caps;
-- one actual slot with simultaneous positive ground and air delivery;
+- simultaneous positive ground and air delivery, with the number of concurrent slots explicitly maximized after service fairness and source use are optimized;
 - strict domain/modality/receiver identity agreement;
 - synthetic-only envelope, authorization, safety and coexistence states.
 
-The bounded exact objective is lexicographic: maximize sessions meeting their minimum service floor; maximize the sorted minimum-to-maximum request-fulfilment ratios (leximin); maximize total useful energy; minimize source energy; then use a stable schedule tie-break. If the node bound is exhausted, the evaluator returns an error and emits no partial optimum.
+The bounded exact objective is lexicographic: maximize sessions meeting their minimum service floor; maximize the sorted minimum-to-maximum request-fulfilment ratios (leximin); maximize total useful energy; minimize source energy; maximize the count of time slots with positive ground and air delivery; then prefer earlier delivery with a stable tie-break. This treats sustained simultaneity as an explicit service objective, not a one-time episode flag. If the node bound is exhausted, the evaluator returns an error and emits no partial optimum.
 
 v0 bounds the scenario to 8 time slots, 8 channels, 8 sessions, 8 power quanta per slot and at most 1,000,000 search nodes. It models one aggregate grid/PCC source; storage, generation, multiple feeders, ramp dynamics and stochastic arrivals remain later increments.
 
 ### Fixture arithmetic (not physical performance)
 
-The synthetic fixture has a 3-quanta-per-slot PCC cap, four 60-second slots, an 80 Wh source budget, 10 Wh per input quantum-slot, a 16 Wh ground useful-energy request and a 12 Wh air useful-energy request. Its declared synthetic coefficients permit a 28 Wh total useful-energy allocation while preserving simultaneous service and both minimum floors.
+The synthetic fixture has a 3-quanta-per-slot PCC cap, four 60-second slots, an 80 Wh source budget, 10 Wh per input quantum-slot, a 16 Wh ground useful-energy request and a 12 Wh air useful-energy request. Its exact optimum allocates one air and one ground quantum in **all four slots**, delivering 12 Wh to the aircraft battery boundary and 16 Wh to the ground-vehicle battery boundary. Total synthetic useful energy is 28 Wh from 80 Wh of site input. The 35% arithmetic ratio is not a measured charging efficiency, and the fixture coefficients are not physical conversion models.
 
 Those values are invented known-truth arithmetic controls. The reported useful-to-source ratio is **not** an experimentally measured conversion efficiency, and the input coefficients are not electromagnetic or aircraft models.
 
@@ -269,3 +269,8 @@ The allocator now requires three distinct measurement identities:
 The allocation quanta are normalized synthetic site-PCC input energy. The useful-energy coefficient maps that site input to the declared receiver endpoint for arithmetic purposes only. The channel-input boundary is a separate typed reference; v0 does not calculate intermediate conversion losses or pretend the shared feeder meter is a channel meter. A future measured adapter must provide actual synchronized readings and uncertainty at each boundary before emitting physical efficiency values.
 
 The evaluator rejects a channel meter boundary inconsistent with the transfer modality and a useful-energy boundary inconsistent with the receiver class. This prevents a vehicle-battery figure, aircraft-battery figure and inverter-input figure from being treated as interchangeable Wh.
+
+
+### Concurrency continuity metric
+
+The exact report exposes `simultaneous_delivery_slot_count` and a per-slot `simultaneous_ground_air_delivery` Boolean. The frozen fixture achieves 4/4 concurrent slots. This is a synthetic service-continuity target; physical validation must separately measure actual ground and aircraft delivery windows, meter windows, channel availability and transient dropouts.
