@@ -16,6 +16,51 @@ pub const SOURCE_REPOSITORY: &str = "HumanStudy-Hub/HumanStudy-Bench";
 pub const SOURCE_COMMIT: &str = "b34d214b980be13ec5944a4d570a38bc4047b0f9";
 pub const SOURCE_ROOT_TREE: &str = "26851c1d6564c78b25600afc7de8ec435e4aa3b8";
 
+pub const FOUNDATIONAL_12_PROTOCOL_ID: &str = "HSB-FOUNDATIONAL-12-FFB1F72A";
+pub const FOUNDATIONAL_12_SOURCE_COMMIT: &str = "ffb1f72a8bab327d7f4a6b7e43e7be4d3af10f61";
+pub const FOUNDATIONAL_12_SOURCE_ROOT_TREE: &str = "75af151f4a8e256fa5c6c0375b9ea84fb741b107";
+
+pub const FOUNDATIONAL_12_STUDY_PINS: [StudyPin; 12] = [
+    StudyPin { study_id: "study_001", tree_sha: "df60d3a30bb5d6ce523dcad55abb144cde90b933" },
+    StudyPin { study_id: "study_002", tree_sha: "c9d1fbf3c0b67a811dc43a45013f4cfde7016954" },
+    StudyPin { study_id: "study_003", tree_sha: "98a1665c1b32eeb42ecfe752230940ea266f496c" },
+    StudyPin { study_id: "study_004", tree_sha: "e2f38a701e22a0898b814cad806e3e59237db4f2" },
+    StudyPin { study_id: "study_005", tree_sha: "56406098163f0a3c5465614c16a0c053c84ab919" },
+    StudyPin { study_id: "study_006", tree_sha: "409e601fbca62c19a9f6d06aafd9d7ac37cd0786" },
+    StudyPin { study_id: "study_007", tree_sha: "52310c97898413ec2e2069520a8466f8d562107b" },
+    StudyPin { study_id: "study_008", tree_sha: "9d46f8e4c354d789f69cf5bee153a29e8075dab1" },
+    StudyPin { study_id: "study_009", tree_sha: "2b4d9aadce637f0bec5187dca85fcfb6ffea0fce" },
+    StudyPin { study_id: "study_010", tree_sha: "fbbc34f423a4a9e0ad2fd7dbe06826589fa4c0fb" },
+    StudyPin { study_id: "study_011", tree_sha: "6007118b2a17e02f09204bc1632ade82e8482c89" },
+    StudyPin { study_id: "study_012", tree_sha: "8297eacb9d31c5b819803626218b96d68eeb50fe" },
+];
+
+#[derive(Clone, Copy)]
+struct PinnedProtocol {
+    protocol_id: &'static str,
+    source_commit: &'static str,
+    source_root_tree: &'static str,
+    study_pins: &'static [StudyPin],
+}
+
+fn pinned_protocol(protocol_id: &str) -> Option<PinnedProtocol> {
+    match protocol_id {
+        PROTOCOL_ID => Some(PinnedProtocol {
+            protocol_id: PROTOCOL_ID,
+            source_commit: SOURCE_COMMIT,
+            source_root_tree: SOURCE_ROOT_TREE,
+            study_pins: &STUDY_PINS,
+        }),
+        FOUNDATIONAL_12_PROTOCOL_ID => Some(PinnedProtocol {
+            protocol_id: FOUNDATIONAL_12_PROTOCOL_ID,
+            source_commit: FOUNDATIONAL_12_SOURCE_COMMIT,
+            source_root_tree: FOUNDATIONAL_12_SOURCE_ROOT_TREE,
+            study_pins: &FOUNDATIONAL_12_STUDY_PINS,
+        }),
+        _ => None,
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct StudyPin {
     pub study_id: &'static str,
@@ -298,25 +343,26 @@ fn validate_study(study: &StudyReceipt, errors: &mut Vec<String>) {
 /// community-edition snapshot. This is a conformance gate, not a scorer.
 pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
-    if receipt.protocol_id != PROTOCOL_ID {
-        errors.push("protocol_id does not match the pinned protocol profile".to_string());
-    }
+    let Some(profile) = pinned_protocol(&receipt.protocol_id) else {
+        return Err(vec!["protocol_id does not match a pinned protocol profile".to_string()]);
+    };
+
     if receipt.source_repository != SOURCE_REPOSITORY {
         errors.push("source_repository does not match the pinned upstream repository".to_string());
     }
-    if receipt.source_commit != SOURCE_COMMIT {
-        errors.push("source_commit does not match the pinned upstream commit".to_string());
+    if receipt.source_commit != profile.source_commit {
+        errors.push("source_commit does not match the selected pinned protocol".to_string());
     }
-    if receipt.source_root_tree != SOURCE_ROOT_TREE {
-        errors.push("source_root_tree does not match the pinned upstream root tree".to_string());
+    if receipt.source_root_tree != profile.source_root_tree {
+        errors.push("source_root_tree does not match the selected pinned protocol".to_string());
     }
     if receipt.run_id.trim().is_empty() || receipt.model_id.trim().is_empty() {
         errors.push("run_id and model_id must be non-empty".to_string());
     }
-    if receipt.studies.len() != STUDY_PINS.len() {
+    if receipt.studies.len() != profile.study_pins.len() {
         errors.push(format!(
             "expected exactly {} study receipts, got {}",
-            STUDY_PINS.len(),
+            profile.study_pins.len(),
             receipt.studies.len()
         ));
     }
@@ -326,20 +372,21 @@ pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
         if !seen.insert(study.study_id.as_str()) {
             errors.push(format!("duplicate study receipt: {}", study.study_id));
         }
-        match STUDY_PINS.iter().find(|pin| pin.study_id == study.study_id) {
+        match profile.study_pins.iter().find(|pin| pin.study_id == study.study_id) {
             Some(pin) if pin.tree_sha == study.study_tree_sha => {}
             Some(_) => errors.push(format!(
-                "{}: study tree does not match the pinned source",
+                "{}: study tree does not match the selected pinned source",
                 study.study_id
             )),
             None => errors.push(format!(
-                "{}: study is not part of the pinned 16-study profile",
-                study.study_id
+                "{}: study is not part of the selected {}-study profile",
+                study.study_id,
+                profile.study_pins.len()
             )),
         }
         validate_study(study, &mut errors);
     }
-    for pin in STUDY_PINS {
+    for pin in profile.study_pins {
         if !seen.contains(pin.study_id) {
             errors.push(format!("missing study receipt: {}", pin.study_id));
         }
@@ -351,7 +398,6 @@ pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
         Err(errors)
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -423,6 +469,35 @@ mod tests {
         assert_eq!(STUDY_PINS.len(), 16);
         assert_eq!(ids.len(), 16);
     }
+
+    #[test]
+    fn foundational_inventory_contains_twelve_unique_studies() {
+        let ids: BTreeSet<_> = FOUNDATIONAL_12_STUDY_PINS.iter().map(|pin| pin.study_id).collect();
+        assert_eq!(FOUNDATIONAL_12_STUDY_PINS.len(), 12);
+        assert_eq!(ids.len(), 12);
+    }
+
+    #[test]
+    fn foundational_twelve_profile_passes_its_exact_receipt() {
+        let receipt = BenchmarkRunReceipt {
+            protocol_id: FOUNDATIONAL_12_PROTOCOL_ID.to_string(),
+            source_repository: SOURCE_REPOSITORY.to_string(),
+            source_commit: FOUNDATIONAL_12_SOURCE_COMMIT.to_string(),
+            source_root_tree: FOUNDATIONAL_12_SOURCE_ROOT_TREE.to_string(),
+            run_id: "synthetic-foundational-12-conformance".to_string(),
+            model_id: "synthetic-reference-not-a-model".to_string(),
+            studies: FOUNDATIONAL_12_STUDY_PINS.iter().copied().map(study).collect(),
+        };
+        assert!(validate_run(&receipt).is_ok());
+    }
+
+    #[test]
+    fn community_sixteen_profile_rejects_foundational_only_receipt() {
+        let mut receipt = valid_run();
+        receipt.studies = FOUNDATIONAL_12_STUDY_PINS.iter().copied().map(study).collect();
+        assert!(validate_run(&receipt).is_err());
+    }
+
 
     #[test]
     fn synthetic_complete_receipt_passes_structure() {
