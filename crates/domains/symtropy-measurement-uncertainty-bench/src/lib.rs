@@ -1456,9 +1456,9 @@ pub fn evaluate_case(case: &Value) -> Result<EvaluationReport, Vec<Violation>> {
             required_stable_tail_transitions: simulation.stable_tail_batch_count,
             last_instability_batch_index: None,
             terminal_stable_transitions: 0,
-            maximum_mean_drift: f64::INFINITY,
-            maximum_standard_deviation_drift: f64::INFINITY,
-            maximum_quantile_drift: f64::INFINITY,
+            maximum_mean_drift: None,
+            maximum_standard_deviation_drift: None,
+            maximum_quantile_drift: None,
             disposition: "FAIL_NO_BATCH_SUMMARY".to_owned(),
         });
 
