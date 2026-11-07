@@ -125,6 +125,7 @@ exclude = [
 members = [
     ".",
     "crates/apps/symtropy-cli",
+    "tools/airborne-energy-session-validator",
     "crates/bridges/symtropy-bevy",
     "crates/core/symtropy-bevy-core",
     "crates/core/symtropy-bevy-scene",
@@ -174,6 +175,7 @@ members = [
     "crates/domains/symtropy-crawler-core",
     "crates/domains/symtropy-firstlight-bent-feeder",
     "crates/domains/symtropy-firstlight-catastrophe",
+
 ]
 
 [lints.clippy]
