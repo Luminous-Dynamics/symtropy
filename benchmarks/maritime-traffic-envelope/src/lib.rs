@@ -479,7 +479,9 @@ pub fn evaluate_traffic_plan(
         if resource.corridor_id != workload.corridor_id
             || resource.time_basis_id != workload.time_basis_id
         {
-            return Err(TrafficError::ResourceScopeMismatch(resource.resource_id.clone()));
+            return Err(TrafficError::ResourceScopeMismatch(
+                resource.resource_id.clone(),
+            ));
         }
         validate_windows(resource)?;
         resource.evidence.validate()?;
