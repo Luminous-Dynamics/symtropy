@@ -1,0 +1,788 @@
+{
+  "schema": "luminous.aero01.mission-contracts",
+  "schema_version": "0.1.0",
+  "created": "2026-11-07",
+  "status": "research_templates_unfrozen",
+  "evidence_ceiling": "These are mission-contract templates. They are not approved requirements, aircraft performance data, design inputs, operational limits, or authorization to operate.",
+  "conventions": {
+    "canonical_units": "SI",
+    "unknown_semantics": "null means unknown/unfrozen. No calculation may silently substitute zero, a nominal value, or a manufacturer headline.",
+    "evidence_status_values": [
+      "unknown",
+      "source_required",
+      "proposed",
+      "reviewed",
+      "frozen"
+    ],
+    "numeric_field_shape": {
+      "value": null,
+      "unit": "SI unit",
+      "evidence_status": "unknown",
+      "source_ref": null,
+      "source_revision": null,
+      "notes": ""
+    }
+  },
+  "family_decisions": {
+    "wren_2": "first product-family research candidate; not a selected design",
+    "wayfarer_4": "separate four-seat touring/utility mission family; do not inherit Wren 2 requirements",
+    "wren_e": "gated electric-trainer demonstrator; advance only after sortie, reserve, turnaround, battery-life and ownership economics close",
+    "ranger_4": "conditional utility/backcountry derivative; separate missions and loads must justify it"
+  },
+  "comparison_rules": [
+    "All candidates compared on identical mission, payload, reserve, atmosphere, wind, surface, obstacle, configuration and lifecycle boundaries.",
+    "A ground-roll figure is not an obstacle-clear distance.",
+    "Range comparisons require matching payload, power setting, altitude, fuel or battery state, weather and reserve.",
+    "Occupant capacity is not useful payload.",
+    "Takeoff, landing and contingency mass, CG and inertia states are recomputed separately.",
+    "Unknown or out-of-domain inputs yield indeterminate, never feasible.",
+    "Hard constraints are not offset by a weighted aggregate score.",
+    "The primary metric and total evaluation budget are preregistered before optimizer results are reviewed."
+  ],
+  "mission_cards": [
+    {
+      "mission_id": "WREN2-TRAINING-SORTIE",
+      "aircraft_family": "Wren 2",
+      "mission_class": "training_sortie",
+      "status": "unfrozen",
+      "purpose": "Two-seat instructional sortie with local departure, training manoeuvres and return to the same operating base",
+      "payload": {
+        "pilot_count": {
+          "value": 1,
+          "unit": "person",
+          "evidence_status": "proposed",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Nominal training pilot position; confirm instructor/student arrangement"
+        },
+        "second_occupant_count": {
+          "value": 1,
+          "unit": "person",
+          "evidence_status": "proposed",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Student or instructor"
+        },
+        "occupant_mass_kg": {
+          "value": null,
+          "unit": "kg",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Define whether standard masses or declared actual masses are used"
+        },
+        "baggage_and_training_equipment_mass_kg": {
+          "value": null,
+          "unit": "kg",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Include headsets, charts, training equipment and any removable items"
+        },
+        "payload_distribution": {
+          "value": null,
+          "unit": "aircraft datum coordinates",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Bind to exact seat, baggage and equipment locations"
+        }
+      },
+      "phases": [
+        "preflight_and_ground_power",
+        "start_and_taxi",
+        "takeoff_and_initial_climb",
+        "climb_to_training_area",
+        "training_manoeuvres",
+        "return_cruise",
+        "descent_and_approach",
+        "landing_and_taxi",
+        "go_around",
+        "diversion",
+        "declared_reserve"
+      ],
+      "mission_parameters": {
+        "sortie_duration_min": {
+          "value": null,
+          "unit": "min",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Define nominal and high-utilization cases"
+        },
+        "route_distance_km": {
+          "value": null,
+          "unit": "km",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Include positioning only if part of the declared sortie"
+        },
+        "cruise_speed_m_s": {
+          "value": null,
+          "unit": "m/s",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Do not import marketing-page maximum cruise"
+        },
+        "departure_pressure_altitude_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Use actual runway/airport and scenario definition"
+        },
+        "departure_temperature_c": {
+          "value": null,
+          "unit": "degC",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Include ISA and hot-day scenarios after authority/market review"
+        },
+        "runway_surface": {
+          "value": null,
+          "unit": "controlled category",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Define surface, condition, slope, width and obstacles"
+        },
+        "crosswind_m_s": {
+          "value": null,
+          "unit": "m/s",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Only set limits when source/engineering basis is declared"
+        }
+      },
+      "performance_constraints": {
+        "takeoff_ground_roll_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Separate from obstacle-clear distance"
+        },
+        "takeoff_distance_over_obstacle_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Obstacle height and POH definition must be included"
+        },
+        "landing_ground_roll_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Separate from obstacle-clear landing distance"
+        },
+        "landing_distance_over_obstacle_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Use exact source definition and surface"
+        },
+        "climb_gradient_or_rate": {
+          "value": null,
+          "unit": "m/s or % gradient",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Specify aircraft mass, density altitude and configuration"
+        },
+        "approach_speed_m_s": {
+          "value": null,
+          "unit": "m/s",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Do not infer from stall speed"
+        },
+        "go_around_margin": {
+          "value": null,
+          "unit": "declared performance measure",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Requires aircraft-specific performance data"
+        }
+      },
+      "energy_and_reserve": {
+        "propulsion_architecture": {
+          "value": null,
+          "unit": "topology identifier",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "C0 conventional, C4 electric, C5P parallel hybrid and C5S series hybrid remain alternatives"
+        },
+        "phase_resolved_energy_demand": {
+          "value": null,
+          "unit": "Wh or J by phase",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Require actual propulsion/component maps and phase durations"
+        },
+        "minimum_reserve_policy": {
+          "value": null,
+          "unit": "declared policy",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Freeze applicable jurisdiction/category requirement and design policy"
+        },
+        "diversion_case": {
+          "value": null,
+          "unit": "declared alternate scenario",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Weather/airfield alternate and go-around included"
+        },
+        "battery_end_of_life_and_temperature": {
+          "value": null,
+          "unit": "declared operating envelope",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Required for Wren-E only; do not use cell-level Wh/kg"
+        },
+        "thermal_headroom": {
+          "value": null,
+          "unit": "K or degC by component",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Cooling mass, power, drag and derating must be included"
+        }
+      },
+      "operations_and_economics": {
+        "target_completed_sorties_per_day": {
+          "value": null,
+          "unit": "sorties/day",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Operational hypothesis, not requirement"
+        },
+        "turnaround_time_min": {
+          "value": null,
+          "unit": "min",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Separate preflight, energy replenishment and dispatch checks"
+        },
+        "annual_flight_hours": {
+          "value": null,
+          "unit": "h/year",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Scenario range and utilization denominator required"
+        },
+        "cost_per_completed_sortie": {
+          "value": null,
+          "unit": "currency/sortie",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Include capital, energy, maintenance, downtime, insurance, training and owner/maintainer time"
+        },
+        "dispatch_availability": {
+          "value": null,
+          "unit": "fraction with denominator",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "No assumed availability; report actual denominator and uncertainty"
+        }
+      },
+      "evidence_requirements": [
+        "Exact aircraft variant, approved POH/AFM or applicable operating data revision",
+        "Exact weight-and-balance/equipment configuration",
+        "Approved maintenance and overhaul assumptions",
+        "Exact engine/propeller or motor/inverter/battery maps",
+        "Mission source data and metrology/calibration identities where measured"
+      ],
+      "claim_ceiling": "Unfrozen research mission template; no performance, flightworthiness, certification or operational claim"
+    },
+    {
+      "mission_id": "WREN2-LOCAL-PERSONAL",
+      "aircraft_family": "Wren 2",
+      "mission_class": "local_personal_transport",
+      "status": "unfrozen",
+      "purpose": "Two-seat local travel with baggage and a declared alternate/reserve policy",
+      "payload": {
+        "occupant_count": {
+          "value": 2,
+          "unit": "persons",
+          "evidence_status": "proposed",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Exact occupant masses and positions remain required"
+        },
+        "occupant_mass_kg": {
+          "value": null,
+          "unit": "kg",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Use one explicit loading convention"
+        },
+        "baggage_mass_kg": {
+          "value": null,
+          "unit": "kg",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Include baggage location and volume"
+        }
+      },
+      "phases": [
+        "preflight",
+        "taxi",
+        "takeoff",
+        "climb",
+        "cruise",
+        "descent",
+        "approach",
+        "landing",
+        "go_around",
+        "diversion",
+        "reserve"
+      ],
+      "mission_parameters": {
+        "route_distance_km": {
+          "value": null,
+          "unit": "km",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Freeze representative route family"
+        },
+        "pressure_altitude_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Departure and arrival separately"
+        },
+        "temperature_c": {
+          "value": null,
+          "unit": "degC",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "ISA and hot/high cases"
+        },
+        "surface_and_obstacles": {
+          "value": null,
+          "unit": "structured runway definition",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Exact obstacle and surface basis"
+        }
+      },
+      "energy_and_reserve": {
+        "phase_energy": {
+          "value": null,
+          "unit": "Wh/J or fuel mass by phase",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Include reserve and diversion"
+        },
+        "reserve_policy": {
+          "value": null,
+          "unit": "declared policy",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "No default percentage"
+        }
+      },
+      "economics": {
+        "cost_per_completed_mission": {
+          "value": null,
+          "unit": "currency/mission",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Fully loaded lifecycle boundary"
+        }
+      },
+      "claim_ceiling": "Unfrozen research mission template"
+    },
+    {
+      "mission_id": "WREN2-CROSS-COUNTRY",
+      "aircraft_family": "Wren 2",
+      "mission_class": "two_seat_cross_country",
+      "status": "unfrozen",
+      "purpose": "Two-seat cross-country mission with diversion, reserve and weather deterioration",
+      "payload": {
+        "occupants_and_baggage": {
+          "value": null,
+          "unit": "kg plus datum coordinates",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Exact mass, volume, seating and baggage distribution"
+        }
+      },
+      "phases": [
+        "preflight",
+        "taxi",
+        "takeoff",
+        "climb",
+        "cruise_segments",
+        "descent",
+        "approach",
+        "landing",
+        "go_around",
+        "diversion",
+        "reserve"
+      ],
+      "mission_parameters": {
+        "route_and_wind_profile": {
+          "value": null,
+          "unit": "route segments / m/s wind",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Headwind/tailwind and alternate included"
+        },
+        "cruise_altitude_profile": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Altitude by route segment"
+        },
+        "duration_and_distance": {
+          "value": null,
+          "unit": "min and km",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Actual route rather than max-range headline"
+        }
+      },
+      "claim_ceiling": "Unfrozen research mission template"
+    },
+    {
+      "mission_id": "WAYFARER4-TOURING-LEG",
+      "aircraft_family": "Wayfarer 4",
+      "mission_class": "four_seat_touring",
+      "status": "unfrozen",
+      "purpose": "Four-seat practical touring leg with baggage and declared reserve/diversion",
+      "payload": {
+        "occupant_count": {
+          "value": 4,
+          "unit": "persons",
+          "evidence_status": "proposed",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Four seat positions; do not infer payload mass"
+        },
+        "occupant_mass_kg": {
+          "value": null,
+          "unit": "kg",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Mass and seat position per occupant"
+        },
+        "baggage_mass_kg": {
+          "value": null,
+          "unit": "kg",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Mass, volume and location"
+        },
+        "payload_distribution": {
+          "value": null,
+          "unit": "aircraft datum coordinates",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Required for CG/inertia state"
+        }
+      },
+      "phases": [
+        "preflight",
+        "taxi",
+        "takeoff",
+        "climb",
+        "cruise_segments",
+        "descent",
+        "approach",
+        "landing",
+        "go_around",
+        "diversion",
+        "reserve"
+      ],
+      "mission_parameters": {
+        "route_distance_km": {
+          "value": null,
+          "unit": "km",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Freeze representative leg family"
+        },
+        "pressure_altitude_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Departure and arrival"
+        },
+        "temperature_c": {
+          "value": null,
+          "unit": "degC",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "ISA and hot/high envelope"
+        },
+        "runway_and_obstacles": {
+          "value": null,
+          "unit": "structured runway definition",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Surface, slope, wind, obstacle height"
+        }
+      },
+      "performance": {
+        "payload_range_reserve": {
+          "value": null,
+          "unit": "kg / km / declared reserve",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Primary mission metric candidate; not frozen"
+        },
+        "takeoff_obstacle_distance_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Exact conditions and obstacle-clear definition"
+        },
+        "landing_obstacle_distance_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Exact conditions and obstacle-clear definition"
+        },
+        "climb_performance": {
+          "value": null,
+          "unit": "m/s or % gradient",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Full payload and hot/high"
+        }
+      },
+      "economics": {
+        "cost_per_completed_mission": {
+          "value": null,
+          "unit": "currency/mission",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Lifecycle fully loaded"
+        }
+      },
+      "claim_ceiling": "Unfrozen research mission template"
+    },
+    {
+      "mission_id": "WAYFARER4-PRACTICAL-UTILITY",
+      "aircraft_family": "Wayfarer 4",
+      "mission_class": "practical_utility",
+      "status": "unfrozen",
+      "purpose": "Four-seat or reduced-seat practical utility transport with variable payload and baggage/equipment",
+      "payload": {
+        "occupants": {
+          "value": null,
+          "unit": "persons and kg",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Occupants may vary by mission"
+        },
+        "mission_equipment": {
+          "value": null,
+          "unit": "kg and datum coordinates",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Securement and approved loading boundary"
+        }
+      },
+      "phases": [
+        "preflight",
+        "taxi",
+        "takeoff",
+        "climb",
+        "cruise",
+        "descent",
+        "approach",
+        "landing",
+        "go_around",
+        "diversion",
+        "reserve"
+      ],
+      "mission_parameters": {
+        "surface_condition": {
+          "value": null,
+          "unit": "controlled category",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Do not assume unprepared-field approval"
+        },
+        "slope_and_obstacles": {
+          "value": null,
+          "unit": "% slope and m obstacle geometry",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Exact site conditions"
+        },
+        "loading_cases": {
+          "value": null,
+          "unit": "configuration set",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "CG and inertia per load state"
+        }
+      },
+      "claim_ceiling": "Unfrozen research mission template"
+    },
+    {
+      "mission_id": "WAYFARER4-SHORT-FIELD-HOT-HIGH",
+      "aircraft_family": "Wayfarer 4",
+      "mission_class": "short_field_hot_high",
+      "status": "unfrozen",
+      "purpose": "Four-seat high-density-altitude short-field mission. This is a scenario family, not a current performance requirement.",
+      "payload": {
+        "mission_payload_kg": {
+          "value": null,
+          "unit": "kg",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "At least one full intended load and sensitivity cases"
+        },
+        "centre_of_gravity": {
+          "value": null,
+          "unit": "m in aircraft datum",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Recompute takeoff/landing/failure states"
+        }
+      },
+      "environment": {
+        "pressure_altitude_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Select representative South African site(s) only after site review"
+        },
+        "ambient_temperature_c": {
+          "value": null,
+          "unit": "degC",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Freeze actual hot-day envelope after market/operations review"
+        },
+        "density_altitude_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Derived from atmospheric input; not caller-imposed independently"
+        },
+        "wind_and_gust": {
+          "value": null,
+          "unit": "m/s",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Include crosswind, headwind, tailwind, gust and uncertainty"
+        },
+        "runway_surface": {
+          "value": null,
+          "unit": "controlled category",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Surface, slope, contamination, width and friction evidence"
+        }
+      },
+      "performance": {
+        "takeoff_ground_roll_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Separate from obstacle-clear distance"
+        },
+        "takeoff_obstacle_distance_m": {
+          "value": null,
+          "unit": "m",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Declare obstacle height and approved performance definition"
+        },
+        "climb_after_takeoff": {
+          "value": null,
+          "unit": "m/s or % gradient",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "At declared weight and density altitude"
+        },
+        "go_around_margin": {
+          "value": null,
+          "unit": "declared performance measure",
+          "evidence_status": "unknown",
+          "source_ref": null,
+          "source_revision": null,
+          "notes": "Required mission phase, not optional headline"
+        }
+      },
+      "claim_ceiling": "Unfrozen scenario template; no hot/high or short-field capability claimed"
+    }
+  ]
+}
