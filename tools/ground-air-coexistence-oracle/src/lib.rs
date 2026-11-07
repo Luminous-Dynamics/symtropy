@@ -22,10 +22,7 @@ fn fail(path: &str, message: impl AsRef<str>) -> String {
     format!("{path}: {}", message.as_ref())
 }
 
-fn object<'a>(
-    value: &'a Value,
-    path: &str,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
     value
         .as_object()
         .ok_or_else(|| fail(path, "must be an object"))
@@ -113,11 +110,9 @@ fn modality_domain(value: &str, path: &str) -> Result<Domain, String> {
 fn receiver_class_domain(value: &str, path: &str) -> Result<Domain, String> {
     match value {
         "ROAD_CAR" | "ROAD_BUS" | "ROAD_HEAVY_TRUCK" => Ok(Domain::Ground),
-        "UAV_DOCKED"
-        | "UAV_HOVERING"
-        | "UAV_FIXED_WING"
-        | "EVTOL_DOCKED"
-        | "EVTOL_AIRBORNE" => Ok(Domain::Air),
+        "UAV_DOCKED" | "UAV_HOVERING" | "UAV_FIXED_WING" | "EVTOL_DOCKED" | "EVTOL_AIRBORNE" => {
+            Ok(Domain::Air)
+        }
         _ => Err(fail(path, "unsupported v0 receiver class")),
     }
 }
@@ -213,9 +208,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         uint_field(site, "total_source_energy_budget_wh", "$.site")?;
     let source_energy_wh_per_quantum_slot =
         uint_field(site, "source_energy_wh_per_quantum_slot", "$.site")?;
-    if pcc_max_input_quanta_per_slot == 0
-        || pcc_max_input_quanta_per_slot > MAX_POWER_QUANTA
-    {
+    if pcc_max_input_quanta_per_slot == 0 || pcc_max_input_quanta_per_slot > MAX_POWER_QUANTA {
         return Err(fail(
             "$.site.pcc_max_input_quanta_per_slot",
             format!("must be within 1..={MAX_POWER_QUANTA}"),
@@ -291,9 +284,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         }
         let maximum_input_quanta_per_slot =
             uint_field(row, "maximum_input_quanta_per_slot", &path)?;
-        if maximum_input_quanta_per_slot == 0
-            || maximum_input_quanta_per_slot > MAX_POWER_QUANTA
-        {
+        if maximum_input_quanta_per_slot == 0 || maximum_input_quanta_per_slot > MAX_POWER_QUANTA {
             return Err(fail(
                 &path,
                 format!("maximum_input_quanta_per_slot must be within 1..={MAX_POWER_QUANTA}"),
@@ -307,10 +298,8 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             ));
         }
         if string_field(row, "support_state", &path)? != "DECLARED_SYNTHETIC_SUPPORT"
-            || string_field(row, "coexistence_state", &path)?
-                != "NOT_EVALUATED_SYNTHETIC_ONLY"
-            || string_field(row, "safety_state", &path)?
-                != "NOT_EVALUATED_SYNTHETIC_ONLY"
+            || string_field(row, "coexistence_state", &path)? != "NOT_EVALUATED_SYNTHETIC_ONLY"
+            || string_field(row, "safety_state", &path)? != "NOT_EVALUATED_SYNTHETIC_ONLY"
         {
             return Err(fail(
                 &path,
@@ -398,10 +387,8 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             ));
         }
 
-        let requested_useful_energy_wh =
-            uint_field(row, "requested_useful_energy_wh", &path)?;
-        let minimum_useful_energy_wh =
-            uint_field(row, "minimum_useful_energy_wh", &path)?;
+        let requested_useful_energy_wh = uint_field(row, "requested_useful_energy_wh", &path)?;
+        let minimum_useful_energy_wh = uint_field(row, "minimum_useful_energy_wh", &path)?;
         let maximum_input_quanta_per_slot =
             uint_field(row, "maximum_input_quanta_per_slot", &path)?;
         let useful_energy_wh_per_input_quantum_slot =
@@ -441,7 +428,9 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
     }
     sessions.sort_by(|left, right| left.session_id.cmp(&right.session_id));
 
-    let has_ground = sessions.iter().any(|session| session.domain == Domain::Ground);
+    let has_ground = sessions
+        .iter()
+        .any(|session| session.domain == Domain::Ground);
     let has_air = sessions.iter().any(|session| session.domain == Domain::Air);
     if !has_ground || !has_air {
         return Err(fail(
@@ -453,8 +442,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         ground.domain == Domain::Ground
             && sessions.iter().any(|air| {
                 air.domain == Domain::Air
-                    && ground.start_slot.max(air.start_slot)
-                        < ground.end_slot.min(air.end_slot)
+                    && ground.start_slot.max(air.start_slot) < ground.end_slot.min(air.end_slot)
             })
     });
     if !has_temporal_overlap {
@@ -595,8 +583,8 @@ impl<'a> ExactSearch<'a> {
             }
             let concurrent_now = ground_quanta > 0 && air_quanta > 0;
             allocations.push(slot_allocations.clone());
-            let concurrent_count = simultaneous_delivery_slot_count
-                + if concurrent_now { 1 } else { 0 };
+            let concurrent_count =
+                simultaneous_delivery_slot_count + if concurrent_now { 1 } else { 0 };
             let result = self.search_slots(
                 slot + 1,
                 delivered,
@@ -611,15 +599,14 @@ impl<'a> ExactSearch<'a> {
         let session = &self.scenario.sessions[session_index];
         let channel = &self.scenario.channels[session.channel_index];
         let active = session.start_slot <= slot && slot < session.end_slot;
-        let remaining_useful_wh =
-            session.requested_useful_energy_wh - delivered[session_index];
+        let remaining_useful_wh = session.requested_useful_energy_wh - delivered[session_index];
         let service_quanta_cap =
             remaining_useful_wh / session.useful_energy_wh_per_input_quantum_slot;
-        let site_quanta_remaining =
-            self.scenario.pcc_max_input_quanta_per_slot - slot_input_quanta;
+        let site_quanta_remaining = self.scenario.pcc_max_input_quanta_per_slot - slot_input_quanta;
         let channel_quanta_remaining =
             channel.maximum_input_quanta_per_slot - channel_usage[session.channel_index];
-        let source_budget_remaining = self.maximum_source_quanta
+        let source_budget_remaining = self
+            .maximum_source_quanta
             .saturating_sub(source_quanta_used + slot_input_quanta);
         let maximum_quanta = if active {
             session
@@ -728,8 +715,7 @@ fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, 
     let floor_count = minimum_floor_count(best, scenario);
     let minimum_service_all_met = floor_count == scenario.sessions.len();
     let total_useful_wh = total_useful_energy(best);
-    let source_energy_wh =
-        best.source_quanta_used * scenario.source_energy_wh_per_quantum_slot;
+    let source_energy_wh = best.source_quanta_used * scenario.source_energy_wh_per_quantum_slot;
     let service_to_source_ratio_ppm = if source_energy_wh > 0 {
         ((u128::from(total_useful_wh) * 1_000_000_u128) / u128::from(source_energy_wh)) as u64
     } else {
@@ -897,7 +883,10 @@ mod tests {
         let mut scenario = fixture();
         scenario["site"]["total_source_energy_budget_wh"] = Value::from(20);
         let report = evaluate_scenario(&scenario).unwrap();
-        assert_eq!(report["disposition"], "MINIMUM_SERVICE_INFEASIBLE_BEST_EFFORT");
+        assert_eq!(
+            report["disposition"],
+            "MINIMUM_SERVICE_INFEASIBLE_BEST_EFFORT"
+        );
         assert!(!report["minimum_service_all_met"].as_bool().unwrap());
         assert!(report["simultaneous_delivery_slot_count"].as_u64().unwrap() > 0);
         assert!(report["total_source_energy_wh"].as_u64().unwrap() <= 20);
@@ -907,22 +896,19 @@ mod tests {
     fn multiple_air_receivers_share_one_channel_cap_while_ground_service_continues() {
         let mut scenario = fixture();
         scenario["site"]["total_source_energy_budget_wh"] = Value::from(100);
-        scenario["sessions"]
-            .as_array_mut()
-            .unwrap()
-            .push(json!({
-                "session_id": "air-uav-02",
-                "domain": "AIR",
-                "receiver_class": "UAV_DOCKED",
-                "channel_id": "air-dock-channel-01",
-                "start_slot": 0,
-                "end_slot": 4,
-                "requested_useful_energy_wh": 6,
-                "minimum_useful_energy_wh": 6,
-                "maximum_input_quanta_per_slot": 1,
-                "useful_energy_wh_per_input_quantum_slot": 3,
-                "authorization_state": "SYNTHETIC_FIXTURE_ONLY"
-            }));
+        scenario["sessions"].as_array_mut().unwrap().push(json!({
+            "session_id": "air-uav-02",
+            "domain": "AIR",
+            "receiver_class": "UAV_DOCKED",
+            "channel_id": "air-dock-channel-01",
+            "start_slot": 0,
+            "end_slot": 4,
+            "requested_useful_energy_wh": 6,
+            "minimum_useful_energy_wh": 6,
+            "maximum_input_quanta_per_slot": 1,
+            "useful_energy_wh_per_input_quantum_slot": 3,
+            "authorization_state": "SYNTHETIC_FIXTURE_ONLY"
+        }));
         let report = evaluate_scenario(&scenario).unwrap();
         assert_eq!(report["minimum_service_met_count"], 3);
         assert!(report["minimum_service_all_met"].as_bool().unwrap());
@@ -943,19 +929,31 @@ mod tests {
     fn unresolved_safety_or_coexistence_state_is_rejected_not_promoted() {
         let mut scenario = fixture();
         scenario["channels"][0]["safety_state"] = Value::String("UNKNOWN".into());
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("NOT_EVALUATED"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("NOT_EVALUATED")
+        );
     }
 
     #[test]
     fn channel_modality_and_receiver_domain_must_match() {
         let mut scenario = fixture();
         scenario["channels"][0]["domain"] = Value::String("GROUND".into());
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("modality"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("modality")
+        );
 
         let mut scenario = fixture();
         scenario["sessions"][0]["domain"] = Value::String("GROUND".into());
         scenario["sessions"][0]["receiver_class"] = Value::String("ROAD_CAR".into());
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("channel domain"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("channel domain")
+        );
     }
 
     #[test]
@@ -965,31 +963,51 @@ mod tests {
         scenario["sessions"][0]["end_slot"] = Value::from(2);
         scenario["sessions"][1]["start_slot"] = Value::from(2);
         scenario["sessions"][1]["end_slot"] = Value::from(4);
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("windows overlap"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("windows overlap")
+        );
     }
 
     #[test]
     fn search_bound_exhaustion_never_emits_a_partial_optimum() {
         let mut scenario = fixture();
         scenario["policy"]["maximum_search_nodes"] = Value::from(1);
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("bound exhausted"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("bound exhausted")
+        );
     }
 
     #[test]
     fn useful_energy_cannot_exceed_the_declared_source_energy_quantum() {
         let mut scenario = fixture();
         scenario["sessions"][0]["useful_energy_wh_per_input_quantum_slot"] = Value::from(11);
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("energy contract"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("energy contract")
+        );
     }
 
     #[test]
     fn unknown_fields_and_non_synthetic_evidence_fail_closed() {
         let mut scenario = fixture();
         scenario["unmodelled_override"] = Value::Bool(true);
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("unknown property"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("unknown property")
+        );
 
         let mut scenario = fixture();
         scenario["evidence_class"] = Value::String("LAB_MEASURED".into());
-        assert!(evaluate_scenario(&scenario).unwrap_err().contains("synthetic known-truth"));
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("synthetic known-truth")
+        );
     }
 }
