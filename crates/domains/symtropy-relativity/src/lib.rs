@@ -4,10 +4,11 @@
 //! Analytic, SI-dimensional reference calculations for stationary black holes.
 //!
 //! This crate is deliberately narrower than a general-relativity solver. It
-//! provides validated parameters, closed-form Kerr/Schwarzschild observables,
-//! and analytic exterior metric components checked against exact fixtures.
-//! It does not yet implement connection/curvature tensors, geodesic
-//! integration, waveform generation, or numerical-relativity evolution.
+//! provides validated stationary black-hole observables, exterior and
+//! horizon-regular analytic metric charts, explicit Levi-Civita connections,
+//! derivative-fed curvature tensors, and second-order AD verification fixtures.
+//! It does not yet implement geodesic integration, waveform generation,
+//! GRHD/GRMHD, or numerical-relativity evolution.
 //!
 //! Conventions:
 //! - SI units are used at the public API boundary.
@@ -30,8 +31,6 @@ pub mod connection;
 pub mod curvature;
 /// Fixed-size second-order automatic differentiation for metric derivatives.
 pub mod autodiff;
-/// Convention-explicit Riemann, Ricci, and Einstein curvature tensors.
-pub mod curvature;
 /// Validated stationary black-hole metric components in a declared chart.
 pub mod metric;
 /// Posterior-preserving transforms for Kerr remnant horizon observables.
