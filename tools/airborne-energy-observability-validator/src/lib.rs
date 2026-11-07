@@ -19,10 +19,10 @@ const CONTRACT_KEYS: &[&str] = &[
     "minimum_attitude_separation_mdeg",
     "measurement_noise_tolerance",
 ];
-const SAMPLE_KEYS: &[&str] = &[
-    "pose_id", "position_mm", "attitude_mdeg", "observation_signature",
-    "received_power_microwatt", "support_state",
+const SAMPLE_REQUIRED_KEYS: &[&str] = &[
+    "pose_id", "position_mm", "attitude_mdeg", "observation_signature", "support_state",
 ];
+const SAMPLE_OPTIONAL_KEYS: &[&str] = &["received_power_microwatt"];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AliasPair {
@@ -89,6 +89,27 @@ fn exact_keys(value: &Value, expected: &[&str], path: &str) -> Result<(), String
         }
     }
     if let Some(key) = map.keys().find(|key| !expected.contains(&key.as_str())) {
+        return Err(fail(path, &format!("unknown property {key}")));
+    }
+    Ok(())
+}
+
+fn exact_keys_with_optional(
+    value: &Value,
+    required: &[&str],
+    optional: &[&str],
+    path: &str,
+) -> Result<(), String> {
+    object(value, path)?;
+    let map = value.as_object().expect("object checked");
+    for key in required {
+        if !map.contains_key(*key) {
+            return Err(fail(path, &format!("missing property {key}")));
+        }
+    }
+    if let Some(key) = map.keys().find(|key| {
+        !required.contains(&key.as_str()) && !optional.contains(&key.as_str())
+    }) {
         return Err(fail(path, &format!("unknown property {key}")));
     }
     Ok(())
@@ -264,7 +285,7 @@ fn validate_fixture(value: &Value, case_id: &str) -> Result<ObservabilityReport,
     let mut samples = Vec::with_capacity(sample_values.len());
     for (index, sample) in sample_values.iter().enumerate() {
         let path = format!("$.pose_samples[{index}]");
-        exact_keys(sample, SAMPLE_KEYS, &path)?;
+        exact_keys_with_optional(sample, SAMPLE_REQUIRED_KEYS, SAMPLE_OPTIONAL_KEYS, &path)?;
         let id = string(sample, "pose_id", &path)?.to_string();
         if !ids.insert(id.clone()) {
             return Err(fail(&path, "duplicate pose_id"));
