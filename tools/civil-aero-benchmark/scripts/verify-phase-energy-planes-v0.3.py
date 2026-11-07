@@ -385,6 +385,10 @@ def main() -> int:
         expect_bad("peak_store_power_violation", lambda b: b["stores"][0].update(peak_discharge_power_w=99_000))
         expect_bad("peak_bus_power_limit", lambda b: b.update(peak_bus_supply_power_limit_w=1_000))
         expect_bad("continuous_bus_power_limit", lambda b: b.update(continuous_bus_supply_power_limit_w=1_000))
+        expect_bad("fuel_cell_conversion_residual", lambda b: b["fuel_cells"][0].update(thermal_loss_j=b["fuel_cells"][0]["thermal_loss_j"] + 5_000_000), case_index=7)
+        expect_bad("fuel_cell_peak_power_limit", lambda b: b["fuel_cells"][0].update(peak_electrical_output_power_limit_w=1_000), case_index=7)
+        expect_bad("fuel_cell_shared_tank_closure", lambda b: b["fuel_cells"][0].update(fuel_energy_input_j=190_000_000), case_index=7)
+        expect_bad("direct_drive_orphaned_shaft", lambda b: b["prime_movers"][0].update(direct_propulsor_shaft_j=0.0), case_index=6)
         print(f"phase_energy_planes_v0_3_oracle=pass cases={len(fixture['cases'])} independent=python-stdlib")
     except (OSError, AuditError, KeyError, TypeError, ValueError) as error:
         print(f"phase_energy_planes_oracle_error={error}", file=sys.stderr)
