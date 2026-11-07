@@ -73,11 +73,7 @@ fn reposition(from: &str, to: &str, duration: u64, id: &str) -> RepositionLeg {
         to_node_id: to.to_owned(),
         duration_ticks: duration,
         route_revision: "route-r1".to_owned(),
-        evidence: evidence(
-            id,
-            &format!("{from}->{to}"),
-            "route-r1",
-        ),
+        evidence: evidence(id, &format!("{from}->{to}"), "route-r1"),
     }
 }
 
@@ -139,7 +135,10 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
 
     for task in tasks {
         if task.required_tug_count != 1
-            || !task.accepted_tug_class_ids.iter().any(|class| class == &tug.capability_class_id)
+            || !task
+                .accepted_tug_class_ids
+                .iter()
+                .any(|class| class == &tug.capability_class_id)
             || task.required_bollard_pull_kn > tug.bollard_pull_kn
             || tug.capability_evidence.state != EvidenceState::Current
             || tug.capability_evidence.valid_from_tick > task.operation.start_tick
@@ -168,11 +167,7 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
             }) else {
                 return false;
             };
-            let Some(departure) = task
-                .operation
-                .start_tick
-                .checked_sub(leg.duration_ticks)
-            else {
+            let Some(departure) = task.operation.start_tick.checked_sub(leg.duration_ticks) else {
                 return false;
             };
             if departure < ready {
@@ -183,9 +178,10 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
                 || leg.evidence.state != EvidenceState::Current
                 || leg.evidence.valid_from_tick > departure
                 || leg.evidence.valid_through_tick < arrival
-                || !tug.availability.iter().any(|window| {
-                    window.start_tick <= departure && window.end_tick >= arrival
-                })
+                || !tug
+                    .availability
+                    .iter()
+                    .any(|window| window.start_tick <= departure && window.end_tick >= arrival)
             {
                 return false;
             }
