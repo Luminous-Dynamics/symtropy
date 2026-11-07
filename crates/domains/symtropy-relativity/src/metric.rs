@@ -211,6 +211,35 @@ pub fn schwarzschild_exterior_metric(
     ])
 }
 
+/// Schwarzschild metric in ingoing Eddington-Finkelstein coordinates
+/// (v, r, theta, phi), where v = c*t + r_* is measured in metres.
+///
+/// Unlike Schwarzschild coordinates, this chart is regular at the future
+/// event horizon. Domain: r > 0 and 0 < theta < pi. It is not regular at
+/// the physical curvature singularity r = 0 or on the spherical polar axis.
+pub fn schwarzschild_ingoing_ef_metric(
+    hole: SchwarzschildBlackHole,
+    radius_m: f64,
+    theta_rad: f64,
+) -> Result<MetricComponents4, MetricError> {
+    super::validate_positive_finite(radius_m, "radius_m")?;
+    validate_theta(theta_rad)?;
+    let f = 1.0 - hole.horizon_radius_m() / radius_m;
+    if !f.is_finite() {
+        return Err(MetricError::ComputationNonFinite(
+            "ingoing Eddington-Finkelstein metric coefficient",
+        ));
+    }
+    let r_squared = radius_m * radius_m;
+    let sin_squared = theta_rad.sin().powi(2);
+    MetricComponents4::new([
+        [-f, 1.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, r_squared, 0.0],
+        [0.0, 0.0, 0.0, r_squared * sin_squared],
+    ])
+}
+
 /// Kerr metric in Boyer-Lindquist coordinates (ct,r,theta,phi).
 /// Domain: r > r_+ and 0 < theta < pi. a = chi GM/c^2.
 pub fn kerr_exterior_metric(
