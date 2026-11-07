@@ -261,7 +261,8 @@
               "AUTHOR_CALCULATED",
               "SIMULATED",
               "SECONDARY_REPORTED",
-              "UNKNOWN"
+              "UNKNOWN",
+              "ASSUMED"
             ]
           },
           "input_boundary": {
@@ -551,7 +552,8 @@
               "RECONCILED",
               "DISCREPANCY",
               "AMBIGUOUS_BOUNDARY",
-              "UNRESOLVED"
+              "UNRESOLVED",
+              "SUPPORTED_WITH_LIMITS"
             ]
           },
           "notes": {
