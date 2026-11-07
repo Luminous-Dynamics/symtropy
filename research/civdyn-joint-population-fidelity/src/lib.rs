@@ -32,9 +32,16 @@ pub struct PairFidelityReport {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FidelityError {
     EmptyDataset,
-    EmptyIdentity { field: &'static str },
-    DuplicateObservationId { id: String },
-    MissingStratum { stratum: String, population: &'static str },
+    EmptyIdentity {
+        field: &'static str,
+    },
+    DuplicateObservationId {
+        id: String,
+    },
+    MissingStratum {
+        stratum: String,
+        population: &'static str,
+    },
 }
 
 impl fmt::Display for FidelityError {
@@ -43,8 +50,14 @@ impl fmt::Display for FidelityError {
             Self::EmptyDataset => write!(f, "dataset must contain at least one observation"),
             Self::EmptyIdentity { field } => write!(f, "{field} must not be empty"),
             Self::DuplicateObservationId { id } => write!(f, "duplicate observation id: {id}"),
-            Self::MissingStratum { stratum, population } => {
-                write!(f, "stratum {stratum} is missing from {population} population")
+            Self::MissingStratum {
+                stratum,
+                population,
+            } => {
+                write!(
+                    f,
+                    "stratum {stratum} is missing from {population} population"
+                )
             }
         }
     }
@@ -87,11 +100,16 @@ fn validate(rows: &[PairObservation]) -> Result<(), FidelityError> {
 }
 
 fn count_rows(rows: &[PairObservation]) -> Counts {
-    let mut c = Counts { rows: rows.len(), ..Counts::default() };
+    let mut c = Counts {
+        rows: rows.len(),
+        ..Counts::default()
+    };
     for row in rows {
         *c.left.entry(row.left_category.clone()).or_default() += 1;
         *c.right.entry(row.right_category.clone()).or_default() += 1;
-        *c.joint.entry((row.left_category.clone(), row.right_category.clone())).or_default() += 1;
+        *c.joint
+            .entry((row.left_category.clone(), row.right_category.clone()))
+            .or_default() += 1;
         c.independent_units.insert(row.independent_unit_id.clone());
     }
     c
@@ -105,21 +123,27 @@ fn tv<K: Ord + Clone>(left: &BTreeMap<K, u64>, right: &BTreeMap<K, u64>) -> f64 
     let nl = total(left) as f64;
     let nr = total(right) as f64;
     let keys: BTreeSet<K> = left.keys().chain(right.keys()).cloned().collect();
-    0.5 * keys.iter().map(|key| {
-        let p = *left.get(key).unwrap_or(&0) as f64 / nl;
-        let q = *right.get(key).unwrap_or(&0) as f64 / nr;
-        (p - q).abs()
-    }).sum::<f64>()
+    0.5 * keys
+        .iter()
+        .map(|key| {
+            let p = *left.get(key).unwrap_or(&0) as f64 / nl;
+            let q = *right.get(key).unwrap_or(&0) as f64 / nr;
+            (p - q).abs()
+        })
+        .sum::<f64>()
 }
 
 fn mi(c: &Counts) -> f64 {
     let n = c.rows as f64;
-    c.joint.iter().map(|((x, y), count)| {
-        let pxy = *count as f64 / n;
-        let px = c.left[x] as f64 / n;
-        let py = c.right[y] as f64 / n;
-        pxy * (pxy / (px * py)).ln()
-    }).sum()
+    c.joint
+        .iter()
+        .map(|((x, y), count)| {
+            let pxy = *count as f64 / n;
+            let px = c.left[x] as f64 / n;
+            let py = c.right[y] as f64 / n;
+            pxy * (pxy / (px * py)).ln()
+        })
+        .sum()
 }
 
 fn make_report(o: &Counts, s: &Counts) -> PairFidelityReport {
@@ -163,15 +187,32 @@ pub fn compare_by_stratum(
     let mut result = BTreeMap::new();
 
     for stratum in strata {
-        let o: Vec<_> = observed.iter().filter(|r| r.stratum.as_str() == stratum).cloned().collect();
-        let s: Vec<_> = simulated.iter().filter(|r| r.stratum.as_str() == stratum).cloned().collect();
+        let o: Vec<_> = observed
+            .iter()
+            .filter(|r| r.stratum.as_str() == stratum)
+            .cloned()
+            .collect();
+        let s: Vec<_> = simulated
+            .iter()
+            .filter(|r| r.stratum.as_str() == stratum)
+            .cloned()
+            .collect();
         if o.is_empty() {
-            return Err(FidelityError::MissingStratum { stratum: stratum.to_string(), population: "observed" });
+            return Err(FidelityError::MissingStratum {
+                stratum: stratum.to_string(),
+                population: "observed",
+            });
         }
         if s.is_empty() {
-            return Err(FidelityError::MissingStratum { stratum: stratum.to_string(), population: "simulated" });
+            return Err(FidelityError::MissingStratum {
+                stratum: stratum.to_string(),
+                population: "simulated",
+            });
         }
-        result.insert(stratum.to_string(), make_report(&count_rows(&o), &count_rows(&s)));
+        result.insert(
+            stratum.to_string(),
+            make_report(&count_rows(&o), &count_rows(&s)),
+        );
     }
     Ok(result)
 }
@@ -181,13 +222,17 @@ mod tests {
     use super::*;
 
     fn rows(prefix: &str, pairs: &[(&str, &str)], stratum: &str) -> Vec<PairObservation> {
-        pairs.iter().enumerate().map(|(i, (left, right))| PairObservation {
-            observation_id: format!("{prefix}-obs-{i}"),
-            independent_unit_id: format!("{prefix}-unit-{i}"),
-            stratum: stratum.to_string(),
-            left_category: (*left).to_string(),
-            right_category: (*right).to_string(),
-        }).collect()
+        pairs
+            .iter()
+            .enumerate()
+            .map(|(i, (left, right))| PairObservation {
+                observation_id: format!("{prefix}-obs-{i}"),
+                independent_unit_id: format!("{prefix}-unit-{i}"),
+                stratum: stratum.to_string(),
+                left_category: (*left).to_string(),
+                right_category: (*right).to_string(),
+            })
+            .collect()
     }
     fn correlated() -> Vec<(&'static str, &'static str)> {
         let mut v = vec![("low", "low"); 50];
@@ -238,7 +283,10 @@ mod tests {
     fn absent_stratum_fails_closed() {
         let o = rows("o", &correlated(), "all");
         let s = rows("s", &correlated(), "other");
-        assert!(matches!(compare_by_stratum(&o, &s), Err(FidelityError::MissingStratum { .. })));
+        assert!(matches!(
+            compare_by_stratum(&o, &s),
+            Err(FidelityError::MissingStratum { .. })
+        ));
     }
 
     #[test]
@@ -246,7 +294,10 @@ mod tests {
         let mut o = rows("o", &correlated(), "all");
         o[1].observation_id = o[0].observation_id.clone();
         let s = rows("s", &correlated(), "all");
-        assert!(matches!(compare_pair(&o, &s), Err(FidelityError::DuplicateObservationId { .. })));
+        assert!(matches!(
+            compare_pair(&o, &s),
+            Err(FidelityError::DuplicateObservationId { .. })
+        ));
     }
 
     #[test]
@@ -254,6 +305,11 @@ mod tests {
         let mut o = rows("o", &correlated(), "all");
         o[0].right_category.clear();
         let s = rows("s", &correlated(), "all");
-        assert!(matches!(compare_pair(&o, &s), Err(FidelityError::EmptyIdentity { field: "right_category" })));
+        assert!(matches!(
+            compare_pair(&o, &s),
+            Err(FidelityError::EmptyIdentity {
+                field: "right_category"
+            })
+        ));
     }
 }
