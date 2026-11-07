@@ -117,7 +117,9 @@
         0,
         2,
         2
-      ]
+      ],
+      "channel_input_boundary_id": "AIR_DOCK_CHARGER_AC_INPUT",
+      "useful_energy_boundary_id": "AIRCRAFT_BATTERY_TERMINAL_INPUT"
     },
     {
       "session_id": "ground-truck-01",
@@ -134,8 +136,11 @@
         2,
         1,
         1
-      ]
+      ],
+      "channel_input_boundary_id": "GROUND_ROAD_INVERTER_DC_INPUT",
+      "useful_energy_boundary_id": "GROUND_VEHICLE_BATTERY_TERMINAL_INPUT"
     }
   ],
-  "claim_ceiling": "Synthetic bounded source-allocation arithmetic only. Supplied coefficients and declared synthetic states do not validate physical coexistence, RF/optical/inductive/capacitive safety, EMC, aircraft operation, converter stability or field performance."
+  "claim_ceiling": "Synthetic bounded source-allocation arithmetic only. Supplied coefficients and declared synthetic states do not validate physical coexistence, RF/optical/inductive/capacitive safety, EMC, aircraft operation, converter stability or field performance.",
+  "source_power_boundary_id": "SITE_PCC_GRID_AC_INPUT"
 }
