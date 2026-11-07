@@ -702,12 +702,12 @@ impl MassEvidenceLedger {
                     ));
                 }
             }
-            if let Some(prev) = previous {
-                if prev >= record.item.id.as_str() {
-                    return Err(
-                        "mass evidence records must be strictly sorted by item ID".to_owned()
-                    );
-                }
+            if let Some(prev) = previous
+                && prev >= record.item.id.as_str()
+            {
+                return Err(
+                    "mass evidence records must be strictly sorted by item ID".to_owned()
+                );
             }
             previous = Some(&record.item.id);
         }
@@ -792,13 +792,13 @@ fn validate_evidence_record(
         }
         _ => {}
     }
-    if let Some(uncertainty) = evidence.standard_uncertainty_kg {
-        if !uncertainty.is_finite() || uncertainty < 0.0 {
-            return Err(format!(
-                "mass item {}: standard uncertainty must be finite and >= 0",
-                evidence.item.id
-            ));
-        }
+    if let Some(uncertainty) = evidence.standard_uncertainty_kg
+        && (!uncertainty.is_finite() || uncertainty < 0.0)
+    {
+        return Err(format!(
+            "mass item {}: standard uncertainty must be finite and >= 0",
+            evidence.item.id
+        ));
     }
     if evidence.item.mass_kg.is_some() != evidence.source_mass.is_some() {
         return Err(format!(
@@ -806,17 +806,17 @@ fn validate_evidence_record(
             evidence.item.id
         ));
     }
-    if let (Some(canonical), Some(source)) = (evidence.item.mass_kg, evidence.source_mass) {
-        if !close_enough(
+    if let (Some(canonical), Some(source)) = (evidence.item.mass_kg, evidence.source_mass)
+        && !close_enough(
             canonical,
             source.kilograms()?,
             MASS_MATCH_RELATIVE_TOLERANCE,
-        ) {
-            return Err(format!(
-                "mass item {}: base source mass does not convert to canonical kg",
-                evidence.item.id
-            ));
-        }
+        )
+    {
+        return Err(format!(
+            "mass item {}: base source mass does not convert to canonical kg",
+            evidence.item.id
+        ));
     }
     match &evidence.item.geometry {
         MassGeometry::PointMass { position_m } => {
@@ -898,10 +898,10 @@ fn validate_state_order_and_completeness(
                 record.item.id, item.item_id
             ));
         }
-        if let Some(prev) = previous {
-            if prev >= item.item_id.as_str() {
-                return Err("loading-state item IDs must be strictly sorted".to_owned());
-            }
+        if let Some(prev) = previous
+            && prev >= item.item_id.as_str()
+        {
+            return Err("loading-state item IDs must be strictly sorted".to_owned());
         }
         previous = Some(&item.item_id);
     }
@@ -1050,10 +1050,6 @@ fn validate_aggregate_double_counting(
         }
     }
     Ok(())
-}
-
-fn mass_ledger_unknown_mass(report: &MassPropertiesReport) -> Vec<String> {
-    report.unknown_mass_item_ids.clone()
 }
 
 fn validate_source_record(source: &SourceRecord, item_id: &str) -> Result<(), String> {
@@ -1465,59 +1461,35 @@ mod tests {
         }
     }
 
-    fn state_item(
-        id: &str,
-        installation: InstallationState,
-        mass_kg: Option<f64>,
-        geometry: MassGeometry,
-        source_mass: Option<SourceMassValue>,
-        source_position: Option<SourcePosition>,
-        source_inertia: Option<SourceInertiaTensor>,
-        value_source: Option<SourceRecord>,
-        installation_source: Option<SourceRecord>,
-    ) -> LoadingItemState {
+    fn installed_state_item(record: &MassItemEvidence) -> LoadingItemState {
         LoadingItemState {
-            item_id: id.to_owned(),
-            installation,
-            mass_kg,
-            source_mass,
-            geometry,
-            source_position,
-            source_inertia,
-            value_source,
-            installation_source,
+            item_id: record.item.id.clone(),
+            installation: InstallationState::Installed,
+            mass_kg: record.item.mass_kg,
+            source_mass: record.source_mass,
+            geometry: record.item.geometry.clone(),
+            source_position: record.source_position.clone(),
+            source_inertia: record.source_inertia,
+            value_source: Some(record.source.clone()),
+            installation_source: None,
         }
     }
 
-    fn installed_state_item(record: &MassItemEvidence) -> LoadingItemState {
-        state_item(
-            &record.item.id,
-            InstallationState::Installed,
-            record.item.mass_kg,
-            record.item.geometry.clone(),
-            record.source_mass,
-            record.source_position.clone(),
-            record.source_inertia,
-            Some(record.source.clone()),
-            None,
-        )
-    }
-
     fn removed_state_item(record: &MassItemEvidence) -> LoadingItemState {
-        state_item(
-            &record.item.id,
-            InstallationState::Removed,
-            None,
-            MassGeometry::Unknown,
-            None,
-            None,
-            None,
-            None,
-            Some(source(
+        LoadingItemState {
+            item_id: record.item.id.clone(),
+            installation: InstallationState::Removed,
+            mass_kg: None,
+            source_mass: None,
+            geometry: MassGeometry::Unknown,
+            source_position: None,
+            source_inertia: None,
+            value_source: None,
+            installation_source: Some(source(
                 &format!("fixture:removed:{}", record.item.id),
                 SOURCE_B,
             )),
-        )
+        }
     }
 
     fn make_state(ledger: &MassEvidenceLedger, kind: LoadingStateKind) -> AircraftLoadingState {
