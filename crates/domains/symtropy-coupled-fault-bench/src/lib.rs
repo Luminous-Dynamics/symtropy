@@ -528,8 +528,17 @@ pub fn evaluate_case(case: &Value, observability: &Value) -> Result<EvaluationRe
                 }
             }
 
+            let nonnegative_measurand = matches!(
+                text(channel, "measurand"),
+                Some("DRY_SOLID_MASS_FLOW" | "AIRFLOW" | "PARTICLE_VELOCITY" | "PARTICLE_CONCENTRATION")
+            );
+            let null_outside_physical_domain = null_available
+                && nonnegative_measurand
+                && null_upper < 0.0;
+
             let status = match (null_available, combined_interval) {
                 (false, _) | (true, None) => "INSUFFICIENT_EVIDENCE",
+                (true, Some(_)) if null_outside_physical_domain => "INSUFFICIENT_EVIDENCE",
                 (true, Some((combined_lower, combined_upper))) => {
                     let overlaps = combined_lower <= null_upper && null_lower <= combined_upper;
                     if overlaps { "CONSISTENT_WITH_DECLARED_NULL_MODEL" } else { "DEVIATION_OBSERVED" }
@@ -691,6 +700,14 @@ mod tests {
         assert_eq!(result.status, "CONSISTENT_WITH_DECLARED_NULL_MODEL");
         assert_eq!(result.null_lower, Some(13.0));
         assert_eq!(result.null_upper, Some(20.0));
+    }
+
+    #[test]
+    fn null_model_outside_nonnegative_measurand_domain_is_not_called_an_interaction() {
+        let report = evaluate_case(&fixture(), &observability()).unwrap();
+        let result = interaction(&report, "combo-blockage-blower", "gravimetric-flow");
+        assert!(result.null_upper.unwrap() < 0.0);
+        assert_eq!(result.status, "INSUFFICIENT_EVIDENCE");
     }
 
     #[test]
