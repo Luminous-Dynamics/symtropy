@@ -496,8 +496,17 @@ fn validate_coverage_manifest(
         }
     }
 
+    let expected_demand_ids: BTreeSet<&str> = plan_operations
+        .values()
+        .map(|operation| operation.demand_id.as_str())
+        .collect();
     let mut plan_selection_counts = BTreeMap::<&str, usize>::new();
     for selection in &plan.selections {
+        if !expected_demand_ids.contains(selection.demand_id.as_str()) {
+            return Err(TrafficError::PlanSelectionMismatch(
+                selection.demand_id.clone(),
+            ));
+        }
         *plan_selection_counts
             .entry(selection.demand_id.as_str())
             .or_default() += 1;
