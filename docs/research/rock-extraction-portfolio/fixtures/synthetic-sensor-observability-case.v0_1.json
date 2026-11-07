@@ -1,0 +1,1235 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-SENSOR-OBSERVABILITY-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "parent_context": {
+    "parent_case_id": "SYNTHETIC-FRAGMENT-TRANSPORT-001",
+    "parent_interval_id": "WINDOW-001",
+    "trial_id": "TRIAL-001",
+    "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+    "machine_configuration_ref": "machine:synthetic-undercutter-r2",
+    "transport_configuration_ref": "transport:installed-205m-hose-r3"
+  },
+  "measurement_system_case_id": "SYNTHETIC-MEASUREMENT-SYSTEM-001",
+  "layout_profile": {
+    "layout_profile_ref": "layout:synthetic-independent-principles-v1",
+    "minimum_independent_principles_for_critical_pairs": 2,
+    "required_pair_set_ref": "pairs:synthetic-critical-fault-pairs-v1"
+  },
+  "channels": [
+    {
+      "channel_id": "dp-line",
+      "measurand": "DIFFERENTIAL_PRESSURE",
+      "technique": "PRESSURE_TRANSDUCER",
+      "unit": "kPa",
+      "physical_location_ref": "location:long-hose-segment-a",
+      "calibration_ref": "cal-line-dp-v1",
+      "independence_group_ref": "principle:pressure-differential",
+      "dependency_domain_ref": "dependency:dp-line-chain",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "source_artifact_ref": "artifact:dp-line-response-calibration"
+    },
+    {
+      "channel_id": "dp-filter",
+      "measurand": "FILTER_DIFFERENTIAL_PRESSURE",
+      "technique": "PRESSURE_TRANSDUCER",
+      "unit": "kPa",
+      "physical_location_ref": "location:filter-cyclone",
+      "calibration_ref": "cal-filter-dp-v1",
+      "independence_group_ref": "principle:pressure-differential",
+      "dependency_domain_ref": "dependency:filter-dp-chain",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "source_artifact_ref": "artifact:dp-filter-response-calibration"
+    },
+    {
+      "channel_id": "airflow",
+      "measurand": "AIRFLOW",
+      "technique": "AIRFLOW_METER",
+      "unit": "m3/s",
+      "physical_location_ref": "location:conveying-inlet",
+      "calibration_ref": "cal-airflow-v1",
+      "independence_group_ref": "principle:gas-flow",
+      "dependency_domain_ref": "dependency:airflow-chain",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "source_artifact_ref": "artifact:airflow-response-calibration"
+    },
+    {
+      "channel_id": "blower-current",
+      "measurand": "CURRENT",
+      "technique": "CURRENT_TRANSDUCER",
+      "unit": "A",
+      "physical_location_ref": "location:blower-vfd",
+      "calibration_ref": "cal-blower-current-v1",
+      "independence_group_ref": "principle:electrical",
+      "dependency_domain_ref": "dependency:blower-power-chain",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "source_artifact_ref": "artifact:blower-current-response-calibration"
+    },
+    {
+      "channel_id": "gravimetric-flow",
+      "measurand": "DRY_SOLID_MASS_FLOW",
+      "technique": "GRAVIMETRIC_CATCH_AND_WEIGH",
+      "unit": "kg/s",
+      "physical_location_ref": "location:accepted-discharge",
+      "calibration_ref": "cal-gravimetric-v1",
+      "independence_group_ref": "principle:gravimetry",
+      "dependency_domain_ref": "dependency:scale-chain",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "source_artifact_ref": "artifact:gravimetric-flow-response-calibration"
+    },
+    {
+      "channel_id": "ecc-flow",
+      "measurand": "DRY_SOLID_MASS_FLOW",
+      "technique": "ELECTROSTATIC_COUPLED_CAPACITANCE",
+      "unit": "kg/s",
+      "physical_location_ref": "location:conveying-outlet",
+      "calibration_ref": "cal-ecc-v1",
+      "independence_group_ref": "principle:electrostatic-capacitance",
+      "dependency_domain_ref": "dependency:ecc-chain",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "source_artifact_ref": "artifact:ecc-flow-response-calibration"
+    },
+    {
+      "channel_id": "sensor-self-check",
+      "measurand": "SENSOR_HEALTH_RESIDUAL",
+      "technique": "INSTRUMENT_DIAGNOSTIC",
+      "unit": "index",
+      "physical_location_ref": "location:daq-diagnostic",
+      "calibration_ref": "cal-self-check-v1",
+      "independence_group_ref": "principle:instrument-health",
+      "dependency_domain_ref": "dependency:self-check-chain",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "source_artifact_ref": "artifact:sensor-self-check-response-calibration"
+    }
+  ],
+  "states": [
+    {
+      "state_id": "NORMAL_STABLE",
+      "state_class": "PROCESS_STATE"
+    },
+    {
+      "state_id": "DEVELOPING_BLOCKAGE",
+      "state_class": "PROCESS_STATE"
+    },
+    {
+      "state_id": "FILTER_CYCLONE_LOADING",
+      "state_class": "PROCESS_STATE"
+    },
+    {
+      "state_id": "BLOWER_VFD_FAULT",
+      "state_class": "PROCESS_STATE"
+    },
+    {
+      "state_id": "PRESSURE_SENSOR_FAULT",
+      "state_class": "SENSOR_FAULT"
+    },
+    {
+      "state_id": "AIRFLOW_SENSOR_FAULT",
+      "state_class": "SENSOR_FAULT"
+    },
+    {
+      "state_id": "HIGH_SOLIDS_LOADING",
+      "state_class": "PROCESS_STATE"
+    },
+    {
+      "state_id": "UNKNOWN_OUT_OF_DOMAIN",
+      "state_class": "OUT_OF_DOMAIN"
+    }
+  ],
+  "required_state_pairs": [
+    {
+      "pair_id": "normal-vs-blockage",
+      "state_a_id": "NORMAL_STABLE",
+      "state_b_id": "DEVELOPING_BLOCKAGE",
+      "critical": true,
+      "minimum_independent_principles": 2
+    },
+    {
+      "pair_id": "normal-vs-filter-loading",
+      "state_a_id": "NORMAL_STABLE",
+      "state_b_id": "FILTER_CYCLONE_LOADING",
+      "critical": true,
+      "minimum_independent_principles": 2
+    },
+    {
+      "pair_id": "blockage-vs-filter-loading",
+      "state_a_id": "DEVELOPING_BLOCKAGE",
+      "state_b_id": "FILTER_CYCLONE_LOADING",
+      "critical": true,
+      "minimum_independent_principles": 2
+    },
+    {
+      "pair_id": "normal-vs-blower-fault",
+      "state_a_id": "NORMAL_STABLE",
+      "state_b_id": "BLOWER_VFD_FAULT",
+      "critical": true,
+      "minimum_independent_principles": 2
+    },
+    {
+      "pair_id": "normal-vs-pressure-sensor-fault",
+      "state_a_id": "NORMAL_STABLE",
+      "state_b_id": "PRESSURE_SENSOR_FAULT",
+      "critical": true,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "normal-vs-airflow-sensor-fault",
+      "state_a_id": "NORMAL_STABLE",
+      "state_b_id": "AIRFLOW_SENSOR_FAULT",
+      "critical": true,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "high-solids-vs-blockage",
+      "state_a_id": "HIGH_SOLIDS_LOADING",
+      "state_b_id": "DEVELOPING_BLOCKAGE",
+      "critical": true,
+      "minimum_independent_principles": 2
+    },
+    {
+      "pair_id": "normal-vs-ood",
+      "state_a_id": "NORMAL_STABLE",
+      "state_b_id": "UNKNOWN_OUT_OF_DOMAIN",
+      "critical": true,
+      "minimum_independent_principles": 1
+    }
+  ],
+  "responses": [
+    {
+      "response_id": "response-NORMAL_STABLE-dp-line",
+      "state_id": "NORMAL_STABLE",
+      "channel_id": "dp-line",
+      "availability": "VALID",
+      "value_lower": 10,
+      "value_upper": 12,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-NORMAL_STABLE",
+      "source_ref": "artifact:synthetic-response-NORMAL_STABLE-dp-line",
+      "adjudication_ref": "adjudication:synthetic-NORMAL_STABLE-dp-line"
+    },
+    {
+      "response_id": "response-NORMAL_STABLE-dp-filter",
+      "state_id": "NORMAL_STABLE",
+      "channel_id": "dp-filter",
+      "availability": "VALID",
+      "value_lower": 2,
+      "value_upper": 3,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-NORMAL_STABLE",
+      "source_ref": "artifact:synthetic-response-NORMAL_STABLE-dp-filter",
+      "adjudication_ref": "adjudication:synthetic-NORMAL_STABLE-dp-filter"
+    },
+    {
+      "response_id": "response-NORMAL_STABLE-airflow",
+      "state_id": "NORMAL_STABLE",
+      "channel_id": "airflow",
+      "availability": "VALID",
+      "value_lower": 0.5,
+      "value_upper": 0.55,
+      "unit": "m3/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-NORMAL_STABLE",
+      "source_ref": "artifact:synthetic-response-NORMAL_STABLE-airflow",
+      "adjudication_ref": "adjudication:synthetic-NORMAL_STABLE-airflow"
+    },
+    {
+      "response_id": "response-NORMAL_STABLE-blower-current",
+      "state_id": "NORMAL_STABLE",
+      "channel_id": "blower-current",
+      "availability": "VALID",
+      "value_lower": 18,
+      "value_upper": 20,
+      "unit": "A",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-NORMAL_STABLE",
+      "source_ref": "artifact:synthetic-response-NORMAL_STABLE-blower-current",
+      "adjudication_ref": "adjudication:synthetic-NORMAL_STABLE-blower-current"
+    },
+    {
+      "response_id": "response-NORMAL_STABLE-gravimetric-flow",
+      "state_id": "NORMAL_STABLE",
+      "channel_id": "gravimetric-flow",
+      "availability": "VALID",
+      "value_lower": 1.4,
+      "value_upper": 1.6,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-NORMAL_STABLE",
+      "source_ref": "artifact:synthetic-response-NORMAL_STABLE-gravimetric-flow",
+      "adjudication_ref": "adjudication:synthetic-NORMAL_STABLE-gravimetric-flow"
+    },
+    {
+      "response_id": "response-NORMAL_STABLE-ecc-flow",
+      "state_id": "NORMAL_STABLE",
+      "channel_id": "ecc-flow",
+      "availability": "VALID",
+      "value_lower": 1.35,
+      "value_upper": 1.65,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-NORMAL_STABLE",
+      "source_ref": "artifact:synthetic-response-NORMAL_STABLE-ecc-flow",
+      "adjudication_ref": "adjudication:synthetic-NORMAL_STABLE-ecc-flow"
+    },
+    {
+      "response_id": "response-NORMAL_STABLE-sensor-self-check",
+      "state_id": "NORMAL_STABLE",
+      "channel_id": "sensor-self-check",
+      "availability": "VALID",
+      "value_lower": 0,
+      "value_upper": 0.5,
+      "unit": "index",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-NORMAL_STABLE",
+      "source_ref": "artifact:synthetic-response-NORMAL_STABLE-sensor-self-check",
+      "adjudication_ref": "adjudication:synthetic-NORMAL_STABLE-sensor-self-check"
+    },
+    {
+      "response_id": "response-DEVELOPING_BLOCKAGE-dp-line",
+      "state_id": "DEVELOPING_BLOCKAGE",
+      "channel_id": "dp-line",
+      "availability": "VALID",
+      "value_lower": 30,
+      "value_upper": 35,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-DEVELOPING_BLOCKAGE",
+      "source_ref": "artifact:synthetic-response-DEVELOPING_BLOCKAGE-dp-line",
+      "adjudication_ref": "adjudication:synthetic-DEVELOPING_BLOCKAGE-dp-line"
+    },
+    {
+      "response_id": "response-DEVELOPING_BLOCKAGE-dp-filter",
+      "state_id": "DEVELOPING_BLOCKAGE",
+      "channel_id": "dp-filter",
+      "availability": "VALID",
+      "value_lower": 2,
+      "value_upper": 4,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-DEVELOPING_BLOCKAGE",
+      "source_ref": "artifact:synthetic-response-DEVELOPING_BLOCKAGE-dp-filter",
+      "adjudication_ref": "adjudication:synthetic-DEVELOPING_BLOCKAGE-dp-filter"
+    },
+    {
+      "response_id": "response-DEVELOPING_BLOCKAGE-airflow",
+      "state_id": "DEVELOPING_BLOCKAGE",
+      "channel_id": "airflow",
+      "availability": "VALID",
+      "value_lower": 0.25,
+      "value_upper": 0.35,
+      "unit": "m3/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-DEVELOPING_BLOCKAGE",
+      "source_ref": "artifact:synthetic-response-DEVELOPING_BLOCKAGE-airflow",
+      "adjudication_ref": "adjudication:synthetic-DEVELOPING_BLOCKAGE-airflow"
+    },
+    {
+      "response_id": "response-DEVELOPING_BLOCKAGE-blower-current",
+      "state_id": "DEVELOPING_BLOCKAGE",
+      "channel_id": "blower-current",
+      "availability": "VALID",
+      "value_lower": 23,
+      "value_upper": 25,
+      "unit": "A",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-DEVELOPING_BLOCKAGE",
+      "source_ref": "artifact:synthetic-response-DEVELOPING_BLOCKAGE-blower-current",
+      "adjudication_ref": "adjudication:synthetic-DEVELOPING_BLOCKAGE-blower-current"
+    },
+    {
+      "response_id": "response-DEVELOPING_BLOCKAGE-gravimetric-flow",
+      "state_id": "DEVELOPING_BLOCKAGE",
+      "channel_id": "gravimetric-flow",
+      "availability": "VALID",
+      "value_lower": 0.5,
+      "value_upper": 0.7,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-DEVELOPING_BLOCKAGE",
+      "source_ref": "artifact:synthetic-response-DEVELOPING_BLOCKAGE-gravimetric-flow",
+      "adjudication_ref": "adjudication:synthetic-DEVELOPING_BLOCKAGE-gravimetric-flow"
+    },
+    {
+      "response_id": "response-DEVELOPING_BLOCKAGE-ecc-flow",
+      "state_id": "DEVELOPING_BLOCKAGE",
+      "channel_id": "ecc-flow",
+      "availability": "VALID",
+      "value_lower": 0.45,
+      "value_upper": 0.8,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-DEVELOPING_BLOCKAGE",
+      "source_ref": "artifact:synthetic-response-DEVELOPING_BLOCKAGE-ecc-flow",
+      "adjudication_ref": "adjudication:synthetic-DEVELOPING_BLOCKAGE-ecc-flow"
+    },
+    {
+      "response_id": "response-DEVELOPING_BLOCKAGE-sensor-self-check",
+      "state_id": "DEVELOPING_BLOCKAGE",
+      "channel_id": "sensor-self-check",
+      "availability": "VALID",
+      "value_lower": 0,
+      "value_upper": 0.5,
+      "unit": "index",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-DEVELOPING_BLOCKAGE",
+      "source_ref": "artifact:synthetic-response-DEVELOPING_BLOCKAGE-sensor-self-check",
+      "adjudication_ref": "adjudication:synthetic-DEVELOPING_BLOCKAGE-sensor-self-check"
+    },
+    {
+      "response_id": "response-FILTER_CYCLONE_LOADING-dp-line",
+      "state_id": "FILTER_CYCLONE_LOADING",
+      "channel_id": "dp-line",
+      "availability": "VALID",
+      "value_lower": 12,
+      "value_upper": 16,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-FILTER_CYCLONE_LOADING",
+      "source_ref": "artifact:synthetic-response-FILTER_CYCLONE_LOADING-dp-line",
+      "adjudication_ref": "adjudication:synthetic-FILTER_CYCLONE_LOADING-dp-line"
+    },
+    {
+      "response_id": "response-FILTER_CYCLONE_LOADING-dp-filter",
+      "state_id": "FILTER_CYCLONE_LOADING",
+      "channel_id": "dp-filter",
+      "availability": "VALID",
+      "value_lower": 14,
+      "value_upper": 18,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-FILTER_CYCLONE_LOADING",
+      "source_ref": "artifact:synthetic-response-FILTER_CYCLONE_LOADING-dp-filter",
+      "adjudication_ref": "adjudication:synthetic-FILTER_CYCLONE_LOADING-dp-filter"
+    },
+    {
+      "response_id": "response-FILTER_CYCLONE_LOADING-airflow",
+      "state_id": "FILTER_CYCLONE_LOADING",
+      "channel_id": "airflow",
+      "availability": "VALID",
+      "value_lower": 0.4,
+      "value_upper": 0.48,
+      "unit": "m3/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-FILTER_CYCLONE_LOADING",
+      "source_ref": "artifact:synthetic-response-FILTER_CYCLONE_LOADING-airflow",
+      "adjudication_ref": "adjudication:synthetic-FILTER_CYCLONE_LOADING-airflow"
+    },
+    {
+      "response_id": "response-FILTER_CYCLONE_LOADING-blower-current",
+      "state_id": "FILTER_CYCLONE_LOADING",
+      "channel_id": "blower-current",
+      "availability": "VALID",
+      "value_lower": 20,
+      "value_upper": 22,
+      "unit": "A",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-FILTER_CYCLONE_LOADING",
+      "source_ref": "artifact:synthetic-response-FILTER_CYCLONE_LOADING-blower-current",
+      "adjudication_ref": "adjudication:synthetic-FILTER_CYCLONE_LOADING-blower-current"
+    },
+    {
+      "response_id": "response-FILTER_CYCLONE_LOADING-gravimetric-flow",
+      "state_id": "FILTER_CYCLONE_LOADING",
+      "channel_id": "gravimetric-flow",
+      "availability": "VALID",
+      "value_lower": 1.1,
+      "value_upper": 1.3,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-FILTER_CYCLONE_LOADING",
+      "source_ref": "artifact:synthetic-response-FILTER_CYCLONE_LOADING-gravimetric-flow",
+      "adjudication_ref": "adjudication:synthetic-FILTER_CYCLONE_LOADING-gravimetric-flow"
+    },
+    {
+      "response_id": "response-FILTER_CYCLONE_LOADING-ecc-flow",
+      "state_id": "FILTER_CYCLONE_LOADING",
+      "channel_id": "ecc-flow",
+      "availability": "VALID",
+      "value_lower": 1,
+      "value_upper": 1.35,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-FILTER_CYCLONE_LOADING",
+      "source_ref": "artifact:synthetic-response-FILTER_CYCLONE_LOADING-ecc-flow",
+      "adjudication_ref": "adjudication:synthetic-FILTER_CYCLONE_LOADING-ecc-flow"
+    },
+    {
+      "response_id": "response-FILTER_CYCLONE_LOADING-sensor-self-check",
+      "state_id": "FILTER_CYCLONE_LOADING",
+      "channel_id": "sensor-self-check",
+      "availability": "VALID",
+      "value_lower": 0,
+      "value_upper": 0.5,
+      "unit": "index",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-FILTER_CYCLONE_LOADING",
+      "source_ref": "artifact:synthetic-response-FILTER_CYCLONE_LOADING-sensor-self-check",
+      "adjudication_ref": "adjudication:synthetic-FILTER_CYCLONE_LOADING-sensor-self-check"
+    },
+    {
+      "response_id": "response-BLOWER_VFD_FAULT-dp-line",
+      "state_id": "BLOWER_VFD_FAULT",
+      "channel_id": "dp-line",
+      "availability": "VALID",
+      "value_lower": 4,
+      "value_upper": 7,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-BLOWER_VFD_FAULT",
+      "source_ref": "artifact:synthetic-response-BLOWER_VFD_FAULT-dp-line",
+      "adjudication_ref": "adjudication:synthetic-BLOWER_VFD_FAULT-dp-line"
+    },
+    {
+      "response_id": "response-BLOWER_VFD_FAULT-dp-filter",
+      "state_id": "BLOWER_VFD_FAULT",
+      "channel_id": "dp-filter",
+      "availability": "VALID",
+      "value_lower": 1,
+      "value_upper": 3,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-BLOWER_VFD_FAULT",
+      "source_ref": "artifact:synthetic-response-BLOWER_VFD_FAULT-dp-filter",
+      "adjudication_ref": "adjudication:synthetic-BLOWER_VFD_FAULT-dp-filter"
+    },
+    {
+      "response_id": "response-BLOWER_VFD_FAULT-airflow",
+      "state_id": "BLOWER_VFD_FAULT",
+      "channel_id": "airflow",
+      "availability": "VALID",
+      "value_lower": 0.2,
+      "value_upper": 0.3,
+      "unit": "m3/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-BLOWER_VFD_FAULT",
+      "source_ref": "artifact:synthetic-response-BLOWER_VFD_FAULT-airflow",
+      "adjudication_ref": "adjudication:synthetic-BLOWER_VFD_FAULT-airflow"
+    },
+    {
+      "response_id": "response-BLOWER_VFD_FAULT-blower-current",
+      "state_id": "BLOWER_VFD_FAULT",
+      "channel_id": "blower-current",
+      "availability": "VALID",
+      "value_lower": 8,
+      "value_upper": 10,
+      "unit": "A",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-BLOWER_VFD_FAULT",
+      "source_ref": "artifact:synthetic-response-BLOWER_VFD_FAULT-blower-current",
+      "adjudication_ref": "adjudication:synthetic-BLOWER_VFD_FAULT-blower-current"
+    },
+    {
+      "response_id": "response-BLOWER_VFD_FAULT-gravimetric-flow",
+      "state_id": "BLOWER_VFD_FAULT",
+      "channel_id": "gravimetric-flow",
+      "availability": "VALID",
+      "value_lower": 0.45,
+      "value_upper": 0.65,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-BLOWER_VFD_FAULT",
+      "source_ref": "artifact:synthetic-response-BLOWER_VFD_FAULT-gravimetric-flow",
+      "adjudication_ref": "adjudication:synthetic-BLOWER_VFD_FAULT-gravimetric-flow"
+    },
+    {
+      "response_id": "response-BLOWER_VFD_FAULT-ecc-flow",
+      "state_id": "BLOWER_VFD_FAULT",
+      "channel_id": "ecc-flow",
+      "availability": "VALID",
+      "value_lower": 0.4,
+      "value_upper": 0.7,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-BLOWER_VFD_FAULT",
+      "source_ref": "artifact:synthetic-response-BLOWER_VFD_FAULT-ecc-flow",
+      "adjudication_ref": "adjudication:synthetic-BLOWER_VFD_FAULT-ecc-flow"
+    },
+    {
+      "response_id": "response-BLOWER_VFD_FAULT-sensor-self-check",
+      "state_id": "BLOWER_VFD_FAULT",
+      "channel_id": "sensor-self-check",
+      "availability": "VALID",
+      "value_lower": 0,
+      "value_upper": 0.5,
+      "unit": "index",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-BLOWER_VFD_FAULT",
+      "source_ref": "artifact:synthetic-response-BLOWER_VFD_FAULT-sensor-self-check",
+      "adjudication_ref": "adjudication:synthetic-BLOWER_VFD_FAULT-sensor-self-check"
+    },
+    {
+      "response_id": "response-PRESSURE_SENSOR_FAULT-dp-line",
+      "state_id": "PRESSURE_SENSOR_FAULT",
+      "channel_id": "dp-line",
+      "availability": "DEGRADED",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-PRESSURE_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-PRESSURE_SENSOR_FAULT-dp-line",
+      "adjudication_ref": "adjudication:synthetic-PRESSURE_SENSOR_FAULT-dp-line"
+    },
+    {
+      "response_id": "response-PRESSURE_SENSOR_FAULT-dp-filter",
+      "state_id": "PRESSURE_SENSOR_FAULT",
+      "channel_id": "dp-filter",
+      "availability": "VALID",
+      "value_lower": 2,
+      "value_upper": 3,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-PRESSURE_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-PRESSURE_SENSOR_FAULT-dp-filter",
+      "adjudication_ref": "adjudication:synthetic-PRESSURE_SENSOR_FAULT-dp-filter"
+    },
+    {
+      "response_id": "response-PRESSURE_SENSOR_FAULT-airflow",
+      "state_id": "PRESSURE_SENSOR_FAULT",
+      "channel_id": "airflow",
+      "availability": "VALID",
+      "value_lower": 0.5,
+      "value_upper": 0.55,
+      "unit": "m3/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-PRESSURE_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-PRESSURE_SENSOR_FAULT-airflow",
+      "adjudication_ref": "adjudication:synthetic-PRESSURE_SENSOR_FAULT-airflow"
+    },
+    {
+      "response_id": "response-PRESSURE_SENSOR_FAULT-blower-current",
+      "state_id": "PRESSURE_SENSOR_FAULT",
+      "channel_id": "blower-current",
+      "availability": "VALID",
+      "value_lower": 18,
+      "value_upper": 20,
+      "unit": "A",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-PRESSURE_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-PRESSURE_SENSOR_FAULT-blower-current",
+      "adjudication_ref": "adjudication:synthetic-PRESSURE_SENSOR_FAULT-blower-current"
+    },
+    {
+      "response_id": "response-PRESSURE_SENSOR_FAULT-gravimetric-flow",
+      "state_id": "PRESSURE_SENSOR_FAULT",
+      "channel_id": "gravimetric-flow",
+      "availability": "VALID",
+      "value_lower": 1.4,
+      "value_upper": 1.6,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-PRESSURE_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-PRESSURE_SENSOR_FAULT-gravimetric-flow",
+      "adjudication_ref": "adjudication:synthetic-PRESSURE_SENSOR_FAULT-gravimetric-flow"
+    },
+    {
+      "response_id": "response-PRESSURE_SENSOR_FAULT-ecc-flow",
+      "state_id": "PRESSURE_SENSOR_FAULT",
+      "channel_id": "ecc-flow",
+      "availability": "VALID",
+      "value_lower": 1.35,
+      "value_upper": 1.65,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-PRESSURE_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-PRESSURE_SENSOR_FAULT-ecc-flow",
+      "adjudication_ref": "adjudication:synthetic-PRESSURE_SENSOR_FAULT-ecc-flow"
+    },
+    {
+      "response_id": "response-PRESSURE_SENSOR_FAULT-sensor-self-check",
+      "state_id": "PRESSURE_SENSOR_FAULT",
+      "channel_id": "sensor-self-check",
+      "availability": "VALID",
+      "value_lower": 5,
+      "value_upper": 6,
+      "unit": "index",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-PRESSURE_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-PRESSURE_SENSOR_FAULT-sensor-self-check",
+      "adjudication_ref": "adjudication:synthetic-PRESSURE_SENSOR_FAULT-sensor-self-check"
+    },
+    {
+      "response_id": "response-AIRFLOW_SENSOR_FAULT-dp-line",
+      "state_id": "AIRFLOW_SENSOR_FAULT",
+      "channel_id": "dp-line",
+      "availability": "VALID",
+      "value_lower": 10,
+      "value_upper": 12,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-AIRFLOW_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-AIRFLOW_SENSOR_FAULT-dp-line",
+      "adjudication_ref": "adjudication:synthetic-AIRFLOW_SENSOR_FAULT-dp-line"
+    },
+    {
+      "response_id": "response-AIRFLOW_SENSOR_FAULT-dp-filter",
+      "state_id": "AIRFLOW_SENSOR_FAULT",
+      "channel_id": "dp-filter",
+      "availability": "VALID",
+      "value_lower": 2,
+      "value_upper": 3,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-AIRFLOW_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-AIRFLOW_SENSOR_FAULT-dp-filter",
+      "adjudication_ref": "adjudication:synthetic-AIRFLOW_SENSOR_FAULT-dp-filter"
+    },
+    {
+      "response_id": "response-AIRFLOW_SENSOR_FAULT-airflow",
+      "state_id": "AIRFLOW_SENSOR_FAULT",
+      "channel_id": "airflow",
+      "availability": "DEGRADED",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "m3/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-AIRFLOW_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-AIRFLOW_SENSOR_FAULT-airflow",
+      "adjudication_ref": "adjudication:synthetic-AIRFLOW_SENSOR_FAULT-airflow"
+    },
+    {
+      "response_id": "response-AIRFLOW_SENSOR_FAULT-blower-current",
+      "state_id": "AIRFLOW_SENSOR_FAULT",
+      "channel_id": "blower-current",
+      "availability": "VALID",
+      "value_lower": 18,
+      "value_upper": 20,
+      "unit": "A",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-AIRFLOW_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-AIRFLOW_SENSOR_FAULT-blower-current",
+      "adjudication_ref": "adjudication:synthetic-AIRFLOW_SENSOR_FAULT-blower-current"
+    },
+    {
+      "response_id": "response-AIRFLOW_SENSOR_FAULT-gravimetric-flow",
+      "state_id": "AIRFLOW_SENSOR_FAULT",
+      "channel_id": "gravimetric-flow",
+      "availability": "VALID",
+      "value_lower": 1.4,
+      "value_upper": 1.6,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-AIRFLOW_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-AIRFLOW_SENSOR_FAULT-gravimetric-flow",
+      "adjudication_ref": "adjudication:synthetic-AIRFLOW_SENSOR_FAULT-gravimetric-flow"
+    },
+    {
+      "response_id": "response-AIRFLOW_SENSOR_FAULT-ecc-flow",
+      "state_id": "AIRFLOW_SENSOR_FAULT",
+      "channel_id": "ecc-flow",
+      "availability": "VALID",
+      "value_lower": 1.35,
+      "value_upper": 1.65,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-AIRFLOW_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-AIRFLOW_SENSOR_FAULT-ecc-flow",
+      "adjudication_ref": "adjudication:synthetic-AIRFLOW_SENSOR_FAULT-ecc-flow"
+    },
+    {
+      "response_id": "response-AIRFLOW_SENSOR_FAULT-sensor-self-check",
+      "state_id": "AIRFLOW_SENSOR_FAULT",
+      "channel_id": "sensor-self-check",
+      "availability": "VALID",
+      "value_lower": 5,
+      "value_upper": 6,
+      "unit": "index",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-AIRFLOW_SENSOR_FAULT",
+      "source_ref": "artifact:synthetic-response-AIRFLOW_SENSOR_FAULT-sensor-self-check",
+      "adjudication_ref": "adjudication:synthetic-AIRFLOW_SENSOR_FAULT-sensor-self-check"
+    },
+    {
+      "response_id": "response-HIGH_SOLIDS_LOADING-dp-line",
+      "state_id": "HIGH_SOLIDS_LOADING",
+      "channel_id": "dp-line",
+      "availability": "VALID",
+      "value_lower": 22,
+      "value_upper": 28,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-HIGH_SOLIDS_LOADING",
+      "source_ref": "artifact:synthetic-response-HIGH_SOLIDS_LOADING-dp-line",
+      "adjudication_ref": "adjudication:synthetic-HIGH_SOLIDS_LOADING-dp-line"
+    },
+    {
+      "response_id": "response-HIGH_SOLIDS_LOADING-dp-filter",
+      "state_id": "HIGH_SOLIDS_LOADING",
+      "channel_id": "dp-filter",
+      "availability": "VALID",
+      "value_lower": 2,
+      "value_upper": 4,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-HIGH_SOLIDS_LOADING",
+      "source_ref": "artifact:synthetic-response-HIGH_SOLIDS_LOADING-dp-filter",
+      "adjudication_ref": "adjudication:synthetic-HIGH_SOLIDS_LOADING-dp-filter"
+    },
+    {
+      "response_id": "response-HIGH_SOLIDS_LOADING-airflow",
+      "state_id": "HIGH_SOLIDS_LOADING",
+      "channel_id": "airflow",
+      "availability": "VALID",
+      "value_lower": 0.42,
+      "value_upper": 0.48,
+      "unit": "m3/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-HIGH_SOLIDS_LOADING",
+      "source_ref": "artifact:synthetic-response-HIGH_SOLIDS_LOADING-airflow",
+      "adjudication_ref": "adjudication:synthetic-HIGH_SOLIDS_LOADING-airflow"
+    },
+    {
+      "response_id": "response-HIGH_SOLIDS_LOADING-blower-current",
+      "state_id": "HIGH_SOLIDS_LOADING",
+      "channel_id": "blower-current",
+      "availability": "VALID",
+      "value_lower": 21,
+      "value_upper": 23,
+      "unit": "A",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-HIGH_SOLIDS_LOADING",
+      "source_ref": "artifact:synthetic-response-HIGH_SOLIDS_LOADING-blower-current",
+      "adjudication_ref": "adjudication:synthetic-HIGH_SOLIDS_LOADING-blower-current"
+    },
+    {
+      "response_id": "response-HIGH_SOLIDS_LOADING-gravimetric-flow",
+      "state_id": "HIGH_SOLIDS_LOADING",
+      "channel_id": "gravimetric-flow",
+      "availability": "VALID",
+      "value_lower": 1.8,
+      "value_upper": 2,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-HIGH_SOLIDS_LOADING",
+      "source_ref": "artifact:synthetic-response-HIGH_SOLIDS_LOADING-gravimetric-flow",
+      "adjudication_ref": "adjudication:synthetic-HIGH_SOLIDS_LOADING-gravimetric-flow"
+    },
+    {
+      "response_id": "response-HIGH_SOLIDS_LOADING-ecc-flow",
+      "state_id": "HIGH_SOLIDS_LOADING",
+      "channel_id": "ecc-flow",
+      "availability": "VALID",
+      "value_lower": 1.75,
+      "value_upper": 2.05,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-HIGH_SOLIDS_LOADING",
+      "source_ref": "artifact:synthetic-response-HIGH_SOLIDS_LOADING-ecc-flow",
+      "adjudication_ref": "adjudication:synthetic-HIGH_SOLIDS_LOADING-ecc-flow"
+    },
+    {
+      "response_id": "response-HIGH_SOLIDS_LOADING-sensor-self-check",
+      "state_id": "HIGH_SOLIDS_LOADING",
+      "channel_id": "sensor-self-check",
+      "availability": "VALID",
+      "value_lower": 0,
+      "value_upper": 0.5,
+      "unit": "index",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-HIGH_SOLIDS_LOADING",
+      "source_ref": "artifact:synthetic-response-HIGH_SOLIDS_LOADING-sensor-self-check",
+      "adjudication_ref": "adjudication:synthetic-HIGH_SOLIDS_LOADING-sensor-self-check"
+    },
+    {
+      "response_id": "response-UNKNOWN_OUT_OF_DOMAIN-dp-line",
+      "state_id": "UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "dp-line",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-UNKNOWN_OUT_OF_DOMAIN",
+      "source_ref": "artifact:synthetic-response-UNKNOWN_OUT_OF_DOMAIN-dp-line",
+      "adjudication_ref": "adjudication:synthetic-UNKNOWN_OUT_OF_DOMAIN-dp-line"
+    },
+    {
+      "response_id": "response-UNKNOWN_OUT_OF_DOMAIN-dp-filter",
+      "state_id": "UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "dp-filter",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "kPa",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-UNKNOWN_OUT_OF_DOMAIN",
+      "source_ref": "artifact:synthetic-response-UNKNOWN_OUT_OF_DOMAIN-dp-filter",
+      "adjudication_ref": "adjudication:synthetic-UNKNOWN_OUT_OF_DOMAIN-dp-filter"
+    },
+    {
+      "response_id": "response-UNKNOWN_OUT_OF_DOMAIN-airflow",
+      "state_id": "UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "airflow",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "m3/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-UNKNOWN_OUT_OF_DOMAIN",
+      "source_ref": "artifact:synthetic-response-UNKNOWN_OUT_OF_DOMAIN-airflow",
+      "adjudication_ref": "adjudication:synthetic-UNKNOWN_OUT_OF_DOMAIN-airflow"
+    },
+    {
+      "response_id": "response-UNKNOWN_OUT_OF_DOMAIN-blower-current",
+      "state_id": "UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "blower-current",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "A",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-UNKNOWN_OUT_OF_DOMAIN",
+      "source_ref": "artifact:synthetic-response-UNKNOWN_OUT_OF_DOMAIN-blower-current",
+      "adjudication_ref": "adjudication:synthetic-UNKNOWN_OUT_OF_DOMAIN-blower-current"
+    },
+    {
+      "response_id": "response-UNKNOWN_OUT_OF_DOMAIN-gravimetric-flow",
+      "state_id": "UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "gravimetric-flow",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-UNKNOWN_OUT_OF_DOMAIN",
+      "source_ref": "artifact:synthetic-response-UNKNOWN_OUT_OF_DOMAIN-gravimetric-flow",
+      "adjudication_ref": "adjudication:synthetic-UNKNOWN_OUT_OF_DOMAIN-gravimetric-flow"
+    },
+    {
+      "response_id": "response-UNKNOWN_OUT_OF_DOMAIN-ecc-flow",
+      "state_id": "UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "ecc-flow",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "kg/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-UNKNOWN_OUT_OF_DOMAIN",
+      "source_ref": "artifact:synthetic-response-UNKNOWN_OUT_OF_DOMAIN-ecc-flow",
+      "adjudication_ref": "adjudication:synthetic-UNKNOWN_OUT_OF_DOMAIN-ecc-flow"
+    },
+    {
+      "response_id": "response-UNKNOWN_OUT_OF_DOMAIN-sensor-self-check",
+      "state_id": "UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "sensor-self-check",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "index",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-205m-hose-bends"
+      },
+      "measurement_window_ref": "window:synthetic-UNKNOWN_OUT_OF_DOMAIN",
+      "source_ref": "artifact:synthetic-response-UNKNOWN_OUT_OF_DOMAIN-sensor-self-check",
+      "adjudication_ref": "adjudication:synthetic-UNKNOWN_OUT_OF_DOMAIN-sensor-self-check"
+    }
+  ]
+}
