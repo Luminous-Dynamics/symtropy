@@ -68,6 +68,58 @@ pub struct KillingConstants {
     pub angular_momentum_z_m: f64,
 }
 
+/// Component-wise absolute tolerances for adaptive geodesic integration.
+///
+/// Coordinate tolerances use [m, m, rad, rad] for [ct, r, theta, phi].
+/// Tangent tolerances use the corresponding units [1, 1, 1/m, 1/m] when
+/// lambda is a length. Keeping these separate avoids applying one absolute
+/// tolerance to dimensionally different state components.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GeodesicTolerances {
+    pub relative: f64,
+    pub coordinate_absolute: [f64; 4],
+    pub tangent_absolute: [f64; 4],
+}
+
+impl GeodesicTolerances {
+    pub fn new(
+        relative: f64,
+        coordinate_absolute: [f64; 4],
+        tangent_absolute: [f64; 4],
+    ) -> Result<Self, GeodesicError> {
+        if !relative.is_finite() || relative <= 0.0 {
+            return Err(GeodesicError::InvalidTolerance {
+                group: "relative",
+                index: None,
+                value: relative,
+            });
+        }
+        for (index, value) in coordinate_absolute.iter().enumerate() {
+            if !value.is_finite() || *value <= 0.0 {
+                return Err(GeodesicError::InvalidTolerance {
+                    group: "coordinate_absolute",
+                    index: Some(index),
+                    value: *value,
+                });
+            }
+        }
+        for (index, value) in tangent_absolute.iter().enumerate() {
+            if !value.is_finite() || *value <= 0.0 {
+                return Err(GeodesicError::InvalidTolerance {
+                    group: "tangent_absolute",
+                    index: Some(index),
+                    value: *value,
+                });
+            }
+        }
+        Ok(Self {
+            relative,
+            coordinate_absolute,
+            tangent_absolute,
+        })
+    }
+}
+
 /// Adaptive integration summary. Returned states include the initial state and
 /// every accepted step endpoint.
 #[derive(Debug, Clone, PartialEq)]
@@ -272,8 +324,7 @@ impl SchwarzschildGeodesicIntegrator {
         initial: GeodesicState,
         parameter_span_m: f64,
         initial_step_m: f64,
-        relative_tolerance: f64,
-        absolute_tolerance: f64,
+        tolerances: GeodesicTolerances,
         max_attempts: usize,
     ) -> Result<AdaptiveGeodesicResult, GeodesicError> {
         self.validate_state(&initial)?;
@@ -281,8 +332,6 @@ impl SchwarzschildGeodesicIntegrator {
         for (name, value) in [
             ("parameter_span_m", parameter_span_m),
             ("initial_step_m", initial_step_m),
-            ("relative_tolerance", relative_tolerance),
-            ("absolute_tolerance", absolute_tolerance),
         ] {
             if !value.is_finite() || value <= 0.0 {
                 return Err(GeodesicError::InvalidPositiveParameter { name, value });
@@ -328,8 +377,7 @@ impl SchwarzschildGeodesicIntegrator {
             let error = self.step_doubling_error(
                 full,
                 two_half,
-                relative_tolerance,
-                absolute_tolerance,
+                tolerances,
             );
 
             if error <= 1.0 {
@@ -363,20 +411,22 @@ impl SchwarzschildGeodesicIntegrator {
         &self,
         full: GeodesicState,
         two_half: GeodesicState,
-        relative_tolerance: f64,
-        absolute_tolerance: f64,
+        tolerances: GeodesicTolerances,
     ) -> f64 {
         let mut maximum: f64 = 0.0;
 
         for index in 0..4 {
-            for (a, b) in [
-                (full.coordinates[index], two_half.coordinates[index]),
-                (full.tangent[index], two_half.tangent[index]),
-            ] {
-                let scale = absolute_tolerance
-                    + relative_tolerance * a.abs().max(b.abs());
-                maximum = maximum.max((a - b).abs() / scale);
-            }
+            let coordinate_a = full.coordinates[index];
+            let coordinate_b = two_half.coordinates[index];
+            let coordinate_scale = tolerances.coordinate_absolute[index]
+                + tolerances.relative * coordinate_a.abs().max(coordinate_b.abs());
+            maximum = maximum.max((coordinate_a - coordinate_b).abs() / coordinate_scale);
+
+            let tangent_a = full.tangent[index];
+            let tangent_b = two_half.tangent[index];
+            let tangent_scale = tolerances.tangent_absolute[index]
+                + tolerances.relative * tangent_a.abs().max(tangent_b.abs());
+            maximum = maximum.max((tangent_a - tangent_b).abs() / tangent_scale);
         }
 
         maximum
@@ -452,6 +502,11 @@ pub enum GeodesicError {
         value: f64,
     },
     ZeroMaximumAttempts,
+    InvalidTolerance {
+        group: &'static str,
+        index: Option<usize>,
+        value: f64,
+    },
     NonFiniteCoordinate {
         index: usize,
     },
@@ -509,6 +564,9 @@ impl fmt::Display for GeodesicError {
                 write!(f, "{name} must be finite and positive, got {value}")
             }
             Self::ZeroMaximumAttempts => write!(f, "maximum adaptive attempts must be nonzero"),
+            Self::InvalidTolerance { group, index, value } => {
+                write!(f, "invalid {group} tolerance at {index:?}: {value}")
+            }
             Self::NonFiniteCoordinate { index } => {
                 write!(f, "geodesic coordinate x[{index}] is non-finite")
             }
@@ -641,8 +699,14 @@ mod tests {
         let rg = integrator.black_hole().gravitational_radius_m();
         let initial = circular_timelike_state(integrator, 6.0);
         let span = 10.0 * rg;
+        let tolerances = GeodesicTolerances::new(
+            1e-10,
+            [1e-8 * rg, 1e-8 * rg, 1e-10, 1e-10],
+            [1e-10, 1e-10, 1e-12 / rg, 1e-12 / rg],
+        )
+        .unwrap();
         let result = integrator
-            .integrate_adaptive(initial, span, rg, 1e-10, 1e-12, 2000)
+            .integrate_adaptive(initial, span, rg, tolerances, 2000)
             .unwrap();
         let final_state = *result.states.last().unwrap();
 
@@ -696,13 +760,16 @@ mod tests {
     }
 
     #[test]
-    fn adaptive_integrator_rejects_nonpositive_tolerances() {
-        let integrator = integrator();
-        let initial = circular_timelike_state(integrator, 6.0);
+    fn adaptive_integrator_rejects_nonpositive_component_tolerances() {
         assert!(matches!(
-            integrator.integrate_adaptive(initial, 1.0, 0.1, 1e-8, 0.0, 10),
-            Err(GeodesicError::InvalidPositiveParameter {
-                name: "absolute_tolerance",
+            GeodesicTolerances::new(
+                1e-8,
+                [1e-8, 1e-8, 1e-10, 1e-10],
+                [1e-8, 1e-8, 1e-12, 0.0],
+            ),
+            Err(GeodesicError::InvalidTolerance {
+                group: "tangent_absolute",
+                index: Some(3),
                 ..
             })
         ));
