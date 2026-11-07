@@ -367,6 +367,80 @@
         "Building-specific weather, solar exposure, envelope and office loads do not transfer to an underground facility."
       ],
       "transferability": "Use to remind the benchmark to separate site/source EUI and cultivation/office/support zones. Not a direct CEA crop-zone comparator."
+    },
+    {
+      "comparator_id": "HARVEST-CONSTRAINED-LIGHT-CLIMATE-2026",
+      "title": "Beyond Light Scheduling: Harvest-Constrained Co-Optimization of Lighting and Climate in Vertical Farms under Volatile Electricity Prices",
+      "authors": "Kiran Kumar Sathyanarayanan, Jonathan Raecke and Stefan Streif",
+      "publication_date": "2026-10-13",
+      "venue": "Smart Agricultural Technology, Volume 15, article 102636",
+      "doi": "10.1016/j.atech.2026.102636",
+      "source_url": "https://doi.org/10.1016/j.atech.2026.102636",
+      "evidence_class": "TRANSIENT_MODEL_SCENARIOS",
+      "system_domain": "Four-level 48 m² indoor container vertical farm model, Batavia Othilie lettuce, target 250 ±1.5 g per head; multi-country and seasonal price/weather scenarios",
+      "method_summary": "Three-level hierarchical simulation: strategic full crop-cycle harvest/biomass trajectory with stochastic price/weather scenarios; day-ahead price-responsive scheduling; 15-minute shrinking-horizon MPC. Jointly co-optimizes DLI, photoperiod, LED, temperature, humidity, heating/cooling and dehumidification under harvest date/weight constraints.",
+      "reported_metrics": [
+        {
+          "metric_id": "mean_electricity_cost_reduction",
+          "reported_value": "13.7% average (7.3–19.7% range)",
+          "unit": "% versus study static baseline",
+          "basis": "36 simulated scenarios (3 countries × 4 seasons × 3 production intensities), 250 ±1.5 g/head harvest target",
+          "status": "MODEL_SCENARIO",
+          "notes": "Model result; not a measured commercial facility saving."
+        },
+        {
+          "metric_id": "electricity_use_reduction",
+          "reported_value": "8.4%",
+          "unit": "% versus study static baseline",
+          "basis": "Same 36 simulated scenarios and harvest constraint",
+          "status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "climate_system_share_of_cost_savings",
+          "reported_value": "approximately 97%",
+          "unit": "% of modeled cost saving",
+          "basis": "Study ablation / controller contribution decomposition",
+          "status": "MODEL_SCENARIO",
+          "notes": "Indicates climate control dominates the simulated saving; does not prove identical allocation in a real farm."
+        },
+        {
+          "metric_id": "lighting_only_controller_cost_penalty",
+          "reported_value": "approximately 10% more expensive than joint control",
+          "unit": "relative energy cost",
+          "basis": "Study lighting-only versus joint lighting/climate optimization comparison",
+          "status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "variable_dli_incremental_benefit",
+          "reported_value": "about 3 percentage points",
+          "unit": "percentage-point improvement in reported cost savings",
+          "basis": "Study ablation comparing variable versus fixed DLI",
+          "status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "intraday_mpc_incremental_benefit",
+          "reported_value": "0.6–1.4 percentage points",
+          "unit": "percentage-point improvement in reported cost savings",
+          "basis": "15-minute shrinking-horizon MPC versus day-ahead planning",
+          "status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "scenario_count",
+          "reported_value": "36",
+          "unit": "scenarios",
+          "basis": "3 countries × 4 seasons × 3 production intensities",
+          "status": "AUTHOR_REPORTED"
+        }
+      ],
+      "limitations": [
+        "All headline performance improvements are simulation results; the paper does not establish a commercial field trial or measured savings.",
+        "Data and simulation code are available on request, so direct reproduction requires source admission and model/data access.",
+        "The container geometry, cultivar, production profile, tariffs and climate configuration are specific to the study.",
+        "A secondary technical summary reports that sensor noise/delay, device cycling/defrost, peak-power charges and equipment wear were omitted; treat these as challenge hypotheses pending primary-method confirmation.",
+        "The controller relies on crop-growth and climate model validity; independent biomass feedback and uncertainty qualification are essential before physical deployment."
+      ],
+      "transferability": "Most direct 2026 comparator for harvest-constrained joint lighting/climate scheduling. Reproduce the source baseline, then challenge with measured biomass feedback, model bias, sensor latency/noise, HVAC cycling/defrost, demand charges, equipment wear, site-specific tariffs and blind crop/facility transfer.",
+      "source_scope_warning": "Primary abstract and metadata at DOI / Elsevier. Detailed limitations concerning measurement noise, actuation delays, cycling/defrost, peak charges and wear are reported by a secondary technical summary and must be checked against the full paper / supplement before being treated as primary facts. Secondary summary: https://scienmag.com/simulated-vertical-farm-controller-cuts-costs-by-co-optimizing-light-and-climate/"
     }
   ],
   "interpretation_rules": [
