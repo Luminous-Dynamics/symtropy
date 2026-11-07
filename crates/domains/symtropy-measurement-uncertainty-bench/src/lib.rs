@@ -1706,6 +1706,8 @@ mod tests {
         case["outputs"][0]["instructions"] = serde_json::json!([
             {"op":"INPUT","input_id":"total_energy"},
             {"op":"INPUT","input_id":"total_energy"},
+            {"op":"MULTIPLY"},
+            {"op":"INPUT","input_id":"total_energy"},
             {"op":"MULTIPLY"}
         ]);
         assert!(has(&validate_case(&case), "DIMENSION_EXPONENT_OVERFLOW"));
