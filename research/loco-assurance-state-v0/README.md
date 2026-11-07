@@ -24,12 +24,12 @@ An action is permitted only when both gates pass. A rejected physical action can
 - Deterministic sorted/deduplicated reason-coded findings.
 - Three assurance statuses: Valid, Unknown and Invalid.
 - Independent robust viability gate combined through a fail-closed operational decision.
-- Seventeen deterministic fault and boundary tests.
+- Twenty deterministic fault and boundary tests.
 
 ## Status semantics
 
 - Valid: all required evidence is present and inside the certificate envelope.
-- Unknown: necessary evidence or time ordering is unavailable/uncertain; no permission is granted.
+- Unknown: necessary evidence or time ordering is unavailable/uncertain; no permission is granted. When the clock is uncertain, time-derived expiry, freshness and deadline comparisons are suppressed rather than evaluated against untrusted timestamps.
 - Invalid: a known assumption mismatch, expiry, unhealthy/OOD/stale sensor, actuator-envelope violation or deadline violation exists.
 
 The gate is evaluated immediately before action application. A delayed command must be rechecked; a previous Valid report must not be reused after the evidence snapshot has changed.
