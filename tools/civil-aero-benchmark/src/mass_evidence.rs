@@ -737,6 +737,14 @@ fn validate_evidence_record(
         return Err("mass evidence item ID must not be empty".to_owned());
     }
     validate_source_record(&evidence.source, &evidence.item.id)?;
+    if evidence.evidence_class == MassEvidenceClass::DirectlyMeasured
+        && evidence.source.measurement.is_none()
+    {
+        return Err(format!(
+            "mass item {}: directly measured item requires measurement and calibration metadata",
+            evidence.item.id
+        ));
+    }
     validate_nonempty(
         &evidence.effectivity.aircraft_family,
         "effectivity.aircraft_family",
@@ -1078,7 +1086,84 @@ fn validate_source_record(source: &SourceRecord, item_id: &str) -> Result<(), St
     validate_sha256(
         &source.sha256,
         &format!("mass item {item_id} source.sha256"),
-    )
+    )?;
+    validate_utc_timestamp(
+        &source.captured_at_utc,
+        &format!("mass item {item_id} source.captured_at_utc"),
+    )?;
+    if let Some(measurement) = &source.measurement {
+        validate_utc_timestamp(
+            &measurement.measured_at_utc,
+            &format!("mass item {item_id} measurement.measured_at_utc"),
+        )?;
+        validate_nonempty(
+            &measurement.physical_article_id,
+            "measurement.physical_article_id",
+        )?;
+        validate_nonempty(
+            &measurement.instrument_reference,
+            "measurement.instrument_reference",
+        )?;
+        validate_nonempty(
+            &measurement.calibration_reference,
+            "measurement.calibration_reference",
+        )?;
+        validate_nonempty(
+            &measurement.calibration_revision,
+            "measurement.calibration_revision",
+        )?;
+        validate_sha256(
+            &measurement.calibration_sha256,
+            &format!("mass item {item_id} measurement.calibration_sha256"),
+        )?;
+    }
+    Ok(())
+}
+
+fn validate_utc_timestamp(value: &str, field: &str) -> Result<(), String> {
+    let bytes = value.as_bytes();
+    let separators_valid = bytes.len() == 20
+        && bytes[4] == b'-'
+        && bytes[7] == b'-'
+        && bytes[10] == b'T'
+        && bytes[13] == b':'
+        && bytes[16] == b':'
+        && bytes[19] == b'Z';
+    if !separators_valid
+        || bytes
+            .iter()
+            .enumerate()
+            .any(|(index, byte)| !matches!(index, 4 | 7 | 10 | 13 | 16 | 19) && !byte.is_ascii_digit())
+    {
+        return Err(format!("{field} must use YYYY-MM-DDTHH:MM:SSZ"));
+    }
+    let parse = |start: usize, end: usize| -> u32 {
+        value[start..end].parse::<u32>().unwrap_or_default()
+    };
+    let year = parse(0, 4);
+    let month = parse(5, 7);
+    let day = parse(8, 10);
+    let hour = parse(11, 13);
+    let minute = parse(14, 16);
+    let second = parse(17, 19);
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => 0,
+    };
+    if year < 1970
+        || day == 0
+        || day > days_in_month
+        || hour > 23
+        || minute > 59
+        || second > 59
+    {
+        return Err(format!("{field} contains an invalid UTC date or time"));
+    }
+    Ok(())
 }
 
 fn validate_sha256(value: &str, field: &str) -> Result<(), String> {
@@ -1172,6 +1257,19 @@ fn encode_source_record(bytes: &mut Vec<u8>, source: &SourceRecord) {
     push_str(bytes, &source.revision);
     push_str(bytes, &source.locator);
     push_str(bytes, &source.sha256.to_ascii_lowercase());
+    push_str(bytes, &source.captured_at_utc);
+    match &source.measurement {
+        Some(measurement) => {
+            bytes.push(1);
+            push_str(bytes, &measurement.measured_at_utc);
+            push_str(bytes, &measurement.physical_article_id);
+            push_str(bytes, &measurement.instrument_reference);
+            push_str(bytes, &measurement.calibration_reference);
+            push_str(bytes, &measurement.calibration_revision);
+            push_str(bytes, &measurement.calibration_sha256.to_ascii_lowercase());
+        }
+        None => bytes.push(0),
+    }
 }
 
 fn encode_mass_value(bytes: &mut Vec<u8>, value: SourceMassValue) {
@@ -1379,6 +1477,8 @@ mod tests {
             revision: "rev-1".to_owned(),
             locator: "table-1/row-1".to_owned(),
             sha256: sha.to_owned(),
+            captured_at_utc: "2026-11-07T00:00:00Z".to_owned(),
+            measurement: None,
         }
     }
 
@@ -1836,19 +1936,25 @@ mod tests {
     #[test]
     fn direct_measurement_requires_article_instrument_and_calibration_provenance() {
         let mut ledger = fixture_ledger(CONFIG);
-        let record = ledger
+        ledger
             .records
             .iter_mut()
             .find(|record| record.item.id == "fuel_tank")
-            .expect("fuel record");
-        record.evidence_class = MassEvidenceClass::DirectlyMeasured;
+            .expect("fuel record")
+            .evidence_class = MassEvidenceClass::DirectlyMeasured;
         let state = make_state(&ledger, LoadingStateKind::Takeoff);
         let error = ledger
             .evaluate_state(&state, CONFIG)
             .expect_err("direct measurements require metrology provenance");
         assert!(error.contains("directly measured item requires measurement and calibration metadata"));
 
-        record.source.measurement = Some(SourceMeasurement {
+        ledger
+            .records
+            .iter_mut()
+            .find(|record| record.item.id == "fuel_tank")
+            .expect("fuel record")
+            .source
+            .measurement = Some(SourceMeasurement {
             measured_at_utc: "2026-11-06T12:00:00Z".to_owned(),
             physical_article_id: "SYNTH-001/fuel-tank".to_owned(),
             instrument_reference: "scale:SYNTH-SCALE-01".to_owned(),
