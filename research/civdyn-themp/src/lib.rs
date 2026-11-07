@@ -168,12 +168,19 @@ pub struct MechanismHypothesis {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlternativePrediction {
+    pub pattern_id: String,
+    pub outcome_indicator_id: String,
+    pub expected_direction: ExpectedDirection,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlternativeExplanation {
     pub id: String,
     pub target_mechanism_id: String,
     pub description: String,
-    /// Patterns on which this alternative makes a different prediction.
-    pub discriminating_pattern_ids: Vec<String>,
+    /// Explicit predictions that must differ from the target mechanism on the same outcome.
+    pub discriminating_predictions: Vec<AlternativePrediction>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -539,25 +546,73 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
             );
         }
         if alternative.description.trim().is_empty()
-            || alternative.discriminating_pattern_ids.is_empty()
+            || alternative.discriminating_predictions.is_empty()
         {
             push(
                 &mut findings,
                 FindingSeverity::Error,
                 "alternative_not_discriminable",
                 &alternative.id,
-                "alternative explanation needs a description and at least one discriminating pattern",
+                "alternative explanation needs a description and explicit discriminating predictions",
             );
         }
-        for pattern_id in &alternative.discriminating_pattern_ids {
-            if !pattern_ids.contains(pattern_id.as_str()) {
+        let mut alternative_prediction_keys = BTreeSet::new();
+        for alternative_prediction in &alternative.discriminating_predictions {
+            if !pattern_ids.contains(alternative_prediction.pattern_id.as_str()) {
                 push(
                     &mut findings,
                     FindingSeverity::Error,
                     "alternative_pattern_unknown",
                     &alternative.id,
-                    format!("unknown discriminating pattern {pattern_id}"),
+                    format!("unknown discriminating pattern {}", alternative_prediction.pattern_id),
                 );
+            }
+            if !indicator_ids.contains(alternative_prediction.outcome_indicator_id.as_str()) {
+                push(
+                    &mut findings,
+                    FindingSeverity::Error,
+                    "alternative_indicator_unknown",
+                    &alternative.id,
+                    format!("unknown discriminating outcome indicator {}", alternative_prediction.outcome_indicator_id),
+                );
+            }
+            if !alternative_prediction_keys.insert((
+                alternative_prediction.pattern_id.as_str(),
+                alternative_prediction.outcome_indicator_id.as_str(),
+            )) {
+                push(
+                    &mut findings,
+                    FindingSeverity::Error,
+                    "duplicate_alternative_prediction",
+                    &alternative.id,
+                    "alternative predictions must be unique by pattern and outcome indicator",
+                );
+            }
+            let primary_prediction = passport.predictions.iter().find(|prediction| {
+                prediction.mechanism_id == alternative.target_mechanism_id
+                    && prediction.pattern_id == alternative_prediction.pattern_id
+                    && prediction.outcome_indicator_id == alternative_prediction.outcome_indicator_id
+            });
+            match primary_prediction {
+                None => push(
+                    &mut findings,
+                    FindingSeverity::Error,
+                    "alternative_without_primary_prediction",
+                    &alternative.id,
+                    "alternative prediction has no matched primary-theory prediction on the same pattern and indicator",
+                ),
+                Some(primary)
+                    if primary.expected_direction == alternative_prediction.expected_direction =>
+                {
+                    push(
+                        &mut findings,
+                        FindingSeverity::Error,
+                        "alternative_not_discriminating",
+                        &alternative.id,
+                        "alternative and primary theory predict the same direction for the same observable",
+                    );
+                }
+                Some(_) => {}
             }
         }
         if let Some(mechanism) = passport
@@ -897,7 +952,11 @@ pub fn reference_passport() -> ModelPassport {
                 id: "infrastructure_capacity_only".into(),
                 target_mechanism_id: "trust_reciprocity_allocation".into(),
                 description: "household service coverage is primarily constrained by pipe and pump capacity; trust changes do not mediate resource transfers".into(),
-                discriminating_pattern_ids: vec!["transfer_uptake_vs_capacity".into()],
+                discriminating_predictions: vec![AlternativePrediction {
+                    pattern_id: "transfer_uptake_vs_capacity".into(),
+                    outcome_indicator_id: "water_service_coverage".into(),
+                    expected_direction: ExpectedDirection::EquivalentWithinDeclaredMargin,
+                }],
             },
         ],
         patterns: vec![
@@ -1030,15 +1089,30 @@ mod tests {
     }
 
     #[test]
-    fn plausible_alternative_must_have_a_discriminating_pattern() {
+    fn alternative_must_make_a_different_prediction_on_the_same_observable() {
         let mut passport = reference_passport();
-        passport.alternatives[0].discriminating_pattern_ids.clear();
+        passport.alternatives[0].discriminating_predictions[0].expected_direction =
+            ExpectedDirection::Positive;
         let report = evaluate_passport(&passport).unwrap();
         assert!(
             report
                 .findings
                 .iter()
-                .any(|finding| { finding.code == "alternative_not_discriminable" })
+                .any(|finding| { finding.code == "alternative_not_discriminating" })
+        );
+    }
+
+    #[test]
+    fn alternative_without_a_matched_primary_prediction_is_not_discriminating() {
+        let mut passport = reference_passport();
+        passport.alternatives[0].discriminating_predictions[0].outcome_indicator_id =
+            "unknown_indicator".into();
+        let report = evaluate_passport(&passport).unwrap();
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "alternative_indicator_unknown" })
         );
     }
 
