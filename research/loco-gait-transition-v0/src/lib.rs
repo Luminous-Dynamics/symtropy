@@ -146,7 +146,6 @@ pub enum TransitionError {
 #[derive(Debug, Clone)]
 struct SweepSummary {
     trace_id: String,
-    pair_id: String,
     direction: SweepDirection,
     transition: TransitionBracket,
     ramp_rate: f64,
@@ -374,7 +373,6 @@ fn summarize_trace(
 
     Ok(SweepSummary {
         trace_id: trace.trace_id.clone(),
-        pair_id: trace.pair_id.clone(),
         direction: trace.direction,
         transition,
         ramp_rate,
