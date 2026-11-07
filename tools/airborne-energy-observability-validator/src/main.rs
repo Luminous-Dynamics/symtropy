@@ -8,7 +8,9 @@ use std::{env, fs, process};
 
 fn main() {
     let mut args = env::args_os();
-    let program = args.next().and_then(|value| value.into_string().ok())
+    let program = args
+        .next()
+        .and_then(|value| value.into_string().ok())
         .unwrap_or_else(|| "airborne-energy-observability-validator".to_string());
     let Some(path) = args.next() else {
         eprintln!("usage: {program} <observability-case.json>");
