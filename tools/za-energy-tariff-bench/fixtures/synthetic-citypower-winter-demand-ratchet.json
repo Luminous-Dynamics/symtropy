@@ -22,7 +22,7 @@
       ],
       "power_factor": 0.98,
       "reactive_energy_kvarh": 0,
-      "apply_business_lpu_surcharge": false,
+      "apply_business_lpu_surcharge": true,
       "surcharge_basis": null,
       "vat_rate": null,
       "intervals": [
@@ -40,7 +40,8 @@
           "energy_kwh": 100,
           "maximum_demand_kva": 80
         }
-      ]
+      ],
+      "surcharge_basis_confirmed": false
     },
     {
       "case_id": "after-peak-shift",
@@ -61,7 +62,7 @@
       ],
       "power_factor": 0.98,
       "reactive_energy_kvarh": 0,
-      "apply_business_lpu_surcharge": false,
+      "apply_business_lpu_surcharge": true,
       "surcharge_basis": null,
       "vat_rate": null,
       "intervals": [
@@ -72,7 +73,8 @@
           "energy_kwh": 200,
           "maximum_demand_kva": 80
         }
-      ]
+      ],
+      "surcharge_basis_confirmed": false
     }
   ]
 }
