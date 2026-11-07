@@ -480,7 +480,7 @@ fn push_len_hasher(hasher: &mut blake3::Hasher, length: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::decision_closure::{DecisionHypothesis, ExactRational, HypothesisActionOutcome};
+    use crate::decision_closure::{DecisionHypothesis, DecisionManifest, ExactRational, HypothesisActionOutcome};
     use crate::decision_evidence::{DecisionEvidenceBinding, DecisionEvidencePurpose};
     use crate::evidence_provenance::{
         ActionRealization, EvidenceClaim, EvidenceLineage, EvidenceOrigin, EvidencePacket,
