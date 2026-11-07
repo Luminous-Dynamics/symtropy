@@ -133,11 +133,7 @@ pub fn run_case(risk: f64, roster: PolicyRoster) -> Result<BridgeEpisode, Bridge
             .map(|(seat, action)| TransferRequest {
                 from_region: seat,
                 to_region: SHARED_REGION,
-                amount: ResourceVector::new(
-                    0.0,
-                    f64::from(*action) * CONTRIBUTION_UNIT_KWH,
-                    0.0,
-                ),
+                amount: ResourceVector::new(0.0, f64::from(*action) * CONTRIBUTION_UNIT_KWH, 0.0),
             })
             .collect();
 
@@ -179,11 +175,7 @@ fn scenario_regions() -> Vec<Region> {
             id: format!("agent_{seat}"),
             population: 1.0,
             opening_stock: ResourceVector::new(0.0, DONOR_OPENING_KWH, 0.0),
-            essential_demand_per_capita: ResourceVector::new(
-                0.0,
-                DONOR_DEMAND_KWH_PER_TICK,
-                0.0,
-            ),
+            essential_demand_per_capita: ResourceVector::new(0.0, DONOR_DEMAND_KWH_PER_TICK, 0.0),
         })
         .collect::<Vec<_>>();
 
@@ -217,7 +209,9 @@ fn validate_episode(episode: &BridgeEpisode) -> Result<(), BridgeError> {
     for (tick_index, actions) in episode.action_history.iter().enumerate() {
         let report = &episode.ticks[tick_index];
         if report.tick != (tick_index + 1) as u64 {
-            return Err(BridgeError::Invariant("ledger tick numbers are not contiguous"));
+            return Err(BridgeError::Invariant(
+                "ledger tick numbers are not contiguous",
+            ));
         }
         if report.regions.len() != REGION_COUNT || report.transfers.len() != DONOR_REGIONS {
             return Err(BridgeError::Invariant(
@@ -228,7 +222,9 @@ fn validate_episode(episode: &BridgeEpisode) -> Result<(), BridgeError> {
         let mut tick_transfer_total = 0.0;
         for (seat, &action) in actions.iter().enumerate() {
             if !ACTIONS.contains(&action) {
-                return Err(BridgeError::Invariant("CRG trace contains a noncanonical action"));
+                return Err(BridgeError::Invariant(
+                    "CRG trace contains a noncanonical action",
+                ));
             }
             contributions_by_seat[seat] += u32::from(action);
             if contributions_by_seat[seat] > ENDOWMENT {
@@ -405,7 +401,10 @@ fn push_row(output: &mut String, row: [String; 25]) {
 }
 
 fn csv_escape(value: String) -> String {
-    if value.chars().any(|character| matches!(character, ',' | '"' | '\n' | '\r')) {
+    if value
+        .chars()
+        .any(|character| matches!(character, ',' | '"' | '\n' | '\r'))
+    {
         format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value
@@ -467,7 +466,9 @@ mod tests {
         assert_eq!(episode.game.contributions_by_seat, [40; SEATS]);
         assert!(close_enough(shared_total_unmet(&episode), 0.0));
         assert!(close_enough(
-            episode.ticks.last().unwrap().regions[SHARED_REGION].closing_stock.energy_kwh,
+            episode.ticks.last().unwrap().regions[SHARED_REGION]
+                .closing_stock
+                .energy_kwh,
             120.0,
         ));
         for report in &episode.ticks {
@@ -538,9 +539,8 @@ mod tests {
     fn heterogeneous_roster_is_equivariant_under_seat_permutation() {
         let original_roster = roster("heterogeneous_six_policy");
         let original = run_case(0.9, original_roster).unwrap();
-        let rotated_strategies = core::array::from_fn(|seat| {
-            original_roster.strategies[(seat + 2) % SEATS]
-        });
+        let rotated_strategies =
+            core::array::from_fn(|seat| original_roster.strategies[(seat + 2) % SEATS]);
         let rotated = run_case(
             0.9,
             PolicyRoster {
@@ -564,7 +564,10 @@ mod tests {
                 ));
             }
         }
-        assert_eq!(rotated.game.total_contribution, original.game.total_contribution);
+        assert_eq!(
+            rotated.game.total_contribution,
+            original.game.total_contribution
+        );
         assert!(close_enough(
             rotated.game.expected_group_welfare,
             original.game.expected_group_welfare,
@@ -583,7 +586,10 @@ mod tests {
         assert!(first_csv.contains("shared_tick"));
         assert!(!first_csv.contains("NaN"));
         assert!(!first_csv.contains("inf"));
-        assert_eq!(first_csv.lines().count(), 1 + 15 * (1 + TICKS * (SEATS + 1)));
+        assert_eq!(
+            first_csv.lines().count(),
+            1 + 15 * (1 + TICKS * (SEATS + 1))
+        );
     }
 
     #[test]
@@ -622,11 +628,8 @@ mod tests {
 
     #[test]
     fn over_transfer_is_reported_as_a_partial_receipt_not_silent_delivery() {
-        let mut world = World::new(vec![
-            tiny_region("donor", 1.0),
-            tiny_region("shared", 0.0),
-        ])
-        .unwrap();
+        let mut world =
+            World::new(vec![tiny_region("donor", 1.0), tiny_region("shared", 0.0)]).unwrap();
         let request = TransferRequest {
             from_region: 0,
             to_region: 1,
@@ -636,23 +639,17 @@ mod tests {
             production: vec![Production::default(); 2],
             transfers: vec![request, request],
         };
-        let report = world
-            .step(&input, TransferPolicy::Unrestricted)
-            .unwrap();
+        let report = world.step(&input, TransferPolicy::Unrestricted).unwrap();
 
-        assert!(close_enough(
-            report.transfers[0].delivered.energy_kwh,
-            1.0,
-        ));
-        assert!(close_enough(
-            report.transfers[1].requested.energy_kwh,
-            1.0,
-        ));
-        assert!(close_enough(
-            report.transfers[1].delivered.energy_kwh,
-            0.0,
-        ));
-        assert!(report.regions.iter().all(|region| region.ledger.is_conserved()));
+        assert!(close_enough(report.transfers[0].delivered.energy_kwh, 1.0,));
+        assert!(close_enough(report.transfers[1].requested.energy_kwh, 1.0,));
+        assert!(close_enough(report.transfers[1].delivered.energy_kwh, 0.0,));
+        assert!(
+            report
+                .regions
+                .iter()
+                .all(|region| region.ledger.is_conserved())
+        );
     }
 
     #[test]
@@ -722,5 +719,4 @@ mod tests {
         assert_eq!(original.action_history, relabeled.action_history);
         assert_eq!(original.ticks, relabeled.ticks);
     }
-
 }
