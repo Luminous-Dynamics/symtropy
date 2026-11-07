@@ -16,8 +16,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -38,8 +38,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -47,27 +58,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -85,8 +89,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -107,8 +111,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -116,27 +131,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -154,8 +162,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -176,8 +184,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -185,27 +204,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -223,8 +235,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -245,8 +257,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -254,27 +277,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -292,8 +308,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -314,8 +330,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -323,27 +350,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -361,8 +381,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -383,8 +403,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -392,27 +423,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -430,8 +454,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -452,8 +476,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -461,27 +496,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -499,8 +527,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -521,8 +549,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -530,27 +569,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -568,8 +600,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -590,8 +622,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -599,27 +642,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -637,8 +673,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -659,8 +695,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -668,27 +715,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -706,8 +746,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -728,8 +768,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -737,27 +788,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -775,8 +819,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -797,8 +841,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -806,27 +861,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -844,8 +892,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -866,8 +914,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -875,27 +934,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -913,8 +965,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -935,8 +987,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -944,27 +1007,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -982,8 +1038,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -1004,8 +1060,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -1013,27 +1080,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -1051,8 +1111,8 @@
       "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "analysis_protocol_preserved": true,
-      "official_pas": 0.5,
-      "official_ecs": 0,
+      "official_pas": null,
+      "official_ecs": null,
       "effects": [
         {
           "finding_id": "finding_1",
@@ -1073,8 +1133,19 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "community_run_manifest",
+          "path": "run.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "community_responses",
+          "path": "output/responses.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "record_count": 120,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
@@ -1082,27 +1153,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_evaluation",
+          "path": "output/evaluation.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "community_analysis",
+          "path": "output/analysis.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -1110,5 +1174,6 @@
         }
       ]
     }
-  ]
+  ],
+  "metric_contract_id": "HSB-COMMUNITY-NATIVE-EVALUATOR-B34D214B"
 }
