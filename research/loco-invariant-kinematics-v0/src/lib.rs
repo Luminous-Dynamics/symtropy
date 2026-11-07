@@ -86,6 +86,10 @@ pub enum KinematicError {
     NumericalFailure,
     InsufficientObservedChannels,
     DegenerateProximalCoordinates,
+    InvalidBootstrapResamples,
+    InsufficientIndividuals,
+    DuplicateIndividualSummary,
+    MixedSpecies,
 }
 
 fn validate_trial(trial: &KinematicTrial) -> Result<(), KinematicError> {
@@ -331,6 +335,174 @@ pub fn estimate_distal_proximal_gradient(
         r_squared,
         channels_used: observed.len(),
         missing_channels,
+    })
+}
+
+
+/// One animal/person/robot-level gradient summary.
+///
+/// This is the replication unit for cross-species aggregation. Repeated frames,
+/// gait cycles or sessions must first be reduced to one preregistered summary
+/// per individual; they must not be entered as independent bootstrap rows.
+#[derive(Debug, Clone, PartialEq)]
+pub struct IndividualGradientSummary {
+    pub species_id: String,
+    pub individual_id: String,
+    pub quantity: Quantity,
+    pub slope: f64,
+}
+
+/// Species-level cluster-bootstrap summary of individual gradients.
+///
+/// The percentile interval resamples independent individuals, not frames or
+/// cycles. It is conditional on the supplied individual summaries and the
+/// declared sampling unit; it is not a correction for study/site confounding.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SpeciesGradientBootstrap {
+    pub species_id: String,
+    pub quantity: Quantity,
+    pub mean_slope: f64,
+    pub sample_standard_deviation: f64,
+    pub lower_95_percentile: f64,
+    pub upper_95_percentile: f64,
+    pub individuals_used: usize,
+    pub bootstrap_resamples: usize,
+    pub seed: u64,
+}
+
+const MIN_BOOTSTRAP_RESAMPLES: usize = 100;
+
+#[derive(Debug, Clone, Copy)]
+struct SplitMix64 {
+    state: u64,
+}
+
+impl SplitMix64 {
+    fn new(seed: u64) -> Self {
+        Self { state: seed }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.state = self.state.wrapping_add(0x9E3779B97F4A7C15);
+        let mut value = self.state;
+        value = (value ^ (value >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94D049BB133111EB);
+        value ^ (value >> 31)
+    }
+
+    fn index(&mut self, upper_exclusive: usize) -> usize {
+        (self.next_u64() % upper_exclusive as u64) as usize
+    }
+}
+
+fn percentile(sorted_values: &[f64], probability: f64) -> Result<f64, KinematicError> {
+    if sorted_values.is_empty()
+        || !probability.is_finite()
+        || !(0.0..=1.0).contains(&probability)
+    {
+        return Err(KinematicError::NumericalFailure);
+    }
+    let position = probability * (sorted_values.len() - 1) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+    let fraction = position - lower_index as f64;
+    let lower = sorted_values[lower_index];
+    let upper = sorted_values[upper_index];
+    let value = lower + (upper - lower) * fraction;
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(KinematicError::NumericalFailure)
+    }
+}
+
+/// Aggregate one gradient per independent individual using a deterministic
+/// percentile cluster bootstrap.
+///
+/// Inputs may contain other quantity families, which are ignored, but all rows
+/// must belong to the same declared species. Duplicate rows for one
+/// individual/quantity are rejected rather than treated as additional
+/// replicates. At least two individuals and 100 bootstrap resamples are
+/// required. The returned interval is descriptive when the number of
+/// independent individuals is small; it must not be interpreted as if the
+/// number of frames/cycles were the sample size.
+pub fn bootstrap_species_gradient(
+    summaries: &[IndividualGradientSummary],
+    species_id: &str,
+    quantity: Quantity,
+    bootstrap_resamples: usize,
+    seed: u64,
+) -> Result<SpeciesGradientBootstrap, KinematicError> {
+    if species_id.trim().is_empty() {
+        return Err(KinematicError::EmptyIdentifier);
+    }
+    if bootstrap_resamples < MIN_BOOTSTRAP_RESAMPLES {
+        return Err(KinematicError::InvalidBootstrapResamples);
+    }
+
+    let mut selected: Vec<&IndividualGradientSummary> = Vec::new();
+    for summary in summaries {
+        if summary.species_id.trim().is_empty() || summary.individual_id.trim().is_empty() {
+            return Err(KinematicError::EmptyIdentifier);
+        }
+        if summary.species_id != species_id {
+            return Err(KinematicError::MixedSpecies);
+        }
+        if !summary.slope.is_finite() {
+            return Err(KinematicError::NumericalFailure);
+        }
+        if summary.quantity == quantity {
+            if selected.iter().any(|prior| prior.individual_id == summary.individual_id) {
+                return Err(KinematicError::DuplicateIndividualSummary);
+            }
+            selected.push(summary);
+        }
+    }
+
+    if selected.len() < 2 {
+        return Err(KinematicError::InsufficientIndividuals);
+    }
+
+    selected.sort_by(|left, right| left.individual_id.cmp(&right.individual_id));
+    let individual_count = selected.len();
+    let mean_slope = selected.iter().map(|item| item.slope).sum::<f64>()
+        / individual_count as f64;
+    let squared_deviations = selected
+        .iter()
+        .map(|item| {
+            let difference = item.slope - mean_slope;
+            difference * difference
+        })
+        .sum::<f64>();
+    let sample_standard_deviation =
+        (squared_deviations / (individual_count - 1) as f64).sqrt();
+
+    let mut rng = SplitMix64::new(seed);
+    let mut bootstrap_means = Vec::with_capacity(bootstrap_resamples);
+    for _ in 0..bootstrap_resamples {
+        let mut resampled_sum = 0.0;
+        for _ in 0..individual_count {
+            let index = rng.index(individual_count);
+            resampled_sum += selected[index].slope;
+        }
+        let resampled_mean = resampled_sum / individual_count as f64;
+        if !resampled_mean.is_finite() {
+            return Err(KinematicError::NumericalFailure);
+        }
+        bootstrap_means.push(resampled_mean);
+    }
+    bootstrap_means.sort_by(f64::total_cmp);
+
+    Ok(SpeciesGradientBootstrap {
+        species_id: species_id.to_owned(),
+        quantity,
+        mean_slope,
+        sample_standard_deviation,
+        lower_95_percentile: percentile(&bootstrap_means, 0.025)?,
+        upper_95_percentile: percentile(&bootstrap_means, 0.975)?,
+        individuals_used: individual_count,
+        bootstrap_resamples,
+        seed,
     })
 }
 
