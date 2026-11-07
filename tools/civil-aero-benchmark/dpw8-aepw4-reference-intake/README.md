@@ -45,6 +45,7 @@ This is an attractive first parser/interop target because it is small. However, 
 
 - `dpw8-reference-catalog-v0.1.json`: known sources and case matrix.
 - `verify_reference_catalog.py`: independent standard-library consistency checks and hostile mutations.
+- `AER01_INDUSTRY_BENCHMARK_MATRIX_V0_1.md`: industry comparison, benchmark ladder, matched-budget protocol and internal target gates.
 
 Run:
 
