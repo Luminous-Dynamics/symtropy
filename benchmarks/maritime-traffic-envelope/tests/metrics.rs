@@ -4,9 +4,10 @@ use maritime_service_chain_fleet::{
 };
 use maritime_traffic_envelope_contract::{
     EvidenceReceipt, EvidenceState, TrafficDisposition, TrafficError, TrafficOccupancy,
-    TrafficReport, TrafficResource, TrafficResourceKind, TrafficViolation, TrafficWindow,
-    TrafficWorkload, canonical_occupancy_subject_id, canonical_resource_subject_id,
-    evaluate_traffic_plan,
+    RequiredTrafficUse, TrafficCoverageEntry, TrafficCoverageManifest, TrafficReport,
+    TrafficResource, TrafficResourceKind, TrafficViolation, TrafficWindow, TrafficWorkload,
+    canonical_occupancy_subject_id, canonical_resource_subject_id,
+    canonical_traffic_coverage_subject_id, evaluate_traffic_plan,
 };
 
 fn evidence(
@@ -154,7 +155,61 @@ fn occupancy(spec: OccupancySpec<'_>) -> TrafficOccupancy {
     item
 }
 
+fn coverage_manifest(
+    operations: &[OperationPlacement],
+    occupancies: &[TrafficOccupancy],
+) -> TrafficCoverageManifest {
+    let entries = operations
+        .iter()
+        .map(|operation| {
+            let matching: Vec<&TrafficOccupancy> = occupancies
+                .iter()
+                .filter(|occupancy| occupancy.operation == *operation)
+                .collect();
+            let route_revision = matching
+                .first()
+                .map_or_else(|| "no-resource-route-r1".to_owned(), |item| {
+                    item.route_revision.clone()
+                });
+            let required_uses: Vec<RequiredTrafficUse> = matching
+                .iter()
+                .map(|item| RequiredTrafficUse {
+                    occupancy_id: item.occupancy_id.clone(),
+                    resource_id: item.resource_id.clone(),
+                    direction_id: item.direction_id.clone(),
+                })
+                .collect();
+            TrafficCoverageEntry {
+                operation: operation.clone(),
+                route_revision,
+                no_resource_basis: if required_uses.is_empty() {
+                    Some("Reviewed synthetic projection: operation has no traffic-resource use".to_owned())
+                } else {
+                    None
+                },
+                required_uses,
+            }
+        })
+        .collect();
+    let mut manifest = TrafficCoverageManifest {
+        schema_version: "traffic-coverage-v1".to_owned(),
+        corridor_id: "synthetic-corridor".to_owned(),
+        time_basis_id: "synthetic-ticks-v1".to_owned(),
+        graph_revision: "traffic-graph-r1".to_owned(),
+        entries,
+        evidence: evidence(
+            "traffic-coverage-evidence",
+            "",
+            "traffic-graph-r1",
+            EvidenceState::Current,
+        ),
+    };
+    manifest.evidence.subject_id = canonical_traffic_coverage_subject_id(&manifest);
+    manifest
+}
+
 fn workload(
+    operations: &[OperationPlacement],
     resources: Vec<TrafficResource>,
     occupancies: Vec<TrafficOccupancy>,
 ) -> TrafficWorkload {
@@ -162,6 +217,7 @@ fn workload(
         corridor_id: "synthetic-corridor".to_owned(),
         time_basis_id: "synthetic-ticks-v1".to_owned(),
         decision_tick: 0,
+        coverage: coverage_manifest(operations, &occupancies),
         resources,
         occupancies,
     }
@@ -172,7 +228,9 @@ fn evaluate(
     resources: Vec<TrafficResource>,
     occupancies: Vec<TrafficOccupancy>,
 ) -> Result<TrafficReport, TrafficError> {
-    evaluate_traffic_plan(&plan(operations), &workload(resources, occupancies))
+    let fleet_plan = plan(operations);
+    let input = workload(&fleet_plan.operations, resources, occupancies);
+    evaluate_traffic_plan(&fleet_plan, &input)
 }
 
 #[test]
