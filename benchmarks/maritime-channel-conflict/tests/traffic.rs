@@ -272,6 +272,47 @@ fn movement_route_revision_must_match_the_declared_route() {
 }
 
 #[test]
+fn stale_same_segment_headway_evidence_needs_review() {
+    let mut input = one_segment(vec![movement(
+        "m-1",
+        "segment-a",
+        "node-a",
+        "node-b",
+        10,
+        15,
+    )]);
+    input.segments[0].headway_evidence.state = EvidenceState::Stale;
+    let report = evaluate_channel_workload(&input).expect("valid stale headway");
+    assert_eq!(report.disposition, TrafficDisposition::NeedsEvidence);
+}
+
+#[test]
+fn segment_rule_from_an_old_route_revision_needs_evidence() {
+    let mut input = one_segment(vec![movement(
+        "m-1",
+        "segment-a",
+        "node-a",
+        "node-b",
+        10,
+        15,
+    )]);
+    input.segments[0].route_revision = "route-old".to_owned();
+    input.segments[0].headway_evidence.subject_revision = "route-old".to_owned();
+    input.segments[0].direction_windows[0]
+        .evidence
+        .subject_revision = "route-old".to_owned();
+    let report = evaluate_channel_workload(&input).expect("well-formed old segment profile");
+    assert_eq!(report.disposition, TrafficDisposition::NeedsEvidence);
+    assert!(
+        report
+            .violations
+            .contains(&TrafficViolation::SegmentRouteRevisionMismatch(
+                "segment-a".to_owned()
+            ))
+    );
+}
+
+#[test]
 fn overlapping_movements_on_one_segment_conflict() {
     let mut input = one_segment(vec![
         movement("m-1", "segment-a", "node-a", "node-b", 10, 20),
