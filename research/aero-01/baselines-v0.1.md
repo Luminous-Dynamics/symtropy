@@ -119,6 +119,17 @@ Official starting points:
 
 This is not a regulatory determination. The competent authority determines the applicable requirements and approvals for the actual product and applicant.
 
+## 7A. External solver / MDO comparison versions
+
+These are software comparators for the design method, not aircraft performance baselines. Exact build and task identity must be frozen before any measured comparison.
+
+| Tool | Current reference pin | Intended use | Important boundary |
+|---|---|---|---|
+| OpenMDAO | 3.45.2 stable (27 October 2026) | MDO workflow, derivative propagation and coupled optimization comparison | Keep the 6 November development documentation distinct from the stable executable package; count adapter/workflow setup and human effort in total cost |
+| SU2 | 8.6.0 (30 October 2026) | Pinned CFD / adjoint backend and solver reference | Use a source build for discrete-adjoint comparisons: official binary executables omit adjoint functionality. Keep historical 8.0.1 replication separate |
+
+Reference acquisition, release notes, licences and build restrictions are collected in [external-benchmark-reference-manifest-v0.1.json](./external-benchmark-reference-manifest-v0.1.json). These are current reference candidates, not evidence that any SU2/OpenMDAO AER-01 task has been run or independently reproduced.
+
 ## 8. Next analysis
 
 1. Freeze Wren 2 / Wayfarer 4 mission cards and a common reserve policy.
