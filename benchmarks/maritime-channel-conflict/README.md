@@ -7,7 +7,7 @@ This is **not a scheduler or vessel dynamics model**. The shared-resource fleet 
 ## What is checked
 
 - A graph maps fleet segment IDs to unique edge IDs and directed node pairs.
-- Each edge declares non-overlapping direction windows and allowed direction IDs.
+- Each edge declares explicit direction IDs mapped to oriented from/to endpoint nodes; the direction labels are not free text. Every direction-window policy must reference a declared endpoint mapping, and a mapping must match the edge orientation or its reverse.
 - Each channel movement is bound to an exact fleet operation placement, selected demand/participant/alternative, edge ID and route revision.
 - Every fleet operation using a segment declared by the graph must have exactly one corresponding channel movement. Missing movement coverage yields `NeedsEvidence`.
 - Every movement interval must fit wholly inside one direction window. A missing coverage window yields `NeedsEvidence`; a declared but disallowed direction yields `Infeasible`.
@@ -44,7 +44,7 @@ cargo clippy --locked --manifest-path benchmarks/maritime-channel-conflict/Cargo
 
 ## Test corpus
 
-Unit cases cover:
+The current unit corpus contains **17 tests** and covers:
 - opposing one-way traffic under time-bounded direction windows;
 - insufficient clearance headway;
 - merge and crossing conflicts;
@@ -52,7 +52,7 @@ Unit cases cover:
 - prohibited direction and missing direction coverage;
 - required movement coverage for every declared FleetPlan segment;
 - exact FleetPlan operation and selected-alternative binding;
-- Unknown/Unsupported topology review states;
+- unknown/unsupported topology review states; direction labels bound to edge endpoints; wrong-orientation, unknown-direction and undeclared-window-direction negative controls;
 - conflict graph structural errors and permutation invariance.
 
 A separate direct tick-by-tick reference oracle sweeps **3,136** frozen tiny two-movement interval/headway combinations. It independently detects overlap by testing active occupancy at each tick and counts free ticks in the separation interval. This verifies the interval kernel for that synthetic range only; it does not validate graph completeness or real-world collision/traffic rules.
