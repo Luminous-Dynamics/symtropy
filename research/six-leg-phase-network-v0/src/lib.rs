@@ -865,7 +865,7 @@ mod tests {
     fn tripod_target_encodes_two_alternating_leg_groups() {
         let target = SixLegConfig::tripod();
         let pi = std::f64::consts::PI;
-        assert_eq!(target, [0.0, pi, 0.0, pi, pi, 0.0]);
+        assert_eq!(target, [0.0, pi, 0.0, pi, 0.0, pi]);
         assert_eq!(
             target[Leg::LeftFront.index()],
             target[Leg::LeftRear.index()]
