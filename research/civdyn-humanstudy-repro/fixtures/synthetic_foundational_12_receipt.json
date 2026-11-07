@@ -38,7 +38,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -47,27 +48,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -107,7 +101,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -116,27 +111,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -176,7 +164,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -185,27 +174,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -245,7 +227,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -254,27 +237,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -314,7 +290,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -323,27 +300,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -383,7 +353,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -392,27 +363,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -452,7 +416,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -461,27 +426,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -521,7 +479,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -530,27 +489,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -590,7 +542,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -599,27 +552,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -659,7 +605,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -668,27 +615,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -728,7 +668,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -737,27 +678,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -797,7 +731,8 @@
       ],
       "artifacts": [
         {
-          "role": "human_reference_aggregate",
+          "role": "paper_full_benchmark",
+          "path": "full_benchmark.json",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "record_count": 120,
           "contains_record_level_human_data": false,
@@ -806,27 +741,20 @@
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "simulated_responses",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_detailed_stats",
+          "path": "detailed_stats.csv",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
         },
         {
-          "role": "official_analysis_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
-          "contains_record_level_human_data": false,
-          "published_in_repository": true,
-          "redistribution_authorized": true,
-          "rights_basis": "synthetic conformance fixture"
-        },
-        {
-          "role": "official_score_output",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "record_count": 120,
+          "role": "paper_evaluation_results",
+          "path": "evaluation_results.json",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "record_count": 1,
           "contains_record_level_human_data": false,
           "published_in_repository": true,
           "redistribution_authorized": true,
@@ -834,5 +762,6 @@
         }
       ]
     }
-  ]
+  ],
+  "metric_contract_id": "HSB-PAPER-METRICS-SOURCECODE-CF05D330"
 }
