@@ -1039,6 +1039,64 @@ mod tests {
     }
 
     #[test]
+    fn actuator_mapping_must_match_the_execution_receipt() {
+        let m = model(
+            "model-x",
+            "sensor-x",
+            SensorChannel::D1Interface,
+            [1.0, 0.0, 0.0],
+            1.0,
+        );
+        let o = observation(
+            "evidence-1",
+            "model-x",
+            "sensor-x",
+            SensorChannel::D1Interface,
+            1.0,
+            10,
+            11,
+        );
+        let mut receipt = execution_receipt();
+        receipt.actuation_model_digest = "sha256:other-actuator-model".to_owned();
+        assert_eq!(
+            update_with_observations(&prior(), &[m], &[o], &receipt, 20, 20),
+            Err(ContactInformationError::ActionActuationModelMismatch)
+        );
+    }
+
+    #[test]
+    fn missing_clock_mapping_receipt_is_rejected() {
+        let m = model(
+            "model-x",
+            "sensor-x",
+            SensorChannel::D1Interface,
+            [1.0, 0.0, 0.0],
+            1.0,
+        );
+        let mut o = observation(
+            "evidence-1",
+            "model-x",
+            "sensor-x",
+            SensorChannel::D1Interface,
+            1.0,
+            10,
+            11,
+        );
+        o.clock_mapping_receipt_id.clear();
+        assert_eq!(
+            update_with_observations(
+                &prior(),
+                &[m],
+                &[o],
+                &execution_receipt(),
+                20,
+                20
+            ),
+            Err(ContactInformationError::EmptyIdentifier)
+        );
+    }
+
+    #[test]
     fn unverified_action_delivery_is_rejected() {
         let mut receipt = execution_receipt();
         receipt.delivery_verified = false;
