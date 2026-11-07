@@ -283,19 +283,42 @@ pub fn sphere_sphere<const D: usize>(
         return None;
     }
 
-    let discriminant = b.mul_add(b, -4.0 * a * c);
-    if !discriminant.is_finite() || discriminant < 0.0 {
+    // Scaling all coefficients by the same positive factor leaves the
+    // roots unchanged and keeps the discriminant calculation bounded.
+    let coefficient_scale = a.abs().max(b.abs()).max(c.abs());
+    if !coefficient_scale.is_finite() || coefficient_scale == 0.0 {
         return None;
+    }
+    let a_scaled = a / coefficient_scale;
+    let b_scaled = b / coefficient_scale;
+    let c_scaled = c / coefficient_scale;
+
+    let four_ac = 4.0 * a_scaled * c_scaled;
+    let mut discriminant = b_scaled.mul_add(b_scaled, -four_ac);
+    if !discriminant.is_finite() {
+        return None;
+    }
+    if discriminant < 0.0 {
+        // A mathematically tangent contact can produce a tiny negative
+        // discriminant after rounding. Clamp only within a relative floating-
+        // point error bound; a resolvable geometric near-miss remains a miss.
+        let discriminant_scale = b_scaled * b_scaled + four_ac.abs();
+        let roundoff_bound = 8.0 * f64::EPSILON * discriminant_scale;
+        if discriminant >= -roundoff_bound {
+            discriminant = 0.0;
+        } else {
+            return None;
+        }
     }
 
     let sqrt_discriminant = discriminant.sqrt();
     // Cancellation-resistant q-form of the quadratic roots in normalized
     // interval coordinates u ∈ [0, 1].
-    let q = -0.5 * (b + sqrt_discriminant.copysign(b));
+    let q = -0.5 * (b_scaled + sqrt_discriminant.copysign(b_scaled));
     if q == 0.0 || !q.is_finite() {
         return None;
     }
-    let mut roots = [q / a, c / q];
+    let mut roots = [q / a_scaled, c_scaled / q];
     roots.sort_by(f64::total_cmp);
 
     for normalized_toi in roots {
@@ -614,6 +637,18 @@ mod tests {
         assert!((hit.toi - 2.5).abs() < 1e-12);
         assert!(signed_plane_residual.abs() < 1e-12);
         assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_sphere_resolvable_grazing_near_miss_is_rejected() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([10.0, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0, 1.000_001, 0.0]);
+        let vel_b = SVector::zeros();
+
+        assert!(sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .unwrap()
+            .is_none());
     }
 
     #[test]
