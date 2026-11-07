@@ -1,10 +1,12 @@
 use maritime_mobile_assistance_contract::{
     AssistanceAssignment, AssistanceKind, AssistanceTask, EvidenceReceipt, EvidenceState,
     MobileDisposition, MobileError, MobileViolation, MobileWorkload, PilotResource, RepositionLeg,
-    TugResource, evaluate_mobile_assistance,
+    TugResource, evaluate_mobile_assistance, evaluate_mobile_assistance_for_plan,
 };
-use maritime_service_chain_contract::TickWindow;
-use maritime_service_chain_fleet::OperationPlacement;
+use maritime_service_chain_contract::{ServiceUnit, TickWindow};
+use maritime_service_chain_fleet::{
+    DemandSelection, FleetObjective, FleetPlan, OperationPlacement,
+};
 
 fn receipt(
     id: &str,
@@ -144,6 +146,46 @@ fn leg(resource_id: &str, from: &str, to: &str, duration: u64) -> RepositionLeg 
     }
 }
 
+fn fleet_plan(input: &MobileWorkload) -> FleetPlan {
+    let mut selections = std::collections::BTreeMap::new();
+    for task in &input.tasks {
+        selections
+            .entry(task.operation.demand_id.clone())
+            .or_insert_with(|| DemandSelection {
+                demand_id: task.operation.demand_id.clone(),
+                participant_id: task.operation.participant_id.clone(),
+                alternative_id: task.operation.alternative_id.clone(),
+                delivery_tick: task.operation.end_tick,
+                service_amount: 1,
+                service_unit: ServiceUnit::Tonnes,
+            });
+    }
+
+    FleetPlan {
+        selections: selections.into_values().collect(),
+        operations: input
+            .tasks
+            .iter()
+            .map(|task| task.operation.clone())
+            .collect(),
+        objective: FleetObjective {
+            makespan_tick: input
+                .tasks
+                .iter()
+                .map(|task| task.operation.end_tick)
+                .max()
+                .unwrap_or(0),
+            total_delivery_ticks: 0,
+            total_idle_wait_ticks: 0,
+            water_ml: 0,
+            propulsion_wh: 0,
+            auxiliary_wh: 0,
+            shore_power_import_wh: 0,
+            inland_transfer_wh: 0,
+        },
+    }
+}
+
 fn workload() -> MobileWorkload {
     MobileWorkload {
         corridor_id: "synthetic-corridor".to_owned(),
@@ -195,6 +237,48 @@ fn workload() -> MobileWorkload {
             },
         ],
     }
+}
+
+#[test]
+fn fleet_plan_binding_accepts_only_exact_selected_operation_placements() {
+    let input = workload();
+    let plan = fleet_plan(&input);
+    let report = evaluate_mobile_assistance_for_plan(&input, &plan)
+        .expect("assistance exactly binds to the fleet plan");
+    assert_eq!(report.disposition, MobileDisposition::ReadyForComparison);
+}
+
+#[test]
+fn fleet_plan_binding_rejects_forged_operation_window() {
+    let input = workload();
+    let mut plan = fleet_plan(&input);
+    plan.operations[0].start_tick += 1;
+    assert_eq!(
+        evaluate_mobile_assistance_for_plan(&input, &plan),
+        Err(MobileError::FleetOperationNotFound("task-a".to_owned()))
+    );
+}
+
+#[test]
+fn fleet_plan_binding_rejects_unselected_alternative() {
+    let input = workload();
+    let mut plan = fleet_plan(&input);
+    plan.selections[0].alternative_id = "different-alternative".to_owned();
+    assert_eq!(
+        evaluate_mobile_assistance_for_plan(&input, &plan),
+        Err(MobileError::FleetSelectionMismatch("demand-task-a".to_owned()))
+    );
+}
+
+#[test]
+fn fleet_plan_binding_rejects_missing_demand_selection() {
+    let input = workload();
+    let mut plan = fleet_plan(&input);
+    plan.selections.retain(|selection| selection.demand_id != "demand-task-a");
+    assert_eq!(
+        evaluate_mobile_assistance_for_plan(&input, &plan),
+        Err(MobileError::FleetSelectionMismatch("demand-task-a".to_owned()))
+    );
 }
 
 #[test]
