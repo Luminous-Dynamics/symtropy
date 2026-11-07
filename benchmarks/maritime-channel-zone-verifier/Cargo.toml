@@ -1,0 +1,15 @@
+[package]
+name = "maritime-channel-zone-verifier"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Evidence-bound local passage and conflict coverage verifier for selected maritime fleet plans"
+
+[workspace]
+
+[dependencies]
+maritime-service-chain-contract = { path = "../maritime-service-chain" }
+maritime-service-chain-fleet = { path = "../maritime-service-chain-fleet" }
+maritime-channel-conflict-contract = { path = "../maritime-channel-conflict" }
+sha2 = "0.10.9"
