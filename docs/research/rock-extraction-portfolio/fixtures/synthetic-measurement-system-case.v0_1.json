@@ -269,7 +269,7 @@
       "as_found_status": "PASS",
       "as_left_status": "PASS",
       "range_lower": 0,
-      "range_upper": 100,
+      "range_upper": 2000000,
       "unit": "ms",
       "domain": {
         "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
@@ -666,6 +666,134 @@
         "monte_carlo_sample_count": null,
         "between_group_independence_ref": "assumption:daq-timebase-independent-groups"
       }
+    },
+    {
+      "measurement_id": "measurement-gravimetric-discharge-validation-001",
+      "channel_id": "gravimetric-discharge",
+      "station_id": "station:accepted-discharge",
+      "calibration_id": "cal-gravimetric-discharge-v1",
+      "measurement_date": "2026-11-06",
+      "measurement_window_ref": "window:pilot-validation-001",
+      "window_start_ms": 1100000,
+      "window_end_ms": 1160000,
+      "timebase_channel_id": "daq-timebase",
+      "clock_sync_ref": "clock:pilot-001",
+      "latency_ms": 2,
+      "time_uncertainty_ms": 2,
+      "value": 1.19,
+      "unit": "kg/s",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "evidence_role": "PRIMARY_REFERENCE",
+      "sample_protocol_ref": null,
+      "sample_lineage_ref": null,
+      "source_artifact_ref": "artifact:measurement-gravimetric-discharge-validation-001",
+      "measurement_model": {
+        "mapping_kind": "DIRECT",
+        "linearity": "LINEAR",
+        "equation_ref": "equation:GRAVIMETRIC_CATCH_AND_WEIGH-direct-v1",
+        "model_digest_ref": "digest:gravimetric-discharge-measurement-model-v1",
+        "calibration_domain_ref": "domain:gravimetric-discharge-declared-domain"
+      },
+      "uncertainty": {
+        "method": "LINEARIZED_GUM",
+        "model_linearity": "LINEAR",
+        "component_set_ref": "component-set:gravimetric-discharge-v1",
+        "components": [
+          {
+            "component_id": "gravimetric-discharge-repeatability",
+            "uncertainty_type": "TYPE_A_REPEATABILITY",
+            "standard_uncertainty": 0.01,
+            "sensitivity_coefficient": 1,
+            "unit": "kg/s",
+            "distribution": "NORMAL",
+            "correlation_group_ref": null,
+            "source_ref": "source:measurement-gravimetric-discharge-validation-001:gravimetric-discharge-repeatability"
+          },
+          {
+            "component_id": "gravimetric-discharge-calibration",
+            "uncertainty_type": "TYPE_B_CALIBRATION",
+            "standard_uncertainty": 0.015,
+            "sensitivity_coefficient": 1,
+            "unit": "kg/s",
+            "distribution": "RECTANGULAR",
+            "correlation_group_ref": null,
+            "source_ref": "source:measurement-gravimetric-discharge-validation-001:gravimetric-discharge-calibration"
+          }
+        ],
+        "correlation_evidence_ref": null,
+        "covariance_model_ref": null,
+        "monte_carlo_result_ref": null,
+        "monte_carlo_sample_count": null,
+        "between_group_independence_ref": "assumption:gravimetric-discharge-independent-groups"
+      }
+    },
+    {
+      "measurement_id": "measurement-ecc-flow-estimator-validation-001",
+      "channel_id": "ecc-flow-estimator",
+      "station_id": "station:conveyance-outlet",
+      "calibration_id": "cal-ecc-flow-estimator-v1",
+      "measurement_date": "2026-11-06",
+      "measurement_window_ref": "window:pilot-validation-001",
+      "window_start_ms": 1100000,
+      "window_end_ms": 1160000,
+      "timebase_channel_id": "daq-timebase",
+      "clock_sync_ref": "clock:pilot-001",
+      "latency_ms": 2,
+      "time_uncertainty_ms": 2,
+      "value": 1.18,
+      "unit": "kg/s",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "evidence_role": "SECONDARY_ESTIMATOR",
+      "sample_protocol_ref": null,
+      "sample_lineage_ref": null,
+      "source_artifact_ref": "artifact:measurement-ecc-flow-estimator-validation-001",
+      "measurement_model": {
+        "mapping_kind": "DERIVED",
+        "linearity": "NONLINEAR",
+        "equation_ref": "equation:area-times-velocity-times-concentration-v1",
+        "model_digest_ref": "digest:ecc-flow-estimator-measurement-model-v1",
+        "calibration_domain_ref": "domain:ecc-flow-estimator-declared-domain"
+      },
+      "uncertainty": {
+        "method": "MONTE_CARLO",
+        "model_linearity": "NONLINEAR",
+        "component_set_ref": "component-set:ecc-flow-estimator-v1",
+        "components": [
+          {
+            "component_id": "ecc-flow-estimator-repeatability",
+            "uncertainty_type": "TYPE_A_REPEATABILITY",
+            "standard_uncertainty": 0.01,
+            "unit": "kg/s",
+            "distribution": "NORMAL",
+            "correlation_group_ref": null,
+            "source_ref": "source:measurement-ecc-flow-estimator-validation-001:ecc-flow-estimator-repeatability"
+          },
+          {
+            "component_id": "ecc-flow-estimator-calibration",
+            "uncertainty_type": "TYPE_B_CALIBRATION",
+            "standard_uncertainty": 0.015,
+            "unit": "kg/s",
+            "distribution": "RECTANGULAR",
+            "correlation_group_ref": null,
+            "source_ref": "source:measurement-ecc-flow-estimator-validation-001:ecc-flow-estimator-calibration"
+          }
+        ],
+        "correlation_evidence_ref": null,
+        "covariance_model_ref": null,
+        "monte_carlo_result_ref": "artifact:ecc-flow-estimator-mc-propagation",
+        "monte_carlo_sample_count": 100000,
+        "between_group_independence_ref": "assumption:ecc-flow-estimator-independent-groups"
+      }
     }
   ],
   "reference_comparisons": [
@@ -687,8 +815,8 @@
     },
     {
       "comparison_id": "ecc-validation-pair-001",
-      "reference_measurement_id": "measurement-gravimetric-discharge-001",
-      "estimator_measurement_id": "measurement-ecc-flow-estimator-001",
+      "reference_measurement_id": "measurement-gravimetric-discharge-validation-001",
+      "estimator_measurement_id": "measurement-ecc-flow-estimator-validation-001",
       "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
       "path_configuration_ref": "transport:installed-205m-hose-r3",
       "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
