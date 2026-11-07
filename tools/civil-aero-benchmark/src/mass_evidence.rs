@@ -705,9 +705,7 @@ impl MassEvidenceLedger {
             if let Some(prev) = previous
                 && prev >= record.item.id.as_str()
             {
-                return Err(
-                    "mass evidence records must be strictly sorted by item ID".to_owned()
-                );
+                return Err("mass evidence records must be strictly sorted by item ID".to_owned());
             }
             previous = Some(&record.item.id);
         }
