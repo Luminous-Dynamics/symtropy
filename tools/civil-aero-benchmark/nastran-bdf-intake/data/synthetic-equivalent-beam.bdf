@@ -1,0 +1,23 @@
+$ Synthetic BDF fixture only; not NASA CRM source or an engineering model
+SOL 101
+CEND
+SUBCASE 1
+SPC = 1
+LOAD = 2
+BEGIN BULK
+GRID    1       0       0.      0.      0.                                      
+GRID    2       0       1.      0.      0.                                      
+GRID    3       0       2.      0.      0.                                      
+CBEAM   101     20      1       2       0.      1.      0.                      
+CBEAM   102     20      2       3       0.      1.      0.                      
+MAT1    10      7.0E10  2.7E10  .3                                              
+PBEAM   20      10      .001    .00001  .00001  0.      .00001  0.              
+CONM2   201     2       0       5.      0.      0.      0.                      
+RBE2    301     1       123     2                                       +A      
++A      3                                                                       
+SPC     1       1       123     0.                                              
+FORCE   2       3       0       1000.   0.      1.      0.                      
+LOAD    2       1.      1.      2                                               
+PARAM   WTMASS  .00259                                                          
+DUMMY   1       OPAQUE                                                          
+ENDDATA
