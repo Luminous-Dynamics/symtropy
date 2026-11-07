@@ -1,0 +1,20 @@
+[workspace]
+
+[package]
+name = "civdyn-crg-resource-adapter"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Open-loop replay adapter from collective-risk action traces to the native-unit service ledger"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "crg-resource-bridge"
+path = "src/main.rs"
+
+[dependencies]
+civdyn-collective-risk = { path = "../civdyn-collective-risk" }
+civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
