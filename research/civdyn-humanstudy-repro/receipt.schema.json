@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.luminousdynamics.org/civdyn/humanstudy-run-receipt/0.1",
+  "title": "CIVDYN HumanStudy run receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_id",
+    "source_repository",
+    "source_commit",
+    "source_root_tree",
+    "run_id",
+    "model_id",
+    "studies"
+  ],
+  "properties": {
+    "protocol_id": {
+      "const": "HSB-COMMUNITY-16-2026-11-07"
+    },
+    "source_repository": {
+      "const": "HumanStudy-Hub/HumanStudy-Bench"
+    },
+    "source_commit": {
+      "const": "b34d214b980be13ec5944a4d570a38bc4047b0f9"
+    },
+    "source_root_tree": {
+      "const": "26851c1d6564c78b25600afc7de8ec435e4aa3b8"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "studies": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/study"
+      }
+    }
+  },
+  "$defs": {
+    "gitTree": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "ci": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "test_id",
+        "measure",
+        "unit",
+        "human_estimate",
+        "simulated_estimate"
+      ],
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measure": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "human_estimate": {
+          "type": "number"
+        },
+        "simulated_estimate": {
+          "type": "number"
+        },
+        "human_ci95": {
+          "$ref": "#/$defs/ci"
+        },
+        "simulated_ci95": {
+          "$ref": "#/$defs/ci"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "sha256",
+        "record_count",
+        "contains_record_level_human_data",
+        "published_in_repository",
+        "redistribution_authorized",
+        "rights_basis"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "human_reference_aggregate",
+            "simulated_responses",
+            "official_analysis_output",
+            "official_score_output",
+            "study_metadata",
+            "restricted_raw_data_reference"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "record_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contains_record_level_human_data": {
+          "type": "boolean"
+        },
+        "published_in_repository": {
+          "type": "boolean"
+        },
+        "redistribution_authorized": {
+          "type": "boolean"
+        },
+        "rights_basis": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "contains_record_level_human_data",
+              "published_in_repository"
+            ],
+            "properties": {
+              "contains_record_level_human_data": {
+                "const": true
+              },
+              "published_in_repository": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "redistribution_authorized": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "role"
+            ],
+            "properties": {
+              "role": {
+                "const": "human_reference_aggregate"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "contains_record_level_human_data": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "study": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "study_id",
+        "study_tree_sha",
+        "participant_count",
+        "trial_count",
+        "independent_unit",
+        "analysis_pipeline_sha256",
+        "agent_config_sha256",
+        "prompt_template_sha256",
+        "analysis_protocol_preserved",
+        "official_pas",
+        "official_ecs",
+        "effects",
+        "artifacts"
+      ],
+      "properties": {
+        "study_id": {
+          "enum": [
+            "study_001",
+            "study_002",
+            "study_003",
+            "study_004",
+            "study_005",
+            "study_006",
+            "study_007",
+            "study_008",
+            "study_009",
+            "study_010",
+            "study_011",
+            "study_012",
+            "study_013",
+            "study_014",
+            "study_015",
+            "study_016"
+          ]
+        },
+        "study_tree_sha": {
+          "$ref": "#/$defs/gitTree"
+        },
+        "participant_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "trial_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "independent_unit": {
+          "enum": [
+            "participant",
+            "group",
+            "session",
+            "cluster"
+          ]
+        },
+        "analysis_pipeline_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "agent_config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "prompt_template_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "analysis_protocol_preserved": {
+          "const": true
+        },
+        "official_pas": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "official_ecs": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/effect"
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        }
+      }
+    }
+  }
+}
