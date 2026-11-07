@@ -1,0 +1,382 @@
+{
+  "schema_version": 1,
+  "registry_id": "CEA-CLIMATE-COMPARATORS-2026-V0.1",
+  "created_on": "2026-11-07",
+  "comparators": [
+    {
+      "comparator_id": "DYNAMIC-CONTROL-ORIENTED-VF-2026",
+      "title": "A dynamic control-oriented model of climate and crop growth in vertical farms",
+      "authors": "Author list as published; DOI source record",
+      "publication_date": "2026-10-01",
+      "venue": "Biosystems Engineering, Volume 270, article 104532",
+      "doi": "10.1016/j.biosystemseng.2026.104532",
+      "source_url": "https://doi.org/10.1016/j.biosystemseng.2026.104532",
+      "evidence_class": "MODEL_VALIDATED_AGAINST_EXPERIMENTS",
+      "system_domain": "Commercial vertical farm lettuce; single-compartment to small-scale VF datasets",
+      "method_summary": "Interpretable mechanistic control-oriented ODE model coupling temperature, humidity, CO2, airspeed, lighting inputs (intensity, photoperiod, spectrum), crop dry weight, photosynthesis, respiration, transpiration, LED energy and AC energy. Evaluated against seven independent experimental datasets.",
+      "reported_metrics": [
+        {
+          "metric_id": "relative_root_mean_square_error",
+          "reported_value": "<10%",
+          "unit": "rRMSE",
+          "basis": "Reported across model evaluation; source-specific aggregation",
+          "status": "MODEL_VALIDATION",
+          "notes": "Do not compare directly with NRMSE, CV(RMSE), or unnormalized RMSE from other studies."
+        },
+        {
+          "metric_id": "temperature_prediction_error",
+          "reported_value": "0.4",
+          "unit": "°C RMSE",
+          "basis": "Climate-state model validation",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "relative_humidity_prediction_error",
+          "reported_value": "4.5",
+          "unit": "percentage points RMSE",
+          "basis": "Climate-state model validation",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "co2_prediction_error",
+          "reported_value": "45",
+          "unit": "ppm RMSE",
+          "basis": "Climate-state model validation",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "dry_biomass_prediction_error",
+          "reported_value": "0.008",
+          "unit": "kg m^-2 RMSE",
+          "basis": "Crop dry-weight model validation",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "fresh_biomass_prediction_error",
+          "reported_value": "0.25",
+          "unit": "kg m^-2 RMSE",
+          "basis": "Crop fresh-weight model validation",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "energy_intensity",
+          "reported_value": "5.05–17.62",
+          "unit": "kWh_el kg^-1 fresh weight",
+          "basis": "Scenario outcomes under stated treatments and efficiency assumptions",
+          "status": "MODEL_PREDICTION"
+        },
+        {
+          "metric_id": "led_share_of_energy",
+          "reported_value": "72–85%",
+          "unit": "% of modelled VF energy",
+          "basis": "Scenario energy decomposition",
+          "status": "MODEL_PREDICTION"
+        },
+        {
+          "metric_id": "air_conditioning_share_of_energy",
+          "reported_value": "15–28%",
+          "unit": "% of modelled VF energy",
+          "basis": "Scenario energy decomposition",
+          "status": "MODEL_PREDICTION"
+        }
+      ],
+      "limitations": [
+        "Uses a perfectly mixed tank assumption for the vertical-farm chamber; does not resolve rack/layer spatial gradients.",
+        "Uses a constant AC coefficient of performance; part-load and within-cycle sensible/latent COP variation are not resolved.",
+        "The paper itself notes sensitivity of AC energy and lighting-to-AC ratio to the assumed COP.",
+        "Commercial and small-scale VF lettuce cases do not establish transfer to underground rock boundaries, groundwater, or cavern infiltration."
+      ],
+      "transferability": "Strong dynamic crop-climate control comparator and a candidate reduced-order baseline. Pair with spatial CFD and measured zone-level data; do not treat as a complete cavern model."
+    },
+    {
+      "comparator_id": "AIR-DISTRIBUTION-CFD-2026",
+      "title": "CFD-based evaluation of air distribution strategies for improving environmental uniformity and reducing energy use in container and building vertical farms",
+      "authors": "Author list as published; DOI source record",
+      "publication_date": "2026-06-01",
+      "venue": "Biosystems Engineering, Volume 266, article 104461",
+      "doi": "10.1016/j.biosystemseng.2026.104461",
+      "source_url": "https://doi.org/10.1016/j.biosystemseng.2026.104461",
+      "evidence_class": "CFD_VALIDATED_AGAINST_FIELD_MEASUREMENTS",
+      "system_domain": "Container VF 27 m², three layers; building VF 162 m², six layers; mature lettuce LAI=3",
+      "method_summary": "Compares ten air-distribution configurations combining direct AC discharge or ducts with rack/aisle fans. Uses validated SST k-omega CFD and evaluates both facility-wide and crop-layer airflow/temperature uniformity.",
+      "reported_metrics": [
+        {
+          "metric_id": "velocity_validation_error",
+          "reported_value": "34.33%",
+          "unit": "NRMSE",
+          "basis": "CFD validation against field velocity measurements",
+          "status": "MODEL_VALIDATION",
+          "notes": "Metric is large and should be retained as a model limitation, not hidden by the temperature result."
+        },
+        {
+          "metric_id": "temperature_validation_error",
+          "reported_value": "3.57%",
+          "unit": "NRMSE",
+          "basis": "CFD validation against field temperature measurements",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "direct_ac_discharge_uniformity_index",
+          "reported_value": "0.758",
+          "unit": "dimensionless Uniformity Index",
+          "basis": "Container farm simulation; direct AC discharge configuration",
+          "status": "SIMULATED_DESIGN_COMPARISON"
+        },
+        {
+          "metric_id": "sidewall_fan_energy_change",
+          "reported_value": "55% lower fan energy",
+          "unit": "relative change",
+          "basis": "Modelled Centre+z sidewall fan configuration vs study baseline",
+          "status": "SIMULATED_DESIGN_COMPARISON"
+        },
+        {
+          "metric_id": "sidewall_fan_uniformity_change",
+          "reported_value": "8% lower uniformity",
+          "unit": "relative change",
+          "basis": "Modelled Centre+z sidewall fan configuration vs study baseline",
+          "status": "SIMULATED_DESIGN_COMPARISON"
+        }
+      ],
+      "limitations": [
+        "Fan-energy reduction is a simulation result, not a measured in-facility electricity saving.",
+        "The 34.33% velocity NRMSE is material; airflow claims must retain uncertainty and sampling geometry.",
+        "Geometry, LAI, supply arrangement, boundary conditions and validation sensors are specific to the two study facilities.",
+        "A velocity-field fit does not establish humidity, condensation, crop physiology, or full-facility HVAC performance."
+      ],
+      "transferability": "Strong spatial airflow design comparator. Re-run with matched geometry, crop drag, sensor locations, operating points, mesh study and an independently frozen validation set."
+    },
+    {
+      "comparator_id": "RADIANT-PANEL-MOCKUP-2026",
+      "title": "Experimental analysis of temperature uniformity in a vertical smart-farm with radiant cooling panels",
+      "authors": "Hye-Jin Cho and Chang-Ho Jeong",
+      "publication_date": "2026-01-19",
+      "venue": "International Journal of Air-Conditioning and Refrigeration, Volume 34, article 6",
+      "doi": "10.1007/s44189-025-00095-x",
+      "source_url": "https://doi.org/10.1007/s44189-025-00095-x",
+      "evidence_class": "EXPERIMENTAL_MOCK_UP",
+      "system_domain": "Lettuce vertical-smart-farm mock-up with ceiling and cultivation-bed radiant cooling panels",
+      "method_summary": "One-minute temperature logging at multiple horizontal and vertical locations; 1 h LED-off and 2 h LED-on windows. The experiment tests spatial temperature uniformity, not a full HVAC/dehumidification energy balance.",
+      "reported_metrics": [
+        {
+          "metric_id": "horizontal_temperature_uniformity",
+          "reported_value": ">96%",
+          "unit": "study-defined uniformity metric",
+          "basis": "Mock-up, all cultivation layers",
+          "status": "MEASURED"
+        },
+        {
+          "metric_id": "vertical_temperature_uniformity",
+          "reported_value": ">95%",
+          "unit": "study-defined uniformity metric",
+          "basis": "Mock-up, most measurement locations",
+          "status": "MEASURED"
+        },
+        {
+          "metric_id": "vertical_temperature_deviation",
+          "reported_value": "within 2",
+          "unit": "K",
+          "basis": "Mock-up; maximum / location-dependent deviations",
+          "status": "MEASURED"
+        },
+        {
+          "metric_id": "vertical_deviation_vs_cited_convection_results",
+          "reported_value": "approximately 2/5",
+          "unit": "ratio",
+          "basis": "Comparison with prior convection-only study results, not a concurrent randomized HVAC trial",
+          "status": "AUTHOR_REPORTED"
+        }
+      ],
+      "limitations": [
+        "Cooling capacity was assumed sufficient; the test was not a cooling-capacity or energy-efficiency comparison.",
+        "A dehumidifier was installed but not operated; condensation control was not demonstrated.",
+        "Short LED-off / LED-on observation windows do not establish seasonal dynamics or long-duration stability.",
+        "The authors report a middle-layer location with local deviations exceeding 2 K during much of the LED-on observation; aggregate uniformity can conceal local excursions."
+      ],
+      "transferability": "Useful experimental comparator for spatial temperature uniformity and radiant-panel layout. Not a dehumidification, condensation, thermal-storage or cavern heat-rejection qualification."
+    },
+    {
+      "comparator_id": "TRANSIENT-ENERGY-AGRICULTURE-2025",
+      "title": "A transient energy-agriculture model to predict energy footprint of vertical farms",
+      "authors": "F. Ceccanti, G. Di Lorenzo, A. Bischi, L. Incrocci, A. Pardossi and A. Baccioli",
+      "publication_date": "2025-05-15",
+      "venue": "Energy Conversion and Management, Volume 332, article 119740",
+      "doi": "10.1016/j.enconman.2025.119740",
+      "source_url": "https://doi.org/10.1016/j.enconman.2025.119740",
+      "evidence_class": "TRANSIENT_MODEL_SCENARIOS",
+      "system_domain": "Vertical farm model in a humid continental climate; annual scenario simulations",
+      "method_summary": "Five-minute-step lumped-parameter model with dynamic leaf-area index, crop growth, transpiration, envelope, lighting, heating/cooling, humidification/dehumidification, heat pumps/chillers, cleaning and CO2 fertilization. COP varies with external conditions and part-load factor.",
+      "reported_metrics": [
+        {
+          "metric_id": "cooling_energy_estimation_accuracy_change",
+          "reported_value": "+40%",
+          "unit": "accuracy improvement as reported by abstract/institutional record",
+          "basis": "Variable-COP approach vs compared constant-COP approach",
+          "status": "MODEL_VALIDATION",
+          "notes": "Publisher highlights also phrase a 40% cooling-energy reduction vs constant COP=3; do not treat that highlight as a measured facility saving or universal reduction."
+        },
+        {
+          "metric_id": "heating_energy_estimation_accuracy_change",
+          "reported_value": "+100%",
+          "unit": "accuracy improvement as reported by abstract/institutional record",
+          "basis": "Variable-COP approach vs compared constant-COP approach",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "best_energy_intensity_scenario",
+          "reported_value": "6.28",
+          "unit": "kWh_el kg^-1",
+          "basis": "Most energy-effective of nine simulated indoor growing conditions",
+          "status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "condensate_recovery_yield",
+          "reported_value": "888–965",
+          "unit": "g fresh mass L^-1 recovered water",
+          "basis": "Study-specific model scenario",
+          "status": "MODEL_SCENARIO"
+        }
+      ],
+      "limitations": [
+        "Modelled scenarios, not a field demonstration of the stated cooling or water recovery gains.",
+        "System and climate assumptions are study-specific; energy-food ratios are not directly comparable without matching crop, facility boundary and functional unit.",
+        "The reported 40% wording differs between publisher highlights and abstract/institutional record; prefer the more precise accuracy-improvement wording pending source-method audit."
+      ],
+      "transferability": "Strong transient whole-process comparator for variable-COP, dynamic LAI and moisture-flow coupling. Use as a model-structure comparison, not a claimed 40% energy-saving target."
+    },
+    {
+      "comparator_id": "CANADIAN-VF-TRNSYS-2026",
+      "title": "Energy optimization of a vertical farm in a Canadian hemiboreal humid climate",
+      "authors": "Logan Sanchez and William Lubitz",
+      "publication_date": "2026-05-01",
+      "venue": "Sustainable Energy Technologies and Assessments, Volume 89, article 104987",
+      "doi": "10.1016/j.seta.2026.104987",
+      "source_url": "https://doi.org/10.1016/j.seta.2026.104987",
+      "evidence_class": "MODEL_VALIDATED_AGAINST_FACILITY_BILLS",
+      "system_domain": "Existing indoor hydroponic vertical farm in Timmins, Ontario, Canada",
+      "method_summary": "TRNSYS model checked against facility environmental conditions, equipment runtime and monthly utility billing records; then evaluates outdoor ventilation and air-to-air heat exchanger alternatives under different electricity and CO2 costs.",
+      "reported_metrics": [
+        {
+          "metric_id": "monthly_energy_prediction_mape",
+          "reported_value": "9.1%",
+          "unit": "MAPE",
+          "basis": "Model predictions vs monthly energy billing",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "monthly_energy_prediction_mpe",
+          "reported_value": "-3.5%",
+          "unit": "MPE",
+          "basis": "Model predictions vs monthly energy billing",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "monthly_energy_prediction_cv_rmse",
+          "reported_value": "14.30%",
+          "unit": "CV-RMSE",
+          "basis": "Model predictions vs monthly energy billing",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "monthly_energy_prediction_nmbe",
+          "reported_value": "-3.05%",
+          "unit": "NMBE",
+          "basis": "Model predictions vs monthly energy billing",
+          "status": "MODEL_VALIDATION"
+        },
+        {
+          "metric_id": "ventilation_energy_reduction",
+          "reported_value": "14.34%",
+          "unit": "modelled average consumption reduction",
+          "basis": "Outdoor ventilation scenario, study conditions",
+          "status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "waste_heat_available",
+          "reported_value": "minimum 600",
+          "unit": "MJ per monthly average day as reported",
+          "basis": "Study-specific monthly daily waste-heat profile",
+          "status": "MODEL_PREDICTION"
+        }
+      ],
+      "limitations": [
+        "Monthly utility billing validation does not by itself validate minute-scale zone climate, canopy microclimate or transient condensation.",
+        "Economic ranking of ventilation vs heat exchanger is sensitive to electricity and CO2 prices; halving CO2 price changes the preferred option.",
+        "Timmins climate, facility configuration and operating costs do not transfer directly to Johannesburg or an underground site."
+      ],
+      "transferability": "Useful operational energy-model validation comparator and cost sensitivity study. Match the time aggregation and boundary before comparing errors or savings."
+    },
+    {
+      "comparator_id": "URBAN-VF-ENERGYPLUS-2025",
+      "title": "Prediction of Energy Consumption and Energy Savings in an Urban Vertical Farm Benchmark",
+      "authors": "Simeng Xie, Pedro Martinez-Vazquez and Charalampos Baniotopoulos",
+      "publication_date": "2025-12-22",
+      "venue": "Energy Science & Engineering, Volume 14, Issue 3, pages 1086–1099",
+      "doi": "10.1002/ese3.70415",
+      "source_url": "https://doi.org/10.1002/ese3.70415",
+      "evidence_class": "BUILDING_ENERGY_SIMULATION",
+      "system_domain": "20-floor, mixed-use Birmingham urban vertical-farm building including cultivation, offices, storage, warehousing and support zones",
+      "method_summary": "EnergyPlus model with multiple thermal zones and whole-building / planting / office energy use. Provides a building-scope energy breakdown and simulated design package comparisons.",
+      "reported_metrics": [
+        {
+          "metric_id": "abstract_hvac_share",
+          "reported_value": "52%",
+          "unit": "% of total building energy in abstract",
+          "basis": "Whole mixed-use building abstract statement",
+          "status": "MODEL_PREDICTION"
+        },
+        {
+          "metric_id": "abstract_lighting_share",
+          "reported_value": "28%",
+          "unit": "% of total building energy in abstract",
+          "basis": "Whole mixed-use building abstract statement",
+          "status": "MODEL_PREDICTION"
+        },
+        {
+          "metric_id": "planting_zone_lighting_share",
+          "reported_value": "52%",
+          "unit": "% of planting-zone energy",
+          "basis": "Zoned results table",
+          "status": "MODEL_PREDICTION"
+        },
+        {
+          "metric_id": "planting_zone_hvac_share",
+          "reported_value": "30%",
+          "unit": "% of planting-zone energy",
+          "basis": "Zoned results table",
+          "status": "MODEL_PREDICTION"
+        },
+        {
+          "metric_id": "office_zone_hvac_share",
+          "reported_value": "53.2%",
+          "unit": "% of office-zone energy",
+          "basis": "Zoned results table",
+          "status": "MODEL_PREDICTION"
+        },
+        {
+          "metric_id": "simulated_design_package_improvement",
+          "reported_value": "approximately 20%",
+          "unit": "modelled annual energy efficiency improvement",
+          "basis": "Package of shading/facade/lighting interventions",
+          "status": "MODEL_SCENARIO"
+        }
+      ],
+      "limitations": [
+        "Mixed-use building boundary includes non-growing functions; whole-building energy share is not a crop-room HVAC share.",
+        "The paper reports multiple aggregate EUI figures under different site/source and scope definitions; values must be traced to numerator, denominator and zone boundary before reuse.",
+        "The ~20% design package result is simulated and not a measured farm retrofit outcome.",
+        "Building-specific weather, solar exposure, envelope and office loads do not transfer to an underground facility."
+      ],
+      "transferability": "Use to remind the benchmark to separate site/source EUI and cultivation/office/support zones. Not a direct CEA crop-zone comparator."
+    }
+  ],
+  "interpretation_rules": [
+    "Preserve the original error metric and denominator: RMSE, rRMSE, NRMSE, CV(RMSE), MAPE and NMBE are not interchangeable.",
+    "Distinguish measured sensor observations, model-validation metrics, model predictions, simulated design comparisons and author-reported conclusions.",
+    "Do not compare kWh per square metre with kWh per kilogram unless crop output, facility area, time window and system boundary are all available.",
+    "Do not interpret fan-energy, COP or energy-food scenario results as measured savings unless the physical system was metered in a matched intervention.",
+    "A well-mixed climate model cannot be used to claim spatial canopy uniformity; use multi-zone observations or CFD with blind validation.",
+    "Temperature-uniformity tests without an operating dehumidifier do not establish condensation safety.",
+    "Do not infer cavern thermal benefit from rock temperature alone; measure heat flux, moisture, groundwater, conductivity, diffusivity and seasonal boundary response.",
+    "Preserve all source inconsistencies and scope warnings. Unknown values are not zero and must not be substituted with another study's metric."
+  ]
+}
