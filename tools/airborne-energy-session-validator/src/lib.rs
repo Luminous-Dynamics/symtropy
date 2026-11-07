@@ -1125,11 +1125,23 @@ mod tests {
     }
 
     #[test]
-    fn expired_allocation_cannot_admit_or_energize() {
+    fn allocation_expired_before_initial_admission_is_rejected() {
         let mut value = positive_value();
         value["site_allocation_receipt"]["valid_until_ms"] = json!(150);
         let error = validate_episode(&value).expect_err("expired allocation must fail");
-        assert!(error.contains("not valid at admission time"));
+        assert!(error.contains("full event-time uncertainty interval"));
+    }
+
+    #[test]
+    fn allocation_expiring_after_reacquisition_admission_cannot_power_again() {
+        let mut value = positive_value();
+        // Reacquisition admission occurs at 7,200 ms and passes; the second
+        // POWER_ACTIVE transition occurs at 7,400 ms and must re-check the
+        // same signed allocation receipt against its full uncertainty interval.
+        value["site_allocation_receipt"]["valid_until_ms"] = json!(7_350);
+        let error = validate_episode(&value)
+            .expect_err("expired allocation cannot authorize the second power interval");
+        assert!(error.contains("full event-time uncertainty interval"));
     }
 
     #[test]
