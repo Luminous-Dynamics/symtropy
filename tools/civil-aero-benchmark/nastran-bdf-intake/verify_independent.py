@@ -113,6 +113,11 @@ def as_int(value: str, label: str) -> int:
     require(result >= 0, f"{label}: negative ID")
     return result
 
+def as_id(value: str, label: str) -> int:
+    result = as_int(value, label)
+    require(result > 0, f"{label}: entity ID zero is reserved")
+    return result
+
 
 def as_float(value: str, label: str) -> float:
     token = value.strip().replace("D", "E").replace("d", "E")
@@ -174,17 +179,17 @@ def inventory(data: bytes) -> dict[str, Any]:
             return fields[index]
 
         if name == "GRID":
-            gid = as_int(required(0, "GRID ID"), "GRID ID")
+            gid = as_id(required(0, "GRID ID"), "GRID ID")
             unique(grids, gid, "GRID")
             if fields[1].strip():
                 as_int(fields[1], "GRID CP")
             for index in (2, 3, 4):
                 as_float(required(index, f"coordinate {index - 1}"), f"GRID {gid} coordinate")
         elif name == "CBEAM":
-            eid = as_int(required(0, "CBEAM EID"), "CBEAM EID")
-            as_int(required(1, "CBEAM PID"), "CBEAM PID")
-            ga = as_int(required(2, "CBEAM GA"), "CBEAM GA")
-            gb = as_int(required(3, "CBEAM GB"), "CBEAM GB")
+            eid = as_id(required(0, "CBEAM EID"), "CBEAM EID")
+            as_id(required(1, "CBEAM PID"), "CBEAM PID")
+            ga = as_id(required(2, "CBEAM GA"), "CBEAM GA")
+            gb = as_id(required(3, "CBEAM GB"), "CBEAM GB")
             require(ga != gb, f"CBEAM {eid}: identical end grids")
             unique(elements, eid, "element")
             cbeams.add(eid)
@@ -196,22 +201,22 @@ def inventory(data: bytes) -> dict[str, Any]:
                 if value.strip():
                     as_float(value, f"CBEAM {eid} orientation")
         elif name == "MAT1":
-            mid = as_int(required(0, "MAT1 MID"), "MAT1 MID")
+            mid = as_id(required(0, "MAT1 MID"), "MAT1 MID")
             unique(materials, mid, "MAT1")
             for index in range(1, 8):
                 if fields[index].strip():
                     as_float(fields[index], f"MAT1 {mid} field {index + 1}")
         elif name == "PBEAM":
-            pid = as_int(required(0, "PBEAM PID"), "PBEAM PID")
-            mid = as_int(required(1, "PBEAM MID"), "PBEAM MID")
+            pid = as_id(required(0, "PBEAM PID"), "PBEAM PID")
+            mid = as_id(required(1, "PBEAM MID"), "PBEAM MID")
             require(pid not in pbeam_materials, f"duplicate PBEAM {pid}")
             pbeam_materials[pid] = mid
             for index in range(2, 8):
                 if fields[index].strip():
                     as_float(fields[index], f"PBEAM {pid} core field {index + 1}")
         elif name == "CONM2":
-            eid = as_int(required(0, "CONM2 EID"), "CONM2 EID")
-            grid = as_int(required(1, "CONM2 GRID"), "CONM2 GRID")
+            eid = as_id(required(0, "CONM2 EID"), "CONM2 EID")
+            grid = as_id(required(1, "CONM2 GRID"), "CONM2 GRID")
             unique(elements, eid, "element")
             if fields[2].strip():
                 as_int(fields[2], "CONM2 CID")
@@ -222,8 +227,8 @@ def inventory(data: bytes) -> dict[str, Any]:
                     as_float(fields[index], f"CONM2 {eid} field {index + 1}")
             beam_refs.add(grid)
         elif name == "RBE2":
-            eid = as_int(required(0, "RBE2 EID"), "RBE2 EID")
-            independent = as_int(required(1, "RBE2 GN"), "RBE2 GN")
+            eid = as_id(required(0, "RBE2 EID"), "RBE2 EID")
+            independent = as_id(required(1, "RBE2 GN"), "RBE2 GN")
             required(2, "RBE2 component")
             unique(elements, eid, "element")
             rbe2_ids.add(eid)
@@ -231,22 +236,22 @@ def inventory(data: bytes) -> dict[str, Any]:
             dependents: set[int] = set()
             for token in fields[3:]:
                 if token.strip():
-                    dep = as_int(token, "RBE2 dependent grid")
+                    dep = as_id(token, "RBE2 dependent grid")
                     unique(dependents, dep, "RBE2 dependent GRID")
                     rbe_refs.add(dep)
             require(dependents, f"RBE2 {eid}: no dependent grids")
         elif name == "SPC":
-            sid = as_int(required(0, "SPC SID"), "SPC SID")
+            sid = as_id(required(0, "SPC SID"), "SPC SID")
             spc_sets.add(sid)
             end = max((i + 1 for i, value in enumerate(fields) if value.strip()), default=1)
             require(end >= 4 and (end - 1) % 3 == 0, f"SPC {sid}: malformed triplets")
             for index in range(1, end, 3):
-                spc_refs.add(as_int(fields[index], "SPC GRID"))
+                spc_refs.add(as_id(fields[index], "SPC GRID"))
                 components = required(index + 1, "SPC component")
                 require(all(ch.isdigit() and int(ch) <= 6 for ch in components), "invalid SPC component digits")
                 as_float(required(index + 2, "SPC value"), "SPC value")
         elif name == "SPC1":
-            sid = as_int(required(0, "SPC1 SID"), "SPC1 SID")
+            sid = as_id(required(0, "SPC1 SID"), "SPC1 SID")
             spc_sets.add(sid)
             required(1, "SPC1 component")
             index = 2
@@ -254,10 +259,10 @@ def inventory(data: bytes) -> dict[str, Any]:
                 if not fields[index].strip():
                     index += 1
                     continue
-                start = as_int(fields[index], "SPC1 grid")
+                start = as_id(fields[index], "SPC1 grid")
                 if index + 1 < len(fields) and fields[index + 1].upper() == "THRU":
                     require(index + 2 < len(fields), "SPC1 THRU end missing")
-                    end = as_int(fields[index + 2], "SPC1 THRU end")
+                    end = as_id(fields[index + 2], "SPC1 THRU end")
                     require(start <= end and end - start <= 100_000, "invalid SPC1 THRU range")
                     spc_refs.update(range(start, end + 1))
                     index += 3
@@ -265,8 +270,8 @@ def inventory(data: bytes) -> dict[str, Any]:
                     spc_refs.add(start)
                     index += 1
         elif name == "FORCE":
-            sid = as_int(required(0, "FORCE SID"), "FORCE SID")
-            grid = as_int(required(1, "FORCE GRID"), "FORCE GRID")
+            sid = as_id(required(0, "FORCE SID"), "FORCE SID")
+            grid = as_id(required(1, "FORCE GRID"), "FORCE GRID")
             if fields[2].strip():
                 as_int(fields[2], "FORCE CID")
             for index in range(3, 7):
@@ -274,14 +279,14 @@ def inventory(data: bytes) -> dict[str, Any]:
             force_sets.add(sid)
             force_refs.add(grid)
         elif name == "LOAD":
-            sid = as_int(required(0, "LOAD SID"), "LOAD SID")
+            sid = as_id(required(0, "LOAD SID"), "LOAD SID")
             load_sets.add(sid)
             as_float(required(1, "LOAD scale"), "LOAD scale")
             end = max((i + 1 for i, value in enumerate(fields) if value.strip()), default=2)
             require(end >= 4 and (end - 2) % 2 == 0, f"LOAD {sid}: malformed scale pairs")
             for index in range(2, end, 2):
                 as_float(fields[index], "LOAD scale factor")
-                load_refs.add(as_int(fields[index + 1], "LOAD set reference"))
+                load_refs.add(as_id(fields[index + 1], "LOAD set reference"))
         elif name == "PARAM":
             required(0, "PARAM name")
             required(1, "PARAM value")
@@ -345,6 +350,11 @@ def hostile_controls(data: bytes) -> None:
     duplicate = lines.copy()
     duplicate.insert(duplicate.index("ENDDATA"), fixed(["GRID", "1", "0", "9.", "9.", "9."]))
     expect_rejected("duplicate_grid_id", lambda: inventory(("\n".join(duplicate) + "\n").encode("ascii")))
+
+    zero_id = lines.copy()
+    index = next(i for i, line in enumerate(zero_id) if line.startswith("GRID"))
+    zero_id[index] = fixed(["GRID", "0", "0", "0.", "0.", "0."])
+    expect_rejected("zero_entity_id", lambda: inventory(("\n".join(zero_id) + "\n").encode("ascii")))
 
     dangling = lines.copy()
     index = next(i for i, line in enumerate(dangling) if line.startswith("CBEAM"))
