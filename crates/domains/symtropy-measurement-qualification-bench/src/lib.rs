@@ -293,6 +293,8 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
             push(&mut errors, "INSUFFICIENT_REFERENCE_REPLICATES", &format!("{path}.replicates"), "at least three reference replicates are required");
         }
         let mut replicate_ids = BTreeSet::new();
+        let mut reference_sources = BTreeSet::new();
+        let mut reference_analysis = BTreeSet::new();
         let mut sessions = BTreeSet::new();
         let mut operators = BTreeSet::new();
         let mut orientations = BTreeSet::new();
@@ -316,10 +318,19 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
                     push(&mut errors, "MISSING_REFERENCE_REPLICATE_CONTEXT", &format!("{replicate_path}.{key}"), "session, operator and orientation are required");
                 }
             }
-            for key in ["source_artifact_ref", "analysis_record_ref"] {
-                if text(replicate, key).is_none() {
-                    push(&mut errors, "MISSING_REFERENCE_REPLICATE_ARTIFACT", &format!("{replicate_path}.{key}"), "raw reference scan and analysis record references are required");
+            if let Some(source) = text(replicate, "source_artifact_ref") {
+                if !reference_sources.insert(source.to_owned()) {
+                    push(&mut errors, "DUPLICATE_REFERENCE_SOURCE_ARTIFACT", &format!("{replicate_path}.source_artifact_ref"), "reference replicates must use distinct raw scan artifacts");
                 }
+            } else {
+                push(&mut errors, "MISSING_REFERENCE_REPLICATE_ARTIFACT", &format!("{replicate_path}.source_artifact_ref"), "raw reference scan artifact is required");
+            }
+            if let Some(analysis) = text(replicate, "analysis_record_ref") {
+                if !reference_analysis.insert(analysis.to_owned()) {
+                    push(&mut errors, "DUPLICATE_REFERENCE_ANALYSIS_RECORD", &format!("{replicate_path}.analysis_record_ref"), "reference replicates must use distinct analysis records");
+                }
+            } else {
+                push(&mut errors, "MISSING_REFERENCE_REPLICATE_ARTIFACT", &format!("{replicate_path}.analysis_record_ref"), "reference analysis record is required");
             }
             match finite(replicate, "measured_value") {
                 Some(value) if descriptor_in_domain(descriptor, value) => {}
@@ -375,6 +386,8 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
         let parent_stratum = parent_strata.into_iter().flatten().find(|stratum| {
             uint(stratum, "parent_bin_index") == parent_bin_index
         });
+        let parent_bin_lower = parent_stratum.and_then(|stratum| finite(stratum, "lower_mm"));
+        let parent_bin_upper = parent_stratum.and_then(|stratum| stratum.get("upper_mm").and_then(Value::as_f64));
         let parent_descriptor = parent_stratum
             .and_then(|stratum| stratum.get("descriptors"))
             .and_then(Value::as_array)
@@ -450,14 +463,40 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
         }
         let mut particle_ids = BTreeSet::new();
         let mut acquisition_blocks = BTreeSet::new();
+        let mut particle_sources = BTreeSet::new();
+        let mut segmentation_records = BTreeSet::new();
         for (sample_index, sample) in samples.iter().enumerate() {
             let sample_path = format!("{path}.samples[{sample_index}]");
             let particle_id = text(sample, "particle_id");
             let block_id = text(sample, "acquisition_block_ref");
-            for key in ["source_artifact_ref", "segmentation_record_ref"] {
-                if text(sample, key).is_none() {
-                    push(&mut errors, "MISSING_PARTICLE_ARTIFACT_PROVENANCE", &format!("{sample_path}.{key}"), "each particle measurement must retain its raw acquisition artifact and segmentation record");
+            if let Some(source) = text(sample, "source_artifact_ref") {
+                if !particle_sources.insert(source.to_owned()) {
+                    push(&mut errors, "DUPLICATE_PARTICLE_SOURCE_ARTIFACT", &format!("{sample_path}.source_artifact_ref"), "each independently sampled particle must have a distinct raw acquisition artifact in v0.1");
                 }
+            } else {
+                push(&mut errors, "MISSING_PARTICLE_ARTIFACT_PROVENANCE", &format!("{sample_path}.source_artifact_ref"), "raw particle acquisition artifact is required");
+            }
+            if let Some(segmentation) = text(sample, "segmentation_record_ref") {
+                if !segmentation_records.insert(segmentation.to_owned()) {
+                    push(&mut errors, "DUPLICATE_SEGMENTATION_RECORD", &format!("{sample_path}.segmentation_record_ref"), "each independently sampled particle must have a distinct segmentation record");
+                }
+            } else {
+                push(&mut errors, "MISSING_PARTICLE_ARTIFACT_PROVENANCE", &format!("{sample_path}.segmentation_record_ref"), "particle segmentation record is required");
+            }
+            if text(sample, "size_measurement_ref").is_none() {
+                push(&mut errors, "MISSING_PARTICLE_SIZE_PROVENANCE", &format!("{sample_path}.size_measurement_ref"), "particle size bin assignment needs a measurement reference");
+            }
+            match (
+                finite(sample, "particle_size_lower_mm"),
+                finite(sample, "particle_size_upper_mm"),
+                parent_bin_lower,
+                parent_bin_upper,
+            ) {
+                (Some(measured_lower), Some(measured_upper), Some(parent_lower), Some(parent_upper))
+                    if measured_lower >= parent_lower && measured_upper >= measured_lower && measured_upper < parent_upper => {}
+                (Some(measured_lower), Some(measured_upper), Some(parent_lower), None)
+                    if measured_lower >= parent_lower && measured_upper >= measured_lower => {}
+                _ => push(&mut errors, "PARTICLE_SIZE_INTERVAL_CROSSES_PARENT_BIN", &sample_path, "particle size uncertainty interval must fit wholly inside the exact parent PSD bin; upper boundary is exclusive"),
             }
             if particle_id.is_none_or(|id| !particle_ids.insert(id.to_owned())) {
                 push(&mut errors, "MISSING_OR_DUPLICATE_PARTICLE_ID", &format!("{sample_path}.particle_id"), "each particle must have a unique ID within the sample set");
@@ -901,6 +940,28 @@ mod tests {
         let duplicate = case["sample_sets"][0]["samples"][0]["particle_id"].clone();
         case["sample_sets"][0]["samples"][1]["particle_id"] = duplicate;
         assert!(has(&validate_against_parent(&case, &parent()), "MISSING_OR_DUPLICATE_PARTICLE_ID"));
+    }
+
+    #[test]
+    fn particle_size_interval_must_fit_exact_parent_bin() {
+        let mut case = fixture();
+        case["sample_sets"][0]["samples"][0]["particle_size_lower_mm"] = serde_json::json!(4.9);
+        case["sample_sets"][0]["samples"][0]["particle_size_upper_mm"] = serde_json::json!(5.1);
+        assert!(has(
+            &validate_against_parent(&case, &parent()),
+            "PARTICLE_SIZE_INTERVAL_CROSSES_PARENT_BIN"
+        ));
+    }
+
+    #[test]
+    fn duplicate_particle_source_artifact_is_rejected() {
+        let mut case = fixture();
+        let source = case["sample_sets"][0]["samples"][0]["source_artifact_ref"].clone();
+        case["sample_sets"][0]["samples"][1]["source_artifact_ref"] = source;
+        assert!(has(
+            &validate_against_parent(&case, &parent()),
+            "DUPLICATE_PARTICLE_SOURCE_ARTIFACT"
+        ));
     }
 
     #[test]
