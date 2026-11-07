@@ -108,32 +108,6 @@
       "calibration_ref": "cal:residual_volume-synthetic"
     }
   ],
-  "correlation_matrix": [
-    [
-      1,
-      -0.3,
-      0,
-      0.05
-    ],
-    [
-      -0.3,
-      1,
-      0.15,
-      0
-    ],
-    [
-      0,
-      0.15,
-      1,
-      0.2
-    ],
-    [
-      0.05,
-      0,
-      0.2,
-      1
-    ]
-  ],
   "outputs": [
     {
       "output_id": "specific_energy",
@@ -311,5 +285,31 @@
         }
       ]
     }
-  }
+  },
+  "latent_gaussian_correlation_matrix": [
+    [
+      1,
+      -0.3,
+      0,
+      0.05
+    ],
+    [
+      -0.3,
+      1,
+      0.15,
+      0
+    ],
+    [
+      0,
+      0.15,
+      1,
+      0.2
+    ],
+    [
+      0.05,
+      0,
+      0.2,
+      1
+    ]
+  ]
 }
