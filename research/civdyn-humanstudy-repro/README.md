@@ -88,6 +88,12 @@ The Community Edition receipt allows PAS and ECS to be absent. No PAS/ECS value 
 - Participant-level human data cannot be published without explicit redistribution authorization.
 - The original analysis protocol must remain unchanged for an exact reproduction claim.
 
+## Historical baseline snapshot (not current SOTA)
+
+The original paper repository also contains a stored results summary generated on **30 January 2026**, covering 61 model/prompt configurations. Its highest reported PAS in that snapshot is **0.4971** (Gemini 3 Flash Preview, `v3-human-plus-demo`); its highest reported ECS (CCC) is **0.4589** (`mixed_models_v3`). The source summary and CSV artifact SHAs are recorded in `foundational_12_profile.json`.
+
+These are historical repository results, not a present-day leaderboard, not independently reproduced in this phase, and not accompanied here by a confidence interval. PAS and ECS are separate metrics; do not combine them or compare their scales with SimBench/SSDataBench scores.
+
 ## What is not yet implemented
 
 - No importer from the original `full_benchmark.json` / `detailed_stats.csv` / `evaluation_results.json` native result set.
