@@ -796,3 +796,18 @@ The implementation uses synthetic traces only; it does not reproduce these human
 ## 15. Institutional authority and effective voting power
 
 CIVDYN-AUTH-001 (#3684) now has a first exact reference in [draft PR #3685](https://github.com/Luminous-Dynamics/symtropy/pull/3685). It enumerates small weighted councils and reports nominal weights, normalized/raw Banzhaf power, Shapley–Shubik pivotality, minimal winning coalitions, veto/dictator status, HHI and Gini. A separate permission-topology audit records caller-declared role conflicts, single points of control and appeal independence. The exact enumerator is capped at 20 actors; no universal democracy/legitimacy score is emitted.
+
+
+## 15. Decision robustness: from output uncertainty to decision quality (7 November 2026)
+
+**The new gap:** parameter sensitivity identifies which assumptions move outputs; it does not tell us whether an intervention remains defensible when those assumptions vary. We now separate these questions in [CIVDYN-ROBUST-001 #4020](https://github.com/Luminous-Dynamics/symtropy/issues/4020), implemented in [draft PR #4024](https://github.com/Luminous-Dynamics/symtropy/pull/4024).
+
+**Research comparisons**
+- Shavazipour & Stewart, *A novel multi-stage multi-scenario multi-objective optimisation framework for adaptive robust decision-making under deep uncertainty*, Omega 138 (January 2026), DOI 10.1016/j.omega.2025.103405. It extends robust multi-objective decisions with risk attitudes and moving-horizon adaptation. https://doi.org/10.1016/j.omega.2025.103405
+- *Cost-effective and reliable power system transitions under deep uncertainty*, IJEPES (2026), DOI 10.1016/j.ijepes.2026.111766. It contrasts RDM, stochastic programming, min–max robust optimization and min–max regret, showing that lower average cost need not mean lower regret or better reliability. https://doi.org/10.1016/j.ijepes.2026.111766
+- Yamao et al., *Robust Decision-Focused Learning via Worst-Case Regret Minimization*, UAI 2026 / PMLR 337. It emphasizes that predictive accuracy can diverge from decision quality under measurement uncertainty and deployment distribution shift. https://proceedings.mlr.press/v337/yamao26a.html
+- IPCC AR6 WGII Chapter 17 summarizes low-regret and adaptation-pathway approaches, including signposts and triggers. https://www.ipcc.ch/report/ar6/wg2/chapter/chapter-17/
+
+**CivBench response:** compare all policies under the same parameter/shock points; evaluate non-compensatory service constraints; calculate regret separately for water, energy, coverage, breach and recovery outcomes; retain ties, unknown values and policy-switch counts. The 30 LHS rows are finite deterministic design points, not calibrated probabilities or stochastic replications. "Robust-feasible" means feasible at every declared point only, not proof over a continuous uncertainty set.
+
+Current exact-head qualification for PR #4024 is in progress. No new robust-policy result is claimed yet.
