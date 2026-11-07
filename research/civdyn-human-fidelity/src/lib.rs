@@ -1426,7 +1426,10 @@ mod tests {
             bootstrap_population_coverage_curve(
                 &dataset,
                 &[],
-                BootstrapConfig { seed: 1, replicate_count: 10 }
+                BootstrapConfig {
+                    seed: 1,
+                    replicate_count: 10
+                }
             ),
             Err(FidelityError::EmptyBootstrapSizes)
         ));
