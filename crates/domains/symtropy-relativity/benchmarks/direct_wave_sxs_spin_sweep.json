@@ -1,0 +1,461 @@
+{
+  "schema_version": 1,
+  "artifact_id": "symtropy.black_hole.direct_wave_sxs_spin_sweep.v1",
+  "status": "planned_replication_manifest",
+  "created_utc": "2026-11-07",
+  "scientific_question": "Which physical predictor best explains the frequency and time-varying damping of the extracted non-QNM direct-wave component across the published SXS remnant-spin sweep?",
+  "claim_separation": [
+    "a non-QNM residual is extractable under a specified filter",
+    "its instantaneous frequency and damping can be estimated under a specified model",
+    "the component is physically associated with Kerr horizon angular velocity or surface gravity",
+    "the component can be used to test Hawking's area law"
+  ],
+  "primary_references": [
+    {
+      "kind": "peer_reviewed_observation",
+      "title": "GW250114 reveals signatures of post-merger black-hole horizon",
+      "doi": "10.1038/s41586-026-10696-0",
+      "url": "https://www.nature.com/articles/s41586-026-10696-0"
+    },
+    {
+      "kind": "counteranalysis_preprint",
+      "title": "The Direct Wave is Not a Meaningful Test of Horizon Properties",
+      "arxiv": "2607.02380",
+      "url": "https://arxiv.org/abs/2607.02380"
+    },
+    {
+      "kind": "peer_reviewed_bob_model",
+      "title": "Analyzing analytical black-hole binary merger waveforms with the backwards one-body formalism",
+      "doi": "10.1103/v6wx-spvl",
+      "url": "https://doi.org/10.1103/v6wx-spvl"
+    },
+    {
+      "kind": "peer_reviewed_direct_wave_bob",
+      "title": "Direct waves in black hole binary mergers: Insights from the backward one-body model",
+      "doi": "10.1103/kjjd-nk8f",
+      "url": "https://doi.org/10.1103/kjjd-nk8f"
+    },
+    {
+      "kind": "peer_reviewed_independent_extraction",
+      "title": "Modeling direct waves in binary black hole ringdowns",
+      "doi": "10.1103/xftt-2n6t",
+      "url": "https://doi.org/10.1103/xftt-2n6t"
+    },
+    {
+      "kind": "data_catalog",
+      "title": "SXS Gravitational Waveform Database",
+      "url": "https://data.black-holes.org/waveforms/"
+    },
+    {
+      "kind": "filter_implementation",
+      "title": "qnm_filter",
+      "url": "https://github.com/Sizheng-Ma/qnm_filter"
+    },
+    {
+      "kind": "peer_reviewed_NR_spin_sweep_and_reinterpretation",
+      "title": "Moving Beyond Quasinormal Modes and Reinterpreting Direct Waves in Binary Black Hole Merger-Ringdowns",
+      "authors": "Dyer, Kankani, Marks, McWilliams, Moore (2026)",
+      "url": "https://github.com/Richardvnd/direct_waves_LR",
+      "code_repository": "https://github.com/Richardvnd/direct_waves_LR",
+      "code_commit": "8348e198c683a9ba212a312f3e2e36373e2d8f1b",
+      "simulations_catalog_blob_sha": "a0a7c29346717820f5da4a716d8056cc66592fac",
+      "readme_blob_sha": "4563bc8ec10a225d7359d9461ba522a84519a34b",
+      "license": "MIT"
+    },
+    {
+      "kind": "peer_reviewed_filtering_model_limitations_preprint",
+      "title": "Modeling QNMs-Filtered Gravitational Waveforms: Approximation Limits and Filtering Effects",
+      "authors": "Jun-Xi Shi, Zhen-Tao He, Tingyuan Jiang, Yu Tian, Dan-Dan Yuan, Hongbao Zhang",
+      "arxiv_id": "2610.30031",
+      "url": "https://arxiv.org/abs/2610.30031",
+      "published_or_posted": "2026-10-21"
+    },
+    {
+      "kind": "peer_reviewed_light_ring_source_region_analysis",
+      "title": "How much of the black hole ringdown is sourced within the light ring?",
+      "authors": "Cheung (2026)",
+      "doi": "10.1103/l1mc-6hsz",
+      "accepted": "2026-10-06",
+      "url": "https://journals.aps.org/prd/accepted/10.1103/l1mc-6hsz",
+      "key_result": "For the modeled plunging point-particle source, the maximum wave amplitude sourced within the prograde light ring is estimated at <=10% of the full trajectory contribution; for GW250114 the post-peak SNR from within-light-ring sourced waves is estimated <=1 under the paper's setup.",
+      "caveat": "Model-dependent source-region estimate, not a direct measurement of the horizon or a universal bound for all mergers."
+    },
+    {
+      "kind": "eikonal_local_geometry_inference",
+      "title": "Constraining the geometry of rotating black holes with eikonal QNMs",
+      "arxiv": "2609.24824",
+      "url": "https://arxiv.org/abs/2609.24824"
+    },
+    {
+      "kind": "optimal_probe_frequency",
+      "title": "Optimal frequency scales for probing black-hole geometries",
+      "arxiv": "2608.01061",
+      "url": "https://arxiv.org/abs/2608.01061"
+    }
+  ],
+  "data_selection": {
+    "family": "equal_mass_quasicircular_nonprecessing_SXS",
+    "waveform_mode": "h22",
+    "catalog_release": "SXS public waveform database; exact release and resolutions must be pinned per retrieved waveform",
+    "resolution_selection": "not_yet_selected",
+    "extrapolation_order": "not_yet_selected",
+    "download_status": "catalog_entries_identified_not_yet_downloaded",
+    "cases": [
+      {
+        "sxs_id": "SXS:BBH:2089",
+        "final_spin_chi": 0.4942
+      },
+      {
+        "sxs_id": "SXS:BBH:2088",
+        "final_spin_chi": 0.5478
+      },
+      {
+        "sxs_id": "SXS:BBH:3919",
+        "final_spin_chi": 0.6215
+      },
+      {
+        "sxs_id": "SXS:BBH:4434",
+        "final_spin_chi": 0.6864
+      },
+      {
+        "sxs_id": "SXS:BBH:0305",
+        "final_spin_chi": 0.6921
+      },
+      {
+        "sxs_id": "SXS:BBH:2095",
+        "final_spin_chi": 0.7447
+      },
+      {
+        "sxs_id": "SXS:BBH:3927",
+        "final_spin_chi": 0.8029
+      },
+      {
+        "sxs_id": "SXS:BBH:2099",
+        "final_spin_chi": 0.8574
+      },
+      {
+        "sxs_id": "SXS:BBH:3897",
+        "final_spin_chi": 0.9075
+      },
+      {
+        "sxs_id": "SXS:BBH:0178",
+        "final_spin_chi": 0.9499
+      }
+    ],
+    "add_cases": [
+      "more systems densely sampled around final spin 0.65 to 0.75",
+      "near-extremal spins where public NR coverage and numerical uncertainty allow",
+      "additional mass ratios, precession, and eccentricity only when compatible waveforms and metadata are available"
+    ]
+  },
+  "reference_filter_configuration": {
+    "qnm_filter_repo": "https://github.com/Sizheng-Ma/qnm_filter",
+    "prograde_qnm_modes_removed": 7,
+    "retrograde_qnm_modes_removed": 2,
+    "additional_prograde_mode_removed": {
+      "ell": 3,
+      "m": 2,
+      "n": 0
+    },
+    "analyzed_strain_mode": {
+      "ell": 2,
+      "m": 2
+    },
+    "fitting_interval_definitions": null,
+    "fitting_interval_note": "The cited counteranalysis reports four fitting intervals. Exact bounds must be transcribed from the paper and supplement before execution; do not guess them."
+  },
+  "competing_models": [
+    {
+      "id": "horizon_tied",
+      "predictor": "2*Omega_H",
+      "damping": "kappa_t or explicitly derived screened model",
+      "status": "contested_hypothesis"
+    },
+    {
+      "id": "peak_news",
+      "predictor": "instantaneous News frequency at peak News amplitude",
+      "damping": "fit freely or use BOB prescription",
+      "status": "published_competing_predictor"
+    },
+    {
+      "id": "bob_prompt_plunge",
+      "predictor": "Backwards-One-Body / null-geodesic prompt-plunge dynamics",
+      "damping": "time-evolving BOB amplitude",
+      "status": "published_physical_model"
+    },
+    {
+      "id": "free_complex_frequency",
+      "predictor": "time-evolving complex frequency fit to residual",
+      "damping": "time-evolving",
+      "status": "phenomenological_reference"
+    },
+    {
+      "id": "fixed_damped_sinusoid",
+      "predictor": "constant fitted frequency",
+      "damping": "constant fitted damping time",
+      "status": "diagnostic_baseline"
+    },
+    {
+      "id": "qnm_mode_mixing",
+      "predictor": "QNM overtones and spherical-spheroidal mixing residual",
+      "damping": "mode-specific",
+      "status": "competing_waveform_explanation"
+    },
+    {
+      "id": "noise_transient",
+      "predictor": "no coherent astrophysical component",
+      "damping": "not_applicable",
+      "status": "null_model"
+    },
+    {
+      "id": "rescaled_light_ring",
+      "predictor": "Re omega approximately 0.73*m*Omega_LR; -Im omega approximately 0.68*lambda",
+      "damping": "light-ring Lyapunov exponent rescaling",
+      "status": "published_NR_spin_sweep_predictor"
+    },
+    {
+      "id": "filtered_vacuum_perturbation",
+      "predictor": "no material source-specific direct wave required; filtered Gaussian-initial-data vacuum perturbations can generate direct-wave-like residuals",
+      "damping": "depends on initial-data location relative to light ring and filter configuration",
+      "status": "published_filter-artifact_or_generic_perturbation_control"
+    },
+    {
+      "id": "light_ring_source_fraction",
+      "predictor": "Explicitly separate waveform contributions sourced inside and outside the prograde light ring",
+      "observable": "inside-light-ring to full-trajectory amplitude / SNR fraction",
+      "status": "published_source_region_counteranalysis",
+      "caveat": "Bound is specific to the declared point-particle plunge / Teukolsky setup and source decomposition."
+    },
+    {
+      "id": "bob_qnm_pole_reconstruction",
+      "predictor": "BOB / Pöschl-Teller QNM-pole amplitude evolution and light-ring/null-geodesic dynamics",
+      "observable": "merger-ringdown amplitude and filtered residual frequency evolution",
+      "status": "published_competing_model"
+    },
+    {
+      "id": "eikonal_light_ring",
+      "predictor": "Kerr equatorial photon-orbit coordinate frequency Omega_ph and radial coordinate-time Lyapunov exponent lambda_ph",
+      "observable": "local light-ring orbital frequency, radial instability exponent, and metric-derived null/circularity residuals",
+      "status": "geometric_reference_model_not_a_finite_l_QNM_prediction",
+      "caveat": "Eikonal correspondence applies asymptotically at large angular mode number; do not substitute the light-ring frequency directly for an exact finite-l QNM."
+    }
+  ],
+  "required_metrics": [
+    "frequency residual and bias against each predictor over time",
+    "time-dependent damping and its uncertainty",
+    "cross-resolution and extrapolation sensitivity",
+    "dependence on QNM filter basis and removed modes",
+    "fit-window/start-time stability",
+    "model evidence under matched likelihoods and priors",
+    "false-positive rate on null/noise and off-source controls",
+    "injection-recovery sensitivity and posterior coverage",
+    "actual NR remnant horizon area versus area inferred through each frequency/damping mapping",
+    "frequency and damping trajectories compared to horizon and rescaled light-ring predictions over the 125+43 SXS catalog",
+    "cross-extraction comparison between extrapolated SXS waveforms and 13 CCE Bondi-News products",
+    "sensitivity to removal of all prograde/retrograde QNMs with ell=2..6 and n<=2 versus the earlier reduced rational-filter mode set",
+    "recovery and robustness of the 9-system Bayesian free-frequency subset (t0=0M, duration=15M, 200000 steps, 48 walkers)",
+    "source-region contribution comparison: inside-prograde-light-ring vs full plunge trajectory, including amplitude and SNR with the exact paper assumptions",
+    "test whether a residual can be detected while the within-light-ring contribution remains below the predicted observational sensitivity",
+    "frequency deviation from Omega_H across ringdown start times, as a separate statistic from residual extraction significance",
+    "light-ring radius, signed orbital frequency, impact parameter and coordinate-time Lyapunov exponent versus remnant mass/spin",
+    "null-geodesic and radial circularity residuals for each Kerr light-ring fixture",
+    "eikonal light-ring prediction residual against finite-l QNM frequencies by ell,m,spin and overtone",
+    "uncertainty / prior pushforward from global metric parameters to local light-ring values and derivatives"
+  ],
+  "null_controls": [
+    "noise-only and off-source segments",
+    "time slides and phase scrambles",
+    "wrong remnant mass/spin posterior samples",
+    "incorrect or incomplete QNM subtraction",
+    "time windows before and after the claimed direct-wave region",
+    "synthetic signals with no injected direct-wave component",
+    "linear vacuum perturbations with Gaussian initial data at varied radii relative to the light ring, passed through the same QNM filter",
+    "same injected vacuum perturbation analyzed with alternate QNM removal sets and filter settings",
+    "source-region ablations / injections with emission support restricted to inside vs outside the prograde light ring",
+    "vary point-particle / perturbative source assumptions and compare against full nonlinear NR waveform extraction",
+    "post-peak sensitivity tests for the inside-light-ring contribution, retaining upper limits when SNR is not informative"
+  ],
+  "provenance_requirements": [
+    "exact SXS waveform file and digest",
+    "resolution and extrapolation order",
+    "qnm_filter Git commit and dependency environment",
+    "exact fitting intervals and preprocessing settings",
+    "remnant mass/spin source and posterior identifier",
+    "metric/connection/curvature code commit and benchmark fixture version"
+  ],
+  "execution_state": "specification_only_no_waveforms_downloaded_no_direct_wave_analysis_or_source_region_ablation_run; Kerr equatorial light-ring reference module authored on research/black-hole-physics-program-clean; no Rust execution or SXS waveform comparison yet",
+  "broad_validation_dataset": {
+    "source": "Richardvnd/direct_waves_LR",
+    "code_repository": "https://github.com/Richardvnd/direct_waves_LR",
+    "code_commit": "8348e198c683a9ba212a312f3e2e36373e2d8f1b",
+    "simulation_catalog_path": "simulations.txt",
+    "simulation_catalog_blob_sha": "a0a7c29346717820f5da4a716d8056cc66592fac",
+    "catalog_counts": {
+      "total": 168,
+      "aligned_precessing_eccentric": 125,
+      "anti_aligned": 43,
+      "subgroups": {
+        "sun_km": 10,
+        "sun_nonspinning": 6,
+        "sun_cce": 13,
+        "main": 96,
+        "antialigned": 43
+      },
+      "types": {
+        "aligned": 106,
+        "precessing": 11,
+        "eccentric": 8,
+        "anti_aligned": 43
+      }
+    },
+    "waveform_content": {
+      "extrapolated_sxs": "125 systems include the `sun_km`, `sun_nonspinning`, and `main` batches; exact waveform resolution and extrapolation order must be recorded per SXS download",
+      "cce_count": 13,
+      "cce_ids": "SXS:BBH_ExtCCE:0001–0013",
+      "cce_processing": "superrest-frame pickles; Bondi News data",
+      "anti_aligned": "43 separate anti-aligned remnant systems"
+    },
+    "qnm_filter": {
+      "target": "Bondi News",
+      "modes": "each l=m mode, l=2..6",
+      "removed_modes": "all prograde and retrograde QNMs with 2<=ell<=6 and overtone n<=2",
+      "method": "rational filter following Sun et al., arXiv:2608.23209",
+      "code_paths": [
+        "0a_filtered_frequency.py",
+        "core.py"
+      ],
+      "rationale": "Independent broad catalog extraction; distinct from the earlier 10-case / 7+2+one-mode filter configuration."
+    },
+    "predictors": {
+      "horizon": "Kerr horizon frequency and surface gravity",
+      "light_ring": {
+        "real_frequency": "Re(omega_res) approximately 0.73*m*Omega_LR",
+        "damping": "-Im(omega_res) approximately 0.68*lambda",
+        "code_path": "core.py",
+        "reference_function": "DW_LR_frequency"
+      },
+      "backwards_one_body": {
+        "code_path": "core.py",
+        "panel": "4_freq_evolution.py",
+        "omega0": 0.155,
+        "time_evaluation": 0
+      }
+    },
+    "fitting_and_window_settings": {
+      "frequency_evolution": {
+        "anchor": "filtered-amplitude peak",
+        "end_condition": "first maximum of -Im(omega) or filtered amplitude falls below 1e-2 of peak, whichever occurs first",
+        "time_marker_spacing_M": 5,
+        "time_unit": "remnant mass M_f"
+      },
+      "mass_ratio_trend": {
+        "anchor": "News peak with aligned-system delay correction",
+        "evaluation_time_M": 0,
+        "comparison_window_M": [
+          -7.5,
+          7.5
+        ],
+        "mode": [
+          2,
+          2
+        ]
+      },
+      "bayesian_free_frequency_subset": {
+        "number_of_simulations": 9,
+        "start_time_M": 0,
+        "duration_M": 15,
+        "mcmc_steps": 200000,
+        "walkers": 48,
+        "note": "This is the specific free-frequency subset/configuration documented by the upstream README; do not assume it applies to all 168 catalogue entries."
+      }
+    },
+    "processing_and_error_controls": {
+      "sxs_resolution": "Top two available resolution levels are loaded; record both exact levels.",
+      "pre_merger_alignment_window_M": [
+        -100,
+        0
+      ],
+      "alignment_tolerance": 0.001,
+      "residual_duration_M": 200,
+      "residual_sampling_dt_M": 0.1,
+      "cce_crosscheck": "13 CCE waveforms provide an independent waveform-extraction path; preserve their own processing provenance.",
+      "extrapolation_and_resolution_sensitivity": "Run explicit convergence comparisons; do not collapse top-two-level residual into an exact numerical error estimate."
+    },
+    "download_status": "catalog_manifest_pinned; waveforms_not_downloaded; no direct-wave analysis executed by Symtropy",
+    "filtering_model_controls": {
+      "paper_arxiv": "2610.30031",
+      "key_reported_points": [
+        "point-particle templates show notable discrepancies from filtered BBH waveforms",
+        "stationary-phase particle templates perform reasonably for (2,2) but have substantial limitations for (4,4)",
+        "although the rational filter is all-pass, it changes filtered waveform modeling results",
+        "Gaussian initial-data vacuum perturbations on Schwarzschild can produce direct-wave-like residuals after filtering",
+        "residual morphology depends on initial-data location relative to the light ring"
+      ],
+      "interpretation": "The extraction and morphology of a filtered residual are not by themselves proof of a unique source-specific prompt component or horizon observable.",
+      "required_additional_controls": [
+        "apply the exact QNM filter to Gaussian initial-data vacuum perturbations at multiple radii relative to the light ring",
+        "compare (2,2) and (4,4) residual morphology under identical filter and analysis windows",
+        "quantify filter-induced changes in instantaneous frequency, damping, and posterior model selection",
+        "compare source-driven BBH residuals against vacuum-perturbation residuals under the same measurement pipeline"
+      ]
+    },
+    "analyses": [
+      {
+        "id": "dyer_kankani_marks_mcwilliams_moore_2026",
+        "source_code_repository": "https://github.com/Richardvnd/direct_waves_LR",
+        "code_commit": "8348e198c683a9ba212a312f3e2e36373e2d8f1b",
+        "catalog_blob_sha": "a0a7c29346717820f5da4a716d8056cc66592fac",
+        "data": "Bondi News; each l=m mode, ell=2..6",
+        "filter": "all prograde and retrograde QNMs with 2<=ell<=6 and n<=2 removed using rational filter",
+        "predictors": [
+          "Kerr horizon frequency and surface gravity",
+          "rescaled Kerr light-ring frequency Re omega approximately 0.73*m*Omega_LR and damping -Im omega approximately 0.68*lambda",
+          "BOB frequency model"
+        ],
+        "frequency_tracks": "from filtered-amplitude peak to first maximum of -Im(omega) or amplitude cut at 1e-2 of peak",
+        "mass_ratio_summary_window_M": [
+          -7.5,
+          7.5
+        ],
+        "mass_ratio_summary_anchor": "News peak with aligned-system delay correction",
+        "bayesian_free_frequency_subset": {
+          "count": 9,
+          "t0_M": 0,
+          "duration_M": 15,
+          "steps": 200000,
+          "walkers": 48
+        }
+      },
+      {
+        "id": "kankani_mcwilliams_2026_arxiv_2607_02380",
+        "source": "https://arxiv.org/abs/2607.02380",
+        "target": "ten selected high-spin comparable-mass SXS systems",
+        "filter": "7 prograde QNMs, 2 retrograde QNMs, and prograde (ell,m,n)=(3,2,0)",
+        "analyzed_mode": "h22",
+        "exact_fit_interval_bounds": "not yet transcribed; do not infer from separate study configuration"
+      },
+      {
+        "id": "shi_et_al_2026_filtering_model_limitations",
+        "source": "https://arxiv.org/abs/2610.30031",
+        "target": "analytic particle templates and Schwarzschild vacuum perturbations with Gaussian initial data",
+        "main_question": "how QNM filtering changes the morphology and apparent direct-wave model",
+        "negative_controls": "filter vacuum perturbation responses and compare morphology across modes"
+      }
+    ]
+  },
+  "source_region_discrimination": {
+    "primary_reference_doi": "10.1103/l1mc-6hsz",
+    "question": "Does the post-merger residual contain a measurable contribution sourced inside the prograde light ring, and is that distinct from identifying a filtered direct-wave residual?",
+    "published_model_dependent_estimate": {
+      "within_prograde_light_ring_max_fraction_of_full_trajectory_amplitude": 0.1,
+      "GW250114_post_peak_within_light_ring_snr_upper_bound": 1
+    },
+    "required_comparison": [
+      "inside-light-ring source contribution",
+      "outside-light-ring source contribution",
+      "full plunge / full waveform",
+      "filtered residual under identical rational-filter choices"
+    ],
+    "claim_ceiling": "Do not call a filtered residual a near-horizon signal unless a validated source-region decomposition demonstrates a measurable inside-light-ring contribution under a declared physical model."
+  }
+}
