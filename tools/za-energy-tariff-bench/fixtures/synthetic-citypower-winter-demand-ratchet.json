@@ -41,7 +41,8 @@
           "maximum_demand_kva": 80
         }
       ],
-      "surcharge_basis_confirmed": false
+      "surcharge_basis_confirmed": false,
+      "vat_basis_confirmed": false
     },
     {
       "case_id": "after-peak-shift",
@@ -74,7 +75,8 @@
           "maximum_demand_kva": 80
         }
       ],
-      "surcharge_basis_confirmed": false
+      "surcharge_basis_confirmed": false,
+      "vat_basis_confirmed": false
     }
   ]
 }
