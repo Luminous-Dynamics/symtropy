@@ -246,25 +246,6 @@
               }
             }
           }
-        },
-        {
-          "if": {
-            "required": [
-              "role"
-            ],
-            "properties": {
-              "role": {
-                "const": "human_reference_aggregate"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "contains_record_level_human_data": {
-                "const": false
-              }
-            }
-          }
         }
       ]
     },
@@ -338,7 +319,7 @@
         },
         "artifacts": {
           "type": "array",
-          "minItems": 4,
+          "minItems": 3,
           "items": {
             "$ref": "#/$defs/artifact"
           }
@@ -376,6 +357,13 @@
               "$ref": "#/$defs/gitTree"
             }
           }
+        },
+        {
+          "properties": {
+            "artifacts": {
+              "minItems": 3
+            }
+          }
         }
       ]
     },
@@ -405,6 +393,13 @@
                 "study_015",
                 "study_016"
               ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "artifacts": {
+              "minItems": 4
             }
           }
         }
