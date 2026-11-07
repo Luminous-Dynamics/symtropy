@@ -188,9 +188,10 @@ SACAA publishes separate Technical Guidance Materials for Type Certification, Ty
 
 - AER-01 architecture and baseline brief: draft PR #3922.
 - Whole-aircraft closure contract and 12 synthetic fixtures: included in #3922.
-- Whole-aircraft mass-properties Rust module/CLI and independent oracle: draft stacked PR #3977, pending exact-head CI.
+- Whole-aircraft mass-properties Rust module/CLI and independent oracle: draft stacked PR #3977; exact-head Rust tests, strict Clippy, CLI oracle and inherited civil-aero workflows passed.
 - Existing civil-aero screen and optimizer/CFD evidence infrastructure: draft PR #2880; its exact head had successful reported CI workflows on 7 November 2026.
 - No Wren 2/Wayfarer 4 mission card is frozen yet because controlling POH/AFM and aircraft-specific inputs have not been acquired.
+- Takeoff loading state now couples into the steady-cruise screen in draft PR #4025, with exact-head tests; phase chronology and fuel-burn transitions are explicitly deferred to #4029.
 - No complete aircraft design has been selected; no real-aircraft CFD, structural, thermal, wind-tunnel or flight result is claimed.
 
 **Claim ceiling:** This is a controlled research and decision protocol. It is not evidence that AER-01 is superior to any existing aircraft, safe, flightworthy, certifiable, commercially viable or ready to build.
