@@ -66,6 +66,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -129,6 +139,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -192,6 +212,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -255,6 +285,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -318,6 +358,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -381,6 +431,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -444,6 +504,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -507,6 +577,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -570,6 +650,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -633,6 +723,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -696,6 +796,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     },
@@ -759,6 +869,16 @@
           "published_in_repository": true,
           "redistribution_authorized": true,
           "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "paper_run_attestation",
+          "path": "civdyn_paper_run_attestation.json",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "record_count": 1,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic source-attestation fixture"
         }
       ]
     }
