@@ -941,6 +941,886 @@
           "UPSTREAM_SURVEY_PRODUCT_NOT_QUALIFIED"
         ]
       }
+    },
+    {
+      "case_id": "SB-013",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "FRAME-OTHER",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "none",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": []
+        }
+      },
+      "expected": {
+        "disposition": "STALE_OR_INVALID_EVIDENCE",
+        "reason_codes": [
+          "COORDINATE_FRAME_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-014",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 21,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        }
+      },
+      "expected": {
+        "disposition": "REAL_CHANGE_CANDIDATE",
+        "reason_codes": [
+          "CHANGE_NOT_INCLUDED_IN_PROPOSED_DELTA"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-015",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          },
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "none",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": []
+        }
+      },
+      "expected": {
+        "disposition": "REJECTED_TOPOLOGY",
+        "reason_codes": [
+          "DUPLICATE_TOPOLOGY_EDGE"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-016",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "remove",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        }
+      },
+      "expected": {
+        "disposition": "NOT_EVALUATED",
+        "reason_codes": [
+          "DELTA_OPERATION_OUTSIDE_V0_1_SCOPE"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-017",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 25,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A",
+            "DOOR-A"
+          ]
+        }
+      },
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "reason_codes": [
+          "MODIFY_DELTA_HAS_DUPLICATE_TARGETS"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-018",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          },
+          {
+            "element_id": "DOOR-EXTRA",
+            "class": "door",
+            "deviation_mm": 0,
+            "uncertainty_mm": 1,
+            "visible_fraction": 1,
+            "lineage_ids": [
+              "scan-C"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "none",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": []
+        }
+      },
+      "expected": {
+        "disposition": "CONFLICTED_CORRESPONDENCE",
+        "reason_codes": [
+          "OBSERVED_ELEMENT_ID_UNRESOLVED"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-019",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "none",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": []
+        }
+      },
+      "expected": {
+        "disposition": "PARTIAL_WITH_UNKNOWN",
+        "reason_codes": [
+          "REQUIRED_ELEMENT_NOT_OBSERVED"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-020",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 1.2,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "none",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": []
+        }
+      },
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "reason_codes": [
+          "UNCERTAINTY_OR_GEOMETRY_VALUE_INVALID"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-021",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          },
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "none",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": []
+        }
+      },
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "reason_codes": [
+          "REFERENCE_TOPOLOGY_HAS_DUPLICATE_EDGES"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-022",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          },
+          {
+            "from": "WALL-A",
+            "to": "ELEMENT-UNKNOWN",
+            "relation": "adjacent"
+          }
+        ],
+        "delta": {
+          "operation": "none",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": []
+        }
+      },
+      "expected": {
+        "disposition": "REJECTED_TOPOLOGY",
+        "reason_codes": [
+          "TOPOLOGY_EDGE_HAS_INVALID_ENDPOINT"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-023",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 21,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "none",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": []
+        }
+      },
+      "expected": {
+        "disposition": "REAL_CHANGE_CANDIDATE",
+        "reason_codes": [
+          "GEOMETRY_OUTSIDE_TOLERANCE"
+        ]
+      }
     }
   ],
   "split_guard": {
