@@ -3,7 +3,7 @@
   "fixture_id": "SYNTH-PHASE-ENERGY-PLANES-002",
   "evidence_ceiling": "All values, source identities and equipment models are synthetic. These fixtures validate carrier-specific arithmetic and fail-closed semantics only.",
   "expected_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "expected_mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
+  "expected_mission_id": "SYNTH-PHASE-ENERGY-PLANES-002",
   "expected_start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "expected_end_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   "cases": [
@@ -13,7 +13,7 @@
       "expected_status": "conserved_within_declared_model",
       "balance": {
         "schema_version": "phase-energy-balance/0.3.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
+        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-002",
         "phase_id": "battery-only",
         "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -88,7 +88,7 @@
       "expected_status": "conserved_within_declared_model",
       "balance": {
         "schema_version": "phase-energy-balance/0.3.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
+        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-002",
         "phase_id": "generator-only",
         "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -173,7 +173,7 @@
       "expected_status": "conserved_within_declared_model",
       "balance": {
         "schema_version": "phase-energy-balance/0.3.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
+        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-002",
         "phase_id": "series-hybrid",
         "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -284,7 +284,7 @@
       "expected_status": "conserved_within_declared_model",
       "balance": {
         "schema_version": "phase-energy-balance/0.3.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
+        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-002",
         "phase_id": "parallel-hybrid",
         "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -395,7 +395,7 @@
       "expected_status": "conserved_within_declared_model",
       "balance": {
         "schema_version": "phase-energy-balance/0.3.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
+        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-002",
         "phase_id": "generator-charge",
         "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -506,7 +506,7 @@
       "expected_status": "conserved_within_declared_model",
       "balance": {
         "schema_version": "phase-energy-balance/0.3.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
+        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-002",
         "phase_id": "two-store",
         "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -642,7 +642,7 @@
       "expected_status": "conserved_within_declared_model",
       "balance": {
         "schema_version": "phase-energy-balance/0.3.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
+        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-002",
         "phase_id": "conventional-direct-drive",
         "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -706,7 +706,7 @@
       "expected_status": "conserved_within_declared_model",
       "balance": {
         "schema_version": "phase-energy-balance/0.3.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
+        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-002",
         "phase_id": "fuel-cell-only",
         "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -776,7 +776,7 @@
       "expected_status": "conserved_within_declared_model",
       "balance": {
         "schema_version": "phase-energy-balance/0.3.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
+        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-002",
         "phase_id": "fuel-cell-battery-buffer",
         "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
