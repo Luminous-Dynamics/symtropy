@@ -28,6 +28,8 @@ use core::fmt;
 pub mod connection;
 /// Fixed-size second-order automatic differentiation for metric derivatives.
 pub mod autodiff;
+/// Fixed-size second-order automatic differentiation for metric derivatives.
+pub mod autodiff;
 /// Convention-explicit Riemann, Ricci, and Einstein curvature tensors.
 pub mod curvature;
 /// Riemann, Ricci, and Einstein curvature tensors from explicit derivatives.
