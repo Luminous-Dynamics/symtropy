@@ -153,9 +153,7 @@ fn validate(input: &ExposureInput) -> Result<(), String> {
         "spacecraft_projected_area_m2",
     )?;
     positive(input.path_distance_ly, "path_distance_ly")?;
-    if !input.speed_fraction_c.is_finite()
-        || !(0.0..1.0).contains(&input.speed_fraction_c)
-    {
+    if !input.speed_fraction_c.is_finite() || !(0.0..1.0).contains(&input.speed_fraction_c) {
         return Err("speed_fraction_c must be within [0, 1)".to_owned());
     }
     positive(input.grain_radius_m, "grain_radius_m")?;
@@ -179,18 +177,16 @@ fn evaluate(input: &ExposureInput) -> Result<ExposureReport, String> {
     let velocity_m_s = beta * SPEED_OF_LIGHT_M_S;
     let lorentz_factor = 1.0 / (1.0 - beta * beta).sqrt();
     let path_distance_m = input.path_distance_ly * LIGHT_YEAR_M;
-    let grain_mass_kg =
-        (4.0 / 3.0) * std::f64::consts::PI * input.grain_radius_m.powi(3)
-            * input.grain_density_kg_m3;
+    let grain_mass_kg = (4.0 / 3.0)
+        * std::f64::consts::PI
+        * input.grain_radius_m.powi(3)
+        * input.grain_density_kg_m3;
     // Stable form of gamma - 1 = gamma^2 * beta^2 / (gamma + 1).
     // This avoids catastrophic cancellation as beta approaches zero.
-    let gamma_minus_one =
-        lorentz_factor * lorentz_factor * beta * beta / (lorentz_factor + 1.0);
-    let grain_kinetic_energy_j =
-        gamma_minus_one * grain_mass_kg * SPEED_OF_LIGHT_M_S.powi(2);
+    let gamma_minus_one = lorentz_factor * lorentz_factor * beta * beta / (lorentz_factor + 1.0);
+    let grain_kinetic_energy_j = gamma_minus_one * grain_mass_kg * SPEED_OF_LIGHT_M_S.powi(2);
     let grain_momentum_kg_m_s = lorentz_factor * grain_mass_kg * velocity_m_s;
-    let newtonian_kinetic_energy_j =
-        0.5 * grain_mass_kg * velocity_m_s.powi(2);
+    let newtonian_kinetic_energy_j = 0.5 * grain_mass_kg * velocity_m_s.powi(2);
     let relativistic_to_newtonian_energy_ratio = if beta == 0.0 {
         1.0
     } else {
@@ -199,16 +195,14 @@ fn evaluate(input: &ExposureInput) -> Result<ExposureReport, String> {
 
     // Homogeneous, independent Poisson encounter model. It is not valid for
     // clustered or otherwise correlated dust without a different spatial model.
-    let expected_impacts = input.grain_number_density_m3
-        * input.spacecraft_projected_area_m2
-        * path_distance_m;
+    let expected_impacts =
+        input.grain_number_density_m3 * input.spacecraft_projected_area_m2 * path_distance_m;
     let probability_at_least_one_impact = -(-expected_impacts).exp_m1();
     let expected_intercepted_mass_kg = expected_impacts * grain_mass_kg;
     let expected_incident_kinetic_energy_j = expected_impacts * grain_kinetic_energy_j;
     let expected_incident_energy_per_area_j_m2 =
         expected_incident_kinetic_energy_j / input.spacecraft_projected_area_m2;
-    let expected_incident_energy_kwh =
-        expected_incident_kinetic_energy_j / JOULES_PER_KWH;
+    let expected_incident_energy_kwh = expected_incident_kinetic_energy_j / JOULES_PER_KWH;
 
     let computed = [
         ("velocity_m_s", velocity_m_s),
@@ -348,8 +342,7 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
-    const FIXTURE: &str =
-        include_str!("../fixtures/synthetic-4p24ly-10nm-dust-v0-1.input");
+    const FIXTURE: &str = include_str!("../fixtures/synthetic-4p24ly-10nm-dust-v0-1.input");
 
     fn close(actual: f64, expected: f64, tolerance: f64) {
         assert!(
@@ -451,8 +444,10 @@ mod tests {
         let non_finite = FIXTURE.replace("path_distance_ly=4.24", "path_distance_ly=NaN");
         assert!(parse_input(&non_finite).unwrap_err().contains("finite"));
 
-        let negative_density =
-            FIXTURE.replace("grain_number_density_m3=1.0e-6", "grain_number_density_m3=-1.0");
+        let negative_density = FIXTURE.replace(
+            "grain_number_density_m3=1.0e-6",
+            "grain_number_density_m3=-1.0",
+        );
         let input = parse_input(&negative_density).expect("syntactically valid input");
         assert!(validate(&input).unwrap_err().contains("non-negative"));
     }
@@ -463,6 +458,10 @@ mod tests {
         assert!(parse_input(&unknown).unwrap_err().contains("unknown key"));
 
         let duplicate = format!("{FIXTURE}speed_fraction_c=0.2\n");
-        assert!(parse_input(&duplicate).unwrap_err().contains("duplicate key"));
+        assert!(
+            parse_input(&duplicate)
+                .unwrap_err()
+                .contains("duplicate key")
+        );
     }
 }
