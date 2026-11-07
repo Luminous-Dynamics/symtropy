@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use serde::{Deserialize, Serialize};
 
 const SUMMER_MONTHS: [u8; 9] = [9, 10, 11, 12, 1, 2, 3, 4, 5];
@@ -655,6 +657,44 @@ mod tests {
         assert!(result.vat_zar.is_some());
         assert_eq!(result.invoice_equivalent_total_zar, None);
         assert!(result.surcharge_basis_status.contains("requires_invoice_confirmation"));
+    }
+
+
+    #[test]
+    fn invoice_total_requires_confirmed_eligibility_surcharge_basis_and_vat() {
+        let mut case = base_case();
+        case.apply_business_lpu_surcharge = true;
+        case.surcharge_basis = Some(SurchargeBasis::EnergyAndNetworkSurcharge);
+        case.surcharge_basis_confirmed = true;
+        case.vat_rate = Some(0.15);
+        let result = evaluate(&case).expect("confirmed reference inputs evaluate");
+        assert!(result.business_lpu_surcharge_zar.is_some());
+        assert!(result.vat_zar.is_some());
+        assert!(result.invoice_equivalent_total_zar.is_some());
+        assert_eq!(result.billing_claim_status, "contract_confirmed_estimate");
+    }
+
+    #[test]
+    fn capacity_of_exactly_100_kva_is_not_eligible() {
+        let mut case = base_case();
+        case.account.supply_capacity_kva = 100.0;
+        case.vat_rate = Some(0.15);
+        let result = evaluate(&case).expect("reference scenario can still be calculated");
+        assert_eq!(
+            result.site_tariff_eligibility,
+            "not_confirmed_for_invoice_equivalent_claim"
+        );
+        assert_eq!(result.invoice_equivalent_total_zar, None);
+    }
+
+    #[test]
+    fn invalid_month_and_non_finite_power_factor_are_rejected() {
+        let mut case = base_case();
+        case.billing_month = 13;
+        assert!(evaluate(&case).expect_err("month must be rejected").contains("billing_month"));
+        case = base_case();
+        case.power_factor = f64::NAN;
+        assert!(evaluate(&case).expect_err("NaN PF must be rejected").contains("power_factor"));
     }
 
     #[test]
