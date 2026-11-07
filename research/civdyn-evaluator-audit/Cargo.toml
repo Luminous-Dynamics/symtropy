@@ -1,0 +1,18 @@
+[workspace]
+
+[package]
+name = "civdyn-evaluator-audit"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Plural panel agreement and AI-judge calibration audit"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "evaluator-audit-sweep"
+path = "src/bin/evaluator_audit_sweep.rs"
+
+[dependencies]

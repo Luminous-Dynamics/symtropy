@@ -1,0 +1,118 @@
+name: CivDyn evaluator plural-panel and judge-calibration reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-evaluator-audit/**"
+      - ".github/workflows/civdyn-evaluator-audit.yml"
+  push:
+    paths:
+      - "research/civdyn-evaluator-audit/**"
+      - ".github/workflows/civdyn-evaluator-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute plural-panel evaluator audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-evaluator-audit/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-evaluator-audit/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-evaluator-audit/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-evaluator-audit/Cargo.toml --all-targets
+
+      - name: Execute panel agreement and judge calibration fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-evaluator-audit-evidence
+          cargo run --locked --manifest-path research/civdyn-evaluator-audit/Cargo.toml --bin evaluator-audit-sweep \
+            | tee target/civdyn-evaluator-audit-evidence/evaluator-audit.csv
+
+      - name: Verify plural disagreement and evaluator calibration controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/civdyn-evaluator-audit-evidence/evaluator-audit.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) == 30, f"expected 30 rows, got {len(rows)}"
+          assert all(len(row) == 28 for row in rows)
+
+          panel = next(row for row in rows if row["record_type"] == "panel_overall")
+          assert panel["case_count"] == "12"
+          assert panel["rating_count"] == "36"
+          assert panel["unanimous_case_count"] == "4"
+          assert 0.5 < float(panel["observed_pairwise_agreement"]) < 1.0
+          alpha = float(panel["krippendorff_alpha_nominal"])
+          assert 0.0 < alpha < 1.0
+          assert float(panel["mean_disagreement_entropy_bits"]) > 0.0
+
+          judges = {
+              row["judge_id"]: row
+              for row in rows if row["record_type"] == "judge_overall"
+          }
+          assert set(judges) == {"distribution_aware", "overconfident_majority"}
+          aware = judges["distribution_aware"]
+          overconfident = judges["overconfident_majority"]
+          assert float(aware["mean_soft_panel_brier_score"]) < 1e-12
+          assert float(aware["confidence_ece"]) < 1e-12
+          assert float(overconfident["mean_soft_panel_brier_score"]) > 0.1
+          assert float(overconfident["confidence_ece"]) > 0.1
+          assert float(aware["mean_plurality_match_rate"]) == 1.0
+          assert float(overconfident["mean_plurality_match_rate"]) == 1.0
+          assert float(overconfident["mean_absolute_confidence_support_error"]) > 0.1
+
+          panels = [row for row in rows if row["record_type"] == "panel_slice"]
+          assert len(panels) == 4
+          assert all(row["case_count"] == "3" for row in panels)
+          cases = [row for row in rows if row["record_type"] == "case_panel"]
+          assert len(cases) == 12
+          assert any(float(row["mean_disagreement_entropy_bits"]) > 0.0 for row in cases)
+          assert any(float(row["mean_disagreement_entropy_bits"]) == 0.0 for row in cases)
+
+          judge_slices = [row for row in rows if row["record_type"] == "judge_slice"]
+          assert len(judge_slices) == 8
+          bins = [row for row in rows if row["record_type"] == "calibration_bin"]
+          assert len(bins) == 3
+
+          print("CIVDYN-EVAL-001 plural-panel agreement, soft-label judge scoring, overconfidence calibration and context/cohort slices verified.")
+          PY
+
+          {
+            echo "## CIVDYN-EVAL-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-evaluator-audit-evidence/evaluator-audit.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: synthetic adjudication and judge-calibration fixture"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evaluator-audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-evaluator-audit
+          path: target/civdyn-evaluator-audit-evidence/evaluator-audit.csv
+          if-no-files-found: error
+          retention-days: 30
