@@ -52,7 +52,8 @@ impl MetricDerivatives4 {
                 for nu in (mu + 1)..4 {
                     let a = components[alpha][mu][nu];
                     let b = components[alpha][nu][mu];
-                    let tolerance = 64.0 * f64::EPSILON * a.abs().max(b.abs()).max(1.0);
+                    let scale = a.abs().max(b.abs()).max(f64::MIN_POSITIVE);
+                    let tolerance = 64.0 * f64::EPSILON * scale;
                     if (a - b).abs() > tolerance {
                         return Err(ConnectionError::AsymmetricMetricDerivative {
                             derivative_index: alpha,
