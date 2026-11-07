@@ -1204,8 +1204,7 @@ mod tests {
     fn model_inference_cannot_be_used_as_external_observation() {
         let mut passport = reference_passport();
         passport.evidence_uses[2].source_kind = SourceKind::SimulationOutput;
-        passport.evidence_uses[2].evidence_class =
-            Some(EvidenceClass::ModelInference);
+        passport.evidence_uses[2].evidence_class = Some(EvidenceClass::ModelInference);
         let report = evaluate_passport(&passport).unwrap();
         assert!(
             report
@@ -1224,18 +1223,23 @@ mod tests {
     #[test]
     fn theoretical_sources_are_not_mislabeled_as_observations() {
         let passport = reference_passport();
-        assert_eq!(passport.evidence_uses[0].source_kind, SourceKind::TheoreticalSynthesis);
+        assert_eq!(
+            passport.evidence_uses[0].source_kind,
+            SourceKind::TheoreticalSynthesis
+        );
         assert_eq!(passport.evidence_uses[0].evidence_class, None);
         let report = evaluate_passport(&passport).unwrap();
         assert!(!report.has_errors());
 
         let mut mislabeled = passport;
-        mislabeled.evidence_uses[0].evidence_class =
-            Some(EvidenceClass::HistoricalObservation);
+        mislabeled.evidence_uses[0].evidence_class = Some(EvidenceClass::HistoricalObservation);
         let report = evaluate_passport(&mislabeled).unwrap();
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "source_kind_claim_class_mismatch"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "source_kind_claim_class_mismatch" })
+        );
     }
 
     #[test]
@@ -1251,15 +1255,20 @@ mod tests {
     fn simulation_output_cannot_satisfy_external_validation() {
         let mut passport = reference_passport();
         passport.evidence_uses[2].source_kind = SourceKind::SimulationOutput;
-        passport.evidence_uses[2].evidence_class =
-            Some(EvidenceClass::ModelInference);
+        passport.evidence_uses[2].evidence_class = Some(EvidenceClass::ModelInference);
         let report = evaluate_passport(&passport).unwrap();
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "non_empirical_external_validation"
-        }));
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "prediction_without_external_observation"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "non_empirical_external_validation" })
+        );
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "prediction_without_external_observation" })
+        );
     }
 
     #[test]
