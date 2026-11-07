@@ -3,7 +3,7 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-const REQUIRED_KEYS: [&str; 21] = [
+const REQUIRED_KEYS: [&str; 20] = [
     "schema_version",
     "scenario_id",
     "evidence_class",
@@ -24,7 +24,6 @@ const REQUIRED_KEYS: [&str; 21] = [
     "makeup_water_ml",
     "useful_heat_wh_th",
     "heat_rejected_wh_th",
-    "schema_reserved",
 ];
 
 #[derive(Debug, Clone, PartialEq)]
@@ -107,10 +106,6 @@ fn parse_input(source: &str) -> Result<FacilityInput, String> {
     if values.get("schema_version").map(String::as_str) != Some("0.1") {
         return Err("unsupported schema_version; expected 0.1".to_owned());
     }
-    if values.get("schema_reserved").map(String::as_str) != Some("none") {
-        return Err("schema_reserved must equal none in v0.1".to_owned());
-    }
-
     let scenario_id = values
         .get("scenario_id")
         .cloned()
