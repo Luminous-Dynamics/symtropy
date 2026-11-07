@@ -1,6 +1,6 @@
 # Aerial energy session v0
 
-This is the initial schema/fixture seed for [AIRBORNE-ENERGY-SESSION-001 #4080](https://github.com/Luminous-Dynamics/symtropy/issues/4080).
+This work implements the initial schema, frozen fixtures and independent Rust verifier for [AIRBORNE-ENERGY-SESSION-001 #4080](https://github.com/Luminous-Dynamics/symtropy/issues/4080).
 
 ## Ownership
 
@@ -16,22 +16,42 @@ This directory owns the aerial opportunity/session lifecycle only: discover, adm
 ## Files
 
 - `session.schema.json`: closed JSON Schema 2020-12 contract.
-- `session.NOT_RUN.template.json`: schema-valid template which explicitly carries no evidence and cannot be interpreted as a pass.
+- `session.NOT_RUN.template.json`: explicit NOT_RUN template with no receiver, opportunity, event or energy evidence.
 - `session.synthetic-reacquire.example.json`: synthetic positive trace with two distinct power-active intervals separated by departure, safe-off and fresh admission/reacquisition.
-- `session.adversarial-revoked-authorization.example.json`: intentionally hostile trace that attempts to enter POWER_ACTIVE with revoked authorization and local protection inhibited. The schema permits hostile evidence to be represented; the future semantic evaluator must reject it.
+- `session.adversarial-revoked-authorization.example.json`: intentionally hostile trace that attempts POWER_ACTIVE with revoked authorization and local protection inhibited.
+- `tools/airborne-energy-session-validator`: independent Rust semantic verifier and offline CLI.
+- `tools/airborne-energy-session-validator/tests/cli_fixtures.rs`: invokes the CLI against the positive, NOT_RUN and hostile fixtures.
 
-## Rust semantic evaluator
+## Semantic invariants enforced by the Rust verifier
 
-Implemented in `tools/airborne-energy-session-oracle`: event sequence numbers are unique and contiguous; timestamps are monotonic.
-2. Each event's `from_state` equals the previous state; the initial state is UNAVAILABLE. Only the declared state-transition graph is admissible.
-3. Only the declared state-transition graph is admissible.
-4. A transition into POWER_ACTIVE requires matched receiver identity, valid current authorization, valid site-allocation receipt, admitted current envelope, in-domain position, tracking, and `PERMIT_SYNTHETIC_ONLY` in this synthetic-only v0 corpus.
-5. A transition into SAFE_OFF requires `CONFIRMED_SYNTHETIC`; an unconfirmed de-energization must not be silently treated as safe-off.
-6. Following SAFE_OFF, reacquisition must repeat admission and tracking. An old POWER_ACTIVE permit is never reused across departure.
-7. A transition cannot be made safe by an average score. Any invalid power-active admission rejects the whole trace.
-8. The energy ledger is recomputed independently by the Rust evaluator: source = source-to-channel loss + channel input; channel input = channel-to-receiver loss + receiver DC; receiver DC = receiver-to-battery loss + useful battery energy; aggregate source = total named losses + useful battery energy + residual.
-9. Synthetic arithmetic and transition PASS are not physical qualification or flight authorization.
+1. Event IDs are unique; sequence numbers are unique, contiguous and start at zero; timestamps are monotonic.
+2. Each event's `from_state` equals the preceding state, starting at UNAVAILABLE.
+3. Every transition is checked against the declared finite-state graph.
+4. A transition into ACQUISITION_PENDING from ADMISSION_PENDING requires a fresh matched receiver identity, valid authorization, valid allocation, admitted envelope and in-domain position. The allocation receipt must cover the event time.
+5. A transition into TRACKED_NO_POWER requires fresh admission and tracking evidence.
+6. A transition into POWER_ACTIVE requires a tracked no-power state, fresh admission, in-domain position, current allocation, valid envelope, and `PERMIT_SYNTHETIC_ONLY`.
+7. Leaving POWER_ACTIVE requires local protection INHIBIT. SAFE_OFF additionally requires independent `CONFIRMED_SYNTHETIC` de-energization evidence.
+8. Reacquisition returns through fresh admission and acquisition. An earlier power permit is not reused.
+9. Terminal COMPLETE is only reachable from SAFE_OFF. An incomplete trace cannot be reported as complete.
+10. The energy ledger is recomputed with checked integer arithmetic: source = source-to-channel loss + channel input; channel input = channel-to-receiver loss + receiver DC; receiver DC = receiver-to-battery loss + useful battery energy. Overflow and unexplained residuals are rejected.
+11. A separately authored literal edge-list oracle is compared to the production transition predicate over every declared state pair.
+12. Unknown fields, unsupported bearer/field combinations and invalid evidence dispositions fail closed.
+
+The schema is the wire/data-shape contract; the Rust verifier independently checks the subset of shape and all semantic invariants required by v0. The current crate does not execute a general-purpose JSON Schema 2020-12 engine, so the CI result must not be described as a full JSON Schema conformance run.
+
+## Running the verifier
+
+From the repository root:
+
+```sh
+cargo test --locked -p airborne-energy-session-validator
+cargo run --locked -p airborne-energy-session-validator -- research/airborne-energy-session-v0/session.synthetic-reacquire.example.json
+```
+
+The positive synthetic fixture emits `PASS_SYNTHETIC_SESSION`. The NOT_RUN template exits successfully but reports `final_state=NOT_RUN` and zero events; it is not a pass or physical result. The revoked-authorization fixture exits non-zero with a field-specific rejection. Exit code 2 indicates CLI usage or file-read error.
 
 ## Evidence and safety boundary
 
-All current examples are synthetic. The `PERMIT_SYNTHETIC_ONLY` marker is not a hardware permit or interlock input. Local hardware protection must remain independent. No optical/RF power is authorized by this schema. No aircraft control, energized test, laser operation, aviation approval, spectrum authorization or safety certification is implied.
+All current examples are synthetic. The `PERMIT_SYNTHETIC_ONLY` marker is not a hardware permit, interlock input or approval. Local hardware protection must remain independent. This verifier is not a flight controller, beam controller, safety case or energy-transfer controller.
+
+No RF/optical power is authorized by this schema. No aircraft control, energized test, laser operation, aviation approval, spectrum authorization or safety certification is implied. Passing these software fixtures does not qualify physical coexistence, EMC, power-transfer efficiency, battery reserve, tracking performance or airborne operation.
