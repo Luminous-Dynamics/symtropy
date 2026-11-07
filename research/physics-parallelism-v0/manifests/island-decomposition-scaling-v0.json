@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-island-decomposition-scaling-v0",
+  "status": "design_only_no_benchmark_results",
+  "source_module": "crates/core/symtropy-physics/src/island.rs",
+  "current_integration_state": "standalone_helper_not_invoked_by_PhysicsWorld_step",
+  "component_identity": {
+    "stable_key": "minimum_BodyHandle_within_component",
+    "output_order": "ascending_component_stable_key",
+    "body_membership_order": "ascending_body_array_index",
+    "contact_membership_order": "original_contact_array_index",
+    "constraint_membership_order": "original_constraint_array_index"
+  },
+  "edge_ownership": {
+    "both_endpoints_known": "endpoints_must_be_in_same_component",
+    "one_endpoint_known": "edge_is_assigned_once_to_known_endpoint_component",
+    "no_endpoints_known": "edge_is_rejected_and_counted",
+    "duplicate_assignment": "hard_failure",
+    "missing_assignment": "hard_failure_for_supported_edges"
+  },
+  "scenarios": [
+    {
+      "id": "isolated_bodies_1k",
+      "body_count": 1000,
+      "contact_edges": 0,
+      "constraint_edges": 0,
+      "expected_components": 1000
+    },
+    {
+      "id": "isolated_bodies_10k",
+      "body_count": 10000,
+      "contact_edges": 0,
+      "constraint_edges": 0,
+      "expected_components": 10000
+    },
+    {
+      "id": "isolated_bodies_100k",
+      "body_count": 100000,
+      "contact_edges": 0,
+      "constraint_edges": 0,
+      "expected_components": 100000
+    },
+    {
+      "id": "disjoint_pairs_10k",
+      "body_count": 10000,
+      "contact_edges": 5000,
+      "constraint_edges": 0,
+      "expected_components": 5000
+    },
+    {
+      "id": "short_contact_chains_10k",
+      "body_count": 10000,
+      "contact_edges": 9000,
+      "constraint_edges": 0,
+      "expected_components": 1000
+    },
+    {
+      "id": "mixed_contact_constraint_10k",
+      "body_count": 10000,
+      "contact_edges": 4000,
+      "constraint_edges": 4000,
+      "expected_components": 2000
+    },
+    {
+      "id": "single_chain_10k",
+      "body_count": 10000,
+      "contact_edges": 9999,
+      "constraint_edges": 0,
+      "expected_components": 1
+    }
+  ],
+  "negative_controls": [
+    "duplicate_body_handle",
+    "missing_body_membership",
+    "duplicate_contact_assignment",
+    "missing_contact_assignment",
+    "stale_contact_handle",
+    "cross_component_constraint",
+    "duplicate_constraint_assignment",
+    "missing_constraint_assignment",
+    "reversed_contact_input_order",
+    "reversed_constraint_input_order",
+    "randomized_hashmap_seed"
+  ],
+  "metrics": [
+    "decomposition_latency_p50_ns",
+    "decomposition_latency_p95_ns",
+    "body_count",
+    "contact_count",
+    "constraint_count",
+    "component_count",
+    "component_size_p50",
+    "component_size_p95",
+    "largest_component_size",
+    "body_assignment_coverage",
+    "contact_assignment_coverage",
+    "constraint_assignment_coverage",
+    "allocation_bytes",
+    "peak_memory_bytes"
+  ],
+  "comparison": {
+    "baseline": "benchmark_only_reproduction_of_pre_single_pass_per_component_rescan",
+    "candidate": "union_find_plus_root_to_island_single_pass",
+    "exact_same_input": true,
+    "partition_equivalence_asserted_before_timing": true,
+    "repeat_count_minimum": 20,
+    "legacy_reference_max_body_count": 10000,
+    "candidate_max_body_count": 100000,
+    "performance_claim_requires_correctness_gate": true,
+    "performance_numbers_measured": false
+  }
+}

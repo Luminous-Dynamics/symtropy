@@ -103,54 +103,77 @@ pub fn build_islands<const D: usize>(
         }
     }
 
-    // Group bodies by their root
-    let mut island_map: HashMap<usize, Vec<usize>> = HashMap::new();
+    // Group body indices by root. Body iteration is ascending, so every
+    // membership vector is canonical without a separate per-island sort.
+    let mut groups: std::collections::BTreeMap<usize, Vec<usize>> =
+        std::collections::BTreeMap::new();
+    let mut body_roots = Vec::with_capacity(n);
     for i in 0..n {
         let root = uf.find(i);
-        island_map.entry(root).or_default().push(i);
+        body_roots.push(root);
+        groups.entry(root).or_default().push(i);
     }
 
-    // Build islands with contact and constraint indices
-    let mut islands = Vec::new();
-    for (_, body_indices) in island_map {
-        // Collect contacts that belong to this island
-        let body_set: std::collections::HashSet<usize> = body_indices.iter().copied().collect();
-        let contact_indices: Vec<usize> = contacts
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| {
-                let ia = handle_to_index.get(&c.body_a).copied();
-                let ib = handle_to_index.get(&c.body_b).copied();
-                ia.is_some_and(|i| body_set.contains(&i))
-                    || ib.is_some_and(|i| body_set.contains(&i))
-            })
-            .map(|(i, _)| i)
-            .collect();
-
-        // Collect constraints that belong to this island
-        let constraint_indices: Vec<usize> = constraints
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| {
-                let (ha, hb) = c.bodies();
-                let ia = handle_to_index.get(&ha).copied();
-                let ib = handle_to_index.get(&hb).copied();
-                ia.is_some_and(|i| body_set.contains(&i))
-                    || ib.is_some_and(|i| body_set.contains(&i))
-            })
-            .map(|(i, _)| i)
-            .collect();
-
-        // Check if all bodies in the island are sleeping
-        let sleeping = body_indices.iter().all(|&i| bodies[i].sleeping);
-
+    // Build each island once, then retain a root -> output-index map so every
+    // contact and constraint is assigned in a single pass rather than
+    // rescanning the full edge arrays once per island.
+    let mut islands = Vec::with_capacity(groups.len());
+    let mut root_to_island = HashMap::with_capacity(groups.len());
+    for (root, body_indices) in groups {
+        let sleeping = body_indices.iter().all(|&index| bodies[index].sleeping);
+        let island_index = islands.len();
+        root_to_island.insert(root, island_index);
         islands.push(Island {
             body_indices,
-            contact_indices,
-            constraint_indices,
+            contact_indices: Vec::new(),
+            constraint_indices: Vec::new(),
             sleeping,
         });
     }
+
+    // A valid contact whose two endpoints are present must have endpoints in
+    // the same union-find component. If only one endpoint is present, preserve
+    // the prior behavior and associate it with that known endpoint's island.
+    for (contact_index, contact) in contacts.iter().enumerate() {
+        let body_a = handle_to_index.get(&contact.body_a).copied();
+        let body_b = handle_to_index.get(&contact.body_b).copied();
+        let root = body_a
+            .or(body_b)
+            .map(|body_index| body_roots[body_index]);
+        if let Some(root) = root {
+            if let Some(&island_index) = root_to_island.get(&root) {
+                islands[island_index].contact_indices.push(contact_index);
+            }
+        }
+    }
+
+    // Constraints follow the same single-owner rule as contact manifolds.
+    for (constraint_index, constraint) in constraints.iter().enumerate() {
+        let (handle_a, handle_b) = constraint.bodies();
+        let body_a = handle_to_index.get(&handle_a).copied();
+        let body_b = handle_to_index.get(&handle_b).copied();
+        let root = body_a
+            .or(body_b)
+            .map(|body_index| body_roots[body_index]);
+        if let Some(root) = root {
+            if let Some(&island_index) = root_to_island.get(&root) {
+                islands[island_index]
+                    .constraint_indices
+                    .push(constraint_index);
+            }
+        }
+    }
+
+    // Hash-derived roots are not stable semantic identities. Order by the
+    // lowest stable BodyHandle in each component for deterministic scheduling.
+    islands.sort_by_key(|island| {
+        island
+            .body_indices
+            .iter()
+            .map(|&index| bodies[index].handle)
+            .min()
+            .unwrap_or(BodyHandle(usize::MAX))
+    });
 
     islands
 }
@@ -266,6 +289,123 @@ mod tests {
         assert_eq!(islands.len(), 2);
         let connected = islands.iter().find(|i| i.body_indices.len() == 2).unwrap();
         assert_eq!(connected.constraint_indices.len(), 1);
+    }
+
+    #[test]
+    fn islands_are_canonically_ordered_by_lowest_body_index() {
+        let (bodies, map) = make_bodies(8);
+        let contacts = vec![
+            ContactManifold::single(
+                BodyHandle(6),
+                BodyHandle(7),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            ContactManifold::single(
+                BodyHandle(2),
+                BodyHandle(3),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            ContactManifold::single(
+                BodyHandle(0),
+                BodyHandle(1),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+        ];
+
+        for _ in 0..16 {
+            let islands = build_islands(&bodies, &contacts, &[], &map);
+            let first_indices: Vec<_> = islands
+                .iter()
+                .map(|island| island.body_indices[0])
+                .collect();
+            assert_eq!(first_indices, vec![0, 2, 4, 5, 6]);
+            assert!(
+                islands
+                    .windows(2)
+                    .all(|pair| { pair[0].body_indices[0] < pair[1].body_indices[0] })
+            );
+        }
+    }
+
+    #[test]
+    fn contacts_and_constraints_are_assigned_exactly_once() {
+        use crate::constraint::DistanceConstraint;
+
+        let (bodies, map) = make_bodies(6);
+        let contacts = vec![
+            ContactManifold::single(
+                BodyHandle(1),
+                BodyHandle(2),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            ContactManifold::single(
+                BodyHandle(2),
+                BodyHandle(3),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            // Preserve the known endpoint in an island when the other handle
+            // is absent from the supplied body map.
+            ContactManifold::single(
+                BodyHandle(4),
+                BodyHandle(999),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+            // Both endpoints absent: this edge belongs to no island.
+            ContactManifold::single(
+                BodyHandle(998),
+                BodyHandle(999),
+                nalgebra::SVector::from([1.0, 0.0, 0.0]),
+                nalgebra::SVector::zeros(),
+                0.1,
+            ),
+        ];
+        let constraints: Vec<Box<dyn Constraint<3>>> = vec![
+            Box::new(DistanceConstraint {
+                body_a: BodyHandle(0),
+                body_b: BodyHandle(4),
+                rest_length: 1.0,
+                stiffness: 1.0,
+            }),
+            Box::new(DistanceConstraint {
+                body_a: BodyHandle(5),
+                body_b: BodyHandle(997),
+                rest_length: 1.0,
+                stiffness: 1.0,
+            }),
+            Box::new(DistanceConstraint {
+                body_a: BodyHandle(996),
+                body_b: BodyHandle(997),
+                rest_length: 1.0,
+                stiffness: 1.0,
+            }),
+        ];
+
+        let islands = build_islands(&bodies, &contacts, &constraints, &map);
+        let mut contact_indices: Vec<_> = islands
+            .iter()
+            .flat_map(|island| island.contact_indices.iter().copied())
+            .collect();
+        let mut constraint_indices: Vec<_> = islands
+            .iter()
+            .flat_map(|island| island.constraint_indices.iter().copied())
+            .collect();
+        contact_indices.sort_unstable();
+        constraint_indices.sort_unstable();
+
+        assert_eq!(contact_indices, vec![0, 1, 2]);
+        assert_eq!(constraint_indices, vec![0, 1]);
     }
 
     #[test]
