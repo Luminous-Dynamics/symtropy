@@ -10,7 +10,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use maritime_service_chain_contract::TickWindow;
+use maritime_service_chain_contract::{ResourceUnit, TickWindow};
 use maritime_service_chain_fleet::{FleetPlan, OperationPlacement};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -234,6 +234,22 @@ fn resource_kind_code(kind: TrafficResourceKind) -> &'static str {
     }
 }
 
+fn resource_unit_code(unit: ResourceUnit) -> &'static str {
+    match unit {
+        ResourceUnit::TransitSlots => "transit-slots",
+        ResourceUnit::Lockages => "lockages",
+        ResourceUnit::BerthSlots => "berth-slots",
+        ResourceUnit::Tonnes => "tonnes",
+        ResourceUnit::Teu => "teu",
+        ResourceUnit::Passengers => "passengers",
+        ResourceUnit::Vehicles => "vehicles",
+        ResourceUnit::Containers => "containers",
+        ResourceUnit::WattHours => "watt-hours",
+        ResourceUnit::Millilitres => "millilitres",
+    }
+}
+
+
 /// Canonical evidence subject for the complete traffic resource profile.
 /// Changing its revision, type, windows, directions or clearance guards changes
 /// the subject ID and requires a fresh scoped receipt.
@@ -299,7 +315,7 @@ pub fn canonical_occupancy_subject_id(
     for usage in &operation.resource_uses {
         push_field(&mut identity, &usage.resource_id);
         push_field(&mut identity, &usage.amount.to_string());
-        push_field(&mut identity, &format!("{:?}", usage.unit));
+        push_field(&mut identity, resource_unit_code(usage.unit));
     }
     identity
 }
