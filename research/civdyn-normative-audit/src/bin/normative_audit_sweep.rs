@@ -22,8 +22,19 @@ fn csv_escape(value: &str) -> String {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "normative audit CSV schema must remain fixed");
-    println!("{}", fields.iter().map(|field| csv_escape(field)).collect::<Vec<_>>().join(","));
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "normative audit CSV schema must remain fixed"
+    );
+    println!(
+        "{}",
+        fields
+            .iter()
+            .map(|field| csv_escape(field))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
 }
 
 fn status_name(status: FindingStatus) -> &'static str {
@@ -38,7 +49,10 @@ fn emit_profile(snapshot: &OutcomeSnapshot, profile: &ProfileFinding) {
         String::new(),
         status_name(profile.status).into(),
         String::new(),
-        format!("{} declared premises evaluated; no cross-profile ranking emitted", profile.premises.len()),
+        format!(
+            "{} declared premises evaluated; no cross-profile ranking emitted",
+            profile.premises.len()
+        ),
         "synthetic_fixture".into(),
     ]);
     for premise in &profile.premises {
