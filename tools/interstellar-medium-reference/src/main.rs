@@ -182,8 +182,12 @@ fn evaluate(input: &ExposureInput) -> Result<ExposureReport, String> {
     let grain_mass_kg =
         (4.0 / 3.0) * std::f64::consts::PI * input.grain_radius_m.powi(3)
             * input.grain_density_kg_m3;
+    // Stable form of gamma - 1 = gamma^2 * beta^2 / (gamma + 1).
+    // This avoids catastrophic cancellation as beta approaches zero.
+    let gamma_minus_one =
+        lorentz_factor * lorentz_factor * beta * beta / (lorentz_factor + 1.0);
     let grain_kinetic_energy_j =
-        (lorentz_factor - 1.0) * grain_mass_kg * SPEED_OF_LIGHT_M_S.powi(2);
+        gamma_minus_one * grain_mass_kg * SPEED_OF_LIGHT_M_S.powi(2);
     let grain_momentum_kg_m_s = lorentz_factor * grain_mass_kg * velocity_m_s;
     let newtonian_kinetic_energy_j =
         0.5 * grain_mass_kg * velocity_m_s.powi(2);
