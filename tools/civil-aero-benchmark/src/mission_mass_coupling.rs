@@ -9,6 +9,10 @@
 //! This is a screening adapter only. It does not add climb/takeoff/landing,
 //! fuel/energy chronology, trim, structural loads, or flightworthiness semantics.
 
+use crate::mass_evidence::{
+    AircraftLoadingState, LoadingStateKind, MassEvidenceLedger, MassPropertiesStateReport,
+    StateEvidenceStatus,
+};
 use crate::mass_properties::{
     MASS_PROPERTIES_SCHEMA_VERSION, MassItemCategory, MassLedger, MassPropertiesReport,
     MassPropertiesStatus,
@@ -33,6 +37,19 @@ pub struct MassBoundMissionResult {
     pub result: ResultRow,
 }
 
+/// Result of evaluating the steady-level cruise screen using an evidence-qualified
+/// takeoff loading state. The loading-state report and digest remain attached.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TakeoffStateBoundMissionResult {
+    pub schema_version: &'static str,
+    pub evidence_level: &'static str,
+    pub mission_case_id: String,
+    pub configuration_sha256: String,
+    pub loading_state_sha256: String,
+    pub loading_state_report: MassPropertiesStateReport,
+    pub mission_result: MassBoundMissionResult,
+}
+
 /// Evaluate the existing cruise screen using mass from an itemized, complete
 /// mass-properties report.
 ///
@@ -49,11 +66,58 @@ pub fn evaluate_case_with_mass_ledger(
     mass_ledger: &MassLedger,
     expected_configuration_sha256: &str,
 ) -> Result<MassBoundMissionResult, String> {
+    let report = mass_ledger.evaluate_for_configuration(expected_configuration_sha256)?;
+    evaluate_case_with_mass_properties(case, report, expected_configuration_sha256)
+}
+
+/// Evaluate only from an exact Takeoff loading state. The existing mission
+/// screen has no time/phase chronology, so it must not silently use a landing
+/// state or an intermediate fuel state as a whole-flight mass assumption.
+pub fn evaluate_takeoff_case_with_loading_state(
+    case: &Case,
+    evidence_ledger: &MassEvidenceLedger,
+    loading_state: &AircraftLoadingState,
+    expected_configuration_sha256: &str,
+) -> Result<TakeoffStateBoundMissionResult, String> {
+    if loading_state.state_kind != LoadingStateKind::Takeoff {
+        return Err("mission cruise screen requires an explicit takeoff loading state".to_owned());
+    }
+    let state_report =
+        evidence_ledger.evaluate_state(loading_state, expected_configuration_sha256)?;
+    if state_report.status != StateEvidenceStatus::CompleteForScreening {
+        return Err(
+            "loading-state evidence is not complete for screening; mission evaluation withheld"
+                .to_owned(),
+        );
+    }
+    let mission_result = evaluate_case_with_mass_properties(
+        case,
+        state_report.mass_properties.clone(),
+        expected_configuration_sha256,
+    )?;
+    Ok(TakeoffStateBoundMissionResult {
+        schema_version: "takeoff-state-bound-mission-screen/0.1.0",
+        evidence_level: "screening_only",
+        mission_case_id: case.case_id.clone(),
+        configuration_sha256: expected_configuration_sha256.to_owned(),
+        loading_state_sha256: state_report.state_sha256.clone(),
+        loading_state_report: state_report,
+        mission_result,
+    })
+}
+
+fn evaluate_case_with_mass_properties(
+    case: &Case,
+    mass_properties: MassPropertiesReport,
+    expected_configuration_sha256: &str,
+) -> Result<MassBoundMissionResult, String> {
     validate_sha256(
         expected_configuration_sha256,
         "expected_configuration_sha256",
     )?;
-    let mass_properties = mass_ledger.evaluate_for_configuration(expected_configuration_sha256)?;
+    if mass_properties.configuration_sha256 != expected_configuration_sha256 {
+        return Err("stale mass properties: configuration SHA-256 mismatch".to_owned());
+    }
     if mass_properties.status != MassPropertiesStatus::Complete {
         return Err("mass properties are not complete; mission evaluation withheld".to_owned());
     }
@@ -167,6 +231,11 @@ fn validate_sha256(value: &str, field: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::mass_evidence::{
+        AccountingRole, AircraftEffectivity, EvidenceAdmission, InstallationState, LengthUnit,
+        LoadingItemState, MassEvidenceClass, MassItemEvidence, MassUnit, SourceMassValue,
+        SourcePosition, SourceRecord, UncertaintyRelationship,
+    };
     use crate::mass_properties::{MassGeometry, MassItem, MassLedger};
 
     const CONFIG: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -382,6 +451,207 @@ mod tests {
         let error = evaluate_case_with_mass_ledger(&mission_case(), &ledger, CONFIG)
             .expect_err("unknown location blocks complete mass properties");
         assert!(error.contains("not complete"));
+    }
+
+    const STATE_CONFIG: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+    const STATE_FRAME: &str = "wren2-synthetic-datum-v1";
+    const STATE_SOURCE: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+
+    fn state_source(reference: &str) -> SourceRecord {
+        SourceRecord {
+            reference: reference.to_owned(),
+            revision: "fixture-rev-1".to_owned(),
+            locator: "fixture/row-1".to_owned(),
+            sha256: STATE_SOURCE.to_owned(),
+            captured_at_utc: "2026-11-07T00:00:00Z".to_owned(),
+            measurement: None,
+        }
+    }
+
+    fn takeoff_evidence_ledger() -> MassEvidenceLedger {
+        let entries = vec![
+            (
+                "airframe",
+                MassItemCategory::PrimaryStructure,
+                500.0,
+                [1.0, 0.0, 0.0],
+            ),
+            (
+                "fuel",
+                MassItemCategory::FuelAndFluids,
+                100.0,
+                [4.0, 0.0, 0.0],
+            ),
+            (
+                "module",
+                MassItemCategory::Propulsion,
+                40.0,
+                [0.5, 0.0, 0.0],
+            ),
+            ("occupant", MassItemCategory::Payload, 80.0, [2.0, 0.0, 0.5]),
+        ];
+        let mut records = entries
+            .into_iter()
+            .map(|(id, category, mass_kg, position_m)| MassItemEvidence {
+                item: MassItem {
+                    id: id.to_owned(),
+                    category,
+                    mass_kg: Some(mass_kg),
+                    geometry: MassGeometry::PointMass { position_m },
+                },
+                parent_id: None,
+                accounting_role: AccountingRole::Leaf,
+                included_child_ids: Vec::new(),
+                evidence_class: MassEvidenceClass::SyntheticFixture,
+                admission: EvidenceAdmission::AdmittedForScreening,
+                source: state_source(id),
+                effectivity: AircraftEffectivity {
+                    aircraft_family: "Wren 2".to_owned(),
+                    aircraft_model: "Wren 2 synthetic mission fixture".to_owned(),
+                    configuration_sha256: STATE_CONFIG.to_owned(),
+                    serial_numbers: Some(vec!["SYNTH-001".to_owned()]),
+                },
+                source_mass: Some(SourceMassValue {
+                    value: mass_kg,
+                    unit: MassUnit::Kilogram,
+                }),
+                source_position: Some(SourcePosition {
+                    values: position_m,
+                    unit: LengthUnit::Metre,
+                    coordinate_frame_id: STATE_FRAME.to_owned(),
+                }),
+                source_inertia: None,
+                standard_uncertainty_kg: Some(0.1),
+                uncertainty_relationship: UncertaintyRelationship::IndependentByDeclaredModel,
+            })
+            .collect::<Vec<_>>();
+        records.sort_by(|left, right| left.item.id.cmp(&right.item.id));
+        MassEvidenceLedger {
+            schema_version: crate::mass_evidence::MASS_EVIDENCE_SCHEMA_VERSION,
+            configuration_sha256: STATE_CONFIG.to_owned(),
+            aircraft_family: "Wren 2".to_owned(),
+            aircraft_model: "Wren 2 synthetic mission fixture".to_owned(),
+            serial_number: "SYNTH-001".to_owned(),
+            reference_frame_id: STATE_FRAME.to_owned(),
+            records,
+        }
+    }
+
+    fn takeoff_state(ledger: &MassEvidenceLedger) -> AircraftLoadingState {
+        let items = ledger
+            .records
+            .iter()
+            .map(|record| LoadingItemState {
+                item_id: record.item.id.clone(),
+                installation: InstallationState::Installed,
+                mass_kg: record.item.mass_kg,
+                source_mass: record.source_mass,
+                geometry: record.item.geometry.clone(),
+                source_position: record.source_position.clone(),
+                source_inertia: record.source_inertia,
+                value_source: Some(record.source.clone()),
+                installation_source: None,
+            })
+            .collect();
+        AircraftLoadingState {
+            schema_version: crate::mass_evidence::LOADING_STATE_SCHEMA_VERSION,
+            state_id: "wren2-synthetic-takeoff".to_owned(),
+            state_kind: LoadingStateKind::Takeoff,
+            configuration_sha256: ledger.configuration_sha256.clone(),
+            source_generation_sha256: ledger
+                .source_generation_sha256()
+                .expect("source generation"),
+            aircraft_family: ledger.aircraft_family.clone(),
+            aircraft_model: ledger.aircraft_model.clone(),
+            serial_number: ledger.serial_number.clone(),
+            reference_frame_id: ledger.reference_frame_id.clone(),
+            items,
+        }
+    }
+
+    fn state_mission_case() -> Case {
+        let mut case = mission_case();
+        case.payload_mass_kg = 80.0;
+        case.airframe_mass_kg = 640.0;
+        case.case_id = "wren-2-state-bound-synthetic-mission".to_owned();
+        case
+    }
+
+    #[test]
+    fn complete_takeoff_state_flows_into_mission_and_preserves_state_digest() {
+        let ledger = takeoff_evidence_ledger();
+        let state = takeoff_state(&ledger);
+        let bound = evaluate_takeoff_case_with_loading_state(
+            &state_mission_case(),
+            &ledger,
+            &state,
+            STATE_CONFIG,
+        )
+        .expect("complete takeoff state mission");
+        assert_eq!(bound.evidence_level, "screening_only");
+        assert_eq!(
+            bound.loading_state_report.status,
+            StateEvidenceStatus::CompleteForScreening
+        );
+        assert_eq!(
+            bound.loading_state_sha256,
+            bound.loading_state_report.state_sha256
+        );
+        assert!((bound.mission_result.result.total_mass_kg - 720.0).abs() < 1.0e-12);
+        assert!((bound.mission_result.result.case.airframe_mass_kg - 640.0).abs() < 1.0e-12);
+        assert!((bound.mission_result.result.case.payload_mass_kg - 80.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn incomplete_state_evidence_withholds_mission_evaluation() {
+        let ledger = takeoff_evidence_ledger();
+        let mut state = takeoff_state(&ledger);
+        let index = state
+            .items
+            .iter()
+            .position(|item| item.item_id == "fuel")
+            .expect("fuel item");
+        state.items[index].installation = InstallationState::Unknown;
+        state.items[index].mass_kg = None;
+        state.items[index].source_mass = None;
+        state.items[index].geometry = MassGeometry::Unknown;
+        state.items[index].source_position = None;
+        state.items[index].source_inertia = None;
+        state.items[index].value_source = None;
+        let error = evaluate_takeoff_case_with_loading_state(
+            &state_mission_case(),
+            &ledger,
+            &state,
+            STATE_CONFIG,
+        )
+        .expect_err("unknown installed item blocks mission");
+        assert!(error.contains("loading-state evidence is not complete"));
+    }
+
+    #[test]
+    fn landing_state_is_not_silently_used_as_takeoff_cruise_mass() {
+        let ledger = takeoff_evidence_ledger();
+        let mut state = takeoff_state(&ledger);
+        state.state_kind = LoadingStateKind::Landing;
+        let error = evaluate_takeoff_case_with_loading_state(
+            &state_mission_case(),
+            &ledger,
+            &state,
+            STATE_CONFIG,
+        )
+        .expect_err("landing state cannot be used by steady cruise screen");
+        assert!(error.contains("requires an explicit takeoff loading state"));
+    }
+
+    #[test]
+    fn takeoff_loading_state_payload_mismatch_is_rejected() {
+        let ledger = takeoff_evidence_ledger();
+        let state = takeoff_state(&ledger);
+        let mut case = state_mission_case();
+        case.payload_mass_kg = 81.0;
+        let error = evaluate_takeoff_case_with_loading_state(&case, &ledger, &state, STATE_CONFIG)
+            .expect_err("payload mismatch");
+        assert!(error.contains("mission payload mismatch"));
     }
 
     fn complete_report_items() -> Vec<MassItem> {
