@@ -1,0 +1,26 @@
+name: AER-01 DPW8 reference catalog
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-reference-intake.yml"
+      - "tools/civil-aero-benchmark/dpw8-aepw4-reference-intake/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-reference-catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate source catalog and hostile controls
+        run: python3 tools/civil-aero-benchmark/dpw8-aepw4-reference-intake/verify_reference_catalog.py
