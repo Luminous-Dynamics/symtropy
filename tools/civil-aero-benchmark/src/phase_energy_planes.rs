@@ -509,7 +509,10 @@ impl PhaseEnergyBalance {
             }
             for (name, value) in [
                 ("fuel-cell fuel_energy_input_j", cell.fuel_energy_input_j),
-                ("fuel-cell electrical_output_to_bus_j", cell.electrical_output_to_bus_j),
+                (
+                    "fuel-cell electrical_output_to_bus_j",
+                    cell.electrical_output_to_bus_j,
+                ),
                 ("fuel-cell thermal_loss_j", cell.thermal_loss_j),
                 (
                     "fuel-cell average_electrical_output_power_limit_w",
@@ -534,9 +537,8 @@ impl PhaseEnergyBalance {
             *prime_mover_fuel_input_by_source
                 .entry(cell.fuel_source_id.as_str())
                 .or_insert(0.0) += cell.fuel_energy_input_j;
-            let residual = cell.fuel_energy_input_j
-                - cell.electrical_output_to_bus_j
-                - cell.thermal_loss_j;
+            let residual =
+                cell.fuel_energy_input_j - cell.electrical_output_to_bus_j - cell.thermal_loss_j;
             let average_electrical_output_power_w =
                 cell.electrical_output_to_bus_j / self.duration_s;
             if residual.abs() > self.tolerance_j
@@ -813,9 +815,7 @@ impl PhaseEnergyBalance {
         if self.propulsors.is_empty() {
             return Err("phase energy balance requires at least one propulsor record".to_owned());
         }
-        if self.motor_drives.is_empty()
-            && total_direct_mechanical_shaft_j <= self.tolerance_j
-        {
+        if self.motor_drives.is_empty() && total_direct_mechanical_shaft_j <= self.tolerance_j {
             return Err(
                 "phase requires an electric motor path or a direct mechanical propulsor shaft path"
                     .to_owned(),
@@ -1058,7 +1058,10 @@ mod tests {
         let report = value
             .evaluate(CONFIG, MISSION, START, END)
             .expect("balanced conventional direct-drive phase");
-        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
         assert_eq!(report.continuous_bus_supply_power_w, 0.0);
         assert!(report.shaft_combiner_residual_j.abs() < 1.0);
     }
@@ -1102,7 +1105,10 @@ mod tests {
         let report = value
             .evaluate(CONFIG, MISSION, START, END)
             .expect("balanced fuel-cell-only phase");
-        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
         assert!(report.fuel_residuals[0].reserve_margin_j > 0.0);
         assert!(report.fuel_cell_residuals[0].residual_j.abs() < 1.0);
         assert!(report.bus_residual_j.abs() < 1.0);
@@ -1150,7 +1156,10 @@ mod tests {
         let report = value
             .evaluate(CONFIG, MISSION, START, END)
             .expect("balanced fuel-cell/battery phase");
-        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
         assert!(report.bus_residual_j.abs() < 1.0);
         assert!(report.store_results[0].transition_residual_j.abs() < 1.0);
     }
