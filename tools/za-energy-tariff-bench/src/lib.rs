@@ -419,8 +419,8 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
     } else {
         None
     };
-    let eligible = eligibility(&case.account);
-    let mut warnings = eligible.1;
+    let (is_eligible, eligibility_reasons) = eligibility(&case.account);
+    let mut warnings = eligibility_reasons.clone();
     warnings.push(
         "6 c/kWh network surcharge is separate from the monthly fixed network charge".to_owned(),
     );
@@ -437,7 +437,7 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
             .to_owned(),
     );
 
-    let invoice_equivalent_total_zar = match (eligible.0, surcharge_confirmed, vat_zar) {
+    let invoice_equivalent_total_zar = match (is_eligible, surcharge_confirmed, vat_zar) {
         (true, true, Some(vat)) => Some(round2(subtotal_before_vat_zar + vat)),
         _ => None,
     };
@@ -446,21 +446,12 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
         case_id: case.case_id.clone(),
         billing_month: case.billing_month,
         season: season.to_owned(),
-        site_tariff_eligibility: if eligible.0 {
+        site_tariff_eligibility: if is_eligible {
             "eligible_and_contract_confirmed".to_owned()
         } else {
             "not_confirmed_for_invoice_equivalent_claim".to_owned()
         },
-        eligibility_reasons: warnings
-            .iter()
-            .filter(|reason| {
-                reason.contains("distributor")
-                    || reason.contains("supply capacity")
-                    || reason.contains("approval")
-                    || reason.contains("contract")
-            })
-            .cloned()
-            .collect(),
+        eligibility_reasons,
         billing_claim_status: if invoice_equivalent_total_zar.is_some() {
             "contract_confirmed_estimate".to_owned()
         } else {
