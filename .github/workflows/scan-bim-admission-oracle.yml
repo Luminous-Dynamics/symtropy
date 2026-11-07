@@ -46,3 +46,15 @@ jobs:
             > /tmp/scan-bim-admission-report.json
           jq -e '.passed == true and .case_count == 25 and .mismatched_cases == 0' \
             /tmp/scan-bim-admission-report.json
+      - name: Validate external ISPRS scene manifest
+        run: |
+          jq -e '
+            (.schema_version == "0.1") and
+            (.scenes | length == 6) and
+            (.benchmark_status == "official_submission_closed") and
+            (.use_conditions.research_only == true) and
+            (.use_conditions.redistribute_source_data == false) and
+            ([.scenes[] | select(.scene_id == "TUB1")][0].building_group_id ==
+             [.scenes[] | select(.scene_id == "TUB2")][0].building_group_id) and
+            ([.scenes[] | select(.scene_id == "UOM")][0].scene.windows_visible == 0)
+          ' docs/research/built-asset/scan-bim/v0.1/isprs-scenes.json
