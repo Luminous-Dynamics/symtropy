@@ -163,8 +163,8 @@ mod tests {
 
     #[test]
     fn output_metric_taxonomy_is_nine_dimensional() {
-        assert_eq!(OutcomeMetric::ALL.len(), 9);
-        assert_eq!(ParameterFactor::ALL.len(), 7);
+        assert_eq!(civdyn_resilience_uq::OutcomeMetric::ALL.len(), 9);
+        assert_eq!(civdyn_resilience_uq::ParameterFactor::ALL.len(), 7);
     }
 
     #[test]
@@ -176,7 +176,7 @@ mod tests {
         );
         assert_eq!(
             report.lhs_summaries.len(),
-            ShockKind::ALL.len() * InterventionPolicy::ALL.len() * OutcomeMetric::ALL.len()
+            ShockKind::ALL.len() * InterventionPolicy::ALL.len() * civdyn_resilience_uq::OutcomeMetric::ALL.len()
         );
         assert_eq!(report.morris_points.len(), 2 * (FACTOR_COUNT + 1));
         assert_eq!(
@@ -184,7 +184,7 @@ mod tests {
             FACTOR_COUNT
                 * ShockKind::ALL.len()
                 * InterventionPolicy::ALL.len()
-                * OutcomeMetric::ALL.len()
+                * civdyn_resilience_uq::OutcomeMetric::ALL.len()
         );
     }
 }
