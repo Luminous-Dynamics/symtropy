@@ -60,12 +60,27 @@ No duplicate registration, coordinate-reference, metrology, component registry, 
 
 ### Commercial capability baselines
 
-The benchmark must compare the relevant, version-pinned product workflows rather than assume that any vendor covers the entire lifecycle:
-- Leica Cyclone 3DR BIM analyses: deviation, progress, clash and tolerance analysis, visual maps, reports and BCF workflows. https://leica-geosystems.com/products/laser-scanners/software/leica-cyclone/leica-cyclone-3dr/powerful-bim-analysis
-- Trimble RealWorks: point-cloud registration, model comparison, analysis, modeling and project-coordinate alignment. https://www.trimble.com/en/products/building-construction-field-systems/trimble-realworks
-- Autodesk ReCap Pro 2026: local scan-to-mesh, segmented-mesh editing and integrated ReCap-to-Revit scan-to-BIM workflows. https://help.autodesk.com/cloudhelp/ENU/RealityCapture-New/files/whats_new_recap.html
+The benchmark must compare relevant, version-pinned product workflows rather than assume that any vendor covers the entire lifecycle.
 
-These are legitimate comparators for their documented capabilities. They are not presumed to be inferior, and a feature list is not a matched benchmark result.
+- **Leica Cyclone 3DR 2025.2 and later:** component-level IFC-versus-point-cloud tolerance checking with within-tolerance / out-of-tolerance / missing statuses, adjustable tolerance, exclusion-zone and minimum-coverage parameters, manual BIM-object review, and PDF/BCF reporting. The 2026 documentation also covers deviation analysis, progress monitoring, clash detection, visual reports and tolerance checking. Sources: https://rcdocs.leica-geosystems.com/docs/cyclone-3dr-2025-2-0-cyclone-3dr-release-notes and https://rcdocs.leica-geosystems.com/cyclone-3dr/2026.0/Ex_ToleranceChecking
+- **Trimble RealWorks:** processing and analysis of point-cloud data, target/targetless registration, comparison with design models for clash analysis, deviation reports, as-built modeling, geo-referencing and export to other software. Source: https://www.trimble.com/en/products/building-construction-field-systems/trimble-realworks
+- **Autodesk ReCap Pro 2026:** local scan-to-mesh conversion, segmented-mesh editing and an integrated ReCap-to-Revit scan-to-BIM workflow. Sources: https://help.autodesk.com/cloudhelp/ENU/RealityCapture-New/files/whats_new_recap.html and https://help.autodesk.com/cloudhelp/ENU/Reality-Capture/files/Scan_to_Mesh_Options/Scan_to_Mesh_Local/scan_to_mesh_revit.html
+
+These are serious comparators, not strawmen. The following are **not novelty claims**: point-cloud registration; geometric deviation/heatmaps; component tolerance status; progress, clash and no-data/coverage reporting; PDF/BCF outputs; scan-to-mesh; and model export. Commercial products already provide meaningful versions of many of these functions.
+
+### Competitive positioning hypothesis
+
+Do not set the objective as “replace Leica/Trimble/Autodesk” or “beat their scan-to-BIM feature list.” Treat those tools and their specialist algorithms as external capability providers. The Luminous research hypothesis is a cross-tool qualification and lifecycle layer:
+
+1. Preserve an independently reviewable evidence chain across proprietary and open tools, asset revisions and representations.
+2. Carry coordinate-frame identity, capture lineage, calibration, uncertainty, coverage and independent checkpoint status into the downstream element/change decision.
+3. Preserve persistent component identity and semantic/topological relationships through add/remove/modify/split/merge/replacement operations.
+4. distinguish true physical change from acquisition differences, object pose, occlusion, registration drift and correspondence error.
+5. Make uncertainty and abstention first-class: “unknown / inspect again” is preferable to a falsely confident model mutation.
+6. Bind every candidate model delta to an exact base model digest/revision, supporting evidence, rule/profile revision, review authority and invalidation conditions.
+7. Measure the full workflow: human preparation, scan setup, calibration, manual editing, review, corrections, downstream repair acceptance and maintenance—not just point-cloud algorithm runtime.
+
+These are **hypotheses to benchmark**, not claims that commercial systems cannot support them. The first competitive demonstration must use matched inputs and a named product/version/configuration, preserve each tool's own outputs, and compare them with an independent referee on false mutations, completeness, geometric quality, uncertainty coverage, review burden and accepted downstream work.
 
 ## 4. Paradigm
 
