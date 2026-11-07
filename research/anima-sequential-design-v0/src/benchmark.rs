@@ -558,6 +558,9 @@ pub fn run_paired_comparison(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
+    use super::super::Feasibility;
     use super::*;
 
     fn posterior(p: f64) -> Posterior {
