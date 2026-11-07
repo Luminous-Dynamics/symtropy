@@ -5,7 +5,7 @@
 //!
 //! The cases are frozen at benchmark setup and cover a family of sphere-sphere
 //! sweeps with varying range and grazing offset, plus sphere-halfspace sweeps.
-//! Criterion reports successful queries per second. This is an internal
+//! Criterion reports queries per second. This is an internal
 //! throughput baseline; cross-engine claims require the same case corpus,
 //! tolerances, units and result semantics in the external adapter.
 
