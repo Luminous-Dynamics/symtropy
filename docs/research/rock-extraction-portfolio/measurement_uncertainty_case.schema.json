@@ -10,7 +10,7 @@
     "evidence_class",
     "dependence_model",
     "inputs",
-    "correlation_matrix",
+    "latent_gaussian_correlation_matrix",
     "outputs",
     "simulation"
   ],
@@ -483,17 +483,6 @@
         "$ref": "#/$defs/input"
       }
     },
-    "correlation_matrix": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "array",
-        "minItems": 1,
-        "items": {
-          "type": "number"
-        }
-      }
-    },
     "outputs": {
       "type": "array",
       "minItems": 1,
@@ -564,6 +553,17 @@
               }
             }
           }
+        }
+      }
+    },
+    "latent_gaussian_correlation_matrix": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "number"
         }
       }
     }
