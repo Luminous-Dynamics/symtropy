@@ -1,0 +1,141 @@
+{
+  "schema": "luminous.aero.aircraft-loading-state-matrix",
+  "schema_version": "0.1.0",
+  "status": "templates_only_not_frozen",
+  "evidence_ceiling": "All aircraft-specific masses, datum positions, component inertia, serial applicability, loading limits and envelopes are unknown until exact controlling records are admitted.",
+  "canonical_units": {
+    "mass": "kg",
+    "position": "m",
+    "inertia": "kg*m^2"
+  },
+  "rules": [
+    "Each state is a separate immutable snapshot and has a distinct digest.",
+    "Every installed/removed/unknown mass item appears exactly once in each state manifest.",
+    "No CG envelope or loading limit is inferred from these templates.",
+    "An unknown mass or location remains unknown and blocks complete state admission.",
+    "Takeoff, intermediate, landing, diversion and maintenance states must never reuse a digest after an input changes."
+  ],
+  "families": [
+    {
+      "aircraft_family": "Wren 2",
+      "mission_classes": [
+        "training",
+        "local_personal",
+        "two_seat_cross_country"
+      ],
+      "occupant_positions": [
+        {
+          "id": "pilot_station",
+          "mass_kg": null,
+          "position_m": null
+        },
+        {
+          "id": "second_seat",
+          "mass_kg": null,
+          "position_m": null
+        }
+      ],
+      "item_templates": [
+        "primary_structure",
+        "secondary_structure",
+        "propulsion",
+        "fuel_or_energy_storage",
+        "electrical_distribution",
+        "thermal_management",
+        "flight_controls",
+        "avionics",
+        "landing_gear",
+        "safety_equipment",
+        "interior",
+        "baggage",
+        "removable_equipment"
+      ],
+      "states": [
+        "dispatch",
+        "takeoff",
+        "intermediate_flight",
+        "landing",
+        "diversion",
+        "go_around",
+        "declared_failure",
+        "maintenance"
+      ],
+      "unknowns": [
+        "actual equipment list",
+        "actual item masses",
+        "datum and coordinate frames",
+        "component CG and inertia",
+        "approved weight and CG limits",
+        "fuel/energy capacity and stations",
+        "seat and baggage arms",
+        "serial/configuration effectivity"
+      ]
+    },
+    {
+      "aircraft_family": "Wayfarer 4",
+      "mission_classes": [
+        "four_seat_touring",
+        "practical_utility",
+        "short_field_hot_high"
+      ],
+      "occupant_positions": [
+        {
+          "id": "front_left",
+          "mass_kg": null,
+          "position_m": null
+        },
+        {
+          "id": "front_right",
+          "mass_kg": null,
+          "position_m": null
+        },
+        {
+          "id": "rear_left",
+          "mass_kg": null,
+          "position_m": null
+        },
+        {
+          "id": "rear_right",
+          "mass_kg": null,
+          "position_m": null
+        }
+      ],
+      "item_templates": [
+        "primary_structure",
+        "secondary_structure",
+        "propulsion",
+        "fuel_or_energy_storage",
+        "electrical_distribution",
+        "thermal_management",
+        "flight_controls",
+        "avionics",
+        "landing_gear",
+        "safety_equipment",
+        "interior",
+        "baggage",
+        "mission_equipment",
+        "removable_equipment"
+      ],
+      "states": [
+        "dispatch",
+        "takeoff",
+        "intermediate_flight",
+        "landing",
+        "diversion",
+        "go_around",
+        "declared_failure",
+        "maintenance"
+      ],
+      "unknowns": [
+        "actual equipment list",
+        "actual item masses",
+        "datum and coordinate frames",
+        "component CG and inertia",
+        "approved weight and CG limits",
+        "fuel/energy capacity and stations",
+        "seat and baggage arms",
+        "serial/configuration effectivity"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aircraft-mass-state-report-0.1.0.json",
+  "title": "Aircraft mass-properties state report 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_level",
+    "state_id",
+    "state_kind",
+    "configuration_sha256",
+    "source_generation_sha256",
+    "state_sha256",
+    "status",
+    "mass_properties",
+    "total_mass_standard_uncertainty_kg",
+    "total_mass_uncertainty_status",
+    "cg_uncertainty_m",
+    "inertia_uncertainty_kg_m2",
+    "pending_item_ids",
+    "rejected_item_ids",
+    "unresolved_installation_item_ids",
+    "unknown_mass_item_ids",
+    "unknown_geometry_item_ids"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aircraft-mass-properties-state-report/0.1.0"
+    },
+    "evidence_level": {
+      "const": "screening_only"
+    },
+    "state_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state_kind": {
+      "enum": [
+        "dispatch",
+        "takeoff",
+        "intermediate_flight",
+        "landing",
+        "diversion",
+        "go_around",
+        "declared_failure",
+        "maintenance"
+      ]
+    },
+    "configuration_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "source_generation_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "state_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "status": {
+      "enum": [
+        "complete_for_screening",
+        "indeterminate"
+      ]
+    },
+    "total_mass_standard_uncertainty_kg": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "total_mass_uncertainty_status": {
+      "enum": [
+        "rss_under_declared_independence",
+        "correlation_or_uncertainty_not_assessed"
+      ]
+    },
+    "cg_uncertainty_m": {
+      "type": "null"
+    },
+    "inertia_uncertainty_kg_m2": {
+      "type": "null"
+    },
+    "pending_item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rejected_item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unresolved_installation_item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unknown_mass_item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unknown_geometry_item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mass_properties": {
+      "type": "object",
+      "description": "Nested aircraft-mass-properties/0.1.0 report; all physical values are screening-only."
+    }
+  }
+}

@@ -1,0 +1,385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aircraft-loading-state-0.1.0.json",
+  "title": "Aircraft loading state 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "state_id",
+    "state_kind",
+    "configuration_sha256",
+    "source_generation_sha256",
+    "aircraft_family",
+    "aircraft_model",
+    "serial_number",
+    "items",
+    "reference_frame_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aircraft-loading-state/0.1.0"
+    },
+    "state_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state_kind": {
+      "enum": [
+        "dispatch",
+        "takeoff",
+        "intermediate_flight",
+        "landing",
+        "diversion",
+        "go_around",
+        "declared_failure",
+        "maintenance"
+      ]
+    },
+    "configuration_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "source_generation_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "aircraft_family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "aircraft_model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "serial_number": {
+      "type": "string",
+      "minLength": 1
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    },
+    "reference_frame_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "revision",
+        "locator",
+        "sha256",
+        "captured_at_utc",
+        "measurement"
+      ],
+      "properties": {
+        "reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "captured_at_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "measurement": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "measured_at_utc",
+                "physical_article_id",
+                "instrument_reference",
+                "calibration_reference",
+                "calibration_revision",
+                "calibration_sha256"
+              ],
+              "properties": {
+                "measured_at_utc": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+                },
+                "physical_article_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "instrument_reference": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "calibration_reference": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "calibration_revision": {
+                  "type": "string",
+                  "minLength": 1,
+                  "not": {
+                    "const": "latest"
+                  }
+                },
+                "calibration_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{64}$"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "item_id",
+        "installation",
+        "mass_kg",
+        "source_mass",
+        "geometry",
+        "source_position",
+        "source_inertia",
+        "value_source",
+        "installation_source"
+      ],
+      "properties": {
+        "item_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "installation": {
+          "enum": [
+            "installed",
+            "removed",
+            "unknown"
+          ]
+        },
+        "mass_kg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "source_mass": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "unit": {
+              "enum": [
+                "kg",
+                "g",
+                "lb"
+              ]
+            }
+          },
+          "required": [
+            "value",
+            "unit"
+          ],
+          "additionalProperties": false
+        },
+        "geometry": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "position_m"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "point_mass"
+                },
+                "position_m": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "center_of_mass_m",
+                "inertia_tensor_about_center_kg_m2"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "rigid_body"
+                },
+                "center_of_mass_m": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "inertia_tensor_about_center_kg_m2": {
+                  "type": "array",
+                  "minItems": 6,
+                  "maxItems": 6,
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "unknown"
+                }
+              }
+            }
+          ]
+        },
+        "source_position": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "values": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number"
+              }
+            },
+            "unit": {
+              "enum": [
+                "m",
+                "cm",
+                "mm",
+                "ft",
+                "in"
+              ]
+            },
+            "coordinate_frame_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "values",
+            "unit",
+            "coordinate_frame_id"
+          ],
+          "additionalProperties": false
+        },
+        "source_inertia": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "values": {
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 6,
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "unit": {
+              "enum": [
+                "kg_m2",
+                "g_cm2",
+                "lb_ft2"
+              ]
+            }
+          },
+          "required": [
+            "values",
+            "unit"
+          ],
+          "additionalProperties": false
+        },
+        "value_source": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/source"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "installation_source": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/source"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
