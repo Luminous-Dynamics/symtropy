@@ -175,10 +175,7 @@ pub enum Intervention {
         reciprocal: bool,
     },
     /// Freeze one leg's phase and remove it from all coupling sums.
-    DisableLeg {
-        sample_index: usize,
-        leg: Leg,
-    },
+    DisableLeg { sample_index: usize, leg: Leg },
 }
 
 impl Intervention {
@@ -361,14 +358,16 @@ fn validate_interventions(
                 return Err(CoordinationError::InvalidPhasePulse);
             }
             Intervention::CouplingEdgeCut {
-                source, target, reciprocal, ..
+                source,
+                target,
+                reciprocal,
+                ..
             } => {
                 if source == target {
                     return Err(CoordinationError::SelfCouplingCut);
                 }
                 if config.coupling_gains[source.index()][target.index()] <= 0.0
-                    || (reciprocal
-                        && config.coupling_gains[target.index()][source.index()] <= 0.0)
+                    || (reciprocal && config.coupling_gains[target.index()][source.index()] <= 0.0)
                 {
                     return Err(CoordinationError::CouplingEdgeAbsent);
                 }
@@ -468,15 +467,9 @@ fn with_phases(mut state: NetworkState, phases: [f64; LEG_COUNT]) -> NetworkStat
     state
 }
 
-fn add_scaled(
-    left: [f64; LEG_COUNT],
-    right: [f64; LEG_COUNT],
-    scale: f64,
-) -> [f64; LEG_COUNT] {
+fn add_scaled(left: [f64; LEG_COUNT], right: [f64; LEG_COUNT], scale: f64) -> [f64; LEG_COUNT] {
     let mut result = [0.0; LEG_COUNT];
-    for ((result_phase, left_phase), right_phase) in
-        result.iter_mut().zip(left).zip(right)
-    {
+    for ((result_phase, left_phase), right_phase) in result.iter_mut().zip(left).zip(right) {
         *result_phase = left_phase + right_phase * scale;
     }
     result
@@ -613,9 +606,7 @@ pub fn select_coordination_model_open_set(
                 if !actual.enabled[leg_index] {
                     continue;
                 }
-                let residual = wrap_angle(
-                    actual.phases[leg_index] - predicted.phases[leg_index],
-                );
+                let residual = wrap_angle(actual.phases[leg_index] - predicted.phases[leg_index]);
                 log_score += -0.5
                     * ((2.0 * std::f64::consts::PI * observation_variance).ln()
                         + residual * residual / observation_variance);
@@ -731,9 +722,9 @@ pub fn coordination_error_series(
     trace
         .samples
         .iter()
-        .map(|sample| {
-            Ok(coordination_metrics(sample, target_offsets)?.pairwise_phase_error_radians)
-        })
+        .map(
+            |sample| Ok(coordination_metrics(sample, target_offsets)?.pairwise_phase_error_radians),
+        )
         .collect()
 }
 
@@ -820,9 +811,7 @@ fn validate_trace(samples: &[LegPhaseSample]) -> Result<(), CoordinationError> {
     }
     let mut previous = None;
     for sample in samples {
-        if !sample.timestamp.is_finite()
-            || !sample.phases.iter().all(|phase| phase.is_finite())
-        {
+        if !sample.timestamp.is_finite() || !sample.phases.iter().all(|phase| phase.is_finite()) {
             return Err(CoordinationError::NonFiniteState);
         }
         if previous.is_some_and(|time| sample.timestamp <= time) {
@@ -865,8 +854,11 @@ mod tests {
     }
 
     fn final_metrics(trace: &SixLegTrace, config: SixLegConfig) -> CoordinationMetrics {
-        coordination_metrics(trace.samples.last().unwrap(), config.preferred_phase_offsets)
-            .unwrap()
+        coordination_metrics(
+            trace.samples.last().unwrap(),
+            config.preferred_phase_offsets,
+        )
+        .unwrap()
     }
 
     #[test]
@@ -874,10 +866,22 @@ mod tests {
         let target = SixLegConfig::tripod();
         let pi = std::f64::consts::PI;
         assert_eq!(target, [0.0, pi, 0.0, pi, pi, 0.0]);
-        assert_eq!(target[Leg::LeftFront.index()], target[Leg::LeftRear.index()]);
-        assert_eq!(target[Leg::LeftFront.index()], target[Leg::RightMiddle.index()]);
-        assert_eq!(target[Leg::LeftMiddle.index()], target[Leg::RightFront.index()]);
-        assert_eq!(target[Leg::LeftMiddle.index()], target[Leg::RightRear.index()]);
+        assert_eq!(
+            target[Leg::LeftFront.index()],
+            target[Leg::LeftRear.index()]
+        );
+        assert_eq!(
+            target[Leg::LeftFront.index()],
+            target[Leg::RightMiddle.index()]
+        );
+        assert_eq!(
+            target[Leg::LeftMiddle.index()],
+            target[Leg::RightFront.index()]
+        );
+        assert_eq!(
+            target[Leg::LeftMiddle.index()],
+            target[Leg::RightRear.index()]
+        );
     }
 
     #[test]
@@ -895,8 +899,8 @@ mod tests {
         config.natural_angular_frequencies = [1.7, 1.85, 2.0, 2.15, 2.3, 2.45];
         config.initial_phases = config.preferred_phase_offsets;
         let trace = simulate(config, CoordinationModel::Independent, &[]).unwrap();
-        let initial = coordination_metrics(&trace.samples[0], config.preferred_phase_offsets)
-            .unwrap();
+        let initial =
+            coordination_metrics(&trace.samples[0], config.preferred_phase_offsets).unwrap();
         let final_state = final_metrics(&trace, config);
         assert!(final_state.pairwise_phase_error_radians > initial.pairwise_phase_error_radians);
     }
@@ -945,8 +949,7 @@ mod tests {
         let duration = last.timestamp - first.timestamp;
         for leg in LEGS {
             let index = leg.index();
-            let observed_frequency =
-                (last.phases[index] - first.phases[index]) / duration;
+            let observed_frequency = (last.phases[index] - first.phases[index]) / duration;
             assert!((observed_frequency - 2.0).abs() < 0.02);
         }
         assert!(final_metrics(&trace, config).pairwise_phase_error_radians < 0.02);
@@ -1053,8 +1056,8 @@ mod tests {
             }],
         )
         .unwrap();
-        let pre = coordination_metrics(&trace.samples[399], config.preferred_phase_offsets)
-            .unwrap();
+        let pre =
+            coordination_metrics(&trace.samples[399], config.preferred_phase_offsets).unwrap();
         let post = final_metrics(&trace, config);
         assert!(post.pairwise_phase_error_radians > pre.pairwise_phase_error_radians + 0.1);
     }
@@ -1191,12 +1194,10 @@ mod tests {
         let mut config = base_config();
         config.feedback_delay_times = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25];
 
-        let feedback_only =
-            simulate(config, CoordinationModel::FeedbackDriven, &[]).unwrap();
+        let feedback_only = simulate(config, CoordinationModel::FeedbackDriven, &[]).unwrap();
         let hybrid = simulate(config, CoordinationModel::Hybrid, &[]).unwrap();
 
-        let feedback_error =
-            final_metrics(&feedback_only, config).pairwise_phase_error_radians;
+        let feedback_error = final_metrics(&feedback_only, config).pairwise_phase_error_radians;
         let hybrid_error = final_metrics(&hybrid, config).pairwise_phase_error_radians;
         assert!(feedback_error > 0.2);
         assert!(hybrid_error < feedback_error * 0.5);
@@ -1306,10 +1307,7 @@ mod tests {
         let observed = simulate(config, CoordinationModel::FeedbackDriven, &[action]).unwrap();
         let selected = select_coordination_model_open_set(
             &observed,
-            &[
-                CoordinationModel::FeedbackDriven,
-                CoordinationModel::Hybrid,
-            ],
+            &[CoordinationModel::FeedbackDriven, CoordinationModel::Hybrid],
             600,
             0.0001,
             0.0,
@@ -1338,10 +1336,7 @@ mod tests {
         let observed = simulate(config, CoordinationModel::Independent, &[action]).unwrap();
         let decision = select_coordination_model_open_set(
             &observed,
-            &[
-                CoordinationModel::Independent,
-                CoordinationModel::Hybrid,
-            ],
+            &[CoordinationModel::Independent, CoordinationModel::Hybrid],
             100,
             0.01,
             0.0,
@@ -1452,14 +1447,7 @@ mod tests {
             CoordinationModel::FeedbackDriven,
         ];
         assert_eq!(
-            select_coordination_model_open_set(
-                &no_action,
-                &candidates,
-                100,
-                0.01,
-                0.01,
-                -10.0,
-            ),
+            select_coordination_model_open_set(&no_action, &candidates, 100, 0.01, 0.01, -10.0,),
             Err(CoordinationError::InvalidInterventionOnset)
         );
 
@@ -1470,14 +1458,7 @@ mod tests {
         };
         let acted = simulate(config, CoordinationModel::Independent, &[action]).unwrap();
         assert_eq!(
-            select_coordination_model_open_set(
-                &acted,
-                &candidates,
-                101,
-                0.01,
-                0.01,
-                -10.0,
-            ),
+            select_coordination_model_open_set(&acted, &candidates, 101, 0.01, 0.01, -10.0,),
             Err(CoordinationError::InvalidInterventionOnset)
         );
     }
