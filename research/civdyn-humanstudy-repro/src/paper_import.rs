@@ -13,7 +13,7 @@ use super::{
     ArtifactReceipt, BenchmarkRunReceipt, EffectEstimate, IndependentUnit,
     PAPER_12_METRIC_CONTRACT_ID, PAPER_12_PROTOCOL_ID, PAPER_12_SOURCE_COMMIT,
     PAPER_12_SOURCE_REPOSITORY, PAPER_12_SOURCE_ROOT_TREE, PAPER_12_STUDY_PINS, StudyReceipt,
-    validate_run,
+    is_lower_hex, validate_run,
 };
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
