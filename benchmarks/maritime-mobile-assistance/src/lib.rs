@@ -71,6 +71,31 @@ impl EvidenceReceipt {
     }
 }
 
+/// Versioned, unambiguous evidence subject for an exact reposition leg.
+///
+/// Each field is UTF-8 byte-length-prefixed, so delimiters inside IDs cannot
+/// make two different resource/direction/duration tuples collide.
+fn canonical_reposition_subject_id(leg: &RepositionLeg, time_basis_id: &str) -> String {
+    let duration = leg.duration_ticks.to_string();
+    let fields = [
+        leg.leg_id.as_str(),
+        leg.resource_id.as_str(),
+        leg.from_node_id.as_str(),
+        leg.to_node_id.as_str(),
+        leg.route_revision.as_str(),
+        duration.as_str(),
+        time_basis_id,
+    ];
+    let mut subject = String::from("maritime-reposition-evidence-v1");
+    for field in fields {
+        subject.push(':');
+        subject.push_str(&field.len().to_string());
+        subject.push(':');
+        subject.push_str(field);
+    }
+    subject
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AssistanceKind {
     PilotTransfer,
@@ -628,7 +653,8 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
         {
             return Err(MobileError::UnknownResource(leg.resource_id.clone()));
         }
-        if leg.evidence.subject_id != leg.leg_id
+        if leg.evidence.subject_id
+            != canonical_reposition_subject_id(leg, &workload.time_basis_id)
             || leg.evidence.subject_revision != leg.route_revision
         {
             return Err(MobileError::InvalidEvidenceReceipt(
