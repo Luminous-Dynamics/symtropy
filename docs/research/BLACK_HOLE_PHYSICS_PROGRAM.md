@@ -618,3 +618,41 @@ Next:
 ### PR consolidation
 
 The older v3 draft supplied the adaptive / Hamiltonian Schwarzschild geodesic implementation and its reference manifest. Those are now carried into the clean successor PR, together with its analytic-reference and surrogate-certification manifests. The clean PR is the single continuation target; parallel earlier drafts are retained only as historical records and should not be merged independently.
+
+
+## New implementation slice — noise-weighted waveform comparison (2026-11-07)
+
+The clean branch now includes `crates/domains/symtropy-relativity/src/waveform_metrics.rs` and exports it from the crate.
+
+The implementation provides:
+- discrete one-sided PSD inner product (4\Delta f\sum_k \overline{h_{\rm ref}}h_{\rm cand}/S_n(f_k));
+- constant-phase-maximized overlap / mismatch, with the best constant phase offset returned explicitly;
+- separate PSD-weighted relative-amplitude L2 error;
+- reference-amplitude / PSD-weighted frequency-dependent phase residual RMS and per-bin diagnostics;
+- strict finite, positive-PSD, uniform-grid and identical reference/candidate/PSD frequency-grid validation;
+- no hidden time maximization, interpolation, resampling, whitening, windowing or PSD estimation.
+
+The caller must pre-align waveforms under a pinned procedure. The metric deliberately does not hide time alignment, because doing so can disguise phase/model errors. A manual adversarial review caught and corrected a missing candidate-grid comparison before the branch was updated.
+
+Ten synthetic Rust tests are authored for identical waveforms, constant phase rotation, amplitude rescaling, frequency-dependent phase error, PSD weighting, mismatched / nonuniform grids, invalid PSD, zero reference norm, and invalid frequency bands. The total suite is now **73 authored tests** (63 previous plus 10 waveform-metric tests). They remain unexecuted because the current editing environment has no `rustc` or `cargo`.
+
+The waveform surrogate certification manifest now points to this implementation and specifies the next validation steps: independent NumPy formula comparison, a pinned SXS waveform pair, PSD/alignment sensitivity, and posterior-recovery injection with propagated model discrepancy. No real waveform comparison or surrogate result has yet been produced.
+
+Dedicated work item: [BH-WAVEFORM-METRICS-001 #4048](https://github.com/Luminous-Dynamics/symtropy/issues/4048).
+
+## New nonlinear ringdown axis — quadratic QNM coupling (2026-11-07)
+
+Yang, Shi & Hu, *Constraining the Quadratic-mode Amplitude Coupling in GW250114*, arXiv:2609.28953 (submitted 2026-09-24): https://arxiv.org/abs/2609.28953.
+
+The preprint analyzes the 220 fundamental, 221 first overtone, and a 220×220 quadratic mode. It infers a mode-specific amplitude-coupling coefficient and reports consistency with NR-fit / second-order perturbation predictions within 1.3 sigma, while noting that current data cannot distinguish the spin-dependent predictions.
+
+This creates a fourth distinct GW250114 ringdown test axis:
+1. linear QNM basis inference (ordinary / orthonormalized);
+2. direct-wave residual extraction and its contested physical interpretation;
+3. linear perturbation-equation / beyond-Teukolsky effective-potential deviations;
+4. nonlinear second-order quadratic-mode amplitude coupling.
+
+Do not conflate a quadratic model term with an independently resolved nonlinear mode. Required controls include extra linear overtones, mode mixing, flexible residuals, noise/transients, no-quadratic injections, parent-amplitude-product scaling, spin dependence, start-time stability, prior sensitivity and calibrated posterior coverage.
+
+Dedicated execution item: [Symthaea BH-NONLINEAR-RINGDOWN-001 #10908](https://github.com/Luminous-Dynamics/symthaea/issues/10908). Mycelix and Sol Atlas provenance/display requirements are recorded in #5903 and #586.
+
