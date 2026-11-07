@@ -41,6 +41,25 @@ cargo clippy --locked --manifest-path research/civdyn-joint-population-fidelity/
 cargo test --locked --manifest-path research/civdyn-joint-population-fidelity/Cargo.toml --all-targets
 ```
 
+## Cluster-aware uncertainty (v0.2)
+
+The follow-on cluster bootstrap reports percentile intervals for the bivariate diagnostics. Each replicate samples the same number of independent units with replacement and includes every row belonging to each sampled unit. The observed and simulated populations are resampled independently with deterministic, separate PRNG streams derived from the supplied seed.
+
+Use the study design's real independent unit (participant, household, group, session or cluster). Do not use a row identifier or infer the unit from the data shape. The API requires at least two independent units per population and 100 replicates. A fixed seed makes the receipt reproducible.
+
+The reported intervals condition on the observed clusters. They do not capture model stochasticity, population-frame bias, unmeasured confounding, study-selection uncertainty or specification uncertainty. Those require separate experimental layers.
+
+Example:
+```rust
+let report = compare_pair_cluster_bootstrap(
+    &observed,
+    &simulated,
+    2_000,
+    0.95,
+    0xC1_71_2026,
+)?;
+```
+
 ## Next increments
 
 1. Cluster-aware resampling using the declared independent unit.
