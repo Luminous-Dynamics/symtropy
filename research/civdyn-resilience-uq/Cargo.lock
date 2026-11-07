@@ -18,4 +18,5 @@ name = "civdyn-resilience-uq"
 version = "0.1.0"
 dependencies = [
  "civdyn-cross-scale-resilience",
+ "civdyn-resource-ledger",
 ]
