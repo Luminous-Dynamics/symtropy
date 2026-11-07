@@ -140,13 +140,13 @@ pub fn compute_finite_horizon_viability(
     let mut continuation = safe_state_ids(&validated);
 
     if horizon == 0 {
-        return Ok(build_viability_result(
-            &validated,
-            Some(0),
-            continuation,
-            BTreeSet::new(),
-            Vec::new(),
-        ));
+        return Ok(ViabilityResult {
+            finite_horizon: Some(0),
+            classifications: classify_states(&validated, &continuation),
+            viable_states: continuation,
+            admissible_actions: BTreeMap::new(),
+            action_assessments: Vec::new(),
+        });
     }
 
     let mut final_assessments = Vec::new();
@@ -429,22 +429,6 @@ fn classify_states(
         .collect()
 }
 
-fn build_viability_result(
-    system: &ValidatedSystem,
-    horizon: Option<usize>,
-    viable_states: BTreeSet<String>,
-    _unused: BTreeSet<String>,
-    assessments: Vec<ActionAssessment>,
-) -> ViabilityResult {
-    ViabilityResult {
-        finite_horizon: horizon,
-        classifications: classify_states(system, &viable_states),
-        viable_states,
-        admissible_actions: admissible_action_map(&assessments),
-        action_assessments: assessments,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -592,6 +576,7 @@ mod tests {
                 state("unstable", true, false),
                 state("recovering", true, false),
                 state("safe", true, true),
+                state("dead-end", true, false),
                 state("fall", false, false),
             ],
             actions: vec![
@@ -614,10 +599,7 @@ mod tests {
         );
         assert_eq!(
             result.unrecoverable_safe_states,
-            BTreeSet::from(["fall".to_owned()])
-                .intersection(&BTreeSet::from(["unstable".to_owned()]))
-                .cloned()
-                .collect()
+            BTreeSet::from(["dead-end".to_owned()])
         );
     }
 
