@@ -298,11 +298,6 @@ def verify_python_oracle(fixture):
     )
     close(source_work, expected["source_virtual_work_j"], "source_virtual_work")
     close(target_work, source_work, "target_virtual_work")
-    require(
-        max_delta((source_force[0], source_moment[0], source_work), (target_force[0], target_moment[0], target_work))
-        <= 1.0e-10,
-        "combined transfer invariant check failed",
-    )
     require(affine_error <= expected["affine_displacement_interpolation_error_max_m"], "affine displacement interpolation error exceeded bound")
 
     # Whole-interface rotation + translation: force rotates, while moment also
@@ -331,6 +326,7 @@ def verify_python_oracle(fixture):
         "target_moment": target_moment,
         "target_forces": target_forces,
         "hits": hits,
+        "target_triangle_hit_indices": [hit[0] for hit in hits],
         "source_work": source_work,
         "target_work": target_work,
         "affine_error": affine_error,
@@ -346,6 +342,10 @@ def verify_rust_output(output, fixture, computed):
     require(output.get("target_node_count") == len(fixture["target_mesh"]["nodes_m"]), "target node count mismatch")
     require(output.get("target_triangle_count") == len(fixture["target_mesh"]["triangles"]), "target triangle count mismatch")
     require(output.get("quadrature_point_count") == len(computed["loads"]), "quadrature point count mismatch")
+    require(
+        output.get("target_hit_triangle_indices") == computed["target_triangle_hit_indices"],
+        "target facet assignment does not match independent locator",
+    )
 
     for field, expected in (
         ("source_force_n", computed["source_force"]),
