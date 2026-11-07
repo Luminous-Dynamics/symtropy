@@ -854,3 +854,12 @@ No result should be called “better than SOTA” unless it reproduces a specifi
 ### Exact-head bridge qualification (7 November 2026)
 
 [PR #4037](https://github.com/Luminous-Dynamics/symtropy/pull/4037) now passes exact-head workflow [#42368221801](https://github.com/Luminous-Dynamics/symtropy/actions/runs/42368221801) on commit `b48fa8e324f64c95ceb3bff7d7e7275ff08822d3`. It passes format, strict Clippy, locked compile, 14 library tests and a deterministic 15-roster action replay through the shared energy ledger. The run uploads a source-bound CSV bridge artifact. This qualifies software integration and accounting behaviour for its synthetic contract; it does not establish real-world energy conversion, human cooperation effects or predictive validity.
+
+
+## 16. Conditional normative evaluation reference (7 November 2026)
+
+[CIVDYN-THERMO-AGENCY-001 #4014](https://github.com/Luminous-Dynamics/symtropy/issues/4014) has a first executable premise-audit child in [draft PR #4046](https://github.com/Luminous-Dynamics/symtropy/pull/4046).
+
+The evaluator applies explicit premise rules to a frozen outcome snapshot and returns supported / contradicted / undetermined per premise. It does not assign a universal profile score. The synthetic control yields an aggregate-consequence pass while equal-consideration, rights-constrained and intergenerational-stewardship profiles are contradicted. This is a software control of conditional evaluation, not an empirical moral claim.
+
+Exact-head CI [#42369557120](https://github.com/Luminous-Dynamics/symtropy/actions/runs/42369557120) passed on 7 November 2026: 8 library tests, 2 binary tests, fmt, strict Clippy, locked compile and CSV evidence checks. The physical resource ledger remains the accounting authority; no thermodynamic or normative truth claim is upgraded by this pass.
