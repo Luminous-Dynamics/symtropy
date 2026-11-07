@@ -1,0 +1,19 @@
+[workspace]
+members = ["."]
+resolver = "3"
+
+[package]
+name = "scan-bim-admission-oracle"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0 OR MIT"
+description = "Independent synthetic oracle for evidence-qualified scan-to-BIM admission"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+
+[lints.rust]
+unsafe_code = "forbid"
