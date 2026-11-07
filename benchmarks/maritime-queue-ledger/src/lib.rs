@@ -322,6 +322,7 @@ pub enum LedgerError {
     SupersessionClassMismatch(String),
     SupersessionChronology(String),
     MultipleCorrections(String),
+    SupersessionCycle(String),
     ConflictingObservation {
         entity_id: String,
         semantic_kind: String,
@@ -438,6 +439,17 @@ fn resolve_observations<'a, T: LedgerObservation>(
             ));
         }
         superseded.insert(parent_id);
+    }
+
+    for parent_id in child_by_parent.keys() {
+        let mut visited = BTreeSet::new();
+        let mut current = *parent_id;
+        while let Some(next_id) = child_by_parent.get(current) {
+            if !visited.insert(current) {
+                return Err(LedgerError::SupersessionCycle(current.to_owned()));
+            }
+            current = next_id;
+        }
     }
 
     let active: Vec<&T> = visible
