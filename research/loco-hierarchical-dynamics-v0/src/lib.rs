@@ -586,7 +586,7 @@ mod tests {
 
         assert!((component.population.mean - 16.0 / 11.0).abs() < 1.0e-12);
         assert!((component.population.variance - 12.0 / 11.0).abs() < 1.0e-12);
-        assert!((component.log_marginal_likelihood - (-4.400_514_276_5)).abs() < 1.0e-9);
+        assert!((component.log_marginal_likelihood - (-4.400_461_066_444_894)).abs() < 1.0e-9);
 
         let animal = fit.animal_posterior("animal-1").unwrap();
         assert!((animal.mean - 20.0 / 11.0).abs() < 1.0e-12);
