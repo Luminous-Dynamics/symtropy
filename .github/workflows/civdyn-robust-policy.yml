@@ -1,0 +1,150 @@
+name: CivDyn robust policy analysis reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-robust-policy/**"
+      - "research/civdyn-resilience-uq/**"
+      - "research/civdyn-cross-scale-resilience/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-robust-policy.yml"
+  push:
+    paths:
+      - "research/civdyn-robust-policy/**"
+      - "research/civdyn-resilience-uq/**"
+      - "research/civdyn-cross-scale-resilience/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-robust-policy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute robust policy analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-robust-policy/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-robust-policy/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-robust-policy/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-robust-policy/Cargo.toml --all-targets
+
+      - name: Execute finite-design policy feasibility and regret sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-robust-policy-evidence
+          cargo run --locked --manifest-path research/civdyn-robust-policy/Cargo.toml --bin robust-policy-sweep \
+            | tee target/civdyn-robust-policy-evidence/robust-policy-sweep.csv
+
+      - name: Verify matched policies, native-unit regrets and finite-design constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+          from math import isfinite
+
+          path = Path("target/civdyn-robust-policy-evidence/robust-policy-sweep.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) == 507, f"expected 507 rows, got {len(rows)}"
+          assert all(len(row) == 40 for row in rows)
+          by_type = {}
+          for row in rows:
+              by_type.setdefault(row["record_type"], []).append(row)
+          assert {key: len(value) for key, value in by_type.items()} == {
+              "design_run": 360,
+              "constraint_summary": 12,
+              "metric_regret": 108,
+              "winner_instability": 27,
+          }
+
+          policies = {"no_transfer", "proportional_solidarity", "deficit_first", "reserve_protected"}
+          shocks = {"water_supply", "energy_supply", "compound_water_energy"}
+          metrics = {
+              "total_unmet_water_m3", "total_unmet_energy_kwh",
+              "water_deficit_area_household_steps", "energy_deficit_area_household_steps",
+              "minimum_water_coverage", "minimum_energy_coverage",
+              "water_floor_breach_fraction", "energy_floor_breach_fraction",
+              "recovery_success",
+          }
+
+          design_runs = by_type["design_run"]
+          assert len({row["design_id"] for row in design_runs}) == 30
+          assert {row["policy"] for row in design_runs} == policies
+          assert {row["shock_kind"] for row in design_runs} == shocks
+          assert all(row["total_unmet_water_m3"] and row["total_unmet_energy_kwh"] for row in design_runs)
+          assert all(0.0 <= float(row["minimum_water_coverage"]) <= 1.0 for row in design_runs)
+          assert all(0.0 <= float(row["minimum_energy_coverage"]) <= 1.0 for row in design_runs)
+
+          constraints = by_type["constraint_summary"]
+          assert {(row["shock_kind"], row["policy"]) for row in constraints} == {
+              (shock, policy) for shock in shocks for policy in policies
+          }
+          for row in constraints:
+              assert row["lhs_point_count"] == "30"
+              assert row["valid_point_count"] == "30"
+              assert row["unknown_point_count"] == "0"
+              assert int(row["constraint_pass_count"]) + int(row["constraint_fail_count"]) == 30
+              assert row["finite_design_robust_feasible"] in {"true", "false"}
+
+          regrets = by_type["metric_regret"]
+          assert {(row["shock_kind"], row["policy"], row["metric"]) for row in regrets} == {
+              (shock, policy, metric)
+              for shock in shocks for policy in policies for metric in metrics
+          }
+          for row in regrets:
+              assert row["lhs_point_count"] == "30"
+              assert row["valid_point_count"] == "30"
+              assert row["unknown_point_count"] == "0"
+              for key in ("mean_regret", "p95_regret", "worst_regret"):
+                  assert isfinite(float(row[key])) and float(row[key]) >= 0.0
+              assert 0.0 <= float(row["best_fraction"]) <= 1.0
+
+          winners = by_type["winner_instability"]
+          assert {(row["shock_kind"], row["metric"]) for row in winners} == {
+              (shock, metric) for shock in shocks for metric in metrics
+          }
+          for row in winners:
+              assert row["unknown_comparison_points"] == "0"
+              assert int(row["distinct_best_policy_count"]) in range(1, 5)
+              assert int(row["unique_winner_points"]) + int(row["tied_winner_points"]) == 30
+
+          # Ensure the output remains a vector: no universal/weighted resilience score.
+          assert all(row["metric"] in metrics for row in regrets)
+          print("CIVDYN-ROBUST-001 matched policy design, finite-design feasibility, native-unit regret and winner-instability controls verified.")
+          PY
+
+          {
+            echo "## CIVDYN-ROBUST-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-robust-policy-evidence/robust-policy-sweep.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: deterministic finite LHS design; not calibrated probabilities or continuous robust feasibility"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload robust policy evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-robust-policy-sweep
+          path: target/civdyn-robust-policy-evidence/robust-policy-sweep.csv
+          if-no-files-found: error
+          retention-days: 30
