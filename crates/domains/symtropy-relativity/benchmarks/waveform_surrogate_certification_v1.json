@@ -9,10 +9,13 @@
       "reference": "arXiv:2607.24960",
       "reported_domain": "q in [1,4], component spin magnitudes <=0.8",
       "reported_validation_waveforms": 10000,
-      "reported_median_mismatch": [8e-5, 1.7e-4],
-      "reported_95th_percentile_mismatch_upper_bound": 1e-3,
+      "reported_median_mismatch": [
+        0.00008,
+        0.00017
+      ],
+      "reported_95th_percentile_mismatch_upper_bound": 0.001,
       "reported_device": "NVIDIA L40S",
-      "reported_latency_ms": 1.0
+      "reported_latency_ms": 1
     },
     {
       "id": "NRSur7dq4v2",
@@ -39,8 +42,8 @@
       "id": "NRSurE_q4NoSpin_22",
       "reference": "PR Research 8, 023362 (2026), DOI 10.1103/5m8n-r746",
       "reported_domain": "eccentric, nonspinning, q up to about 4, (2,2) mode",
-      "reported_median_mismatch": 4e-5,
-      "reported_maximum_mismatch": 6e-4
+      "reported_median_mismatch": 0.00004,
+      "reported_maximum_mismatch": 0.0006
     }
   ],
   "split_policy": {
@@ -64,7 +67,13 @@
       "error versus wall time",
       "error versus peak memory"
     ],
-    "report_distribution": ["median", "90th_percentile", "95th_percentile", "99th_percentile", "maximum"],
+    "report_distribution": [
+      "median",
+      "90th_percentile",
+      "95th_percentile",
+      "99th_percentile",
+      "maximum"
+    ],
     "do_not_compare_without_matching": [
       "parameter domain",
       "waveform modes",
@@ -163,5 +172,34 @@
     "https://doi.org/10.1103/qqln-f8vy",
     "https://doi.org/10.1103/5m8n-r746",
     "https://arxiv.org/abs/2610.24283"
+  ],
+  "rust_comparison_kernel": {
+    "module": "crates/domains/symtropy-relativity/src/waveform_metrics.rs",
+    "status": "source_and_synthetic_tests_authored_not_executed",
+    "inner_product": "4*delta_f*sum(conjugate(h_reference)*h_candidate/one_sided_psd)",
+    "grid_contract": "reference strain, candidate strain and PSD use the same strictly increasing uniform frequency grid; no interpolation is performed",
+    "alignment_contract": "caller must time-align using a pinned procedure; kernel analytically maximizes over one constant phase only and returns the phase offset",
+    "reported_metrics": [
+      "real normalized overlap before phase maximization",
+      "constant-phase-maximized overlap and mismatch",
+      "best constant phase offset",
+      "PSD-weighted relative amplitude L2 error",
+      "reference-amplitude/PSD-weighted frequency-dependent phase residual RMS",
+      "per-frequency relative amplitude and phase residuals"
+    ],
+    "explicit_nonoperations": [
+      "no time-shift maximization",
+      "no interpolation or resampling",
+      "no windowing or whitening",
+      "no PSD estimation"
+    ],
+    "tests_authored": 10,
+    "test_status": "not executed; rustc and cargo unavailable in editing environment"
+  },
+  "next_execution_steps": [
+    "run the exact Rust waveform-metric synthetic tests",
+    "cross-check overlap, mismatch, amplitude error and phase residual against an independent Python/NumPy reference",
+    "test PSD weighting and pre-alignment sensitivity on a pinned SXS waveform pair",
+    "propagate a measured waveform discrepancy into a small posterior-recovery injection before making surrogate-accuracy claims"
   ]
 }
