@@ -222,15 +222,15 @@ fn validate_confidence(
     actor_id: &str,
     actor_kind: &'static str,
 ) -> Result<(), EvaluatorError> {
-    if let Some(value) = confidence {
-        if !value.is_finite() || !(0.0..=1.0).contains(&value) {
-            return Err(EvaluatorError::InvalidConfidence {
-                case_id: case_id.to_owned(),
-                actor_id: actor_id.to_owned(),
-                actor_kind,
-                value,
-            });
-        }
+    if let Some(value) = confidence
+        && (!value.is_finite() || !(0.0..=1.0).contains(&value))
+    {
+        return Err(EvaluatorError::InvalidConfidence {
+            case_id: case_id.to_owned(),
+            actor_id: actor_id.to_owned(),
+            actor_kind,
+            value,
+        });
     }
     Ok(())
 }
@@ -639,7 +639,7 @@ fn panel_metrics_from_refs(cases: &[&EvaluationCase], category_count: usize) -> 
             .sum::<usize>();
         total_disagreeing_pairs += pairs - agree_pairs;
         total_entropy += entropy_bits_from_counts(&counts, n);
-        if counts.iter().any(|count| *count == n) {
+        if counts.contains(&n) {
             unanimous_case_count += 1;
         }
     }
@@ -706,7 +706,7 @@ fn judge_metrics(judge_id: &str, cases: &[&EvaluationCase], category_count: usiz
     let mut confidence_sum = 0.0;
     let mut confidence_gap_sum = 0.0;
     let mut confidence_count = 0usize;
-    let mut bins = vec![(0usize, 0.0_f64, 0.0_f64); CALIBRATION_BINS];
+    let mut bins = [(0usize, 0.0_f64, 0.0_f64); CALIBRATION_BINS];
 
     for case in cases {
         let Some(prediction) = case
@@ -717,12 +717,12 @@ fn judge_metrics(judge_id: &str, cases: &[&EvaluationCase], category_count: usiz
             continue;
         };
         let target = panel_distribution(case, category_count);
-        for category in 0..category_count {
+        for (category, target_probability) in target.iter().enumerate().take(category_count) {
             let probability = prediction.probabilities[category];
-            let delta = probability - target[category];
+            let delta = probability - target_probability;
             brier_sum += delta * delta;
-            if target[category] > 0.0 {
-                cross_entropy_sum -= target[category] * probability.max(LOG_FLOOR).ln();
+            if *target_probability > 0.0 {
+                cross_entropy_sum -= target_probability * probability.max(LOG_FLOOR).ln();
             }
         }
 
