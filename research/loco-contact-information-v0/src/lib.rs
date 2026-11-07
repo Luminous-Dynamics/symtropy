@@ -115,7 +115,6 @@ pub enum ContactInformationError {
     InvalidCovariance,
     NonFiniteValue,
     InvalidNoiseVariance,
-    NoiseIndependenceNotVerified,
     NoiseIndependenceCertificateMismatch,
     ActionDeliveryNotVerified,
     ActionReceiptMismatch,
@@ -934,18 +933,114 @@ mod tests {
     }
 
     #[test]
-    fn correlated_measurement_noise_is_rejected() {
-        let mut m = model(
-            "model-x",
-            "sensor-x",
+    fn correlated_measurement_noise_requires_one_joint_certificate() {
+        let a = model(
+            "model-a",
+            "sensor-a",
             SensorChannel::D2NearFootWrench,
             [1.0, 0.0, 0.0],
             1.0,
         );
-        m.noise_independence_certificate_id.clear();
+        let mut b = model(
+            "model-b",
+            "sensor-b",
+            SensorChannel::D3Proprioceptive,
+            [0.0, 1.0, 0.0],
+            1.0,
+        );
+        b.noise_independence_certificate_id = "different-certificate".to_owned();
         assert_eq!(
-            expected_information_gain(&prior(), &[m]),
-            Err(ContactInformationError::EmptyIdentifier)
+            expected_information_gain(&prior(), &[a, b]),
+            Err(ContactInformationError::NoiseIndependenceCertificateMismatch)
+        );
+    }
+
+    #[test]
+    fn observation_replayed_under_another_action_receipt_is_rejected() {
+        let m = model(
+            "model-x",
+            "sensor-x",
+            SensorChannel::D1Interface,
+            [1.0, 0.0, 0.0],
+            1.0,
+        );
+        let mut o = observation(
+            "evidence-1",
+            "model-x",
+            "sensor-x",
+            SensorChannel::D1Interface,
+            1.0,
+            10,
+            11,
+        );
+        o.action_execution_receipt_id = "other-execution".to_owned();
+        assert_eq!(
+            update_with_observations(
+                &prior(),
+                &[m],
+                &[o],
+                &execution_receipt(),
+                20,
+                20
+            ),
+            Err(ContactInformationError::ActionReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn action_model_must_match_verified_command_identity() {
+        let m = model(
+            "model-x",
+            "sensor-x",
+            SensorChannel::D1Interface,
+            [1.0, 0.0, 0.0],
+            1.0,
+        );
+        let o = observation(
+            "evidence-1",
+            "model-x",
+            "sensor-x",
+            SensorChannel::D1Interface,
+            1.0,
+            10,
+            11,
+        );
+        let mut receipt = execution_receipt();
+        receipt.command_action_id = "different-command".to_owned();
+        assert_eq!(
+            update_with_observations(&prior(), &[m], &[o], &receipt, 20, 20),
+            Err(ContactInformationError::ActionModelMismatch)
+        );
+    }
+
+    #[test]
+    fn unverified_action_delivery_is_rejected() {
+        let mut receipt = execution_receipt();
+        receipt.delivery_verified = false;
+        assert_eq!(
+            update_with_observations(
+                &prior(),
+                &[model(
+                    "model-x",
+                    "sensor-x",
+                    SensorChannel::D1Interface,
+                    [1.0, 0.0, 0.0],
+                    1.0,
+                )],
+                &[observation(
+                    "evidence-1",
+                    "model-x",
+                    "sensor-x",
+                    SensorChannel::D1Interface,
+                    1.0,
+                    10,
+                    11,
+                )],
+                &receipt,
+                20,
+                20
+            ),
+            Err(ContactInformationError::ActionDeliveryNotVerified)
         );
     }
 
