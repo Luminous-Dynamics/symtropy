@@ -29,7 +29,7 @@ Conflicting active observations of the same entity, event meaning and event clas
 
 ## Vessel queue
 
-The reporting interval is half-open [start_tick, end_tick). A call's eligible arrival adds one to the queue. Berth entry, diversion, cancellation and another declared terminal exit subtract one. The input carries an opening queue stock at the start of the window.
+The reporting interval is half-open [start_tick, end_tick). A call's eligible arrival adds one to the queue. Berth entry, diversion, cancellation and another declared terminal exit subtract one. The opening queue is not a bare integer: it is a source-bound receipt for the exact terminal and window-start measurement, with a separate observation tick. The receipt must be rights-reviewed and known by the requested as-of cut-off.
 
 The audit checks:
 - terminal and time-basis identity;
@@ -44,19 +44,19 @@ It reports opening/closing stock, arrivals, exits, peak queue, queue area and ac
 
 ## Cargo inventory
 
-A cargo ledger fixes one terminal, inventory scope, reporting window and unit. Its event types distinguish vessel discharge/load, gate-in/out, rail-in/out and other declared movements. Inflows and outflows change the stock; actual events only.
+A cargo ledger fixes one terminal, inventory scope, reporting window and unit. Its opening inventory is a source-bound receipt that must match the same terminal, exact inventory scope, unit and window-start measurement, and must have been observed by the requested as-of cut-off. Its event types distinguish vessel discharge/load, gate-in/out, rail-in/out and other declared movements. Inflows and outflows change the stock; actual events only.
 
 The audit reports opening/closing inventory, inbound/outbound quantity, peak inventory and inventory area. It does not equate throughput with completed end-to-end delivery. Rehandles, transhipment, loaded/empty, import/export and reefer/OOG subdivisions need their own source-supported scopes and definitions before being composed.
 
 ## Rights and cryptographic boundary
 
-Every admitted source record requires a reviewed-allowed rights state, a rights-reference, and a syntactically valid SHA-256 digest. The digest is not recomputed here: the crate does not receive or hash the raw source bytes. A digest proves no publisher identity, authenticity, lawful reuse or measurement truth by itself.
+Every event observation and both opening-stock receipts require a reviewed-allowed rights state, a rights-reference, and a syntactically valid SHA-256 digest. The digest is not recomputed here: the crate does not receive or hash the raw source bytes. A digest proves no publisher identity, authenticity, lawful reuse or measurement truth by itself.
 
 Unknown or restricted rights block the snapshot. Source rights and authenticity require external review.
 
 ## Synthetic tests and independent reference
 
-The unit test corpus contains **15 adversarial/known-answer controls**, including:
+The unit test corpus contains **18 adversarial/known-answer controls**, including:
 - queue and cargo stock conservation;
 - peak stock and area-under-curve arithmetic;
 - plan/request/estimate exclusion;
@@ -66,6 +66,7 @@ The unit test corpus contains **15 adversarial/known-answer controls**, includin
 - call chronology, half-open window boundary and correction-fork behavior;
 - future bad observations cannot invalidate an earlier as-of snapshot;
 - one cargo movement ID cannot encode two actual movement kinds;
+- source-bound opening queue/inventory scope, time, unit, rights and as-of checks;
 - unit mismatch and rights blocking.
 
 A separate test-only oracle recomputes queue stock one integer tick at a time over **768 frozen scenarios**. It does not call the production resolver, event bucketing or area functions.
