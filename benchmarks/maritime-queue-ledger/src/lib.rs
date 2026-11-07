@@ -147,14 +147,24 @@ impl LedgerObservation for VesselEventObservation {
     }
 }
 
+/// Source-bound queue stock snapshot at the start of a reporting window.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OpeningVesselQueue {
+    pub terminal_id: String,
+    pub queue_count: u64,
+    pub measured_tick: u64,
+    pub observed_tick: u64,
+    pub source: SourceEvidence,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VesselQueueLedger {
     pub ledger_id: String,
     pub terminal_id: String,
     pub time_basis_id: String,
     pub window: TickWindow,
-    /// Queue stock at the start of the half-open interval [start, end).
-    pub opening_queue: u64,
+    /// Rights-reviewed source receipt for the queue stock at window start.
+    pub opening: OpeningVesselQueue,
     pub observations: Vec<VesselEventObservation>,
 }
 
@@ -246,6 +256,18 @@ impl LedgerObservation for CargoMovementObservation {
     }
 }
 
+/// Source-bound inventory snapshot for one terminal, scope and unit.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OpeningCargoInventory {
+    pub terminal_id: String,
+    pub inventory_scope_id: String,
+    pub unit: CargoUnit,
+    pub quantity: u64,
+    pub measured_tick: u64,
+    pub observed_tick: u64,
+    pub source: SourceEvidence,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CargoInventoryLedger {
     pub ledger_id: String,
@@ -254,7 +276,8 @@ pub struct CargoInventoryLedger {
     pub time_basis_id: String,
     pub window: TickWindow,
     pub unit: CargoUnit,
-    pub opening_inventory: u64,
+    /// Rights-reviewed source receipt for opening inventory at window start.
+    pub opening: OpeningCargoInventory,
     pub observations: Vec<CargoMovementObservation>,
 }
 
@@ -282,6 +305,9 @@ pub enum LedgerError {
     EmptyInventoryScope,
     InvalidWindow,
     SnapshotBeforeWindow,
+    OpeningStockScopeMismatch(String),
+    OpeningStockTimeMismatch(String),
+    OpeningStockNotObservedAtCutoff(String),
     InvalidSourceEvidence(String),
     RightsUnknown(String),
     RightsRestricted(String),
@@ -439,6 +465,34 @@ fn resolve_observations<'a, T: LedgerObservation>(
     Ok(active)
 }
 
+fn validate_opening_stock(
+    source: &SourceEvidence,
+    receipt_terminal_id: &str,
+    expected_terminal_id: &str,
+    measured_tick: u64,
+    observed_tick: u64,
+    window: TickWindow,
+    as_of_tick: u64,
+    scope_id: &str,
+) -> Result<(), LedgerError> {
+    if receipt_terminal_id != expected_terminal_id {
+        return Err(LedgerError::OpeningStockScopeMismatch(
+            scope_id.to_owned(),
+        ));
+    }
+    if measured_tick != window.start_tick || observed_tick < measured_tick {
+        return Err(LedgerError::OpeningStockTimeMismatch(
+            scope_id.to_owned(),
+        ));
+    }
+    if observed_tick > as_of_tick {
+        return Err(LedgerError::OpeningStockNotObservedAtCutoff(
+            scope_id.to_owned(),
+        ));
+    }
+    source.validate()
+}
+
 fn validate_actual_event(
     header: &EventHeader,
     window: TickWindow,
@@ -499,6 +553,16 @@ pub fn audit_vessel_queue(
         return Err(LedgerError::SnapshotBeforeWindow);
     }
 
+    validate_opening_stock(
+        &ledger.opening.source,
+        &ledger.opening.terminal_id,
+        &ledger.terminal_id,
+        ledger.opening.measured_tick,
+        ledger.opening.observed_tick,
+        ledger.window,
+        as_of_tick,
+        &ledger.ledger_id,
+    )?;
     let active = resolve_observations(&ledger.observations, as_of_tick)?;
     for observation in &active {
         if observation.terminal_id != ledger.terminal_id {
@@ -554,7 +618,7 @@ pub fn audit_vessel_queue(
         }
     }
 
-    let mut queue = ledger.opening_queue;
+    let mut queue = ledger.opening.queue_count;
     let mut peak = queue;
     let mut arrivals = 0_u128;
     let mut exits = 0_u128;
@@ -589,7 +653,7 @@ pub fn audit_vessel_queue(
     Ok(VesselQueueReport {
         ledger_id: ledger.ledger_id.clone(),
         as_of_tick,
-        opening_queue: ledger.opening_queue,
+        opening_queue: ledger.opening.queue_count,
         closing_queue: queue,
         arrivals,
         exits,
@@ -626,6 +690,23 @@ pub fn audit_cargo_inventory(
         return Err(LedgerError::SnapshotBeforeWindow);
     }
 
+    if ledger.opening.inventory_scope_id != ledger.inventory_scope_id
+        || ledger.opening.unit != ledger.unit
+    {
+        return Err(LedgerError::OpeningStockScopeMismatch(
+            ledger.inventory_scope_id.clone(),
+        ));
+    }
+    validate_opening_stock(
+        &ledger.opening.source,
+        &ledger.opening.terminal_id,
+        &ledger.terminal_id,
+        ledger.opening.measured_tick,
+        ledger.opening.observed_tick,
+        ledger.window,
+        as_of_tick,
+        &ledger.inventory_scope_id,
+    )?;
     let active = resolve_observations(&ledger.observations, as_of_tick)?;
     let mut movement_ids_by_class = BTreeSet::new();
     for observation in &active {
@@ -685,7 +766,7 @@ pub fn audit_cargo_inventory(
         actual_observations_applied += 1;
     }
 
-    let mut inventory = ledger.opening_inventory;
+    let mut inventory = ledger.opening.quantity;
     let mut peak = inventory;
     let mut inbound = 0_u128;
     let mut outbound = 0_u128;
@@ -721,7 +802,7 @@ pub fn audit_cargo_inventory(
         ledger_id: ledger.ledger_id.clone(),
         as_of_tick,
         unit: ledger.unit,
-        opening_inventory: ledger.opening_inventory,
+        opening_inventory: ledger.opening.quantity,
         closing_inventory: inventory,
         inbound_quantity: inbound,
         outbound_quantity: outbound,
