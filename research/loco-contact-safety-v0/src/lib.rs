@@ -396,7 +396,10 @@ mod tests {
         assert!((assessment.per_constraint_alpha - 0.01).abs() < 1.0e-15);
         assert!((assessment.gaussian_quantile - 2.326_347_874_040_840_8).abs() < 2.0e-8);
         assert!(assessment.admitted);
-        assert_eq!(assessment.familywise_violation_probability_upper_bound, Some(0.05));
+        assert_eq!(
+            assessment.familywise_violation_probability_upper_bound,
+            Some(0.05)
+        );
     }
 
     #[test]
@@ -418,7 +421,12 @@ mod tests {
         );
         let assessment = assess_action(&action, limits(), alpha).unwrap();
         assert!(assessment.admitted);
-        assert!(assessment.constraints.iter().all(|constraint| constraint.passed));
+        assert!(
+            assessment
+                .constraints
+                .iter()
+                .all(|constraint| constraint.passed)
+        );
     }
 
     #[test]
@@ -436,20 +444,32 @@ mod tests {
             let action = prediction("violating", means, [0.0; 5], 10.0);
             let assessment = assess_action(&action, limits(), 0.05).unwrap();
             assert!(!assessment.admitted, "constraint index {index}");
-            assert_eq!(assessment.familywise_violation_probability_upper_bound, None);
+            assert_eq!(
+                assessment.familywise_violation_probability_upper_bound,
+                None
+            );
             assert!(!assessment.constraints[index].passed);
         }
     }
 
     #[test]
     fn high_information_unsafe_candidate_is_rejected_before_ranking() {
-        let high_eig_unsafe = prediction("high-eig-unsafe", [1.0, -0.2, 5.0, 0.2, 0.3], [0.01; 5], 100.0);
-        let lower_eig_safe = prediction("lower-eig-safe", [1.0, 0.5, 5.0, 0.2, 0.3], [0.01; 5], 0.1);
+        let high_eig_unsafe = prediction(
+            "high-eig-unsafe",
+            [1.0, -0.2, 5.0, 0.2, 0.3],
+            [0.01; 5],
+            100.0,
+        );
+        let lower_eig_safe =
+            prediction("lower-eig-safe", [1.0, 0.5, 5.0, 0.2, 0.3], [0.01; 5], 0.1);
         let unsafe_result = assess_action(&high_eig_unsafe, limits(), 0.05).unwrap();
         let safe_result = assess_action(&lower_eig_safe, limits(), 0.05).unwrap();
         assert!(!unsafe_result.admitted);
         assert!(safe_result.admitted);
-        assert!(unsafe_result.expected_information_gain_nats > safe_result.expected_information_gain_nats);
+        assert!(
+            unsafe_result.expected_information_gain_nats
+                > safe_result.expected_information_gain_nats
+        );
     }
 
     #[test]
@@ -491,7 +511,11 @@ mod tests {
         let safe = prediction("zero-var-safe", [1.0, 0.5, 5.0, 0.2, 0.3], [0.0; 5], 0.0);
         let unsafe_action = prediction("zero-var-unsafe", [6.0, 0.5, 5.0, 0.2, 0.3], [0.0; 5], 0.0);
         assert!(assess_action(&safe, limits(), 0.05).unwrap().admitted);
-        assert!(!assess_action(&unsafe_action, limits(), 0.05).unwrap().admitted);
+        assert!(
+            !assess_action(&unsafe_action, limits(), 0.05)
+                .unwrap()
+                .admitted
+        );
     }
 
     #[test]
