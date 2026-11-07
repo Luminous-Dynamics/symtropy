@@ -901,7 +901,10 @@ mod tests {
         assert_eq!(report.morris_points.len(), 2 * (FACTOR_COUNT + 1));
         assert_eq!(
             report.morris_effects.len(),
-            FACTOR_COUNT * ShockKind::ALL.len() * InterventionPolicy::ALL.len() * OutcomeMetric::ALL.len()
+            FACTOR_COUNT
+                * ShockKind::ALL.len()
+                * InterventionPolicy::ALL.len()
+                * OutcomeMetric::ALL.len()
         );
         assert!(
             report
