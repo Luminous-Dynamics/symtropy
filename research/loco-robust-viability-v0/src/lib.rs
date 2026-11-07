@@ -368,7 +368,7 @@ fn robust_predecessor(
         let actions = system
             .actions_by_state
             .get(&state.id)
-            .map_or(&[], Vec::as_slice);
+            .map_or(&[] as &[ActionSpec], Vec::as_slice);
 
         for action in actions {
             let violating_successors = action
@@ -811,7 +811,7 @@ mod tests {
                         let successor_masks = [a_mask, b_mask, c_mask];
                         let states = (0..3)
                             .map(|index| {
-                                state(&format!("s{index}"), safe_mask & (1 << *index) != 0, false)
+                                state(&format!("s{index}"), safe_mask & (1 << index) != 0, false)
                             })
                             .collect::<Vec<_>>();
                         let actions = (0..3)
