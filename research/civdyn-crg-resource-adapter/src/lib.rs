@@ -620,4 +620,117 @@ mod tests {
             ],
         );
     }
+
+    fn tiny_region(id: &str, energy_kwh: f64) -> Region {
+        Region {
+            id: id.to_owned(),
+            population: 0.0,
+            opening_stock: ResourceVector::new(0.0, energy_kwh, 0.0),
+            essential_demand_per_capita: ResourceVector::default(),
+        }
+    }
+
+    #[test]
+    fn over_transfer_is_reported_as_a_partial_receipt_not_silent_delivery() {
+        let mut world = World::new(vec![
+            tiny_region("donor", 1.0),
+            tiny_region("shared", 0.0),
+        ])
+        .unwrap();
+        let request = TransferRequest {
+            from_region: 0,
+            to_region: 1,
+            amount: ResourceVector::new(0.0, 1.0, 0.0),
+        };
+        let input = StepInput {
+            production: vec![Production::default(); 2],
+            transfers: vec![request, request],
+        };
+        let report = world
+            .step(&input, TransferPolicy::Unrestricted)
+            .unwrap();
+
+        assert!(close_enough(
+            report.transfers[0].delivered.energy_kwh,
+            1.0,
+        ));
+        assert!(close_enough(
+            report.transfers[1].requested.energy_kwh,
+            1.0,
+        ));
+        assert!(close_enough(
+            report.transfers[1].delivered.energy_kwh,
+            0.0,
+        ));
+        assert!(report.regions.iter().all(|region| region.ledger.is_conserved()));
+    }
+
+    #[test]
+    fn ledger_rejects_out_of_range_and_self_transfer_endpoints() {
+        let mut world = World::new(vec![
+            tiny_region("donor", 1.0),
+            tiny_region("shared", 0.0),
+        ])
+        .unwrap();
+        let invalid_destination = StepInput {
+            production: vec![Production::default(); 2],
+            transfers: vec![TransferRequest {
+                from_region: 0,
+                to_region: 2,
+                amount: ResourceVector::new(0.0, 1.0, 0.0),
+            }],
+        };
+        assert!(matches!(
+            world.step(&invalid_destination, TransferPolicy::Unrestricted),
+            Err(WorldError::RegionIndexOutOfRange { index: 2, .. }),
+        ));
+
+        let self_transfer = StepInput {
+            production: vec![Production::default(); 2],
+            transfers: vec![TransferRequest {
+                from_region: 0,
+                to_region: 0,
+                amount: ResourceVector::new(0.0, 1.0, 0.0),
+            }],
+        };
+        assert!(matches!(
+            world.step(&self_transfer, TransferPolicy::Unrestricted),
+            Err(WorldError::SelfTransfer { .. }),
+        ));
+    }
+
+    #[test]
+    fn adapter_rejects_wrong_destination_and_wrong_resource_unit_mutations() {
+        let mut wrong_destination = run_case(0.9, roster("all_fixed_fair_share")).unwrap();
+        wrong_destination.ticks[0].transfers[0].to_region = 0;
+        assert!(matches!(
+            validate_episode(&wrong_destination),
+            Err(BridgeError::Invariant(_)),
+        ));
+
+        let mut wrong_unit = run_case(0.9, roster("all_fixed_fair_share")).unwrap();
+        wrong_unit.ticks[0].transfers[0].requested.water_m3 = 1.0;
+        assert!(matches!(
+            validate_episode(&wrong_unit),
+            Err(BridgeError::Invariant(_)),
+        ));
+    }
+
+    #[test]
+    fn roster_label_changes_do_not_change_game_or_resource_outcomes() {
+        let original = run_case(0.5, roster("all_zero")).unwrap();
+        let relabeled = run_case(
+            0.5,
+            PolicyRoster {
+                id: "narrative_label_perturbed",
+                strategies: [Strategy::AlwaysZero; SEATS],
+            },
+        )
+        .unwrap();
+
+        assert_eq!(original.game, relabeled.game);
+        assert_eq!(original.action_history, relabeled.action_history);
+        assert_eq!(original.ticks, relabeled.ticks);
+    }
+
 }
