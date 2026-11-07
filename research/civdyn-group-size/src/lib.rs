@@ -328,7 +328,7 @@ impl PolicyTable {
                 None => tie_probability_option0,
                 Some(majority) => {
                     let selected = if invert_majority { 1 - majority } else { majority };
-                    f64::from(selected == 0)
+                    if selected == 0 { 1.0 } else { 0.0 }
                 }
             };
             probabilities.push(probability);
@@ -345,6 +345,7 @@ impl PolicyTable {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GameConfig {
     pub population_size: usize,
+    pub memory_capacity: usize,
     pub max_population_rounds: usize,
     pub convergence_window: usize,
     pub convergence_threshold: f64,
@@ -357,6 +358,7 @@ impl GameConfig {
         if self.population_size < 2 {
             return Err(GroupSizeError::PopulationTooSmall(self.population_size));
         }
+        validate_memory_capacity(self.memory_capacity)?;
         if self.max_population_rounds == 0 {
             return Err(GroupSizeError::ZeroPopulationRounds);
         }
@@ -528,9 +530,9 @@ pub fn simulate_population(
 ) -> Result<RunOutcome, GroupSizeError> {
     config.validate()?;
     policy.validate()?;
-    if config_memory_capacity(config, policy) != policy.memory_capacity {
+    if config.memory_capacity != policy.memory_capacity {
         return Err(GroupSizeError::PolicyMemoryCapacityMismatch {
-            config: config_memory_capacity(config, policy),
+            config: config.memory_capacity,
             policy: policy.memory_capacity,
         });
     }
@@ -692,10 +694,6 @@ pub fn simulate_population(
     })
 }
 
-fn config_memory_capacity(_config: GameConfig, policy: &PolicyTable) -> usize {
-    policy.memory_capacity
-}
-
 fn rolling_action_unanimity(rounds: &[RoundMetrics], window: usize) -> bool {
     if rounds.len() < window {
         return false;
@@ -779,6 +777,7 @@ mod tests {
     fn config(population_size: usize, rounds: usize) -> GameConfig {
         GameConfig {
             population_size,
+            memory_capacity: 5,
             max_population_rounds: rounds,
             convergence_window: 3,
             convergence_threshold: 0.98,
@@ -903,6 +902,20 @@ mod tests {
         let result = simulate_population(config(24, 17), &policy, 42).unwrap();
         assert!(result.rounds.iter().all(|row| row.pairwise_interactions == 24));
         assert_eq!(result.total_pairwise_interactions, 24 * result.rounds_run());
+    }
+
+    #[test]
+    fn mismatched_config_and_policy_memory_capacities_fail_closed() {
+        let policy = PolicyTable::memory_independent("policy_h5", 5, order(), 0.5).unwrap();
+        let mut invalid = config(10, 20);
+        invalid.memory_capacity = 4;
+        assert!(matches!(
+            simulate_population(invalid, &policy, 1),
+            Err(GroupSizeError::PolicyMemoryCapacityMismatch {
+                config: 4,
+                policy: 5
+            })
+        ));
     }
 
     #[test]
