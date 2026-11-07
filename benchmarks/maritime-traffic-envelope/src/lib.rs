@@ -268,6 +268,7 @@ pub enum TrafficError {
     CoverageScopeMismatch,
     CoverageManifestSubjectMismatch,
     DuplicatePlanOperation(String),
+    DuplicatePlanSelection(String),
     DuplicateCoverageOperation(String),
     UnknownCoverageOperation(String),
     MissingCoverageOperation(String),
@@ -367,6 +368,331 @@ pub fn canonical_occupancy_subject_id(occupancy: &TrafficOccupancy, time_basis_i
         push_field(&mut identity, resource_unit_code(usage.unit));
     }
     identity
+}
+
+
+/// Canonical identity for a complete operation placement, including its
+/// resource uses. Resource-use order is treated as set-valued.
+pub fn canonical_operation_subject_id(operation: &OperationPlacement) -> String {
+    let mut identity = String::from("maritime-operation-v1");
+    let start_tick = operation.start_tick.to_string();
+    let end_tick = operation.end_tick.to_string();
+    for value in [
+        operation.demand_id.as_str(),
+        operation.participant_id.as_str(),
+        operation.alternative_id.as_str(),
+        operation.segment_id.as_str(),
+        start_tick.as_str(),
+        end_tick.as_str(),
+    ] {
+        push_field(&mut identity, value);
+    }
+
+    let mut resource_uses: Vec<(String, String, String)> = operation
+        .resource_uses
+        .iter()
+        .map(|usage| {
+            (
+                usage.resource_id.clone(),
+                usage.amount.to_string(),
+                resource_unit_code(usage.unit).to_owned(),
+            )
+        })
+        .collect();
+    resource_uses.sort();
+    push_field(&mut identity, &resource_uses.len().to_string());
+    for (resource_id, amount, unit) in resource_uses {
+        push_field(&mut identity, &resource_id);
+        push_field(&mut identity, &amount);
+        push_field(&mut identity, &unit);
+    }
+    identity
+}
+
+/// Canonical content identity for the full operation-to-traffic-resource map.
+/// Entries and required uses are set-valued, so equivalent ordering does not
+/// alter the digest subject.
+#[must_use]
+pub fn canonical_traffic_coverage_subject_id(manifest: &TrafficCoverageManifest) -> String {
+    let mut identity = String::from("maritime-traffic-coverage-v1");
+    push_field(&mut identity, &manifest.schema_version);
+    push_field(&mut identity, &manifest.corridor_id);
+    push_field(&mut identity, &manifest.time_basis_id);
+    push_field(&mut identity, &manifest.graph_revision);
+
+    let mut entries: Vec<&TrafficCoverageEntry> = manifest.entries.iter().collect();
+    entries.sort_by_key(|entry| canonical_operation_subject_id(&entry.operation));
+    push_field(&mut identity, &entries.len().to_string());
+
+    for entry in entries {
+        push_field(
+            &mut identity,
+            &canonical_operation_subject_id(&entry.operation),
+        );
+        push_field(&mut identity, &entry.route_revision);
+        push_field(
+            &mut identity,
+            entry.no_resource_basis.as_deref().unwrap_or(""),
+        );
+        let mut uses = entry.required_uses.clone();
+        uses.sort_by(|left, right| {
+            left.occupancy_id
+                .cmp(&right.occupancy_id)
+                .then_with(|| left.resource_id.cmp(&right.resource_id))
+                .then_with(|| left.direction_id.cmp(&right.direction_id))
+        });
+        push_field(&mut identity, &uses.len().to_string());
+        for required in uses {
+            push_field(&mut identity, &required.occupancy_id);
+            push_field(&mut identity, &required.resource_id);
+            push_field(
+                &mut identity,
+                required.direction_id.as_deref().unwrap_or(""),
+            );
+        }
+    }
+    identity
+}
+
+fn validate_coverage_manifest(
+    plan: &FleetPlan,
+    workload: &TrafficWorkload,
+    resources: &BTreeMap<&str, &TrafficResource>,
+) -> Result<BTreeSet<TrafficViolation>, TrafficError> {
+    let manifest = &workload.coverage;
+    if plan.operations.is_empty() {
+        return Err(TrafficError::EmptyPlanOperations);
+    }
+    if manifest.schema_version != "traffic-coverage-v1"
+        || manifest.graph_revision.trim().is_empty()
+        || manifest.entries.is_empty()
+    {
+        return Err(TrafficError::InvalidCoverageManifest);
+    }
+    if manifest.corridor_id != workload.corridor_id
+        || manifest.time_basis_id != workload.time_basis_id
+    {
+        return Err(TrafficError::CoverageScopeMismatch);
+    }
+    manifest.evidence.validate()?;
+    if manifest.evidence.subject_id != canonical_traffic_coverage_subject_id(manifest)
+        || manifest.evidence.subject_revision != manifest.graph_revision
+    {
+        return Err(TrafficError::CoverageManifestSubjectMismatch);
+    }
+
+    let mut plan_operations = BTreeMap::<String, &OperationPlacement>::new();
+    for operation in &plan.operations {
+        let key = canonical_operation_subject_id(operation);
+        if plan_operations.insert(key, operation).is_some() {
+            return Err(TrafficError::DuplicatePlanOperation(
+                operation.segment_id.clone(),
+            ));
+        }
+    }
+
+    let mut plan_selection_counts = BTreeMap::<&str, usize>::new();
+    for selection in &plan.selections {
+        *plan_selection_counts
+            .entry(selection.demand_id.as_str())
+            .or_default() += 1;
+    }
+
+    let mut entries_by_operation =
+        BTreeMap::<String, &TrafficCoverageEntry>::new();
+    let mut required_use_ids = BTreeSet::new();
+    for entry in &manifest.entries {
+        let operation_key = canonical_operation_subject_id(&entry.operation);
+        if !plan_operations.contains_key(&operation_key) {
+            return Err(TrafficError::UnknownCoverageOperation(
+                entry.operation.segment_id.clone(),
+            ));
+        }
+        if entries_by_operation
+            .insert(operation_key.clone(), entry)
+            .is_some()
+        {
+            return Err(TrafficError::DuplicateCoverageOperation(
+                entry.operation.segment_id.clone(),
+            ));
+        }
+        if entry.route_revision.trim().is_empty()
+            || entry.operation.start_tick >= entry.operation.end_tick
+        {
+            return Err(TrafficError::InvalidCoverageEntry(
+                entry.operation.segment_id.clone(),
+            ));
+        }
+
+        let matching_selection_count = plan_selection_counts
+            .get(entry.operation.demand_id.as_str())
+            .copied()
+            .unwrap_or(0);
+        if matching_selection_count == 0 {
+            return Err(TrafficError::MissingDemandSelection(
+                entry.operation.demand_id.clone(),
+            ));
+        }
+        if matching_selection_count > 1 {
+            return Err(TrafficError::DuplicatePlanSelection(
+                entry.operation.demand_id.clone(),
+            ));
+        }
+        let selection = plan
+            .selections
+            .iter()
+            .find(|selection| selection.demand_id == entry.operation.demand_id)
+            .expect("selection count checked");
+        if selection.participant_id != entry.operation.participant_id
+            || selection.alternative_id != entry.operation.alternative_id
+        {
+            return Err(TrafficError::PlanSelectionMismatch(
+                entry.operation.segment_id.clone(),
+            ));
+        }
+
+        if entry.required_uses.is_empty() {
+            if entry
+                .no_resource_basis
+                .as_ref()
+                .is_none_or(|basis| basis.trim().is_empty())
+            {
+                return Err(TrafficError::InvalidCoverageEntry(
+                    entry.operation.segment_id.clone(),
+                ));
+            }
+        } else if entry.no_resource_basis.is_some() {
+            return Err(TrafficError::InvalidCoverageEntry(
+                entry.operation.segment_id.clone(),
+            ));
+        }
+
+        for required in &entry.required_uses {
+            if required.occupancy_id.trim().is_empty()
+                || required.resource_id.trim().is_empty()
+                || !required_use_ids.insert(required.occupancy_id.as_str())
+            {
+                return Err(TrafficError::DuplicateRequiredTrafficUse(
+                    required.occupancy_id.clone(),
+                ));
+            }
+            let Some(resource) = resources.get(required.resource_id.as_str()).copied() else {
+                return Err(TrafficError::UnknownCoverageResource(
+                    required.resource_id.clone(),
+                ));
+            };
+            match resource.kind {
+                TrafficResourceKind::OneWayChannel => {
+                    if required
+                        .direction_id
+                        .as_ref()
+                        .is_none_or(|direction| direction.trim().is_empty())
+                    {
+                        return Err(TrafficError::DirectionSemanticsMismatch(
+                            required.occupancy_id.clone(),
+                        ));
+                    }
+                }
+                TrafficResourceKind::ConflictZone | TrafficResourceKind::MergeZone => {
+                    if required.direction_id.is_some() {
+                        return Err(TrafficError::DirectionSemanticsMismatch(
+                            required.occupancy_id.clone(),
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    for key in plan_operations.keys() {
+        if !entries_by_operation.contains_key(key) {
+            let operation = plan_operations[key];
+            return Err(TrafficError::MissingCoverageOperation(
+                operation.segment_id.clone(),
+            ));
+        }
+    }
+    if entries_by_operation.len() != plan_operations.len() {
+        return Err(TrafficError::InvalidCoverageManifest);
+    }
+
+    let mut occupancy_by_id = BTreeMap::<&str, &TrafficOccupancy>::new();
+    for occupancy in &workload.occupancies {
+        if occupancy_by_id
+            .insert(occupancy.occupancy_id.as_str(), occupancy)
+            .is_some()
+        {
+            return Err(TrafficError::DuplicateOccupancy(
+                occupancy.occupancy_id.clone(),
+            ));
+        }
+        let operation_key = canonical_operation_subject_id(&occupancy.operation);
+        let Some(entry) = entries_by_operation.get(&operation_key).copied() else {
+            return Err(TrafficError::UnmappedOccupancy(
+                occupancy.occupancy_id.clone(),
+            ));
+        };
+        let Some(required) = entry
+            .required_uses
+            .iter()
+            .find(|required| required.occupancy_id == occupancy.occupancy_id)
+        else {
+            return Err(TrafficError::UnmappedOccupancy(
+                occupancy.occupancy_id.clone(),
+            ));
+        };
+        if occupancy.operation != entry.operation
+            || occupancy.route_revision != entry.route_revision
+            || occupancy.resource_id != required.resource_id
+            || occupancy.direction_id != required.direction_id
+        {
+            return Err(TrafficError::CoverageRouteRevisionMismatch(
+                occupancy.occupancy_id.clone(),
+            ));
+        }
+    }
+
+    for entry in &manifest.entries {
+        for required in &entry.required_uses {
+            let Some(occupancy) = occupancy_by_id.get(required.occupancy_id.as_str()) else {
+                return Err(TrafficError::MissingRequiredOccupancy(
+                    required.occupancy_id.clone(),
+                ));
+            };
+            if occupancy.operation != entry.operation
+                || occupancy.route_revision != entry.route_revision
+                || occupancy.resource_id != required.resource_id
+                || occupancy.direction_id != required.direction_id
+            {
+                return Err(TrafficError::CoverageRouteRevisionMismatch(
+                    required.occupancy_id.clone(),
+                ));
+            }
+        }
+    }
+
+    let mut violations = BTreeSet::new();
+    if manifest.evidence.state != EvidenceState::Current {
+        violations.insert(TrafficViolation::CoverageEvidenceNotCurrent {
+            evidence_id: manifest.evidence.evidence_id.clone(),
+            state: manifest.evidence.state,
+        });
+    } else {
+        for operation in &plan.operations {
+            let interval = TickWindow {
+                start_tick: operation.start_tick,
+                end_tick: operation.end_tick,
+            };
+            if !manifest.evidence.covers(interval) {
+                violations.insert(TrafficViolation::EvidenceWindowInsufficient {
+                    subject_id: "traffic-coverage-manifest".to_owned(),
+                    evidence_id: manifest.evidence.evidence_id.clone(),
+                });
+            }
+        }
+    }
+
+    Ok(violations)
 }
 
 #[derive(Debug, Clone, Copy)]
