@@ -148,7 +148,9 @@
         "cost",
         "likelihood_evidence",
         "domain_ref",
-        "outcomes"
+        "outcomes",
+        "independence_group_ref",
+        "dependence_evidence_ref"
       ],
       "properties": {
         "experiment_id": {
@@ -191,6 +193,12 @@
           "items": {
             "$ref": "#/$defs/outcome"
           }
+        },
+        "independence_group_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "dependence_evidence_ref": {
+          "$ref": "#/$defs/ref"
         }
       }
     }
@@ -266,7 +274,8 @@
         "maximum_horizon",
         "minimum_net_value_to_continue",
         "stop_consequence_ref",
-        "human_review_authority_ref"
+        "human_review_authority_ref",
+        "conditional_independence_assumption_ref"
       ],
       "properties": {
         "remaining_budget": {
@@ -294,6 +303,9 @@
           "$ref": "#/$defs/ref"
         },
         "human_review_authority_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "conditional_independence_assumption_ref": {
           "$ref": "#/$defs/ref"
         }
       }
