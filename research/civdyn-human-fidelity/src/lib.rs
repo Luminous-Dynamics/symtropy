@@ -15,6 +15,7 @@ use std::collections::{BTreeMap, BTreeSet};
 const PROBABILITY_TOLERANCE: f64 = 1e-9;
 const LOG_FLOOR: f64 = 1e-15;
 const TAIL_FREQUENCY_MAX: f64 = 0.10;
+pub const MAX_BOOTSTRAP_REPLICATES: usize = 10_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObservedTrial {
@@ -172,6 +173,8 @@ pub enum FidelityError {
         requested: usize,
         available: usize,
     },
+    EmptyBootstrapSizes,
+    InvalidBootstrapReplicateCount(usize),
 }
 
 impl fmt::Display for FidelityError {
@@ -280,6 +283,13 @@ impl fmt::Display for FidelityError {
                 f,
                 "requested population coverage {requested} exceeds available participants {available}"
             ),
+            Self::EmptyBootstrapSizes => {
+                write!(f, "bootstrap population-size request must not be empty")
+            }
+            Self::InvalidBootstrapReplicateCount(count) => write!(
+                f,
+                "bootstrap replicate count must be in 1..={MAX_BOOTSTRAP_REPLICATES}, got {count}"
+            ),
         }
     }
 }
@@ -334,6 +344,70 @@ pub struct CoveragePoint {
     pub total_variation: f64,
     pub jensen_shannon_bits: f64,
     pub entropy_delta_bits: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BootstrapConfig {
+    pub seed: u64,
+    pub replicate_count: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BootstrapMetric {
+    MeanBrierScore,
+    MeanLogLoss,
+    TopChoiceAccuracy,
+    TotalVariation,
+    JensenShannonBits,
+    EntropyDeltaBits,
+    TrajectoryTransitionTvd,
+    TailOptionCoverage,
+}
+
+impl BootstrapMetric {
+    pub const ALL: [Self; 8] = [
+        Self::MeanBrierScore,
+        Self::MeanLogLoss,
+        Self::TopChoiceAccuracy,
+        Self::TotalVariation,
+        Self::JensenShannonBits,
+        Self::EntropyDeltaBits,
+        Self::TrajectoryTransitionTvd,
+        Self::TailOptionCoverage,
+    ];
+
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::MeanBrierScore => "mean_brier_score",
+            Self::MeanLogLoss => "mean_log_loss",
+            Self::TopChoiceAccuracy => "top_choice_accuracy",
+            Self::TotalVariation => "total_variation",
+            Self::JensenShannonBits => "jensen_shannon_bits",
+            Self::EntropyDeltaBits => "entropy_delta_bits",
+            Self::TrajectoryTransitionTvd => "trajectory_transition_tvd",
+            Self::TailOptionCoverage => "tail_option_coverage",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BootstrapMetricSummary {
+    pub metric: BootstrapMetric,
+    pub valid_replicates: usize,
+    pub undefined_replicates: usize,
+    pub mean: Option<f64>,
+    pub p2_5: Option<f64>,
+    pub p50: Option<f64>,
+    pub p97_5: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BootstrapCoveragePoint {
+    pub participant_count: usize,
+    pub replicate_count: usize,
+    /// Mean number of trial records retained in each resampled participant-cluster replicate.
+    pub mean_trial_count_per_replicate: f64,
+    pub metrics: Vec<BootstrapMetricSummary>,
 }
 
 type TrialKey = (String, u32);
@@ -450,6 +524,197 @@ pub fn population_coverage_curve(
         });
     }
     Ok(points)
+}
+
+/// Participant-cluster bootstrap for the human-fidelity sample-coverage curve.
+///
+/// Each draw resamples unique participant IDs with replacement and carries every
+/// observed/simulated context-step record for that participant together. These
+/// intervals quantify participant-composition uncertainty conditional on the
+/// supplied dataset; they are not predictive intervals or external-generalization
+/// intervals. Cohort proportions are not stratified in v0.
+pub fn bootstrap_population_coverage_curve(
+    dataset: &HumanFidelityDataset,
+    requested_sizes: &[usize],
+    config: BootstrapConfig,
+) -> Result<Vec<BootstrapCoveragePoint>, FidelityError> {
+    dataset.validate()?;
+    if config.replicate_count == 0 || config.replicate_count > MAX_BOOTSTRAP_REPLICATES {
+        return Err(FidelityError::InvalidBootstrapReplicateCount(
+            config.replicate_count,
+        ));
+    }
+    if requested_sizes.is_empty() {
+        return Err(FidelityError::EmptyBootstrapSizes);
+    }
+
+    let participants = dataset
+        .observed
+        .iter()
+        .map(|trial| trial.participant_id.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let available = participants.len();
+    let mut sizes = requested_sizes.to_vec();
+    sizes.sort_unstable();
+    sizes.dedup();
+
+    let mut points = Vec::with_capacity(sizes.len());
+    for requested in sizes {
+        if requested == 0 || requested > available {
+            return Err(FidelityError::InvalidCoverageRequest {
+                requested,
+                available,
+            });
+        }
+
+        // Give each population size an independent, reproducible random stream.
+        let size_seed = config.seed ^ (requested as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+        let mut rng = SplitMix64::new(size_seed);
+        let mut values: [Vec<f64>; 8] =
+            std::array::from_fn(|_| Vec::with_capacity(config.replicate_count));
+        let mut undefined = [0usize; 8];
+        let mut trial_count_total = 0usize;
+
+        for replicate_index in 0..config.replicate_count {
+            let sampled = resample_participant_clusters(
+                dataset,
+                &participants,
+                requested,
+                replicate_index,
+                &mut rng,
+            );
+            trial_count_total += sampled.observed.len();
+            let result = evaluate(&sampled)?;
+            let replicate_values = bootstrap_metric_values(&result);
+            for (metric_index, value) in replicate_values.into_iter().enumerate() {
+                if let Some(value) = value {
+                    values[metric_index].push(value);
+                } else {
+                    undefined[metric_index] += 1;
+                }
+            }
+        }
+
+        let metrics = BootstrapMetric::ALL
+            .into_iter()
+            .enumerate()
+            .map(|(index, metric)| {
+                summarize_bootstrap_metric(metric, &values[index], undefined[index])
+            })
+            .collect();
+
+        points.push(BootstrapCoveragePoint {
+            participant_count: requested,
+            replicate_count: config.replicate_count,
+            mean_trial_count_per_replicate: trial_count_total as f64
+                / config.replicate_count as f64,
+            metrics,
+        });
+    }
+
+    Ok(points)
+}
+
+fn bootstrap_metric_values(result: &EvaluationResult) -> [Option<f64>; 8] {
+    [
+        Some(result.overall.mean_brier_score),
+        Some(result.overall.mean_log_loss),
+        Some(result.overall.top_choice_accuracy),
+        Some(result.overall.total_variation),
+        Some(result.overall.jensen_shannon_bits),
+        Some(result.overall.entropy_delta_bits),
+        result.trajectory_transition_tvd,
+        result.overall.tail_option_coverage,
+    ]
+}
+
+fn summarize_bootstrap_metric(
+    metric: BootstrapMetric,
+    values: &[f64],
+    undefined_replicates: usize,
+) -> BootstrapMetricSummary {
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let (mean, p2_5, p50, p97_5) = if sorted.is_empty() {
+        (None, None, None, None)
+    } else {
+        let average = sorted.iter().sum::<f64>() / sorted.len() as f64;
+        (
+            Some(average),
+            Some(bootstrap_percentile(&sorted, 0.025)),
+            Some(bootstrap_percentile(&sorted, 0.50)),
+            Some(bootstrap_percentile(&sorted, 0.975)),
+        )
+    };
+    BootstrapMetricSummary {
+        metric,
+        valid_replicates: sorted.len(),
+        undefined_replicates,
+        mean,
+        p2_5,
+        p50,
+        p97_5,
+    }
+}
+
+fn bootstrap_percentile(sorted: &[f64], probability: f64) -> f64 {
+    if sorted.len() == 1 {
+        return sorted[0];
+    }
+    let position = probability * (sorted.len() - 1) as f64;
+    let lower = position.floor() as usize;
+    let upper = position.ceil() as usize;
+    if lower == upper {
+        sorted[lower]
+    } else {
+        let weight = position - lower as f64;
+        sorted[lower] * (1.0 - weight) + sorted[upper] * weight
+    }
+}
+
+fn resample_participant_clusters(
+    dataset: &HumanFidelityDataset,
+    participants: &[String],
+    sample_size: usize,
+    replicate_index: usize,
+    rng: &mut SplitMix64,
+) -> HumanFidelityDataset {
+    let mut observed = Vec::new();
+    let mut simulated = Vec::new();
+
+    for draw_index in 0..sample_size {
+        let source_id = &participants[rng.next_index(participants.len())];
+        // New IDs identify bootstrap draws, not source participants. All repeated
+        // contexts for one draw share this ID, and separate draws remain distinct.
+        let bootstrap_id = format!("bootstrap_{replicate_index:06}_{draw_index:06}");
+
+        for trial in dataset
+            .observed
+            .iter()
+            .filter(|trial| trial.participant_id == *source_id)
+        {
+            let mut copy = trial.clone();
+            copy.participant_id = bootstrap_id.clone();
+            observed.push(copy);
+        }
+        for trial in dataset
+            .simulated
+            .iter()
+            .filter(|trial| trial.participant_id == *source_id)
+        {
+            let mut copy = trial.clone();
+            copy.participant_id = bootstrap_id.clone();
+            simulated.push(copy);
+        }
+    }
+
+    HumanFidelityDataset {
+        option_labels: dataset.option_labels.clone(),
+        observed,
+        simulated,
+    }
 }
 
 fn validate_observed<'a>(
@@ -776,6 +1041,38 @@ fn kl_divergence_bits(left: &[f64], right: &[f64]) -> f64 {
         .sum()
 }
 
+#[derive(Debug, Clone)]
+struct SplitMix64 {
+    state: u64,
+}
+
+impl SplitMix64 {
+    const fn new(seed: u64) -> Self {
+        Self { state: seed }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut value = self.state;
+        value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        value ^ (value >> 31)
+    }
+
+    /// Unbiased bounded integer draw using rejection sampling.
+    fn next_index(&mut self, upper_exclusive: usize) -> usize {
+        assert!(upper_exclusive > 0);
+        let upper = upper_exclusive as u64;
+        let accepted_zone = u64::MAX - (u64::MAX % upper);
+        loop {
+            let value = self.next_u64();
+            if value < accepted_zone {
+                return (value % upper) as usize;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -994,6 +1291,147 @@ mod tests {
         assert!(matches!(
             population_coverage_curve(&dataset, &[11]),
             Err(FidelityError::InvalidCoverageRequest { .. })
+        ));
+    }
+
+    #[test]
+    fn participant_cluster_bootstrap_replays_exactly_and_keeps_cluster_trajectories() {
+        let dataset = fixture_dataset(60, true);
+        let config = BootstrapConfig {
+            seed: 0x4855_4D53_494D_3032,
+            replicate_count: 40,
+        };
+        let first = bootstrap_population_coverage_curve(&dataset, &[10, 20, 60], config).unwrap();
+        let second = bootstrap_population_coverage_curve(&dataset, &[10, 20, 60], config).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(
+            first
+                .iter()
+                .map(|point| point.participant_count)
+                .collect::<Vec<_>>(),
+            vec![10, 20, 60]
+        );
+        for point in &first {
+            assert_eq!(point.replicate_count, 40);
+            assert!(
+                (point.mean_trial_count_per_replicate - point.participant_count as f64 * 3.0).abs()
+                    < 1e-12
+            );
+            assert!(
+                point
+                    .metrics
+                    .iter()
+                    .all(|metric| { metric.valid_replicates + metric.undefined_replicates == 40 })
+            );
+        }
+    }
+
+    #[test]
+    fn different_bootstrap_seeds_change_the_participant_composition_distribution() {
+        let dataset = fixture_dataset(60, true);
+        let first = bootstrap_population_coverage_curve(
+            &dataset,
+            &[60],
+            BootstrapConfig {
+                seed: 1,
+                replicate_count: 100,
+            },
+        )
+        .unwrap();
+        let second = bootstrap_population_coverage_curve(
+            &dataset,
+            &[60],
+            BootstrapConfig {
+                seed: 2,
+                replicate_count: 100,
+            },
+        )
+        .unwrap();
+        assert_ne!(first, second);
+    }
+
+    #[test]
+    fn undefined_transition_metrics_are_counted_not_imputed() {
+        let mut dataset = fixture_dataset(30, false);
+        dataset.observed.retain(|trial| trial.step_index == 0);
+        dataset.simulated.retain(|trial| trial.step_index == 0);
+        let result = bootstrap_population_coverage_curve(
+            &dataset,
+            &[20],
+            BootstrapConfig {
+                seed: 77,
+                replicate_count: 25,
+            },
+        )
+        .unwrap();
+        let transition = result[0]
+            .metrics
+            .iter()
+            .find(|metric| metric.metric == BootstrapMetric::TrajectoryTransitionTvd)
+            .unwrap();
+        assert_eq!(transition.valid_replicates, 0);
+        assert_eq!(transition.undefined_replicates, 25);
+        assert_eq!(transition.mean, None);
+        assert_eq!(transition.p2_5, None);
+    }
+
+    #[test]
+    fn bootstrap_rejects_invalid_sizes_and_replicate_counts() {
+        let dataset = fixture_dataset(10, false);
+        assert!(matches!(
+            bootstrap_population_coverage_curve(
+                &dataset,
+                &[0],
+                BootstrapConfig {
+                    seed: 1,
+                    replicate_count: 10
+                }
+            ),
+            Err(FidelityError::InvalidCoverageRequest { .. })
+        ));
+        assert!(matches!(
+            bootstrap_population_coverage_curve(
+                &dataset,
+                &[11],
+                BootstrapConfig {
+                    seed: 1,
+                    replicate_count: 10
+                }
+            ),
+            Err(FidelityError::InvalidCoverageRequest { .. })
+        ));
+        assert!(matches!(
+            bootstrap_population_coverage_curve(
+                &dataset,
+                &[5],
+                BootstrapConfig {
+                    seed: 1,
+                    replicate_count: 0
+                }
+            ),
+            Err(FidelityError::InvalidBootstrapReplicateCount(0))
+        ));
+        assert!(matches!(
+            bootstrap_population_coverage_curve(
+                &dataset,
+                &[5],
+                BootstrapConfig {
+                    seed: 1,
+                    replicate_count: MAX_BOOTSTRAP_REPLICATES + 1,
+                }
+            ),
+            Err(FidelityError::InvalidBootstrapReplicateCount(_))
+        ));
+        assert!(matches!(
+            bootstrap_population_coverage_curve(
+                &dataset,
+                &[],
+                BootstrapConfig {
+                    seed: 1,
+                    replicate_count: 10
+                }
+            ),
+            Err(FidelityError::EmptyBootstrapSizes)
         ));
     }
 
