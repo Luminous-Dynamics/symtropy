@@ -604,7 +604,7 @@ mod tests {
             )
             .replace(
                 "available_lighting_energy_kwh_day=960.0",
-                "available_lighting_energy_kwh_day=5000.0",
+                "available_lighting_energy_kwh_day=3000.0",
             );
         let input = parse_input(&high_aux).expect("syntactically valid fixture");
         let report = evaluate(&input).expect("valid high-auxiliary case");
