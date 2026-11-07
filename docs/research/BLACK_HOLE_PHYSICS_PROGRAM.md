@@ -726,3 +726,20 @@ The reference paper states that implementation code is included, but no source r
 
 The Kerr light-ring module now reports normalized residuals for both (R=0) and (R'=0) from the equatorial null radial potential, in addition to metric null and radial circularity residuals. The normalization uses the magnitudes of the corresponding analytic terms, so near-extremal cancellation is visible and can be given a separate, explicit tolerance. This is an internal analytic consistency check, not an independent QNM validation.
 
+
+
+## New execution workstream — posterior-calibrated waveform discrepancy (2026-11-07)
+
+A new machine-readable protocol is now in `crates/domains/symtropy-relativity/benchmarks/waveform_discrepancy_calibration_v1.json`, linked to [Symthaea BH-WAVEFORM-DISCREPANCY-001 #10944](https://github.com/Luminous-Dynamics/symthaea/issues/10944).
+
+The research rationale is concrete:
+- Hoy et al., Nature Astronomy (2025), DOI 10.1038/s41550-025-02579-7, propose accuracy-informed Bayesian model combination and report lower compute cost / more faithful recovery on their simulated comparison.
+- Bachhar et al., PRD 111, 084050 (2025), DOI 10.1103/PhysRevD.111.084050, use GPR for frequency-domain amplitude/phase residuals and marginalize waveform uncertainty.
+- Kumar et al., PRD 112, 104071 (2025), DOI 10.1103/nkq9-zh2y, parameterize amplitude/phase error priors and show that small phase errors can bias parameters.
+- Mezzasoma et al., PRD 113, 124043 (2026), DOI 10.1103/y6lc-fr77, show NR calibration error can create false pPE deviations in simulated high-SNR signals and that their uncertainty-aware calibration protects the GR-consistent result in the studied setup.
+
+The proposed extension is not “use GPs” as a novel claim. It is a joint, parameter-dependent discrepancy model that preserves cross-frequency, cross-mode, and source-parameter covariance; separates detector noise/calibration from NR truncation, surrogate interpolation, approximant model-form error, missing modes/domain shift and algorithmic precision; and propagates the resulting discrepancy through posterior inference.
+
+Primary evaluation is posterior calibration (50/90/95% coverage with confidence intervals), posterior bias and sharpness, proper scoring rules, residual checks, false-positive rate for GR deviations, OOD abstention, and time-to-posterior-accuracy. The manifest defines whole-simulation train/test grouping, untouched test IDs, blind injections across SNR 10–330, adversarial model errors and active-NR acquisition baselines.
+
+**Execution status:** manifest specification only. No discrepancy process has been fitted, no posterior injection campaign has been run, and no improved calibration result is claimed.
