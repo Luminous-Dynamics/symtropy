@@ -437,7 +437,7 @@ fn parse_spc1(
     refs: &mut BTreeSet<u32>,
     set_ids: &mut BTreeSet<u32>,
 ) -> ParseResult<()> {
-    let sid = parse_u32(required_text(card, 0, "SID")?, "SPC1 SID")?;
+    let sid = parse_id(required_text(card, 0, "SID")?, "SPC1 SID")?;
     set_ids.insert(sid);
     let _components = required_text(card, 1, "component")?;
     let mut index = 2usize;
@@ -588,7 +588,7 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                         continue;
                     }
                     let grid =
-                        parse_u32(token, &format!("RBE2 dependent GRID field {}", index + 1))?;
+                        parse_id(token, &format!("RBE2 dependent GRID field {}", index + 1))?;
                     if !dependents.insert(grid) {
                         return fail(format!("RBE2 {eid}: duplicate dependent GRID {grid}"));
                     }
