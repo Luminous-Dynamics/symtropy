@@ -87,7 +87,9 @@ fn valid_sha256(value: &str) -> bool {
 
 fn fixed_fields(line: &str, line_number: usize) -> ParseResult<Vec<String>> {
     if line.as_bytes().iter().any(|byte| !byte.is_ascii()) {
-        return fail(format!("line {line_number}: non-ASCII bytes are unsupported"));
+        return fail(format!(
+            "line {line_number}: non-ASCII bytes are unsupported"
+        ));
     }
     if line.contains('$') {
         return fail(format!(
@@ -286,8 +288,7 @@ fn parse_deck(bytes: &[u8], expected_sha256: &str) -> ParseResult<Deck> {
             }
             current.fields.extend(fields[1..9].iter().cloned());
             current.raw_lines.push(line.clone());
-            current.next_continuation =
-                continuation_label(&fields[9], line.line_number)?;
+            current.next_continuation = continuation_label(&fields[9], line.line_number)?;
             if current.next_continuation.is_some() {
                 pending = Some(current);
             } else {
@@ -423,7 +424,11 @@ fn push_unique(set: &mut BTreeSet<u32>, value: u32, label: &str) -> ParseResult<
     Ok(())
 }
 
-fn parse_spc1(card: &Card, refs: &mut BTreeSet<u32>, set_ids: &mut BTreeSet<u32>) -> ParseResult<()> {
+fn parse_spc1(
+    card: &Card,
+    refs: &mut BTreeSet<u32>,
+    set_ids: &mut BTreeSet<u32>,
+) -> ParseResult<()> {
     let sid = parse_u32(required_text(card, 0, "SID")?, "SPC1 SID")?;
     set_ids.insert(sid);
     let _components = required_text(card, 1, "component")?;
@@ -545,7 +550,8 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 if !cid.is_empty() {
                     parse_u32(cid, "CONM2 CID")?;
                 }
-                let mass = parse_nastran_float(required_text(card, 3, "CONM2 mass")?, "CONM2 mass")?;
+                let mass =
+                    parse_nastran_float(required_text(card, 3, "CONM2 mass")?, "CONM2 mass")?;
                 if mass < 0.0 {
                     return fail(format!("CONM2 {eid}: mass cannot be negative"));
                 }
@@ -560,7 +566,10 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
             }
             "RBE2" => {
                 let eid = parse_u32(required_text(card, 0, "RBE2 EID")?, "RBE2 EID")?;
-                let independent = parse_u32(required_text(card, 1, "RBE2 independent GRID")?, "RBE2 independent GRID")?;
+                let independent = parse_u32(
+                    required_text(card, 1, "RBE2 independent GRID")?,
+                    "RBE2 independent GRID",
+                )?;
                 let _components = required_text(card, 2, "RBE2 components")?;
                 push_unique(&mut element_ids, eid, "element")?;
                 inventory.rbe2_ids.insert(eid);
@@ -570,7 +579,8 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                     if token.is_empty() {
                         continue;
                     }
-                    let grid = parse_u32(token, &format!("RBE2 dependent GRID field {}", index + 1))?;
+                    let grid =
+                        parse_u32(token, &format!("RBE2 dependent GRID field {}", index + 1))?;
                     if !dependents.insert(grid) {
                         return fail(format!("RBE2 {eid}: duplicate dependent GRID {grid}"));
                     }
@@ -595,8 +605,13 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 for index in (1..end).step_by(3) {
                     let grid = parse_u32(field(card, index, "SPC GRID")?, "SPC GRID")?;
                     let components = required_text(card, index + 1, "SPC component")?;
-                    if !components.bytes().all(|byte| byte.is_ascii_digit() && byte <= b'6') {
-                        return fail(format!("SPC {sid}: invalid component digits {components:?}"));
+                    if !components
+                        .bytes()
+                        .all(|byte| byte.is_ascii_digit() && byte <= b'6')
+                    {
+                        return fail(format!(
+                            "SPC {sid}: invalid component digits {components:?}"
+                        ));
                     }
                     parse_nastran_float(field(card, index + 2, "SPC value")?, "SPC value")?;
                     spc_grid_refs.insert(grid);
@@ -633,7 +648,10 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 }
                 for index in (2..end).step_by(2) {
                     parse_nastran_float(field(card, index, "LOAD scale factor")?, "LOAD factor")?;
-                    load_refs.insert(parse_u32(field(card, index + 1, "LOAD set ID")?, "LOAD set ID")?);
+                    load_refs.insert(parse_u32(
+                        field(card, index + 1, "LOAD set ID")?,
+                        "LOAD set ID",
+                    )?);
                 }
             }
             "PARAM" => {
@@ -758,8 +776,7 @@ fn property_materials_json(values: &BTreeMap<u32, u32>) -> String {
         if index > 0 {
             output.push(',');
         }
-        write!(&mut output, "\"{property}\":{material}")
-            .expect("writing to String cannot fail");
+        write!(&mut output, "\"{property}\":{material}").expect("writing to String cannot fail");
     }
     output.push('}');
     output
@@ -801,7 +818,14 @@ mod tests {
     }
 
     fn deck_text(cards: Vec<String>) -> Vec<u8> {
-        let mut lines = vec!["SOL 101".to_owned(), "CEND".to_owned(), "SUBCASE 1".to_owned(), "SPC = 1".to_owned(), "LOAD = 2".to_owned(), "BEGIN BULK".to_owned()];
+        let mut lines = vec![
+            "SOL 101".to_owned(),
+            "CEND".to_owned(),
+            "SUBCASE 1".to_owned(),
+            "SPC = 1".to_owned(),
+            "LOAD = 2".to_owned(),
+            "BEGIN BULK".to_owned(),
+        ];
         lines.extend(cards);
         lines.push("ENDDATA".to_owned());
         lines.join("\n").into_bytes()
@@ -822,7 +846,9 @@ mod tests {
             fixed_line(&["CBEAM", "101", "20", "1", "2", "0.", "1.", "0."]),
             fixed_line(&["CBEAM", "102", "20", "2", "3", "0.", "1.", "0."]),
             fixed_line(&["MAT1", "10", "7.0E10", "2.7E10", ".3"]),
-            fixed_line(&["PBEAM", "20", "10", ".001", ".00001", ".00001", "0.", ".00001", "0."]),
+            fixed_line(&[
+                "PBEAM", "20", "10", ".001", ".00001", ".00001", "0.", ".00001", "0.",
+            ]),
             fixed_line(&["CONM2", "201", "2", "0", "5.", "0.", "0.", "0."]),
             fixed_line(&["RBE2", "301", "1", "123", "2", "3"]),
             fixed_line(&["SPC", "1", "1", "123", "0."]),
@@ -847,7 +873,13 @@ mod tests {
         assert_eq!(inventory.load_set_ids, BTreeSet::from([2]));
         assert_eq!(inventory.opaque_cards, 1);
         assert_eq!(inventory.orphan_grid_count, 0);
-        assert_eq!(deck.cards.iter().filter(|card| card.parse_state == "opaque").count(), 1);
+        assert_eq!(
+            deck.cards
+                .iter()
+                .filter(|card| card.parse_state == "opaque")
+                .count(),
+            1
+        );
     }
 
     #[test]
@@ -869,7 +901,9 @@ mod tests {
     #[test]
     fn missing_pbeam_material_is_rejected() {
         let mut cards = minimal_valid_cards();
-        cards[6] = fixed_line(&["PBEAM", "20", "999", ".001", ".00001", ".00001", "0.", ".00001", "0."]);
+        cards[6] = fixed_line(&[
+            "PBEAM", "20", "999", ".001", ".00001", ".00001", "0.", ".00001", "0.",
+        ]);
         let bytes = deck_text(cards);
         assert!(parse_bytes(&bytes).is_err());
     }
@@ -942,7 +976,13 @@ mod tests {
     fn spc1_thru_range_resolves_every_grid() {
         let card = Card {
             name: "SPC1".to_owned(),
-            fields: vec!["1".to_owned(), "123".to_owned(), "1".to_owned(), "THRU".to_owned(), "3".to_owned()],
+            fields: vec![
+                "1".to_owned(),
+                "123".to_owned(),
+                "1".to_owned(),
+                "THRU".to_owned(),
+                "3".to_owned(),
+            ],
             raw_lines: Vec::new(),
             parse_state: "parsed",
         };
