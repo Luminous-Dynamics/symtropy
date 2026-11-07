@@ -176,7 +176,9 @@ mod tests {
         );
         assert_eq!(
             report.lhs_summaries.len(),
-            ShockKind::ALL.len() * InterventionPolicy::ALL.len() * civdyn_resilience_uq::OutcomeMetric::ALL.len()
+            ShockKind::ALL.len()
+                * InterventionPolicy::ALL.len()
+                * civdyn_resilience_uq::OutcomeMetric::ALL.len()
         );
         assert_eq!(report.morris_points.len(), 2 * (FACTOR_COUNT + 1));
         assert_eq!(
