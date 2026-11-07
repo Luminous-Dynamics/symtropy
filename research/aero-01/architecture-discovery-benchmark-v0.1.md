@@ -244,6 +244,17 @@ The companion [architecture-discovery-benchmark-v0.1.json](./architecture-discov
 
 The graph is not a universal mandatory fixed sequence. A discipline may be skipped only when an independently checked conservative lower-fidelity bound proves it cannot change the preregistered decision. Otherwise it remains not assessed and any dependent claim is withheld. Every activation/skip, fidelity promotion, failure and cost receipt remains tied to the exact candidate, mission and configuration.
 
+## 13B. Current executable composition
+
+The current code chain is deliberately incremental:
+- #3977 computes itemized mass, CG and inertia from synthetic point/rigid-body inputs.
+- #3979 binds a complete exact-configuration mass ledger into the steady-level cruise screen.
+- #4000 adds source/effectivity/uncertainty metadata, immutable loading states, UTC capture timestamps and direct-measurement calibration metadata.
+- #4025 passes a complete, evidence-qualified takeoff loading state into the same steady-cruise screen. It rejects landing/intermediate states because no phase chronology exists yet.
+- #4029 is the next phase-resolved mission work package.
+
+The #3977/#3979/#4000/#4025 outputs are software-screening results on synthetic fixtures. They do not constitute real aircraft performance or safety evidence.
+
 ## 14. Claim ceiling
 
 A benchmark win means only that a method performed better on the frozen tasks, inputs, budgets, fidelity gates and evidence scope. It does not prove that a new aircraft is safe, flightworthy, certifiable, manufacturable or commercially superior. Those require independent aircraft-level analysis, qualified engineering, physical evidence and authority-governed processes.
