@@ -61,6 +61,14 @@
       "simulations_catalog_blob_sha": "a0a7c29346717820f5da4a716d8056cc66592fac",
       "readme_blob_sha": "4563bc8ec10a225d7359d9461ba522a84519a34b",
       "license": "MIT"
+    },
+    {
+      "kind": "peer_reviewed_filtering_model_limitations_preprint",
+      "title": "Modeling QNMs-Filtered Gravitational Waveforms: Approximation Limits and Filtering Effects",
+      "authors": "Jun-Xi Shi, Zhen-Tao He, Tingyuan Jiang, Yu Tian, Dan-Dan Yuan, Hongbao Zhang",
+      "arxiv_id": "2610.30031",
+      "url": "https://arxiv.org/abs/2610.30031",
+      "published_or_posted": "2026-10-21"
     }
   ],
   "data_selection": {
@@ -321,6 +329,66 @@
       "cce_crosscheck": "13 CCE waveforms provide an independent waveform-extraction path; preserve their own processing provenance.",
       "extrapolation_and_resolution_sensitivity": "Run explicit convergence comparisons; do not collapse top-two-level residual into an exact numerical error estimate."
     },
-    "download_status": "catalog_manifest_pinned; waveforms_not_downloaded; no direct-wave analysis executed by Symtropy"
+    "download_status": "catalog_manifest_pinned; waveforms_not_downloaded; no direct-wave analysis executed by Symtropy",
+    "filtering_model_controls": {
+      "paper_arxiv": "2610.30031",
+      "key_reported_points": [
+        "point-particle templates show notable discrepancies from filtered BBH waveforms",
+        "stationary-phase particle templates perform reasonably for (2,2) but have substantial limitations for (4,4)",
+        "although the rational filter is all-pass, it changes filtered waveform modeling results",
+        "Gaussian initial-data vacuum perturbations on Schwarzschild can produce direct-wave-like residuals after filtering",
+        "residual morphology depends on initial-data location relative to the light ring"
+      ],
+      "interpretation": "The extraction and morphology of a filtered residual are not by themselves proof of a unique source-specific prompt component or horizon observable.",
+      "required_additional_controls": [
+        "apply the exact QNM filter to Gaussian initial-data vacuum perturbations at multiple radii relative to the light ring",
+        "compare (2,2) and (4,4) residual morphology under identical filter and analysis windows",
+        "quantify filter-induced changes in instantaneous frequency, damping, and posterior model selection",
+        "compare source-driven BBH residuals against vacuum-perturbation residuals under the same measurement pipeline"
+      ]
+    },
+    "analyses": [
+      {
+        "id": "dyer_kankani_marks_mcwilliams_moore_2026",
+        "source_code_repository": "https://github.com/Richardvnd/direct_waves_LR",
+        "code_commit": "8348e198c683a9ba212a312f3e2e36373e2d8f1b",
+        "catalog_blob_sha": "a0a7c29346717820f5da4a716d8056cc66592fac",
+        "data": "Bondi News; each l=m mode, ell=2..6",
+        "filter": "all prograde and retrograde QNMs with 2<=ell<=6 and n<=2 removed using rational filter",
+        "predictors": [
+          "Kerr horizon frequency and surface gravity",
+          "rescaled Kerr light-ring frequency Re omega approximately 0.73*m*Omega_LR and damping -Im omega approximately 0.68*lambda",
+          "BOB frequency model"
+        ],
+        "frequency_tracks": "from filtered-amplitude peak to first maximum of -Im(omega) or amplitude cut at 1e-2 of peak",
+        "mass_ratio_summary_window_M": [
+          -7.5,
+          7.5
+        ],
+        "mass_ratio_summary_anchor": "News peak with aligned-system delay correction",
+        "bayesian_free_frequency_subset": {
+          "count": 9,
+          "t0_M": 0,
+          "duration_M": 15,
+          "steps": 200000,
+          "walkers": 48
+        }
+      },
+      {
+        "id": "kankani_mcwilliams_2026_arxiv_2607_02380",
+        "source": "https://arxiv.org/abs/2607.02380",
+        "target": "ten selected high-spin comparable-mass SXS systems",
+        "filter": "7 prograde QNMs, 2 retrograde QNMs, and prograde (ell,m,n)=(3,2,0)",
+        "analyzed_mode": "h22",
+        "exact_fit_interval_bounds": "not yet transcribed; do not infer from separate study configuration"
+      },
+      {
+        "id": "shi_et_al_2026_filtering_model_limitations",
+        "source": "https://arxiv.org/abs/2610.30031",
+        "target": "analytic particle templates and Schwarzschild vacuum perturbations with Gaussian initial data",
+        "main_question": "how QNM filtering changes the morphology and apparent direct-wave model",
+        "negative_controls": "filter vacuum perturbation responses and compare morphology across modes"
+      }
+    ]
   }
 }
