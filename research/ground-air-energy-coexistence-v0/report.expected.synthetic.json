@@ -9,10 +9,8 @@
   "slot_duration_ms": 60000,
   "slot_count": 4,
   "pcc_max_input_quanta_per_slot": 3,
-  "maximum_pcc_input_quanta_used": 3,
   "total_source_energy_budget_wh": 80,
   "total_source_energy_wh": 80,
-  "total_source_input_quanta_slots": 8,
   "total_useful_energy_wh": 28,
   "synthetic_useful_to_source_energy_ratio_ppm": 350000,
   "minimum_service_met_count": 2,
@@ -31,75 +29,87 @@
   "per_slot": [
     {
       "slot_index": 0,
-      "total_input_power_quanta": 2,
-      "ground_input_power_quanta": 1,
-      "air_input_power_quanta": 1,
-      "source_energy_wh": 20,
       "simultaneous_ground_air_delivery": true,
       "session_allocations": [
         {
           "session_id": "air-uav-01",
-          "input_power_quanta": 1
+          "site_source_energy_quanta": 1
         },
         {
           "session_id": "ground-truck-01",
-          "input_power_quanta": 1
+          "site_source_energy_quanta": 1
         }
-      ]
+      ],
+      "site_source_energy_quanta": 2,
+      "ground_site_source_energy_quanta": 1,
+      "air_site_source_energy_quanta": 1,
+      "site_source_energy_wh": 20,
+      "site_source_average_power_w": 1200,
+      "ground_site_source_average_power_w": 600,
+      "air_site_source_average_power_w": 600
     },
     {
       "slot_index": 1,
-      "total_input_power_quanta": 2,
-      "ground_input_power_quanta": 1,
-      "air_input_power_quanta": 1,
-      "source_energy_wh": 20,
       "simultaneous_ground_air_delivery": true,
       "session_allocations": [
         {
           "session_id": "air-uav-01",
-          "input_power_quanta": 1
+          "site_source_energy_quanta": 1
         },
         {
           "session_id": "ground-truck-01",
-          "input_power_quanta": 1
+          "site_source_energy_quanta": 1
         }
-      ]
+      ],
+      "site_source_energy_quanta": 2,
+      "ground_site_source_energy_quanta": 1,
+      "air_site_source_energy_quanta": 1,
+      "site_source_energy_wh": 20,
+      "site_source_average_power_w": 1200,
+      "ground_site_source_average_power_w": 600,
+      "air_site_source_average_power_w": 600
     },
     {
       "slot_index": 2,
-      "total_input_power_quanta": 2,
-      "ground_input_power_quanta": 1,
-      "air_input_power_quanta": 1,
-      "source_energy_wh": 20,
       "simultaneous_ground_air_delivery": true,
       "session_allocations": [
         {
           "session_id": "air-uav-01",
-          "input_power_quanta": 1
+          "site_source_energy_quanta": 1
         },
         {
           "session_id": "ground-truck-01",
-          "input_power_quanta": 1
+          "site_source_energy_quanta": 1
         }
-      ]
+      ],
+      "site_source_energy_quanta": 2,
+      "ground_site_source_energy_quanta": 1,
+      "air_site_source_energy_quanta": 1,
+      "site_source_energy_wh": 20,
+      "site_source_average_power_w": 1200,
+      "ground_site_source_average_power_w": 600,
+      "air_site_source_average_power_w": 600
     },
     {
       "slot_index": 3,
-      "total_input_power_quanta": 2,
-      "ground_input_power_quanta": 1,
-      "air_input_power_quanta": 1,
-      "source_energy_wh": 20,
       "simultaneous_ground_air_delivery": true,
       "session_allocations": [
         {
           "session_id": "air-uav-01",
-          "input_power_quanta": 1
+          "site_source_energy_quanta": 1
         },
         {
           "session_id": "ground-truck-01",
-          "input_power_quanta": 1
+          "site_source_energy_quanta": 1
         }
-      ]
+      ],
+      "site_source_energy_quanta": 2,
+      "ground_site_source_energy_quanta": 1,
+      "air_site_source_energy_quanta": 1,
+      "site_source_energy_wh": 20,
+      "site_source_average_power_w": 1200,
+      "ground_site_source_average_power_w": 600,
+      "air_site_source_average_power_w": 600
     }
   ],
   "per_session": [
@@ -113,14 +123,21 @@
       "delivered_useful_energy_wh": 12,
       "minimum_service_met": true,
       "service_fulfillment_ratio_ppm": 1000000,
-      "input_power_quanta_by_slot": [
+      "channel_input_boundary_id": "AIR_DOCK_CHARGER_AC_INPUT",
+      "useful_energy_boundary_id": "AIRCRAFT_BATTERY_TERMINAL_INPUT",
+      "site_source_energy_quanta_by_slot": [
         1,
         1,
         1,
         1
       ],
-      "channel_input_boundary_id": "AIR_DOCK_CHARGER_AC_INPUT",
-      "useful_energy_boundary_id": "AIRCRAFT_BATTERY_TERMINAL_INPUT"
+      "site_source_energy_wh": 40,
+      "site_source_average_power_w_by_slot": [
+        600,
+        600,
+        600,
+        600
+      ]
     },
     {
       "session_id": "ground-truck-01",
@@ -132,16 +149,29 @@
       "delivered_useful_energy_wh": 16,
       "minimum_service_met": true,
       "service_fulfillment_ratio_ppm": 1000000,
-      "input_power_quanta_by_slot": [
+      "channel_input_boundary_id": "GROUND_ROAD_INVERTER_DC_INPUT",
+      "useful_energy_boundary_id": "GROUND_VEHICLE_BATTERY_TERMINAL_INPUT",
+      "site_source_energy_quanta_by_slot": [
         1,
         1,
         1,
         1
       ],
-      "channel_input_boundary_id": "GROUND_ROAD_INVERTER_DC_INPUT",
-      "useful_energy_boundary_id": "GROUND_VEHICLE_BATTERY_TERMINAL_INPUT"
+      "site_source_energy_wh": 40,
+      "site_source_average_power_w_by_slot": [
+        600,
+        600,
+        600,
+        600
+      ]
     }
   ],
   "claim_ceiling": "Synthetic bounded source-allocation arithmetic only. Supplied coefficients and declared synthetic states do not validate physical coexistence, RF/optical/inductive/capacitive safety, EMC, aircraft operation, converter stability or field performance.",
-  "source_power_boundary_id": "SITE_PCC_GRID_AC_INPUT"
+  "source_power_boundary_id": "SITE_PCC_GRID_AC_INPUT",
+  "source_energy_wh_per_quantum_slot": 10,
+  "site_source_power_quantum_average_w": 600,
+  "pcc_max_site_source_average_power_w": 1800,
+  "maximum_site_source_energy_quanta_used": 2,
+  "maximum_observed_site_source_average_power_w": 1200,
+  "total_site_source_energy_quantum_slots": 8
 }
