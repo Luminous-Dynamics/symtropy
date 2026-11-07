@@ -44,5 +44,5 @@ jobs:
           cargo run --manifest-path tools/scan-bim-admission-oracle/Cargo.toml -- \
             --corpus docs/research/built-asset/scan-bim/v0.1/corpus.json \
             > /tmp/scan-bim-admission-report.json
-          jq -e '.passed == true and .case_count == 12 and .mismatched_cases == 0' \
+          jq -e '.passed == true and .case_count == 23 and .mismatched_cases == 0' \
             /tmp/scan-bim-admission-report.json
