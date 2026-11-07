@@ -221,6 +221,20 @@
       "protocol": "553 critical-interaction tokens; not comparable with full navtest aggregate",
       "source": "https://arxiv.org/abs/2609.39245",
       "claim": "paper-reported interaction-stratified result"
+    },
+    {
+      "track": "bench2drive",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 90.45,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive 0.0.3 self-reported leaderboard (non-privileged section; README updated 2026-11-06)",
+      "method": "TFv6+ScaleDrive",
+      "score": 96.65,
+      "unit": "points",
+      "protocol": "official leaderboard README; row is copied from its cited publication; methods differ in datasets, experts, pre-training, training and inference compute",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "claim": "self-reported public reference; whole-system result, not a matched architecture comparison"
     }
   ],
   "interpretation_rules": [
@@ -231,6 +245,7 @@
     "Bench2Drive 0.0.3 rows are self-reported results copied from papers and vary by data, expert, training and inference compute; ground-truth-perception rows are privileged and must be separated.",
     "Do not treat the 90.2 DriveVLA-W0 one-camera PDMS row and its separate dagger-marked 93.0 entry as the same configuration.",
     "PlanWAM and World4Scorer both use K=64 candidate configurations; the EGCI selector reproduction ladder must include K=64 and charge generation, scoring, continuation and replay costs separately.",
-    "ReWAM is an existing reciprocal-response architecture; EGCI must not claim to invent reciprocal planning. Its contribution is independently verifiable execution, support-qualified counterfactual evaluation and evidence-audited decision quality."
+    "ReWAM is an existing reciprocal-response architecture; EGCI must not claim to invent reciprocal planning. Its contribution is independently verifiable execution, support-qualified counterfactual evaluation and evidence-audited decision quality.",
+    "The 2026-11-06 Bench2Drive 0.0.3 leaderboard lists TFv6+ScaleDrive 96.65 DS / 90.45 SR above BridgeDrive 96.34 / 89.25 in the non-privileged section; keep both separate from ground-truth-perception privileged rows."
   ]
 }
