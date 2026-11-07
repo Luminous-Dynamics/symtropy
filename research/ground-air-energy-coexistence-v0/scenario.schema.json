@@ -89,7 +89,8 @@
         "pcc_max_input_quanta_per_slot": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 8
+          "maximum": 8,
+          "description": "Maximum count of site-source energy quanta allocated in one slot. This is not a watt value."
         },
         "total_source_energy_budget_wh": {
           "type": "integer",
@@ -99,7 +100,8 @@
         "source_energy_wh_per_quantum_slot": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 1000000
+          "maximum": 1000000,
+          "description": "Site-source real energy at the PCC represented by one allocation quantum for one complete slot, in Wh."
         },
         "source_power_boundary_id": {
           "const": "SITE_PCC_GRID_AC_INPUT"
@@ -116,7 +118,8 @@
       "properties": {
         "slot_duration_ms": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "description": "Fixed duration of every discrete allocation slot, in milliseconds. Source-energy quanta are Wh-per-slot units, not instantaneous watts."
         },
         "slot_count": {
           "type": "integer",
@@ -165,7 +168,8 @@
         "maximum_input_quanta_per_slot": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 8
+          "maximum": 8,
+          "description": "Maximum site-source energy quanta allocated to this channel in one slot; not the channel-input meter energy or instantaneous watts."
         },
         "envelope_sha256": {
           "$ref": "#/$defs/digest"
@@ -257,7 +261,8 @@
         "maximum_input_quanta_per_slot": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 8
+          "maximum": 8,
+          "description": "Maximum site-source energy quanta allocated to this session in one slot; not instantaneous watts."
         },
         "useful_energy_wh_per_input_quantum_slot": {
           "type": "integer",
