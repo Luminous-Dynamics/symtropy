@@ -1,0 +1,615 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wpt-pass-episode-integration-v0.schema.json",
+  "title": "WPT verified pass evidence integration manifest v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "disposition",
+    "pass",
+    "artifacts",
+    "joins",
+    "policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-pass-episode-integration-v0"
+    },
+    "manifest_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "disposition": {
+      "enum": [
+        "NOT_RUN",
+        "PASS_SYNTHETIC",
+        "INCOMPLETE",
+        "IDENTITY_CONFLICT",
+        "DIGEST_MISMATCH",
+        "FRAME_MISMATCH",
+        "TIME_ALIGNMENT_UNRESOLVED",
+        "POSE_WINDOW_INVALID",
+        "METER_BOUNDARY_MISMATCH",
+        "ASSET_REVISION_MISMATCH",
+        "ENVELOPE_MISMATCH",
+        "OUT_OF_DOMAIN",
+        "PROVENANCE_UNVERIFIED",
+        "INVALID"
+      ]
+    },
+    "pass": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "artifacts": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "joins": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "policy": {
+      "$ref": "#/$defs/policy"
+    },
+    "report_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "const": "NOT_RUN"
+          }
+        },
+        "required": [
+          "disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "pass": {
+            "type": "null"
+          },
+          "artifacts": {
+            "maxItems": 0
+          },
+          "joins": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "pass": {
+            "$ref": "#/$defs/pass"
+          },
+          "artifacts": {
+            "minItems": 1
+          },
+          "joins": {
+            "$ref": "#/$defs/joins"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "artifact_id",
+        "schema_version",
+        "media_type",
+        "byte_length",
+        "sha256",
+        "source_uri",
+        "evidence_class"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "canonical_trajectory",
+            "em_projection",
+            "em_transform",
+            "pavement_projection",
+            "pavement_transform",
+            "trajectory_verification_receipt",
+            "trajectory_coupling_report",
+            "route_energy_ledger",
+            "route_energy_report",
+            "asset_state_snapshot",
+            "asset_health_report",
+            "control_envelope",
+            "control_schedule",
+            "control_report",
+            "calibration_receipt",
+            "acquisition_receipt",
+            "custody_receipt"
+          ]
+        },
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "schema_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "media_type": {
+          "type": "string",
+          "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_uri": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "evidence_class": {
+          "enum": [
+            "SYNTHETIC_KNOWN_TRUTH",
+            "SIMULATED",
+            "LAB_MEASURED",
+            "FIELD_MEASURED"
+          ]
+        },
+        "provenance_receipt_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "calibration_receipt_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "pass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "pass_id",
+        "trajectory_id",
+        "trajectory_sha256",
+        "coordinate_frame_id",
+        "pose_sample_ids",
+        "route_window",
+        "vehicle",
+        "roadway",
+        "physical_assets",
+        "route_run_id",
+        "controller_run_id"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "pass_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "trajectory_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "trajectory_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "coordinate_frame_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "pose_sample_ids": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 512,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "route_window": {
+          "$ref": "#/$defs/time_window"
+        },
+        "vehicle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "vehicle_id",
+            "configuration_sha256"
+          ],
+          "properties": {
+            "vehicle_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "configuration_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "roadway": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "site_id",
+            "route_id",
+            "lane_id",
+            "direction"
+          ],
+          "properties": {
+            "site_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "route_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "lane_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "direction": {
+              "enum": [
+                "FORWARD",
+                "REVERSE"
+              ]
+            }
+          }
+        },
+        "physical_assets": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "asset_id",
+              "segment_id",
+              "coil_id",
+              "receiver_id",
+              "geometry_sha256",
+              "hardware_revision",
+              "firmware_revision"
+            ],
+            "properties": {
+              "asset_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "segment_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "coil_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "receiver_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "geometry_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "hardware_revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "firmware_revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "route_run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "controller_run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "time_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_ns",
+        "end_ns"
+      ],
+      "properties": {
+        "start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_ns": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "joins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trajectory_bindings",
+        "projection_bindings",
+        "energy_windows",
+        "asset_binding",
+        "controller_binding"
+      ],
+      "properties": {
+        "trajectory_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_id",
+              "trajectory_id",
+              "trajectory_sha256"
+            ],
+            "properties": {
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "trajectory_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "trajectory_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "projection_bindings": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_id",
+              "transform_artifact_id",
+              "coordinate_frame_id",
+              "sample_ids"
+            ],
+            "properties": {
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "transform_artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "coordinate_frame_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "sample_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 512,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          }
+        },
+        "energy_windows": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "segment_id",
+              "start_ns",
+              "end_ns",
+              "pose_sample_ids",
+              "idle_intervals_explicit"
+            ],
+            "properties": {
+              "segment_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "start_ns": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end_ns": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "pose_sample_ids": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 512,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "idle_intervals_explicit": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "asset_binding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "asset_id",
+            "snapshot_artifact_id",
+            "observed_at_ns",
+            "model_version"
+          ],
+          "properties": {
+            "asset_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "snapshot_artifact_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "observed_at_ns": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "model_version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        },
+        "controller_binding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "trajectory_sha256",
+            "envelope_artifact_id",
+            "envelope_sha256",
+            "support_state"
+          ],
+          "properties": {
+            "trajectory_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "envelope_artifact_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "envelope_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "support_state": {
+              "enum": [
+                "WITHIN_VALIDATED_SUPPORT",
+                "PARTIALLY_OUT_OF_DOMAIN",
+                "OUT_OF_DOMAIN",
+                "UNRESOLVED"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximum_artifact_bytes",
+        "maximum_clock_uncertainty_ns",
+        "implicit_alignment_forbidden"
+      ],
+      "properties": {
+        "maximum_artifact_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_clock_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "implicit_alignment_forbidden": {
+          "const": true
+        }
+      }
+    }
+  }
+}
