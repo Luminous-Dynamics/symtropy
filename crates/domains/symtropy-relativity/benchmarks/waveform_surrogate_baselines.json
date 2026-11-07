@@ -1,0 +1,126 @@
+{
+  "schema": "luminous.black-hole-waveform-surrogate-baselines",
+  "schema_version": 1,
+  "status": "literature baseline; not a reproduced benchmark",
+  "baselines": [
+    {
+      "id": "nrsur7dq4_nn_2026",
+      "title": "Fast, accurate, and differentiable neural-network surrogate for NRSur7dq4",
+      "arxiv": "2607.24960",
+      "url": "https://arxiv.org/abs/2607.24960",
+      "reference_model": "NRSur7dq4",
+      "parameter_domain": {
+        "mass_ratio_q": [1, 4],
+        "spin_magnitudes": "abs(chi_1), abs(chi_2) <= 0.8",
+        "validation_waveforms": 10000
+      },
+      "reported_accuracy": {
+        "median_sky_averaged_frequency_domain_mismatch": [8.0e-5, 1.7e-4],
+        "95th_percentile_mismatch_upper_bound": 1.0e-3
+      },
+      "reported_performance": {
+        "hardware": "NVIDIA L40S",
+        "single_waveform_end_to_end_ms": 1,
+        "speedup_vs_lalsimulation_single_waveform": 10,
+        "throughput_speedup_vs_lalsimulation_batch_64": 140
+      },
+      "method": "JAX differentiable MLP surrogate with independent networks for decomposed waveform quantities and a differentiable waveform-to-likelihood pipeline",
+      "benchmark_caveat": "These are paper-reported results against NRSur7dq4. They are not direct comparisons with Symtropy or a measured result on our hardware."
+    },
+    {
+      "id": "nrsur7dq4v2_2026",
+      "title": "NRSur7dq4v2: multi-domain precessing surrogate with improved accuracy",
+      "arxiv": "2609.07873",
+      "url": "https://arxiv.org/abs/2609.07873",
+      "parameter_domain": {
+        "reference_domain": "NRSur7dq4 parameter domain; confirm exact supported parameter range from the pinned model release"
+      },
+      "reported_changes": [
+        "overlapping temporal subdomains provide separate inspiral and merger-ringdown error control",
+        "modes extended through ell <= 5",
+        "improved selected subdominant-mode modeling",
+        "runtime model-complexity control",
+        "gwsurrogate precessing-surrogate package optimized by about fourfold"
+      ],
+      "reported_accuracy": {
+        "remnant_mass_spin_estimation_gain_vs_nrsur7dq4": [3, 10]
+      },
+      "reported_performance": {
+        "gwsurrogate_runtime_change": "about 4x speedup; slightly faster than LALSimulation counterparts"
+      },
+      "benchmark_caveat": "The 3-10x result concerns remnant mass/spin estimates from quasi-normal fits to the surrogate ringdown, not a universal waveform-mismatch reduction."
+    },
+    {
+      "id": "seobnrv5phm_nnsur7dq10_2026",
+      "title": "Fast neural-network surrogate for multimodal effective-one-body waveforms from generically precessing compact binaries",
+      "doi": "10.1103/qt1n-gbv2",
+      "url": "https://journals.aps.org/prd/abstract/10.1103/qt1n-gbv2",
+      "parameter_domain": {
+        "mass_ratio_q_max": 10,
+        "spin_configuration": "generic precession; arbitrary spin magnitudes and orientations",
+        "waveform_family": "SEOBNRv5PHM"
+      },
+      "reported_changes": [
+        "reduced-order neural-network surrogate",
+        "coverage extending to mass ratio 1:10",
+        "generically precessing quasicircular binaries"
+      ],
+      "benchmark_caveat": "Pin the article's detailed validation tables and implementation version before adopting numeric accuracy or speed targets."
+    },
+    {
+      "id": "aesur3dq8_2026",
+      "title": "Autoencoder-based surrogate waveform model for quasicircular binary-black-hole mergers",
+      "doi": "10.1103/qqln-f8vy",
+      "url": "https://journals.aps.org/prd/abstract/10.1103/qqln-f8vy",
+      "reported_accuracy": {
+        "mismatch_order": 1.0e-4
+      },
+      "reported_performance": {
+        "template_bank_generation": "millions of waveforms in under one second on modest computational resources"
+      },
+      "method": "Autoencoder trained on NRHybSur3dq8 and fine-tuned using SXS simulations",
+      "benchmark_caveat": "Recheck exact event domain, parameter coverage, and benchmark hardware from the paper before a direct comparison."
+    },
+    {
+      "id": "nr_sure_q4_nospin_22_2026",
+      "title": "Eccentric binary black holes: a new framework for numerical-relativity waveform surrogates",
+      "doi": "10.1103/5m8n-r746",
+      "url": "https://doi.org/10.1103/5m8n-r746",
+      "parameter_domain": {
+        "mass_ratio_q": "up to about 4",
+        "spin": "nonspinning",
+        "waveform_mode": [2, 2],
+        "orbital_family": "eccentric"
+      },
+      "reported_accuracy": {
+        "median_mismatch": 4.0e-5,
+        "maximum_mismatch": 6.0e-4
+      },
+      "method": "Radial-phase inspiral decomposition plus a separate time-domain merger-ringdown surrogate",
+      "benchmark_caveat": "Narrow nonspinning eccentric domain; not comparable to generic precessing models without matching the parameter slice."
+    }
+  ],
+  "sp ec_accuracy_reference": {
+    "title": "How accurate is Spectral Einstein Code (SpEC)? And what limits its accuracy?",
+    "arxiv": "2610.24283",
+    "url": "https://arxiv.org/abs/2610.24283",
+    "reported_findings": [
+      "targeted changes to resolution and parameter choices in distinct computational subdomains can reduce constraint violations and waveform differences",
+      "at sufficiently high resolution, floating-point limitations and disparate scales of fundamental variables become significant"
+    ],
+    "benchmark_implication": "Record precision, nondimensionalization, variable scaling, resolution, and error-vs-cost curves; do not assume increasing resolution always improves accuracy."
+  },
+  "recommended_luminous_differentiator": {
+    "name": "physics-qualified surrogate with an explicit applicability and uncertainty certificate",
+    "required_properties": [
+      "separate inspiral, merger, and ringdown validation domains",
+      "out-of-domain detection and calibrated uncertainty",
+      "invariant and remnant-property consistency checks",
+      "cross-model ensemble disagreement as an active-learning signal",
+      "error-vs-latency and error-vs-memory profiles on declared hardware",
+      "injection-recovery and posterior-coverage validation",
+      "stable versioning and evidence provenance through Mycelix"
+    ],
+    "success_metric": "Lower time-to-posterior-accuracy and lower calibration error at equal or better coverage, on held-out simulations and injection sets; not raw waveform throughput alone."
+  }
+}
