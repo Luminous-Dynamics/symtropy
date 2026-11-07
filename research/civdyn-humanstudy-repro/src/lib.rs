@@ -25,22 +25,70 @@ pub struct StudyPin {
 /// Exact study-directory Git tree identities at SOURCE_COMMIT.
 /// A change to any tree requires a new protocol profile and a new run receipt.
 pub const STUDY_PINS: [StudyPin; 16] = [
-    StudyPin { study_id: "study_001", tree_sha: "41965042b7fbf13a98e35756348e54c83cf9af9d" },
-    StudyPin { study_id: "study_002", tree_sha: "cac39c3746fcf03a861a9b6f115e807d68f0e434" },
-    StudyPin { study_id: "study_003", tree_sha: "fd8fa2a6dcc41e8aaf598f8b4924c1d32f76cbe6" },
-    StudyPin { study_id: "study_004", tree_sha: "42e8f65c7117f6ee6682266a5952a8d81412ea42" },
-    StudyPin { study_id: "study_005", tree_sha: "8558bae1cb9408af82db5b5538cf984a202e6ab1" },
-    StudyPin { study_id: "study_006", tree_sha: "ec96290930f8b4855e39139cfe97ed60b474b463" },
-    StudyPin { study_id: "study_007", tree_sha: "a09ef7a25fa17bd5cf49a0ec026e55630167db8f" },
-    StudyPin { study_id: "study_008", tree_sha: "db042e02734d4726ee86446298f53fa967422963" },
-    StudyPin { study_id: "study_009", tree_sha: "ef9d0c2b41887ec65ef8316187a4df7aceada579" },
-    StudyPin { study_id: "study_010", tree_sha: "e5014dc6039572a0bda6e00f4047456f4f83da1f" },
-    StudyPin { study_id: "study_011", tree_sha: "6b0946acb826a0660f158a157a79824bf531b3b2" },
-    StudyPin { study_id: "study_012", tree_sha: "a50ddb86d2a5727168b2b55636415ecc3fa1e21c" },
-    StudyPin { study_id: "study_013", tree_sha: "693b00924e2f67ad034c9a66136b21871148465d" },
-    StudyPin { study_id: "study_014", tree_sha: "b3abae7b4df6b4631f4280b773394c72c6254bb4" },
-    StudyPin { study_id: "study_015", tree_sha: "65056a93e9f7fd6fd5789097b289468ac781047d" },
-    StudyPin { study_id: "study_016", tree_sha: "823c0ae46633a04919fae3cd74809ad45c6cb9c2" },
+    StudyPin {
+        study_id: "study_001",
+        tree_sha: "41965042b7fbf13a98e35756348e54c83cf9af9d",
+    },
+    StudyPin {
+        study_id: "study_002",
+        tree_sha: "cac39c3746fcf03a861a9b6f115e807d68f0e434",
+    },
+    StudyPin {
+        study_id: "study_003",
+        tree_sha: "fd8fa2a6dcc41e8aaf598f8b4924c1d32f76cbe6",
+    },
+    StudyPin {
+        study_id: "study_004",
+        tree_sha: "42e8f65c7117f6ee6682266a5952a8d81412ea42",
+    },
+    StudyPin {
+        study_id: "study_005",
+        tree_sha: "8558bae1cb9408af82db5b5538cf984a202e6ab1",
+    },
+    StudyPin {
+        study_id: "study_006",
+        tree_sha: "ec96290930f8b4855e39139cfe97ed60b474b463",
+    },
+    StudyPin {
+        study_id: "study_007",
+        tree_sha: "a09ef7a25fa17bd5cf49a0ec026e55630167db8f",
+    },
+    StudyPin {
+        study_id: "study_008",
+        tree_sha: "db042e02734d4726ee86446298f53fa967422963",
+    },
+    StudyPin {
+        study_id: "study_009",
+        tree_sha: "ef9d0c2b41887ec65ef8316187a4df7aceada579",
+    },
+    StudyPin {
+        study_id: "study_010",
+        tree_sha: "e5014dc6039572a0bda6e00f4047456f4f83da1f",
+    },
+    StudyPin {
+        study_id: "study_011",
+        tree_sha: "6b0946acb826a0660f158a157a79824bf531b3b2",
+    },
+    StudyPin {
+        study_id: "study_012",
+        tree_sha: "a50ddb86d2a5727168b2b55636415ecc3fa1e21c",
+    },
+    StudyPin {
+        study_id: "study_013",
+        tree_sha: "693b00924e2f67ad034c9a66136b21871148465d",
+    },
+    StudyPin {
+        study_id: "study_014",
+        tree_sha: "b3abae7b4df6b4631f4280b773394c72c6254bb4",
+    },
+    StudyPin {
+        study_id: "study_015",
+        tree_sha: "65056a93e9f7fd6fd5789097b289468ac781047d",
+    },
+    StudyPin {
+        study_id: "study_016",
+        tree_sha: "823c0ae46633a04919fae3cd74809ad45c6cb9c2",
+    },
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -153,10 +201,16 @@ fn validate_study(study: &StudyReceipt, errors: &mut Vec<String>) {
         ));
     }
     if !study.official_pas.is_finite() || !(0.0..=1.0).contains(&study.official_pas) {
-        errors.push(format!("{}: PAS must be finite and in [0, 1]", study.study_id));
+        errors.push(format!(
+            "{}: PAS must be finite and in [0, 1]",
+            study.study_id
+        ));
     }
     if !study.official_ecs.is_finite() || !(-1.0..=1.0).contains(&study.official_ecs) {
-        errors.push(format!("{}: ECS must be finite and in [-1, 1]", study.study_id));
+        errors.push(format!(
+            "{}: ECS must be finite and in [-1, 1]",
+            study.study_id
+        ));
     }
 
     let required_roles = [
@@ -194,8 +248,7 @@ fn validate_study(study: &StudyReceipt, errors: &mut Vec<String>) {
                 study.study_id
             ));
         }
-        if artifact.role == "human_reference_aggregate"
-            && artifact.contains_record_level_human_data
+        if artifact.role == "human_reference_aggregate" && artifact.contains_record_level_human_data
         {
             errors.push(format!(
                 "{}: human_reference_aggregate must not contain record-level human data",
@@ -231,7 +284,10 @@ fn validate_study(study: &StudyReceipt, errors: &mut Vec<String>) {
             ));
         }
         if !effect.human_estimate.is_finite() || !effect.simulated_estimate.is_finite() {
-            errors.push(format!("{}: effect estimates must be finite", study.study_id));
+            errors.push(format!(
+                "{}: effect estimates must be finite",
+                study.study_id
+            ));
         }
         check_ci("human_ci95", effect.human_ci95, errors);
         check_ci("simulated_ci95", effect.simulated_ci95, errors);
@@ -300,7 +356,12 @@ pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
 mod tests {
     use super::*;
 
-    fn artifact(role: &str, record_level: bool, published: bool, authorized: bool) -> ArtifactReceipt {
+    fn artifact(
+        role: &str,
+        record_level: bool,
+        published: bool,
+        authorized: bool,
+    ) -> ArtifactReceipt {
         ArtifactReceipt {
             role: role.to_string(),
             sha256: "a".repeat(64),
@@ -392,7 +453,9 @@ mod tests {
     #[test]
     fn non_authorized_record_level_export_fails_closed() {
         let mut receipt = valid_run();
-        receipt.studies[0].artifacts.push(artifact("private_raw_responses", true, true, false));
+        receipt.studies[0]
+            .artifacts
+            .push(artifact("private_raw_responses", true, true, false));
         assert!(validate_run(&receipt).is_err());
     }
 
