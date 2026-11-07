@@ -260,6 +260,7 @@ pub enum MobileError {
     UnknownTask(String),
     UnknownTug(String),
     UnknownPilot(String),
+    UnknownResource(String),
     InvalidTask(String),
     InvalidTug(String),
     InvalidPilot(String),
@@ -622,6 +623,11 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
             ));
         }
         leg.evidence.validate()?;
+        if !tug_by_id.contains_key(leg.resource_id.as_str())
+            && !pilot_by_id.contains_key(leg.resource_id.as_str())
+        {
+            return Err(MobileError::UnknownResource(leg.resource_id.clone()));
+        }
         if leg.evidence.subject_id != leg.leg_id
             || leg.evidence.subject_revision != leg.route_revision
         {
@@ -630,9 +636,7 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
             ));
         }
         if !leg_ids.insert(leg.leg_id.as_str()) {
-            return Err(MobileError::DuplicateRepositionLeg(
-                leg.evidence.evidence_id.clone(),
-            ));
+            return Err(MobileError::DuplicateRepositionLeg(leg.leg_id.clone()));
         }
         let key = (
             leg.resource_id.as_str(),
