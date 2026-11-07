@@ -426,6 +426,55 @@ mod tests {
         );
     }
 
+    fn harmonic_oscillator_state(omega: f64, dt: f64, duration: f64) -> (f64, f64) {
+        let mut body =
+            RigidBody::<2>::dynamic_sphere(BodyHandle(0), Point::new([1.0, 0.0]), 0.1, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        let steps = (duration / dt).round() as usize;
+        let gravity = SVector::zeros();
+
+        for _ in 0..steps {
+            let x = body.position()[0];
+            body.apply_force(SVector::from([-omega * omega * x, 0.0]));
+            integrate(&mut body, &gravity, dt);
+        }
+
+        (body.position()[0], body.linear_velocity[0])
+    }
+
+    #[test]
+    fn symplectic_euler_harmonic_oscillator_error_decreases_with_timestep() {
+        let omega = 10.0;
+        let duration = 1.0;
+        let exact_x = (omega * duration).cos();
+        let exact_v = -omega * (omega * duration).sin();
+
+        let (coarse_x, coarse_v) = harmonic_oscillator_state(omega, 0.01, duration);
+        let (fine_x, fine_v) = harmonic_oscillator_state(omega, 0.005, duration);
+        let coarse_error = (coarse_x - exact_x).hypot(coarse_v - exact_v);
+        let fine_error = (fine_x - exact_x).hypot(fine_v - exact_v);
+
+        assert!(coarse_error.is_finite() && fine_error.is_finite());
+        assert!(
+            fine_error < coarse_error,
+            "timestep refinement failed: coarse={coarse_error}, fine={fine_error}"
+        );
+    }
+
+    #[test]
+    fn symplectic_euler_is_not_unconditionally_stable_for_large_oscillator_step() {
+        let omega = 10.0;
+        let dt = 0.25; // omega * dt = 2.5, outside the linear stability interval.
+        let (position, velocity) = harmonic_oscillator_state(omega, dt, 1.0);
+
+        assert!(position.is_finite() && velocity.is_finite());
+        assert!(
+            position.abs() > 10.0,
+            "large-step oscillator unexpectedly remained bounded: x={position}, v={velocity}"
+        );
+    }
+
     #[test]
     fn long_double_rotation_integration_preserves_so4_invariants() {
         let mut body = RigidBody::<4>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
