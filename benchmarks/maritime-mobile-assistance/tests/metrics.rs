@@ -556,7 +556,9 @@ fn reposition_data_must_match_the_task_route_revision() {
     let mut input = workload();
     input.reposition_legs[1].route_revision = "route-old".to_owned();
     input.reposition_legs[1].evidence.subject_revision = "route-old".to_owned();
-    let report = evaluate_mobile_assistance(&input).expect("valid workload");
+    input.reposition_legs[1].evidence.subject_id =
+        canonical_reposition_subject(&input.reposition_legs[1], "synthetic-ticks-v1");
+    let report = evaluate_mobile_assistance(&input).expect("well-formed stale route revision");
     assert_eq!(report.disposition, MobileDisposition::NeedsEvidence);
     assert!(
         report
@@ -645,6 +647,57 @@ fn reposition_evidence_must_bind_to_the_exact_directed_route_leg() {
         Err(MobileError::InvalidEvidenceReceipt(
             "reposition-tug-01-anchorage-pilot-point".to_owned()
         ))
+    );
+}
+
+#[test]
+fn reposition_duration_change_invalidates_the_canonical_evidence_subject() {
+    let mut input = workload();
+    input.reposition_legs[1].duration_ticks += 1;
+    assert_eq!(
+        evaluate_mobile_assistance(&input),
+        Err(MobileError::InvalidEvidenceReceipt(
+            "reposition-tug-01-pilot-point-berth-1".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn orphan_reposition_leg_cannot_reference_an_unknown_resource() {
+    let mut input = workload();
+    input.reposition_legs[0].resource_id = "unregistered-resource".to_owned();
+    assert_eq!(
+        evaluate_mobile_assistance(&input),
+        Err(MobileError::UnknownResource(
+            "unregistered-resource".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn reposition_leg_identity_must_be_globally_unique_in_the_workload() {
+    let mut input = workload();
+    let duplicated_id = input.reposition_legs[0].leg_id.clone();
+    input.reposition_legs[1].leg_id = duplicated_id.clone();
+    input.reposition_legs[1].evidence.subject_id =
+        canonical_reposition_subject(&input.reposition_legs[1], "synthetic-ticks-v1");
+    assert_eq!(
+        evaluate_mobile_assistance(&input),
+        Err(MobileError::DuplicateRepositionLeg(duplicated_id))
+    );
+}
+
+#[test]
+fn canonical_reposition_subject_handles_delimiter_bearing_opaque_ids() {
+    let left = leg("resource|part", "node", "target", 3);
+    let right = leg("resource", "part|node", "target", 3);
+    assert_ne!(
+        format!("{}|{}->{}", left.resource_id, left.from_node_id, left.to_node_id),
+        format!("{}|{}->{}", right.resource_id, right.from_node_id, right.to_node_id)
+    );
+    assert_ne!(
+        canonical_reposition_subject(&left, "synthetic-ticks-v1"),
+        canonical_reposition_subject(&right, "synthetic-ticks-v1")
     );
 }
 
