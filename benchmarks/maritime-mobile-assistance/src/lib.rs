@@ -419,11 +419,11 @@ fn check_resource_sequence(
             end_tick: task.operation.end_tick,
         };
 
-        if let Some(end_tick) = previous_end {
-            if task.operation.start_tick < end_tick {
-                violations.insert(MobileViolation::ResourceOverlap(resource_id.to_owned()));
-                continue;
-            }
+        if let Some(end_tick) = previous_end
+            && task.operation.start_tick < end_tick
+        {
+            violations.insert(MobileViolation::ResourceOverlap(resource_id.to_owned()));
+            continue;
         }
 
         if !availability_covers(availability, operation_window) {
@@ -642,10 +642,10 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
                 return Err(MobileError::UnknownTug(tug_id.clone()));
             }
         }
-        if let Some(pilot_id) = &assignment.pilot_id {
-            if !pilot_by_id.contains_key(pilot_id.as_str()) {
-                return Err(MobileError::UnknownPilot(pilot_id.clone()));
-            }
+        if let Some(pilot_id) = &assignment.pilot_id
+            && !pilot_by_id.contains_key(pilot_id.as_str())
+        {
+            return Err(MobileError::UnknownPilot(pilot_id.clone()));
         }
     }
 
