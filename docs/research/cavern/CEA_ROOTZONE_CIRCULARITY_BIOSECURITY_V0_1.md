@@ -1,7 +1,7 @@
 # CEA root-zone circularity and biosecurity benchmark v0.1
 
 **Parent:** [CEA-ROOTZONE-001 #4099](https://github.com/Luminous-Dynamics/symtropy/issues/4099)  
-**Composes:** [HYDROPONICS-ACCOUNTING-002 #2277](https://github.com/Luminous-Dynamics/symtropy/issues/2277) for element balances; [WATER-PROC-CLOSURE-001 #2152](https://github.com/Luminous-Dynamics/symtropy/issues/2152) for treatment/residual closure; [MYC-FOOD-001 #5001](https://github.com/Luminous-Dynamics/mycelix/issues/5001) for product lots, handling evidence and recalls; plus #3952, #3957, #4002, #4041/#4057, #4060, #4065 and #4074.
+**Composes:** [HYDROPONICS-ACCOUNTING-002 #2277](https://github.com/Luminous-Dynamics/symtropy/issues/2277) for element balances; [WATER-PROC-CLOSURE-001 #2152](https://github.com/Luminous-Dynamics/symtropy/issues/2152) for treatment/residual closure; [MYC-FOOD-001 #5001](https://github.com/Luminous-Dynamics/mycelix/issues/5001) for product lots, handling evidence and recalls; plus [#1649 NUTRI-PORTFOLIO-001](https://github.com/Luminous-Dynamics/symtropy/issues/1649) for accepted food-service portfolio semantics, and #3952, #3957, #4002, #4041/#4057, #4060, #4065 and #4074.
 
 **Status:** source-derived evidence register and benchmark protocol. It is not a crop recipe, nutrient-dosing engine, microbial assay, pathogen-handling method, food-safety certification or water-treatment operating procedure.
 
@@ -179,3 +179,6 @@ These are proposed engineering targets, not achieved results.
 ## 8. Claim ceiling
 
 The registry is source evidence only. A nutrient balance is not food safety. A negative sample is not facility clearance. A sanitation record is not a verified treatment outcome. This package does not certify produce, approve reclaimed water, define pathogen handling or authorize discharge. Any microbiological intervention or food-release decision remains with qualified professionals and responsible authorities.
+
+
+Accepted-food interface: #1649 consumes only qualified edible-food / lot-level output. Keep harvested biomass, edible/marketable mass, held/rejected batches, released quantities, fulfilled quantities and recall corrections distinct. A root-zone nutrient or microbial evidence record is an input to responsible adjudication, not a Symtropy food-release decision.
