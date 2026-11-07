@@ -654,11 +654,8 @@ mod tests {
 
     #[test]
     fn ledger_rejects_out_of_range_and_self_transfer_endpoints() {
-        let mut world = World::new(vec![
-            tiny_region("donor", 1.0),
-            tiny_region("shared", 0.0),
-        ])
-        .unwrap();
+        let mut world =
+            World::new(vec![tiny_region("donor", 1.0), tiny_region("shared", 0.0)]).unwrap();
         let invalid_destination = StepInput {
             production: vec![Production::default(); 2],
             transfers: vec![TransferRequest {
