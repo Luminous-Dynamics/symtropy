@@ -165,3 +165,41 @@ This work authorizes research, schemas, synthetic software and offline/emulator 
 - The non-NOT_RUN contract requires at least one ground and one air session. Temporal overlap, channel-to-domain identity, source/PCC sums, storage accounting, allocation coverage and concurrent-window constraints are evaluator invariants; JSON shape validation alone cannot prove them.
 
 The first positive known-truth fixture must use synthetic, fully declared source/channel numbers and independently hand-computed allocations. It must not be assembled by relabelling separate ground and UAV prototype measurements as one co-located experiment.
+
+## 11. Executable bounded allocator — synthetic v0
+
+The first source-level implementation is now present:
+
+- `tools/ground-air-coexistence-oracle` is a Rust workspace crate using only the existing `serde_json` dependency.
+- [`scenario.schema.json`](./scenario.schema.json) is the closed execution-scenario contract.
+- [`scenario.synthetic-example.json`](./scenario.synthetic-example.json) is the common four-slot ground-truck + docked-UAV arithmetic fixture.
+- The package is registered in the workspace and lockfile; CI runs `cargo test --locked -p ground-air-coexistence-oracle`.
+
+### What the exact oracle does
+
+It allocates integer input-power quanta over discrete time slots subject to:
+- shared PCC power cap for every slot;
+- total source-energy budget across the episode;
+- per-channel and per-session input-power caps;
+- session availability windows and requested useful-energy caps;
+- one actual slot with simultaneous positive ground and air delivery;
+- strict domain/modality/receiver identity agreement;
+- synthetic-only envelope, authorization, safety and coexistence states.
+
+The bounded exact objective is lexicographic: maximize sessions meeting their minimum service floor; maximize the sorted minimum-to-maximum request-fulfilment ratios (leximin); maximize total useful energy; minimize source energy; then use a stable schedule tie-break. If the node bound is exhausted, the evaluator returns an error and emits no partial optimum.
+
+v0 bounds the scenario to 8 time slots, 8 channels, 8 sessions, 8 power quanta per slot and at most 1,000,000 search nodes. It models one aggregate grid/PCC source; storage, generation, multiple feeders, ramp dynamics and stochastic arrivals remain later increments.
+
+### Fixture arithmetic (not physical performance)
+
+The synthetic fixture has a 3-quanta-per-slot PCC cap, four 60-second slots, an 80 Wh source budget, 10 Wh per input quantum-slot, a 16 Wh ground useful-energy request and a 12 Wh air useful-energy request. Its declared synthetic coefficients permit a 28 Wh total useful-energy allocation while preserving simultaneous service and both minimum floors.
+
+Those values are invented known-truth arithmetic controls. The reported useful-to-source ratio is **not** an experimentally measured conversion efficiency, and the input coefficients are not electromagnetic or aircraft models.
+
+The channel records intentionally declare `DECLARED_SYNTHETIC_SUPPORT`, `NOT_EVALUATED_SYNTHETIC_ONLY` for both safety and coexistence, and `SYNTHETIC_FIXTURE_ONLY` session authorization. The oracle refuses measured/field evidence or any state that could be mistaken for physical permission. It is not an energization controller.
+
+### Test status
+
+Nine Rust unit-test declarations cover the known-truth allocation, row-order determinism, insufficient budget, unresolved safety/coexistence states, domain/modality mismatch, non-overlapping sessions, search-bound exhaustion, energy-coefficient conservation and unknown/non-synthetic input rejection.
+
+No local `cargo`, `rustc` or `rustfmt` is installed in this authoring environment. The source, lockfile and CI wiring are committed, but compilation, formatting and test execution are **not claimed** pending exact-head CI.
