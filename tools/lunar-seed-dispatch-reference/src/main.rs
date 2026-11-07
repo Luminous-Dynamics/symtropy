@@ -622,7 +622,10 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
             return Err(format!("interval {} input binding mismatch", input.id));
         }
         if actual.battery_start_soc_wh != previous_soc {
-            return Err(format!("interval {} battery SOC continuity mismatch", input.id));
+            return Err(format!(
+                "interval {} battery SOC continuity mismatch",
+                input.id
+            ));
         }
         if actual.battery_internal_withdrawn_wh > scenario.discharge_power_limit_wh_per_interval {
             return Err(format!("interval {} exceeds battery discharge limit", input.id));
@@ -644,7 +647,10 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
             scenario.discharge_efficiency_bps,
         )?;
         if actual.battery_bus_output_wh > battery_bus_upper_bound {
-            return Err(format!("interval {} reports impossible battery bus output", input.id));
+            return Err(format!(
+                "interval {} reports impossible battery bus output",
+                input.id
+            ));
         }
 
         let expected_batch_energy = input.batch.as_ref().map_or(0, |batch| batch.energy_wh);
@@ -652,7 +658,10 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
         if actual.batch_id != expected_batch_id
             || actual.batch_energy_requested_wh != expected_batch_energy
         {
-            return Err(format!("interval {} batch identity/energy mismatch", input.id));
+            return Err(format!(
+                "interval {} batch identity/energy mismatch",
+                input.id
+            ));
         }
 
         let batch_energy_served = if actual.batch_processed {
@@ -664,7 +673,10 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
                 || actual.batch_product_g != batch.product_mass_g
                 || actual.batch_residue_g != batch.residue_mass_g
             {
-                return Err(format!("interval {} batch receipt differs from input", input.id));
+                return Err(format!(
+                    "interval {} batch receipt differs from input",
+                    input.id
+                ));
             }
             processed_batches += 1;
             actual.batch_energy_requested_wh
@@ -673,7 +685,10 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
                 || actual.batch_product_g != 0
                 || actual.batch_residue_g != 0
             {
-                return Err(format!("interval {} deferred batch consumed resources", input.id));
+                return Err(format!(
+                    "interval {} deferred batch consumed resources",
+                    input.id
+                ));
             }
             if input.batch.is_some() {
                 deferred_batches += 1;
@@ -692,7 +707,10 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
         if independently_recomputed_mass_residual != 0
             || actual.batch_mass_balance_residual_g != independently_recomputed_mass_residual
         {
-            return Err(format!("interval {} batch mass verification failed", input.id));
+            return Err(format!(
+                "interval {} batch mass verification failed",
+                input.id
+            ));
         }
 
         let requested_critical =
