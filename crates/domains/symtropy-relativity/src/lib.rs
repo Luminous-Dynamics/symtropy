@@ -26,6 +26,8 @@ use core::fmt;
 
 /// Levi-Civita connection coefficients from explicit metric derivatives.
 pub mod connection;
+/// Convention-explicit Riemann, Ricci, and Einstein curvature tensors.
+pub mod curvature;
 /// Riemann, Ricci, and Einstein curvature tensors from explicit derivatives.
 pub mod curvature;
 /// Validated stationary black-hole metric components in a declared chart.
