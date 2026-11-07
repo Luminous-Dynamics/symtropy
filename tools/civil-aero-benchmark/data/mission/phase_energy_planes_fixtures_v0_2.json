@@ -74,9 +74,10 @@
             "propulsor_loss_j": 12000000
           }
         ],
-        "peak_source_power_w": 40000,
-        "peak_source_power_limit_w": 50000,
-        "continuous_source_power_limit_w": 35000
+        "tolerance_w": 0.000001,
+        "peak_bus_supply_power_w": 40000,
+        "peak_bus_supply_power_limit_w": 50000,
+        "continuous_bus_supply_power_limit_w": 35000
       }
     },
     {
@@ -112,7 +113,10 @@
             "thermal_and_exhaust_loss_j": 80000000,
             "direct_propulsor_shaft_j": 0,
             "accessory_mechanical_load_j": 0,
-            "mechanical_distribution_loss_j": 0
+            "mechanical_distribution_loss_j": 0,
+            "average_mechanical_output_power_limit_w": 12222.222222222223,
+            "peak_mechanical_output_power_w": 11666.666666666668,
+            "peak_mechanical_output_power_limit_w": 13333.333333333334
           }
         ],
         "generators": [
@@ -122,7 +126,10 @@
             "prime_mover_id": "engine",
             "mechanical_input_j": 40000000,
             "electrical_output_to_bus_j": 34000000,
-            "conversion_loss_j": 6000000
+            "conversion_loss_j": 6000000,
+            "average_electrical_output_power_limit_w": 10388.88888888889,
+            "peak_electrical_output_power_w": 9916.666666666668,
+            "peak_electrical_output_power_limit_w": 11333.333333333334
           }
         ],
         "stores": [],
@@ -150,9 +157,10 @@
             "propulsor_loss_j": 4000000
           }
         ],
-        "peak_source_power_w": 20000,
-        "peak_source_power_limit_w": 30000,
-        "continuous_source_power_limit_w": 15000
+        "tolerance_w": 0.000001,
+        "peak_bus_supply_power_w": 20000,
+        "peak_bus_supply_power_limit_w": 30000,
+        "continuous_bus_supply_power_limit_w": 15000
       }
     },
     {
@@ -188,7 +196,10 @@
             "thermal_and_exhaust_loss_j": 80000000,
             "direct_propulsor_shaft_j": 0,
             "accessory_mechanical_load_j": 0,
-            "mechanical_distribution_loss_j": 0
+            "mechanical_distribution_loss_j": 0,
+            "average_mechanical_output_power_limit_w": 12222.222222222223,
+            "peak_mechanical_output_power_w": 11666.666666666668,
+            "peak_mechanical_output_power_limit_w": 13333.333333333334
           }
         ],
         "generators": [
@@ -198,7 +209,10 @@
             "prime_mover_id": "engine",
             "mechanical_input_j": 40000000,
             "electrical_output_to_bus_j": 34000000,
-            "conversion_loss_j": 6000000
+            "conversion_loss_j": 6000000,
+            "average_electrical_output_power_limit_w": 10388.88888888889,
+            "peak_electrical_output_power_w": 9916.666666666668,
+            "peak_electrical_output_power_limit_w": 11333.333333333334
           }
         ],
         "stores": [
@@ -252,9 +266,10 @@
             "propulsor_loss_j": 12000000
           }
         ],
-        "peak_source_power_w": 45000,
-        "peak_source_power_limit_w": 55000,
-        "continuous_source_power_limit_w": 40000
+        "tolerance_w": 0.000001,
+        "peak_bus_supply_power_w": 45000,
+        "peak_bus_supply_power_limit_w": 55000,
+        "continuous_bus_supply_power_limit_w": 40000
       }
     },
     {
@@ -290,7 +305,10 @@
             "thermal_and_exhaust_loss_j": 200000000,
             "direct_propulsor_shaft_j": 80000000,
             "accessory_mechanical_load_j": 0,
-            "mechanical_distribution_loss_j": 0
+            "mechanical_distribution_loss_j": 0,
+            "average_mechanical_output_power_limit_w": 30555.55555555556,
+            "peak_mechanical_output_power_w": 29166.666666666668,
+            "peak_mechanical_output_power_limit_w": 33333.33333333333
           }
         ],
         "generators": [
@@ -300,7 +318,10 @@
             "prime_mover_id": "engine",
             "mechanical_input_j": 20000000,
             "electrical_output_to_bus_j": 16000000,
-            "conversion_loss_j": 4000000
+            "conversion_loss_j": 4000000,
+            "average_electrical_output_power_limit_w": 4888.88888888889,
+            "peak_electrical_output_power_w": 4666.666666666667,
+            "peak_electrical_output_power_limit_w": 5333.333333333333
           }
         ],
         "stores": [
@@ -354,9 +375,10 @@
             "propulsor_loss_j": 17000000
           }
         ],
-        "peak_source_power_w": 50000,
-        "peak_source_power_limit_w": 55000,
-        "continuous_source_power_limit_w": 20000
+        "tolerance_w": 0.000001,
+        "peak_bus_supply_power_w": 50000,
+        "peak_bus_supply_power_limit_w": 55000,
+        "continuous_bus_supply_power_limit_w": 20000
       }
     },
     {
@@ -392,7 +414,10 @@
             "thermal_and_exhaust_loss_j": 180000000,
             "direct_propulsor_shaft_j": 0,
             "accessory_mechanical_load_j": 0,
-            "mechanical_distribution_loss_j": 0
+            "mechanical_distribution_loss_j": 0,
+            "average_mechanical_output_power_limit_w": 36666.66666666667,
+            "peak_mechanical_output_power_w": 35000.00000000001,
+            "peak_mechanical_output_power_limit_w": 40000
           }
         ],
         "generators": [
@@ -402,7 +427,10 @@
             "prime_mover_id": "engine",
             "mechanical_input_j": 120000000,
             "electrical_output_to_bus_j": 100000000,
-            "conversion_loss_j": 20000000
+            "conversion_loss_j": 20000000,
+            "average_electrical_output_power_limit_w": 30555.55555555556,
+            "peak_electrical_output_power_w": 29166.666666666668,
+            "peak_electrical_output_power_limit_w": 33333.33333333333
           }
         ],
         "stores": [
@@ -456,9 +484,10 @@
             "propulsor_loss_j": 7000000
           }
         ],
-        "peak_source_power_w": 40000,
-        "peak_source_power_limit_w": 50000,
-        "continuous_source_power_limit_w": 30000
+        "tolerance_w": 0.000001,
+        "peak_bus_supply_power_w": 40000,
+        "peak_bus_supply_power_limit_w": 50000,
+        "continuous_bus_supply_power_limit_w": 30000
       }
     },
     {
@@ -494,7 +523,10 @@
             "thermal_and_exhaust_loss_j": 120000000,
             "direct_propulsor_shaft_j": 0,
             "accessory_mechanical_load_j": 0,
-            "mechanical_distribution_loss_j": 0
+            "mechanical_distribution_loss_j": 0,
+            "average_mechanical_output_power_limit_w": 24444.444444444445,
+            "peak_mechanical_output_power_w": 23333.333333333336,
+            "peak_mechanical_output_power_limit_w": 26666.666666666668
           }
         ],
         "generators": [
@@ -504,7 +536,10 @@
             "prime_mover_id": "engine",
             "mechanical_input_j": 80000000,
             "electrical_output_to_bus_j": 70000000,
-            "conversion_loss_j": 10000000
+            "conversion_loss_j": 10000000,
+            "average_electrical_output_power_limit_w": 21388.88888888889,
+            "peak_electrical_output_power_w": 20416.666666666668,
+            "peak_electrical_output_power_limit_w": 23333.333333333332
           }
         ],
         "stores": [
@@ -583,9 +618,10 @@
             "propulsor_loss_j": 12000000
           }
         ],
-        "peak_source_power_w": 55000,
-        "peak_source_power_limit_w": 60000,
-        "continuous_source_power_limit_w": 35000
+        "tolerance_w": 0.000001,
+        "peak_bus_supply_power_w": 55000,
+        "peak_bus_supply_power_limit_w": 60000,
+        "continuous_bus_supply_power_limit_w": 35000
       }
     }
   ]
