@@ -285,7 +285,7 @@ fn surcharge_base(
 }
 
 pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
-    let (_, rates) = rates_for(case.billing_month, case.account.voltage_class)?;
+    let (season, rates) = rates_for(case.billing_month, case.account.voltage_class)?;
     valid_non_negative(case.account.supply_capacity_kva, "supply_capacity_kva")?;
     valid_non_negative(
         case.measured_monthly_max_demand_kva,
@@ -393,8 +393,14 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
             )
         };
 
+    let surcharge_resolved = !case.apply_business_lpu_surcharge
+        || business_lpu_surcharge_zar.is_some();
     let subtotal_before_vat_zar = subtotal_before_surcharge_zar + surcharge_amount;
-    let vat_zar = case.vat_rate.map(|rate| round2(subtotal_before_vat_zar * rate));
+    let vat_zar = if surcharge_resolved {
+        case.vat_rate.map(|rate| round2(subtotal_before_vat_zar * rate))
+    } else {
+        None
+    };
     let eligible = eligibility(&case.account);
     let mut warnings = eligible.1;
     warnings.push(
@@ -413,22 +419,16 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
             .to_owned(),
     );
 
-    let invoice_equivalent_total_zar = if eligible
-        && case.apply_business_lpu_surcharge == business_lpu_surcharge_zar.is_some()
-        && vat_zar.is_some()
-    {
+    let invoice_equivalent_total_zar = if eligible && surcharge_resolved && vat_zar.is_some() {
         Some(round2(subtotal_before_vat_zar + vat_zar.unwrap()))
     } else {
         None
     };
 
-    let (_, season) = rates_for(case.billing_month, case.account.voltage_class)?;
-    let season = if season == "summer" { "summer" } else { "winter" }.to_owned();
-
     Ok(Evaluation {
         case_id: case.case_id.clone(),
         billing_month: case.billing_month,
-        season,
+        season: season.to_owned(),
         site_tariff_eligibility: if eligible.0 {
             "eligible_and_contract_confirmed".to_owned()
         } else {
