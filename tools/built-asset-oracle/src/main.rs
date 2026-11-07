@@ -138,15 +138,15 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
             expected,
         );
     }
-    if let Some(observation_unit) = string_at(input, &["finding", "value", "unit"]) {
-        if observation_unit != unit {
-            return result(
-                case_id,
-                "INVALID_INPUT",
-                &["INCONSISTENT_QUANTITY_UNITS", "NO_IMPLICIT_UNIT_CONVERSION"],
-                expected,
-            );
-        }
+    if let Some(observation_unit) = string_at(input, &["finding", "value", "unit"])
+        && observation_unit != unit
+    {
+        return result(
+            case_id,
+            "INVALID_INPUT",
+            &["INCONSISTENT_QUANTITY_UNITS", "NO_IMPLICIT_UNIT_CONVERSION"],
+            expected,
+        );
     }
 
     let Some(frame_id) = string_at(input, &["frame_id"]) else {
@@ -265,26 +265,26 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
             .iter()
             .map(|measurement| measurement.get("offset_mm").and_then(Value::as_f64))
             .collect();
-        if let Some(offsets) = offsets {
-            if let (Some(minimum), Some(maximum)) = (
+        if let Some(offsets) = offsets
+            && let (Some(minimum), Some(maximum)) = (
                 offsets.iter().copied().reduce(f64::min),
                 offsets.iter().copied().reduce(f64::max),
-            ) {
-                let threshold = reference
-                    .get("reference_conflict_threshold_mm")
-                    .and_then(Value::as_f64)
-                    .unwrap_or(0.0);
-                if maximum - minimum > threshold {
-                    return result(
-                        case_id,
-                        "CONFLICTED_EVIDENCE",
-                        &[
-                            "INDEPENDENT_REFERENCE_MEASUREMENTS_CONFLICT",
-                            "ADJUDICATION_REQUIRED",
-                        ],
-                        expected,
-                    );
-                }
+            )
+        {
+            let threshold = reference
+                .get("reference_conflict_threshold_mm")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            if maximum - minimum > threshold {
+                return result(
+                    case_id,
+                    "CONFLICTED_EVIDENCE",
+                    &[
+                        "INDEPENDENT_REFERENCE_MEASUREMENTS_CONFLICT",
+                        "ADJUDICATION_REQUIRED",
+                    ],
+                    expected,
+                );
             }
         }
     }
