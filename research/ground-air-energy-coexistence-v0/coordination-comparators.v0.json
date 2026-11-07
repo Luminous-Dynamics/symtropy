@@ -1,0 +1,155 @@
+{
+  "schema_version": "ground-air-coordination-comparators-v0",
+  "comparator_set_id": "ground-air-coordination-sota-2026-11",
+  "catalog": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "pull_request": 3451,
+    "branch": "research/wpt-empirical-envelope-v0.1-20261103",
+    "commit_sha": "a30be1bb3a6df69fc54f2f9ff930cf617be40446",
+    "realizations_path": "benchmarks/wpt-empirical/v0/realizations.jsonl"
+  },
+  "comparators": [
+    {
+      "comparator_id": "SAFE_DDPG_CAEV_UAV_COORDINATION",
+      "source_id": "shaikh-caev-uav-coordinated-charging-safe-ddpg-2026",
+      "system_id": "WPT-SIM-SHAIKH-CAEV-UAV-SAFE-DDPG-2026",
+      "evidence_class": "SIMULATED",
+      "scope": "Joint ground and aerial charging reservation, billing handshake, trip planning and scheduling across cabled/static/dynamic/V2V magnetic-resonance and laser-beaming network classes.",
+      "methods": [
+        "SH-CSP",
+        "DH-CSP",
+        "SAFE-DDPG",
+        "vanilla DDPG"
+      ],
+      "scenario": {
+        "duration_hours": 48,
+        "simulated_caev_count": 50,
+        "simulated_lbuav_count": 8,
+        "simulated_eiuav_count": 6,
+        "caev_mobility": "SUMO",
+        "independent_simulation_replications": 50
+      },
+      "reported_results": [
+        {
+          "metric": "wait_time_reduction_vs_DH_CSP",
+          "value": 70,
+          "qualifier": "GREATER_THAN",
+          "unit": "percent",
+          "notes": "At selected/high-demand charging nodes; exact improvement varies by node."
+        },
+        {
+          "metric": "wait_time_reduction_vs_SH_CSP",
+          "value": 85,
+          "qualifier": "GREATER_THAN",
+          "unit": "percent",
+          "notes": "At selected/high-demand charging nodes; exact improvement varies by node."
+        },
+        {
+          "metric": "battery_consumption_reduction",
+          "lower": 9,
+          "upper": 18,
+          "unit": "percent",
+          "notes": "Reported range across compared cases."
+        },
+        {
+          "metric": "travel_time_reduction",
+          "lower": 10,
+          "upper": 19,
+          "unit": "percent",
+          "notes": "Reported range across compared cases."
+        },
+        {
+          "metric": "caev_requested_reserved_delivered_charge_fulfilment",
+          "value": 98.7,
+          "qualifier": "APPROX",
+          "unit": "percent",
+          "notes": "Figure 9 service fulfilment comparison, not electrical conversion efficiency."
+        },
+        {
+          "metric": "uav_requested_reserved_delivered_charge_fulfilment",
+          "value": 98.52,
+          "qualifier": "APPROX",
+          "unit": "percent",
+          "notes": "Figure 10 service fulfilment comparison, not electrical conversion efficiency."
+        }
+      ],
+      "baseline_gaps_to_test": {
+        "pcc_source_to_endpoint_energy_balance": "NOT_ESTABLISHED_AS_A_SHARED_MEASURED_PCC_BOUNDARY",
+        "same_site_physical_ground_air_wpt_demonstration": "NOT_DEMONSTRATED",
+        "cross_channel_emc_and_mutual_coupling": "NOT_DEMONSTRATED",
+        "independent_physical_safety_qualification": "NOT_DEMONSTRATED",
+        "actual_wpt_conversion_efficiency": "NOT_ESTABLISHED_BY_THE_98_PERCENT_SERVICE_FULFILMENT"
+      },
+      "fair_reproduction_inputs": [
+        "same 50 CAEV / 8 LBUAV / 6 EIUAV or documented scaled subset",
+        "same SUMO traffic/route seeds and UAV mission/arrival seeds",
+        "same charging-network inventory, capacity, travel-time and tariff assumptions",
+        "same battery initial SOC, mission demand, reserve and two-stage charging parameters",
+        "same CN admission, queue, reservation and fallback semantics",
+        "same random seeds and 50 independent episode replications where raw seeds/data can be recovered",
+        "identical objective terms, reward weights and safety-feasibility filters"
+      ],
+      "additions_for_luminous_benchmark": [
+        "explicit PCC real-power/energy budget and storage/generation accounting",
+        "separate source, channel-input and battery-terminal meter planes",
+        "exact small-instance allocation oracle and regret/optimality gap",
+        "held-out demand, feeder cap, vehicle mix, weather and model-shift scenarios",
+        "separate hardware safety and physical coexistence qualification gates"
+      ],
+      "claim_ceiling": "Published simulation comparison only. It is a direct ground–aerial coordination baseline, not an integrated physical charging prototype or measured transfer-efficiency comparator."
+    },
+    {
+      "comparator_id": "EA_RRT_UAV_TRAJECTORY_ENERGY_SCHEDULING",
+      "source_id": "li-uav-hybrid-wireless-charging-ea-rrt-2026",
+      "system_id": "WPT-SIM-LI-UAV-EA-RRT-HYBRID-CHARGING-2026",
+      "evidence_class": "SIMULATED",
+      "scope": "UAV-only joint 3D trajectory and residual-energy scheduling across wireless charging stations and SWIPT opportunities.",
+      "methods": [
+        "EA-RRT",
+        "conventional heuristic trajectory planners"
+      ],
+      "reported_results": [
+        {
+          "metric": "residual_energy_optimization",
+          "value": null,
+          "qualifier": "NOT_NUMERICALLY_REPORTED_IN_ABSTRACT",
+          "unit": "not_reported",
+          "notes": "Abstract reports simulation improvements but does not provide a numeric effect size."
+        }
+      ],
+      "baseline_gaps_to_test": {
+        "ground_vehicle_coordination": "NOT_IN_SCOPE",
+        "shared_site_pcc_allocation": "NOT_ESTABLISHED_IN_ABSTRACT",
+        "measured_hardware_transfer": "NOT_DEMONSTRATED_IN_ABSTRACT"
+      },
+      "fair_reproduction_inputs": [
+        "same 3D environment, obstacle map and UAV dynamics",
+        "same starting/terminal energy and charging opportunity map",
+        "same communication and SWIPT constraints",
+        "same energy model and path-cost definition",
+        "same trajectory evaluation budget and heuristic baselines"
+      ],
+      "additions_for_luminous_benchmark": [
+        "route-level reserve feasibility and battery thermal/acceptance constraints",
+        "explicit source and receiver energy ledgers",
+        "uncertainty in station availability, alignment and charging power",
+        "compare EA-RRT as an aerial planner inside a separate ground-air site allocator"
+      ],
+      "claim_ceiling": "UAV-only simulation baseline. It must not be ranked as a physical WPT system or a ground–air coordination solution."
+    }
+  ],
+  "luminous_positioning": {
+    "coordination_itself_is_novel": "FALSE",
+    "direct_simulated_ground_air_coordination_baseline_exists": true,
+    "first_physical_same_site_ground_air_wpt_demonstration_in_reviewed_catalogue": "NOT_FOUND_IN_REVIEWED_SOURCES",
+    "intended_differentiation": [
+      "evidence-qualified physical operating envelopes rather than assumed modality capacities",
+      "explicit PCC/source-to-battery-terminal conservation and meter-boundary identity",
+      "exact feasibility oracle and independent deterministic replay",
+      "robustness under held-out channel, feeder, demand and environment regimes",
+      "measured cross-channel coexistence, EMC, field and common-bus stability",
+      "source-backed mission-service and lifecycle comparison against contact docking, battery exchange, tethered supply and WPT"
+    ],
+    "required_disclaimer": "Absence in the reviewed source set is not proof that no such physical system exists. Literature search and full-text verification are continuing."
+  }
+}
