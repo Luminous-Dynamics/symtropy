@@ -307,6 +307,96 @@
       ],
       "reason": "Food-safety disposition is a separate authority decision from harvest service and crop quality.",
       "claim_ceiling": "Synthetic food-release routing case."
+    },
+    {
+      "case_id": "RZ-TOPOLOGY-015",
+      "family": "LOOP_TOPOLOGY",
+      "scenario": "A qualified positive result appears in a shared manifold that physically connects zones A and B during the relevant crop cycles; zone C has an independently validated isolated supply and return.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "positive_sample_zone": "shared_manifold_AB",
+        "connected_zones": [
+          "zone_A",
+          "zone_B"
+        ],
+        "isolated_zones": [
+          "zone_C"
+        ],
+        "flow_path_interval_valid": true,
+        "zone_C_isolation_verified": true
+      },
+      "expected_decision": "HOLD_BATCH",
+      "must_not_infer": [
+        "Every facility lot is exposed",
+        "Zone C has no risk without its own evidence",
+        "The exact contaminated lot set without crop/lot/flow timestamps"
+      ],
+      "reason": "Exposure follows a qualified hydraulic path and time interval; hold the evidenced connected lots while preserving the independently isolated zone's separate evidence boundary.",
+      "claim_ceiling": "Synthetic exposure-path routing case only."
+    },
+    {
+      "case_id": "RZ-TOPOLOGY-016",
+      "family": "LOOP_TOPOLOGY",
+      "scenario": "A positive environmental result occurs in zone A; zone B is physically isolated with independently verified supply/return separation and its own complete valid sample set.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "positive_zone": "zone_A",
+        "other_zone": "zone_B",
+        "hydraulic_connection": false,
+        "barrier_verification_current": true,
+        "zone_B_sampling_complete": true,
+        "zone_B_results": "NOT_DETECTED"
+      },
+      "expected_decision": "ISOLATE_DOMAIN",
+      "must_not_infer": [
+        "Whole-facility contamination",
+        "Automatic release of zone B without responsible authority",
+        "Universal absence outside the sampled scope"
+      ],
+      "reason": "The affected domain is isolated; keep zone A on hold and evaluate zone B only within its own complete, current evidence and authority process.",
+      "claim_ceiling": "Synthetic physical-segmentation decision case."
+    },
+    {
+      "case_id": "RZ-SAMPLE-017",
+      "family": "SAMPLE_COVERAGE",
+      "scenario": "A microbiological assay result is reported, but chain of custody is broken and sample identity cannot be linked to a specific water path, crop zone or batch.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "lab_result": "POSITIVE",
+        "sample_identity_verified": false,
+        "chain_of_custody_valid": false,
+        "matrix_known": true,
+        "batch_and_zone_link_known": false
+      },
+      "expected_decision": "INDETERMINATE",
+      "must_not_infer": [
+        "A verified facility-positive result",
+        "The absence of a hazard",
+        "The affected batch or zone without source identity"
+      ],
+      "reason": "A result without valid sample identity and custody is not admissible for exact lot or facility attribution; preserve it for investigation and recollection.",
+      "claim_ceiling": "Synthetic sample-admissibility case."
+    },
+    {
+      "case_id": "RZ-SANITATION-018",
+      "family": "SANITATION_VERIFICATION",
+      "scenario": "A cleaning/sanitation event is followed by negative samples, but the assay detection limit is above the predeclared decision threshold and the return-line biofilm locations were not sampled.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "sanitation_event_recorded": true,
+        "post_event_results": "NOT_DETECTED",
+        "assay_detection_limit_adequate": false,
+        "return_line_coverage_complete": false,
+        "independent_controls_passed": true
+      },
+      "expected_decision": "INDETERMINATE",
+      "must_not_infer": [
+        "Sanitation efficacy at the required threshold",
+        "Facility-wide clearance",
+        "Food release solely from these samples"
+      ],
+      "reason": "Negative results with insufficient detection sensitivity and incomplete matrix coverage cannot verify the sanitation outcome.",
+      "claim_ceiling": "Synthetic sanitation evidence-sufficiency case."
     }
   ],
   "corpus_claim_ceiling": "Synthetic adversarial routing corpus only. It does not implement assays, define a pathogen-handling procedure, validate sanitation or certify food safety."
