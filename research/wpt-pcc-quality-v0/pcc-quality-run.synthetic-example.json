@@ -1,0 +1,293 @@
+{
+  "schema_version": "wpt-pcc-power-quality-v0",
+  "run_id": "synthetic-pcc-ieee519-001",
+  "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+  "profile": {
+    "standard_id": "IEEE_519_2022",
+    "edition": "IEEE 519-2022",
+    "standard_role": "SYSTEM_PCC_LIMITS",
+    "assessment_boundary": "SITE_PCC",
+    "network_type": "PUBLIC_LOW_VOLTAGE",
+    "phase_count": 3,
+    "grid_frequency_hz": 50,
+    "rated_input_current_a_per_phase": null,
+    "pcc": {
+      "pcc_id": "synthetic-pcc-01",
+      "voltage_kv": 0.4,
+      "i_sc_rms_a": 25000,
+      "i_l_rms_a": 100,
+      "i_l_definition_id": "synthetic-maximum-demand-current-profile-01",
+      "i_sc_method_id": "synthetic-thevenin-short-circuit-study-v0",
+      "i_sc_source_artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "i_l_window_seconds": 900,
+      "i_l_reference_period_id": "synthetic-maximum-demand-reference-period-12mo",
+      "i_l_source_artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "nominal_voltage_v": 400,
+    "wire_count": 4
+  },
+  "measurement": {
+    "measurement_standard_id": "IEC_61000_4_30_2025",
+    "measurement_edition": "IEC 61000-4-30:2025 COR1:2026",
+    "measurement_class": "CLASS_A",
+    "instrument_id": "synthetic-power-quality-analyzer",
+    "calibration_receipt_id": "synthetic-calibration-01",
+    "aggregation_window_id": "synthetic-steady-state-window-01",
+    "bandwidth_max_hz": 150000,
+    "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "current_spectrum": {
+    "fundamental_rms_a": 100,
+    "harmonics": [
+      {
+        "harmonic_order": 2,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 3,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 4,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 5,
+        "rms_current_a": 4,
+        "expanded_uncertainty_a": 0.05
+      },
+      {
+        "harmonic_order": 6,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 7,
+        "rms_current_a": 3,
+        "expanded_uncertainty_a": 0.05
+      },
+      {
+        "harmonic_order": 8,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 9,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 10,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 11,
+        "rms_current_a": 2,
+        "expanded_uncertainty_a": 0.03
+      },
+      {
+        "harmonic_order": 12,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 13,
+        "rms_current_a": 1,
+        "expanded_uncertainty_a": 0.03
+      },
+      {
+        "harmonic_order": 14,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 15,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 16,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 17,
+        "rms_current_a": 0.5,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 18,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 19,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 20,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 21,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 22,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 23,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 24,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 25,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 26,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 27,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 28,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 29,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 30,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 31,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 32,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 33,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 34,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 35,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 36,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 37,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 38,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 39,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 40,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 41,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 42,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 43,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 44,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 45,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 46,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 47,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 48,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 49,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      },
+      {
+        "harmonic_order": 50,
+        "rms_current_a": 0,
+        "expanded_uncertainty_a": 0.02
+      }
+    ],
+    "maximum_harmonic_order": 50
+  },
+  "quality_flags": [
+    "SYNTHETIC_ONLY"
+  ]
+}
