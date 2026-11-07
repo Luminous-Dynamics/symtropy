@@ -3,14 +3,17 @@
 
 #![forbid(unsafe_code)]
 
-pub mod paper_import;
-pub use paper_import::{PaperImportError, PaperRunAttestation, PaperStudyImport, paper_execution_manifest_sha256, import_paper_study_run, assemble_paper_run_receipt};
-
 //! Source-pinned HumanStudy-Bench receipt validation.
 //!
 //! This crate validates normalized, typed receipts. It deliberately does not
 //! reimplement HumanStudy-Bench's Python study runner, study-specific tests,
 //! PAS, or ECS. Those remain the upstream reproduction authority.
+
+pub mod paper_import;
+pub use paper_import::{
+    assemble_paper_run_receipt, import_paper_study_run, paper_execution_manifest_sha256,
+    PaperImportError, PaperRunAttestation, PaperStudyImport,
+};
 
 use std::collections::BTreeSet;
 
