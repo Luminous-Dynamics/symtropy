@@ -15,7 +15,8 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Explicit second metric derivatives, mixed-index Riemann tensor, Ricci tensor/scalar, Einstein tensor, Kretschmann contraction, and algebraic Riemann-symmetry residuals.
 - Fixed-size second-order forward-mode automatic differentiation for Schwarzschild, Kerr, ingoing Eddington-Finkelstein, and ingoing Kerr metric values, gradients, and Hessians; AD-generated Kerr curvature is checked against vacuum and analytic Kretschmann fixtures.
 - Horizon-regular ingoing charts for Schwarzschild and Kerr, with curvature tests at/inside their horizons and scalar-invariant comparisons against exterior coordinates.
-- **63 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, and geodesic integration.
+- Noise-weighted frequency-domain waveform comparison: one-sided PSD inner product, constant-phase-maximized mismatch, explicit best phase offset, separate amplitude L2 and frequency-dependent phase residual diagnostics, and strict grid/PSD/domain validation. The caller must pre-align waveforms; no hidden time maximization, interpolation, resampling, or PSD estimation.
+- **73 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, and waveform metrics.
 
 ## Conventions
 
@@ -31,7 +32,11 @@ Riemann sign convention:
 `R^rho_(sigma mu nu) = partial_mu Gamma^rho_(nu sigma) - partial_nu Gamma^rho_(mu sigma) + Gamma^rho_(mu lambda) Gamma^lambda_(nu sigma) - Gamma^rho_(nu lambda) Gamma^lambda_(mu sigma)`.
 Ricci convention: `R_(sigma nu) = R^rho_(sigma rho nu)`.
 
-All derivative arrays must use the same chart, coordinate order, units, and signature. Derivatives are supplied explicitly; no hidden finite-difference approximation is performed.
+All derivative arrays must use the same chart, coordinate order, units, and signature. Derivatives are supplied explicitly or produced by the fixed-size Jet2 AD path; no hidden finite-difference approximation is performed.
+
+## Waveform comparison conventions
+
+The waveform metric uses the discrete one-sided PSD convention `4*df*sum(conjugate(h_ref)*h_candidate/S_n)`. Frequency grids must be identical and uniform. The caller supplies an explicit inclusive frequency band and a reference-amplitude floor for phase diagnostics. The reported mismatch maximizes over a single constant phase only; the phase offset is returned, and the frequency-dependent phase residual remains visible. Time alignment is not optimized or modified, so the caller must record the alignment procedure. PSD estimation, interpolation, whitening and windowing are outside this API.
 
 For Kerr:
 - `Omega_H = a*c/(r_plus^2 + a^2)` is in radians per second and retains the sign of the spin.
@@ -50,6 +55,8 @@ The generic metric-component constructor does not certify Lorentzian signature. 
 
 ## Next gates
 
+- Add waveform-metric fixture cross-checks against an independent Python/NumPy reference and validate PSD-weighting / alignment behavior on real SXS test signals.
+- Propagate waveform discrepancy through a simple posterior-recovery fixture before any surrogate posterior-accuracy claim.
 - Kerr further independent curvature-invariant fixtures and full tensor conditioning/error estimates.
 - Differential Bianchi identity and higher-derivative consistency checks.
 - More exhaustive horizon-regular coordinate and cross-chart scalar-invariant comparisons.
@@ -58,10 +65,12 @@ The generic metric-component constructor does not certify Lorentzian signature. 
 
 ## Versioned benchmark registries
 
-Three versioned machine-readable research registries are maintained beside the crate (the two manifests below plus their analysis sub-configurations):
+Five versioned machine-readable research manifests are maintained beside the crate:
 
 - `benchmarks/direct_wave_sxs_spin_sweep.json` — the earlier ten-case high-spin counteranalysis plus a pinned 168-entry catalogue (125 aligned/precessing/eccentric SXS and 43 anti-aligned), 13 CCE News waveforms, all-QNM ell=2..6 filter analysis, light-ring and BOB predictors, filter-free subset configuration, and Gaussian-vacuum-perturbation filter controls. The earlier ten-case paper's exact fitting-window boundaries remain null until transcribed from its own supplement.
 - `benchmarks/waveform_surrogate_baselines.json` — versioned literature baselines for NRSur7dq4 NN/v2, SEOBNRv5PHM_NNSur7dq10, AESur3dq8, NRSurE_q4NoSpin_22, BOB, SpEC accuracy, SEOBNRv6EPHM, and SEOBNRv6EHM.
+- `benchmarks/waveform_surrogate_certification_v1.json` — grouped simulation-ID splits, waveform error distributions, posterior coverage, OOD abstention and active-NR selection protocol.
+- `benchmarks/analytic_reference_cases.json` and `benchmarks/geodesic_reference_cases.json` — exact SI Kerr/Schwarzschild and Schwarzschild geodesic reference fixtures.
 
 These files are literature / experiment specifications. They are not benchmark execution results, model certifications, or evidence that the reported paper metrics have been reproduced by Symtropy.
 
@@ -69,7 +78,7 @@ These files are literature / experiment specifications. They are not benchmark e
 
 `cargo test -p symtropy-relativity`
 
-**Validation status:** 63 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. No build/test pass or geodesic accuracy claim is made.
+**Validation status:** 73 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. No build/test pass, waveform benchmark result, or geodesic accuracy claim is made.
 
 
 ## Schwarzschild geodesic scope
