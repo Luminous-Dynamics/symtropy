@@ -11,7 +11,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-pub const PHASE_ENERGY_SCHEMA_VERSION: &str = "phase-energy-balance/0.2.0";
+pub const PHASE_ENERGY_SCHEMA_VERSION: &str = "phase-energy-balance/0.3.0";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnergyStoreKind {
@@ -315,6 +315,12 @@ impl PhaseEnergyBalance {
             "generator",
         )?;
         require_unique(
+            self.fuel_cells
+                .iter()
+                .map(|item| item.fuel_cell_id.as_str()),
+            "fuel cell",
+        )?;
+        require_unique(
             self.stores.iter().map(|item| item.store_id.as_str()),
             "energy store",
         )?;
@@ -455,16 +461,6 @@ impl PhaseEnergyBalance {
             });
         }
 
-        for fuel in &self.fuel_states {
-            let prime_mover_fuel_input = prime_mover_fuel_input_by_source
-                .get(fuel.fuel_source_id.as_str())
-                .copied()
-                .unwrap_or(0.0);
-            if (fuel.chemical_energy_consumed_j - prime_mover_fuel_input).abs() > self.tolerance_j {
-                infeasible = true;
-            }
-        }
-
         for generator in &self.generators {
             validate_digest(&generator.model_evidence_sha256, "generator model SHA-256")?;
             if generator.average_electrical_output_power_limit_w <= 0.0
@@ -502,19 +498,74 @@ impl PhaseEnergyBalance {
             }
         }
 
-        let fuel_cell_residuals = self
-            .fuel_cells
-            .iter()
-            .map(|cell| {
-                let residual = cell.fuel_energy_input_j
-                    - cell.electrical_output_to_bus_j
-                    - cell.thermal_loss_j;
-                ComponentEnergyResidual {
-                    component_id: cell.fuel_cell_id.clone(),
-                    residual_j: residual,
-                }
-            })
-            .collect::<Vec<_>>();
+        let mut fuel_cell_residuals = Vec::new();
+        for cell in &self.fuel_cells {
+            validate_digest(&cell.model_evidence_sha256, "fuel-cell model SHA-256")?;
+            if !fuel_by_id.contains_key(cell.fuel_source_id.as_str()) {
+                return Err(format!(
+                    "fuel cell {} references missing fuel source {}",
+                    cell.fuel_cell_id, cell.fuel_source_id
+                ));
+            }
+            for (name, value) in [
+                ("fuel-cell fuel_energy_input_j", cell.fuel_energy_input_j),
+                (
+                    "fuel-cell electrical_output_to_bus_j",
+                    cell.electrical_output_to_bus_j,
+                ),
+                ("fuel-cell thermal_loss_j", cell.thermal_loss_j),
+                (
+                    "fuel-cell average_electrical_output_power_limit_w",
+                    cell.average_electrical_output_power_limit_w,
+                ),
+                (
+                    "fuel-cell peak_electrical_output_power_w",
+                    cell.peak_electrical_output_power_w,
+                ),
+                (
+                    "fuel-cell peak_electrical_output_power_limit_w",
+                    cell.peak_electrical_output_power_limit_w,
+                ),
+            ] {
+                validate_nonnegative(value, name)?;
+            }
+            if cell.average_electrical_output_power_limit_w <= 0.0
+                || cell.peak_electrical_output_power_limit_w <= 0.0
+            {
+                return Err("fuel-cell electrical power limits must be finite and > 0".to_owned());
+            }
+            *prime_mover_fuel_input_by_source
+                .entry(cell.fuel_source_id.as_str())
+                .or_insert(0.0) += cell.fuel_energy_input_j;
+            let residual =
+                cell.fuel_energy_input_j - cell.electrical_output_to_bus_j - cell.thermal_loss_j;
+            let average_electrical_output_power_w =
+                cell.electrical_output_to_bus_j / self.duration_s;
+            if residual.abs() > self.tolerance_j
+                || average_electrical_output_power_w
+                    > cell.average_electrical_output_power_limit_w + self.tolerance_w
+                || cell.peak_electrical_output_power_w + self.tolerance_w
+                    < average_electrical_output_power_w
+                || cell.peak_electrical_output_power_w
+                    > cell.peak_electrical_output_power_limit_w + self.tolerance_w
+            {
+                infeasible = true;
+            }
+            fuel_cell_residuals.push(ComponentEnergyResidual {
+                component_id: cell.fuel_cell_id.clone(),
+                residual_j: residual,
+            });
+        }
+
+        for fuel in &self.fuel_states {
+            let prime_mover_fuel_input = prime_mover_fuel_input_by_source
+                .get(fuel.fuel_source_id.as_str())
+                .copied()
+                .unwrap_or(0.0);
+            if (fuel.chemical_energy_consumed_j - prime_mover_fuel_input).abs() > self.tolerance_j {
+                infeasible = true;
+            }
+        }
 
         let generator_residuals = self
             .generators
@@ -754,18 +805,25 @@ impl PhaseEnergyBalance {
         {
             infeasible = true;
         }
-        if self.prime_movers.is_empty() && self.generators.is_empty() && self.stores.is_empty() {
+        if self.prime_movers.is_empty()
+            && self.generators.is_empty()
+            && self.fuel_cells.is_empty()
+            && self.stores.is_empty()
+        {
             return Err("phase energy balance has no declared energy source or store".to_owned());
         }
-        if self.motor_drives.is_empty() || self.propulsors.is_empty() {
+        if self.propulsors.is_empty() {
+            return Err("phase energy balance requires at least one propulsor record".to_owned());
+        }
+        if self.motor_drives.is_empty() && total_direct_mechanical_shaft_j <= self.tolerance_j {
             return Err(
-                "phase energy balance requires at least one motor-drive and propulsor record"
+                "phase requires an electric motor path or a direct mechanical propulsor shaft path"
                     .to_owned(),
             );
         }
 
         Ok(PhaseEnergyReport {
-            schema_version: "phase-energy-report/0.2.0",
+            schema_version: "phase-energy-report/0.3.0",
             evidence_level: "screening_only",
             mission_id: self.mission_id.clone(),
             phase_id: self.phase_id.clone(),
@@ -975,6 +1033,135 @@ mod tests {
         value.peak_bus_supply_power_limit_w = 30_000.0;
         value.continuous_bus_supply_power_limit_w = 15_000.0;
         value
+    }
+
+    #[test]
+    fn conventional_direct_drive_does_not_require_an_electrical_motor_path() {
+        let mut value = generator_only();
+        value.phase_id = "conventional-direct-drive".to_owned();
+        value.generators.clear();
+        value.stores.clear();
+        value.motor_drives.clear();
+        value.bus_loads = BusLoads {
+            auxiliary_load_j: 0.0,
+            thermal_electrical_load_j: 0.0,
+            distribution_loss_j: 0.0,
+        };
+        value.prime_movers[0].direct_propulsor_shaft_j = 35_000_000.0;
+        value.prime_movers[0].accessory_mechanical_load_j = 2_000_000.0;
+        value.prime_movers[0].mechanical_distribution_loss_j = 3_000_000.0;
+        value.prime_movers[0].average_mechanical_output_power_limit_w = 15_000.0;
+        value.prime_movers[0].peak_mechanical_output_power_w = 13_000.0;
+        value.prime_movers[0].peak_mechanical_output_power_limit_w = 16_000.0;
+        value.propulsors = vec![propulsor(35_000_000.0, 30_000_000.0, 5_000_000.0)];
+        value.peak_bus_supply_power_w = 0.0;
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced conventional direct-drive phase");
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
+        assert_eq!(report.continuous_bus_supply_power_w, 0.0);
+        assert!(report.shaft_combiner_residual_j.abs() < 1.0);
+    }
+
+    #[test]
+    fn fuel_cell_only_path_reconciles_fuel_chemical_and_electrical_bus_energy() {
+        let mut value = balance();
+        value.phase_id = "fuel-cell-only".to_owned();
+        value.stores.clear();
+        value.prime_movers.clear();
+        value.generators.clear();
+        value.fuel_states = vec![FuelStateTransition {
+            fuel_source_id: "hydrogen-tank".to_owned(),
+            evidence_sha256: MODEL.to_owned(),
+            chemical_energy_start_j: 500_000_000.0,
+            chemical_energy_consumed_j: 200_000_000.0,
+            chemical_energy_end_j: 300_000_000.0,
+            required_reserve_j: 100_000_000.0,
+        }];
+        value.fuel_cells = vec![FuelCellConversion {
+            fuel_cell_id: "pem-stack".to_owned(),
+            model_evidence_sha256: MODEL.to_owned(),
+            fuel_source_id: "hydrogen-tank".to_owned(),
+            fuel_energy_input_j: 200_000_000.0,
+            electrical_output_to_bus_j: 80_000_000.0,
+            thermal_loss_j: 120_000_000.0,
+            average_electrical_output_power_limit_w: 30_000.0,
+            peak_electrical_output_power_w: 25_000.0,
+            peak_electrical_output_power_limit_w: 28_000.0,
+        }];
+        value.bus_loads = BusLoads {
+            auxiliary_load_j: 5_000_000.0,
+            thermal_electrical_load_j: 2_000_000.0,
+            distribution_loss_j: 3_000_000.0,
+        };
+        value.motor_drives = vec![motor(70_000_000.0, 4_000_000.0, 6_000_000.0, 60_000_000.0)];
+        value.propulsors = vec![propulsor(60_000_000.0, 50_000_000.0, 10_000_000.0)];
+        value.peak_bus_supply_power_w = 25_000.0;
+        value.peak_bus_supply_power_limit_w = 28_000.0;
+        value.continuous_bus_supply_power_limit_w = 30_000.0;
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced fuel-cell-only phase");
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
+        assert!(report.fuel_residuals[0].reserve_margin_j > 0.0);
+        assert!(report.fuel_cell_residuals[0].residual_j.abs() < 1.0);
+        assert!(report.bus_residual_j.abs() < 1.0);
+    }
+
+    #[test]
+    fn fuel_cell_and_battery_buffer_are_counted_once_at_the_bus() {
+        let mut value = balance();
+        value.phase_id = "fuel-cell-battery-buffer".to_owned();
+        value.fuel_states = vec![FuelStateTransition {
+            fuel_source_id: "hydrogen-tank".to_owned(),
+            evidence_sha256: MODEL.to_owned(),
+            chemical_energy_start_j: 500_000_000.0,
+            chemical_energy_consumed_j: 150_000_000.0,
+            chemical_energy_end_j: 350_000_000.0,
+            required_reserve_j: 100_000_000.0,
+        }];
+        value.fuel_cells = vec![FuelCellConversion {
+            fuel_cell_id: "pem-stack".to_owned(),
+            model_evidence_sha256: MODEL.to_owned(),
+            fuel_source_id: "hydrogen-tank".to_owned(),
+            fuel_energy_input_j: 150_000_000.0,
+            electrical_output_to_bus_j: 50_000_000.0,
+            thermal_loss_j: 100_000_000.0,
+            average_electrical_output_power_limit_w: 20_000.0,
+            peak_electrical_output_power_w: 15_000.0,
+            peak_electrical_output_power_limit_w: 20_000.0,
+        }];
+        value.stores = vec![battery_store(
+            30_000_000.0,
+            0.0,
+            100_000_000.0,
+            66_666_666.666_666_67,
+        )];
+        value.bus_loads = BusLoads {
+            auxiliary_load_j: 5_000_000.0,
+            thermal_electrical_load_j: 0.0,
+            distribution_loss_j: 5_000_000.0,
+        };
+        value.motor_drives = vec![motor(70_000_000.0, 4_000_000.0, 3_000_000.0, 63_000_000.0)];
+        value.propulsors = vec![propulsor(63_000_000.0, 55_000_000.0, 8_000_000.0)];
+        value.peak_bus_supply_power_w = 24_000.0;
+        value.peak_bus_supply_power_limit_w = 28_000.0;
+        value.continuous_bus_supply_power_limit_w = 25_000.0;
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced fuel-cell/battery phase");
+        assert_eq!(
+            report.status,
+            PhaseEnergyStatus::ConservedWithinDeclaredModel
+        );
+        assert!(report.bus_residual_j.abs() < 1.0);
+        assert!(report.store_results[0].transition_residual_j.abs() < 1.0);
     }
 
     #[test]
