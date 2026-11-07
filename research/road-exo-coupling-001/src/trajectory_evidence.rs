@@ -101,7 +101,8 @@ impl SamTrajectoryAssessmentBinding {
         }
         if self.canonical_assessment_receipt_bytes(support_manifest_bytes, query_bytes)
             != assessment_receipt_bytes
-            || *blake3::hash(assessment_receipt_bytes).as_bytes() != self.sam_assessment_receipt_digest
+            || *blake3::hash(assessment_receipt_bytes).as_bytes()
+                != self.sam_assessment_receipt_digest
         {
             return Err(TrajectoryEvidenceError::AssessmentArtifactMismatch);
         }
@@ -153,7 +154,10 @@ impl SamTrajectoryAssessmentBinding {
         require_identity(&self.evidence_manifest_id, "evidence_manifest_id")?;
         require_digest(&self.support_manifest_digest, "support_manifest_digest")?;
         require_digest(&self.query_digest, "query_digest")?;
-        require_digest(&self.sam_assessment_receipt_digest, "sam_assessment_receipt_digest")?;
+        require_digest(
+            &self.sam_assessment_receipt_digest,
+            "sam_assessment_receipt_digest",
+        )?;
         require_identity(&self.target_policy_digest, "target_policy_digest")?;
         require_identity(&self.context_digest, "context_digest")?;
 
@@ -640,7 +644,8 @@ mod tests {
             disposition,
             assessment_receipt_digest: [0; 32],
         };
-        binding.sam_assessment_receipt_digest = *blake3::hash(&binding.canonical_assessment_bytes()).as_bytes();
+        binding.sam_assessment_receipt_digest =
+            *blake3::hash(&binding.canonical_assessment_bytes()).as_bytes();
         binding.seal().unwrap()
     }
 
