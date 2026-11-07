@@ -223,6 +223,17 @@ fn validate_uncertainty(
                 );
             }
         }
+        if method == "INTERVAL_BOUNDS_ONLY" {
+            match (finite(component, "bound_lower"), finite(component, "bound_upper")) {
+                (Some(lower), Some(upper)) if upper >= lower => {}
+                _ => push(
+                    errors,
+                    "INVALID_INTERVAL_COMPONENT_BOUNDS",
+                    &component_path,
+                    "INTERVAL_BOUNDS_ONLY requires finite ordered bound_lower/bound_upper for every uncertainty component",
+                ),
+            }
+        }
         if let Some(group) = text(component, "correlation_group_ref") {
             *correlation_groups.entry(group.to_owned()).or_default() += 1;
         }
@@ -545,6 +556,8 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
         return errors;
     };
     let mut comparison_ids = BTreeSet::new();
+    let mut measurement_partition_by_id: BTreeMap<String, String> = BTreeMap::new();
+    let mut sample_partition_by_lineage: BTreeMap<String, String> = BTreeMap::new();
     for (index, comparison) in comparisons.iter().enumerate() {
         let path = format!("$.reference_comparisons[{index}]");
         let Some(id) = text(comparison, "comparison_id") else {
@@ -576,7 +589,7 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
         if estimator_channel.is_none_or(|channel| text(channel, "role") != Some("SECONDARY_ESTIMATOR")) {
             push(&mut errors, "COMPARISON_ESTIMATOR_NOT_SECONDARY", &path, "estimator side must be a registered SECONDARY_ESTIMATOR channel");
         }
-        for key in ["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"] {
+        for key in ["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref", "environment_profile_ref"] {
             let declared = text(comparison, key);
             let reference_value = text(&reference["domain"], key);
             let estimator_value = text(&estimator["domain"], key);
@@ -584,7 +597,7 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
                 || declared != reference_value
                 || declared != estimator_value
             {
-                push(&mut errors, "REFERENCE_COMPARISON_DOMAIN_MISMATCH", &format!("{path}.{key}"), "declared comparison material/path/geometry must match both reference and estimator records exactly");
+                push(&mut errors, "REFERENCE_COMPARISON_DOMAIN_MISMATCH", &format!("{path}.{key}"), "declared comparison material/path/geometry/environment must match both reference and estimator records exactly");
             }
         }
         if text(reference, "unit") != text(estimator, "unit")
@@ -598,14 +611,31 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
         {
             push(&mut errors, "REFERENCE_COMPARISON_WINDOW_MISMATCH", &format!("{path}.measurement_window_ref"), "reference and estimator must compare the same declared measurement window");
         }
-        match text(comparison, "dataset_partition") {
-            Some("VALIDATION" | "PROSPECTIVE_HOLDOUT")
+        let partition = text(comparison, "dataset_partition").unwrap_or("UNKNOWN");
+        match partition {
+            "VALIDATION" | "PROSPECTIVE_HOLDOUT"
                 if comparison.get("independent_of_model_training").and_then(Value::as_bool) != Some(true) =>
             {
                 push(&mut errors, "VALIDATION_NOT_INDEPENDENT", &format!("{path}.independent_of_model_training"), "validation/holdout comparisons must be independent of model training");
             }
-            Some("CALIBRATION" | "VALIDATION" | "PROSPECTIVE_HOLDOUT") => {}
+            "CALIBRATION" | "VALIDATION" | "PROSPECTIVE_HOLDOUT" => {}
             _ => push(&mut errors, "INVALID_COMPARISON_PARTITION", &format!("{path}.dataset_partition"), "comparison partition must be CALIBRATION, VALIDATION or PROSPECTIVE_HOLDOUT"),
+        }
+        for measurement_id in [reference_id, estimator_id].into_iter().flatten() {
+            if let Some(previous) = measurement_partition_by_id.insert(measurement_id.to_owned(), partition.to_owned()) {
+                if previous != partition {
+                    push(&mut errors, "MEASUREMENT_PARTITION_LEAKAGE", &path, format!("measurement {measurement_id} is reused across {previous} and {partition} partitions"));
+                }
+            }
+            if let Some(record) = measurement_map.get(measurement_id) {
+                if let Some(lineage) = text(record, "sample_lineage_ref") {
+                    if let Some(previous) = sample_partition_by_lineage.insert(lineage.to_owned(), partition.to_owned()) {
+                        if previous != partition {
+                            push(&mut errors, "SAMPLE_LINEAGE_PARTITION_LEAKAGE", &path, format!("sample lineage {lineage} is reused across {previous} and {partition} partitions"));
+                        }
+                    }
+                }
+            }
         }
         for key in ["residual_artifact_ref", "adjudication_ref"] {
             if text(comparison, key).is_none() {
@@ -729,7 +759,7 @@ mod tests {
         let report = evaluate_case(&fixture(), &parent()).unwrap();
         assert_eq!(report.channel_count, 6);
         assert_eq!(report.calibration_count, 6);
-        assert_eq!(report.measurement_count, 6);
+        assert_eq!(report.measurement_count, 8);
         assert_eq!(report.reference_comparison_count, 2);
         assert_eq!(report.primary_reference_channel_count, 1);
         assert_eq!(report.secondary_estimator_channel_count, 1);
@@ -927,6 +957,54 @@ mod tests {
         measurement_mut(&mut case, "measurement-ecc-flow-estimator-001")["measurement_window_ref"] =
             serde_json::json!("different-window");
         assert!(has(&validate_case(&case, &parent()), "REFERENCE_COMPARISON_WINDOW_MISMATCH"));
+    }
+
+    #[test]
+    fn online_electrostatic_sensor_cannot_be_registered_as_primary_reference() {
+        let mut case = fixture();
+        channel_mut(&mut case, "gravimetric-discharge")["technique"] =
+            serde_json::json!("ELECTROSTATIC_COUPLED_CAPACITANCE");
+        assert!(has(
+            &validate_case(&case, &parent()),
+            "PRIMARY_REFERENCE_TECHNIQUE_NOT_GRAVIMETRIC"
+        ));
+    }
+
+    #[test]
+    fn comparison_environment_must_match_reference_and_estimator() {
+        let mut case = fixture();
+        case["reference_comparisons"][0]["environment_profile_ref"] =
+            serde_json::json!("other-environment");
+        assert!(has(
+            &validate_case(&case, &parent()),
+            "REFERENCE_COMPARISON_DOMAIN_MISMATCH"
+        ));
+    }
+
+    #[test]
+    fn calibration_and_validation_measurements_cannot_overlap_partitions() {
+        let mut case = fixture();
+        case["reference_comparisons"][1]["reference_measurement_id"] =
+            case["reference_comparisons"][0]["reference_measurement_id"].clone();
+        assert!(has(
+            &validate_case(&case, &parent()),
+            "MEASUREMENT_PARTITION_LEAKAGE"
+        ));
+    }
+
+    #[test]
+    fn interval_bounds_method_requires_explicit_component_bounds() {
+        let mut case = fixture();
+        let u = &mut measurement_mut(&mut case, "measurement-ecc-flow-estimator-001")["uncertainty"];
+        u["method"] = serde_json::json!("INTERVAL_BOUNDS_ONLY");
+        u["components"][0]["bound_lower"] = serde_json::json!(-0.02);
+        u["components"][0]["bound_upper"] = serde_json::json!(0.02);
+        u["components"][1]["bound_lower"] = Value::Null;
+        u["components"][1]["bound_upper"] = Value::Null;
+        assert!(has(
+            &validate_case(&case, &parent()),
+            "INVALID_INTERVAL_COMPONENT_BOUNDS"
+        ));
     }
 
     #[test]
