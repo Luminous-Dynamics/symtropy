@@ -140,7 +140,9 @@
             }
           ]
         }
-      ]
+      ],
+      "independence_group_ref": "independent-group:coarse-sensor-observation",
+      "dependence_evidence_ref": "dependence-evidence:synthetic-coarse"
     },
     {
       "experiment_id": "B-vs-C-passive-sample",
@@ -208,7 +210,9 @@
             }
           ]
         }
-      ]
+      ],
+      "independence_group_ref": "independent-group:material-sample",
+      "dependence_evidence_ref": "dependence-evidence:synthetic-material-sample"
     }
   ],
   "policy": {
@@ -218,6 +222,7 @@
     "maximum_horizon": 2,
     "minimum_net_value_to_continue": 0.01,
     "stop_consequence_ref": "stop:retain-best-supported-hypothesis-for-review",
-    "human_review_authority_ref": "authority:human-review-required"
+    "human_review_authority_ref": "authority:human-review-required",
+    "conditional_independence_assumption_ref": "assumption:synthetic-conditional-independence-given-hypothesis"
   }
 }
