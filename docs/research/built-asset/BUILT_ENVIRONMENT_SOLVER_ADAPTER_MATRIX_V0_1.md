@@ -160,11 +160,33 @@ Do not start with a skyscraper.
 
 The first physical robot panel demonstrator in #4043/#4062 is a separate low-energy non-load-bearing inspection/repair article. It is not the structural solver sentinel and cannot validate building-scale physics.
 
+## 8. Multi-fidelity refinement and decision-value research
+
+This is a key potential advantage, but it must compose existing owners.
+
+A conventional workflow may run every candidate through the same expensive high-fidelity solver. A better research hypothesis is:
+
+`cheap screening -> identify decision-sensitive uncertainties -> choose the next useful measurement/solver run -> refine only affected candidates/processes -> independently qualify the final decision`
+
+Use:
+- Symtropy #491 for process-relative hierarchical construction fidelity, preserved invariants, validity horizons and semantic promotion/refinement triggers;
+- Symtropy #1892 for selecting measurements by whether they can change robust feasibility or the Pareto set, not raw information gain;
+- Symtropy #1846 for evidence validity and scoped downstream invalidation;
+- Symtropy #2502 for classifying declared interval enclosures against typed constraints;
+- Symtropy #2358 for the source-rights-aware structural reference benchmark manifest.
+
+Do not build a new generic multi-fidelity optimizer, generic value-of-information engine, uncertainty engine or structural benchmark catalog. The adapter layer should expose the exact capabilities and uncertainty of each solver so these existing systems can compose them.
+
+A low-fidelity result may eliminate an obviously dominated design only if its declared bounds safely establish that conclusion. It must not clear a design whose unresolved high-consequence behavior lies outside the coarse model's validity envelope. When a candidate approaches a hard-constraint boundary, crosses a refinement trigger or has a decision outcome that changes across still-possible states, request the next appropriate fidelity or independent measurement. If that cannot resolve the decision, abstain / require professional review.
+
+Measure the *value of computation* as well as runtime: solver wall/CPU/RAM/energy where available; number and cost of runs; which runs changed the feasible/Pareto set; regret relative to an exact small-instance reference; residual unknowns; and decisions where the system correctly stopped. Do not reward fewer solver calls if accuracy, coverage or safety degrades.
+
 ## 9. Integration with Luminous owners
 
 - Symtropy #1790 owns this solver-neutral interface and validation boundary.
-- Symtropy #2358 owns the source-linked structural benchmark catalog.
-- Symtropy #2502 owns interval/constraint disposition semantics.
+- Symtropy #491 owns authority-preserving hierarchical construction fidelity; use its process-relative fidelity and refinement-boundary principles.
+- Symtropy #2358 owns the source-linked structural benchmark catalog; do not make a second structural catalog here.
+- Symtropy #2502 owns interval/constraint disposition semantics; consume its interval outputs rather than implementing a second classifier.
 - Symtropy #1846 owns evidence validity and scoped invalidation.
 - Sol-Atlas #502 owns matched industry comparison and engineering assurance.
 - Sol-Atlas #549 owns city/building alternative and productive-capability composition.
