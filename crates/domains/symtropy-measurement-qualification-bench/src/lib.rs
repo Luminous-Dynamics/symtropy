@@ -316,6 +316,11 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
                     push(&mut errors, "MISSING_REFERENCE_REPLICATE_CONTEXT", &format!("{replicate_path}.{key}"), "session, operator and orientation are required");
                 }
             }
+            for key in ["source_artifact_ref", "analysis_record_ref"] {
+                if text(replicate, key).is_none() {
+                    push(&mut errors, "MISSING_REFERENCE_REPLICATE_ARTIFACT", &format!("{replicate_path}.{key}"), "raw reference scan and analysis record references are required");
+                }
+            }
             match finite(replicate, "measured_value") {
                 Some(value) if descriptor_in_domain(descriptor, value) => {}
                 _ => push(&mut errors, "INVALID_REFERENCE_REPLICATE_VALUE", &format!("{replicate_path}.measured_value"), "replicate value must be finite and in the descriptor domain"),
@@ -449,6 +454,11 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
             let sample_path = format!("{path}.samples[{sample_index}]");
             let particle_id = text(sample, "particle_id");
             let block_id = text(sample, "acquisition_block_ref");
+            for key in ["source_artifact_ref", "segmentation_record_ref"] {
+                if text(sample, key).is_none() {
+                    push(&mut errors, "MISSING_PARTICLE_ARTIFACT_PROVENANCE", &format!("{sample_path}.{key}"), "each particle measurement must retain its raw acquisition artifact and segmentation record");
+                }
+            }
             if particle_id.is_none_or(|id| !particle_ids.insert(id.to_owned())) {
                 push(&mut errors, "MISSING_OR_DUPLICATE_PARTICLE_ID", &format!("{sample_path}.particle_id"), "each particle must have a unique ID within the sample set");
             }
@@ -475,8 +485,11 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
                     if sample.get("value").is_some() {
                         push(&mut errors, "CENSORED_SAMPLE_HAS_EXACT_VALUE", &format!("{sample_path}.value"), "censored observations cannot be replaced with an exact value or resolution floor");
                     }
-                    if finite(sample, "censor_bound").is_none() {
-                        push(&mut errors, "MISSING_CENSOR_BOUND", &format!("{sample_path}.censor_bound"), "censored sample requires an explicit censor bound");
+                    match finite(sample, "censor_bound") {
+                        Some(bound) if descriptor_in_domain(descriptor, bound)
+                            && lower_domain.is_some_and(|lower| bound >= lower)
+                            && upper_domain.is_none_or(|upper| bound <= upper) => {}
+                        _ => push(&mut errors, "INVALID_CENSOR_BOUND", &format!("{sample_path}.censor_bound"), "censor bound must be finite and within the declared descriptor domain"),
                     }
                 }
                 _ => push(&mut errors, "INVALID_RESOLUTION_STATUS", &format!("{sample_path}.resolution_status"), "resolution status must be EXACT, LEFT_CENSORED or RIGHT_CENSORED"),
@@ -888,6 +901,17 @@ mod tests {
         let duplicate = case["sample_sets"][0]["samples"][0]["particle_id"].clone();
         case["sample_sets"][0]["samples"][1]["particle_id"] = duplicate;
         assert!(has(&validate_against_parent(&case, &parent()), "MISSING_OR_DUPLICATE_PARTICLE_ID"));
+    }
+
+    #[test]
+    fn each_particle_requires_raw_and_segmentation_provenance() {
+        let mut case = fixture();
+        case["sample_sets"][0]["samples"][0]
+            .as_object_mut().unwrap().remove("source_artifact_ref");
+        assert!(has(
+            &validate_against_parent(&case, &parent()),
+            "MISSING_PARTICLE_ARTIFACT_PROVENANCE"
+        ));
     }
 
     #[test]
