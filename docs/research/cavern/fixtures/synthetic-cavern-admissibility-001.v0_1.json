@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-CAVERN-ADMISSIBILITY-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "decision": {
+    "decision_ref": "decision:resolve-whether-hybrid-photon-claim-is-testable",
+    "decision_owner_ref": "owner:synthetic-review-only",
+    "functional_unit_ref": "functional-unit:accepted-edible-output-per-crop-cycle",
+    "system_boundary_ref": "boundary:whole-facility-electricity-and-accepted-harvest",
+    "baseline_ref": "baseline:matched-led-only-reference",
+    "effect_threshold_ref": "threshold:synthetic-ten-percent-effect",
+    "hard_constraint_refs": [
+      "constraint:site-safety-review-required",
+      "constraint:in-domain-calibration",
+      "constraint:no-unapproved-intervention"
+    ]
+  },
+  "campaign": {
+    "campaign_ref": "campaign:synthetic-admissibility-only",
+    "campaign_window_ref": "window:synthetic-one-day",
+    "budget_constraints": [
+      {
+        "resource": "ELECTRICAL_ENERGY",
+        "maximum": 5000,
+        "unit": "Wh",
+        "scope_ref": "scope:instrumentation-only",
+        "source_ref": "source:synthetic-budget"
+      },
+      {
+        "resource": "INSTRUMENT_TIME",
+        "maximum": 8,
+        "unit": "hour",
+        "scope_ref": "scope:campaign-instrument-hours",
+        "source_ref": "source:synthetic-budget"
+      },
+      {
+        "resource": "OPERATOR_TIME",
+        "maximum": 4,
+        "unit": "hour",
+        "scope_ref": "scope:campaign-operator-hours",
+        "source_ref": "source:synthetic-budget"
+      }
+    ],
+    "maximum_measurements": 2,
+    "physical_authorization_ref": "authorization:synthetic-fixture-no-physical-work"
+  },
+  "measurement_candidates": [
+    {
+      "candidate_id": "reference-meter-cross-check",
+      "measurement_class": "PASSIVE_OBSERVATION",
+      "method_ref": "method:independent-reference-meter",
+      "instrument_ref": "instrument:synthetic-reference-meter",
+      "domain_ref": "domain:synthetic-facility-electricity-boundary",
+      "calibration_status": "QUALIFIED_IN_DOMAIN",
+      "calibration_ref": "calibration:synthetic-current-in-range",
+      "dependence_group_ref": "dependence-group:independent-meter-principle",
+      "resource_costs": [
+        {
+          "resource": "ELECTRICAL_ENERGY",
+          "value": 250,
+          "unit": "Wh",
+          "boundary_ref": "boundary:instrumentation-only",
+          "source_ref": "source:synthetic-cost"
+        },
+        {
+          "resource": "INSTRUMENT_TIME",
+          "value": 1,
+          "unit": "hour",
+          "boundary_ref": "boundary:campaign-time",
+          "source_ref": "source:synthetic-cost"
+        },
+        {
+          "resource": "OPERATOR_TIME",
+          "value": 0.5,
+          "unit": "hour",
+          "boundary_ref": "boundary:campaign-time",
+          "source_ref": "source:synthetic-cost"
+        }
+      ],
+      "likelihood_status": "MISSING",
+      "admissibility": "NEEDS_EVIDENCE",
+      "admissibility_reason_ref": "reason:method-is-passive-but-no-qualified-likelihood",
+      "raw_data_contract_ref": "raw-data:meter-timeseries-and-calibration-record"
+    },
+    {
+      "candidate_id": "canopy-ppfd-spatial-survey",
+      "measurement_class": "PASSIVE_OBSERVATION",
+      "method_ref": "method:calibrated-quantum-sensor-grid",
+      "instrument_ref": "instrument:synthetic-quantum-sensor",
+      "domain_ref": "domain:synthetic-canopy-ppfd",
+      "calibration_status": "EXPIRED",
+      "calibration_ref": "calibration:synthetic-expired",
+      "dependence_group_ref": "dependence-group:canopy-quantum-sensor",
+      "resource_costs": [
+        {
+          "resource": "INSTRUMENT_TIME",
+          "value": 2,
+          "unit": "hour",
+          "boundary_ref": "boundary:campaign-time",
+          "source_ref": "source:synthetic-cost"
+        },
+        {
+          "resource": "OPERATOR_TIME",
+          "value": 1,
+          "unit": "hour",
+          "boundary_ref": "boundary:campaign-time",
+          "source_ref": "source:synthetic-cost"
+        }
+      ],
+      "likelihood_status": "SIMULATION_ONLY",
+      "admissibility": "REJECT",
+      "admissibility_reason_ref": "reason:calibration-expired-and-measurement-model-synthetic",
+      "raw_data_contract_ref": "raw-data:spatial-ppfd-grid-and-time-series"
+    },
+    {
+      "candidate_id": "forced-humidity-step-response",
+      "measurement_class": "INTERVENTION",
+      "method_ref": "method:synthetic-humidity-step",
+      "instrument_ref": "instrument:synthetic-humidity-array",
+      "domain_ref": "domain:synthetic-hvac",
+      "calibration_status": "UNKNOWN",
+      "dependence_group_ref": "dependence-group:synthetic-hvac-sensors",
+      "resource_costs": [
+        {
+          "resource": "OPERATOR_TIME",
+          "value": 3,
+          "unit": "hour",
+          "boundary_ref": "boundary:campaign-time",
+          "source_ref": "source:synthetic-cost"
+        }
+      ],
+      "likelihood_status": "OUT_OF_DOMAIN",
+      "admissibility": "REJECT",
+      "admissibility_reason_ref": "reason:intervention-outside-v01-passive-scope",
+      "raw_data_contract_ref": "raw-data:humidity-response-record"
+    }
+  ],
+  "routing": {
+    "probability_model_status": "UNSUPPORTED",
+    "requested_engine": "HUMAN_REVIEW",
+    "route_reason_ref": "reason:no-qualified-likelihoods-and-no-physical-authorization",
+    "selected_candidate_ids": []
+  }
+}
