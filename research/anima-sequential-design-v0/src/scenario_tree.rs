@@ -255,7 +255,7 @@ fn search_node(
         let replace = best.as_ref().is_none_or(|current| {
             value > current.value_nats
                 || (value == current.value_nats
-                    && candidate.candidate_id
+                    && candidate.candidate_id.as_str()
                         < current.selected_candidate_id.as_deref().unwrap_or(""))
         });
         if replace {
