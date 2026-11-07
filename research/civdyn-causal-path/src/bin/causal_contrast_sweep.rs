@@ -5,20 +5,24 @@
 //! These fixtures are not human data or real-world effect estimates.
 
 use civdyn_causal_path::paired_effects::{
-    ContrastContract, ContrastDataset, ExpectedResponse, PairingDesign,
-    RunObservation, evaluate_paired_contrast,
+    ContrastContract, ContrastDataset, ExpectedResponse, PairingDesign, RunObservation,
+    evaluate_paired_contrast,
 };
-use civdyn_causal_path::temporal_graph::{
-    TemporalEdge, TemporalGraph, TemporalVariable,
-};
+use civdyn_causal_path::temporal_graph::{TemporalEdge, TemporalGraph, TemporalVariable};
 use std::collections::BTreeMap;
 
 const CSV_COLUMNS: usize = 13;
 
 fn graph(has_path: bool) -> TemporalGraph {
     let variables = vec![
-        TemporalVariable { id: "intervention".into(), unit: "flag".into() },
-        TemporalVariable { id: "outcome".into(), unit: "fraction".into() },
+        TemporalVariable {
+            id: "intervention".into(),
+            unit: "flag".into(),
+        },
+        TemporalVariable {
+            id: "outcome".into(),
+            unit: "fraction".into(),
+        },
     ];
     let edges = if has_path {
         vec![TemporalEdge {
@@ -35,10 +39,7 @@ fn graph(has_path: bool) -> TemporalGraph {
     TemporalGraph { variables, edges }
 }
 
-fn dataset(
-    design: PairingDesign,
-    difference: impl Fn(usize) -> f64,
-) -> ContrastDataset {
+fn dataset(design: PairingDesign, difference: impl Fn(usize) -> f64) -> ContrastDataset {
     let mut control = Vec::new();
     let mut treatment = Vec::new();
     for seed in 0..30_u64 {
@@ -53,11 +54,19 @@ fn dataset(
             values: BTreeMap::from([("service".into(), baseline + difference(index))]),
         });
     }
-    ContrastDataset { design, control, treatment }
+    ContrastDataset {
+        design,
+        control,
+        treatment,
+    }
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "paired contrast CSV width changed");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "paired contrast CSV width changed"
+    );
     println!("{}", fields.join(","));
 }
 
@@ -70,7 +79,9 @@ fn run_case(
     margin: f64,
 ) {
     let graph = graph(has_path);
-    let path = graph.has_path("intervention", "outcome").expect("graph must validate");
+    let path = graph
+        .has_path("intervention", "outcome")
+        .expect("graph must validate");
     assert_eq!(path, has_path);
 
     let result = evaluate_paired_contrast(
@@ -81,7 +92,8 @@ fn run_case(
             equivalence_margin: margin,
         },
         path,
-    ).expect("paired synthetic data must validate");
+    )
+    .expect("paired synthetic data must validate");
 
     emit(vec![
         "paired_contrast".into(),
@@ -165,15 +177,21 @@ mod tests {
     #[test]
     fn positive_control_is_directionally_supported() {
         let r = evaluate_paired_contrast(
-            &dataset(PairingDesign::CommonRandomNumbers, |i| 0.5 + (i % 2) as f64 * 0.01),
+            &dataset(PairingDesign::CommonRandomNumbers, |i| {
+                0.5 + (i % 2) as f64 * 0.01
+            }),
             &ContrastContract {
                 outcome_variable_id: "service".into(),
                 expected_response: ExpectedResponse::Positive,
                 equivalence_margin: 0.05,
             },
             true,
-        ).unwrap();
-        assert_eq!(r.status, EffectStatus::DirectionallyConsistentWithDeclaredPath);
+        )
+        .unwrap();
+        assert_eq!(
+            r.status,
+            EffectStatus::DirectionallyConsistentWithDeclaredPath
+        );
         assert!(r.control_gate_passed);
     }
 
@@ -187,7 +205,8 @@ mod tests {
                 equivalence_margin: 0.05,
             },
             true,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(r.status, EffectStatus::DescriptiveOnly);
         assert!(!r.control_gate_passed);
     }
