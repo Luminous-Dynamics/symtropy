@@ -11,7 +11,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::StableId;
-use crate::decision_closure::{DecisionManifest, DecisionStatus, OutcomeSupport};
+use crate::decision_closure::{DecisionStatus, OutcomeSupport};
 use crate::decision_evidence::{
     DecisionEvidenceError, EvidenceBoundDecisionCertificate, EvidenceBoundDecisionManifest,
 };
