@@ -209,7 +209,9 @@ impl LikelihoodRatioEProcess {
             return Err(EProcessError::DuplicateStep(observation.step_id.to_owned()));
         }
         if self.seen_sample_ids.contains(observation.sample_id) {
-            return Err(EProcessError::DuplicateSample(observation.sample_id.to_owned()));
+            return Err(EProcessError::DuplicateSample(
+                observation.sample_id.to_owned(),
+            ));
         }
         validate_candidate_for_eprocess(candidate)?;
         validate_conditional_forecast(forecast, &self.null_model_id, &self.alternative_weights)?;
@@ -254,7 +256,8 @@ impl LikelihoodRatioEProcess {
         self.log_e_value = log_e_value;
         self.steps_observed = next_steps_observed;
         self.seen_step_ids.insert(observation.step_id.to_owned());
-        self.seen_sample_ids.insert(observation.sample_id.to_owned());
+        self.seen_sample_ids
+            .insert(observation.sample_id.to_owned());
 
         let fingerprint = receipt_fingerprint(ReceiptFingerprintInput {
             step_id: observation.step_id,
@@ -646,7 +649,9 @@ mod tests {
         };
         assert_eq!(
             e.observe(&c, &f, repeated),
-            Err(EProcessError::DuplicateSample("sample-duplicate".to_owned()))
+            Err(EProcessError::DuplicateSample(
+                "sample-duplicate".to_owned()
+            ))
         );
         assert_eq!(e.steps_observed(), 1);
     }
