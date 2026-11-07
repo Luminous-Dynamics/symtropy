@@ -54,9 +54,7 @@ impl DiscreteBelief {
     /// The input order does not affect the canonical result. The sum of
     /// reduced weights must fit in u128, so exact probabilities can be
     /// returned without silently overflowing their denominator.
-    pub fn from_weights(
-        entries: Vec<(String, u128)>,
-    ) -> Result<Self, BeliefError> {
+    pub fn from_weights(entries: Vec<(String, u128)>) -> Result<Self, BeliefError> {
         if entries.is_empty() {
             return Err(BeliefError::EmptyHypothesisSet);
         }
@@ -96,10 +94,7 @@ impl DiscreteBelief {
     ///
     /// None means that the hypothesis identifier is not in this belief.
     /// A zero-probability hypothesis is represented as Some((0, 1)).
-    pub fn probability(
-        &self,
-        hypothesis: &str,
-    ) -> Result<Option<(u128, u128)>, BeliefError> {
+    pub fn probability(&self, hypothesis: &str) -> Result<Option<(u128, u128)>, BeliefError> {
         let Some(weight) = self.weights.get(hypothesis).copied() else {
             return Ok(None);
         };
@@ -119,10 +114,7 @@ impl DiscreteBelief {
     ///
     /// Missing hypotheses, unknown hypotheses, duplicate identifiers,
     /// impossible evidence and arithmetic overflow all fail closed.
-    pub fn update(
-        &self,
-        likelihoods: Vec<(String, u128)>,
-    ) -> Result<Self, BeliefError> {
+    pub fn update(&self, likelihoods: Vec<(String, u128)>) -> Result<Self, BeliefError> {
         if likelihoods.is_empty() {
             return Err(BeliefError::EmptyLikelihoodSet);
         }
@@ -133,9 +125,7 @@ impl DiscreteBelief {
                 return Err(BeliefError::EmptyLikelihoodHypothesisId);
             }
             if hypothesis.trim() != hypothesis {
-                return Err(BeliefError::UntrimmedLikelihoodHypothesisId(
-                    hypothesis,
-                ));
+                return Err(BeliefError::UntrimmedLikelihoodHypothesisId(hypothesis));
             }
             if !self.weights.contains_key(&hypothesis) {
                 return Err(BeliefError::UnknownLikelihoodHypothesis(hypothesis));
@@ -144,17 +134,13 @@ impl DiscreteBelief {
                 .insert(hypothesis.clone(), likelihood)
                 .is_some()
             {
-                return Err(BeliefError::DuplicateLikelihoodHypothesisId(
-                    hypothesis,
-                ));
+                return Err(BeliefError::DuplicateLikelihoodHypothesisId(hypothesis));
             }
         }
 
         for hypothesis in self.weights.keys() {
             if !likelihood_map.contains_key(hypothesis) {
-                return Err(BeliefError::MissingLikelihoodHypothesis(
-                    hypothesis.clone(),
-                ));
+                return Err(BeliefError::MissingLikelihoodHypothesis(hypothesis.clone()));
             }
         }
 
@@ -206,9 +192,7 @@ pub fn robustly_admissible_probe_ids(
 
     for admitted in robustly_admissible {
         if admitted.trim().is_empty() || admitted.trim() != admitted {
-            return Err(BeliefError::InvalidAdmissibleProbeId(
-                admitted.clone(),
-            ));
+            return Err(BeliefError::InvalidAdmissibleProbeId(admitted.clone()));
         }
     }
 
@@ -218,9 +202,7 @@ pub fn robustly_admissible_probe_ids(
         .collect())
 }
 
-fn normalize_weights(
-    weights: &mut BTreeMap<String, u128>,
-) -> Result<(), BeliefError> {
+fn normalize_weights(weights: &mut BTreeMap<String, u128>) -> Result<(), BeliefError> {
     let divisor = weights
         .values()
         .copied()
@@ -234,9 +216,7 @@ fn normalize_weights(
     Ok(())
 }
 
-fn checked_total(
-    weights: &BTreeMap<String, u128>,
-) -> Result<u128, BeliefError> {
+fn checked_total(weights: &BTreeMap<String, u128>) -> Result<u128, BeliefError> {
     weights.values().try_fold(0_u128, |total, weight| {
         total
             .checked_add(*weight)
@@ -258,21 +238,14 @@ mod tests {
     use super::*;
 
     fn pair_belief() -> DiscreteBelief {
-        DiscreteBelief::from_weights(vec![
-            ("firm".to_owned(), 2),
-            ("loose".to_owned(), 1),
-        ])
-        .unwrap()
+        DiscreteBelief::from_weights(vec![("firm".to_owned(), 2), ("loose".to_owned(), 1)]).unwrap()
     }
 
     #[test]
     fn exact_bayes_update_matches_hand_calculated_posterior() {
         let prior = pair_belief();
         let posterior = prior
-            .update(vec![
-                ("firm".to_owned(), 3),
-                ("loose".to_owned(), 1),
-            ])
+            .update(vec![("firm".to_owned(), 3), ("loose".to_owned(), 1)])
             .unwrap();
 
         assert_eq!(posterior.weights()["firm"], 6);
@@ -283,16 +256,12 @@ mod tests {
 
     #[test]
     fn common_weight_scaling_does_not_change_the_belief() {
-        let left = DiscreteBelief::from_weights(vec![
-            ("firm".to_owned(), 2),
-            ("loose".to_owned(), 1),
-        ])
-        .unwrap();
-        let right = DiscreteBelief::from_weights(vec![
-            ("firm".to_owned(), 200),
-            ("loose".to_owned(), 100),
-        ])
-        .unwrap();
+        let left =
+            DiscreteBelief::from_weights(vec![("firm".to_owned(), 2), ("loose".to_owned(), 1)])
+                .unwrap();
+        let right =
+            DiscreteBelief::from_weights(vec![("firm".to_owned(), 200), ("loose".to_owned(), 100)])
+                .unwrap();
 
         assert_eq!(left, right);
     }
@@ -301,16 +270,10 @@ mod tests {
     fn input_permutation_preserves_canonical_posterior() {
         let prior = pair_belief();
         let left = prior
-            .update(vec![
-                ("firm".to_owned(), 9),
-                ("loose".to_owned(), 2),
-            ])
+            .update(vec![("firm".to_owned(), 9), ("loose".to_owned(), 2)])
             .unwrap();
         let right = prior
-            .update(vec![
-                ("loose".to_owned(), 2),
-                ("firm".to_owned(), 9),
-            ])
+            .update(vec![("loose".to_owned(), 2), ("firm".to_owned(), 9)])
             .unwrap();
 
         assert_eq!(left, right);
@@ -319,10 +282,7 @@ mod tests {
     #[test]
     fn zero_likelihood_removes_hypothesis_mass_exactly() {
         let posterior = pair_belief()
-            .update(vec![
-                ("firm".to_owned(), 1),
-                ("loose".to_owned(), 0),
-            ])
+            .update(vec![("firm".to_owned(), 1), ("loose".to_owned(), 0)])
             .unwrap();
 
         assert_eq!(posterior.probability("firm").unwrap(), Some((1, 1)));
@@ -331,10 +291,7 @@ mod tests {
 
     #[test]
     fn impossible_observation_is_not_silently_renormalized() {
-        let result = pair_belief().update(vec![
-            ("firm".to_owned(), 0),
-            ("loose".to_owned(), 0),
-        ]);
+        let result = pair_belief().update(vec![("firm".to_owned(), 0), ("loose".to_owned(), 0)]);
 
         assert_eq!(result, Err(BeliefError::ZeroEvidenceMass));
     }
@@ -344,9 +301,7 @@ mod tests {
         let result = pair_belief().update(vec![("firm".to_owned(), 1)]);
         assert_eq!(
             result,
-            Err(BeliefError::MissingLikelihoodHypothesis(
-                "loose".to_owned()
-            ))
+            Err(BeliefError::MissingLikelihoodHypothesis("loose".to_owned()))
         );
     }
 
@@ -367,10 +322,8 @@ mod tests {
 
     #[test]
     fn duplicate_hypotheses_are_rejected() {
-        let result = DiscreteBelief::from_weights(vec![
-            ("firm".to_owned(), 1),
-            ("firm".to_owned(), 2),
-        ]);
+        let result =
+            DiscreteBelief::from_weights(vec![("firm".to_owned(), 1), ("firm".to_owned(), 2)]);
         assert_eq!(
             result,
             Err(BeliefError::DuplicateHypothesisId("firm".to_owned()))
@@ -379,10 +332,8 @@ mod tests {
 
     #[test]
     fn zero_prior_mass_is_rejected() {
-        let result = DiscreteBelief::from_weights(vec![
-            ("firm".to_owned(), 0),
-            ("loose".to_owned(), 0),
-        ]);
+        let result =
+            DiscreteBelief::from_weights(vec![("firm".to_owned(), 0), ("loose".to_owned(), 0)]);
         assert_eq!(result, Err(BeliefError::ZeroPriorMass));
     }
 
@@ -410,10 +361,8 @@ mod tests {
             "probe-right".to_owned(),
             "probe-risky".to_owned(),
         ];
-        let robustly_admissible = BTreeSet::from([
-            "probe-left".to_owned(),
-            "probe-right".to_owned(),
-        ]);
+        let robustly_admissible =
+            BTreeSet::from(["probe-left".to_owned(), "probe-right".to_owned()]);
 
         assert_eq!(
             robustly_admissible_probe_ids(&candidates, &robustly_admissible).unwrap(),
