@@ -56,3 +56,9 @@ The positive synthetic fixture emits `PASS_SYNTHETIC_SESSION`. The NOT_RUN templ
 All current examples are synthetic. The `PERMIT_SYNTHETIC_ONLY` marker is not a hardware permit, interlock input or approval. Local hardware protection must remain independent. This verifier is not a flight controller, beam controller, safety case or energy-transfer controller.
 
 No RF/optical power is authorized by this schema. No aircraft control, energized test, laser operation, aviation approval, spectrum authorization or safety certification is implied. Passing these software fixtures does not qualify physical coexistence, EMC, power-transfer efficiency, battery reserve, tracking performance or airborne operation.
+
+## Explicit v0 boundaries
+
+- One session trace binds exactly one receiver, one bearer-specific energy opportunity, one opportunity-envelope revision and one site-allocation receipt. Reacquisition means returning to that same opportunity and revalidating the same receipt. v0 does not support switching to a different site/bearer or replacing the allocation/envelope revision mid-trace. A changed opportunity or allocation starts a new episode; mission-level composition across those episodes belongs to #3885 and site orchestration #3980.
+- The synthetic energy fixture uses integer Wh so that its arithmetic is exact and easy to inspect. This is **not** a metrology-resolution recommendation. Sub-watt or short-duration receiver experiments can require µWh/J resolution, calibrated meter transfer functions, timestamps and uncertainty. Physical energy record precision remains owned by #3472; do not adopt integer Wh as the universal measurement unit.
+- The current schema uses one top-level opportunity and allocation object per episode. Any future multi-opportunity trace must introduce a versioned per-epoch receipt collection and independent oracle, not silently mutate the object model or reuse stale IDs.
