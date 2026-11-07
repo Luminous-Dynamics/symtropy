@@ -1,0 +1,72 @@
+{
+  "schema_version": "wpt-dispatch-pareto-oracle-v0",
+  "scenario_id": "two-receiver-one-interval-coupled-stress-known-truth",
+  "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+  "interval_count": 1,
+  "energy_quantum_mwh": 1,
+  "source_slots": [
+    { "source_id": "site-inverter", "interval_index": 0, "available_deliverable_energy_mwh": 8 }
+  ],
+  "segment_slots": [
+    { "source_id": "site-inverter", "segment_id": "segment-a", "interval_index": 0, "available_deliverable_energy_mwh": 5 },
+    { "source_id": "site-inverter", "segment_id": "segment-b", "interval_index": 0, "available_deliverable_energy_mwh": 5 }
+  ],
+  "receivers": [
+    { "receiver_id": "vehicle-01", "arrival_interval": 0, "departure_interval": 1, "requested_service_mwh": 5, "minimum_service_mwh": 2 },
+    { "receiver_id": "vehicle-02", "arrival_interval": 0, "departure_interval": 1, "requested_service_mwh": 5, "minimum_service_mwh": 2 }
+  ],
+  "receiver_slots": [
+    { "receiver_id": "vehicle-01", "interval_index": 0, "max_acceptance_mwh": 5 },
+    { "receiver_id": "vehicle-02", "interval_index": 0, "max_acceptance_mwh": 5 }
+  ],
+  "shared_resource_slots": [
+    { "resource_id": "segment-a-coupling-envelope", "interval_index": 0, "capacity_units": 3 }
+  ],
+  "transfer_links": [
+    {
+      "link_id": "a-to-vehicle-01",
+      "source_id": "site-inverter",
+      "segment_id": "segment-a",
+      "receiver_id": "vehicle-01",
+      "interval_index": 0,
+      "max_deliverable_energy_mwh": 5,
+      "asset_stress_units_per_quantum": 1,
+      "shared_resource_uses": [
+        { "resource_id": "segment-a-coupling-envelope", "units_per_quantum": 1 }
+      ]
+    },
+    {
+      "link_id": "a-to-vehicle-02",
+      "source_id": "site-inverter",
+      "segment_id": "segment-a",
+      "receiver_id": "vehicle-02",
+      "interval_index": 0,
+      "max_deliverable_energy_mwh": 5,
+      "asset_stress_units_per_quantum": 4,
+      "shared_resource_uses": [
+        { "resource_id": "segment-a-coupling-envelope", "units_per_quantum": 1 }
+      ]
+    },
+    {
+      "link_id": "b-to-vehicle-01",
+      "source_id": "site-inverter",
+      "segment_id": "segment-b",
+      "receiver_id": "vehicle-01",
+      "interval_index": 0,
+      "max_deliverable_energy_mwh": 5,
+      "asset_stress_units_per_quantum": 4,
+      "shared_resource_uses": []
+    },
+    {
+      "link_id": "b-to-vehicle-02",
+      "source_id": "site-inverter",
+      "segment_id": "segment-b",
+      "receiver_id": "vehicle-02",
+      "interval_index": 0,
+      "max_deliverable_energy_mwh": 5,
+      "asset_stress_units_per_quantum": 1,
+      "shared_resource_uses": []
+    }
+  ],
+  "quality_flags": ["SYNTHETIC_ONLY"]
+}
