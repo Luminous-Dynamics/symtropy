@@ -1,0 +1,31 @@
+name: LOCO Assurance State Verification
+
+on:
+  pull_request:
+    paths:
+      - "research/loco-assurance-state-v0/**"
+      - ".github/workflows/loco-assurance-state.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "research/loco-assurance-state-v0/**"
+      - ".github/workflows/loco-assurance-state.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-assurance-state-v0/Cargo.toml -- --check
+      - name: Run certificate lifecycle and runtime-gate fixtures
+        run: cargo test --manifest-path research/loco-assurance-state-v0/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/loco-assurance-state-v0/Cargo.toml --locked --all-targets -- -D warnings
