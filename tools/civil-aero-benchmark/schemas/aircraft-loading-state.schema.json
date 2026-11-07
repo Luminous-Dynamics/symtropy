@@ -14,6 +14,7 @@
     "aircraft_model",
     "serial_number",
     "items",
+    "reference_frame_id",
     "reference_frame_id"
   ],
   "properties": {
@@ -108,6 +109,7 @@
         "source_position",
         "source_inertia",
         "value_source",
+        "installation_source",
         "installation_source"
       ],
       "properties": {
@@ -251,6 +253,7 @@
           "required": [
             "values",
             "unit",
+            "coordinate_frame_id",
             "coordinate_frame_id"
           ],
           "additionalProperties": false
@@ -265,10 +268,29 @@
               "type": "array",
               "minItems": 6,
               "maxItems": 6,
-              "items": {
-                "type": "number",
-                "minimum": 0
-              }
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ]
             },
             "unit": {
               "enum": [
