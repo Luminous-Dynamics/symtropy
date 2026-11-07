@@ -33,7 +33,7 @@ The shared system is a site-energy network, not a universal WPT coupler.
 | Multiport passivity | [#3530](https://github.com/Luminous-Dynamics/symtropy/issues/3530), [#3546](https://github.com/Luminous-Dynamics/symtropy/issues/3546) | Physical admissibility |
 | Verified pass evidence | [#3950](https://github.com/Luminous-Dynamics/symtropy/issues/3950) | Exact pass/session/artifact lineage |
 
-The gap is cross-domain coexistence: same site, overlapping ground and air service windows, shared source limits, separate physical channels and one accountable site energy ledger.
+The remaining engineering gap is the physical qualification of simultaneous ground/air energy service: shared source limits, separately qualified physical channels, cross-channel interactions, and one accountable site energy ledger. Ground–aerial scheduling itself already has published simulation baselines, including SAFE-DDPG.
 
 ## 3. Feasibility evidence (separate regimes, not a common leaderboard)
 
@@ -449,3 +449,54 @@ All source references are deliberately **not admitted to a qualified operating e
 An independent fetch-back check resolved all 3 channel evidence references and all 4 measurement IDs against the pinned 66-source/35-realization catalogue. The adapter explicitly retains `shared_site_physical_coexistence_evidence = NOT_AVAILABLE`, `measured_simultaneous_ground_air_prototype = NOT_DEMONSTRATED` and `electrical_source_orchestration_evidence = SYNTHETIC_ONLY`.
 
 The allocator may use the synthetic coefficients for bounded scheduling tests, but it must not consume these literature claims as a validated numeric M1 channel envelope. Admission requires full-text source review, exact measurement boundaries, operating/geometry support, uncertainty and a same-site coexistence test.
+
+
+## 16. Direct ground–aerial scheduling SOTA: reproduce before claiming novelty
+
+A direct comparator exists and is now registered in the empirical catalogue: Shaikh, Mouftah and Kantarci, *Intelligent Charging Reservation and Trip Planning of CAEVs and UAVs*, Electronics 15(2), 440 (2026), DOI [10.3390/electronics15020440](https://doi.org/10.3390/electronics15020440).
+
+This paper already proposes:
+- a three-layer CAEV/UAV charging reservation and trip-planning architecture;
+- cabled, static/dynamic wireless, V2V and laser-beaming charging-network classes;
+- LBUAVs that model in-flight laser energy delivery to UAVs and emergency CAEVs;
+- SH-CSP, DH-CSP and feasibility-filtered SAFE-DDPG schedulers with prioritised replay, adaptive exploration and heuristic fallback.
+
+Its evaluation is simulation-only: a two-day discrete-event environment (5–6 June 2025), 50 CAEVs, 8 LBUAVs and 6 EIUAVs, with CAEV traffic represented using SUMO. The paper reports 50 independent simulation replications for confidence intervals.
+
+Selected reported Table 7 values:
+- CCN_1 average wait: SAFE-DDPG 0.067 min, DH-CSP 0.234 min, SH-CSP 0.467 min.
+- Simulated battery consumption: 3.4726 / 3.8321 / 4.2105 kWh for SAFE-DDPG / DH-CSP / SH-CSP.
+- Simulated travel time: 30.33 / 33.78 / 37.41 min for SAFE-DDPG / DH-CSP / SH-CSP.
+- The paper reports over 70% wait-time reduction against DH-CSP and over 85% against SH-CSP at selected high-demand nodes, 9–18% battery-consumption reduction and 10–19% travel-time reduction across its compared cases.
+
+**Critical metric distinction:** Figures 9–10 report approximately 98.7% CAEV and 98.52% UAV based on requested, reserved and delivered charge. These are service-fulfilment figures in the simulation, not transmitter-to-battery conversion efficiency. They must not be compared with measured IPT/CPT DC-to-DC efficiency.
+
+A second adjacent comparator is Wei et al., *Joint Trajectory Design and Energy Scheduling for UAVs With Hybrid Wireless Charging Strategy*, IEEE Wireless Communications Letters 15 (2026), pp.3214–3218, DOI [10.1109/LWC.2026.3693755](https://doi.org/10.1109/LWC.2026.3693755). It uses an Energy-Aware RRT (EA-RRT) to jointly plan UAV trajectories and wireless-charging/SWIPT opportunities under motion, communications and charging constraints. It is UAV-only and simulation-based; it supplies a trajectory-energy baseline, not ground–air site orchestration.
+
+Both studies are registered as simulation-only records in the pinned WPT catalogue. [Open the source catalogue PR #3451](https://github.com/Luminous-Dynamics/symtropy/pull/3451).
+
+### Updated novelty and competition statement
+
+Coordination of ground and aerial charging is **not itself novel**. A simulated system-level coordination architecture and a UAV trajectory-energy scheduler already exist. Our programme must beat or complement them through stronger engineering evidence, not by renaming the scheduling problem.
+
+The narrower unresolved target in the reviewed evidence is an independently qualified **same-site physical coexistence system** that:
+1. operates a dynamic ground IPT channel and a separately engineered air charging channel concurrently;
+2. measures the shared PCC/source, each channel-input boundary and each receiver/battery endpoint;
+3. closes source-to-endpoint energy with uncertainty and no double counting;
+4. qualifies cross-channel EMC, common-bus stability, mutual coupling/field leakage, sensor interference and local protection;
+5. schedules sessions with exact feasibility checks and out-of-domain abstention;
+6. reproduces performance across independent sites/hardware and held-out environmental/arrival regimes.
+
+We have not found this exact physical demonstration in the reviewed sources; that is a bounded literature finding, not proof that none exists.
+
+### How to compete fairly with SAFE-DDPG
+
+First reproduce its scenario and definitions: 50 CAEVs, 8 LBUAVs, 6 EIUAVs; two-day horizon; SUMO traffic; network inventory and capacities; tariff assumptions; vehicle/UAV energy models; reservation and access rules; reward weights; and 50 independent simulation replications if the raw setup/seeds can be recovered.
+
+Baselines must include SH-CSP, DH-CSP, vanilla DDPG and SAFE-DDPG, followed by our fixed/equal-share, round-robin, greedy, robust-MPC and exact bounded oracle. Compare identical inputs and preserve:
+- wait time, travel time, battery consumption, charge fulfilment, per-agent fairness and charger utilization;
+- source/PCC Wh, channel input Wh, endpoint useful Wh, conversion loss and energy-balance residual;
+- service shortfall, reserve violations, out-of-domain abstentions and hard-constraint violations;
+- per-channel and site-level availability, computation latency and regret against the exact oracle.
+
+The current Rust oracle is not a SAFE-DDPG replacement: it is a small exact source-allocation reference under synthetic assumptions. Its value is as an independently reproducible feasibility baseline and counterexample oracle for small cases. A fair superiority claim requires reproducing SAFE-DDPG first, then showing gains on matched held-out episodes and physical measurements.
