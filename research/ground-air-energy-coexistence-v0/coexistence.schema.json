@@ -8,6 +8,7 @@
     "schema_version",
     "episode_id",
     "disposition",
+    "service_intent",
     "evidence_class",
     "site",
     "sources",
@@ -88,6 +89,9 @@
     "report_sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
+    },
+    "service_intent": {
+      "const": "SIMULTANEOUS_GROUND_AND_AIR"
     }
   },
   "allOf": [
@@ -140,6 +144,54 @@
           },
           "allocations": {
             "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "not": {
+              "const": "NOT_RUN"
+            }
+          }
+        },
+        "required": [
+          "disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sessions": {
+            "allOf": [
+              {
+                "contains": {
+                  "properties": {
+                    "receiver_domain": {
+                      "const": "GROUND"
+                    }
+                  },
+                  "required": [
+                    "receiver_domain"
+                  ]
+                },
+                "minContains": 1
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "receiver_domain": {
+                      "const": "AIR"
+                    }
+                  },
+                  "required": [
+                    "receiver_domain"
+                  ]
+                },
+                "minContains": 1
+              }
+            ]
           }
         }
       }
