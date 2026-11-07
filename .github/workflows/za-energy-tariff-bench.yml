@@ -44,5 +44,7 @@ jobs:
             (.results[0].energy_charge_zar == 966.68) and
             (.results[1].energy_charge_zar == 400.88) and
             (.results[0].billed_demand_kva == 100) and
-            (.results[1].billed_demand_kva == 100)
+            (.results[1].billed_demand_kva == 100) and
+            (.results[0].invoice_equivalent_total_zar == null) and
+            (.results[1].invoice_equivalent_total_zar == null)
           ' /tmp/za-tariff-result.json
