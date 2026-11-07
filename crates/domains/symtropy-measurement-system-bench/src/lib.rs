@@ -601,8 +601,8 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
             }
         }
         if text(reference, "unit") != text(estimator, "unit")
-            || text(reference_channel.unwrap_or(&Value::Null), "measurand")
-                != text(estimator_channel.unwrap_or(&Value::Null), "measurand")
+            || reference_channel.and_then(|channel| text(channel, "measurand"))
+                != estimator_channel.and_then(|channel| text(channel, "measurand"))
         {
             push(&mut errors, "REFERENCE_COMPARISON_MEASURAND_MISMATCH", &path, "reference and estimator must report the same measurand and unit");
         }
@@ -984,8 +984,10 @@ mod tests {
     #[test]
     fn calibration_and_validation_measurements_cannot_overlap_partitions() {
         let mut case = fixture();
-        case["reference_comparisons"][1]["reference_measurement_id"] =
+        let calibration_reference =
             case["reference_comparisons"][0]["reference_measurement_id"].clone();
+        case["reference_comparisons"][1]["reference_measurement_id"] =
+            calibration_reference;
         assert!(has(
             &validate_case(&case, &parent()),
             "MEASUREMENT_PARTITION_LEAKAGE"
