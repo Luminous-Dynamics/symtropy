@@ -258,6 +258,15 @@
             },
             "legacy_exception": {
               "type": "string"
+            },
+            "service_connection_context": {
+              "type": "string"
+            },
+            "tariff_specific_threshold_source_ref": {
+              "type": "string"
+            },
+            "service_connection_source_ref": {
+              "type": "string"
             }
           }
         },
