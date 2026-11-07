@@ -72,7 +72,7 @@ The generic metric-component constructor does not certify Lorentzian signature. 
 
 ## Versioned benchmark registries
 
-Five versioned machine-readable research manifests are maintained beside the crate:
+Six versioned machine-readable research manifests are maintained beside the crate:
 
 - `benchmarks/direct_wave_sxs_spin_sweep.json` — the earlier ten-case high-spin counteranalysis plus a pinned 168-entry catalogue (125 aligned/precessing/eccentric SXS and 43 anti-aligned), 13 CCE News waveforms, all-QNM ell=2..6 filter analysis, light-ring and BOB predictors, filter-free subset configuration, and Gaussian-vacuum-perturbation filter controls. The earlier ten-case paper's exact fitting-window boundaries remain null until transcribed from its own supplement.
 - `benchmarks/waveform_surrogate_baselines.json` — versioned literature baselines for NRSur7dq4 NN/v2, SEOBNRv5PHM_NNSur7dq10, AESur3dq8, NRSurE_q4NoSpin_22, BOB, SpEC accuracy, SEOBNRv6EPHM, and SEOBNRv6EHM.
