@@ -49,7 +49,7 @@ The Rust unit-test corpus covers:
 - duplicate demand identity, mismatched decision cutoffs/tick resolutions and missing time basis;
 - input permutation replay, zero-budget rejection and explicit search-budget exhaustion.
 
-The last recorded exact-head pass (`6bb64789997746d8a1f1c5509a745b2ca340a008`) reported **30 unit tests and 3 integration tests passing**, with rustfmt and Clippy passing. The current branch adds two further throughput-quota tests (32 unit-test declarations total); the newest exact-head CI is queued and those two tests are not yet claimed as passed.
+The current exact-head source declares **32 unit tests and 3 integration tests**. After the two terminal/inland throughput-quota controls were added, the exact-head workflow passed formatting and all tests on 7 November 2026: https://github.com/Luminous-Dynamics/symtropy/actions/runs/42341759255. The independent fleet enumerator and 20-variant sweep are part of the 32 unit-test corpus; the three integration tests cross-check event-sweep and cumulative quota arithmetic against direct references.
 
 The test-only independent fleet enumerator separately explores each demand's alternatives and integer-tick placements, calculates feasibility using per-tick/per-window accounting, reconstructs the objective vector and computes its own Pareto frontier. It is cross-checked against the production frontier on four hand-checkable cases and a **20-variant frozen parameter sweep**. The sweep changes fast/slow alternative combinations, delivery windows, lock/channel/berth/terminal capacity, and cumulative water/shore-power quotas. Every production frontier must match the independently generated frontier exactly.
 
