@@ -240,6 +240,51 @@ pub fn schwarzschild_ingoing_ef_metric(
     ])
 }
 
+/// Kerr metric in ingoing Kerr coordinates (v, r, theta, phi).
+///
+/// This chart is regular at the future event horizon and uses
+/// v = ct + integral((r^2+a^2)/Delta) dr and the corresponding ingoing
+/// azimuthal coordinate. Domain: r > 0 and 0 < theta < pi. The polar axis
+/// remains a coordinate singularity of this chart.
+pub fn kerr_ingoing_metric(
+    hole: KerrBlackHole,
+    radius_m: f64,
+    theta_rad: f64,
+) -> Result<MetricComponents4, MetricError> {
+    super::validate_positive_finite(radius_m, "radius_m")?;
+    validate_theta(theta_rad)?;
+
+    let rg = hole.gravitational_radius_m();
+    let a = hole.kerr_parameter_m();
+    let sin_theta = theta_rad.sin();
+    let sin_squared = sin_theta * sin_theta;
+    let cos_theta = theta_rad.cos();
+    let sigma = radius_m * radius_m + a * a * cos_theta * cos_theta;
+
+    if !sigma.is_finite() || sigma <= 0.0 {
+        return Err(MetricError::ComputationNonFinite(
+            "ingoing Kerr metric coefficient",
+        ));
+    }
+
+    let g_vv = -(1.0 - 2.0 * rg * radius_m / sigma);
+    let g_v_r = 1.0;
+    let g_v_phi = -2.0 * rg * a * radius_m * sin_squared / sigma;
+    let g_r_phi = -a * sin_squared;
+    let g_theta_theta = sigma;
+    let g_phi_phi = sin_squared
+        * (radius_m * radius_m
+            + a * a
+            + 2.0 * rg * a * a * radius_m * sin_squared / sigma);
+
+    MetricComponents4::new([
+        [g_vv, g_v_r, 0.0, g_v_phi],
+        [g_v_r, 0.0, 0.0, g_r_phi],
+        [0.0, 0.0, g_theta_theta, 0.0],
+        [g_v_phi, g_r_phi, 0.0, g_phi_phi],
+    ])
+}
+
 /// Kerr metric in Boyer-Lindquist coordinates (ct,r,theta,phi).
 /// Domain: r > r_+ and 0 < theta < pi. a = chi GM/c^2.
 pub fn kerr_exterior_metric(
