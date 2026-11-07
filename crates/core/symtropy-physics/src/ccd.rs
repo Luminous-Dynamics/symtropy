@@ -490,18 +490,23 @@ mod tests {
     fn sphere_halfspace_normalizes_non_unit_plane_normal() {
         let pos = SVector::from([0.0, 10.0, 0.0]);
         let vel = SVector::from([0.0, -100.0, 0.0]);
-        let normal = SVector::from([0.0, 3.0, 0.0]);
+        let unit_normal = SVector::from([0.0, 1.0, 0.0]);
+        let scaled_normal = SVector::from([0.0, 3.0, 0.0]);
 
-        let hit = try_sphere_halfspace(&pos, &vel, 0.5, &normal, 0.0, 1.0)
+        let unit = try_sphere_halfspace(&pos, &vel, 0.5, &unit_normal, 2.0, 1.0)
+            .unwrap()
+            .unwrap();
+        let scaled = try_sphere_halfspace(&pos, &vel, 0.5, &scaled_normal, 6.0, 1.0)
             .unwrap()
             .unwrap();
 
-        assert!((hit.toi - 0.095).abs() < 1e-12);
-        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
-        assert!((hit.normal[1] - 1.0).abs() < 1e-12);
-        assert!(hit.point.iter().all(|component| component.is_finite()));
+        assert!((unit.toi - 0.075).abs() < 1e-12);
+        assert!((scaled.toi - unit.toi).abs() < 1e-12);
+        assert!((scaled.point - unit.point).norm() < 1e-12);
+        assert!((scaled.normal.norm() - 1.0).abs() < 1e-12);
+        assert!((scaled.normal[1] - 1.0).abs() < 1e-12);
+        assert!(scaled.point.iter().all(|component| component.is_finite()));
     }
-
     #[test]
     fn sphere_halfspace_rejects_degenerate_plane_and_non_finite_inputs() {
         let pos = SVector::from([0.0, 10.0, 0.0]);
