@@ -116,10 +116,7 @@ impl From<WorldError> for BridgeError {
 
 /// Run the unchanged collective-risk policies, then replay their exact action
 /// trace through the resource ledger. No policy receives resource state.
-pub fn run_case(
-    risk: f64,
-    roster: PolicyRoster,
-) -> Result<BridgeEpisode, BridgeError> {
+pub fn run_case(risk: f64, roster: PolicyRoster) -> Result<BridgeEpisode, BridgeError> {
     let config = GameConfig {
         catastrophe_probability: risk,
     };
@@ -229,8 +226,7 @@ fn validate_episode(episode: &BridgeEpisode) -> Result<(), BridgeError> {
         }
 
         let mut tick_transfer_total = 0.0;
-        for seat in 0..SEATS {
-            let action = actions[seat];
+        for (seat, &action) in actions.iter().enumerate() {
             if !ACTIONS.contains(&action) {
                 return Err(BridgeError::Invariant("CRG trace contains a noncanonical action"));
             }
@@ -328,11 +324,11 @@ pub fn render_csv(episodes: &[BridgeEpisode]) -> String {
         push_row(&mut output, summary);
 
         for (tick_index, report) in episode.ticks.iter().enumerate() {
-            for seat in 0..SEATS {
+            for (seat, strategy) in episode.strategies.iter().enumerate() {
                 let mut row = blank_row();
                 set_case_metadata(&mut row, episode, "agent_tick", Some(tick_index + 1));
                 row[4] = format!("agent_{seat}");
-                row[6] = episode.strategies[seat].name().to_owned();
+                row[6] = strategy.name().to_owned();
                 let action = episode.action_history[tick_index][seat];
                 let receipt = report.transfers[seat];
                 let donor = &report.regions[seat];
@@ -362,10 +358,7 @@ pub fn render_csv(episodes: &[BridgeEpisode]) -> String {
             shared[19] = episode.game.target_reached.to_string();
             shared[20] = format_float(episode.game.expected_group_welfare);
             shared[21] = format_float(episode.game.payoff_gini);
-            set_residuals(
-                &mut shared,
-                service.ledger.conservation_residual(),
-            );
+            set_residuals(&mut shared, service.ledger.conservation_residual());
             push_row(&mut output, shared);
         }
     }
@@ -391,10 +384,7 @@ fn set_case_metadata(
     }
 }
 
-fn set_residuals(
-    row: &mut [String; 25],
-    residual: ResourceVector,
-) {
+fn set_residuals(row: &mut [String; 25], residual: ResourceVector) {
     row[22] = format_float(residual.water_m3);
     row[23] = format_float(residual.energy_kwh);
     row[24] = format_float(residual.food_kg);
@@ -531,9 +521,9 @@ mod tests {
             let mut total = 0_u32;
             let mut by_seat = [0_u32; SEATS];
             for (tick_index, actions) in episode.action_history.iter().enumerate() {
-                for seat in 0..SEATS {
-                    total += u32::from(actions[seat]);
-                    by_seat[seat] += u32::from(actions[seat]);
+                for (seat, action) in actions.iter().copied().enumerate() {
+                    total += u32::from(action);
+                    by_seat[seat] += u32::from(action);
                 }
                 for region in &episode.ticks[tick_index].regions {
                     assert!(region.ledger.is_conserved());
@@ -560,10 +550,10 @@ mod tests {
         )
         .unwrap();
 
-        for tick in 0..TICKS {
-            for seat in 0..SEATS {
+        for (tick, rotated_actions) in rotated.action_history.iter().enumerate() {
+            for (seat, &rotated_action) in rotated_actions.iter().enumerate() {
                 assert_eq!(
-                    rotated.action_history[tick][seat],
+                    rotated_action,
                     original.action_history[tick][(seat + 2) % SEATS],
                 );
                 assert!(close_enough(
