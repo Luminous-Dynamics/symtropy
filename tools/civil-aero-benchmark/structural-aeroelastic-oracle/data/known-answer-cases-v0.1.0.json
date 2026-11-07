@@ -94,11 +94,11 @@
     }
   },
   "unassessed_aircraft_claims": [
-    "full-envelope strength",
-    "buckling and local instability",
-    "dynamic flutter and buffet clearance",
-    "fatigue and service life",
-    "candidate-specific physical validation",
-    "airworthiness and certification"
+    "full_envelope_strength",
+    "buckling_and_local_instability",
+    "dynamic_flutter_and_buffet_clearance",
+    "fatigue_and_service_life",
+    "candidate_specific_validation",
+    "airworthiness_and_certification"
   ]
 }
