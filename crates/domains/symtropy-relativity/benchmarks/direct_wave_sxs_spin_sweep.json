@@ -69,6 +69,16 @@
       "arxiv_id": "2610.30031",
       "url": "https://arxiv.org/abs/2610.30031",
       "published_or_posted": "2026-10-21"
+    },
+    {
+      "kind": "peer_reviewed_light_ring_source_region_analysis",
+      "title": "How much of the black hole ringdown is sourced within the light ring?",
+      "authors": "Cheung (2026)",
+      "doi": "10.1103/l1mc-6hsz",
+      "accepted": "2026-10-06",
+      "url": "https://journals.aps.org/prd/accepted/10.1103/l1mc-6hsz",
+      "key_result": "For the modeled plunging point-particle source, the maximum wave amplitude sourced within the prograde light ring is estimated at <=10% of the full trajectory contribution; for GW250114 the post-peak SNR from within-light-ring sourced waves is estimated <=1 under the paper's setup.",
+      "caveat": "Model-dependent source-region estimate, not a direct measurement of the horizon or a universal bound for all mergers."
     }
   ],
   "data_selection": {
@@ -196,6 +206,19 @@
       "predictor": "no material source-specific direct wave required; filtered Gaussian-initial-data vacuum perturbations can generate direct-wave-like residuals",
       "damping": "depends on initial-data location relative to light ring and filter configuration",
       "status": "published_filter-artifact_or_generic_perturbation_control"
+    },
+    {
+      "id": "light_ring_source_fraction",
+      "predictor": "Explicitly separate waveform contributions sourced inside and outside the prograde light ring",
+      "observable": "inside-light-ring to full-trajectory amplitude / SNR fraction",
+      "status": "published_source_region_counteranalysis",
+      "caveat": "Bound is specific to the declared point-particle plunge / Teukolsky setup and source decomposition."
+    },
+    {
+      "id": "bob_qnm_pole_reconstruction",
+      "predictor": "BOB / Pöschl-Teller QNM-pole amplitude evolution and light-ring/null-geodesic dynamics",
+      "observable": "merger-ringdown amplitude and filtered residual frequency evolution",
+      "status": "published_competing_model"
     }
   ],
   "required_metrics": [
@@ -211,7 +234,10 @@
     "frequency and damping trajectories compared to horizon and rescaled light-ring predictions over the 125+43 SXS catalog",
     "cross-extraction comparison between extrapolated SXS waveforms and 13 CCE Bondi-News products",
     "sensitivity to removal of all prograde/retrograde QNMs with ell=2..6 and n<=2 versus the earlier reduced rational-filter mode set",
-    "recovery and robustness of the 9-system Bayesian free-frequency subset (t0=0M, duration=15M, 200000 steps, 48 walkers)"
+    "recovery and robustness of the 9-system Bayesian free-frequency subset (t0=0M, duration=15M, 200000 steps, 48 walkers)",
+    "source-region contribution comparison: inside-prograde-light-ring vs full plunge trajectory, including amplitude and SNR with the exact paper assumptions",
+    "test whether a residual can be detected while the within-light-ring contribution remains below the predicted observational sensitivity",
+    "frequency deviation from Omega_H across ringdown start times, as a separate statistic from residual extraction significance"
   ],
   "null_controls": [
     "noise-only and off-source segments",
@@ -221,7 +247,10 @@
     "time windows before and after the claimed direct-wave region",
     "synthetic signals with no injected direct-wave component",
     "linear vacuum perturbations with Gaussian initial data at varied radii relative to the light ring, passed through the same QNM filter",
-    "same injected vacuum perturbation analyzed with alternate QNM removal sets and filter settings"
+    "same injected vacuum perturbation analyzed with alternate QNM removal sets and filter settings",
+    "source-region ablations / injections with emission support restricted to inside vs outside the prograde light ring",
+    "vary point-particle / perturbative source assumptions and compare against full nonlinear NR waveform extraction",
+    "post-peak sensitivity tests for the inside-light-ring contribution, retaining upper limits when SNR is not informative"
   ],
   "provenance_requirements": [
     "exact SXS waveform file and digest",
@@ -231,7 +260,7 @@
     "remnant mass/spin source and posterior identifier",
     "metric/connection/curvature code commit and benchmark fixture version"
   ],
-  "execution_state": "specification_only_no_waveforms_downloaded_no_analysis_run",
+  "execution_state": "specification_only_no_waveforms_downloaded_no_direct_wave_analysis_or_source_region_ablation_run",
   "broad_validation_dataset": {
     "source": "Richardvnd/direct_waves_LR",
     "code_repository": "https://github.com/Richardvnd/direct_waves_LR",
@@ -390,5 +419,20 @@
         "negative_controls": "filter vacuum perturbation responses and compare morphology across modes"
       }
     ]
+  },
+  "source_region_discrimination": {
+    "primary_reference_doi": "10.1103/l1mc-6hsz",
+    "question": "Does the post-merger residual contain a measurable contribution sourced inside the prograde light ring, and is that distinct from identifying a filtered direct-wave residual?",
+    "published_model_dependent_estimate": {
+      "within_prograde_light_ring_max_fraction_of_full_trajectory_amplitude": 0.1,
+      "GW250114_post_peak_within_light_ring_snr_upper_bound": 1
+    },
+    "required_comparison": [
+      "inside-light-ring source contribution",
+      "outside-light-ring source contribution",
+      "full plunge / full waveform",
+      "filtered residual under identical rational-filter choices"
+    ],
+    "claim_ceiling": "Do not call a filtered residual a near-horizon signal unless a validated source-region decomposition demonstrates a measurable inside-light-ring contribution under a declared physical model."
   }
 }
