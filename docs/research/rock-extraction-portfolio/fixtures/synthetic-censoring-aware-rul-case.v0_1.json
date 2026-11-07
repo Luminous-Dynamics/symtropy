@@ -914,5 +914,15 @@
       "model_digest_ref": "digest:synthetic-discrete-hazard-v1",
       "source_ref": "artifact:prediction-cif-episode-validation-6-8-BEARING_FAILURE"
     }
-  ]
+  ],
+  "split_policy": {
+    "held_out_group_dimensions": [
+      "ASSET_ID",
+      "CAMPAIGN_REF",
+      "SITE_REF",
+      "MATERIAL_COHORT_REF"
+    ],
+    "no_group_overlap_across_partitions": true,
+    "partition_profile_ref": "split-profile:asset-campaign-site-material-heldout-v1"
+  }
 }
