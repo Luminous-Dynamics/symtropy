@@ -591,55 +591,215 @@ fn dispatch(scenario: &Scenario, policy: Policy) -> Result<DispatchReport, Strin
     })
 }
 
-fn verify_report(report: &DispatchReport) -> Result<(), String> {
-    for interval in &report.intervals {
-        if interval.energy_balance_residual_wh != 0 {
-            return Err(format!(
-                "interval {} energy balance residual {} Wh",
-                interval.interval_id, interval.energy_balance_residual_wh
-            ));
-        }
-        if interval.soc_balance_residual_wh != 0 {
-            return Err(format!(
-                "interval {} SOC balance residual {} Wh",
-                interval.interval_id, interval.soc_balance_residual_wh
-            ));
-        }
-        if interval.batch_mass_balance_residual_g != 0 {
-            return Err(format!(
-                "interval {} batch mass residual {} g",
-                interval.interval_id, interval.batch_mass_balance_residual_g
-            ));
-        }
-        if interval.critical_served_wh + interval.critical_unserved_wh
-            != interval.critical_requested_wh
-        {
-            return Err(format!(
-                "interval {} critical-load accounting mismatch",
-                interval.interval_id
-            ));
-        }
-        if interval.farm_lighting_served_wh + interval.farm_lighting_unserved_wh
-            != interval.farm_lighting_requested_wh
-        {
-            return Err(format!(
-                "interval {} farm-light accounting mismatch",
-                interval.interval_id
-            ));
-        }
+fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), String> {
+    if report.intervals.len() != scenario.intervals.len() {
+        return Err("dispatch trace interval count mismatch".to_owned());
     }
-    let critical_sum = report.intervals.iter().try_fold(0_u64, |sum, interval| {
-        sum.checked_add(interval.critical_unserved_wh)
-            .ok_or_else(|| "critical total overflow".to_owned())
-    })?;
-    let light_sum = report.intervals.iter().try_fold(0_u64, |sum, interval| {
-        sum.checked_add(interval.farm_lighting_unserved_wh)
-            .ok_or_else(|| "lighting total overflow".to_owned())
-    })?;
-    if critical_sum != report.critical_unserved_total_wh
-        || light_sum != report.farm_lighting_unserved_total_wh
+
+    let mut previous_soc = scenario.initial_soc_wh;
+    let mut critical_sum = 0_u64;
+    let mut lighting_sum = 0_u64;
+    let mut processed_batches = 0_usize;
+    let mut deferred_batches = 0_usize;
+    let mut reserve_violation_intervals = 0_usize;
+    let mut reserve_violation_total = 0_u64;
+    let mut curtailed_total = 0_u64;
+    let mut max_critical_shortfall = 0_u64;
+
+    for (index, (input, actual)) in scenario
+        .intervals
+        .iter()
+        .zip(report.intervals.iter())
+        .enumerate()
     {
-        return Err("aggregate service totals do not match interval trace".to_owned());
+        if actual.interval_id != input.id {
+            return Err(format!("interval trace identity mismatch at index {index}"));
+        }
+        if actual.generation_wh != input.generation_wh
+            || actual.critical_requested_wh != input.critical_load_wh
+            || actual.farm_lighting_requested_wh != input.farm_lighting_wh
+        {
+            return Err(format!("interval {} input binding mismatch", input.id));
+        }
+        if actual.battery_start_soc_wh != previous_soc {
+            return Err(format!("interval {} battery SOC continuity mismatch", input.id));
+        }
+        if actual.battery_internal_withdrawn_wh > scenario.discharge_power_limit_wh_per_interval {
+            return Err(format!("interval {} exceeds battery discharge limit", input.id));
+        }
+        if actual.battery_charge_input_wh > scenario.charge_power_limit_wh_per_interval {
+            return Err(format!("interval {} exceeds battery charge limit", input.id));
+        }
+        if actual.battery_internal_withdrawn_wh > actual.battery_start_soc_wh {
+            return Err(format!("interval {} withdraws more energy than the starting SOC", input.id));
+        }
+        if actual.battery_energy_stored_wh
+            != bus_output_for_internal(actual.battery_charge_input_wh, scenario.charge_efficiency_bps)?
+        {
+            return Err(format!("interval {} battery charge efficiency receipt mismatch", input.id));
+        }
+
+        let battery_bus_upper_bound = bus_output_for_internal(
+            actual.battery_internal_withdrawn_wh,
+            scenario.discharge_efficiency_bps,
+        )?;
+        if actual.battery_bus_output_wh > battery_bus_upper_bound {
+            return Err(format!("interval {} reports impossible battery bus output", input.id));
+        }
+
+        let expected_batch_energy = input.batch.as_ref().map_or(0, |batch| batch.energy_wh);
+        let expected_batch_id = input.batch.as_ref().map(|batch| batch.id.clone());
+        if actual.batch_id != expected_batch_id
+            || actual.batch_energy_requested_wh != expected_batch_energy
+        {
+            return Err(format!("interval {} batch identity/energy mismatch", input.id));
+        }
+
+        let batch_energy_served = if actual.batch_processed {
+            let batch = input
+                .batch
+                .as_ref()
+                .ok_or_else(|| format!("interval {} processed a nonexistent batch", input.id))?;
+            if actual.batch_feed_consumed_g != batch.feed_mass_g
+                || actual.batch_product_g != batch.product_mass_g
+                || actual.batch_residue_g != batch.residue_mass_g
+            {
+                return Err(format!("interval {} batch receipt differs from input", input.id));
+            }
+            processed_batches += 1;
+            actual.batch_energy_requested_wh
+        } else {
+            if actual.batch_feed_consumed_g != 0
+                || actual.batch_product_g != 0
+                || actual.batch_residue_g != 0
+            {
+                return Err(format!("interval {} deferred batch consumed resources", input.id));
+            }
+            if input.batch.is_some() {
+                deferred_batches += 1;
+            }
+            0
+        };
+
+        let independently_recomputed_mass_residual = if actual.batch_processed {
+            let feed = i128::from(actual.batch_feed_consumed_g);
+            let product = i128::from(actual.batch_product_g);
+            let residue = i128::from(actual.batch_residue_g);
+            feed - product - residue
+        } else {
+            0
+        };
+        if independently_recomputed_mass_residual != 0
+            || actual.batch_mass_balance_residual_g != independently_recomputed_mass_residual
+        {
+            return Err(format!("interval {} batch mass verification failed", input.id));
+        }
+
+        let requested_critical = u128::from(actual.critical_served_wh)
+            + u128::from(actual.critical_unserved_wh);
+        if requested_critical != u128::from(input.critical_load_wh) {
+            return Err(format!("interval {} critical-load accounting mismatch", input.id));
+        }
+        let requested_lighting = u128::from(actual.farm_lighting_served_wh)
+            + u128::from(actual.farm_lighting_unserved_wh);
+        if requested_lighting != u128::from(input.farm_lighting_wh) {
+            return Err(format!("interval {} farm-light accounting mismatch", input.id));
+        }
+
+        let source_wh = u128::from(input.generation_wh)
+            + u128::from(actual.battery_bus_output_wh);
+        let sink_wh = u128::from(actual.critical_served_wh)
+            + u128::from(actual.farm_lighting_served_wh)
+            + u128::from(batch_energy_served)
+            + u128::from(actual.battery_charge_input_wh)
+            + u128::from(actual.curtailed_wh);
+        let independently_recomputed_energy_residual =
+            i128::try_from(source_wh).map_err(|_| "energy source exceeds i128".to_owned())?
+                - i128::try_from(sink_wh).map_err(|_| "energy sinks exceed i128".to_owned())?;
+        if independently_recomputed_energy_residual != 0
+            || actual.energy_balance_residual_wh != independently_recomputed_energy_residual
+        {
+            return Err(format!("interval {} independent energy balance failed", input.id));
+        }
+
+        let expected_soc = i128::from(actual.battery_start_soc_wh)
+            - i128::from(actual.battery_internal_withdrawn_wh)
+            + i128::from(actual.battery_energy_stored_wh);
+        let independently_recomputed_soc_residual = i128::from(actual.battery_end_soc_wh) - expected_soc;
+        if independently_recomputed_soc_residual != 0
+            || actual.soc_balance_residual_wh != independently_recomputed_soc_residual
+        {
+            return Err(format!("interval {} independent battery SOC balance failed", input.id));
+        }
+        if actual.battery_end_soc_wh > scenario.battery_capacity_wh {
+            return Err(format!("interval {} SOC exceeds battery capacity", input.id));
+        }
+
+        // Recompute future critical reserve from the source scenario rather than
+        // trusting the dispatcher's declared reserve field.
+        let horizon_end = index
+            .saturating_add(1)
+            .saturating_add(scenario.reserve_horizon_intervals)
+            .min(scenario.intervals.len());
+        let mut independent_reserve = 0_u128;
+        for future in scenario.intervals.iter().take(horizon_end).skip(index + 1) {
+            let future_deficit = future
+                .critical_load_wh
+                .saturating_sub(future.generation_wh);
+            let numerator = u128::from(future_deficit) * u128::from(BPS);
+            let denominator = u128::from(scenario.discharge_efficiency_bps);
+            let required = if numerator == 0 {
+                0
+            } else {
+                (numerator + denominator - 1) / denominator
+            };
+            independent_reserve = independent_reserve
+                .checked_add(required)
+                .ok_or_else(|| "independent reserve calculation overflow".to_owned())?;
+        }
+        let independent_reserve_wh = u64::try_from(independent_reserve)
+            .map_err(|_| "independent reserve exceeds u64".to_owned())?;
+        if actual.reserve_required_wh != independent_reserve_wh {
+            return Err(format!("interval {} forecast reserve receipt mismatch", input.id));
+        }
+        let independent_reserve_violation =
+            independent_reserve_wh.saturating_sub(actual.battery_end_soc_wh);
+        if actual.reserve_violation_wh != independent_reserve_violation {
+            return Err(format!("interval {} reserve violation receipt mismatch", input.id));
+        }
+
+        if actual.critical_unserved_wh > 0 {
+            max_critical_shortfall = max_critical_shortfall.max(actual.critical_unserved_wh);
+        }
+        critical_sum = critical_sum
+            .checked_add(actual.critical_unserved_wh)
+            .ok_or_else(|| "critical unserved total overflow".to_owned())?;
+        lighting_sum = lighting_sum
+            .checked_add(actual.farm_lighting_unserved_wh)
+            .ok_or_else(|| "farm lighting unserved total overflow".to_owned())?;
+        curtailed_total = curtailed_total
+            .checked_add(actual.curtailed_wh)
+            .ok_or_else(|| "curtailment total overflow".to_owned())?;
+        if independent_reserve_violation > 0 {
+            reserve_violation_intervals += 1;
+            reserve_violation_total = reserve_violation_total
+                .checked_add(independent_reserve_violation)
+                .ok_or_else(|| "reserve violation total overflow".to_owned())?;
+        }
+
+        previous_soc = actual.battery_end_soc_wh;
+    }
+
+    if critical_sum != report.critical_unserved_total_wh
+        || lighting_sum != report.farm_lighting_unserved_total_wh
+        || processed_batches != report.processed_batches
+        || deferred_batches != report.deferred_batches
+        || reserve_violation_intervals != report.reserve_violation_intervals
+        || reserve_violation_total != report.reserve_violation_total_wh
+        || curtailed_total != report.curtailed_total_wh
+        || max_critical_shortfall != report.max_critical_shortfall_wh
+    {
+        return Err("dispatch aggregate receipt does not match independently recomputed trace".to_owned());
     }
     Ok(())
 }
@@ -741,8 +901,8 @@ fn run() -> Result<(), String> {
     let scenario = parse_scenario(&source)?;
     let greedy = dispatch(&scenario, Policy::Greedy)?;
     let reserve = dispatch(&scenario, Policy::ForecastReserve)?;
-    verify_report(&greedy)?;
-    verify_report(&reserve)?;
+    verify_report(&scenario, &greedy)?;
+    verify_report(&scenario, &reserve)?;
     println!("{}", render_json(&scenario, &greedy, &reserve));
     Ok(())
 }
@@ -783,8 +943,16 @@ mod tests {
         let scenario = parse_scenario(FIXTURE).expect("valid synthetic scenario");
         let greedy = dispatch(&scenario, Policy::Greedy).expect("greedy dispatch");
         let reserve = dispatch(&scenario, Policy::ForecastReserve).expect("reserve dispatch");
-        verify_report(&greedy).expect("greedy trace closes");
-        verify_report(&reserve).expect("reserve trace closes");
+        verify_report(&scenario, &greedy).expect("greedy trace closes");
+        verify_report(&scenario, &reserve).expect("reserve trace closes");
+    }
+
+    #[test]
+    fn independent_verifier_rejects_tampered_interval_trace() {
+        let scenario = parse_scenario(FIXTURE).expect("valid synthetic scenario");
+        let mut reserve = dispatch(&scenario, Policy::ForecastReserve).expect("reserve dispatch");
+        reserve.intervals[0].critical_served_wh += 1;
+        assert!(verify_report(&scenario, &reserve).is_err());
     }
 
     #[test]
