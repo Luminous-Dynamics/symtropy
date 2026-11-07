@@ -639,3 +639,16 @@ These are independent equation-level sanity checks, not evidence that the Rust f
 ### Next gates
 
 The analytic and geodesic implementations are Schwarzschild-only. Follow-on work must add Kerr connection derivatives/curvature, Kerr geodesics (including Carter-constant checks), horizon-regular charts, a Hamiltonian formulation as an independent geodesic implementation, and cross-chart invariant comparison before progressing to perturbation theory and waveform generation.
+
+
+### Independent Hamiltonian geodesic formulation — 2026-11-07
+
+The Schwarzschild geodesic layer now includes both:
+- second-order coordinate integration, \(\ddot{x}^\rho=-\Gamma^\rho{}_{\mu\nu}\dot{x}^\mu\dot{x}^\nu\);
+- first-order canonical Hamiltonian evolution, \(H=\frac12 g^{\mu\nu}p_\mu p_\nu\), with \(\dot{x}^\mu=g^{\mu\nu}p_\nu\) and \(\dot{p}_\mu=\frac12(\partial_\mu g_{\alpha\beta})u^\alpha u^\beta\).
+
+The two formulations are tested against each other on a circular timelike orbit and radial null ray. Timelike integration uses \(\lambda=c\tau\); null trajectories use an affine parameter. Adaptive step-doubling tolerances are separate for coordinates and tangent components, with their respective physical units.
+
+The crate now has **51 authored Rust tests**: 15 scalar/root, 11 metric, 6 connection, 6 curvature, 9 geodesic and 4 posterior. They are still unexecuted (no Rust compiler / Cargo in this environment). Separate array-based numerical checks reproduce the Schwarzschild analytic invariants and compare both geodesic formulations to floating-point precision; these are equation-level checks, not Rust build/test results.
+
+Remaining geodesic work: Kerr equations including Carter-constant conservation, horizon-regular coordinate charts, and a broader convergence/error-versus-cost sweep.
