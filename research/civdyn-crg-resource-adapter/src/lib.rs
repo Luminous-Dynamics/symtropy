@@ -13,8 +13,7 @@
 use core::fmt;
 
 use civdyn_collective_risk::{
-    ACTIONS, ENDOWMENT, EpisodeOutcome, GameConfig, GameError, ROUNDS, SEATS, Strategy,
-    run_episode,
+    ACTIONS, ENDOWMENT, EpisodeOutcome, GameConfig, GameError, ROUNDS, SEATS, Strategy, run_episode,
 };
 use civdyn_resource_ledger::{
     Production, Region, ResourceVector, StepInput, StepReport, TransferPolicy, TransferRequest,
