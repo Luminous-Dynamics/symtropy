@@ -26,6 +26,8 @@ Repository baseline correction, 7 November 2026: the Symtropy root `Cargo.toml` 
 
 Do not infer Symtropy superiority from feature lists. The comparison must pin exact versions, assets, hardware, operating systems, drivers, scene complexity and quality settings.
 
+Before the Bevy 0.20 migration row can be benchmarked as a Symtropy build, consume [MIGRATE-BEVY-020-001 #1989](https://github.com/Luminous-Dynamics/symtropy/issues/1989). That issue already identifies the Lightyear 0.28 / Bevy 0.19 compatibility constraint, the single-Bevy-version invariant, shader/rendering migration hotspots and exact-workspace acceptance gates. Do not bypass the multiplayer adapter, silently exclude its consumer, or permit duplicate Bevy ECS type graphs to manufacture a 0.20 benchmark. Until #1989 has an exact-head qualified migration, the 0.20 row is **not available** and must be marked blocked/unknown.
+
 ## Paradigm shift
 
 From disconnected model/animation/audio scripts to one versioned interaction state that drives:
