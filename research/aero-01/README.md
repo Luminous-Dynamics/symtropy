@@ -210,7 +210,9 @@ A simulation result, benchmark pass, prototype or provenance record does not gra
 6. Initial mass/CG/energy/power bookkeeping with transparent assumptions.
 7. [Mass-properties implementation PR #3977](https://github.com/Luminous-Dynamics/symtropy/pull/3977): configuration-bound itemized mass, CG and inertia; draft, with exact-head software checks passed.
 8. [Mass-to-mission coupling PR #3979](https://github.com/Luminous-Dynamics/symtropy/pull/3979): exact-configuration ledger-to-cruise-screen adapter; draft, with exact-head software checks passed.
-9. [Mass provenance/loading states PR #4000](https://github.com/Luminous-Dynamics/symtropy/pull/4000): source-bound item evidence and immutable state manifests; draft, qualification in progress.
-10. Only then, down-select candidate geometries for OpenVSP/VSPAERO and selected SU2/structural analysis.
+9. [Mass provenance/loading states PR #4000](https://github.com/Luminous-Dynamics/symtropy/pull/4000): source-bound item evidence, source-capture/metrology metadata and immutable state manifests; draft, exact-head Rust/oracle/Clippy and inherited civil-aero workflows passed.
+10. [Takeoff-state mission adapter PR #4025](https://github.com/Luminous-Dynamics/symtropy/pull/4025): evidence-qualified takeoff state into steady-cruise screen; draft, both exact-head workflows passed. Landing/intermediate states are withheld pending phase chronology.
+11. [Phase-resolved mission issue #4029](https://github.com/Luminous-Dynamics/symtropy/issues/4029): immutable phase transitions, fuel/energy/CG updates, reserve/diversion/go-around and independent per-phase oracles.
+12. Only then, down-select candidate geometries for OpenVSP/VSPAERO and selected SU2/structural analysis.
 
 **Claim ceiling:** This brief is a source-bound concept-search plan. It cannot establish optimality, safety, flightworthiness, certification, commercial readiness, better-than-SOTA performance or readiness to build.
