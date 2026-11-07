@@ -9,7 +9,8 @@
 //! fuel/energy chronology, trim, structural loads, or flightworthiness semantics.
 
 use crate::mass_properties::{
-    MASS_PROPERTIES_SCHEMA_VERSION, MassItemCategory, MassPropertiesReport, MassPropertiesStatus,
+    MASS_PROPERTIES_SCHEMA_VERSION, MassItemCategory, MassLedger, MassPropertiesReport,
+    MassPropertiesStatus,
 };
 use crate::{Case, ResultRow};
 
@@ -42,23 +43,17 @@ pub struct MassBoundMissionResult {
 ///
 /// Unknown or mismatched inputs return an error. This function never substitutes
 /// a partial known-mass subtotal for total aircraft mass.
-pub fn evaluate_case_with_mass_properties(
+pub fn evaluate_case_with_mass_ledger(
     case: &Case,
-    mass_properties: &MassPropertiesReport,
+    mass_ledger: &MassLedger,
     expected_configuration_sha256: &str,
 ) -> Result<MassBoundMissionResult, String> {
     validate_sha256(
         expected_configuration_sha256,
         "expected_configuration_sha256",
     )?;
-    validate_mass_properties_report(mass_properties)?;
-
-    if mass_properties.configuration_sha256 != expected_configuration_sha256 {
-        return Err(
-            "stale mass properties: configuration SHA-256 does not match requested aircraft"
-                .to_owned(),
-        );
-    }
+    let mass_properties = mass_ledger.evaluate_for_configuration(expected_configuration_sha256)?;
+    validate_mass_properties_report(&mass_properties)?;
 
     if mass_properties.status != MassPropertiesStatus::Complete {
         return Err("mass properties are not complete; mission evaluation withheld".to_owned());
@@ -121,7 +116,7 @@ pub fn evaluate_case_with_mass_properties(
         evidence_level: "screening_only",
         configuration_sha256: expected_configuration_sha256.to_owned(),
         mission_case_id: case.case_id.clone(),
-        mass_properties: mass_properties.clone(),
+        mass_properties,
         result,
     })
 }
@@ -194,7 +189,7 @@ mod tests {
         }
     }
 
-    fn complete_report() -> MassPropertiesReport {
+    fn complete_ledger() -> MassLedger {
         MassLedger {
             configuration_sha256: CONFIG.to_owned(),
             items: vec![
@@ -251,8 +246,6 @@ mod tests {
                 point("baggage", MassItemCategory::Payload, 25.0, 3.1, 0.0, 0.35),
             ],
         }
-        .evaluate()
-        .expect("complete synthetic fixture")
     }
 
     fn mission_case() -> Case {
@@ -279,10 +272,10 @@ mod tests {
 
     #[test]
     fn complete_mass_ledger_flows_into_mission_screen_without_payload_double_count() {
-        let report = complete_report();
+        let ledger = complete_ledger();
         let case = mission_case();
         let bound =
-            evaluate_case_with_mass_properties(&case, &report, CONFIG).expect("bound mission");
+            evaluate_case_with_mass_ledger(&case, &ledger, CONFIG).expect("bound mission");
 
         assert_eq!(bound.evidence_level, "screening_only");
         assert_eq!(bound.configuration_sha256, CONFIG);
@@ -290,7 +283,7 @@ mod tests {
         assert!((bound.result.total_mass_kg - 845.0).abs() < 1.0e-12);
         assert!((bound.result.case.airframe_mass_kg - 660.0).abs() < 1.0e-12);
         assert!((bound.result.case.payload_mass_kg - 185.0).abs() < 1.0e-12);
-        assert!((bound.result.total_mass_kg - report.total_mass_kg.unwrap()).abs() < 1.0e-12);
+        assert!((bound.result.total_mass_kg - bound.mass_properties.total_mass_kg.unwrap()).abs() < 1.0e-12);
     }
 
     #[test]
@@ -305,8 +298,7 @@ mod tests {
             mass_kg: None,
             geometry: MassGeometry::Unknown,
         });
-        let report = ledger.evaluate().expect("indeterminate report");
-        let error = evaluate_case_with_mass_properties(&mission_case(), &report, CONFIG)
+        let error = evaluate_case_with_mass_ledger(&mission_case(), &ledger, CONFIG)
             .expect_err("unknown mass blocks mission");
         assert!(error.contains("not complete"));
     }
@@ -315,7 +307,7 @@ mod tests {
     fn payload_mismatch_is_rejected() {
         let mut case = mission_case();
         case.payload_mass_kg = 180.0;
-        let error = evaluate_case_with_mass_properties(&case, &complete_report(), CONFIG)
+        let error = evaluate_case_with_mass_ledger(&case, &complete_ledger(), CONFIG)
             .expect_err("payload mismatch");
         assert!(error.contains("payload mismatch"));
     }
@@ -323,7 +315,7 @@ mod tests {
     #[test]
     fn stale_configuration_identity_is_rejected() {
         let other = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-        let error = evaluate_case_with_mass_properties(&mission_case(), &complete_report(), other)
+        let error = evaluate_case_with_mass_ledger(&mission_case(), &complete_ledger(), other)
             .expect_err("stale configuration");
         assert!(error.contains("stale mass properties"));
     }
@@ -337,8 +329,7 @@ mod tests {
                 .filter(|item| item.category != MassItemCategory::Payload)
                 .collect(),
         };
-        let report = ledger.evaluate().expect("complete non-payload ledger");
-        let error = evaluate_case_with_mass_properties(&mission_case(), &report, CONFIG)
+        let error = evaluate_case_with_mass_ledger(&mission_case(), &ledger, CONFIG)
             .expect_err("the mission has a payload");
         assert!(error.contains("payload subtotal"));
     }
