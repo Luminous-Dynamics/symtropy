@@ -56,20 +56,20 @@ Unknown or restricted rights block the snapshot. Source rights and authenticity 
 
 ## Synthetic tests and independent reference
 
-The unit test corpus contains **18 adversarial/known-answer controls**, including:
+The unit test corpus contains **19 adversarial/known-answer controls**, including:
 - queue and cargo stock conservation;
 - peak stock and area-under-curve arithmetic;
 - plan/request/estimate exclusion;
 - late observations and correction cut-offs;
 - conflicting duplicate event semantics;
 - negative queue/inventory and duplicate exits;
-- call chronology, half-open window boundary and correction-fork behavior;
+- call chronology, half-open window boundary, correction-fork and cyclic-chain rejection;
 - future bad observations cannot invalidate an earlier as-of snapshot;
 - one cargo movement ID cannot encode two actual movement kinds;
 - source-bound opening queue/inventory scope, time, unit, rights and as-of checks;
 - unit mismatch and rights blocking.
 
-A separate test-only oracle recomputes queue stock one integer tick at a time over **768 frozen scenarios**. It does not call the production resolver, event bucketing or area functions.
+Two separate test-only oracles recompute the ledgers one integer tick at a time: **768 frozen vessel-queue scenarios** and **432 frozen cargo-inventory scenarios**. They do not call the production resolver, event bucketing or area functions.
 
 These are synthetic accounting checks only. They do not validate real vessel traffic, terminal throughput, physical capacity, source authenticity or queue forecasts.
 
