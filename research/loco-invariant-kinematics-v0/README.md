@@ -53,7 +53,7 @@ A positive slope means greater normalized RMS velocity toward the proximal end u
 
 ## What is tested
 
-Nine deterministic tests cover:
+Sixteen deterministic tests cover:
 - invariance of angular normalized velocity under cycle-time scaling when the within-cycle movement is unchanged;
 - invariance of linear normalized velocity under coupled body-size and time scaling;
 - time-weighted velocity under irregular timestamps;
@@ -63,6 +63,9 @@ Nine deterministic tests cover:
 - non-monotonic timestamp rejection;
 - duplicate channel identity rejection;
 - missing observation record rejection.
+- deterministic individual-cluster bootstrap mean, sample standard deviation and percentile interval;
+- bootstrap seed reproducibility and input-order invariance;
+- duplicate-individual, mixed-species, quantity-separation, insufficient-cluster, low-resample-count and non-finite-effect rejection;.
 
 These tests validate the formula and guards on synthetic fixtures only.
 
@@ -78,6 +81,7 @@ A per-trial gradient is not a species-level result. The crate adds an explicit s
 - Duplicate rows for the same individual and quantity are rejected.
 - Species and measurement quantity are kept explicit; angular and linear gradients are never pooled.
 - SplitMix64 seed, bootstrap count, independent-unit count, point estimate, sample standard deviation and percentile bounds are returned.
+- Bounded random indices use rejection sampling to avoid modulo bias.
 - At least two independent individuals and 100 resamples are required; small-cluster intervals remain descriptive and must not be mistaken for strong population-level inference.
 - Results are deterministic and invariant to input row ordering for a fixed seed.
 
