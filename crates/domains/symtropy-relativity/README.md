@@ -11,7 +11,8 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Posterior-preserving transformation from paired remnant mass/spin samples to Kerr horizon observables.
 - Schwarzschild and Kerr exterior metric components in the declared `(ct, r, theta, phi)` basis.
 - Symmetric finite 4x4 metric component representation, pivoted determinant and inverse, and inverse-identity residual diagnostic.
-- 27 authored analytic, limiting-case, invalid-domain, matrix, and posterior-transform tests.
+- Levi-Civita connection coefficients from an explicit first-derivative tensor, with an analytic Schwarzschild derivative fixture. No finite-difference step size is hidden in the API.
+- 32 authored analytic, limiting-case, invalid-domain, matrix, connection, and posterior-transform tests.
 
 ## Conventions
 
@@ -20,6 +21,8 @@ Public physical parameters use SI units. Metric coordinates are `x^mu = (c*t, r,
 Kerr spin is the signed dimensionless quantity `chi = c*J/(G*M^2)`; the geometrized rotation parameter is `a = chi*G*M/c^2`. Schwarzschild coordinates and Boyer-Lindquist coordinates are restricted to the exterior and to `0 < theta < pi`.
 
 The metric determinant is coordinate-dependent, not a curvature scalar. Generic `MetricComponents4::new` checks finiteness and symmetry but does not certify Lorentzian signature. The analytic Schwarzschild/Kerr constructors represent the known exterior solutions.
+
+Metric derivatives use `d[alpha][mu][nu] = partial_alpha g_(mu nu)`; connection coefficients use `Gamma[rho][mu][nu] = Gamma^rho_(mu nu)`. The metric and derivative arrays must use the same chart, coordinate order, units, and signature.
 
 For Kerr:
 - `Omega_H = a*c/(r_plus^2 + a^2)` is in radians per second and retains the sign of the spin.
@@ -32,9 +35,9 @@ The posterior transform preserves each input sample ID, order, and paired mass/s
 
 ## Deliberate limits
 
-This crate is not yet a complete tensor-calculus library, a Christoffel/Riemann/Ricci/Einstein tensor engine, a geodesic integrator, a GRHD/GRMHD solver, a gravitational-wave waveform generator, or a numerical-relativity evolution code. It makes no observational-validation or state-of-the-art performance claim.
+This crate does not yet implement Riemann/Ricci/Einstein curvature tensors, geodesic integration, a GRHD/GRMHD solver, a gravitational-wave waveform generator, or numerical-relativity evolution. The generic metric-component constructor does not certify Lorentzian signature. It makes no observational-validation or state-of-the-art performance claim.
 
-Next gates are metric derivatives and connection coefficients, curvature tensors and coordinate-invariant checks, geodesics with normalization/Killing-constant drift, then waveform/ringdown reproduction and numerical-relativity comparisons.
+Next gates are Riemann curvature from connection derivatives, coordinate-invariant checks (including Schwarzschild/Kerr curvature scalars), geodesic integration with normalization/Killing-constant drift, and then waveform/ringdown reproduction and numerical-relativity comparisons.
 
 ## Run
 
