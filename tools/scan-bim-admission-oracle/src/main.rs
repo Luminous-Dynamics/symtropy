@@ -286,14 +286,14 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
         return decision("REJECTED_TOPOLOGY", "REQUIRED_TOPOLOGY_EDGE_MISSING");
     }
     for edge in &candidate.topology {
-        if edge.relation != "hosts_opening" {
-            return decision("REJECTED_TOPOLOGY", "TOPOLOGY_RELATION_UNSUPPORTED");
-        }
         if edge.from == edge.to
             || !requirements.contains_key(edge.from.as_str())
             || !requirements.contains_key(edge.to.as_str())
         {
             return decision("REJECTED_TOPOLOGY", "TOPOLOGY_EDGE_HAS_INVALID_ENDPOINT");
+        }
+        if edge.relation != "hosts_opening" {
+            return decision("REJECTED_TOPOLOGY", "TOPOLOGY_RELATION_UNSUPPORTED");
         }
     }
 
