@@ -1,12 +1,19 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-//! Semi-implicit Euler integrator for ND rigid body dynamics.
+//! Semi-implicit Euler integrator for N-dimensional rigid-body dynamics.
 //!
 //! Angular velocity is a bivector (element of `so(D)`) integrated through the
 //! rotation-group exponential map. This is exact for simultaneous independent
 //! rotation planes (including 4D double rotations); it does not rely on the
 //! single-plane Rodrigues formula.
+//!
+//! For smooth conservative separable Hamiltonian systems, the undamped,
+//! unclamped semi-implicit Euler update is symplectic. Symplecticity does not
+//! imply unconditional stability or exact energy conservation: the timestep
+//! must resolve the fastest relevant mode. Damping, velocity clamps, contact
+//! impulses, CCD position corrections and other non-Hamiltonian operations
+//! lie outside that ideal symplectic guarantee.
 
 use crate::body::RigidBody;
 use nalgebra::SVector;
@@ -30,7 +37,11 @@ pub fn nan_zeroed_count() -> u64 {
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+///
+/// For a smooth conservative separable Hamiltonian system, the ideal
+/// undamped/unclamped update is symplectic. Its stability still depends on
+/// the timestep relative to the system's fastest mode; symplecticity is not
+/// unconditional stability and does not imply exact energy conservation.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
