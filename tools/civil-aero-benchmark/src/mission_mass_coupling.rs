@@ -37,7 +37,6 @@ pub struct MassBoundMissionResult {
     pub result: ResultRow,
 }
 
-
 /// Result of evaluating the steady-level cruise screen using an evidence-qualified
 /// takeoff loading state. The loading-state report and digest remain attached.
 #[derive(Debug, Clone, PartialEq)]
@@ -233,9 +232,9 @@ fn validate_sha256(value: &str, field: &str) -> Result<(), String> {
 mod tests {
     use super::*;
     use crate::mass_evidence::{
-        AccountingRole, AircraftEffectivity, EvidenceAdmission, InstallationState,
-        LengthUnit, LoadingItemState, MassEvidenceClass, MassItemEvidence, MassUnit,
-        SourceMassValue, SourcePosition, SourceRecord, UncertaintyRelationship,
+        AccountingRole, AircraftEffectivity, EvidenceAdmission, InstallationState, LengthUnit,
+        LoadingItemState, MassEvidenceClass, MassItemEvidence, MassUnit, SourceMassValue,
+        SourcePosition, SourceRecord, UncertaintyRelationship,
     };
     use crate::mass_properties::{MassGeometry, MassItem, MassLedger};
 
@@ -454,11 +453,9 @@ mod tests {
         assert!(error.contains("not complete"));
     }
 
-    const STATE_CONFIG: &str =
-        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+    const STATE_CONFIG: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
     const STATE_FRAME: &str = "wren2-synthetic-datum-v1";
-    const STATE_SOURCE: &str =
-        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+    const STATE_SOURCE: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
 
     fn state_source(reference: &str) -> SourceRecord {
         SourceRecord {
@@ -473,9 +470,24 @@ mod tests {
 
     fn takeoff_evidence_ledger() -> MassEvidenceLedger {
         let entries = vec![
-            ("airframe", MassItemCategory::PrimaryStructure, 500.0, [1.0, 0.0, 0.0]),
-            ("fuel", MassItemCategory::FuelAndFluids, 100.0, [4.0, 0.0, 0.0]),
-            ("module", MassItemCategory::Propulsion, 40.0, [0.5, 0.0, 0.0]),
+            (
+                "airframe",
+                MassItemCategory::PrimaryStructure,
+                500.0,
+                [1.0, 0.0, 0.0],
+            ),
+            (
+                "fuel",
+                MassItemCategory::FuelAndFluids,
+                100.0,
+                [4.0, 0.0, 0.0],
+            ),
+            (
+                "module",
+                MassItemCategory::Propulsion,
+                40.0,
+                [0.5, 0.0, 0.0],
+            ),
             ("occupant", MassItemCategory::Payload, 80.0, [2.0, 0.0, 0.5]),
         ];
         let mut records = entries
@@ -637,13 +649,8 @@ mod tests {
         let state = takeoff_state(&ledger);
         let mut case = state_mission_case();
         case.payload_mass_kg = 81.0;
-        let error = evaluate_takeoff_case_with_loading_state(
-            &case,
-            &ledger,
-            &state,
-            STATE_CONFIG,
-        )
-        .expect_err("payload mismatch");
+        let error = evaluate_takeoff_case_with_loading_state(&case, &ledger, &state, STATE_CONFIG)
+            .expect_err("payload mismatch");
         assert!(error.contains("mission payload mismatch"));
     }
 
