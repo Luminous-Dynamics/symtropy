@@ -11,7 +11,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-pub const PHASE_ENERGY_SCHEMA_VERSION: &str = "phase-energy-balance/0.2.0";
+pub const PHASE_ENERGY_SCHEMA_VERSION: &str = "phase-energy-balance/0.3.0";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnergyStoreKind {
@@ -816,7 +816,7 @@ impl PhaseEnergyBalance {
         }
 
         Ok(PhaseEnergyReport {
-            schema_version: "phase-energy-report/0.2.0",
+            schema_version: "phase-energy-report/0.3.0",
             evidence_level: "screening_only",
             mission_id: self.mission_id.clone(),
             phase_id: self.phase_id.clone(),
