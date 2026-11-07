@@ -606,7 +606,7 @@ impl std::error::Error for GeodesicError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::{DimensionlessSpin, MassKg};
+    use super::super::MassKg;
 
     const SOLAR_MASS_KG: f64 = 1.988_47e30;
 
