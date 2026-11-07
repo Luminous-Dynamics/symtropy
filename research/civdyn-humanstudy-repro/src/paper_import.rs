@@ -10,9 +10,10 @@
 //! prove that the external process actually ran those sources.
 
 use super::{
-    ArtifactReceipt, BenchmarkRunReceipt, EffectEstimate, IndependentUnit, PAPER_12_METRIC_CONTRACT_ID,
-    PAPER_12_PROTOCOL_ID, PAPER_12_SOURCE_COMMIT, PAPER_12_SOURCE_REPOSITORY,
-    PAPER_12_SOURCE_ROOT_TREE, PAPER_12_STUDY_PINS, StudyReceipt, validate_run,
+    ArtifactReceipt, BenchmarkRunReceipt, EffectEstimate, IndependentUnit,
+    PAPER_12_METRIC_CONTRACT_ID, PAPER_12_PROTOCOL_ID, PAPER_12_SOURCE_COMMIT,
+    PAPER_12_SOURCE_REPOSITORY, PAPER_12_SOURCE_ROOT_TREE, PAPER_12_STUDY_PINS, StudyReceipt,
+    validate_run,
 };
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
@@ -73,7 +74,9 @@ pub struct PaperImportError {
 
 impl PaperImportError {
     fn new(message: impl Into<String>) -> Self {
-        Self { message: message.into() }
+        Self {
+            message: message.into(),
+        }
     }
 }
 
@@ -93,18 +96,66 @@ struct PaperStudyExecutionPin {
 }
 
 const PAPER_STUDY_EXECUTION_PINS: [PaperStudyExecutionPin; 12] = [
-    PaperStudyExecutionPin { study_id: "study_001", config_blob_sha: "63fe04388eccca7088ba8e76834014511797e2bd", evaluator_blob_sha: "612428dac96758f7d3e68fe8882133af13be5242" },
-    PaperStudyExecutionPin { study_id: "study_002", config_blob_sha: "77cfac304a8f376fd3cd475f4470b0fa8c2dfba3", evaluator_blob_sha: "f8eff4c480813e675be2b72bb88cbbdd77f6014b" },
-    PaperStudyExecutionPin { study_id: "study_003", config_blob_sha: "9b5a519d33663d3a9ab60d7720478131d211adb1", evaluator_blob_sha: "b242e6c3c3d108ebef8f7ba9271c43c22e211713" },
-    PaperStudyExecutionPin { study_id: "study_004", config_blob_sha: "b644f2a6a1088a4c6b18f8bfe24e3a2e6c602ea4", evaluator_blob_sha: "3c42b0302401f80c1991fc61fdc86bd71ac9f8d9" },
-    PaperStudyExecutionPin { study_id: "study_005", config_blob_sha: "1f780a80d98e8c4095f483881c35e561716f8496", evaluator_blob_sha: "ba4897043e3cd7b18d2ceaa7fa7711d57a1e9991" },
-    PaperStudyExecutionPin { study_id: "study_006", config_blob_sha: "807c7b4c64e803cba5b21db1f3bfa59fb29203d3", evaluator_blob_sha: "4f76cbec3111e89c9cf4521342ca8a9ca0afc0a6" },
-    PaperStudyExecutionPin { study_id: "study_007", config_blob_sha: "62bbfbab3416502c8db9f501510d641ae40ce5d5", evaluator_blob_sha: "8db9bb70b85961733756caf4a949252a281bd0de" },
-    PaperStudyExecutionPin { study_id: "study_008", config_blob_sha: "89d466998bba5d7b32f02f0e725ffe0ce66bdce6", evaluator_blob_sha: "4afe5389289a76d048ca568a5dbddc856c04db1e" },
-    PaperStudyExecutionPin { study_id: "study_009", config_blob_sha: "e315825882da6756fdd81abab8fd8a3ea55df852", evaluator_blob_sha: "6026055161eeb345efc7c6bce9ee0182a46f9e9c" },
-    PaperStudyExecutionPin { study_id: "study_010", config_blob_sha: "7f3269e999afc7f9a2777844ef430ae1a0c21308", evaluator_blob_sha: "6d01030daa5388b38a8154d91527c3ad4d1c0b2e" },
-    PaperStudyExecutionPin { study_id: "study_011", config_blob_sha: "acf7c3e8f58218716a4d3959d81191eb40f3e287", evaluator_blob_sha: "8204cef15b8ab1b2f1f5abaf330a36c8955c4cb3" },
-    PaperStudyExecutionPin { study_id: "study_012", config_blob_sha: "5f462363823526e5e77af52a142f098b1831c356", evaluator_blob_sha: "2af9777975c68978c0f27f8dcb6da62857218797" },
+    PaperStudyExecutionPin {
+        study_id: "study_001",
+        config_blob_sha: "63fe04388eccca7088ba8e76834014511797e2bd",
+        evaluator_blob_sha: "612428dac96758f7d3e68fe8882133af13be5242",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_002",
+        config_blob_sha: "77cfac304a8f376fd3cd475f4470b0fa8c2dfba3",
+        evaluator_blob_sha: "f8eff4c480813e675be2b72bb88cbbdd77f6014b",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_003",
+        config_blob_sha: "9b5a519d33663d3a9ab60d7720478131d211adb1",
+        evaluator_blob_sha: "b242e6c3c3d108ebef8f7ba9271c43c22e211713",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_004",
+        config_blob_sha: "b644f2a6a1088a4c6b18f8bfe24e3a2e6c602ea4",
+        evaluator_blob_sha: "3c42b0302401f80c1991fc61fdc86bd71ac9f8d9",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_005",
+        config_blob_sha: "1f780a80d98e8c4095f483881c35e561716f8496",
+        evaluator_blob_sha: "ba4897043e3cd7b18d2ceaa7fa7711d57a1e9991",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_006",
+        config_blob_sha: "807c7b4c64e803cba5b21db1f3bfa59fb29203d3",
+        evaluator_blob_sha: "4f76cbec3111e89c9cf4521342ca8a9ca0afc0a6",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_007",
+        config_blob_sha: "62bbfbab3416502c8db9f501510d641ae40ce5d5",
+        evaluator_blob_sha: "8db9bb70b85961733756caf4a949252a281bd0de",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_008",
+        config_blob_sha: "89d466998bba5d7b32f02f0e725ffe0ce66bdce6",
+        evaluator_blob_sha: "4afe5389289a76d048ca568a5dbddc856c04db1e",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_009",
+        config_blob_sha: "e315825882da6756fdd81abab8fd8a3ea55df852",
+        evaluator_blob_sha: "6026055161eeb345efc7c6bce9ee0182a46f9e9c",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_010",
+        config_blob_sha: "7f3269e999afc7f9a2777844ef430ae1a0c21308",
+        evaluator_blob_sha: "6d01030daa5388b38a8154d91527c3ad4d1c0b2e",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_011",
+        config_blob_sha: "acf7c3e8f58218716a4d3959d81191eb40f3e287",
+        evaluator_blob_sha: "8204cef15b8ab1b2f1f5abaf330a36c8955c4cb3",
+    },
+    PaperStudyExecutionPin {
+        study_id: "study_012",
+        config_blob_sha: "5f462363823526e5e77af52a142f098b1831c356",
+        evaluator_blob_sha: "2af9777975c68978c0f27f8dcb6da62857218797",
+    },
 ];
 
 fn json_string<'a>(value: &'a Value, key: &str) -> Result<&'a str, PaperImportError> {
@@ -116,7 +167,10 @@ fn json_string<'a>(value: &'a Value, key: &str) -> Result<&'a str, PaperImportEr
 }
 
 fn json_number(value: &Value, key: &str) -> Option<f64> {
-    value.get(key).and_then(Value::as_f64).filter(|number| number.is_finite())
+    value
+        .get(key)
+        .and_then(Value::as_f64)
+        .filter(|number| number.is_finite())
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -132,14 +186,16 @@ fn sha256_hex(bytes: &[u8]) -> String {
 fn read_native_file(directory: &Path, name: &str) -> Result<Vec<u8>, PaperImportError> {
     let path = directory.join(name);
     fs::read(&path).map_err(|error| {
-        PaperImportError::new(format!("cannot read required native artifact {}: {error}", path.display()))
+        PaperImportError::new(format!(
+            "cannot read required native artifact {}: {error}",
+            path.display()
+        ))
     })
 }
 
 fn parse_json(bytes: &[u8], filename: &str) -> Result<Value, PaperImportError> {
-    serde_json::from_slice(bytes).map_err(|error| {
-        PaperImportError::new(format!("{filename}: invalid JSON: {error}"))
-    })
+    serde_json::from_slice(bytes)
+        .map_err(|error| PaperImportError::new(format!("{filename}: invalid JSON: {error}")))
 }
 
 fn parse_independent_unit(value: &str) -> Result<IndependentUnit, PaperImportError> {
@@ -148,21 +204,31 @@ fn parse_independent_unit(value: &str) -> Result<IndependentUnit, PaperImportErr
         "group" => Ok(IndependentUnit::Group),
         "session" => Ok(IndependentUnit::Session),
         "cluster" => Ok(IndependentUnit::Cluster),
-        other => Err(PaperImportError::new(format!("unsupported independent_unit: {other}"))),
+        other => Err(PaperImportError::new(format!(
+            "unsupported independent_unit: {other}"
+        ))),
     }
 }
 
-fn execution_pin(study_id: &str) -> Result<(PaperStudyExecutionPin, &'static str), PaperImportError> {
+fn execution_pin(
+    study_id: &str,
+) -> Result<(PaperStudyExecutionPin, &'static str), PaperImportError> {
     let config = PAPER_STUDY_EXECUTION_PINS
         .iter()
         .copied()
         .find(|pin| pin.study_id == study_id)
-        .ok_or_else(|| PaperImportError::new(format!("study is not in the paper-12 source profile: {study_id}")))?;
+        .ok_or_else(|| {
+            PaperImportError::new(format!(
+                "study is not in the paper-12 source profile: {study_id}"
+            ))
+        })?;
     let tree = PAPER_12_STUDY_PINS
         .iter()
         .find(|pin| pin.study_id == study_id)
         .map(|pin| pin.tree_sha)
-        .ok_or_else(|| PaperImportError::new(format!("study has no pinned data tree: {study_id}")))?;
+        .ok_or_else(|| {
+            PaperImportError::new(format!("study has no pinned data tree: {study_id}"))
+        })?;
     Ok((config, tree))
 }
 
@@ -189,16 +255,24 @@ fn validate_attestation(attestation: &PaperRunAttestation) -> Result<String, Pap
         || attestation.source_repository != PAPER_12_SOURCE_REPOSITORY
         || attestation.source_commit != PAPER_12_SOURCE_COMMIT
     {
-        return Err(PaperImportError::new("run attestation does not match the pinned HumanStudy-Bench paper source"));
+        return Err(PaperImportError::new(
+            "run attestation does not match the pinned HumanStudy-Bench paper source",
+        ));
     }
     if attestation.run_id.trim().is_empty() || attestation.model_id.trim().is_empty() {
-        return Err(PaperImportError::new("run attestation requires non-empty run_id and model_id"));
+        return Err(PaperImportError::new(
+            "run attestation requires non-empty run_id and model_id",
+        ));
     }
     if attestation.prompt_preset.trim().is_empty() {
-        return Err(PaperImportError::new("run attestation requires a prompt_preset"));
+        return Err(PaperImportError::new(
+            "run attestation requires a prompt_preset",
+        ));
     }
     if !is_lower_hex(&attestation.prompt_template_sha256, 64) {
-        return Err(PaperImportError::new("prompt_template_sha256 must be a 64-character lowercase SHA-256"));
+        return Err(PaperImportError::new(
+            "prompt_template_sha256 must be a 64-character lowercase SHA-256",
+        ));
     }
     let (pin, _) = execution_pin(&attestation.study_id)?;
     if attestation.study_config_blob_sha != pin.config_blob_sha
@@ -216,9 +290,13 @@ fn count_native_trials(full_benchmark: &Value) -> Result<(u64, usize), PaperImpo
     let runs = full_benchmark
         .get("all_runs_raw_results")
         .and_then(Value::as_array)
-        .ok_or_else(|| PaperImportError::new("full_benchmark.json is missing all_runs_raw_results"))?;
+        .ok_or_else(|| {
+            PaperImportError::new("full_benchmark.json is missing all_runs_raw_results")
+        })?;
     if runs.is_empty() {
-        return Err(PaperImportError::new("full_benchmark.json contains no completed raw runs"));
+        return Err(PaperImportError::new(
+            "full_benchmark.json contains no completed raw runs",
+        ));
     }
 
     let mut trial_count = 0u64;
@@ -243,7 +321,9 @@ fn count_native_trials(full_benchmark: &Value) -> Result<(u64, usize), PaperImpo
         }
     }
     if trial_count == 0 {
-        return Err(PaperImportError::new("full_benchmark.json contains zero trial responses"));
+        return Err(PaperImportError::new(
+            "full_benchmark.json contains zero trial responses",
+        ));
     }
     Ok((trial_count, runs.len()))
 }
@@ -314,7 +394,9 @@ fn csv_record_count(bytes: &[u8], filename: &str) -> Result<u64, PaperImportErro
         index += 1;
     }
     if in_quotes {
-        return Err(PaperImportError::new(format!("{filename}: unterminated quoted CSV field")));
+        return Err(PaperImportError::new(format!(
+            "{filename}: unterminated quoted CSV field"
+        )));
     }
     if has_content_in_last_record {
         records = records.saturating_add(1);
@@ -459,7 +541,11 @@ pub fn import_paper_study_run(run_directory: &Path) -> Result<PaperStudyImport, 
 
     let official_pas = json_number(&evaluation, "score")
         .filter(|value| (0.0..=1.0).contains(value))
-        .ok_or_else(|| PaperImportError::new("evaluation_results.json is missing a finite official PAS score in [0, 1]"))?;
+        .ok_or_else(|| {
+            PaperImportError::new(
+                "evaluation_results.json is missing a finite official PAS score in [0, 1]",
+            )
+        })?;
     // ECS is optional per study in the upstream implementation (e.g. fewer
     // than three valid effect-size pairs). We preserve it when available.
     let ecs = official_ecs(&evaluation).filter(|value| (-1.0..=1.0).contains(value));
@@ -468,13 +554,17 @@ pub fn import_paper_study_run(run_directory: &Path) -> Result<PaperStudyImport, 
         .get("n_participants")
         .and_then(Value::as_u64)
         .filter(|count| *count > 0)
-        .ok_or_else(|| PaperImportError::new("evaluation_results.json is missing positive n_participants"))?;
+        .ok_or_else(|| {
+            PaperImportError::new("evaluation_results.json is missing positive n_participants")
+        })?;
     let (trial_count, run_count) = count_native_trials(&full)?;
 
     let test_results = evaluation
         .get("test_results")
         .and_then(Value::as_array)
-        .ok_or_else(|| PaperImportError::new("evaluation_results.json is missing test_results array"))?;
+        .ok_or_else(|| {
+            PaperImportError::new("evaluation_results.json is missing test_results array")
+        })?;
     let csv_rows = csv_record_count(&csv_bytes, DETAILED_STATS_FILE)?;
     if csv_rows != test_results.len() as u64 {
         return Err(PaperImportError::new(format!(
@@ -497,8 +587,9 @@ pub fn import_paper_study_run(run_directory: &Path) -> Result<PaperStudyImport, 
             agent_config.insert(key.to_string(), value.clone());
         }
     }
-    let agent_config_bytes = serde_json::to_vec(&Value::Object(agent_config))
-        .map_err(|error| PaperImportError::new(format!("cannot serialize native agent config: {error}")))?;
+    let agent_config_bytes = serde_json::to_vec(&Value::Object(agent_config)).map_err(|error| {
+        PaperImportError::new(format!("cannot serialize native agent config: {error}"))
+    })?;
     let agent_config_sha256 = sha256_hex(&agent_config_bytes);
     let analysis_pipeline_sha256 = paper_execution_manifest_sha256();
 
@@ -635,11 +726,13 @@ pub fn assemble_paper_run_receipt(
         studies,
     };
     validate_run(&receipt).map_err(|errors| {
-        PaperImportError::new(format!("assembled paper receipt failed conformance: {}", errors.join("; ")))
+        PaperImportError::new(format!(
+            "assembled paper receipt failed conformance: {}",
+            errors.join("; ")
+        ))
     })?;
     Ok(receipt)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -808,7 +901,11 @@ mod tests {
             "prompt_template_sha256": "d".repeat(64),
             "independent_unit": "participant"
         });
-        fs::write(path.join(ATTESTATION_FILE), serde_json::to_vec(&att).unwrap()).unwrap();
+        fs::write(
+            path.join(ATTESTATION_FILE),
+            serde_json::to_vec(&att).unwrap(),
+        )
+        .unwrap();
         assert!(import_paper_study_run(&path).is_err());
         fs::remove_dir_all(path).expect("remove temp directory");
     }
@@ -817,9 +914,11 @@ mod tests {
     fn mismatch_between_csv_and_evaluator_test_count_fails_closed() {
         let path = temp_run_dir();
         write_fixture(&path, "study_001", true);
-        let csv = format!("{DETAILED_STATS_HEADER}
+        let csv = format!(
+            "{DETAILED_STATS_HEADER}
 only,one,row
-");
+"
+        );
         fs::write(path.join(DETAILED_STATS_FILE), csv).unwrap();
         assert!(import_paper_study_run(&path).is_err());
         fs::remove_dir_all(path).expect("remove temp directory");
@@ -829,10 +928,15 @@ only,one,row
     fn wrong_native_model_fails_closed() {
         let path = temp_run_dir();
         write_fixture(&path, "study_001", true);
-        let full: Value = serde_json::from_slice(&fs::read(path.join(FULL_BENCHMARK_FILE)).unwrap()).unwrap();
+        let full: Value =
+            serde_json::from_slice(&fs::read(path.join(FULL_BENCHMARK_FILE)).unwrap()).unwrap();
         let mut changed = full.clone();
         changed["model"] = json!("different-model");
-        fs::write(path.join(FULL_BENCHMARK_FILE), serde_json::to_vec(&changed).unwrap()).unwrap();
+        fs::write(
+            path.join(FULL_BENCHMARK_FILE),
+            serde_json::to_vec(&changed).unwrap(),
+        )
+        .unwrap();
         assert!(import_paper_study_run(&path).is_err());
         fs::remove_dir_all(path).expect("remove temp directory");
     }
