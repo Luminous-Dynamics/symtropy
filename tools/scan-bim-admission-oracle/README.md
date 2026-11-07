@@ -11,11 +11,11 @@ cargo clippy --manifest-path tools/scan-bim-admission-oracle/Cargo.toml --all-ta
 cargo run --manifest-path tools/scan-bim-admission-oracle/Cargo.toml
 ```
 
-The CLI emits a deterministic JSON report with the fixture byte digest and case-by-case expected/actual dispositions.
+The CLI emits a deterministic JSON report with the fixture byte digest and case-by-case expected/actual dispositions. The manifest also declares grouped training/evaluation identities and a candidate-input allowlist; the oracle rejects overlapping groups and obvious ground-truth/reference-bound input markers. This is a contract-level guard, not a substitute for an independent data custodian enforcing access to held-out labels and geometry.
 
 ## Scope
 
-The v0.1 oracle evaluates a small, declared admission contract over candidate geometry summaries, element identity/class, visibility, uncertainty, evidence lineage, topology and revision-bound modify proposals. It does not register point clouds, fit geometry, infer semantic labels, write IFC, certify surveys or authorize physical work.
+The v0.1 oracle evaluates a small, declared admission contract over candidate geometry summaries, element identity/class, visibility, uncertainty, evidence lineage, topology and revision-bound modify proposals. It also rejects duplicate IDs/edges/targets, unknown schema fields, stale model revisions, incomplete visibility, unsupported identity changes and uncertainty intervals crossing the declared tolerance. It does not register point clouds, fit geometry, infer semantic labels, write IFC, certify surveys or authorize physical work.
 
 Expected labels are used only to compare the oracle output after candidate evaluation. The evaluator does not read expected outcomes as inference inputs.
 
