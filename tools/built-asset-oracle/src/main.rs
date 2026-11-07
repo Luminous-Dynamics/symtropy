@@ -701,7 +701,8 @@ mod tests {
     fn duplicate_case_identity_is_rejected() {
         let mut corpus: Value = serde_json::from_str(CORPUS).expect("corpus parses");
         let cases = corpus["cases"].as_array_mut().expect("cases exist");
-        cases[1]["case_id"] = cases[0]["case_id"].clone();
+        let first_id = cases[0]["case_id"].clone();
+        cases[1]["case_id"] = first_id;
         let bytes = serde_json::to_vec(&corpus).expect("corpus serializes");
         assert!(evaluate_corpus(&bytes).is_err());
     }
