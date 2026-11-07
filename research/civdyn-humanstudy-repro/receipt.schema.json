@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.luminousdynamics.org/civdyn/humanstudy-run-receipt/0.3",
+  "$id": "https://schemas.luminousdynamics.org/civdyn/humanstudy-run-receipt/0.4",
   "title": "CIVDYN HumanStudy run receipt (paper and community protocols)",
   "type": "object",
   "additionalProperties": false,
@@ -11,7 +11,8 @@
     "source_root_tree",
     "run_id",
     "model_id",
-    "studies"
+    "studies",
+    "metric_contract_id"
   ],
   "properties": {
     "run_id": {
@@ -19,6 +20,10 @@
       "minLength": 1
     },
     "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metric_contract_id": {
       "type": "string",
       "minLength": 1
     }
@@ -45,6 +50,9 @@
           "items": {
             "$ref": "#/$defs/studyPaper12"
           }
+        },
+        "metric_contract_id": {
+          "const": "HSB-PAPER-METRICS-SOURCECODE-CF05D330"
         }
       }
     },
@@ -69,6 +77,9 @@
           "items": {
             "$ref": "#/$defs/studyCommunity16"
           }
+        },
+        "metric_contract_id": {
+          "const": "HSB-COMMUNITY-NATIVE-EVALUATOR-B34D214B"
         }
       }
     }
@@ -148,17 +159,23 @@
         "contains_record_level_human_data",
         "published_in_repository",
         "redistribution_authorized",
-        "rights_basis"
+        "rights_basis",
+        "path"
       ],
       "properties": {
         "role": {
           "enum": [
-            "human_reference_aggregate",
-            "simulated_responses",
-            "official_analysis_output",
-            "official_score_output",
-            "study_metadata",
-            "restricted_raw_data_reference"
+            "paper_full_benchmark",
+            "paper_detailed_stats",
+            "paper_evaluation_results",
+            "paper_raw_responses",
+            "community_run_manifest",
+            "community_responses",
+            "community_evaluation",
+            "community_analysis",
+            "community_profiles",
+            "community_transcript_sample",
+            "community_charts_non_authoritative"
           ]
         },
         "sha256": {
@@ -178,6 +195,10 @@
           "type": "boolean"
         },
         "rights_basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
           "type": "string",
           "minLength": 1
         }
@@ -278,14 +299,16 @@
           "const": true
         },
         "official_pas": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "official_ecs": {
-          "type": "number",
-          "minimum": -1,
-          "maximum": 1
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "effects": {
           "type": "array",
