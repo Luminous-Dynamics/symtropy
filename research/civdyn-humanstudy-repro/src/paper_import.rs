@@ -1017,7 +1017,6 @@ only,one,row
         fs::remove_dir_all(path).expect("remove temp directory");
     }
 
-
     #[test]
     fn assembles_and_serializes_complete_paper_twelve_run() {
         let root = temp_run_dir();
@@ -1028,14 +1027,13 @@ only,one,row
             write_fixture(&path, pin.study_id, true);
             imports.push(import_paper_study_run(&path).expect("paper study fixture imports"));
         }
-        let receipt = assemble_paper_run_receipt(imports).expect("complete paper-12 receipt assembles");
+        let receipt =
+            assemble_paper_run_receipt(imports).expect("complete paper-12 receipt assembles");
         let json = paper_receipt_to_json(&receipt);
         assert_eq!(json["protocol_id"], PAPER_12_PROTOCOL_ID);
         assert_eq!(json["studies"].as_array().map(Vec::len), Some(12));
         assert_eq!(
-            json["studies"][0]["artifacts"]
-                .as_array()
-                .map(Vec::len),
+            json["studies"][0]["artifacts"].as_array().map(Vec::len),
             Some(4)
         );
         fs::remove_dir_all(root).expect("remove temp directory");
