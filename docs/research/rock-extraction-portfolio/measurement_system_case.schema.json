@@ -285,6 +285,12 @@
         },
         "source_ref": {
           "$ref": "#/$defs/ref"
+        },
+        "bound_lower": {
+          "type": "number"
+        },
+        "bound_upper": {
+          "type": "number"
         }
       }
     },
@@ -511,7 +517,8 @@
         "bias",
         "max_absolute_relative_error",
         "residual_artifact_ref",
-        "adjudication_ref"
+        "adjudication_ref",
+        "environment_profile_ref"
       ],
       "properties": {
         "comparison_id": {
@@ -560,6 +567,9 @@
           "$ref": "#/$defs/ref"
         },
         "adjudication_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "environment_profile_ref": {
           "$ref": "#/$defs/ref"
         }
       }
