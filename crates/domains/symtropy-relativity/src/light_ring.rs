@@ -54,6 +54,12 @@ pub struct KerrEquatorialPhotonOrbit {
     /// Partial_r g_tt + 2 Omega_coord partial_r g_tphi
     /// + Omega_coord^2 partial_r g_phiphi, in inverse metres.
     pub radial_circularity_residual_per_m: Option<f64>,
+    /// Null radial potential residual divided by the sum of the magnitudes
+    /// of its two defining terms; dimensionless.
+    pub normalized_radial_potential_residual: Option<f64>,
+    /// dR/dr residual divided by the sum of the magnitudes of its two
+    /// defining terms; dimensionless.
+    pub normalized_radial_potential_derivative_residual: Option<f64>,
     /// Coordinate-time radial Lyapunov exponent in inverse seconds.
     /// This is a light-ring instability scale, not a finite-l QNM frequency.
     pub radial_lyapunov_exponent_s_inv: Option<f64>,
@@ -164,6 +170,8 @@ impl KerrEquatorialPhotonOrbit {
                 impact_parameter_m: None,
                 null_condition_residual: None,
                 radial_circularity_residual_per_m: None,
+                normalized_radial_potential_residual: None,
+                normalized_radial_potential_derivative_residual: None,
                 radial_lyapunov_exponent_s_inv: None,
             });
         }
@@ -225,6 +233,18 @@ impl KerrEquatorialPhotonOrbit {
             4.0 * radius * p - 2.0 * (radius - gravitational_radius) * q * q;
         let radial_potential_second_derivative =
             8.0 * radius * radius + 4.0 * p - 2.0 * q * q;
+        let radial_potential_scale = p * p.abs() + (delta * q * q).abs();
+        let radial_potential_derivative_scale =
+            (4.0 * radius * p).abs() + (2.0 * (radius - gravitational_radius) * q * q).abs();
+        if radial_potential_scale <= 0.0 || radial_potential_derivative_scale <= 0.0 {
+            return Err(LightRingError::InvalidCircularOrbit(
+                "null radial potential residual normalization is zero",
+            ));
+        }
+        let normalized_radial_potential_residual =
+            radial_potential / radial_potential_scale;
+        let normalized_radial_potential_derivative_residual =
+            radial_potential_derivative / radial_potential_derivative_scale;
 
         let radial_instability_squared = radial_potential_second_derivative / 2.0;
         if !radial_instability_squared.is_finite() || radial_instability_squared <= 0.0 {
@@ -254,6 +274,8 @@ impl KerrEquatorialPhotonOrbit {
             impact_parameter,
             radial_potential,
             radial_potential_derivative,
+            normalized_radial_potential_residual,
+            normalized_radial_potential_derivative_residual,
             lyapunov_exponent_s_inv,
         ];
         if values.iter().any(|value| !value.is_finite()) {
@@ -272,6 +294,9 @@ impl KerrEquatorialPhotonOrbit {
             impact_parameter_m: Some(impact_parameter),
             null_condition_residual: Some(null_residual),
             radial_circularity_residual_per_m: Some(radial_residual),
+            normalized_radial_potential_residual: Some(normalized_radial_potential_residual),
+            normalized_radial_potential_derivative_residual:
+                Some(normalized_radial_potential_derivative_residual),
             radial_lyapunov_exponent_s_inv: Some(lyapunov_exponent_s_inv),
         })
     }
@@ -388,6 +413,16 @@ mod tests {
                     "chi={chi}, sense={sense:?}, normalized radial={:e}",
                     radial * rg
                 );
+                assert!(
+                    orbit.normalized_radial_potential_residual.unwrap().abs() < 2e-12,
+                    "chi={chi}, sense={sense:?}, normalized R={:e}",
+                    orbit.normalized_radial_potential_residual.unwrap()
+                );
+                assert!(
+                    orbit.normalized_radial_potential_derivative_residual.unwrap().abs() < 2e-12,
+                    "chi={chi}, sense={sense:?}, normalized R'={:e}",
+                    orbit.normalized_radial_potential_derivative_residual.unwrap()
+                );
             }
         }
     }
@@ -436,6 +471,12 @@ mod tests {
             assert!(orbit.angular_frequency_rad_s.is_finite());
             assert!(orbit.radial_lyapunov_exponent_s_inv.unwrap().is_finite());
             assert!(orbit.radial_lyapunov_exponent_s_inv.unwrap() > 0.0);
+            assert!(
+                orbit.normalized_radial_potential_residual.unwrap().abs() < 2e-8
+            );
+            assert!(
+                orbit.normalized_radial_potential_derivative_residual.unwrap().abs() < 2e-8
+            );
         }
     }
 
