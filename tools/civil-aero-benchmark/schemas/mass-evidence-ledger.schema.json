@@ -10,7 +10,8 @@
     "aircraft_family",
     "aircraft_model",
     "serial_number",
-    "records"
+    "records",
+    "reference_frame_id"
   ],
   "properties": {
     "schema_version": {
@@ -37,6 +38,10 @@
       "items": {
         "$ref": "#/$defs/record"
       }
+    },
+    "reference_frame_id": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {
@@ -134,7 +139,8 @@
       "additionalProperties": false,
       "required": [
         "values",
-        "unit"
+        "unit",
+        "coordinate_frame_id"
       ],
       "properties": {
         "values": {
@@ -153,6 +159,10 @@
             "ft",
             "in"
           ]
+        },
+        "coordinate_frame_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
