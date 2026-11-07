@@ -317,7 +317,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
         let normalized = field.to_ascii_lowercase();
         forbidden_input_markers
             .iter()
-            .any(|marker| normalized.contains(marker))
+            .any(|marker| normalized.contains(*marker))
     }) {
         return Err("candidate input allowlist exposes evaluator truth or reference bounds".into());
     }
