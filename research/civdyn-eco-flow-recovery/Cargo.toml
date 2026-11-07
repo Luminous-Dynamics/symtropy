@@ -1,0 +1,19 @@
+[workspace]
+
+[package]
+name = "civdyn-eco-flow-recovery"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Repeated-shock service, reserve and environmental-flow recovery experiment"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "eco-flow-recovery-sweep"
+path = "src/bin/eco_flow_recovery_sweep.rs"
+
+[dependencies]
+civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
