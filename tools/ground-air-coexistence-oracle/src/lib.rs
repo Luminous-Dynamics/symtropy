@@ -1122,7 +1122,10 @@ mod tests {
             "GROUND_ROAD_INVERTER_DC_INPUT"
         );
         assert_eq!(air["modality"], "AIR_DOCK_INDUCTIVE");
-        assert_eq!(air["channel_input_boundary_id"], "AIR_DOCK_INVERTER_DC_INPUT");
+        assert_eq!(
+            air["channel_input_boundary_id"],
+            "AIR_DOCK_INVERTER_DC_INPUT"
+        );
         assert_eq!(report["simultaneous_delivery_slot_count"], 4);
         assert_eq!(report["total_source_energy_wh"], 80);
         assert_eq!(report["total_useful_energy_wh"], 28);
