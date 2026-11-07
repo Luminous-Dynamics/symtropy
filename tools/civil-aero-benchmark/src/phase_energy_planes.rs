@@ -62,6 +62,21 @@ pub struct GeneratorConversion {
     pub peak_electrical_output_power_limit_w: f64,
 }
 
+/// Fuel-cell/electrochemical conversion path. Hydrogen chemical energy remains
+/// distinct from electrical output; rejected heat is recorded separately.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FuelCellConversion {
+    pub fuel_cell_id: String,
+    pub model_evidence_sha256: String,
+    pub fuel_source_id: String,
+    pub fuel_energy_input_j: f64,
+    pub electrical_output_to_bus_j: f64,
+    pub thermal_loss_j: f64,
+    pub average_electrical_output_power_limit_w: f64,
+    pub peak_electrical_output_power_w: f64,
+    pub peak_electrical_output_power_limit_w: f64,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnergyStoreTransition {
     pub store_id: String,
@@ -138,6 +153,7 @@ pub struct PhaseEnergyBalance {
     pub fuel_states: Vec<FuelStateTransition>,
     pub prime_movers: Vec<PrimeMoverConversion>,
     pub generators: Vec<GeneratorConversion>,
+    pub fuel_cells: Vec<FuelCellConversion>,
     pub stores: Vec<EnergyStoreTransition>,
     pub bus_loads: BusLoads,
     pub motor_drives: Vec<MotorDriveConversion>,
@@ -197,6 +213,7 @@ pub struct PhaseEnergyReport {
     pub prime_mover_fuel_residuals: Vec<ComponentEnergyResidual>,
     pub prime_mover_shaft_residuals: Vec<ComponentEnergyResidual>,
     pub generator_residuals: Vec<ComponentEnergyResidual>,
+    pub fuel_cell_residuals: Vec<ComponentEnergyResidual>,
     pub store_results: Vec<StoreEnergyResult>,
     pub motor_residuals: Vec<ComponentEnergyResidual>,
     pub propulsor_residuals: Vec<ComponentEnergyResidual>,
@@ -485,6 +502,20 @@ impl PhaseEnergyBalance {
             }
         }
 
+        let fuel_cell_residuals = self
+            .fuel_cells
+            .iter()
+            .map(|cell| {
+                let residual = cell.fuel_energy_input_j
+                    - cell.electrical_output_to_bus_j
+                    - cell.thermal_loss_j;
+                ComponentEnergyResidual {
+                    component_id: cell.fuel_cell_id.clone(),
+                    residual_j: residual,
+                }
+            })
+            .collect::<Vec<_>>();
+
         let generator_residuals = self
             .generators
             .iter()
@@ -650,7 +681,13 @@ impl PhaseEnergyBalance {
             .iter()
             .map(|generator| generator.electrical_output_to_bus_j)
             .sum::<f64>();
-        let total_bus_supply_j = total_generator_bus_output_j + total_store_discharge_to_bus_j;
+        let total_fuel_cell_bus_output_j = self
+            .fuel_cells
+            .iter()
+            .map(|cell| cell.electrical_output_to_bus_j)
+            .sum::<f64>();
+        let total_bus_supply_j =
+            total_generator_bus_output_j + total_fuel_cell_bus_output_j + total_store_discharge_to_bus_j;
         let total_direct_mechanical_shaft_j = self
             .prime_movers
             .iter()
@@ -745,6 +782,7 @@ impl PhaseEnergyBalance {
             prime_mover_fuel_residuals,
             prime_mover_shaft_residuals,
             generator_residuals,
+            fuel_cell_residuals,
             store_results,
             motor_residuals,
             propulsor_residuals,
@@ -867,6 +905,7 @@ mod tests {
             fuel_states: vec![],
             prime_movers: vec![],
             generators: vec![],
+            fuel_cells: vec![],
             stores: vec![battery_store(
                 100_000_000.0,
                 0.0,
