@@ -167,7 +167,9 @@
         "segmentation_record_ref",
         "particle_size_lower_mm",
         "particle_size_upper_mm",
-        "size_measurement_ref"
+        "size_measurement_ref",
+        "batch_index",
+        "batch_id"
       ],
       "properties": {
         "particle_id": {
@@ -209,6 +211,13 @@
         },
         "size_measurement_ref": {
           "$ref": "#/$defs/ref"
+        },
+        "batch_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "batch_id": {
+          "$ref": "#/$defs/ref"
         }
       }
     },
@@ -231,7 +240,8 @@
         "descriptor_resolution",
         "minimum_resolvable_feature_mm",
         "quantile_targets",
-        "samples"
+        "samples",
+        "sequential_stability"
       ],
       "properties": {
         "sample_set_id": {
@@ -308,6 +318,56 @@
           "items": {
             "$ref": "#/$defs/sample"
           }
+        },
+        "sequential_stability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum_batch_count",
+            "minimum_samples_per_batch",
+            "stable_tail_batch_count",
+            "targets"
+          ],
+          "properties": {
+            "minimum_batch_count": {
+              "type": "integer",
+              "minimum": 3
+            },
+            "minimum_samples_per_batch": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "stable_tail_batch_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "targets": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/sequential_stability_target"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sequential_stability_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probability",
+        "maximum_batch_to_batch_drift"
+      ],
+      "properties": {
+        "probability": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "maximum_batch_to_batch_drift": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     }
