@@ -16,6 +16,7 @@ struct CaseResult {
     disposition: String,
     reason_codes: Vec<String>,
     expected_disposition: Option<String>,
+    expected_reason_codes: Vec<String>,
     matches_expected: bool,
 }
 
@@ -53,7 +54,7 @@ fn number_at(value: &Value, path: &[&str]) -> Option<f64> {
     current.as_f64()
 }
 
-fn string_array_at(value: &Value, path: &[&str]) -> Option<Vec<&str>> {
+fn string_array_at<'a>(value: &'a Value, path: &[&str]) -> Option<Vec<&'a str>> {
     let mut current = value;
     for segment in path {
         current = current.get(*segment)?;
@@ -68,6 +69,7 @@ fn result(case_id: &str, disposition: &str, reasons: &[&str], expected: Option<&
         disposition: disposition.to_owned(),
         reason_codes: reasons.iter().map(|reason| (*reason).to_owned()).collect(),
         expected_disposition: expected.map(str::to_owned),
+        expected_reason_codes: Vec::new(),
         matches_expected: expected == Some(disposition),
     }
 }
@@ -305,10 +307,34 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
     }
 
     match string_at(input, &["finding", "kind"]) {
-        Some("panel_displacement" | "missing_fastener") => result(
+        Some("panel_displacement") => {
+            let offset = number_at(input, &["finding", "value", "offset_mm"]);
+            let tolerance = number_at(input, &["finding", "value", "tolerance_mm"]);
+            match (offset, tolerance) {
+                (Some(measured), Some(limit)) if measured > limit => result(
+                    case_id,
+                    "DEFECT_OBSERVED",
+                    &["OBSERVED_GEOMETRY_OUTSIDE_DECLARED_SYNTHETIC_TOLERANCE"],
+                    expected,
+                ),
+                (Some(_), Some(_)) => result(
+                    case_id,
+                    "ACCEPTED_FOR_DECLARED_SYNTHETIC_CHECK",
+                    &["OBSERVED_GEOMETRY_WITHIN_DECLARED_SYNTHETIC_TOLERANCE"],
+                    expected,
+                ),
+                _ => result(
+                    case_id,
+                    "NOT_EVALUATED",
+                    &["PANEL_DISPLACEMENT_MEASUREMENT_OR_TOLERANCE_MISSING"],
+                    expected,
+                ),
+            }
+        }
+        Some("missing_fastener") => result(
             case_id,
             "DEFECT_OBSERVED",
-            &["DECLARED_DEFECT_OBSERVATION_PRESENT"],
+            &["FASTENER_ABSENCE_OBSERVED_AT_REQUIRED_LOCATION"],
             expected,
         ),
         Some("candidate_seal_discontinuity" | "candidate_panel_displacement") => result(
@@ -363,10 +389,26 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
         .and_then(Value::as_array)
         .ok_or("cases must be an array")?;
 
-    let results: Vec<CaseResult> = cases
+    let mut results: Vec<CaseResult> = cases
         .iter()
         .map(|case| evaluate_case(case, reference))
         .collect();
+    for (evaluated, source_case) in results.iter_mut().zip(cases.iter()) {
+        let expected_codes = source_case
+            .get("expected_oracle")
+            .and_then(|expected| expected.get("reason_codes"))
+            .and_then(Value::as_array)
+            .map(|codes| {
+                codes
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_owned)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        evaluated.matches_expected &= evaluated.reason_codes == expected_codes;
+        evaluated.expected_reason_codes = expected_codes;
+    }
     let matched_expected_cases = results
         .iter()
         .filter(|case| case.matches_expected)
@@ -447,12 +489,15 @@ mod tests {
         include_str!("../../../docs/research/built-asset/fixtures/v0.1/corpus.json");
 
     #[test]
-    fn frozen_corpus_matches_all_declared_dispositions() {
+    fn frozen_corpus_matches_all_declared_dispositions_and_reasons() {
         let report = evaluate_corpus(CORPUS.as_bytes()).expect("corpus parses");
         assert_eq!(report.case_count, 16);
         assert_eq!(report.matched_expected_cases, 16);
         assert_eq!(report.mismatched_cases, 0);
         assert!(report.passed);
+        for case in &report.cases {
+            assert_eq!(case.reason_codes, case.expected_reason_codes, "{}", case.case_id);
+        }
     }
 
     #[test]
