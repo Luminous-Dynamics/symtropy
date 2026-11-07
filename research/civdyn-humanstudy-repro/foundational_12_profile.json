@@ -1,13 +1,14 @@
 {
-  "profile_id": "HSB-FOUNDATIONAL-12-FFB1F72A",
-  "protocol_id": "HSB-FOUNDATIONAL-12-FFB1F72A",
+  "profile_id": "HSB-PAPER-12-CF05D330",
+  "protocol_id": "HSB-PAPER-12-CF05D330",
   "source": {
-    "repository": "HumanStudy-Hub/HumanStudy-Bench",
-    "commit": "ffb1f72a8bab327d7f4a6b7e43e7be4d3af10f61",
-    "root_tree": "75af151f4a8e256fa5c6c0375b9ea84fb741b107",
+    "repository": "AISmithLab/HumanStudy-Bench",
+    "branch": "paper",
+    "commit": "cf05d330fc315168c8c8e23b4acd882f91bb7408",
+    "root_tree": "9b56c62406fb6b77d87d5032c3c6906583aca24e",
+    "commit_date": "2026-10-24T17:48:52Z",
     "license": "MIT",
     "paper": "https://arxiv.org/abs/2602.00685",
-    "commit_context": "Base commit recorded by upstream PR #1 before the first community study contribution; independently verified to contain exactly study_001 through study_012.",
     "retrieved_on": "2026-11-07"
   },
   "scope": {
@@ -26,70 +27,94 @@
       "study_011",
       "study_012"
     ],
-    "distinction": "Foundational 12-study catalogue snapshot. This is a source-pinned repository snapshot for the paper's foundational study count; reproduction still requires matching the paper's original model, prompt, run settings, raw trial semantics and evaluator versions."
+    "data_tree_path": "data/studies/study_NNN",
+    "distinction": "Original paper repository source profile, not the evolving Community Edition. Repository root and data study trees are pinned; study config/evaluator files and global execution/scoring sources are separately pinned in execution_sources."
   },
-  "excluded_community_additions": [
-    {
-      "study_id": "study_014",
-      "introduced_by": "HumanStudy-Hub/HumanStudy-Bench#1",
-      "merge_commit": "7471d78760365d98baa1800b8177c8ead7e1af33",
-      "note": "First community-contributed addition; absent at the pinned base commit."
-    },
-    {
-      "study_id": "study_013",
-      "introduced_by": "HumanStudy-Hub/HumanStudy-Bench#2",
-      "merge_commit": "f24f14545e3774b2dd2b5e47b8195c1f15156b0c",
-      "note": "Added after the foundational-12 base snapshot."
-    }
-  ],
   "studies": [
     {
       "study_id": "study_001",
-      "tree_sha": "df60d3a30bb5d6ce523dcad55abb144cde90b933"
+      "data_tree_sha": "ada9bcfe467e82acd230f08b4970e5eff3fff7f9",
+      "config_blob_sha": "63fe04388eccca7088ba8e76834014511797e2bd",
+      "evaluator_blob_sha": "612428dac96758f7d3e68fe8882133af13be5242"
     },
     {
       "study_id": "study_002",
-      "tree_sha": "c9d1fbf3c0b67a811dc43a45013f4cfde7016954"
+      "data_tree_sha": "f20390e427b48e081c07273c70fda897e04a16bf",
+      "config_blob_sha": "77cfac304a8f376fd3cd475f4470b0fa8c2dfba3",
+      "evaluator_blob_sha": "f8eff4c480813e675be2b72bb88cbbdd77f6014b"
     },
     {
       "study_id": "study_003",
-      "tree_sha": "98a1665c1b32eeb42ecfe752230940ea266f496c"
+      "data_tree_sha": "bbdba6bd7f4a71270a13d889bfb71c51d633398b",
+      "config_blob_sha": "9b5a519d33663d3a9ab60d7720478131d211adb1",
+      "evaluator_blob_sha": "b242e6c3c3d108ebef8f7ba9271c43c22e211713"
     },
     {
       "study_id": "study_004",
-      "tree_sha": "e2f38a701e22a0898b814cad806e3e59237db4f2"
+      "data_tree_sha": "1af52b05645a9e9f9936e2c458ad8460a521c934",
+      "config_blob_sha": "b644f2a6a1088a4c6b18f8bfe24e3a2e6c602ea4",
+      "evaluator_blob_sha": "3c42b0302401f80c1991fc61fdc86bd71ac9f8d9"
     },
     {
       "study_id": "study_005",
-      "tree_sha": "56406098163f0a3c5465614c16a0c053c84ab919"
+      "data_tree_sha": "ed29e5fe8711402977e7bb7385a6f939f1ed4bfd",
+      "config_blob_sha": "1f780a80d98e8c4095f483881c35e561716f8496",
+      "evaluator_blob_sha": "ba4897043e3cd7b18d2ceaa7fa7711d57a1e9991"
     },
     {
       "study_id": "study_006",
-      "tree_sha": "409e601fbca62c19a9f6d06aafd9d7ac37cd0786"
+      "data_tree_sha": "739255d6b6746ba9e93360d07f12cf631ad7d8d2",
+      "config_blob_sha": "807c7b4c64e803cba5b21db1f3bfa59fb29203d3",
+      "evaluator_blob_sha": "4f76cbec3111e89c9cf4521342ca8a9ca0afc0a6"
     },
     {
       "study_id": "study_007",
-      "tree_sha": "52310c97898413ec2e2069520a8466f8d562107b"
+      "data_tree_sha": "480c0468a8e3f588dfb67a827f6320581847132a",
+      "config_blob_sha": "62bbfbab3416502c8db9f501510d641ae40ce5d5",
+      "evaluator_blob_sha": "8db9bb70b85961733756caf4a949252a281bd0de"
     },
     {
       "study_id": "study_008",
-      "tree_sha": "9d46f8e4c354d789f69cf5bee153a29e8075dab1"
+      "data_tree_sha": "15d397ca8e7781ed6a3efcfdbb0c6eacf825964f",
+      "config_blob_sha": "89d466998bba5d7b32f02f0e725ffe0ce66bdce6",
+      "evaluator_blob_sha": "4afe5389289a76d048ca568a5dbddc856c04db1e"
     },
     {
       "study_id": "study_009",
-      "tree_sha": "2b4d9aadce637f0bec5187dca85fcfb6ffea0fce"
+      "data_tree_sha": "ba78aafc24a997eeb6957a2607a9ee8475b2c45f",
+      "config_blob_sha": "e315825882da6756fdd81abab8fd8a3ea55df852",
+      "evaluator_blob_sha": "6026055161eeb345efc7c6bce9ee0182a46f9e9c"
     },
     {
       "study_id": "study_010",
-      "tree_sha": "fbbc34f423a4a9e0ad2fd7dbe06826589fa4c0fb"
+      "data_tree_sha": "1e49238a66b4da4fc4f6bfb44cb628c39aa1b7b8",
+      "config_blob_sha": "7f3269e999afc7f9a2777844ef430ae1a0c21308",
+      "evaluator_blob_sha": "6d01030daa5388b38a8154d91527c3ad4d1c0b2e"
     },
     {
       "study_id": "study_011",
-      "tree_sha": "6007118b2a17e02f09204bc1632ade82e8482c89"
+      "data_tree_sha": "aa5858deda592a67e391d271c1fc3c64d8d9362e",
+      "config_blob_sha": "acf7c3e8f58218716a4d3959d81191eb40f3e287",
+      "evaluator_blob_sha": "8204cef15b8ab1b2f1f5abaf330a36c8955c4cb3"
     },
     {
       "study_id": "study_012",
-      "tree_sha": "8297eacb9d31c5b819803626218b96d68eeb50fe"
+      "data_tree_sha": "1a4979759d78205621080f7fb7a261c132051886",
+      "config_blob_sha": "5f462363823526e5e77af52a142f098b1831c356",
+      "evaluator_blob_sha": "2af9777975c68978c0f27f8dcb6da62857218797"
     }
-  ]
+  ],
+  "execution_sources": {
+    "scripts/run_baseline_pipeline.py": "4572ad360135d591e6a9d3d1f2c91a4bba3d099c",
+    "scripts/simple_results.py": "dc181a92002399967d68076c91f65095e2254de1",
+    "src/evaluation/stats_lib.py": "24bc535b0d21cef24dd5b7139209478134c57d64",
+    "src/evaluation/scorer.py": "f9deb60bc3cfbff4223949f24cbee582b17f846c",
+    "src/evaluation/evaluator_runner.py": "0b67c4c31d491932655258e84a2ca1609ad74b46",
+    "src/evaluation/metrics.py": "0738bb66203daf0354b5fb7fc0ea63b330282784",
+    "src/evaluation/standardizers.py": "b0178a0fc7507f4205a8ebdcc2bd1e5f896cfb5b",
+    "src/core/benchmark.py": "b8e2a29a895bca6275c1bbde14c5fdc441b50700",
+    "generation_pipeline/run.py": "5604a469aea0e1b5f5b9ebd94f55587f1d50cf18",
+    "docs/PAS_ECS_math.md": "a03ad2e33166df20ecd2ff3bd30bb341391f75ca",
+    "docs/RESULT_STORAGE.md": "f97d47ddad3dc67adf8f8f88ea2c49777a3dc8c7"
+  }
 }
