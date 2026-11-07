@@ -53,9 +53,9 @@ Assuming nominal liquid water:
 
 Then the advective heat-capacity rate is:
 
-`(79 L/h ÷ 1,000 L/m³) × 1,000 kg/m³ × 4.18 kJ/(kg·K) ÷ 3,600 s/h = 0.0916556 kW/K`
+`(79 L/h ÷ 1,000 L/m³) × 1,000 kg/m³ × 4.18 kJ/(kg·K) ÷ 3,600 s/h = 0.0917278 kW/K`
 
-This is within approximately 0.38% of the reported 0.092 kW/K. It is a dimensional consistency check, not an independent reconstruction of the authors' fitted thermal/hydraulic model.
+This is within approximately 0.30% of the reported 0.092 kW/K. It is a dimensional consistency check, not an independent reconstruction of the authors' fitted thermal/hydraulic model.
 
 A second conditional check uses `V = Q × tau`:
 - 79 L/h × 10.5 days × 24 h/day = 19,908 L = 19.908 m³.
