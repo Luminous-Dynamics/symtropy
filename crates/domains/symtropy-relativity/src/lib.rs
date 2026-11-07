@@ -316,11 +316,12 @@ impl KerrBlackHole {
             / (2.0 * self.gravitational_radius_m() * (1.0 + self.extremality_gap()))
     }
 
-    /// Positive reference frequency in Hz for a proposed direct-wave
-    /// component whose angular-frequency magnitude is 2*|Omega_H|.
-    /// The signed horizon angular velocity remains available separately.
-    /// This is a theory-derived reference, not a waveform or measurement.
-    pub fn direct_wave_reference_frequency_hz(self) -> f64 {
+    /// Nonnegative m=2 horizon-rotation frequency scale in Hz:
+    /// 2*|Omega_H|/(2*pi) = |Omega_H|/pi.
+    ///
+    /// This is a Kerr-background comparison scale only. It does not assert
+    /// that any measured non-QNM ringdown component follows this frequency.
+    pub fn horizon_rotation_mode_reference_frequency_hz(self) -> f64 {
         self.horizon_angular_velocity_rad_s().abs() / core::f64::consts::PI
     }
 
@@ -511,7 +512,7 @@ mod tests {
             SPEED_OF_LIGHT_M_S / (4.0 * rg),
             1e-14,
         );
-        close(nonrotating.direct_wave_reference_frequency_hz(), 0.0, 1e-14);
+        close(nonrotating.horizon_rotation_mode_reference_frequency_hz(), 0.0, 1e-14);
 
         let extremal =
             KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(1.0).unwrap());
@@ -521,7 +522,7 @@ mod tests {
             1e-14,
         );
         close(extremal.surface_gravity_rate_s_inv(), 0.0, 1e-14);
-        assert!(extremal.direct_wave_reference_frequency_hz() > 0.0);
+        assert!(extremal.horizon_rotation_mode_reference_frequency_hz() > 0.0);
     }
 
     #[test]
