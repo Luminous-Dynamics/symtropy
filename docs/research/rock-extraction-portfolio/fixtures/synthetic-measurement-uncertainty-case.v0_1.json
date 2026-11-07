@@ -1,0 +1,303 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-MEASUREMENT-MCM-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "dependence_model": {
+    "type": "GAUSSIAN_COPULA",
+    "method_ref": "method:latent-gaussian-copula-v1",
+    "source_ref": "source:synthetic-dependence-study",
+    "assumption_ref": "assumption:synthetic-declared-rank-dependence"
+  },
+  "inputs": [
+    {
+      "input_id": "total_energy",
+      "unit": "kWh",
+      "dimension": [
+        2,
+        1,
+        -2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scale_to_si": 3600000,
+      "distribution": {
+        "type": "NORMAL",
+        "mean": 30,
+        "standard_deviation": 1.2
+      },
+      "method_ref": "method:calibrated-boundary-energy-meter",
+      "source_ref": "source:synthetic-energy-calibration",
+      "parameter_validation_ref": "validation:synthetic-energy-pdf"
+    },
+    {
+      "input_id": "accepted_volume",
+      "unit": "m3",
+      "dimension": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scale_to_si": 1,
+      "distribution": {
+        "type": "LOGNORMAL",
+        "log_mean": 2.302585092994046,
+        "log_standard_deviation": 0.08
+      },
+      "method_ref": "method:accepted-solid-volumetry",
+      "source_ref": "source:synthetic-volume-calibration",
+      "parameter_validation_ref": "validation:synthetic-volume-pdf"
+    },
+    {
+      "input_id": "generated_volume",
+      "unit": "m3",
+      "dimension": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scale_to_si": 1,
+      "distribution": {
+        "type": "TRIANGULAR",
+        "lower": 11.4,
+        "mode": 12,
+        "upper": 12.6
+      },
+      "method_ref": "method:generated-solid-volumetry",
+      "source_ref": "source:synthetic-generation-measurement",
+      "parameter_validation_ref": "validation:synthetic-generation-pdf"
+    },
+    {
+      "input_id": "residual_volume",
+      "unit": "m3",
+      "dimension": [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scale_to_si": 1,
+      "distribution": {
+        "type": "UNIFORM",
+        "lower": 0.15,
+        "upper": 0.55
+      },
+      "method_ref": "method:residual-volume-survey",
+      "source_ref": "source:synthetic-residual-survey",
+      "parameter_validation_ref": "validation:synthetic-residual-pdf"
+    }
+  ],
+  "correlation_matrix": [
+    [
+      1,
+      -0.3,
+      0,
+      0.05
+    ],
+    [
+      -0.3,
+      1,
+      0.15,
+      0
+    ],
+    [
+      0,
+      0.15,
+      1,
+      0.2
+    ],
+    [
+      0.05,
+      0,
+      0.2,
+      1
+    ]
+  ],
+  "outputs": [
+    {
+      "output_id": "specific_energy",
+      "unit": "kWh/m3",
+      "dimension": [
+        -1,
+        1,
+        -2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scale_from_si": 2.7777777777777776e-7,
+      "equation_ref": "eq:energy-over-accepted-volume-v1",
+      "source_ref": "model:synthetic-equation-book",
+      "instructions": [
+        {
+          "op": "INPUT",
+          "input_id": "total_energy"
+        },
+        {
+          "op": "INPUT",
+          "input_id": "accepted_volume"
+        },
+        {
+          "op": "DIVIDE"
+        }
+      ],
+      "quantile_targets": [
+        {
+          "probability": 0.05,
+          "maximum_mc_interval_width": 0.08
+        },
+        {
+          "probability": 0.5,
+          "maximum_mc_interval_width": 0.04
+        },
+        {
+          "probability": 0.95,
+          "maximum_mc_interval_width": 0.08
+        }
+      ],
+      "coverage_interval": {
+        "lower_probability": 0.05,
+        "upper_probability": 0.95
+      }
+    },
+    {
+      "output_id": "recovery_fraction",
+      "unit": "1",
+      "dimension": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scale_from_si": 1,
+      "equation_ref": "eq:accepted-over-generated-volume-v1",
+      "source_ref": "model:synthetic-equation-book",
+      "instructions": [
+        {
+          "op": "INPUT",
+          "input_id": "accepted_volume"
+        },
+        {
+          "op": "INPUT",
+          "input_id": "generated_volume"
+        },
+        {
+          "op": "DIVIDE"
+        }
+      ],
+      "quantile_targets": [
+        {
+          "probability": 0.05,
+          "maximum_mc_interval_width": 0.03
+        },
+        {
+          "probability": 0.5,
+          "maximum_mc_interval_width": 0.015
+        },
+        {
+          "probability": 0.95,
+          "maximum_mc_interval_width": 0.03
+        }
+      ],
+      "coverage_interval": {
+        "lower_probability": 0.05,
+        "upper_probability": 0.95
+      }
+    },
+    {
+      "output_id": "residual_fraction",
+      "unit": "1",
+      "dimension": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "scale_from_si": 1,
+      "equation_ref": "eq:residual-over-generated-volume-v1",
+      "source_ref": "model:synthetic-equation-book",
+      "instructions": [
+        {
+          "op": "INPUT",
+          "input_id": "residual_volume"
+        },
+        {
+          "op": "INPUT",
+          "input_id": "generated_volume"
+        },
+        {
+          "op": "DIVIDE"
+        }
+      ],
+      "quantile_targets": [
+        {
+          "probability": 0.05,
+          "maximum_mc_interval_width": 0.012
+        },
+        {
+          "probability": 0.5,
+          "maximum_mc_interval_width": 0.012
+        },
+        {
+          "probability": 0.95,
+          "maximum_mc_interval_width": 0.012
+        }
+      ],
+      "coverage_interval": {
+        "lower_probability": 0.05,
+        "upper_probability": 0.95
+      }
+    }
+  ],
+  "simulation": {
+    "prng": "SPLITMIX64_BOX_MULLER_V1",
+    "seed": 20261107,
+    "sample_count": 262144,
+    "batch_size": 32768,
+    "maximum_invalid_fraction": 0,
+    "quantile_estimation_confidence": 0.99,
+    "convergence": {
+      "minimum_batch_count": 8,
+      "stable_tail_batch_count": 2,
+      "outputs": [
+        {
+          "output_id": "specific_energy",
+          "maximum_mean_drift": 0.04,
+          "maximum_standard_deviation_drift": 0.02,
+          "maximum_quantile_drift": 0.06
+        },
+        {
+          "output_id": "recovery_fraction",
+          "maximum_mean_drift": 0.006,
+          "maximum_standard_deviation_drift": 0.003,
+          "maximum_quantile_drift": 0.01
+        },
+        {
+          "output_id": "residual_fraction",
+          "maximum_mean_drift": 0.002,
+          "maximum_standard_deviation_drift": 0.001,
+          "maximum_quantile_drift": 0.003
+        }
+      ]
+    }
+  }
+}
