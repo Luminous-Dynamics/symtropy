@@ -66,6 +66,7 @@ It emits one CSV row per run (7 population sizes × 6 policies × 30 seeds = 1,2
 
 The CSV preserves per-run:
 - initial individual option-0 bias;
+- for constant memory-independent policies, exact analytical expected option-0 share and pairwise agreement plus finite-N per-round standard deviations; memory-dependent policies leave these oracle fields empty. CI checks replication means against the analytic expectations using their calculated sampling standard errors.
 - population size, seed, memory capacity and exact state count;
 - population rounds and total pairwise interactions;
 - agreement convergence, convergence round and declared window convention;
