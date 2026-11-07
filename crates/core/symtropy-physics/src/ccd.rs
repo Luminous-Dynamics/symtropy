@@ -18,7 +18,7 @@
 use nalgebra::SVector;
 
 /// Result of a continuous collision detection query.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CcdHit<const D: usize> {
     /// Elapsed physical time from the beginning of the step to impact, in seconds.
     ///
@@ -121,8 +121,9 @@ pub const CCD_SPEED_THRESHOLD: f64 = 5.0;
 
 /// Swept sphere vs sphere: find the earliest time of impact.
 ///
-/// Given two spheres with positions and velocities, solve for the time `t ∈ [0, dt]`
-/// when `|pos_a(t) - pos_b(t)| = radius_a + radius_b`.
+/// Given two spheres with positions and velocities, solve for elapsed physical time
+/// `t ∈ [0, dt_seconds]` in seconds when
+/// `|pos_a(t) - pos_b(t)| = radius_a + radius_b`.
 ///
 /// This is a quadratic in t:
 /// `|Δp + Δv*t|² = r²` where Δp = pos_b - pos_a, Δv = vel_b - vel_a, r = ra + rb.
@@ -289,8 +290,10 @@ fn sphere_sphere_unchecked<const D: usize>(
 
 /// Swept sphere vs half-space (infinite plane): find time of impact.
 ///
-/// Solve for t where `normal · (pos + vel*t) - offset = radius`.
-/// This is linear: `t = (radius + offset - normal · pos) / (normal · vel)`.
+/// Solve for elapsed physical time `t` in seconds where
+/// `unit_normal · (pos + vel*t) - offset = radius`.
+/// This is linear: `t = (radius + offset - unit_normal · pos) / (unit_normal · vel)`.
+/// The plane normal must be a unit vector; use the checked API to validate it.
 /// Checked swept sphere-vs-half-space query.
 ///
 /// The plane equation is `unit_normal · x = offset`; the normal must be a
@@ -561,6 +564,27 @@ mod tests {
         assert_eq!(
             sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, f64::INFINITY),
             Err(CcdQueryError::InvalidTimeStep)
+        );
+    }
+
+    #[test]
+    fn checked_queries_reject_overflowing_combined_radii() {
+        let pos_a = SVector::zeros();
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([10.0, 0.0, 0.0]);
+        let vel_b = SVector::zeros();
+
+        assert_eq!(
+            sphere_sphere_checked(
+                &pos_a,
+                &vel_a,
+                f64::MAX,
+                &pos_b,
+                &vel_b,
+                f64::MAX,
+                1.0
+            ),
+            Err(CcdQueryError::NonFiniteInput)
         );
     }
 
