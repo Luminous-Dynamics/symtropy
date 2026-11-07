@@ -240,6 +240,45 @@ fn workload() -> MobileWorkload {
 }
 
 #[test]
+fn inclusive_evidence_expiry_covers_the_last_active_tick_of_half_open_operations() {
+    let mut input = workload();
+    input.tugs[0].capability_evidence.valid_through_tick = 13;
+    input.pilots[0].qualification_evidence.valid_through_tick = 13;
+
+    input.reposition_legs[0].evidence.valid_through_tick = 4;
+    input.reposition_legs[1].evidence.valid_through_tick = 11;
+    input.reposition_legs[2].evidence.valid_through_tick = 11;
+
+    let report = evaluate_mobile_assistance(&input).expect("boundary evidence is well-formed");
+    assert_eq!(report.disposition, MobileDisposition::ReadyForComparison);
+    assert!(report.violations.is_empty());
+}
+
+#[test]
+fn capability_evidence_expiring_before_the_last_active_tick_needs_review() {
+    let mut input = workload();
+    input.tugs[0].capability_evidence.valid_through_tick = 12;
+    let report = evaluate_mobile_assistance(&input).expect("valid but insufficient evidence");
+    assert_eq!(report.disposition, MobileDisposition::NeedsEvidence);
+    assert!(report.violations.contains(&MobileViolation::EvidenceWindowInsufficient {
+        resource_id: "tug-01".to_owned(),
+        evidence_id: "tug-01-capability".to_owned(),
+    }));
+}
+
+#[test]
+fn reposition_evidence_expiring_before_the_last_travel_tick_needs_review() {
+    let mut input = workload();
+    input.reposition_legs[1].evidence.valid_through_tick = 10;
+    let report = evaluate_mobile_assistance(&input).expect("valid but insufficient evidence");
+    assert_eq!(report.disposition, MobileDisposition::NeedsEvidence);
+    assert!(report.violations.contains(&MobileViolation::RepositionEvidenceWindowInsufficient {
+        resource_id: "tug-01".to_owned(),
+        evidence_id: "reposition-tug-01-pilot-point-berth-1".to_owned(),
+    }));
+}
+
+#[test]
 fn fleet_plan_binding_accepts_only_exact_selected_operation_placements() {
     let input = workload();
     let plan = fleet_plan(&input);
