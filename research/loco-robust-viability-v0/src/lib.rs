@@ -758,7 +758,7 @@ mod tests {
                             .map(|index| {
                                 state(
                                     &format!("s{index}"),
-                                    safe_mask & (1 << index) != 0,
+                                    safe_mask & (1 << *index) != 0,
                                     false,
                                 )
                             })
@@ -769,7 +769,7 @@ mod tests {
                                 source_state: format!("s{index}"),
                                 successors: (0..3)
                                     .filter(|successor| {
-                                        successor_masks[index] & (1 << successor) != 0
+                                        successor_masks[index] & (1 << *successor) != 0
                                     })
                                     .map(|successor| format!("s{successor}"))
                                     .collect(),
@@ -780,7 +780,7 @@ mod tests {
                             compute_maximal_robust_invariant_set(&system, limits()).unwrap();
 
                         let safe_ids = (0..3)
-                            .filter(|index| safe_mask & (1 << index) != 0)
+                            .filter(|index| safe_mask & (1 << *index) != 0)
                             .map(|index| format!("s{index}"))
                             .collect::<Vec<_>>();
                         let mut expected = BTreeSet::new();
@@ -788,7 +788,7 @@ mod tests {
                             let candidate = safe_ids
                                 .iter()
                                 .enumerate()
-                                .filter(|(index, _)| subset_mask & (1 << index) != 0)
+                                .filter(|(index, _)| subset_mask & (1 << *index) != 0)
                                 .map(|(_, id)| id.clone())
                                 .collect::<BTreeSet<_>>();
                             let invariant = candidate.iter().all(|source| {
