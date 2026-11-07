@@ -265,8 +265,8 @@ fn validate_fixture(value: &Value, case_id: &str) -> Result<ObservabilityReport,
     exact_keys(contract, CONTRACT_KEYS, "$.observation_contract")?;
     let min_translation = unsigned(contract, "minimum_translation_separation_mm", "$.observation_contract")?;
     let min_attitude = unsigned(contract, "minimum_attitude_separation_mdeg", "$.observation_contract")?;
-    if min_translation == 0 || min_attitude == 0 {
-        return Err(fail("$.observation_contract", "pose separation thresholds must be positive"));
+    if min_translation == 0 || min_translation > 1_000_000_000 || min_attitude == 0 || min_attitude > 360_000 {
+        return Err(fail("$.observation_contract", "pose separation thresholds are outside the supported positive bounds"));
     }
     let tolerance_values = array(field(contract, "measurement_noise_tolerance", "$.observation_contract")?, "$.observation_contract.measurement_noise_tolerance")?;
     if tolerance_values.is_empty() || tolerance_values.len() > 32 {
@@ -291,6 +291,9 @@ fn validate_fixture(value: &Value, case_id: &str) -> Result<ObservabilityReport,
             return Err(fail(&path, "duplicate pose_id"));
         }
         let position = vector3_i64(field(sample, "position_mm", &path)?, &format!("{path}.position_mm"))?;
+        if position.iter().any(|value| value.abs() > 1_000_000_000) {
+            return Err(fail(&path, "position components must be within +/-1000000000 mm"));
+        }
         let attitude = vector3_i64(field(sample, "attitude_mdeg", &path)?, &format!("{path}.attitude_mdeg"))?;
         if attitude.iter().any(|value| !(-180_000..=180_000).contains(value)) {
             return Err(fail(&path, "attitude components must be within -180000..=180000 millidegrees"));
@@ -484,7 +487,8 @@ mod tests {
     fn signatures_of_poses_inside_declared_resolution_are_not_counted_as_aliases() {
         let mut value = positive_value();
         value["pose_samples"][1]["position_mm"] = json!([-900, 0, 1000]);
-        value["pose_samples"][1]["observation_signature"] = value["pose_samples"][0]["observation_signature"].clone();
+        let repeated_signature = value["pose_samples"][0]["observation_signature"].clone();
+        value["pose_samples"][1]["observation_signature"] = repeated_signature;
         value["pose_samples"][2]["position_mm"] = json!([1000, 0, 1000]);
         // The first two poses differ by only 100 mm, below the 500 mm
         // declared resolution. Their matching signatures are not a false alias.
