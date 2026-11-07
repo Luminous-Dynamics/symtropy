@@ -3,15 +3,11 @@
 //! Usage from the repository root:
 //! cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin mass_properties_audit -- <fixture.csv>
 
-use civil_aero_benchmark::mass_properties::{
-    MassGeometry, MassItem, MassItemCategory, MassLedger,
-};
+use civil_aero_benchmark::mass_properties::{MassGeometry, MassItem, MassItemCategory, MassLedger};
 use std::fs;
 
-const HEADER: &str =
-    "configuration_sha256,item_id,category,mass_kg,geometry_kind,x_m,y_m,z_m,Ixx,Iyy,Izz,Ixy,Ixz,Iyz";
-const OUTPUT_HEADER: &str =
-    "configuration_sha256,status,evidence_level,total_mass_kg,known_mass_subtotal_kg,cg_x_m,cg_y_m,cg_z_m,Ixx,Iyy,Izz,Ixy,Ixz,Iyz,unknown_mass_item_ids,unknown_geometry_item_ids";
+const HEADER: &str = "configuration_sha256,item_id,category,mass_kg,geometry_kind,x_m,y_m,z_m,Ixx,Iyy,Izz,Ixy,Ixz,Iyz";
+const OUTPUT_HEADER: &str = "configuration_sha256,status,evidence_level,total_mass_kg,known_mass_subtotal_kg,cg_x_m,cg_y_m,cg_z_m,Ixx,Iyy,Izz,Ixy,Ixz,Iyz,unknown_mass_item_ids,unknown_geometry_item_ids";
 
 fn main() {
     if let Err(error) = run() {
@@ -30,8 +26,8 @@ fn run() -> Result<(), String> {
         return Err("expected exactly one fixture path".to_owned());
     }
 
-    let content = fs::read_to_string(&path)
-        .map_err(|error| format!("cannot read {}: {error}", path))?;
+    let content =
+        fs::read_to_string(&path).map_err(|error| format!("cannot read {}: {error}", path))?;
     let ledger = parse_ledger(&content)?;
     let report = ledger.evaluate()?;
 
@@ -152,8 +148,7 @@ fn parse_ledger(content: &str) -> Result<MassLedger, String> {
                 }
             }
             "unknown" => {
-                if x.is_some() || y.is_some() || z.is_some() || tensor.iter().any(Option::is_some)
-                {
+                if x.is_some() || y.is_some() || z.is_some() || tensor.iter().any(Option::is_some) {
                     return Err(format!(
                         "line {line_number}: unknown geometry must not include coordinates or inertia"
                     ));
@@ -175,8 +170,8 @@ fn parse_ledger(content: &str) -> Result<MassLedger, String> {
         });
     }
 
-    let configuration_sha256 = configuration_sha256
-        .ok_or_else(|| "mass ledger contains no item records".to_owned())?;
+    let configuration_sha256 =
+        configuration_sha256.ok_or_else(|| "mass ledger contains no item records".to_owned())?;
     Ok(MassLedger {
         configuration_sha256,
         items,
