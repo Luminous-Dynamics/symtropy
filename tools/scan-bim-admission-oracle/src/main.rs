@@ -175,6 +175,10 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
         return decision("INVALID_INPUT", "REFERENCE_TOPOLOGY_HAS_DUPLICATE_EDGES");
     }
 
+    if reference.elements.is_empty() {
+        return decision("INVALID_INPUT", "REFERENCE_HAS_NO_REQUIRED_ELEMENTS");
+    }
+
     let mut requirements = BTreeMap::new();
     for requirement in &reference.elements {
         if requirement.element_id.is_empty()
@@ -492,8 +496,8 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_dispositions_and_reason_codes() {
         let report = evaluate_corpus(FIXTURE.as_bytes()).expect("fixture parses");
-        assert_eq!(report.case_count, 12);
-        assert_eq!(report.matched_expected_cases, 12);
+        assert_eq!(report.case_count, 23);
+        assert_eq!(report.matched_expected_cases, 23);
         assert_eq!(report.mismatched_cases, 0);
         assert!(report.passed);
     }
