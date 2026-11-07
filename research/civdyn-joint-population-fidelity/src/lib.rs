@@ -42,9 +42,14 @@ pub enum FidelityError {
         stratum: String,
         population: &'static str,
     },
-    InvalidBootstrapReplicates { requested: usize },
+    InvalidBootstrapReplicates {
+        requested: usize,
+    },
     InvalidConfidenceLevel,
-    InsufficientIndependentUnits { population: &'static str, count: usize },
+    InsufficientIndependentUnits {
+        population: &'static str,
+        count: usize,
+    },
 }
 
 impl fmt::Display for FidelityError {
@@ -53,17 +58,32 @@ impl fmt::Display for FidelityError {
             Self::EmptyDataset => write!(f, "dataset must contain at least one observation"),
             Self::EmptyIdentity { field } => write!(f, "{field} must not be empty"),
             Self::DuplicateObservationId { id } => write!(f, "duplicate observation id: {id}"),
-            Self::MissingStratum { stratum, population } => {
-                write!(f, "stratum {stratum} is missing from {population} population")
+            Self::MissingStratum {
+                stratum,
+                population,
+            } => {
+                write!(
+                    f,
+                    "stratum {stratum} is missing from {population} population"
+                )
             }
             Self::InvalidBootstrapReplicates { requested } => {
-                write!(f, "cluster bootstrap requires at least 100 replicates, got {requested}")
+                write!(
+                    f,
+                    "cluster bootstrap requires at least 100 replicates, got {requested}"
+                )
             }
             Self::InvalidConfidenceLevel => {
-                write!(f, "confidence level must be finite and strictly between 0 and 1")
+                write!(
+                    f,
+                    "confidence level must be finite and strictly between 0 and 1"
+                )
             }
             Self::InsufficientIndependentUnits { population, count } => {
-                write!(f, "{population} population has only {count} independent units; at least 2 are required")
+                write!(
+                    f,
+                    "{population} population has only {count} independent units; at least 2 are required"
+                )
             }
         }
     }
@@ -296,10 +316,8 @@ fn resample_clusters(
         let selected = cluster_rows[rng.index(cluster_rows.len())];
         for (row_index, row) in selected.iter().enumerate() {
             let mut copy = (*row).clone();
-            copy.observation_id =
-                format!("bootstrap-{replicate_index}-{draw_index}-{row_index}");
-            copy.independent_unit_id =
-                format!("bootstrap-{replicate_index}-cluster-{draw_index}");
+            copy.observation_id = format!("bootstrap-{replicate_index}-{draw_index}-{row_index}");
+            copy.independent_unit_id = format!("bootstrap-{replicate_index}-cluster-{draw_index}");
             sampled.push(copy);
         }
     }
@@ -340,7 +358,9 @@ pub fn compare_pair_cluster_bootstrap(
     validate(simulated)?;
 
     if replicates < 100 {
-        return Err(FidelityError::InvalidBootstrapReplicates { requested: replicates });
+        return Err(FidelityError::InvalidBootstrapReplicates {
+            requested: replicates,
+        });
     }
     if !confidence_level.is_finite() || !(0.0..1.0).contains(&confidence_level) {
         return Err(FidelityError::InvalidConfidenceLevel);
@@ -495,7 +515,11 @@ mod tests {
             })
         ));
     }
-    fn clustered_rows(prefix: &str, clusters: &[Vec<(&str, &str)>], stratum: &str) -> Vec<PairObservation> {
+    fn clustered_rows(
+        prefix: &str,
+        clusters: &[Vec<(&str, &str)>],
+        stratum: &str,
+    ) -> Vec<PairObservation> {
         let mut rows = Vec::new();
         for (cluster_index, cluster) in clusters.iter().enumerate() {
             for (row_index, (left, right)) in cluster.iter().enumerate() {
@@ -572,7 +596,10 @@ mod tests {
         let data = rows("data", &correlated(), "all");
         let error = compare_pair_cluster_bootstrap(&data, &data, 99, 0.95, 1)
             .expect_err("replicate count must fail closed");
-        assert!(matches!(error, FidelityError::InvalidBootstrapReplicates { requested: 99 }));
+        assert!(matches!(
+            error,
+            FidelityError::InvalidBootstrapReplicates { requested: 99 }
+        ));
     }
 
     #[test]
@@ -588,7 +615,10 @@ mod tests {
         let simulated = make_single_cluster("simulated");
         let error = compare_pair_cluster_bootstrap(&observed, &simulated, 100, 0.95, 7)
             .expect_err("one cluster cannot estimate between-cluster uncertainty");
-        assert!(matches!(error, FidelityError::InsufficientIndependentUnits { .. }));
+        assert!(matches!(
+            error,
+            FidelityError::InsufficientIndependentUnits { .. }
+        ));
     }
 
     #[test]
@@ -600,5 +630,4 @@ mod tests {
             Err(FidelityError::InvalidConfidenceLevel)
         ));
     }
-
 }
