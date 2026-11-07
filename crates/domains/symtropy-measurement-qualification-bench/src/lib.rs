@@ -805,7 +805,7 @@ mod tests {
 
     fn parent() -> Value {
         serde_json::from_str(include_str!(
-            "../../../../docs/research/rock-extraction-portfolio/fixtures/synthetic-fragment-morphology-case.v0_1.json"
+            "../fixtures/parent-morphology-case.v0_1.json"
         ))
         .expect("parent morphology fixture parses")
     }
