@@ -56,6 +56,16 @@ jobs:
           grep -q '^aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,indeterminate,screening_only,,845.000000000000' /tmp/unknown_mass_fixture-a.csv
           grep -q '^bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,complete,screening_only,4.000000000000,4.000000000000,1.000000000000,0.000000000000,0.000000000000,1.000000000000,6.000000000000,7.000000000000' /tmp/rigid_body_fixture-a.csv
 
+      - name: Independent loading-state mass oracle and schema JSON checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/civil-aero-benchmark/scripts/verify-mass-state-fixtures.py tools/civil-aero-benchmark/data/mass_properties/mass_state_fixtures_v0_1.json
+          python3 -m json.tool tools/civil-aero-benchmark/schemas/mass-evidence-ledger.schema.json > /dev/null
+          python3 -m json.tool tools/civil-aero-benchmark/schemas/aircraft-loading-state.schema.json > /dev/null
+          python3 -m json.tool tools/civil-aero-benchmark/schemas/mass-properties-state-report.schema.json > /dev/null
+          python3 -m json.tool tools/civil-aero-benchmark/data/mass_properties/mass_state_fixtures_v0_1.json > /dev/null
+
       - name: Reject mixed configuration identities
         shell: bash
         run: |
