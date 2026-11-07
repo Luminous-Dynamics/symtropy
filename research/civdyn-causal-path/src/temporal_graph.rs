@@ -44,7 +44,10 @@ pub enum TemporalGraphError {
     EmptyEdge(String),
     DuplicateEdge(String),
     EmptyMechanism(String),
-    UnknownEndpoint { edge_id: String, variable_id: String },
+    UnknownEndpoint {
+        edge_id: String,
+        variable_id: String,
+    },
     MissingUnitTransform(String),
     EmptyUnitTransform(String),
     InstantaneousCycle,
@@ -60,11 +63,20 @@ impl fmt::Display for TemporalGraphError {
             Self::EmptyEdge(id) => write!(f, "edge ID must not be empty: {id}"),
             Self::DuplicateEdge(id) => write!(f, "duplicate edge ID: {id}"),
             Self::EmptyMechanism(id) => write!(f, "edge {id} has an empty mechanism ID"),
-            Self::UnknownEndpoint { edge_id, variable_id } => {
-                write!(f, "edge {edge_id} references unknown variable {variable_id}")
+            Self::UnknownEndpoint {
+                edge_id,
+                variable_id,
+            } => {
+                write!(
+                    f,
+                    "edge {edge_id} references unknown variable {variable_id}"
+                )
             }
             Self::MissingUnitTransform(id) => {
-                write!(f, "edge {id} changes units without a declared transformation")
+                write!(
+                    f,
+                    "edge {id} changes units without a declared transformation"
+                )
             }
             Self::EmptyUnitTransform(id) => {
                 write!(f, "edge {id} has an empty unit transformation ID")
@@ -130,7 +142,7 @@ impl TemporalGraph {
                 match edge.unit_transform_id.as_deref() {
                     None => return Err(TemporalGraphError::MissingUnitTransform(edge.id.clone())),
                     Some(id) if id.trim().is_empty() => {
-                        return Err(TemporalGraphError::EmptyUnitTransform(edge.id.clone()))
+                        return Err(TemporalGraphError::EmptyUnitTransform(edge.id.clone()));
                     }
                     Some(_) => {}
                 }
@@ -142,7 +154,10 @@ impl TemporalGraph {
             // same-time causal ordering.
             if edge.lag_steps == 0 {
                 *indegree.get_mut(edge.to.as_str()).expect("endpoint exists") += 1;
-                outgoing.entry(edge.from.as_str()).or_default().push(edge.to.as_str());
+                outgoing
+                    .entry(edge.from.as_str())
+                    .or_default()
+                    .push(edge.to.as_str());
             }
         }
 
@@ -193,7 +208,10 @@ impl TemporalGraph {
 
         let mut adjacency: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
         for edge in &self.edges {
-            adjacency.entry(edge.from.as_str()).or_default().push(edge.to.as_str());
+            adjacency
+                .entry(edge.from.as_str())
+                .or_default()
+                .push(edge.to.as_str());
         }
         let mut visited = BTreeSet::from([from]);
         let mut queue = VecDeque::from([from]);
@@ -216,7 +234,10 @@ mod tests {
     use super::*;
 
     fn variable(id: &str, unit: &str) -> TemporalVariable {
-        TemporalVariable { id: id.into(), unit: unit.into() }
+        TemporalVariable {
+            id: id.into(),
+            unit: unit.into(),
+        }
     }
 
     fn edge(id: &str, from: &str, to: &str, lag: u32, transform: Option<&str>) -> TemporalEdge {
@@ -233,14 +254,21 @@ mod tests {
     #[test]
     fn zero_lag_graph_must_be_acyclic() {
         let graph = TemporalGraph {
-            variables: vec![variable("a", "count"), variable("b", "count"), variable("c", "count")],
+            variables: vec![
+                variable("a", "count"),
+                variable("b", "count"),
+                variable("c", "count"),
+            ],
             edges: vec![
                 edge("ab", "a", "b", 0, None),
                 edge("bc", "b", "c", 0, None),
                 edge("ca", "c", "a", 0, None),
             ],
         };
-        assert_eq!(graph.validate(), Err(TemporalGraphError::InstantaneousCycle));
+        assert_eq!(
+            graph.validate(),
+            Err(TemporalGraphError::InstantaneousCycle)
+        );
     }
 
     #[test]
@@ -252,9 +280,27 @@ mod tests {
                 variable("maintenance", "hours"),
             ],
             edges: vec![
-                edge("stock_to_service", "resource_stock", "service", 0, Some("m3_to_fraction")),
-                edge("service_to_maintenance", "service", "maintenance", 0, Some("fraction_to_hours")),
-                edge("maintenance_to_stock", "maintenance", "resource_stock", 2, Some("hours_to_m3")),
+                edge(
+                    "stock_to_service",
+                    "resource_stock",
+                    "service",
+                    0,
+                    Some("m3_to_fraction"),
+                ),
+                edge(
+                    "service_to_maintenance",
+                    "service",
+                    "maintenance",
+                    0,
+                    Some("fraction_to_hours"),
+                ),
+                edge(
+                    "maintenance_to_stock",
+                    "maintenance",
+                    "resource_stock",
+                    2,
+                    Some("hours_to_m3"),
+                ),
             ],
         };
         assert!(graph.validate().is_ok());
@@ -270,14 +316,19 @@ mod tests {
         };
         assert_eq!(
             graph.validate(),
-            Err(TemporalGraphError::MissingUnitTransform("water_to_coverage".into()))
+            Err(TemporalGraphError::MissingUnitTransform(
+                "water_to_coverage".into()
+            ))
         );
     }
 
     #[test]
     fn disconnected_variables_are_not_mistaken_for_a_path() {
         let graph = TemporalGraph {
-            variables: vec![variable("reputation", "count"), variable("service", "fraction")],
+            variables: vec![
+                variable("reputation", "count"),
+                variable("service", "fraction"),
+            ],
             edges: vec![],
         };
         assert!(!graph.has_path("reputation", "service").unwrap());
