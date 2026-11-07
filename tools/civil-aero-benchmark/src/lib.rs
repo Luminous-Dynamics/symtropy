@@ -16,6 +16,7 @@ pub mod grid_convergence;
 pub mod input_sampling;
 pub mod integrity;
 pub mod interval_calibration;
+pub mod mass_evidence;
 pub mod mass_properties;
 pub mod mission_mass_coupling;
 pub mod optimizer_qualification;
