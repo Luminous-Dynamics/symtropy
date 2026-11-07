@@ -39,6 +39,16 @@ These are unusually direct opportunities for testing belief health, abstraction 
 
 Run every controller on the same six-leg plant, actuator model, sensor availability, terrain realization and disturbance seed.
 
+### Additional current baselines: dynamic margins and learning-frontier methods
+
+**HORIZON — recoverability-governed training curriculum.** Bai et al., arXiv:2606.05143v1 (3 June 2026), already use a checkpointed and rollback-capable curriculum frontier. It groups domain randomization into actuation, mass, disturbance, contact, inertia, centre-of-mass and initial-state axes. Its empirical phase gate uses rollout length, tracking error and checkpoint-policy preservation. The preprint reports diagnostics on 1,509 phases across 65 runs; the composite gate's correlation with later frontier gain is 0.52 versus 0.35 for episode fraction alone. In its five-seed fixed-OOD table, its chosen four-domain core reports 36.8% success on a deliberately stacked seven-domain stress suite versus 28.1% for full-domain training; it also reports Go2 hardware interventions. Crucially, the authors explicitly describe the gate as a *finite-horizon training signal, not an exact viability kernel*. This is a baseline for the empirical learning frontier, not a physical safety certificate and not a concept we can claim to have invented. Reproduce its length/tracking/checkpoint gates under matched compute, seeds, robot and OOD suites; then add a separately sourced physical viability gate. https://arxiv.org/abs/2606.05143
+
+**3D force-tilt and moment-tilt stability margins.** Ashtekar and Dutta (Mechanism and Machine Theory, 15 October 2026) develop dynamic-geometric margins that include external force/moment disturbances and changing centroidal angular momentum. These should be compared with planar support-polygon/ZMP margins, not treated as interchangeable with a robust hybrid viability calculation. https://doi.org/10.1016/j.mechmachtheory.2026.106551
+
+**STEP-CBF+.** Djeffal et al. (Scientific Reports, September 2026) combine predicted support, friction/torque feasibility and discrete barrier screening. Their reduced-order randomized simulation reports a 4.0% mean fall rate, 77.3% stable-step fraction and approximately 13.6 ms candidate selection across six scenarios. The paper explicitly does not establish a whole-body nonlinear invariance proof or hardware validation. Reproduce under matched reduced-order assumptions, and preserve this evidence boundary. https://www.nature.com/articles/s41598-026-72507-w
+
+The benchmark must therefore distinguish at least four constructs: static support margin, dynamic geometric margin, robust future physical viability, and empirical learning recoverability. None is a synonym for another.
+
 1. **B0: SPINDER-style CPG/IK baseline** — coupled oscillators, local trajectory generation, analytic IK, fixed or velocity-conditioned gait schedule.
 2. **B1: CPG + rule fallback** — baseline plus handcrafted contact-loss and actuator-fault fallback; no formal viability oracle.
 3. **B2: predictive safety baseline** — a matched CBF/QP or robust-MPC implementation with the same state estimate, constraints and compute budget.
@@ -46,8 +56,12 @@ Run every controller on the same six-leg plant, actuator model, sensor availabil
 5. **S0: Symtropy finite-oracle-only** — consume a supplied finite transition graph; explicitly synthetic/abstract evidence only.
 6. **S1: Symtropy hybrid assurance** — sound interval/set-valued abstraction feeding the finite robust viability oracle.
 7. **S2: Symtropy dual-channel** — S1 plus belief/provenance and active contact information, with probing restricted to robustly admitted actions.
+8. **C1: HORIZON-style learning curriculum** — reproduce its episode-length, tracking and checkpoint-preservation gate without formal physical viability certification.
+9. **S3: Symtropy dual-frontier curriculum** — empirical learning gate plus independently sourced physical viability and certificate-validity gates; hardware progression requires all gates, while out-of-envelope exploration remains simulation-only.
 
 Do not compare a simulated S1/S2 result directly against hardware B0/B1 as if they shared evidence maturity. Publish simulator and hardware scorecards separately.
+
+For curriculum comparisons, match policy architecture, training compute, observation interface, seed count and fixed-OOD scenarios when reproducing HORIZON. Report its empirical checkpoint gate separately from the physical viability oracle. No rollout-survival statistic may promote an Unknown physical model to Certified.
 
 ## 3. Frozen scenario matrix
 
