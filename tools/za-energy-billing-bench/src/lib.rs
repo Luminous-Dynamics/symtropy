@@ -260,7 +260,10 @@ fn classify_minute(day: DayClass, minute: u16) -> EnergyBand {
         DayClass::SaturdayOrPublicHoliday => {
             if (420..720).contains(&minute) {
                 EnergyBand::Standard
-            } else if (720..1_080).contains(&minute) || (0..420).contains(&minute) {
+            } else if (720..1_080).contains(&minute)
+                || (0..420).contains(&minute)
+                || (1_200..1_440).contains(&minute)
+            {
                 EnergyBand::OffPeak
             } else {
                 // 18:00-20:00 is printed as 18h00-20h0 in the official budget.
@@ -890,7 +893,7 @@ mod tests {
     }
 
     #[test]
-    fn 70_kva_service_connection_boundary_does_not_imply_tou_eligibility() {
+    fn service_connection_70_kva_boundary_does_not_imply_tou_eligibility() {
         let mut input = fixture();
         input.account.supply_capacity_kva = 70.0;
         assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::SupplyCapacityNotAbove100Kva);
@@ -1023,7 +1026,7 @@ mod tests {
     }
 
     #[test]
-    fn 70_kva_demand_floor_binds_when_measured_and_ratchet_are_lower() {
+    fn minimum_70_kva_demand_floor_binds_when_measured_and_ratchet_are_lower() {
         let mut input = fixture();
         input.account.voltage_class = VoltageClass::Low;
         input.measured_monthly_peak_demand_kva = 55.0;
@@ -1170,7 +1173,7 @@ mod tests {
     }
 
     #[test]
-    fn season_must_match_billing_month() {
+    fn interval_date_must_match_billing_month() {
         let mut input = fixture();
         input.intervals[0].local_date = "2026-10-01".to_owned();
         assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::DateOutsideBillingMonth);
