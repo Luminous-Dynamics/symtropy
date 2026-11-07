@@ -1,0 +1,61 @@
+{
+  "schema": "symtropy.road-egci-reciprocal-loop-fixtures.v0.1",
+  "branches": [
+    {
+      "id": "ego-speed-1mps",
+      "ego_speed_limit_mps": 1,
+      "expected_actor_actions": [
+        "enter-crossing",
+        "continue",
+        "continue"
+      ],
+      "expected_ego_actions": [
+        "continue",
+        "yield",
+        "continue"
+      ]
+    },
+    {
+      "id": "ego-speed-2mps",
+      "ego_speed_limit_mps": 2,
+      "expected_actor_actions": [
+        "enter-crossing",
+        "pause",
+        "continue"
+      ],
+      "expected_ego_actions": [
+        "continue",
+        "yield",
+        "yield"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "RL-01",
+      "case": "ego-to-actor reciprocal response",
+      "expected": "actor action differs only after the post-physics TTC cue is delivered at tick 1"
+    },
+    {
+      "id": "RL-02",
+      "case": "actor-to-ego reciprocal response",
+      "expected": "ego action differs only after the post-physics actor-zone cue is delivered at tick 2"
+    },
+    {
+      "id": "RL-03",
+      "case": "same-tick cue leakage",
+      "expected": "reject delivery at the closed input cutoff"
+    },
+    {
+      "id": "RL-04",
+      "case": "state-chain tampering",
+      "expected": "reject stale prior policy state or history digest"
+    },
+    {
+      "id": "RL-05",
+      "case": "fresh-world physics replay",
+      "expected": "bitwise world snapshots match at every tick"
+    }
+  ],
+  "claim_ceiling": "Synthetic protocol conformance only; no human behaviour, empirical support, physical validity, safety or L4/L5 claim."
+}

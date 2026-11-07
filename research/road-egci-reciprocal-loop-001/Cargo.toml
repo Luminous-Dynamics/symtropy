@@ -1,0 +1,20 @@
+[package]
+name = "road-egci-reciprocal-loop"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Two-sided policy-in-the-loop synthetic road interaction producer with causal receipts"
+
+[dependencies]
+blake3 = "=1.8.7"
+nalgebra = "0.34.2"
+road-egci-handoff = { path = "../road-egci-handoff-001" }
+symtropy-math = { path = "../../crates/core/symtropy-math" }
+symtropy-physics = { path = "../../crates/core/symtropy-physics" }
+symtropy-road-actor-adapter = { path = "../../crates/domains/symtropy-road-actor-adapter" }
+symtropy-road-actors = { path = "../../crates/domains/symtropy-road-actors" }
+
+# Reproducibility: commit Cargo.lock and qualify every change with --locked.
+# Regenerate the lock only when a package manifest or local path dependency changes.
+[workspace]
