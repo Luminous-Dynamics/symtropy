@@ -306,7 +306,9 @@ pub fn kerr_exterior_metric(
     let c = theta_rad.cos();
     let s2 = s * s;
     let sigma = radius_m.powi(2) + a.powi(2) * c * c;
-    let delta = radius_m.powi(2) - 2.0 * rg * radius_m + a.powi(2);
+    // Factor through the analytic horizons to reduce cancellation near r_+.
+    let delta = (radius_m - hole.outer_horizon_radius_m())
+        * (radius_m - hole.inner_horizon_radius_m());
     if !sigma.is_finite() || !delta.is_finite() || sigma <= 0.0 || delta <= 0.0 {
         return Err(MetricError::ComputationNonFinite("Kerr metric coefficient"));
     }
@@ -405,6 +407,16 @@ mod tests {
         let g = kerr_exterior_metric(h,5.0*h.gravitational_radius_m(),0.8).unwrap();
         assert_ne!(g.covariant()[0][3],0.0);
         assert!(residual(*g.covariant(),g.inverse().unwrap()) < 2e-13);
+    }
+
+    #[test]
+    fn kerr_metric_remains_finite_just_outside_near_extremal_horizon() {
+        let hole = KerrBlackHole::new(mass(), DimensionlessSpin::new(1.0 - f64::EPSILON).unwrap());
+        let r_plus = hole.outer_horizon_radius_m();
+        let radius = r_plus * (1.0 + 1.0e-8);
+        let metric = kerr_exterior_metric(hole, radius, 1.1).unwrap();
+        assert!(metric.determinant().unwrap().is_finite());
+        assert!(metric.inverse_identity_residual().unwrap() < 1.0e-7);
     }
 
     #[test]
