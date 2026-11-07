@@ -409,23 +409,21 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
             .constructs
             .iter()
             .find(|construct| construct.id == indicator.construct_id)
-        {
-            if !construct
+            && !construct
                 .operationalization_ids
                 .iter()
                 .any(|id| id == &indicator.id)
-            {
-                push(
-                    &mut findings,
-                    FindingSeverity::Error,
-                    "indicator_not_reciprocally_linked",
-                    &indicator.id,
-                    format!(
-                        "construct {} does not declare this operationalization",
-                        indicator.construct_id
-                    ),
-                );
-            }
+        {
+            push(
+                &mut findings,
+                FindingSeverity::Error,
+                "indicator_not_reciprocally_linked",
+                &indicator.id,
+                format!(
+                    "construct {} does not declare this operationalization",
+                    indicator.construct_id
+                ),
+            );
         }
     }
 
@@ -566,23 +564,21 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
             .mechanisms
             .iter()
             .find(|mechanism| mechanism.id == alternative.target_mechanism_id)
-        {
-            if !mechanism
+            && !mechanism
                 .alternative_explanation_ids
                 .iter()
                 .any(|id| id == &alternative.id)
-            {
-                push(
-                    &mut findings,
-                    FindingSeverity::Error,
-                    "alternative_not_reciprocally_linked",
-                    &alternative.id,
-                    format!(
-                        "mechanism {} does not declare this alternative",
-                        mechanism.id
-                    ),
-                );
-            }
+        {
+            push(
+                &mut findings,
+                FindingSeverity::Error,
+                "alternative_not_reciprocally_linked",
+                &alternative.id,
+                format!(
+                    "mechanism {} does not declare this alternative",
+                    mechanism.id
+                ),
+            );
         }
     }
 
