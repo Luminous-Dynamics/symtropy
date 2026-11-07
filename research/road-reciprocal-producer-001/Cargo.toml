@@ -1,0 +1,13 @@
+[package]
+name = "symtropy-road-reciprocal-producer"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Synthetic reciprocal actor-policy producer for ROAD-EGCI conformance"
+
+[dependencies]
+symtropy-road-actors = { path = "../../crates/domains/symtropy-road-actors" }
+symtropy-road-actor-adapter = { path = "../../crates/domains/symtropy-road-actor-adapter" }
+
+[workspace]
