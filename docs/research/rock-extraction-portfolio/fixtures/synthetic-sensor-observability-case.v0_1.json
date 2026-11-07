@@ -546,8 +546,8 @@
       "state_id": "FILTER_CYCLONE_LOADING",
       "channel_id": "blower-current",
       "availability": "VALID",
-      "value_lower": 20,
-      "value_upper": 22,
+      "value_lower": 21,
+      "value_upper": 23,
       "unit": "A",
       "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
       "domain": {
