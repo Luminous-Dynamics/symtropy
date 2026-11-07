@@ -8,3 +8,5 @@ description = "Read-only, provenance-preserving NASTRAN BDF syntax and topology 
 
 [dependencies]
 sha2 = "0.10"
+
+[workspace]
