@@ -204,16 +204,17 @@ A simulation result, benchmark pass, prototype or provenance record does not gra
 
 1. [First decision experiment v0.1](./first-decision-experiment-v0.1.md): Wren 2 / Wayfarer 4 mission contracts, baseline families, C0/C1/C2/C5P/C5S down-selection, preregistered benchmarks and falsification rules.
 2. [Machine-readable mission cards v0.1](./mission-cards-v0.1.json): six Wren 2 / Wayfarer 4 mission templates, with unknown values and source status preserved.
-3. [Architecture discovery benchmark v0.1](./architecture-discovery-benchmark-v0.1.md): separate architecture choice, parameter optimization, analysis-graph activation and fidelity acquisition; matched-budget participant matrix and failure tests.
-4. [External benchmark reference manifest v0.1](./external-benchmark-reference-manifest-v0.1.json): pins OpenMDAO 3.45.2 and SU2 8.6.0, separates historical/current release lanes, and records licensing/build caveats; this is a reference manifest, not run receipts.
-4. Baseline cards with exact variants and evidence classes.
-5. C0–C7 decision matrix with unknowns preserved.
-6. Initial mass/CG/energy/power bookkeeping with transparent assumptions.
-7. [Mass-properties implementation PR #3977](https://github.com/Luminous-Dynamics/symtropy/pull/3977): configuration-bound itemized mass, CG and inertia; draft, with exact-head software checks passed.
-8. [Mass-to-mission coupling PR #3979](https://github.com/Luminous-Dynamics/symtropy/pull/3979): exact-configuration ledger-to-cruise-screen adapter; draft, with exact-head software checks passed.
-9. [Mass provenance/loading states PR #4000](https://github.com/Luminous-Dynamics/symtropy/pull/4000): source-bound item evidence, source-capture/metrology metadata and immutable state manifests; draft, exact-head Rust/oracle/Clippy and inherited civil-aero workflows passed.
-10. [Takeoff-state mission adapter PR #4025](https://github.com/Luminous-Dynamics/symtropy/pull/4025): evidence-qualified takeoff state into steady-cruise screen; draft, both exact-head workflows passed. Landing/intermediate states are withheld pending phase chronology.
-11. [Phase-resolved mission issue #4029](https://github.com/Luminous-Dynamics/symtropy/issues/4029): immutable phase transitions, fuel/energy/CG updates, reserve/diversion/go-around and independent per-phase oracles.
-12. Only then, down-select candidate geometries for OpenVSP/VSPAERO and selected SU2/structural analysis.
+3. [Architecture discovery benchmark v0.1](./architecture-discovery-benchmark-v0.1.md) and JSON: separates architecture choice, parameter optimization, analysis-graph activation and fidelity acquisition; includes matched-budget policies and hostile controls.
+4. [External benchmark reference manifest v0.1](./external-benchmark-reference-manifest-v0.1.json): pins OpenMDAO 3.45.2 and SU2 8.6.0, records build/licensing caveats and distinguishes reference candidates from actual run receipts.
+5. Baseline cards with exact variants and evidence classes.
+6. C0–C7 decision matrix with unknowns preserved.
+7. Initial mass/CG/energy/power bookkeeping with transparent assumptions.
+8. [Mass-properties implementation PR #3977](https://github.com/Luminous-Dynamics/symtropy/pull/3977): configuration-bound itemized mass, CG and inertia; draft, exact-head software checks passed.
+9. [Mass-to-mission coupling PR #3979](https://github.com/Luminous-Dynamics/symtropy/pull/3979): exact-configuration ledger-to-cruise-screen adapter; draft, exact-head software checks passed.
+10. [Mass provenance/loading states PR #4000](https://github.com/Luminous-Dynamics/symtropy/pull/4000): source-bound item evidence, source-capture/metrology metadata and immutable state manifests; draft, exact-head Rust/oracle/Clippy and inherited civil-aero workflows passed.
+11. [Takeoff-state mission adapter PR #4025](https://github.com/Luminous-Dynamics/symtropy/pull/4025): evidence-qualified takeoff state into steady-cruise screen; draft, both exact-head workflows passed. Landing/intermediate states are withheld pending phase chronology.
+12. [Phase-resolved mission issue #4029](https://github.com/Luminous-Dynamics/symtropy/issues/4029): immutable phase transitions, fuel/energy/CG updates, reserve/diversion/go-around and independent per-phase oracles.
+13. [Mission-chronology pilot PR #4030](https://github.com/Luminous-Dynamics/symtropy/pull/4030): machine-readable phase/state/energy contracts and an independent synthetic oracle; overall sample mission explicitly INDETERMINATE because non-cruise phases remain unassessed.
+14. Only then, down-select candidate geometries for OpenVSP/VSPAERO and selected SU2/structural analysis.
 
 **Claim ceiling:** This brief is a source-bound concept-search plan. It cannot establish optimality, safety, flightworthiness, certification, commercial readiness, better-than-SOTA performance or readiness to build.
