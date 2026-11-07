@@ -1,0 +1,30 @@
+name: CIVDYN joint population fidelity
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-joint-population-fidelity/**"
+      - ".github/workflows/civdyn-joint-population-fidelity.yml"
+  push:
+    paths:
+      - "research/civdyn-joint-population-fidelity/**"
+      - ".github/workflows/civdyn-joint-population-fidelity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-joint-population-fidelity/Cargo.toml --all -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-joint-population-fidelity/Cargo.toml --all-targets -- -D warnings
+      - name: Test joint, marginal and stratum controls
+        run: cargo test --locked --manifest-path research/civdyn-joint-population-fidelity/Cargo.toml --all-targets
