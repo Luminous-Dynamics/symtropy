@@ -27,15 +27,16 @@ This directory owns the aerial opportunity/session lifecycle only: discover, adm
 1. Event IDs are unique; sequence numbers are unique, contiguous and start at zero; timestamps are monotonic.
 2. Each event's `from_state` equals the preceding state, starting at UNAVAILABLE.
 3. Every transition is checked against the declared finite-state graph.
-4. A transition into ACQUISITION_PENDING from ADMISSION_PENDING requires a fresh matched receiver identity, valid authorization, valid allocation, admitted envelope and in-domain position. The allocation receipt must cover the event time.
-5. A transition into TRACKED_NO_POWER requires fresh admission and tracking evidence.
-6. A transition into POWER_ACTIVE requires a tracked no-power state, fresh admission, in-domain position, current allocation, valid envelope, and `PERMIT_SYNTHETIC_ONLY`.
-7. Leaving POWER_ACTIVE requires local protection INHIBIT. SAFE_OFF additionally requires independent `CONFIRMED_SYNTHETIC` de-energization evidence.
-8. Reacquisition returns through fresh admission and acquisition. An earlier power permit is not reused.
-9. Terminal COMPLETE is only reachable from SAFE_OFF. An incomplete trace cannot be reported as complete.
-10. The energy ledger is recomputed with checked integer arithmetic: source = source-to-channel loss + channel input; channel input = channel-to-receiver loss + receiver DC; receiver DC = receiver-to-battery loss + useful battery energy. Overflow and unexplained residuals are rejected.
-11. A separately authored literal edge-list oracle is compared to the production transition predicate over every declared state pair.
-12. Unknown fields, unsupported bearer/field combinations and invalid evidence dispositions fail closed.
+4. Every event binds the exact receiver ID and trajectory digest, opportunity ID and envelope digest, allocation ID and digest, and one monotonic clock ID. Cross-session or stale-revision receipts are rejected. Clock uncertainty is retained per event rather than silently discarded.
+5. A transition into ACQUISITION_PENDING from ADMISSION_PENDING requires a fresh matched receiver identity, valid authorization, valid allocation, admitted envelope and in-domain position. The allocation receipt must cover the event time.
+6. A transition into TRACKED_NO_POWER requires fresh admission and tracking evidence.
+7. A transition into POWER_ACTIVE requires a tracked no-power state, fresh admission, in-domain position, current allocation, valid envelope, a valid local-protection receipt digest and `PERMIT_SYNTHETIC_ONLY`.
+8. Leaving POWER_ACTIVE requires local protection INHIBIT. SAFE_OFF additionally requires independent `CONFIRMED_SYNTHETIC` de-energization evidence.
+9. Reacquisition returns through fresh admission and acquisition. An earlier power permit is not reused.
+10. Terminal COMPLETE is only reachable from SAFE_OFF. An incomplete trace cannot be reported as complete.
+11. The energy ledger is recomputed with checked integer arithmetic: source = source-to-channel loss + channel input; channel input = channel-to-receiver loss + receiver DC; receiver DC = receiver-to-battery loss + useful battery energy. Overflow and unexplained residuals are rejected.
+12. A separately authored literal edge-list oracle is compared to the production transition predicate over every declared state pair.
+13. Unknown fields, unsupported bearer/field combinations and invalid evidence dispositions fail closed.
 
 The schema is the wire/data-shape contract; the Rust verifier independently checks the subset of shape and all semantic invariants required by v0. The current crate does not execute a general-purpose JSON Schema 2020-12 engine, so the CI result must not be described as a full JSON Schema conformance run.
 
