@@ -235,11 +235,13 @@ fn tug_reposition_evidence_cannot_be_reused_for_a_pilot() {
     let report = evaluate_mobile_assistance(&input).expect("missing pilot-specific leg");
     assert_eq!(report.disposition, MobileDisposition::NeedsEvidence);
     assert!(
-        report.violations.contains(&MobileViolation::MissingRepositionLeg {
-            resource_id: "pilot-01".to_owned(),
-            from_node_id: "pilot-point".to_owned(),
-            to_node_id: "berth-1".to_owned(),
-        })
+        report
+            .violations
+            .contains(&MobileViolation::MissingRepositionLeg {
+                resource_id: "pilot-01".to_owned(),
+                from_node_id: "pilot-point".to_owned(),
+                to_node_id: "berth-1".to_owned(),
+            })
     );
 }
 
