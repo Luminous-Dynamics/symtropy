@@ -11,7 +11,6 @@
     "aircraft_model",
     "serial_number",
     "records",
-    "reference_frame_id",
     "reference_frame_id"
   ],
   "properties": {
@@ -57,7 +56,9 @@
         "reference",
         "revision",
         "locator",
-        "sha256"
+        "sha256",
+        "captured_at_utc",
+        "measurement"
       ],
       "properties": {
         "reference": {
@@ -77,6 +78,59 @@
         },
         "sha256": {
           "$ref": "#/$defs/sha256"
+        },
+        "captured_at_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "measurement": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "measured_at_utc",
+                "physical_article_id",
+                "instrument_reference",
+                "calibration_reference",
+                "calibration_revision",
+                "calibration_sha256"
+              ],
+              "properties": {
+                "measured_at_utc": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+                },
+                "physical_article_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "instrument_reference": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "calibration_reference": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "calibration_revision": {
+                  "type": "string",
+                  "minLength": 1,
+                  "not": {
+                    "const": "latest"
+                  }
+                },
+                "calibration_sha256": {
+                  "$ref": "#/$defs/sha256"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -141,7 +195,6 @@
       "required": [
         "values",
         "unit",
-        "coordinate_frame_id",
         "coordinate_frame_id"
       ],
       "properties": {
