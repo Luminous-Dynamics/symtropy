@@ -335,7 +335,7 @@ fn transfer_spanwise_loads(
         }
 
         let exact = stations_m.iter().position(|station| {
-            (station - load.x_m).abs() <= 1.0e-12
+            (*station - load.x_m).abs() <= 1.0e-12
         });
         let contributions: Vec<(usize, f64)> = if let Some(index) = exact {
             vec![(index, 1.0)]
@@ -750,9 +750,6 @@ mod tests {
 
     #[test]
     fn non_positive_wall_thickness_is_rejected() {
-        let mut invalid = wing_box_case();
-        invalid.tip_twist_rad = 0.0;
-        assert!(invalid.tip_twist_rad.is_finite());
         let bad = WingBoxInput {
             cap_area_m2: 1.5e-3,
             cap_separation_m: 0.25,
