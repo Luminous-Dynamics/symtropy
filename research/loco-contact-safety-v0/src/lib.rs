@@ -222,9 +222,7 @@ pub fn assess_action(
     {
         return Err(ChanceSafetyError::InvalidInformationGain);
     }
-    if !familywise_alpha.is_finite()
-        || !(MIN_SUPPORTED_ALPHA..1.0).contains(&familywise_alpha)
-    {
+    if !familywise_alpha.is_finite() || !(MIN_SUPPORTED_ALPHA..1.0).contains(&familywise_alpha) {
         return Err(ChanceSafetyError::InvalidRiskBudget);
     }
 
