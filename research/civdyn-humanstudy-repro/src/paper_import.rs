@@ -15,7 +15,7 @@ use super::{
     PAPER_12_SOURCE_REPOSITORY, PAPER_12_SOURCE_ROOT_TREE, PAPER_12_STUDY_PINS, StudyReceipt,
     is_lower_hex, validate_run,
 };
-use serde_json::{Map, Value};
+use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::error::Error;
