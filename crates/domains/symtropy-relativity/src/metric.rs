@@ -259,8 +259,8 @@ mod tests {
     const SOLAR_MASS: f64 = 1.988_47e30;
     fn mass() -> MassKg { MassKg::new(SOLAR_MASS).unwrap() }
     fn close(a: f64, b: f64, tol: f64) {
-        let scale = b.abs().max(f64::MIN_POSITIVE);
-        assert!((a-b).abs() <= tol*scale, "actual={a:e}, expected={b:e}");
+        let allowed = if b == 0.0 { tol } else { tol * b.abs() };
+        assert!((a-b).abs() <= allowed, "actual={a:e}, expected={b:e}");
     }
     fn residual(g: [[f64; 4]; 4], gi: [[f64; 4]; 4]) -> f64 {
         let mut max: f64 = 0.0;
