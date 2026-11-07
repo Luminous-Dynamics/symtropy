@@ -35,8 +35,12 @@ fn summary_row(outcome: &RecoveryOutcome) -> Vec<String> {
         fmt(outcome.reserve_after_service_recovery_m3),
         fmt(outcome.reserve_rebuilding_m3),
         fmt(outcome.reserve_recovery_ratio),
-        outcome.household_recovery_after_ticks.map_or_else(blank, |v| v.to_string()),
-        outcome.environmental_flow_recovery_after_ticks.map_or_else(blank, |v| v.to_string()),
+        outcome
+            .household_recovery_after_ticks
+            .map_or_else(blank, |v| v.to_string()),
+        outcome
+            .environmental_flow_recovery_after_ticks
+            .map_or_else(blank, |v| v.to_string()),
         fmt(outcome.minimum_repeat_household_coverage),
         fmt(outcome.minimum_repeat_environmental_flow_coverage),
         fmt(outcome.final_reserve_m3),
@@ -53,17 +57,26 @@ fn summary_row(outcome: &RecoveryOutcome) -> Vec<String> {
 
 fn tick_row(path: RecoveryPath, priority: AllocationPriority, tick: &RecoveryTick) -> Vec<String> {
     let (first_household, first_ecological) = if tick.phase == Phase::FirstShock {
-        (fmt(tick.household_unmet_m3), fmt(tick.environmental_flow_unmet_m3))
+        (
+            fmt(tick.household_unmet_m3),
+            fmt(tick.environmental_flow_unmet_m3),
+        )
     } else {
         (blank(), blank())
     };
     let (recovery_household, recovery_ecological) = if tick.phase == Phase::ServiceRecovery {
-        (fmt(tick.household_unmet_m3), fmt(tick.environmental_flow_unmet_m3))
+        (
+            fmt(tick.household_unmet_m3),
+            fmt(tick.environmental_flow_unmet_m3),
+        )
     } else {
         (blank(), blank())
     };
     let (repeat_household, repeat_ecological) = if tick.phase == Phase::RepeatedShock {
-        (fmt(tick.household_unmet_m3), fmt(tick.environmental_flow_unmet_m3))
+        (
+            fmt(tick.household_unmet_m3),
+            fmt(tick.environmental_flow_unmet_m3),
+        )
     } else {
         (blank(), blank())
     };
@@ -102,7 +115,11 @@ fn tick_row(path: RecoveryPath, priority: AllocationPriority, tick: &RecoveryTic
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "eco-flow recovery CSV schema must remain fixed");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "eco-flow recovery CSV schema must remain fixed"
+    );
     println!("{}", fields.join(","));
 }
 
@@ -126,11 +143,17 @@ mod tests {
     #[test]
     fn csv_rows_have_fixed_schema() {
         let outcomes = run_portfolio().expect("synthetic portfolio valid");
-        assert_eq!(outcomes.len(), RecoveryPath::ALL.len() * AllocationPriority::ALL.len());
+        assert_eq!(
+            outcomes.len(),
+            RecoveryPath::ALL.len() * AllocationPriority::ALL.len()
+        );
         for outcome in &outcomes {
             assert_eq!(summary_row(outcome).len(), CSV_COLUMNS);
             for tick in &outcome.ticks {
-                assert_eq!(tick_row(outcome.path, outcome.priority, tick).len(), CSV_COLUMNS);
+                assert_eq!(
+                    tick_row(outcome.path, outcome.priority, tick).len(),
+                    CSV_COLUMNS
+                );
             }
         }
     }
@@ -139,6 +162,9 @@ mod tests {
     fn portfolio_emits_four_summaries_and_fifty_six_tick_rows() {
         let outcomes = run_portfolio().expect("synthetic portfolio valid");
         assert_eq!(outcomes.len(), 4);
-        assert_eq!(outcomes.iter().map(|run| run.ticks.len()).sum::<usize>(), 56);
+        assert_eq!(
+            outcomes.iter().map(|run| run.ticks.len()).sum::<usize>(),
+            56
+        );
     }
 }
