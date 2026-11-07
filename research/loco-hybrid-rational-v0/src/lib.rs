@@ -60,8 +60,7 @@ impl Rational {
                     .map_err(|_| HybridMathError::ArithmeticOverflow)?
             }
         } else {
-            i128::try_from(reduced_numerator)
-                .map_err(|_| HybridMathError::ArithmeticOverflow)?
+            i128::try_from(reduced_numerator).map_err(|_| HybridMathError::ArithmeticOverflow)?
         };
 
         Ok(Self {
@@ -185,8 +184,7 @@ impl Rational {
                     .map_err(|_| HybridMathError::ArithmeticOverflow)?
             }
         } else {
-            i128::try_from(numerator_magnitude)
-                .map_err(|_| HybridMathError::ArithmeticOverflow)?
+            i128::try_from(numerator_magnitude).map_err(|_| HybridMathError::ArithmeticOverflow)?
         };
 
         Self::new(numerator, denominator)
@@ -464,7 +462,10 @@ mod tests {
         assert_eq!(r(2, -4), r(-1, 2));
         assert_eq!(r(0, 19), Rational::zero());
         assert_eq!(Rational::new(0, i128::MIN).unwrap(), Rational::zero());
-        assert_eq!(Rational::new(i128::MIN, i128::MIN).unwrap(), Rational::integer(1));
+        assert_eq!(
+            Rational::new(i128::MIN, i128::MIN).unwrap(),
+            Rational::integer(1)
+        );
     }
 
     #[test]
@@ -475,11 +476,15 @@ mod tests {
         assert_eq!(r(3, 5).checked_div(&r(9, 10)).unwrap(), r(2, 3));
         assert_eq!(r(2, 3).checked_div(&r(-4, 5)).unwrap(), r(-5, 6));
         assert_eq!(
-            Rational::integer(i128::MIN).checked_div(&Rational::integer(i128::MIN)).unwrap(),
+            Rational::integer(i128::MIN)
+                .checked_div(&Rational::integer(i128::MIN))
+                .unwrap(),
             Rational::integer(1)
         );
         assert_eq!(
-            Rational::zero().checked_div(&Rational::integer(i128::MIN)).unwrap(),
+            Rational::zero()
+                .checked_div(&Rational::integer(i128::MIN))
+                .unwrap(),
             Rational::zero()
         );
     }
@@ -651,11 +656,17 @@ mod tests {
         let wide_image = wide_state.affine_image(&slope, &offset).unwrap();
 
         assert!(
-            wide_image.lower().checked_cmp(narrow_image.lower()).unwrap()
+            wide_image
+                .lower()
+                .checked_cmp(narrow_image.lower())
+                .unwrap()
                 != Ordering::Greater
         );
         assert!(
-            wide_image.upper().checked_cmp(narrow_image.upper()).unwrap()
+            wide_image
+                .upper()
+                .checked_cmp(narrow_image.upper())
+                .unwrap()
                 != Ordering::Less
         );
     }
@@ -667,10 +678,7 @@ mod tests {
                 for b_lower in 0..=2 {
                     for b_upper in b_lower..=2 {
                         let orders = enumerate_possible_event_orders(
-                            vec![
-                                event("a", a_lower, a_upper),
-                                event("b", b_lower, b_upper),
-                            ],
+                            vec![event("a", a_lower, a_upper), event("b", b_lower, b_upper)],
                             2,
                         )
                         .unwrap();
@@ -678,15 +686,9 @@ mod tests {
                         for time_a in a_lower..=a_upper {
                             for time_b in b_lower..=b_upper {
                                 if time_a < time_b {
-                                    assert!(orders.contains(&vec![
-                                        "a".to_owned(),
-                                        "b".to_owned()
-                                    ]));
+                                    assert!(orders.contains(&vec!["a".to_owned(), "b".to_owned()]));
                                 } else if time_b < time_a {
-                                    assert!(orders.contains(&vec![
-                                        "b".to_owned(),
-                                        "a".to_owned()
-                                    ]));
+                                    assert!(orders.contains(&vec!["b".to_owned(), "a".to_owned()]));
                                 }
                             }
                         }
@@ -698,11 +700,8 @@ mod tests {
 
     #[test]
     fn touching_windows_are_conservative_and_can_include_spurious_reverse_order() {
-        let orders = enumerate_possible_event_orders(
-            vec![event("a", 0, 1), event("b", 1, 2)],
-            2,
-        )
-        .unwrap();
+        let orders =
+            enumerate_possible_event_orders(vec![event("a", 0, 1), event("b", 1, 2)], 2).unwrap();
 
         // A at t=0.9 and B at t=1.1 are ordered A-before-B; equality at
         // t=1 is a simultaneous case. B-before-A is intentionally retained
