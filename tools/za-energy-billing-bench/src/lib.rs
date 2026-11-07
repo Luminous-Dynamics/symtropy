@@ -289,7 +289,7 @@ pub fn rates_for_voltage(voltage: VoltageClass) -> TariffRates {
 pub fn season_for_month(month: u8) -> Result<Season, CalcError> {
     match month {
         9 | 10 | 11 | 12 | 1 | 2 | 3 | 4 | 5 => Ok(Season::Summer),
-        6 | 7 | 8 => Ok(Season::Winter),
+        6..=8 => Ok(Season::Winter),
         _ => Err(CalcError::InvalidBillingMonth),
     }
 }
@@ -363,7 +363,7 @@ pub fn classify_interval(
         if !saturday_evening_confirmed {
             return Err(CalcError::AmbiguousSaturdayEndpoint);
         }
-        if !saturday_confirmation_reference.is_some_and(|s| !s.trim().is_empty()) {
+        if saturday_confirmation_reference.is_none_or(|s| s.trim().is_empty()) {
             return Err(CalcError::SaturdayConfirmationReferenceMissing);
         }
     }
