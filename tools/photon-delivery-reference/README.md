@@ -2,7 +2,9 @@
 
 A dependency-free Rust analytical budget tool comparing solar/optical photon delivery plus supplemental LEDs with LED-only delivery for a declared canopy DLI requirement.
 
-It deliberately stops at photons delivered to the canopy. It does not predict crop growth or yield.
+It separates **requested design dose** from **dose physically deliverable under the declared lighting power and daily-energy caps**. This distinction matters: a plan can have enough daily kWh but insufficient peak kW, leaving the canopy below its target DLI.
+
+The tool deliberately stops at a simplified source-to-canopy photon budget. It does not predict crop growth or yield.
 
 ## Run
 
@@ -14,12 +16,12 @@ cargo run --release -- --input fixtures/synthetic-lunar-cavern-hybrid-v0-1.input
 
 ## Model
 
-The source input is photosynthetic photon flux density (PPFD) at the declared collector plane, in µmol m^-2 s^-1. The code does not infer PPFD from broadband solar irradiance: spectrum must be measured or supplied by a separate model.
+The source input is photosynthetic photon flux density (PPFD) at the declared collector plane, in µmol m^-2 s^-1. The code does not infer PPFD from broadband solar irradiance: spectrum must be measured or supplied by a separate, source-versioned model.
 
-The mean solar DLI is:
+Mean solar DLI is:
 
 ```text
-mean_DLI =
+solar_mean_DLI =
     source_PPFD
   × collector_area
   × illumination_seconds
@@ -30,35 +32,58 @@ mean_DLI =
   ÷ 1,000,000
 ```
 
-A declared canopy-uniformity floor converts this mean to a conservative minimum-zone estimate. Supplemental LED light is sized to bring that minimum to the declared target DLI. The LED electrical input is computed from a declared fixture photon efficacy in µmol/J. Peak LED power is evaluated over the declared LED operating window; optical auxiliary energy and peak power are separately included.
+The solar canopy-uniformity floor converts mean solar DLI into a conservative minimum-zone estimate. The LED supplement is then sized to close the minimum-zone DLI gap. LED fixture efficacy is supplied at the declared electrical meter boundary; a separate LED uniformity floor converts its mean DLI into a conservative minimum-zone contribution.
 
-## Frozen synthetic fixture
+The tool reports:
+- the LED power and energy required to meet the target;
+- the available LED power and energy after reserving optical auxiliary loads;
+- the actual LED energy deliverable under both limits;
+- the resource-constrained DLI and remaining shortfall;
+- independent daily-energy and instantaneous-peak-power feasibility flags.
 
-All numbers are synthetic arithmetic controls:
+A nominal/requested DLI is **not** marked achieved merely because the lighting plan asks for it. The `dli_met` result is based on resource-constrained delivered DLI.
+
+## Frozen synthetic arithmetic control
+
+All values are synthetic arithmetic controls, not measured performance:
 - target DLI: 20 mol m^-2 day^-1;
 - canopy area: 1,000 m²;
-- PPFD at collector plane: 1,000 µmol m^-2 s^-1 for 6 hours/day;
+- PPFD at collector plane: 1,000 µmol m^-2 s^-1 for 6 h/day;
 - collector area: 2,000 m²;
 - collector efficiency: 0.8;
 - relay transmission: 0.5;
 - optical availability: 0.9;
-- canopy minimum/mean uniformity factor: 0.8;
+- solar canopy minimum/mean uniformity floor: 0.8;
 - LED efficacy: 2.5 µmol/J;
-- LED operating window: 16 hours/day;
-- optical auxiliary electricity: 20 kWh/day.
+- LED minimum/mean canopy uniformity floor: 1.0;
+- LED operating window: 16 h/day;
+- optical auxiliary energy: 20 kWh/day;
+- optical auxiliary peak power: 0.8 kW;
+- available lighting power: 40 kW;
+- available lighting energy: 960 kWh/day.
 
-This arithmetic fixture yields:
+The requested target-dose comparison gives:
 - mean solar DLI: 15.552 mol m^-2 day^-1;
-- conservative minimum-zone DLI: 12.4416 mol m^-2 day^-1;
-- LED supplemental DLI: 7.5584 mol m^-2 day^-1;
-- LED-only electricity: 2,222.222 kWh/day;
-- hybrid LED electricity: 839.822 kWh/day;
-- hybrid lighting plus optical auxiliaries: 859.822 kWh/day;
-- hybrid LED peak plus declared optical peak: 53.289 kW.
+- conservative minimum-zone solar DLI: 12.4416;
+- requested LED supplement: 7.5584 mol m^-2 day^-1;
+- LED-only energy for the same target: 2,222.222 kWh/day;
+- requested hybrid LED energy: 839.822 kWh/day;
+- optical auxiliaries: 20 kWh/day;
+- requested hybrid lighting energy: 859.822 kWh/day;
+- requested hybrid peak: 53.289 kW.
 
-Under the fixture's declared 40 kW power limit and 960 kWh/day lighting-energy budget, the hybrid design passes the daily energy check but fails the peak-power check. The model therefore demonstrates why average energy and peak power must not be collapsed. Storage or a different photoperiod/optical architecture could change that result, but storage dynamics and crop physiology are not modeled here.
+However, the available 40 kW lighting limit leaves only 39.2 kW after the optical auxiliary peak. Over the 16-hour LED window this permits at most 627.2 kWh of LED energy. Therefore:
+- delivered LED energy: 627.2 kWh/day;
+- resource-constrained hybrid lighting energy: 647.2 kWh/day;
+- delivered minimum-zone DLI: 18.0864 mol m^-2 day^-1;
+- remaining DLI shortfall: 1.9136 mol m^-2 day^-1;
+- daily-energy budget check: feasible;
+- peak-power check: infeasible;
+- target DLI actually achieved under these constraints: **no**.
 
-These numbers do not describe an actual lunar site, actual collector or relay efficiency, an actual crop, or a qualified farm. The 20 mol DLI and 2.5 µmol/J LED efficacy are scenario assumptions, not universal crop or hardware specifications.
+This is the key demonstration: an energy budget can pass while peak power prevents the required crop-light dose from being delivered. The nominal energy-saving percentage is a requested-service comparison, not evidence of an achieved equal-service farm improvement in this peak-constrained case.
+
+These values do not describe an actual lunar site, actual collector/relay efficiencies, an actual crop, or qualified hardware. The DLI target, photon efficacy, uniformity floors and power caps are scenario assumptions.
 
 ## Important omissions
 
@@ -70,6 +95,7 @@ These numbers do not describe an actual lunar site, actual collector or relay ef
 - LED dimming curves, fixture heat, driver efficiency and lifetime;
 - battery charge/discharge efficiency, ageing, thermal limits and power dispatch;
 - HVAC, dehumidification, heat rejection and full facility boundary;
+- time-resolved lighting schedules, overlapping solar/LED periods and photoperiod compliance;
 - crop yield, nutrient composition, food safety and accepted edible output.
 
 ## Evidence ceiling
