@@ -374,6 +374,14 @@ fn parse_u32(value: &str, label: &str) -> ParseResult<u32> {
         .map_err(|_| ParseError(format!("{label}: invalid positive integer {value:?}")))
 }
 
+fn parse_id(value: &str, label: &str) -> ParseResult<u32> {
+    let id = parse_u32(value, label)?;
+    if id == 0 {
+        return fail(format!("{label}: entity ID zero is reserved"));
+    }
+    Ok(id)
+}
+
 fn parse_nastran_float(value: &str, label: &str) -> ParseResult<f64> {
     let value = value.trim();
     if value.is_empty() {
@@ -442,14 +450,14 @@ fn parse_spc1(
         if token.eq_ignore_ascii_case("THRU") {
             return fail("SPC1: THRU token has no preceding grid ID");
         }
-        let start = parse_u32(token, "SPC1 grid")?;
+        let start = parse_id(token, "SPC1 grid")?;
         if index + 1 < card.fields.len()
             && field(card, index + 1, "optional THRU")?.eq_ignore_ascii_case("THRU")
         {
             if index + 2 >= card.fields.len() {
                 return fail("SPC1: THRU range has no end grid");
             }
-            let end = parse_u32(field(card, index + 2, "THRU end")?, "SPC1 THRU end")?;
+            let end = parse_id(field(card, index + 2, "THRU end")?, "SPC1 THRU end")?;
             if end < start || end - start > 100_000 {
                 return fail("SPC1: invalid or excessive THRU range");
             }
@@ -492,7 +500,7 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
 
         match card.name.as_str() {
             "GRID" => {
-                let id = parse_u32(required_text(card, 0, "GRID ID")?, "GRID ID")?;
+                let id = parse_id(required_text(card, 0, "GRID ID")?, "GRID ID")?;
                 push_unique(&mut grid_ids, id, "GRID")?;
                 let cp = field(card, 1, "GRID CP")?;
                 if !cp.is_empty() {
@@ -506,10 +514,10 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 }
             }
             "CBEAM" => {
-                let eid = parse_u32(required_text(card, 0, "CBEAM EID")?, "CBEAM EID")?;
-                let _pid = parse_u32(required_text(card, 1, "CBEAM PID")?, "CBEAM PID")?;
-                let ga = parse_u32(required_text(card, 2, "CBEAM GA")?, "CBEAM GA")?;
-                let gb = parse_u32(required_text(card, 3, "CBEAM GB")?, "CBEAM GB")?;
+                let eid = parse_id(required_text(card, 0, "CBEAM EID")?, "CBEAM EID")?;
+                let _pid = parse_id(required_text(card, 1, "CBEAM PID")?, "CBEAM PID")?;
+                let ga = parse_id(required_text(card, 2, "CBEAM GA")?, "CBEAM GA")?;
+                let gb = parse_id(required_text(card, 3, "CBEAM GB")?, "CBEAM GB")?;
                 if ga == gb {
                     return fail(format!("CBEAM {eid}: GA and GB are identical"));
                 }
@@ -528,13 +536,13 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 validate_numeric_if_present(card, &[4, 5, 6])?;
             }
             "MAT1" => {
-                let mid = parse_u32(required_text(card, 0, "MAT1 MID")?, "MAT1 MID")?;
+                let mid = parse_id(required_text(card, 0, "MAT1 MID")?, "MAT1 MID")?;
                 push_unique(&mut material_ids, mid, "MAT1")?;
                 validate_numeric_if_present(card, &[1, 2, 3, 4, 5, 6, 7])?;
             }
             "PBEAM" => {
-                let pid = parse_u32(required_text(card, 0, "PBEAM PID")?, "PBEAM PID")?;
-                let mid = parse_u32(required_text(card, 1, "PBEAM MID")?, "PBEAM MID")?;
+                let pid = parse_id(required_text(card, 0, "PBEAM PID")?, "PBEAM PID")?;
+                let mid = parse_id(required_text(card, 1, "PBEAM MID")?, "PBEAM MID")?;
                 if property_materials.insert(pid, mid).is_some() {
                     return fail(format!("duplicate PBEAM property ID {pid}"));
                 }
@@ -543,8 +551,8 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 validate_numeric_if_present(card, &[2, 3, 4, 5, 6, 7])?;
             }
             "CONM2" => {
-                let eid = parse_u32(required_text(card, 0, "CONM2 EID")?, "CONM2 EID")?;
-                let grid = parse_u32(required_text(card, 1, "CONM2 GRID")?, "CONM2 GRID")?;
+                let eid = parse_id(required_text(card, 0, "CONM2 EID")?, "CONM2 EID")?;
+                let grid = parse_id(required_text(card, 1, "CONM2 GRID")?, "CONM2 GRID")?;
                 push_unique(&mut element_ids, eid, "element")?;
                 let cid = field(card, 2, "CONM2 CID")?;
                 if !cid.is_empty() {
@@ -565,8 +573,8 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 beam_grid_refs.insert(grid);
             }
             "RBE2" => {
-                let eid = parse_u32(required_text(card, 0, "RBE2 EID")?, "RBE2 EID")?;
-                let independent = parse_u32(
+                let eid = parse_id(required_text(card, 0, "RBE2 EID")?, "RBE2 EID")?;
+                let independent = parse_id(
                     required_text(card, 1, "RBE2 independent GRID")?,
                     "RBE2 independent GRID",
                 )?;
@@ -591,7 +599,7 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 }
             }
             "SPC" => {
-                let sid = parse_u32(required_text(card, 0, "SPC SID")?, "SPC SID")?;
+                let sid = parse_id(required_text(card, 0, "SPC SID")?, "SPC SID")?;
                 inventory.spc_set_ids.insert(sid);
                 let end = card
                     .fields
@@ -603,7 +611,7 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                     return fail(format!("SPC {sid}: expected GRID/component/value triplets"));
                 }
                 for index in (1..end).step_by(3) {
-                    let grid = parse_u32(field(card, index, "SPC GRID")?, "SPC GRID")?;
+                    let grid = parse_id(field(card, index, "SPC GRID")?, "SPC GRID")?;
                     let components = required_text(card, index + 1, "SPC component")?;
                     if !components
                         .bytes()
@@ -621,8 +629,8 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 parse_spc1(card, &mut spc_grid_refs, &mut inventory.spc_set_ids)?;
             }
             "FORCE" => {
-                let sid = parse_u32(required_text(card, 0, "FORCE SID")?, "FORCE SID")?;
-                let grid = parse_u32(required_text(card, 1, "FORCE GRID")?, "FORCE GRID")?;
+                let sid = parse_id(required_text(card, 0, "FORCE SID")?, "FORCE SID")?;
+                let grid = parse_id(required_text(card, 1, "FORCE GRID")?, "FORCE GRID")?;
                 let cid = field(card, 2, "FORCE CID")?;
                 if !cid.is_empty() {
                     parse_u32(cid, "FORCE CID")?;
@@ -634,7 +642,7 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 force_grid_refs.insert(grid);
             }
             "LOAD" => {
-                let sid = parse_u32(required_text(card, 0, "LOAD SID")?, "LOAD SID")?;
+                let sid = parse_id(required_text(card, 0, "LOAD SID")?, "LOAD SID")?;
                 load_set_ids.insert(sid);
                 parse_nastran_float(field(card, 1, "LOAD scale")?, "LOAD scale")?;
                 let end = card
@@ -648,7 +656,7 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 }
                 for index in (2..end).step_by(2) {
                     parse_nastran_float(field(card, index, "LOAD scale factor")?, "LOAD factor")?;
-                    load_refs.insert(parse_u32(
+                    load_refs.insert(parse_id(
                         field(card, index + 1, "LOAD set ID")?,
                         "LOAD set ID",
                     )?);
@@ -880,6 +888,14 @@ mod tests {
                 .count(),
             1
         );
+    }
+
+    #[test]
+    fn zero_entity_grid_id_is_rejected_but_zero_coordinate_system_is_allowed() {
+        let mut cards = minimal_valid_cards();
+        cards[0] = fixed_line(&["GRID", "0", "0", "0.", "0.", "0."]);
+        let bytes = deck_text(cards);
+        assert!(parse_bytes(&bytes).is_err());
     }
 
     #[test]
