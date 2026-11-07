@@ -1,0 +1,9 @@
+[package]
+name = "aero-structural-analytic-oracle"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Bounded analytical verification fixtures for the AER-01 structural/aeroelastic evidence bridge"
+
+[workspace]
