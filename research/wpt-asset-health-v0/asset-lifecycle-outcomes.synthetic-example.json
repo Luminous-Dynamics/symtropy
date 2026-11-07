@@ -1,0 +1,89 @@
+{
+  "schema_version": "wpt-asset-lifecycle-outcomes-v0",
+  "estimand_id": "synthetic-first-target-failure-v0",
+  "records": [
+    {
+      "outcome_id": "synthetic-outcome-failure-001",
+      "asset_id": "synthetic-asset-failure-001",
+      "segment_id": "synthetic-segment-failure-001",
+      "material_lot_id": "synthetic-lot-a",
+      "installation_id": "synthetic-install-a",
+      "route_id": "synthetic-route-a",
+      "environmental_campaign_id": "synthetic-campaign-a",
+      "at_risk_start_utc": "2026-01-01T00:00:00Z",
+      "outcome_or_censor_utc": "2026-12-01T00:00:00Z",
+      "duration_hours": 8016,
+      "outcome_kind": "TARGET_FAILURE",
+      "event_code": "INSULATION_RESISTANCE_LIMIT",
+      "censor_reason": null,
+      "event_definition_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "split": "TRAIN",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "method_id": "synthetic-survival-oracle-v0",
+      "source_record_ids": [
+        "synthetic-observation-a1"
+      ],
+      "raw_artifact_sha256": null,
+      "source_locator": null,
+      "quality_flags": [
+        "SYNTHETIC_ONLY"
+      ]
+    },
+    {
+      "outcome_id": "synthetic-outcome-censored-001",
+      "asset_id": "synthetic-asset-censored-001",
+      "segment_id": "synthetic-segment-censored-001",
+      "material_lot_id": "synthetic-lot-b",
+      "installation_id": "synthetic-install-b",
+      "route_id": "synthetic-route-b",
+      "environmental_campaign_id": "synthetic-campaign-b",
+      "at_risk_start_utc": "2026-01-01T00:00:00Z",
+      "outcome_or_censor_utc": "2026-11-01T00:00:00Z",
+      "duration_hours": 7296,
+      "outcome_kind": "RIGHT_CENSORED",
+      "event_code": null,
+      "censor_reason": "STUDY_END",
+      "event_definition_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "split": "TEST",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "method_id": "synthetic-survival-oracle-v0",
+      "source_record_ids": [
+        "synthetic-observation-b1"
+      ],
+      "raw_artifact_sha256": null,
+      "source_locator": null,
+      "quality_flags": [
+        "SYNTHETIC_ONLY",
+        "RIGHT_CENSORED"
+      ]
+    },
+    {
+      "outcome_id": "synthetic-outcome-competing-001",
+      "asset_id": "synthetic-asset-competing-001",
+      "segment_id": "synthetic-segment-competing-001",
+      "material_lot_id": "synthetic-lot-c",
+      "installation_id": "synthetic-install-c",
+      "route_id": "synthetic-route-c",
+      "environmental_campaign_id": "synthetic-campaign-c",
+      "at_risk_start_utc": "2026-01-01T00:00:00Z",
+      "outcome_or_censor_utc": "2026-08-01T00:00:00Z",
+      "duration_hours": 5088,
+      "outcome_kind": "COMPETING_EVENT",
+      "event_code": "PLANNED_REPLACEMENT",
+      "censor_reason": null,
+      "event_definition_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "split": "CALIBRATION",
+      "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+      "method_id": "synthetic-survival-oracle-v0",
+      "source_record_ids": [
+        "synthetic-observation-c1"
+      ],
+      "raw_artifact_sha256": null,
+      "source_locator": null,
+      "quality_flags": [
+        "SYNTHETIC_ONLY",
+        "COMPETING_RISK"
+      ]
+    }
+  ]
+}
