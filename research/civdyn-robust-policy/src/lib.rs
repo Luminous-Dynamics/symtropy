@@ -688,8 +688,7 @@ mod tests {
                         InterventionPolicy::ReserveProtected => 0.10,
                         InterventionPolicy::DeficitFirst => 0.05,
                     };
-                    let service_coverage =
-                        0.99 - severity * 0.02 - policy_effect * 0.02;
+                    let service_coverage = 0.99 - severity * 0.02 - policy_effect * 0.02;
                     runs.push(PolicyRun {
                         design_point: point.clone(),
                         shock_kind: shock,
