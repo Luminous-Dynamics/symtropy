@@ -166,6 +166,33 @@
         "not_a_speed_benchmark": true
       },
       "comparability": "Motivates nondimensionalization, scale-aware precision, and non-monotonic resolution studies."
+    },
+    {
+      "id": "SEOBNRv6EPHM",
+      "kind": "generic_orbit_spin_precessing_EOB_waveform_model",
+      "reference": "https://arxiv.org/abs/2609.01568",
+      "domain": {
+        "systems": "generic-orbit, spin-precessing binary black holes; inspiral-merger-ringdown, dynamical capture and scattering",
+        "validation_waveforms": {
+          "quasicircular": 1437,
+          "eccentric": 87
+        },
+        "eccentricity": "generic orbital configurations; not restricted to quasicircular inspirals"
+      },
+      "reported_accuracy": {
+        "median_waveform_mismatch_below": 0.01,
+        "comparison": "against numerical-relativity waveforms",
+        "improvement_vs_TEOBResumS_Dali_median_factor": 4
+      },
+      "reported_performance": {
+        "speedup_vs_SEOBNRv5PHM_quasicircular_factor": [
+          2,
+          3
+        ],
+        "speedup_vs_TEOBResumS_Dali_up_to": 10
+      },
+      "implementation": "SEOBNRv6EPHM effective-one-body waveform model; not a neural surrogate",
+      "comparability": "Broadens the reference set to generic-orbit / eccentric precessing systems. Preserve the paper's waveform domain and NR validation split; mismatch values are not directly comparable to frequency-domain surrogate mismatches for different modes/domains."
     }
   ],
   "symtropy_differentiator": {
