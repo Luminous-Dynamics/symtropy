@@ -679,12 +679,17 @@ mod tests {
                         ShockKind::EnergySupply => 0.2,
                         ShockKind::CompoundWaterAndEnergy => 0.3,
                     };
+                    // The synthetic policy response is deliberately directional:
+                    // no-transfer has the largest unmet demand, followed by proportional
+                    // solidarity, reserve protection, and deficit-first allocation.
                     let policy_effect = match policy {
-                        InterventionPolicy::NoTransfer => 0.0,
-                        InterventionPolicy::ProportionalSolidarity => 0.2,
-                        InterventionPolicy::DeficitFirst => 0.3,
-                        InterventionPolicy::ReserveProtected => 0.1,
+                        InterventionPolicy::NoTransfer => 0.30,
+                        InterventionPolicy::ProportionalSolidarity => 0.15,
+                        InterventionPolicy::ReserveProtected => 0.10,
+                        InterventionPolicy::DeficitFirst => 0.05,
                     };
+                    let service_coverage =
+                        0.99 - severity * 0.02 - policy_effect * 0.02;
                     runs.push(PolicyRun {
                         design_point: point.clone(),
                         shock_kind: shock,
@@ -692,8 +697,8 @@ mod tests {
                         metrics: Some(metrics(
                             severity + policy_effect,
                             severity * 10.0 + policy_effect * 10.0,
-                            1.0 - severity - policy_effect,
-                            1.0 - severity - policy_effect,
+                            service_coverage,
+                            service_coverage,
                         )),
                     });
                 }
@@ -740,7 +745,7 @@ mod tests {
             .metric_regrets
             .iter()
             .find(|entry| {
-                entry.shock_kind == ShockKind::WaterSupply
+                entry.shock_kind == ShockKind::EnergySupply
                     && entry.policy == InterventionPolicy::NoTransfer
                     && entry.metric == OutcomeMetric::TotalUnmetEnergyKwh
             })
