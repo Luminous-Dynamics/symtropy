@@ -11,7 +11,7 @@ The tool calculates reference-schedule components independently of any optimizer
 - demand floor and 12-month top-three ratchet;
 - reactive-energy charge under the source-stated PF / 30% conditions;
 - optional 2% business/LPU surcharge only when a basis is supplied; it remains an assumption until explicitly confirmed against the actual account/invoice;
-- optional VAT only when a rate is explicitly supplied.
+- VAT only when both an explicit rate and the taxable basis are confirmed.
 
 It rejects:
 - time intervals that cross tariff bands (split them before evaluation);
@@ -23,7 +23,7 @@ The evaluator distinguishes a reference scenario from an invoice-equivalent clai
 - supply capacity exceeds 100 kVA;
 - industrial TOU application / approval is confirmed;
 - the actual account tariff/contract is confirmed;
-- VAT rate is supplied and all pre-VAT charge bases are calculable;
+- VAT rate and taxable basis are confirmed, and all pre-VAT charge bases are calculable;
 - any applicable 2% surcharge basis is explicitly resolved and marked confirmed.
 
 The budget-published energy charges exclude the 6 c/kWh network surcharge, 2% business/LPU surcharge and VAT. Fixed network charge and 6 c/kWh surcharge are separate charges.
@@ -45,7 +45,7 @@ With prior top-three demand values [125,125,125] kVA, the 80% ratchet floor is 1
 
 These are synthetic calculations; they do not describe a real site or reproduce an invoice.
 
-An assumed surcharge basis may be used for sensitivity analysis, but it does not create an invoice-equivalent total. VAT is withheld when the surcharge itself is not calculable from admitted inputs.
+An assumed surcharge basis may be used for sensitivity analysis, but it does not create an invoice-equivalent total. VAT is withheld when the surcharge itself is not calculable from admitted inputs or its taxable basis is not confirmed.
 
 ## Evidence boundary
 
