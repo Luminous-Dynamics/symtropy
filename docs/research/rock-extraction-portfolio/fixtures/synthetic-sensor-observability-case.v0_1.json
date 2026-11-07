@@ -230,7 +230,7 @@
       "pair_id": "normal-vs-ood",
       "state_a_id": "NORMAL_STABLE",
       "state_b_id": "UNKNOWN_OUT_OF_DOMAIN",
-      "critical": true,
+      "critical": false,
       "minimum_independent_principles": 1
     }
   ],
