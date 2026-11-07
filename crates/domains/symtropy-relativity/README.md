@@ -44,3 +44,19 @@ Next gates are Riemann curvature from connection derivatives, coordinate-invaria
 `cargo test -p symtropy-relativity`
 
 **Validation status:** 36 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there.
+
+
+## Versioned benchmark manifests
+
+- `benchmarks/analytic_reference_cases.json`: SI-valued Schwarzschild/Kerr fixtures spanning zero, small, intermediate, retrograde, near-extremal and extremal spin.
+- `benchmarks/direct_wave_sxs_spin_sweep.json`: exact ten SXS IDs and final spins from the Kankani–McWilliams counteranalysis, filter specification, competing horizon/News/BOB models and null controls.
+- `benchmarks/waveform_surrogate_baselines.json`: versioned literature baselines for NRSur7dq4 NN, NRSur7dq4v2, SEOBNRv5PHM_NNSur7dq10, AESur3dq8, eccentric NR surrogate and SpEC accuracy limits.
+
+These manifests describe expected references and benchmark design. They are not yet automatically loaded by the Rust tests and their literature figures have not been reproduced by this crate.
+
+## Numerical stability additions
+
+- Kerr inner horizon uses a rationalized formula to avoid subtractive cancellation at small spin.
+- Kerr surface gravity uses a dimensionless-spin expression that remains stable near extremality.
+- Kerr Boyer-Lindquist Delta is evaluated as `(r-r_plus)*(r-r_minus)` near the exterior horizon.
+- Levi-Civita connections expose a normalized metric-compatibility residual diagnostic.
