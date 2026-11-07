@@ -1,0 +1,99 @@
+{
+  "schema": "luminous.civdyn.crg-resource-bridge-manifest",
+  "schema_version": "0.1.0",
+  "epistemic_class": "SYNTHETIC_SCENARIO_ASSUMPTION",
+  "adapter_mode": "OPEN_LOOP_TRACE_REPLAY",
+  "policy_state_feedback": false,
+  "source_contracts": {
+    "collective_risk": {
+      "crate": "civdyn-collective-risk",
+      "version": "0.1.0",
+      "source_branch": "research/civdyn-collective-risk-2026-11"
+    },
+    "resource_ledger": {
+      "crate": "civdyn-resource-ledger",
+      "version": "0.1.0",
+      "source_branch": "research/civdyn-resource-ledger-2026-11"
+    }
+  },
+  "mapping": {
+    "crg_contribution_unit": 1,
+    "requested_resource": "energy",
+    "requested_resource_unit": "kWh",
+    "scenario_only": true,
+    "physical_conversion_claim": false
+  },
+  "game": {
+    "seats": 6,
+    "rounds": 10,
+    "endowment_per_seat": 40,
+    "allowed_actions": [0, 2, 4],
+    "shared_target": 120,
+    "risk_values": [0.1, 0.5, 0.9]
+  },
+  "world": {
+    "donor_regions": 6,
+    "shared_service_regions": 1,
+    "ticks": 10,
+    "donor_opening_stock_kWh": 50,
+    "donor_population": 1,
+    "donor_essential_demand_kWh_per_person_tick": 1,
+    "shared_population": 12,
+    "shared_essential_demand_kWh_per_person_tick": 1,
+    "initial_shared_stock_kWh": 0,
+    "exogenous_energy_production_kWh_per_tick": 0,
+    "water_and_food_demand": 0,
+    "transfer_order": "requests_are_applied_before_essential_demand",
+    "transfer_policy": "UNRESTRICTED"
+  },
+  "policy_rosters": [
+    "all_zero",
+    "all_fixed_fair_share",
+    "all_fixed_maximum",
+    "all_risk_pivot",
+    "heterogeneous_six_policy"
+  ],
+  "output": {
+    "format": "CSV",
+    "records_per_episode": 71,
+    "record_kinds": ["episode_summary", "agent_tick", "shared_tick"],
+    "columns": [
+      "record_type",
+      "scenario_id",
+      "risk",
+      "roster_id",
+      "agent_id",
+      "tick",
+      "policy",
+      "action_units",
+      "requested_kwh",
+      "delivered_kwh",
+      "donor_demand_kwh",
+      "donor_served_kwh",
+      "donor_unmet_kwh",
+      "donor_closing_kwh",
+      "shared_demand_kwh",
+      "shared_served_kwh",
+      "shared_unmet_kwh",
+      "shared_closing_kwh",
+      "game_total_contribution_units",
+      "game_target_reached",
+      "game_expected_group_welfare",
+      "game_payoff_gini",
+      "water_residual_m3",
+      "energy_residual_kwh",
+      "food_residual_kg"
+    ]
+  },
+  "claims_not_authorized": [
+    "closed_loop_agent_adaptation",
+    "human_causal_effect",
+    "physical_entropy_production",
+    "exergy_measurement",
+    "biological_metabolism",
+    "consciousness",
+    "love",
+    "welfare_or_moral_worth",
+    "universal_moral_obligation"
+  ]
+}
