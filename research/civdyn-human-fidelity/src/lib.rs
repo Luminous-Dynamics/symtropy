@@ -15,6 +15,7 @@ use std::collections::{BTreeMap, BTreeSet};
 const PROBABILITY_TOLERANCE: f64 = 1e-9;
 const LOG_FLOOR: f64 = 1e-15;
 const TAIL_FREQUENCY_MAX: f64 = 0.10;
+pub const MAX_BOOTSTRAP_REPLICATES: usize = 10_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObservedTrial {
@@ -285,9 +286,10 @@ impl fmt::Display for FidelityError {
             Self::EmptyBootstrapSizes => {
                 write!(f, "bootstrap population-size request must not be empty")
             }
-            Self::InvalidBootstrapReplicateCount(count) => {
-                write!(f, "bootstrap replicate count must be positive, got {count}")
-            }
+            Self::InvalidBootstrapReplicateCount(count) => write!(
+                f,
+                "bootstrap replicate count must be in 1..={MAX_BOOTSTRAP_REPLICATES}, got {count}"
+            ),
         }
     }
 }
@@ -538,8 +540,10 @@ pub fn bootstrap_population_coverage_curve(
     config: BootstrapConfig,
 ) -> Result<Vec<BootstrapCoveragePoint>, FidelityError> {
     dataset.validate()?;
-    if config.replicate_count == 0 {
-        return Err(FidelityError::InvalidBootstrapReplicateCount(0));
+    if config.replicate_count == 0 || config.replicate_count > MAX_BOOTSTRAP_REPLICATES {
+        return Err(FidelityError::InvalidBootstrapReplicateCount(
+            config.replicate_count,
+        ));
     }
     if requested_sizes.is_empty() {
         return Err(FidelityError::EmptyBootstrapSizes);
@@ -1382,6 +1386,17 @@ mod tests {
                 BootstrapConfig { seed: 1, replicate_count: 0 }
             ),
             Err(FidelityError::InvalidBootstrapReplicateCount(0))
+        ));
+        assert!(matches!(
+            bootstrap_population_coverage_curve(
+                &dataset,
+                &[5],
+                BootstrapConfig {
+                    seed: 1,
+                    replicate_count: MAX_BOOTSTRAP_REPLICATES + 1,
+                }
+            ),
+            Err(FidelityError::InvalidBootstrapReplicateCount(_))
         ));
         assert!(matches!(
             bootstrap_population_coverage_curve(
