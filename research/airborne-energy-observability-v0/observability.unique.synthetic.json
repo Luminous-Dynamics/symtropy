@@ -1,0 +1,111 @@
+{
+  "schema_version": "airborne-energy-observability-v0",
+  "case_id": "rf-segmented-beam-unique-known-truth-001",
+  "record_state": "FIXTURE",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "field": {
+    "modality": "RF_MICROWAVE",
+    "field_id": "synthetic-fixed-air-core-beam",
+    "field_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "field_revision": "synthetic-field-r0"
+  },
+  "receiver": {
+    "receiver_id": "synthetic-segmented-receiver-01",
+    "receiver_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "sensor_kind": "SEGMENTED_RF_POWER",
+    "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "observation_contract": {
+    "minimum_translation_separation_mm": 500,
+    "minimum_attitude_separation_mdeg": 5000,
+    "measurement_noise_tolerance": [
+      2,
+      2,
+      2
+    ]
+  },
+  "pose_samples": [
+    {
+      "pose_id": "pose-left",
+      "position_mm": [
+        -1000,
+        0,
+        1000
+      ],
+      "attitude_mdeg": [
+        0,
+        0,
+        0
+      ],
+      "observation_signature": [
+        10,
+        60,
+        20
+      ],
+      "received_power_microwatt": 450000,
+      "support_state": "IN_DOMAIN"
+    },
+    {
+      "pose_id": "pose-center",
+      "position_mm": [
+        0,
+        0,
+        1000
+      ],
+      "attitude_mdeg": [
+        0,
+        0,
+        0
+      ],
+      "observation_signature": [
+        50,
+        30,
+        40
+      ],
+      "received_power_microwatt": 450000,
+      "support_state": "IN_DOMAIN"
+    },
+    {
+      "pose_id": "pose-right",
+      "position_mm": [
+        1000,
+        0,
+        1000
+      ],
+      "attitude_mdeg": [
+        0,
+        0,
+        0
+      ],
+      "observation_signature": [
+        90,
+        10,
+        60
+      ],
+      "received_power_microwatt": 450000,
+      "support_state": "IN_DOMAIN"
+    },
+    {
+      "pose_id": "pose-outside",
+      "position_mm": [
+        9000,
+        0,
+        1000
+      ],
+      "attitude_mdeg": [
+        0,
+        0,
+        0
+      ],
+      "observation_signature": [
+        10,
+        60,
+        20
+      ],
+      "received_power_microwatt": 450000,
+      "support_state": "OUT_OF_DOMAIN"
+    }
+  ],
+  "expected_disposition": "UNIQUE_WITHIN_DECLARED_SAMPLE_SET",
+  "claim_ceiling": "Synthetic finite-sample observability fixture only. The signatures are invented known-truth values, not a physical 24 GHz beam model. Equal received-power values are deliberately not used as a position estimate. A unique result applies only to the declared in-domain sample set; it does not prove a continuous capture volume, hardware tracking, energy transfer or safety."
+}
