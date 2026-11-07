@@ -69,12 +69,13 @@ fn task(task_id: &str, segment: &str, start: u64, location: &str) -> AssistanceT
 
 fn reposition(resource_id: &str, from: &str, to: &str, duration: u64, id: &str) -> RepositionLeg {
     RepositionLeg {
+        leg_id: id.to_owned(),
         resource_id: resource_id.to_owned(),
         from_node_id: from.to_owned(),
         to_node_id: to.to_owned(),
         duration_ticks: duration,
         route_revision: "route-r1".to_owned(),
-        evidence: evidence(id, &format!("{resource_id}|{from}->{to}"), "route-r1"),
+        evidence: evidence(id, id, "route-r1"),
     }
 }
 
@@ -159,12 +160,12 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
         }
 
         if node != task.location_node_id {
-            let expected_subject = format!("{}|{}->{}", tug.tug_id, node, task.location_node_id);
             let Some(leg) = input.reposition_legs.iter().find(|leg| {
                 leg.from_node_id == node
                     && leg.to_node_id == task.location_node_id
                     && leg.route_revision == task.route_revision
-                    && leg.evidence.subject_id == expected_subject
+                    && leg.evidence.subject_id == leg.leg_id
+                    && leg.leg_id == format!("leg-{}-{}-{}", tug.tug_id, node, task.location_node_id)
                     && leg.evidence.subject_revision == task.route_revision
             }) else {
                 return false;
