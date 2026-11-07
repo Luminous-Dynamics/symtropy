@@ -177,7 +177,7 @@ The first source-level implementation is now present:
 
 ### What the exact oracle does
 
-It allocates integer input-power quanta over discrete time slots subject to:
+It allocates integer **site-source energy quanta per slot** over discrete time slots subject to:
 - shared PCC power cap for every slot;
 - total source-energy budget across the episode;
 - per-channel and per-session input-power caps;
@@ -188,11 +188,11 @@ It allocates integer input-power quanta over discrete time slots subject to:
 
 The bounded exact objective is lexicographic: maximize sessions meeting their minimum service floor; maximize the sorted minimum-to-maximum request-fulfilment ratios (leximin); maximize total useful energy; minimize source energy; maximize the count of time slots with positive ground and air delivery; then prefer earlier delivery with a stable tie-break. This treats sustained simultaneity as an explicit service objective, not a one-time episode flag. If the node bound is exhausted, the evaluator returns an error and emits no partial optimum.
 
-v0 bounds the scenario to 8 time slots, 8 channels, 8 sessions, 8 power quanta per slot and at most 1,000,000 search nodes. It models one aggregate grid/PCC source; storage, generation, multiple feeders, ramp dynamics and stochastic arrivals remain later increments.
+v0 bounds the scenario to 8 time slots, 8 channels, 8 sessions, 8 site-source energy quanta per slot and at most 1,000,000 search nodes. A quantum is Wh consumed over the whole slot, not an instantaneous power value. It models one aggregate grid/PCC source; storage, generation, multiple feeders, ramp dynamics and stochastic arrivals remain later increments.
 
 ### Fixture arithmetic (not physical performance)
 
-The synthetic fixture has a 3-quanta-per-slot PCC cap, four 60-second slots, an 80 Wh source budget, 10 Wh per input quantum-slot, a 16 Wh ground useful-energy request and a 12 Wh air useful-energy request. Its exact optimum allocates one air and one ground quantum in **all four slots**, delivering 12 Wh to the aircraft battery boundary and 16 Wh to the ground-vehicle battery boundary. Total synthetic useful energy is 28 Wh from 80 Wh of site input. The 35% arithmetic ratio is not a measured charging efficiency, and the fixture coefficients are not physical conversion models.
+The synthetic fixture has a 3-energy-quanta-per-slot PCC cap, four 60-second slots, an 80 Wh source budget and 10 Wh of site-source energy per quantum-slot. That makes one quantum 600 W average over a 60-second slot, and the 3-quantum PCC cap 1,800 W average. The fixture has a 16 Wh ground useful-energy request and a 12 Wh air useful-energy request. Its exact optimum allocates one air and one ground quantum in **all four slots**, delivering 12 Wh to the aircraft battery boundary and 16 Wh to the ground-vehicle battery boundary. Total synthetic useful energy is 28 Wh from 80 Wh of site input. The 35% arithmetic ratio is not a measured charging efficiency, and the fixture coefficients are not physical conversion models.
 
 Those values are invented known-truth arithmetic controls. The reported useful-to-source ratio is **not** an experimentally measured conversion efficiency, and the input coefficients are not electromagnetic or aircraft models.
 
@@ -345,3 +345,15 @@ Report reliability with denominators and confidence intervals. For example, 30/3
 ### Scope limitation of the v0 oracle
 
 The executable allocator remains a shared-source, synthetic scheduling oracle. Its input coefficients are synthetic mappings from site energy to useful endpoint energy; the named intermediate channel meter boundary is identity metadata in v0, not a separately simulated or measured conversion stage. It does not model landing dynamics, contact resistance, coil coupling, CPT fields, RF propagation, laser pointing, queueing, storage, feeder voltage dynamics or aircraft propulsion. Those require the domain owners and later adapters. The v0 exact result is an allocation proof for its discrete assumptions only.
+
+
+### Dimensional reporting correction
+
+The report no longer calls an energy-per-slot quantum a power quantum. It records:
+- Wh consumed at the declared site PCC per slot;
+- site-source energy quanta allocated to the ground and air domains;
+- average W over each fixed slot, derived exactly from Wh-per-quantum and slot duration;
+- the maximum PCC average-W envelope and the maximum observed slot average W;
+- per-session site-source Wh and average-W schedule.
+
+v0 requires the Wh-per-slot quantum to map to an exact integer average watt value for the declared slot duration; it rejects non-integral conversions rather than silently rounding. These are average real-power accounting values at the named PCC boundary, not instantaneous peaks, channel-input power or receiver-end useful power.
