@@ -13,6 +13,7 @@ const MAX_INPUTS: usize = 64;
 const MAX_OUTPUTS: usize = 32;
 const MAX_INSTRUCTIONS: usize = 512;
 const MAX_SAMPLES: usize = 2_000_000;
+const MAX_TOTAL_OUTPUT_SAMPLES: usize = 20_000_000;
 const NORMAL_CDF_U_EPSILON: f64 = 1.0e-15;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -43,9 +44,9 @@ pub struct ConvergenceReport {
     pub required_stable_tail_transitions: usize,
     pub last_instability_batch_index: Option<usize>,
     pub terminal_stable_transitions: usize,
-    pub maximum_mean_drift: f64,
-    pub maximum_standard_deviation_drift: f64,
-    pub maximum_quantile_drift: f64,
+    pub maximum_mean_drift: Option<f64>,
+    pub maximum_standard_deviation_drift: Option<f64>,
+    pub maximum_quantile_drift: Option<f64>,
     pub disposition: String,
 }
 
@@ -850,6 +851,18 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
     if sample_count < 1024 || sample_count > MAX_SAMPLES as u64 {
         push(&mut errors, "SAMPLE_COUNT_OUT_OF_RANGE", "$.simulation.sample_count", format!("sample_count must be between 1024 and {MAX_SAMPLES}"));
     }
+    if sample_count > 0
+        && outputs.len() > 0
+        && sample_count.checked_mul(outputs.len() as u64)
+            .is_none_or(|total| total > MAX_TOTAL_OUTPUT_SAMPLES as u64)
+    {
+        push(
+            &mut errors,
+            "TOTAL_OUTPUT_SAMPLE_BUDGET_EXCEEDED",
+            "$.simulation.sample_count",
+            format!("sample_count × output_count must not exceed {MAX_TOTAL_OUTPUT_SAMPLES} stored output values"),
+        );
+    }
     if batch_size < 128 || batch_size == 0 || sample_count % batch_size != 0 {
         push(&mut errors, "INVALID_BATCH_SIZE", "$.simulation.batch_size", "batch_size must be >= 128 and divide sample_count exactly");
     }
@@ -1108,13 +1121,25 @@ fn quantile_sorted(sorted: &[f64], probability: f64) -> f64 {
     }
 }
 
-fn summary_from_values(values: &[f64], probabilities: &[f64]) -> Option<BatchSummary> {
+fn sample_moments(values: &[f64]) -> Option<(f64, f64)> {
     if values.len() < 2 {
         return None;
     }
-    let n = values.len() as f64;
-    let mean = values.iter().sum::<f64>() / n;
-    let variance = values.iter().map(|value| (value - mean).powi(2)).sum::<f64>() / (n - 1.0);
+    let mut count = 0.0_f64;
+    let mut mean = 0.0_f64;
+    let mut sum_squared_deviations = 0.0_f64;
+    for value in values {
+        count += 1.0;
+        let delta = value - mean;
+        mean += delta / count;
+        let delta_after = value - mean;
+        sum_squared_deviations += delta * delta_after;
+    }
+    Some((mean, (sum_squared_deviations / (count - 1.0)).max(0.0).sqrt()))
+}
+
+fn summary_from_values(values: &[f64], probabilities: &[f64]) -> Option<BatchSummary> {
+    let (mean, standard_deviation) = sample_moments(values)?;
     let mut sorted = values.to_vec();
     sorted.sort_by(f64::total_cmp);
     let quantiles = probabilities
@@ -1123,7 +1148,7 @@ fn summary_from_values(values: &[f64], probabilities: &[f64]) -> Option<BatchSum
         .collect();
     Some(BatchSummary {
         mean,
-        standard_deviation: variance.max(0.0).sqrt(),
+        standard_deviation,
         quantiles,
     })
 }
@@ -1286,9 +1311,9 @@ fn convergence_for_output(
         required_stable_tail_transitions: required_tail,
         last_instability_batch_index: state.last_instability_batch,
         terminal_stable_transitions: terminal_stable,
-        maximum_mean_drift: state.maximum_mean_drift,
-        maximum_standard_deviation_drift: state.maximum_standard_deviation_drift,
-        maximum_quantile_drift: state.maximum_quantile_drift,
+        maximum_mean_drift: Some(state.maximum_mean_drift),
+        maximum_standard_deviation_drift: Some(state.maximum_standard_deviation_drift),
+        maximum_quantile_drift: Some(state.maximum_quantile_drift),
         disposition: if passes {
             "PASS_TERMINAL_NUMERICAL_STABILITY"
         } else if batch_index + 1 == batch_count {
@@ -1402,19 +1427,9 @@ pub fn evaluate_case(case: &Value) -> Result<EvaluationReport, Vec<Violation>> {
         let invalid_fraction = invalid as f64 / simulation.sample_count as f64;
         let mut sorted = values.clone();
         sorted.sort_by(f64::total_cmp);
-        let mean = if sorted.is_empty() {
-            None
-        } else {
-            Some(sorted.iter().sum::<f64>() / sorted.len() as f64)
-        };
-        let standard_deviation = if sorted.len() >= 2 {
-            let m = mean.expect("mean available");
-            let variance = sorted.iter().map(|value| (value - m).powi(2)).sum::<f64>()
-                / (sorted.len() - 1) as f64;
-            Some(variance.max(0.0).sqrt())
-        } else {
-            None
-        };
+        let moments = sample_moments(&sorted);
+        let mean = moments.map(|(mean, _)| mean);
+        let standard_deviation = moments.map(|(_, standard_deviation)| standard_deviation);
         let standard_error = standard_deviation
             .zip(Some(sorted.len()))
             .filter(|(_, count)| *count > 0)
@@ -1495,13 +1510,18 @@ pub fn evaluate_case(case: &Value) -> Result<EvaluationReport, Vec<Violation>> {
     let invalid_limit_failed = reports.iter().any(|report| report.disposition == "INVALID_SAMPLE_LIMIT_EXCEEDED");
     let quantile_failed = reports.iter().any(|report| report.disposition == "FAIL_MC_QUANTILE_PRECISION");
     let convergence_failed = reports.iter().any(|report| report.disposition == "NOT_CONVERGED" || report.disposition == "FAIL_NO_BATCH_SUMMARY");
+    let dependence_role = text(&case["dependence_model"], "evidence_role").unwrap_or("");
+    let input_roles: Vec<&str> = case["inputs"]
+        .as_array()
+        .expect("validated inputs")
+        .iter()
+        .map(|input| text(input, "evidence_role").unwrap_or(""))
+        .collect();
     let evidence_synthetic = text(case, "evidence_class") != Some("MEASURED")
-        || text(&case["dependence_model"], "evidence_role") == Some("SIMULATION_ONLY")
-        || inputs.iter().any(|input| {
-            let role = case["inputs"].as_array().unwrap()[input_indices[&input.id]]["evidence_role"]
-                .as_str().unwrap_or("");
-            role == "SIMULATION_ONLY"
-        });
+        || dependence_role == "SIMULATION_ONLY"
+        || input_roles.iter().any(|role| *role == "SIMULATION_ONLY");
+    let includes_expert_elicitation = dependence_role == "EXPERT_ELICITATION"
+        || input_roles.iter().any(|role| *role == "EXPERT_ELICITATION");
 
     let overall = if invalid_limit_failed {
         "INVALID_SAMPLE_LIMIT_EXCEEDED"
@@ -1511,6 +1531,8 @@ pub fn evaluate_case(case: &Value) -> Result<EvaluationReport, Vec<Violation>> {
         "NOT_CONVERGED"
     } else if evidence_synthetic {
         "SYNTHETIC_ONLY_NOT_DECISION_QUALIFIED"
+    } else if includes_expert_elicitation {
+        "EXPERT_ELICITATION_INPUTS_REVIEW_REQUIRED"
     } else {
         "MEASURED_INPUTS_REVIEW_REQUIRED"
     };
@@ -1519,6 +1541,8 @@ pub fn evaluate_case(case: &Value) -> Result<EvaluationReport, Vec<Violation>> {
         case_id: text(case, "case_id").expect("validated case ID").to_owned(),
         evidence_disposition: if evidence_synthetic {
             "SYNTHETIC_ONLY_NOT_PHYSICAL_QUALIFICATION"
+        } else if includes_expert_elicitation {
+            "MEASURED_AND_EXPERT_ELICITED_INPUTS_REVIEW_REQUIRED"
         } else {
             "MEASURED_INPUTS_REVIEW_REQUIRED"
         }
