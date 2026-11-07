@@ -232,6 +232,18 @@ Do not promote these thresholds to product requirements until mission owners, qu
 
 This document supplies the aircraft-specific experiment design. It does not create a second optimizer, solver registry, generic VOI algorithm or independent certification process.
 
+## 13A. Machine-readable execution contract
+
+The companion [architecture-discovery-benchmark-v0.1.json](./architecture-discovery-benchmark-v0.1.json) records the task families, candidate grammar, P0–P11 participant policies, total-cost categories, anti-leakage stages, primary metrics, hostile controls and prospective targets. It also defines topology-specific analysis nodes and activation gates:
+
+- common geometry, mass properties, low-order aerodynamics, mission and lifecycle nodes;
+- additional structural/aeroelastic nodes for load-path changes;
+- propeller/wing/flap interaction and asymmetric propulsion cases for blown-lift candidates;
+- electrical, installed-storage and thermal nodes for electric/hybrid candidates;
+- explicit failure/degraded-operation and manufacturing/inspection gates before qualified comparison.
+
+The graph is not a universal mandatory fixed sequence. A discipline may be skipped only when an independently checked conservative lower-fidelity bound proves it cannot change the preregistered decision. Otherwise it remains not assessed and any dependent claim is withheld. Every activation/skip, fidelity promotion, failure and cost receipt remains tied to the exact candidate, mission and configuration.
+
 ## 14. Claim ceiling
 
 A benchmark win means only that a method performed better on the frozen tasks, inputs, budgets, fidelity gates and evidence scope. It does not prove that a new aircraft is safe, flightworthy, certifiable, manufacturable or commercially superior. Those require independent aircraft-level analysis, qualified engineering, physical evidence and authority-governed processes.
