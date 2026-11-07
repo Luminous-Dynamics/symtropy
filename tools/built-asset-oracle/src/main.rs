@@ -627,7 +627,6 @@ mod tests {
         assert_eq!(evaluated.disposition, "STALE_EVIDENCE");
     }
 
- 
     #[test]
     fn wrong_coordinate_frame_blocks_geometry_evidence() {
         let corpus: Value = serde_json::from_str(CORPUS).expect("corpus parses");
