@@ -137,13 +137,9 @@ impl MetricComponents4 {
         let mut a = [[0.0; 4]; 4];
         for i in 0..4 {
             for j in 0..4 {
-                a[i][j] = self.basis_scales[i]
-                    * self.covariant[i][j]
-                    * self.basis_scales[j];
+                a[i][j] = self.basis_scales[i] * self.covariant[i][j] * self.basis_scales[j];
                 if !a[i][j].is_finite() {
-                    return Err(MetricError::ComputationNonFinite(
-                        "scaled metric component",
-                    ));
+                    return Err(MetricError::ComputationNonFinite("scaled metric component"));
                 }
             }
         }
@@ -219,9 +215,8 @@ impl MetricComponents4 {
             for j in 0..4 {
                 let mut sum = 0.0;
                 for k in 0..4 {
-                    let normalized = self.basis_scales[i]
-                        * self.covariant[i][k]
-                        * self.basis_scales[k];
+                    let normalized =
+                        self.basis_scales[i] * self.covariant[i][k] * self.basis_scales[k];
                     sum += normalized * inv[k][j];
                 }
                 let expected = if i == j { 1.0 } else { 0.0 };
@@ -268,7 +263,10 @@ impl fmt::Display for MetricError {
             }
             Self::SingularMatrix => write!(f, "metric component matrix is singular"),
             Self::InvalidBasisScale { coordinate, value } => {
-                write!(f, "metric basis scale for coordinate {coordinate} must be positive, got {value}")
+                write!(
+                    f,
+                    "metric basis scale for coordinate {coordinate} must be positive, got {value}"
+                )
             }
             Self::ComputationNonFinite(op) => write!(f, "{op} produced a non-finite result"),
         }
@@ -577,8 +575,11 @@ mod tests {
         let a = h.kerr_parameter_m();
         let rp = h.outer_horizon_radius_m();
         let cases = [
-            (h.ergosurface_radius_m(core::f64::consts::FRAC_PI_2).unwrap(),
-             core::f64::consts::FRAC_PI_2),
+            (
+                h.ergosurface_radius_m(core::f64::consts::FRAC_PI_2)
+                    .unwrap(),
+                core::f64::consts::FRAC_PI_2,
+            ),
             (rp + 1.0e-8 * rg, 1.0),
             (rp + 1.0e-6 * rg, 0.4),
         ];
@@ -587,20 +588,17 @@ mod tests {
             let sin_theta = theta.sin();
             let sin_squared = sin_theta * sin_theta;
             let sigma = r * r + a * a * theta.cos().powi(2);
-            let delta = (r - h.outer_horizon_radius_m())
-                * (r - h.inner_horizon_radius_m());
+            let delta = (r - h.outer_horizon_radius_m()) * (r - h.inner_horizon_radius_m());
 
             // Independent inverse in the analytic Kerr t-phi block.
             let mut expected = [[0.0; 4]; 4];
-            expected[0][0] = -(
-                (r * r + a * a).powi(2) - a * a * delta * sin_squared
-            ) / (sigma * delta);
+            expected[0][0] =
+                -((r * r + a * a).powi(2) - a * a * delta * sin_squared) / (sigma * delta);
             expected[0][3] = -2.0 * rg * a * r / (sigma * delta);
             expected[3][0] = expected[0][3];
             expected[1][1] = delta / sigma;
             expected[2][2] = 1.0 / sigma;
-            expected[3][3] = (delta - a * a * sin_squared)
-                / (sigma * delta * sin_squared);
+            expected[3][3] = (delta - a * a * sin_squared) / (sigma * delta * sin_squared);
 
             let metric = kerr_exterior_metric(h, r, theta).unwrap();
             let actual = metric.inverse().unwrap();
