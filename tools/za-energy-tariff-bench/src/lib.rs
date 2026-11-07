@@ -69,6 +69,7 @@ pub struct BillingCase {
     pub surcharge_basis: Option<SurchargeBasis>,
     pub surcharge_basis_confirmed: bool,
     pub vat_rate: Option<f64>,
+    pub vat_basis_confirmed: bool,
     pub intervals: Vec<Interval>,
 }
 
@@ -122,6 +123,7 @@ pub struct Evaluation {
     pub subtotal_basis_status: String,
     pub subtotal_before_vat_zar: f64,
     pub vat_zar: Option<f64>,
+    pub vat_basis_status: String,
     pub invoice_equivalent_total_zar: Option<f64>,
     pub warnings: Vec<String>,
     pub line_item_notes: Vec<String>,
@@ -414,7 +416,14 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
     let surcharge_confirmed = !case.apply_business_lpu_surcharge
         || (business_lpu_surcharge_zar.is_some() && case.surcharge_basis_confirmed);
     let subtotal_before_vat_zar = subtotal_before_surcharge_zar + surcharge_amount;
-    let vat_zar = if surcharge_calculable {
+    let vat_basis_status = if case.vat_rate.is_none() {
+        "vat_rate_not_supplied".to_owned()
+    } else if case.vat_basis_confirmed {
+        "vat_basis_confirmed".to_owned()
+    } else {
+        "vat_basis_not_confirmed".to_owned()
+    };
+    let vat_zar = if surcharge_calculable && case.vat_basis_confirmed {
         case.vat_rate.map(|rate| round2(subtotal_before_vat_zar * rate))
     } else {
         None
@@ -437,8 +446,8 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
             .to_owned(),
     );
 
-    let invoice_equivalent_total_zar = match (is_eligible, surcharge_confirmed, vat_zar) {
-        (true, true, Some(vat)) => Some(round2(subtotal_before_vat_zar + vat)),
+    let invoice_equivalent_total_zar = match (is_eligible, surcharge_confirmed, case.vat_basis_confirmed, vat_zar) {
+        (true, true, true, Some(vat)) => Some(round2(subtotal_before_vat_zar + vat)),
         _ => None,
     };
 
@@ -481,6 +490,7 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
         },
         subtotal_before_vat_zar: round2(subtotal_before_vat_zar),
         vat_zar,
+        vat_basis_status,
         invoice_equivalent_total_zar,
         warnings,
         line_item_notes: vec![
@@ -539,6 +549,7 @@ mod tests {
             surcharge_basis: None,
             surcharge_basis_confirmed: false,
             vat_rate: None,
+            vat_basis_confirmed: false,
             intervals: vec![Interval {
                 day_type: DayType::Weekday,
                 start_minute: 23 * 60,
@@ -675,6 +686,7 @@ mod tests {
         case.surcharge_basis = Some(SurchargeBasis::EnergyAndNetworkSurcharge);
         case.surcharge_basis_confirmed = false;
         case.vat_rate = Some(0.15);
+        case.vat_basis_confirmed = true;
         let result = evaluate(&case).expect("scenario calculation is allowed");
         assert!(result.business_lpu_surcharge_zar.is_some());
         assert!(result.vat_zar.is_some());
@@ -690,6 +702,7 @@ mod tests {
         case.surcharge_basis = Some(SurchargeBasis::EnergyAndNetworkSurcharge);
         case.surcharge_basis_confirmed = true;
         case.vat_rate = Some(0.15);
+        case.vat_basis_confirmed = true;
         let result = evaluate(&case).expect("confirmed reference inputs evaluate");
         assert!(result.business_lpu_surcharge_zar.is_some());
         assert!(result.vat_zar.is_some());
@@ -718,6 +731,18 @@ mod tests {
         case = base_case();
         case.power_factor = f64::NAN;
         assert!(evaluate(&case).expect_err("NaN PF must be rejected").contains("power_factor"));
+    }
+
+
+    #[test]
+    fn vat_rate_without_confirmed_taxable_basis_does_not_create_vat_or_invoice_total() {
+        let mut case = base_case();
+        case.vat_rate = Some(0.15);
+        case.vat_basis_confirmed = false;
+        let result = evaluate(&case).expect("reference scenario evaluates");
+        assert_eq!(result.vat_zar, None);
+        assert_eq!(result.vat_basis_status, "vat_basis_not_confirmed");
+        assert_eq!(result.invoice_equivalent_total_zar, None);
     }
 
     #[test]
