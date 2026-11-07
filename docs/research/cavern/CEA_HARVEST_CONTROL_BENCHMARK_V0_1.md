@@ -352,3 +352,21 @@ Include at least:
 20. currency, VAT or tariff component omitted from total billed-cost report.
 
 All tariff/emissions source values, dates, boundaries and verification limitations are captured in `za_energy_market_signal_reference_2026_27.v0_1.json`.
+
+### Additional City budget billing layers and source-text defect
+
+Annexure B of the same City budget (printed pages 78–81) describes the FY2026/27 proposed tariff schedule as **exclusive of**:
+- the **6 c/kWh Network Surcharge**;
+- the **2% surcharge on Business and Large Power Users**;
+- VAT.
+
+The budget's tariff-setting text says the 6 c/kWh Network Surcharge remains unchanged and applies to all customer categories, with residential customers exempt for the first 500 kWh/month. It separately states that a 2% surcharge is levied on business and large-power-user customers. The budget says the electricity tariff changes take effect from 1 July 2026. For a business/LPU CEA account, these additional charges need to be included according to the actual account/billing rules, but the 2% surcharge base and current VAT treatment must be confirmed from the account / billing documentation rather than guessed.
+
+**Do not confuse three different line items:**
+1. monthly network charge (R/month) in the three-part TOU tariff table;
+2. the separate per-kWh Network Surcharge (6 c/kWh) excluded from Annexure B;
+3. the energy charge (c/kWh), to which peak/standard/off-peak periods apply.
+
+The Saturday/public-holiday standard band is printed as `18h00-20h0` in the budget PDF. The reference fixture normalizes the likely intended endpoint to 20:00 but flags it as `INFERRED_FROM_TYPO_REQUIRES_CONFIRMATION`. Do not promote this interval into a production tariff billing engine without City Power confirmation or the customer's approved tariff statement.
+
+The machine-readable profile now contains the surcharge treatment, voltage classes, billing ratchet, source-text typo, account-eligibility caveat and an independent DFFE source-admission status. The latest DFFE 2024 report PDF returned an HTTP 502 during this audit; its values are retained as an official-notice-linked secondary transcription until the primary table is independently admitted.
