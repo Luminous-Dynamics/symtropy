@@ -167,15 +167,19 @@ fn posterior_after_outcome(
     Some((marginal, updated))
 }
 
+struct ScenarioSearchContext<'a> {
+    candidates: &'a [InterventionCandidate],
+    decision_config: &'a DecisionConfig,
+    planning_config: &'a ScenarioTreeConfig,
+    expanded_nodes: u64,
+}
+
 fn search_node(
     posterior: &Posterior,
-    candidates: &[InterventionCandidate],
-    decision_config: &DecisionConfig,
-    planning_config: &ScenarioTreeConfig,
     remaining_budget: f64,
     previous_candidate_id: Option<&str>,
     remaining_horizon: u32,
-    expanded_nodes: &mut u64,
+    context: &mut ScenarioSearchContext<'_>,
 ) -> Result<NodeValue, ScenarioTreeError> {
     if remaining_horizon == 0 {
         return Ok(NodeValue {
@@ -189,9 +193,9 @@ fn search_node(
         expanded_nodes
             .checked_add(1)
             .ok_or(ScenarioTreeError::NodeBudgetExceeded {
-                maximum: planning_config.maximum_tree_nodes,
+                maximum: context.planning_config.maximum_tree_nodes,
             })?;
-    if *expanded_nodes > planning_config.maximum_tree_nodes {
+    context.expanded_nodes = context.expanded_nodes; // no-op placeholder
         return Err(ScenarioTreeError::NodeBudgetExceeded {
             maximum: planning_config.maximum_tree_nodes,
         });
@@ -201,19 +205,19 @@ fn search_node(
         posterior: posterior.clone(),
         ambiguity_posteriors: Vec::new(),
         remaining_cost_budget: remaining_budget,
-        completed_experiments: planning_config.horizon - remaining_horizon,
+        completed_experiments: context.planning_config.horizon - remaining_horizon,
         model_adequacy: ModelAdequacy::Adequate,
         history: Vec::new(),
     };
 
-    let mut ordered_candidates: Vec<&InterventionCandidate> = candidates
+    let mut ordered_candidates: Vec<&InterventionCandidate> = context.candidates
         .iter()
         .filter(|candidate| {
             transition_allows(
                 previous_candidate_id,
                 &candidate.candidate_id,
-                &planning_config.transitions,
-            ) && reject_candidate(candidate, decision_config, &state).is_none()
+                &context.planning_config.transitions,
+            ) && reject_candidate(candidate, context.decision_config, &state).is_none()
         })
         .collect();
     ordered_candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
@@ -239,19 +243,16 @@ fn search_node(
                 }
                 let child = search_node(
                     &updated_posterior,
-                    candidates,
-                    decision_config,
-                    planning_config,
                     remaining_budget - candidate.cost,
                     Some(&candidate.candidate_id),
                     remaining_horizon - 1,
-                    expanded_nodes,
+                    context,
                 )?;
                 expected_future += marginal * child.value_nats;
             }
         }
 
-        let value = immediate_eig + planning_config.discount_factor * expected_future;
+        let value = immediate_eig + context.planning_config.discount_factor * expected_future;
         let replace = best.as_ref().is_none_or(|current| {
             value > current.value_nats
                 || (value == current.value_nats
@@ -313,17 +314,20 @@ pub fn plan_first_action(
     }
     validate_config(candidates, planning_config)?;
 
-    let mut nodes_expanded = 0;
-    let root = search_node(
-        posterior,
+    let mut context = ScenarioSearchContext {
         candidates,
         decision_config,
         planning_config,
+        expanded_nodes: 0,
+    };
+    let root = search_node(
+        posterior,
         cost_budget,
         None,
         planning_config.horizon,
-        &mut nodes_expanded,
+        &mut context,
     )?;
+    let nodes_expanded = context.expanded_nodes;
     let first_candidate_id = root
         .selected_candidate_id
         .ok_or(ScenarioTreeError::NoFeasibleFirstAction)?;
