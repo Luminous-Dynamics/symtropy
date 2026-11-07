@@ -479,5 +479,92 @@
     "No negative environmental sample, single reservoir assay or sanitation record independently certifies food safety or authorizes produce release.",
     "Do not create cross-connections between root-zone solution, potable water, condensate, minewater/MTES and wastewater without qualified source, treatment and authority evidence."
   ],
-  "claim_ceiling": "Source-comparator registry only. It does not certify a hydroponic loop, water reuse, microbial safety, plant health, food release, discharge compliance or nutrient recovery process."
+  "claim_ceiling": "Source-comparator registry only. It does not certify a hydroponic loop, water reuse, microbial safety, plant health, food release, discharge compliance or nutrient recovery process.",
+  "regulatory_references": [
+    {
+      "source_id": "CODEX-CXC-53-2003-2017",
+      "title": "Code of Hygienic Practice for Fresh Fruits and Vegetables (CXC 53-2003; revised 2017)",
+      "jurisdiction": "CODEX_INTERNATIONAL",
+      "document_type": "CODE_OF_PRACTICE",
+      "source_date": "Adopted 2003; revisions 2010, 2012, 2013 and 2017",
+      "source_url": "https://www.nda.gov.za/images/Branches/AgricProducHealthFoodSafety/food-safety-and-quality-assurance/food-safety/audit-policy/cxc-codes-of-hygienic-practices-for-fresh-fruits-and-vegetables.pdf",
+      "clauses_or_sections": [
+        "2.1 Scope",
+        "3.1 Environmental Hygiene",
+        "3.2.1.1.3 Hydroponic water",
+        "3.2.2.2 Water supply",
+        "3.2.2.3 Drainage and waste disposal"
+      ],
+      "key_requirements": [
+        "Applies to fresh fruits and vegetables grown in protected facilities including hydroponic systems.",
+        "The nutrient solution used in hydroponics may enhance survival or growth of pathogens; recycled nutrient solution should be treated to minimize microbial and chemical contamination and water-delivery systems maintained/cleaned.",
+        "Non-potable water should use a separate identified system with no connection to, or reflux into, potable-water systems.",
+        "Evaluate present and previous site uses and adjoining land; mining extraction, hazardous waste, sewage treatment and industry are named as potential contamination sources.",
+        "Where irrigation water is known or likely to contain human pathogens and connection failure can overspray or locally flood edible crops, consider no-harvest zones."
+      ],
+      "applicability_note": "International code-of-practice guidance, not automatically a South African statutory provision. It is directly relevant technical guidance for hydroponic fresh-produce systems; use the current adopted Codex text and competent local authority interpretation.",
+      "authority_boundary": "Does not itself certify water, site, crop or food lot, prescribe a universal sampling plan, or replace South African law / local authority decisions."
+    },
+    {
+      "source_id": "ZA-DOH-R638-2018",
+      "title": "Regulations Governing General Hygiene Requirements for Food Premises, the Transport of Food and Related Matters, R638 of 22 June 2018",
+      "jurisdiction": "SOUTH_AFRICA",
+      "document_type": "ACT_REGULATION",
+      "source_date": "2018-06-22",
+      "source_url": "https://www.gov.za/sites/default/files/gcis_document/201806/41730gon638.pdf",
+      "clauses_or_sections": [
+        "Regulation 1 definitions",
+        "Regulation 3 Certificate of Acceptability",
+        "Regulation 4 prohibition on handling/transport",
+        "Regulation 5 food premises",
+        "Regulation 6 facilities",
+        "Regulation 13 food transport"
+      ],
+      "key_requirements": [
+        "Food-premises handling is subject to a valid Certificate of Acceptability, subject to stated exceptions and specific-food regulations.",
+        "Certificate issuance follows inspection and local-authority process; certificate is not general business approval under all other laws.",
+        "A Certificate of Acceptability is not transferable between persons or premises and is valid for the nature of handling specified in its application/certificate.",
+        "Relevant changes to food-premises conditions under regulations 5/6 require advance written notification to the local authority.",
+        "The regulation defines 'water' as potable water complying with SANS 241; do not conflate this statutory term with every process-water or nutrient-solution use."
+      ],
+      "applicability_note": "Applies to food premises, food handling and transport within its scope. A specific CEA operation must determine whether its growing, harvest, packing, storage and transport activities are covered and which other specific-food requirements apply with the local authority.",
+      "authority_boundary": "A Certificate of Acceptability is not automatic product-safety certification, irrigation-water approval, all-legislation business approval or produce release."
+    },
+    {
+      "source_id": "ZA-DOH-R692-1997-AMENDED",
+      "title": "Regulations Governing Microbiological Standards for Foodstuffs and Related Matters, R692 of 16 May 1997, as amended",
+      "jurisdiction": "SOUTH_AFRICA",
+      "document_type": "ACT_REGULATION",
+      "source_date": "1997-05-16; amendments listed through R706 of 2011",
+      "source_url": "https://www.health.gov.za/wp-content/uploads/2024/10/Regulations-governing-microbiological-standards-for-foodstuffs-and-related-matters-R692-of-1997.pdf",
+      "clauses_or_sections": [
+        "Regulation 2 and Annex A microbiological methods/specifications",
+        "Product-specific provisions in the Schedule"
+      ],
+      "key_requirements": [
+        "The regulation links foodstuff examinations to the methods specified in Annex A.",
+        "Its Schedule contains food/product-specific microbiological provisions; do not infer a universal limit for every raw fresh vegetable, nutrient solution, environmental surface or process-water sample.",
+        "The product category, intended use, current amendments and applicable method must be confirmed before adopting any numerical criterion."
+      ],
+      "applicability_note": "South African foodstuff microbiological regulation. Its current product-specific application to the exact crop/product and sample matrix must be confirmed with the Department of Health / competent authority; it is not a generic environmental-monitoring specification.",
+      "authority_boundary": "Does not supply a universal hydroponic nutrient-solution or environmental-surface release threshold, nor does it by itself establish a complete CEA environmental monitoring programme."
+    },
+    {
+      "source_id": "ZA-DOH-FOOD-CONTROL-INDEX",
+      "title": "National Department of Health Food Control Regulations index",
+      "jurisdiction": "SOUTH_AFRICA",
+      "document_type": "GOVERNMENT_INDEX",
+      "source_date": "Current official index page accessed 7 November 2026",
+      "source_url": "https://www.health.gov.za/food-control-regulations/",
+      "clauses_or_sections": [
+        "Food Hygiene and Microbiology index"
+      ],
+      "key_requirements": [
+        "The official index currently lists R638 (2018), R692 (1997), R908 (HACCP system) and other food-hygiene / microbiology regulations.",
+        "Use the current official register and applicable amendment notices when determining the legal rule set."
+      ],
+      "applicability_note": "Index used to confirm which regulatory instruments the Department of Health currently lists; a listing alone does not determine the duties of a particular CEA business.",
+      "authority_boundary": "Not a legal opinion or permit; site/operator-specific applicability must be confirmed by qualified South African professionals and authorities."
+    }
+  ]
 }
