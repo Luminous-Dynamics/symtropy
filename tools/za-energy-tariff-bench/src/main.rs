@@ -5,9 +5,15 @@ use std::process::ExitCode;
 use za_energy_tariff_bench::{evaluate_fixture, Fixture};
 
 fn main() -> ExitCode {
-    let path = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "fixtures/synthetic-citypower-winter-demand-ratchet.json".to_owned());
+    let mut args = env::args().skip(1);
+    let Some(path) = args.next() else {
+        eprintln!("usage: za-energy-tariff-bench <fixture.json>");
+        return ExitCode::FAILURE;
+    };
+    if args.next().is_some() {
+        eprintln!("expected exactly one fixture path");
+        return ExitCode::FAILURE;
+    }
 
     let input = match fs::read_to_string(&path) {
         Ok(input) => input,
