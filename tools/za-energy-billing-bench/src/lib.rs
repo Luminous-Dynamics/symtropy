@@ -1259,6 +1259,9 @@ mod tests {
     fn unsupported_timezone_is_rejected() {
         let mut input = fixture();
         input.time_zone = "UTC".to_owned();
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::MissingEvidence("Africa/Johannesburg timebase"));
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::MissingEvidence("Africa/Johannesburg timebase")
+        );
     }
 }
