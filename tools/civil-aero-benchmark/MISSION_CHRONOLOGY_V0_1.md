@@ -26,7 +26,7 @@ The existing evaluator remains a steady-level cruise screen. This pilot therefor
 - schemas/aircraft-phase-state.schema.json — itemized mass records, exact configuration/source identities, predecessor digest, state digest, reference frame and expected mass properties.
 - schemas/phase-energy-balance.schema.json — bus, motor, shaft, energy-store, peak power and continuous power-limit fields.
 
-All values are synthetic SI test data. Hashes are fixture identifiers; they do not authenticate real aircraft source bytes.
+All values are synthetic SI test data. Each phase-state SHA-256 is recomputed from the canonical state payload: remove only state_sha256; serialize UTF-8 JSON with lexicographically sorted object keys, compact separators, preserved array order and no ASCII escaping; hash with SHA-256. previous_state_sha256 is included in the digest. This binds each digest to the supplied state content, but does not authenticate real aircraft source bytes.
 
 ## 3. Known-answer fixture
 
@@ -56,13 +56,14 @@ Bus, motor, shaft and storage arithmetic are independently replayed. These value
 ## 4. Independent oracle
 
 scripts/verify-mission-chronology.py uses only the Python standard library. It independently:
+- recomputes and verifies the canonical SHA-256 for each state payload;
 - computes total mass, CG and inertia for each state;
 - verifies ordered predecessor/state identity and phase continuity;
 - checks that only the explicitly declared fuel item changes across the two burn transitions;
 - checks bus, motor and shaft conservation separately;
 - checks energy-store transition, reserve margin and peak-vs-continuous source power;
 - refuses a feasible mission label while any required phase remains NOT_ASSESSED;
-- runs hostile negative controls for stale predecessor, bus imbalance, over-limit peak power, fuel mass gain, false-feasible mission status and duplicate mass items.
+- runs hostile negative controls for stale predecessor, modified state content with unchanged digest, bus imbalance, over-limit peak power, fuel mass gain with a rebuilt digest chain, reserve shortfall, false-feasible mission status and duplicate mass items.
 
 The dedicated workflow parses the three JSON schemas and fixture, then runs the independent oracle. JSON parsing is not a substitute for a full JSON Schema validator; the field-level semantics are independently checked by the fixture oracle and require further extension before a general external schema-validation claim.
 
