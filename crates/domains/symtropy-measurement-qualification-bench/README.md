@@ -11,10 +11,10 @@ Implements [issue #3961](https://github.com/Luminous-Dynamics/symtropy/issues/39
 ## v0.1 capabilities
 
 - Reference-artifact checks with certified values/uncertainty, repeated measurements, distinct sessions/operators/orientations and declared maximum error.
-- Conservative reference bias envelope: absolute mean bias + certified standard uncertainty + maximum observed repeat deviation + half descriptor-resolution quantum.
+- Conservative reference bias envelope: absolute mean bias + certificate's expanded uncertainty (with coverage factor) + maximum observed repeat deviation + half descriptor-resolution quantum.
 - Spatial resolution and feature-size admission; measurements below the declared resolution limit are not converted to zero.
 - Exact parent morphology case, interval, PSD-bin and descriptor definition binding.
-- Unique particle identities and one observation per independently declared acquisition block; clustered samples are rejected until a cluster-aware method is implemented.
+- Unique particle identities, distinct raw-image/segmentation artifacts, one observation per independently declared acquisition block, and a particle-size uncertainty interval wholly inside the exact parent PSD bin; clustered samples are rejected until a cluster-aware method is implemented.
 - Exact, distribution-free order-statistic confidence intervals for predeclared p05/p50/p95 quantile targets under the explicitly declared independent random-sampling design.
 - Precision gate: each interval width must satisfy a predeclared descriptor-unit maximum.
 - Censored values remain censored and prevent an exact quantile qualification.
