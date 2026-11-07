@@ -428,3 +428,97 @@ The next two mathematical stages are split into dedicated work items:
 - [BH-GEODESIC-001 #3982](https://github.com/Luminous-Dynamics/symtropy/issues/3982): timelike/null Schwarzschild and Kerr geodesics, conserved quantities, proper-time/affine parameter correctness, and independent Hamiltonian-vs-second-order formulations.
 
 The sequence is deliberately: metric -> first derivatives -> connection -> curvature -> geodesics -> perturbations/waveforms -> NR / detector-data comparisons. Do not skip tensor identities or invariants to reach a visual simulator faster.
+
+
+## Research update — waveform surrogates and direct-wave model discrimination (2026-11-07)
+
+### 1. Direct-wave evidence now has three competing physical predictors
+
+The Nature report on GW250114 is peer-reviewed evidence for an extracted component under its declared rational-filter analysis. It is not, by itself, proof that the component universally measures Kerr horizon properties.
+
+The debate has materially advanced:
+
+- **Nature report:** Lu et al., 24 June 2026, DOI [10.1038/s41586-026-10696-0](https://www.nature.com/articles/s41586-026-10696-0), report a component in GW250114 with a 90%-credible matched-filter SNR of 15.8 (+0.1/-0.5) in Hanford and 17.1 (+0.1/-0.4) in Livingston, interpreted near 2*Omega_H with damping characterized by kappa. The article itself says these properties create a new channel for probing strong gravity.
+- **SXS counteranalysis:** Kankani & McWilliams, [arXiv:2607.02380](https://arxiv.org/abs/2607.02380), report no general correlation between extracted direct-wave frequency and horizon frequency / surface gravity over comparable-mass SXS systems with remnant spin |chi_f| >= about 0.5. They identify an incidental frequency crossing near chi_f≈0.7, note substantial damping evolution, and warn that mapping the component to horizon properties can create apparent area-law violations.
+- **BOB interpretation:** Kankani & McWilliams, PRD 114, 084025 (published 7 October 2026), DOI [10.1103/kjjd-nk8f](https://doi.org/10.1103/kjjd-nk8f), report that the direct-wave frequency follows a different spin dependence from the horizon frequency and instead tracks the gravitational-wave News frequency at the time of peak News amplitude.
+- **Independent modeling:** Dyer, Chung & Moore, PRL accepted 27 October 2026, DOI [10.1103/xftt-2n6t](https://doi.org/10.1103/xftt-2n6t), report extraction over multiple ringdown start times but find the direct-wave frequency deviates from the horizon value, limiting its utility as a horizon probe.
+
+This changes the central experiment. Compare at least three distinct predictors:
+1. Kerr horizon frequency, 2*Omega_H;
+2. News frequency at the peak News-amplitude time;
+3. Backwards-One-Body / prompt-plunge dynamics.
+
+Also compare freely fitted, time-evolving direct-wave frequency and damping; standard QNM / overtone / mode-mixing residual; and detector/noise/transient alternatives. The answer may depend on mass ratio and on comparable-mass versus EMRI regimes. Do not generalize either way beyond the tested parameter domain.
+
+### 2. Exact SXS spin-sweep cases and filter configuration
+
+Kankani & McWilliams list the following equal-mass, quasicircular, non-precessing SXS simulations:
+
+| SXS ID | Final spin chi_f |
+|---|---:|
+| SXS:BBH:2089 | 0.4942 |
+| SXS:BBH:2088 | 0.5478 |
+| SXS:BBH:3919 | 0.6215 |
+| SXS:BBH:4434 | 0.6864 |
+| SXS:BBH:0305 | 0.6921 |
+| SXS:BBH:2095 | 0.7447 |
+| SXS:BBH:3927 | 0.8029 |
+| SXS:BBH:2099 | 0.8574 |
+| SXS:BBH:3897 | 0.9075 |
+| SXS:BBH:0178 | 0.9499 |
+
+The paper's rational filter uses 7 prograde QNMs, 2 retrograde QNMs, and an additional prograde (l,m,n)=(3,2,0) mode to remove spherical-spheroidal mixing; analysis focuses on the (2,2) strain mode. It evaluates four fitting intervals around merger; exact interval bounds must be copied from the paper supplement before execution, never guessed.
+
+Sources: [Kankani & McWilliams arXiv manuscript and supplemental table](https://arxiv.org/abs/2607.02380); [SXS waveform database](https://data.black-holes.org/waveforms/).
+
+The corresponding machine-readable manifest is `crates/domains/symtropy-relativity/benchmarks/direct_wave_sxs_spin_sweep.json`.
+
+### 3. New waveform-surrogate state of the art
+
+Raw surrogate speed is advancing quickly, so building another uncalibrated MLP is not a credible differentiator.
+
+| Baseline | Reported capability | Relevance / caveat |
+|---|---|---|
+| NRSur7dq4 NN surrogate, arXiv:2607.24960 | Validated on 10,000 waveforms; q=1..4, spin magnitudes <=0.8; median sky-averaged mismatch 8.0e-5 to 1.7e-4, 95th percentiles below 1e-3; around 1 ms/waveform on NVIDIA L40S, ~10x single waveform and ~140x batch-64 throughput vs LALSimulation | Fast differentiable inference surrogate; these are its paper-reported hardware/domain results, not Symtropy results |
+| NRSur7dq4v2, arXiv:2609.07873 | Multi-domain inspiral/ringdown control, ell<=5 modes, 3-10x gains in remnant mass/spin estimates in reported QNM-fit tests, runtime complexity control, ~4x gwsurrogate package speedup | Strong ringdown-specific comparison; the 3-10x metric is remnant-parameter recovery, not a universal waveform mismatch reduction |
+| SEOBNRv5PHM_NNSur7dq10, PRD 114, 084042 | Reduced-order NN surrogate of SEOBNRv5PHM for generically precessing quasicircular binaries up to mass ratio 1:10 | Wider mass-ratio domain; pin exact implementation and validation tables before numerical comparisons |
+| AESur3dq8, PRD 114, 083047 | Autoencoder surrogate, mismatch of order 1e-4, reported millions of templates in under a second on modest resources | Different training lineage and domain; compare matched parameter slices |
+| NRSurE_q4NoSpin_22, PR Research 8, 023362 | Eccentric nonspinning q~4 waveform surrogate; median mismatch 4e-5, maximum 6e-4 | Useful eccentric benchmark, but not directly comparable to generic precessing surrogates |
+| SpEC accuracy study, arXiv:2610.24283 | Targeted domain/resolution choices reduce error; at high resolution floating-point error and disparate variable scales limit accuracy | Increasing resolution is not always monotonically beneficial; precision and nondimensionalization must be benchmarked |
+
+References:
+- [NRSur7dq4 NN](https://arxiv.org/abs/2607.24960)
+- [NRSur7dq4v2](https://arxiv.org/abs/2609.07873)
+- [SEOBNRv5PHM_NNSur7dq10](https://doi.org/10.1103/qt1n-gbv2)
+- [AESur3dq8](https://doi.org/10.1103/qqln-f8vy)
+- [Eccentric NR surrogate](https://doi.org/10.1103/5m8n-r746)
+- [SpEC accuracy limits](https://arxiv.org/abs/2610.24283)
+
+The versioned literature baseline lives at `crates/domains/symtropy-relativity/benchmarks/waveform_surrogate_baselines.json`.
+
+### 4. Our better-than-SOTA strategy: error-certified scientific surrogates
+
+Do not compete first on headline throughput. Compete on **time-to-posterior-accuracy with calibrated uncertainty**:
+
+- explicit parameter-domain and mode coverage;
+- held-out validation split by simulation family/configuration, not randomly adjacent parameter points;
+- calibrated waveform error distributions including tail coverage;
+- out-of-domain detection and safe abstention;
+- cross-model disagreement (NRSur7dq4, v2, LALSimulation/EOB, BOB) as an uncertainty and active-learning signal;
+- remnant mass/spin, QNM and ringdown consistency checks;
+- propagate waveform/model discrepancy into posterior coverage;
+- select the next expensive NR simulation where uncertainty or model disagreement most reduces posterior uncertainty;
+- benchmark against random and space-filling simulation selection at the same simulation budget.
+
+The target is not a universal surrogate. It is a bounded, independently validated surrogate whose applicability and uncertainty can be trusted.
+
+A dedicated work item is [BH-SURROGATE-CERT-001 #3998](https://github.com/Luminous-Dynamics/symtropy/issues/3998).
+
+### 5. New public data products for replication
+
+In addition to GWOSC strain and SXS numerical-relativity waveforms, pin:
+- [GWTC-5.0 Tests of General Relativity data release, Zenodo 21454847](https://zenodo.org/records/21454847), including FTI_TIGER, POL, pSEOB, QNMRF, RD and RES analysis products.
+- [Orthonormal QNM GW250114 data release, Zenodo 19601938](https://zenodo.org/records/19601938), with a 9.9 GB ringdown archive; use its published README and file hashes.
+- [Nature direct-wave analysis Zenodo package, 10.5281/zenodo.20017347](https://doi.org/10.5281/zenodo.20017347).
+
+These datasets support exact reproduction of multiple independent pipelines. Their hashes and software revisions should be included in Mycelix evidence packages.
