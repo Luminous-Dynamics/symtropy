@@ -56,7 +56,7 @@ pub enum CcdInputError {
     NegativeTimeStep,
     /// Plane normal contains NaN or infinity.
     NonFinitePlaneNormal,
-    /// Plane normal has zero or numerically degenerate length.
+    /// Plane normal has zero length.
     DegeneratePlaneNormal,
     /// Plane offset is NaN or infinity.
     NonFinitePlaneOffset,
@@ -77,7 +77,10 @@ fn stable_vector_norm<const D: usize>(value: &SVector<f64, D>) -> Option<f64> {
         return None;
     }
 
-    let scale = value.iter().map(|component| component.abs()).fold(0.0, f64::max);
+    let scale = value
+        .iter()
+        .map(|component| component.abs())
+        .fold(0.0, f64::max);
     if scale == 0.0 {
         return Some(0.0);
     }
@@ -243,10 +246,7 @@ pub fn sphere_sphere<const D: usize>(
     let dp = pos_b - pos_a;
     let relative_velocity = vel_b - vel_a;
     let radius_sum = radius_a + radius_b;
-    if !is_finite_vector(&dp)
-        || !is_finite_vector(&relative_velocity)
-        || !radius_sum.is_finite()
-    {
+    if !is_finite_vector(&dp) || !is_finite_vector(&relative_velocity) || !radius_sum.is_finite() {
         return None;
     }
 
@@ -310,7 +310,8 @@ pub fn sphere_sphere<const D: usize>(
         let center_a = pos_a + vel_a * toi;
         let center_b = pos_b + vel_b * toi;
         let delta = center_b - center_a;
-        if !is_finite_vector(&center_a) || !is_finite_vector(&center_b) || !is_finite_vector(&delta) {
+        if !is_finite_vector(&center_a) || !is_finite_vector(&center_b) || !is_finite_vector(&delta)
+        {
             return None;
         }
 
@@ -676,16 +677,9 @@ mod tests {
         for scale in [1e-20, 1e-6, 1.0, 1e6, 1e20] {
             let normal = SVector::from([0.0, scale, 0.0]);
             let offset = scale;
-            let hit = sphere_halfspace_checked(
-                &pos,
-                &velocity,
-                0.5,
-                &normal,
-                offset,
-                3.0,
-            )
-            .unwrap()
-            .unwrap();
+            let hit = sphere_halfspace_checked(&pos, &velocity, 0.5, &normal, offset, 3.0)
+                .unwrap()
+                .unwrap();
 
             assert!((hit.toi - expected.toi).abs() < 1e-12);
             assert!((hit.point - expected.point).norm() < 1e-12);
@@ -703,17 +697,9 @@ mod tests {
         let vel_a = SVector::from([1e-10, 0.0, 0.0]);
         let vel_b = SVector::zeros();
 
-        let hit = sphere_sphere_checked(
-            &pos_a,
-            &vel_a,
-            0.5,
-            &pos_b,
-            &vel_b,
-            0.5,
-            1e10,
-        )
-        .unwrap()
-        .unwrap();
+        let hit = sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1e10)
+            .unwrap()
+            .unwrap();
 
         assert!((hit.toi - 1e10).abs() < 1e-3);
         assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
