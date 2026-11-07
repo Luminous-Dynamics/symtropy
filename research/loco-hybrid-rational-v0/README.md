@@ -1,69 +1,95 @@
 # LOCO Hybrid Rational V0
 
-Dependency-free Rust reference fixtures for exact rational interval arithmetic and hybrid event-order enumeration.
+Dependency-free exact-rational reference fixtures for interval arithmetic and conservative hybrid event-order linearization.
 
-Issue: https://github.com/Luminous-Dynamics/symtropy/issues/4083
+Research parent: [LOCO-HYBRID-MATH-001 / #4113](https://github.com/Luminous-Dynamics/symtropy/issues/4113) and [LOCO-SETVAL-001 / #4083](https://github.com/Luminous-Dynamics/symtropy/issues/4083).
 
-## Scope
+## Purpose
 
-V0 deliberately implements only two bounded capabilities:
+The finite robust-viability oracle can only reason about the successor graph it receives. This crate tests a small part of the numerical bridge that must eventually generate that graph:
 
-1. Exact rational closed-interval arithmetic for one-dimensional affine images, including uncertain slope and offset intervals.
-2. Enumeration of every total event ordering consistent with caller-supplied closed event-time windows.
+- exact rational arithmetic;
+- closed rational intervals;
+- interval addition, subtraction, multiplication and affine images;
+- interval intersection and containment;
+- conservative enumeration of event-order linearizations from bounded event-time windows.
 
-The event windows are inputs. This package does not compute continuous trajectories, locate guard crossings, integrate ODEs, apply contact reset maps, or establish a complete hybrid reachable set.
+The crate is a reference fixture, not a continuous reachability solver.
 
-## Why exact rational intervals first
+## Arithmetic contract
 
-A finite-state viability oracle can be mathematically exact while its input transition graph is unsound. Conversely, naive floating-point min/max is not enough to claim a validated enclosure.
+A rational is stored in canonical form as a signed i128 numerator and strictly positive i128 denominator. Construction reduces by the greatest common divisor and normalizes sign. Arithmetic is checked; overflow and division by zero return explicit errors. There is no floating-point conversion, rounding, saturation or wrapping.
 
-This reference therefore starts with exact rational endpoints. Addition, subtraction, multiplication, division and comparison use checked i128 arithmetic. Products reduce common factors before multiplication where possible. Any unrepresentable result returns an explicit error; it is never rounded, saturated or wrapped.
+Some operations may return ArithmeticOverflow when an intermediate or comparison cross-product cannot be represented, even if a more sophisticated arbitrary-precision implementation could reduce it. This is intentionally fail-closed. The reference is bounded, not an arbitrary-precision number package.
 
-For uncertain affine coefficients, the interval product encloses all values over the supplied Cartesian product of the slope, state and offset intervals. This can be conservative, especially when variables are correlated. Correlations must not be discarded if doing so would invalidate the declared model relation.
+The interval endpoints are exact rational inputs. The crate does not establish that a user-supplied interval encloses a physical state, parameter, contact force, or event time.
 
-## Event ordering
+## Interval semantics
 
-For two event windows A and B:
-- if upper(A) < lower(B), A must precede B;
-- if their closed windows overlap or touch, both orders remain possible.
+All intervals are closed. Multiplication checks all four endpoint products. Affine images compute the interval extension of:
 
-The enumerator returns all total orders consistent with these necessary precedence constraints. Input order does not affect canonical output. A caller-supplied order limit returns an error rather than a partial order list.
+    y = slope * x + offset
 
-The enumerator does not prove that an event actually occurs or that its time window is sound. It only preserves all orders implied by the supplied windows.
+where all three quantities may be intervals.
 
-## Included tests
+This is a conservative interval extension. It may overestimate the true image when variables are dependent or correlated. The result is exact for the interval operations performed on the supplied rational intervals, not necessarily the tightest possible reachable set.
 
-Fifteen deterministic tests cover:
-- rational sign and common-factor reduction;
-- exact rational add/subtract/multiply/divide;
-- division-by-zero and arithmetic-overflow rejection;
-- interval multiplication across positive and negative endpoints;
-- uncertain affine images;
-- negative-slope affine mapping;
-- closed guard-style interval intersection, including shared boundaries;
-- disjoint intervals;
+The implementation does not use outward-rounded IEEE-754 arithmetic. Exact fractions avoid rounding for these fixtures; they do not solve continuous ODE reachability or establish a plant model.
+
+## Hybrid event-order semantics
+
+Each event has a caller-supplied closed time window. If the upper bound of event A is strictly below the lower bound of event B, A must precede B.
+
+For overlapping or merely touching windows, both total-order linearizations are retained. This is deliberately conservative and may include spurious orders. For example, windows [0, 1] and [1, 2] can represent A-before-B or simultaneity at t=1; retaining B-before-A is an additional conservative linearization, not a claim that reverse ordering is physically feasible.
+
+A total-order linearization is not a simultaneous-event reset model. When two impacts can be simultaneous and their physics are coupled, the caller must include an explicit joint guard/reset branch. Sequential reset maps must not be assumed to commute.
+
+Event enumeration is deterministic and bounded. If the configured maximum number of orders is exceeded, the function returns an error rather than a partial order list.
+
+## Included qualification fixtures
+
+Twenty deterministic Rust tests cover:
+
+- rational sign normalization, reduction and extreme signed values;
+- exact addition, subtraction, multiplication and division;
+- negative divisors and checked overflow;
+- interval multiplication across positive/negative domains;
+- uncertain affine images and negative slopes;
+- closed intersections, shared boundaries and disjoint intervals;
+- monotonicity of affine interval images under state-interval widening;
 - strictly separated, overlapping and touching event windows;
-- permutation-invariant event-order enumeration;
-- event-order resource-limit failure without partial output;
-- duplicate/negative-time event rejection;
-- empty event set behavior.
+- event-order input permutation;
+- finite-grid checks that no feasible strict order is omitted;
+- explicit conservatism for touching windows;
+- duplicate and negative-time event rejection;
+- event-order resource exhaustion and the empty-event case.
 
-## Run locally
+Independent Python Fraction cross-checks were also run during authoring against 200,000 randomized rational divisions and 100,000 randomized rational sums/products. Those checks are supplementary development evidence, not a substitute for exact-head Rust verification.
+
+## Commands
 
     cargo fmt --manifest-path research/loco-hybrid-rational-v0/Cargo.toml -- --check
     cargo test --manifest-path research/loco-hybrid-rational-v0/Cargo.toml --locked
     cargo clippy --manifest-path research/loco-hybrid-rational-v0/Cargo.toml --locked --all-targets -- -D warnings
 
-A dedicated Rust 1.96.0 workflow is defined in `.github/workflows/loco-hybrid-rational.yml`. Do not claim verification until all three commands pass on the exact PR head.
+A dedicated exact-head workflow is defined at .github/workflows/loco-hybrid-rational.yml. No CI pass is claimed until formatting, all tests and strict Clippy succeed at the exact PR head.
 
 ## Claim ceiling
 
-Passing tests qualify only this exact rational arithmetic and event-window enumeration implementation. They do not qualify:
-- continuous-time ODE integration;
-- guard-crossing time computation;
-- interval Taylor models or higher-dimensional flowpipes;
-- completeness of a physical contact/actuator model;
-- sound abstraction into #4061;
-- a physical robot safety guarantee.
+A passing fixture qualifies this implementation's rational arithmetic, interval operations and event-order overapproximation on the tested inputs only. It is not:
 
-The next extension should be a separately verified exact-rational guard/reset fixture and conservative export to the finite viability oracle. Only after that should the project add validated interval ODE integration and phase-conditioned hybrid tubes.
+- an outward-rounded floating-point interval library;
+- a validated ODE integrator or continuous reachable-set engine;
+- a guard-crossing-time estimator;
+- a physical contact or friction model;
+- a simultaneous-impact reset solver;
+- a sound continuous-to-finite abstraction;
+- a robot safety certificate.
+
+The next step is to add independently tested guard intersections and reset-image fixtures, then export conservative transitions into the finite oracle only after the #4083 abstraction obligations are satisfied.
+
+## Research baselines
+
+- Madabushi et al. (2026), Differentiable Invariant Sets for Hybrid Limit Cycles with Application to Legged Robots: https://arxiv.org/abs/2604.05108
+- Maoudj et al. (2026), SPINDER, an open-source 18-DoF hexapod robot with hierarchical CPG control and analytic IK: https://doi.org/10.1038/s41598-026-56856-0
+- Xue et al. (2026), Impact-Aware Robust Convex Model Predictive Control for Quadruped Locomotion on Uncertain Terrain: https://doi.org/10.1109/LRA.2026.3692086
