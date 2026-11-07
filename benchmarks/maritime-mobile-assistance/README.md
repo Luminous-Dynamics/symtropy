@@ -14,7 +14,7 @@ This crate **does not schedule vessels or choose assignments**. It verifies whet
 
 The upstream owner remains [MARITIME-FLEET-001 #3717 / PR #3724](https://github.com/Luminous-Dynamics/symtropy/pull/3724), which chooses fixed integer-tick operation placements under shared channel, lock, berth, terminal, water, energy and inland capacities.
 
-This mobile-assistance verifier consumes the fleet API's `OperationPlacement` and checks only the named-resource assignment layer. It does not add another search, scheduler, route planner, Pareto optimizer or shared-capacity oracle.
+This mobile-assistance verifier consumes the fleet API's `OperationPlacement` and checks only the named-resource assignment layer. The `evaluate_mobile_assistance_for_plan` entry point additionally proves that every assistance task exactly matches an operation in the supplied `FleetPlan` and the demand's selected participant/alternative. A forged time window, unselected alternative, missing demand selection or non-member operation is rejected. This is structural plan binding, not cryptographic provenance/authentication of the `FleetPlan` value. It does not add another search, scheduler, route planner, Pareto optimizer or shared-capacity oracle.
 
 ## Model boundary
 
