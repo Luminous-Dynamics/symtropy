@@ -17,3 +17,4 @@ path = "src/bin/resilience_uq_sweep.rs"
 
 [dependencies]
 civdyn-cross-scale-resilience = { path = "../civdyn-cross-scale-resilience" }
+civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
