@@ -942,5 +942,21 @@
         ]
       }
     }
-  ]
+  ],
+  "split_guard": {
+    "training_group_ids": [
+      "synthetic-building-train-A",
+      "synthetic-building-train-B"
+    ],
+    "evaluation_group_ids": [
+      "synthetic-building-heldout-C"
+    ],
+    "candidate_input_fields": [
+      "observed_points",
+      "sensor_pose",
+      "sensor_calibration",
+      "qualified_survey_product",
+      "candidate_model_revision"
+    ]
+  }
 }
