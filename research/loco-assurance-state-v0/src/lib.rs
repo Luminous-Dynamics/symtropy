@@ -158,17 +158,19 @@ pub fn evaluate_assurance(
         findings.push(AssuranceFinding::InvalidCertificateShape);
     }
 
-    if runtime.now_ns < certificate.issued_at_ns {
-        findings.push(AssuranceFinding::CertificateNotYetValid);
-    }
-    if runtime.now_ns > certificate.valid_until_ns {
-        findings.push(AssuranceFinding::CertificateExpired);
+    let clock_known = !runtime.clock_uncertain;
+    if !clock_known {
+        findings.push(AssuranceFinding::ClockUncertain);
+    } else {
+        if runtime.now_ns < certificate.issued_at_ns {
+            findings.push(AssuranceFinding::CertificateNotYetValid);
+        }
+        if runtime.now_ns > certificate.valid_until_ns {
+            findings.push(AssuranceFinding::CertificateExpired);
+        }
     }
     if runtime.model_digest != certificate.model_digest {
         findings.push(AssuranceFinding::ModelDigestMismatch);
-    }
-    if runtime.clock_uncertain {
-        findings.push(AssuranceFinding::ClockUncertain);
     }
 
     for (sensor_id, required_calibration) in &certificate.required_sensor_calibrations {
@@ -187,17 +189,21 @@ pub fn evaluate_assurance(
             findings.push(AssuranceFinding::SensorOutOfDistribution(sensor_id.clone()));
         }
 
-        match sensor.observed_at_ns {
-            None => findings.push(AssuranceFinding::SensorTimestampMissing(sensor_id.clone())),
-            Some(timestamp) if timestamp > runtime.now_ns => {
-                findings.push(AssuranceFinding::SensorTimestampInFuture(sensor_id.clone()));
+        if clock_known {
+            match sensor.observed_at_ns {
+                None => findings.push(AssuranceFinding::SensorTimestampMissing(sensor_id.clone())),
+                Some(timestamp) if timestamp > runtime.now_ns => {
+                    findings.push(AssuranceFinding::SensorTimestampInFuture(sensor_id.clone()));
+                }
+                Some(timestamp)
+                    if runtime.now_ns - timestamp > certificate.maximum_sensor_age_ns =>
+                {
+                    findings.push(AssuranceFinding::SensorStale(sensor_id.clone()));
+                }
+                Some(_) => {}
             }
-            Some(timestamp)
-                if runtime.now_ns - timestamp > certificate.maximum_sensor_age_ns =>
-            {
-                findings.push(AssuranceFinding::SensorStale(sensor_id.clone()));
-            }
-            Some(_) => {}
+        } else if sensor.observed_at_ns.is_none() {
+            findings.push(AssuranceFinding::SensorTimestampMissing(sensor_id.clone()));
         }
     }
 
@@ -218,37 +224,41 @@ pub fn evaluate_assurance(
         findings.push(AssuranceFinding::ActuatorDerated);
     }
 
-    if runtime.compute_started_at_ns > runtime.now_ns {
-        findings.push(AssuranceFinding::ComputeStartInFuture);
-    }
-    if runtime.now_ns > runtime.action_deadline_at_ns {
-        findings.push(AssuranceFinding::ComputeDeadlineMissed);
-    }
+    if clock_known {
+        if runtime.compute_started_at_ns > runtime.now_ns {
+            findings.push(AssuranceFinding::ComputeStartInFuture);
+        }
+        if runtime.now_ns > runtime.action_deadline_at_ns {
+            findings.push(AssuranceFinding::ComputeDeadlineMissed);
+        }
 
-    match runtime.compute_completed_at_ns {
-        None => findings.push(AssuranceFinding::ComputeCompletionMissing),
-        Some(completed_at) if completed_at > runtime.now_ns => {
-            findings.push(AssuranceFinding::ComputeCompletionInFuture);
-            if completed_at > runtime.action_deadline_at_ns {
-                findings.push(AssuranceFinding::ComputeDeadlineMissed);
+        match runtime.compute_completed_at_ns {
+            None => findings.push(AssuranceFinding::ComputeCompletionMissing),
+            Some(completed_at) if completed_at > runtime.now_ns => {
+                findings.push(AssuranceFinding::ComputeCompletionInFuture);
+                if completed_at > runtime.action_deadline_at_ns {
+                    findings.push(AssuranceFinding::ComputeDeadlineMissed);
+                }
+            }
+            Some(completed_at) if completed_at < runtime.compute_started_at_ns => {
+                findings.push(AssuranceFinding::ComputeTimeReversed);
+            }
+            Some(completed_at) => {
+                if completed_at > runtime.action_deadline_at_ns {
+                    findings.push(AssuranceFinding::ComputeDeadlineMissed);
+                }
+                if completed_at - runtime.compute_started_at_ns
+                    > certificate.maximum_compute_latency_ns
+                {
+                    findings.push(AssuranceFinding::ComputeLatencyExceeded);
+                }
+                if runtime.now_ns - completed_at > certificate.maximum_command_age_ns {
+                    findings.push(AssuranceFinding::CommandAgeExceeded);
+                }
             }
         }
-        Some(completed_at) if completed_at < runtime.compute_started_at_ns => {
-            findings.push(AssuranceFinding::ComputeTimeReversed);
-        }
-        Some(completed_at) => {
-            if completed_at > runtime.action_deadline_at_ns {
-                findings.push(AssuranceFinding::ComputeDeadlineMissed);
-            }
-            if completed_at - runtime.compute_started_at_ns
-                > certificate.maximum_compute_latency_ns
-            {
-                findings.push(AssuranceFinding::ComputeLatencyExceeded);
-            }
-            if runtime.now_ns - completed_at > certificate.maximum_command_age_ns {
-                findings.push(AssuranceFinding::CommandAgeExceeded);
-            }
-        }
+    } else if runtime.compute_completed_at_ns.is_none() {
+        findings.push(AssuranceFinding::ComputeCompletionMissing);
     }
 
     AssuranceReport::from_findings(findings)
@@ -513,6 +523,31 @@ mod tests {
         let mut future = runtime();
         future.compute_completed_at_ns = Some(101);
         assert_eq!(evaluate_assurance(&certificate(), &future).status, AssuranceStatus::Unknown);
+    }
+
+    #[test]
+    fn clock_uncertainty_does_not_use_untrusted_time_to_expire_evidence() {
+        let mut current = runtime();
+        current.now_ns = 1_000;
+        current.clock_uncertain = true;
+        let report = evaluate_assurance(&certificate(), &current);
+        assert_eq!(report.status, AssuranceStatus::Unknown);
+        assert!(!report.findings.contains(&AssuranceFinding::CertificateExpired));
+        assert!(!report.findings.contains(&AssuranceFinding::SensorStale(
+            "imu".to_owned()
+        )));
+        assert!(report.findings.contains(&AssuranceFinding::ClockUncertain));
+    }
+
+    #[test]
+    fn clock_uncertainty_does_not_hide_independent_actuator_failure() {
+        let mut current = runtime();
+        current.clock_uncertain = true;
+        current.actuator.derated = true;
+        let report = evaluate_assurance(&certificate(), &current);
+        assert_eq!(report.status, AssuranceStatus::Invalid);
+        assert!(report.findings.contains(&AssuranceFinding::ClockUncertain));
+        assert!(report.findings.contains(&AssuranceFinding::ActuatorDerated));
     }
 
     #[test]
