@@ -52,7 +52,7 @@ fn scenarios() -> Vec<(&'static str, ModelPassport)> {
         .expected_direction = civdyn_themp_passport::ExpectedDirection::Positive;
 
     let mut inference_as_validation = reference.clone();
-    inference_as_validation.evidence_uses[2].evidence_class = EvidenceClass::ModelInference;
+    inference_as_validation.evidence_uses[2].evidence_class = Some(EvidenceClass::ModelInference);
 
     vec![
         ("reference", reference),
