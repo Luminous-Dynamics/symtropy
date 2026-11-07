@@ -197,6 +197,21 @@ pub struct SourceRecord {
     pub locator: String,
     /// SHA-256 asserted for the exact source bytes. This crate does not fetch those bytes.
     pub sha256: String,
+    /// Time this source artifact or measurement record was acquired, in UTC.
+    pub captured_at_utc: String,
+    /// Present for direct physical measurements; calibration metadata is retained
+    /// separately from the measured article and instrument identity.
+    pub measurement: Option<SourceMeasurement>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceMeasurement {
+    pub measured_at_utc: String,
+    pub physical_article_id: String,
+    pub instrument_reference: String,
+    pub calibration_reference: String,
+    pub calibration_revision: String,
+    pub calibration_sha256: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -619,6 +634,7 @@ impl MassEvidenceLedger {
             || state.aircraft_family != self.aircraft_family
             || state.aircraft_model != self.aircraft_model
             || state.serial_number != self.serial_number
+            || state.reference_frame_id != self.reference_frame_id
         {
             return Err("state digest aircraft identity does not match evidence ledger".to_owned());
         }
@@ -1804,6 +1820,50 @@ mod tests {
         assert!((report.total_mass_standard_uncertainty_kg.unwrap() - expected).abs() < 1.0e-12);
         assert_eq!(report.cg_uncertainty_m, None);
         assert_eq!(report.inertia_uncertainty_kg_m2, None);
+    }
+
+    #[test]
+    fn state_digest_rejects_a_mismatched_reference_frame() {
+        let ledger = fixture_ledger(CONFIG);
+        let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
+        state.reference_frame_id = "different-datum".to_owned();
+        let error = ledger
+            .state_sha256(&state)
+            .expect_err("digest must refuse a mismatched frame");
+        assert!(error.contains("state digest aircraft identity does not match evidence ledger"));
+    }
+
+    #[test]
+    fn direct_measurement_requires_article_instrument_and_calibration_provenance() {
+        let mut ledger = fixture_ledger(CONFIG);
+        let record = ledger
+            .records
+            .iter_mut()
+            .find(|record| record.item.id == "fuel_tank")
+            .expect("fuel record");
+        record.evidence_class = MassEvidenceClass::DirectlyMeasured;
+        let state = make_state(&ledger, LoadingStateKind::Takeoff);
+        let error = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect_err("direct measurements require metrology provenance");
+        assert!(error.contains("directly measured item requires measurement and calibration metadata"));
+
+        record.source.measurement = Some(SourceMeasurement {
+            measured_at_utc: "2026-11-06T12:00:00Z".to_owned(),
+            physical_article_id: "SYNTH-001/fuel-tank".to_owned(),
+            instrument_reference: "scale:SYNTH-SCALE-01".to_owned(),
+            calibration_reference: "calibration:SYNTH-CERT-01".to_owned(),
+            calibration_revision: "rev-3".to_owned(),
+            calibration_sha256: SOURCE_A.to_owned(),
+        });
+        let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
+        state.source_generation_sha256 = ledger
+            .source_generation_sha256()
+            .expect("measurement-bound source generation");
+        let report = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect("direct measurement with complete metadata");
+        assert_eq!(report.status, StateEvidenceStatus::CompleteForScreening);
     }
 
     #[test]
