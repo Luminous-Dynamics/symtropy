@@ -129,7 +129,9 @@ fn task(task_id: &str, spec: TaskSpec<'_>) -> AssistanceTask {
 }
 
 fn leg(resource_id: &str, from: &str, to: &str, duration: u64) -> RepositionLeg {
+    let leg_id = format!("leg-{resource_id}-{from}-{to}");
     RepositionLeg {
+        leg_id: leg_id.clone(),
         resource_id: resource_id.to_owned(),
         from_node_id: from.to_owned(),
         to_node_id: to.to_owned(),
@@ -140,7 +142,7 @@ fn leg(resource_id: &str, from: &str, to: &str, duration: u64) -> RepositionLeg 
             EvidenceState::Current,
             0,
             40,
-            &format!("{resource_id}|{from}->{to}"),
+            &leg_id,
             "route-r1",
         ),
     }
@@ -613,7 +615,7 @@ fn capability_evidence_must_bind_to_the_exact_tug_identity_and_revision() {
 #[test]
 fn reposition_evidence_must_bind_to_the_exact_directed_route_leg() {
     let mut input = workload();
-    input.reposition_legs[0].evidence.subject_id = "anchorage->different-node".to_owned();
+    input.reposition_legs[0].evidence.subject_id = "different-leg-id".to_owned();
     assert_eq!(
         evaluate_mobile_assistance(&input),
         Err(MobileError::InvalidEvidenceReceipt(
