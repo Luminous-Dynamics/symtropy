@@ -391,7 +391,14 @@ impl SplitMix64 {
     }
 
     fn index(&mut self, upper_exclusive: usize) -> usize {
-        (self.next_u64() % upper_exclusive as u64) as usize
+        let bound = upper_exclusive as u64;
+        let rejection_threshold = bound.wrapping_neg() % bound;
+        loop {
+            let value = self.next_u64();
+            if value >= rejection_threshold {
+                return (value % bound) as usize;
+            }
+        }
     }
 }
 
