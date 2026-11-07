@@ -188,6 +188,7 @@
             "paper_full_benchmark",
             "paper_detailed_stats",
             "paper_evaluation_results",
+            "paper_run_attestation",
             "paper_raw_responses",
             "community_run_manifest",
             "community_responses",
@@ -361,7 +362,19 @@
         {
           "properties": {
             "artifacts": {
-              "minItems": 3
+              "minItems": 4,
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "const": "paper_run_attestation"
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              },
+              "minContains": 1
             }
           }
         }
