@@ -1,0 +1,78 @@
+{
+  "schema_version": "ground-air-coexistence-scenario-v0",
+  "episode_id": "shared-site-ground-air-known-truth-01",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "quality_flags": [
+    "SYNTHETIC_ONLY"
+  ],
+  "site": {
+    "site_id": "synthetic-logistics-hub-01",
+    "grid_source_id": "synthetic-grid-source-01",
+    "pcc_max_input_quanta_per_slot": 3,
+    "total_source_energy_budget_wh": 80,
+    "source_energy_wh_per_quantum_slot": 10,
+    "source_power_boundary_id": "SITE_PCC_GRID_AC_INPUT"
+  },
+  "time_grid": {
+    "slot_duration_ms": 60000,
+    "slot_count": 4
+  },
+  "channels": [
+    {
+      "channel_id": "air-dock-channel-01",
+      "domain": "AIR",
+      "modality": "AIR_DOCK_INDUCTIVE",
+      "maximum_input_quanta_per_slot": 2,
+      "envelope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "support_state": "DECLARED_SYNTHETIC_SUPPORT",
+      "coexistence_state": "NOT_EVALUATED_SYNTHETIC_ONLY",
+      "safety_state": "NOT_EVALUATED_SYNTHETIC_ONLY",
+      "channel_input_boundary_id": "AIR_DOCK_INVERTER_DC_INPUT"
+    },
+    {
+      "channel_id": "ground-road-channel-01",
+      "domain": "GROUND",
+      "modality": "GROUND_DYNAMIC_INDUCTIVE",
+      "maximum_input_quanta_per_slot": 2,
+      "envelope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "support_state": "DECLARED_SYNTHETIC_SUPPORT",
+      "coexistence_state": "NOT_EVALUATED_SYNTHETIC_ONLY",
+      "safety_state": "NOT_EVALUATED_SYNTHETIC_ONLY",
+      "channel_input_boundary_id": "GROUND_ROAD_INVERTER_DC_INPUT"
+    }
+  ],
+  "sessions": [
+    {
+      "session_id": "air-uav-01",
+      "domain": "AIR",
+      "receiver_class": "UAV_DOCKED",
+      "channel_id": "air-dock-channel-01",
+      "start_slot": 0,
+      "end_slot": 4,
+      "requested_useful_energy_wh": 12,
+      "minimum_useful_energy_wh": 12,
+      "maximum_input_quanta_per_slot": 2,
+      "useful_energy_wh_per_input_quantum_slot": 3,
+      "authorization_state": "SYNTHETIC_FIXTURE_ONLY",
+      "useful_energy_boundary_id": "AIRCRAFT_BATTERY_TERMINAL_INPUT"
+    },
+    {
+      "session_id": "ground-truck-01",
+      "domain": "GROUND",
+      "receiver_class": "ROAD_HEAVY_TRUCK",
+      "channel_id": "ground-road-channel-01",
+      "start_slot": 0,
+      "end_slot": 4,
+      "requested_useful_energy_wh": 16,
+      "minimum_useful_energy_wh": 16,
+      "maximum_input_quanta_per_slot": 2,
+      "useful_energy_wh_per_input_quantum_slot": 4,
+      "authorization_state": "SYNTHETIC_FIXTURE_ONLY",
+      "useful_energy_boundary_id": "GROUND_VEHICLE_BATTERY_TERMINAL_INPUT"
+    }
+  ],
+  "policy": {
+    "maximum_search_nodes": 100000,
+    "require_concurrent_delivery": true
+  }
+}

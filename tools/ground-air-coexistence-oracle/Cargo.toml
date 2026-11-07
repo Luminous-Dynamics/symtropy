@@ -1,0 +1,10 @@
+[package]
+name = "ground-air-coexistence-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Bounded exact synthetic allocator for simultaneous ground-air energy sessions"
+
+[dependencies]
+serde_json = "1.0"
