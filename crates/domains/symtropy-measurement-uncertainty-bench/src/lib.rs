@@ -77,7 +77,7 @@ pub struct JointOutputDependence {
     pub units: Vec<String>,
     pub joint_valid_sample_count: usize,
     pub covariance_matrix: Vec<Vec<Option<f64>>>,
-    pub correlation_matrix: Vec<Vec<Option<f64>>>,
+    pub latent_gaussian_correlation_matrix: Vec<Vec<Option<f64>>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -503,37 +503,37 @@ fn cholesky(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> {
     Ok(lower)
 }
 
-fn validate_correlation_matrix(
+fn validate_latent_gaussian_correlation_matrix(
     value: &Value,
     input_count: usize,
     errors: &mut Vec<Violation>,
 ) -> Option<Vec<Vec<f64>>> {
     let Some(rows) = value.as_array() else {
-        push(errors, "MISSING_CORRELATION_MATRIX", "$.correlation_matrix", "correlation_matrix must be a square numeric array");
+        push(errors, "MISSING_CORRELATION_MATRIX", "$.latent_gaussian_latent_gaussian_correlation_matrix", "latent_gaussian_correlation_matrix must be a square numeric array");
         return None;
     };
     if rows.len() != input_count {
-        push(errors, "CORRELATION_MATRIX_SIZE_MISMATCH", "$.correlation_matrix", "correlation matrix row count must equal input count");
+        push(errors, "CORRELATION_MATRIX_SIZE_MISMATCH", "$.latent_gaussian_latent_gaussian_correlation_matrix", "correlation matrix row count must equal input count");
         return None;
     }
     let mut matrix = Vec::with_capacity(input_count);
     for (row_index, row) in rows.iter().enumerate() {
         let Some(columns) = row.as_array() else {
-            push(errors, "INVALID_CORRELATION_ROW", &format!("$.correlation_matrix[{row_index}]"), "each correlation row must be an array");
+            push(errors, "INVALID_CORRELATION_ROW", &format!("$.latent_gaussian_correlation_matrix[{row_index}]"), "each correlation row must be an array");
             return None;
         };
         if columns.len() != input_count {
-            push(errors, "CORRELATION_MATRIX_SIZE_MISMATCH", &format!("$.correlation_matrix[{row_index}]"), "each correlation row must equal input count");
+            push(errors, "CORRELATION_MATRIX_SIZE_MISMATCH", &format!("$.latent_gaussian_correlation_matrix[{row_index}]"), "each correlation row must equal input count");
             return None;
         }
         let mut parsed = Vec::with_capacity(input_count);
         for (column_index, item) in columns.iter().enumerate() {
             let Some(number) = item.as_f64().filter(|value| value.is_finite()) else {
-                push(errors, "NONFINITE_CORRELATION", &format!("$.correlation_matrix[{row_index}][{column_index}]"), "correlation coefficients must be finite");
+                push(errors, "NONFINITE_CORRELATION", &format!("$.latent_gaussian_correlation_matrix[{row_index}][{column_index}]"), "correlation coefficients must be finite");
                 return None;
             };
             if !(-1.0..=1.0).contains(&number) {
-                push(errors, "CORRELATION_OUT_OF_RANGE", &format!("$.correlation_matrix[{row_index}][{column_index}]"), "correlation coefficient must be in [-1,1]");
+                push(errors, "CORRELATION_OUT_OF_RANGE", &format!("$.latent_gaussian_correlation_matrix[{row_index}][{column_index}]"), "correlation coefficient must be in [-1,1]");
             }
             parsed.push(number);
         }
@@ -542,16 +542,16 @@ fn validate_correlation_matrix(
 
     for row in 0..input_count {
         if (matrix[row][row] - 1.0).abs() > VALIDATION_TOLERANCE {
-            push(errors, "CORRELATION_DIAGONAL_NOT_ONE", &format!("$.correlation_matrix[{row}][{row}]"), "correlation matrix diagonal must equal one");
+            push(errors, "CORRELATION_DIAGONAL_NOT_ONE", &format!("$.latent_gaussian_correlation_matrix[{row}][{row}]"), "correlation matrix diagonal must equal one");
         }
         for column in 0..input_count {
             if (matrix[row][column] - matrix[column][row]).abs() > VALIDATION_TOLERANCE {
-                push(errors, "CORRELATION_MATRIX_NOT_SYMMETRIC", &format!("$.correlation_matrix[{row}][{column}]"), "correlation matrix must be symmetric");
+                push(errors, "CORRELATION_MATRIX_NOT_SYMMETRIC", &format!("$.latent_gaussian_correlation_matrix[{row}][{column}]"), "correlation matrix must be symmetric");
             }
         }
     }
     if let Err(detail) = cholesky(&matrix) {
-        push(errors, "CORRELATION_MATRIX_NOT_POSITIVE_DEFINITE", "$.correlation_matrix", detail);
+        push(errors, "CORRELATION_MATRIX_NOT_POSITIVE_DEFINITE", "$.latent_gaussian_latent_gaussian_correlation_matrix", detail);
     }
     Some(matrix)
 }
@@ -741,8 +741,8 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
             push(&mut errors, "INVALID_INPUT_DISTRIBUTION", &format!("{path}.distribution"), "distribution must be a valid NORMAL, LOGNORMAL, UNIFORM or TRIANGULAR marginal with finite parameters");
         }
     }
-    let matrix = validate_correlation_matrix(
-        case.get("correlation_matrix").unwrap_or(&Value::Null),
+    let matrix = validate_latent_gaussian_correlation_matrix(
+        case.get("latent_gaussian_correlation_matrix").unwrap_or(&Value::Null),
         inputs.len(),
         &mut errors,
     );
@@ -1020,7 +1020,7 @@ fn parse_simulation(case: &Value) -> SimulationSpec {
 }
 
 fn cholesky_validated(case: &Value) -> Vec<Vec<f64>> {
-    let matrix: Vec<Vec<f64>> = case["correlation_matrix"]
+    let matrix: Vec<Vec<f64>> = case["latent_gaussian_latent_gaussian_correlation_matrix"]
         .as_array()
         .expect("validated correlation matrix")
         .iter()
@@ -1483,13 +1483,13 @@ pub fn evaluate_case(case: &Value) -> Result<EvaluationReport, Vec<Violation>> {
         });
     }
 
-    let (covariance_matrix, correlation_matrix) = joint_moments.matrices();
+    let (covariance_matrix, latent_gaussian_correlation_matrix) = joint_moments.matrices();
     let joint_dependence = JointOutputDependence {
         output_ids: outputs.iter().map(|output| output.id.clone()).collect(),
         units: outputs.iter().map(|output| output.unit.clone()).collect(),
         joint_valid_sample_count: joint_moments.count,
         covariance_matrix,
-        correlation_matrix,
+        latent_gaussian_correlation_matrix,
     };
 
     let invalid_limit_failed = reports.iter().any(|report| report.disposition == "INVALID_SAMPLE_LIMIT_EXCEEDED");
@@ -1616,7 +1616,7 @@ mod tests {
     fn shared_draws_preserve_joint_output_correlation() {
         let report = evaluate_case(&fixture()).unwrap();
         let covariance = &report.joint_output_dependence.covariance_matrix;
-        let correlation = &report.joint_output_dependence.correlation_matrix;
+        let correlation = &report.joint_output_dependence.latent_gaussian_correlation_matrix;
         assert!((covariance[0][1].unwrap() - (-0.0179147067)).abs() < 0.001);
         assert!((correlation[0][1].unwrap() - (-0.89199436)).abs() < 0.01);
         assert_eq!(report.joint_output_dependence.joint_valid_sample_count, 262_144);
@@ -1745,23 +1745,23 @@ mod tests {
     }
 
     #[test]
-    fn correlation_matrix_requires_symmetry() {
+    fn latent_gaussian_correlation_matrix_requires_symmetry() {
         let mut case = fixture();
-        case["correlation_matrix"][0][1] = serde_json::json!(0.2);
+        case["latent_gaussian_latent_gaussian_correlation_matrix"][0][1] = serde_json::json!(0.2);
         assert!(has(&validate_case(&case), "CORRELATION_MATRIX_NOT_SYMMETRIC"));
     }
 
     #[test]
-    fn correlation_matrix_requires_unit_diagonal() {
+    fn latent_gaussian_correlation_matrix_requires_unit_diagonal() {
         let mut case = fixture();
-        case["correlation_matrix"][1][1] = serde_json::json!(0.9);
+        case["latent_gaussian_latent_gaussian_correlation_matrix"][1][1] = serde_json::json!(0.9);
         assert!(has(&validate_case(&case), "CORRELATION_DIAGONAL_NOT_ONE"));
     }
 
     #[test]
-    fn singular_correlation_matrix_is_rejected_without_jitter() {
+    fn singular_latent_gaussian_correlation_matrix_is_rejected_without_jitter() {
         let mut case = fixture();
-        case["correlation_matrix"] = serde_json::json!([
+        case["latent_gaussian_latent_gaussian_correlation_matrix"] = serde_json::json!([
             [1.0,1.0,0.0,0.0],
             [1.0,1.0,0.0,0.0],
             [0.0,0.0,1.0,0.0],
@@ -1773,8 +1773,8 @@ mod tests {
     #[test]
     fn correlation_coefficients_must_be_in_range() {
         let mut case = fixture();
-        case["correlation_matrix"][0][1] = serde_json::json!(1.2);
-        case["correlation_matrix"][1][0] = serde_json::json!(1.2);
+        case["latent_gaussian_latent_gaussian_correlation_matrix"][0][1] = serde_json::json!(1.2);
+        case["latent_gaussian_latent_gaussian_correlation_matrix"][1][0] = serde_json::json!(1.2);
         assert!(has(&validate_case(&case), "CORRELATION_OUT_OF_RANGE"));
     }
 
