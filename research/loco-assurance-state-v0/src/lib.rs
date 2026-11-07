@@ -485,9 +485,7 @@ mod tests {
         assert!(
             report
                 .findings
-                .contains(&AssuranceFinding::SensorStale(
-                    "contact-left".to_owned()
-                ))
+                .contains(&AssuranceFinding::SensorStale("contact-left".to_owned()))
         );
     }
 
