@@ -762,9 +762,13 @@ fn candidate_is_better(left: &Candidate, right: &Candidate, scenario: &Scenario)
     if left.source_quanta_used != right.source_quanta_used {
         return left.source_quanta_used < right.source_quanta_used;
     }
+    if left.simultaneous_delivery_slot_count != right.simultaneous_delivery_slot_count {
+        return left.simultaneous_delivery_slot_count > right.simultaneous_delivery_slot_count;
+    }
 
-    // Stable tie-break: session rows are sorted by ID before search.
-    left.allocations < right.allocations
+    // Prefer earlier delivery after all service and concurrency objectives tie.
+    // Session rows are sorted by ID before search, so this remains deterministic.
+    left.allocations > right.allocations
 }
 
 fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, String> {
@@ -869,7 +873,8 @@ fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, 
             "leximin_service_fulfillment_ratio",
             "maximize_total_useful_energy",
             "minimize_source_energy",
-            "stable_lexicographic_schedule"
+            "maximize_concurrent_ground_air_delivery_slots",
+            "prefer_earlier_delivery_stable_tiebreak"
         ],
         "per_slot": per_slot,
         "per_session": per_session,
