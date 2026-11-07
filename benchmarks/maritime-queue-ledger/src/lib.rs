@@ -130,6 +130,8 @@ impl VesselEventKind {
 pub struct VesselEventObservation {
     pub header: EventHeader,
     pub terminal_id: String,
+    /// Explicit population boundary (e.g. outer anchorage vs designated anchorage).
+    pub queue_scope_id: String,
     pub kind: VesselEventKind,
 }
 
@@ -151,6 +153,7 @@ impl LedgerObservation for VesselEventObservation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpeningVesselQueue {
     pub terminal_id: String,
+    pub queue_scope_id: String,
     pub queue_count: u64,
     pub measured_tick: u64,
     pub observed_tick: u64,
@@ -161,6 +164,7 @@ pub struct OpeningVesselQueue {
 pub struct VesselQueueLedger {
     pub ledger_id: String,
     pub terminal_id: String,
+    pub queue_scope_id: String,
     pub time_basis_id: String,
     pub window: TickWindow,
     /// Rights-reviewed source receipt for the queue stock at window start.
@@ -234,6 +238,8 @@ impl CargoMovementKind {
 pub struct CargoMovementObservation {
     pub header: EventHeader,
     pub terminal_id: String,
+    /// Exact inventory classification/scope to which this movement belongs.
+    pub inventory_scope_id: String,
     /// Stable movement-record ID; corrections keep this ID and supersede the
     /// earlier event explicitly.
     pub movement_id: String,
@@ -565,6 +571,13 @@ pub fn audit_vessel_queue(
         return Err(LedgerError::SnapshotBeforeWindow);
     }
 
+    if ledger.queue_scope_id.trim().is_empty()
+        || ledger.opening.queue_scope_id != ledger.queue_scope_id
+    {
+        return Err(LedgerError::QueueScopeMismatch(
+            ledger.queue_scope_id.clone(),
+        ));
+    }
     validate_opening_stock(
         &ledger.opening.source,
         &ledger.opening.terminal_id,
@@ -579,6 +592,11 @@ pub fn audit_vessel_queue(
     for observation in &active {
         if observation.terminal_id != ledger.terminal_id {
             return Err(LedgerError::TerminalMismatch(
+                observation.header.event_id.clone(),
+            ));
+        }
+        if observation.queue_scope_id != ledger.queue_scope_id {
+            return Err(LedgerError::QueueScopeMismatch(
                 observation.header.event_id.clone(),
             ));
         }
@@ -724,6 +742,11 @@ pub fn audit_cargo_inventory(
     for observation in &active {
         if observation.terminal_id != ledger.terminal_id {
             return Err(LedgerError::TerminalMismatch(
+                observation.header.event_id.clone(),
+            ));
+        }
+        if observation.inventory_scope_id != ledger.inventory_scope_id {
+            return Err(LedgerError::CargoInventoryScopeMismatch(
                 observation.header.event_id.clone(),
             ));
         }
