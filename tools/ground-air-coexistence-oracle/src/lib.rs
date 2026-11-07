@@ -175,6 +175,7 @@ struct Scenario {
     pcc_max_input_quanta_per_slot: u64,
     total_source_energy_budget_wh: u64,
     source_energy_wh_per_quantum_slot: u64,
+    site_source_power_quantum_w: u64,
     maximum_search_nodes: u64,
     channels: Vec<Channel>,
     sessions: Vec<Session>,
@@ -280,6 +281,16 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             format!("slot_duration_ms must be positive and slot_count within 2..={MAX_SLOTS}"),
         ));
     }
+    let site_source_power_numerator = source_energy_wh_per_quantum_slot
+        .checked_mul(3_600_000)
+        .ok_or_else(|| fail("$.site.source_energy_wh_per_quantum_slot", "power conversion overflow"))?;
+    if site_source_power_numerator % slot_duration_ms != 0 {
+        return Err(fail(
+            "$.site.source_energy_wh_per_quantum_slot",
+            "Wh-per-slot quantum and slot duration must yield an exact integer average watt value",
+        ));
+    }
+    let site_source_power_quantum_w = site_source_power_numerator / slot_duration_ms;
 
     let channel_rows = array_field(value, "channels", "$")?;
     if !(2..=MAX_CHANNELS).contains(&channel_rows.len()) {
@@ -539,6 +550,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         pcc_max_input_quanta_per_slot,
         total_source_energy_budget_wh,
         source_energy_wh_per_quantum_slot,
+        site_source_power_quantum_w,
         maximum_search_nodes,
         channels,
         sessions,
@@ -785,6 +797,7 @@ fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, 
     };
 
     let mut maximum_pcc_used = 0_u64;
+    let mut maximum_observed_site_source_power_w = 0_u64;
     let mut per_slot = Vec::with_capacity(scenario.slot_count);
     for (slot_index, slot_allocations) in best.allocations.iter().enumerate() {
         let mut total_input = 0_u64;
@@ -799,16 +812,24 @@ fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, 
             }
             session_rows.push(json!({
                 "session_id": scenario.sessions[session_index].session_id,
-                "input_power_quanta": input_quanta
+                "site_source_energy_quanta": input_quanta
             }));
         }
         maximum_pcc_used = maximum_pcc_used.max(total_input);
+        let total_source_power_w = total_input * scenario.site_source_power_quantum_w;
+        let ground_source_power_w = ground_input * scenario.site_source_power_quantum_w;
+        let air_source_power_w = air_input * scenario.site_source_power_quantum_w;
+        maximum_observed_site_source_power_w =
+            maximum_observed_site_source_power_w.max(total_source_power_w);
         per_slot.push(json!({
             "slot_index": slot_index,
-            "total_input_power_quanta": total_input,
-            "ground_input_power_quanta": ground_input,
-            "air_input_power_quanta": air_input,
-            "source_energy_wh": total_input * scenario.source_energy_wh_per_quantum_slot,
+            "site_source_energy_quanta": total_input,
+            "ground_site_source_energy_quanta": ground_input,
+            "air_site_source_energy_quanta": air_input,
+            "site_source_energy_wh": total_input * scenario.source_energy_wh_per_quantum_slot,
+            "site_source_average_power_w": total_source_power_w,
+            "ground_site_source_average_power_w": ground_source_power_w,
+            "air_site_source_average_power_w": air_source_power_w,
             "simultaneous_ground_air_delivery": ground_input > 0 && air_input > 0,
             "session_allocations": session_rows
         }));
@@ -831,10 +852,18 @@ fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, 
             "delivered_useful_energy_wh": delivered,
             "minimum_service_met": delivered >= session.minimum_useful_energy_wh,
             "service_fulfillment_ratio_ppm": ratio_ppm,
-            "input_power_quanta_by_slot": best
+            "site_source_energy_quanta_by_slot": best
                 .allocations
                 .iter()
                 .map(|slot| slot[index])
+                .collect::<Vec<_>>(),
+            "site_source_energy_wh": best.allocations.iter().map(|slot| {
+                slot[index] * scenario.source_energy_wh_per_quantum_slot
+            }).sum::<u64>(),
+            "site_source_average_power_w_by_slot": best
+                .allocations
+                .iter()
+                .map(|slot| slot[index] * scenario.site_source_power_quantum_w)
                 .collect::<Vec<_>>()
         }));
     }
@@ -855,11 +884,16 @@ fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, 
         "source_power_boundary_id": scenario.source_power_boundary_id,
         "slot_duration_ms": scenario.slot_duration_ms,
         "slot_count": scenario.slot_count,
+        "source_energy_wh_per_quantum_slot": scenario.source_energy_wh_per_quantum_slot,
+        "site_source_power_quantum_average_w": scenario.site_source_power_quantum_w,
         "pcc_max_input_quanta_per_slot": scenario.pcc_max_input_quanta_per_slot,
-        "maximum_pcc_input_quanta_used": maximum_pcc_used,
+        "pcc_max_site_source_average_power_w":
+            scenario.pcc_max_input_quanta_per_slot * scenario.site_source_power_quantum_w,
+        "maximum_site_source_energy_quanta_used": maximum_pcc_used,
+        "maximum_observed_site_source_average_power_w": maximum_observed_site_source_power_w,
         "total_source_energy_budget_wh": scenario.total_source_energy_budget_wh,
         "total_source_energy_wh": source_energy_wh,
-        "total_source_input_quanta_slots": best.source_quanta_used,
+        "total_site_source_energy_quantum_slots": best.source_quanta_used,
         "total_useful_energy_wh": total_useful_wh,
         "synthetic_useful_to_source_energy_ratio_ppm": service_to_source_ratio_ppm,
         "minimum_service_met_count": floor_count,
@@ -931,7 +965,31 @@ mod tests {
         assert_eq!(report["minimum_service_met_count"], 2);
         assert!(report["minimum_service_all_met"].as_bool().unwrap());
         assert!(report["simultaneous_delivery_slot_count"].as_u64().unwrap() > 0);
-        assert!(report["maximum_pcc_input_quanta_used"].as_u64().unwrap() <= 3);
+        assert!(report["maximum_site_source_energy_quanta_used"].as_u64().unwrap() <= 3);
+    }
+
+    #[test]
+    fn source_energy_quantum_maps_to_exact_average_pcc_watts() {
+        let report = evaluate_scenario(&fixture()).unwrap();
+        assert_eq!(report["site_source_power_quantum_average_w"], 600);
+        assert_eq!(report["pcc_max_site_source_average_power_w"], 1800);
+        assert_eq!(report["maximum_observed_site_source_average_power_w"], 1200);
+        let first_slot = &report["per_slot"][0];
+        assert_eq!(first_slot["site_source_energy_wh"], 20);
+        assert_eq!(first_slot["site_source_average_power_w"], 1200);
+        assert_eq!(first_slot["ground_site_source_average_power_w"], 600);
+        assert_eq!(first_slot["air_site_source_average_power_w"], 600);
+    }
+
+    #[test]
+    fn non_integral_average_power_quantum_is_rejected_instead_of_rounded() {
+        let mut scenario = fixture();
+        scenario["time_grid"]["slot_duration_ms"] = Value::from(50000);
+        assert!(
+            evaluate_scenario(&scenario)
+                .unwrap_err()
+                .contains("exact integer average watt")
+        );
     }
 
     #[test]
@@ -978,16 +1036,16 @@ mod tests {
         let report = evaluate_scenario(&scenario).unwrap();
         assert_eq!(report["minimum_service_met_count"], 3);
         assert!(report["minimum_service_all_met"].as_bool().unwrap());
-        assert_eq!(report["total_source_input_quanta_slots"], 8);
+        assert_eq!(report["total_site_source_energy_quantum_slots"], 8);
         for slot in report["per_slot"].as_array().unwrap() {
-            let air_quanta = slot["session_allocations"][0]["input_power_quanta"]
+            let air_quanta = slot["session_allocations"][0]["site_source_energy_quanta"]
                 .as_u64()
                 .unwrap()
-                + slot["session_allocations"][1]["input_power_quanta"]
+                + slot["session_allocations"][1]["site_source_energy_quanta"]
                     .as_u64()
                     .unwrap();
             assert!(air_quanta <= 2);
-            assert!(slot["total_input_power_quanta"].as_u64().unwrap() <= 3);
+            assert!(slot["site_source_energy_quanta"].as_u64().unwrap() <= 3);
         }
     }
 
