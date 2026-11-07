@@ -37,7 +37,7 @@ The stable typed order is:
 
 The tripod helper supplies the alternating phase pattern:
 
-    [0, pi, 0, pi, pi, 0]
+    [0, pi, 0, pi, 0, pi]
 
 The simulator accepts any finite six-element preferred-phase-offset vector. Tripod is a test fixture, not a universal or hardcoded gait assumption.
 
