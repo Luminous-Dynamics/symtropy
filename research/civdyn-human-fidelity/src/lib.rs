@@ -526,7 +526,6 @@ pub fn population_coverage_curve(
     Ok(points)
 }
 
-
 /// Participant-cluster bootstrap for the human-fidelity sample-coverage curve.
 ///
 /// Each draw resamples unique participant IDs with replacement and carries every
@@ -571,8 +570,7 @@ pub fn bootstrap_population_coverage_curve(
         }
 
         // Give each population size an independent, reproducible random stream.
-        let size_seed = config.seed
-            ^ (requested as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+        let size_seed = config.seed ^ (requested as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
         let mut rng = SplitMix64::new(size_seed);
         let mut values: [Vec<f64>; 8] =
             std::array::from_fn(|_| Vec::with_capacity(config.replicate_count));
@@ -602,18 +600,16 @@ pub fn bootstrap_population_coverage_curve(
         let metrics = BootstrapMetric::ALL
             .into_iter()
             .enumerate()
-            .map(|(index, metric)| summarize_bootstrap_metric(
-                metric,
-                &values[index],
-                undefined[index],
-            ))
+            .map(|(index, metric)| {
+                summarize_bootstrap_metric(metric, &values[index], undefined[index])
+            })
             .collect();
 
         points.push(BootstrapCoveragePoint {
             participant_count: requested,
             replicate_count: config.replicate_count,
-            mean_trial_count_per_replicate:
-                trial_count_total as f64 / config.replicate_count as f64,
+            mean_trial_count_per_replicate: trial_count_total as f64
+                / config.replicate_count as f64,
             metrics,
         });
     }
@@ -1045,7 +1041,6 @@ fn kl_divergence_bits(left: &[f64], right: &[f64]) -> f64 {
         .sum()
 }
 
-
 #[derive(Debug, Clone)]
 struct SplitMix64 {
     state: u64,
@@ -1299,7 +1294,6 @@ mod tests {
         ));
     }
 
-
     #[test]
     fn participant_cluster_bootstrap_replays_exactly_and_keeps_cluster_trajectories() {
         let dataset = fixture_dataset(60, true);
@@ -1311,17 +1305,24 @@ mod tests {
         let second = bootstrap_population_coverage_curve(&dataset, &[10, 20, 60], config).unwrap();
         assert_eq!(first, second);
         assert_eq!(
-            first.iter().map(|point| point.participant_count).collect::<Vec<_>>(),
+            first
+                .iter()
+                .map(|point| point.participant_count)
+                .collect::<Vec<_>>(),
             vec![10, 20, 60]
         );
         for point in &first {
             assert_eq!(point.replicate_count, 40);
-            assert!((point.mean_trial_count_per_replicate
-                - point.participant_count as f64 * 3.0)
-                .abs() < 1e-12);
-            assert!(point.metrics.iter().all(|metric| {
-                metric.valid_replicates + metric.undefined_replicates == 40
-            }));
+            assert!(
+                (point.mean_trial_count_per_replicate - point.participant_count as f64 * 3.0).abs()
+                    < 1e-12
+            );
+            assert!(
+                point
+                    .metrics
+                    .iter()
+                    .all(|metric| { metric.valid_replicates + metric.undefined_replicates == 40 })
+            );
         }
     }
 
@@ -1331,13 +1332,21 @@ mod tests {
         let first = bootstrap_population_coverage_curve(
             &dataset,
             &[60],
-            BootstrapConfig { seed: 1, replicate_count: 100 },
-        ).unwrap();
+            BootstrapConfig {
+                seed: 1,
+                replicate_count: 100,
+            },
+        )
+        .unwrap();
         let second = bootstrap_population_coverage_curve(
             &dataset,
             &[60],
-            BootstrapConfig { seed: 2, replicate_count: 100 },
-        ).unwrap();
+            BootstrapConfig {
+                seed: 2,
+                replicate_count: 100,
+            },
+        )
+        .unwrap();
         assert_ne!(first, second);
     }
 
@@ -1349,9 +1358,15 @@ mod tests {
         let result = bootstrap_population_coverage_curve(
             &dataset,
             &[20],
-            BootstrapConfig { seed: 77, replicate_count: 25 },
-        ).unwrap();
-        let transition = result[0].metrics.iter()
+            BootstrapConfig {
+                seed: 77,
+                replicate_count: 25,
+            },
+        )
+        .unwrap();
+        let transition = result[0]
+            .metrics
+            .iter()
             .find(|metric| metric.metric == BootstrapMetric::TrajectoryTransitionTvd)
             .unwrap();
         assert_eq!(transition.valid_replicates, 0);
@@ -1367,7 +1382,10 @@ mod tests {
             bootstrap_population_coverage_curve(
                 &dataset,
                 &[0],
-                BootstrapConfig { seed: 1, replicate_count: 10 }
+                BootstrapConfig {
+                    seed: 1,
+                    replicate_count: 10
+                }
             ),
             Err(FidelityError::InvalidCoverageRequest { .. })
         ));
@@ -1375,7 +1393,10 @@ mod tests {
             bootstrap_population_coverage_curve(
                 &dataset,
                 &[11],
-                BootstrapConfig { seed: 1, replicate_count: 10 }
+                BootstrapConfig {
+                    seed: 1,
+                    replicate_count: 10
+                }
             ),
             Err(FidelityError::InvalidCoverageRequest { .. })
         ));
@@ -1383,7 +1404,10 @@ mod tests {
             bootstrap_population_coverage_curve(
                 &dataset,
                 &[5],
-                BootstrapConfig { seed: 1, replicate_count: 0 }
+                BootstrapConfig {
+                    seed: 1,
+                    replicate_count: 0
+                }
             ),
             Err(FidelityError::InvalidBootstrapReplicateCount(0))
         ));
