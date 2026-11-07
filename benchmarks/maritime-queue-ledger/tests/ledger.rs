@@ -495,6 +495,79 @@ fn corrections_not_yet_observed_do_not_rewrite_historical_snapshots() {
 }
 
 #[test]
+fn future_unobserved_bad_record_cannot_invalidate_an_earlier_snapshot() {
+    let mut future = vessel(
+        "future-event",
+        "call-future",
+        VesselEventKind::EligibleArrival,
+        EventClass::Actual,
+        4,
+        9,
+        None,
+    );
+    future.terminal_id = "different-terminal".to_owned();
+    let ledger = vessel_ledger(
+        0,
+        vec![
+            vessel(
+                "known-arrival",
+                "call-known",
+                VesselEventKind::EligibleArrival,
+                EventClass::Actual,
+                2,
+                2,
+                None,
+            ),
+            future,
+        ],
+    );
+
+    let historical = audit_vessel_queue(&ledger, 5).expect("future record not yet visible");
+    assert_eq!(historical.closing_queue, 1);
+    assert_eq!(historical.actual_observations_applied, 1);
+    assert_eq!(
+        audit_vessel_queue(&ledger, 10),
+        Err(LedgerError::TerminalMismatch("future-event".to_owned()))
+    );
+}
+
+#[test]
+fn one_cargo_movement_id_cannot_be_two_actual_movement_kinds() {
+    let ledger = cargo_ledger(
+        0,
+        CargoUnit::Teu,
+        vec![
+            cargo(
+                "movement-discharge",
+                "same-movement",
+                CargoMovementKind::VesselDischarge,
+                1,
+                CargoUnit::Teu,
+                2,
+                2,
+                None,
+            ),
+            cargo(
+                "movement-gate-out",
+                "same-movement",
+                CargoMovementKind::GateOut,
+                1,
+                CargoUnit::Teu,
+                3,
+                3,
+                None,
+            ),
+        ],
+    );
+    assert_eq!(
+        audit_cargo_inventory(&ledger, 5),
+        Err(LedgerError::ConflictingCargoMovementKind(
+            "same-movement".to_owned()
+        ))
+    );
+}
+
+#[test]
 fn actual_event_at_the_exclusive_window_end_belongs_to_the_next_window() {
     let ledger = vessel_ledger(
         0,
