@@ -326,9 +326,7 @@ pub fn assess_actions(
 
         let rejection = if energy > limits.maximum_energy_joules {
             Some(ConstraintViolation::EnergyBudgetExceeded)
-        } else if candidate.envelope.support_margin_lower_bound
-            < limits.minimum_support_margin
-        {
+        } else if candidate.envelope.support_margin_lower_bound < limits.minimum_support_margin {
             Some(ConstraintViolation::InsufficientSupportMargin)
         } else if candidate.envelope.peak_normal_force_upper_bound_newtons
             > limits.maximum_peak_normal_force_newtons
@@ -408,15 +406,15 @@ fn dominates(left: &ActionAssessment, right: &ActionAssessment) -> bool {
     left_better_or_equal && strictly_better
 }
 
-fn validate_action_envelope(
-    envelope: ActionEnvelope,
-) -> Result<(), ContactInformationError> {
+fn validate_action_envelope(envelope: ActionEnvelope) -> Result<(), ContactInformationError> {
     if !envelope.energy_upper_bound_joules.is_finite()
         || envelope.energy_upper_bound_joules <= 0.0
         || !envelope.support_margin_lower_bound.is_finite()
         || !envelope.peak_normal_force_upper_bound_newtons.is_finite()
         || envelope.peak_normal_force_upper_bound_newtons < 0.0
-        || !envelope.impact_impulse_upper_bound_newton_seconds.is_finite()
+        || !envelope
+            .impact_impulse_upper_bound_newton_seconds
+            .is_finite()
         || envelope.impact_impulse_upper_bound_newton_seconds < 0.0
         || !envelope.actuator_load_fraction_upper_bound.is_finite()
         || !(0.0..=1.0).contains(&envelope.actuator_load_fraction_upper_bound)
@@ -527,7 +525,9 @@ fn validate_covariance(
             if !covariance[i][j].is_finite() {
                 return Err(ContactInformationError::InvalidCovariance);
             }
-            let scale = 1.0_f64.max(covariance[i][j].abs()).max(covariance[j][i].abs());
+            let scale = 1.0_f64
+                .max(covariance[i][j].abs())
+                .max(covariance[j][i].abs());
             if (covariance[i][j] - covariance[j][i]).abs() > 1.0e-10 * scale {
                 return Err(ContactInformationError::InvalidCovariance);
             }
@@ -570,10 +570,7 @@ fn mat_vec(
     result
 }
 
-fn dot(
-    left: &[f64; CONTACT_STATE_DIM],
-    right: &[f64; CONTACT_STATE_DIM],
-) -> f64 {
+fn dot(left: &[f64; CONTACT_STATE_DIM], right: &[f64; CONTACT_STATE_DIM]) -> f64 {
     left.iter().zip(right.iter()).map(|(a, b)| a * b).sum()
 }
 
@@ -594,11 +591,7 @@ mod tests {
     fn prior() -> ContactGaussian {
         ContactGaussian {
             mean: [0.0; CONTACT_STATE_DIM],
-            covariance: [
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 1.0],
-            ],
+            covariance: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
         }
     }
 
@@ -678,8 +671,8 @@ mod tests {
             [1.0, 0.0, 0.0],
             1.0,
         );
-        let eig = expected_information_gain(&prior(), std::slice::from_ref(&measurement_model))
-            .unwrap();
+        let eig =
+            expected_information_gain(&prior(), std::slice::from_ref(&measurement_model)).unwrap();
         assert!((eig - 0.5 * 2.0_f64.ln()).abs() < 1.0e-12);
 
         let measured = observation(
@@ -691,14 +684,8 @@ mod tests {
             100,
             101,
         );
-        let posterior = update_with_observations(
-            &prior(),
-            &[measurement_model],
-            &[measured],
-            110,
-            20,
-        )
-        .unwrap();
+        let posterior =
+            update_with_observations(&prior(), &[measurement_model], &[measured], 110, 20).unwrap();
         assert!((posterior.mean[0] - 1.0).abs() < 1.0e-12);
         assert!((posterior.covariance[0][0] - 0.5).abs() < 1.0e-12);
         assert!((posterior.covariance[1][1] - 1.0).abs() < 1.0e-12);
@@ -896,7 +883,8 @@ mod tests {
                 1.0,
             )],
         };
-        let assessments = assess_actions(&prior(), &[unsafe_action, safe_action], limits()).unwrap();
+        let assessments =
+            assess_actions(&prior(), &[unsafe_action, safe_action], limits()).unwrap();
         let unsafe_result = assessments
             .iter()
             .find(|assessment| assessment.action_id == "unsafe-high-eig")
