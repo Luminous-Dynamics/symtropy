@@ -1035,7 +1035,7 @@ mod tests {
     }
 
     #[test]
-    fn 80_percent_top_three_ratchet_binds_after_measured_peak_falls() {
+    fn eighty_percent_top_three_ratchet_binds_after_measured_peak_falls() {
         let mut input = fixture();
         input.measured_monthly_peak_demand_kva = 80.0;
         input.preceding_12_month_demand_history = history_for("2026-07", 125.0);
