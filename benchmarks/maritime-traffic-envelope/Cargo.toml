@@ -1,0 +1,13 @@
+[package]
+name = "maritime-traffic-envelope-contract"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Fail-closed verification of robust maritime traffic occupancy envelopes"
+
+[workspace]
+
+[dependencies]
+maritime-service-chain-contract = { path = "../maritime-service-chain" }
+maritime-service-chain-fleet = { path = "../maritime-service-chain-fleet" }
