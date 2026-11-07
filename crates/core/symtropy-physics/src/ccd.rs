@@ -20,13 +20,60 @@ use nalgebra::SVector;
 /// Result of a continuous collision detection query.
 #[derive(Clone, Debug)]
 pub struct CcdHit<const D: usize> {
-    /// Time of impact [0, 1] within the current timestep.
-    /// 0 = start of step, 1 = end of step.
+    /// Time of impact in the same time units as the supplied timestep.
+    /// The query returns a value in the closed interval [0, dt].
     pub toi: f64,
     /// Hit point in world space at time of impact.
     pub point: SVector<f64, D>,
     /// Contact normal at time of impact.
     pub normal: SVector<f64, D>,
+}
+
+/// True when every component is finite.
+#[inline]
+fn vector_is_finite<const D: usize>(value: &SVector<f64, D>) -> bool {
+    value.iter().all(|component| component.is_finite())
+}
+
+/// Compute a finite vector norm without squaring unscaled large components.
+fn stable_vector_norm<const D: usize>(value: &SVector<f64, D>) -> Option<f64> {
+    if !vector_is_finite(value) {
+        return None;
+    }
+    let scale = value.amax();
+    if scale == 0.0 {
+        return Some(0.0);
+    }
+    if !scale.is_finite() {
+        return None;
+    }
+    let scaled_norm = (value / scale).norm();
+    let norm = scale * scaled_norm;
+    norm.is_finite().then_some(norm)
+}
+
+/// Normalize a finite vector without overflowing on large magnitudes.
+fn stable_unit_vector<const D: usize>(value: &SVector<f64, D>) -> Option<SVector<f64, D>> {
+    if !vector_is_finite(value) {
+        return None;
+    }
+    let scale = value.amax();
+    if scale == 0.0 || !scale.is_finite() {
+        return None;
+    }
+    let scaled = value / scale;
+    let norm = scaled.norm();
+    if norm == 0.0 || !norm.is_finite() {
+        return None;
+    }
+    Some(scaled / norm)
+}
+
+/// Deterministic fallback normal for coincident centers.
+fn axis_fallback<const D: usize>() -> SVector<f64, D> {
+    let mut normal = SVector::zeros();
+    normal[0] = 1.0;
+    normal
 }
 
 /// Speed threshold below which CCD is not applied (optimization).
@@ -49,23 +96,40 @@ pub fn sphere_sphere<const D: usize>(
     radius_b: f64,
     dt: f64,
 ) -> Option<CcdHit<D>> {
+    if !vector_is_finite(pos_a)
+        || !vector_is_finite(vel_a)
+        || !vector_is_finite(pos_b)
+        || !vector_is_finite(vel_b)
+        || !radius_a.is_finite()
+        || !radius_b.is_finite()
+        || radius_a < 0.0
+        || radius_b < 0.0
+        || !dt.is_finite()
+        || dt < 0.0
+    {
+        return None;
+    }
+
     let dp = pos_b - pos_a;
     let dv = vel_b - vel_a;
     let r = radius_a + radius_b;
+    if !vector_is_finite(&dp) || !vector_is_finite(&dv) || !r.is_finite() {
+        return None;
+    }
 
+    let distance = stable_vector_norm(&dp)?;
     let a = dv.dot(&dv);
     let b = 2.0 * dp.dot(&dv);
-    let c = dp.dot(&dp) - r * r;
+    // Factoring the difference of squares avoids losing the small gap when
+    // center distance and combined radius are nearly equal.
+    let c = (distance - r) * (distance + r);
+    if !a.is_finite() || !b.is_finite() || !c.is_finite() {
+        return None;
+    }
 
-    // Already overlapping at t=0
-    if c <= 0.0 {
-        let normal = if dp.norm() > 1e-15 {
-            dp.normalize()
-        } else {
-            let mut n = SVector::zeros();
-            n[0] = 1.0;
-            n
-        };
+    // Already overlapping or touching at t=0.
+    if distance <= r {
+        let normal = stable_unit_vector(&dp).unwrap_or_else(axis_fallback);
         return Some(CcdHit {
             toi: 0.0,
             point: pos_a + normal * radius_a,
@@ -73,58 +137,47 @@ pub fn sphere_sphere<const D: usize>(
         });
     }
 
-    // No relative motion
-    if a < 1e-20 {
+    // Only exactly zero computed relative speed is stationary. Avoid an
+    // absolute cutoff that would discard slow but valid long-horizon hits.
+    if a == 0.0 {
         return None;
     }
 
     let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        return None; // No intersection
+    if !discriminant.is_finite() || discriminant < 0.0 {
+        return None;
     }
 
-    let sqrt_disc = discriminant.sqrt();
-    let t1 = (-b - sqrt_disc) / (2.0 * a);
+    let sqrt_discriminant = discriminant.sqrt();
 
-    // We want the earliest positive t within [0, dt]
-    if t1 >= 0.0 && t1 <= dt {
-        let pos_a_t = pos_a + vel_a * t1;
-        let pos_b_t = pos_b + vel_b * t1;
-        let delta = pos_b_t - pos_a_t;
-        let normal = if delta.norm() > 1e-15 {
-            delta.normalize()
-        } else {
-            let mut n = SVector::zeros();
-            n[0] = 1.0;
-            n
-        };
-        Some(CcdHit {
-            toi: t1,
-            point: pos_a_t + normal * radius_a,
-            normal,
-        })
+    // Stable quadratic q-form. The conventional (-b ± sqrt(D)) / (2a)
+    // loses the small root when b and sqrt(D) are nearly equal.
+    let q = -0.5 * (b + sqrt_discriminant.copysign(b));
+    let (root_a, root_b) = if q == 0.0 {
+        let repeated_root = -b / (2.0 * a);
+        (repeated_root, repeated_root)
     } else {
-        let t2 = (-b + sqrt_disc) / (2.0 * a);
-        if t2 >= 0.0 && t2 <= dt {
-            let pos_a_t = pos_a + vel_a * t2;
-            let pos_b_t = pos_b + vel_b * t2;
-            let delta = pos_b_t - pos_a_t;
-            let normal = if delta.norm() > 1e-15 {
-                delta.normalize()
-            } else {
-                let mut n = SVector::zeros();
-                n[0] = 1.0;
-                n
-            };
-            Some(CcdHit {
-                toi: t2,
-                point: pos_a_t + normal * radius_a,
-                normal,
-            })
-        } else {
-            None // Intersection happens outside [0, dt]
-        }
+        (q / a, c / q)
+    };
+
+    let toi = [root_a, root_b]
+        .into_iter()
+        .filter(|root| root.is_finite() && *root >= 0.0 && *root <= dt)
+        .min_by(f64::total_cmp)?;
+
+    let pos_a_t = pos_a + vel_a * toi;
+    let pos_b_t = pos_b + vel_b * toi;
+    let delta = pos_b_t - pos_a_t;
+    if !vector_is_finite(&pos_a_t) || !vector_is_finite(&pos_b_t) || !vector_is_finite(&delta) {
+        return None;
     }
+    let normal = stable_unit_vector(&delta).unwrap_or_else(axis_fallback);
+
+    Some(CcdHit {
+        toi,
+        point: pos_a_t + normal * radius_a,
+        normal,
+    })
 }
 
 /// Swept sphere vs half-space (infinite plane): find time of impact.
@@ -139,37 +192,70 @@ pub fn sphere_halfspace<const D: usize>(
     plane_offset: f64,
     dt: f64,
 ) -> Option<CcdHit<D>> {
-    let signed_dist = plane_normal.dot(pos) - plane_offset;
+    if !vector_is_finite(pos)
+        || !vector_is_finite(vel)
+        || !vector_is_finite(plane_normal)
+        || !plane_offset.is_finite()
+        || !radius.is_finite()
+        || radius < 0.0
+        || !dt.is_finite()
+        || dt < 0.0
+    {
+        return None;
+    }
 
-    // Already penetrating
+    // Normalize the normal and offset together so equivalent representations
+    // k*n · x = k*d produce identical TOI and a unit output normal.
+    let normal_scale = plane_normal.amax();
+    if !normal_scale.is_finite() || normal_scale == 0.0 {
+        return None;
+    }
+    let scaled_normal = plane_normal / normal_scale;
+    let scaled_norm = scaled_normal.norm();
+    if !scaled_norm.is_finite() || scaled_norm == 0.0 {
+        return None;
+    }
+    let normal = scaled_normal / scaled_norm;
+    let offset = (plane_offset / normal_scale) / scaled_norm;
+    if !offset.is_finite() {
+        return None;
+    }
+
+    let signed_dist = normal.dot(pos) - offset;
+    if !signed_dist.is_finite() {
+        return None;
+    }
+
+    // Already penetrating or touching at t=0.
     if signed_dist <= radius {
-        let contact = pos - plane_normal * signed_dist;
+        let contact = pos - normal * signed_dist;
         return Some(CcdHit {
             toi: 0.0,
             point: contact,
-            normal: *plane_normal,
+            normal,
         });
     }
 
-    let vel_toward_plane = -plane_normal.dot(vel);
-    if vel_toward_plane <= 0.0 {
-        return None; // Moving away from plane
+    let vel_toward_plane = -normal.dot(vel);
+    if !vel_toward_plane.is_finite() || vel_toward_plane <= 0.0 {
+        return None;
     }
 
-    // Time to reach distance = radius from plane
     let t = (signed_dist - radius) / vel_toward_plane;
-
-    if t >= 0.0 && t <= dt {
-        let pos_t = pos + vel * t;
-        let contact = pos_t - plane_normal * radius;
-        Some(CcdHit {
-            toi: t,
-            point: contact,
-            normal: *plane_normal,
-        })
-    } else {
-        None
+    if !t.is_finite() || t < 0.0 || t > dt {
+        return None;
     }
+
+    let pos_t = pos + vel * t;
+    if !vector_is_finite(&pos_t) {
+        return None;
+    }
+    let contact = pos_t - normal * radius;
+    Some(CcdHit {
+        toi: t,
+        point: contact,
+        normal,
+    })
 }
 
 #[cfg(test)]
@@ -306,4 +392,165 @@ mod tests {
             "corrected position should be above plane, y = {corrected_y}"
         );
     }
+    #[test]
+    fn sphere_sphere_stable_q_form_preserves_small_root() {
+        let pos_a = SVector::from([0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([5.0, 0.0]);
+        let vel_b = SVector::from([-1.0, 0.0]);
+        let radius_a = 5.0 - 1e-14;
+
+        let expected = pos_b[0] - radius_a;
+        let hit = sphere_sphere(
+            &pos_a, &vel_a, radius_a, &pos_b, &vel_b, 0.0, 1e-12,
+        )
+        .unwrap();
+
+        assert!(hit.toi > 0.0);
+        assert!((hit.toi - expected).abs() <= expected * 1e-6);
+    }
+
+    #[test]
+    fn sphere_sphere_does_not_discard_low_speed_long_horizon_hits() {
+        let pos_a = SVector::from([0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([1.5, 0.0]);
+        let vel_b = SVector::from([-1e-11, 0.0]);
+
+        let hit = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1e11)
+            .expect("low-speed collision is within the long horizon");
+        assert!((hit.toi - 5e10).abs() <= 1e-4);
+    }
+
+    #[test]
+    fn sphere_sphere_accepts_exact_end_of_interval_and_tangent_hits() {
+        let pos_a = SVector::from([0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([2.0, 0.0]);
+        let vel_b = SVector::from([-1.0, 0.0]);
+        let end_hit = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .expect("contact at exactly dt is included");
+        assert!((end_hit.toi - 1.0).abs() < 1e-12);
+
+        let tangent_pos = SVector::from([2.0, 1.0]);
+        let tangent = sphere_sphere(
+            &pos_a,
+            &vel_a,
+            0.5,
+            &tangent_pos,
+            &vel_b,
+            0.5,
+            2.0,
+        )
+        .expect("grazing contact is a hit");
+        assert!((tangent.toi - 2.0).abs() < 1e-10);
+
+        let near_miss_pos = SVector::from([2.0, 1.0 + 1e-8]);
+        assert!(
+            sphere_sphere(
+                &pos_a,
+                &vel_a,
+                0.5,
+                &near_miss_pos,
+                &vel_b,
+                0.5,
+                2.0
+            )
+            .is_none(),
+            "a separated near-tangent trajectory must remain a miss"
+        );
+    }
+
+    #[test]
+    fn sphere_sphere_reversing_body_order_preserves_toi_and_reverses_normal() {
+        let pos_a = SVector::from([-2.0, 0.0, 0.0]);
+        let vel_a = SVector::from([1.0, 0.0, 0.0]);
+        let pos_b = SVector::from([2.0, 0.5, 0.0]);
+        let vel_b = SVector::from([-1.0, 0.0, 0.0]);
+
+        let forward = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 2.0).unwrap();
+        let reverse = sphere_sphere(&pos_b, &vel_b, 0.5, &pos_a, &vel_a, 0.5, 2.0).unwrap();
+
+        assert!((forward.toi - reverse.toi).abs() < 1e-12);
+        assert!((forward.normal + reverse.normal).norm() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_sphere_rejects_invalid_query_inputs() {
+        let pos = SVector::from([0.0, 0.0, 0.0]);
+        let velocity = SVector::zeros();
+
+        assert!(sphere_sphere(&pos, &velocity, -1.0, &pos, &velocity, 1.0, 1.0).is_none());
+        assert!(sphere_sphere(&pos, &velocity, f64::NAN, &pos, &velocity, 1.0, 1.0).is_none());
+        assert!(sphere_sphere(&pos, &velocity, 1.0, &pos, &velocity, 1.0, f64::INFINITY).is_none());
+        assert!(sphere_sphere(&pos, &velocity, 1.0, &pos, &velocity, 1.0, -1.0).is_none());
+
+        let invalid_pos = SVector::from([f64::NAN, 0.0, 0.0]);
+        assert!(sphere_sphere(&invalid_pos, &velocity, 1.0, &pos, &velocity, 1.0, 1.0).is_none());
+
+        let invalid_velocity = SVector::from([0.0, f64::INFINITY, 0.0]);
+        assert!(sphere_sphere(&pos, &velocity, 1.0, &pos, &invalid_velocity, 1.0, 1.0).is_none());
+    }
+
+    #[test]
+    fn sphere_halfspace_is_invariant_to_normal_and_offset_scaling() {
+        let pos = SVector::from([0.0, 10.0, 0.0]);
+        let vel = SVector::from([0.0, -100.0, 0.0]);
+        let reference_normal = SVector::from([0.0, 1.0, 0.0]);
+
+        let reference = sphere_halfspace(&pos, &vel, 0.5, &reference_normal, 0.0, 1.0).unwrap();
+        for scale in [1e-6, 1.0, 1e6] {
+            let scaled_normal = reference_normal * scale;
+            let hit = sphere_halfspace(&pos, &vel, 0.5, &scaled_normal, 0.0, 1.0).unwrap();
+            assert!((hit.toi - reference.toi).abs() < 1e-12);
+            assert!((hit.normal - reference.normal).norm() < 1e-12);
+            assert!((hit.point - reference.point).norm() < 1e-12);
+            assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+        }
+
+        // Non-zero plane offset must scale together with the normal too.
+        let shifted_pos = SVector::from([0.0, 12.0, 0.0]);
+        let offset_reference = sphere_halfspace(
+            &shifted_pos,
+            &vel,
+            0.5,
+            &reference_normal,
+            2.0,
+            1.0,
+        )
+        .unwrap();
+        let scaled = sphere_halfspace(
+            &shifted_pos,
+            &vel,
+            0.5,
+            &(reference_normal * 1e6),
+            2e6,
+            1.0,
+        )
+        .unwrap();
+        assert!((scaled.toi - offset_reference.toi).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_halfspace_rejects_invalid_inputs_and_returns_unit_normal() {
+        let pos = SVector::from([0.0, 2.0, 0.0]);
+        let vel = SVector::from([0.0, -2.0, 0.0]);
+        let normal = SVector::from([0.0, 5.0, 0.0]);
+
+        let hit = sphere_halfspace(&pos, &vel, 0.5, &normal, 0.0, 1.0).unwrap();
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+
+        assert!(sphere_halfspace(&pos, &vel, -1.0, &normal, 0.0, 1.0).is_none());
+        assert!(sphere_halfspace(&pos, &vel, 0.5, &SVector::zeros(), 0.0, 1.0).is_none());
+        assert!(sphere_halfspace(&pos, &vel, 0.5, &normal, f64::NAN, 1.0).is_none());
+        assert!(sphere_halfspace(&pos, &vel, 0.5, &normal, 0.0, f64::NAN).is_none());
+        assert!(sphere_halfspace(&pos, &vel, 0.5, &normal, 0.0, f64::INFINITY).is_none());
+
+        let invalid_pos = SVector::from([0.0, f64::INFINITY, 0.0]);
+        assert!(sphere_halfspace(&invalid_pos, &vel, 0.5, &normal, 0.0, 1.0).is_none());
+
+        let invalid_normal = SVector::from([0.0, f64::NAN, 0.0]);
+        assert!(sphere_halfspace(&pos, &vel, 0.5, &invalid_normal, 0.0, 1.0).is_none());
+    }
+
 }
