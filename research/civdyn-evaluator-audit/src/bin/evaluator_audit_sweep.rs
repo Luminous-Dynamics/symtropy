@@ -5,8 +5,7 @@
 //! No human-subject, platform or cultural-community data is imported.
 
 use civdyn_evaluator_audit::{
-    EvaluationCase, EvaluatorAuditReport, EvaluatorDataset, JudgePrediction, PanelRating,
-    evaluate,
+    EvaluationCase, EvaluatorAuditReport, EvaluatorDataset, JudgePrediction, PanelRating, evaluate,
 };
 
 const CATEGORIES: [&str; 4] = ["category_a", "category_b", "category_c", "category_d"];
@@ -17,7 +16,11 @@ fn blank_row() -> Vec<String> {
 }
 
 fn emit(row: Vec<String>) {
-    assert_eq!(row.len(), CSV_COLUMNS, "evaluator audit CSV schema must remain fixed");
+    assert_eq!(
+        row.len(),
+        CSV_COLUMNS,
+        "evaluator audit CSV schema must remain fixed"
+    );
     println!("{}", row.join(","));
 }
 
@@ -52,11 +55,7 @@ fn fixture_dataset() -> EvaluatorDataset {
         let selected = target
             .iter()
             .enumerate()
-            .max_by(|left, right| {
-                left.1
-                    .total_cmp(right.1)
-                    .then_with(|| right.0.cmp(&left.0))
-            })
+            .max_by(|left, right| left.1.total_cmp(right.1).then_with(|| right.0.cmp(&left.0)))
             .map_or(0, |(category, _)| category);
         let confidence = target[selected];
         let overconfident = (0..CATEGORIES.len())
@@ -115,7 +114,9 @@ fn emit_panel_overall(report: &EvaluatorAuditReport) {
     row[8] = metrics.rating_count.to_string();
     row[9] = metrics.unanimous_case_count.to_string();
     row[10] = fmt(metrics.observed_pairwise_agreement);
-    row[11] = metrics.krippendorff_alpha_nominal.map_or_else(String::new, fmt);
+    row[11] = metrics
+        .krippendorff_alpha_nominal
+        .map_or_else(String::new, fmt);
     row[12] = fmt(metrics.mean_disagreement_entropy_bits);
     emit(row);
 }
@@ -131,7 +132,9 @@ fn emit_panel_slice(report: &EvaluatorAuditReport) {
         row[8] = metrics.rating_count.to_string();
         row[9] = metrics.unanimous_case_count.to_string();
         row[10] = fmt(metrics.observed_pairwise_agreement);
-        row[11] = metrics.krippendorff_alpha_nominal.map_or_else(String::new, fmt);
+        row[11] = metrics
+            .krippendorff_alpha_nominal
+            .map_or_else(String::new, fmt);
         row[12] = fmt(metrics.mean_disagreement_entropy_bits);
         emit(row);
     }
@@ -146,7 +149,12 @@ fn emit_case_panels(report: &EvaluatorAuditReport) {
         row[5] = case.case_id.clone();
         row[7] = "1".into();
         row[8] = case.rater_count.to_string();
-        row[9] = if case.disagreement_entropy_bits == 0.0 { "1" } else { "0" }.into();
+        row[9] = if case.disagreement_entropy_bits == 0.0 {
+            "1"
+        } else {
+            "0"
+        }
+        .into();
         row[12] = fmt(case.disagreement_entropy_bits);
         row[13] = case.judge_count.to_string();
         row[26] = CATEGORIES[case.plurality_category].into();
@@ -166,8 +174,12 @@ fn emit_judge_overall(report: &EvaluatorAuditReport) {
         row[16] = fmt(metrics.mean_plurality_match_rate);
         row[17] = fmt(metrics.mean_panel_support_for_selected);
         row[18] = metrics.confidence_case_count.to_string();
-        row[19] = metrics.mean_reported_confidence.map_or_else(String::new, fmt);
-        row[20] = metrics.mean_absolute_confidence_support_error.map_or_else(String::new, fmt);
+        row[19] = metrics
+            .mean_reported_confidence
+            .map_or_else(String::new, fmt);
+        row[20] = metrics
+            .mean_absolute_confidence_support_error
+            .map_or_else(String::new, fmt);
         row[21] = metrics.confidence_ece.map_or_else(String::new, fmt);
         emit(row);
     }
@@ -214,7 +226,8 @@ fn main() {
         "record_type,rubric_id,rubric_version,context_id,cohort_id,case_id,judge_id,case_count,rating_count,unanimous_case_count,observed_pairwise_agreement,krippendorff_alpha_nominal,mean_disagreement_entropy_bits,judge_case_count,mean_soft_panel_brier_score,mean_soft_panel_cross_entropy_nats,mean_plurality_match_rate,mean_panel_support_for_selected,confidence_case_count,mean_reported_confidence,mean_absolute_confidence_support_error,confidence_ece,bin_index,bin_case_count,bin_mean_reported_confidence,bin_mean_panel_support,plurality_category,plurality_support"
     );
 
-    let report = evaluate(&fixture_dataset()).expect("synthetic evaluator audit fixture must validate");
+    let report =
+        evaluate(&fixture_dataset()).expect("synthetic evaluator audit fixture must validate");
     emit_panel_overall(&report);
     emit_judge_overall(&report);
     emit_panel_slice(&report);
