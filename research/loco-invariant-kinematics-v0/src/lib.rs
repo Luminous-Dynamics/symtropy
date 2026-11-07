@@ -872,4 +872,210 @@ mod tests {
             Err(KinematicError::MissingObservationRecord)
         );
     }
+
+    fn individual_summary(
+        individual_id: &str,
+        quantity: Quantity,
+        slope: f64,
+    ) -> IndividualGradientSummary {
+        IndividualGradientSummary {
+            species_id: "species-a".to_owned(),
+            individual_id: individual_id.to_owned(),
+            quantity,
+            slope,
+        }
+    }
+
+    #[test]
+    fn species_bootstrap_uses_individuals_as_replication_units() {
+        let summaries = vec![
+            individual_summary("animal-1", Quantity::JointAngleRadians, 1.0),
+            individual_summary("animal-2", Quantity::JointAngleRadians, 2.0),
+            individual_summary("animal-3", Quantity::JointAngleRadians, 3.0),
+            individual_summary("animal-4", Quantity::JointAngleRadians, 4.0),
+        ];
+        let result = bootstrap_species_gradient(
+            &summaries,
+            "species-a",
+            Quantity::JointAngleRadians,
+            2_000,
+            17,
+        )
+        .unwrap();
+
+        assert!((result.mean_slope - 2.5).abs() < 1.0e-12);
+        assert!((result.sample_standard_deviation - (5.0_f64 / 3.0).sqrt()).abs() < 1.0e-12);
+        assert_eq!(result.individuals_used, 4);
+        assert_eq!(result.bootstrap_resamples, 2_000);
+        assert_eq!(result.seed, 17);
+        assert!(result.lower_95_percentile <= result.upper_95_percentile);
+        assert!(result.lower_95_percentile >= 1.0);
+        assert!(result.upper_95_percentile <= 4.0);
+    }
+
+    #[test]
+    fn species_bootstrap_is_order_invariant_and_seed_reproducible() {
+        let summaries = vec![
+            individual_summary("animal-1", Quantity::JointAngleRadians, -0.5),
+            individual_summary("animal-2", Quantity::JointAngleRadians, 0.2),
+            individual_summary("animal-3", Quantity::JointAngleRadians, 1.1),
+            individual_summary("animal-4", Quantity::JointAngleRadians, 0.8),
+            individual_summary("animal-5", Quantity::JointAngleRadians, 0.4),
+        ];
+        let mut reversed = summaries.clone();
+        reversed.reverse();
+
+        let first = bootstrap_species_gradient(
+            &summaries,
+            "species-a",
+            Quantity::JointAngleRadians,
+            1_000,
+            99,
+        )
+        .unwrap();
+        let second = bootstrap_species_gradient(
+            &reversed,
+            "species-a",
+            Quantity::JointAngleRadians,
+            1_000,
+            99,
+        )
+        .unwrap();
+        let different_seed = bootstrap_species_gradient(
+            &summaries,
+            "species-a",
+            Quantity::JointAngleRadians,
+            1_000,
+            100,
+        )
+        .unwrap();
+
+        assert_eq!(first, second);
+        assert_ne!(first, different_seed);
+    }
+
+    #[test]
+    fn species_bootstrap_does_not_pool_different_quantity_families() {
+        let summaries = vec![
+            individual_summary("animal-1", Quantity::JointAngleRadians, 1.0),
+            individual_summary("animal-2", Quantity::JointAngleRadians, 2.0),
+            individual_summary("animal-3", Quantity::JointAngleRadians, 3.0),
+            individual_summary("animal-1", Quantity::SegmentDisplacementMetres, 100.0),
+        ];
+        let angular = bootstrap_species_gradient(
+            &summaries,
+            "species-a",
+            Quantity::JointAngleRadians,
+            200,
+            1,
+        )
+        .unwrap();
+        assert_eq!(angular.individuals_used, 3);
+        assert!((angular.mean_slope - 2.0).abs() < 1.0e-12);
+
+        assert_eq!(
+            bootstrap_species_gradient(
+                &summaries,
+                "species-a",
+                Quantity::SegmentDisplacementMetres,
+                200,
+                1,
+            ),
+            Err(KinematicError::InsufficientIndividuals)
+        );
+    }
+
+    #[test]
+    fn species_bootstrap_rejects_duplicate_individual_rows() {
+        let summaries = vec![
+            individual_summary("animal-1", Quantity::JointAngleRadians, 1.0),
+            individual_summary("animal-1", Quantity::JointAngleRadians, 2.0),
+            individual_summary("animal-2", Quantity::JointAngleRadians, 3.0),
+        ];
+        assert_eq!(
+            bootstrap_species_gradient(
+                &summaries,
+                "species-a",
+                Quantity::JointAngleRadians,
+                200,
+                1,
+            ),
+            Err(KinematicError::DuplicateIndividualSummary)
+        );
+    }
+
+    #[test]
+    fn species_bootstrap_rejects_mixed_species_records() {
+        let mut other_species =
+            individual_summary("animal-2", Quantity::JointAngleRadians, 2.0);
+        other_species.species_id = "species-b".to_owned();
+        let summaries = vec![
+            individual_summary("animal-1", Quantity::JointAngleRadians, 1.0),
+            other_species,
+            individual_summary("animal-3", Quantity::JointAngleRadians, 3.0),
+        ];
+        assert_eq!(
+            bootstrap_species_gradient(
+                &summaries,
+                "species-a",
+                Quantity::JointAngleRadians,
+                200,
+                1,
+            ),
+            Err(KinematicError::MixedSpecies)
+        );
+    }
+
+    #[test]
+    fn species_bootstrap_rejects_too_few_individuals_and_resamples() {
+        let one = vec![individual_summary(
+            "animal-1",
+            Quantity::JointAngleRadians,
+            1.0,
+        )];
+        assert_eq!(
+            bootstrap_species_gradient(
+                &one,
+                "species-a",
+                Quantity::JointAngleRadians,
+                200,
+                1,
+            ),
+            Err(KinematicError::InsufficientIndividuals)
+        );
+
+        let two = vec![
+            individual_summary("animal-1", Quantity::JointAngleRadians, 1.0),
+            individual_summary("animal-2", Quantity::JointAngleRadians, 2.0),
+        ];
+        assert_eq!(
+            bootstrap_species_gradient(
+                &two,
+                "species-a",
+                Quantity::JointAngleRadians,
+                99,
+                1,
+            ),
+            Err(KinematicError::InvalidBootstrapResamples)
+        );
+    }
+
+    #[test]
+    fn species_bootstrap_rejects_nonfinite_individual_effects() {
+        let summaries = vec![
+            individual_summary("animal-1", Quantity::JointAngleRadians, 1.0),
+            individual_summary("animal-2", Quantity::JointAngleRadians, f64::NAN),
+        ];
+        assert_eq!(
+            bootstrap_species_gradient(
+                &summaries,
+                "species-a",
+                Quantity::JointAngleRadians,
+                200,
+                1,
+            ),
+            Err(KinematicError::NumericalFailure)
+        );
+    }
+
 }
