@@ -383,6 +383,8 @@ mod tests {
         let mut at_expiry = at_issue;
         at_expiry.now_ns = cert.valid_until_ns;
         at_expiry.action_deadline_at_ns = 120;
+        at_expiry.compute_started_at_ns = 100;
+        at_expiry.compute_completed_at_ns = Some(110);
         for evidence in at_expiry.sensors.values_mut() {
             evidence.observed_at_ns = Some(110);
         }
