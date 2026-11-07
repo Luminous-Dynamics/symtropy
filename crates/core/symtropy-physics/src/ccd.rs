@@ -84,9 +84,7 @@ fn validate_ccd_radius(radius: f64) -> Result<(), CcdQueryError> {
     Ok(())
 }
 
-fn validate_ccd_vector<const D: usize>(
-    vector: &SVector<f64, D>,
-) -> Result<(), CcdQueryError> {
+fn validate_ccd_vector<const D: usize>(vector: &SVector<f64, D>) -> Result<(), CcdQueryError> {
     if vector.iter().all(|component| component.is_finite()) {
         Ok(())
     } else {
@@ -94,10 +92,7 @@ fn validate_ccd_vector<const D: usize>(
     }
 }
 
-fn validate_ccd_hit<const D: usize>(
-    hit: &CcdHit<D>,
-    dt_seconds: f64,
-) -> Result<(), CcdQueryError> {
+fn validate_ccd_hit<const D: usize>(hit: &CcdHit<D>, dt_seconds: f64) -> Result<(), CcdQueryError> {
     if !hit.toi.is_finite()
         || hit.toi < 0.0
         || hit.toi > dt_seconds
@@ -147,15 +142,7 @@ pub fn sphere_sphere_checked<const D: usize>(
         return Err(CcdQueryError::NonFiniteInput);
     }
 
-    let hit = sphere_sphere_unchecked(
-        pos_a,
-        vel_a,
-        radius_a,
-        pos_b,
-        vel_b,
-        radius_b,
-        dt_seconds,
-    );
+    let hit = sphere_sphere_unchecked(pos_a, vel_a, radius_a, pos_b, vel_b, radius_b, dt_seconds);
     if let Some(hit) = &hit {
         validate_ccd_hit(hit, dt_seconds)?;
     }
@@ -176,17 +163,9 @@ pub fn sphere_sphere<const D: usize>(
     radius_b: f64,
     dt_seconds: f64,
 ) -> Option<CcdHit<D>> {
-    sphere_sphere_checked(
-        pos_a,
-        vel_a,
-        radius_a,
-        pos_b,
-        vel_b,
-        radius_b,
-        dt_seconds,
-    )
-    .ok()
-    .flatten()
+    sphere_sphere_checked(pos_a, vel_a, radius_a, pos_b, vel_b, radius_b, dt_seconds)
+        .ok()
+        .flatten()
 }
 
 fn sphere_sphere_unchecked<const D: usize>(
@@ -306,14 +285,7 @@ pub fn sphere_halfspace_checked<const D: usize>(
         return Err(CcdQueryError::NonFiniteInput);
     }
 
-    let hit = sphere_halfspace_unchecked(
-        pos,
-        vel,
-        radius,
-        plane_normal,
-        plane_offset,
-        dt_seconds,
-    );
+    let hit = sphere_halfspace_unchecked(pos, vel, radius, plane_normal, plane_offset, dt_seconds);
     if let Some(hit) = &hit {
         validate_ccd_hit(hit, dt_seconds)?;
     }
@@ -558,15 +530,7 @@ mod tests {
         let vel_b = SVector::zeros();
 
         assert_eq!(
-            sphere_sphere_checked(
-                &pos_a,
-                &vel_a,
-                f64::MAX,
-                &pos_b,
-                &vel_b,
-                f64::MAX,
-                1.0
-            ),
+            sphere_sphere_checked(&pos_a, &vel_a, f64::MAX, &pos_b, &vel_b, f64::MAX, 1.0),
             Err(CcdQueryError::NonFiniteInput)
         );
     }
@@ -634,8 +598,9 @@ mod tests {
         let vel = SVector::from([0.0, -1.0, 0.0]);
         let normal = SVector::from([0.0, 1.0, 0.0]);
 
-        let endpoint =
-            sphere_halfspace_checked(&pos, &vel, 0.5, &normal, 0.0, 1.0).unwrap().unwrap();
+        let endpoint = sphere_halfspace_checked(&pos, &vel, 0.5, &normal, 0.0, 1.0)
+            .unwrap()
+            .unwrap();
         assert!((endpoint.toi - 1.0).abs() < 1e-12);
 
         assert_eq!(
@@ -651,10 +616,9 @@ mod tests {
         let pos_b = SVector::from([7.0, 0.0]);
         let vel_b = SVector::zeros();
 
-        let baseline =
-            sphere_sphere_checked(&pos_a, &vel_a, 1.0, &pos_b, &vel_b, 1.0, 2.0)
-                .unwrap()
-                .unwrap();
+        let baseline = sphere_sphere_checked(&pos_a, &vel_a, 1.0, &pos_b, &vel_b, 1.0, 2.0)
+            .unwrap()
+            .unwrap();
 
         let translation = SVector::from([100.0, -50.0]);
         let drift = SVector::from([7.0, -3.0]);
@@ -690,17 +654,9 @@ mod tests {
             let vel_a = SVector::from([speed, 0.0]);
             let pos_b = SVector::from([separation, 0.0]);
             let vel_b = SVector::zeros();
-            let hit = sphere_sphere_checked(
-                &pos_a,
-                &vel_a,
-                radius_a,
-                &pos_b,
-                &vel_b,
-                radius_b,
-                dt,
-            )
-            .unwrap()
-            .unwrap();
+            let hit = sphere_sphere_checked(&pos_a, &vel_a, radius_a, &pos_b, &vel_b, radius_b, dt)
+                .unwrap()
+                .unwrap();
 
             assert!(
                 (hit.toi - expected_toi).abs() <= 1e-11 * expected_toi.max(1.0),
