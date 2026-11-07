@@ -1,0 +1,123 @@
+name: Six-leg joint stance-state contract
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - "crates/domains/symtropy-gait-metrics/**"
+      - "docs/research/LOCO_JOINT_STANCE_STATE_V1.md"
+      - "docs/research/schemas/loco-joint-stance-state-v1.schema.json"
+      - "docs/research/fixtures/loco-joint-stance-state-v1.example.json"
+      - ".github/workflows/gait-joint-state-contract.yml"
+  push:
+    branches: [main, "research/**"]
+    paths:
+      - "crates/domains/symtropy-gait-metrics/**"
+      - "docs/research/LOCO_JOINT_STANCE_STATE_V1.md"
+      - "docs/research/schemas/loco-joint-stance-state-v1.schema.json"
+      - "docs/research/fixtures/loco-joint-stance-state-v1.example.json"
+      - ".github/workflows/gait-joint-state-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-joint-stance-state:
+    name: Validate six-leg joint-state parity and transition oracle
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+      - name: Validate schema and independent joint-state oracle
+        run: |
+          python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python3 - <<'PY'
+          import json
+          from itertools import combinations
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          schema = json.loads(Path("docs/research/schemas/loco-joint-stance-state-v1.schema.json").read_text())
+          fixture = json.loads(Path("docs/research/fixtures/loco-joint-stance-state-v1.example.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator(schema).validate(fixture)
+
+          def state_mask(legs):
+              return sum((1 << i) for i, state in enumerate(legs) if state == "STANCE")
+
+          def summarize(intervals):
+              states = [0] * 64
+              total = 0
+              for interval in intervals:
+                  assert interval["end_tick"] > interval["start_tick"]
+                  assert len(interval["legs"]) == 6
+                  assert all(state in ("STANCE", "SWING") for state in interval["legs"])
+                  duration = interval["end_tick"] - interval["start_tick"]
+                  states[state_mask(interval["legs"])] += duration
+                  total += duration
+              per_leg = [sum(states[m] for m in range(64) if m & (1 << i)) for i in range(6)]
+              pairwise = [[sum(states[m] for m in range(64) if m & (1 << i) and m & (1 << j))
+                           for j in range(6)] for i in range(6)]
+              tripod = [[0, 4, 2], [3, 1, 5]]
+              stance_tripod = [sum(states[m] for m in range(64) if all(m & (1 << i) for i in group))
+                               for group in tripod]
+              swing_tripod = [sum(states[m] for m in range(64) if all(not (m & (1 << i)) for i in group))
+                              for group in tripod]
+              counts = [sum(states[m] for m in range(64) if m.bit_count() == k) for k in range(7)]
+              return states, total, per_leg, pairwise, stance_tripod, swing_tripod, counts
+
+          worlds = {world["world_id"]: summarize(world["intervals"]) for world in fixture["parity_worlds"]}
+          even, odd = worlds["EVEN_PARITY"], worlds["ODD_PARITY"]
+          assert even[1] == 32 and odd[1] == 32
+          assert even[2] == odd[2] == [16] * 6
+          assert even[3] == odd[3]
+          assert even[4] == odd[4] == [4, 4]
+          assert even[5] == odd[5] == [4, 4]
+          assert even[6] == [1, 0, 15, 0, 15, 0, 1]
+          assert odd[6] == [0, 6, 0, 20, 0, 6, 0]
+          assert even[0] != odd[0]
+
+          for subset_size in range(1, 6):
+              for subset in combinations(range(6), subset_size):
+                  mask = sum(1 << i for i in subset)
+                  even_projection = [0] * 64
+                  odd_projection = [0] * 64
+                  for state in range(64):
+                      even_projection[state & mask] += even[0][state]
+                      odd_projection[state & mask] += odd[0][state]
+                  assert even_projection == odd_projection
+
+          def transitions(trace):
+              intervals = trace["intervals"]
+              occupancy = {}
+              edges = []
+              previous = None
+              for interval in intervals:
+                  mask = state_mask(interval["legs"])
+                  occupancy[mask] = occupancy.get(mask, 0) + interval["end_tick"] - interval["start_tick"]
+                  if previous is not None and previous != mask:
+                      edges.append([previous, mask])
+                  previous = mask
+              return occupancy, edges
+
+          traces = {trace["trace_id"]: transitions(trace) for trace in fixture["transition_traces"]}
+          assert traces["FORWARD"][0] == traces["REVERSE"][0] == {0: 2, 1: 1, 2: 1}
+          assert traces["FORWARD"][1] == [[0, 1], [1, 2], [2, 0]]
+          assert traces["REVERSE"][1] == [[0, 2], [2, 1], [1, 0]]
+
+          incomplete = fixture["incomplete_control"][0]
+          observed_mask = sum(1 << i for i, state in enumerate(incomplete["legs"])
+                              if state in ("STANCE", "SWING"))
+          assert incomplete["end_tick"] - incomplete["start_tick"] == 5
+          assert observed_mask == 0b000011
+          print("joint stance-state schema/parity/transition oracle: PASS")
+          PY
+      - name: Format gait metrics crate
+        run: cargo fmt --manifest-path crates/domains/symtropy-gait-metrics/Cargo.toml -- --check
+      - name: Test gait metrics crate
+        run: cargo test --manifest-path crates/domains/symtropy-gait-metrics/Cargo.toml --locked
