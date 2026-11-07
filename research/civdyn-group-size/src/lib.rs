@@ -140,7 +140,11 @@ impl MemoryState {
         let mut zeros = 0usize;
         let mut ones = 0usize;
         for index in 0..self.len() {
-            match self.pair_at(index).expect("index is within memory length").1 {
+            match self
+                .pair_at(index)
+                .expect("index is within memory length")
+                .1
+            {
                 0 => zeros += 1,
                 1 => ones += 1,
                 _ => unreachable!("binary action validation guarantees 0 or 1"),
@@ -257,13 +261,12 @@ impl PolicyTable {
     }
 
     pub fn probability_option0(&self, state_id: usize) -> Result<f64, GroupSizeError> {
-        self.probabilities_option0
-            .get(state_id)
-            .copied()
-            .ok_or(GroupSizeError::InvalidMemoryStateId {
+        self.probabilities_option0.get(state_id).copied().ok_or(
+            GroupSizeError::InvalidMemoryStateId {
                 id: state_id,
                 state_count: self.probabilities_option0.len(),
-            })
+            },
+        )
     }
 
     pub fn empty_memory_probability_option0(&self) -> f64 {
@@ -327,18 +330,17 @@ impl PolicyTable {
                 None if state.len() == 0 => empty_memory_probability_option0,
                 None => tie_probability_option0,
                 Some(majority) => {
-                    let selected = if invert_majority { 1 - majority } else { majority };
+                    let selected = if invert_majority {
+                        1 - majority
+                    } else {
+                        majority
+                    };
                     if selected == 0 { 1.0 } else { 0.0 }
                 }
             };
             probabilities.push(probability);
         }
-        Self::new(
-            policy_id,
-            memory_capacity,
-            convention_order,
-            probabilities,
-        )
+        Self::new(policy_id, memory_capacity, convention_order, probabilities)
     }
 }
 
@@ -428,40 +430,22 @@ impl RunOutcome {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum GroupSizeError {
-    MemoryCapacityTooLarge {
-        requested: usize,
-        maximum: usize,
-    },
+    MemoryCapacityTooLarge { requested: usize, maximum: usize },
     MemoryStateCountOverflow,
-    InvalidMemoryStateId {
-        id: usize,
-        state_count: usize,
-    },
-    MemoryLengthExceedsCapacity {
-        length: usize,
-        capacity: usize,
-    },
+    InvalidMemoryStateId { id: usize, state_count: usize },
+    MemoryLengthExceedsCapacity { length: usize, capacity: usize },
     InvalidPackedMemoryState,
     InvalidAction(u8),
     EmptyPolicyId,
     EmptyConventionLabel(usize),
     DuplicateConventionLabel,
-    PolicyTableLengthMismatch {
-        expected: usize,
-        actual: usize,
-    },
-    InvalidPolicyProbability {
-        state_id: usize,
-        value: f64,
-    },
+    PolicyTableLengthMismatch { expected: usize, actual: usize },
+    InvalidPolicyProbability { state_id: usize, value: f64 },
     PopulationTooSmall(usize),
     ZeroPopulationRounds,
     ZeroConvergenceWindow,
     InvalidConvergenceThreshold(f64),
-    PolicyMemoryCapacityMismatch {
-        config: usize,
-        policy: usize,
-    },
+    PolicyMemoryCapacityMismatch { config: usize, policy: usize },
     PayoffOverflow,
 }
 
@@ -480,7 +464,9 @@ impl fmt::Display for GroupSizeError {
                 f,
                 "memory length {length} exceeds configured capacity {capacity}"
             ),
-            Self::InvalidPackedMemoryState => write!(f, "packed memory state uses bits outside its length"),
+            Self::InvalidPackedMemoryState => {
+                write!(f, "packed memory state uses bits outside its length")
+            }
             Self::InvalidAction(action) => {
                 write!(f, "binary convention action must be 0 or 1, got {action}")
             }
@@ -847,7 +833,10 @@ mod tests {
     fn policy_table_rejects_missing_states_and_invalid_probabilities() {
         assert!(matches!(
             PolicyTable::new("bad", 5, order(), vec![0.5; 1_024]),
-            Err(GroupSizeError::PolicyTableLengthMismatch { expected: 1_365, actual: 1_024 })
+            Err(GroupSizeError::PolicyTableLengthMismatch {
+                expected: 1_365,
+                actual: 1_024
+            })
         ));
         let mut probabilities = vec![0.5; 1_365];
         probabilities[17] = f64::NAN;
@@ -866,8 +855,7 @@ mod tests {
 
     #[test]
     fn always_option_zero_converges_after_three_rounds_and_is_true_action_unanimity() {
-        let policy =
-            PolicyTable::memory_independent("always_option_0", 5, order(), 1.0).unwrap();
+        let policy = PolicyTable::memory_independent("always_option_0", 5, order(), 1.0).unwrap();
         let result = simulate_population(config(10, 50), &policy, 7).unwrap();
         assert_eq!(result.agreement_convergence_round, Some(3));
         assert_eq!(result.true_action_unanimity_round, Some(3));
@@ -878,8 +866,7 @@ mod tests {
 
     #[test]
     fn always_option_one_converges_to_the_other_convention() {
-        let policy =
-            PolicyTable::memory_independent("always_option_1", 5, order(), 0.0).unwrap();
+        let policy = PolicyTable::memory_independent("always_option_1", 5, order(), 0.0).unwrap();
         let result = simulate_population(config(10, 50), &policy, 8).unwrap();
         assert_eq!(result.agreement_convergence_round, Some(3));
         assert_eq!(result.true_action_unanimity_round, Some(3));
@@ -898,8 +885,7 @@ mod tests {
 
     #[test]
     fn a_different_seed_changes_a_stochastic_fixture_trace() {
-        let policy =
-            PolicyTable::memory_independent("neutral", 5, order(), 0.5).unwrap();
+        let policy = PolicyTable::memory_independent("neutral", 5, order(), 0.5).unwrap();
         let first = simulate_population(config(24, 25), &policy, 11).unwrap();
         let second = simulate_population(config(24, 25), &policy, 12).unwrap();
         assert_ne!(first.rounds, second.rounds);
@@ -910,7 +896,12 @@ mod tests {
         let policy =
             PolicyTable::memory_independent("neutral", 5, order(), 0.5).unwrap();
         let result = simulate_population(config(24, 17), &policy, 42).unwrap();
-        assert!(result.rounds.iter().all(|row| row.pairwise_interactions == 24));
+        assert!(
+            result
+                .rounds
+                .iter()
+                .all(|row| row.pairwise_interactions == 24)
+        );
         assert_eq!(result.total_pairwise_interactions, 24 * result.rounds_run());
     }
 
@@ -951,13 +942,22 @@ mod tests {
     #[test]
     fn memory_independent_simulation_matches_expected_action_bias_within_sampling_error() {
         let p0 = 0.7;
-        let policy =
-            PolicyTable::memory_independent("biased", 5, order(), p0).unwrap();
+        let policy = PolicyTable::memory_independent("biased", 5, order(), p0).unwrap();
         let result = simulate_population(config(100, 200), &policy, 2026).unwrap();
         let expected_agreement = p0 * p0 + (1.0 - p0) * (1.0 - p0);
-        let final_share = result.rounds.iter().skip(50).map(|row| row.option0_action_share).sum::<f64>()
+        let final_share = result
+            .rounds
+            .iter()
+            .skip(50)
+            .map(|row| row.option0_action_share)
+            .sum::<f64>()
             / (result.rounds.len().saturating_sub(50).max(1)) as f64;
-        let final_agreement = result.rounds.iter().skip(50).map(|row| row.agreement_rate).sum::<f64>()
+        let final_agreement = result
+            .rounds
+            .iter()
+            .skip(50)
+            .map(|row| row.agreement_rate)
+            .sum::<f64>()
             / (result.rounds.len().saturating_sub(50).max(1)) as f64;
         assert!((final_share - p0).abs() < 0.04);
         assert!((final_agreement - expected_agreement).abs() < 0.04);
