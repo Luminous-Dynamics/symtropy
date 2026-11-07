@@ -26,7 +26,9 @@
         "session_ref",
         "operator_ref",
         "orientation_ref",
-        "measured_value"
+        "measured_value",
+        "source_artifact_ref",
+        "analysis_record_ref"
       ],
       "properties": {
         "replicate_id": {
@@ -43,6 +45,12 @@
         },
         "measured_value": {
           "type": "number"
+        },
+        "source_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "analysis_record_ref": {
+          "$ref": "#/$defs/ref"
         }
       }
     },
@@ -154,7 +162,9 @@
         "particle_id",
         "acquisition_block_ref",
         "resolution_status",
-        "feature_dimension_mm"
+        "feature_dimension_mm",
+        "source_artifact_ref",
+        "segmentation_record_ref"
       ],
       "properties": {
         "particle_id": {
@@ -179,6 +189,12 @@
         "feature_dimension_mm": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "source_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "segmentation_record_ref": {
+          "$ref": "#/$defs/ref"
         }
       }
     },
