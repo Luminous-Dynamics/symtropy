@@ -2,7 +2,7 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-use za_energy_tariff_bench::{evaluate_fixture, Fixture};
+use za_energy_tariff_bench::{Fixture, evaluate_fixture};
 
 fn main() -> ExitCode {
     let mut args = env::args().skip(1);
