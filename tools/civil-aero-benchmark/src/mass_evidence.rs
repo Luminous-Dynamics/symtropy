@@ -269,6 +269,8 @@ pub struct LoadingItemState {
     /// Evidence backing the values in this particular state, e.g. fuel quantity,
     /// occupant loading, or a configuration-specific equipment record.
     pub value_source: Option<SourceRecord>,
+    /// Evidence for a Removed/Unknown installation transition; mass values remain absent.
+    pub installation_source: Option<SourceRecord>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -410,6 +412,11 @@ impl MassEvidenceLedger {
                             state_item.item_id
                         ));
                     }
+                    if let Some(source) = &state_item.installation_source {
+                        validate_source_record(source, &state_item.item_id)?;
+                    } else {
+                        pending_item_ids.push(state_item.item_id.clone());
+                    }
                 }
                 InstallationState::Unknown => {
                     unresolved_installation_item_ids.push(state_item.item_id.clone());
@@ -425,6 +432,11 @@ impl MassEvidenceLedger {
                             state_item.item_id
                         ));
                     }
+                    if let Some(source) = &state_item.installation_source {
+                        validate_source_record(source, &state_item.item_id)?;
+                    } else {
+                        pending_item_ids.push(state_item.item_id.clone());
+                    }
                     mass_items.push(MassItem {
                         id: state_item.item_id.clone(),
                         category: evidence.item.category,
@@ -434,6 +446,12 @@ impl MassEvidenceLedger {
                 }
                 InstallationState::Installed => {
                     installed_ids.insert(state_item.item_id.as_str());
+                    if state_item.installation_source.is_some() {
+                        return Err(format!(
+                            "installed item {} must use value_source, not installation_source",
+                            state_item.item_id
+                        ));
+                    }
                     if let Some(source) = &state_item.value_source {
                         validate_source_record(source, &state_item.item_id)?;
                     } else {
@@ -457,21 +475,34 @@ impl MassEvidenceLedger {
                                 state_item.item_id
                             ));
                         }
-                        if let Some(uncertainty) = evidence.standard_uncertainty_kg {
-                            if !uncertainty.is_finite() || uncertainty < 0.0 {
-                                return Err(format!(
-                                    "mass item {}: standard uncertainty must be finite and >= 0",
-                                    state_item.item_id
-                                ));
-                            }
-                            if evidence.uncertainty_relationship
-                                == UncertaintyRelationship::IndependentByDeclaredModel
-                            {
-                                uncertainty_variances.push(uncertainty * uncertainty);
+                        let uses_base_mass_evidence = state_item.mass_kg == evidence.item.mass_kg
+                            && state_item.source_mass == evidence.source_mass
+                            && state_item.geometry == evidence.item.geometry
+                            && state_item
+                                .value_source
+                                .as_ref()
+                                .is_some_and(|source| source.sha256 == evidence.source.sha256);
+                        if uses_base_mass_evidence {
+                            if let Some(uncertainty) = evidence.standard_uncertainty_kg {
+                                if !uncertainty.is_finite() || uncertainty < 0.0 {
+                                    return Err(format!(
+                                        "mass item {}: standard uncertainty must be finite and >= 0",
+                                        state_item.item_id
+                                    ));
+                                }
+                                if evidence.uncertainty_relationship
+                                    == UncertaintyRelationship::IndependentByDeclaredModel
+                                {
+                                    uncertainty_variances.push(uncertainty * uncertainty);
+                                } else {
+                                    all_uncertainties_independent = false;
+                                }
                             } else {
                                 all_uncertainties_independent = false;
                             }
                         } else {
+                            // A changed mass/geometry or source does not inherit the
+                            // base item's uncertainty model.
                             all_uncertainties_independent = false;
                         }
                     } else if state_item.source_mass.is_some() {
@@ -1170,6 +1201,13 @@ fn encode_loading_item(bytes: &mut Vec<u8>, item: &LoadingItemState) {
         }
         None => bytes.push(0),
     }
+    match &item.installation_source {
+        Some(source) => {
+            bytes.push(1);
+            encode_source_record(bytes, source);
+        }
+        None => bytes.push(0),
+    }
 }
 
 #[cfg(test)]
@@ -1291,6 +1329,7 @@ mod tests {
         source_position: Option<SourcePosition>,
         source_inertia: Option<SourceInertiaTensor>,
         value_source: Option<SourceRecord>,
+        installation_source: Option<SourceRecord>,
     ) -> LoadingItemState {
         LoadingItemState {
             item_id: id.to_owned(),
@@ -1301,6 +1340,7 @@ mod tests {
             source_position,
             source_inertia,
             value_source,
+            installation_source,
         }
     }
 
@@ -1314,6 +1354,7 @@ mod tests {
             record.source_position,
             record.source_inertia,
             Some(record.source.clone()),
+            None,
         )
     }
 
@@ -1327,6 +1368,7 @@ mod tests {
             None,
             None,
             None,
+            Some(source(&format!("fixture:removed:{}", record.item.id), SOURCE_B)),
         )
     }
 
