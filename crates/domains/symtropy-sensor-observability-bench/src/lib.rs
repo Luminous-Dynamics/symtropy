@@ -233,6 +233,25 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
         ) {
             push(&mut errors, "INVALID_STATE_CLASS", &format!("{path}.state_class"), "state class must distinguish process, sensor fault and OOD");
         }
+        let faulted = state.get("faulted_channel_ids").and_then(Value::as_array);
+        if faulted.is_none() {
+            push(&mut errors, "MISSING_FAULTED_CHANNEL_LIST", &format!("{path}.faulted_channel_ids"), "every state must explicitly declare faulted_channel_ids, including an empty list for process states");
+        }
+        let faulted_ids: Vec<&str> = faulted.into_iter().flatten().filter_map(Value::as_str).collect();
+        if faulted_ids.iter().collect::<BTreeSet<_>>().len() != faulted_ids.len() {
+            push(&mut errors, "DUPLICATE_FAULTED_CHANNEL_ID", &format!("{path}.faulted_channel_ids"), "faulted channel IDs must be unique");
+        }
+        if text(state, "state_class") == Some("SENSOR_FAULT") && faulted_ids.is_empty() {
+            push(&mut errors, "SENSOR_FAULT_WITHOUT_CHANNEL", &format!("{path}.faulted_channel_ids"), "sensor-fault states must identify at least one affected channel");
+        }
+        if text(state, "state_class") != Some("SENSOR_FAULT") && !faulted_ids.is_empty() {
+            push(&mut errors, "NON_SENSOR_STATE_HAS_FAULTED_CHANNEL", &format!("{path}.faulted_channel_ids"), "only SENSOR_FAULT states may declare faulted sensor channels");
+        }
+        for faulted_id in faulted_ids {
+            if !channel_map.contains_key(faulted_id) {
+                push(&mut errors, "UNKNOWN_FAULTED_CHANNEL", &format!("{path}.faulted_channel_ids"), format!("faulted channel {faulted_id} is not in the selected layout"));
+            }
+        }
     }
 
     let Some(required_pairs) = case.get("required_state_pairs").and_then(Value::as_array) else {
@@ -259,8 +278,18 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
                 push(&mut errors, "UNKNOWN_PAIR_STATE", &path, format!("required pair references undeclared state {state_id}"));
             }
         }
-        if pair.get("minimum_independent_principles").and_then(Value::as_u64).is_none_or(|n| n == 0) {
+        let pair_minimum = pair.get("minimum_independent_principles").and_then(Value::as_u64);
+        if pair_minimum.is_none_or(|n| n == 0) {
             push(&mut errors, "INVALID_PAIR_INDEPENDENCE_THRESHOLD", &format!("{path}.minimum_independent_principles"), "each pair must explicitly require at least one independent principle");
+        }
+        if pair.get("critical").and_then(Value::as_bool) == Some(true) {
+            let profile_minimum = profile
+                .get("minimum_independent_principles_for_critical_pairs")
+                .and_then(Value::as_u64)
+                .unwrap_or(1);
+            if pair_minimum.is_some_and(|n| n < profile_minimum) {
+                push(&mut errors, "CRITICAL_PAIR_BELOW_LAYOUT_THRESHOLD", &format!("{path}.minimum_independent_principles"), "critical pair threshold cannot be lower than the versioned layout profile default");
+            }
         }
     }
 
@@ -269,6 +298,8 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
         return errors;
     };
     let mut response_map: BTreeMap<(String, String), &Value> = BTreeMap::new();
+    let mut response_source_refs = BTreeSet::new();
+    let mut state_window_refs: BTreeMap<String, String> = BTreeMap::new();
     for (index, response) in responses.iter().enumerate() {
         let path = format!("$.responses[{index}]");
         let state_id = text(response, "state_id");
@@ -300,6 +331,31 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
             if text(response, key).is_none() {
                 push(&mut errors, "MISSING_RESPONSE_PROVENANCE", &format!("{path}.{key}"), "measurement window, raw source and adjudication references are required");
             }
+        }
+        if let Some(source) = text(response, "source_ref") {
+            if !response_source_refs.insert(source.to_owned()) {
+                push(&mut errors, "DUPLICATE_RESPONSE_SOURCE", &format!("{path}.source_ref"), "each state/channel response requires its own traceable source artifact; reuse needs an explicit paired/derived evidence model");
+            }
+        }
+        if let Some(window) = text(response, "measurement_window_ref") {
+            if let Some(previous) = state_window_refs.insert(state_id.to_owned(), window.to_owned()) {
+                if previous != window {
+                    push(&mut errors, "STATE_RESPONSE_WINDOW_MISMATCH", &format!("{path}.measurement_window_ref"), "all channel response records for one state must share the same declared synchronized measurement window");
+                }
+            }
+        }
+        let state_record = state_map.get(state_id).copied();
+        let faulted_ids: BTreeSet<&str> = state_record
+            .and_then(|state| state.get("faulted_channel_ids"))
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .collect();
+        if faulted_ids.contains(channel_id)
+            && !matches!(text(response, "availability"), Some("DEGRADED" | "MISSING"))
+        {
+            push(&mut errors, "FAULTED_CHANNEL_REPORTED_HEALTHY", &path, "a channel declared faulted in this state must be DEGRADED or MISSING, never VALID");
         }
         match text(response, "evidence_role") {
             Some("INDEPENDENT_MEASUREMENT" | "SYNTHETIC_CONFORMANCE_FIXTURE") => {}
@@ -546,8 +602,8 @@ mod tests {
     #[test]
     fn two_pressure_channels_count_as_one_principle() {
         let mut case = fixture();
-        channel_mut(&mut case, "dp-filter")["independence_group_ref"] =
-            case["channels"][0]["independence_group_ref"].clone();
+        let pressure_group = case["channels"][0]["independence_group_ref"].clone();
+        channel_mut(&mut case, "dp-filter")["independence_group_ref"] = pressure_group;
         let report = evaluate_case(&case, &parent()).unwrap();
         let result = pair(&report, "normal-vs-filter-loading");
         assert!(result.observed_independent_principles < result.discriminating_channel_ids.len());
@@ -603,9 +659,9 @@ mod tests {
     #[test]
     fn single_independence_group_cannot_satisfy_two_principle_gate() {
         let mut case = fixture();
-        let pair = case["required_state_pairs"].as_array_mut().unwrap()
+        let pair_entry = case["required_state_pairs"].as_array_mut().unwrap()
             .iter_mut().find(|p| p["pair_id"] == "normal-vs-blockage").unwrap();
-        pair["minimum_independent_principles"] = serde_json::json!(6);
+        pair_entry["minimum_independent_principles"] = serde_json::json!(6);
         let report = evaluate_case(&case, &parent()).unwrap();
         assert_ne!(pair(&report, "normal-vs-blockage").status, "IDENTIFIABLE");
     }
@@ -669,8 +725,8 @@ mod tests {
     #[test]
     fn state_pair_cannot_compare_a_state_to_itself() {
         let mut case = fixture();
-        case["required_state_pairs"][0]["state_b_id"] =
-            case["required_state_pairs"][0]["state_a_id"].clone();
+        let state_a = case["required_state_pairs"][0]["state_a_id"].clone();
+        case["required_state_pairs"][0]["state_b_id"] = state_a;
         assert!(has(&validate_case(&case, &parent()), "INVALID_STATE_PAIR"));
     }
 
@@ -679,6 +735,53 @@ mod tests {
         let mut case = fixture();
         case["states"][0]["state_id"] = serde_json::json!("MAGIC_FAULT");
         assert!(has(&validate_case(&case, &parent()), "UNKNOWN_STATE_ID"));
+    }
+
+    #[test]
+    fn declared_faulted_channel_cannot_remain_valid() {
+        let mut case = fixture();
+        response_mut(&mut case, "PRESSURE_SENSOR_FAULT", "dp-line")["availability"] =
+            serde_json::json!("VALID");
+        response_mut(&mut case, "PRESSURE_SENSOR_FAULT", "dp-line")["value_lower"] =
+            serde_json::json!(10.0);
+        response_mut(&mut case, "PRESSURE_SENSOR_FAULT", "dp-line")["value_upper"] =
+            serde_json::json!(12.0);
+        assert!(has(
+            &validate_case(&case, &parent()),
+            "FAULTED_CHANNEL_REPORTED_HEALTHY"
+        ));
+    }
+
+    #[test]
+    fn sensor_fault_must_name_at_least_one_faulted_channel() {
+        let mut case = fixture();
+        case["states"][4]["faulted_channel_ids"] = serde_json::json!([]);
+        assert!(has(
+            &validate_case(&case, &parent()),
+            "SENSOR_FAULT_WITHOUT_CHANNEL"
+        ));
+    }
+
+    #[test]
+    fn critical_pair_cannot_lower_layout_minimum() {
+        let mut case = fixture();
+        case["required_state_pairs"][0]["minimum_independent_principles"] =
+            serde_json::json!(1);
+        assert!(has(
+            &validate_case(&case, &parent()),
+            "CRITICAL_PAIR_BELOW_LAYOUT_THRESHOLD"
+        ));
+    }
+
+    #[test]
+    fn channels_for_one_state_must_share_a_measurement_window() {
+        let mut case = fixture();
+        response_mut(&mut case, "NORMAL_STABLE", "airflow")["measurement_window_ref"] =
+            serde_json::json!("window:misaligned");
+        assert!(has(
+            &validate_case(&case, &parent()),
+            "STATE_RESPONSE_WINDOW_MISMATCH"
+        ));
     }
 
     #[test]
