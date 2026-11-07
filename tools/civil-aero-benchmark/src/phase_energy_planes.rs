@@ -142,7 +142,10 @@ pub struct PhaseEnergyBalance {
     pub bus_loads: BusLoads,
     pub motor_drives: Vec<MotorDriveConversion>,
     pub propulsors: Vec<PropulsorShaftBalance>,
-    /// Aggregate peak demand at the declared upstream source boundary.
+    /// Digest of the dispatch/measurement trace from which aggregate peak bus
+    /// supply was derived. The peak is not recomputed from a static average.
+    pub peak_bus_power_trace_sha256: String,
+    /// Aggregate peak demand at the declared electrical-bus source boundary.
     pub peak_bus_supply_power_w: f64,
     pub peak_bus_supply_power_limit_w: f64,
     pub continuous_bus_supply_power_limit_w: f64,
@@ -220,6 +223,7 @@ impl PhaseEnergyBalance {
         validate_digest(&self.configuration_sha256, "configuration_sha256")?;
         validate_digest(&self.start_state_sha256, "start_state_sha256")?;
         validate_digest(&self.end_state_sha256, "end_state_sha256")?;
+        validate_digest(&self.peak_bus_power_trace_sha256, "peak_bus_power_trace_sha256")?;
         validate_digest(expected_configuration_sha256, "expected_configuration_sha256")?;
         validate_digest(expected_start_state_sha256, "expected_start_state_sha256")?;
         validate_digest(expected_end_state_sha256, "expected_end_state_sha256")?;
@@ -347,6 +351,11 @@ impl PhaseEnergyBalance {
                 .entry(engine.fuel_source_id.as_str())
                 .or_insert(0.0) += engine.fuel_energy_input_j;
             let average_mechanical_output_power_w = engine.mechanical_output_j / self.duration_s;
+            if engine.average_mechanical_output_power_limit_w <= 0.0
+                || engine.peak_mechanical_output_power_limit_w <= 0.0
+            {
+                return Err("prime-mover power limits must be finite and > 0".to_owned());
+            }
             let fuel_residual = engine.fuel_energy_input_j
                 - engine.mechanical_output_j
                 - engine.thermal_and_exhaust_loss_j;
@@ -397,6 +406,11 @@ impl PhaseEnergyBalance {
 
         for generator in &self.generators {
             validate_digest(&generator.model_evidence_sha256, "generator model SHA-256")?;
+            if generator.average_electrical_output_power_limit_w <= 0.0
+                || generator.peak_electrical_output_power_limit_w <= 0.0
+            {
+                return Err("generator electrical power limits must be finite and > 0".to_owned());
+            }
             if !engine_by_id.contains_key(generator.prime_mover_id.as_str()) {
                 return Err(format!(
                     "generator {} references missing prime mover {}",
@@ -588,7 +602,9 @@ impl PhaseEnergyBalance {
         let bus_residual_j = total_bus_supply_j - bus_demand_j;
         let shaft_combiner_residual_j =
             total_propulsor_shaft_input_j - total_propulsor_shaft_declared_j;
-        if bus_residual_j.abs() > self.tolerance_j
+        if !bus_residual_j.is_finite()
+            || !shaft_combiner_residual_j.is_finite()
+            || bus_residual_j.abs() > self.tolerance_j
             || shaft_combiner_residual_j.abs() > self.tolerance_j
         {
             infeasible = true;
@@ -798,6 +814,7 @@ mod tests {
                 60_000_000.0,
                 12_000_000.0,
             )],
+            peak_bus_power_trace_sha256: MODEL.to_owned(),
             peak_bus_supply_power_w: 40_000.0,
             peak_bus_supply_power_limit_w: 50_000.0,
             continuous_bus_supply_power_limit_w: 35_000.0,
