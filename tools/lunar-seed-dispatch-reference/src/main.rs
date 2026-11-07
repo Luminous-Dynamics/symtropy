@@ -695,44 +695,59 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
             return Err(format!("interval {} batch mass verification failed", input.id));
         }
 
-        let requested_critical = u128::from(actual.critical_served_wh)
-            + u128::from(actual.critical_unserved_wh);
+        let requested_critical =
+            u128::from(actual.critical_served_wh) + u128::from(actual.critical_unserved_wh);
         if requested_critical != u128::from(input.critical_load_wh) {
-            return Err(format!("interval {} critical-load accounting mismatch", input.id));
+            return Err(format!(
+                "interval {} critical-load accounting mismatch",
+                input.id
+            ));
         }
         let requested_lighting = u128::from(actual.farm_lighting_served_wh)
             + u128::from(actual.farm_lighting_unserved_wh);
         if requested_lighting != u128::from(input.farm_lighting_wh) {
-            return Err(format!("interval {} farm-light accounting mismatch", input.id));
+            return Err(format!(
+                "interval {} farm-light accounting mismatch",
+                input.id
+            ));
         }
 
-        let source_wh = u128::from(input.generation_wh)
-            + u128::from(actual.battery_bus_output_wh);
+        let source_wh = u128::from(input.generation_wh) + u128::from(actual.battery_bus_output_wh);
         let sink_wh = u128::from(actual.critical_served_wh)
             + u128::from(actual.farm_lighting_served_wh)
             + u128::from(batch_energy_served)
             + u128::from(actual.battery_charge_input_wh)
             + u128::from(actual.curtailed_wh);
-        let independently_recomputed_energy_residual =
-            i128::try_from(source_wh).map_err(|_| "energy source exceeds i128".to_owned())?
-                - i128::try_from(sink_wh).map_err(|_| "energy sinks exceed i128".to_owned())?;
+        let independently_recomputed_energy_residual = i128::try_from(source_wh)
+            .map_err(|_| "energy source exceeds i128".to_owned())?
+            - i128::try_from(sink_wh).map_err(|_| "energy sinks exceed i128".to_owned())?;
         if independently_recomputed_energy_residual != 0
             || actual.energy_balance_residual_wh != independently_recomputed_energy_residual
         {
-            return Err(format!("interval {} independent energy balance failed", input.id));
+            return Err(format!(
+                "interval {} independent energy balance failed",
+                input.id
+            ));
         }
 
         let expected_soc = i128::from(actual.battery_start_soc_wh)
             - i128::from(actual.battery_internal_withdrawn_wh)
             + i128::from(actual.battery_energy_stored_wh);
-        let independently_recomputed_soc_residual = i128::from(actual.battery_end_soc_wh) - expected_soc;
+        let independently_recomputed_soc_residual =
+            i128::from(actual.battery_end_soc_wh) - expected_soc;
         if independently_recomputed_soc_residual != 0
             || actual.soc_balance_residual_wh != independently_recomputed_soc_residual
         {
-            return Err(format!("interval {} independent battery SOC balance failed", input.id));
+            return Err(format!(
+                "interval {} independent battery SOC balance failed",
+                input.id
+            ));
         }
         if actual.battery_end_soc_wh > scenario.battery_capacity_wh {
-            return Err(format!("interval {} SOC exceeds battery capacity", input.id));
+            return Err(format!(
+                "interval {} SOC exceeds battery capacity",
+                input.id
+            ));
         }
 
         // Recompute future critical reserve from the source scenario rather than
@@ -743,9 +758,7 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
             .min(scenario.intervals.len());
         let mut independent_reserve = 0_u128;
         for future in scenario.intervals.iter().take(horizon_end).skip(index + 1) {
-            let future_deficit = future
-                .critical_load_wh
-                .saturating_sub(future.generation_wh);
+            let future_deficit = future.critical_load_wh.saturating_sub(future.generation_wh);
             let numerator = u128::from(future_deficit) * u128::from(BPS);
             let denominator = u128::from(scenario.discharge_efficiency_bps);
             let required = if numerator == 0 {
@@ -760,12 +773,18 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
         let independent_reserve_wh = u64::try_from(independent_reserve)
             .map_err(|_| "independent reserve exceeds u64".to_owned())?;
         if actual.reserve_required_wh != independent_reserve_wh {
-            return Err(format!("interval {} forecast reserve receipt mismatch", input.id));
+            return Err(format!(
+                "interval {} forecast reserve receipt mismatch",
+                input.id
+            ));
         }
         let independent_reserve_violation =
             independent_reserve_wh.saturating_sub(actual.battery_end_soc_wh);
         if actual.reserve_violation_wh != independent_reserve_violation {
-            return Err(format!("interval {} reserve violation receipt mismatch", input.id));
+            return Err(format!(
+                "interval {} reserve violation receipt mismatch",
+                input.id
+            ));
         }
 
         if actual.critical_unserved_wh > 0 {
@@ -799,7 +818,9 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
         || curtailed_total != report.curtailed_total_wh
         || max_critical_shortfall != report.max_critical_shortfall_wh
     {
-        return Err("dispatch aggregate receipt does not match independently recomputed trace".to_owned());
+        return Err(
+            "dispatch aggregate receipt does not match independently recomputed trace".to_owned(),
+        );
     }
     Ok(())
 }
