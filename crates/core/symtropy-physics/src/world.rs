@@ -2562,7 +2562,6 @@ mod transformed_halfspace_tests {
     }
 }
 
-
 /// End-to-end regression for the world-integrated sphere/half-space CCD path.
 #[cfg(test)]
 mod ccd_world_validation_tests {
@@ -2592,7 +2591,9 @@ mod ccd_world_validation_tests {
         // through the plane. The CCD pass should clamp it at the analytical TOI.
         world.step(0.016);
 
-        let body = world.body_mut(projectile).expect("projectile remains present");
+        let body = world
+            .body_mut(projectile)
+            .expect("projectile remains present");
         let y = body.position()[1];
         assert!(
             y >= radius - 1e-6,
