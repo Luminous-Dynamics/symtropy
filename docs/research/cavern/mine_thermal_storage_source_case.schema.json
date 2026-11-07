@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/mine-thermal-storage-source-case-v0.1.json",
+  "title": "Mine Thermal Storage Source Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "source",
+    "system_context",
+    "reported_observations",
+    "derived_checks",
+    "data_access",
+    "claim_ceiling"
+  ],
+  "$defs": {
+    "ref": { "type": "string", "minLength": 1 },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quantity_id", "value", "unit", "basis", "status"],
+      "properties": {
+        "quantity_id": { "$ref": "#/$defs/ref" },
+        "value": { "type": ["number", "string"] },
+        "unit": { "$ref": "#/$defs/ref" },
+        "basis": { "$ref": "#/$defs/ref" },
+        "status": {
+          "enum": [
+            "SOURCE_REPORTED_FIELD_OBSERVATION",
+            "SOURCE_REPORTED_ESTIMATE",
+            "SOURCE_REPORTED_QUALITATIVE",
+            "DERIVED_ARITHMETIC_CHECK",
+            "SYNTHETIC_ASSUMPTION",
+            "UNKNOWN"
+          ]
+        },
+        "uncertainty": { "type": "string" },
+        "limitations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "derived_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check_id", "formula", "inputs", "result", "interpretation", "status"],
+      "properties": {
+        "check_id": { "$ref": "#/$defs/ref" },
+        "formula": { "$ref": "#/$defs/ref" },
+        "inputs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ref" } },
+        "result": { "$ref": "#/$defs/quantity" },
+        "interpretation": { "$ref": "#/$defs/ref" },
+        "status": { "enum": ["CONSISTENT_WITH_REPORTED_SUMMARY", "CONDITIONAL_ONLY", "NOT_REPRODUCIBLE_FROM_SUMMARY"] }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": { "const": 1 },
+    "case_id": { "$ref": "#/$defs/ref" },
+    "evidence_class": {
+      "enum": [
+        "PUBLISHED_FIELD_DEMONSTRATION_SUMMARY",
+        "RAW_FIELD_DATA_ADMITTED",
+        "SYNTHETIC_CONFORMANCE_CASE"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "doi", "url", "publication_year", "journal"],
+      "properties": {
+        "title": { "$ref": "#/$defs/ref" },
+        "doi": { "$ref": "#/$defs/ref" },
+        "url": { "type": "string", "format": "uri" },
+        "publication_year": { "const": 2026 },
+        "journal": { "$ref": "#/$defs/ref" }
+      }
+    },
+    "system_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["site", "storage_type", "rock_type", "cycle_count", "campaign_duration_days"],
+      "properties": {
+        "site": { "$ref": "#/$defs/ref" },
+        "storage_type": { "$ref": "#/$defs/ref" },
+        "rock_type": { "$ref": "#/$defs/ref" },
+        "cycle_count": { "type": "integer", "minimum": 1 },
+        "campaign_duration_days": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "reported_observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/quantity" }
+    },
+    "derived_checks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/derived_check" }
+    },
+    "data_access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw_time_series_status", "independent_reproduction_status", "notes"],
+      "properties": {
+        "raw_time_series_status": {
+          "enum": ["PUBLIC", "AVAILABLE_ON_REQUEST", "NOT_AVAILABLE", "UNKNOWN"]
+        },
+        "independent_reproduction_status": {
+          "enum": [
+            "SUMMARY_ARITHMETIC_ONLY",
+            "RAW_DATA_REPRODUCED",
+            "BLOCKED_BY_DATA_ACCESS",
+            "NOT_ATTEMPTED"
+          ]
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "claim_ceiling": { "$ref": "#/$defs/ref" }
+  }
+}
