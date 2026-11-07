@@ -1463,6 +1463,7 @@ mod tests {
             landing_report.mass_properties.center_of_gravity_m
         );
         assert_ne!(takeoff_report.state_sha256, landing_report.state_sha256);
+        assert_eq!(landing_report.total_mass_standard_uncertainty_kg, None);
     }
 
     #[test]
@@ -1671,6 +1672,34 @@ mod tests {
         assert!((report.total_mass_standard_uncertainty_kg.unwrap() - expected).abs() < 1.0e-12);
         assert_eq!(report.cg_uncertainty_m, None);
         assert_eq!(report.inertia_uncertainty_kg_m2, None);
+    }
+
+    #[test]
+    fn wrong_coordinate_frame_is_rejected_for_source_positions() {
+        let mut ledger = fixture_ledger(CONFIG);
+        let target = ledger
+            .records
+            .iter_mut()
+            .find(|record| record.item.id == "fuel_tank")
+            .expect("fuel record");
+        target.source_position.as_mut().unwrap().coordinate_frame_id =
+            "wrong-datum".to_owned();
+        let state = make_state(&ledger, LoadingStateKind::Takeoff);
+        let error = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect_err("source datum mismatch");
+        assert!(error.contains("coordinate frame"));
+    }
+
+    #[test]
+    fn stale_loading_state_reference_frame_is_rejected() {
+        let ledger = fixture_ledger(CONFIG);
+        let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
+        state.reference_frame_id = "different-datum".to_owned();
+        let error = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect_err("loading state datum mismatch");
+        assert!(error.contains("aircraft identity/effectivity mismatch"));
     }
 
     #[test]
