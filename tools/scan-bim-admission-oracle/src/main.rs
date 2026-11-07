@@ -130,7 +130,10 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
     let candidate = &case.candidate;
 
     if !candidate.survey_qualified {
-        return decision("STALE_OR_INVALID_EVIDENCE", "UPSTREAM_SURVEY_PRODUCT_NOT_QUALIFIED");
+        return decision(
+            "STALE_OR_INVALID_EVIDENCE",
+            "UPSTREAM_SURVEY_PRODUCT_NOT_QUALIFIED",
+        );
     }
     if candidate.asset_id != reference.asset_id {
         return decision("STALE_OR_INVALID_EVIDENCE", "ASSET_ID_MISMATCH");
@@ -144,7 +147,10 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
         return decision("STALE_OR_INVALID_EVIDENCE", "COORDINATE_FRAME_MISMATCH");
     }
     if candidate.claims_unobserved_geometry {
-        return decision("PARTIAL_WITH_UNKNOWN", "UNOBSERVED_GEOMETRY_CLAIMED_AS_KNOWN");
+        return decision(
+            "PARTIAL_WITH_UNKNOWN",
+            "UNOBSERVED_GEOMETRY_CLAIMED_AS_KNOWN",
+        );
     }
 
     let mut requirements = BTreeMap::new();
@@ -156,9 +162,14 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
             || !requirement.min_visible_fraction.is_finite()
             || !(0.0..=1.0).contains(&requirement.min_visible_fraction)
             || requirement.min_independent_lineages == 0
-            || requirements.insert(requirement.element_id.as_str(), requirement).is_some()
+            || requirements
+                .insert(requirement.element_id.as_str(), requirement)
+                .is_some()
         {
-            return decision("INVALID_INPUT", "REFERENCE_REQUIREMENT_INVALID_OR_DUPLICATED");
+            return decision(
+                "INVALID_INPUT",
+                "REFERENCE_REQUIREMENT_INVALID_OR_DUPLICATED",
+            );
         }
     }
 
@@ -172,12 +183,20 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
             || !observation.visible_fraction.is_finite()
             || !(0.0..=1.0).contains(&observation.visible_fraction)
             || observation.lineage_ids.iter().any(String::is_empty)
-            || observations.insert(observation.element_id.as_str(), observation).is_some()
+            || observations
+                .insert(observation.element_id.as_str(), observation)
+                .is_some()
         {
-            return decision("INVALID_INPUT", "UNCERTAINTY_OR_GEOMETRY_VALUE_INVALID");
+            return decision(
+                "INVALID_INPUT",
+                "UNCERTAINTY_OR_GEOMETRY_VALUE_INVALID",
+            );
         }
         if !requirements.contains_key(observation.element_id.as_str()) {
-            return decision("CONFLICTED_CORRESPONDENCE", "OBSERVED_ELEMENT_ID_UNRESOLVED");
+            return decision(
+                "CONFLICTED_CORRESPONDENCE",
+                "OBSERVED_ELEMENT_ID_UNRESOLVED",
+            );
         }
     }
 
@@ -192,7 +211,10 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
             );
         }
         if observation.visible_fraction < requirement.min_visible_fraction {
-            return decision("PARTIAL_WITH_UNKNOWN", "REQUIRED_ELEMENT_VISIBILITY_INSUFFICIENT");
+            return decision(
+                "PARTIAL_WITH_UNKNOWN",
+                "REQUIRED_ELEMENT_VISIBILITY_INSUFFICIENT",
+            );
         }
         let unique_lineages: BTreeSet<&str> =
             observation.lineage_ids.iter().map(String::as_str).collect();
@@ -215,7 +237,12 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
             if candidate.delta.operation != "modify" {
                 return decision("REAL_CHANGE_CANDIDATE", "GEOMETRY_OUTSIDE_TOLERANCE");
             }
-            if !candidate.delta.target_ids.iter().any(|target| target.as_str() == *element_id) {
+            if !candidate
+                .delta
+                .target_ids
+                .iter()
+                .any(|target| target.as_str() == *element_id)
+            {
                 return decision(
                     "REAL_CHANGE_CANDIDATE",
                     "CHANGE_NOT_INCLUDED_IN_PROPOSED_DELTA",
@@ -226,12 +253,14 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
 
     let required_edges: BTreeSet<TopologyEdge> =
         reference.required_topology.iter().cloned().collect();
-    let candidate_edges: BTreeSet<TopologyEdge> =
-        candidate.topology.iter().cloned().collect();
+    let candidate_edges: BTreeSet<TopologyEdge> = candidate.topology.iter().cloned().collect();
     if candidate_edges.len() != candidate.topology.len() {
         return decision("REJECTED_TOPOLOGY", "DUPLICATE_TOPOLOGY_EDGE");
     }
-    if required_edges.iter().any(|edge| !candidate_edges.contains(edge)) {
+    if required_edges
+        .iter()
+        .any(|edge| !candidate_edges.contains(edge))
+    {
         return decision("REJECTED_TOPOLOGY", "REQUIRED_TOPOLOGY_EDGE_MISSING");
     }
     for edge in &candidate.topology {
@@ -259,10 +288,12 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
                 let Some(observation) = observations.get(target.as_str()) else {
                     return decision("PARTIAL_WITH_UNKNOWN", "DELTA_TARGET_NOT_OBSERVED");
                 };
-                let lower =
-                    (observation.deviation_mm.abs() - observation.uncertainty_mm).max(0.0);
+                let lower = (observation.deviation_mm.abs() - observation.uncertainty_mm).max(0.0);
                 if lower <= requirement.tolerance_mm {
-                    return decision("REQUEST_ADDITIONAL_OBSERVATION", "DELTA_NOT_SEPARATED_FROM_TOLERANCE");
+                    return decision(
+                        "REQUEST_ADDITIONAL_OBSERVATION",
+                        "DELTA_NOT_SEPARATED_FROM_TOLERANCE",
+                    );
                 }
             }
             decision(
@@ -286,7 +317,9 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
         || corpus.split_guard.evaluation_group_ids.is_empty()
         || corpus.split_guard.candidate_input_fields.is_empty()
     {
-        return Err("split guard must declare train groups, evaluation groups and candidate inputs".into());
+        return Err(
+            "split guard must declare train groups, evaluation groups and candidate inputs".into(),
+        );
     }
     let training_groups: BTreeSet<&str> = corpus
         .split_guard
@@ -313,12 +346,17 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
         "reference_bbox",
         "reference_bounding_box",
     ];
-    if corpus.split_guard.candidate_input_fields.iter().any(|field| {
-        let normalized = field.to_ascii_lowercase();
-        forbidden_input_markers
-            .iter()
-            .any(|marker| normalized.contains(*marker))
-    }) {
+    if corpus
+        .split_guard
+        .candidate_input_fields
+        .iter()
+        .any(|field| {
+            let normalized = field.to_ascii_lowercase();
+            forbidden_input_markers
+                .iter()
+                .any(|marker| normalized.contains(*marker))
+        })
+    {
         return Err("candidate input allowlist exposes evaluator truth or reference bounds".into());
     }
 
@@ -358,9 +396,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
 
 fn parse_args() -> Result<PathBuf, Box<dyn Error>> {
     let mut args = env::args().skip(1);
-    let mut corpus = PathBuf::from(
-        "docs/research/built-asset/scan-bim/v0.1/corpus.json",
-    );
+    let mut corpus = PathBuf::from("docs/research/built-asset/scan-bim/v0.1/corpus.json");
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--corpus" => corpus = args.next().ok_or("--corpus requires a path")?.into(),
@@ -413,7 +449,11 @@ mod tests {
     #[test]
     fn candidate_order_does_not_change_admission() {
         let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
-        let case = corpus.cases.iter().find(|item| item.case_id == "SB-001").unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|item| item.case_id == "SB-001")
+            .unwrap();
         let original = evaluate(case);
         let mut candidate = Candidate {
             asset_id: case.candidate.asset_id.clone(),
@@ -421,11 +461,19 @@ mod tests {
             frame_id: case.candidate.frame_id.clone(),
             survey_qualified: case.candidate.survey_qualified,
             claims_unobserved_geometry: case.candidate.claims_unobserved_geometry,
-            elements: case.candidate.elements.iter().map(|item| ObservedElement {
-                element_id: item.element_id.clone(), class: item.class.clone(),
-                deviation_mm: item.deviation_mm, uncertainty_mm: item.uncertainty_mm,
-                visible_fraction: item.visible_fraction, lineage_ids: item.lineage_ids.clone()
-            }).collect(),
+            elements: case
+                .candidate
+                .elements
+                .iter()
+                .map(|item| ObservedElement {
+                    element_id: item.element_id.clone(),
+                    class: item.class.clone(),
+                    deviation_mm: item.deviation_mm,
+                    uncertainty_mm: item.uncertainty_mm,
+                    visible_fraction: item.visible_fraction,
+                    lineage_ids: item.lineage_ids.clone(),
+                })
+                .collect(),
             topology: case.candidate.topology.clone(),
             delta: ProposedDelta {
                 operation: case.candidate.delta.operation.clone(),
@@ -441,17 +489,24 @@ mod tests {
                 asset_id: case.reference.asset_id.clone(),
                 model_revision: case.reference.model_revision.clone(),
                 frame_id: case.reference.frame_id.clone(),
-                elements: case.reference.elements.iter().map(|item| ElementRequirement {
-                    element_id:item.element_id.clone(), class:item.class.clone(),
-                    tolerance_mm:item.tolerance_mm, min_visible_fraction:item.min_visible_fraction,
-                    min_independent_lineages:item.min_independent_lineages
-                }).collect(),
+                elements: case
+                    .reference
+                    .elements
+                    .iter()
+                    .map(|item| ElementRequirement {
+                        element_id: item.element_id.clone(),
+                        class: item.class.clone(),
+                        tolerance_mm: item.tolerance_mm,
+                        min_visible_fraction: item.min_visible_fraction,
+                        min_independent_lineages: item.min_independent_lineages,
+                    })
+                    .collect(),
                 required_topology: case.reference.required_topology.clone(),
             },
             candidate,
             expected: Expected {
-                disposition:case.expected.disposition.clone(),
-                reason_codes:case.expected.reason_codes.clone(),
+                disposition: case.expected.disposition.clone(),
+                reason_codes: case.expected.reason_codes.clone(),
             },
         };
         assert_eq!(original, evaluate(&mutated));
@@ -460,7 +515,11 @@ mod tests {
     #[test]
     fn expected_labels_do_not_influence_candidate_evaluation() {
         let mut corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
-        let case = corpus.cases.iter_mut().find(|item| item.case_id == "SB-001").unwrap();
+        let case = corpus
+            .cases
+            .iter_mut()
+            .find(|item| item.case_id == "SB-001")
+            .unwrap();
         let original = evaluate(case);
         case.expected.disposition = "FORCED_PASS".to_owned();
         case.expected.reason_codes = vec!["NOT_USED_FOR_INFERENCE".to_owned()];
@@ -495,10 +554,11 @@ mod tests {
     #[test]
     fn uncertainty_crossing_limit_never_passes_update() {
         let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
-        let case = corpus.cases.iter().find(|item| item.case_id == "SB-005").unwrap();
-        assert_eq!(
-            evaluate(case).0,
-            "REQUEST_ADDITIONAL_OBSERVATION"
-        );
+        let case = corpus
+            .cases
+            .iter()
+            .find(|item| item.case_id == "SB-005")
+            .unwrap();
+        assert_eq!(evaluate(case).0, "REQUEST_ADDITIONAL_OBSERVATION");
     }
 }
