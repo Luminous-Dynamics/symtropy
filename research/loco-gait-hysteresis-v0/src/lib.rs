@@ -144,6 +144,9 @@ pub enum TransitionError {
     NonMonotonicTimestamp,
     NoCompleteWaveTripodWaveSweep,
     InvalidSweepOrder,
+    InvalidTimeConstant,
+    InvalidSpeedThreshold,
+    NoCompleteLatencyCrossing,
 }
 
 fn validate_samples(samples: &[SpeedSample]) -> Result<(), TransitionError> {
@@ -256,6 +259,151 @@ pub fn measure_hysteresis(
     Ok(HysteresisMeasurement {
         wave_to_tripod_speed_metres_per_second: up.measured_speed_metres_per_second,
         tripod_to_wave_speed_metres_per_second: down.measured_speed_metres_per_second,
+        width_metres_per_second: width,
+        wave_to_tripod_time_seconds: up.timestamp_seconds,
+        tripod_to_wave_time_seconds: down.timestamp_seconds,
+    })
+}
+
+
+/// Speed and first-order lagged observation at the same timestamp.
+///
+/// The actual speed is retained separately from the lagged signal so an
+/// apparent transition loop can be quantified in physical-speed coordinates.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LaggedSpeedSample {
+    pub timestamp_seconds: f64,
+    pub actual_speed_metres_per_second: f64,
+    pub observed_speed_metres_per_second: f64,
+}
+
+/// Exact first-order response to a piecewise-linear achieved-speed trajectory:
+///
+///     tau * dy/dt = v(t) - y(t)
+///
+/// The input is linearly interpolated between samples. This is a synthetic
+/// latency/low-pass confound model, not a fitted sensor or actuator model.
+pub fn apply_first_order_speed_lag(
+    samples: &[SpeedSample],
+    time_constant_seconds: f64,
+) -> Result<Vec<LaggedSpeedSample>, TransitionError> {
+    validate_samples(samples)?;
+    if !time_constant_seconds.is_finite() || time_constant_seconds <= 0.0 {
+        return Err(TransitionError::InvalidTimeConstant);
+    }
+
+    let mut output = Vec::with_capacity(samples.len());
+    let first = samples[0];
+    let mut observed_speed = first.speed_metres_per_second;
+    output.push(LaggedSpeedSample {
+        timestamp_seconds: first.timestamp_seconds,
+        actual_speed_metres_per_second: first.speed_metres_per_second,
+        observed_speed_metres_per_second: observed_speed,
+    });
+
+    for pair in samples.windows(2) {
+        let previous = pair[0];
+        let current = pair[1];
+        let elapsed = current.timestamp_seconds - previous.timestamp_seconds;
+        let slope =
+            (current.speed_metres_per_second - previous.speed_metres_per_second) / elapsed;
+        let attenuation = (-elapsed / time_constant_seconds).exp();
+
+        // Exact solution for linearly changing input over this interval.
+        observed_speed = previous.speed_metres_per_second
+            + slope * (elapsed - time_constant_seconds)
+            + (observed_speed - previous.speed_metres_per_second
+                + slope * time_constant_seconds)
+                * attenuation;
+
+        if !observed_speed.is_finite() {
+            return Err(TransitionError::NonFiniteSpeed);
+        }
+        output.push(LaggedSpeedSample {
+            timestamp_seconds: current.timestamp_seconds,
+            actual_speed_metres_per_second: current.speed_metres_per_second,
+            observed_speed_metres_per_second: observed_speed,
+        });
+    }
+    Ok(output)
+}
+
+/// Measure the apparent hysteresis produced when a memoryless threshold is
+/// applied to a lagged speed signal.
+///
+/// Up/down transitions are detected in observed-speed coordinates, but the
+/// returned loop width is computed from actual speed at those event samples.
+/// A positive width therefore demonstrates how latency plus a speed ramp can
+/// mimic hysteresis without any state-dependent transition thresholds.
+pub fn measure_latency_induced_hysteresis(
+    samples: &[LaggedSpeedSample],
+    threshold_metres_per_second: f64,
+) -> Result<HysteresisMeasurement, TransitionError> {
+    if samples.len() < 2 {
+        return Err(TransitionError::TooFewSamples);
+    }
+    if !threshold_metres_per_second.is_finite() || threshold_metres_per_second < 0.0 {
+        return Err(TransitionError::InvalidSpeedThreshold);
+    }
+
+    let mut previous = samples[0];
+    if !previous.timestamp_seconds.is_finite()
+        || !previous.actual_speed_metres_per_second.is_finite()
+        || !previous.observed_speed_metres_per_second.is_finite()
+    {
+        return Err(TransitionError::NonFiniteSpeed);
+    }
+    if previous.actual_speed_metres_per_second < 0.0
+        || previous.observed_speed_metres_per_second < 0.0
+    {
+        return Err(TransitionError::NegativeSpeed);
+    }
+
+    let mut up_event = None;
+    let mut down_event = None;
+    for current in samples.iter().copied().skip(1) {
+        if !current.timestamp_seconds.is_finite()
+            || !current.actual_speed_metres_per_second.is_finite()
+            || !current.observed_speed_metres_per_second.is_finite()
+        {
+            return Err(TransitionError::NonFiniteSpeed);
+        }
+        if current.timestamp_seconds <= previous.timestamp_seconds {
+            return Err(TransitionError::NonMonotonicTimestamp);
+        }
+        if current.actual_speed_metres_per_second < 0.0
+            || current.observed_speed_metres_per_second < 0.0
+        {
+            return Err(TransitionError::NegativeSpeed);
+        }
+
+        if up_event.is_none()
+            && previous.observed_speed_metres_per_second < threshold_metres_per_second
+            && current.observed_speed_metres_per_second >= threshold_metres_per_second
+        {
+            up_event = Some(current);
+        } else if up_event.is_some()
+            && down_event.is_none()
+            && previous.observed_speed_metres_per_second > threshold_metres_per_second
+            && current.observed_speed_metres_per_second <= threshold_metres_per_second
+        {
+            down_event = Some(current);
+            break;
+        }
+        previous = current;
+    }
+
+    let up = up_event.ok_or(TransitionError::NoCompleteLatencyCrossing)?;
+    let down = down_event.ok_or(TransitionError::NoCompleteLatencyCrossing)?;
+    let width =
+        up.actual_speed_metres_per_second - down.actual_speed_metres_per_second;
+    if !width.is_finite() || width < 0.0 {
+        return Err(TransitionError::InvalidSweepOrder);
+    }
+
+    Ok(HysteresisMeasurement {
+        wave_to_tripod_speed_metres_per_second: up.actual_speed_metres_per_second,
+        tripod_to_wave_speed_metres_per_second: down.actual_speed_metres_per_second,
         width_metres_per_second: width,
         wave_to_tripod_time_seconds: up.timestamp_seconds,
         tripod_to_wave_time_seconds: down.timestamp_seconds,
@@ -516,4 +664,91 @@ mod tests {
             Err(TransitionError::NoCompleteWaveTripodWaveSweep)
         );
     }
+
+    fn fine_triangular_sweep(time_step_seconds: f64) -> Vec<SpeedSample> {
+        let mut speeds: Vec<f64> = (0..=50).map(|index| index as f64 / 50.0).collect();
+        speeds.extend((0..50).rev().map(|index| index as f64 / 50.0));
+        speeds
+            .iter()
+            .enumerate()
+            .map(|(index, speed)| SpeedSample {
+                timestamp_seconds: index as f64 * time_step_seconds,
+                speed_metres_per_second: *speed,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn first_order_speed_lag_matches_exact_linear_ramp_solution() {
+        let samples = [
+            SpeedSample {
+                timestamp_seconds: 0.0,
+                speed_metres_per_second: 0.0,
+            },
+            SpeedSample {
+                timestamp_seconds: 1.0,
+                speed_metres_per_second: 1.0,
+            },
+        ];
+        let lagged = apply_first_order_speed_lag(&samples, 1.0).unwrap();
+        assert!(
+            (lagged[1].observed_speed_metres_per_second - (-1.0_f64).exp()).abs() < 1.0e-12
+        );
+    }
+
+    #[test]
+    fn latency_alone_creates_apparent_hysteresis_without_stateful_thresholds() {
+        let actual = fine_triangular_sweep(0.05);
+        let lagged = apply_first_order_speed_lag(&actual, 1.0).unwrap();
+        let apparent = measure_latency_induced_hysteresis(&lagged, 0.5).unwrap();
+
+        assert!(apparent.width_metres_per_second > 0.5);
+        assert!(apparent.wave_to_tripod_speed_metres_per_second > 0.5);
+        assert!(apparent.tripod_to_wave_speed_metres_per_second < 0.5);
+    }
+
+    #[test]
+    fn apparent_latency_loop_grows_with_ramp_rate() {
+        let fast = apply_first_order_speed_lag(&fine_triangular_sweep(0.05), 1.0).unwrap();
+        let slow = apply_first_order_speed_lag(&fine_triangular_sweep(0.5), 1.0).unwrap();
+        let fast_loop = measure_latency_induced_hysteresis(&fast, 0.5).unwrap();
+        let slow_loop = measure_latency_induced_hysteresis(&slow, 0.5).unwrap();
+
+        assert!(fast_loop.width_metres_per_second > slow_loop.width_metres_per_second);
+        assert!(slow_loop.width_metres_per_second >= 0.0);
+    }
+
+    #[test]
+    fn speed_lag_rejects_nonpositive_time_constant() {
+        let samples = triangular_sweep();
+        assert_eq!(
+            apply_first_order_speed_lag(&samples, 0.0),
+            Err(TransitionError::InvalidTimeConstant)
+        );
+    }
+
+    #[test]
+    fn latency_measurement_rejects_missing_crossing_or_invalid_threshold() {
+        let samples = [
+            LaggedSpeedSample {
+                timestamp_seconds: 0.0,
+                actual_speed_metres_per_second: 0.0,
+                observed_speed_metres_per_second: 0.0,
+            },
+            LaggedSpeedSample {
+                timestamp_seconds: 1.0,
+                actual_speed_metres_per_second: 0.1,
+                observed_speed_metres_per_second: 0.1,
+            },
+        ];
+        assert_eq!(
+            measure_latency_induced_hysteresis(&samples, 0.5),
+            Err(TransitionError::NoCompleteLatencyCrossing)
+        );
+        assert_eq!(
+            measure_latency_induced_hysteresis(&samples, f64::NAN),
+            Err(TransitionError::InvalidSpeedThreshold)
+        );
+    }
+
 }
