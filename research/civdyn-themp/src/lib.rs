@@ -1222,6 +1222,47 @@ mod tests {
     }
 
     #[test]
+    fn theoretical_sources_are_not_mislabeled_as_observations() {
+        let passport = reference_passport();
+        assert_eq!(passport.evidence_uses[0].source_kind, SourceKind::TheoreticalSynthesis);
+        assert_eq!(passport.evidence_uses[0].evidence_class, None);
+        let report = evaluate_passport(&passport).unwrap();
+        assert!(!report.has_errors());
+
+        let mut mislabeled = passport;
+        mislabeled.evidence_uses[0].evidence_class =
+            Some(EvidenceClass::HistoricalObservation);
+        let report = evaluate_passport(&mislabeled).unwrap();
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "source_kind_claim_class_mismatch"
+        }));
+    }
+
+    #[test]
+    fn shared_source_family_across_distinct_partitions_is_disclosed() {
+        let report = evaluate_passport(&reference_passport()).unwrap();
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "source_family_reused_across_calibration_and_holdout"
+        }));
+        assert!(!report.has_errors());
+    }
+
+    #[test]
+    fn simulation_output_cannot_satisfy_external_validation() {
+        let mut passport = reference_passport();
+        passport.evidence_uses[2].source_kind = SourceKind::SimulationOutput;
+        passport.evidence_uses[2].evidence_class =
+            Some(EvidenceClass::ModelInference);
+        let report = evaluate_passport(&passport).unwrap();
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "non_empirical_external_validation"
+        }));
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "prediction_without_external_observation"
+        }));
+    }
+
+    #[test]
     fn unknown_evidence_access_is_a_warning_not_an_empirical_pass() {
         let mut passport = reference_passport();
         passport.evidence_uses[0].access_status = AccessStatus::Unknown;
