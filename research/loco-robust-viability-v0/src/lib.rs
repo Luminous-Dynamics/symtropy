@@ -89,6 +89,7 @@ pub struct RecoveryResult {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ViabilityError {
+    EmptyStateSet,
     EmptyStateId,
     UntrimmedStateId(String),
     DuplicateStateId(String),
@@ -253,6 +254,9 @@ fn validate_system(
     system: &TransitionSystem,
     limits: ResourceLimits,
 ) -> Result<ValidatedSystem, ViabilityError> {
+    if system.states.is_empty() {
+        return Err(ViabilityError::EmptyStateSet);
+    }
     if system.states.len() > limits.maximum_states {
         return Err(ViabilityError::StateLimitExceeded {
             maximum: limits.maximum_states,
@@ -653,6 +657,52 @@ mod tests {
         let left = compute_maximal_robust_invariant_set(&system, limits()).unwrap();
         let right = compute_maximal_robust_invariant_set(&reordered, limits()).unwrap();
         assert_eq!(left, right);
+    }
+
+    #[test]
+    fn empty_state_system_is_rejected_instead_of_vacuously_certified() {
+        assert_eq!(
+            compute_maximal_robust_invariant_set(&TransitionSystem::default(), limits()),
+            Err(ViabilityError::EmptyStateSet)
+        );
+    }
+
+    #[test]
+    fn removing_an_adversarial_branch_changes_the_model_and_can_expand_viability() {
+        let uncertain = TransitionSystem {
+            states: vec![
+                state("s", true, false),
+                state("a", true, false),
+                state("dead", true, false),
+            ],
+            actions: vec![
+                action("probe", "s", &["a", "dead"]),
+                action("a-loop", "a", &["a"]),
+            ],
+        };
+        let restricted = TransitionSystem {
+            states: uncertain.states.clone(),
+            actions: vec![
+                action("probe", "s", &["a"]),
+                action("a-loop", "a", &["a"]),
+            ],
+        };
+        let before = compute_maximal_robust_invariant_set(&uncertain, limits()).unwrap();
+        let after = compute_maximal_robust_invariant_set(&restricted, limits()).unwrap();
+        assert!(!before.viable_states.contains("s"));
+        assert!(after.viable_states.contains("s"));
+    }
+
+    #[test]
+    fn empty_successor_set_is_rejected() {
+        let system = TransitionSystem {
+            states: vec![state("s", true, false)],
+            actions: vec![action("no-outcomes", "s", &[])],
+        };
+        assert_eq!(
+            compute_maximal_robust_invariant_set(&system, limits()),
+            Err(ViabilityError::EmptySuccessorSet("no-outcomes".into()))
+        );
     }
 
     #[test]
