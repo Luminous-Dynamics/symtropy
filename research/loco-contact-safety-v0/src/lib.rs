@@ -151,7 +151,7 @@ pub fn standard_normal_quantile(probability: f64) -> Result<f64, ChanceSafetyErr
         -3.969_683_028_665_376e1,
         2.209_460_984_245_205e2,
         -2.759_285_104_469_687e2,
-        1.383_577_518_672_690e2,
+        1.383_577_518_672_69e2,
         -3.066_479_806_614_716e1,
         2.506_628_277_459_239,
     ];
@@ -223,8 +223,7 @@ pub fn assess_action(
         return Err(ChanceSafetyError::InvalidInformationGain);
     }
     if !familywise_alpha.is_finite()
-        || familywise_alpha < MIN_SUPPORTED_ALPHA
-        || familywise_alpha >= 1.0
+        || !(MIN_SUPPORTED_ALPHA..1.0).contains(&familywise_alpha)
     {
         return Err(ChanceSafetyError::InvalidRiskBudget);
     }
