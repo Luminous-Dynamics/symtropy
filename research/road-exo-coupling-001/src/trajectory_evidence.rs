@@ -113,7 +113,7 @@ impl SamTrajectoryAssessmentBinding {
     }
 
     /// Seal a typed SAM assessment after validating disposition invariants.
-    pub fn seal(mut self) -> Result<Self, TrajectoryEvidenceError> {
+    fn seal(mut self) -> Result<Self, TrajectoryEvidenceError> {
         self.validate_fields()?;
         self.assessment_receipt_digest = *blake3::hash(&self.receipt_bytes()).as_bytes();
         Ok(self)
@@ -480,7 +480,9 @@ fn push_len_hasher(hasher: &mut blake3::Hasher, length: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::decision_closure::{DecisionHypothesis, DecisionManifest, ExactRational, HypothesisActionOutcome};
+    use crate::decision_closure::{
+        DecisionHypothesis, DecisionManifest, ExactRational, HypothesisActionOutcome,
+    };
     use crate::decision_evidence::{DecisionEvidenceBinding, DecisionEvidencePurpose};
     use crate::evidence_provenance::{
         ActionRealization, EvidenceClaim, EvidenceLineage, EvidenceOrigin, EvidencePacket,
