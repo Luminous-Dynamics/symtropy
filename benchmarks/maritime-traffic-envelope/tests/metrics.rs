@@ -147,8 +147,7 @@ fn occupancy(spec: OccupancySpec<'_>) -> TrafficOccupancy {
             EvidenceState::Current,
         ),
     };
-    item.evidence.subject_id =
-        canonical_occupancy_subject_id(&item, spec.time_basis_id);
+    item.evidence.subject_id = canonical_occupancy_subject_id(&item, spec.time_basis_id);
     item
 }
 
@@ -179,7 +178,7 @@ fn non_overlapping_occupancies_are_admitted_with_half_open_boundaries() {
     let second = operation("demand-b", "participant-b", 12, 14);
     let occupancies = vec![
         occupancy(OccupancySpec {
-            id: "use-a",
+        id: "use-a",
             resource_id: "crossing-zone-1",
             route_revision: "route-a",
             operation: first.clone(),
@@ -189,7 +188,7 @@ fn non_overlapping_occupancies_are_admitted_with_half_open_boundaries() {
             time_basis_id: "synthetic-ticks-v1",
         }),
         occupancy(OccupancySpec {
-            id: "use-b",
+        id: "use-b",
             resource_id: "crossing-zone-1",
             route_revision: "route-b",
             operation: second.clone(),
@@ -215,7 +214,7 @@ fn nominally_separate_operations_conflict_when_early_entry_and_late_clearance_ov
     let second = operation("demand-b", "participant-b", 13, 15);
     let occupancies = vec![
         occupancy(OccupancySpec {
-            id: "use-a",
+        id: "use-a",
             resource_id: "crossing-zone-1",
             route_revision: "route-a",
             operation: first.clone(),
@@ -225,7 +224,7 @@ fn nominally_separate_operations_conflict_when_early_entry_and_late_clearance_ov
             time_basis_id: "synthetic-ticks-v1",
         }),
         occupancy(OccupancySpec {
-            id: "use-b",
+        id: "use-b",
             resource_id: "crossing-zone-1",
             route_revision: "route-b",
             operation: second.clone(),
@@ -258,7 +257,7 @@ fn clearance_guards_are_applied_to_each_half_open_occupancy() {
     let second = operation("demand-b", "participant-b", 13, 15);
     let occupancies = vec![
         occupancy(OccupancySpec {
-            id: "use-a",
+        id: "use-a",
             resource_id: "crossing-zone-1",
             route_revision: "route-a",
             operation: first.clone(),
@@ -268,7 +267,7 @@ fn clearance_guards_are_applied_to_each_half_open_occupancy() {
             time_basis_id: "synthetic-ticks-v1",
         }),
         occupancy(OccupancySpec {
-            id: "use-b",
+        id: "use-b",
             resource_id: "crossing-zone-1",
             route_revision: "route-b",
             operation: second.clone(),
@@ -320,7 +319,7 @@ fn opposite_directions_are_admitted_only_in_their_declared_one_way_windows() {
     let second = operation("demand-b", "participant-b", 12, 14);
     let occupancies = vec![
         occupancy(OccupancySpec {
-            id: "east",
+        id: "east",
             resource_id: "one-way-channel-1",
             route_revision: "route-a",
             operation: first.clone(),
@@ -330,7 +329,7 @@ fn opposite_directions_are_admitted_only_in_their_declared_one_way_windows() {
             time_basis_id: "synthetic-ticks-v1",
         }),
         occupancy(OccupancySpec {
-            id: "west",
+        id: "west",
             resource_id: "one-way-channel-1",
             route_revision: "route-b",
             operation: second.clone(),
@@ -584,7 +583,7 @@ fn equivalent_input_permutations_produce_identical_reports() {
     let second = operation("demand-b", "participant-b", 20, 22);
     let occupancies = vec![
         occupancy(OccupancySpec {
-            id: "use-a",
+        id: "use-a",
             resource_id: "crossing-zone-1",
             route_revision: "route-a",
             operation: first.clone(),
@@ -594,7 +593,7 @@ fn equivalent_input_permutations_produce_identical_reports() {
             time_basis_id: "synthetic-ticks-v1",
         }),
         occupancy(OccupancySpec {
-            id: "use-b",
+        id: "use-b",
             resource_id: "crossing-zone-1",
             route_revision: "route-b",
             operation: second.clone(),
