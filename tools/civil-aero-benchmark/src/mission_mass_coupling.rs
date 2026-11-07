@@ -338,9 +338,8 @@ mod tests {
 
     #[test]
     fn additional_installed_mass_changes_configuration_and_mission_demand() {
-        let baseline =
-            evaluate_case_with_mass_ledger(&mission_case(), &complete_ledger(), CONFIG)
-                .expect("baseline configuration");
+        let baseline = evaluate_case_with_mass_ledger(&mission_case(), &complete_ledger(), CONFIG)
+            .expect("baseline configuration");
 
         let heavier_configuration =
             "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -355,16 +354,15 @@ mod tests {
             0.5,
         ));
 
-        let heavier = evaluate_case_with_mass_ledger(
-            &mission_case(),
-            &heavier_ledger,
-            heavier_configuration,
-        )
-        .expect("new configuration with additional installed mass");
+        let heavier =
+            evaluate_case_with_mass_ledger(&mission_case(), &heavier_ledger, heavier_configuration)
+                .expect("new configuration with additional installed mass");
 
         assert!((baseline.result.total_mass_kg - 845.0).abs() < 1.0e-12);
         assert!((heavier.result.total_mass_kg - 865.0).abs() < 1.0e-12);
-        assert!(heavier.result.required_lift_coefficient > baseline.result.required_lift_coefficient);
+        assert!(
+            heavier.result.required_lift_coefficient > baseline.result.required_lift_coefficient
+        );
         assert!(heavier.result.route_energy_wh > baseline.result.route_energy_wh);
         assert_ne!(
             heavier.mass_properties.center_of_gravity_m,
