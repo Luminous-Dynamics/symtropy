@@ -84,8 +84,8 @@ impl SixLegConfig {
             std::f64::consts::PI,
             0.0,
             std::f64::consts::PI,
-            std::f64::consts::PI,
             0.0,
+            std::f64::consts::PI,
         ]
     }
 
