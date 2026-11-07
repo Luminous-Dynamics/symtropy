@@ -412,7 +412,7 @@ fn support_reference(binding: &SamTrajectoryAssessmentBinding) -> TrajectorySupp
         action_id: binding.action_id.clone(),
         disposition: binding.disposition,
         sam_build_digest: binding.sam_build_digest,
-        evidence_manifest_id: binding.evidence_manifest_id,
+        evidence_manifest_id: binding.evidence_manifest_id.clone(),
         support_manifest_digest: binding.support_manifest_digest,
         query_digest: binding.query_digest,
         assessment_digest: binding.assessment_digest,
