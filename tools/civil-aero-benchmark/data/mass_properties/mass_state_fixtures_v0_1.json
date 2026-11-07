@@ -8,7 +8,8 @@
     "serial": "SYNTH-001",
     "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "alternate_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "source_generation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    "source_generation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "reference_frame_id": "synthetic-aircraft-datum-v1"
   },
   "base_items": [
     {
@@ -29,7 +30,8 @@
         "unit": "kg"
       },
       "uncertainty_kg": 0.1,
-      "uncertainty_relationship": "independent_by_declared_model"
+      "uncertainty_relationship": "independent_by_declared_model",
+      "coordinate_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "fuel_tank",
@@ -49,7 +51,8 @@
         "unit": "kg"
       },
       "uncertainty_kg": 0.1,
-      "uncertainty_relationship": "independent_by_declared_model"
+      "uncertainty_relationship": "independent_by_declared_model",
+      "coordinate_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "occupant",
@@ -69,7 +72,8 @@
         "unit": "kg"
       },
       "uncertainty_kg": 0.1,
-      "uncertainty_relationship": "independent_by_declared_model"
+      "uncertainty_relationship": "independent_by_declared_model",
+      "coordinate_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "removable_module",
@@ -89,7 +93,8 @@
         "unit": "kg"
       },
       "uncertainty_kg": 0.1,
-      "uncertainty_relationship": "independent_by_declared_model"
+      "uncertainty_relationship": "independent_by_declared_model",
+      "coordinate_frame_id": "synthetic-aircraft-datum-v1"
     }
   ],
   "states": [
@@ -131,7 +136,8 @@
           -20,
           0
         ]
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "landing_fuel_burn",
@@ -172,7 +178,8 @@
           -27.46268656716418,
           0
         ]
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "occupant_relocated",
@@ -217,7 +224,8 @@
           -55.55555555555555,
           0
         ]
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "module_removed",
@@ -238,7 +246,13 @@
         },
         {
           "id": "removable_module",
-          "installation": "removed"
+          "installation": "removed",
+          "installation_source": {
+            "reference": "fixture:removed:removable_module",
+            "revision": "rev-1",
+            "locator": "maintenance-record/removal",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
         }
       ],
       "expected": {
@@ -257,7 +271,8 @@
           -17.647058823529413,
           0
         ]
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "unknown_mass",
@@ -287,7 +302,8 @@
         "total_mass_kg": null,
         "cg_m": null,
         "inertia_kg_m2": null
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "unknown_location",
@@ -317,7 +333,8 @@
         "total_mass_kg": 720,
         "cg_m": null,
         "inertia_kg_m2": null
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "pending_review",
@@ -362,7 +379,8 @@
           -20,
           0
         ]
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "stale_source_generation",
@@ -373,7 +391,8 @@
       "expected": {
         "status": "reject",
         "reason": "stale_source_generation"
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "wrong_serial_effectivity",
@@ -386,7 +405,8 @@
       "expected": {
         "status": "reject",
         "reason": "wrong_serial_effectivity"
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "source_unit_mismatch",
@@ -419,7 +439,8 @@
       "expected": {
         "status": "reject",
         "reason": "source_unit_mismatch"
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     },
     {
       "id": "aggregate_child_overlap",
@@ -462,7 +483,8 @@
       "expected": {
         "status": "reject",
         "reason": "aggregate_child_double_count"
-      }
+      },
+      "reference_frame_id": "synthetic-aircraft-datum-v1"
     }
   ]
 }
