@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/za-energy-market-signal-reference-v0.1.json",
+  "title": "South African Energy Market Signal Reference v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reference_id",
+    "jurisdiction",
+    "validity_context",
+    "tariff",
+    "grid_emission_factors",
+    "derived_checks",
+    "sources",
+    "claim_ceiling"
+  ],
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id","title","url","publisher","source_class","verification_status"],
+      "properties": {
+        "source_id": {"type":"string","minLength":1},
+        "title": {"type":"string","minLength":1},
+        "url": {"type":"string","format":"uri"},
+        "publisher": {"type":"string","minLength":1},
+        "publication_date": {"type":["string","null"],"format":"date"},
+        "source_class": {
+          "enum": [
+            "OFFICIAL_TARIFF_DOCUMENT",
+            "OFFICIAL_GAZETTE_NOTICE",
+            "OFFICIAL_METHOD_REFERENCE",
+            "SECONDARY_TRANSCRIPTION",
+            "OFFICIAL_HISTORICAL_REPORT"
+          ]
+        },
+        "document_pages": {"type":"array","items":{"type":"integer","minimum":1}},
+        "verification_status": {
+          "enum": [
+            "PRIMARY_DOCUMENT_READ",
+            "PRIMARY_NOTICE_READ_PDF_UNAVAILABLE",
+            "SECONDARY_TRANSCRIPTION_CROSS_CHECK",
+            "HISTORICAL_METHOD_REFERENCE"
+          ]
+        },
+        "notes": {"type":"string"}
+      }
+    },
+    "rate": {
+      "type":"object",
+      "additionalProperties":false,
+      "required":["value","unit"],
+      "properties":{
+        "value":{"type":"number","minimum":0},
+        "unit":{"type":"string","minLength":1}
+      }
+    }
+  },
+  "properties":{
+    "schema_version":{"const":1},
+    "reference_id":{"type":"string","minLength":1},
+    "jurisdiction":{"type":"string","minLength":1},
+    "validity_context":{
+      "type":"object",
+      "additionalProperties":false,
+      "required":["tariff_period","tariff_document_published","notes"],
+      "properties":{
+        "tariff_period":{"type":"string","minLength":1},
+        "tariff_document_published":{"type":"string","format":"date"},
+        "tariff_effective_date":{"type":["string","null"],"format":"date"},
+        "notes":{"type":"string"}
+      }
+    },
+    "tariff":{
+      "type":"object",
+      "additionalProperties":false,
+      "required":[
+        "utility","name","eligibility","voltage_class_rates","energy_charges",
+        "time_bands","minimum_demand_rule","reactive_energy_rule","change_control"
+      ],
+      "properties":{
+        "utility":{"const":"City Power"},
+        "name":{"type":"string","minLength":1},
+        "eligibility":{
+          "type":"object",
+          "additionalProperties":false,
+          "required":["business_supply_capacity_threshold_kva","threshold_operator","application_required","approval_required","legacy_exception"],
+          "properties":{
+            "business_supply_capacity_threshold_kva":{"type":"number","exclusiveMinimum":0},
+            "threshold_operator":{"enum":["GREATER_THAN","GREATER_THAN_OR_EQUAL"]},
+            "application_required":{"type":"boolean"},
+            "approval_required":{"type":"boolean"},
+            "qualifying_criteria_required":{"type":"boolean"},
+            "legacy_exception":{"type":"string"},
+            "non_city_power_customers_eligible":{"type":"boolean"}
+          }
+        },
+        "voltage_class_rates":{
+          "type":"array",
+          "minItems":3,
+          "items":{
+            "type":"object",
+            "additionalProperties":false,
+            "required":["class","voltage_range","service_charge","network_charge","demand_charge"],
+            "properties":{
+              "class":{"enum":["LOW","MEDIUM","HIGH"]},
+              "voltage_range":{"type":"string","minLength":1},
+              "service_charge":{"$ref":"#/$defs/rate"},
+              "network_charge":{"$ref":"#/$defs/rate"},
+              "demand_charge":{"$ref":"#/$defs/rate"}
+            }
+          }
+        },
+        "energy_charges":{
+          "type":"object",
+          "additionalProperties":false,
+          "required":["unit","summer","winter"],
+          "properties":{
+            "unit":{"const":"c/kWh"},
+            "summer":{
+              "type":"object","additionalProperties":false,
+              "required":["peak","standard","off_peak"],
+              "properties":{
+                "peak":{"type":"number","minimum":0},
+                "standard":{"type":"number","minimum":0},
+                "off_peak":{"type":"number","minimum":0}
+              }
+            },
+            "winter":{
+              "type":"object","additionalProperties":false,
+              "required":["peak","standard","off_peak"],
+              "properties":{
+                "peak":{"type":"number","minimum":0},
+                "standard":{"type":"number","minimum":0},
+                "off_peak":{"type":"number","minimum":0}
+              }
+            }
+          }
+        },
+        "time_bands":{
+          "type":"object",
+          "additionalProperties":false,
+          "required":["weekdays","saturdays_and_public_holidays","sundays"],
+          "properties":{
+            "weekdays":{"$ref":"#/$defs/time_band_group"},
+            "saturdays_and_public_holidays":{"$ref":"#/$defs/time_band_group"},
+            "sundays":{"$ref":"#/$defs/time_band_group"}
+          }
+        },
+        "minimum_demand_rule":{
+          "type":"object",
+          "additionalProperties":false,
+          "required":["rule_text","floor_kva","ratchet_fraction","ratchet_basis_count","lookback_months"],
+          "properties":{
+            "rule_text":{"type":"string","minLength":1},
+            "floor_kva":{"type":"number","minimum":0},
+            "ratchet_fraction":{"type":"number","minimum":0,"maximum":1},
+            "ratchet_basis_count":{"type":"integer","minimum":1},
+            "lookback_months":{"type":"integer","minimum":1}
+          }
+        },
+        "reactive_energy_rule":{
+          "type":"object",
+          "additionalProperties":false,
+          "required":["power_factor_threshold","excess_threshold_fraction","rate"],
+          "properties":{
+            "power_factor_threshold":{"type":"number","minimum":0,"maximum":1},
+            "excess_threshold_fraction":{"type":"number","minimum":0,"maximum":1},
+            "rate":{"$ref":"#/$defs/rate"}
+          }
+        },
+        "change_control":{
+          "type":"object",
+          "additionalProperties":false,
+          "required":["request_required","approval_required"],
+          "properties":{
+            "request_required":{"type":"boolean"},
+            "approval_required":{"type":"boolean"}
+          }
+        }
+      }
+    },
+    "grid_emission_factors":{
+      "type":"object",
+      "additionalProperties":false,
+      "required":["factor_year","publication_date","unit","factors","nggef_use","temporal_resolution","interval_signal_available","source_admission_status"],
+      "properties":{
+        "factor_year":{"type":"integer","minimum":2000},
+        "publication_date":{"type":"string","format":"date"},
+        "unit":{"const":"tCO2e/MWh"},
+        "factors":{
+          "type":"object",
+          "additionalProperties":false,
+          "required":["DGGEF","NGGEF","TLGEF","DLGEF"],
+          "properties":{
+            "DGGEF":{"type":"number","minimum":0},
+            "NGGEF":{"type":"number","minimum":0},
+            "TLGEF":{"type":"number","minimum":0},
+            "DLGEF":{"type":"number","minimum":0}
+          }
+        },
+        "nggef_use":{"type":"string","minLength":1},
+        "temporal_resolution":{"const":"ANNUAL"},
+        "interval_signal_available":{"type":"boolean"},
+        "source_admission_status":{
+          "enum":[
+            "PRIMARY_TABLE_READ",
+            "OFFICIAL_NOTICE_PLUS_SECONDARY_TRANSCRIPTION",
+            "SECONDARY_ONLY",
+            "NOT_ADMITTED"
+          ]
+        },
+        "historical_comparison":{
+          "type":["object","null"],
+          "additionalProperties":false,
+          "properties":{
+            "factor_year":{"type":"integer"},
+            "NGGEF":{"type":"number","minimum":0},
+            "source_url":{"type":"string","format":"uri"}
+          }
+        }
+      }
+    },
+    "derived_checks":{
+      "type":"array",
+      "items":{
+        "type":"object",
+        "additionalProperties":false,
+        "required":["check_id","formula","result","unit","interpretation"],
+        "properties":{
+          "check_id":{"type":"string","minLength":1},
+          "formula":{"type":"string","minLength":1},
+          "result":{"type":"number"},
+          "unit":{"type":"string","minLength":1},
+          "interpretation":{"type":"string","minLength":1}
+        }
+      }
+    },
+    "sources":{
+      "type":"array",
+      "minItems":1,
+      "items":{"$ref":"#/$defs/source"}
+    },
+    "claim_ceiling":{"type":"string","minLength":1}
+  },
+  "$defs":{
+    "time_band_group":{
+      "type":"object",
+      "additionalProperties":false,
+      "required":["peak","standard","off_peak"],
+      "properties":{
+        "peak":{"type":"array","items":{"type":"string"}},
+        "standard":{"type":"array","items":{"type":"string"}},
+        "off_peak":{"type":"array","items":{"type":"string"}}
+      }
+    }
+  }
+}
