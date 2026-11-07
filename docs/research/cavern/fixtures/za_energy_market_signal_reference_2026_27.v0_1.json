@@ -9,8 +9,8 @@
       "url": "https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf",
       "publication_date": "2026-05-01",
       "source_type": "OFFICIAL_MUNICIPAL_BUDGET",
-      "document_locator": "Printed pages 76–97; Annexure B schedule printed pages 78–81; large consumer / industrial TOU clauses printed pages 94–97",
-      "notes": "Annexure B describes the FY2026/27 tariff schedule as proposed and excludes the 6c/kWh network surcharge, 2% business/large-power-user surcharge and VAT. Confirm actual tariff / invoice and account eligibility before applying it to a facility."
+      "document_locator": "Printed page 76 for effective date and general surcharge; printed pages 78–81 for Annexure B schedule/exclusions; printed pages 95–97 for industrial TOU eligibility, rate components and time bands",
+      "notes": "Rates are budget-published for FY2026/27. Annexure B explicitly excludes 6 c/kWh network surcharge, 2% Business/LPU surcharge and VAT. Eligibility and tariff account must be confirmed."
     },
     {
       "source_id": "DFFE-2024-GEF-GN7891",
@@ -42,22 +42,27 @@
       "application_required": true,
       "city_power_approval_required": true,
       "large_consumer_load_shifting_profile_required": true,
-      "site_eligibility_status": "NOT_ASSESSED"
+      "site_eligibility_status": "NOT_ASSESSED",
+      "legacy_exception": "Customers with demand-tariff supply agreements originally concluded before 1 July 1999 and demand below 100 kVA may, until further notice, continue on this tariff."
     },
     "source_rate_basis": {
       "energy_charge_unit": "c/kWh",
       "fixed_charge_unit": "ZAR/month",
-      "demand_charge_unit": "ZAR/kVA/month",
-      "published_rates_ex_vat": true,
-      "excludes_network_surcharge": true,
-      "excludes_business_lpu_surcharge": true,
-      "excludes_vat": true
+      "demand_charge_unit": "ZAR/kVA",
+      "published_schedule_excludes_vat": true,
+      "annexure_b_excludes_network_surcharge_c_per_kwh": 6,
+      "annexure_b_excludes_business_lpu_surcharge_percent": 2,
+      "annexure_b_excludes_vat": true,
+      "source_locator": "Annexure B, printed pages 78–81",
+      "notes": "Do not confuse the 6 c/kWh per-kWh network surcharge with the separate monthly network charge in the three-part tariff table."
     },
     "additional_charges": {
       "network_surcharge_c_per_kwh": 6,
-      "business_lpu_account_surcharge_percent": 2,
-      "vat_status": "APPLICABLE_AT_CURRENT_RATE",
-      "note": "Annexure B states the scheduled rates exclude these additions. VAT rate and tax treatment must be taken from the current applicable invoice / tax rules; this profile does not hardcode a VAT percentage."
+      "network_surcharge_scope": "all customer categories; residential exemption for first 500 kWh/month in the budget description; applicable to business/LPU after account confirmation",
+      "business_large_power_user_surcharge_percent": 2,
+      "business_surcharge_basis": "ACCOUNT_BILLING_BASE_REQUIRES_CONFIRMATION",
+      "vat_status": "EXCLUDED_FROM_ANNEXURE_B_APPLY_CURRENT_LEGAL_RATE",
+      "notes": "Annexure B says the schedule excludes the 6 c/kWh Network Surcharge, 2% Business/Large Power User surcharge and VAT. Apply only the charges applicable to the actual customer account and exactly once."
     },
     "voltage_classes": {
       "LV": {
@@ -224,7 +229,11 @@
       "Annexure B is a budget-published proposed FY2026/27 schedule, not proof of a particular consumer's approved tariff.",
       "Tariff qualification requires supply above 100 kVA, application and City Power approval; the actual site tariff must be verified.",
       "The published Saturday/public-holiday standard interval is printed as 18h00-20h0. The fixture stores an assumed 20:00 endpoint but marks it for confirmation.",
-      "Budget page 76 says the tariff changes take effect 1 July 2026, while Annexure B uses proposed schedule wording. Treat 2026-07-01 as the budget-indicated date; verify against City Power account records."
+      "Budget page 76 says the tariff changes take effect 1 July 2026, while Annexure B uses proposed schedule wording. Treat 2026-07-01 as the budget-indicated date; verify against City Power account records.",
+      "Annexure B (printed pages 78–81) explicitly excludes the 6 c/kWh Network Surcharge, 2% Business/LPU surcharge and VAT from the proposed FY2026/27 tariff rates.",
+      "The 6 c/kWh per-kWh network surcharge is separate from the monthly network charge shown in the Industrial Three-Part TOU table.",
+      "The budget describes the 6 c/kWh network surcharge as applicable to all customer categories, with residential customers exempt for the first 500 kWh/month; confirm the account treatment for an actual non-residential site.",
+      "The budget states the electricity tariff change takes effect 1 July 2026; Annexure B still describes the rate schedule as proposed. The gazetted July 2026 tariff schedule / approved account invoice takes precedence."
     ]
   },
   "dffe_grid_emission_factors": {
@@ -250,8 +259,26 @@
       "NGGEF includes imported electricity and excludes transmission/distribution losses; DFFE identifies it as appropriate for Scope 2 reporting.",
       "TLGEF and DLGEF are separate loss factors for Scope 3 boundaries and must not be added to NGGEF in a Scope 2 calculation by default.",
       "The report uses 2024 calendar-year data and states annual factors have an approximate two-year data-availability lag.",
-      "These are annual location-based factors, not hourly average, marginal or forecast emissions signals."
-    ]
+      "These are annual location-based factors, not hourly average, marginal or forecast emissions signals.",
+      "2024 factor values in this fixture are a secondary transcription linked to the official notice; the primary PDF table must be independently admitted before production accounting relies on this fixture.",
+      "DFFE's preceding methodology identifies NGGEF for consumer Scope 2 reporting; 2024 use should remain linked to the actual current report / reporting instructions.",
+      "The 2024 factor is annual and must not be used as a real-time or marginal grid-carbon series."
+    ],
+    "source_admission_status": "OFFICIAL_NOTICE_AND_SECONDARY_TRANSCRIPTION_PRIMARY_PDF_UNREAD",
+    "primary_pdf_audit": {
+      "url": "https://www.gov.za/sites/default/files/gcis_document/202609/55353gon7891.pdf",
+      "retrieval_status": "HTTP_502_DURING_AUDIT",
+      "official_notice_url": "https://www.gov.za/documents/notices/national-environmental-management-air-quality-act-report-south-africa%E2%80%99s-2024-grid",
+      "data_year": 2024,
+      "publication_date": "2026-09-11"
+    },
+    "historical_comparison_2023": {
+      "DGGEF": 0.942,
+      "NGGEF": 0.906,
+      "TLGEF": 0.02,
+      "DLGEF": 0.062,
+      "source_url": "https://www.gov.za/documents/notices/south-africa%E2%80%99s-2023-grid-emission-factors-report-25-jul-2025"
+    }
   },
   "south_african_greenhouse_comparator": {
     "doi": "10.1016/j.seta.2026.105320",
