@@ -123,10 +123,40 @@ pub struct TrafficOccupancy {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RequiredTrafficUse {
+    pub occupancy_id: String,
+    pub resource_id: String,
+    pub direction_id: Option<String>,
+}
+
+/// One exact FleetPlan operation and its complete mapping into the reviewed
+/// traffic-resource projection. Empty required_uses is allowed only with a
+/// non-empty no_resource_basis attestation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrafficCoverageEntry {
+    pub operation: OperationPlacement,
+    pub route_revision: String,
+    pub required_uses: Vec<RequiredTrafficUse>,
+    pub no_resource_basis: Option<String>,
+}
+
+/// Completeness receipt for every operation in one selected FleetPlan.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrafficCoverageManifest {
+    pub schema_version: String,
+    pub corridor_id: String,
+    pub time_basis_id: String,
+    pub graph_revision: String,
+    pub entries: Vec<TrafficCoverageEntry>,
+    pub evidence: EvidenceReceipt,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrafficWorkload {
     pub corridor_id: String,
     pub time_basis_id: String,
     pub decision_tick: u64,
+    pub coverage: TrafficCoverageManifest,
     pub resources: Vec<TrafficResource>,
     pub occupancies: Vec<TrafficOccupancy>,
 }
@@ -162,6 +192,10 @@ pub enum TrafficViolation {
         first_occupancy_id: String,
         second_occupancy_id: String,
     },
+    CoverageEvidenceNotCurrent {
+        evidence_id: String,
+        state: EvidenceState,
+    },
 }
 
 impl TrafficViolation {
@@ -172,6 +206,9 @@ impl TrafficViolation {
                 state: EvidenceState::Revoked | EvidenceState::Unsupported,
                 ..
             } | Self::OccupancyEvidenceNotCurrent {
+                state: EvidenceState::Revoked | EvidenceState::Unsupported,
+                ..
+            } | Self::CoverageEvidenceNotCurrent {
                 state: EvidenceState::Revoked | EvidenceState::Unsupported,
                 ..
             }
@@ -188,6 +225,10 @@ impl TrafficViolation {
                 state: EvidenceState::Stale | EvidenceState::Unknown | EvidenceState::Disputed,
                 ..
             } | Self::EvidenceWindowInsufficient { .. }
+                | Self::CoverageEvidenceNotCurrent {
+                    state: EvidenceState::Stale | EvidenceState::Unknown | EvidenceState::Disputed,
+                    ..
+                }
         )
     }
 }
@@ -222,6 +263,20 @@ pub enum TrafficError {
     PlanOperationMismatch(String),
     MissingDemandSelection(String),
     PlanSelectionMismatch(String),
+    EmptyPlanOperations,
+    InvalidCoverageManifest,
+    CoverageScopeMismatch,
+    CoverageManifestSubjectMismatch,
+    DuplicatePlanOperation(String),
+    DuplicateCoverageOperation(String),
+    UnknownCoverageOperation(String),
+    MissingCoverageOperation(String),
+    InvalidCoverageEntry(String),
+    DuplicateRequiredTrafficUse(String),
+    UnknownCoverageResource(String),
+    MissingRequiredOccupancy(String),
+    UnmappedOccupancy(String),
+    CoverageRouteRevisionMismatch(String),
 }
 
 /// Append a UTF-8 byte-length-prefixed field to an identity string.
