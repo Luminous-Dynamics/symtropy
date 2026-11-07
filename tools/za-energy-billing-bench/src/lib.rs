@@ -69,6 +69,7 @@ impl InvoiceStatus {
 #[derive(Debug, Clone, PartialEq)]
 pub enum CalcError {
     WrongProfileId,
+    WrongProfileVersion,
     OutsideProfilePeriod,
     InvalidBillingMonth,
     WrongUtility,
@@ -88,6 +89,7 @@ pub enum CalcError {
     IntervalOrderOrOverlap,
     SeasonDoesNotMatchBillingMonth,
     NoIntervals,
+    IncompleteIntervalSeries,
     InvalidMeasurement(&'static str),
     ActiveEnergyMismatch { interval_kwh: f64, declared_kwh: f64 },
     IncompleteDemandHistory,
@@ -100,6 +102,7 @@ impl fmt::Display for CalcError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::WrongProfileId => write!(f, "wrong or unsupported source profile ID"),
+            Self::WrongProfileVersion => write!(f, "wrong or unsupported source profile version"),
             Self::OutsideProfilePeriod => write!(f, "billing month is outside the admitted profile period"),
             Self::InvalidBillingMonth => write!(f, "billing month must be YYYY-MM"),
             Self::WrongUtility => write!(f, "City Power Industrial TOU cannot be applied to another utility"),
@@ -119,6 +122,7 @@ impl fmt::Display for CalcError {
             Self::IntervalOrderOrOverlap => write!(f, "intervals must be chronological and non-overlapping"),
             Self::SeasonDoesNotMatchBillingMonth => write!(f, "season does not match the billing-month calendar"),
             Self::NoIntervals => write!(f, "at least one metered interval is required"),
+            Self::IncompleteIntervalSeries => write!(f, "billing-period interval series must be declared complete and carry a coverage evidence reference"),
             Self::InvalidMeasurement(name) => write!(f, "invalid measurement: {name}"),
             Self::ActiveEnergyMismatch { interval_kwh, declared_kwh } => write!(f, "interval energy sum {interval_kwh} kWh differs from declared active energy {declared_kwh} kWh"),
             Self::IncompleteDemandHistory => write!(f, "exactly 12 qualified preceding monthly demand peaks are required"),
@@ -178,6 +182,8 @@ pub struct TariffInput {
     pub time_zone: String,
     pub account: Account,
     pub intervals: Vec<MeteredInterval>,
+    pub interval_series_complete: bool,
+    pub interval_coverage_evidence_reference: String,
     pub declared_active_energy_kwh: f64,
     pub measured_monthly_peak_demand_kva: f64,
     pub preceding_12_month_demand_history: Vec<DemandHistoryPoint>,
@@ -185,6 +191,7 @@ pub struct TariffInput {
     pub measured_reactive_energy_kvarh: f64,
     /// None means the actual account's network-surcharge treatment is unknown.
     pub network_surcharge_applies: Option<bool>,
+    pub network_surcharge_evidence_reference: Option<String>,
     /// This is an externally assessed amount. The evaluator never computes 2%
     /// over a guessed or inferred billing base.
     pub business_lpu_surcharge: Option<AssessedInvoiceLine>,
@@ -426,7 +433,7 @@ fn fingerprint(input: &TariffInput) -> String {
     );
     let _ = write!(
         canonical,
-        "|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
+        "|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
         input.network_surcharge_applies.map(|x| x.to_string()).unwrap_or_else(|| "UNKNOWN".into()),
         input.business_lpu_surcharge.as_ref().map(|x| format!("{}:{}", x.amount_zar, x.evidence_reference)).unwrap_or_else(|| "UNKNOWN".into()),
         input.vat.as_ref().map(|x| format!("{}:{}", x.amount_zar, x.evidence_reference)).unwrap_or_else(|| "UNKNOWN".into()),
@@ -435,6 +442,9 @@ fn fingerprint(input: &TariffInput) -> String {
         input.meter_boundary_reference,
         input.meter_calibration_reference,
         input.input_manifest_reference,
+        input.interval_series_complete,
+        input.interval_coverage_evidence_reference,
+        input.network_surcharge_evidence_reference.as_deref().unwrap_or("UNKNOWN"),
         input.account.service_connection_classification_reference.as_deref().unwrap_or("UNKNOWN"),
         input.preceding_12_month_demand_history.len()
     );
@@ -538,6 +548,9 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
     if input.source_profile_id != SOURCE_PROFILE_ID {
         return Err(CalcError::WrongProfileId);
     }
+    if input.profile_version != "0.1" {
+        return Err(CalcError::WrongProfileVersion);
+    }
     let (year, month) = parse_month(&input.billing_month)?;
     if input.billing_month.as_str() < PROFILE_EFFECTIVE_FROM
         || input.billing_month.as_str() > PROFILE_EFFECTIVE_THROUGH
@@ -561,6 +574,14 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
     }
     if input.intervals.is_empty() {
         return Err(CalcError::NoIntervals);
+    }
+    if !input.interval_series_complete || !nonblank(&input.interval_coverage_evidence_reference) {
+        return Err(CalcError::IncompleteIntervalSeries);
+    }
+    if input.network_surcharge_applies.is_some()
+        && !input.network_surcharge_evidence_reference.as_deref().is_some_and(nonblank)
+    {
+        return Err(CalcError::MissingEvidence("network surcharge account treatment"));
     }
     if !input.declared_active_energy_kwh.is_finite() || input.declared_active_energy_kwh < 0.0 {
         return Err(CalcError::InvalidMeasurement("declared active energy"));
@@ -854,12 +875,15 @@ mod tests {
                 saturday_evening_confirmed: false,
                 saturday_confirmation_reference: None,
             }],
+            interval_series_complete: true,
+            interval_coverage_evidence_reference: "SYNTHETIC-COMPLETE-INTERVAL-COVERAGE".to_owned(),
             declared_active_energy_kwh: 10.0,
             measured_monthly_peak_demand_kva: 95.0,
             preceding_12_month_demand_history: history_for("2026-07", 125.0),
             power_factor: 0.95,
             measured_reactive_energy_kvarh: 5.0,
             network_surcharge_applies: Some(true),
+            network_surcharge_evidence_reference: Some("SYNTHETIC-ACCOUNT-NETWORK-SURCHARGE-STATUS".to_owned()),
             business_lpu_surcharge: Some(AssessedInvoiceLine {
                 amount_zar: 12.34,
                 evidence_reference: "SYNTHETIC-ASSESSED-BUSINESS-LPU-LINE".to_owned(),
@@ -1111,6 +1135,28 @@ mod tests {
         let mut input = fixture();
         input.network_surcharge_applies = Some(false);
         close(calculate_bill(&input).unwrap().breakdown.per_kwh_network_surcharge_zar.unwrap(), 0.0);
+    }
+
+
+    #[test]
+    fn wrong_profile_version_is_rejected() {
+        let mut input = fixture();
+        input.profile_version = "0.2".to_owned();
+        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::WrongProfileVersion);
+    }
+
+    #[test]
+    fn incomplete_interval_coverage_is_rejected() {
+        let mut input = fixture();
+        input.interval_series_complete = false;
+        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::IncompleteIntervalSeries);
+    }
+
+    #[test]
+    fn network_surcharge_decision_requires_account_evidence() {
+        let mut input = fixture();
+        input.network_surcharge_evidence_reference = None;
+        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::MissingEvidence("network surcharge account treatment"));
     }
 
     #[test]
