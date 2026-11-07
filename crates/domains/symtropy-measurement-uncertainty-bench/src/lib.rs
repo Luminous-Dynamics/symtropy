@@ -135,7 +135,6 @@ impl Marginal {
 #[derive(Clone, Debug)]
 struct InputSpec {
     id: String,
-    unit: String,
     dimension: Dimension,
     scale_to_si: f64,
     marginal: Marginal,
@@ -918,7 +917,6 @@ fn parse_inputs(case: &Value) -> Vec<InputSpec> {
         .iter()
         .map(|input| InputSpec {
             id: text(input, "input_id").expect("validated input ID").to_owned(),
-            unit: text(input, "unit").expect("validated input unit").to_owned(),
             dimension: parse_dimension(&input["dimension"]).expect("validated input dimension"),
             scale_to_si: finite(input, "scale_to_si").expect("validated input scale"),
             marginal: marginal_from_value(&input["distribution"]).expect("validated input distribution"),
@@ -1314,10 +1312,6 @@ pub fn evaluate_case(case: &Value) -> Result<EvaluationReport, Vec<Violation>> {
     let simulation = parse_simulation(case);
     let cholesky_lower = cholesky_validated(case);
     let batch_count = simulation.sample_count / simulation.batch_size;
-    let probabilities: Vec<f64> = outputs
-        .iter()
-        .flat_map(|output| output.quantile_targets.iter().map(|target| target.probability))
-        .collect();
     let mut output_values: Vec<Vec<f64>> = outputs
         .iter()
         .map(|_| Vec::with_capacity(simulation.sample_count))
