@@ -9,7 +9,6 @@ physical component maps or aircraft performance.
 
 from __future__ import annotations
 
-import copy
 import json
 import math
 import sys
@@ -188,9 +187,6 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
             errors.append(f"generator:{generator['generator_id']}")
         if average_output > average_limit or peak_output + tolerance_w < average_output or peak_output > peak_limit + tolerance_w:
             errors.append(f"generator_power:{generator['generator_id']}")
-        generator_inputs_by_engine[generator["prime_mover_id"]] = (
-            generator_inputs_by_engine.get(generator["prime_mover_id"], 0.0) + mechanical
-        )
         generator_bus_total += electrical
 
     store_discharge_total = 0.0
@@ -360,6 +356,8 @@ def main() -> int:
         expect_bad("reserve_floor_violation", lambda b: b["stores"][0].update(reserve_floor_j=120_000_000))
         expect_bad("store_temperature_outside_envelope", lambda b: b["stores"][0].update(temperature_c=95.0))
         expect_bad("peak_store_power_violation", lambda b: b["stores"][0].update(peak_discharge_power_w=99_000))
+        expect_bad("peak_bus_power_limit", lambda b: b.update(peak_bus_supply_power_limit_w=1_000))
+        expect_bad("continuous_bus_power_limit", lambda b: b.update(continuous_bus_supply_power_limit_w=1_000))
         print(f"phase_energy_planes_oracle=pass cases={len(fixture['cases'])} independent=python-stdlib")
     except (OSError, AuditError, KeyError, TypeError, ValueError) as error:
         print(f"phase_energy_planes_oracle_error={error}", file=sys.stderr)
