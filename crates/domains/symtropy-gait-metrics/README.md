@@ -24,3 +24,16 @@ The conventional phase-vector strength function is a declared formula over calle
 ## Evidence boundary
 
 All tests use synthetic intervals and phase arrays. They qualify the arithmetic and input checks only, not a biological gait, neural circuit, locomotion controller or published result.
+
+
+## Higher-order six-leg joint stance state
+
+The `joint_state` module adds a versioned six-leg stance/swing representation over all 64 configurations, using the canonical order:
+
+`LEFT_FORE, LEFT_MIDDLE, LEFT_HIND, RIGHT_FORE, RIGHT_MIDDLE, RIGHT_HIND`
+
+It computes exact integer-tick occupancy, the derived number-of-legs-in-stance distribution, per-leg/pairwise/tripod projections, contiguous state transitions and dwell episodes. It preserves missing-track, out-of-support, failed-assay, not-assessed and disputed durations by leg. Incomplete intervals never enter the full-state denominator and never create transitions.
+
+The transition output is an empirical trace summary, not a Markov/stationarity claim. The code does not score the "best" gait, infer biological mechanism, pool frames as independent replicates, or replace the paired replay scorecard.
+
+See `docs/research/LOCO_JOINT_STANCE_STATE_V1.md` and its exact parity/transition fixture for the known-answer contract.
