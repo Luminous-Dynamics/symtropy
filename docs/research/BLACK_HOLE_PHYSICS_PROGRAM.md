@@ -405,3 +405,17 @@ The Symtropy branch now contains a further bounded implementation increment:
 - Total authored Rust tests: 27 (13 scalar/root, 10 metric, 4 posterior). They remain unexecuted because this editing environment has neither `rustc` nor `cargo`.
 
 The new posterior mapping is deliberately a deterministic transformation of already inferred remnant samples. It must not be described as a GW250114 analysis or a direct-wave detection. The next required validation is a local build/test on the exact PR head, followed by independent formula review and comparison against published Kerr/ringdown references.
+
+
+### Third implementation slice — explicit Levi-Civita connection (2026-11-07)
+
+The crate now also contains `connection.rs`:
+- `MetricDerivatives4` stores (\partial_\alpha g_{\mu\nu}) with explicit index ordering and rejects non-finite/asymmetric derivative data.
+- `LeviCivitaConnection4` computes (\Gamma^\rho{}_{\mu\nu}=\frac12 g^{\rho\sigma}(\partial_\mu g_{\sigma\nu}+\partial_\nu g_{\sigma\mu}-\partial_\sigma g_{\mu\nu})) from a metric and caller-supplied derivatives.
+- The API intentionally does not hide finite-difference step sizes or silently differentiate a metric.
+- An analytic Schwarzschild exterior derivative fixture and a Cartesian Minkowski zero-connection fixture are included.
+- Tests compare selected Schwarzschild coefficients against closed forms, check lower-index symmetry, and reject invalid derivative/chart inputs.
+
+Total authored Rust tests are now **32**: 13 scalar/root, 10 metric, 5 connection, and 4 posterior. They are still unexecuted because this environment has no `rustc` or `cargo`.
+
+This advances the code from an analytic metric store to a first connection calculation. Riemann curvature, coordinate-invariant curvature checks, and geodesic integration remain future gates; no complete GR tensor solver or numerical-relativity claim is made.
