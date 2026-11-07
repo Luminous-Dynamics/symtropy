@@ -1,0 +1,480 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/measurement-qualification-case-v0.1.json",
+  "title": "Symtropy Measurement Qualification Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "instrument",
+    "protocol",
+    "reference_checks",
+    "sample_sets"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reference_replicate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "replicate_id",
+        "session_ref",
+        "operator_ref",
+        "orientation_ref",
+        "measured_value",
+        "source_artifact_ref",
+        "analysis_record_ref"
+      ],
+      "properties": {
+        "replicate_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "session_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "operator_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "orientation_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "measured_value": {
+          "type": "number"
+        },
+        "source_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "analysis_record_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "reference_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_id",
+        "descriptor_type",
+        "basis",
+        "descriptor_definition_ref",
+        "certified_value",
+        "certified_expanded_uncertainty",
+        "feature_dimension_mm",
+        "maximum_abs_error",
+        "replicates",
+        "calibration_ref",
+        "certificate_ref",
+        "coverage_factor"
+      ],
+      "properties": {
+        "reference_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "descriptor_type": {
+          "enum": [
+            "FERET_ASPECT_RATIO_2D",
+            "CIRCULARITY_2D",
+            "SOLIDITY_2D",
+            "FOURIER_ANGULARITY_2D",
+            "FOURIER_ROUGHNESS_2D",
+            "SPHERICITY_3D",
+            "ASPECT_RATIO_3D",
+            "CONVEXITY_3D"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "PROJECTION_2D",
+            "RECONSTRUCTION_3D"
+          ]
+        },
+        "descriptor_definition_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "certified_value": {
+          "type": "number"
+        },
+        "feature_dimension_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_abs_error": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "replicates": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "$ref": "#/$defs/reference_replicate"
+          }
+        },
+        "calibration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "certificate_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "certified_expanded_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "coverage_factor": {
+          "type": "number",
+          "minimum": 1
+        }
+      }
+    },
+    "quantile_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probability",
+        "confidence_level",
+        "maximum_interval_width"
+      ],
+      "properties": {
+        "probability": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "confidence_level": {
+          "type": "number",
+          "exclusiveMinimum": 0.5,
+          "exclusiveMaximum": 1
+        },
+        "maximum_interval_width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "particle_id",
+        "acquisition_block_ref",
+        "resolution_status",
+        "feature_dimension_mm",
+        "source_artifact_ref",
+        "segmentation_record_ref",
+        "particle_size_lower_mm",
+        "particle_size_upper_mm",
+        "size_measurement_ref",
+        "batch_index",
+        "batch_id"
+      ],
+      "properties": {
+        "particle_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "acquisition_block_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "resolution_status": {
+          "enum": [
+            "EXACT",
+            "LEFT_CENSORED",
+            "RIGHT_CENSORED"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "censor_bound": {
+          "type": "number"
+        },
+        "feature_dimension_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "source_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "segmentation_record_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "particle_size_lower_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "particle_size_upper_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "size_measurement_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "batch_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "batch_id": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "sample_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_set_id",
+        "parent_morphology_case_id",
+        "parent_interval_id",
+        "parent_bin_index",
+        "descriptor_type",
+        "basis",
+        "descriptor_definition_ref",
+        "sampling_protocol_ref",
+        "selection_method",
+        "independence_basis",
+        "domain_lower_bound",
+        "domain_upper_bound",
+        "descriptor_resolution",
+        "minimum_resolvable_feature_mm",
+        "quantile_targets",
+        "samples",
+        "sequential_stability"
+      ],
+      "properties": {
+        "sample_set_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "parent_morphology_case_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "parent_interval_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "parent_bin_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "descriptor_type": {
+          "enum": [
+            "FERET_ASPECT_RATIO_2D",
+            "CIRCULARITY_2D",
+            "SOLIDITY_2D",
+            "FOURIER_ANGULARITY_2D",
+            "FOURIER_ROUGHNESS_2D",
+            "SPHERICITY_3D",
+            "ASPECT_RATIO_3D",
+            "CONVEXITY_3D"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "PROJECTION_2D",
+            "RECONSTRUCTION_3D"
+          ]
+        },
+        "descriptor_definition_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "sampling_protocol_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "selection_method": {
+          "const": "RANDOMIZED_WITHIN_PARENT_SIZE_STRATUM"
+        },
+        "independence_basis": {
+          "const": "ONE_PARTICLE_PER_INDEPENDENT_ACQUISITION_BLOCK"
+        },
+        "domain_lower_bound": {
+          "type": "number"
+        },
+        "domain_upper_bound": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "descriptor_resolution": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "minimum_resolvable_feature_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "quantile_targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/quantile_target"
+          }
+        },
+        "samples": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2048,
+          "items": {
+            "$ref": "#/$defs/sample"
+          }
+        },
+        "sequential_stability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum_batch_count",
+            "minimum_samples_per_batch",
+            "stable_tail_batch_count",
+            "targets"
+          ],
+          "properties": {
+            "minimum_batch_count": {
+              "type": "integer",
+              "minimum": 3
+            },
+            "minimum_samples_per_batch": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "stable_tail_batch_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "targets": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/sequential_stability_target"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sequential_stability_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probability",
+        "maximum_batch_to_batch_drift"
+      ],
+      "properties": {
+        "probability": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "maximum_batch_to_batch_drift": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MEASURED"
+      ]
+    },
+    "instrument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrument_id",
+        "method",
+        "spatial_resolution_mm",
+        "descriptor_resolution",
+        "calibration_ref",
+        "source_artifact_ref",
+        "reference_profile_ref"
+      ],
+      "properties": {
+        "instrument_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "method": {
+          "enum": [
+            "STATIC_2D_IMAGE",
+            "DYNAMIC_2D_IMAGE",
+            "LIDAR_POINT_CLOUD",
+            "PHOTOGRAMMETRY_3D",
+            "STRUCTURED_LIGHT_3D",
+            "MULTIVIEW_RECONSTRUCTION"
+          ]
+        },
+        "spatial_resolution_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "descriptor_resolution": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "calibration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "reference_profile_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parent_morphology_case_id",
+        "parent_interval_id",
+        "sampling_frame_ref",
+        "sampling_protocol_ref",
+        "quantile_method_ref",
+        "review_authority_ref"
+      ],
+      "properties": {
+        "parent_morphology_case_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "parent_interval_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "sampling_frame_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "sampling_protocol_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "quantile_method_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "review_authority_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "reference_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/reference_check"
+      }
+    },
+    "sample_sets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/sample_set"
+      }
+    }
+  }
+}
