@@ -21,7 +21,7 @@ Explanatory mechanisms declare their theoretical rationale, lag, boundary condit
 
 Predictions bind to a predeclared pattern, outcome indicator and held-out partition. External validation requires empirical observations from that partition. Calibration and external validation may not use the same source/partition pair.
 
-Evidence-use records distinguish characterization, calibration, process credibility, internal validation, verification, external validation, sensitivity exploration and counterfactual exploration. Evidence classes separately distinguish historical observation, contemporary observation, model inference and counterfactual projection.
+Evidence-use records distinguish characterization, calibration, process credibility, internal validation, verification, external validation, sensitivity exploration and counterfactual exploration. Source kinds separately distinguish theoretical syntheses, empirical datasets/studies, simulation outputs and scenario specifications. Claim classes remain four distinct categories: historical observation, contemporary observation, model inference and counterfactual projection. A theory review is not mislabeled as an observation. Simulation output cannot serve as external empirical validation. Reuse of the same source family across separate calibration and holdout partitions is disclosed as a warning; using the same source partition for both remains an error.
 
 No universal theory/empirics score is produced. The report contains a set of conformance findings and checked-object counts.
 
