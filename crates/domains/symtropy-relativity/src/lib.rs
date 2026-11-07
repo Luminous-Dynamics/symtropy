@@ -24,6 +24,9 @@
 
 use core::fmt;
 
+/// Validated stationary black-hole metric components in a declared chart.
+pub mod metric;
+
 /// Newtonian gravitational constant in SI units (m^3 kg^-1 s^-2).
 pub const GRAVITATIONAL_CONSTANT_M3_KG_S2: f64 = 6.674_30e-11;
 /// Speed of light in vacuum in SI units (m s^-1), exact by definition.
