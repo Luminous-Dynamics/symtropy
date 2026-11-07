@@ -462,6 +462,7 @@ pub enum GroupSizeError {
         config: usize,
         policy: usize,
     },
+    PayoffOverflow,
 }
 
 impl fmt::Display for GroupSizeError {
@@ -511,6 +512,7 @@ impl fmt::Display for GroupSizeError {
                 f,
                 "config memory capacity {config} does not match policy capacity {policy}"
             ),
+            Self::PayoffOverflow => write!(f, "cumulative or aggregate payoff overflow"),
         }
     }
 }
@@ -586,18 +588,23 @@ pub fn simulate_population(
                 Some(previous) if previous != first_action => all_actions_same = false,
                 Some(_) => {}
             }
-            if first_action != second_action {
-                all_actions_same = false;
-            }
-
             let payoff = if first_action == second_action {
                 config.match_payoff
             } else {
                 config.mismatch_payoff
             };
-            agents[first_agent].cumulative_payoff += payoff;
-            agents[second_agent].cumulative_payoff += payoff;
-            total_payoff_added += 2 * payoff;
+            agents[first_agent].cumulative_payoff = agents[first_agent]
+                .cumulative_payoff
+                .checked_add(payoff)
+                .ok_or(GroupSizeError::PayoffOverflow)?;
+            agents[second_agent].cumulative_payoff = agents[second_agent]
+                .cumulative_payoff
+                .checked_add(payoff)
+                .ok_or(GroupSizeError::PayoffOverflow)?;
+            let pair_payoff = payoff.checked_mul(2).ok_or(GroupSizeError::PayoffOverflow)?;
+            total_payoff_added = total_payoff_added
+                .checked_add(pair_payoff)
+                .ok_or(GroupSizeError::PayoffOverflow)?;
 
             let first_new_memory = agents[first_agent].memory.observe(
                 first_action,
@@ -672,7 +679,10 @@ pub fn simulate_population(
     }
 
     let last = rounds.last().expect("positive population-round config");
-    let total_pairwise_interactions = rounds.iter().map(|row| row.pairwise_interactions).sum();
+    let total_pairwise_interactions = rounds
+        .iter()
+        .try_fold(0usize, |total, row| total.checked_add(row.pairwise_interactions))
+        .ok_or(GroupSizeError::PayoffOverflow)?;
     Ok(RunOutcome {
         policy_id: policy.policy_id.clone(),
         population_size,
@@ -902,6 +912,17 @@ mod tests {
         let result = simulate_population(config(24, 17), &policy, 42).unwrap();
         assert!(result.rounds.iter().all(|row| row.pairwise_interactions == 24));
         assert_eq!(result.total_pairwise_interactions, 24 * result.rounds_run());
+    }
+
+    #[test]
+    fn overflowing_payoff_accounting_fails_closed() {
+        let policy = PolicyTable::memory_independent("always_match", 5, order(), 1.0).unwrap();
+        let mut invalid = config(2, 1);
+        invalid.match_payoff = i64::MAX;
+        assert!(matches!(
+            simulate_population(invalid, &policy, 17),
+            Err(GroupSizeError::PayoffOverflow)
+        ));
     }
 
     #[test]
