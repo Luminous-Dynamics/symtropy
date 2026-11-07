@@ -13,28 +13,28 @@ use blake3::Hasher;
 use nalgebra::SVector;
 use road_egci_handoff::{
     BranchExport, BranchOutcome, CandidateUniverseDisposition, CorrespondenceReceipt,
-    DecisionDisposition, DrawBundleAnchor, EpisodeExport, ExperimentManifest,
-    ExternalAnchor, HypothesisSetDisposition, JointTransition, ObservationDelivery,
-    ObservationDisposition, PolicyDecision, PolicyProfile, ReplayDisposition,
-    ReplayEvidence, TransitionDisposition, export_to_sam, SamHandoff,
+    DecisionDisposition, DrawBundleAnchor, EpisodeExport, ExperimentManifest, ExternalAnchor,
+    HypothesisSetDisposition, JointTransition, ObservationDelivery, ObservationDisposition,
+    PolicyDecision, PolicyProfile, ReplayDisposition, ReplayEvidence, SamHandoff,
+    TransitionDisposition, export_to_sam,
 };
 use symtropy_math::{Bivector, Point, Rotor, Sphere, Transform};
 use symtropy_physics::{
     PhysicsWorld,
     body::{BodyHandle, BodyType, RigidBody},
     replay::{
-        ReplayEvidenceContext, ReplayTape, WorldCommand,
-        WorldSnapshot, apply_commands, execute_with_evidence, verify_replay_evidence,
+        ReplayEvidenceContext, ReplayTape, WorldCommand, WorldSnapshot, apply_commands,
+        execute_with_evidence, verify_replay_evidence,
     },
 };
 use symtropy_road_actor_adapter::{
-    CoordinateFrameId, MotionProfile, PathStepInput, Point2, RouteId, StraightRoute,
-    TickClock, plan_path_step,
+    CoordinateFrameId, MotionProfile, PathStepInput, Point2, RouteId, StraightRoute, TickClock,
+    plan_path_step,
 };
 use symtropy_road_actors::{
-    ActorAction, ActorPolicy, ActorPolicyState, AllowedActorObservation,
-    CautiousPausePolicy, CueKind, CueValue, MotionBounds, ObservationCue,
-    ObservationProvenance, ScenarioActorId, ScenarioTick,
+    ActorAction, ActorPolicy, ActorPolicyState, AllowedActorObservation, CautiousPausePolicy,
+    CueKind, CueValue, MotionBounds, ObservationCue, ObservationProvenance, ScenarioActorId,
+    ScenarioTick,
 };
 
 const DT: f64 = 0.2;
@@ -84,9 +84,7 @@ struct EgoObservation {
 
 /// Small transparent reference rule. It has no access to actor policy state,
 /// actor requested action, hidden world state, or future commands.
-fn ego_policy(
-    observation: EgoObservation,
-) -> (EgoAction, f64) {
+fn ego_policy(observation: EgoObservation) -> (EgoAction, f64) {
     if observation.actor_in_conflict_zone {
         (EgoAction::Yield, 0.0)
     } else {
@@ -122,7 +120,9 @@ pub fn run_reciprocal_experiment() -> Result<ReciprocalExperiment, String> {
         PolicyProfile {
             actor_id: ACTOR_ID.into(),
             policy_digest: digest("symtropy-road-actors:cautious_pause_v1:source-16886c48"),
-            config_digest: digest("cautious_pause_v1:max=1.5:pause_ttc=2.5:entry_ttc=3.5:reaction_ticks=0"),
+            config_digest: digest(
+                "cautious_pause_v1:max=1.5:pause_ttc=2.5:entry_ttc=3.5:reaction_ticks=0",
+            ),
             initial_policy_state_digest: initial_actor_state,
             observation_profile_digest: actor_observation_profile_digest(),
             action_domain_digest: action_domain_digest.clone(),
@@ -144,7 +144,9 @@ pub fn run_reciprocal_experiment() -> Result<ReciprocalExperiment, String> {
         initial_world_snapshot_digest: base.export.parent_snapshot_digest.clone(),
         physics_profile_digest: digest("symtropy-physics:2d:kinematic-spheres:zero-gravity:v0.2"),
         execution_profile_digest: digest("single-threaded:5hz:dt=0.2:four-frames:runtime-replay"),
-        observation_schedule_digest: digest("observation-schedule:delivered-at-tick:phase-aware-v0.2"),
+        observation_schedule_digest: digest(
+            "observation-schedule:delivered-at-tick:phase-aware-v0.2",
+        ),
         action_domain_digest,
         units_profile_digest: digest("SI:metres:seconds:metres-per-second:radians"),
         tick_hz_numerator: TICK_HZ,
@@ -169,7 +171,9 @@ pub fn run_reciprocal_experiment() -> Result<ReciprocalExperiment, String> {
 
     let anchor = ExternalAnchor {
         authority_reference: "local-synthetic-fixture-anchor-not-an-external-authority".into(),
-        expected_episode_root: episode.episode_root().map_err(|error| format!("{error:?}"))?,
+        expected_episode_root: episode
+            .episode_root()
+            .map_err(|error| format!("{error:?}"))?,
         draw_bundle_anchors,
     };
     let handoff = export_to_sam(&episode, &anchor).map_err(|error| format!("{error:?}"))?;
@@ -182,7 +186,10 @@ pub fn run_reciprocal_experiment() -> Result<ReciprocalExperiment, String> {
 }
 
 fn run_branch(speed_limit_mps: f64, branch_id: &str) -> Result<BranchRun, String> {
-    if !speed_limit_mps.is_finite() || !(0.0..=3.0).contains(&speed_limit_mps) || speed_limit_mps == 0.0 {
+    if !speed_limit_mps.is_finite()
+        || !(0.0..=3.0).contains(&speed_limit_mps)
+        || speed_limit_mps == 0.0
+    {
         return Err("declared ego speed limit is outside the finite fixture envelope".into());
     }
 
@@ -190,11 +197,12 @@ fn run_branch(speed_limit_mps: f64, branch_id: &str) -> Result<BranchRun, String
     let actor_bounds = MotionBounds::new(1.5).map_err(|error| format!("{error:?}"))?;
     let actor_policy = CautiousPausePolicy::new(actor_bounds, 2.5, 3.5, 0)
         .map_err(|error| format!("{error:?}"))?;
-    let actor_motion_profile = MotionProfile::new(actor_bounds, 10.0, 10.0)
-        .map_err(|error| format!("{error:?}"))?;
+    let actor_motion_profile =
+        MotionProfile::new(actor_bounds, 10.0, 10.0).map_err(|error| format!("{error:?}"))?;
     let actor_route = StraightRoute::new(
         RouteId::new("pedestrian-crossing-route-1").map_err(|error| format!("{error:?}"))?,
-        CoordinateFrameId::new("intersection-local-metric-frame").map_err(|error| format!("{error:?}"))?,
+        CoordinateFrameId::new("intersection-local-metric-frame")
+            .map_err(|error| format!("{error:?}"))?,
         Point2::new(2.0, -1.0).map_err(|error| format!("{error:?}"))?,
         Point2::new(2.0, 1.0).map_err(|error| format!("{error:?}"))?,
     )
@@ -206,7 +214,7 @@ fn run_branch(speed_limit_mps: f64, branch_id: &str) -> Result<BranchRun, String
     let mut recorded_snapshots = Vec::with_capacity(TICK_COUNT as usize);
     let mut observations = Vec::new();
     let mut decisions = Vec::new();
-let mut ego_visible = Vec::<String>::new();
+    let mut ego_visible = Vec::<String>::new();
     let mut actor_visible = Vec::<String>::new();
     let mut cue_index = BTreeMap::<String, ObservationDelivery>::new();
     let mut ego_prior_receipts = Vec::<String>::new();
@@ -319,15 +327,14 @@ let mut ego_visible = Vec::<String>::new();
         let (ego_applied_speed, ego_distance) =
             rate_limited_step(ego_speed, requested_ego_speed, DT)?;
         let ego_next_x = ego_x + ego_distance;
-        let ego_command = kinematic_pose_command(
-            ego_handle,
-            [ego_next_x, 0.0],
-            0.0,
-            [ego_applied_speed, 0.0],
-        );
+        let ego_command =
+            kinematic_pose_command(ego_handle, [ego_next_x, 0.0], 0.0, [ego_applied_speed, 0.0]);
         let actor_command = kinematic_pose_command(
             actor_handle,
-            [path_receipt.target.position.x_m, path_receipt.target.position.y_m],
+            [
+                path_receipt.target.position.x_m,
+                path_receipt.target.position.y_m,
+            ],
             path_receipt.target.heading_radians,
             [
                 path_receipt.target.linear_velocity_mps.x_m,
@@ -338,7 +345,7 @@ let mut ego_visible = Vec::<String>::new();
         let cutoff = event_base(tick);
         let (ego_decision_sequence, actor_decision_sequence) = (cutoff + 1, cutoff + 2);
         let (ego_latch_sequence, actor_latch_sequence) = (cutoff + 3, cutoff + 4);
-        
+
         let ego_receipt_id = format!("decision-{EGO_ID}-{tick}");
         let actor_receipt_id = format!("decision-{ACTOR_ID}-{tick}");
         let ego_visible_digest = permitted_history_digest(
@@ -422,8 +429,7 @@ let mut ego_visible = Vec::<String>::new();
 
     let (mut mirror_world, _, _) = build_world()?;
     for (index, frame) in tape.frames.iter().enumerate() {
-        apply_commands(&mut mirror_world, &frame.commands)
-            .map_err(|error| format!("{error:?}"))?;
+        apply_commands(&mut mirror_world, &frame.commands).map_err(|error| format!("{error:?}"))?;
         mirror_world.step(frame.dt);
         if WorldSnapshot::capture(&mirror_world) != recorded_snapshots[index] {
             return Err(format!("fresh-world snapshot mismatch at tick {index}"));
@@ -434,9 +440,13 @@ let mut ego_visible = Vec::<String>::new();
         scenario_id: format!("road-egci-reciprocal-{branch_id}"),
         scenario_artifact_digest: digest("scenario:two-agent-crossing:v0.1"),
         engine_artifact_digest: digest("symtropy-physics-replay-engine:0.2.1"),
-        initial_world_profile_digest: digest("world:ego-kinematic-sphere:actor-kinematic-sphere:gravity-zero"),
-        environment_profile_digest: digest("environment:closed-synthetic-intersection:no-exogenous-force"),
-        execution_protocol_digest: digest("single-threaded:three-ticks:0.2s:pose-command-v2"),
+        initial_world_profile_digest: digest(
+            "world:ego-kinematic-sphere:actor-kinematic-sphere:gravity-zero",
+        ),
+        environment_profile_digest: digest(
+            "environment:closed-synthetic-intersection:no-exogenous-force",
+        ),
+        execution_protocol_digest: digest("single-threaded:four-ticks:0.2s:pose-command-v2"),
     };
     let (mut evidence_world, _, _) = build_world()?;
     let replay_receipt = execute_with_evidence(&mut evidence_world, &tape, &replay_context)
@@ -465,8 +475,7 @@ let mut ego_visible = Vec::<String>::new();
             joint_action_digest: joint_action_digest(&tick_decisions),
             physics_step_receipt_digest: digest(&format!(
                 "physics-step-commitment-v0.1:{}:{}:{tick}:{child_snapshot}",
-                replay_receipt.receipt_digest,
-                replay_receipt.input_tape_digest
+                replay_receipt.receipt_digest, replay_receipt.input_tape_digest
             )),
             disposition: TransitionDisposition::Completed,
         });
@@ -555,7 +564,11 @@ fn kinematic_pose_command(
     }
 }
 
-fn rate_limited_step(measured_speed: f64, requested_speed: f64, dt: f64) -> Result<(f64, f64), String> {
+fn rate_limited_step(
+    measured_speed: f64,
+    requested_speed: f64,
+    dt: f64,
+) -> Result<(f64, f64), String> {
     if !measured_speed.is_finite()
         || !requested_speed.is_finite()
         || measured_speed < 0.0
@@ -689,11 +702,7 @@ fn observation_delivery(
 }
 
 fn observation_phase(tick: u64) -> u64 {
-    if tick == 0 {
-        1
-    } else {
-        13 + 9 * (tick - 1)
-    }
+    if tick == 0 { 1 } else { 13 + 9 * (tick - 1) }
 }
 
 fn event_base(tick: u64) -> u64 {
@@ -818,31 +827,17 @@ fn joint_action_digest(decisions: &[PolicyDecision]) -> String {
     for decision in ordered {
         hash_str(&mut h, &decision.actor_id);
         hash_str(&mut h, decision.action_id.as_deref().unwrap_or_default());
-        hash_str(&mut h, decision.action_payload_digest.as_deref().unwrap_or_default());
+        hash_str(
+            &mut h,
+            decision
+                .action_payload_digest
+                .as_deref()
+                .unwrap_or_default(),
+        );
     }
     hex(h.finalize().as_bytes())
 }
 
-
-fn observation_phase(tick: u64) -> u64 {
-    if tick == 0 {
-        1
-    } else {
-        13 + 9 * (tick - 1)
-    }
-}
-
-fn event_base(tick: u64) -> u64 {
-    if tick == 0 {
-        7
-    } else {
-        observation_phase(tick) + 3
-    }
-}
-
-fn physics_event_sequence(tick: u64) -> u64 {
-    event_base(tick) + 5
-}
 
 fn hash_strs(h: &mut Hasher, values: &[String]) {
     hash_len(h, values.len());
@@ -907,7 +902,11 @@ mod tests {
     use super::*;
 
     fn decision<'a>(branch: &'a BranchExport, actor: &str, tick: u64) -> &'a PolicyDecision {
-        branch.decisions.iter().find(|item| item.actor_id == actor && item.tick == tick).unwrap()
+        branch
+            .decisions
+            .iter()
+            .find(|item| item.actor_id == actor && item.tick == tick)
+            .unwrap()
     }
 
     #[test]
@@ -926,26 +925,68 @@ mod tests {
             .find(|branch| branch.branch_id == "ego-speed-2mps")
             .unwrap();
 
-        assert_eq!(decision(base, EGO_ID, 0).action_id.as_deref(), Some("continue"));
-        assert_eq!(decision(fast, EGO_ID, 0).action_id.as_deref(), Some("continue"));
-        assert_eq!(decision(base, ACTOR_ID, 0).action_id.as_deref(), Some("enter-crossing"));
-        assert_eq!(decision(fast, ACTOR_ID, 0).action_id.as_deref(), Some("enter-crossing"));
+        assert_eq!(
+            decision(base, EGO_ID, 0).action_id.as_deref(),
+            Some("continue")
+        );
+        assert_eq!(
+            decision(fast, EGO_ID, 0).action_id.as_deref(),
+            Some("continue")
+        );
+        assert_eq!(
+            decision(base, ACTOR_ID, 0).action_id.as_deref(),
+            Some("enter-crossing")
+        );
+        assert_eq!(
+            decision(fast, ACTOR_ID, 0).action_id.as_deref(),
+            Some("enter-crossing")
+        );
 
         // Ego-to-actor: the tick-0 speed intervention only changes actor TTC
         // after the first physics step and observation delivery at tick 1.
-        assert_eq!(decision(base, ACTOR_ID, 1).action_id.as_deref(), Some("continue"));
-        assert_eq!(decision(fast, ACTOR_ID, 1).action_id.as_deref(), Some("pause"));
-        assert_eq!(decision(base, ACTOR_ID, 2).action_id.as_deref(), Some("continue"));
-        assert_eq!(decision(fast, ACTOR_ID, 2).action_id.as_deref(), Some("pause"));
+        assert_eq!(
+            decision(base, ACTOR_ID, 1).action_id.as_deref(),
+            Some("continue")
+        );
+        assert_eq!(
+            decision(fast, ACTOR_ID, 1).action_id.as_deref(),
+            Some("pause")
+        );
+        assert_eq!(
+            decision(base, ACTOR_ID, 2).action_id.as_deref(),
+            Some("continue")
+        );
+        assert_eq!(
+            decision(fast, ACTOR_ID, 2).action_id.as_deref(),
+            Some("pause")
+        );
 
         // Actor-to-ego: those actor actions produce different realized actor
         // positions; ego reacts only to the resulting tick-2 delivered zone cue.
-        assert_eq!(decision(base, EGO_ID, 1).action_id.as_deref(), Some("continue"));
-        assert_eq!(decision(fast, EGO_ID, 1).action_id.as_deref(), Some("continue"));
-        assert_eq!(decision(base, EGO_ID, 2).action_id.as_deref(), Some("continue"));
-        assert_eq!(decision(fast, EGO_ID, 2).action_id.as_deref(), Some("continue"));
-        assert_eq!(decision(base, EGO_ID, 3).action_id.as_deref(), Some("yield"));
-        assert_eq!(decision(fast, EGO_ID, 3).action_id.as_deref(), Some("continue"));
+        assert_eq!(
+            decision(base, EGO_ID, 1).action_id.as_deref(),
+            Some("continue")
+        );
+        assert_eq!(
+            decision(fast, EGO_ID, 1).action_id.as_deref(),
+            Some("continue")
+        );
+        assert_eq!(
+            decision(base, EGO_ID, 2).action_id.as_deref(),
+            Some("continue")
+        );
+        assert_eq!(
+            decision(fast, EGO_ID, 2).action_id.as_deref(),
+            Some("continue")
+        );
+        assert_eq!(
+            decision(base, EGO_ID, 3).action_id.as_deref(),
+            Some("yield")
+        );
+        assert_eq!(
+            decision(fast, EGO_ID, 3).action_id.as_deref(),
+            Some("continue")
+        );
 
         assert_eq!(experiment.handoff.branches.len(), 2);
         assert!(experiment.handoff.branches.iter().all(|branch| {
@@ -961,11 +1002,18 @@ mod tests {
         for branch in &experiment.episode.branches {
             for decision in &branch.decisions {
                 assert!(decision.input_cutoff_event_sequence < decision.decision_event_sequence);
-                assert!(decision.command_latch_event_sequence.unwrap() > decision.decision_event_sequence);
-                let cue = branch.observations.iter().find(|cue| {
-                    cue.cue_id == decision.consumed_cue_ids.last().unwrap().as_str()
-                }).unwrap();
-                assert!(cue.delivered_event_sequence.unwrap() < decision.input_cutoff_event_sequence);
+                assert!(
+                    decision.command_latch_event_sequence.unwrap()
+                        > decision.decision_event_sequence
+                );
+                let cue = branch
+                    .observations
+                    .iter()
+                    .find(|cue| cue.cue_id == decision.consumed_cue_ids.last().unwrap().as_str())
+                    .unwrap();
+                assert!(
+                    cue.delivered_event_sequence.unwrap() < decision.input_cutoff_event_sequence
+                );
             }
             for transition in &branch.transitions {
                 let at_tick: Vec<_> = branch.decisions.iter().filter(|item| item.tick == transition.tick).collect();
@@ -978,7 +1026,11 @@ mod tests {
     fn observations_bind_prior_physics_epoch_and_current_delivery_epoch() {
         let experiment = run_reciprocal_experiment().unwrap();
         for branch in &experiment.episode.branches {
-            for cue in branch.observations.iter().filter(|cue| cue.generated_tick > 0) {
+            for cue in branch
+                .observations
+                .iter()
+                .filter(|cue| cue.generated_tick > 0)
+            {
                 assert_eq!(cue.observed_tick + 1, cue.generated_tick);
                 assert_eq!(cue.delivered_tick, Some(cue.generated_tick));
                 assert!(cue.generated_event_sequence < cue.delivered_event_sequence.unwrap());
@@ -995,7 +1047,11 @@ mod tests {
             .iter_mut()
             .find(|branch| branch.branch_id == "ego-speed-1mps")
             .unwrap();
-        let cue = branch.observations.iter_mut().find(|cue| cue.cue_id == "actor-ego-ttc-1").unwrap();
+        let cue = branch
+            .observations
+            .iter_mut()
+            .find(|cue| cue.cue_id == "actor-ego-ttc-1")
+            .unwrap();
         // Tick 1's shared cutoff is 16. Delivery at 16 is not in the closed input.
         cue.delivered_event_sequence = Some(16);
         let payload_root = branch.payload_root();
@@ -1017,19 +1073,37 @@ mod tests {
                 let second = decision(branch, actor, 1);
                 let third = decision(branch, actor, 2);
                 let fourth = decision(branch, actor, 3);
-                assert_eq!(second.prior_policy_state_digest, first.next_policy_state_digest.clone().unwrap());
-                assert_eq!(third.prior_policy_state_digest, second.next_policy_state_digest.clone().unwrap());
-                assert_eq!(fourth.prior_policy_state_digest, third.next_policy_state_digest.clone().unwrap());
-                assert_eq!(second.prior_action_receipt_ids, vec![first.decision_receipt_id.clone()]);
-                assert_eq!(third.prior_action_receipt_ids, vec![
-                    first.decision_receipt_id.clone(),
-                    second.decision_receipt_id.clone(),
-                ]);
-                assert_eq!(fourth.prior_action_receipt_ids, vec![
-                    first.decision_receipt_id.clone(),
-                    second.decision_receipt_id.clone(),
-                    third.decision_receipt_id.clone(),
-                ]);
+                assert_eq!(
+                    second.prior_policy_state_digest,
+                    first.next_policy_state_digest.clone().unwrap()
+                );
+                assert_eq!(
+                    third.prior_policy_state_digest,
+                    second.next_policy_state_digest.clone().unwrap()
+                );
+                assert_eq!(
+                    fourth.prior_policy_state_digest,
+                    third.next_policy_state_digest.clone().unwrap()
+                );
+                assert_eq!(
+                    second.prior_action_receipt_ids,
+                    vec![first.decision_receipt_id.clone()]
+                );
+                assert_eq!(
+                    third.prior_action_receipt_ids,
+                    vec![
+                        first.decision_receipt_id.clone(),
+                        second.decision_receipt_id.clone(),
+                    ]
+                );
+                assert_eq!(
+                    fourth.prior_action_receipt_ids,
+                    vec![
+                        first.decision_receipt_id.clone(),
+                        second.decision_receipt_id.clone(),
+                        third.decision_receipt_id.clone(),
+                    ]
+                );
             }
         }
     }
