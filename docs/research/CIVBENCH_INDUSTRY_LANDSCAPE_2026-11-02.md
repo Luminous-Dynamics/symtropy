@@ -811,3 +811,41 @@ CIVDYN-AUTH-001 (#3684) now has a first exact reference in [draft PR #3685](http
 **CivBench response:** compare all policies under the same parameter/shock points; evaluate non-compensatory service constraints; calculate regret separately for water, energy, coverage, breach and recovery outcomes; retain ties, unknown values and policy-switch counts. The 30 LHS rows are finite deterministic design points, not calibrated probabilities or stochastic replications. "Robust-feasible" means feasible at every declared point only, not proof over a continuous uncertainty set.
 
 Current exact-head qualification for PR #4024 is in progress. No new robust-policy result is claimed yet.
+
+
+## 15. Exact-head research status and next frontier (7 November 2026)
+
+The current programme has moved from isolated prototypes to several composable evaluation slices:
+
+| Research slice | Current evidence | Claim ceiling |
+|---|---|---|
+| Human-fidelity micro/population/trajectory | HUMSIM PR #3668 green; participant-cluster bootstrap PR #4015 green | Synthetic conformance and uncertainty implementation, not external human validity |
+| Deliberation and procedural audit | PR #3682 green | Recorded trace audit, not a reproduction of human facilitation effects |
+| Matched causal-path qualification | PR #3803 green | Ledger-backed causal-path and ablation controls, not a complete empirical causal-effect estimate |
+| Resilience uncertainty | PR #3996 green | Declared finite parameter design and Morris screening |
+| Robust policy comparison | PR #4024 green on exact head; 30-point LHS, 3 shocks, 4 policies | Finite-design service feasibility and per-metric native-unit regret only |
+| Collective-risk→physical ledger integration | PR #4037 undergoing another exact-head run after formatter/import fixes | No validation claim until the current compile/test/replay workflow passes |
+
+Green here means the exact commit completed the configured software workflow; it does not upgrade the scientific claim ceiling in the last column.
+
+### What changed in the industry landscape
+
+**Validation standardization is now the primary research frontier.** Puelma Touzel et al. (ICML 2026) explicitly call for consolidation around shared benchmarks, open data and reproducible evaluation protocols rather than multiplying unvalidated social simulators. https://proceedings.mlr.press/v306/puelma-touzel26a.html
+
+**Human-simulation scores remain far from a reliable universal proxy.** SimBench reports 40.80/100 for its best tested model across 20 datasets, with weaker results on higher-entropy choices and particular demographic groups. https://proceedings.iclr.cc/paper_files/paper/2026/hash/2fc4d6a6400addda7493b9db258c34e0-Abstract-Conference.html ReliMap subsequently shows R1 individual reliability and R2 population reliability can move in opposite directions, while population coverage reduces variance without necessarily reducing systematic bias. https://aclanthology.org/2026.emnlp-main.1269/
+
+**Evaluation context itself is part of the model.** FairFund-Bench shows that rating, ranking and allocation formats and single-versus-batch presentation can change both measured magnitude and direction of allocation disparity. https://aclanthology.org/2026.findings-emnlp.1340/ The new audit therefore treats task, context, order, framing and transparency as explicit factors.
+
+**Resilience needs trajectory and uncertainty evidence.** The 2026 systematic review of 121 SES studies reports frequent static assessments and weak treatment of uncertainty and cross-scale shocks, but it does not evaluate the predictive accuracy of individual models. https://doi.org/10.1016/j.ecolind.2026.114792
+
+**There is no universal top agent in non-transitive environments.** A 2026 Scientific Reports RPS benchmark compares 54 agents from 18 archetypes, with 500-round double round-robin matches over 10 seeds, and reports opponent-pool-dependent rankings and 134 three-cycles. https://www.nature.com/articles/s41598-026-55417-9
+
+### The next engineering objective
+
+The most valuable next step is not another standalone agent model. It is an evidence-qualified loop:
+
+`policy → action trace → ledgered physical transfer → service/ecological outcome → matched counterfactual → uncertainty-qualified decision`
+
+The CRG-to-ledger bridge in PR #4037 begins that loop. The robust-policy analysis in PR #4024 supplies metric-specific comparison over a declared parameter design. The causal-path kernel in PR #3803 supplies mediator/ablation checks. The next iteration should combine these as one frozen run protocol without duplicating the ledger, run envelope or evidence registry.
+
+No result should be called “better than SOTA” unless it reproduces a specific published protocol and exceeds it on a held-out test with compatible metrics, uncertainty and non-regression checks. Synthetic reference performance is not a leaderboard comparison.
