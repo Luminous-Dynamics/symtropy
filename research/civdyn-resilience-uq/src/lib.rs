@@ -384,9 +384,11 @@ pub fn latin_hypercube_design(seed: u64, sample_count: usize) -> Result<Vec<Desi
     for factor_index in 0..FACTOR_COUNT {
         let mut strata = (0..sample_count).collect::<Vec<_>>();
         shuffle(&mut strata, &mut rng);
-        for (sample_index, stratum) in strata.into_iter().enumerate() {
-            coordinates[sample_index][factor_index] =
-                (stratum as f64 + rng.next_unit()) / sample_count as f64;
+        for (sample, stratum) in coordinates.iter_mut().zip(strata) {
+            let coordinate = sample
+                .get_mut(factor_index)
+                .expect("factor index is bounded by FACTOR_COUNT");
+            *coordinate = (stratum as f64 + rng.next_unit()) / sample_count as f64;
         }
     }
 
