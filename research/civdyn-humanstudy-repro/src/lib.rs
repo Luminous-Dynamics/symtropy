@@ -576,17 +576,7 @@ mod tests {
 
     #[test]
     fn paper_twelve_profile_passes_its_exact_receipt() {
-        let receipt = BenchmarkRunReceipt {
-            protocol_id: PAPER_12_PROTOCOL_ID.to_string(),
-            source_repository: PAPER_12_SOURCE_REPOSITORY.to_string(),
-            source_commit: PAPER_12_SOURCE_COMMIT.to_string(),
-            source_root_tree: PAPER_12_SOURCE_ROOT_TREE.to_string(),
-            metric_contract_id: PAPER_12_METRIC_CONTRACT_ID.to_string(),
-            run_id: "synthetic-paper-12-conformance".to_string(),
-            model_id: "synthetic-reference-not-a-model".to_string(),
-            studies: PAPER_12_STUDY_PINS.iter().copied().map(study).collect(),
-        };
-        assert!(validate_run(&receipt).is_ok());
+        assert!(validate_run(&paper_valid_run()).is_ok());
     }
 
     #[test]
