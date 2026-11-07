@@ -79,8 +79,7 @@ impl SamTrajectoryAssessmentBinding {
         {
             return Err(TrajectoryEvidenceError::AssessmentArtifactMismatch);
         }
-        self.assessment_digest =
-            *blake3::hash(assessment_receipt_bytes).as_bytes();
+        self.assessment_digest = *blake3::hash(assessment_receipt_bytes).as_bytes();
         self.seal()
     }
 
@@ -925,7 +924,11 @@ mod tests {
         let mut mutated_assessment_receipt = assessment_receipt_bytes.clone();
         mutated_assessment_receipt.push(0);
         assert_eq!(
-            sealed.verify_against_sam_artifacts(&support_bytes, &query_bytes, &mutated_assessment_receipt),
+            sealed.verify_against_sam_artifacts(
+                &support_bytes,
+                &query_bytes,
+                &mutated_assessment_receipt
+            ),
             Err(TrajectoryEvidenceError::AssessmentArtifactMismatch)
         );
     }
