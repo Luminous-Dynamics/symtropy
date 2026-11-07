@@ -50,6 +50,7 @@ struct FacilityReport {
     period_days: u64,
     facility_area_m2: u64,
     total_electricity_wh: u64,
+    electricity_wh_by_subsystem: [u64; 7],
     accepted_edible_g: u64,
     gross_harvest_g: u64,
     rejected_g: u64,
@@ -203,6 +204,7 @@ fn evaluate(input: &FacilityInput) -> Result<FacilityReport, String> {
         period_days: input.period_days,
         facility_area_m2: input.facility_area_m2,
         total_electricity_wh,
+        electricity_wh_by_subsystem: input.electricity_wh,
         accepted_edible_g: input.accepted_edible_g,
         gross_harvest_g: input.gross_harvest_g,
         rejected_g: input.rejected_g,
@@ -220,10 +222,13 @@ fn ratio(numerator: u128, denominator: u128) -> String {
 }
 
 fn render_json(report: &FacilityReport) -> Result<String, String> {
-    let annualized_electricity_wh = u128::from(report.total_electricity_wh)
+    let annualized_electricity_numerator = u128::from(report.total_electricity_wh)
         .checked_mul(365)
-        .ok_or_else(|| "annualized electricity overflow".to_owned())?
-        / u128::from(report.period_days);
+        .ok_or_else(|| "annualized electricity overflow".to_owned())?;
+    let annualized_area_denominator = u128::from(report.period_days)
+        .checked_mul(u128::from(report.facility_area_m2))
+        .and_then(|value| value.checked_mul(1000))
+        .ok_or_else(|| "annualized area denominator overflow".to_owned())?;
 
     let kwh_per_kg_accepted = ratio(
         u128::from(report.total_electricity_wh),
@@ -231,8 +236,8 @@ fn render_json(report: &FacilityReport) -> Result<String, String> {
     );
 
     let kwh_per_m2_year = ratio(
-        annualized_electricity_wh,
-        u128::from(report.facility_area_m2) * 1000,
+        annualized_electricity_numerator,
+        annualized_area_denominator,
     );
 
     let water_l_per_kg_accepted = ratio(
@@ -254,6 +259,15 @@ fn render_json(report: &FacilityReport) -> Result<String, String> {
             "  \"period_days\": {},\n",
             "  \"facility_area_m2\": {},\n",
             "  \"total_electricity_wh\": {},\n",
+            "  \"electricity_wh_by_subsystem\": {{\n",
+            "    \"lighting\": {},\n",
+            "    \"hvac\": {},\n",
+            "    \"pumping\": {},\n",
+            "    \"water_treatment\": {},\n",
+            "    \"co2_system\": {},\n",
+            "    \"cold_storage\": {},\n",
+            "    \"controls\": {}\n",
+            "  }},\n",
             "  \"accepted_edible_g\": {},\n",
             "  \"gross_harvest_g\": {},\n",
             "  \"rejected_g\": {},\n",
@@ -276,6 +290,13 @@ fn render_json(report: &FacilityReport) -> Result<String, String> {
         report.period_days,
         report.facility_area_m2,
         report.total_electricity_wh,
+        report.electricity_wh_by_subsystem[0],
+        report.electricity_wh_by_subsystem[1],
+        report.electricity_wh_by_subsystem[2],
+        report.electricity_wh_by_subsystem[3],
+        report.electricity_wh_by_subsystem[4],
+        report.electricity_wh_by_subsystem[5],
+        report.electricity_wh_by_subsystem[6],
         report.accepted_edible_g,
         report.gross_harvest_g,
         report.rejected_g,
