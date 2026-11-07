@@ -158,10 +158,10 @@ impl DiscreteBelief {
             }
         }
 
-        normalize_weights(&mut likelihood_map)?;
         if likelihood_map.values().all(|likelihood| *likelihood == 0) {
             return Err(BeliefError::ZeroEvidenceMass);
         }
+        normalize_weights(&mut likelihood_map)?;
 
         let mut posterior = BTreeMap::new();
         for (hypothesis, prior_weight) in &self.weights {
@@ -172,10 +172,10 @@ impl DiscreteBelief {
             posterior.insert(hypothesis.clone(), product);
         }
 
-        normalize_weights(&mut posterior)?;
         if posterior.values().all(|weight| *weight == 0) {
             return Err(BeliefError::ZeroEvidenceMass);
         }
+        normalize_weights(&mut posterior)?;
         checked_total(&posterior)?;
         Ok(Self { weights: posterior })
     }
