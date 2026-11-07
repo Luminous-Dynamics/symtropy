@@ -1,63 +1,64 @@
 # symtropy-relativity
 
-A bounded Rust research crate for analytic Lorentzian-spacetime reference calculations.
+A bounded Rust research crate for analytic and differentiated Lorentzian-spacetime reference calculations.
 
 ## Current capabilities
 
-- Positive finite mass and signed dimensionless Kerr spin validation, including rejection when derived length scales are not representable.
-- SI-valued Schwarzschild gravitational radius, event horizon, photon sphere, ISCO, Kretschmann scalar, static-observer lapse, and redshift.
-- SI-valued Kerr inner/outer Boyer-Lindquist horizons and angle-dependent ergosurface.
-- Kerr horizon angular velocity, surface-gravity decay rate, and nonnegative direct-wave reference frequency.
-- Posterior-preserving transformation from paired remnant mass/spin samples to Kerr horizon observables.
-- Schwarzschild and Kerr exterior metric components in the declared `(ct, r, theta, phi)` basis.
-- Symmetric finite 4x4 metric component representation, pivoted determinant and inverse, and inverse-identity residual diagnostic.
-- Explicit first metric derivatives and Levi-Civita connection coefficients, with an analytic Schwarzschild derivative fixture.
-- Explicit second metric derivatives, mixed-index Riemann tensor, Ricci tensor/scalar, Einstein tensor, Kretschmann contraction, and algebraic Riemann-symmetry residuals.
-- Fixed-size second-order forward-mode automatic differentiation for Schwarzschild, Kerr, and ingoing Eddington-Finkelstein metric values, gradients, and Hessians; AD-generated Kerr curvature is checked against vacuum and analytic Kretschmann fixtures.
-- Horizon-regular ingoing Eddington-Finkelstein Schwarzschild chart, with curvature tests at and inside the event horizon and scalar-invariant comparison against Schwarzschild coordinates.
-- 47 authored analytic, limiting-case, invalid-domain, matrix, connection, curvature, automatic-differentiation, chart, and posterior-transform tests.
+- Positive finite SI mass and signed dimensionless Kerr spin validation, including rejection when derived length scales are not representable.
+- Schwarzschild gravitational radius, horizon, photon sphere, ISCO, Kretschmann scalar, static-observer lapse, and redshift.
+- Kerr inner/outer Boyer-Lindquist horizons, ergosurface, signed horizon angular velocity, surface-gravity rate, and nonnegative 2|Omega_H| reference frequency.
+- Posterior-preserving transformation of paired remnant mass/spin samples into correlated Kerr horizon observables.
+- Schwarzschild and Kerr exterior metrics; horizon-regular ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr metrics.
+- Finite symmetric 4x4 metric components, pivoted determinant/inverse, and inverse-identity residual.
+- Explicit first metric derivatives and Levi-Civita connection coefficients, including analytic Schwarzschild derivative fixtures.
+- Explicit second metric derivatives, mixed-index Riemann tensor, Ricci tensor/scalar, Einstein tensor, Kretschmann contraction, and algebraic Riemann symmetry diagnostics.
+- Fixed-size second-order forward-mode automatic differentiation (Jet2), producing first/second metric derivatives for Schwarzschild/Kerr and their horizon-regular ingoing charts.
+- Curvature verification across Schwarzschild and Kerr charts, including horizon and interior fixtures; Kerr vacuum Ricci and analytic Kretschmann comparisons.
+- **50 authored Rust tests** across scalar physics, metric matrices, connection, curvature, automatic differentiation, charts, and posterior transforms.
 
 ## Conventions
 
-Public physical parameters use SI units. Metric coordinates are `x^mu = (c*t, r, theta, phi)`: `c*t` and `r` are in metres, angles are in radians, and `ds^2` is in square metres. The signature is `(-,+,+,+)`.
+Public physical parameters use SI units. Metric coordinates are expressed as (ct, r, theta, phi) for Schwarzschild/Boyer-Lindquist charts and (v, r, theta, phi) for ingoing charts. The time-like coordinate and radial coordinate are measured in metres; angles are in radians; ds^2 is in square metres. Signature is (-,+,+,+).
 
-Kerr spin is the signed dimensionless quantity `chi = c*J/(G*M^2)`; the geometrized rotation parameter is `a = chi*G*M/c^2`. Schwarzschild coordinates and Boyer-Lindquist coordinates are restricted to the exterior and to `0 < theta < pi`.
+Kerr spin is the signed dimensionless quantity chi = c*J/(G*M^2); the geometrized rotation parameter is a = chi*G*M/c^2. Boyer-Lindquist and Schwarzschild coordinates are exterior-only. Ingoing Eddington-Finkelstein / ingoing Kerr charts are regular at the future horizon and are defined for r > 0 and 0 < theta < pi.
 
-The metric determinant is coordinate-dependent, not a curvature scalar. Generic `MetricComponents4::new` checks finiteness and symmetry but does not certify Lorentzian signature. The analytic Schwarzschild/Kerr constructors represent the known exterior solutions.
+The metric determinant is coordinate-dependent, not a curvature scalar. Generic MetricComponents4::new checks finiteness and symmetry but does not certify Lorentzian signature. The analytic metric constructors supply the intended background solutions.
 
-Metric derivatives use `d[alpha][mu][nu] = partial_alpha g_(mu nu)`. Second derivatives use `d2[alpha][beta][mu][nu] = partial_alpha partial_beta g_(mu nu)`. Connection coefficients use `Gamma[rho][mu][nu] = Gamma^rho_(mu nu)`; Riemann storage is `R[rho][sigma][mu][nu] = R^rho_(sigma mu nu)`.
+Metric derivatives use d[alpha][mu][nu] = partial_alpha g_(mu nu). Second derivatives use d2[alpha][beta][mu][nu] = partial_alpha partial_beta g_(mu nu). Connection coefficients use Gamma[rho][mu][nu] = Gamma^rho_(mu nu); Riemann storage is R[rho][sigma][mu][nu] = R^rho_(sigma mu nu).
 
 Riemann sign convention:
-`R^rho_(sigma mu nu) = partial_mu Gamma^rho_(nu sigma) - partial_nu Gamma^rho_(mu sigma) + Gamma^rho_(mu lambda) Gamma^lambda_(nu sigma) - Gamma^rho_(nu lambda) Gamma^lambda_(mu sigma)`.
-Ricci convention: `R_(sigma nu) = R^rho_(sigma rho nu)`.
+R^rho_(sigma mu nu) = partial_mu Gamma^rho_(nu sigma) - partial_nu Gamma^rho_(mu sigma) + Gamma^rho_(mu lambda) Gamma^lambda_(nu sigma) - Gamma^rho_(nu lambda) Gamma^lambda_(mu sigma).
 
-All derivative arrays must use the same chart, coordinate order, units, and signature. Derivatives are supplied explicitly; no hidden finite-difference approximation is performed.
+Ricci convention: R_(sigma nu) = R^rho_(sigma rho nu).
+
+All derivative arrays must use the same chart, coordinate order, units, and signature. Explicit derivative-fed curvature is available; the Jet2 module generates first and second derivatives by forward-mode automatic differentiation. No finite-difference step size is hidden in either path.
 
 For Kerr:
-- `Omega_H = a*c/(r_plus^2 + a^2)` is in radians per second and retains the sign of the spin.
-- `kappa_t = c*sqrt(r_g^2-a^2)/(2*r_g*r_plus)` is in inverse seconds.
-- `f_2OmegaH = abs(Omega_H)/pi` is the nonnegative Hz reference corresponding to angular-frequency magnitude `2*abs(Omega_H)`.
+- Omega_H = a*c/(r_plus^2 + a^2), in radians per second, retaining spin sign.
+- kappa_t = c*sqrt(r_g^2-a^2)/(2*r_g*r_plus), in inverse seconds.
+- f_2OmegaH = abs(Omega_H)/pi, a nonnegative Hz reference corresponding to angular-frequency magnitude 2*abs(Omega_H).
 
-The direct-wave reference frequency is a theory-derived scale motivated by a published GW250114 analysis. It is not itself a waveform, a detection, or a verified universal feature.
+The direct-wave reference frequency is a theory-derived Kerr scale motivated by a published GW250114 analysis. It is not a waveform, a detection, or a verified universal feature. Recent numerical-relativity counteranalysis disputes the proposed universal identification of an extracted post-merger component with Omega_H and kappa; see the research charter and Symthaea replication campaign.
 
 The posterior transform preserves each input sample ID, order, and paired mass/spin draw. It does not infer parameters, resample, marginalize, or fit waveforms.
 
 ## Deliberate limits
 
-The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path generates first/second derivatives and curvature for Schwarzschild and Kerr exterior charts. It also supports ingoing Eddington-Finkelstein Schwarzschild coordinates, with tests at/inside the horizon and scalar-invariant comparison outside it. Kerr vacuum-Ricci and analytic Kretschmann tests are authored. There is no geodesic integrator, GRHD/GRMHD solver, waveform generator, or numerical-relativity evolution code.
+The crate now calculates background metrics, Levi-Civita connections, Riemann/Ricci/Einstein tensors, and scalar curvature invariants for its supported differentiated charts. It does not yet include a validated geodesic integrator, Kerr/Schwarzschild perturbation solver, QNM solver, waveform generator, GRHD/GRMHD solver, or numerical-relativity evolution system.
 
-The generic metric-component constructor does not certify Lorentzian signature. Curvature output is not yet accompanied by automatic conditioning estimates; tolerances must be interpreted for the declared fixture and coordinate chart. No observational-validation or state-of-the-art performance claim is made.
+Curvature results do not yet carry automatic conditioning estimates. Numerical tolerances must be interpreted for the declared fixture and coordinate chart. No observational-validation or state-of-the-art performance claim is made.
 
 ## Next gates
 
-- Kerr first/second derivatives and independent curvature-invariant fixtures.
-- Riemann/Ricci/Einstein tensor identities and Bianchi identities.
-- Horizon-regular coordinate charts and cross-chart scalar-invariant comparisons.
-- Timelike/null geodesics with normalization and Killing-constant drift.
-- QNM / waveform and public detector-data replication.
+1. Add conditioning-aware tensor norms and independent symbolic/reference comparisons.
+2. Add a Kerr analytic/AD cross-check with a second independent differentiation route and further parameter sweeps.
+3. Add regular-chart transition maps and invariant comparisons across additional coordinate systems.
+4. Implement timelike/null geodesics using both second-order and Hamiltonian formulations; validate normalization, Killing energy/angular momentum, and convergence.
+5. Add curvature Bianchi differential-identity checks where third derivatives are available.
+6. Connect the verified background/curvature API to QNM perturbation and GW250114 model-discrimination work.
 
 ## Run
 
 `cargo test -p symtropy-relativity`
 
-**Validation status:** tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there.
+**Validation status:** the 50 tests are authored but have not been executed in the current editing environment because `rustc` and `cargo` are unavailable.
