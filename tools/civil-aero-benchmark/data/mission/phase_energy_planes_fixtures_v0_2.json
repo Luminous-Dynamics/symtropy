@@ -78,8 +78,7 @@
         "peak_bus_supply_power_w": 40000,
         "peak_bus_supply_power_limit_w": 50000,
         "continuous_bus_supply_power_limit_w": 35000,
-        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "fuel_cells": []
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     },
     {
@@ -163,8 +162,7 @@
         "peak_bus_supply_power_w": 20000,
         "peak_bus_supply_power_limit_w": 30000,
         "continuous_bus_supply_power_limit_w": 15000,
-        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "fuel_cells": []
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     },
     {
@@ -274,8 +272,7 @@
         "peak_bus_supply_power_w": 45000,
         "peak_bus_supply_power_limit_w": 55000,
         "continuous_bus_supply_power_limit_w": 40000,
-        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "fuel_cells": []
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     },
     {
@@ -385,8 +382,7 @@
         "peak_bus_supply_power_w": 50000,
         "peak_bus_supply_power_limit_w": 55000,
         "continuous_bus_supply_power_limit_w": 20000,
-        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "fuel_cells": []
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     },
     {
@@ -496,8 +492,7 @@
         "peak_bus_supply_power_w": 40000,
         "peak_bus_supply_power_limit_w": 50000,
         "continuous_bus_supply_power_limit_w": 30000,
-        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "fuel_cells": []
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     },
     {
@@ -632,238 +627,7 @@
         "peak_bus_supply_power_w": 55000,
         "peak_bus_supply_power_limit_w": 60000,
         "continuous_bus_supply_power_limit_w": 35000,
-        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "fuel_cells": []
-      }
-    },
-    {
-      "fixture_id": "conventional-direct-drive",
-      "architecture": "conventional_direct_drive",
-      "expected_status": "conserved_within_declared_model",
-      "balance": {
-        "schema_version": "phase-energy-balance/0.2.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
-        "phase_id": "conventional-direct-drive",
-        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "end_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "duration_s": 3600,
-        "tolerance_j": 1,
-        "tolerance_w": 0.000001,
-        "fuel_states": [
-          {
-            "fuel_source_id": "avgas-tank",
-            "evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "chemical_energy_start_j": 500000000,
-            "chemical_energy_consumed_j": 120000000,
-            "chemical_energy_end_j": 380000000,
-            "required_reserve_j": 100000000
-          }
-        ],
-        "prime_movers": [
-          {
-            "prime_mover_id": "piston-engine",
-            "model_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "fuel_source_id": "avgas-tank",
-            "fuel_energy_input_j": 120000000,
-            "mechanical_output_j": 40000000,
-            "thermal_and_exhaust_loss_j": 80000000,
-            "average_mechanical_output_power_limit_w": 15000,
-            "peak_mechanical_output_power_w": 13000,
-            "peak_mechanical_output_power_limit_w": 16000,
-            "direct_propulsor_shaft_j": 35000000,
-            "accessory_mechanical_load_j": 2000000,
-            "mechanical_distribution_loss_j": 3000000
-          }
-        ],
-        "generators": [],
-        "fuel_cells": [],
-        "stores": [],
-        "bus_loads": {
-          "auxiliary_load_j": 0,
-          "thermal_electrical_load_j": 0,
-          "distribution_loss_j": 0
-        },
-        "motor_drives": [],
-        "propulsors": [
-          {
-            "propulsor_id": "direct-propeller",
-            "model_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "shaft_input_j": 35000000,
-            "useful_propulsive_energy_j": 30000000,
-            "propulsor_loss_j": 5000000
-          }
-        ],
-        "peak_bus_power_trace_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-        "peak_bus_supply_power_w": 0,
-        "peak_bus_supply_power_limit_w": 1,
-        "continuous_bus_supply_power_limit_w": 1
-      }
-    },
-    {
-      "fixture_id": "fuel-cell-only",
-      "architecture": "fuel_cell_electric",
-      "expected_status": "conserved_within_declared_model",
-      "balance": {
-        "schema_version": "phase-energy-balance/0.2.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
-        "phase_id": "fuel-cell-only",
-        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "end_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "duration_s": 3600,
-        "tolerance_j": 1,
-        "tolerance_w": 0.000001,
-        "fuel_states": [
-          {
-            "fuel_source_id": "hydrogen-tank",
-            "evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "chemical_energy_start_j": 500000000,
-            "chemical_energy_consumed_j": 200000000,
-            "chemical_energy_end_j": 300000000,
-            "required_reserve_j": 100000000
-          }
-        ],
-        "prime_movers": [],
-        "generators": [],
-        "fuel_cells": [
-          {
-            "fuel_cell_id": "pem-stack",
-            "model_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "fuel_source_id": "hydrogen-tank",
-            "fuel_energy_input_j": 200000000,
-            "electrical_output_to_bus_j": 80000000,
-            "thermal_loss_j": 120000000,
-            "average_electrical_output_power_limit_w": 25000,
-            "peak_electrical_output_power_w": 24000,
-            "peak_electrical_output_power_limit_w": 27000
-          }
-        ],
-        "stores": [],
-        "bus_loads": {
-          "auxiliary_load_j": 5000000,
-          "thermal_electrical_load_j": 2000000,
-          "distribution_loss_j": 3000000
-        },
-        "motor_drives": [
-          {
-            "motor_id": "traction-motor",
-            "model_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "bus_input_j": 70000000,
-            "inverter_loss_j": 4000000,
-            "motor_loss_j": 6000000,
-            "shaft_output_j": 60000000
-          }
-        ],
-        "propulsors": [
-          {
-            "propulsor_id": "electric-propeller",
-            "model_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "shaft_input_j": 60000000,
-            "useful_propulsive_energy_j": 50000000,
-            "propulsor_loss_j": 10000000
-          }
-        ],
-        "peak_bus_power_trace_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-        "peak_bus_supply_power_w": 25000,
-        "peak_bus_supply_power_limit_w": 28000,
-        "continuous_bus_supply_power_limit_w": 24000
-      }
-    },
-    {
-      "fixture_id": "fuel-cell-battery-buffer",
-      "architecture": "fuel_cell_battery_hybrid",
-      "expected_status": "conserved_within_declared_model",
-      "balance": {
-        "schema_version": "phase-energy-balance/0.2.0",
-        "mission_id": "SYNTH-PHASE-ENERGY-PLANES-001",
-        "phase_id": "fuel-cell-battery-buffer",
-        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "start_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "end_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "duration_s": 3600,
-        "tolerance_j": 1,
-        "tolerance_w": 0.000001,
-        "fuel_states": [
-          {
-            "fuel_source_id": "hydrogen-tank",
-            "evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "chemical_energy_start_j": 500000000,
-            "chemical_energy_consumed_j": 150000000,
-            "chemical_energy_end_j": 350000000,
-            "required_reserve_j": 100000000
-          }
-        ],
-        "prime_movers": [],
-        "generators": [],
-        "fuel_cells": [
-          {
-            "fuel_cell_id": "pem-stack",
-            "model_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "fuel_source_id": "hydrogen-tank",
-            "fuel_energy_input_j": 150000000,
-            "electrical_output_to_bus_j": 50000000,
-            "thermal_loss_j": 100000000,
-            "average_electrical_output_power_limit_w": 15000,
-            "peak_electrical_output_power_w": 15000,
-            "peak_electrical_output_power_limit_w": 20000
-          }
-        ],
-        "stores": [
-          {
-            "store_id": "main-battery",
-            "kind": "battery",
-            "installed_system_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "operating_envelope_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "usable_energy_start_j": 100000000,
-            "usable_energy_end_j": 66666666.66666667,
-            "usable_capacity_j": 200000000,
-            "reserve_floor_j": 40000000,
-            "discharge_to_bus_j": 30000000,
-            "charge_from_bus_j": 0,
-            "discharge_efficiency": 0.9,
-            "charge_efficiency": 0.9,
-            "state_of_health_fraction": 0.95,
-            "minimum_state_of_health_fraction": 0.8,
-            "temperature_c": 25,
-            "minimum_temperature_c": -20,
-            "maximum_temperature_c": 60,
-            "average_discharge_power_limit_w": 12000,
-            "peak_discharge_power_w": 10000,
-            "peak_discharge_power_limit_w": 15000,
-            "average_charge_power_limit_w": 10000,
-            "peak_charge_power_w": 0,
-            "peak_charge_power_limit_w": 15000
-          }
-        ],
-        "bus_loads": {
-          "auxiliary_load_j": 5000000,
-          "thermal_electrical_load_j": 0,
-          "distribution_loss_j": 5000000
-        },
-        "motor_drives": [
-          {
-            "motor_id": "traction-motor",
-            "model_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "bus_input_j": 70000000,
-            "inverter_loss_j": 4000000,
-            "motor_loss_j": 3000000,
-            "shaft_output_j": 63000000
-          }
-        ],
-        "propulsors": [
-          {
-            "propulsor_id": "electric-propeller",
-            "model_evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-            "shaft_input_j": 63000000,
-            "useful_propulsive_energy_j": 55000000,
-            "propulsor_loss_j": 8000000
-          }
-        ],
-        "peak_bus_power_trace_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-        "peak_bus_supply_power_w": 24000,
-        "peak_bus_supply_power_limit_w": 27000,
-        "continuous_bus_supply_power_limit_w": 25000
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     }
   ]
