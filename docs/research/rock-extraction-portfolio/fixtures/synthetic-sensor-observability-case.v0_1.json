@@ -13,7 +13,7 @@
   "measurement_system_case_id": "SYNTHETIC-MEASUREMENT-SYSTEM-001",
   "layout_profile": {
     "layout_profile_ref": "layout:synthetic-independent-principles-v1",
-    "minimum_independent_principles_for_critical_pairs": 2,
+    "minimum_independent_principles_for_critical_pairs": 1,
     "required_pair_set_ref": "pairs:synthetic-critical-fault-pairs-v1"
   },
   "channels": [
