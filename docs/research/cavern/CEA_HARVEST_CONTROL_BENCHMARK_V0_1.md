@@ -256,3 +256,99 @@ Every controller comparison must report:
 - harvest, quality, whole-facility energy, water and climate service from #3957.
 
 A cheaper schedule is not necessarily more energy-efficient or lower-carbon. A carbon accounting factor is not automatically a dispatch signal.
+
+
+## South African tariff and grid-emissions reference — 2026/27
+
+This section uses South African market data as a **local operating-cost and annual emissions-accounting comparator**, not as a universal site profile. Every run must bind to its actual electricity distributor, approved tariff, supply capacity, voltage, contract and reporting boundary.
+
+### City Power industrial three-part time-of-use tariff
+
+Primary source: City of Johannesburg, *Medium-Term Budget 2026/27–2028/29*, May 2026, printed pp. 96–97 (PDF pages containing sections 5.1–5.4):
+https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf
+
+Eligibility and approval:
+- This is a City Power tariff, not an Eskom or generic South Africa tariff.
+- It is available only to qualifying City Power customers and is described as suitable for large consumers able to shift load away from peak and standard periods.
+- Section 5.4.3 states that it applies to business consumers with supply capacity **exceeding 100 kVA**, and is available on application to qualifying consumers. A tariff change requires request and approval.
+- Legacy demand-tariff agreements concluded before 1 July 1999 with demand below 100 kVA may continue under the stated grandfather clause. Do not infer that exception for a new site.
+- Record the actual approved tariff on the supply account. Do not assume a CEA facility is eligible merely because its modeled load exceeds 100 kVA.
+
+The published three-part TOU tariff rates are:
+
+| Voltage class | Fixed service charge (R/month) | Network charge (R/month) | Demand charge (R/kVA) |
+|---|---:|---:|---:|
+| Low voltage (≤1 kV) | 2,444.32 | 2,185.32 | 461.28 |
+| Medium voltage (>1–33 kV) | 3,360.96 | 9,347.51 | 431.11 |
+| High voltage (>33 kV) | 42,915.09 | 43,848.71 | 400.93 |
+
+The energy charges (c/kWh) are the same across the three voltage classes in this schedule:
+
+| Season | Peak | Standard | Off-peak |
+|---|---:|---:|---:|
+| Summer (September–May) | 322.00 | 242.42 | 186.35 |
+| Winter (June–August) | 766.24 | 292.56 | 200.44 |
+
+Time bands (City budget section 5.4.7):
+- Weekdays: peak 07:00–10:00 and 18:00–20:00; standard 06:00–07:00, 10:00–18:00 and 20:00–22:00; off-peak 22:00–06:00.
+- Saturdays and public holidays: no peak; standard 07:00–12:00 and 18:00–20:00; off-peak 12:00–18:00 and 20:00–07:00.
+- Sundays: standard 17:00–19:00; off-peak 19:00–17:00.
+
+The tariff has material billing features that a scheduler cannot ignore:
+- The monthly minimum demand basis is the greater of measured demand, 70 kVA, or 80% of the average of the three highest recorded demands over the preceding 12 months.
+- Consumers with power factor below 0.96 are billed for reactive energy supplied above the stated 30% threshold relative to billing-period kWh; the published rate is 46.25 c/kVArh.
+- Fixed service and network charges, voltage-specific demand charges, energy charges, the minimum-demand ratchet and reactive-energy charges are separate terms.
+
+A schedule that shifts kWh away from expensive intervals can still fail to reduce the bill if its peak kVA ratchet, fixed/network charges or reactive-energy charges dominate. The benchmark must report both physical kWh/kW and the billed Rand components. Do not describe tariff arbitrage as energy efficiency.
+
+The fixture contains arithmetic checks:
+- winter peak/off-peak energy-charge ratio = 766.24 / 200.44 ≈ 3.82;
+- summer peak/off-peak energy-charge ratio = 322.00 / 186.35 ≈ 1.73.
+
+Those are tariff-rate ratios, not predicted customer bill savings.
+
+### South African 2024 Grid Emission Factors
+
+The Department of Forestry, Fisheries and the Environment published the *Report on South Africa's 2024 Grid Emission Factors* as Government Notice 7891 in Government Gazette 55353 on **11 September 2026**. Official notice:
+https://www.gov.za/documents/notices/national-environmental-management-air-quality-act-report-south-africa%E2%80%99s-2024-grid
+
+The report's 2024 values as transcribed by a secondary report of the gazetted release are:
+- DGGEF (domestic generation): **0.994 tCO₂e/MWh**;
+- NGGEF (national generation / consumption): **0.960 tCO₂e/MWh**;
+- TLGEF (transmission losses): **0.021 tCO₂e/MWh**;
+- DLGEF (distribution losses): **0.071 tCO₂e/MWh**.
+
+The 2023 comparison values in the DFFE 2023 report were DGGEF 0.942, NGGEF 0.906, TLGEF 0.020 and DLGEF 0.062 tCO₂e/MWh. The 2024 NGGEF is therefore approximately 5.96% higher than the 2023 NGGEF on this annual location-based metric.
+
+**Source-admission note:** the official DFFE 2024 gazette notice and PDF link are recorded, but the PDF endpoint returned an access error during this audit. The 2024 numeric transcription is cross-checked against a secondary report; it must retain that source limitation until the primary PDF/table is independently ingested. The 2023 comparison is source-pinned to the previous DFFE government report.
+
+DFFE's prior grid-factor methodology describes NGGEF as the location-based factor to use, for instance, in consumer Scope 2 reporting; TLGEF and DLGEF serve distinct loss-accounting use cases. See the official 2022 DFFE report's Appendix A:
+https://www.gov.za/sites/default/files/gcis_document/202411/51495gon5498.pdf
+
+These are **annual** factors based on calendar-year generation / consumption information. They are appropriate to the annual location-based reporting method described by DFFE; they are not an hourly, 15-minute or marginal emissions signal. Do not use 0.960 tCO₂e/MWh to select which quarter-hour is cleaner. If a controller requires interval emissions optimization, it needs a separate time-aligned, geographically applicable, method-qualified hourly/marginal signal and uncertainty metadata. If such a signal is absent, the controller may optimize tariff or power demand but must not claim interval decarbonization.
+
+### Frozen South African market-signal challenges
+
+Include at least:
+1. approved City Power industrial TOU vs ineligible customer;
+2. non-City Power distributor; City tariff application rejected;
+3. supply capacity exactly 100 kVA (not eligible under the >100 kVA rule) vs >100 kVA;
+4. pre-July-1999 grandfather exception;
+5. LV/MV/HV fixed/network/demand charges;
+6. summer/winter boundary;
+7. weekday / Saturday / public-holiday / Sunday band boundary;
+8. minimum demand 70 kVA floor;
+9. 80%-of-three-highest-demand ratchet retained after a one-off peak;
+10. power factor 0.95 vs 0.96 and reactive-energy charges;
+11. load shifting lowers energy charge but not billed demand;
+12. low-price schedule increases total kWh;
+13. annual NGGEF used for annual location-based Scope 2 reporting;
+14. DGGEF mistakenly substituted for NGGEF;
+15. TLGEF/DLGEF incorrectly added to NGGEF without a separate boundary;
+16. annual NGGEF incorrectly used as intraday marginal signal;
+17. 2024 GEF source PDF unavailable / value not independently admitted -> emissions claim marked SOURCE_LIMITED;
+18. stale or wrong-geography carbon signal -> no interval carbon optimization claim;
+19. tariff changes without effective-date/version update;
+20. currency, VAT or tariff component omitted from total billed-cost report.
+
+All tariff/emissions source values, dates, boundaries and verification limitations are captured in `za_energy_market_signal_reference_2026_27.v0_1.json`.
