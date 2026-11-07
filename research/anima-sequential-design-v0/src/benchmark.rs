@@ -6,15 +6,15 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use super::scenario_tree::{
+    ScenarioTreeConfig, ScenarioTreeError, TransitionConstraints, plan_first_action,
+};
 use super::{
     AbstainReason, Decision, DecisionConfig, DecisionState, EngineError, EvidenceTier,
     ExperimentRecord, Feasibility, InterventionCandidate, ModelAdequacy, Posterior,
     PosteriorUpdate, SelectionPolicy, StopReason, condition_on_outcome, entropy,
     expected_information_gain, reject_candidate, splitmix64, validate_candidate,
     validate_posterior,
-};
-use super::scenario_tree::{
-    plan_first_action, ScenarioTreeConfig, ScenarioTreeError, TransitionConstraints,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
