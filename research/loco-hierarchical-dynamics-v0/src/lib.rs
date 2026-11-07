@@ -153,7 +153,7 @@ impl HierarchicalConfig {
         if !prior_total.is_finite() || prior_total <= 0.0 {
             return Err(HierarchicalError::InvalidCandidatePrior);
         }
-        if !seen.iter().any(|variance| *variance == 0.0) {
+        if !seen.contains(&0.0) {
             return Err(HierarchicalError::InvalidVarianceCandidate);
         }
         Ok(())
