@@ -46,6 +46,21 @@ impl MassKg {
         if value <= 0.0 {
             return Err(PhysicsDomainError::NonPositive("mass_kg"));
         }
+        // Keep the derived Kerr/Schwarzschild length scale representable.
+        // The factor 5 bounds r_+^2 + a^2 for every |chi| <= 1.
+        let rg = GRAVITATIONAL_CONSTANT_M3_KG_S2 * value
+            / SPEED_OF_LIGHT_M_S.powi(2);
+        let rg_squared = rg * rg;
+        if !rg.is_finite()
+            || rg <= 0.0
+            || !rg_squared.is_finite()
+            || rg_squared == 0.0
+            || !(5.0 * rg_squared).is_finite()
+        {
+            return Err(PhysicsDomainError::ComputationNonFinite(
+                "mass-derived black-hole length scale",
+            ));
+        }
         Ok(Self(value))
     }
 
@@ -158,7 +173,10 @@ impl SchwarzschildBlackHole {
     pub fn kretschmann_scalar_m4(self, radius_m: f64) -> Result<f64, PhysicsDomainError> {
         validate_positive_finite(radius_m, "radius_m")?;
         let rg = self.gravitational_radius_m();
-        let value = 48.0 * rg * rg / radius_m.powi(6);
+        // Algebraically equivalent to 48 r_g^2 / r^6, but avoids
+        // overflowing r^6 for large, weak-curvature exterior radii.
+        let ratio = rg / radius_m;
+        let value = 48.0 * ratio * ratio / radius_m.powi(4);
         if !value.is_finite() {
             return Err(PhysicsDomainError::ComputationNonFinite(
                 "kretschmann_scalar_m4",
@@ -198,7 +216,14 @@ impl SchwarzschildBlackHole {
         self,
         emission_radius_m: f64,
     ) -> Result<f64, PhysicsDomainError> {
-        Ok(1.0 / self.static_observer_lapse(emission_radius_m)?)
+        let redshift = 1.0 / self.static_observer_lapse(emission_radius_m)?;
+        if redshift.is_finite() {
+            Ok(redshift)
+        } else {
+            Err(PhysicsDomainError::ComputationNonFinite(
+                "static_emission_redshift_to_infinity",
+            ))
+        }
     }
 }
 
@@ -466,6 +491,18 @@ mod tests {
             hole.ergosurface_radius_m(core::f64::consts::FRAC_PI_2).unwrap()
                 > hole.outer_horizon_radius_m()
         );
+    }
+
+    #[test]
+    fn mass_constructor_rejects_derived_length_underflow_and_overflow() {
+        assert!(matches!(
+            MassKg::new(f64::from_bits(1)),
+            Err(PhysicsDomainError::ComputationNonFinite(_))
+        ));
+        assert!(matches!(
+            MassKg::new(f64::MAX),
+            Err(PhysicsDomainError::ComputationNonFinite(_))
+        ));
     }
 
     #[test]
