@@ -55,6 +55,8 @@ The posterior transform preserves each input sample ID, order, and paired mass/s
 
 - Machine-readable waveform discrepancy / posterior calibration protocol: `benchmarks/waveform_discrepancy_calibration_v1.json`. This is a benchmark specification, not an executed discrepancy model.
 
+- Machine-readable horizon semantics / provenance contract: `benchmarks/horizon_object_contract_v1.json`. It defines distinct stationary, event, apparent/MOTS, marginally trapped tube, dynamical and isolated horizon types; it does not implement horizon finders.
+
 ## Deliberate limits
 
 The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path generates first/second derivatives and curvature for Schwarzschild and Kerr exterior charts. It also supports ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr coordinates, with tests at/inside the horizons and scalar-invariant comparisons across charts. Kerr vacuum-Ricci and analytic Kretschmann tests are authored. The current geodesic engine is Schwarzschild-only. It includes second-order Christoffel RK4, first-order canonical Hamiltonian RK4, and a step-doubling adaptive controller with separate coordinate/tangent tolerances. It is not yet symplectic, and Kerr geodesics/Carter-constant handling remain future work. There is no GRHD/GRMHD solver, waveform generator, or numerical-relativity evolution code.
