@@ -432,6 +432,10 @@ pub fn evaluate_case(case: &Value, parent: &Value) -> Result<EvaluationReport, V
             )
         })
         .collect();
+    let state_map: BTreeMap<&str, &Value> = states
+        .iter()
+        .map(|state| (text(state, "state_id").expect("state ID"), state))
+        .collect();
 
     let mut pair_results = Vec::with_capacity(required_pairs.len());
     for pair in required_pairs {
@@ -467,6 +471,22 @@ pub fn evaluate_case(case: &Value, parent: &Value) -> Result<EvaluationReport, V
             if text(a, "availability") != Some("VALID")
                 || text(b, "availability") != Some("VALID")
             {
+                let declared_faulted_in_a = state_map
+                    .get(state_a)
+                    .and_then(|state| state.get("faulted_channel_ids"))
+                    .and_then(Value::as_array)
+                    .is_some_and(|ids| ids.iter().any(|id| id.as_str() == Some(channel_id)));
+                let declared_faulted_in_b = state_map
+                    .get(state_b)
+                    .and_then(|state| state.get("faulted_channel_ids"))
+                    .and_then(Value::as_array)
+                    .is_some_and(|ids| ids.iter().any(|id| id.as_str() == Some(channel_id)));
+                let known_fault_unavailability =
+                    (declared_faulted_in_a && text(a, "availability") != Some("VALID"))
+                    || (declared_faulted_in_b && text(b, "availability") != Some("VALID"));
+                if !known_fault_unavailability {
+                    unresolved_evidence = true;
+                }
                 continue;
             }
             let (Some(a_lower), Some(a_upper), Some(b_lower), Some(b_upper)) = (
@@ -664,6 +684,23 @@ mod tests {
         pair_entry["minimum_independent_principles"] = serde_json::json!(6);
         let report = evaluate_case(&case, &parent()).unwrap();
         assert_ne!(pair(&report, "normal-vs-blockage").status, "IDENTIFIABLE");
+    }
+
+    #[test]
+    fn unexpected_telemetry_dropout_is_insufficient_evidence() {
+        let mut case = fixture();
+        let pair_entry = case["required_state_pairs"].as_array_mut().unwrap()
+            .iter_mut().find(|p| p["pair_id"] == "normal-vs-blockage").unwrap();
+        pair_entry["minimum_independent_principles"] = serde_json::json!(6);
+        let airflow = response_mut(&mut case, "NORMAL_STABLE", "airflow");
+        airflow["availability"] = serde_json::json!("MISSING");
+        airflow["value_lower"] = Value::Null;
+        airflow["value_upper"] = Value::Null;
+        let report = evaluate_case(&case, &parent()).unwrap();
+        assert_eq!(
+            pair(&report, "normal-vs-blockage").status,
+            "INSUFFICIENT_EVIDENCE"
+        );
     }
 
     #[test]
