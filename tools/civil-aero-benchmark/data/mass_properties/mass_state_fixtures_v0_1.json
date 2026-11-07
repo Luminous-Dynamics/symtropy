@@ -451,11 +451,11 @@
           "installation": "installed"
         },
         {
-          "id": "removable_module",
+          "id": "propulsion_assembly",
           "installation": "installed"
         },
         {
-          "id": "propulsion_assembly",
+          "id": "removable_module",
           "installation": "installed"
         }
       ],
