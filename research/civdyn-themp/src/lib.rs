@@ -564,7 +564,10 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
                     FindingSeverity::Error,
                     "alternative_pattern_unknown",
                     &alternative.id,
-                    format!("unknown discriminating pattern {}", alternative_prediction.pattern_id),
+                    format!(
+                        "unknown discriminating pattern {}",
+                        alternative_prediction.pattern_id
+                    ),
                 );
             }
             if !indicator_ids.contains(alternative_prediction.outcome_indicator_id.as_str()) {
@@ -573,7 +576,10 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
                     FindingSeverity::Error,
                     "alternative_indicator_unknown",
                     &alternative.id,
-                    format!("unknown discriminating outcome indicator {}", alternative_prediction.outcome_indicator_id),
+                    format!(
+                        "unknown discriminating outcome indicator {}",
+                        alternative_prediction.outcome_indicator_id
+                    ),
                 );
             }
             if !alternative_prediction_keys.insert((
@@ -591,7 +597,8 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
             let primary_prediction = passport.predictions.iter().find(|prediction| {
                 prediction.mechanism_id == alternative.target_mechanism_id
                     && prediction.pattern_id == alternative_prediction.pattern_id
-                    && prediction.outcome_indicator_id == alternative_prediction.outcome_indicator_id
+                    && prediction.outcome_indicator_id
+                        == alternative_prediction.outcome_indicator_id
             });
             match primary_prediction {
                 None => push(
