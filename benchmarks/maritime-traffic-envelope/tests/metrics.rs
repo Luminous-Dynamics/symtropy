@@ -186,8 +186,8 @@ fn non_overlapping_occupancies_are_admitted_with_half_open_boundaries() {
             early_entry_ticks: 0,
             late_clearance_ticks: 0,
             time_basis_id: "synthetic-ticks-v1",
-            }),
-            occupancy(OccupancySpec {
+        }),
+        occupancy(OccupancySpec {
             id: "use-b",
             resource_id: "crossing-zone-1",
             route_revision: "route-b",
@@ -196,24 +196,24 @@ fn non_overlapping_occupancies_are_admitted_with_half_open_boundaries() {
             early_entry_ticks: 0,
             late_clearance_ticks: 0,
             time_basis_id: "synthetic-ticks-v1",
-            }),
-            ];
-            let report = evaluate(
-            vec![first, second],
-            vec![conflict_resource(0, 0)],
-            occupancies,
-            )
-            .expect("valid selected operations");
-            assert_eq!(report.disposition, TrafficDisposition::ReadyForComparison);
-            assert!(report.violations.is_empty());
-            }
+        }),
+    ];
+    let report = evaluate(
+        vec![first, second],
+        vec![conflict_resource(0, 0)],
+        occupancies,
+    )
+    .expect("valid selected operations");
+    assert_eq!(report.disposition, TrafficDisposition::ReadyForComparison);
+    assert!(report.violations.is_empty());
+}
 
-            #[test]
-            fn nominally_separate_operations_conflict_when_early_entry_and_late_clearance_overlap() {
-            let first = operation("demand-a", "participant-a", 10, 12);
-            let second = operation("demand-b", "participant-b", 13, 15);
-            let occupancies = vec![
-            occupancy(OccupancySpec {
+#[test]
+fn nominally_separate_operations_conflict_when_early_entry_and_late_clearance_overlap() {
+    let first = operation("demand-a", "participant-a", 10, 12);
+    let second = operation("demand-b", "participant-b", 13, 15);
+    let occupancies = vec![
+        occupancy(OccupancySpec {
             id: "use-a",
             resource_id: "crossing-zone-1",
             route_revision: "route-a",
@@ -222,8 +222,8 @@ fn non_overlapping_occupancies_are_admitted_with_half_open_boundaries() {
             early_entry_ticks: 1,
             late_clearance_ticks: 1,
             time_basis_id: "synthetic-ticks-v1",
-            }),
-            occupancy(OccupancySpec {
+        }),
+        occupancy(OccupancySpec {
             id: "use-b",
             resource_id: "crossing-zone-1",
             route_revision: "route-b",
@@ -232,31 +232,31 @@ fn non_overlapping_occupancies_are_admitted_with_half_open_boundaries() {
             early_entry_ticks: 1,
             late_clearance_ticks: 1,
             time_basis_id: "synthetic-ticks-v1",
-            }),
-            ];
-            let report = evaluate(
-            vec![first, second],
-            vec![conflict_resource(0, 0)],
-            occupancies,
-            )
-            .expect("valid selected operations");
-            assert_eq!(report.disposition, TrafficDisposition::Infeasible);
-            assert_eq!(
-            report.violations,
-            vec![TrafficViolation::Conflict {
+        }),
+    ];
+    let report = evaluate(
+        vec![first, second],
+        vec![conflict_resource(0, 0)],
+        occupancies,
+    )
+    .expect("valid selected operations");
+    assert_eq!(report.disposition, TrafficDisposition::Infeasible);
+    assert_eq!(
+        report.violations,
+        vec![TrafficViolation::Conflict {
             resource_id: "crossing-zone-1".to_owned(),
             first_occupancy_id: "use-a".to_owned(),
             second_occupancy_id: "use-b".to_owned(),
-            }]
-            );
-            }
+        }]
+    );
+}
 
-            #[test]
-            fn clearance_guards_are_applied_to_each_half_open_occupancy() {
-            let first = operation("demand-a", "participant-a", 10, 12);
-            let second = operation("demand-b", "participant-b", 13, 15);
-            let occupancies = vec![
-            occupancy(OccupancySpec {
+#[test]
+fn clearance_guards_are_applied_to_each_half_open_occupancy() {
+    let first = operation("demand-a", "participant-a", 10, 12);
+    let second = operation("demand-b", "participant-b", 13, 15);
+    let occupancies = vec![
+        occupancy(OccupancySpec {
             id: "use-a",
             resource_id: "crossing-zone-1",
             route_revision: "route-a",
@@ -265,8 +265,8 @@ fn non_overlapping_occupancies_are_admitted_with_half_open_boundaries() {
             early_entry_ticks: 0,
             late_clearance_ticks: 0,
             time_basis_id: "synthetic-ticks-v1",
-            }),
-            occupancy(OccupancySpec {
+        }),
+        occupancy(OccupancySpec {
             id: "use-b",
             resource_id: "crossing-zone-1",
             route_revision: "route-b",
@@ -275,50 +275,50 @@ fn non_overlapping_occupancies_are_admitted_with_half_open_boundaries() {
             early_entry_ticks: 0,
             late_clearance_ticks: 0,
             time_basis_id: "synthetic-ticks-v1",
-            }),
-            ];
-            let report = evaluate(
-            vec![first, second],
-            vec![conflict_resource(1, 1)],
-            occupancies,
-            )
-            .expect("valid selected operations");
-            assert_eq!(report.disposition, TrafficDisposition::Infeasible);
-            assert!(matches!(
-            report.violations.as_slice(),
-            [TrafficViolation::Conflict { .. }]
-            ));
-            }
+        }),
+    ];
+    let report = evaluate(
+        vec![first, second],
+        vec![conflict_resource(1, 1)],
+        occupancies,
+    )
+    .expect("valid selected operations");
+    assert_eq!(report.disposition, TrafficDisposition::Infeasible);
+    assert!(matches!(
+        report.violations.as_slice(),
+        [TrafficViolation::Conflict { .. }]
+    ));
+}
 
-            #[test]
-            fn opposite_directions_are_admitted_only_in_their_declared_one_way_windows() {
-            let resource = resource(
-            "one-way-channel-1",
-            "channel-r1",
-            TrafficResourceKind::OneWayChannel,
-            vec![
+#[test]
+fn opposite_directions_are_admitted_only_in_their_declared_one_way_windows() {
+    let resource = resource(
+        "one-way-channel-1",
+        "channel-r1",
+        TrafficResourceKind::OneWayChannel,
+        vec![
             TrafficWindow {
-            window: TickWindow {
-            start_tick: 0,
-            end_tick: 10,
-            },
-            direction_id: Some("eastbound".to_owned()),
+                window: TickWindow {
+                    start_tick: 0,
+                    end_tick: 10,
+                },
+                direction_id: Some("eastbound".to_owned()),
             },
             TrafficWindow {
-            window: TickWindow {
-            start_tick: 10,
-            end_tick: 20,
+                window: TickWindow {
+                    start_tick: 10,
+                    end_tick: 20,
+                },
+                direction_id: Some("westbound".to_owned()),
             },
-            direction_id: Some("westbound".to_owned()),
-            },
-            ],
-            0,
-            0,
-            );
-            let first = operation("demand-a", "participant-a", 2, 4);
-            let second = operation("demand-b", "participant-b", 12, 14);
-            let occupancies = vec![
-            occupancy(OccupancySpec {
+        ],
+        0,
+        0,
+    );
+    let first = operation("demand-a", "participant-a", 2, 4);
+    let second = operation("demand-b", "participant-b", 12, 14);
+    let occupancies = vec![
+        occupancy(OccupancySpec {
             id: "east",
             resource_id: "one-way-channel-1",
             route_revision: "route-a",
@@ -327,8 +327,8 @@ fn non_overlapping_occupancies_are_admitted_with_half_open_boundaries() {
             early_entry_ticks: 0,
             late_clearance_ticks: 0,
             time_basis_id: "synthetic-ticks-v1",
-            }),
-            occupancy(OccupancySpec {
+        }),
+        occupancy(OccupancySpec {
             id: "west",
             resource_id: "one-way-channel-1",
             route_revision: "route-b",
@@ -337,40 +337,40 @@ fn non_overlapping_occupancies_are_admitted_with_half_open_boundaries() {
             early_entry_ticks: 0,
             late_clearance_ticks: 0,
             time_basis_id: "synthetic-ticks-v1",
-            }),
-            ];
-            let report = evaluate(vec![first, second], vec![resource], occupancies)
-            .expect("direction windows are sequential");
-            assert_eq!(report.disposition, TrafficDisposition::ReadyForComparison);
-            }
+        }),
+    ];
+    let report = evaluate(vec![first, second], vec![resource], occupancies)
+        .expect("direction windows are sequential");
+    assert_eq!(report.disposition, TrafficDisposition::ReadyForComparison);
+}
 
-            #[test]
-            fn opposite_direction_is_rejected_inside_the_wrong_one_way_window() {
-            let resource = resource(
-            "one-way-channel-1",
-            "channel-r1",
-            TrafficResourceKind::OneWayChannel,
-            vec![TrafficWindow {
+#[test]
+fn opposite_direction_is_rejected_inside_the_wrong_one_way_window() {
+    let resource = resource(
+        "one-way-channel-1",
+        "channel-r1",
+        TrafficResourceKind::OneWayChannel,
+        vec![TrafficWindow {
             window: TickWindow {
-            start_tick: 0,
-            end_tick: 20,
+                start_tick: 0,
+                end_tick: 20,
             },
             direction_id: Some("eastbound".to_owned()),
-            }],
-            0,
-            0,
-            );
-            let op = operation("demand-a", "participant-a", 2, 4);
-            let use_item = occupancy(OccupancySpec {
-            id: "westbound-use",
-            resource_id: "one-way-channel-1",
-            route_revision: "route-a",
-            operation: op.clone(),
-            direction_id: Some("westbound"),
-            early_entry_ticks: 0,
-            late_clearance_ticks: 0,
-            time_basis_id: "synthetic-ticks-v1",
-        });
+        }],
+        0,
+        0,
+    );
+    let op = operation("demand-a", "participant-a", 2, 4);
+    let use_item = occupancy(OccupancySpec {
+        id: "westbound-use",
+        resource_id: "one-way-channel-1",
+        route_revision: "route-a",
+        operation: op.clone(),
+        direction_id: Some("westbound"),
+        early_entry_ticks: 0,
+        late_clearance_ticks: 0,
+        time_basis_id: "synthetic-ticks-v1",
+    });
     let report = evaluate(vec![op], vec![resource], vec![use_item])
         .expect("well-formed but disallowed direction");
     assert_eq!(report.disposition, TrafficDisposition::Infeasible);
@@ -417,7 +417,7 @@ fn uncertainty_envelope_must_fit_inside_one_direction_window() {
         early_entry_ticks: 1,
         late_clearance_ticks: 0,
         time_basis_id: "synthetic-ticks-v1",
-        });
+    });
     let report = evaluate(vec![op], vec![resource], vec![use_item])
         .expect("well-formed but window crossing");
     assert_eq!(report.disposition, TrafficDisposition::Infeasible);
@@ -441,7 +441,7 @@ fn stale_traffic_evidence_needs_review_and_revoked_evidence_is_unsupported() {
         early_entry_ticks: 0,
         late_clearance_ticks: 0,
         time_basis_id: "synthetic-ticks-v1",
-        });
+    });
     stale.evidence.state = EvidenceState::Stale;
     let report = evaluate(vec![op.clone()], vec![conflict_resource(0, 0)], vec![stale])
         .expect("stale evidence is a disposition");
@@ -456,7 +456,7 @@ fn stale_traffic_evidence_needs_review_and_revoked_evidence_is_unsupported() {
         early_entry_ticks: 0,
         late_clearance_ticks: 0,
         time_basis_id: "synthetic-ticks-v1",
-        });
+    });
     revoked.evidence.state = EvidenceState::Revoked;
     let report = evaluate(vec![op], vec![conflict_resource(0, 0)], vec![revoked])
         .expect("revoked evidence is a disposition");
@@ -475,7 +475,7 @@ fn traffic_resource_profile_must_be_bound_to_exact_revision_and_guards() {
         early_entry_ticks: 0,
         late_clearance_ticks: 0,
         time_basis_id: "synthetic-ticks-v1",
-        });
+    });
     let mut resource = conflict_resource(0, 0);
     resource.clearance_after_ticks = 1;
     assert_eq!(
@@ -498,7 +498,7 @@ fn occupancy_evidence_must_bind_to_the_exact_uncertainty_envelope() {
         early_entry_ticks: 0,
         late_clearance_ticks: 0,
         time_basis_id: "synthetic-ticks-v1",
-        });
+    });
     item.early_entry_ticks = 1;
     assert_eq!(
         evaluate(vec![op], vec![conflict_resource(0, 0)], vec![item]),
@@ -522,7 +522,7 @@ fn traffic_occupancy_must_be_the_exact_selected_fleet_operation() {
         early_entry_ticks: 0,
         late_clearance_ticks: 0,
         time_basis_id: "synthetic-ticks-v1",
-        });
+    });
     assert_eq!(
         evaluate(vec![selected], vec![conflict_resource(0, 0)], vec![item]),
         Err(TrafficError::PlanOperationMismatch("forged-use".to_owned()))
@@ -543,7 +543,7 @@ fn wrong_participant_or_alternative_is_rejected_even_when_operation_is_present()
         early_entry_ticks: 0,
         late_clearance_ticks: 0,
         time_basis_id: "synthetic-ticks-v1",
-        });
+    });
     assert_eq!(
         evaluate_traffic_plan(
             &fleet_plan,
@@ -565,7 +565,7 @@ fn stale_occupancy_evidence_after_its_validity_window_needs_review() {
         early_entry_ticks: 0,
         late_clearance_ticks: 0,
         time_basis_id: "synthetic-ticks-v1",
-        });
+    });
     item.evidence.valid_through_tick = 10;
     let report = evaluate(vec![op], vec![conflict_resource(0, 0)], vec![item])
         .expect("expiry is a review disposition");
@@ -591,8 +591,8 @@ fn equivalent_input_permutations_produce_identical_reports() {
             early_entry_ticks: 0,
             late_clearance_ticks: 0,
             time_basis_id: "synthetic-ticks-v1",
-            }),
-            occupancy(OccupancySpec {
+        }),
+        occupancy(OccupancySpec {
             id: "use-b",
             resource_id: "crossing-zone-1",
             route_revision: "route-b",
@@ -601,56 +601,56 @@ fn equivalent_input_permutations_produce_identical_reports() {
             early_entry_ticks: 0,
             late_clearance_ticks: 0,
             time_basis_id: "synthetic-ticks-v1",
-            }),
-            ];
-            let original = workload(vec![conflict_resource(0, 0)], occupancies);
-            let expected = evaluate_traffic_plan(&plan(vec![first.clone(), second.clone()]), &original)
-            .expect("valid workload");
+        }),
+    ];
+    let original = workload(vec![conflict_resource(0, 0)], occupancies);
+    let expected = evaluate_traffic_plan(&plan(vec![first.clone(), second.clone()]), &original)
+        .expect("valid workload");
 
-            let mut permuted = original;
-            permuted.resources.reverse();
-            permuted.occupancies.reverse();
-            let actual =
-            evaluate_traffic_plan(&plan(vec![second, first]), &permuted).expect("permuted workload");
-            assert_eq!(actual, expected);
-            }
+    let mut permuted = original;
+    permuted.resources.reverse();
+    permuted.occupancies.reverse();
+    let actual =
+        evaluate_traffic_plan(&plan(vec![second, first]), &permuted).expect("permuted workload");
+    assert_eq!(actual, expected);
+}
 
-            #[test]
-            fn traffic_windows_must_be_sorted_non_overlapping_and_typed() {
-            let overlapping = resource(
-            "one-way-channel-1",
-            "channel-r1",
-            TrafficResourceKind::OneWayChannel,
-            vec![
+#[test]
+fn traffic_windows_must_be_sorted_non_overlapping_and_typed() {
+    let overlapping = resource(
+        "one-way-channel-1",
+        "channel-r1",
+        TrafficResourceKind::OneWayChannel,
+        vec![
             TrafficWindow {
-            window: TickWindow {
-            start_tick: 0,
-            end_tick: 10,
-            },
-            direction_id: Some("east".to_owned()),
+                window: TickWindow {
+                    start_tick: 0,
+                    end_tick: 10,
+                },
+                direction_id: Some("east".to_owned()),
             },
             TrafficWindow {
-            window: TickWindow {
-            start_tick: 9,
-            end_tick: 20,
+                window: TickWindow {
+                    start_tick: 9,
+                    end_tick: 20,
+                },
+                direction_id: Some("west".to_owned()),
             },
-            direction_id: Some("west".to_owned()),
-            },
-            ],
-            0,
-            0,
-            );
-            let op = operation("demand-a", "participant-a", 2, 4);
-            let item = occupancy(OccupancySpec {
-            id: "use-a",
-            resource_id: "one-way-channel-1",
-            route_revision: "route-a",
-            operation: op.clone(),
-            direction_id: Some("east"),
-            early_entry_ticks: 0,
-            late_clearance_ticks: 0,
-            time_basis_id: "synthetic-ticks-v1",
-        });
+        ],
+        0,
+        0,
+    );
+    let op = operation("demand-a", "participant-a", 2, 4);
+    let item = occupancy(OccupancySpec {
+        id: "use-a",
+        resource_id: "one-way-channel-1",
+        route_revision: "route-a",
+        operation: op.clone(),
+        direction_id: Some("east"),
+        early_entry_ticks: 0,
+        late_clearance_ticks: 0,
+        time_basis_id: "synthetic-ticks-v1",
+    });
     assert_eq!(
         evaluate(vec![op], vec![overlapping], vec![item]),
         Err(TrafficError::TrafficWindowsOverlap(
@@ -671,7 +671,7 @@ fn effective_occupancy_cannot_extend_before_decision_cutoff() {
         early_entry_ticks: 4,
         late_clearance_ticks: 0,
         time_basis_id: "synthetic-ticks-v1",
-        });
+    });
     let mut input = workload(vec![conflict_resource(0, 0)], vec![item]);
     input.decision_tick = 2;
     assert_eq!(
