@@ -9,6 +9,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod joint_state;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TcsMetricId {
     /// Natural variability and individuality in Drosophila walking (2024):
