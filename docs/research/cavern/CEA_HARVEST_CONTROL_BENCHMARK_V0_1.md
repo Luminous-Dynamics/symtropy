@@ -215,3 +215,44 @@ Add benchmark cases for:
 - tariff rates changed without effective-date update.
 
 This is a South African *market-data comparator*, not a claim that every Johannesburg site qualifies for the City Power industrial TOU tariff. The source facts and units are preserved in `za_energy_market_signal_reference_2026_27.v0_1.json`.
+
+
+## South African tariff and emissions profile — 2026/27
+
+A versioned South African market-signal profile is added at:
+- `ZA_ENERGY_MARKET_SIGNAL_REFERENCE_V0_1.md`
+- `za_energy_market_signal_reference.schema.json`
+- `fixtures/za_energy_market_signal_reference_2026_27.v0_1.json`
+
+The new source owner is [ZA-ENERGY-SIGNAL-001 #4081](https://github.com/Luminous-Dynamics/symtropy/issues/4081).
+
+### City Power Industrial TOU
+
+The May 2026 City of Johannesburg Medium-Term Budget publishes a FY2026/27 industrial three-part TOU schedule. It is conditional: large consumers with supply above 100 kVA, application and City Power approval, and an ability to shift load. The schedule itself is identified as proposed; it must not be assigned to a site without its actual account/contract confirmation.
+
+The published energy rates are ex VAT and exclude a separate 6 c/kWh network surcharge and 2% surcharge on business / large power users. It also has monthly service/network charges, demand charges, a minimum demand floor (maximum of measured kVA, 70 kVA, or 80% of the average of the three highest recorded demands in the preceding 12 months) and reactive-energy billing where PF is below 0.96. Thus the control benchmark must optimize the actual billing function, not just a list of time-of-use kWh rates.
+
+The budget's weekend time-band text contains an apparent typo ("18h00-20h0" on Saturday/public holidays). It is preserved as a source ambiguity and requires City Power / invoice clarification for billing-grade use.
+
+### DFFE 2024 Grid Emission Factors
+
+DFFE Government Notice 7891 (11 Sep 2026) publishes 2024 annual factors: DGGEF 0.994, NGGEF 0.960, TLGEF 0.021 and DLGEF 0.071 tCO2e/MWh. The report identifies NGGEF for consumer Scope 2 and the loss factors for Scope 3; it also states an approximately two-year data availability lag. The NGGEF is an annual location-based factor—not a real-time or marginal emissions signal. A controller may use it for annual emissions accounting, but must not use it to claim interval carbon-intensity optimization.
+
+### South African greenhouse simulation comparator
+
+Ren et al. (2026), DOI 10.1016/j.seta.2026.105320, compares MEC, MECo and MTC on a Pretoria-weather greenhouse simulation. It reports MTC total cost 39.41% below MECo in winter and 34.69% below MECo in summer; winter energy use 13.74% below MECo. The paper's groundwater penalty is a modeled weighting, its grid factor is 0.879 kgCO2e/kWh, and SCC is R866/tCO2e. Those are study-specific assumptions and must remain separate from the later DFFE NGGEF, current tariff invoices, real groundwater prices and statutory carbon-tax claims.
+
+### Evaluation rule
+
+Every controller comparison must report:
+- kWh and peak kW/kVA;
+- time-of-use energy charges;
+- fixed service/network charges;
+- demand charge / ratchet;
+- reactive-energy charge, surcharges and VAT;
+- total invoice-equivalent cost only when the applicable contract is confirmed;
+- annual Scope 2 emissions using the correct DFFE NGGEF boundary;
+- interval/marginal emissions only when a separate qualified interval dataset exists;
+- harvest, quality, whole-facility energy, water and climate service from #3957.
+
+A cheaper schedule is not necessarily more energy-efficient or lower-carbon. A carbon accounting factor is not automatically a dispatch signal.
