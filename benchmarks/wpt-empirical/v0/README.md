@@ -443,3 +443,14 @@ Primary locators:
 - Coşar, Array 31 (2026), 101149, DOI [10.1016/j.array.2026.101149](https://doi.org/10.1016/j.array.2026.101149).
 
 All UAV realizations are source-bound development records. Full-text dual annotation, exact operating-point recovery, prototype deduplication and independent review remain required before these records can enter validation/test splits.
+
+
+### Evidence vocabulary maintenance — 7 November 2026
+
+The realization schema and Rust validator now explicitly distinguish:
+- `ASSUMED`: an engineering-metric input imposed by the scenario/model (for example, a simulated vehicle demand, route length or constant speed). It is not an observation, measurement or author-calculated experimental result.
+- `SUPPORTED_WITH_LIMITS`: a source-backed claim whose evidence is directionally supportive but whose validity is limited by sample size, operating regime, measurement boundary or other stated caveats.
+
+This resolves existing records that already used these meanings without forcing assumptions into `SIMULATED` or unsupported claims into `RECONCILED`. `ASSUMED` is permitted only for engineering metrics, not for physical measurement records. The measurement evidence vocabulary remains unchanged.
+
+The corpus preflight also repaired legacy structural mismatches without changing reported numeric claims: missing source-author arrays were populated only with recovered names and explicitly marked partial; four legacy null efficiency values now use the schema's `value_percent: null` field; and a foreign-object-detection research realization uses the allowed `RESEARCH` application domain while retaining its detailed description.
