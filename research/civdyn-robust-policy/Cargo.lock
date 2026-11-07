@@ -25,5 +25,6 @@ dependencies = [
 name = "civdyn-robust-policy"
 version = "0.1.0"
 dependencies = [
+ "civdyn-cross-scale-resilience",
  "civdyn-resilience-uq",
 ]
