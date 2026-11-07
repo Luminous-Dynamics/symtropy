@@ -74,9 +74,11 @@ struct CompiledOutcome {
 }
 
 #[derive(Clone)]
+#[derive(Clone)]
 struct CompiledExperiment {
     id: String,
     cost: f64,
+    independence_group_ref: String,
     outcomes: Vec<CompiledOutcome>,
 }
 
@@ -84,7 +86,6 @@ struct CompiledCase {
     case_id: String,
     evidence_disposition: String,
     utility_unit: String,
-    state_ids: Vec<String>,
     priors: Vec<f64>,
     actions: Vec<CompiledAction>,
     experiments: Vec<CompiledExperiment>,
@@ -288,6 +289,11 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
         if text(experiment, "domain_ref").is_none() {
             push(&mut errors, "MISSING_EXPERIMENT_DOMAIN", &format!("{path}.domain_ref"), "measurement likelihood domain is required");
         }
+        for key in ["independence_group_ref", "dependence_evidence_ref"] {
+            if text(experiment, key).is_none() {
+                push(&mut errors, "MISSING_EXPERIMENT_DEPENDENCE_EVIDENCE", &format!("{path}.{key}"), "measurement independence group and dependence evidence are required");
+            }
+        }
         match experiment.get("likelihood_evidence") {
             Some(evidence) => validate_evidence(evidence, &format!("{path}.likelihood_evidence"), &mut errors, &mut any_synthetic),
             None => push(&mut errors, "MISSING_LIKELIHOOD_EVIDENCE", &format!("{path}.likelihood_evidence"), "likelihood requires provenance"),
@@ -353,9 +359,9 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
         push(&mut errors, "MISSING_POLICY", "$.policy", "finite-horizon policy settings are required");
         return errors;
     };
-    for key in ["stop_consequence_ref", "human_review_authority_ref"] {
+    for key in ["stop_consequence_ref", "human_review_authority_ref", "conditional_independence_assumption_ref"] {
         if text(policy, key).is_none() {
-            push(&mut errors, "MISSING_POLICY_PROVENANCE", &format!("$.policy.{key}"), "stopping consequence and human review authority are required");
+            push(&mut errors, "MISSING_POLICY_PROVENANCE", &format!("$.policy.{key}"), "stopping consequence, human review authority and explicit conditional-independence assumption are required");
         }
     }
     match finite(policy, "remaining_budget") {
@@ -378,6 +384,14 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
         _ => push(&mut errors, "INVALID_CONTINUATION_THRESHOLD", "$.policy.minimum_net_value_to_continue", "continuation threshold must be finite and non-negative"),
     }
 
+    if text(case, "evidence_class") == Some("MEASURED") && any_synthetic {
+        push(
+            &mut errors,
+            "MEASURED_CASE_CONTAINS_SIMULATION_ONLY_EVIDENCE",
+            "$.evidence_class",
+            "a MEASURED case cannot contain a SIMULATION_ONLY prior or likelihood source",
+        );
+    }
     errors
 }
 
@@ -419,6 +433,7 @@ fn compile_case(case: &Value) -> CompiledCase {
         CompiledExperiment {
             id: text(experiment, "experiment_id").unwrap().to_owned(),
             cost: finite(&experiment["cost"], "value").unwrap(),
+            independence_group_ref: text(experiment, "independence_group_ref").unwrap().to_owned(),
             outcomes: compiled_outcomes,
         }
     }).collect();
@@ -428,7 +443,6 @@ fn compile_case(case: &Value) -> CompiledCase {
         case_id: text(case, "case_id").unwrap().to_owned(),
         evidence_disposition: if any_synthetic_evidence(case) { "SYNTHETIC_ONLY" } else { "MEASURED_EVIDENCE_REVIEW_REQUIRED" }.to_owned(),
         utility_unit: text(&case["decision_profile"], "utility_unit").unwrap().to_owned(),
-        state_ids,
         priors,
         actions: compiled_actions,
         experiments: compiled_experiments,
@@ -478,7 +492,7 @@ impl<'a> Solver<'a> {
         remaining_budget: f64,
         remaining_steps: usize,
         remaining_horizon: usize,
-        used_mask: u8,
+        used_groups: &BTreeSet<String>,
     ) -> Result<PolicyNode, Violation> {
         self.nodes += 1;
         if self.nodes > MAX_NODES {
@@ -514,15 +528,16 @@ impl<'a> Solver<'a> {
         }
 
         for experiment_index in 0..self.compiled.experiments.len() {
-            let bit = 1u8 << experiment_index;
-            if used_mask & bit != 0 {
+            let experiment = self.compiled.experiments[experiment_index].clone();
+            if used_groups.contains(&experiment.independence_group_ref) {
                 continue;
             }
-            let experiment = &self.compiled.experiments[experiment_index];
             if experiment.cost > remaining_budget {
                 continue;
             }
             let child_budget = remaining_budget - experiment.cost;
+            let mut child_used_groups = used_groups.clone();
+            child_used_groups.insert(experiment.independence_group_ref.clone());
             let mut branches = Vec::new();
             let mut expected_children = 0.0;
             for outcome in &experiment.outcomes {
@@ -557,7 +572,7 @@ impl<'a> Solver<'a> {
                     child_budget,
                     remaining_steps - 1,
                     remaining_horizon - 1,
-                    used_mask | bit,
+                    &child_used_groups,
                 )?;
                 expected_children += child.expected_value_contribution;
                 branches.push(PolicyBranch {
@@ -601,7 +616,7 @@ pub fn evaluate_case(case: &Value) -> Result<EvaluationReport, Vec<Violation>> {
         compiled.budget,
         compiled.max_measurements,
         compiled.horizon,
-        0,
+        &BTreeSet::new(),
     ).map_err(|error| vec![error])?;
     let current_stop_value = solver.stop_node(&compiled.priors).0;
     let expected_net_improvement = policy.expected_value_contribution - current_stop_value;
@@ -895,6 +910,39 @@ mod tests {
             serde_json::json!(1.0);
         let report = evaluate_case(&case).unwrap();
         assert!(report.policy_expected_value.is_finite());
+    }
+
+    #[test]
+    fn same_measurement_independence_group_cannot_be_used_twice_on_a_path() {
+        let mut case = fixture();
+        let group = case["experiments"][0]["independence_group_ref"].clone();
+        case["experiments"][1]["independence_group_ref"] = group;
+        let report = evaluate_case(&case).unwrap();
+
+        fn assert_unique_groups(node: &PolicyNode, inherited: &mut BTreeSet<String>, case: &Value) {
+            if let Some(id) = &node.selected_experiment_id {
+                let group = case["experiments"].as_array().unwrap().iter()
+                    .find(|experiment| experiment["experiment_id"] == id).unwrap()["independence_group_ref"]
+                    .as_str().unwrap().to_owned();
+                assert!(inherited.insert(group.clone()));
+                for branch in &node.branches {
+                    let mut child_groups = inherited.clone();
+                    assert_unique_groups(&branch.child, &mut child_groups, case);
+                }
+                inherited.remove(&group);
+            }
+        }
+        assert_unique_groups(&report.policy, &mut BTreeSet::new(), &case);
+    }
+
+    #[test]
+    fn measured_case_cannot_contain_simulation_only_likelihoods() {
+        let mut case = fixture();
+        case["evidence_class"] = serde_json::json!("MEASURED");
+        assert!(has(
+            &validate_case(&case),
+            "MEASURED_CASE_CONTAINS_SIMULATION_ONLY_EVIDENCE"
+        ));
     }
 
     #[test]
