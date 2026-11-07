@@ -9,6 +9,10 @@
 //! This is a screening adapter only. It does not add climb/takeoff/landing,
 //! fuel/energy chronology, trim, structural loads, or flightworthiness semantics.
 
+use crate::mass_evidence::{
+    AircraftLoadingState, LoadingStateKind, MassEvidenceLedger, MassPropertiesStateReport,
+    StateEvidenceStatus,
+};
 use crate::mass_properties::{
     MASS_PROPERTIES_SCHEMA_VERSION, MassItemCategory, MassLedger, MassPropertiesReport,
     MassPropertiesStatus,
@@ -33,6 +37,20 @@ pub struct MassBoundMissionResult {
     pub result: ResultRow,
 }
 
+
+/// Result of evaluating the steady-level cruise screen using an evidence-qualified
+/// takeoff loading state. The loading-state report and digest remain attached.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TakeoffStateBoundMissionResult {
+    pub schema_version: &'static str,
+    pub evidence_level: &'static str,
+    pub mission_case_id: String,
+    pub configuration_sha256: String,
+    pub loading_state_sha256: String,
+    pub loading_state_report: MassPropertiesStateReport,
+    pub mission_result: MassBoundMissionResult,
+}
+
 /// Evaluate the existing cruise screen using mass from an itemized, complete
 /// mass-properties report.
 ///
@@ -49,11 +67,58 @@ pub fn evaluate_case_with_mass_ledger(
     mass_ledger: &MassLedger,
     expected_configuration_sha256: &str,
 ) -> Result<MassBoundMissionResult, String> {
+    let report = mass_ledger.evaluate_for_configuration(expected_configuration_sha256)?;
+    evaluate_case_with_mass_properties(case, report, expected_configuration_sha256)
+}
+
+/// Evaluate only from an exact Takeoff loading state. The existing mission
+/// screen has no time/phase chronology, so it must not silently use a landing
+/// state or an intermediate fuel state as a whole-flight mass assumption.
+pub fn evaluate_takeoff_case_with_loading_state(
+    case: &Case,
+    evidence_ledger: &MassEvidenceLedger,
+    loading_state: &AircraftLoadingState,
+    expected_configuration_sha256: &str,
+) -> Result<TakeoffStateBoundMissionResult, String> {
+    if loading_state.state_kind != LoadingStateKind::Takeoff {
+        return Err("mission cruise screen requires an explicit takeoff loading state".to_owned());
+    }
+    let state_report =
+        evidence_ledger.evaluate_state(loading_state, expected_configuration_sha256)?;
+    if state_report.status != StateEvidenceStatus::CompleteForScreening {
+        return Err(
+            "loading-state evidence is not complete for screening; mission evaluation withheld"
+                .to_owned(),
+        );
+    }
+    let mission_result = evaluate_case_with_mass_properties(
+        case,
+        state_report.mass_properties.clone(),
+        expected_configuration_sha256,
+    )?;
+    Ok(TakeoffStateBoundMissionResult {
+        schema_version: "takeoff-state-bound-mission-screen/0.1.0",
+        evidence_level: "screening_only",
+        mission_case_id: case.case_id.clone(),
+        configuration_sha256: expected_configuration_sha256.to_owned(),
+        loading_state_sha256: state_report.state_sha256.clone(),
+        loading_state_report: state_report,
+        mission_result,
+    })
+}
+
+fn evaluate_case_with_mass_properties(
+    case: &Case,
+    mass_properties: MassPropertiesReport,
+    expected_configuration_sha256: &str,
+) -> Result<MassBoundMissionResult, String> {
     validate_sha256(
         expected_configuration_sha256,
         "expected_configuration_sha256",
     )?;
-    let mass_properties = mass_ledger.evaluate_for_configuration(expected_configuration_sha256)?;
+    if mass_properties.configuration_sha256 != expected_configuration_sha256 {
+        return Err("stale mass properties: configuration SHA-256 mismatch".to_owned());
+    }
     if mass_properties.status != MassPropertiesStatus::Complete {
         return Err("mass properties are not complete; mission evaluation withheld".to_owned());
     }
