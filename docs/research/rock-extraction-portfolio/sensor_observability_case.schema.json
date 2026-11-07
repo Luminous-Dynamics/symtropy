@@ -94,7 +94,8 @@
       "additionalProperties": false,
       "required": [
         "state_id",
-        "state_class"
+        "state_class",
+        "faulted_channel_ids"
       ],
       "properties": {
         "state_id": {
@@ -123,6 +124,13 @@
             "SENSOR_FAULT",
             "OUT_OF_DOMAIN"
           ]
+        },
+        "faulted_channel_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
         }
       }
     },
