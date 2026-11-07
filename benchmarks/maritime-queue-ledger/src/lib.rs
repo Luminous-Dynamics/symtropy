@@ -115,10 +115,6 @@ impl VesselEventKind {
         }
     }
 
-    const fn is_exit(self) -> bool {
-        !matches!(self, Self::EligibleArrival)
-    }
-
     const fn semantic_kind(self) -> &'static str {
         match self {
             Self::EligibleArrival => "eligible-arrival",
