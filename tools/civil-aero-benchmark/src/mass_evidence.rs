@@ -354,7 +354,10 @@ impl MassEvidenceLedger {
         expected_configuration_sha256: &str,
     ) -> Result<MassPropertiesStateReport, String> {
         self.validate_identity()?;
-        validate_sha256(expected_configuration_sha256, "expected_configuration_sha256")?;
+        validate_sha256(
+            expected_configuration_sha256,
+            "expected_configuration_sha256",
+        )?;
         if self.configuration_sha256 != expected_configuration_sha256 {
             return Err("stale mass evidence ledger: aircraft configuration mismatch".to_owned());
         }
@@ -374,7 +377,10 @@ impl MassEvidenceLedger {
 
         let generation = self.source_generation_sha256()?;
         if state.source_generation_sha256 != generation {
-            return Err("stale source generation: loading state references another evidence generation".to_owned());
+            return Err(
+                "stale source generation: loading state references another evidence generation"
+                    .to_owned(),
+            );
         }
         validate_state_order_and_completeness(&self.records, &state.items)?;
 
@@ -476,7 +482,10 @@ impl MassEvidenceLedger {
                             ));
                         }
                         let source_mass = state_item.source_mass.ok_or_else(|| {
-                            format!("loading item {}: known mass requires source value and unit", state_item.item_id)
+                            format!(
+                                "loading item {}: known mass requires source value and unit",
+                                state_item.item_id
+                            )
                         })?;
                         let converted = source_mass.kilograms()?;
                         if !close_enough(mass_kg, converted, MASS_MATCH_RELATIVE_TOLERANCE) {
@@ -637,7 +646,10 @@ impl MassEvidenceLedger {
         if self.schema_version != MASS_EVIDENCE_SCHEMA_VERSION {
             return Err("unsupported mass-evidence schema version".to_owned());
         }
-        validate_sha256(&self.configuration_sha256, "mass_evidence.configuration_sha256")?;
+        validate_sha256(
+            &self.configuration_sha256,
+            "mass_evidence.configuration_sha256",
+        )?;
         validate_nonempty(&self.aircraft_family, "aircraft_family")?;
         validate_nonempty(&self.aircraft_model, "aircraft_model")?;
         validate_nonempty(&self.serial_number, "serial_number")?;
@@ -646,7 +658,11 @@ impl MassEvidenceLedger {
             return Err("mass evidence ledger must contain at least one record".to_owned());
         }
         let mut previous: Option<&str> = None;
-        let record_ids: HashSet<&str> = self.records.iter().map(|record| record.item.id.as_str()).collect();
+        let record_ids: HashSet<&str> = self
+            .records
+            .iter()
+            .map(|record| record.item.id.as_str())
+            .collect();
         for record in &self.records {
             if let Some(parent) = &record.parent_id {
                 let parent_record = self
@@ -654,7 +670,10 @@ impl MassEvidenceLedger {
                     .iter()
                     .find(|candidate| candidate.item.id == *parent)
                     .ok_or_else(|| {
-                        format!("mass item {} references missing parent {}", record.item.id, parent)
+                        format!(
+                            "mass item {} references missing parent {}",
+                            record.item.id, parent
+                        )
                     })?;
                 if parent_record.accounting_role != AccountingRole::Aggregate
                     || !parent_record
@@ -669,15 +688,28 @@ impl MassEvidenceLedger {
                 }
             }
             for child in &record.included_child_ids {
-                let child_record = self.records.iter().find(|candidate| candidate.item.id == *child)
-                    .ok_or_else(|| format!("mass item {} references missing included child {}", record.item.id, child))?;
+                let child_record = self
+                    .records
+                    .iter()
+                    .find(|candidate| candidate.item.id == *child)
+                    .ok_or_else(|| {
+                        format!(
+                            "mass item {} references missing included child {}",
+                            record.item.id, child
+                        )
+                    })?;
                 if child_record.parent_id.as_deref() != Some(record.item.id.as_str()) {
-                    return Err(format!("mass item {} child {} has inconsistent parent link", record.item.id, child));
+                    return Err(format!(
+                        "mass item {} child {} has inconsistent parent link",
+                        record.item.id, child
+                    ));
                 }
             }
             if let Some(prev) = previous {
                 if prev >= record.item.id.as_str() {
-                    return Err("mass evidence records must be strictly sorted by item ID".to_owned());
+                    return Err(
+                        "mass evidence records must be strictly sorted by item ID".to_owned()
+                    );
                 }
             }
             previous = Some(&record.item.id);
@@ -694,8 +726,14 @@ fn validate_evidence_record(
         return Err("mass evidence item ID must not be empty".to_owned());
     }
     validate_source_record(&evidence.source, &evidence.item.id)?;
-    validate_nonempty(&evidence.effectivity.aircraft_family, "effectivity.aircraft_family")?;
-    validate_nonempty(&evidence.effectivity.aircraft_model, "effectivity.aircraft_model")?;
+    validate_nonempty(
+        &evidence.effectivity.aircraft_family,
+        "effectivity.aircraft_family",
+    )?;
+    validate_nonempty(
+        &evidence.effectivity.aircraft_model,
+        "effectivity.aircraft_model",
+    )?;
     validate_sha256(
         &evidence.effectivity.configuration_sha256,
         "effectivity.configuration_sha256",
@@ -726,7 +764,10 @@ fn validate_evidence_record(
     if let Some(parent_id) = &evidence.parent_id {
         validate_nonempty(parent_id, "mass_item.parent_id")?;
         if parent_id == &evidence.item.id {
-            return Err(format!("mass item {} cannot parent itself", evidence.item.id));
+            return Err(format!(
+                "mass item {} cannot parent itself",
+                evidence.item.id
+            ));
         }
     }
     let mut child_ids = HashSet::new();
@@ -769,7 +810,11 @@ fn validate_evidence_record(
         ));
     }
     if let (Some(canonical), Some(source)) = (evidence.item.mass_kg, evidence.source_mass) {
-        if !close_enough(canonical, source.kilograms()?, MASS_MATCH_RELATIVE_TOLERANCE) {
+        if !close_enough(
+            canonical,
+            source.kilograms()?,
+            MASS_MATCH_RELATIVE_TOLERANCE,
+        ) {
             return Err(format!(
                 "mass item {}: base source mass does not convert to canonical kg",
                 evidence.item.id
@@ -779,14 +824,22 @@ fn validate_evidence_record(
     match &evidence.item.geometry {
         MassGeometry::PointMass { position_m } => {
             let source = evidence.source_position.as_ref().ok_or_else(|| {
-                format!("mass item {}: base point mass requires source position", evidence.item.id)
+                format!(
+                    "mass item {}: base point mass requires source position",
+                    evidence.item.id
+                )
             })?;
             validate_source_frame(source, &ledger.reference_frame_id, &evidence.item.id)?;
             validate_position_match(*position_m, source, &evidence.item.id)?;
         }
-        MassGeometry::RigidBody { center_of_mass_m, .. } => {
+        MassGeometry::RigidBody {
+            center_of_mass_m, ..
+        } => {
             let source = evidence.source_position.as_ref().ok_or_else(|| {
-                format!("mass item {}: rigid body requires source centre-of-mass position", evidence.item.id)
+                format!(
+                    "mass item {}: rigid body requires source centre-of-mass position",
+                    evidence.item.id
+                )
             })?;
             validate_source_frame(source, &ledger.reference_frame_id, &evidence.item.id)?;
             validate_position_match(*center_of_mass_m, source, &evidence.item.id)?;
@@ -801,14 +854,30 @@ fn validate_evidence_record(
         }
     }
     match (&evidence.item.geometry, evidence.source_inertia) {
-        (MassGeometry::RigidBody { inertia_tensor_about_center_kg_m2, .. }, Some(source)) => {
-            validate_inertia_match(*inertia_tensor_about_center_kg_m2, source, &evidence.item.id)?;
+        (
+            MassGeometry::RigidBody {
+                inertia_tensor_about_center_kg_m2,
+                ..
+            },
+            Some(source),
+        ) => {
+            validate_inertia_match(
+                *inertia_tensor_about_center_kg_m2,
+                source,
+                &evidence.item.id,
+            )?;
         }
         (MassGeometry::RigidBody { .. }, None) => {
-            return Err(format!("mass item {}: rigid-body geometry requires source inertia values", evidence.item.id));
+            return Err(format!(
+                "mass item {}: rigid-body geometry requires source inertia values",
+                evidence.item.id
+            ));
         }
         (_, Some(_)) => {
-            return Err(format!("mass item {}: source inertia is only valid for rigid-body geometry", evidence.item.id));
+            return Err(format!(
+                "mass item {}: source inertia is only valid for rigid-body geometry",
+                evidence.item.id
+            ));
         }
         (_, None) => {}
     }
@@ -820,7 +889,9 @@ fn validate_state_order_and_completeness(
     items: &[LoadingItemState],
 ) -> Result<(), String> {
     if evidence.len() != items.len() {
-        return Err("loading-state manifest must explicitly cover every mass evidence record".to_owned());
+        return Err(
+            "loading-state manifest must explicitly cover every mass evidence record".to_owned(),
+        );
     }
     let mut previous: Option<&str> = None;
     for (record, item) in evidence.iter().zip(items) {
@@ -840,18 +911,29 @@ fn validate_state_order_and_completeness(
     Ok(())
 }
 
-fn validate_state_geometry(item: &LoadingItemState, reference_frame_id: &str) -> Result<(), String> {
+fn validate_state_geometry(
+    item: &LoadingItemState,
+    reference_frame_id: &str,
+) -> Result<(), String> {
     match &item.geometry {
         MassGeometry::PointMass { position_m } => {
             let source = item.source_position.as_ref().ok_or_else(|| {
-                format!("loading item {}: point geometry requires source position", item.item_id)
+                format!(
+                    "loading item {}: point geometry requires source position",
+                    item.item_id
+                )
             })?;
             validate_source_frame(source, reference_frame_id, &item.item_id)?;
             validate_position_match(*position_m, source, &item.item_id)?;
         }
-        MassGeometry::RigidBody { center_of_mass_m, .. } => {
+        MassGeometry::RigidBody {
+            center_of_mass_m, ..
+        } => {
             let source = item.source_position.as_ref().ok_or_else(|| {
-                format!("loading item {}: rigid-body geometry requires source position", item.item_id)
+                format!(
+                    "loading item {}: rigid-body geometry requires source position",
+                    item.item_id
+                )
             })?;
             validate_source_frame(source, reference_frame_id, &item.item_id)?;
             validate_position_match(*center_of_mass_m, source, &item.item_id)?;
@@ -870,9 +952,13 @@ fn validate_state_geometry(item: &LoadingItemState, reference_frame_id: &str) ->
 
 fn validate_state_inertia(item: &LoadingItemState) -> Result<(), String> {
     match (&item.geometry, item.source_inertia) {
-        (MassGeometry::RigidBody { inertia_tensor_about_center_kg_m2, .. }, Some(source)) => {
-            validate_inertia_match(*inertia_tensor_about_center_kg_m2, source, &item.item_id)
-        }
+        (
+            MassGeometry::RigidBody {
+                inertia_tensor_about_center_kg_m2,
+                ..
+            },
+            Some(source),
+        ) => validate_inertia_match(*inertia_tensor_about_center_kg_m2, source, &item.item_id),
         (MassGeometry::RigidBody { .. }, None) => Err(format!(
             "loading item {}: rigid-body geometry requires source inertia values",
             item.item_id
@@ -892,7 +978,11 @@ fn validate_inertia_match(
 ) -> Result<(), String> {
     let converted = source.kg_m2()?;
     for axis in 0..6 {
-        if !close_enough(canonical[axis], converted[axis], MASS_MATCH_RELATIVE_TOLERANCE) {
+        if !close_enough(
+            canonical[axis],
+            converted[axis],
+            MASS_MATCH_RELATIVE_TOLERANCE,
+        ) {
             return Err(format!(
                 "mass item {item_id}: source inertia unit conversion does not match canonical kg m^2"
             ));
@@ -901,7 +991,11 @@ fn validate_inertia_match(
     Ok(())
 }
 
-fn validate_source_frame(source: &SourcePosition, expected_frame_id: &str, item_id: &str) -> Result<(), String> {
+fn validate_source_frame(
+    source: &SourcePosition,
+    expected_frame_id: &str,
+    item_id: &str,
+) -> Result<(), String> {
     if source.coordinate_frame_id != expected_frame_id {
         return Err(format!(
             "mass item {item_id}: source coordinate frame does not match ledger reference frame"
@@ -917,7 +1011,11 @@ fn validate_position_match(
 ) -> Result<(), String> {
     let converted = source.metres()?;
     for axis in 0..3 {
-        if !close_enough(canonical_m[axis], converted[axis], POSITION_MATCH_RELATIVE_TOLERANCE) {
+        if !close_enough(
+            canonical_m[axis],
+            converted[axis],
+            POSITION_MATCH_RELATIVE_TOLERANCE,
+        ) {
             return Err(format!(
                 "mass item {item_id}: source position unit conversion does not match canonical metres"
             ));
@@ -970,7 +1068,10 @@ fn validate_source_record(source: &SourceRecord, item_id: &str) -> Result<(), St
             "mass item {item_id}: source revision must be immutable, not 'latest'"
         ));
     }
-    validate_sha256(&source.sha256, &format!("mass item {item_id} source.sha256"))
+    validate_sha256(
+        &source.sha256,
+        &format!("mass item {item_id} source.sha256"),
+    )
 }
 
 fn validate_sha256(value: &str, field: &str) -> Result<(), String> {
@@ -1155,7 +1256,10 @@ fn encode_evidence_record(bytes: &mut Vec<u8>, record: &MassItemEvidence) {
     encode_source_record(bytes, &record.source);
     push_str(bytes, &record.effectivity.aircraft_family);
     push_str(bytes, &record.effectivity.aircraft_model);
-    push_str(bytes, &record.effectivity.configuration_sha256.to_ascii_lowercase());
+    push_str(
+        bytes,
+        &record.effectivity.configuration_sha256.to_ascii_lowercase(),
+    );
     match &record.effectivity.serial_numbers {
         Some(serials) => {
             bytes.push(1);
@@ -1412,7 +1516,10 @@ mod tests {
             None,
             None,
             None,
-            Some(source(&format!("fixture:removed:{}", record.item.id), SOURCE_B)),
+            Some(source(
+                &format!("fixture:removed:{}", record.item.id),
+                SOURCE_B,
+            )),
         )
     }
 
@@ -1487,7 +1594,10 @@ mod tests {
         state_b.items[index].value_source = Some(source("fixture:relocated-seat", SOURCE_B));
         let a = ledger.evaluate_state(&state_a, CONFIG).expect("state A");
         let b = ledger.evaluate_state(&state_b, CONFIG).expect("state B");
-        assert_eq!(a.mass_properties.total_mass_kg, b.mass_properties.total_mass_kg);
+        assert_eq!(
+            a.mass_properties.total_mass_kg,
+            b.mass_properties.total_mass_kg
+        );
         assert_ne!(
             a.mass_properties.center_of_gravity_m,
             b.mass_properties.center_of_gravity_m
@@ -1508,7 +1618,11 @@ mod tests {
             .position(|item| item.item_id == "removable_module")
             .expect("module row");
         state.items[index] = removed_state_item(
-            ledger.records.iter().find(|record| record.item.id == "removable_module").unwrap(),
+            ledger
+                .records
+                .iter()
+                .find(|record| record.item.id == "removable_module")
+                .unwrap(),
         );
         let removed_config_ledger = fixture_ledger(CONFIG_REMOVED_MODULE);
         let mut removed_state = make_state(&removed_config_ledger, LoadingStateKind::Maintenance);
@@ -1528,21 +1642,34 @@ mod tests {
             .evaluate_state(&removed_state, CONFIG_REMOVED_MODULE)
             .expect("removed module under new configuration");
         assert!((report.mass_properties.total_mass_kg.unwrap() - 680.0).abs() < 1.0e-12);
-        assert_ne!(state.configuration_sha256, removed_state.configuration_sha256);
+        assert_ne!(
+            state.configuration_sha256,
+            removed_state.configuration_sha256
+        );
     }
 
     #[test]
     fn unknown_mass_with_known_location_withholds_complete_mass_properties() {
         let mut ledger = fixture_ledger(CONFIG);
-        let target = ledger.records.iter_mut().find(|record| record.item.id == "fuel_tank").unwrap();
+        let target = ledger
+            .records
+            .iter_mut()
+            .find(|record| record.item.id == "fuel_tank")
+            .unwrap();
         target.item.mass_kg = None;
         target.source_mass = None;
         target.standard_uncertainty_kg = None;
         let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
-        let index = state.items.iter().position(|item| item.item_id == "fuel_tank").unwrap();
+        let index = state
+            .items
+            .iter()
+            .position(|item| item.item_id == "fuel_tank")
+            .unwrap();
         state.items[index].mass_kg = None;
         state.items[index].source_mass = None;
-        let report = ledger.evaluate_state(&state, CONFIG).expect("indeterminate report");
+        let report = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect("indeterminate report");
         assert_eq!(report.status, StateEvidenceStatus::Indeterminate);
         assert_eq!(report.mass_properties.total_mass_kg, None);
         assert_eq!(report.mass_properties.center_of_gravity_m, None);
@@ -1551,14 +1678,24 @@ mod tests {
     #[test]
     fn known_mass_with_unknown_location_reports_mass_but_withholds_cg_and_inertia() {
         let mut ledger = fixture_ledger(CONFIG);
-        let target = ledger.records.iter_mut().find(|record| record.item.id == "fuel_tank").unwrap();
+        let target = ledger
+            .records
+            .iter_mut()
+            .find(|record| record.item.id == "fuel_tank")
+            .unwrap();
         target.item.geometry = MassGeometry::Unknown;
         target.source_position = None;
         let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
-        let index = state.items.iter().position(|item| item.item_id == "fuel_tank").unwrap();
+        let index = state
+            .items
+            .iter()
+            .position(|item| item.item_id == "fuel_tank")
+            .unwrap();
         state.items[index].geometry = MassGeometry::Unknown;
         state.items[index].source_position = None;
-        let report = ledger.evaluate_state(&state, CONFIG).expect("indeterminate geometry");
+        let report = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect("indeterminate geometry");
         assert_eq!(report.mass_properties.total_mass_kg, Some(720.0));
         assert_eq!(report.mass_properties.center_of_gravity_m, None);
         assert_eq!(report.mass_properties.inertia_tensor_about_cg_kg_m2, None);
@@ -1568,7 +1705,14 @@ mod tests {
     #[test]
     fn signed_products_of_inertia_are_preserved_during_unit_conversion() {
         let converted = SourceInertiaTensor {
-            values: [10_000_000.0, 20_000_000.0, 30_000_000.0, -1_000_000.0, 0.0, 0.0],
+            values: [
+                10_000_000.0,
+                20_000_000.0,
+                30_000_000.0,
+                -1_000_000.0,
+                0.0,
+                0.0,
+            ],
             unit: InertiaUnit::GramSquareCentimetre,
         }
         .kg_m2()
@@ -1586,14 +1730,20 @@ mod tests {
         .expect("lb conversion");
         assert!((converted - 100.0).abs() < 1.0e-10);
         let mut ledger = fixture_ledger(CONFIG);
-        let target = ledger.records.iter_mut().find(|record| record.item.id == "fuel_tank").unwrap();
+        let target = ledger
+            .records
+            .iter_mut()
+            .find(|record| record.item.id == "fuel_tank")
+            .unwrap();
         target.source_mass = Some(SourceMassValue {
             value: 50.0,
             unit: MassUnit::Kilogram,
         });
         assert!(ledger.source_generation_sha256().is_ok());
         let state = make_state(&ledger, LoadingStateKind::Takeoff);
-        let error = ledger.evaluate_state(&state, CONFIG).expect_err("unit mismatch");
+        let error = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect_err("unit mismatch");
         assert!(error.contains("source mass conversion"));
     }
 
@@ -1602,7 +1752,9 @@ mod tests {
         let ledger = fixture_ledger(CONFIG);
         let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
         state.source_generation_sha256 = SOURCE_B.to_owned();
-        let error = ledger.evaluate_state(&state, CONFIG).expect_err("stale generation");
+        let error = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect_err("stale generation");
         assert!(error.contains("stale source generation"));
     }
 
@@ -1612,7 +1764,9 @@ mod tests {
         ledger.records[0].effectivity.aircraft_model = "different model".to_owned();
         let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
         state.source_generation_sha256 = ledger.source_generation_sha256().expect("new generation");
-        let error = ledger.evaluate_state(&state, CONFIG).expect_err("wrong effectivity");
+        let error = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect_err("wrong effectivity");
         assert!(error.contains("effectivity mismatch"));
     }
 
@@ -1622,7 +1776,9 @@ mod tests {
         ledger.records[0].admission = EvidenceAdmission::PendingReview;
         let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
         state.source_generation_sha256 = ledger.source_generation_sha256().expect("new generation");
-        let report = ledger.evaluate_state(&state, CONFIG).expect("report retained");
+        let report = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect("report retained");
         assert_eq!(report.status, StateEvidenceStatus::Indeterminate);
         assert_eq!(report.pending_item_ids, vec!["airframe"]);
     }
@@ -1646,11 +1802,19 @@ mod tests {
             .expect("aggregate child")
             .parent_id = Some("propulsion_assembly".to_owned());
         ledger.records.push(aggregate);
-        ledger.records.sort_by(|left, right| left.item.id.cmp(&right.item.id));
+        ledger
+            .records
+            .sort_by(|left, right| left.item.id.cmp(&right.item.id));
         let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
-        state.items.push(installed_state_item(ledger.records.last().unwrap()));
-        state.items.sort_by(|left, right| left.item_id.cmp(&right.item_id));
-        let error = ledger.evaluate_state(&state, CONFIG).expect_err("double count");
+        state
+            .items
+            .push(installed_state_item(ledger.records.last().unwrap()));
+        state
+            .items
+            .sort_by(|left, right| left.item_id.cmp(&right.item_id));
+        let error = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect_err("double count");
         assert!(error.contains("aggregate/child double counting"));
     }
 
@@ -1659,7 +1823,9 @@ mod tests {
         let ledger = fixture_ledger(CONFIG);
         let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
         state.items.pop();
-        let error = ledger.evaluate_state(&state, CONFIG).expect_err("missing manifest row");
+        let error = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect_err("missing manifest row");
         assert!(error.contains("explicitly cover every"));
     }
 
@@ -1667,7 +1833,9 @@ mod tests {
     fn uncertainty_is_reported_only_under_explicit_independence() {
         let ledger = fixture_ledger(CONFIG);
         let state = make_state(&ledger, LoadingStateKind::Takeoff);
-        let report = ledger.evaluate_state(&state, CONFIG).expect("complete state");
+        let report = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect("complete state");
         let expected = (4.0_f64 * 0.1_f64.powi(2)).sqrt();
         assert!((report.total_mass_standard_uncertainty_kg.unwrap() - expected).abs() < 1.0e-12);
         assert_eq!(report.cg_uncertainty_m, None);
@@ -1682,8 +1850,7 @@ mod tests {
             .iter_mut()
             .find(|record| record.item.id == "fuel_tank")
             .expect("fuel record");
-        target.source_position.as_mut().unwrap().coordinate_frame_id =
-            "wrong-datum".to_owned();
+        target.source_position.as_mut().unwrap().coordinate_frame_id = "wrong-datum".to_owned();
         let state = make_state(&ledger, LoadingStateKind::Takeoff);
         let error = ledger
             .evaluate_state(&state, CONFIG)
@@ -1729,7 +1896,9 @@ mod tests {
             records: vec![engine],
         };
         let state = make_state(&ledger, LoadingStateKind::Takeoff);
-        let report = ledger.evaluate_state(&state, CONFIG).expect("rigid-body source inertia");
+        let report = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect("rigid-body source inertia");
         assert_eq!(
             report.mass_properties.inertia_tensor_about_cg_kg_m2,
             Some([1.0, 2.0, 3.0, 0.0, 0.0, 0.0])
@@ -1741,8 +1910,9 @@ mod tests {
             unit: InertiaUnit::GramSquareCentimetre,
         });
         let mut mismatched_state = make_state(&mismatched, LoadingStateKind::Takeoff);
-        mismatched_state.source_generation_sha256 =
-            mismatched.source_generation_sha256().expect("new generation");
+        mismatched_state.source_generation_sha256 = mismatched
+            .source_generation_sha256()
+            .expect("new generation");
         let error = mismatched
             .evaluate_state(&mismatched_state, CONFIG)
             .expect_err("incorrect inertia unit conversion");
@@ -1754,7 +1924,11 @@ mod tests {
         let ledger = fixture_ledger(CONFIG);
         let first = make_state(&ledger, LoadingStateKind::Takeoff);
         let mut second = first.clone();
-        let index = second.items.iter().position(|item| item.item_id == "occupant").unwrap();
+        let index = second
+            .items
+            .iter()
+            .position(|item| item.item_id == "occupant")
+            .unwrap();
         second.items[index].geometry = MassGeometry::PointMass {
             position_m: [3.0, 0.0, 0.5],
         };
