@@ -203,6 +203,23 @@ fn allowed_transition(from: State, to: State) -> bool {
     }
 }
 
+fn require_enum_field(
+    evidence: &Value,
+    key: &str,
+    allowed: &[&str],
+    event_path: &str,
+) -> Result<(), EvalError> {
+    let actual = string_field(evidence, key, event_path)?;
+    if allowed.contains(&actual) {
+        Ok(())
+    } else {
+        Err(fail(
+            &format!("{event_path}.{key}"),
+            &format!("unsupported enum value {actual}"),
+        ))
+    }
+}
+
 fn require_evidence_string(
     evidence: &Value,
     key: &str,
@@ -573,23 +590,76 @@ pub fn evaluate_json(input: &str) -> Result<Report, EvalError> {
             ],
             &format!("{path}.evidence"),
         )?;
-        let motion_state = string_field(evidence, "motion_state", &path)?;
-        if !matches!(
-            motion_state,
-            "PARKED_LANDED_DOCKED"
-                | "QUASI_STATIC_HOVER"
-                | "MOVING_HOVER"
-                | "TRANSLATION"
-                | "CLIMB"
-                | "DESCENT"
-                | "DYNAMIC_FLIGHT"
-                | "DIVERSION"
-        ) {
-            return Err(fail(
-                &format!("{path}.evidence.motion_state"),
-                "unsupported motion state",
-            ));
-        }
+        let evidence_path = format!("{path}.evidence");
+        require_enum_field(
+            evidence,
+            "motion_state",
+            &[
+                "PARKED_LANDED_DOCKED",
+                "QUASI_STATIC_HOVER",
+                "MOVING_HOVER",
+                "TRANSLATION",
+                "CLIMB",
+                "DESCENT",
+                "DYNAMIC_FLIGHT",
+                "DIVERSION",
+            ],
+            &evidence_path,
+        )?;
+        require_enum_field(
+            evidence,
+            "receiver_identity_state",
+            &["MATCHED_SYNTHETIC", "CONFLICT", "UNKNOWN"],
+            &evidence_path,
+        )?;
+        require_enum_field(
+            evidence,
+            "authorization_state",
+            &["VALID_SYNTHETIC", "REVOKED", "UNKNOWN"],
+            &evidence_path,
+        )?;
+        require_enum_field(
+            evidence,
+            "allocation_state",
+            &["VALID_SYNTHETIC", "REVOKED", "UNKNOWN", "EXPIRED"],
+            &evidence_path,
+        )?;
+        require_enum_field(
+            evidence,
+            "envelope_state",
+            &[
+                "ADMITTED_SYNTHETIC",
+                "NOT_ADMITTED",
+                "UNKNOWN",
+                "STALE",
+                "OUT_OF_DOMAIN",
+            ],
+            &evidence_path,
+        )?;
+        require_enum_field(
+            evidence,
+            "position_state",
+            &["IN_DOMAIN_SYNTHETIC", "OUT_OF_DOMAIN", "STALE", "UNKNOWN"],
+            &evidence_path,
+        )?;
+        require_enum_field(
+            evidence,
+            "tracking_state",
+            &["TRACKED_SYNTHETIC", "LOST", "NOT_REQUIRED", "UNKNOWN"],
+            &evidence_path,
+        )?;
+        require_enum_field(
+            evidence,
+            "local_protection_state",
+            &["PERMIT_SYNTHETIC_ONLY", "INHIBIT", "TRIPPED", "UNKNOWN"],
+            &evidence_path,
+        )?;
+        require_enum_field(
+            evidence,
+            "deenergized_state",
+            &["CONFIRMED_SYNTHETIC", "UNCONFIRMED", "NOT_REQUIRED", "UNKNOWN"],
+            &evidence_path,
+        )?;
 
         if to == State::AdmissionPending {
             validate_admission(evidence, &path)?;
