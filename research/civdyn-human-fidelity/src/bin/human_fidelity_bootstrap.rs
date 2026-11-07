@@ -5,7 +5,7 @@
 //! No human or platform traces are imported.
 
 use civdyn_human_fidelity::{
-    BootstrapConfig, BootstrapMetric, HumanFidelityDataset, ObservedTrial, SimulatedTrial,
+    BootstrapConfig, HumanFidelityDataset, ObservedTrial, SimulatedTrial,
     bootstrap_population_coverage_curve,
 };
 
