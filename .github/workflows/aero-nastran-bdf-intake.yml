@@ -1,0 +1,62 @@
+name: AER-01 NASTRAN BDF intake
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-nastran-bdf-intake.yml"
+      - "tools/civil-aero-benchmark/nastran-bdf-intake/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-bdf-intake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record Rust toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/nastran-bdf-intake/Cargo.toml -- --check
+
+      - name: Run Rust BDF parser and hostile tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/nastran-bdf-intake/Cargo.toml
+
+      - name: Run read-only inventory executable
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/nastran-bdf-intake/Cargo.toml > nastran-bdf-intake-result.json
+
+      - name: Independently recompute source and topology in Python
+        run: python3 tools/civil-aero-benchmark/nastran-bdf-intake/verify_independent.py --rust-output nastran-bdf-intake-result.json
+
+      - name: Create source and result digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/nastran-bdf-intake/data/synthetic-equivalent-beam.bdf > nastran-source-fixture.sha256
+          sha256sum nastran-bdf-intake-result.json > nastran-bdf-intake-result.sha256
+
+      - name: Retain exact fixture, inventory and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-nastran-bdf-intake-${{ github.sha }}
+          path: |
+            tools/civil-aero-benchmark/nastran-bdf-intake/data/synthetic-equivalent-beam.bdf
+            nastran-bdf-intake-result.json
+            nastran-source-fixture.sha256
+            nastran-bdf-intake-result.sha256
+          if-no-files-found: error
+          retention-days: 90
