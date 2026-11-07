@@ -768,6 +768,76 @@ mod tests {
         serde_json::from_str(POSITIVE).expect("positive fixture must be valid JSON")
     }
 
+    // Independent finite-state reference graph. Deliberately expressed as a
+    // literal edge list rather than calling the production allowed_transition
+    // predicate, so a production transition edit cannot silently update its oracle.
+    const REFERENCE_EDGES: &[(&str, &str)] = &[
+        ("UNAVAILABLE", "DISCOVERED"),
+        ("UNAVAILABLE", "ABORTED"),
+        ("DISCOVERED", "ADMISSION_PENDING"),
+        ("DISCOVERED", "UNAVAILABLE"),
+        ("DISCOVERED", "ABORTED"),
+        ("ADMISSION_PENDING", "ACQUISITION_PENDING"),
+        ("ADMISSION_PENDING", "ABORTED"),
+        ("ADMISSION_PENDING", "RECOVERY_REQUIRED"),
+        ("ACQUISITION_PENDING", "TRACKED_NO_POWER"),
+        ("ACQUISITION_PENDING", "ABORTED"),
+        ("ACQUISITION_PENDING", "RECOVERY_REQUIRED"),
+        ("TRACKED_NO_POWER", "POWER_ACTIVE"),
+        ("TRACKED_NO_POWER", "DEPARTURE_PENDING"),
+        ("TRACKED_NO_POWER", "ABORTED"),
+        ("TRACKED_NO_POWER", "RECOVERY_REQUIRED"),
+        ("POWER_ACTIVE", "DEPARTURE_PENDING"),
+        ("POWER_ACTIVE", "RECOVERY_REQUIRED"),
+        ("DEPARTURE_PENDING", "SAFE_OFF"),
+        ("DEPARTURE_PENDING", "RECOVERY_REQUIRED"),
+        ("SAFE_OFF", "REACQUISITION_PENDING"),
+        ("SAFE_OFF", "COMPLETE"),
+        ("SAFE_OFF", "ABORTED"),
+        ("SAFE_OFF", "RECOVERY_REQUIRED"),
+        ("REACQUISITION_PENDING", "ADMISSION_PENDING"),
+        ("REACQUISITION_PENDING", "ABORTED"),
+        ("REACQUISITION_PENDING", "RECOVERY_REQUIRED"),
+        ("RECOVERY_REQUIRED", "SAFE_OFF"),
+        ("RECOVERY_REQUIRED", "ABORTED"),
+    ];
+
+    fn reference_transition(from: &str, to: &str) -> bool {
+        REFERENCE_EDGES.contains(&(from, to))
+    }
+
+    #[test]
+    fn production_transition_predicate_matches_independent_reference_graph() {
+        for from in STATES {
+            for to in STATES {
+                assert_eq!(
+                    allowed_transition(from, to),
+                    reference_transition(from, to),
+                    "transition mismatch for {from}->{to}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn independent_reference_graph_reaches_every_declared_state() {
+        let mut reached = BTreeSet::from(["UNAVAILABLE"]);
+        loop {
+            let previous_count = reached.len();
+            for (from, to) in REFERENCE_EDGES {
+                if reached.contains(from) {
+                    reached.insert(to);
+                }
+            }
+            if reached.len() == previous_count {
+                break;
+            }
+        }
+        for state in STATES {
+            assert!(reached.contains(state), "state {state} is unreachable");
+        }
+    }
+
     #[test]
     fn positive_reacquisition_trace_closes_and_reports_two_power_intervals() {
         let report = validate_json(POSITIVE).expect("synthetic known-truth trace must pass");
@@ -808,6 +878,14 @@ mod tests {
         value["events"][4]["evidence"]["local_protection_state"] = json!("INHIBIT");
         let error = validate_episode(&value).expect_err("inhibited protection must fail");
         assert!(error.contains("local_protection_state=PERMIT_SYNTHETIC_ONLY"));
+    }
+
+    #[test]
+    fn second_power_interval_requires_fresh_allocation_admission() {
+        let mut value = positive_value();
+        value["events"][9]["evidence"]["allocation_state"] = json!("EXPIRED");
+        let error = validate_episode(&value).expect_err("reacquisition must revalidate allocation");
+        assert!(error.contains("allocation_state=VALID_SYNTHETIC"));
     }
 
     #[test]
