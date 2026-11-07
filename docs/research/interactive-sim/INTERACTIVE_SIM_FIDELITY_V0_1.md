@@ -17,6 +17,13 @@ Weapon-like content, if present, must be clearly fictional and non-transferable 
 - Rapier determinism: https://rapier.rs/docs/user_guides/bevy_plugin/determinism/. Rapier is locally deterministic with identical initial state, insertion order, timestep, build, compiler and version; cross-platform determinism requires additional configuration and must be tested separately.
 - Godot 4.6 may be added as a matched open-engine baseline where the same workload can be represented fairly.
 
+Repository baseline correction, 7 November 2026: the Symtropy root `Cargo.toml` currently declares `bevy = "0.19"`. Therefore:
+- Bevy 0.19 is the current root-manifest runtime baseline for this comparison.
+- Bevy 0.20 is an upstream release and a migration candidate, not a feature already present in the current Symtropy root application.
+- The benchmark must report three separate rows: current Symtropy/Bevy 0.19; a separately qualified Symtropy/Bevy 0.20 migration build; and upstream-engine references (Unreal 5.8 and Godot 4.6).
+- Do not attribute Bevy 0.20 Solari, WESL, mesh-shader or ECS improvements to the current 0.19 project.
+- Migration compatibility must be measured against the official [0.19-to-0.20 migration guide](https://github.com/bevyengine/bevy-website/blob/main/content/learn/migration-guides/0.19-to-0.20.md), including its breaking changes. A version bump alone is not evidence that scenes, shaders, plugins, networking, serialization or deterministic replay remain correct.
+
 Do not infer Symtropy superiority from feature lists. The comparison must pin exact versions, assets, hardware, operating systems, drivers, scene complexity and quality settings.
 
 ## Paradigm shift
