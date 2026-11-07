@@ -622,10 +622,16 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 let sid = parse_u32(required_text(card, 0, "LOAD SID")?, "LOAD SID")?;
                 load_set_ids.insert(sid);
                 parse_nastran_float(field(card, 1, "LOAD scale")?, "LOAD scale")?;
-                if card.fields.len() < 4 || (card.fields.len() - 2) % 2 != 0 {
+                let end = card
+                    .fields
+                    .iter()
+                    .rposition(|value| !value.is_empty())
+                    .map(|index| index + 1)
+                    .unwrap_or(2);
+                if end < 4 || (end - 2) % 2 != 0 {
                     return fail(format!("LOAD {sid}: expected scale pairs after SID"));
                 }
-                for index in (2..card.fields.len()).step_by(2) {
+                for index in (2..end).step_by(2) {
                     parse_nastran_float(field(card, index, "LOAD scale factor")?, "LOAD factor")?;
                     load_refs.insert(parse_u32(field(card, index + 1, "LOAD set ID")?, "LOAD set ID")?);
                 }
