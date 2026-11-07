@@ -1,0 +1,39 @@
+name: ROAD decision-quality benchmark matrix
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/research/ROAD_DECISION_QUALITY_BENCHMARK_V0_1.md"
+      - "docs/research/ROAD_DECISION_QUALITY_BASELINE_MATRIX_V0_1.json"
+      - ".github/workflows/road-decision-quality-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse benchmark matrix
+        run: python3 -m json.tool docs/research/ROAD_DECISION_QUALITY_BASELINE_MATRIX_V0_1.json > /dev/null
+      - name: Check matrix protocol fields and provenance
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("docs/research/ROAD_DECISION_QUALITY_BASELINE_MATRIX_V0_1.json")
+          matrix = json.loads(path.read_text())
+          assert matrix["schema"] == "luminous.road-decision-quality-baselines.v0.1"
+          assert matrix["frozen_as_of"] == "2026-11-06"
+          assert len(matrix["records"]) >= 8
+          for record in matrix["records"]:
+              assert record["track"] and record["metric"] and record["benchmark_version"]
+              assert record["method"] and record["source"].startswith("https://")
+              assert record["claim"]
+          assert any(r["metric"] == "PDMS" for r in matrix["records"])
+          assert any(r["metric"] == "EPDMS" for r in matrix["records"])
+          PY

@@ -1,0 +1,251 @@
+{
+  "schema": "luminous.road-decision-quality-baselines.v0.1",
+  "frozen_as_of": "2026-11-06",
+  "records": [
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 navtest",
+      "method": "PlanWAM",
+      "score": 93.8,
+      "unit": "points",
+      "protocol": "open-loop scoring track; 85k train / 18k validation; navtest 12,146 scenes; K=64 candidates, 8 waypoints, 4 s planning horizon",
+      "source": "https://arxiv.org/abs/2610.11382",
+      "claim": "paper-reported; reproduce checkpoint and protocol"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 navtest",
+      "method": "World4Scorer",
+      "score": 94,
+      "unit": "points",
+      "protocol": "navtest; candidate scoring with inertial re-ranking; generator proposes 64 candidates; separate 16-candidate bank supplies additional simulator-labelled training states; released NAVSIM checkpoint 35.5M parameters",
+      "source": "https://github.com/World4Scorer/World4Scorer",
+      "claim": "official release reported"
+    },
+    {
+      "track": "navsim_v2",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navtest",
+      "method": "World4Scorer + inertial re-ranking",
+      "score": 93,
+      "unit": "points",
+      "protocol": "navtest; reports 91.4 without inertial re-ranking; generator proposes 64 candidates; separate 16-candidate bank supplies additional simulator-labelled training states; released NAVSIM checkpoint 35.5M parameters",
+      "source": "https://github.com/World4Scorer/World4Scorer",
+      "claim": "official release reported"
+    },
+    {
+      "track": "navsim_v2",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navtest",
+      "method": "PlanWAM",
+      "score": 90.9,
+      "unit": "points",
+      "protocol": "navtest; PDMS is not this metric; project configuration K=64 candidates",
+      "source": "https://arxiv.org/abs/2610.11382",
+      "claim": "paper-reported"
+    },
+    {
+      "track": "bench2drive",
+      "metric": "Driving Score",
+      "benchmark_version": "Bench2Drive-220",
+      "method": "World4Scorer adapted system",
+      "score": 73.27,
+      "unit": "points",
+      "protocol": "official 1000-clip subset; route-point input and deployment rules; reported success 46.36%; generator proposes 64 candidates; separate 16-candidate bank supplies additional simulator-labelled training states; released NAVSIM checkpoint 35.5M parameters",
+      "source": "https://github.com/World4Scorer/World4Scorer",
+      "claim": "adapted subset; not directly comparable with full leaderboard"
+    },
+    {
+      "track": "hugsim",
+      "metric": "HD-Score",
+      "benchmark_version": "zero-shot, 436 public scenarios",
+      "method": "PlanWAM",
+      "score": 38.7,
+      "unit": "points",
+      "secondary_metric": "Route Completion",
+      "secondary_score": 53.7,
+      "secondary_unit": "percent",
+      "protocol": "paper-reported zero-shot evaluation without HUGSIM-specific fine-tuning",
+      "source": "https://jinchan9.github.io/PlanWAM_project_page/",
+      "claim": "paper-reported; first reproduction target"
+    },
+    {
+      "track": "hugsim",
+      "metric": "HD-Score",
+      "benchmark_version": "current public aggregator snapshot",
+      "method": "DriveZero-Scale",
+      "score": 46.6,
+      "unit": "points",
+      "protocol": "aggregator's listed public task; verify exact scope and split before comparison",
+      "source": "https://scholarcompass.net/en/tasks/autonomous-driving/benchmarks/hugsim",
+      "claim": "aggregator snapshot; not assumed protocol-equivalent to PlanWAM"
+    },
+    {
+      "track": "wosac",
+      "metric": "Realism Score",
+      "benchmark_version": "2025 challenge snapshot",
+      "method": "SMART-R1",
+      "score": 78.58,
+      "unit": "points",
+      "secondary_metrics": {
+        "Kinematics": 49.44,
+        "Interactivity": 81.1,
+        "Map Adherence": 92.01
+      },
+      "protocol": "multi-agent motion simulation",
+      "source": "https://www.sota2.com/research/sota/motion-simulation-on-waymo-open-sim-agents-challenge-2025",
+      "claim": "leaderboard snapshot; challenge-year specific"
+    },
+    {
+      "track": "reactsim_bench",
+      "metric": "test scenario count",
+      "benchmark_version": "2026 paper",
+      "method": "ReactSim-Bench",
+      "score": 2636,
+      "unit": "scenarios",
+      "protocol": "three deviation categories; reactive behavior evaluated with collision, map-based, and kinematic feasibility metrics",
+      "source": "https://arxiv.org/abs/2606.14058",
+      "claim": "benchmark size, not model score"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 test table",
+      "method": "DriveVLA-W0 (official one-camera row marked *)",
+      "score": 90.2,
+      "unit": "points",
+      "protocol": "official repository NAVSIM table; one-camera sensor row; separate dagger-marked 93.0 entry deliberately not conflated with this row",
+      "source": "https://github.com/BraveGroup/DriveVLA-W0",
+      "claim": "official repository table; checkpoint/configuration must be pinned"
+    },
+    {
+      "track": "bench2drive",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 89.25,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive 0.0.3 self-reported leaderboard (non-privileged section)",
+      "method": "BridgeDrive (LEAD-trained)",
+      "score": 96.34,
+      "unit": "points",
+      "protocol": "leaderboard table last updated 2026-09-24; copied from publication; methods vary across expert/data/training/inference compute",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "claim": "self-reported public reference; not a matched reproduction"
+    },
+    {
+      "track": "bench2drive",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 86.81,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive 0.0.3 self-reported leaderboard (non-privileged section)",
+      "method": "TFv6",
+      "score": 95.28,
+      "unit": "points",
+      "protocol": "leaderboard table last updated 2026-09-24; copied from publication; methods vary across expert/data/training/inference compute",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "claim": "self-reported public reference; not a matched reproduction"
+    },
+    {
+      "track": "bench2drive_privileged",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 92.27,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive 0.0.3 privileged section (ground-truth perception)",
+      "method": "PDM-Lite",
+      "score": 97.02,
+      "unit": "points",
+      "protocol": "ground-truth perception input; separated privileged section",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "claim": "privileged reference; not comparable with ordinary sensor-only systems"
+    },
+    {
+      "track": "bench2drive_privileged",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 96.59,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive 0.0.3 privileged section (ground-truth perception)",
+      "method": "LEAD",
+      "score": 96.78,
+      "unit": "points",
+      "protocol": "ground-truth perception input; separated privileged section",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "claim": "privileged reference; not comparable with ordinary sensor-only systems"
+    },
+    {
+      "track": "hugsim",
+      "metric": "HD-Score",
+      "benchmark_version": "current public aggregator snapshot",
+      "method": "SimVTA (extra data)",
+      "score": 38.8,
+      "unit": "points",
+      "secondary_metric": "Route Completion",
+      "secondary_score": 51.5,
+      "secondary_unit": "percent",
+      "protocol": "aggregator marks extra data; exact split and evaluation details must be pinned before direct comparison",
+      "source": "https://scholarcompass.net/en/tasks/autonomous-driving/benchmarks/hugsim",
+      "claim": "aggregator snapshot; not assumed protocol-equivalent to PlanWAM"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM navtest (paper-reported)",
+      "method": "ReWAM",
+      "score": 90.6,
+      "unit": "points",
+      "protocol": "Level-k reciprocal WAM; four front-camera frames at 2Hz; eight predicted poses at 0.5s intervals; up to 10 other agents within 80m",
+      "source": "https://arxiv.org/abs/2609.39245",
+      "claim": "paper-reported; reproduce exact checkpoint, response depth and evaluation protocol"
+    },
+    {
+      "track": "navsim_v1_critical_interaction",
+      "metric": "PDMS",
+      "benchmark_version": "ReWAM critical-interaction subset (553 tokens)",
+      "method": "ReWAM",
+      "score": 88.72,
+      "unit": "points",
+      "comparisons": [
+        {
+          "method": "DriveLaW",
+          "score": 84.13
+        },
+        {
+          "method": "DiffusionDrive",
+          "score": 86.18
+        }
+      ],
+      "protocol": "553 critical-interaction tokens; not comparable with full navtest aggregate",
+      "source": "https://arxiv.org/abs/2609.39245",
+      "claim": "paper-reported interaction-stratified result"
+    },
+    {
+      "track": "bench2drive",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 90.45,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive 0.0.3 self-reported leaderboard (non-privileged section; README updated 2026-11-06)",
+      "method": "TFv6+ScaleDrive",
+      "score": 96.65,
+      "unit": "points",
+      "protocol": "official leaderboard README; row is copied from its cited publication; methods differ in datasets, experts, pre-training, training and inference compute",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "claim": "self-reported public reference; whole-system result, not a matched architecture comparison"
+    }
+  ],
+  "interpretation_rules": [
+    "Never compare PDMS and EPDMS as if they were identical.",
+    "Do not compare adapted Bench2Drive-220 results to full leaderboard results without matching routes, inputs, permitted data, controllers, and deployment rules.",
+    "Do not compare HUGSIM public aggregator results with paper zero-shot scores until split and evaluation scope match.",
+    "Keep world-model prediction, planner score, closed-loop driving, multi-agent realism, and decision-quality evidence as separate tracks.",
+    "Bench2Drive 0.0.3 rows are self-reported results copied from papers and vary by data, expert, training and inference compute; ground-truth-perception rows are privileged and must be separated.",
+    "Do not treat the 90.2 DriveVLA-W0 one-camera PDMS row and its separate dagger-marked 93.0 entry as the same configuration.",
+    "PlanWAM and World4Scorer both use K=64 candidate configurations; the EGCI selector reproduction ladder must include K=64 and charge generation, scoring, continuation and replay costs separately.",
+    "ReWAM is an existing reciprocal-response architecture; EGCI must not claim to invent reciprocal planning. Its contribution is independently verifiable execution, support-qualified counterfactual evaluation and evidence-audited decision quality.",
+    "The 2026-11-06 Bench2Drive 0.0.3 leaderboard lists TFv6+ScaleDrive 96.65 DS / 90.45 SR above BridgeDrive 96.34 / 89.25 in the non-privileged section; keep both separate from ground-truth-perception privileged rows."
+  ]
+}
