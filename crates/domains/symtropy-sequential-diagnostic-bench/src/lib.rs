@@ -653,7 +653,7 @@ mod tests {
         errors.iter().any(|error| error.code == code)
     }
 
-    fn measure_branch(node: &PolicyNode, outcome: &str) -> &PolicyNode {
+    fn measure_branch<'a>(node: &'a PolicyNode, outcome: &str) -> &'a PolicyNode {
         node.branches.iter().find(|branch| branch.outcome_id == outcome).unwrap().child.as_ref()
     }
 
@@ -761,6 +761,44 @@ mod tests {
         assert!((report_a.policy_expected_value - report_b.policy_expected_value).abs() < 1.0e-9);
         assert_eq!(report_a.selected_first_experiment_id, report_b.selected_first_experiment_id);
         assert_eq!(report_a.policy, report_b.policy);
+    }
+
+    #[test]
+    fn one_step_horizon_matches_direct_evsi_recurrence() {
+        let mut case = fixture();
+        case["policy"]["maximum_measurements_remaining"] = serde_json::json!(1);
+        case["policy"]["maximum_horizon"] = serde_json::json!(1);
+        let report = evaluate_case(&case).unwrap();
+
+        let states = case["states"].as_array().unwrap();
+        let actions = case["actions"].as_array().unwrap();
+        let priors: Vec<f64> = states.iter().map(|s| s["prior_probability"].as_f64().unwrap()).collect();
+        let current = actions.iter().map(|action| {
+            action["utilities"].as_array().unwrap().iter().zip(priors.iter())
+                .map(|(u, p)| u["value"].as_f64().unwrap() * p)
+                .sum::<f64>()
+        }).fold(f64::NEG_INFINITY, f64::max);
+
+        let mut best = current;
+        for experiment in case["experiments"].as_array().unwrap() {
+            let mut expected_after = 0.0;
+            for outcome in experiment["outcomes"].as_array().unwrap() {
+                let likelihoods: Vec<f64> = outcome["likelihoods"].as_array().unwrap()
+                    .iter().map(|l| l["probability"].as_f64().unwrap()).collect();
+                let joint: Vec<f64> = priors.iter().zip(likelihoods.iter()).map(|(p, l)| p * l).collect();
+                let outcome_value = actions.iter().map(|action| {
+                    action["utilities"].as_array().unwrap().iter().zip(joint.iter())
+                        .map(|(u, w)| u["value"].as_f64().unwrap() * w)
+                        .sum::<f64>()
+                }).fold(f64::NEG_INFINITY, f64::max);
+                expected_after += outcome_value;
+            }
+            let net = expected_after - experiment["cost"]["value"].as_f64().unwrap();
+            if net > best {
+                best = net;
+            }
+        }
+        assert!((report.policy_expected_value - best).abs() < 1.0e-9);
     }
 
     #[test]
