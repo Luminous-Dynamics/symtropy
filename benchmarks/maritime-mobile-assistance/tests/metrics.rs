@@ -479,7 +479,7 @@ fn reposition_evidence_must_bind_to_the_exact_directed_route_leg() {
     assert_eq!(
         evaluate_mobile_assistance(&input),
         Err(MobileError::InvalidEvidenceReceipt(
-            "reposition-anchorage-pilot-point".to_owned()
+            "reposition-tug-01-anchorage-pilot-point".to_owned()
         ))
     );
 }
