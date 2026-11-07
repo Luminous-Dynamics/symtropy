@@ -11,7 +11,7 @@ It makes three properties executable:
 - the same instantaneous speed can retain different regimes depending on the initial/history state;
 - a single threshold can chatter when a noisy or held signal sits exactly at the threshold, while a hysteresis band can retain its current state.
 
-This is a deterministic synthetic reference. It does not identify biological hysteresis, infer a neural CPG, model receptor adaptation, simulate physical contact, or account for sensor/actuator delay. A measured up/down loop may also be caused by ramp-rate effects, observation latency, actuator lag, mechanics, or a biased gait classifier. Those alternatives must be tested separately.
+This is a deterministic synthetic reference. It does not identify biological hysteresis, infer a neural CPG, model receptor adaptation, simulate physical contact, or account for sensor/actuator delay. A measured up/down loop may also be caused by ramp-rate effects, observation latency, actuator lag, mechanics, or a biased gait classifier. This crate now includes an exact first-order lag reference that demonstrates an apparent loop with a memoryless threshold when event timing is scored in actual-speed coordinates.
 
 ## Models
 
@@ -25,6 +25,16 @@ The hysteretic selector uses two declared thresholds:
 - retain the current regime inside the band.
 
 The initial regime is an explicit input. It is not inferred from instantaneous speed.
+
+## Delay-only negative control
+
+The crate includes a first-order lag model for a piecewise-linear achieved-speed input:
+
+    tau * dy/dt = v(t) - y(t)
+
+It integrates this first-order system exactly over each linear input segment. A single threshold is then applied to the lagged signal, while the loop width is measured using the actual speed at the detected event samples. This can produce a positive apparent up/down width without any state-dependent threshold.
+
+A second known-answer test varies the ramp duration while holding the lag time constant fixed. Faster ramps produce a wider apparent loop. This is a synthetic confound demonstration, not a model of a particular sensor, actuator or animal.
 
 ## Measurement protocol
 
@@ -40,7 +50,7 @@ Transition speeds are sample-grid dependent. This V0 does not interpolate thresh
 
 ## Deterministic tests
 
-Nine known-answer and negative-control tests cover:
+Fourteen known-answer and negative-control tests cover:
 - recovery of declared up/down thresholds and known width;
 - zero width for a single-threshold baseline on a matched triangular sweep;
 - same speed retaining different regimes inside the hysteresis band;
@@ -50,11 +60,15 @@ Nine known-answer and negative-control tests cover:
 - non-monotonic timestamps and non-finite speeds;
 - negative speed rejection;
 - incomplete sweeps abstaining rather than inventing a width.
+- exact first-order lag response for a piecewise-linear speed ramp;
+- apparent hysteresis from lag alone under a memoryless threshold;
+- ramp-rate dependence of the latency-induced apparent loop;
+- invalid lag constant and missing/invalid threshold-crossing rejection.
 
 ## Required next increments
 
-1. Add rate-dependent transition dynamics and controlled ramp-rate comparisons.
-2. Add delay-only, actuator-lag and mechanical-settling negative controls to distinguish apparent from genuine hysteresis.
+1. Add rate-dependent transition dynamics beyond the current first-order lag negative control.
+2. Add actuator-lag and mechanical-settling negative controls to distinguish apparent from genuine hysteresis.
 3. Connect speed-dependent coupling continuation to the six-leg phase network in #3926.
 4. Add basin/multistability and phase-pulse perturbation experiments near the transition.
 5. Add repeated sweeps and individual/session-clustered uncertainty.
