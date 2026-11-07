@@ -41,3 +41,26 @@ cargo run --locked --manifest-path research/civdyn-human-fidelity/Cargo.toml --b
 The synthetic fixtures contain only generated opaque IDs and artificial choices. They are not human observations and do not reproduce SimBench, ReliMap, OmniBehavior or any other upstream benchmark.
 
 Real datasets require source rights, ethics/privacy review, anonymization, explicit participant-level split provenance and protection against re-identification. Never place direct identifiers or inferred sensitive attributes in these structures. Do not optimize demographic parity as a universal objective; report declared, adequately-supported slices and the decision rule being evaluated.
+
+
+## Participant-cluster bootstrap extension
+
+The follow-on `human-fidelity-bootstrap` executable runs a deterministic cluster bootstrap at N={10,20,30,50,60} with 200 replicates per sample size and policy.
+
+The resampling unit is the unique opaque participant ID. Every observed and simulated context/step record for a sampled participant is carried together. Repeated draws receive distinct internal bootstrap IDs, so multiple observations from one person are never treated as independent people.
+
+For each N it reports mean and percentile 95% intervals (p2.5/p97.5) for:
+- R1: Brier, log loss and top-choice accuracy;
+- R2: total variation, Jensen–Shannon divergence and entropy gap;
+- trajectory: adjacent-context transition TVD;
+- tail behaviour: observed tail-option coverage.
+
+Undefined transition/tail metrics remain undefined and expose valid/undefined replicate counts. They are not imputed as zero.
+
+The intervals quantify participant-composition uncertainty conditional on the supplied dataset and its observed sampling design. They are not predictive intervals, model-discrepancy intervals or external population/region/time generalization intervals. V0 does not stratify resampling by cohort; source-design-specific stratification and higher-level site/household clusters are V1 gates.
+
+Run:
+
+```sh
+cargo run --locked --manifest-path research/civdyn-human-fidelity/Cargo.toml --bin human-fidelity-bootstrap
+```
