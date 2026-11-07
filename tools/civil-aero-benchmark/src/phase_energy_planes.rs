@@ -686,8 +686,9 @@ impl PhaseEnergyBalance {
             .iter()
             .map(|cell| cell.electrical_output_to_bus_j)
             .sum::<f64>();
-        let total_bus_supply_j =
-            total_generator_bus_output_j + total_fuel_cell_bus_output_j + total_store_discharge_to_bus_j;
+        let total_bus_supply_j = total_generator_bus_output_j
+            + total_fuel_cell_bus_output_j
+            + total_store_discharge_to_bus_j;
         let total_direct_mechanical_shaft_j = self
             .prime_movers
             .iter()
