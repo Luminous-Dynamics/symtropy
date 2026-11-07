@@ -1,6 +1,6 @@
 use maritime_manoeuvring_contract::{
-    stopping_metrics, turning_circle_metrics, zig_zag_metrics, Trajectory, TrajectorySample,
-    ZigZagCommand,
+    Trajectory, TrajectorySample, ZigZagCommand, stopping_metrics, turning_circle_metrics,
+    zig_zag_metrics,
 };
 
 const TOLERANCE: f64 = 1.0e-8;
@@ -99,12 +99,10 @@ fn reference_turning_circle(trajectory: &Trajectory) -> [f64; 5] {
         .expect("fixture turns")
         .signum();
 
-    let at_90 =
-        reference_heading_intersection(samples, &headings, 0, direction, 90.0)
-            .expect("fixture reaches 90 degrees");
-    let at_180 =
-        reference_heading_intersection(samples, &headings, 0, direction, 180.0)
-            .expect("fixture reaches 180 degrees");
+    let at_90 = reference_heading_intersection(samples, &headings, 0, direction, 90.0)
+        .expect("fixture reaches 90 degrees");
+    let at_180 = reference_heading_intersection(samples, &headings, 0, direction, 180.0)
+        .expect("fixture reaches 180 degrees");
 
     let initial = samples[0];
     let (sin_h, cos_h) = initial.heading_rad.sin_cos();
@@ -306,9 +304,7 @@ fn reference_zig_zag(trajectory: &Trajectory, commands: &[ZigZagCommand], target
 
 #[test]
 fn zig_zag_metrics_match_independent_oracle_across_heading_wrap_and_irregular_time_steps() {
-    let times: [f64; 12] = [
-        0.0, 0.4, 0.9, 1.6, 2.4, 3.6, 4.2, 5.4, 6.8, 7.7, 9.1, 10.5,
-    ];
+    let times: [f64; 12] = [0.0, 0.4, 0.9, 1.6, 2.4, 3.6, 4.2, 5.4, 6.8, 7.7, 9.1, 10.5];
     let offsets_deg: [f64; 12] = [
         0.0, 4.0, 11.0, 15.0, 14.0, 8.0, 0.0, -10.0, -14.0, -16.0, -15.0, -10.0,
     ];
