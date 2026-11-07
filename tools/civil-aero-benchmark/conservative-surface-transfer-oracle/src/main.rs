@@ -33,11 +33,7 @@ impl Vec3 {
     }
 
     fn scale(self, factor: f64) -> Self {
-        Self([
-            self.0[0] * factor,
-            self.0[1] * factor,
-            self.0[2] * factor,
-        ])
+        Self([self.0[0] * factor, self.0[1] * factor, self.0[2] * factor])
     }
 
     fn dot(self, rhs: Self) -> f64 {
@@ -114,7 +110,9 @@ fn validate_mesh(mesh: &SurfaceMesh) -> Result<(), String> {
             || face[1] >= mesh.nodes_m.len()
             || face[2] >= mesh.nodes_m.len()
         {
-            return Err(format!("triangle {face_index} has an out-of-range node index"));
+            return Err(format!(
+                "triangle {face_index} has an out-of-range node index"
+            ));
         }
         if face[0] == face[1] || face[1] == face[2] || face[0] == face[2] {
             return Err(format!("triangle {face_index} repeats a node index"));
@@ -187,9 +185,7 @@ fn locate_point(
         let a = target.nodes_m[node_ids[0]];
         let b = target.nodes_m[node_ids[1]];
         let c = target.nodes_m[node_ids[2]];
-        let Ok((weights, plane_distance_m)) =
-            barycentric_coordinates(point_m, a, b, c)
-        else {
+        let Ok((weights, plane_distance_m)) = barycentric_coordinates(point_m, a, b, c) else {
             continue;
         };
 
@@ -205,7 +201,10 @@ fn locate_point(
         }
     }
 
-    Err("source point is outside target support or off the target surface; extrapolation rejected".to_owned())
+    Err(
+        "source point is outside target support or off the target surface; extrapolation rejected"
+            .to_owned(),
+    )
 }
 
 fn triangle_area_m2(mesh: &SurfaceMesh, triangle: [usize; 3]) -> f64 {
@@ -223,7 +222,10 @@ fn integrate_linear_surface_traction(
     if nodal_traction_n_per_m2.len() != source.nodes_m.len() {
         return Err("source traction count does not match source node count".to_owned());
     }
-    if nodal_traction_n_per_m2.iter().any(|traction| !traction.is_finite()) {
+    if nodal_traction_n_per_m2
+        .iter()
+        .any(|traction| !traction.is_finite())
+    {
         return Err("source traction field contains a non-finite vector".to_owned());
     }
 
@@ -275,10 +277,7 @@ fn source_resultants(loads: &[QuadratureLoad]) -> Resultants {
         force_n = force_n.add(load.force_n);
         moment_nm = moment_nm.add(load.position_m.cross(load.force_n));
     }
-    Resultants {
-        force_n,
-        moment_nm,
-    }
+    Resultants { force_n, moment_nm }
 }
 
 fn transfer_loads(
@@ -327,10 +326,7 @@ fn target_resultants(target: &SurfaceMesh, nodal_forces_n: &[Vec3]) -> Result<Re
         force_n = force_n.add(*force);
         moment_nm = moment_nm.add(position.cross(*force));
     }
-    Ok(Resultants {
-        force_n,
-        moment_nm,
-    })
+    Ok(Resultants { force_n, moment_nm })
 }
 
 fn affine_displacement(position_m: Vec3) -> Vec3 {
@@ -347,9 +343,8 @@ fn affine_displacement(position_m: Vec3) -> Vec3 {
 fn interpolated_displacement(hit: BarycentricHit, nodal_displacements_m: &[Vec3]) -> Vec3 {
     let mut displacement = Vec3::ZERO;
     for local_node in 0..3 {
-        displacement = displacement.add(
-            nodal_displacements_m[hit.node_ids[local_node]].scale(hit.weights[local_node]),
-        );
+        displacement = displacement
+            .add(nodal_displacements_m[hit.node_ids[local_node]].scale(hit.weights[local_node]));
     }
     displacement
 }
@@ -389,11 +384,7 @@ fn virtual_work(
             affine_interpolation_error_m.max(exact.max_abs_delta(interpolated));
     }
 
-    Ok((
-        source_work_j,
-        target_work_j,
-        affine_interpolation_error_m,
-    ))
+    Ok((source_work_j, target_work_j, affine_interpolation_error_m))
 }
 
 fn fixture_meshes() -> (SurfaceMesh, SurfaceMesh, Vec<Vec3>) {
@@ -427,7 +418,18 @@ fn fixture_meshes() -> (SurfaceMesh, SurfaceMesh, Vec<Vec3>) {
     (source, target, nodal_traction_n_per_m2)
 }
 
-fn solve_fixture() -> Result<(Vec<QuadratureLoad>, TransferResult, Resultants, Resultants, f64, f64, f64), String> {
+fn solve_fixture() -> Result<
+    (
+        Vec<QuadratureLoad>,
+        TransferResult,
+        Resultants,
+        Resultants,
+        f64,
+        f64,
+        f64,
+    ),
+    String,
+> {
     let (source_mesh, target_mesh, tractions) = fixture_meshes();
     let loads = integrate_linear_surface_traction(&source_mesh, &tractions)?;
     let transferred = transfer_loads(&loads, &target_mesh)?;
@@ -547,10 +549,7 @@ fn rigid_transform_mesh(mesh: &SurfaceMesh, translation_m: Vec3) -> SurfaceMesh 
 }
 
 #[cfg(test)]
-fn rigid_transform_loads(
-    loads: &[QuadratureLoad],
-    translation_m: Vec3,
-) -> Vec<QuadratureLoad> {
+fn rigid_transform_loads(loads: &[QuadratureLoad], translation_m: Vec3) -> Vec<QuadratureLoad> {
     loads
         .iter()
         .map(|load| QuadratureLoad {
@@ -615,8 +614,7 @@ mod tests {
             target_resultants(&moved_target, &mapped.nodal_forces_n).expect("target resultants");
         let moved_source_total = source_resultants(&moved_loads);
         let expected_force = rotate_z(original.force_n);
-        let expected_moment = rotate_z(original.moment_nm)
-            .add(translation.cross(expected_force));
+        let expected_moment = rotate_z(original.moment_nm).add(translation.cross(expected_force));
         assert!(moved_source_total.force_n.max_abs_delta(expected_force) <= 1.0e-10);
         assert!(mapped_total.force_n.max_abs_delta(expected_force) <= 1.0e-10);
         assert!(moved_source_total.moment_nm.max_abs_delta(expected_moment) <= 1.0e-9);
