@@ -1,0 +1,361 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.luminousdynamics.org/civbench/HIST_001_SOURCE_REGISTER_V0_1.schema.json",
+  "title": "CivBench HIST-001 source register v0.1",
+  "description": "A source metadata register. It is not itself a source snapshot or ingested archaeological dataset.",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "case_id",
+    "case_title",
+    "status",
+    "created_at",
+    "scope",
+    "epistemic_rules",
+    "sources",
+    "next_ingestion_steps"
+  ],
+  "properties": {
+    "schema": {
+      "const": "https://schemas.luminousdynamics.org/civbench/historical-source-register/0.1"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "case_id": {
+      "const": "HIST-001"
+    },
+    "case_title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "metadata_only_not_ingested",
+        "partially_ingested",
+        "ingested"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "geographic",
+        "temporal",
+        "spatial_uncertainty"
+      ],
+      "properties": {
+        "geographic": {
+          "type": "string",
+          "minLength": 1
+        },
+        "temporal": {
+          "type": "object",
+          "required": [
+            "start",
+            "end",
+            "certainty"
+          ],
+          "properties": {
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            },
+            "certainty": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "spatial_uncertainty": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "epistemic_rules": {
+      "type": "object",
+      "required": [
+        "source_metadata_is_not_a_source_snapshot",
+        "publisher_abstract_is_not_raw_measurement_data",
+        "no_claim_is_promoted_to_observation_until_exact_context_or_table_is_ingested",
+        "archaeological_absence_is_not_demographic_extinction",
+        "artifact_style_or_presence_is_not_proof_of_direct_trade",
+        "chronology_is_interval_or_probability_distribution_not_forced_to_a_single_year",
+        "source_independence_defaults_to_unknown"
+      ],
+      "properties": {
+        "source_metadata_is_not_a_source_snapshot": {
+          "type": "boolean",
+          "const": true
+        },
+        "publisher_abstract_is_not_raw_measurement_data": {
+          "type": "boolean",
+          "const": true
+        },
+        "no_claim_is_promoted_to_observation_until_exact_context_or_table_is_ingested": {
+          "type": "boolean",
+          "const": true
+        },
+        "archaeological_absence_is_not_demographic_extinction": {
+          "type": "boolean",
+          "const": true
+        },
+        "artifact_style_or_presence_is_not_proof_of_direct_trade": {
+          "type": "boolean",
+          "const": true
+        },
+        "chronology_is_interval_or_probability_distribution_not_forced_to_a_single_year": {
+          "type": "boolean",
+          "const": true
+        },
+        "source_independence_defaults_to_unknown": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "source_id",
+          "source_type",
+          "citation",
+          "source_uri",
+          "retrieved_at",
+          "license",
+          "snapshot",
+          "reported_claims",
+          "source_family"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^HIST001-SRC-[A-Z0-9-]+$"
+          },
+          "source_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "citation": {
+            "type": "object",
+            "minProperties": 1
+          },
+          "source_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "publisher_metadata_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "publisher_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "retrieved_at": {
+            "type": "string",
+            "format": "date"
+          },
+          "license": {
+            "type": "object",
+            "required": [
+              "status",
+              "notes"
+            ],
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "snapshot": {
+            "type": "object",
+            "required": [
+              "content_sha256",
+              "status",
+              "reason"
+            ],
+            "properties": {
+              "content_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "status": {
+                "enum": [
+                  "not_ingested",
+                  "partially_ingested",
+                  "ingested"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "not_ingested"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "content_sha256": {
+                      "type": "null"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "ingested"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "content_sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  }
+                }
+              }
+            ],
+            "additionalProperties": true
+          },
+          "data_access": {
+            "type": "object"
+          },
+          "reported_claims": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "claim_id",
+                "statement",
+                "evidence_class",
+                "source_locator",
+                "measurement_data_ingested"
+              ],
+              "properties": {
+                "claim_id": {
+                  "type": "string",
+                  "pattern": "^HIST001-CLAIM-[A-Z0-9-]+$"
+                },
+                "statement": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence_class": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_locator": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "measurement_data_ingested": {
+                  "type": "boolean"
+                },
+                "claim_ceiling": {
+                  "type": "string"
+                },
+                "uncertainties": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "alternative_explanations_to_preserve": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "uncertainty_requirements": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "subsample_counts_reported_by_source": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "source_family": {
+            "type": "object",
+            "required": [
+              "id",
+              "independence",
+              "notes"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "independence": {
+                "enum": [
+                  "unknown",
+                  "independent",
+                  "derived",
+                  "shared_upstream",
+                  "partially_independent"
+                ]
+              },
+              "notes": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "next_ingestion_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}
