@@ -18,7 +18,7 @@ use crate::mass_properties::{
     MassGeometry, MassItem, MassItemCategory, MassLedger, MassPropertiesReport,
     MassPropertiesStatus,
 };
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 pub const MASS_EVIDENCE_SCHEMA_VERSION: &str = "aircraft-mass-evidence/0.1.0";
 pub const LOADING_STATE_SCHEMA_VERSION: &str = "aircraft-loading-state/0.1.0";
@@ -184,7 +184,7 @@ pub struct MassItemEvidence {
     pub uncertainty_relationship: UncertaintyRelationship,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MassEvidenceLedger {
     pub schema_version: &'static str,
     pub configuration_sha256: String,
@@ -229,7 +229,7 @@ pub struct LoadingItemState {
     pub value_source: Option<SourceRecord>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AircraftLoadingState {
     pub schema_version: &'static str,
     pub state_id: String,
