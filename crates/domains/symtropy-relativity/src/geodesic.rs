@@ -1089,28 +1089,33 @@ mod tests {
             .unwrap()
             .last()
             .unwrap();
+        let hamiltonian_states = integrator
+            .integrate_hamiltonian_fixed(canonical, 0.02 * rg, 100)
+            .unwrap();
+        let canonical_final = *hamiltonian_states.last().unwrap();
         let hamiltonian_final = integrator
-            .from_hamiltonian_state(
-                *integrator
-                    .integrate_hamiltonian_fixed(canonical, 0.02 * rg, 100)
-                    .unwrap()
-                    .last()
-                    .unwrap(),
-            )
+            .from_hamiltonian_state(canonical_final)
             .unwrap();
 
         for index in 0..4 {
-            let scale = if index < 2 { rg } else { 1.0 };
+            let coordinate_scale = if index < 2 { rg } else { 1.0 };
             assert!(
                 (coordinate_final.coordinates[index] - hamiltonian_final.coordinates[index]).abs()
-                    < 2e-10 * scale
+                    < 2e-10 * coordinate_scale
+            );
+            let tangent_scale = if index < 2 { 1.0 } else { 1.0 / rg };
+            assert!(
+                (coordinate_final.tangent[index] - hamiltonian_final.tangent[index]).abs()
+                    < 2e-10 * tangent_scale
             );
         }
+        // Time-translation and axial-rotation symmetries imply constant p_t
+        // and p_phi in this stationary, axisymmetric background.
+        assert!((canonical_final.canonical_momenta[0] - canonical.canonical_momenta[0]).abs() < 2e-10);
+        assert!((canonical_final.canonical_momenta[3] - canonical.canonical_momenta[3]).abs() < 2e-10 * rg);
         assert!(
             integrator
-                .hamiltonian_value(
-                    integrator.to_hamiltonian_state(hamiltonian_final).unwrap()
-                )
+                .hamiltonian_value(canonical_final)
                 .unwrap()
                 .abs()
                 < 2e-10
