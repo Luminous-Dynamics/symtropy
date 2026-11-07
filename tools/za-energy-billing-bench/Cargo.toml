@@ -1,0 +1,17 @@
+[package]
+name = "za-energy-billing-bench"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Deterministic conformance evaluator for South African City Power industrial TOU tariff components"
+
+[lib]
+name = "za_energy_billing_bench"
+path = "src/lib.rs"
+
+[[bin]]
+name = "za-energy-billing-bench"
+path = "src/main.rs"
+
+[workspace]
