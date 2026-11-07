@@ -126,18 +126,19 @@ fn task(task_id: &str, spec: TaskSpec<'_>) -> AssistanceTask {
     }
 }
 
-fn leg(from: &str, to: &str, duration: u64) -> RepositionLeg {
+fn leg(resource_id: &str, from: &str, to: &str, duration: u64) -> RepositionLeg {
     RepositionLeg {
+        resource_id: resource_id.to_owned(),
         from_node_id: from.to_owned(),
         to_node_id: to.to_owned(),
         duration_ticks: duration,
         route_revision: "route-r1".to_owned(),
         evidence: receipt(
-            &format!("reposition-{from}-{to}"),
+            &format!("reposition-{resource_id}-{from}-{to}"),
             EvidenceState::Current,
             0,
             40,
-            &format!("{from}->{to}"),
+            &format!("{resource_id}|{from}->{to}"),
             "route-r1",
         ),
     }
@@ -177,8 +178,9 @@ fn workload() -> MobileWorkload {
         tugs: vec![tug("tug-01", "anchorage", 40)],
         pilots: vec![pilot("pilot-01", "pilot-point", &["container"])],
         reposition_legs: vec![
-            leg("anchorage", "pilot-point", 2),
-            leg("pilot-point", "berth-1", 3),
+            leg("tug-01", "anchorage", "pilot-point", 2),
+            leg("tug-01", "pilot-point", "berth-1", 4),
+            leg("pilot-01", "pilot-point", "berth-1", 1),
         ],
         assignments: vec![
             AssistanceAssignment {
@@ -202,6 +204,43 @@ fn named_tug_and_pilot_are_feasible_when_capability_availability_and_repositioni
     assert!(report.violations.is_empty());
     assert_eq!(report.tasks_checked, 2);
     assert_eq!(report.assignments_checked, 2);
+}
+
+#[test]
+fn tug_and_pilot_use_distinct_reposition_durations_for_the_same_waypoint_pair() {
+    let input = workload();
+    let tug_leg = input
+        .reposition_legs
+        .iter()
+        .find(|item| item.resource_id == "tug-01" && item.from_node_id == "pilot-point")
+        .expect("tug reposition leg");
+    let pilot_leg = input
+        .reposition_legs
+        .iter()
+        .find(|item| item.resource_id == "pilot-01" && item.from_node_id == "pilot-point")
+        .expect("pilot reposition leg");
+    assert_eq!(tug_leg.duration_ticks, 4);
+    assert_eq!(pilot_leg.duration_ticks, 1);
+
+    let report = evaluate_mobile_assistance(&input).expect("resource-specific movement durations");
+    assert_eq!(report.disposition, MobileDisposition::ReadyForComparison);
+}
+
+#[test]
+fn tug_reposition_evidence_cannot_be_reused_for_a_pilot() {
+    let mut input = workload();
+    input
+        .reposition_legs
+        .retain(|item| item.resource_id != "pilot-01");
+    let report = evaluate_mobile_assistance(&input).expect("missing pilot-specific leg");
+    assert_eq!(report.disposition, MobileDisposition::NeedsEvidence);
+    assert!(
+        report.violations.contains(&MobileViolation::MissingRepositionLeg {
+            resource_id: "pilot-01".to_owned(),
+            from_node_id: "pilot-point".to_owned(),
+            to_node_id: "berth-1".to_owned(),
+        })
+    );
 }
 
 #[test]
