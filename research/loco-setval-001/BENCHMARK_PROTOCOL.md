@@ -17,6 +17,8 @@ SPINDER is a highly relevant reproducible six-leg comparator:
 
 Those figures describe the authors' reported platform and test protocol, not a universal reliability bound and not a Symtropy result.
 
+The paper's steady-state flat-terrain operating points are also useful for matching a baseline: tripod 0.14 ± 0.01 m/s at 1.7 ± 0.1 Hz with duty factor 0.52 ± 0.02; ripple 0.10 ± 0.01 m/s at 1.3 ± 0.1 Hz with duty factor 0.62 ± 0.03; wave 0.06 ± 0.01 m/s at 0.9 ± 0.1 Hz with duty factor 0.78 ± 0.02. Reproduce or explicitly normalize these conditions before comparing transition speed or energy across different morphologies.
+
 The paper also supplies valuable falsification cases:
 - foot switches were reliable on hard/semi-rigid terrain but could report false negatives on soft/compliant surfaces;
 - servo backlash and compliant 3D-printed links caused stance-exchange mismatch between model and hardware;
