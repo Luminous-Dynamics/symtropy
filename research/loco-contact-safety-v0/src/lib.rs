@@ -453,12 +453,13 @@ mod tests {
     }
 
     #[test]
-    fn a_stricter_alpha_never_turns_rejection_into_admission() {
-        let action = prediction("uncertain", [4.7, 0.35, 18.0, 1.8, 0.82], [0.04; 5], 2.0);
+    fn a_stricter_alpha_shrinks_the_admissible_set_at_a_boundary_case() {
+        let action = prediction("uncertain", [4.75, 0.30, 10.0, 0.5, 0.5], [0.01; 5], 2.0);
         let loose = assess_action(&action, limits(), 0.10).unwrap();
         let strict = assess_action(&action, limits(), 0.01).unwrap();
         assert!(strict.gaussian_quantile > loose.gaussian_quantile);
-        assert!(!strict.admitted || !loose.admitted);
+        assert!(loose.admitted);
+        assert!(!strict.admitted);
         for (strict_bound, loose_bound) in strict.constraints.iter().zip(loose.constraints.iter()) {
             match strict_bound.kind {
                 ConstraintKind::SupportMarginLower => {
