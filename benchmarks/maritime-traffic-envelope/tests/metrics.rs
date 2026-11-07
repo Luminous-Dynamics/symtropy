@@ -149,7 +149,10 @@ fn occupancy(
     item
 }
 
-fn workload(resources: Vec<TrafficResource>, occupancies: Vec<TrafficOccupancy>) -> TrafficWorkload {
+fn workload(
+    resources: Vec<TrafficResource>,
+    occupancies: Vec<TrafficOccupancy>,
+) -> TrafficWorkload {
     TrafficWorkload {
         corridor_id: "synthetic-corridor".to_owned(),
         time_basis_id: "synthetic-ticks-v1".to_owned(),
@@ -438,12 +441,8 @@ fn stale_traffic_evidence_needs_review_and_revoked_evidence_is_unsupported() {
         "synthetic-ticks-v1",
     );
     stale.evidence.state = EvidenceState::Stale;
-    let report = evaluate(
-        vec![op.clone()],
-        vec![conflict_resource(0, 0)],
-        vec![stale],
-    )
-    .expect("stale evidence is a disposition");
+    let report = evaluate(vec![op.clone()], vec![conflict_resource(0, 0)], vec![stale])
+        .expect("stale evidence is a disposition");
     assert_eq!(report.disposition, TrafficDisposition::NeedsEvidence);
 
     let mut revoked = occupancy(
@@ -457,12 +456,8 @@ fn stale_traffic_evidence_needs_review_and_revoked_evidence_is_unsupported() {
         "synthetic-ticks-v1",
     );
     revoked.evidence.state = EvidenceState::Revoked;
-    let report = evaluate(
-        vec![op],
-        vec![conflict_resource(0, 0)],
-        vec![revoked],
-    )
-    .expect("revoked evidence is a disposition");
+    let report = evaluate(vec![op], vec![conflict_resource(0, 0)], vec![revoked])
+        .expect("revoked evidence is a disposition");
     assert_eq!(report.disposition, TrafficDisposition::Unsupported);
 }
 
@@ -504,11 +499,7 @@ fn occupancy_evidence_must_bind_to_the_exact_uncertainty_envelope() {
     );
     item.early_entry_ticks = 1;
     assert_eq!(
-        evaluate(
-            vec![op],
-            vec![conflict_resource(0, 0)],
-            vec![item]
-        ),
+        evaluate(vec![op], vec![conflict_resource(0, 0)], vec![item]),
         Err(TrafficError::OccupancyEvidenceSubjectMismatch(
             "use-a".to_owned()
         ))
@@ -531,14 +522,8 @@ fn traffic_occupancy_must_be_the_exact_selected_fleet_operation() {
         "synthetic-ticks-v1",
     );
     assert_eq!(
-        evaluate(
-            vec![selected],
-            vec![conflict_resource(0, 0)],
-            vec![item]
-        ),
-        Err(TrafficError::PlanOperationMismatch(
-            "forged-use".to_owned()
-        ))
+        evaluate(vec![selected], vec![conflict_resource(0, 0)], vec![item]),
+        Err(TrafficError::PlanOperationMismatch("forged-use".to_owned()))
     );
 }
 
@@ -580,12 +565,8 @@ fn stale_occupancy_evidence_after_its_validity_window_needs_review() {
         "synthetic-ticks-v1",
     );
     item.evidence.valid_through_tick = 10;
-    let report = evaluate(
-        vec![op],
-        vec![conflict_resource(0, 0)],
-        vec![item],
-    )
-    .expect("expiry is a review disposition");
+    let report = evaluate(vec![op], vec![conflict_resource(0, 0)], vec![item])
+        .expect("expiry is a review disposition");
     assert_eq!(report.disposition, TrafficDisposition::NeedsEvidence);
     assert!(report.violations.iter().any(|violation| matches!(
         violation,
@@ -621,17 +602,14 @@ fn equivalent_input_permutations_produce_identical_reports() {
         ),
     ];
     let original = workload(vec![conflict_resource(0, 0)], occupancies);
-    let expected = evaluate_traffic_plan(
-        &plan(vec![first.clone(), second.clone()]),
-        &original,
-    )
-    .expect("valid workload");
+    let expected = evaluate_traffic_plan(&plan(vec![first.clone(), second.clone()]), &original)
+        .expect("valid workload");
 
     let mut permuted = original;
     permuted.resources.reverse();
     permuted.occupancies.reverse();
-    let actual = evaluate_traffic_plan(&plan(vec![second, first]), &permuted)
-        .expect("permuted workload");
+    let actual =
+        evaluate_traffic_plan(&plan(vec![second, first]), &permuted).expect("permuted workload");
     assert_eq!(actual, expected);
 }
 
