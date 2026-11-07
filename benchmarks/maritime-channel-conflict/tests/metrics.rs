@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use maritime_channel_conflict_contract::{
     ChannelConflictReport, ChannelConflictWorkload, ChannelDisposition, ChannelEdge, ChannelError,
-    ChannelMovement, ChannelViolation, ConflictGraph, ConflictMember, ConflictRule,
-    DirectionWindow, TopologyReviewState, evaluate_channel_conflicts,
+    ChannelDirection, ChannelMovement, ChannelViolation, ConflictGraph, ConflictMember,
+    ConflictRule, DirectionWindow, TopologyReviewState, evaluate_channel_conflicts,
 };
 use maritime_service_chain_contract::{ServiceUnit, TickWindow};
 use maritime_service_chain_fleet::{
@@ -98,13 +98,47 @@ fn edge(
     to: &str,
     windows: Vec<DirectionWindow>,
 ) -> ChannelEdge {
+    let mut direction_ids = std::collections::BTreeSet::new();
+    for item in &windows {
+        for direction_id in &item.allowed_direction_ids {
+            direction_ids.insert(direction_id.clone());
+        }
+    }
+    let directions = direction_ids
+        .into_iter()
+        .map(|direction_id| ChannelDirection {
+            direction_id,
+            from_node_id: from.to_owned(),
+            to_node_id: to.to_owned(),
+        })
+        .collect();
+    edge_with_directions(segment_id, edge_id, from, to, directions, windows)
+}
+
+fn edge_with_directions(
+    segment_id: &str,
+    edge_id: &str,
+    from: &str,
+    to: &str,
+    directions: Vec<ChannelDirection>,
+    windows: Vec<DirectionWindow>,
+) -> ChannelEdge {
     ChannelEdge {
         segment_id: segment_id.to_owned(),
         edge_id: edge_id.to_owned(),
         from_node_id: from.to_owned(),
         to_node_id: to.to_owned(),
         route_revision: "route-r1".to_owned(),
+        directions,
         direction_windows: windows,
+    }
+}
+
+fn direction(direction_id: &str, from: &str, to: &str) -> ChannelDirection {
+    ChannelDirection {
+        direction_id: direction_id.to_owned(),
+        from_node_id: from.to_owned(),
+        to_node_id: to.to_owned(),
     }
 }
 
@@ -189,11 +223,15 @@ fn one_way_main_channel(
         ),
     ];
     let graph = graph(
-        vec![edge(
+        vec![edge_with_directions(
             "main-segment",
             "main-edge",
             "outer",
             "inner",
+            vec![
+                direction("inbound", "outer", "inner"),
+                direction("outbound", "inner", "outer"),
+            ],
             vec![window(0, 10, &["inbound"]), window(10, 30, &["outbound"])],
         )],
         vec![rule(
@@ -398,11 +436,15 @@ fn one_way_policy_rejects_direction_not_open_in_the_operation_window() {
         4,
     )];
     let graph = graph(
-        vec![edge(
+        vec![edge_with_directions(
             "segment",
             "edge",
             "start",
             "finish",
+            vec![
+                direction("inbound", "start", "finish"),
+                direction("outbound", "finish", "start"),
+            ],
             vec![window(0, 20, &["inbound"])],
         )],
         Vec::new(),
@@ -417,6 +459,94 @@ fn one_way_policy_rejects_direction_not_open_in_the_operation_window() {
             edge_id: "edge".to_owned(),
             direction_id: "outbound".to_owned(),
         }]
+    );
+}
+
+#[test]
+fn unknown_direction_identifier_is_a_structural_error() {
+    let movements = vec![movement(
+        "unknown-direction",
+        "demand-a",
+        "segment",
+        "edge",
+        "westbound",
+        2,
+        4,
+    )];
+    let graph = graph(
+        vec![edge(
+            "segment",
+            "edge",
+            "start",
+            "finish",
+            vec![window(0, 20, &["eastbound"])],
+        )],
+        Vec::new(),
+        TopologyReviewState::Reviewed,
+    );
+    assert_eq!(
+        evaluate(movements, graph),
+        Err(ChannelError::UnknownMovementDirection(
+            "westbound".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn direction_mapping_must_match_one_of_the_edge_endpoint_orientations() {
+    let graph = graph(
+        vec![edge_with_directions(
+            "segment",
+            "edge",
+            "start",
+            "finish",
+            vec![direction("inbound", "other-start", "finish")],
+            vec![window(0, 20, &["inbound"])],
+        )],
+        Vec::new(),
+        TopologyReviewState::Reviewed,
+    );
+    let movements = vec![movement(
+        "movement",
+        "demand-a",
+        "segment",
+        "edge",
+        "inbound",
+        1,
+        3,
+    )];
+    assert_eq!(
+        evaluate(movements, graph),
+        Err(ChannelError::InvalidEdge("edge".to_owned()))
+    );
+}
+
+#[test]
+fn direction_window_cannot_reference_an_undeclared_direction_mapping() {
+    let graph = graph(
+        vec![edge_with_directions(
+            "segment",
+            "edge",
+            "start",
+            "finish",
+            vec![direction("inbound", "start", "finish")],
+            vec![window(0, 20, &["outbound"])],
+        )],
+        Vec::new(),
+        TopologyReviewState::Reviewed,
+    );
+    let movements = vec![movement(
+        "movement",
+        "demand-a",
+        "segment",
+        "edge",
+        "inbound",
+        1,
+        3,
+    )];
+    assert_eq!(
+        evaluate(movements, graph),
+        Err(ChannelError::InvalidDirectionWindow("edge".to_owned()))
     );
 }
 
