@@ -73,6 +73,15 @@ impl EvidenceRole {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceKind {
+    TheoreticalSynthesis,
+    EmpiricalDataset,
+    EmpiricalStudy,
+    SimulationOutput,
+    ScenarioSpecification,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EvidenceClass {
     HistoricalObservation,
     ContemporaryObservation,
@@ -200,7 +209,10 @@ pub struct EvidenceUse {
     pub source_family_id: String,
     pub partition_id: String,
     pub role: EvidenceRole,
-    pub evidence_class: EvidenceClass,
+    pub source_kind: SourceKind,
+    /// Optional class of the claim supported by this source. Theory-only sources
+    /// have no empirical/model-output claim class.
+    pub evidence_class: Option<EvidenceClass>,
     pub source_digest: String,
     pub access_status: AccessStatus,
     pub uncertainty_statement: String,
@@ -711,7 +723,13 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
                     .pattern_ids
                     .iter()
                     .any(|id| id == &prediction.pattern_id)
-                && evidence.evidence_class.is_empirical_observation()
+                && matches!(
+                    evidence.source_kind,
+                    SourceKind::EmpiricalDataset | SourceKind::EmpiricalStudy
+                )
+                && evidence
+                    .evidence_class
+                    .is_some_and(EvidenceClass::is_empirical_observation)
         });
         if !has_external_evidence {
             push(
@@ -726,6 +744,7 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
 
     let mut evidence_partition_roles: BTreeMap<(&str, &str), BTreeSet<&'static str>> =
         BTreeMap::new();
+    let mut evidence_family_roles: BTreeMap<&str, BTreeSet<&'static str>> = BTreeMap::new();
     for evidence in &passport.evidence_uses {
         if evidence.id.trim().is_empty() || !evidence_ids.insert(evidence.id.as_str()) {
             push(
@@ -776,30 +795,57 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
                 "license, consent or reuse status must be resolved before external use",
             );
         }
-        if evidence.role == EvidenceRole::ExternalValidation
-            && !evidence.evidence_class.is_empirical_observation()
-        {
+        let source_claim_class_matches_kind = match evidence.source_kind {
+            SourceKind::TheoreticalSynthesis => evidence.evidence_class.is_none(),
+            SourceKind::EmpiricalDataset | SourceKind::EmpiricalStudy => evidence
+                .evidence_class
+                .is_some_and(EvidenceClass::is_empirical_observation),
+            SourceKind::SimulationOutput => {
+                evidence.evidence_class == Some(EvidenceClass::ModelInference)
+            }
+            SourceKind::ScenarioSpecification => {
+                evidence.evidence_class == Some(EvidenceClass::CounterfactualProjection)
+            }
+        };
+        if !source_claim_class_matches_kind {
+            push(
+                &mut findings,
+                FindingSeverity::Error,
+                "source_kind_claim_class_mismatch",
+                &evidence.id,
+                "source kind and claim class are semantically incompatible",
+            );
+        }
+        let is_empirical_data = matches!(
+            evidence.source_kind,
+            SourceKind::EmpiricalDataset | SourceKind::EmpiricalStudy
+        ) && evidence
+            .evidence_class
+            .is_some_and(EvidenceClass::is_empirical_observation);
+        if evidence.role == EvidenceRole::ExternalValidation && !is_empirical_data {
             push(
                 &mut findings,
                 FindingSeverity::Error,
                 "non_empirical_external_validation",
                 &evidence.id,
-                "model inference or counterfactual projection cannot stand in for external empirical validation",
+                "only historical or contemporary observations from empirical datasets/studies can support external validation",
             );
         }
-        if evidence.role == EvidenceRole::Calibration
-            && !evidence.evidence_class.is_empirical_observation()
-        {
+        if evidence.role == EvidenceRole::Calibration && !is_empirical_data {
             push(
                 &mut findings,
                 FindingSeverity::Error,
                 "non_empirical_calibration",
                 &evidence.id,
-                "calibration must use an explicitly classified empirical observation",
+                "calibration must use a classified historical or contemporary observation from an empirical source",
             );
         }
         evidence_partition_roles
             .entry((evidence.source_id.as_str(), evidence.partition_id.as_str()))
+            .or_default()
+            .insert(evidence.role.name());
+        evidence_family_roles
+            .entry(evidence.source_family_id.as_str())
             .or_default()
             .insert(evidence.role.name());
     }
@@ -816,6 +862,20 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
                 format!(
                     "source {source_id} partition {partition_id} is used for both calibration and external validation"
                 ),
+            );
+        }
+    }
+
+    for (source_family_id, roles) in &evidence_family_roles {
+        if roles.contains(EvidenceRole::Calibration.name())
+            && roles.contains(EvidenceRole::ExternalValidation.name())
+        {
+            push(
+                &mut findings,
+                FindingSeverity::Warning,
+                "source_family_reused_across_calibration_and_holdout",
+                source_family_id,
+                "calibration and external validation use different declared partitions from the same source family; disclose dependence and justify external independence",
             );
         }
     }
@@ -995,7 +1055,8 @@ pub fn reference_passport() -> ModelPassport {
                 source_family_id: "collective_action_theory".into(),
                 partition_id: "literature_scope_2026".into(),
                 role: EvidenceRole::Characterization,
-                evidence_class: EvidenceClass::HistoricalObservation,
+                source_kind: SourceKind::TheoreticalSynthesis,
+                evidence_class: None,
                 source_digest: "sha256:theory-source-a".into(),
                 access_status: AccessStatus::Open,
                 uncertainty_statement: "theoretical synthesis; not a direct measurement of this synthetic task".into(),
@@ -1007,7 +1068,8 @@ pub fn reference_passport() -> ModelPassport {
                 source_family_id: "district_household_survey".into(),
                 partition_id: "calibration_wave_01".into(),
                 role: EvidenceRole::Calibration,
-                evidence_class: EvidenceClass::ContemporaryObservation,
+                source_kind: SourceKind::EmpiricalDataset,
+                evidence_class: Some(EvidenceClass::ContemporaryObservation),
                 source_digest: "sha256:survey-calibration-a".into(),
                 access_status: AccessStatus::Restricted,
                 uncertainty_statement: "measurement error and non-response are reported by district; restricted reuse requires authorization".into(),
@@ -1019,7 +1081,8 @@ pub fn reference_passport() -> ModelPassport {
                 source_family_id: "district_household_survey".into(),
                 partition_id: "regional_holdout_02".into(),
                 role: EvidenceRole::ExternalValidation,
-                evidence_class: EvidenceClass::ContemporaryObservation,
+                source_kind: SourceKind::EmpiricalDataset,
+                evidence_class: Some(EvidenceClass::ContemporaryObservation),
                 source_digest: "sha256:survey-holdout-b".into(),
                 access_status: AccessStatus::Restricted,
                 uncertainty_statement: "independent regional holdout partition; do not tune model parameters against this partition".into(),
@@ -1140,7 +1203,9 @@ mod tests {
     #[test]
     fn model_inference_cannot_be_used_as_external_observation() {
         let mut passport = reference_passport();
-        passport.evidence_uses[2].evidence_class = EvidenceClass::ModelInference;
+        passport.evidence_uses[2].source_kind = SourceKind::SimulationOutput;
+        passport.evidence_uses[2].evidence_class =
+            Some(EvidenceClass::ModelInference);
         let report = evaluate_passport(&passport).unwrap();
         assert!(
             report
