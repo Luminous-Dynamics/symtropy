@@ -51,6 +51,12 @@ def convert_inertia(value: float, unit: str) -> float:
 
 def validate_source_units(fixture: dict[str, Any]) -> None:
     for item in fixture["base_items"]:
+        captured_at = item.get("source_captured_at_utc", "")
+        try:
+            from datetime import datetime
+            datetime.strptime(captured_at, "%Y-%m-%dT%H:%M:%SZ")
+        except ValueError as error:
+            raise ValueError(f"base item {item['id']}: invalid UTC source capture time") from error
         if item.get("coordinate_frame_id") != fixture["aircraft"]["reference_frame_id"]:
             raise ValueError(f"base item {item['id']}: source coordinate frame mismatch")
         source = item["unit_source_mass"]
