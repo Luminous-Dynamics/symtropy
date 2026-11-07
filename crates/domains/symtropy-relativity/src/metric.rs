@@ -331,8 +331,8 @@ pub fn kerr_exterior_metric(
     let sigma = radius_m.powi(2) + a.powi(2) * c * c;
     // Factor the horizon polynomial to reduce cancellation near r = r_+:
     // Delta = (r - r_+)(r - r_-).
-    let delta = (radius_m - hole.outer_horizon_radius_m())
-        * (radius_m - hole.inner_horizon_radius_m());
+    let delta =
+        (radius_m - hole.outer_horizon_radius_m()) * (radius_m - hole.inner_horizon_radius_m());
     if !sigma.is_finite() || !delta.is_finite() || sigma <= 0.0 || delta <= 0.0 {
         return Err(MetricError::ComputationNonFinite("Kerr metric coefficient"));
     }
