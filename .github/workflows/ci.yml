@@ -4,7 +4,10 @@ on:
   push:
     branches: [ "main", "stabilize/*" ]
   pull_request:
-    branches: [ "main" ]
+    # The WPT validator is maintained as a stacked research PR so its schema
+    # contract can be reviewed independently from the initial dataset seed.
+    # Keep exact-head validation enabled for that one parent branch.
+    branches: [ "main", "research/wpt-empirical-envelope-v0.1-20261103" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -82,3 +85,41 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT empirical validator
+      run: cargo test --locked -p wpt-empirical-validator
+
+    - name: Validate WPT empirical dataset
+      run: cargo run --locked -p wpt-empirical-validator -- "${{ github.workspace }}"
+
+    - name: Test WPT measurement comparator
+      if: hashFiles('tools/wpt-measurement-comparator/Cargo.toml') != ''
+      run: cargo test --locked -p wpt-measurement-comparator
+
+    - name: Validate WPT typed measurements and comparison fixtures
+      if: hashFiles('tools/wpt-measurement-comparator/Cargo.toml') != ''
+      run: cargo run --locked -p wpt-measurement-comparator -- "${{ github.workspace }}"
+
+    - name: Test WPT magnetic material catalog validator
+      if: hashFiles('tools/wpt-material-catalog-validator/Cargo.toml') != ''
+      run: cargo test --locked -p wpt-material-catalog-validator
+
+    - name: Validate WPT magnetic material catalog and source provenance
+      if: hashFiles('tools/wpt-material-catalog-validator/Cargo.toml') != ''
+      run: cargo run --locked -p wpt-material-catalog-validator -- "${{ github.workspace }}"
+
+    - name: Test WPT round-robin manifest validator
+      if: hashFiles('tools/wpt-round-robin-validator/Cargo.toml') != ''
+      run: cargo test --locked -p wpt-round-robin-validator
+
+    - name: Test WPT geometry envelope validator
+      if: hashFiles('tools/wpt-geometry-envelope-validator/Cargo.toml') != ''
+      run: cargo test --locked -p wpt-geometry-envelope-validator
+
+    - name: Validate WPT geometry source claim and NOT_RUN template
+      if: hashFiles('tools/wpt-geometry-envelope-validator/Cargo.toml') != ''
+      run: cargo run --locked -p wpt-geometry-envelope-validator -- benchmarks/wpt-empirical/v1/geometry-compatibility.jsonl benchmarks/wpt-empirical/v1/geometry-compatibility.example.json
+
+    - name: Validate NOT_RUN round-robin manifest template
+      if: hashFiles('tools/wpt-round-robin-validator/Cargo.toml') != ''
+      run: cargo run --locked -p wpt-round-robin-validator -- benchmarks/wpt-empirical/v1/test-run.example.json
