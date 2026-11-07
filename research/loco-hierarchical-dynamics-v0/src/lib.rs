@@ -182,7 +182,6 @@ pub fn fit_hierarchical_parameter(
             &groups,
             config.population_prior_mean,
             config.population_prior_variance,
-            config.session_effect_variance,
             candidate.animal_effect_variance,
         )?;
         let normalized_prior = candidate.prior_weight / prior_total;
@@ -402,7 +401,6 @@ fn fit_component(
     groups: &[GroupSufficientStatistics],
     population_prior_mean: f64,
     population_prior_variance: f64,
-    session_effect_variance: f64,
     animal_effect_variance: f64,
 ) -> Result<HyperparameterPosterior, HierarchicalError> {
     let mut population_precision = 1.0 / population_prior_variance;
@@ -480,7 +478,6 @@ fn fit_component(
         animals.insert(group.animal_id.clone(), posterior);
     }
 
-    let _ = session_effect_variance;
     Ok(HyperparameterPosterior {
         animal_effect_variance,
         posterior_probability: 0.0,
