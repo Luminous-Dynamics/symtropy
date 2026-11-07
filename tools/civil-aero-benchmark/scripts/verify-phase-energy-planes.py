@@ -110,7 +110,7 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
 
     fuel_by_id = {row["fuel_source_id"]: row for row in fuels}
     engine_by_id = {row["prime_mover_id"]: row for row in engines}
-    generator_inputs_by_engine: dict[str, float] = {}
+    prime_mover_fuel_input_by_source: dict[str, float] = {}
     generator_bus_total = 0.0
 
     for fuel in fuels:
@@ -141,20 +141,33 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
         accessory = finite_nonnegative(engine["accessory_mechanical_load_j"], "engine accessory load")
         mechanical_loss = finite_nonnegative(engine["mechanical_distribution_loss_j"], "engine mechanical loss")
         fuel_residual = fuel_input - mechanical - heat_loss
-        fuel_state_residual = fuel_input - float(fuel_by_id[fuel_id]["chemical_energy_consumed_j"])
+        prime_mover_fuel_input_by_source[fuel_id] = (
+            prime_mover_fuel_input_by_source.get(fuel_id, 0.0) + fuel_input
+        )
         shaft_used_by_generators = sum(
             finite_nonnegative(gen["mechanical_input_j"], "generator mechanical input")
             for gen in generators
             if gen["prime_mover_id"] == engine["prime_mover_id"]
         )
         shaft_residual = mechanical - shaft_used_by_generators - direct_shaft - accessory - mechanical_loss
+        average_mechanical = mechanical / duration
+        if (
+            average_mechanical > average_mechanical_limit
+            or peak_mechanical + tolerance_w < average_mechanical
+            or peak_mechanical > peak_mechanical_limit + tolerance_w
+        ):
+            errors.append(f"prime_mover_power:{engine['prime_mover_id']}")
         for residual, name in (
             (fuel_residual, f"prime_mover_fuel:{engine['prime_mover_id']}"),
-            (fuel_state_residual, f"fuel_state_link:{engine['prime_mover_id']}"),
             (shaft_residual, f"prime_mover_shaft:{engine['prime_mover_id']}"),
         ):
             if not close(residual, 0.0, name, tolerance):
                 errors.append(name)
+
+    for fuel in fuels:
+        aggregate_input = prime_mover_fuel_input_by_source.get(fuel["fuel_source_id"], 0.0)
+        if not close(aggregate_input, float(fuel["chemical_energy_consumed_j"]), f"fuel_state_link:{fuel['fuel_source_id']}", tolerance):
+            errors.append(f"fuel_state_link:{fuel['fuel_source_id']}")
 
     for generator in generators:
         digest(generator["model_evidence_sha256"], "generator model evidence")
@@ -165,9 +178,15 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
         mechanical = finite_nonnegative(generator["mechanical_input_j"], "generator mechanical input")
         electrical = finite_nonnegative(generator["electrical_output_to_bus_j"], "generator electrical output")
         loss = finite_nonnegative(generator["conversion_loss_j"], "generator conversion loss")
+        average_limit = positive(generator["average_electrical_output_power_limit_w"], "generator average electrical output limit")
+        peak_output = finite_nonnegative(generator["peak_electrical_output_power_w"], "generator peak electrical output")
+        peak_limit = positive(generator["peak_electrical_output_power_limit_w"], "generator peak electrical output limit")
+        average_output = electrical / duration
         residual = mechanical - electrical - loss
         if not close(residual, 0.0, f"generator:{generator['generator_id']}", tolerance):
             errors.append(f"generator:{generator['generator_id']}")
+        if average_output > average_limit or peak_output + tolerance_w < average_output or peak_output > peak_limit + tolerance_w:
+            errors.append(f"generator_power:{generator['generator_id']}")
         generator_inputs_by_engine[generator["prime_mover_id"]] = (
             generator_inputs_by_engine.get(generator["prime_mover_id"], 0.0) + mechanical
         )
@@ -290,7 +309,7 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
         "status":status,
         "errors":errors,
         "bus_residual_j":bus_residual,
-        "continuous_source_power_w":continuous,
+        "continuous_bus_supply_power_w":continuous,
         "store_results":store_results
     }
 
