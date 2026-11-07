@@ -10,7 +10,8 @@
     "created_on",
     "comparators",
     "interpretation_rules",
-    "claim_ceiling"
+    "claim_ceiling",
+    "regulatory_references"
   ],
   "$defs": {
     "text": {
@@ -164,6 +165,70 @@
           "$ref": "#/$defs/text"
         }
       }
+    },
+    "regulatory_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "title",
+        "jurisdiction",
+        "document_type",
+        "source_date",
+        "source_url",
+        "clauses_or_sections",
+        "key_requirements",
+        "applicability_note",
+        "authority_boundary"
+      ],
+      "properties": {
+        "source_id": {
+          "$ref": "#/$defs/text"
+        },
+        "title": {
+          "$ref": "#/$defs/text"
+        },
+        "jurisdiction": {
+          "enum": [
+            "SOUTH_AFRICA",
+            "CODEX_INTERNATIONAL"
+          ]
+        },
+        "document_type": {
+          "enum": [
+            "ACT_REGULATION",
+            "GOVERNMENT_INDEX",
+            "CODE_OF_PRACTICE"
+          ]
+        },
+        "source_date": {
+          "$ref": "#/$defs/text"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "clauses_or_sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "key_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "applicability_note": {
+          "$ref": "#/$defs/text"
+        },
+        "authority_boundary": {
+          "$ref": "#/$defs/text"
+        }
+      }
     }
   },
   "properties": {
@@ -193,6 +258,13 @@
     },
     "claim_ceiling": {
       "$ref": "#/$defs/text"
+    },
+    "regulatory_references": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/regulatory_reference"
+      }
     }
   }
 }
