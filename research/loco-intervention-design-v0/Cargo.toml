@@ -1,0 +1,9 @@
+[package]
+name = "loco-intervention-design"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Robust intervention selection by pairwise predictive separation"
+
+[workspace]
