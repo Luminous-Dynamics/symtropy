@@ -255,6 +255,10 @@ pub fn validate_case(case: &Value, observability: &Value) -> Vec<Violation> {
     if candidates.len() > MAX_EXACT_SEARCH_LIMIT {
         push(&mut errors, "SEARCH_SPACE_LIMIT", "$.candidates", "exact v0.1 enumeration supports at most 20 candidate sensors");
     }
+    let declared_search_limit = profile["exact_search_limit"].as_u64().unwrap_or(0) as usize;
+    if candidates.len() > declared_search_limit {
+        push(&mut errors, "CANDIDATE_COUNT_EXCEEDS_DECLARED_SEARCH_LIMIT", "$.candidates", "candidate count must not exceed the explicitly declared exact-search limit");
+    }
 
     let mut candidate_ids = BTreeSet::new();
     let mut candidate_channels = BTreeSet::new();
@@ -693,6 +697,16 @@ mod tests {
             case["candidates"].as_array_mut().unwrap().push(copy);
         }
         assert!(has(&validate_case(&case, &observability()), "SEARCH_SPACE_LIMIT"));
+    }
+
+    #[test]
+    fn candidate_count_must_respect_declared_exact_search_limit() {
+        let mut case = placement();
+        case["placement_profile"]["exact_search_limit"] = serde_json::json!(4);
+        assert!(has(
+            &validate_case(&case, &observability()),
+            "CANDIDATE_COUNT_EXCEEDS_DECLARED_SEARCH_LIMIT"
+        ));
     }
 
     #[test]
