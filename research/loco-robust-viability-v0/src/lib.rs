@@ -99,14 +99,8 @@ pub enum ViabilityError {
     EmptySourceState(String),
     UnknownSourceState { action_id: String, state_id: String },
     EmptySuccessorSet(String),
-    DuplicateSuccessor {
-        action_id: String,
-        state_id: String,
-    },
-    UnknownSuccessor {
-        action_id: String,
-        state_id: String,
-    },
+    DuplicateSuccessor { action_id: String, state_id: String },
+    UnknownSuccessor { action_id: String, state_id: String },
     UnsafeRecoveryTarget(String),
     StateLimitExceeded { maximum: usize },
     ActionLimitExceeded { maximum: usize },
@@ -152,8 +146,7 @@ pub fn compute_finite_horizon_viability(
 
     let mut final_assessments = Vec::new();
     for _ in 0..horizon {
-        let (predecessor, assessments) =
-            robust_predecessor(&validated, &continuation);
+        let (predecessor, assessments) = robust_predecessor(&validated, &continuation);
         continuation = predecessor;
         final_assessments = assessments;
     }
@@ -342,9 +335,7 @@ fn validate_system(
     }
 
     for actions in actions_by_state.values_mut() {
-        actions.sort_unstable_by(|left, right| {
-            left.id.as_bytes().cmp(right.id.as_bytes())
-        });
+        actions.sort_unstable_by(|left, right| left.id.as_bytes().cmp(right.id.as_bytes()));
     }
 
     Ok(ValidatedSystem {
@@ -369,7 +360,11 @@ fn robust_predecessor(
     let mut predecessor = BTreeSet::new();
     let mut assessments = Vec::new();
 
-    for state in system.states.values().filter(|state| state.instantaneously_safe) {
+    for state in system
+        .states
+        .values()
+        .filter(|state| state.instantaneously_safe)
+    {
         let actions = system
             .actions_by_state
             .get(&state.id)
@@ -397,9 +392,7 @@ fn robust_predecessor(
     (predecessor, assessments)
 }
 
-fn admissible_action_map(
-    assessments: &[ActionAssessment],
-) -> BTreeMap<String, Vec<String>> {
+fn admissible_action_map(assessments: &[ActionAssessment]) -> BTreeMap<String, Vec<String>> {
     let mut output: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for assessment in assessments.iter().filter(|item| item.admissible) {
         output
@@ -482,7 +475,10 @@ mod tests {
     #[test]
     fn safe_but_dead_end_state_is_not_robustly_viable() {
         let system = TransitionSystem {
-            states: vec![state("current", true, false), state("dead-end", true, false)],
+            states: vec![
+                state("current", true, false),
+                state("dead-end", true, false),
+            ],
             actions: vec![action("one-step", "current", &["dead-end"])],
         };
         let result = compute_maximal_robust_invariant_set(&system, limits()).unwrap();
@@ -628,9 +624,12 @@ mod tests {
         let mut perturbed = base.clone();
         perturbed.actions[0].successors.push("fall".to_owned());
         let base_result = compute_maximal_robust_invariant_set(&base, limits()).unwrap();
-        let perturbed_result =
-            compute_maximal_robust_invariant_set(&perturbed, limits()).unwrap();
-        assert!(perturbed_result.viable_states.is_subset(&base_result.viable_states));
+        let perturbed_result = compute_maximal_robust_invariant_set(&perturbed, limits()).unwrap();
+        assert!(
+            perturbed_result
+                .viable_states
+                .is_subset(&base_result.viable_states)
+        );
         assert!(base_result.viable_states.contains("s"));
         assert!(!perturbed_result.viable_states.contains("s"));
     }
@@ -671,9 +670,17 @@ mod tests {
                 state("fall", false, false),
             ],
             actions: vec![
-                action("phase-step-a-b", "tripod-a", &["tripod-b", "one-leg-slip-dead-end"]),
+                action(
+                    "phase-step-a-b",
+                    "tripod-a",
+                    &["tripod-b", "one-leg-slip-dead-end"],
+                ),
                 action("fallback-a", "tripod-a", &["staggered-recovery"]),
-                action("phase-step-b-a", "tripod-b", &["tripod-a", "one-leg-slip-dead-end"]),
+                action(
+                    "phase-step-b-a",
+                    "tripod-b",
+                    &["tripod-a", "one-leg-slip-dead-end"],
+                ),
                 action("fallback-b", "tripod-b", &["staggered-recovery"]),
                 action(
                     "re-enter-from-staggered",
@@ -733,10 +740,7 @@ mod tests {
         };
         let restricted = TransitionSystem {
             states: uncertain.states.clone(),
-            actions: vec![
-                action("probe", "s", &["a"]),
-                action("a-loop", "a", &["a"]),
-            ],
+            actions: vec![action("probe", "s", &["a"]), action("a-loop", "a", &["a"])],
         };
         let before = compute_maximal_robust_invariant_set(&uncertain, limits()).unwrap();
         let after = compute_maximal_robust_invariant_set(&restricted, limits()).unwrap();
@@ -807,11 +811,7 @@ mod tests {
                         let successor_masks = [a_mask, b_mask, c_mask];
                         let states = (0..3)
                             .map(|index| {
-                                state(
-                                    &format!("s{index}"),
-                                    safe_mask & (1 << *index) != 0,
-                                    false,
-                                )
+                                state(&format!("s{index}"), safe_mask & (1 << *index) != 0, false)
                             })
                             .collect::<Vec<_>>();
                         let actions = (0..3)
@@ -904,7 +904,9 @@ mod tests {
                     .iter()
                     .filter(|item| item.source_state == *state_id)
                     .any(|item| {
-                        item.successors.iter().all(|successor| candidate.contains(successor))
+                        item.successors
+                            .iter()
+                            .all(|successor| candidate.contains(successor))
                     })
             });
             if is_invariant {
