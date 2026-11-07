@@ -11,10 +11,9 @@ use super::scenario_tree::{
 };
 use super::{
     AbstainReason, Decision, DecisionConfig, DecisionState, EngineError, EvidenceTier,
-    ExperimentRecord, InterventionCandidate, ModelAdequacy, Posterior,
-    PosteriorUpdate, SelectionPolicy, StopReason, condition_on_outcome, entropy,
-    expected_information_gain, reject_candidate, splitmix64, validate_candidate,
-    validate_posterior,
+    ExperimentRecord, InterventionCandidate, ModelAdequacy, Posterior, PosteriorUpdate,
+    SelectionPolicy, StopReason, condition_on_outcome, entropy, expected_information_gain,
+    reject_candidate, splitmix64, validate_candidate, validate_posterior,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
