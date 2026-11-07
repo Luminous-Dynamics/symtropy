@@ -661,6 +661,56 @@ mod tests {
     }
 
     #[test]
+    fn synthetic_tripod_phase_step_preserves_a_staggered_recovery_option() {
+        let system = TransitionSystem {
+            states: vec![
+                state("tripod-a", true, false),
+                state("tripod-b", true, false),
+                state("staggered-recovery", true, false),
+                state("one-leg-slip-dead-end", true, false),
+                state("fall", false, false),
+            ],
+            actions: vec![
+                action("phase-step-a-b", "tripod-a", &["tripod-b", "one-leg-slip-dead-end"]),
+                action("fallback-a", "tripod-a", &["staggered-recovery"]),
+                action("phase-step-b-a", "tripod-b", &["tripod-a", "one-leg-slip-dead-end"]),
+                action("fallback-b", "tripod-b", &["staggered-recovery"]),
+                action(
+                    "re-enter-from-staggered",
+                    "staggered-recovery",
+                    &["tripod-a", "tripod-b"],
+                ),
+            ],
+        };
+        let result = compute_maximal_robust_invariant_set(&system, limits()).unwrap();
+        assert_eq!(
+            result.viable_states,
+            BTreeSet::from([
+                "tripod-a".to_owned(),
+                "tripod-b".to_owned(),
+                "staggered-recovery".to_owned(),
+            ])
+        );
+        assert_eq!(
+            result.admissible_actions["tripod-a"],
+            vec!["fallback-a".to_owned()]
+        );
+        assert_eq!(
+            result.admissible_actions["tripod-b"],
+            vec!["fallback-b".to_owned()]
+        );
+        let nominal = result
+            .action_assessments
+            .iter()
+            .find(|item| item.action_id == "phase-step-a-b")
+            .unwrap();
+        assert_eq!(
+            nominal.violating_successors,
+            vec!["one-leg-slip-dead-end".to_owned()]
+        );
+    }
+
+    #[test]
     fn empty_state_system_is_rejected_instead_of_vacuously_certified() {
         assert_eq!(
             compute_maximal_robust_invariant_set(&TransitionSystem::default(), limits()),
