@@ -1286,6 +1286,7 @@ mod tests {
         value.generators[0].average_electrical_output_power_limit_w = 30_000.0;
         value.generators[0].peak_electrical_output_power_w = 30_000.0;
         value.generators[0].peak_electrical_output_power_limit_w = 35_000.0;
+        value.prime_movers[0].fuel_energy_input_j = 300_000_000.0;
         value.fuel_states[0].chemical_energy_consumed_j = 300_000_000.0;
         value.fuel_states[0].chemical_energy_end_j = 200_000_000.0;
         value.fuel_states[0].chemical_energy_start_j = 500_000_000.0;
