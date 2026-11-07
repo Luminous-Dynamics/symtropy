@@ -518,24 +518,24 @@ mod tests {
         let pos_b = SVector::from([0.0, 10.0, 0.0]);
         let vel_b = SVector::zeros();
 
-        assert_eq!(
+        assert!(matches!(
             sphere_sphere_checked(&pos_a, &vel_a, -0.5, &pos_b, &vel_b, 0.5, 1.0),
             Err(CcdInputError::NegativeRadius)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, f64::INFINITY),
             Err(CcdInputError::NonFiniteTimeStep)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0),
             Ok(None)
-        );
+        ));
 
         let zero_normal = SVector::zeros();
-        assert_eq!(
+        assert!(matches!(
             sphere_halfspace_checked(&pos_a, &vel_a, 0.5, &zero_normal, 0.0, 1.0),
             Err(CcdInputError::DegeneratePlaneNormal)
-        );
+        ));
     }
 
     #[test]
