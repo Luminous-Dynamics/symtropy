@@ -1,0 +1,20 @@
+[workspace]
+
+[package]
+name = "civdyn-resilience-uq"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Latin-hypercube parameter ensembles and Morris screening for CivDyn resilience"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "resilience-uq-sweep"
+path = "src/bin/resilience_uq_sweep.rs"
+
+[dependencies]
+civdyn-cross-scale-resilience = { path = "../civdyn-cross-scale-resilience" }
+civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
