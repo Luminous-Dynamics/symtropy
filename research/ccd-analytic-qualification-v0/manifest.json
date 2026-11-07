@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-ccd-analytic-qualification-v0",
+  "status": "query_primitive_verification_not_engine_validation",
+  "source_module": "crates/core/symtropy-physics/src/ccd.rs",
+  "geometry": {
+    "sphere_sphere": "two translating spheres with constant linear velocity",
+    "sphere_halfspace": "sphere translating against normalized plane equation n dot x = offset",
+    "plane_normal_policy": "normalize normal and offset by the same positive norm",
+    "toi_unit": "seconds",
+    "toi_domain": "[0, dt] closed"
+  },
+  "acceptance_scenarios": [
+    {
+      "id": "sphere-sphere-head-on",
+      "observable": "toi_seconds",
+      "analytic_reference_seconds": 0.2,
+      "tolerance_seconds": 1e-12
+    },
+    {
+      "id": "sphere-sphere-grazing",
+      "observable": "toi_seconds",
+      "analytic_reference_seconds": 0.5,
+      "tolerance_seconds": 1e-12,
+      "discriminant": "zero"
+    },
+    {
+      "id": "sphere-sphere-exact-step-end",
+      "observable": "toi_seconds",
+      "analytic_reference_seconds": 1.0,
+      "tolerance_seconds": 1e-12,
+      "interval_policy": "closed"
+    },
+    {
+      "id": "sphere-halfspace-unit-normal",
+      "observable": "toi_seconds",
+      "analytic_reference_seconds": 2.5,
+      "tolerance_seconds": 1e-12
+    },
+    {
+      "id": "sphere-halfspace-scaled-normal",
+      "observable": "toi_contact_point_and_normal",
+      "scales": [1e-20, 1e-6, 1.0, 1e6, 1e20],
+      "plane_offset": "scaled_by_the_same_positive_factor_as_normal",
+      "reference_relation": "invariant_under_positive_scaling_of_plane_normal_and_offset",
+      "tolerance": 1e-12
+    },
+    {
+      "id": "sphere-sphere-tiny-relative-speed-long-step",
+      "observable": "toi_seconds_and_contact_residual",
+      "relative_speed_m_per_s": 1e-10,
+      "timestep_seconds": 1e10,
+      "analytic_reference_seconds": 1e10,
+      "tolerance_seconds": 1e-3,
+      "regression_guard": "must_not_use_dimensionful_relative_speed_squared_cutoff"
+    },
+    {
+      "id": "zero-dimensional-query",
+      "observable": "checked_error_and_legacy_none",
+      "expected_checked_error": "ZeroDimension",
+      "expected_legacy_result": "None",
+      "must_not_panic": true
+    },
+    {
+      "id": "sphere-sphere-galilean-boost",
+      "observable": "toi_and_contact_normal",
+      "reference_relation": "common_velocity_boost_invariant",
+      "tolerance": 1e-12
+    },
+    {
+      "id": "sphere-sphere-time-reparameterization",
+      "observable": "toi_and_contact_point",
+      "reference_relation": "toi_scales_inversely_with_velocity_time_scale",
+      "tolerance": 1e-12
+    },
+    {
+      "id": "sphere-sphere-contact-residual",
+      "observable": "center_distance_minus_radius_sum",
+      "analytic_reference": 0.0,
+      "tolerance": 1e-11
+    },
+    {
+      "id": "sphere-halfspace-contact-residual",
+      "observable": "normalized_plane_equation_at_contact_point",
+      "analytic_reference": 0.0,
+      "tolerance": 1e-12
+    }
+  ],
+  "checked_api_semantics": {
+    "valid_no_hit": "Ok(None)",
+    "invalid_input": "Err(CcdInputError)",
+    "legacy_option_api": "invalid_input_and_no_hit_both_map_to_none"
+  },
+  "negative_controls": [
+    "zero_plane_normal",
+    "non_finite_plane_offset",
+    "negative_sphere_radius",
+    "infinite_timestep",
+    "nan_timestep",
+    "negative_sphere_sphere_radius"
+  ],
+  "metrics": [
+    "absolute_toi_error_seconds",
+    "contact_point_distance_error",
+    "normal_angular_error",
+    "false_positive_rate",
+    "false_negative_rate",
+    "query_latency_p50_ns",
+    "query_latency_p95_ns"
+  ],
+  "not_claimed": [
+    "full PhysicsWorld step-loop CCD integration",
+    "rotational CCD for arbitrary convex shapes",
+    "post-impact contact-solver validity",
+    "physical experiment validation",
+    "industry superiority"
+  ]
+}
