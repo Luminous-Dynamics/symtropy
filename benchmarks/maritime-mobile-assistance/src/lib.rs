@@ -110,6 +110,8 @@ pub struct PilotResource {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepositionLeg {
+    /// Stable opaque identifier for this exact resource-specific directed leg.
+    pub leg_id: String,
     /// Exact tug or pilot identity; travel duration is not shared across resources.
     pub resource_id: String,
     pub from_node_id: String,
@@ -605,8 +607,10 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
     }
 
     let mut leg_keys = BTreeSet::new();
+    let mut leg_ids = BTreeSet::new();
     for leg in &workload.reposition_legs {
-        if leg.resource_id.trim().is_empty()
+        if leg.leg_id.trim().is_empty()
+            || leg.resource_id.trim().is_empty()
             || leg.from_node_id.trim().is_empty()
             || leg.to_node_id.trim().is_empty()
             || leg.from_node_id == leg.to_node_id
@@ -618,14 +622,15 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
             ));
         }
         leg.evidence.validate()?;
-        let expected_subject = format!(
-            "{}|{}->{}",
-            leg.resource_id, leg.from_node_id, leg.to_node_id
-        );
-        if leg.evidence.subject_id != expected_subject
+        if leg.evidence.subject_id != leg.leg_id
             || leg.evidence.subject_revision != leg.route_revision
         {
             return Err(MobileError::InvalidEvidenceReceipt(
+                leg.evidence.evidence_id.clone(),
+            ));
+        }
+        if !leg_ids.insert(leg.leg_id.as_str()) {
+            return Err(MobileError::DuplicateRepositionLeg(
                 leg.evidence.evidence_id.clone(),
             ));
         }
