@@ -642,9 +642,10 @@ mod tests {
     use super::*;
 
     fn close(actual: f64, expected: f64, tolerance: f64) {
+        let threshold = 1.0e-12 + tolerance * expected.abs();
         assert!(
-            (actual - expected).abs() <= tolerance * expected.abs().max(1.0),
-            "actual={actual:.16e}, expected={expected:.16e}"
+            (actual - expected).abs() <= threshold,
+            "actual={actual:.16e}, expected={expected:.16e}, threshold={threshold:.16e}"
         );
     }
 
