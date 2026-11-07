@@ -401,8 +401,7 @@ mod tests {
         let radius = 6.0 * hole.gravitational_radius_m();
         let theta = 0.9;
         let metric = schwarzschild_exterior_metric(hole, radius, theta).unwrap();
-        let derivatives =
-            MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
+        let derivatives = MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
         let connection =
             LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
 
