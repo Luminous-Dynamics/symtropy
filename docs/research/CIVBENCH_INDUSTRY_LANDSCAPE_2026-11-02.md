@@ -824,7 +824,7 @@ The current programme has moved from isolated prototypes to several composable e
 | Matched causal-path qualification | PR #3803 green | Ledger-backed causal-path and ablation controls, not a complete empirical causal-effect estimate |
 | Resilience uncertainty | PR #3996 green | Declared finite parameter design and Morris screening |
 | Robust policy comparison | PR #4024 green on exact head; 30-point LHS, 3 shocks, 4 policies | Finite-design service feasibility and per-metric native-unit regret only |
-| Collective-risk→physical ledger integration | PR #4037 undergoing another exact-head run after formatter/import fixes | No validation claim until the current compile/test/replay workflow passes |
+| Collective-risk→physical ledger integration | PR #4037 exact-head workflow #42368221801 passed; 14 library tests, ledger replay and CSV/evidence checks | Synthetic CRG action replay through conserved energy-transfer accounting only |
 
 Green here means the exact commit completed the configured software workflow; it does not upgrade the scientific claim ceiling in the last column.
 
@@ -849,3 +849,8 @@ The most valuable next step is not another standalone agent model. It is an evid
 The CRG-to-ledger bridge in PR #4037 begins that loop. The robust-policy analysis in PR #4024 supplies metric-specific comparison over a declared parameter design. The causal-path kernel in PR #3803 supplies mediator/ablation checks. The next iteration should combine these as one frozen run protocol without duplicating the ledger, run envelope or evidence registry.
 
 No result should be called “better than SOTA” unless it reproduces a specific published protocol and exceeds it on a held-out test with compatible metrics, uncertainty and non-regression checks. Synthetic reference performance is not a leaderboard comparison.
+
+
+### Exact-head bridge qualification (7 November 2026)
+
+[PR #4037](https://github.com/Luminous-Dynamics/symtropy/pull/4037) now passes exact-head workflow [#42368221801](https://github.com/Luminous-Dynamics/symtropy/actions/runs/42368221801) on commit `b48fa8e324f64c95ceb3bff7d7e7275ff08822d3`. It passes format, strict Clippy, locked compile, 14 library tests and a deterministic 15-roster action replay through the shared energy ledger. The run uploads a source-bound CSV bridge artifact. This qualifies software integration and accounting behaviour for its synthetic contract; it does not establish real-world energy conversion, human cooperation effects or predictive validity.
