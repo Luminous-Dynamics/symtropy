@@ -570,7 +570,7 @@ mod tests {
                 measurement_variance: 1.0,
             },
         ];
-        let mut cfg = config(vec![candidate(1.0, 1.0)]);
+        let mut cfg = config(vec![candidate(0.0, 1.0e-300), candidate(1.0, 1.0)]);
         cfg.population_prior_mean = 0.0;
         cfg.population_prior_variance = 4.0;
         cfg.session_effect_variance = 0.0;
@@ -608,7 +608,7 @@ mod tests {
                 .abs()
                 < 1.0e-12
         );
-        assert!(fit.animal_posterior("a").unwrap().mean < fit.population_posterior().mean);
+        assert!(fit.animal_posterior("c").unwrap().mean < fit.population_posterior().mean);
     }
 
     #[test]
