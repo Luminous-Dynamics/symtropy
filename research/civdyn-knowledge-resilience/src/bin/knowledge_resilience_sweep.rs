@@ -4,7 +4,7 @@
 //! Synthetic knowledge transmission and archive-resilience trace.
 
 use civdyn_knowledge_resilience::{
-    ArchiveRecovery, KnowledgeDataset, archive_recovery_after_failures, evaluate, reference_dataset,
+    ArchiveRecovery, archive_recovery_after_failures, evaluate, reference_dataset,
 };
 use std::collections::BTreeSet;
 
