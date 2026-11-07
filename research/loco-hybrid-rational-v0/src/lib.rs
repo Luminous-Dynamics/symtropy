@@ -62,8 +62,7 @@ impl Rational {
         }
 
         let divisor = gcd(numerator.unsigned_abs(), denominator as u128);
-        let divisor =
-            i128::try_from(divisor).map_err(|_| HybridMathError::ArithmeticOverflow)?;
+        let divisor = i128::try_from(divisor).map_err(|_| HybridMathError::ArithmeticOverflow)?;
 
         Ok(Self {
             numerator: numerator / divisor,
@@ -92,8 +91,7 @@ impl Rational {
 
     pub fn checked_add(&self, other: &Self) -> Result<Self, HybridMathError> {
         let common = gcd(self.denominator as u128, other.denominator as u128);
-        let common =
-            i128::try_from(common).map_err(|_| HybridMathError::ArithmeticOverflow)?;
+        let common = i128::try_from(common).map_err(|_| HybridMathError::ArithmeticOverflow)?;
         let left_scale = other.denominator / common;
         let right_scale = self.denominator / common;
 
@@ -157,14 +155,15 @@ impl Rational {
             return Err(HybridMathError::DivisionByZero);
         }
 
+        let numerator_divisor = gcd(
+            self.numerator.unsigned_abs(),
+            other.numerator.unsigned_abs(),
+        );
+        let denominator_divisor = gcd(self.denominator as u128, other.denominator as u128);
         let numerator_divisor =
-            gcd(self.numerator.unsigned_abs(), other.numerator.unsigned_abs());
+            i128::try_from(numerator_divisor).map_err(|_| HybridMathError::ArithmeticOverflow)?;
         let denominator_divisor =
-            gcd(self.denominator as u128, other.denominator as u128);
-        let numerator_divisor = i128::try_from(numerator_divisor)
-            .map_err(|_| HybridMathError::ArithmeticOverflow)?;
-        let denominator_divisor = i128::try_from(denominator_divisor)
-            .map_err(|_| HybridMathError::ArithmeticOverflow)?;
+            i128::try_from(denominator_divisor).map_err(|_| HybridMathError::ArithmeticOverflow)?;
 
         let left_numerator = self.numerator / numerator_divisor;
         let right_numerator = other.numerator / numerator_divisor;
@@ -268,11 +267,7 @@ impl RationalInterval {
 
     /// Image under y = slope * x + offset, where slope and offset may
     /// themselves be uncertain closed intervals.
-    pub fn affine_image(
-        &self,
-        slope: &Self,
-        offset: &Self,
-    ) -> Result<Self, HybridMathError> {
+    pub fn affine_image(&self, slope: &Self, offset: &Self) -> Result<Self, HybridMathError> {
         slope.multiply(self)?.add(offset)
     }
 
@@ -410,13 +405,7 @@ fn enumerate_orders_recursive(
         if all_predecessors_selected {
             selected[candidate] = true;
             prefix.push(events[candidate].id.clone());
-            enumerate_orders_recursive(
-                events,
-                maximum_orders,
-                selected,
-                prefix,
-                orders,
-            )?;
+            enumerate_orders_recursive(events, maximum_orders, selected, prefix, orders)?;
             prefix.pop();
             selected[candidate] = false;
         }
@@ -442,21 +431,14 @@ mod tests {
         Rational::new(numerator, denominator).unwrap()
     }
 
-    fn interval(
-        lower: (i128, i128),
-        upper: (i128, i128),
-    ) -> RationalInterval {
+    fn interval(lower: (i128, i128), upper: (i128, i128)) -> RationalInterval {
         RationalInterval::new(r(lower.0, lower.1), r(upper.0, upper.1)).unwrap()
     }
 
     fn event(id: &str, start: i128, end: i128) -> EventWindow {
         EventWindow::new(
             id.to_owned(),
-            RationalInterval::new(
-                Rational::integer(start),
-                Rational::integer(end),
-            )
-            .unwrap(),
+            RationalInterval::new(Rational::integer(start), Rational::integer(end)).unwrap(),
         )
         .unwrap()
     }
@@ -479,10 +461,7 @@ mod tests {
 
     #[test]
     fn division_by_zero_and_unrepresentable_arithmetic_fail_closed() {
-        assert_eq!(
-            Rational::new(1, 0),
-            Err(HybridMathError::DivisionByZero)
-        );
+        assert_eq!(Rational::new(1, 0), Err(HybridMathError::DivisionByZero));
         assert_eq!(
             Rational::integer(i128::MAX).checked_add(&Rational::integer(1)),
             Err(HybridMathError::ArithmeticOverflow)
@@ -550,8 +529,7 @@ mod tests {
     #[test]
     fn overlapping_event_windows_preserve_both_orders() {
         let orders =
-            enumerate_possible_event_orders(vec![event("a", 0, 2), event("b", 1, 3)], 4)
-                .unwrap();
+            enumerate_possible_event_orders(vec![event("a", 0, 2), event("b", 1, 3)], 4).unwrap();
         assert_eq!(
             orders,
             vec![
@@ -599,10 +577,7 @@ mod tests {
     #[test]
     fn duplicate_and_negative_time_events_are_rejected() {
         assert_eq!(
-            enumerate_possible_event_orders(
-                vec![event("same", 0, 1), event("same", 1, 2)],
-                4
-            ),
+            enumerate_possible_event_orders(vec![event("same", 0, 1), event("same", 1, 2)], 4),
             Err(HybridMathError::DuplicateEventId("same".to_owned()))
         );
         assert_eq!(
