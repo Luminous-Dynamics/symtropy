@@ -45,7 +45,7 @@ pub struct KerrHorizonPosteriorSample {
     pub horizon_radius_m: f64,
     pub horizon_angular_velocity_rad_s: f64,
     pub surface_gravity_rate_s_inv: f64,
-    pub direct_wave_reference_frequency_hz: f64,
+    pub horizon_rotation_mode_reference_frequency_hz: f64,
 }
 
 /// Transform joint (mass, spin) samples into correlated Kerr horizon
@@ -65,13 +65,13 @@ pub fn map_kerr_horizon_posterior(
             horizon_radius_m: hole.outer_horizon_radius_m(),
             horizon_angular_velocity_rad_s: hole.horizon_angular_velocity_rad_s(),
             surface_gravity_rate_s_inv: hole.surface_gravity_rate_s_inv(),
-            direct_wave_reference_frequency_hz: hole.direct_wave_reference_frequency_hz(),
+            horizon_rotation_mode_reference_frequency_hz: hole.horizon_rotation_mode_reference_frequency_hz(),
         };
 
         if !derived.horizon_radius_m.is_finite()
             || !derived.horizon_angular_velocity_rad_s.is_finite()
             || !derived.surface_gravity_rate_s_inv.is_finite()
-            || !derived.direct_wave_reference_frequency_hz.is_finite()
+            || !derived.horizon_rotation_mode_reference_frequency_hz.is_finite()
         {
             return Err(PosteriorTransformError::NonFiniteDerivedValues {
                 sample_id: sample.sample_id,
@@ -132,7 +132,7 @@ mod tests {
         }
         assert!(mapped[0].horizon_angular_velocity_rad_s > 0.0);
         assert!(mapped[1].horizon_angular_velocity_rad_s < 0.0);
-        assert!(mapped[1].direct_wave_reference_frequency_hz > 0.0);
+        assert!(mapped[1].horizon_rotation_mode_reference_frequency_hz > 0.0);
         assert!(mapped[2].horizon_angular_velocity_rad_s > 0.0);
         assert!(mapped[2].surface_gravity_rate_s_inv < mapped[0].surface_gravity_rate_s_inv);
     }
@@ -146,9 +146,9 @@ mod tests {
         let mapped = map_kerr_horizon_posterior(&samples).unwrap();
 
         assert_eq!(mapped[0].horizon_angular_velocity_rad_s, 0.0);
-        assert_eq!(mapped[0].direct_wave_reference_frequency_hz, 0.0);
+        assert_eq!(mapped[0].horizon_rotation_mode_reference_frequency_hz, 0.0);
         assert_eq!(mapped[1].surface_gravity_rate_s_inv, 0.0);
-        assert!(mapped[1].direct_wave_reference_frequency_hz > 0.0);
+        assert!(mapped[1].horizon_rotation_mode_reference_frequency_hz > 0.0);
     }
 
     #[test]
