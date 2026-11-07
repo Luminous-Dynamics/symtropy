@@ -45,3 +45,18 @@ The declared candidate universe is intentionally marked incomplete. Consequently
 ## Claim ceiling
 
 This demonstrates a finite, deterministic, synthetic two-sided policy loop for the named policies, route, observations and physics build. It does not validate human pedestrian behavior, road realism, sensor fidelity, empirical traffic response, collision-risk reduction, safety, production driving or SAE L4/L5 capability. Fresh-world same-runtime replay is tested; fresh-process reconstruction and portable cross-machine equivalence remain later gates.
+
+
+## Observation delivery and reaction maturation reference
+
+The standalone \`observation_buffer\` module is the first executable slice for ROAD-RECIPROCAL-DELAY-001 (#4085). It keeps three clocks separate:
+
+- source observation age (\`decision_tick - observed_tick\`);
+- transport/delivery age (\`decision_tick - delivered_tick\`);
+- policy reaction maturity (\`decision_tick - delivered_tick >= reaction_delay_ticks\`).
+
+A bounded recipient-local queue retains cue identity, source event, observation and generation ticks, generation and delivery ordinals, availability status and optional payload. Selection is constrained by the decision's closed input-event cutoff. A newer immature cue does not overwrite an older mature cue. Source-age and delivery-age expiry are independent. Queue overflow rejects without evicting an existing cue. Missing, occluded, unsupported and dropped records remain unavailable rather than becoming zero or fresh observations.
+
+This component is intentionally a pure timing/evidence primitive. It does **not** change the green #3929 v0.1 actor policy or physics loop yet. The first qualification step is to prove its zero-delay behavior and hostile queue/timing cases; a subsequent composition will bind the selected matured cue into the actual actor policy input and branch receipts.
+
+The finite module tests cover zero-delay immediate selection, exact reaction boundary, no starvation under a newer immature cue, independent age limits, unavailable statuses, same-tick cutoff, duplicate/non-monotonic events, overflow/no eviction, and delivery timing rejection. Passing these fixtures does not establish human reaction-time distributions, sensor performance or road safety.
