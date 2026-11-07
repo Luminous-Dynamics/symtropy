@@ -11,8 +11,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    expected_information_gain, reject_candidate, validate_candidate, validate_posterior,
     DecisionConfig, DecisionState, EngineError, InterventionCandidate, ModelAdequacy, Posterior,
+    expected_information_gain, reject_candidate, validate_candidate, validate_posterior,
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -126,7 +126,9 @@ fn validate_config(
     }
     for (from_id, to_ids) in &config.transitions.allowed_after {
         if !ids.contains(from_id) {
-            return Err(ScenarioTreeError::UnknownTransitionCandidate(from_id.clone()));
+            return Err(ScenarioTreeError::UnknownTransitionCandidate(
+                from_id.clone(),
+            ));
         }
         for to_id in to_ids {
             if !ids.contains(to_id) {
@@ -183,11 +185,12 @@ fn search_node(
         });
     }
 
-    *expanded_nodes = expanded_nodes
-        .checked_add(1)
-        .ok_or(ScenarioTreeError::NodeBudgetExceeded {
-            maximum: planning_config.maximum_tree_nodes,
-        })?;
+    *expanded_nodes =
+        expanded_nodes
+            .checked_add(1)
+            .ok_or(ScenarioTreeError::NodeBudgetExceeded {
+                maximum: planning_config.maximum_tree_nodes,
+            })?;
     if *expanded_nodes > planning_config.maximum_tree_nodes {
         return Err(ScenarioTreeError::NodeBudgetExceeded {
             maximum: planning_config.maximum_tree_nodes,
@@ -347,10 +350,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     fn posterior() -> Posterior {
-        BTreeMap::from([
-            ("model-a".to_owned(), 0.5),
-            ("model-b".to_owned(), 0.5),
-        ])
+        BTreeMap::from([("model-a".to_owned(), 0.5), ("model-b".to_owned(), 0.5)])
     }
 
     fn candidate(id: &str, p_a_yes: f64, p_b_yes: f64, cost: f64) -> InterventionCandidate {
@@ -449,10 +449,7 @@ mod tests {
 
     #[test]
     fn transition_constraints_are_enforced_after_every_observation() {
-        let items = vec![
-            candidate("a", 0.8, 0.2, 1.0),
-            candidate("b", 0.7, 0.3, 1.0),
-        ];
+        let items = vec![candidate("a", 0.8, 0.2, 1.0), candidate("b", 0.7, 0.3, 1.0)];
         let transitions = TransitionConstraints {
             initial_candidate_ids: Some(BTreeSet::from(["a".to_owned()])),
             allowed_after: BTreeMap::from([("a".to_owned(), BTreeSet::new())]),
