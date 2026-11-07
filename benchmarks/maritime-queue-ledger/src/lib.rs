@@ -324,9 +324,16 @@ fn resolve_observations<'a, T: LedgerObservation>(
     observations: &'a [T],
     as_of_tick: u64,
 ) -> Result<Vec<&'a T>, LedgerError> {
-    let mut by_id = BTreeMap::<&str, usize>::new();
+    // Only records known by this information cut-off participate in
+    // validation. A malformed or duplicate record observed later must not
+    // rewrite an earlier decision snapshot.
+    let visible: Vec<&T> = observations
+        .iter()
+        .filter(|item| item.header().observed_tick <= as_of_tick)
+        .collect();
+    let mut by_id = BTreeMap::<&str, &T>::new();
 
-    for (index, observation) in observations.iter().enumerate() {
+    for observation in &visible {
         let header = observation.header();
         if header.event_id.trim().is_empty() {
             return Err(LedgerError::EmptyEventId);
@@ -335,7 +342,7 @@ fn resolve_observations<'a, T: LedgerObservation>(
             return Err(LedgerError::EmptyEntityId);
         }
         if by_id
-            .insert(header.event_id.as_str(), index)
+            .insert(header.event_id.as_str(), *observation)
             .is_some()
         {
             return Err(LedgerError::DuplicateEventId(
@@ -344,12 +351,6 @@ fn resolve_observations<'a, T: LedgerObservation>(
         }
     }
 
-    // Future observations do not influence this information-cutoff snapshot,
-    // including their correction graph or later conflicts.
-    let visible: Vec<&T> = observations
-        .iter()
-        .filter(|item| item.header().observed_tick <= as_of_tick)
-        .collect();
     let visible_ids: BTreeSet<&str> = visible
         .iter()
         .map(|item| item.header().event_id.as_str())
@@ -370,12 +371,11 @@ fn resolve_observations<'a, T: LedgerObservation>(
                 header.event_id.clone(),
             ));
         }
-        let Some(parent_index) = by_id.get(parent_id).copied() else {
+        let Some(parent) = by_id.get(parent_id).copied() else {
             return Err(LedgerError::UnknownSupersededEvent(
                 parent_id.to_owned(),
             ));
         };
-        let parent = &observations[parent_index];
         let parent_header = parent.header();
         if !visible_ids.contains(parent_id) {
             return Err(LedgerError::UnknownSupersededEvent(
