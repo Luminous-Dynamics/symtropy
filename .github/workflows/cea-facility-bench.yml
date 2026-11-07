@@ -35,6 +35,9 @@ jobs:
       - name: Run unit tests
         run: cargo test --manifest-path tools/cea-facility-bench/Cargo.toml
 
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/cea-facility-bench/Cargo.toml --all-targets -- -D warnings
+
       - name: Execute frozen accounting case
         run: |
           cargo run --manifest-path tools/cea-facility-bench/Cargo.toml --release -- \
