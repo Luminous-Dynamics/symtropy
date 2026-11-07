@@ -91,7 +91,7 @@ For microbial evidence record organism / indicator / assay target, matrix, sampl
 
 ## 4. V0.1 benchmark cases
 
-The parent issue contains 44 cases. The first frozen evaluator corpus should include:
+The parent issue contains 44 proposed benchmark cases. The v0.1 machine-readable adversarial fixture now freezes 18 synthetic known-truth cases, including bounded exposure-path, disconnected-zone, chain-of-custody and insufficient-sensitivity controls. The broader planned evaluator corpus should include:
 - exact water and per-element mass-balance fixtures;
 - nitrate-N / nitrate-ion and elemental/compound unit mismatches;
 - equal-EC different-ion mixtures;
