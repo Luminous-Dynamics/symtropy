@@ -1,41 +1,103 @@
-# CIVDYN HumanStudy reproduction receipt v0.1
+# CIVDYN HumanStudy reproduction adapter v0.2
 
-This crate is the first executable conformance layer for issue [#3786](https://github.com/Luminous-Dynamics/symtropy/issues/3786). It does **not** claim to reproduce HumanStudy-Bench yet.
+This work implements a source-pinned **receipt and conformance boundary** for issue [#3786](https://github.com/Luminous-Dynamics/symtropy/issues/3786). It is not yet an importer for either upstream runner and does not claim a completed empirical reproduction.
 
-## A source-version discovery that changes the benchmark plan
+## Two source protocols — never merge their leaderboards
 
-The HumanStudy-Bench paper describes an initial 12-study suite. The current upstream community repository at the pinned revision below contains 16 study directories. These are different protocol populations and must never be silently mixed.
+| Profile | Repository and exact source | Study count | Native result contract |
+|---|---|---:|---|
+| `HSB-PAPER-12-CF05D330` | `AISmithLab/HumanStudy-Bench`, commit `cf05d330fc315168c8c8e23b4acd882f91bb7408`, root tree `9b56c62406fb6b77d87d5032c3c6906583aca24e` | 12 | Original paper pipeline |
+| `HSB-COMMUNITY-16-2026-11-07` | `HumanStudy-Hub/HumanStudy-Bench`, commit `b34d214b980be13ec5944a4d570a38bc4047b0f9`, root tree `26851c1d6564c78b25600afc7de8ec435e4aa3b8` | 16 | Community playground pipeline |
 
-| Track | Identity | Status |
-|---|---|---|
-| Published paper suite | 12-study paper snapshot | Paper scope is known; exact historical source/data revision still needs a separately verified pin |
-| Current community edition | 16 studies, `study_001`–`study_016` | Pinned below; the first executable conformance profile |
+The paper profile pins `data/studies/study_001`–`study_012`, each study's data tree, and its original config/evaluator blob SHAs. It also pins the global runner, evaluator, scorer, stats library and metric documentation in [foundational_12_profile.json](foundational_12_profile.json).
 
-Current community source:
-- Repository: `HumanStudy-Hub/HumanStudy-Bench`
-- Commit: `b34d214b980be13ec5944a4d570a38bc4047b0f9`
-- Root Git tree: `26851c1d6564c78b25600afc7de8ec435e4aa3b8`
-- Exact study-directory tree identities: `upstream_profile.json`
-- Paper: Liu et al., *HumanStudy-Bench: Towards AI Agent Design for Participant Simulation*, [arXiv:2602.00685](https://arxiv.org/abs/2602.00685)
+The Community Edition is a separate, evolving repository. Its current snapshot contains `study_001`–`study_016`. A result from one profile must not be labelled as a result from the other.
 
-The profile is immutable. Updating upstream requires a new protocol ID, source commit, root tree and complete study inventory.
+## Native artifact contracts
 
-## What the Rust gate does
+### Original paper pipeline
 
-- Requires all 16 pinned study receipts; rejects missing, duplicate, extra or changed study trees.
-- Requires exact upstream source identity and frozen model/configuration/analysis digests.
-- Preserves official PAS and ECS as upstream-provided outputs, checking only their declared scales (PAS [0,1], ECS [-1,1]). It does not recalculate or approximate them.
-- Preserves effect-level estimates and optional 95% intervals with finding/test identities and explicit effect units.
-- Requires the independent unit and separate study receipt; the subsequent runner must map the original design's unit (participant, group, session or cluster).
-- Requires artifact roles for human reference aggregates, simulated responses, official analysis outputs and official score outputs.
-- Rejects publication of record-level human data unless redistribution is explicitly authorized; an aggregate artifact is not allowed to contain record-level human data.
-- Fails exact-comparability validation when the original analysis protocol is modified.
+The pinned paper repository documents result directories under:
 
-## Boundary: this is a receipt validator, not the upstream runner
+```text
+results/
+  runs/<run_name>/<study_id>/<model>_<prompt>/
+    full_benchmark.json
+    detailed_stats.csv
+    evaluation_results.json
+```
 
-The upstream Python runner remains the reproduction authority. This crate does not call it, port its statistical implementation, read arbitrary upstream JSON filenames, or claim that the 16-study suite is the original paper's 12-study snapshot.
+The receipt requires these exact native files, relative to a single study/config run directory:
 
-The typed Rust API accepts normalized receipts. The checked-in schema defines the JSON boundary; the next increment should implement a narrow exporter from a *specific pinned upstream run artifact set* into these types. That exporter must first discover the actual output paths for the chosen run profile instead of assuming names such as `full_benchmark.json`, `evaluation_results.json` or `detailed_stats.csv` are stable upstream API contracts.
+- `full_benchmark.json` — run payload, individual simulation records and usage metadata.
+- `detailed_stats.csv` — detailed per-test statistical output.
+- `evaluation_results.json` — official evaluator and paper metric output.
+
+`raw_responses.json`, where present, is an additional source artifact and should be recorded separately. The aggregate files `simple_summary.md`, `simple_studies.csv`, and `simple_findings.csv` are derived reporting views, not substitutes for the per-run outputs. Hash original file bytes before parsing; never hash a re-serialized JSON object and call it the source digest.
+
+### Community playground
+
+The pinned community runner writes these files:
+
+```text
+<run-dir>/
+  run.json
+  progress.json
+  output/
+    profiles.json
+    responses.json
+    evaluation.json
+    analysis.json
+    transcript_sample.json
+    charts.json
+    charts.default.json
+```
+
+The receipt requires:
+- `run.json` — run configuration and provenance.
+- `output/responses.json` — participant-response payloads passed to the study evaluator.
+- `output/evaluation.json` — study-native evaluator output.
+- `output/analysis.json` — community-normalized test/finding analysis.
+
+Profiles, transcripts, progress and chart artifacts may be recorded as additional artifacts. Charts are presentation outputs, not score authority. The normalized `analysis.json` contains community fields such as replication rate, direction-match rate and effect gaps. It is **not** automatically the paper benchmark's PAS/ECS result.
+
+## Metric contract and an upstream specification discrepancy
+
+For the paper profile, PAS/ECS fields are accepted only from `evaluation_results.json` (or another official paper-run result artifact) and are never recomputed by this adapter. The metric contract ID binds the receipt to the exact source profile.
+
+The audit found a discrepancy that must remain visible:
+- `docs/PAS_ECS_math.md` describes effective-sample-size weighting in raw PAS pooling.
+- In the pinned `src/evaluation/stats_lib.py`, `aggregate_finding_pas_raw()` actually uses an unweighted mean of Fisher-z-transformed test PAS values; `aggregate_study_pas()` averages finding-level z values before inverse-transforming.
+- The pinned implementation's main ECS is weighted Lin's concordance correlation coefficient (CCC) over standardized human/agent effect profiles.
+- `docs/ECS_vs_PAS_explanation.md` describes an older Z-difference/RMS ECS and conflicts with the main metric documentation and current `compute_ecs_corr()` implementation.
+
+For a faithful reproduction, the pinned executable implementation is the authority; the documentation/code disagreements are reported as specification debt. A future corrected metric is a new metric version, not a silent change to the reproduction path. See [metric_spec_audit.md](metric_spec_audit.md).
+
+The Community Edition receipt allows PAS and ECS to be absent. No PAS/ECS value is inferred from `replicationRate`, `studyScore`, significance counts or effect-correlation fields.
+
+## What the Rust gate enforces
+
+- Exact source repository, commit, root tree and named protocol/metric contract.
+- Complete study inventory and each study's pinned data tree.
+- Run-level and study-level model/config/prompt/analysis digests.
+- Native artifact roles, relative paths and SHA-256 of the exact bytes.
+- Required paper-vs-community artifact sets; extra native outputs can be recorded without being elevated to score authority.
+- Paper PAS/ECS must be present and within the declared scales. Community PAS/ECS may be null/absent.
+- Effect estimates preserve finding/test identifiers, units and optional intervals.
+- Artifact paths must be relative, non-traversing and unique per study receipt.
+- Participant-level human data cannot be published without explicit redistribution authorization.
+- The original analysis protocol must remain unchanged for an exact reproduction claim.
+
+## What is not yet implemented
+
+- No importer from the original `full_benchmark.json` / `detailed_stats.csv` / `evaluation_results.json` native result set.
+- No importer from the Community playground `run.json` / `responses.json` / `evaluation.json` / `analysis.json` set.
+- No HumanStudy model run is claimed as reproduced.
+- No PAS/ECS or replication-rate improvement is claimed.
+- No claim is made that the 30 January 2026 stored summary is a current SOTA result.
+- No raw participant data or study instruments are copied into this repository.
+
+The next implementation should be two narrow source-pinned importers that hash native bytes first, decode only documented fields, retain unknown fields/artifacts, and produce the common receipt. They should be tested against sanitized or synthetic fixtures plus independently verified official outputs.
 
 ## Run
 
@@ -45,8 +107,8 @@ cargo clippy --locked --manifest-path research/civdyn-humanstudy-repro/Cargo.tom
 cargo test --locked --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --all-targets
 ```
 
-Tests use wholly synthetic receipts. They are software conformance fixtures, not model performance.
+CI also validates both JSON Schema fixtures. Green CI establishes the receipt code's software checks only; it does not establish scientific validity or benchmark reproduction.
 
 ## Rights and privacy
 
-Store digests, aggregate outputs, study IDs and rights metadata in version control. Do not commit participant-level source data or raw human traces by default. Source-code licensing does not grant rights to redistribute each study's data, instruments, stimuli, or supplementary files. A study-specific rights/consent review remains required.
+Source-code MIT licensing does not grant rights to redistribute each study's data, questionnaires, stimuli, papers or participant records. Keep record-level human traces out of version control unless the exact study's consent, licence and redistribution rights authorize it. Preserve source/rights references and artifact hashes even when payloads must remain access-controlled.
