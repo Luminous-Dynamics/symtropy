@@ -26,6 +26,8 @@ use core::fmt;
 
 /// Fixed-size second-order automatic differentiation for metric derivatives.
 pub mod autodiff;
+/// Kerr equatorial circular-null-orbit and light-ring observables.
+pub mod light_ring;
 /// Levi-Civita connection coefficients from explicit metric derivatives.
 pub mod connection;
 /// Convention-explicit Riemann, Ricci, and Einstein curvature tensors.
