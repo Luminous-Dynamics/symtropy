@@ -131,7 +131,10 @@
           "value": 0.42,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-001",
-          "segmentation_record_ref": "segmentation:particle-001"
+          "segmentation_record_ref": "segmentation:particle-001",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-001"
         },
         {
           "particle_id": "particle-002",
@@ -140,7 +143,10 @@
           "value": 0.605,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-002",
-          "segmentation_record_ref": "segmentation:particle-002"
+          "segmentation_record_ref": "segmentation:particle-002",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-002"
         },
         {
           "particle_id": "particle-003",
@@ -149,7 +155,10 @@
           "value": 0.79,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-003",
-          "segmentation_record_ref": "segmentation:particle-003"
+          "segmentation_record_ref": "segmentation:particle-003",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-003"
         },
         {
           "particle_id": "particle-004",
@@ -158,7 +167,10 @@
           "value": 0.47500000000000003,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-004",
-          "segmentation_record_ref": "segmentation:particle-004"
+          "segmentation_record_ref": "segmentation:particle-004",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-004"
         },
         {
           "particle_id": "particle-005",
@@ -167,7 +179,10 @@
           "value": 0.66,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-005",
-          "segmentation_record_ref": "segmentation:particle-005"
+          "segmentation_record_ref": "segmentation:particle-005",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-005"
         },
         {
           "particle_id": "particle-006",
@@ -176,7 +191,10 @@
           "value": 0.845,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-006",
-          "segmentation_record_ref": "segmentation:particle-006"
+          "segmentation_record_ref": "segmentation:particle-006",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-006"
         },
         {
           "particle_id": "particle-007",
@@ -185,7 +203,10 @@
           "value": 0.53,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-007",
-          "segmentation_record_ref": "segmentation:particle-007"
+          "segmentation_record_ref": "segmentation:particle-007",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-007"
         },
         {
           "particle_id": "particle-008",
@@ -194,7 +215,10 @@
           "value": 0.715,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-008",
-          "segmentation_record_ref": "segmentation:particle-008"
+          "segmentation_record_ref": "segmentation:particle-008",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-008"
         },
         {
           "particle_id": "particle-009",
@@ -203,7 +227,10 @@
           "value": 0.9,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-009",
-          "segmentation_record_ref": "segmentation:particle-009"
+          "segmentation_record_ref": "segmentation:particle-009",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-009"
         },
         {
           "particle_id": "particle-010",
@@ -212,7 +239,10 @@
           "value": 0.585,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-010",
-          "segmentation_record_ref": "segmentation:particle-010"
+          "segmentation_record_ref": "segmentation:particle-010",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-010"
         },
         {
           "particle_id": "particle-011",
@@ -221,7 +251,10 @@
           "value": 0.77,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-011",
-          "segmentation_record_ref": "segmentation:particle-011"
+          "segmentation_record_ref": "segmentation:particle-011",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-011"
         },
         {
           "particle_id": "particle-012",
@@ -230,7 +263,10 @@
           "value": 0.455,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-012",
-          "segmentation_record_ref": "segmentation:particle-012"
+          "segmentation_record_ref": "segmentation:particle-012",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-012"
         },
         {
           "particle_id": "particle-013",
@@ -239,7 +275,10 @@
           "value": 0.64,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-013",
-          "segmentation_record_ref": "segmentation:particle-013"
+          "segmentation_record_ref": "segmentation:particle-013",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-013"
         },
         {
           "particle_id": "particle-014",
@@ -248,7 +287,10 @@
           "value": 0.8250000000000001,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-014",
-          "segmentation_record_ref": "segmentation:particle-014"
+          "segmentation_record_ref": "segmentation:particle-014",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-014"
         },
         {
           "particle_id": "particle-015",
@@ -257,7 +299,10 @@
           "value": 0.51,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-015",
-          "segmentation_record_ref": "segmentation:particle-015"
+          "segmentation_record_ref": "segmentation:particle-015",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-015"
         },
         {
           "particle_id": "particle-016",
@@ -266,7 +311,10 @@
           "value": 0.6950000000000001,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-016",
-          "segmentation_record_ref": "segmentation:particle-016"
+          "segmentation_record_ref": "segmentation:particle-016",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-016"
         },
         {
           "particle_id": "particle-017",
@@ -275,7 +323,10 @@
           "value": 0.88,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-017",
-          "segmentation_record_ref": "segmentation:particle-017"
+          "segmentation_record_ref": "segmentation:particle-017",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-017"
         },
         {
           "particle_id": "particle-018",
@@ -284,7 +335,10 @@
           "value": 0.5650000000000001,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-018",
-          "segmentation_record_ref": "segmentation:particle-018"
+          "segmentation_record_ref": "segmentation:particle-018",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-018"
         },
         {
           "particle_id": "particle-019",
@@ -293,7 +347,10 @@
           "value": 0.75,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-019",
-          "segmentation_record_ref": "segmentation:particle-019"
+          "segmentation_record_ref": "segmentation:particle-019",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-019"
         },
         {
           "particle_id": "particle-020",
@@ -302,7 +359,10 @@
           "value": 0.435,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-020",
-          "segmentation_record_ref": "segmentation:particle-020"
+          "segmentation_record_ref": "segmentation:particle-020",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-020"
         },
         {
           "particle_id": "particle-021",
@@ -311,7 +371,10 @@
           "value": 0.62,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-021",
-          "segmentation_record_ref": "segmentation:particle-021"
+          "segmentation_record_ref": "segmentation:particle-021",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-021"
         },
         {
           "particle_id": "particle-022",
@@ -320,7 +383,10 @@
           "value": 0.805,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-022",
-          "segmentation_record_ref": "segmentation:particle-022"
+          "segmentation_record_ref": "segmentation:particle-022",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-022"
         },
         {
           "particle_id": "particle-023",
@@ -329,7 +395,10 @@
           "value": 0.49,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-023",
-          "segmentation_record_ref": "segmentation:particle-023"
+          "segmentation_record_ref": "segmentation:particle-023",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-023"
         },
         {
           "particle_id": "particle-024",
@@ -338,7 +407,10 @@
           "value": 0.675,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-024",
-          "segmentation_record_ref": "segmentation:particle-024"
+          "segmentation_record_ref": "segmentation:particle-024",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-024"
         },
         {
           "particle_id": "particle-025",
@@ -347,7 +419,10 @@
           "value": 0.86,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-025",
-          "segmentation_record_ref": "segmentation:particle-025"
+          "segmentation_record_ref": "segmentation:particle-025",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-025"
         },
         {
           "particle_id": "particle-026",
@@ -356,7 +431,10 @@
           "value": 0.545,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-026",
-          "segmentation_record_ref": "segmentation:particle-026"
+          "segmentation_record_ref": "segmentation:particle-026",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-026"
         },
         {
           "particle_id": "particle-027",
@@ -365,7 +443,10 @@
           "value": 0.73,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-027",
-          "segmentation_record_ref": "segmentation:particle-027"
+          "segmentation_record_ref": "segmentation:particle-027",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-027"
         },
         {
           "particle_id": "particle-028",
@@ -374,7 +455,10 @@
           "value": 0.915,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-028",
-          "segmentation_record_ref": "segmentation:particle-028"
+          "segmentation_record_ref": "segmentation:particle-028",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-028"
         },
         {
           "particle_id": "particle-029",
@@ -383,7 +467,10 @@
           "value": 0.6,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-029",
-          "segmentation_record_ref": "segmentation:particle-029"
+          "segmentation_record_ref": "segmentation:particle-029",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-029"
         },
         {
           "particle_id": "particle-030",
@@ -392,7 +479,10 @@
           "value": 0.785,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-030",
-          "segmentation_record_ref": "segmentation:particle-030"
+          "segmentation_record_ref": "segmentation:particle-030",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-030"
         },
         {
           "particle_id": "particle-031",
@@ -401,7 +491,10 @@
           "value": 0.47000000000000003,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-031",
-          "segmentation_record_ref": "segmentation:particle-031"
+          "segmentation_record_ref": "segmentation:particle-031",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-031"
         },
         {
           "particle_id": "particle-032",
@@ -410,7 +503,10 @@
           "value": 0.655,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-032",
-          "segmentation_record_ref": "segmentation:particle-032"
+          "segmentation_record_ref": "segmentation:particle-032",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-032"
         },
         {
           "particle_id": "particle-033",
@@ -419,7 +515,10 @@
           "value": 0.84,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-033",
-          "segmentation_record_ref": "segmentation:particle-033"
+          "segmentation_record_ref": "segmentation:particle-033",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-033"
         },
         {
           "particle_id": "particle-034",
@@ -428,7 +527,10 @@
           "value": 0.525,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-034",
-          "segmentation_record_ref": "segmentation:particle-034"
+          "segmentation_record_ref": "segmentation:particle-034",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-034"
         },
         {
           "particle_id": "particle-035",
@@ -437,7 +539,10 @@
           "value": 0.71,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-035",
-          "segmentation_record_ref": "segmentation:particle-035"
+          "segmentation_record_ref": "segmentation:particle-035",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-035"
         },
         {
           "particle_id": "particle-036",
@@ -446,7 +551,10 @@
           "value": 0.895,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-036",
-          "segmentation_record_ref": "segmentation:particle-036"
+          "segmentation_record_ref": "segmentation:particle-036",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-036"
         },
         {
           "particle_id": "particle-037",
@@ -455,7 +563,10 @@
           "value": 0.58,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-037",
-          "segmentation_record_ref": "segmentation:particle-037"
+          "segmentation_record_ref": "segmentation:particle-037",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-037"
         },
         {
           "particle_id": "particle-038",
@@ -464,7 +575,10 @@
           "value": 0.765,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-038",
-          "segmentation_record_ref": "segmentation:particle-038"
+          "segmentation_record_ref": "segmentation:particle-038",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-038"
         },
         {
           "particle_id": "particle-039",
@@ -473,7 +587,10 @@
           "value": 0.45,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-039",
-          "segmentation_record_ref": "segmentation:particle-039"
+          "segmentation_record_ref": "segmentation:particle-039",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-039"
         },
         {
           "particle_id": "particle-040",
@@ -482,7 +599,10 @@
           "value": 0.635,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-040",
-          "segmentation_record_ref": "segmentation:particle-040"
+          "segmentation_record_ref": "segmentation:particle-040",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-040"
         },
         {
           "particle_id": "particle-041",
@@ -491,7 +611,10 @@
           "value": 0.8200000000000001,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-041",
-          "segmentation_record_ref": "segmentation:particle-041"
+          "segmentation_record_ref": "segmentation:particle-041",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-041"
         },
         {
           "particle_id": "particle-042",
@@ -500,7 +623,10 @@
           "value": 0.505,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-042",
-          "segmentation_record_ref": "segmentation:particle-042"
+          "segmentation_record_ref": "segmentation:particle-042",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-042"
         },
         {
           "particle_id": "particle-043",
@@ -509,7 +635,10 @@
           "value": 0.6900000000000001,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-043",
-          "segmentation_record_ref": "segmentation:particle-043"
+          "segmentation_record_ref": "segmentation:particle-043",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-043"
         },
         {
           "particle_id": "particle-044",
@@ -518,7 +647,10 @@
           "value": 0.875,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-044",
-          "segmentation_record_ref": "segmentation:particle-044"
+          "segmentation_record_ref": "segmentation:particle-044",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-044"
         },
         {
           "particle_id": "particle-045",
@@ -527,7 +659,10 @@
           "value": 0.56,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-045",
-          "segmentation_record_ref": "segmentation:particle-045"
+          "segmentation_record_ref": "segmentation:particle-045",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-045"
         },
         {
           "particle_id": "particle-046",
@@ -536,7 +671,10 @@
           "value": 0.745,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-046",
-          "segmentation_record_ref": "segmentation:particle-046"
+          "segmentation_record_ref": "segmentation:particle-046",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-046"
         },
         {
           "particle_id": "particle-047",
@@ -545,7 +683,10 @@
           "value": 0.43,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-047",
-          "segmentation_record_ref": "segmentation:particle-047"
+          "segmentation_record_ref": "segmentation:particle-047",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-047"
         },
         {
           "particle_id": "particle-048",
@@ -554,7 +695,10 @@
           "value": 0.615,
           "feature_dimension_mm": 0.5,
           "source_artifact_ref": "artifact:particle-048",
-          "segmentation_record_ref": "segmentation:particle-048"
+          "segmentation_record_ref": "segmentation:particle-048",
+          "particle_size_lower_mm": 1.95,
+          "particle_size_upper_mm": 2.05,
+          "size_measurement_ref": "size-measurement:particle-048"
         }
       ]
     }
