@@ -4,14 +4,14 @@
 //! the same synthetic ground-truth scenarios. It reports software benchmark
 //! quantities only; it is not a biological simulator or a SOTA claim.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use super::scenario_tree::{
     ScenarioTreeConfig, ScenarioTreeError, TransitionConstraints, plan_first_action,
 };
 use super::{
     AbstainReason, Decision, DecisionConfig, DecisionState, EngineError, EvidenceTier,
-    ExperimentRecord, Feasibility, InterventionCandidate, ModelAdequacy, Posterior,
+    ExperimentRecord, InterventionCandidate, ModelAdequacy, Posterior,
     PosteriorUpdate, SelectionPolicy, StopReason, condition_on_outcome, entropy,
     expected_information_gain, reject_candidate, splitmix64, validate_candidate,
     validate_posterior,
@@ -274,16 +274,25 @@ fn clairvoyant_candidate_id(
         .map(|(id, _)| id)
 }
 
+struct PolicySelectionContext<'a> {
+    state: &'a DecisionState,
+    candidates: &'a [InterventionCandidate],
+    config: &'a DecisionConfig,
+    static_order: &'a [String],
+    true_model_id: &'a str,
+}
+
 fn choose_for_policy(
     policy: BenchmarkPolicy,
-    state: &DecisionState,
-    candidates: &[InterventionCandidate],
-    config: &DecisionConfig,
-    static_order: &[String],
-    true_model_id: &str,
+    context: &PolicySelectionContext<'_>,
     step: u32,
     seed: u64,
 ) -> Result<Result<String, EpisodeTermination>, BenchmarkError> {
+    let state = context.state;
+    let candidates = context.candidates;
+    let config = context.config;
+    let static_order = context.static_order;
+    let true_model_id = context.true_model_id;
     match policy {
         BenchmarkPolicy::StaticOneShotRanking | BenchmarkPolicy::BalancedRoundRobin => {
             let order: Vec<String> = if policy == BenchmarkPolicy::StaticOneShotRanking {
@@ -318,8 +327,7 @@ fn choose_for_policy(
             let remaining_horizon = config
                 .maximum_experiments
                 .saturating_sub(state.completed_experiments)
-                .max(1)
-                .min(4);
+                .clamp(1, 4);
             let plan = plan_first_action(
                 &state.posterior,
                 candidates,
@@ -428,11 +436,13 @@ pub fn run_synthetic_episode(
         }
         let candidate_id = match choose_for_policy(
             policy,
-            &state,
-            &scenario.candidates,
-            &config,
-            &static_order,
-            &scenario.true_model_id,
+            &PolicySelectionContext {
+                state: &state,
+                candidates: &scenario.candidates,
+                config: &config,
+                static_order: &static_order,
+                true_model_id: &scenario.true_model_id,
+            },
             step,
             seed,
         )? {
@@ -608,7 +618,7 @@ mod tests {
             scenario_id: format!("regime-{regime}-variant-{variant}"),
             initial_posterior: posterior(0.25 + f64::from(variant) * 0.10),
             ambiguity_posteriors: vec![posterior(0.5)],
-            true_model_id: if regime % 2 == 0 {
+            true_model_id: if regime.is_multiple_of(2) {
                 "model-a".to_owned()
             } else {
                 "model-b".to_owned()
