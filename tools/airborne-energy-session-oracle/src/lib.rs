@@ -370,6 +370,7 @@ pub fn evaluate_json(input: &str) -> Result<Report, EvalError> {
         .get("events")
         .and_then(Value::as_array)
         .ok_or_else(|| fail("$.events", "must be an array"))?;
+    let _ = string_field(&value, "claim_ceiling", "$")?;
 
     if record_state == "NOT_RUN" {
         if evidence_class != "NOT_RUN"
@@ -402,8 +403,6 @@ pub fn evaluate_json(input: &str) -> Result<Report, EvalError> {
     if events.is_empty() {
         return Err(fail("$.events", "fixture must contain at least one event"));
     }
-    let _ = string_field(&value, "claim_ceiling", "$")?;
-
     let receiver = value
         .get("receiver")
         .ok_or_else(|| fail("$.receiver", "missing receiver"))?;
