@@ -166,14 +166,16 @@ impl SourceInertiaTensor {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SourcePosition {
     pub values: [f64; 3],
     pub unit: LengthUnit,
+    /// Exact source coordinate frame / datum identifier.
+    pub coordinate_frame_id: String,
 }
 
 impl SourcePosition {
-    pub fn metres(self) -> Result<[f64; 3], String> {
+    pub fn metres(&self) -> Result<[f64; 3], String> {
         Ok([
             self.unit.to_metres(self.values[0])?,
             self.unit.to_metres(self.values[1])?,
@@ -232,6 +234,8 @@ pub struct MassEvidenceLedger {
     pub aircraft_family: String,
     pub aircraft_model: String,
     pub serial_number: String,
+    /// Canonical aircraft datum and axis convention for all canonical positions.
+    pub reference_frame_id: String,
     /// Records must be strictly sorted by item ID for canonical generation identity.
     pub records: Vec<MassItemEvidence>,
 }
@@ -283,6 +287,7 @@ pub struct AircraftLoadingState {
     pub aircraft_family: String,
     pub aircraft_model: String,
     pub serial_number: String,
+    pub reference_frame_id: String,
     /// Must contain every evidence record, exactly once, sorted by item ID.
     /// Removed items remain explicit; they are not silently omitted.
     pub items: Vec<LoadingItemState>,
@@ -332,6 +337,7 @@ impl MassEvidenceLedger {
         push_str(&mut bytes, &self.aircraft_family);
         push_str(&mut bytes, &self.aircraft_model);
         push_str(&mut bytes, &self.serial_number);
+        push_str(&mut bytes, &self.reference_frame_id);
         push_u64(&mut bytes, self.records.len() as u64);
         for record in &self.records {
             encode_evidence_record(&mut bytes, record);
@@ -358,6 +364,8 @@ impl MassEvidenceLedger {
         if state.aircraft_family != self.aircraft_family
             || state.aircraft_model != self.aircraft_model
             || state.serial_number != self.serial_number
+            || state.reference_frame_id != self.reference_frame_id
+            || state.reference_frame_id != self.reference_frame_id
         {
             return Err("loading state aircraft identity/effectivity mismatch".to_owned());
         }
@@ -514,7 +522,7 @@ impl MassEvidenceLedger {
                         all_uncertainties_independent = false;
                     }
 
-                    validate_state_geometry(state_item)?;
+                    validate_state_geometry(state_item, &self.reference_frame_id)?;
                     validate_state_inertia(state_item)?;
                     mass_items.push(MassItem {
                         id: state_item.item_id.clone(),
@@ -589,6 +597,7 @@ impl MassEvidenceLedger {
         validate_nonempty(&state.aircraft_family, "state.aircraft_family")?;
         validate_nonempty(&state.aircraft_model, "state.aircraft_model")?;
         validate_nonempty(&state.serial_number, "state.serial_number")?;
+        validate_nonempty(&state.reference_frame_id, "state.reference_frame_id")?;
         validate_sha256(&state.configuration_sha256, "state.configuration_sha256")?;
         if state.schema_version != LOADING_STATE_SCHEMA_VERSION {
             return Err("unsupported aircraft loading-state schema version".to_owned());
@@ -614,6 +623,7 @@ impl MassEvidenceLedger {
         push_str(&mut bytes, &state.aircraft_family);
         push_str(&mut bytes, &state.aircraft_model);
         push_str(&mut bytes, &state.serial_number);
+        push_str(&mut bytes, &state.reference_frame_id);
         push_u64(&mut bytes, state.items.len() as u64);
         for item in &state.items {
             encode_loading_item(&mut bytes, item);
@@ -629,6 +639,7 @@ impl MassEvidenceLedger {
         validate_nonempty(&self.aircraft_family, "aircraft_family")?;
         validate_nonempty(&self.aircraft_model, "aircraft_model")?;
         validate_nonempty(&self.serial_number, "serial_number")?;
+        validate_nonempty(&self.reference_frame_id, "reference_frame_id")?;
         if self.records.is_empty() {
             return Err("mass evidence ledger must contain at least one record".to_owned());
         }
@@ -750,15 +761,17 @@ fn validate_evidence_record(
     }
     match &evidence.item.geometry {
         MassGeometry::PointMass { position_m } => {
-            let source = evidence.source_position.ok_or_else(|| {
+            let source = evidence.source_position.as_ref().ok_or_else(|| {
                 format!("mass item {}: base point mass requires source position", evidence.item.id)
             })?;
+            validate_source_frame(source, &ledger.reference_frame_id, &evidence.item.id)?;
             validate_position_match(*position_m, source, &evidence.item.id)?;
         }
         MassGeometry::RigidBody { center_of_mass_m, .. } => {
-            let source = evidence.source_position.ok_or_else(|| {
+            let source = evidence.source_position.as_ref().ok_or_else(|| {
                 format!("mass item {}: rigid body requires source centre-of-mass position", evidence.item.id)
             })?;
+            validate_source_frame(source, &ledger.reference_frame_id, &evidence.item.id)?;
             validate_position_match(*center_of_mass_m, source, &evidence.item.id)?;
         }
         MassGeometry::Unknown => {
@@ -810,18 +823,20 @@ fn validate_state_order_and_completeness(
     Ok(())
 }
 
-fn validate_state_geometry(item: &LoadingItemState) -> Result<(), String> {
+fn validate_state_geometry(item: &LoadingItemState, reference_frame_id: &str) -> Result<(), String> {
     match &item.geometry {
         MassGeometry::PointMass { position_m } => {
-            let source = item.source_position.ok_or_else(|| {
+            let source = item.source_position.as_ref().ok_or_else(|| {
                 format!("loading item {}: point geometry requires source position", item.item_id)
             })?;
+            validate_source_frame(source, reference_frame_id, &item.item_id)?;
             validate_position_match(*position_m, source, &item.item_id)?;
         }
         MassGeometry::RigidBody { center_of_mass_m, .. } => {
-            let source = item.source_position.ok_or_else(|| {
+            let source = item.source_position.as_ref().ok_or_else(|| {
                 format!("loading item {}: rigid-body geometry requires source position", item.item_id)
             })?;
+            validate_source_frame(source, reference_frame_id, &item.item_id)?;
             validate_position_match(*center_of_mass_m, source, &item.item_id)?;
         }
         MassGeometry::Unknown => {
@@ -869,9 +884,18 @@ fn validate_inertia_match(
     Ok(())
 }
 
+fn validate_source_frame(source: &SourcePosition, expected_frame_id: &str, item_id: &str) -> Result<(), String> {
+    if source.coordinate_frame_id != expected_frame_id {
+        return Err(format!(
+            "mass item {item_id}: source coordinate frame does not match ledger reference frame"
+        ));
+    }
+    Ok(())
+}
+
 fn validate_position_match(
     canonical_m: [f64; 3],
-    source: SourcePosition,
+    source: &SourcePosition,
     item_id: &str,
 ) -> Result<(), String> {
     let converted = source.metres()?;
@@ -1034,7 +1058,8 @@ fn encode_mass_value(bytes: &mut Vec<u8>, value: SourceMassValue) {
     });
 }
 
-fn encode_position(bytes: &mut Vec<u8>, value: SourcePosition) {
+fn encode_position(bytes: &mut Vec<u8>, value: &SourcePosition) {
+    push_str(bytes, &value.coordinate_frame_id);
     for coordinate in value.values {
         push_f64(bytes, coordinate);
     }
