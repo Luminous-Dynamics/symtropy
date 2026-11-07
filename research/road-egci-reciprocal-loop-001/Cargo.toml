@@ -15,4 +15,6 @@ symtropy-physics = { path = "../../crates/core/symtropy-physics" }
 symtropy-road-actor-adapter = { path = "../../crates/domains/symtropy-road-actor-adapter" }
 symtropy-road-actors = { path = "../../crates/domains/symtropy-road-actors" }
 
+# Reproducibility: commit Cargo.lock and qualify every change with --locked.
+# Regenerate the lock only when a package manifest or local path dependency changes.
 [workspace]
