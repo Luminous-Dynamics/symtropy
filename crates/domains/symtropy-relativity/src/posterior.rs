@@ -132,6 +132,7 @@ mod tests {
         }
         assert!(mapped[0].horizon_angular_velocity_rad_s > 0.0);
         assert!(mapped[1].horizon_angular_velocity_rad_s < 0.0);
+        assert!(mapped[1].direct_wave_reference_frequency_hz > 0.0);
         assert!(mapped[2].horizon_angular_velocity_rad_s > 0.0);
         assert!(mapped[2].surface_gravity_rate_s_inv < mapped[0].surface_gravity_rate_s_inv);
     }
