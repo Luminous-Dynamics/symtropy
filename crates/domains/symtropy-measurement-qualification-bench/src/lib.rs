@@ -6,7 +6,7 @@
 #![forbid(unsafe_code)]
 
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const TOLERANCE: f64 = 1.0e-10;
 const MAX_SAMPLES: usize = 2048;
@@ -50,11 +50,25 @@ pub struct QuantileReport {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct SequentialStabilityReport {
+    pub probability: f64,
+    pub maximum_allowed_drift: f64,
+    pub maximum_observed_drift: f64,
+    pub last_instability_batch_index: Option<usize>,
+    pub terminal_stable_transition_count: usize,
+    pub required_terminal_stable_transitions: usize,
+    pub batch_count: usize,
+    pub disposition: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct SampleSetReport {
     pub sample_set_id: String,
     pub parent_bin_index: usize,
     pub descriptor_type: String,
     pub sample_count: usize,
+    pub batch_count: usize,
+    pub sequential_stability: Vec<SequentialStabilityReport>,
     pub exact_sample_count: usize,
     pub left_censored_count: usize,
     pub right_censored_count: usize,
@@ -465,10 +479,35 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
         let mut acquisition_blocks = BTreeSet::new();
         let mut particle_sources = BTreeSet::new();
         let mut segmentation_records = BTreeSet::new();
+        let mut batch_counts: BTreeMap<u64, (String, usize)> = BTreeMap::new();
+        let mut batch_ids = BTreeSet::new();
+        let mut previous_batch_index: Option<u64> = None;
         for (sample_index, sample) in samples.iter().enumerate() {
             let sample_path = format!("{path}.samples[{sample_index}]");
             let particle_id = text(sample, "particle_id");
             let block_id = text(sample, "acquisition_block_ref");
+            let batch_index = uint(sample, "batch_index");
+            let batch_id = text(sample, "batch_id");
+            match (batch_index, batch_id) {
+                (Some(index), Some(id)) => {
+                    if previous_batch_index.is_some_and(|previous| index < previous || index > previous + 1) {
+                        push(&mut errors, "NONCONTIGUOUS_OR_UNSORTED_SAMPLE_BATCH", &sample_path, "sample batches must be ordered and contiguous from index zero");
+                    }
+                    previous_batch_index = Some(index);
+                    if let Some((existing_id, count)) = batch_counts.get_mut(&index) {
+                        if existing_id != id {
+                            push(&mut errors, "SAMPLE_BATCH_ID_MISMATCH", &format!("{sample_path}.batch_id"), "all samples in one batch index must share the same batch ID");
+                        }
+                        *count += 1;
+                    } else {
+                        if !batch_ids.insert(id.to_owned()) {
+                            push(&mut errors, "DUPLICATE_SAMPLE_BATCH_ID", &format!("{sample_path}.batch_id"), "different batch indices must use unique batch IDs");
+                        }
+                        batch_counts.insert(index, (id.to_owned(), 1));
+                    }
+                }
+                _ => push(&mut errors, "MISSING_SAMPLE_BATCH_IDENTITY", &sample_path, "each sample must declare a sequential batch index and ID"),
+            }
             if let Some(source) = text(sample, "source_artifact_ref") {
                 if !particle_sources.insert(source.to_owned()) {
                     push(&mut errors, "DUPLICATE_PARTICLE_SOURCE_ARTIFACT", &format!("{sample_path}.source_artifact_ref"), "each independently sampled particle must have a distinct raw acquisition artifact in v0.1");
@@ -533,6 +572,55 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
                 }
                 _ => push(&mut errors, "INVALID_RESOLUTION_STATUS", &format!("{sample_path}.resolution_status"), "resolution status must be EXACT, LEFT_CENSORED or RIGHT_CENSORED"),
             }
+        }
+
+        let Some(stability) = sample_set.get("sequential_stability") else {
+            push(&mut errors, "MISSING_SEQUENTIAL_STABILITY_POLICY", &format!("{path}.sequential_stability"), "sequential terminal-stability policy is required");
+            continue;
+        };
+        let minimum_batches = uint(stability, "minimum_batch_count").unwrap_or(0);
+        let minimum_samples_per_batch = uint(stability, "minimum_samples_per_batch").unwrap_or(0);
+        let stable_tail_batches = uint(stability, "stable_tail_batch_count").unwrap_or(0);
+        if minimum_batches < 3 || minimum_samples_per_batch < 2 || stable_tail_batches < 1 {
+            push(&mut errors, "INVALID_SEQUENTIAL_STABILITY_POLICY", &format!("{path}.sequential_stability"), "minimum batches >= 3, samples per batch >= 2, and stable tail >= 1 are required");
+        }
+        if batch_counts.len() < minimum_batches as usize {
+            push(&mut errors, "INSUFFICIENT_SEQUENTIAL_BATCHES", &format!("{path}.sequential_stability"), "observed batch count is below the predeclared minimum");
+        }
+        if batch_counts.len().saturating_sub(1) < stable_tail_batches as usize {
+            push(&mut errors, "STABLE_TAIL_EXCEEDS_AVAILABLE_BATCHES", &format!("{path}.sequential_stability"), "stable tail transition count exceeds observed batch transitions");
+        }
+        for (batch_index, (_, count)) in &batch_counts {
+            if *count < minimum_samples_per_batch as usize {
+                push(&mut errors, "INSUFFICIENT_SAMPLES_IN_BATCH", &format!("{path}.sequential_stability"), format!("batch {batch_index} has fewer samples than the predeclared minimum"));
+            }
+        }
+
+        let Some(stability_targets) = stability.get("targets").and_then(Value::as_array) else {
+            push(&mut errors, "MISSING_SEQUENTIAL_STABILITY_TARGETS", &format!("{path}.sequential_stability.targets"), "stability targets must be an array");
+            continue;
+        };
+        let mut stability_probabilities = BTreeSet::new();
+        for (target_index, target) in stability_targets.iter().enumerate() {
+            let target_path = format!("{path}.sequential_stability.targets[{target_index}]");
+            match finite(target, "probability") {
+                Some(probability) if probability > 0.0 && probability < 1.0 => {
+                    if !stability_probabilities.insert(probability.to_bits()) {
+                        push(&mut errors, "DUPLICATE_SEQUENTIAL_STABILITY_TARGET", &target_path, "stability target probabilities must be unique");
+                    }
+                    if !probabilities.contains(&probability.to_bits()) {
+                        push(&mut errors, "STABILITY_TARGET_WITHOUT_QUANTILE_TARGET", &target_path, "each stability target must match one predeclared quantile target");
+                    }
+                }
+                _ => push(&mut errors, "INVALID_SEQUENTIAL_STABILITY_PROBABILITY", &target_path, "stability probability must be finite and in (0,1)"),
+            }
+            match finite(target, "maximum_batch_to_batch_drift") {
+                Some(drift) if drift > 0.0 => {}
+                _ => push(&mut errors, "INVALID_SEQUENTIAL_STABILITY_DRIFT", &target_path, "maximum batch-to-batch drift must be finite and positive"),
+            }
+        }
+        if stability_probabilities != probabilities {
+            push(&mut errors, "SEQUENTIAL_STABILITY_TARGET_SET_MISMATCH", &format!("{path}.sequential_stability.targets"), "stability target probabilities must exactly match the quantile precision target set");
         }
     }
 
@@ -623,6 +711,79 @@ fn nonparametric_quantile_interval(
     best
 }
 
+fn empirical_quantile(values: &[f64], probability: f64) -> f64 {
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let index = ((probability * sorted.len() as f64).ceil() as usize)
+        .saturating_sub(1)
+        .min(sorted.len() - 1);
+    sorted[index]
+}
+
+fn sequential_stability_reports(
+    sample_set: &Value,
+    samples: &[Value],
+) -> (usize, Vec<SequentialStabilityReport>) {
+    let mut batches: BTreeMap<u64, Vec<f64>> = BTreeMap::new();
+    for sample in samples {
+        let index = uint(sample, "batch_index").expect("validated batch index");
+        let value = finite(sample, "value").expect("validated exact sample value");
+        batches.entry(index).or_default().push(value);
+    }
+
+    let policy = &sample_set["sequential_stability"];
+    let required_tail = uint(policy, "stable_tail_batch_count").expect("validated tail count") as usize;
+    let batch_count = batches.len();
+    let mut cumulative = Vec::new();
+    let mut estimates_by_probability: BTreeMap<u64, Vec<(u64, f64)>> = BTreeMap::new();
+
+    for (batch_index, values) in &batches {
+        cumulative.extend(values.iter().copied());
+        for target in policy["targets"].as_array().expect("validated stability targets") {
+            let probability = finite(target, "probability").expect("validated stability probability");
+            let estimate = empirical_quantile(&cumulative, probability);
+            estimates_by_probability
+                .entry(probability.to_bits())
+                .or_default()
+                .push((*batch_index, estimate));
+        }
+    }
+
+    let mut reports = Vec::new();
+    for target in policy["targets"].as_array().expect("validated stability targets") {
+        let probability = finite(target, "probability").expect("validated stability probability");
+        let maximum_drift = finite(target, "maximum_batch_to_batch_drift")
+            .expect("validated maximum drift");
+        let estimates = &estimates_by_probability[&probability.to_bits()];
+        let mut maximum_observed_drift = 0.0_f64;
+        let mut last_instability = None;
+        for pair in estimates.windows(2) {
+            let drift = (pair[1].1 - pair[0].1).abs();
+            maximum_observed_drift = maximum_observed_drift.max(drift);
+            if drift > maximum_drift + TOLERANCE {
+                last_instability = Some(pair[1].0 as usize);
+            }
+        }
+        let last_batch_index = estimates.last().map(|(index, _)| *index as usize).unwrap_or(0);
+        let terminal_stable_count = last_instability
+            .map(|index| last_batch_index.saturating_sub(index))
+            .unwrap_or_else(|| batch_count.saturating_sub(1));
+        let pass = batch_count >= uint(policy, "minimum_batch_count").expect("validated minimum batch count") as usize
+            && terminal_stable_count >= required_tail;
+        reports.push(SequentialStabilityReport {
+            probability,
+            maximum_allowed_drift: maximum_drift,
+            maximum_observed_drift,
+            last_instability_batch_index: last_instability,
+            terminal_stable_transition_count: terminal_stable_count,
+            required_terminal_stable_transitions: required_tail,
+            batch_count,
+            disposition: if pass { "PASS_TERMINAL_STABILITY" } else { "FAIL_TERMINAL_STABILITY" }.to_owned(),
+        });
+    }
+    (batch_count, reports)
+}
+
 fn reference_reports(
     case: &Value,
 ) -> Vec<ReferenceReport> {
@@ -705,6 +866,11 @@ fn sample_set_reports(case: &Value) -> Vec<SampleSetReport> {
                 }
             }
 
+            let (batch_count, sequential_reports) = if left_censored + right_censored == 0 {
+                sequential_stability_reports(sample_set, samples)
+            } else {
+                (samples.iter().filter_map(|sample| uint(sample, "batch_index")).collect::<BTreeSet<_>>().len(), Vec::new())
+            };
             let mut quantile_reports = Vec::new();
             let descriptor_resolution = finite(sample_set, "descriptor_resolution")
                 .expect("validated descriptor resolution");
@@ -731,10 +897,7 @@ fn sample_set_reports(case: &Value) -> Vec<SampleSetReport> {
                     let probability = finite(target, "probability").expect("validated probability");
                     let confidence = finite(target, "confidence_level").expect("validated confidence");
                     let maximum_width = finite(target, "maximum_interval_width").expect("validated max width");
-                    let index = ((probability * exact_values.len() as f64).ceil() as usize)
-                        .saturating_sub(1)
-                        .min(exact_values.len() - 1);
-                    let estimate = exact_values[index];
+                    let estimate = empirical_quantile(&exact_values, probability);
                     let interval = nonparametric_quantile_interval(
                         &exact_values,
                         probability,
@@ -786,10 +949,15 @@ fn sample_set_reports(case: &Value) -> Vec<SampleSetReport> {
                 }
             }
 
+            let all_stability_pass = sequential_reports
+                .iter()
+                .all(|report| report.disposition == "PASS_TERMINAL_STABILITY");
             let disposition = if left_censored + right_censored > 0 {
                 "NOT_QUALIFIED_CENSORED_OBSERVATIONS"
-            } else if all_quantiles_pass {
-                "PASS_SAMPLE_ADEQUACY"
+            } else if all_quantiles_pass && all_stability_pass {
+                "PASS_SAMPLE_ADEQUACY_AND_TERMINAL_STABILITY"
+            } else if !all_stability_pass {
+                "FAIL_SEQUENTIAL_STABILITY"
             } else {
                 "FAIL_SAMPLE_ADEQUACY"
             };
@@ -798,6 +966,8 @@ fn sample_set_reports(case: &Value) -> Vec<SampleSetReport> {
                 parent_bin_index: uint(sample_set, "parent_bin_index").expect("validated parent bin") as usize,
                 descriptor_type: text(sample_set, "descriptor_type").expect("validated descriptor").to_owned(),
                 sample_count: samples.len(),
+                batch_count,
+                sequential_stability: sequential_reports,
                 exact_sample_count: exact_values.len(),
                 left_censored_count: left_censored,
                 right_censored_count: right_censored,
@@ -925,6 +1095,48 @@ mod tests {
         assert!((set.quantiles[1].achieved_confidence - 0.9145668668426059).abs() < 1.0e-9);
         assert!((set.quantiles[2].interval_lower.unwrap() - 0.845).abs() < 1.0e-9);
         assert!((set.quantiles[2].interval_upper.unwrap() - 0.915).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn sequential_tail_stability_requires_the_predeclared_terminal_batches() {
+        let report = evaluate();
+        let set = &report.sample_sets[0];
+        assert_eq!(set.batch_count, 6);
+        assert_eq!(set.sequential_stability.len(), 3);
+        assert!(set.sequential_stability.iter().all(|item| item.disposition == "PASS_TERMINAL_STABILITY"));
+        assert_eq!(set.sequential_stability[1].last_instability_batch_index, Some(3));
+        assert_eq!(set.sequential_stability[1].terminal_stable_transition_count, 2);
+    }
+
+    #[test]
+    fn one_late_quantile_shift_resets_terminal_stability() {
+        let mut case = fixture();
+        for sample in case["sample_sets"][0]["samples"].as_array_mut().unwrap() {
+            if sample["batch_index"] == 5 {
+                sample["value"] = serde_json::json!(0.99);
+            }
+        }
+        let report = evaluate_against_parent(&case, &parent()).unwrap();
+        assert_eq!(report.sample_sets[0].sequential_stability[2].terminal_stable_transition_count, 0);
+        assert_eq!(report.sample_sets[0].sequential_stability[2].disposition, "FAIL_TERMINAL_STABILITY");
+        assert_eq!(report.overall_disposition, "NOT_QUALIFIED");
+    }
+
+    #[test]
+    fn a_longer_stable_tail_can_fail_after_a_shorter_tail_passes() {
+        let mut case = fixture();
+        case["sample_sets"][0]["sequential_stability"]["stable_tail_batch_count"] =
+            serde_json::json!(3);
+        let report = evaluate_against_parent(&case, &parent()).unwrap();
+        assert_eq!(report.sample_sets[0].sequential_stability[1].terminal_stable_transition_count, 2);
+        assert_eq!(report.sample_sets[0].sequential_stability[1].disposition, "FAIL_TERMINAL_STABILITY");
+    }
+
+    #[test]
+    fn noncontiguous_or_unsorted_batches_are_rejected() {
+        let mut case = fixture();
+        case["sample_sets"][0]["samples"][16]["batch_index"] = serde_json::json!(4);
+        assert!(has(&validate_against_parent(&case, &parent()), "NONCONTIGUOUS_OR_UNSORTED_SAMPLE_BATCH"));
     }
 
     #[test]
