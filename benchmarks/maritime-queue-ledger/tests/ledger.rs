@@ -416,6 +416,107 @@ fn cargo_unit_mismatch_and_inventory_underflow_fail_closed() {
 }
 
 #[test]
+fn a_vessel_call_cannot_exit_before_its_observed_in_window_arrival() {
+    let ledger = vessel_ledger(
+        2,
+        vec![
+            vessel(
+                "arrival-a",
+                "call-a",
+                VesselEventKind::EligibleArrival,
+                EventClass::Actual,
+                5,
+                5,
+                None,
+            ),
+            vessel(
+                "berth-a",
+                "call-a",
+                VesselEventKind::BerthEntry,
+                EventClass::Actual,
+                2,
+                2,
+                None,
+            ),
+        ],
+    );
+    assert_eq!(
+        audit_vessel_queue(&ledger, 6),
+        Err(LedgerError::VesselExitBeforeArrival(
+            "call-a".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn corrections_not_yet_observed_do_not_rewrite_historical_snapshots() {
+    let ledger = vessel_ledger(
+        0,
+        vec![
+            vessel(
+                "arrival-v1",
+                "call-a",
+                VesselEventKind::EligibleArrival,
+                EventClass::Actual,
+                2,
+                2,
+                None,
+            ),
+            vessel(
+                "arrival-v2",
+                "call-a",
+                VesselEventKind::EligibleArrival,
+                EventClass::Actual,
+                4,
+                5,
+                Some("arrival-v1"),
+            ),
+            vessel(
+                "arrival-v3",
+                "call-a",
+                VesselEventKind::EligibleArrival,
+                EventClass::Actual,
+                6,
+                7,
+                Some("arrival-v1"),
+            ),
+        ],
+    );
+    let before = audit_vessel_queue(&ledger, 4).expect("future corrections are invisible");
+    assert_eq!(before.closing_queue, 1);
+    assert_eq!(before.queue_area_vessel_ticks, 8);
+
+    assert_eq!(
+        audit_vessel_queue(&ledger, 8),
+        Err(LedgerError::MultipleCorrections(
+            "arrival-v1".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn actual_event_at_the_exclusive_window_end_belongs_to_the_next_window() {
+    let ledger = vessel_ledger(
+        0,
+        vec![vessel(
+            "arrival-end",
+            "call-end",
+            VesselEventKind::EligibleArrival,
+            EventClass::Actual,
+            10,
+            10,
+            None,
+        )],
+    );
+    assert_eq!(
+        audit_vessel_queue(&ledger, 10),
+        Err(LedgerError::ActualEventOutsideWindow(
+            "arrival-end".to_owned()
+        ))
+    );
+}
+
+#[test]
 fn unknown_or_restricted_rights_block_a_ledger_snapshot() {
     let mut event = vessel(
         "arrival-a",
