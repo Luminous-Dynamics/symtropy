@@ -838,7 +838,6 @@ fn joint_action_digest(decisions: &[PolicyDecision]) -> String {
     hex(h.finalize().as_bytes())
 }
 
-
 fn hash_strs(h: &mut Hasher, values: &[String]) {
     hash_len(h, values.len());
     for value in values {
@@ -1016,8 +1015,17 @@ mod tests {
                 );
             }
             for transition in &branch.transitions {
-                let at_tick: Vec<_> = branch.decisions.iter().filter(|item| item.tick == transition.tick).collect();
-                assert!(at_tick.iter().all(|item| item.command_latch_event_sequence.unwrap() < transition.physics_event_sequence));
+                let at_tick: Vec<_> = branch
+                    .decisions
+                    .iter()
+                    .filter(|item| item.tick == transition.tick)
+                    .collect();
+                assert!(
+                    at_tick
+                        .iter()
+                        .all(|item| item.command_latch_event_sequence.unwrap()
+                            < transition.physics_event_sequence)
+                );
             }
         }
     }
