@@ -352,6 +352,7 @@ fn revoked_position_evidence_is_unsupported() {
 fn reposition_data_must_match_the_task_route_revision() {
     let mut input = workload();
     input.reposition_legs[1].route_revision = "route-old".to_owned();
+    input.reposition_legs[1].evidence.subject_revision = "route-old".to_owned();
     let report = evaluate_mobile_assistance(&input).expect("valid workload");
     assert_eq!(report.disposition, MobileDisposition::NeedsEvidence);
     assert!(
