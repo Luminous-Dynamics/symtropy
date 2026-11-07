@@ -1056,6 +1056,7 @@ mod tests {
     fn missing_consent_is_undetermined_not_consent() {
         let mut snapshot = reference_snapshot();
         snapshot.transfers[0].recipient_consent = None;
+        snapshot.groups[1].exit_available = Some(true);
         let report = evaluate_profiles(&snapshot, &reference_profiles()).unwrap();
         let rights = report
             .profiles
@@ -1069,6 +1070,9 @@ mod tests {
     fn missing_or_unverified_ledger_evidence_is_undetermined() {
         let mut missing = reference_snapshot();
         missing.ledger_receipts.pop();
+        // Remove the independent food-depletion contradiction so the missing
+        // ledger receipt is the only unresolved stewardship condition.
+        missing.resources[2].closing_stock = 80.0;
         let report = evaluate_profiles(&missing, &reference_profiles()).unwrap();
         let stewardship = report
             .profiles
@@ -1079,6 +1083,7 @@ mod tests {
 
         let mut unverified = reference_snapshot();
         unverified.ledger_receipts[0].source_verified = false;
+        unverified.resources[2].closing_stock = 80.0;
         let report = evaluate_profiles(&unverified, &reference_profiles()).unwrap();
         let stewardship = report
             .profiles
