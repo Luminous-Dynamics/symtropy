@@ -71,20 +71,14 @@ pub enum CcdQueryError {
 }
 
 fn validate_ccd_timestep(dt_seconds: f64) -> Result<(), CcdQueryError> {
-    if !dt_seconds.is_finite() {
-        return Err(CcdQueryError::InvalidTimeStep);
-    }
-    if dt_seconds < 0.0 {
+    if !dt_seconds.is_finite() || dt_seconds < 0.0 {
         return Err(CcdQueryError::InvalidTimeStep);
     }
     Ok(())
 }
 
 fn validate_ccd_radius(radius: f64) -> Result<(), CcdQueryError> {
-    if !radius.is_finite() {
-        return Err(CcdQueryError::InvalidRadius);
-    }
-    if radius <= 0.0 {
+    if !radius.is_finite() || radius <= 0.0 {
         return Err(CcdQueryError::InvalidRadius);
     }
     Ok(())
@@ -119,16 +113,10 @@ fn validate_ccd_hit<const D: usize>(
 /// Bodies moving slower than this per step won't tunnel through typical geometry.
 pub const CCD_SPEED_THRESHOLD: f64 = 5.0;
 
-/// Swept sphere vs sphere: find the earliest time of impact.
-///
-/// Given two spheres with positions and velocities, solve for elapsed physical time
-/// `t ∈ [0, dt_seconds]` in seconds when
-/// `|pos_a(t) - pos_b(t)| = radius_a + radius_b`.
-///
-/// This is a quadratic in t:
-/// `|Δp + Δv*t|² = r²` where Δp = pos_b - pos_a, Δv = vel_b - vel_a, r = ra + rb.
 /// Checked swept sphere-vs-sphere query.
 ///
+/// Given two spheres with positions and velocities, solve the quadratic
+/// `|Δp + Δv*t|² = r²` for earliest impact during `[0, dt_seconds]`.
 /// `dt_seconds` and the returned TOI are elapsed physical seconds. Radii must
 /// be finite and strictly positive; position and velocity vectors must be finite.
 pub fn sphere_sphere_checked<const D: usize>(
@@ -288,16 +276,11 @@ fn sphere_sphere_unchecked<const D: usize>(
     }
 }
 
-/// Swept sphere vs half-space (infinite plane): find time of impact.
-///
-/// Solve for elapsed physical time `t` in seconds where
-/// `unit_normal · (pos + vel*t) - offset = radius`.
-/// This is linear: `t = (radius + offset - unit_normal · pos) / (unit_normal · vel)`.
-/// The plane normal must be a unit vector; use the checked API to validate it.
 /// Checked swept sphere-vs-half-space query.
 ///
-/// The plane equation is `unit_normal · x = offset`; the normal must be a
-/// finite unit vector. TOI is returned in elapsed physical seconds.
+/// The plane equation is `unit_normal · x = offset`. The normal must be a
+/// finite unit vector. The linear solve returns elapsed physical seconds for
+/// `unit_normal · (pos + vel*t) - offset = radius`.
 pub fn sphere_halfspace_checked<const D: usize>(
     pos: &SVector<f64, D>,
     vel: &SVector<f64, D>,
