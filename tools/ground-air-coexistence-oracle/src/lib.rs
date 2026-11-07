@@ -118,12 +118,37 @@ fn receiver_class_domain(value: &str, path: &str) -> Result<Domain, String> {
     }
 }
 
+fn modality_input_boundary(value: &str) -> &'static str {
+    match value {
+        "GROUND_DYNAMIC_INDUCTIVE" => "GROUND_ROAD_INVERTER_DC_INPUT",
+        "GROUND_STATIC_INDUCTIVE" => "GROUND_STATIC_INVERTER_DC_INPUT",
+        "AIR_DOCK_CONDUCTIVE" => "AIR_DOCK_CHARGER_AC_INPUT",
+        "AIR_DOCK_INDUCTIVE" | "AIR_DOCK_CAPACITIVE" => "AIR_DOCK_INVERTER_DC_INPUT",
+        "AIR_HOVER_INDUCTIVE" | "AIR_HOVER_CAPACITIVE" => "AIR_HOVER_INVERTER_DC_INPUT",
+        "AIR_RF_POWER_BEAMING" => "AIR_RF_TRANSMITTER_AC_INPUT",
+        "AIR_OPTICAL_POWER_BEAMING" => "AIR_OPTICAL_LASER_DRIVER_AC_INPUT",
+        _ => "UNKNOWN_INPUT_BOUNDARY",
+    }
+}
+
+fn receiver_energy_boundary(value: &str) -> &'static str {
+    match value {
+        "ROAD_CAR" | "ROAD_BUS" | "ROAD_HEAVY_TRUCK" => {
+            "GROUND_VEHICLE_BATTERY_TERMINAL_INPUT"
+        }
+        "UAV_DOCKED" | "UAV_HOVERING" | "UAV_FIXED_WING" | "EVTOL_DOCKED"
+        | "EVTOL_AIRBORNE" => "AIRCRAFT_BATTERY_TERMINAL_INPUT",
+        _ => "UNKNOWN_USEFUL_ENERGY_BOUNDARY",
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Channel {
     channel_id: String,
     domain: Domain,
     maximum_input_quanta_per_slot: u64,
     envelope_sha256: String,
+    channel_input_boundary_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -137,6 +162,7 @@ struct Session {
     minimum_useful_energy_wh: u64,
     maximum_input_quanta_per_slot: u64,
     useful_energy_wh_per_input_quantum_slot: u64,
+    useful_energy_boundary_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -144,6 +170,7 @@ struct Scenario {
     episode_id: String,
     site_id: String,
     grid_source_id: String,
+    source_power_boundary_id: String,
     slot_duration_ms: u64,
     slot_count: usize,
     pcc_max_input_quanta_per_slot: u64,
@@ -195,6 +222,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         &[
             "site_id",
             "grid_source_id",
+            "source_power_boundary_id",
             "pcc_max_input_quanta_per_slot",
             "total_source_energy_budget_wh",
             "source_energy_wh_per_quantum_slot",
@@ -203,6 +231,14 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
     )?;
     let site_id = string_field(site, "site_id", "$.site")?.to_string();
     let grid_source_id = string_field(site, "grid_source_id", "$.site")?.to_string();
+    let source_power_boundary_id =
+        string_field(site, "source_power_boundary_id", "$.site")?.to_string();
+    if source_power_boundary_id != "SITE_PCC_GRID_AC_INPUT" {
+        return Err(fail(
+            "$.site.source_power_boundary_id",
+            "v0 requires the SITE_PCC_GRID_AC_INPUT site source boundary",
+        ));
+    }
     let pcc_max_input_quanta_per_slot =
         uint_field(site, "pcc_max_input_quanta_per_slot", "$.site")?;
     let total_source_energy_budget_wh =
@@ -263,6 +299,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
                 "channel_id",
                 "domain",
                 "modality",
+                "channel_input_boundary_id",
                 "maximum_input_quanta_per_slot",
                 "envelope_sha256",
                 "support_state",
@@ -281,6 +318,14 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             return Err(fail(
                 &path,
                 "channel domain conflicts with its declared transfer modality",
+            ));
+        }
+        let channel_input_boundary_id =
+            string_field(row, "channel_input_boundary_id", &path)?.to_string();
+        if channel_input_boundary_id != modality_input_boundary(modality) {
+            return Err(fail(
+                &path,
+                "channel input meter boundary does not match its declared transfer modality",
             ));
         }
         let maximum_input_quanta_per_slot =
@@ -312,6 +357,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             domain,
             maximum_input_quanta_per_slot,
             envelope_sha256,
+            channel_input_boundary_id,
         });
     }
     channels.sort_by(|left, right| left.channel_id.cmp(&right.channel_id));
@@ -334,6 +380,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
                 "domain",
                 "receiver_class",
                 "channel_id",
+                "useful_energy_boundary_id",
                 "start_slot",
                 "end_slot",
                 "requested_useful_energy_wh",
@@ -363,6 +410,15 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             return Err(fail(
                 &path,
                 "v0 cannot authorize physical receiver sessions",
+            ));
+        }
+        let receiver_class = string_field(row, "receiver_class", &path)?;
+        let useful_energy_boundary_id =
+            string_field(row, "useful_energy_boundary_id", &path)?.to_string();
+        if useful_energy_boundary_id != receiver_energy_boundary(receiver_class) {
+            return Err(fail(
+                &path,
+                "useful-energy meter boundary does not match the declared receiver class",
             ));
         }
         let channel_id = string_field(row, "channel_id", &path)?;
@@ -425,6 +481,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
             minimum_useful_energy_wh,
             maximum_input_quanta_per_slot,
             useful_energy_wh_per_input_quantum_slot,
+            useful_energy_boundary_id,
         });
     }
     sessions.sort_by(|left, right| left.session_id.cmp(&right.session_id));
@@ -477,6 +534,7 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         episode_id,
         site_id,
         grid_source_id,
+        source_power_boundary_id,
         slot_duration_ms,
         slot_count,
         pcc_max_input_quanta_per_slot,
@@ -762,7 +820,9 @@ fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, 
             "session_id": session.session_id,
             "domain": session.domain.as_str(),
             "channel_id": scenario.channels[session.channel_index].channel_id,
+            "channel_input_boundary_id": scenario.channels[session.channel_index].channel_input_boundary_id,
             "envelope_sha256": scenario.channels[session.channel_index].envelope_sha256,
+            "useful_energy_boundary_id": session.useful_energy_boundary_id,
             "requested_useful_energy_wh": session.requested_useful_energy_wh,
             "minimum_useful_energy_wh": session.minimum_useful_energy_wh,
             "delivered_useful_energy_wh": delivered,
@@ -789,6 +849,7 @@ fn build_report(scenario: &Scenario, search: &ExactSearch<'_>) -> Result<Value, 
         "exact_bounded_optimum": true,
         "site_id": scenario.site_id,
         "grid_source_id": scenario.grid_source_id,
+        "source_power_boundary_id": scenario.source_power_boundary_id,
         "slot_duration_ms": scenario.slot_duration_ms,
         "slot_count": scenario.slot_count,
         "pcc_max_input_quanta_per_slot": scenario.pcc_max_input_quanta_per_slot,
