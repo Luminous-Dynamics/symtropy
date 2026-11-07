@@ -665,3 +665,19 @@ The Hamiltonian path checks canonical momentum conservation in the stationary/ax
 A fourth machine-readable manifest, `benchmarks/geodesic_reference_cases.json`, pins those Schwarzschild initial conditions, unit/parameter conventions, conserved quantities, fixed-step endpoints and negative controls.
 
 The branch now contains **51 authored Rust tests** and four parsed JSON benchmark manifests. The Rust tests remain unexecuted until a Rust toolchain is available.
+
+
+### Waveform surrogate certification protocol — 2026-11-07
+
+A fifth machine-readable benchmark manifest, `benchmarks/waveform_surrogate_certification_v1.json`, now specifies:
+- group-based train/validation/test splits by complete NR simulation ID (avoids near-neighbor waveform leakage);
+- matched noise-weighted mismatch, time-dependent phase error, relative amplitude error, mode error, remnant recovery and error-vs-cost metrics;
+- posterior coverage and sharpness after surrogate model discrepancy is propagated into likelihoods;
+- cross-model disagreement, conformal/held-out residual calibration and out-of-domain detection;
+- conservative abstention outside the calibrated domain;
+- active selection of new NR simulations compared with uniform random, Latin-hypercube/space-filling, max predictive variance and max model disagreement at equal simulation budgets;
+- hardware, precision, memory, latency and reproducibility requirements.
+
+Proposed targets include 90% / 95% posterior coverage error within 2 percentage points, in-domain abstention no higher than 5%, and at least 95% detection recall on the declared out-of-domain test set. These are **research targets**, not achieved numbers.
+
+The proposed competitive metric is **time-to-posterior-accuracy at calibrated coverage**, not raw waveform throughput. The exact model domain, held-out physical configurations, PSD, frequency band, modes, reference NR resolution and hardware must be matched before comparing with 2026 baselines. See [BH-SURROGATE-CERT-001 #3998](https://github.com/Luminous-Dynamics/symtropy/issues/3998).
