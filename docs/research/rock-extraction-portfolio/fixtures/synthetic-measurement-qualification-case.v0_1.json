@@ -26,7 +26,6 @@
       "basis": "PROJECTION_2D",
       "descriptor_definition_ref": "descriptor:circularity-2d-v1",
       "certified_value": 0.72,
-      "certified_standard_uncertainty": 0.005,
       "feature_dimension_mm": 5,
       "maximum_abs_error": 0.04,
       "calibration_ref": "cal:synthetic-imager-r1",
@@ -74,7 +73,9 @@
           "orientation_ref": "orientation-135",
           "measured_value": 0.717
         }
-      ]
+      ],
+      "certified_expanded_uncertainty": 0.01,
+      "coverage_factor": 2
     }
   ],
   "sample_sets": [
