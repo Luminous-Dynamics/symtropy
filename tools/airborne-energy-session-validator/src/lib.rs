@@ -43,6 +43,15 @@ const EVIDENCE_KEYS: &[&str] = &[
     "tracking_state",
     "local_protection_state",
     "deenergized_state",
+    "receiver_id",
+    "trajectory_sha256",
+    "opportunity_id",
+    "envelope_sha256",
+    "allocation_id",
+    "allocation_sha256",
+    "clock_id",
+    "clock_uncertainty_ms",
+    "local_protection_receipt_sha256",
 ];
 
 const ENERGY_KEYS: &[&str] = &[
@@ -403,6 +412,27 @@ fn validate_evidence(value: &Value, path: &str) -> Result<(), String> {
         ],
         path,
     )?;
+    string(value, "receiver_id", path)?;
+    validate_sha256(
+        string(value, "trajectory_sha256", path)?,
+        &format!("{path}.trajectory_sha256"),
+    )?;
+    string(value, "opportunity_id", path)?;
+    validate_sha256(
+        string(value, "envelope_sha256", path)?,
+        &format!("{path}.envelope_sha256"),
+    )?;
+    string(value, "allocation_id", path)?;
+    validate_sha256(
+        string(value, "allocation_sha256", path)?,
+        &format!("{path}.allocation_sha256"),
+    )?;
+    string(value, "clock_id", path)?;
+    unsigned(value, "clock_uncertainty_ms", path)?;
+    validate_sha256(
+        string(value, "local_protection_receipt_sha256", path)?,
+        &format!("{path}.local_protection_receipt_sha256"),
+    )?;
     Ok(())
 }
 
@@ -570,6 +600,7 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
 
     let mut current_state = "UNAVAILABLE";
     let mut previous_time = None;
+    let mut episode_clock_id: Option<String> = None;
     let mut event_ids = BTreeSet::new();
     let mut power_active_intervals = 0usize;
     let mut admission_ready = false;
@@ -613,6 +644,45 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
         let evidence = field(event, "evidence", &path)?;
         let evidence_path = format!("{path}.evidence");
         validate_evidence(evidence, &evidence_path)?;
+
+        if string(evidence, "receiver_id", &evidence_path)?
+            != string(receiver, "receiver_id", "$.receiver")?
+        {
+            return Err(fail(&evidence_path, "receiver_id does not match episode receiver"));
+        }
+        if string(evidence, "trajectory_sha256", &evidence_path)?
+            != string(receiver, "trajectory_sha256", "$.receiver")?
+        {
+            return Err(fail(&evidence_path, "trajectory_sha256 does not match episode trajectory"));
+        }
+        if string(evidence, "opportunity_id", &evidence_path)?
+            != string(opportunity, "opportunity_id", "$.opportunity")?
+        {
+            return Err(fail(&evidence_path, "opportunity_id does not match episode opportunity"));
+        }
+        if string(evidence, "envelope_sha256", &evidence_path)?
+            != string(opportunity, "envelope_sha256", "$.opportunity")?
+        {
+            return Err(fail(&evidence_path, "envelope_sha256 does not match opportunity envelope"));
+        }
+        if string(evidence, "allocation_id", &evidence_path)?
+            != string(allocation, "allocation_id", "$.site_allocation_receipt")?
+        {
+            return Err(fail(&evidence_path, "allocation_id does not match site allocation receipt"));
+        }
+        if string(evidence, "allocation_sha256", &evidence_path)?
+            != string(allocation, "allocation_sha256", "$.site_allocation_receipt")?
+        {
+            return Err(fail(&evidence_path, "allocation_sha256 does not match site allocation receipt"));
+        }
+        let event_clock_id = string(evidence, "clock_id", &evidence_path)?.to_string();
+        match &episode_clock_id {
+            Some(expected) if expected != &event_clock_id => {
+                return Err(fail(&evidence_path, "clock_id changes within one monotonic event trace"));
+            }
+            None => episode_clock_id = Some(event_clock_id),
+            _ => {}
+        }
 
         if to_state == "ACQUISITION_PENDING" && from_state == "DISCOVERED" {
             admission_ready = false;
@@ -662,6 +732,10 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
                     "POWER_ACTIVE requires tracking_state=TRACKED_SYNTHETIC",
                 ));
             }
+            validate_sha256(
+                string(evidence, "local_protection_receipt_sha256", &evidence_path)?,
+                &format!("{evidence_path}.local_protection_receipt_sha256"),
+            )?;
             if string(evidence, "local_protection_state", &evidence_path)?
                 != "PERMIT_SYNTHETIC_ONLY"
             {
@@ -862,6 +936,38 @@ mod tests {
     fn revoked_authorization_negative_control_is_rejected() {
         let error = validate_json(HOSTILE).expect_err("revoked authorization must fail");
         assert!(error.contains("admission requires authorization_state"));
+    }
+
+    #[test]
+    fn event_receipt_cannot_bind_to_a_different_receiver() {
+        let mut value = positive_value();
+        value["events"][4]["evidence"]["receiver_id"] = json!("other-receiver");
+        let error = validate_episode(&value).expect_err("cross-receiver receipt must fail");
+        assert!(error.contains("receiver_id does not match"));
+    }
+
+    #[test]
+    fn event_receipt_cannot_bind_to_a_different_envelope_revision() {
+        let mut value = positive_value();
+        value["events"][4]["evidence"]["envelope_sha256"] = json!("9".repeat(64));
+        let error = validate_episode(&value).expect_err("cross-envelope receipt must fail");
+        assert!(error.contains("envelope_sha256 does not match"));
+    }
+
+    #[test]
+    fn event_clock_cannot_change_inside_one_trace() {
+        let mut value = positive_value();
+        value["events"][11]["evidence"]["clock_id"] = json!("different-clock");
+        let error = validate_episode(&value).expect_err("mixed clock trace must fail");
+        assert!(error.contains("clock_id changes"));
+    }
+
+    #[test]
+    fn active_power_requires_a_valid_local_protection_receipt_digest() {
+        let mut value = positive_value();
+        value["events"][4]["evidence"]["local_protection_receipt_sha256"] = json!("not-a-digest");
+        let error = validate_episode(&value).expect_err("invalid local permit receipt must fail");
+        assert!(error.contains("lowercase hexadecimal SHA-256"));
     }
 
     #[test]
