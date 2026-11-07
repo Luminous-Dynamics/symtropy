@@ -52,7 +52,9 @@ No duplicate registration, coordinate-reference, metrology, component registry, 
 
 - Liu et al., *Dataset and benchmark for as-built BIM reconstruction from real-world point cloud*, Automation in Construction 173 (May 2025), DOI: [10.1016/j.autcon.2025.106096](https://doi.org/10.1016/j.autcon.2025.106096). The BIMNet study describes 25 indoor scans, 116,507,604 points, 382 rooms and 8,710 m², with geometric and topological evaluation. This is an external benchmark candidate; data access and redistribution rights must be checked before use.
 - Ersöz & Bosché, *Evaluating confidence in geometric matching between 3D point clouds and BIM models by integrating coverage, distance, and distribution metrics*, Automation in Construction 181 (January 2026), DOI: [10.1016/j.autcon.2025.106636](https://doi.org/10.1016/j.autcon.2025.106636). It reports validation on 46 point-cloud/BIM pairs and more than 4,000 elements. The coverage, distance and distribution decomposition is a useful baseline; self-occluded geometry must not be mistaken for observed evidence.
-- Patil, Sowmya & Kalantari, *Automatic Scan-to-BIM: The Impact of Semantic Segmentation Accuracy on Opening Detection*, ISPRS Annals, published 6 November 2026, DOI: [10.5194/isprs-annals-XI-1-2026-437-2026](https://doi.org/10.5194/isprs-annals-XI-1-2026-437-2026). The paper reports task-specific differences between door and window detection and argues that semantic segmentation metrics alone do not establish geometric reconstruction accuracy.
+- Patil, Sowmya & Kalantari, *Automatic Scan-to-BIM: The Impact of Semantic Segmentation Accuracy on Opening Detection*, ISPRS Annals, published 3 July 2026, DOI: [10.5194/isprs-annals-XI-1-2026-437-2026](https://doi.org/10.5194/isprs-annals-XI-1-2026-437-2026). The paper reports task-specific differences between door and window detection and argues that semantic segmentation metrics alone do not establish geometric reconstruction accuracy.
+- Jayasinghe & Brilakis, *Adapting occlusion completion methods for scan-to-BIM automation*, Automation in Construction 189 (September 2026), article 107052, DOI: [10.1016/j.autcon.2026.107052](https://doi.org/10.1016/j.autcon.2026.107052). The paper identifies bounding-box leakage as a key source of inflated point-cloud completion results, proposes a corrected benchmark without that leakage, and reports roughly 25% lower EMD and 40% lower Chamfer Distance on its evaluated datasets. Treat these as study-specific results, not a transferable superiority guarantee. Our benchmark must withhold reference bounds and split by building/scene/capture lineage.
+- **ISPRS Benchmark on Indoor Modelling:** six point clouds acquired with different sensors and scene conditions, including high-clutter/occluded and non-Manhattan scenes; one scene's windows are hidden by blinds. This is a useful cross-sensor generalization set alongside BIMNet. Verify the available BIM/reference package and terms before using it as a scored benchmark. https://isprs.org/resources/datasets/benchmarks/IndoorModeling/dataset.aspx
 - You, Chen & Xue, *Automated scan-to-BIM for construction digital transformation: Conceptual framework, processing methods and best-practice guidelines*, Automation in Construction 182 (February 2026), DOI: [10.1016/j.autcon.2025.106755](https://doi.org/10.1016/j.autcon.2025.106755). A review of 58 documented cases provides a workflow and method map, not a single end-to-end performance baseline.
 - *From Measured Geometry to Editable BIM: A Representation-Centered Review of Existing-Building Scan-to-BIM Reconstruction*, Buildings 16(20), 4095 (2026): https://www.mdpi.com/2075-5309/16/20/4095. The review highlights loss of uncertainty/provenance and element correspondence at representation boundaries.
 
@@ -145,13 +147,13 @@ Never collapse the benchmark into one scalar.
 
 | Plane | Report |
 |---|---|
-| Geometry | Symmetric point-to-surface/surface-to-point distance distributions; median/p95/p99; normal angle; dimensional/datum error; completeness; independent-checkpoint residual |
+| Geometry | Symmetric point-to-surface/surface-to-point distance distributions; EMD and Chamfer Distance where applicable; median/p95/p99; normal angle; dimensional/datum error; completeness; object-bound error; independent-checkpoint residual |
 | Visibility | Visible-surface coverage; unobserved/occluded fraction; coverage by region and modality; missing-view error |
 | Semantics | Per-class precision/recall; opening detection; class confusion; component association precision/recall |
 | Topology | Precision/recall of adjacency, containment, connectivity and opening-boundary edges; duplicate/orphan/missing relations |
 | Change | Precision/recall by change type; false-change rate on no-change pairs; missed-change magnitude; benign-pose confusion |
 | Admission | False model-mutation rate; stale-precondition rejection; disposition/reason correctness; abstention and unresolved-region rate |
-| Uncertainty | Interval coverage and width; calibration by class/geometry; risk-versus-coverage; sensitivity to input perturbations |
+| Uncertainty | Interval coverage and width for object bounds and element geometry; calibration by class/geometry; risk-versus-coverage; sensitivity to input perturbations |
 | Workflow | Accepted candidate deltas per total crew-hour; review time; added measurement cost; false-update rework; time to resolve unknowns |
 
 Use task/project tolerances declared before execution. Do not select a tolerance after seeing results. Separate registration residuals from independent checkpoint errors. Count self-occluded surface separately from visible surface. Retain all rejected, incomplete and indeterminate cases.
@@ -177,7 +179,9 @@ Record preparation, registration, manual editing, scan setup, review, correction
 
 ### P1 — external dataset replay
 - Reproduce a source baseline before claiming improvement.
+- Evaluate BIMNet and the six-scene ISPRS Indoor Modelling benchmark as separate dataset families; preserve their original protocols.
 - Validate data access, ground truth, licence and redistribution rights before using BIMNet or any other external corpus.
+- Enforce building/scene/capture-group separation and reject any candidate input path containing reference/ground-truth bounds.
 - Publish geometric, semantic, topological, visibility and uncertainty results separately.
 
 ### P2 — guarded physical article
