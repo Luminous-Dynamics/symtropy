@@ -59,7 +59,10 @@ fn scenarios() -> Vec<(&'static str, ModelPassport)> {
         ("calibration_holdout_leakage", leakage),
         ("unoperationalized_construct", unoperationalized),
         ("mechanism_without_falsifier", unfalsifiable),
-        ("non_discriminating_alternative", non_discriminating_alternative),
+        (
+            "non_discriminating_alternative",
+            non_discriminating_alternative,
+        ),
         (
             "model_inference_as_external_validation",
             inference_as_validation,
