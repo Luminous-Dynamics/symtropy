@@ -520,26 +520,25 @@ fn covariance_information_update(
 fn validate_covariance(
     covariance: &[[f64; CONTACT_STATE_DIM]; CONTACT_STATE_DIM],
 ) -> Result<(), ContactInformationError> {
-    for i in 0..CONTACT_STATE_DIM {
-        for j in 0..CONTACT_STATE_DIM {
-            if !covariance[i][j].is_finite() {
+    for (i, row) in covariance.iter().enumerate() {
+        for (j, value) in row.iter().enumerate() {
+            if !value.is_finite() {
                 return Err(ContactInformationError::InvalidCovariance);
             }
-            let scale = 1.0_f64
-                .max(covariance[i][j].abs())
-                .max(covariance[j][i].abs());
-            if (covariance[i][j] - covariance[j][i]).abs() > 1.0e-10 * scale {
+            let mirror = covariance[j][i];
+            let scale = 1.0_f64.max(value.abs()).max(mirror.abs());
+            if (*value - mirror).abs() > 1.0e-10 * scale {
                 return Err(ContactInformationError::InvalidCovariance);
             }
         }
     }
 
     let mut lower = [[0.0; CONTACT_STATE_DIM]; CONTACT_STATE_DIM];
-    for i in 0..CONTACT_STATE_DIM {
-        for j in 0..=i {
-            let mut sum = covariance[i][j];
-            for k in 0..j {
-                sum -= lower[i][k] * lower[j][k];
+    for (i, row) in covariance.iter().enumerate() {
+        for (j, &entry) in row.iter().take(i + 1).enumerate() {
+            let mut sum = entry;
+            for (&left, &right) in lower[i][..j].iter().zip(lower[j][..j].iter()) {
+                sum -= left * right;
             }
             if i == j {
                 if !sum.is_finite() || sum <= 0.0 {
@@ -575,13 +574,16 @@ fn dot(left: &[f64; CONTACT_STATE_DIM], right: &[f64; CONTACT_STATE_DIM]) -> f64
 }
 
 fn symmetrize(matrix: &mut [[f64; CONTACT_STATE_DIM]; CONTACT_STATE_DIM]) {
-    for i in 0..CONTACT_STATE_DIM {
-        for j in 0..i {
-            let average = 0.5 * (matrix[i][j] + matrix[j][i]);
-            matrix[i][j] = average;
-            matrix[j][i] = average;
+    let original = *matrix;
+    let mut symmetric = original;
+    for (i, row) in original.iter().enumerate() {
+        for (j, &value) in row.iter().enumerate().take(i) {
+            let average = 0.5 * (value + original[j][i]);
+            symmetric[i][j] = average;
+            symmetric[j][i] = average;
         }
     }
+    *matrix = symmetric;
 }
 
 #[cfg(test)]
