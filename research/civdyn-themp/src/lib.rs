@@ -309,7 +309,10 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
     for value in [
         ("target_phenomenon", passport.target_phenomenon.as_str()),
         ("system_boundary", passport.system_boundary.as_str()),
-        ("target_population_or_system", passport.target_population_or_system.as_str()),
+        (
+            "target_population_or_system",
+            passport.target_population_or_system.as_str(),
+        ),
         ("temporal_scale", passport.temporal_scale.as_str()),
         ("spatial_scale", passport.spatial_scale.as_str()),
     ] {
@@ -531,7 +534,10 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
                 FindingSeverity::Error,
                 "alternative_target_unknown",
                 &alternative.id,
-                format!("unknown target mechanism {}", alternative.target_mechanism_id),
+                format!(
+                    "unknown target mechanism {}",
+                    alternative.target_mechanism_id
+                ),
             );
         }
         if alternative.description.trim().is_empty()
@@ -643,7 +649,10 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
         let has_external_evidence = passport.evidence_uses.iter().any(|evidence| {
             evidence.role == EvidenceRole::ExternalValidation
                 && evidence.partition_id == prediction.holdout_partition_id
-                && evidence.pattern_ids.iter().any(|id| id == &prediction.pattern_id)
+                && evidence
+                    .pattern_ids
+                    .iter()
+                    .any(|id| id == &prediction.pattern_id)
                 && evidence.evidence_class.is_empirical_observation()
         });
         if !has_external_evidence {
@@ -674,7 +683,10 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
             ("source_family_id", evidence.source_family_id.as_str()),
             ("partition_id", evidence.partition_id.as_str()),
             ("source_digest", evidence.source_digest.as_str()),
-            ("uncertainty_statement", evidence.uncertainty_statement.as_str()),
+            (
+                "uncertainty_statement",
+                evidence.uncertainty_statement.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 push(
@@ -975,9 +987,12 @@ mod tests {
         let mut passport = reference_passport();
         passport.evidence_uses[2].partition_id = "calibration_wave_01".into();
         let report = evaluate_passport(&passport).unwrap();
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "calibration_external_partition_leakage"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "calibration_external_partition_leakage" })
+        );
     }
 
     #[test]
@@ -985,16 +1000,23 @@ mod tests {
         let mut passport = reference_passport();
         passport.constructs[0].operationalization_ids.clear();
         let report = evaluate_passport(&passport).unwrap();
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "construct_not_operationalized"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "construct_not_operationalized" })
+        );
 
         passport.constructs[0].theory_only = true;
-        passport.constructs[0].theory_only_reason = Some("latent construct is not directly measured".into());
+        passport.constructs[0].theory_only_reason =
+            Some("latent construct is not directly measured".into());
         let report = evaluate_passport(&passport).unwrap();
-        assert!(!report.findings.iter().any(|finding| {
-            finding.code == "construct_not_operationalized"
-        }));
+        assert!(
+            !report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "construct_not_operationalized" })
+        );
     }
 
     #[test]
@@ -1003,9 +1025,12 @@ mod tests {
         passport.mechanisms[0].falsifier.clear();
         passport.mechanisms[0].boundary_conditions.clear();
         let report = evaluate_passport(&passport).unwrap();
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "mechanism_explanation_incomplete"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "mechanism_explanation_incomplete" })
+        );
     }
 
     #[test]
@@ -1013,9 +1038,12 @@ mod tests {
         let mut passport = reference_passport();
         passport.alternatives[0].discriminating_pattern_ids.clear();
         let report = evaluate_passport(&passport).unwrap();
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "alternative_not_discriminable"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "alternative_not_discriminable" })
+        );
     }
 
     #[test]
@@ -1024,9 +1052,12 @@ mod tests {
         passport.purpose = ModelPurpose::Prediction;
         passport.predictions.clear();
         let report = evaluate_passport(&passport).unwrap();
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "prediction_without_expectations"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "prediction_without_expectations" })
+        );
     }
 
     #[test]
@@ -1034,12 +1065,18 @@ mod tests {
         let mut passport = reference_passport();
         passport.evidence_uses[2].evidence_class = EvidenceClass::ModelInference;
         let report = evaluate_passport(&passport).unwrap();
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "non_empirical_external_validation"
-        }));
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "prediction_without_external_observation"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "non_empirical_external_validation" })
+        );
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "prediction_without_external_observation" })
+        );
     }
 
     #[test]
@@ -1058,7 +1095,12 @@ mod tests {
         passport.indicators[0].zero_semantics = ZeroSemantics::ZeroIsValue;
         let report = evaluate_passport(&passport).unwrap();
         assert!(!report.has_errors());
-        assert!(!report.findings.iter().any(|finding| finding.code == "zero_semantics_needs_review"));
+        assert!(
+            !report
+                .findings
+                .iter()
+                .any(|finding| finding.code == "zero_semantics_needs_review")
+        );
 
         passport.indicators[0].zero_semantics = ZeroSemantics::ZeroMeansNoObservation;
         let report = evaluate_passport(&passport).unwrap();
