@@ -17,6 +17,7 @@ pub mod input_sampling;
 pub mod integrity;
 pub mod interval_calibration;
 pub mod mass_properties;
+pub mod mission_mass_coupling;
 pub mod optimizer_qualification;
 pub mod policy_aggregate;
 pub mod policy_benchmark;
