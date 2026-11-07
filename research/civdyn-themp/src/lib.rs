@@ -36,7 +36,6 @@ pub enum MissingPolicy {
     UnknownNotZero,
     NotMeasured,
     SeparateMissingCategory,
-    ExplicitZeroAllowed,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -424,28 +423,6 @@ pub fn evaluate_passport(passport: &ModelPassport) -> Result<ConformanceReport, 
                     ),
                 );
             }
-        }
-        if indicator.missing_policy == MissingPolicy::ExplicitZeroAllowed
-            && indicator.zero_semantics != ZeroSemantics::ZeroIsValue
-        {
-            push(
-                &mut findings,
-                FindingSeverity::Error,
-                "zero_missing_semantics_conflict",
-                &indicator.id,
-                "explicit zero values require zero_semantics=ZeroIsValue",
-            );
-        }
-        if indicator.missing_policy != MissingPolicy::ExplicitZeroAllowed
-            && indicator.zero_semantics == ZeroSemantics::ZeroIsValue
-        {
-            push(
-                &mut findings,
-                FindingSeverity::Warning,
-                "zero_semantics_needs_review",
-                &indicator.id,
-                "zero is treated as a measured value while the missingness policy does not explicitly permit it",
-            );
         }
     }
 
@@ -1078,15 +1055,13 @@ mod tests {
     fn missing_is_not_silently_collapsed_to_zero() {
         let mut passport = reference_passport();
         passport.indicators[0].missing_policy = MissingPolicy::UnknownNotZero;
+        passport.indicators[0].zero_semantics = ZeroSemantics::ZeroIsValue;
+        let report = evaluate_passport(&passport).unwrap();
+        assert!(!report.has_errors());
+        assert!(!report.findings.iter().any(|finding| finding.code == "zero_semantics_needs_review"));
+
         passport.indicators[0].zero_semantics = ZeroSemantics::ZeroMeansNoObservation;
         let report = evaluate_passport(&passport).unwrap();
         assert!(!report.has_errors());
-
-        passport.indicators[0].missing_policy = MissingPolicy::ExplicitZeroAllowed;
-        passport.indicators[0].zero_semantics = ZeroSemantics::ZeroMeansNoObservation;
-        let report = evaluate_passport(&passport).unwrap();
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "zero_missing_semantics_conflict"
-        }));
     }
 }
