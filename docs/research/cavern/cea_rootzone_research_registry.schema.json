@@ -92,7 +92,8 @@
         },
         "publication_date": {
           "type": "string",
-          "format": "date"
+          "pattern": "^\\\\d{4}(-\\\\d{2}(-\\\\d{2})?)?$",
+          "description": "Publication date at source-supported precision: YYYY, YYYY-MM, or YYYY-MM-DD."
         },
         "venue": {
           "$ref": "#/$defs/text"
