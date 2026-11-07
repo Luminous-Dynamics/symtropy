@@ -1,0 +1,10 @@
+[package]
+name = "symtropy-road-actor-adapter"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Deterministic route-progress to kinematic-pose adapter for synthetic road actors."
+
+[dependencies]
+blake3 = "1.8.5"
+symtropy-road-actors = { path = "../symtropy-road-actors" }
