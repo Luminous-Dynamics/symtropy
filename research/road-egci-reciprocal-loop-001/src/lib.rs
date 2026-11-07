@@ -1072,6 +1072,98 @@ mod tests {
         ));
     }
 
+    fn reanchor_experiment(experiment: &mut ReciprocalExperiment) {
+        for branch in &mut experiment.episode.branches {
+            let payload_root = branch.payload_root();
+            branch.replay.expected_branch_payload_root = payload_root.clone();
+            branch.replay.replayed_branch_payload_root = Some(payload_root);
+        }
+        experiment.anchor.expected_episode_root = experiment.episode.episode_root().unwrap();
+    }
+
+    #[test]
+    fn occluded_dropped_and_stale_cues_cannot_remain_in_visible_policy_history() {
+        for disposition in [
+            ObservationDisposition::Occluded,
+            ObservationDisposition::Dropped,
+            ObservationDisposition::Stale,
+        ] {
+            let mut experiment = run_reciprocal_experiment().unwrap();
+            let branch = experiment
+                .episode
+                .branches
+                .iter_mut()
+                .find(|branch| branch.branch_id == "ego-speed-1mps")
+                .unwrap();
+            let cue = branch
+                .observations
+                .iter_mut()
+                .find(|cue| cue.cue_id == "actor-ego-ttc-1")
+                .unwrap();
+
+            cue.disposition = disposition;
+            cue.delivered_tick = None;
+            cue.delivered_event_sequence = None;
+            reanchor_experiment(&mut experiment);
+
+            assert_eq!(
+                export_to_sam(&experiment.episode, &experiment.anchor),
+                Err(road_egci_handoff::HandoffError::CueNotDelivered),
+                "non-delivered disposition {disposition:?} must not remain visible"
+            );
+        }
+    }
+
+    #[test]
+    fn delayed_observation_cannot_be_consumed_before_its_delivery_tick() {
+        let mut experiment = run_reciprocal_experiment().unwrap();
+        let branch = experiment
+            .episode
+            .branches
+            .iter_mut()
+            .find(|branch| branch.branch_id == "ego-speed-1mps")
+            .unwrap();
+        let cue = branch
+            .observations
+            .iter_mut()
+            .find(|cue| cue.cue_id == "actor-ego-ttc-1")
+            .unwrap();
+
+        // The actor's tick-1 decision still lists this cue as visible/consumed,
+        // but the delivery record now says it arrives in tick 2.
+        cue.delivered_tick = Some(2);
+        reanchor_experiment(&mut experiment);
+
+        assert_eq!(
+            export_to_sam(&experiment.episode, &experiment.anchor),
+            Err(road_egci_handoff::HandoffError::CueNotDelivered)
+        );
+    }
+
+    #[test]
+    fn command_latched_after_declared_deadline_is_not_a_completed_decision() {
+        let mut experiment = run_reciprocal_experiment().unwrap();
+        let branch = experiment
+            .episode
+            .branches
+            .iter_mut()
+            .find(|branch| branch.branch_id == "ego-speed-1mps")
+            .unwrap();
+        let decision = branch
+            .decisions
+            .iter_mut()
+            .find(|decision| decision.actor_id == ACTOR_ID && decision.tick == 1)
+            .unwrap();
+
+        decision.command_latch_tick = Some(decision.deadline_tick + 1);
+        reanchor_experiment(&mut experiment);
+
+        assert_eq!(
+            export_to_sam(&experiment.episode, &experiment.anchor),
+            Err(road_egci_handoff::HandoffError::InvalidDecisionReceipt)
+        );
+    }
+
     #[test]
     fn every_policy_receipt_has_an_independent_state_chain_and_prior_action_lineage() {
         let experiment = run_reciprocal_experiment().unwrap();

@@ -26,6 +26,16 @@ This four-tick setup makes actor-to-ego feedback observable only after the actor
 
 The tests assert both feedback directions, separate policy-state chains, no same-tick cue visibility, exact event ordering, fresh-world replay, and rejection of a cue delivered at the already-closed tick cutoff.
 
+## Observation and deadline fault controls
+
+The producer's conformance tests now inject faults into the exported policy-observation boundary and verify them through the real #3886 SAM adapter:
+
+- **Occluded / dropped / stale:** the source record has no delivery tick or delivery event sequence. If a decision still claims that cue in its visible history, export rejects with `CueNotDelivered`.
+- **Delayed:** a cue recorded as arriving in a later tick cannot remain visible to an earlier decision. Export rejects with `CueNotDelivered`.
+- **Late command:** a command latched after the policy's declared deadline cannot retain `Completed`; export rejects with `InvalidDecisionReceipt`.
+
+These are fail-closed fault-injection controls, not yet a simulated stochastic dropout/delay campaign. The next producer tranche should execute explicit observation schedules (0/1/2-tick delay, dropout bursts, occlusion windows, stale-threshold sweeps) and deadline-miss outcomes as distinct branch conditions, with every changed input reflected in the policy history and branch receipt. A missing or timed-out decision must censor the downstream joint path; it must never be replaced by a fresh-state or inferred action.
+
 ## Evidence and limits
 
 The producer constructs the v0.2 episode export, computes policy-history and joint-action commitments, binds each transition to a derived per-step commitment that includes the global replay receipt, input-tape digest, tick index and child snapshot, verifies snapshots in fresh worlds, and exports the unchanged four-field SAM #10514 query shape.
