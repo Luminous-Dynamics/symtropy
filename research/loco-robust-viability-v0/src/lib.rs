@@ -575,13 +575,15 @@ mod tests {
             states: vec![
                 state("unstable", true, false),
                 state("recovering", true, false),
+                state("recovering-alt", true, false),
                 state("safe", true, true),
                 state("dead-end", true, false),
                 state("fall", false, false),
             ],
             actions: vec![
-                action("recover-1", "unstable", &["recovering", "recovering"]),
+                action("recover-1", "unstable", &["recovering", "recovering-alt"]),
                 action("recover-2", "recovering", &["safe"]),
+                action("recover-alt", "recovering-alt", &["safe"]),
                 action("target-loop", "safe", &["safe"]),
             ],
         };
