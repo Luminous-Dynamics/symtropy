@@ -730,6 +730,90 @@ mod tests {
     }
 
     #[test]
+    fn resource_exhaustion_returns_unknown_error_not_a_partial_certificate() {
+        let system = TransitionSystem {
+            states: vec![state("a", true, false), state("b", true, false)],
+            actions: vec![action("a-loop", "a", &["a"]), action("b-loop", "b", &["b"])],
+        };
+        let bounded = ResourceLimits {
+            maximum_states: 1,
+            ..limits()
+        };
+        assert_eq!(
+            compute_maximal_robust_invariant_set(&system, bounded),
+            Err(ViabilityError::StateLimitExceeded { maximum: 1 })
+        );
+    }
+
+    #[test]
+    fn exhaustive_three_state_transition_graphs_match_subset_oracle() {
+        // Exhaust all 8 safe-state masks and all 7^3 non-empty successor
+        // choices for one adversarial action per state.
+        for safe_mask in 0_u8..8 {
+            for a_mask in 1_u8..8 {
+                for b_mask in 1_u8..8 {
+                    for c_mask in 1_u8..8 {
+                        let successor_masks = [a_mask, b_mask, c_mask];
+                        let states = (0..3)
+                            .map(|index| {
+                                state(
+                                    &format!("s{index}"),
+                                    safe_mask & (1 << index) != 0,
+                                    false,
+                                )
+                            })
+                            .collect::<Vec<_>>();
+                        let actions = (0..3)
+                            .map(|index| ActionSpec {
+                                id: format!("a{index}"),
+                                source_state: format!("s{index}"),
+                                successors: (0..3)
+                                    .filter(|successor| {
+                                        successor_masks[index] & (1 << successor) != 0
+                                    })
+                                    .map(|successor| format!("s{successor}"))
+                                    .collect(),
+                            })
+                            .collect::<Vec<_>>();
+                        let system = TransitionSystem { states, actions };
+                        let actual =
+                            compute_maximal_robust_invariant_set(&system, limits()).unwrap();
+
+                        let safe_ids = (0..3)
+                            .filter(|index| safe_mask & (1 << index) != 0)
+                            .map(|index| format!("s{index}"))
+                            .collect::<Vec<_>>();
+                        let mut expected = BTreeSet::new();
+                        for subset_mask in 0_u8..(1 << safe_ids.len()) {
+                            let candidate = safe_ids
+                                .iter()
+                                .enumerate()
+                                .filter(|(index, _)| subset_mask & (1 << index) != 0)
+                                .map(|(_, id)| id.clone())
+                                .collect::<BTreeSet<_>>();
+                            let invariant = candidate.iter().all(|source| {
+                                system
+                                    .actions
+                                    .iter()
+                                    .find(|item| item.source_state == *source)
+                                    .is_some_and(|item| {
+                                        item.successors
+                                            .iter()
+                                            .all(|successor| candidate.contains(successor))
+                                    })
+                            });
+                            if invariant {
+                                expected.extend(candidate);
+                            }
+                        }
+                        assert_eq!(actual.viable_states, expected);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn exact_fixed_point_matches_independent_brute_force_oracle() {
         let system = TransitionSystem {
             states: vec![
