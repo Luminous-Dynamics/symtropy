@@ -71,6 +71,69 @@
           "qualifier": "APPROX",
           "unit": "percent",
           "notes": "Figure 10 service fulfilment comparison, not electrical conversion efficiency."
+        },
+        {
+          "metric": "CCN_1_mean_wait_SAFE_DDPG",
+          "value": 0.067,
+          "qualifier": "EXACT",
+          "unit": "minutes",
+          "notes": "Table 7; simulation mean at CCN_1."
+        },
+        {
+          "metric": "CCN_1_mean_wait_DH_CSP",
+          "value": 0.234,
+          "qualifier": "EXACT",
+          "unit": "minutes",
+          "notes": "Table 7; simulation mean at CCN_1."
+        },
+        {
+          "metric": "CCN_1_mean_wait_SH_CSP",
+          "value": 0.467,
+          "qualifier": "EXACT",
+          "unit": "minutes",
+          "notes": "Table 7; simulation mean at CCN_1."
+        },
+        {
+          "metric": "mean_battery_consumption_SAFE_DDPG",
+          "value": 3.4726,
+          "qualifier": "EXACT",
+          "unit": "kWh",
+          "notes": "Table 7; simulation result."
+        },
+        {
+          "metric": "mean_battery_consumption_DH_CSP",
+          "value": 3.8321,
+          "qualifier": "EXACT",
+          "unit": "kWh",
+          "notes": "Table 7; simulation result."
+        },
+        {
+          "metric": "mean_battery_consumption_SH_CSP",
+          "value": 4.2105,
+          "qualifier": "EXACT",
+          "unit": "kWh",
+          "notes": "Table 7; simulation result."
+        },
+        {
+          "metric": "mean_travel_time_SAFE_DDPG",
+          "value": 30.33,
+          "qualifier": "EXACT",
+          "unit": "minutes",
+          "notes": "Table 7; simulation result."
+        },
+        {
+          "metric": "mean_travel_time_DH_CSP",
+          "value": 33.78,
+          "qualifier": "EXACT",
+          "unit": "minutes",
+          "notes": "Table 7; simulation result."
+        },
+        {
+          "metric": "mean_travel_time_SH_CSP",
+          "value": 37.41,
+          "qualifier": "EXACT",
+          "unit": "minutes",
+          "notes": "Table 7; simulation result."
         }
       ],
       "baseline_gaps_to_test": {
