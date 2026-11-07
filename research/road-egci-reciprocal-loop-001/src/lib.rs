@@ -314,7 +314,7 @@ fn run_branch(speed_limit_mps: f64, branch_id: &str) -> Result<BranchRun, String
             motion_profile: actor_motion_profile,
             clock,
             elapsed_ticks: 1,
-            prior_progress_m,
+            prior_progress_m: actor_progress_m,
             measured_forward_speed_mps: actor_measured_speed_mps,
         })
         .map_err(|error| format!("{error:?}"))?;
