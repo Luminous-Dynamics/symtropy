@@ -1,0 +1,173 @@
+{
+  "schema": "symtropy.road-sam-support-assessment.fixtures.v0.1",
+  "purpose": "Cross-repository composition tests; does not authenticate SAM build or establish empirical utility evidence.",
+  "support_dispositions": [
+    {
+      "id": "finite-path-member",
+      "disposition": "TrajectorySupported",
+      "path_universe_exhaustive": false,
+      "query_complete": true,
+      "matched_finite_path": true,
+      "expected_cell_support": [
+        "Supported",
+        "Unsupported",
+        "NotIdentified",
+        "Incomplete"
+      ],
+      "support_target_policy_digest": "policy-v1",
+      "support_context_digest": "context-v1",
+      "query_target_policy_digest": "policy-v1",
+      "query_context_digest": "context-v1"
+    },
+    {
+      "id": "exhaustive-missing-path",
+      "disposition": "UnsupportedSequence",
+      "path_universe_exhaustive": true,
+      "query_complete": true,
+      "matched_finite_path": false,
+      "expected_cell_support": "Unsupported",
+      "support_target_policy_digest": "policy-v1",
+      "support_context_digest": "context-v1",
+      "query_target_policy_digest": "policy-v1",
+      "query_context_digest": "context-v1"
+    },
+    {
+      "id": "non-exhaustive-missing-path",
+      "disposition": "SupportUnknown",
+      "path_universe_exhaustive": false,
+      "query_complete": true,
+      "matched_finite_path": false,
+      "expected_cell_support": "NotIdentified",
+      "support_target_policy_digest": "policy-v1",
+      "support_context_digest": "context-v1",
+      "query_target_policy_digest": "policy-v1",
+      "query_context_digest": "context-v1"
+    },
+    {
+      "id": "censored-or-incomplete-query",
+      "disposition": "Incomplete",
+      "path_universe_exhaustive": false,
+      "query_complete": false,
+      "matched_finite_path": false,
+      "expected_cell_support": "Incomplete",
+      "support_target_policy_digest": "policy-v1",
+      "support_context_digest": "context-v1",
+      "query_target_policy_digest": "policy-v1",
+      "query_context_digest": "context-v1"
+    },
+    {
+      "id": "policy-or-context-mismatch",
+      "disposition": "OutOfScope",
+      "path_universe_exhaustive": true,
+      "query_complete": true,
+      "matched_finite_path": false,
+      "expected_cell_support": "Incomplete",
+      "support_target_policy_digest": "policy-v1",
+      "support_context_digest": "context-v1",
+      "query_target_policy_digest": "policy-v2",
+      "query_context_digest": "context-v1"
+    }
+  ],
+  "adversarial_cases": [
+    {
+      "id": "supported-path-is-not-utility-evidence",
+      "sam_disposition": "TrajectorySupported",
+      "decision_cell": "Supported",
+      "utility_evidence_binding": false,
+      "expected": "reject-missing-evidence-binding"
+    },
+    {
+      "id": "supported-path-with-unidentified-utility",
+      "sam_disposition": "TrajectorySupported",
+      "decision_cell": "NotIdentified",
+      "expected_decision_status": "Incomplete"
+    },
+    {
+      "id": "unsupported-path-cannot-be-labelled-supported-utility",
+      "sam_disposition": "UnsupportedSequence",
+      "decision_cell": "Supported",
+      "expected": "reject-support-outcome-mismatch"
+    },
+    {
+      "id": "unknown-path-cannot-be-labelled-supported-utility",
+      "sam_disposition": "SupportUnknown",
+      "decision_cell": "Supported",
+      "expected": "reject-support-outcome-mismatch"
+    },
+    {
+      "id": "incomplete-path-cannot-be-labelled-supported-utility",
+      "sam_disposition": "Incomplete",
+      "decision_cell": "Supported",
+      "expected": "reject-support-outcome-mismatch"
+    },
+    {
+      "id": "out-of-scope-path-cannot-be-labelled-supported-utility",
+      "sam_disposition": "OutOfScope",
+      "decision_cell": "Supported",
+      "expected": "reject-support-outcome-mismatch"
+    },
+    {
+      "id": "non-exhaustive-absence-is-not-unsupported",
+      "sam_disposition": "SupportUnknown",
+      "decision_cell": "Unsupported",
+      "expected": "reject-support-outcome-mismatch"
+    },
+    {
+      "id": "missing-action-hypothesis-envelope",
+      "expected": "reject-missing-support-binding"
+    },
+    {
+      "id": "duplicate-action-hypothesis-envelope",
+      "expected": "reject-duplicate-support-binding"
+    },
+    {
+      "id": "orphan-action-or-hypothesis-envelope",
+      "expected": "reject-orphan-support-binding"
+    },
+    {
+      "id": "mutated-query-commitment-after-seal",
+      "expected": "reject-assessment-receipt-mismatch"
+    },
+    {
+      "id": "permutation-of-envelope-input-order",
+      "expected": "identical-bundle-digest"
+    },
+    {
+      "id": "sam-path-support-does-not-upgrade-simulator-evidence",
+      "sam_disposition": "TrajectorySupported",
+      "evidence_origin": "SimulatorGenerated",
+      "evidence_purpose": "EmpiricalDecision",
+      "expected": "reject-evidence-ineligible"
+    },
+    {
+      "id": "support-manifest-bytes-mismatch",
+      "expected": "reject-support-manifest-artifact-mismatch"
+    },
+    {
+      "id": "query-bytes-mismatch",
+      "expected": "reject-query-artifact-mismatch"
+    },
+    {
+      "id": "assessment-bytes-do-not-match-disposition",
+      "expected": "reject-assessment-artifact-mismatch"
+    },
+    {
+      "id": "cross-repository-golden-vectors",
+      "expected": "SAM-and-Symtropy-canonical-bytes-match"
+    },
+    {
+      "id": "assessment-result-is-cross-wired-to-different-query-or-support-manifest",
+      "expected": "reject-assessment-artifact-mismatch"
+    },
+    {
+      "id": "raw-assessment-bytes-are-not-a-source-bound-assessment-receipt",
+      "expected": "reject-assessment-artifact-mismatch"
+    }
+  ],
+  "claim_ceiling": [
+    "A content digest and unkeyed checksum are not authentication.",
+    "Trajectory support is not outcome utility evidence.",
+    "SimulationGenerated outcomes cannot be relabelled EmpiricalDecision.",
+    "A finite path membership result does not estimate propensity or establish real-world support."
+  ]
+}

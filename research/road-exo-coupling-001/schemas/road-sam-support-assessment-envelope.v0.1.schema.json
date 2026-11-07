@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "symtropy.road-sam-support-assessment-envelope.v0.1",
+  "title": "ROAD SAM support assessment envelope v0.1",
+  "description": "Symtropy adapter envelope around SAM #10514 canonical support-manifest/query/result artifacts. It retains support-manifest and query policy/context scope separately and is not a SAM-issued signed receipt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "hypothesis_id",
+    "action_id",
+    "sam_build_digest",
+    "evidence_manifest_id",
+    "support_manifest_digest",
+    "query_digest",
+    "path_universe_exhaustive",
+    "query_complete",
+    "decision_points",
+    "matched_finite_path",
+    "disposition",
+    "assessment_receipt_digest",
+    "sam_assessment_receipt_digest",
+    "support_target_policy_digest",
+    "support_context_digest",
+    "query_target_policy_digest",
+    "query_context_digest"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "symtropy.road-sam-support-assessment-envelope.v0.1"
+    },
+    "hypothesis_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192,
+      "pattern": "^[A-Za-z0-9._:/@-]+$"
+    },
+    "action_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192,
+      "pattern": "^[A-Za-z0-9._:/@-]+$"
+    },
+    "sam_build_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "support_manifest_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "query_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "path_universe_exhaustive": {
+      "type": "boolean"
+    },
+    "query_complete": {
+      "type": "boolean"
+    },
+    "decision_points": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "matched_finite_path": {
+      "type": "boolean"
+    },
+    "disposition": {
+      "enum": [
+        "TrajectorySupported",
+        "UnsupportedSequence",
+        "SupportUnknown",
+        "Incomplete",
+        "OutOfScope"
+      ]
+    },
+    "assessment_receipt_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "BLAKE3 checksum over the Symtropy envelope fields; unkeyed and not authentication"
+    },
+    "evidence_manifest_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sam_assessment_receipt_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "BLAKE3 digest of SAM AssessmentReceipt::canonical_bytes(), including canonical support-manifest bytes, canonical query bytes, evidence-manifest identifier, separate support/query policy-context metadata, path-universe exhaustiveness, query completeness, decision-point count, and assessment bytes."
+    },
+    "support_target_policy_digest": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192
+    },
+    "support_context_digest": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192
+    },
+    "query_target_policy_digest": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192
+    },
+    "query_context_digest": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192
+    }
+  }
+}

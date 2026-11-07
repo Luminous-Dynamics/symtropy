@@ -250,3 +250,93 @@ This does not make utilities unbiased or prove causal assumptions. It ensures th
 ### Positive and negative purpose tests
 
 The Rust fixtures now cover valid human-adjudication and formal-conformance references in their own purposes, in addition to rejection of those sources for empirical claims. An Unsupported action cell requires no evidence packet and remains Unsupported; it cannot be silently omitted or turned into an empirical result.
+
+
+## Robust decision-directed measurement selection (ROAD-DECISION-MEASUREMENT-001 #3639)
+
+The measurement_selection module chooses candidate measurements/interventions by worst-case decision-regret reduction over a finite admitted model-hypothesis set. It does not invent probability weights over hypotheses or possible test outcomes.
+
+### Decision criterion
+
+For a current complete decision matrix:
+- baseline minimax regret is the minimum, over actions, of the worst regret across all admitted hypotheses;
+- each possible measurement outcome names the set of hypotheses that remain compatible with that observation;
+- compatibility sets may overlap to represent noisy / ambiguous measurements;
+- conditional minimax regret is computed for each outcome's compatible subset;
+- worst-case residual regret is the maximum conditional regret over every possible outcome;
+- regret reduction is baseline regret minus this worst-case residual.
+
+A measurement that reduces prediction error but leaves the worst-case action regret unchanged receives zero decision-regret reduction. If the test is noisy, the worst ambiguous outcome governs the value; no posterior mean is fabricated.
+
+### Independent constraints and Pareto frontier
+
+The candidate binds:
+- modality (passive observation, controlled intervention, closed-course intervention, simulation challenge);
+- protocol, preregistration and risk-assessment digests;
+- exact acquisition cost and its scale ID;
+- nonnegative conservative risk upper bound and its scale ID;
+- declared authorization reference and safety-case digest;
+- complete named outcome-to-hypothesis compatibility relation.
+
+Cost and risk are hard constraints and are not subtracted from decision utility. Feasible informative tests are compared along acquisition cost, risk upper bound and worst-case residual regret. Non-dominated candidates form the Pareto frontier; the oracle does not choose an arbitrary scalar winner across the frontier.
+
+### Exact example
+
+Baseline:
+- H1: A=10, B=0
+- H2: A=0, B=10
+
+Current minimax regret is 10. A perfect test has outcome O1 compatible only with H1 and O2 compatible only with H2. After either outcome the residual regret is 0, so the worst-case decision-regret reduction is 10. A test with one ambiguous outcome compatible with both H1 and H2 gives zero reduction. A noisy test with one ambiguous outcome still has residual regret 10 even if another outcome is fully diagnostic.
+
+### Safety and evidence boundaries
+
+A nonzero authorization reference and safety-case digest are **declared metadata**, not cryptographic proof of approval. This reference oracle does not verify signing authorities, risk models or operational permits. Do not execute physical interventions on the strength of this receipt alone; independent authority verification and a safety case are still required.
+
+A SimulationChallenge remains simulation/model evidence. Even if it discriminates hypotheses, it cannot be upgraded to an independent observed real-world result. Actual measurements must pass the evidence provenance and decision-evidence-binding gates (#3635/#3638).
+
+### V0.1 claim ceiling
+
+Passing the finite fixtures proves exact worst-case residual-regret computation, outcome coverage, cost/risk hard-constraint enforcement, deterministic Pareto filtering and certificate replay for declared hypotheses and outcomes. It does not prove the possible-outcome mapping is physically exhaustive, experiment identification assumptions are true, test risk is correctly estimated, or that a selected road intervention is safe.
+
+ 
+## SAM path-support to evidence-bound decision adapter (ROAD-SAM-EVIDENCE-BINDING-001)
+
+The `trajectory_evidence` module composes the SAM #10514 sequential joint-trajectory support result with the existing #3637 minimax-regret and #3638 evidence-binding certificate. It does not duplicate SAM's support algorithm and does not convert support into utility.
+
+### Contract
+
+The bridge accepts one typed assessment envelope for every action × admitted-hypothesis cell. Each envelope retains:
+- the adapter schema ID and SAM build commitment;
+- the original SAM evidence-manifest identifier preserved verbatim;
+- BLAKE3 commitments to canonical support-manifest and trajectory-query bytes;
+- a BLAKE3 commitment to canonical SAM source-generated assessment-receipt bytes;
+- separate support-manifest and query target-policy/context digests;
+- whether the finite path universe is exhaustive;
+- query completeness, decision-point count and finite-path membership;
+- the exact SAM disposition; and
+- an unkeyed content checksum over those fields.
+
+The schema ID belongs to this **Symtropy adapter envelope**, not to a SAM-emitted wire format. SAM exposes canonical bytes for `SupportManifest`, `TrajectoryQuery` and `Assessment`, and `assess_with_receipt` returns an `AssessmentReceipt` that length-prefixes and binds all three exact artifacts. The bridge's `seal_from_sam_artifacts` and `verify_against_sam_artifacts` recompute that source-receipt byte string from the retained support-manifest bytes, query bytes, repeated source/query scope metadata and assessment fields, then compare it byte-for-byte before accepting the envelope. A shared four-vector fixture pins the manifest, query, result and combined receipt formats across repositories. These are content commitments, not signatures, authentication, proof of origin, or independent verification of the SAM binary. A consumer requiring authenticity must anchor the SAM build and artifact digests through an independently controlled channel.
+
+### Five disposition rules
+
+| SAM path disposition | Required decision-cell support state | Consequence |
+|---|---|---|
+| `TrajectorySupported` | May be Supported, Unsupported, NotIdentified or Incomplete for other reasons | Necessary path condition only; utility still needs #3638 evidence |
+| `UnsupportedSequence` | Unsupported | Exact absence only under an exhaustive finite path universe |
+| `SupportUnknown` | NotIdentified | Non-exhaustive absence is not structural zero |
+| `Incomplete` | Incomplete | Missing/censored/incomplete query cannot authorize a decision |
+| `OutOfScope` | Incomplete | Policy/context mismatch cannot be treated as in-scope support |
+
+The adapter requires exactly one envelope per action × hypothesis cell. Missing, duplicate, orphan or mismatched support dispositions reject. It then delegates utility qualification to #3638 unchanged. Therefore:
+- a supported path without a qualified utility evidence binding does not produce a decision certificate;
+- a supported path can still have unidentified utility;
+- a simulator-generated crossing cannot enter `EmpiricalDecision` merely because SAM supports its synthetic path;
+- Unsupported, NotIdentified and Incomplete remain distinct through the certificate;
+- no support status is inferred from marginal action coverage.
+
+### Tests and claim ceiling
+
+Hostile fixtures cover all five dispositions, unsupported-path/Supported-utility mismatch, supported-path/unidentified-utility, missing utility evidence, one-to-one action × hypothesis coverage, duplicate/missing/orphan envelopes, support/query/source assessment-receipt mutation, cross-repository golden bytes and order-independent bundle digest.
+
+This is a **composition adapter**, not a new support estimator, propensity estimator, causal-identification method, or safety judgment. It does not independently invoke SAM or authenticate the supplied build/manifest/query commitments. Passing tests establishes only that the adapter preserves and composes the declared finite dispositions and existing evidence/decision gates.

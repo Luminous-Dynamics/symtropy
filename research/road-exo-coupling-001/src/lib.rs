@@ -4,7 +4,9 @@ pub mod decision_closure;
 pub mod decision_evidence;
 pub mod dependence;
 pub mod evidence_provenance;
+pub mod measurement_selection;
 pub mod philox_adapter;
+pub mod trajectory_evidence;
 
 use std::collections::{BTreeMap, BTreeSet};
 
