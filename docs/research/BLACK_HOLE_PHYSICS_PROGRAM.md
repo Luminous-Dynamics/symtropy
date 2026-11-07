@@ -428,3 +428,29 @@ The next two mathematical stages are split into dedicated work items:
 - [BH-GEODESIC-001 #3982](https://github.com/Luminous-Dynamics/symtropy/issues/3982): timelike/null Schwarzschild and Kerr geodesics, conserved quantities, proper-time/affine parameter correctness, and independent Hamiltonian-vs-second-order formulations.
 
 The sequence is deliberately: metric -> first derivatives -> connection -> curvature -> geodesics -> perturbations/waveforms -> NR / detector-data comparisons. Do not skip tensor identities or invariants to reach a visual simulator faster.
+
+
+## Implementation update — fresh main-based branch (2026-11-07)
+
+To avoid carrying forward a stale/non-mergeable research branch, the implementation was copied onto a fresh branch created from current `main`: `research/black-hole-physics-program-v2`.
+
+### Numerical hardening and metric checks
+
+- Kerr inner-horizon evaluation now uses the rationalized (chi^2/(1+\sqrt{1-\chi^2})) expression to avoid subtractive cancellation at small spin.
+- Kerr surface gravity uses a dimensionless-spin expression stable near extremality.
+- Kerr Boyer-Lindquist (Delta) is evaluated as ((r-r_+)(r-r_-)) near the exterior horizon.
+- The Levi-Civita connection exposes a normalized metric-compatibility residual; Schwarzschild fixtures exercise the identity (
+abla_\alpha g_{\mu\nu}=0).
+
+### Machine-readable benchmark artifacts
+
+The crate now includes:
+- `benchmarks/analytic_reference_cases.json`: SI-valued Schwarzschild/Kerr reference fixtures, including small-spin, retrograde, near-extremal and extremal cases;
+- `benchmarks/direct_wave_sxs_spin_sweep.json`: the ten exact SXS IDs, remnant spins, published QNM filter composition, and horizon / News-peak / BOB model alternatives;
+- `benchmarks/waveform_surrogate_baselines.json`: literature-reported surrogate baselines and domain/metric caveats.
+
+These are versioned benchmark specifications. They are not yet consumed automatically by Rust tests, and external papers' benchmark numbers have not been reproduced by this crate.
+
+The total current authored unit-test inventory is **36**: 15 scalar/root, 11 metric, 6 connection and 4 posterior tests. They remain unexecuted because neither `rustc` nor `cargo` is available in the current editing environment.
+
+Next implementation issue: [BH-SURROGATE-CERT-001 #3998](https://github.com/Luminous-Dynamics/symtropy/issues/3998), which targets calibrated surrogate applicability, out-of-domain detection, posterior coverage and active selection of expensive NR simulations.
