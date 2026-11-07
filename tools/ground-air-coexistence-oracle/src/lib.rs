@@ -1036,7 +1036,18 @@ mod tests {
         let report = evaluate_scenario(&scenario).unwrap();
         assert_eq!(report["minimum_service_met_count"], 3);
         assert!(report["minimum_service_all_met"].as_bool().unwrap());
-        assert_eq!(report["total_site_source_energy_quantum_slots"], 8);
+        assert_eq!(report["total_site_source_energy_quantum_slots"], 10);
+        assert_eq!(report["total_source_energy_wh"], 100);
+        assert_eq!(report["total_useful_energy_wh"], 34);
+        assert_eq!(
+            report["per_slot"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|slot| slot["site_source_energy_quanta"].as_u64().unwrap())
+                .sum::<u64>(),
+            report["total_site_source_energy_quantum_slots"]
+        );
         for slot in report["per_slot"].as_array().unwrap() {
             let air_quanta = slot["session_allocations"][0]["site_source_energy_quanta"]
                 .as_u64()
