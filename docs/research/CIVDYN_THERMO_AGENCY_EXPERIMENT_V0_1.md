@@ -160,6 +160,19 @@ Landauer applies only to identified logically irreversible erasures. FLOPs, pred
 
 ## 6. SOTA and industry comparison
 
+### Established simulation-platform comparators
+
+The target is not to replace every feature of existing agent-based simulation platforms:
+
+- **AnyLogic** combines agent-based, discrete-event and system-dynamics modelling. Compare multimethod composition, scenario tooling, calibration and visualization: https://www.anylogic.com/use-of-simulation/agent-based-modeling/
+- **GAMA** provides open-source, spatially explicit agent-based simulation: https://github.com/gama-platform/gama
+- **Repast Suite** is a mature open-source ABM family. The official site now lists Repast Simphony 2.12.0 (23 October 2026), Repast HPC for distributed C++ work on clusters/supercomputers, and Repast4Py for distributed Python ABM: https://repast.github.io/
+- **NetLogo** offers an accessible multi-agent modelling environment with BehaviorSpace for parameter sweeps, repeated runs and parallel execution: https://docs.netlogo.org/behaviorspace
+
+Symtropy should differentiate on a narrower evidence contract: Rust-first execution, native-unit resource accounting, independently checked analytical references, deterministic replay, causal/intervention receipts, cross-scale resource resilience and explicit claim limits. It should not claim superiority over a full commercial platform merely because a Rust kernel is faster on a small fixture.
+
+**Matched benchmark:** port identical small reference scenarios to Symtropy and at least two accessible comparators (GAMA plus Repast or NetLogo; AnyLogic if access permits). Freeze agent observations/actions, resource units, state boundaries, update order, seeds, shock schedule and outputs. Compare correctness against analytic oracles, per-unit conservation, hard-service violations, policy-behavior parity, p50/p95/p99 wall time, agent-steps/second, memory, sweep/replay ergonomics and scale at N=100, 1,000, 10,000 and 100,000 where each platform supports the same semantics. Do not compare different models or hide fidelity differences behind throughput.
+
 ### Direct multi-agent comparators
 
 - **Huynh et al. (2026), Cooperation Without Adaptation:** source-matched six-seat collective-risk task; risk adaptation, partner response and population composition. https://arxiv.org/abs/2610.22882
