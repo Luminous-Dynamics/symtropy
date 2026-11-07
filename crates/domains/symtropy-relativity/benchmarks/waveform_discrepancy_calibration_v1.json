@@ -1,0 +1,289 @@
+{
+  "schema": "luminous.black-hole-waveform-discrepancy-calibration",
+  "schema_version": 1,
+  "artifact_id": "symtropy.black_hole.waveform_discrepancy_calibration.v1",
+  "created_utc": "2026-11-07",
+  "status": "benchmark_protocol_specification_only",
+  "objective": "Calibrate correlated waveform-model discrepancy and propagate it through gravitational-wave parameter estimation, with posterior coverage and false-GR-deviation control as primary outcomes.",
+  "scientific_question": "Does a joint parameter-dependent waveform-discrepancy model improve posterior reliability over point-estimate, GP amplitude/phase, parameterized-error, model-accuracy mixture, and independent-model ensemble baselines at matched computational cost?",
+  "primary_references": [
+    {
+      "id": "accuracy_aware_bayesian_model_combination",
+      "title": "Incorporation of model accuracy in gravitational wave Bayesian inference",
+      "journal": "Nature Astronomy 9, 1256-1267 (2025)",
+      "doi": "10.1038/s41550-025-02579-7",
+      "url": "https://www.nature.com/articles/s41550-025-02579-7",
+      "relevance": "Model-accuracy-informed Bayesian combination; reports 30% lower computational resources and more faithful parameter recovery in its simulated comparison."
+    },
+    {
+      "id": "gp_waveform_calibration_uncertainty",
+      "title": "Incorporating waveform calibration error in gravitational-wave modeling and inference for SEOBNRv4",
+      "journal": "Physical Review D 111, 084050 (2025)",
+      "doi": "10.1103/PhysRevD.111.084050",
+      "url": "https://journals.aps.org/prd/abstract/10.1103/PhysRevD.111.084050",
+      "relevance": "Gaussian-process modeling and marginalization of frequency-domain amplitude and phase deviations."
+    },
+    {
+      "id": "parameterized_waveform_error",
+      "title": "Accounting for the known unknowns: A parametric framework to incorporate systematic waveform errors in gravitational-wave parameter estimation",
+      "journal": "Physical Review D 112, 104071 (2025)",
+      "doi": "10.1103/nkq9-zh2y",
+      "url": "https://journals.aps.org/prd/abstract/10.1103/nkq9-zh2y",
+      "relevance": "Parameterized amplitude/phase waveform-error priors and injection-recovery."
+    },
+    {
+      "id": "nr_calibration_and_false_gr_deviations",
+      "title": "Impact of numerical-relativity waveform calibration on parametrized post-Einsteinian tests",
+      "journal": "Physical Review D 113, 124043 (2026)",
+      "doi": "10.1103/y6lc-fr77",
+      "url": "https://journals.aps.org/prd/abstract/10.1103/y6lc-fr77",
+      "relevance": "Reports false pPE deviations at network SNR 60 in the baseline analysis and a consistent-with-zero deformation through SNR 330 with uncertainty-aware calibration in the studied setup."
+    },
+    {
+      "id": "uncertainty_aware_semi_analytic_models",
+      "title": "Uncertainty-Aware Waveform Modeling for High-SNR Gravitational-Wave Inference",
+      "journal": "Physical Review D 112, 044057 (2025)",
+      "doi": "10.1103/hfq5-gryy",
+      "url": "https://arxiv.org/abs/2503.23304",
+      "relevance": "Propagation of NR surrogate and calibration-coefficient uncertainty into waveform inference."
+    }
+  ],
+  "discrepancy_model": {
+    "mathematical_object": "h(f,m;theta) = h0(f,m;theta) + delta_h(f,m;theta)",
+    "nominal_waveform": "h0",
+    "discrepancy": "delta_h is a complex, parameter-dependent residual process over frequency, mode, and source parameters.",
+    "required_outputs": [
+      "conditional discrepancy mean / bias correction where supported",
+      "cross-frequency covariance",
+      "cross-mode covariance",
+      "parameter-dependent covariance",
+      "posterior predictive samples or a documented likelihood-marginalization approximation",
+      "calibrated applicability domain and abstention state"
+    ],
+    "candidate_parameterizations": [
+      "joint complex-strain residual process",
+      "correlated log-amplitude and phase residual processes",
+      "low-rank latent frequency/mode basis with parameter-dependent coefficients"
+    ],
+    "prohibition": "Do not add an uncalibrated scalar or diagonal variance term to the detector PSD. Detector noise, detector calibration, NR numerical error, surrogate error, and physical model discrepancy must retain separate provenance and correlation semantics."
+  },
+  "uncertainty_sources": [
+    {
+      "id": "detector_noise",
+      "meaning": "Observed detector noise described by a pinned PSD / likelihood and data-quality context.",
+      "keep_separate_from": [
+        "waveform_discrepancy",
+        "nr_truncation",
+        "surrogate_error"
+      ]
+    },
+    {
+      "id": "detector_calibration",
+      "meaning": "Frequency-dependent amplitude/phase calibration uncertainty in the detector response.",
+      "keep_separate_from": [
+        "physical_waveform_discrepancy"
+      ]
+    },
+    {
+      "id": "nr_numerical_error",
+      "meaning": "Finite resolution, truncation, outer boundary, extraction radius, extrapolation, and CCE-vs-extrapolated differences.",
+      "required_metadata": [
+        "simulation_id",
+        "resolution",
+        "extraction_method",
+        "extrapolation_order",
+        "source_file_digest"
+      ]
+    },
+    {
+      "id": "surrogate_interpolation_error",
+      "meaning": "Residual error on held-out complete NR configurations within the declared interpolation domain.",
+      "required_metadata": [
+        "training_simulation_ids",
+        "heldout_simulation_ids",
+        "surrogate_version",
+        "parameter_domain"
+      ]
+    },
+    {
+      "id": "approximant_model_form",
+      "meaning": "Structured difference among EOB, phenomenological, BOB, NR-surrogate, perturbative, and other waveform families.",
+      "required_metadata": [
+        "model_family",
+        "model_version",
+        "domain",
+        "mode_content"
+      ]
+    },
+    {
+      "id": "mode_and_domain_shift",
+      "meaning": "Missing higher modes, mode mixing, precession/eccentricity mismatch, QNM basis and start-time choices.",
+      "required_metadata": [
+        "included_modes",
+        "removed_modes",
+        "start_time_convention",
+        "source_domain"
+      ]
+    },
+    {
+      "id": "algorithmic_precision",
+      "meaning": "Finite precision, interpolation, quadrature, FFT, and numerical evaluation error.",
+      "required_metadata": [
+        "precision",
+        "algorithm_version",
+        "grid",
+        "tolerances"
+      ]
+    }
+  ],
+  "reference_models": [
+    {
+      "id": "point_estimate",
+      "kind": "nominal_waveform_without_discrepancy",
+      "purpose": "Baseline showing the cost of ignoring waveform error."
+    },
+    {
+      "id": "gp_amplitude_phase",
+      "kind": "gaussian_process_amplitude_phase",
+      "reference": "Bachhar et al. PRD 111, 084050",
+      "purpose": "Reproduce published GP calibration baseline on a matched domain."
+    },
+    {
+      "id": "parameterized_error_prior",
+      "kind": "parametric_amplitude_phase_prior",
+      "reference": "Kumar et al. PRD 112, 104071",
+      "purpose": "Reproduce published parametric waveform-error marginalization."
+    },
+    {
+      "id": "accuracy_weighted_model_combination",
+      "kind": "model_accuracy_weighted_bayesian_combination",
+      "reference": "Hoy et al. Nature Astronomy 9 (2025)",
+      "purpose": "Reproduce accuracy-aware model combination on a matched test."
+    },
+    {
+      "id": "independent_model_ensemble",
+      "kind": "model_mixture",
+      "purpose": "Use explicit evidence/accuracy weights and account for correlated training provenance."
+    },
+    {
+      "id": "joint_correlated_discrepancy",
+      "kind": "proposed_method",
+      "purpose": "Joint frequency/mode/parameter-conditioned discrepancy with posterior marginalization and OOD abstention."
+    }
+  ],
+  "data_split_policy": {
+    "grouping_unit": "complete NR simulation ID / physical configuration",
+    "rules": [
+      "Never split neighboring time samples or waveform modes from one simulation across train and test.",
+      "Keep resolution variants and extrapolation orders for the same physical configuration in one split group, except when testing resolution convergence explicitly.",
+      "Keep CCE and extrapolated products linked by their common physical source group.",
+      "Reserve complete source configurations and parameter-space boundary regions for untouched final evaluation.",
+      "Publish exact train/validation/test simulation IDs and source file digests.",
+      "Do not use the final test set for hyperparameter tuning, calibration, model selection, or active NR acquisition."
+    ]
+  },
+  "injection_campaign": {
+    "network_snr_targets": [
+      10,
+      20,
+      40,
+      60,
+      100,
+      200,
+      330
+    ],
+    "noise_conditions": [
+      "zero_noise",
+      "realistic_colored_noise",
+      "nonstationary_noise_challenge"
+    ],
+    "parameter_axes": [
+      "mass_ratio",
+      "component_spin_magnitude",
+      "spin_orientation_and_precession",
+      "eccentricity",
+      "total_mass",
+      "inclination",
+      "distance",
+      "higher_mode_content",
+      "ringdown_start_time"
+    ],
+    "adversarial_injections": [
+      "coherent phase bias concentrated in a narrow frequency band",
+      "frequency-dependent amplitude bias",
+      "missing higher modes",
+      "unmodeled mode mixing",
+      "precession/eccentricity domain shift",
+      "incorrect ringdown start time",
+      "NR resolution/extrapolation perturbation",
+      "correlated surrogate families with overlapping training simulations",
+      "detector calibration mismatch",
+      "out_of_domain parameter points"
+    ],
+    "general_relativity_false_discovery": "Inject GR-consistent signals and measure false positive rates for parametrized post-Einsteinian deviations before and after discrepancy marginalization.",
+    "real_deviation_sensitivity": "Inject declared non-GR or phenomenological deviations to test that conservative discrepancy modeling does not erase identifiable departures."
+  },
+  "required_metrics": [
+    "nominal 50%, 90%, and 95% credible interval coverage with binomial confidence intervals",
+    "posterior bias for component masses, remnant mass/spin, inclination, distance, and other declared parameters",
+    "posterior width / sharpness",
+    "negative log predictive density or another preregistered proper scoring rule",
+    "posterior predictive residual checks and residual whiteness",
+    "cross-frequency and cross-mode covariance calibration",
+    "false-positive rate for parametrized-GR deviations under GR-consistent injections",
+    "OOD detection recall, OOD false acceptance, and in-domain false abstention",
+    "wall time, peak memory, and time-to-posterior-accuracy at matched coverage"
+  ],
+  "proposed_targets_not_claims": {
+    "absolute_90_percent_coverage_error_max": 0.02,
+    "absolute_95_percent_coverage_error_max": 0.02,
+    "ood_detection_recall_min": 0.95,
+    "in_domain_false_abstention_rate_max": 0.05,
+    "false_gr_deviation_rate": "No worse than the calibrated reference baseline at matched sensitivity; report confidence intervals.",
+    "posterior_accuracy": "Improve proper scoring / time-to-posterior-accuracy over point-estimate and naïve mixture baselines at matched coverage."
+  },
+  "active_nr_selection": {
+    "acquisition_objective": "expected reduction in posterior uncertainty and discrepancy-calibration error",
+    "candidate_scores": [
+      "expected posterior entropy reduction",
+      "uncertainty reduction near parameter-space boundaries",
+      "cross-model disagreement after accounting for shared training data",
+      "expected reduction in false-GR-deviation rate",
+      "coverage gaps by mode, SNR, eccentricity, precession, and mass ratio"
+    ],
+    "baselines": [
+      "uniform_random",
+      "latin_hypercube_space_filling",
+      "maximum_predictive_variance",
+      "maximum_cross_model_disagreement"
+    ],
+    "comparison": "Compare posterior calibration and uncertainty reduction at equal expensive NR simulation budgets, including acquisition compute cost.",
+    "leakage_rule": "The final untouched simulation set must not influence acquisition or tuning."
+  },
+  "evidence_requirements": [
+    "exact waveform files and cryptographic digests",
+    "training and held-out simulation IDs",
+    "resolution and extraction metadata",
+    "model and discrepancy-code commit SHAs",
+    "frequency grid, PSD, alignment, windowing and frequency band",
+    "parameter priors and likelihood definition",
+    "posterior samples and random seeds where relevant",
+    "calibration curves, proper scores, coverage confidence intervals and null-control outcomes"
+  ],
+  "execution_state": {
+    "status": "specification_only",
+    "no_claims": [
+      "No discrepancy model has been trained or calibrated by this manifest.",
+      "No posterior inference or injection-recovery experiment has been executed by this manifest.",
+      "Published reference results are not Symtropy/Symthaea results."
+    ]
+  },
+  "next_steps": [
+    "Pin one published GP uncertainty baseline and reproduce it on a matched dataset.",
+    "Build a NumPy reference harness for a small, pinned SXS waveform set and the existing Rust waveform comparison kernel.",
+    "Generate complete-simulation train/validation/test splits and publish the IDs/digests.",
+    "Fit the simplest correlated complex residual model and compare with GP amplitude/phase and parametric-error baselines.",
+    "Run blind posterior injection-recovery over the declared SNR and domain grid.",
+    "Only after calibration, connect discrepancy samples to active NR acquisition and the Mycelix evidence package."
+  ]
+}
