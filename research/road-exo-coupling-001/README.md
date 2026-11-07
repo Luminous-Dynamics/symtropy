@@ -297,3 +297,45 @@ A SimulationChallenge remains simulation/model evidence. Even if it discriminate
 ### V0.1 claim ceiling
 
 Passing the finite fixtures proves exact worst-case residual-regret computation, outcome coverage, cost/risk hard-constraint enforcement, deterministic Pareto filtering and certificate replay for declared hypotheses and outcomes. It does not prove the possible-outcome mapping is physically exhaustive, experiment identification assumptions are true, test risk is correctly estimated, or that a selected road intervention is safe.
+
+ 
+## SAM path-support to evidence-bound decision adapter (ROAD-SAM-EVIDENCE-BINDING-001)
+
+The `trajectory_evidence` module composes the SAM #10514 sequential joint-trajectory support result with the existing #3637 minimax-regret and #3638 evidence-binding certificate. It does not duplicate SAM's support algorithm and does not convert support into utility.
+
+### Contract
+
+The bridge accepts one typed assessment envelope for every action × admitted-hypothesis cell. Each envelope retains:
+- the adapter schema ID and SAM build commitment;
+- evidence-manifest and finite support-manifest commitments;
+- the exact trajectory-query commitment;
+- target policy and context digests;
+- whether the finite path universe is exhaustive;
+- query completeness, decision-point count and finite-path membership;
+- the exact SAM disposition; and
+- an unkeyed content checksum over those fields.
+
+The schema ID belongs to this **Symtropy adapter envelope**, not to a SAM-emitted wire format. The envelope is constructed from the result of `sam_policy_trajectory_support::assess` plus the exact query/manifest inputs. Its digests are caller-supplied content commitments. The unkeyed checksum detects accidental or post-construction mutation; it is not a signature, authentication, proof of origin, or independent verification of the SAM binary. A consumer requiring authenticity must anchor the SAM build and artifact digests through an independently controlled channel.
+
+### Five disposition rules
+
+| SAM path disposition | Required decision-cell support state | Consequence |
+|---|---|---|
+| `TrajectorySupported` | May be Supported, Unsupported, NotIdentified or Incomplete for other reasons | Necessary path condition only; utility still needs #3638 evidence |
+| `UnsupportedSequence` | Unsupported | Exact absence only under an exhaustive finite path universe |
+| `SupportUnknown` | NotIdentified | Non-exhaustive absence is not structural zero |
+| `Incomplete` | Incomplete | Missing/censored/incomplete query cannot authorize a decision |
+| `OutOfScope` | Incomplete | Policy/context mismatch cannot be treated as in-scope support |
+
+The adapter requires exactly one envelope per action × hypothesis cell. Missing, duplicate, orphan or mismatched support dispositions reject. It then delegates utility qualification to #3638 unchanged. Therefore:
+- a supported path without a qualified utility evidence binding does not produce a decision certificate;
+- a supported path can still have unidentified utility;
+- a simulator-generated crossing cannot enter `EmpiricalDecision` merely because SAM supports its synthetic path;
+- Unsupported, NotIdentified and Incomplete remain distinct through the certificate;
+- no support status is inferred from marginal action coverage.
+
+### Tests and claim ceiling
+
+Hostile fixtures cover all five dispositions, unsupported-path/Supported-utility mismatch, supported-path/unidentified-utility, missing utility evidence, one-to-one action × hypothesis coverage, duplicate/missing/orphan envelopes, receipt mutation and order-independent bundle digest.
+
+This is a **composition adapter**, not a new support estimator, propensity estimator, causal-identification method, or safety judgment. It does not independently invoke SAM or authenticate the supplied build/manifest/query commitments. Passing tests establishes only that the adapter preserves and composes the declared finite dispositions and existing evidence/decision gates.
