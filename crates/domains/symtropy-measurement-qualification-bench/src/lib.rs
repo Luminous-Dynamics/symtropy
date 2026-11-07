@@ -849,6 +849,8 @@ mod tests {
         let reference = &evaluate().reference_checks[0];
         assert!(reference.absolute_bias > 0.0);
         assert!(reference.repeatability_envelope > 0.0);
+        assert!((reference.conservative_error_envelope - 0.0175).abs() < 1.0e-9);
+        assert_eq!(reference.coverage_factor, 2.0);
         assert!(reference.conservative_error_envelope < reference.maximum_abs_error);
         assert_eq!(reference.disposition, "PASS");
     }
@@ -861,8 +863,16 @@ mod tests {
         assert_eq!(set.quantiles.len(), 3);
         for quantile in &set.quantiles {
             assert!(quantile.achieved_confidence + TOLERANCE >= quantile.confidence_target);
-            assert!(quantile.interval_width >= 0.0);
+            assert!(quantile.interval_width.is_some_and(|width| width >= 0.0));
         }
+        assert!((set.quantiles[0].interval_lower.unwrap() - 0.42).abs() < 1.0e-9);
+        assert!((set.quantiles[0].interval_upper.unwrap() - 0.475).abs() < 1.0e-9);
+        assert!((set.quantiles[0].achieved_confidence - 0.9052716318374154).abs() < 1.0e-9);
+        assert!((set.quantiles[1].interval_lower.unwrap() - 0.60).abs() < 1.0e-9);
+        assert!((set.quantiles[1].interval_upper.unwrap() - 0.715).abs() < 1.0e-9);
+        assert!((set.quantiles[1].achieved_confidence - 0.9145668668426059).abs() < 1.0e-9);
+        assert!((set.quantiles[2].interval_lower.unwrap() - 0.845).abs() < 1.0e-9);
+        assert!((set.quantiles[2].interval_upper.unwrap() - 0.915).abs() < 1.0e-9);
     }
 
     #[test]
@@ -959,7 +969,7 @@ mod tests {
     }
 
     #[test]
-    fn 2d_method_cannot_qualify_a_3d_reference() {
+    fn two_d_method_cannot_qualify_a_3d_reference() {
         let mut case = fixture();
         case["reference_checks"][0]["descriptor_type"] = serde_json::json!("SPHERICITY_3D");
         case["reference_checks"][0]["basis"] = serde_json::json!("RECONSTRUCTION_3D");
