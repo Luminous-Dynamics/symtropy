@@ -1,0 +1,20 @@
+version = 4
+
+[[package]]
+name = "maritime-service-chain-contract"
+version = "0.1.0"
+
+[[package]]
+name = "maritime-service-chain-fleet"
+version = "0.1.0"
+dependencies = [
+ "maritime-service-chain-contract",
+]
+
+[[package]]
+name = "maritime-traffic-envelope-contract"
+version = "0.1.0"
+dependencies = [
+ "maritime-service-chain-contract",
+ "maritime-service-chain-fleet",
+]
