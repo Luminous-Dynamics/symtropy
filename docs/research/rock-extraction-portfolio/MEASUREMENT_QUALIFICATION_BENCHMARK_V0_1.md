@@ -62,6 +62,12 @@ Each sample set binds to:
 
 Left/right censored observations remain censored. They are not converted to zero, the resolution floor, or an exact value.
 
+### Sequential terminal-stability gate
+
+The case also declares an acquisition batch sequence, minimum batch count, minimum samples per batch, per-quantile maximum batch-to-batch drift and required stable-tail length. Cumulative empirical quantiles are recomputed after every completed batch. The evaluator records the **last batch transition that exceeded the drift limit** and passes only when the required number of consecutive transitions after that last instability are within the declared limit.
+
+This prevents stopping on one early stable-looking segment when a later batch causes the estimate to move again. It is a custom v0.1 terminal-stability rule, not a reproduction of Sasakura & Kimura's named Last-Exit method.
+
 For n independent observations and population quantile p, let B be the number of observations at or below the true p-quantile. Then B follows Binomial(n,p). For order statistics X_(r) and X_(s), the distribution-free interval coverage is:
 
 `P(r <= B <= s-1)`
@@ -82,7 +88,7 @@ The exact binomial guarantee is conditional on the independent random-sampling p
 
 A declared unique block ID does not prove physical independence. The sampling protocol still requires independent review.
 
-Cluster-aware bootstrap, finite-population corrections, sequential sample-size planning and Last-Exit-like stability rules are future work.
+Cluster-aware bootstrap, finite-population corrections, adaptive sample-size planning and a faithful implementation/validation of published Last-Exit-style methods are future work. The v0.1 terminal-stability rule is custom and simpler.
 
 ## 4. Synthetic golden fixture
 
@@ -111,7 +117,7 @@ Software acceptance:
 - 100% rejection of planted duplicate particle/block, wrong parent bin, invalid descriptor definition, under-resolution and censor-as-zero controls.
 - Exact rank-coverage calculations agree with independently computed golden vectors.
 - Insufficient precision is reported as failure, not hidden by more decimal places.
-- Repeatability/reference bias and quantile sampling precision remain separate reported dimensions.
+- Repeatability/reference bias, quantile sampling precision and terminal batch stability remain separate reported dimensions.
 
 Physical acceptance requires a measurement-system study, certified references, blinded replicate scans, independent sample preparation and a predeclared uncertainty budget. No universal tolerance is imposed by this crate.
 
