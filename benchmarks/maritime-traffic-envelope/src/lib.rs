@@ -85,6 +85,10 @@ pub struct TrafficWindow {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrafficResource {
+    /// Exact corridor namespace for this resource profile.
+    pub corridor_id: String,
+    /// Tick epoch/resolution namespace used by every window in this profile.
+    pub time_basis_id: String,
     pub resource_id: String,
     pub revision: String,
     pub kind: TrafficResourceKind,
@@ -104,6 +108,8 @@ pub struct TrafficResource {
 /// (end + late_clearance).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrafficOccupancy {
+    /// Must equal the enclosing workload's corridor namespace.
+    pub corridor_id: String,
     pub occupancy_id: String,
     pub resource_id: String,
     pub route_revision: String,
@@ -210,7 +216,9 @@ pub enum TrafficError {
     InvalidOccupancy(String),
     InvalidEvidenceReceipt(String),
     ResourceEvidenceSubjectMismatch(String),
+    ResourceScopeMismatch(String),
     OccupancyEvidenceSubjectMismatch(String),
+    OccupancyScopeMismatch(String),
     PlanOperationMismatch(String),
     MissingDemandSelection(String),
     PlanSelectionMismatch(String),
@@ -253,6 +261,8 @@ fn resource_unit_code(unit: ResourceUnit) -> &'static str {
 /// the subject ID and requires a fresh scoped receipt.
 pub fn canonical_resource_subject_id(resource: &TrafficResource) -> String {
     let mut identity = String::from("maritime-traffic-resource-v1");
+    push_field(&mut identity, &resource.corridor_id);
+    push_field(&mut identity, &resource.time_basis_id);
     push_field(&mut identity, &resource.resource_id);
     push_field(&mut identity, &resource.revision);
     push_field(&mut identity, resource_kind_code(resource.kind));
@@ -278,6 +288,7 @@ pub fn canonical_occupancy_subject_id(occupancy: &TrafficOccupancy, time_basis_i
     let early_entry = occupancy.early_entry_ticks.to_string();
     let late_clearance = occupancy.late_clearance_ticks.to_string();
     for value in [
+        occupancy.corridor_id.as_str(),
         occupancy.occupancy_id.as_str(),
         occupancy.resource_id.as_str(),
         occupancy.route_revision.as_str(),
@@ -465,6 +476,11 @@ pub fn evaluate_traffic_plan(
         if resource.resource_id.trim().is_empty() || resource.revision.trim().is_empty() {
             return Err(TrafficError::InvalidResource(resource.resource_id.clone()));
         }
+        if resource.corridor_id != workload.corridor_id
+            || resource.time_basis_id != workload.time_basis_id
+        {
+            return Err(TrafficError::ResourceScopeMismatch(resource.resource_id.clone()));
+        }
         validate_windows(resource)?;
         resource.evidence.validate()?;
         if resource.evidence.subject_id != canonical_resource_subject_id(resource)
@@ -490,6 +506,11 @@ pub fn evaluate_traffic_plan(
     let mut violations = BTreeSet::new();
 
     for occupancy in &workload.occupancies {
+        if occupancy.corridor_id != workload.corridor_id {
+            return Err(TrafficError::OccupancyScopeMismatch(
+                occupancy.occupancy_id.clone(),
+            ));
+        }
         if occupancy.occupancy_id.trim().is_empty()
             || occupancy.route_revision.trim().is_empty()
             || occupancy.operation.demand_id.trim().is_empty()
