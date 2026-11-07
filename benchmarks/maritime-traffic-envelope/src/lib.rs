@@ -64,7 +64,6 @@ impl EvidenceReceipt {
             && self.valid_from_tick <= interval.start_tick
             && self.valid_through_tick >= last_active_tick
     }
-
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -249,7 +248,6 @@ fn resource_unit_code(unit: ResourceUnit) -> &'static str {
     }
 }
 
-
 /// Canonical evidence subject for the complete traffic resource profile.
 /// Changing its revision, type, windows, directions or clearance guards changes
 /// the subject ID and requires a fresh scoped receipt.
@@ -258,22 +256,13 @@ pub fn canonical_resource_subject_id(resource: &TrafficResource) -> String {
     push_field(&mut identity, &resource.resource_id);
     push_field(&mut identity, &resource.revision);
     push_field(&mut identity, resource_kind_code(resource.kind));
-    push_field(
-        &mut identity,
-        &resource.clearance_before_ticks.to_string(),
-    );
-    push_field(
-        &mut identity,
-        &resource.clearance_after_ticks.to_string(),
-    );
+    push_field(&mut identity, &resource.clearance_before_ticks.to_string());
+    push_field(&mut identity, &resource.clearance_after_ticks.to_string());
     push_field(&mut identity, &resource.windows.len().to_string());
     for window in &resource.windows {
         push_field(&mut identity, &window.window.start_tick.to_string());
         push_field(&mut identity, &window.window.end_tick.to_string());
-        push_field(
-            &mut identity,
-            window.direction_id.as_deref().unwrap_or(""),
-        );
+        push_field(&mut identity, window.direction_id.as_deref().unwrap_or(""));
     }
     identity
 }
@@ -281,10 +270,7 @@ pub fn canonical_resource_subject_id(resource: &TrafficResource) -> String {
 /// Canonical evidence subject for one occupancy envelope. It binds the complete
 /// selected operation placement, route revision, resource/direction, uncertainty
 /// bounds and time basis. A schedule or uncertainty edit invalidates the receipt.
-pub fn canonical_occupancy_subject_id(
-    occupancy: &TrafficOccupancy,
-    time_basis_id: &str,
-) -> String {
+pub fn canonical_occupancy_subject_id(occupancy: &TrafficOccupancy, time_basis_id: &str) -> String {
     let operation = &occupancy.operation;
     let mut identity = String::from("maritime-traffic-occupancy-v1");
     let start_tick = operation.start_tick.to_string();
@@ -308,10 +294,7 @@ pub fn canonical_occupancy_subject_id(
     ] {
         push_field(&mut identity, value);
     }
-    push_field(
-        &mut identity,
-        &operation.resource_uses.len().to_string(),
-    );
+    push_field(&mut identity, &operation.resource_uses.len().to_string());
     for usage in &operation.resource_uses {
         push_field(&mut identity, &usage.resource_id);
         push_field(&mut identity, &usage.amount.to_string());
@@ -377,14 +360,15 @@ fn effective_occupancy(
             occupancy.occupancy_id.clone(),
         ));
     }
-    Ok(EffectiveOccupancy { start_tick, end_tick })
+    Ok(EffectiveOccupancy {
+        start_tick,
+        end_tick,
+    })
 }
 
 fn validate_windows(resource: &TrafficResource) -> Result<(), TrafficError> {
     if resource.windows.is_empty() {
-        return Err(TrafficError::InvalidResource(
-            resource.resource_id.clone(),
-        ));
+        return Err(TrafficError::InvalidResource(resource.resource_id.clone()));
     }
     for window in &resource.windows {
         if !window.window.is_valid() {
@@ -428,10 +412,7 @@ fn validate_windows(resource: &TrafficResource) -> Result<(), TrafficError> {
     Ok(())
 }
 
-fn check_plan_binding(
-    plan: &FleetPlan,
-    occupancy: &TrafficOccupancy,
-) -> Result<(), TrafficError> {
+fn check_plan_binding(plan: &FleetPlan, occupancy: &TrafficOccupancy) -> Result<(), TrafficError> {
     if !plan
         .operations
         .iter()
@@ -531,9 +512,7 @@ pub fn evaluate_traffic_plan(
         check_plan_binding(plan, occupancy)?;
 
         let Some(resource) = resources.get(occupancy.resource_id.as_str()).copied() else {
-            return Err(TrafficError::UnknownResource(
-                occupancy.resource_id.clone(),
-            ));
+            return Err(TrafficError::UnknownResource(occupancy.resource_id.clone()));
         };
         match resource.kind {
             TrafficResourceKind::OneWayChannel => {
@@ -600,8 +579,7 @@ pub fn evaluate_traffic_plan(
         }
 
         let has_compatible_window = resource.windows.iter().any(|window| {
-            window.window.covers(effective_window)
-                && window.direction_id == occupancy.direction_id
+            window.window.covers(effective_window) && window.direction_id == occupancy.direction_id
         });
         if !has_compatible_window {
             let has_covering_window = resource
@@ -642,7 +620,8 @@ pub fn evaluate_traffic_plan(
                 if left_occupancy.occupancy_id == right_occupancy.occupancy_id {
                     continue;
                 }
-                let (first, second) = if left_occupancy.occupancy_id <= right_occupancy.occupancy_id {
+                let (first, second) = if left_occupancy.occupancy_id <= right_occupancy.occupancy_id
+                {
                     (
                         left_occupancy.occupancy_id.clone(),
                         right_occupancy.occupancy_id.clone(),
