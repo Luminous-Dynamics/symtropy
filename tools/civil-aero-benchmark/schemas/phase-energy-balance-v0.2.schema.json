@@ -23,7 +23,8 @@
     "tolerance_w",
     "peak_bus_supply_power_w",
     "peak_bus_supply_power_limit_w",
-    "continuous_bus_supply_power_limit_w"
+    "continuous_bus_supply_power_limit_w",
+    "peak_bus_power_trace_sha256"
   ],
   "properties": {
     "schema_version": {
@@ -109,6 +110,9 @@
     "continuous_bus_supply_power_limit_w": {
       "type": "number",
       "exclusiveMinimum": 0
+    },
+    "peak_bus_power_trace_sha256": {
+      "$ref": "#/$defs/sha256"
     }
   },
   "$defs": {
