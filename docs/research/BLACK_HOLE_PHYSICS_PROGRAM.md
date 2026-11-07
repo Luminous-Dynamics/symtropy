@@ -656,3 +656,59 @@ Do not conflate a quadratic model term with an independently resolved nonlinear 
 
 Dedicated execution item: [Symthaea BH-NONLINEAR-RINGDOWN-001 #10908](https://github.com/Luminous-Dynamics/symthaea/issues/10908). Mycelix and Sol Atlas provenance/display requirements are recorded in #5903 and #586.
 
+
+
+## Eikonal QNMs, local light-ring geometry, and prior identifiability (2026-11-07)
+
+De Simone, Völkel & Kokkotas, arXiv:2609.24824 (2026-09-21), “Constraining the geometry of rotating black holes with eikonal QNMs,” compares a global metric-specific Konoplya–Rezzolla–Zhidenko parameterization with a metric-agnostic representation of local metric values and radial derivatives at the light ring.
+
+Important reported lessons:
+- Uniform priors on global metric coefficients can induce strongly nonuniform and skewed priors on local light-ring quantities.
+- One-parameter analyses can fail to recover injected local deviations and can bias global metric reconstruction.
+- Multiparameter analyses are more robust to injections but expose substantial degeneracies in marginalized parameters.
+- Their application to approximate GW250114 ringdown posteriors is consistent with Kerr within the declared model families.
+
+Reference: [De Simone et al., arXiv:2609.24824](https://arxiv.org/abs/2609.24824).
+
+This suggests an important paradigm shift: infer local physically observable quantities first, then reconstruct global metric families only where identifiable. A global model prior should not silently dictate a highly structured prior on the local geometry being tested.
+
+Albuquerque & Völkel, arXiv:2608.01061, “Optimal frequency scales for probing black-hole geometries,” studies an information-theoretic tradeoff in a controlled scattering experiment: very short high-frequency pulses resolve small scales but transmit through the potential barrier; broad pulses reflect efficiently but resolve poorly. Their model finds an optimal pulse width set approximately by the inverse square root of the potential peak. This is a model-specific result, not a universal frequency prescription. Reference: [arXiv:2608.01061](https://arxiv.org/abs/2608.01061).
+
+### Symtropy equatorial Kerr light-ring reference implementation
+
+The clean branch now includes `src/light_ring.rs`, exported by the crate. It computes:
+- prograde/retrograde equatorial Kerr photon-orbit radius using the closed-form solution;
+- signed coordinate angular frequency in rad/s;
+- impact parameter (b=L/E);
+- local metric null-condition and radial circularity residuals;
+- coordinate-time radial Lyapunov exponent from the equatorial null radial potential;
+- explicit extremal-prograde horizon-limit status, where Boyer–Lindquist impact/Lyapunov values are unavailable rather than fabricated.
+
+The Lyapunov calculation uses the (E=1) equatorial Kerr null radial potential
+(R(r)=[r^2+a^2-ab]^2-\Delta(b-a)^2), including a factorized (\Delta=(r-r_+)(r-r_-)) for near-horizon stability. The eikonal interpretation remains asymptotic in angular mode number; these quantities are not exact finite-(\ell) QNM eigenfrequencies.
+
+Eight Rust tests are authored for the Schwarzschild limit ((r_{ph}=3r_g), (lambda_{ph}=|\Omega_{ph}|)), orientation, prograde/retrograde ordering, local circular-null residuals, extremal retrograde limit, extremal prograde horizon limit, and near-extremal finite behavior. A 20-case independently generated reference grid is in `benchmarks/light_ring_reference_cases.json`. Total authored tests are **81**; all remain unexecuted because no Rust toolchain is available in this environment.
+
+Dedicated work:
+- [Symtropy BH-LIGHTRING-001 #4051](https://github.com/Luminous-Dynamics/symtropy/issues/4051)
+- [Symthaea BH-EIKONAL-GEOMETRY-001 #10909](https://github.com/Luminous-Dynamics/symthaea/issues/10909)
+
+### Time-domain perturbation theory as an independent validation axis
+
+The frequency-domain QNM/eigenvalue description should not be the sole reference for ringdown science. Recent work provides complementary time-domain methods:
+
+- De Simone et al., *Parametrized beyond-Teukolsky framework in the time domain*, PRD 114, 064060 (2026-09-15), DOI [10.1103/93dw-jlcg](https://doi.org/10.1103/93dw-jlcg), performs 2+1D Gaussian-wavepacket scattering and follows prompt response, ringdown and late-time tails. The paper reports good agreement with frequency-domain eigenvalues at low azimuthal number, but mode mixing limits higher-m extraction; near-horizon potential deformations can change amplitude/phase and the onset of tail behavior.
+- De Simone, *Discrete symmetries of modified Teukolsky equations*, PRD 114, 084063 (2026-10-21), DOI [10.1103/dbzz-jhjb](https://doi.org/10.1103/dbzz-jhjb), studies how potential deformations change discrete symmetries, break an (m=0) QNM degeneracy, and can introduce nonphysical branches if frequency-domain modified potentials are naively evolved in time.
+- Vaswani et al., *Time-domain framework for the Teukolsky equation with a particle source using comoving hyperboloidal coordinates*, PRD 114, 084073 (2026-10-23), DOI [10.1103/2t8s-g9h3](https://doi.org/10.1103/2t8s-g9h3), develops a 1+1D time-domain particle-source implementation with comoving spatially compactified hyperboloidal coordinates and jump conditions. It reports avoiding nonphysical growing modes in its tests and includes an (s=-2) Teukolsky test implementation.
+
+The important capability gap is not “we need a production Teukolsky solver immediately.” It is a benchmarked bridge between:
+1. stationary Kerr geometry and light-ring references;
+2. frequency-domain eigenvalue/QNM predictions;
+3. time-domain wave-packet / particle-source evolution;
+4. the extracted prompt, ringdown, and tail signals;
+5. observation-space likelihood and uncertainty.
+
+Do not treat a discretized frequency-domain potential evolved in time as automatically physical. Symmetry constraints, boundary conditions, hyperboloidal compactification, spurious-mode detection and cross-checks against eigenvalue solutions must be explicit acceptance tests.
+
+Related Symthaea work: [BH-TEUKOLSKY-001 #10874](https://github.com/Luminous-Dynamics/symthaea/issues/10874), with eikonal-prior/identifiability work in #10909. The external time-domain studies are reference systems; no Teukolsky evolution solver is implemented by this PR.
+
