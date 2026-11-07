@@ -378,7 +378,7 @@ mod tests {
     ) -> BufferedObservation<i32> {
         BufferedObservation::new(
             id,
-            &format!("source:{id}"),
+            format!("source:{id}"),
             observed_tick,
             generated_tick,
             generated_sequence,
@@ -396,7 +396,7 @@ mod tests {
     ) -> BufferedObservation<i32> {
         BufferedObservation::new(
             id,
-            &format!("source:{id}"),
+            format!("source:{id}"),
             generated_tick.saturating_sub(1),
             generated_tick,
             generated_sequence,
