@@ -1,0 +1,18 @@
+[workspace]
+
+[package]
+name = "civdyn-normative-audit"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Tri-state evaluation of explicit normative premises against frozen civilizational outcome evidence"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "normative-audit-sweep"
+path = "src/bin/normative_audit_sweep.rs"
+
+[dependencies]
