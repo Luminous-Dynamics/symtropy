@@ -9,7 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use maritime_service_chain_contract::TickWindow;
-use maritime_service_chain_fleet::OperationPlacement;
+use maritime_service_chain_fleet::{FleetPlan, OperationPlacement};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EvidenceState {
@@ -258,6 +258,8 @@ pub enum MobileError {
     InvalidAvailability(String),
     AvailabilityWindowsOverlap(String),
     InvalidAssignment(String),
+    FleetSelectionMismatch(String),
+    FleetOperationNotFound(String),
 }
 
 fn unique_nonempty_identifiers(values: &[String]) -> bool {
@@ -804,4 +806,49 @@ impl AssistanceTask {
             end_tick: self.operation.end_tick,
         }
     }
+}
+
+/// Verify assistance only against operations selected by the exact fleet plan.
+///
+/// Every task must match one full operation placement (including time,
+/// alternative, participant and resource uses) and the plan's selected demand
+/// alternative. This prevents an otherwise valid tug/pilot report from being
+/// attached to an operation that the fleet oracle did not actually select.
+pub fn evaluate_mobile_assistance_for_plan(
+    workload: &MobileWorkload,
+    plan: &FleetPlan,
+) -> Result<MobileReport, MobileError> {
+    let mut selected_by_demand = BTreeMap::new();
+    for selection in &plan.selections {
+        if selected_by_demand
+            .insert(selection.demand_id.as_str(), selection)
+            .is_some()
+        {
+            return Err(MobileError::FleetSelectionMismatch(
+                selection.demand_id.clone(),
+            ));
+        }
+    }
+
+    for task in &workload.tasks {
+        let operation = &task.operation;
+        let Some(selection) = selected_by_demand.get(operation.demand_id.as_str()) else {
+            return Err(MobileError::FleetSelectionMismatch(
+                operation.demand_id.clone(),
+            ));
+        };
+        if selection.participant_id != operation.participant_id
+            || selection.alternative_id != operation.alternative_id
+        {
+            return Err(MobileError::FleetSelectionMismatch(
+                operation.demand_id.clone(),
+            ));
+        }
+
+        if !plan.operations.iter().any(|candidate| candidate == operation) {
+            return Err(MobileError::FleetOperationNotFound(task.task_id.clone()));
+        }
+    }
+
+    evaluate_mobile_assistance(workload)
 }
