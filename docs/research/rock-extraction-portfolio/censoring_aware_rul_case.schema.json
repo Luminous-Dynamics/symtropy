@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/censoring-aware-rul-case-v0.1.json",
+  "title": "Symtropy Censoring-Aware RUL Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "exposure_profile",
+    "causes",
+    "censoring_policy",
+    "episodes",
+    "predictions"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intervention_id",
+        "exposure_at",
+        "intervention_type",
+        "source_ref"
+      ],
+      "properties": {
+        "intervention_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "exposure_at": {
+          "type": "number",
+          "minimum": 0
+        },
+        "intervention_type": {
+          "enum": [
+            "INSPECTION",
+            "REPAIR",
+            "PREVENTIVE_REPLACEMENT",
+            "COMPONENT_ADJUSTMENT",
+            "OTHER"
+          ]
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "asset_id",
+        "asset_family_ref",
+        "asset_configuration_ref",
+        "partition",
+        "campaign_ref",
+        "site_ref",
+        "material_cohort_ref",
+        "machine_configuration_ref",
+        "exposure_unit",
+        "entry_exposure",
+        "exit_exposure",
+        "outcome_type",
+        "cause_id",
+        "censoring_reason",
+        "interventions",
+        "source_ref",
+        "adjudication_ref"
+      ],
+      "properties": {
+        "episode_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "asset_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "asset_family_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "asset_configuration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "partition": {
+          "enum": [
+            "CALIBRATION",
+            "VALIDATION",
+            "PROSPECTIVE_HOLDOUT"
+          ]
+        },
+        "campaign_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "site_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "material_cohort_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "machine_configuration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "exposure_unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "entry_exposure": {
+          "type": "number",
+          "minimum": 0
+        },
+        "exit_exposure": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "outcome_type": {
+          "enum": [
+            "FAILURE_EVENT",
+            "RIGHT_CENSORED"
+          ]
+        },
+        "cause_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "censoring_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ADMINISTRATIVE",
+            "LOSS_TO_FOLLOW_UP",
+            "PREVENTIVE_REPLACEMENT",
+            "REPAIR",
+            "TRANSFER",
+            "UNKNOWN",
+            null
+          ]
+        },
+        "interventions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/intervention"
+          }
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "adjudication_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prediction_id",
+        "episode_id",
+        "partition",
+        "forecast_kind",
+        "cause_id",
+        "horizon_exposure",
+        "probability",
+        "model_ref",
+        "model_digest_ref",
+        "source_ref"
+      ],
+      "properties": {
+        "prediction_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "episode_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "partition": {
+          "enum": [
+            "VALIDATION",
+            "PROSPECTIVE_HOLDOUT"
+          ]
+        },
+        "forecast_kind": {
+          "enum": [
+            "ALL_CAUSE_SURVIVAL",
+            "CAUSE_CUMULATIVE_INCIDENCE"
+          ]
+        },
+        "cause_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "horizon_exposure": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "model_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "model_digest_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MEASURED"
+      ]
+    },
+    "exposure_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exposure_unit",
+        "definition_ref",
+        "conversion_policy_ref"
+      ],
+      "properties": {
+        "exposure_unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "definition_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "conversion_policy_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "causes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ref"
+      }
+    },
+    "censoring_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "censoring_reference_partition",
+        "independent_censoring_reasons",
+        "informative_censoring_reasons",
+        "independence_assumption_ref",
+        "censoring_model_ref"
+      ],
+      "properties": {
+        "censoring_reference_partition": {
+          "const": "CALIBRATION"
+        },
+        "independent_censoring_reasons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "ADMINISTRATIVE",
+              "LOSS_TO_FOLLOW_UP"
+            ]
+          }
+        },
+        "informative_censoring_reasons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "PREVENTIVE_REPLACEMENT",
+              "REPAIR",
+              "TRANSFER",
+              "UNKNOWN"
+            ]
+          }
+        },
+        "independence_assumption_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "censoring_model_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/episode"
+      }
+    },
+    "predictions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/prediction"
+      }
+    }
+  }
+}
