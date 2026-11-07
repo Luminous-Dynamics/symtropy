@@ -510,6 +510,7 @@ impl std::error::Error for JetError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::DimensionlessSpin;
 
     const SOLAR_MASS_KG: f64 = 1.988_47e30;
     fn mass() -> super::super::MassKg {
