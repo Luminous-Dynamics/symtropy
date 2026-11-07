@@ -301,7 +301,10 @@ impl SchwarzschildGeodesicIntegrator {
         let minimum_step = 64.0 * f64::EPSILON * parameter_span_m.max(initial_step_m);
 
         for _ in 0..max_attempts {
-            if advanced >= parameter_span_m {
+            let endpoint_tolerance = 32.0 * f64::EPSILON * parameter_span_m.max(initial_step_m);
+            if advanced >= parameter_span_m
+                || parameter_span_m - advanced <= endpoint_tolerance
+            {
                 return Ok(AdaptiveGeodesicResult {
                     states,
                     accepted_steps: accepted,
@@ -657,9 +660,8 @@ mod tests {
         let integrator = integrator();
         let state = circular_timelike_state(integrator, 6.0);
         assert!(state.tangent[0] > 1.0);
-        assert_eq!(
-            integrator.normalization(state).unwrap(),
-            -1.0
+        assert!(
+            (integrator.normalization(state).unwrap() + 1.0).abs() < 2e-14
         );
         // For a circular Schwarzschild geodesic, dx^0/d(c*tau)=dt/dtau > 1.
         // Coordinate time is x^0/c, not the integration parameter.
