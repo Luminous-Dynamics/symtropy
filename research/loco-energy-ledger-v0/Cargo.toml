@@ -1,0 +1,9 @@
+[package]
+name = "loco-energy-ledger"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Signed energy accounting and cost-of-transport reference oracle"
+
+[workspace]
