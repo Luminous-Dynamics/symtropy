@@ -653,8 +653,7 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
         {
             return Err(MobileError::UnknownResource(leg.resource_id.clone()));
         }
-        if leg.evidence.subject_id
-            != canonical_reposition_subject_id(leg, &workload.time_basis_id)
+        if leg.evidence.subject_id != canonical_reposition_subject_id(leg, &workload.time_basis_id)
             || leg.evidence.subject_revision != leg.route_revision
         {
             return Err(MobileError::InvalidEvidenceReceipt(
