@@ -35,7 +35,12 @@
       "FST-03",
       "FST-04",
       "SEAL-01"
-    ]
+    ],
+    "supported_material_classes": [
+      "synthetic_panel_laminate_v1"
+    ],
+    "reference_conflict_threshold_mm": 2,
+    "expected_calibration_id": "CAL-01"
   },
   "evidence_planes": {
     "design_intent": "approved synthetic target model; never overwrite with scan output",
