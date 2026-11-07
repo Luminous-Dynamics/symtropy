@@ -1,10 +1,10 @@
 use maritime_mobile_assistance_contract::{
     AssistanceAssignment, AssistanceKind, AssistanceTask, EvidenceReceipt, EvidenceState,
-    MobileDisposition, MobileError, MobileViolation, MobileWorkload, PilotResource,
-    RepositionLeg, TugResource, evaluate_mobile_assistance,
+    MobileDisposition, MobileError, MobileViolation, MobileWorkload, PilotResource, RepositionLeg,
+    TugResource, evaluate_mobile_assistance,
 };
-use maritime_service_chain_fleet::OperationPlacement;
 use maritime_service_chain_contract::TickWindow;
+use maritime_service_chain_fleet::OperationPlacement;
 
 fn receipt(
     id: &str,
@@ -62,7 +62,10 @@ fn pilot(id: &str, node: &str, qualifications: &[&str]) -> PilotResource {
         pilot_id: id.to_owned(),
         revision: "pilot-roster-1".to_owned(),
         position_node_id: node.to_owned(),
-        qualification_ids: qualifications.iter().map(|item| (*item).to_owned()).collect(),
+        qualification_ids: qualifications
+            .iter()
+            .map(|item| (*item).to_owned())
+            .collect(),
         qualification_evidence: receipt(
             &format!("{id}-qualification"),
             EvidenceState::Current,
@@ -256,9 +259,7 @@ fn joint_tug_requirement_needs_distinct_named_units() {
     assert!(
         report
             .violations
-            .contains(&MobileViolation::InsufficientTugCount(
-                "task-a".to_owned()
-            ))
+            .contains(&MobileViolation::InsufficientTugCount("task-a".to_owned()))
     );
 }
 
@@ -312,11 +313,13 @@ fn missing_reposition_evidence_abstains_instead_of_assuming_zero_travel() {
     let report = evaluate_mobile_assistance(&input).expect("valid workload");
     assert_eq!(report.disposition, MobileDisposition::NeedsEvidence);
     assert!(
-        report.violations.contains(&MobileViolation::MissingRepositionLeg {
-            resource_id: "tug-01".to_owned(),
-            from_node_id: "pilot-point".to_owned(),
-            to_node_id: "berth-1".to_owned(),
-        })
+        report
+            .violations
+            .contains(&MobileViolation::MissingRepositionLeg {
+                resource_id: "tug-01".to_owned(),
+                from_node_id: "pilot-point".to_owned(),
+                to_node_id: "berth-1".to_owned(),
+            })
     );
 }
 
@@ -327,11 +330,13 @@ fn stale_capability_evidence_needs_review() {
     let report = evaluate_mobile_assistance(&input).expect("valid workload");
     assert_eq!(report.disposition, MobileDisposition::NeedsEvidence);
     assert!(
-        report.violations.contains(&MobileViolation::EvidenceStateNotCurrent {
-            resource_id: "tug-01".to_owned(),
-            evidence_id: "tug-01-capability".to_owned(),
-            state: EvidenceState::Stale,
-        })
+        report
+            .violations
+            .contains(&MobileViolation::EvidenceStateNotCurrent {
+                resource_id: "tug-01".to_owned(),
+                evidence_id: "tug-01-capability".to_owned(),
+                state: EvidenceState::Stale,
+            })
     );
 }
 
@@ -364,9 +369,9 @@ fn half_open_service_handoff_is_allowed_when_the_resource_stays_at_the_same_node
     input.tasks[1].operation.start_tick = 7;
     input.tasks[1].operation.end_tick = 9;
     input.tasks[1].location_node_id = "pilot-point".to_owned();
-    input.reposition_legs.retain(|item| {
-        item.from_node_id != "pilot-point" || item.to_node_id != "berth-1"
-    });
+    input
+        .reposition_legs
+        .retain(|item| item.from_node_id != "pilot-point" || item.to_node_id != "berth-1");
     let report = evaluate_mobile_assistance(&input).expect("valid workload");
     assert_eq!(report.disposition, MobileDisposition::ReadyForComparison);
 }
