@@ -180,9 +180,12 @@ fn unique_nonempty(values: &[String]) -> bool {
 }
 
 fn direction_exists(edge: &ChannelEdge, direction_id: &str) -> bool {
-    edge.direction_windows
-        .iter()
-        .any(|window| window.allowed_direction_ids.iter().any(|id| id == direction_id))
+    edge.direction_windows.iter().any(|window| {
+        window
+            .allowed_direction_ids
+            .iter()
+            .any(|id| id == direction_id)
+    })
 }
 
 fn relation_key(
@@ -302,9 +305,7 @@ fn validate_plan_selection(
     selections: &BTreeMap<&str, &maritime_service_chain_fleet::DemandSelection>,
 ) -> Result<(), ChannelError> {
     let Some(selection) = selections.get(operation.demand_id.as_str()) else {
-        return Err(ChannelError::UnknownPlanDemand(
-            operation.demand_id.clone(),
-        ));
+        return Err(ChannelError::UnknownPlanDemand(operation.demand_id.clone()));
     };
     if selection.participant_id != operation.participant_id
         || selection.alternative_id != operation.alternative_id
@@ -313,7 +314,11 @@ fn validate_plan_selection(
             operation.demand_id.clone(),
         ));
     }
-    if !plan.operations.iter().any(|candidate| candidate == operation) {
+    if !plan
+        .operations
+        .iter()
+        .any(|candidate| candidate == operation)
+    {
         return Err(ChannelError::FleetOperationNotFound(
             operation.segment_id.clone(),
         ));
@@ -383,9 +388,7 @@ pub fn evaluate_channel_conflicts(
             || movement.edge_id.trim().is_empty()
             || movement.route_revision.trim().is_empty()
         {
-            return Err(ChannelError::InvalidMovement(
-                movement.movement_id.clone(),
-            ));
+            return Err(ChannelError::InvalidMovement(movement.movement_id.clone()));
         }
         if !movement_ids.insert(movement.movement_id.as_str()) {
             return Err(ChannelError::DuplicateMovement(
@@ -397,9 +400,7 @@ pub fn evaluate_channel_conflicts(
             .get(movement.operation.segment_id.as_str())
             .copied()
         else {
-            return Err(ChannelError::UnknownMovementEdge(
-                movement.edge_id.clone(),
-            ));
+            return Err(ChannelError::UnknownMovementEdge(movement.edge_id.clone()));
         };
         if edge.edge_id != movement.edge_id {
             return Err(ChannelError::UnknownMovementEdge(
@@ -419,9 +420,7 @@ pub fn evaluate_channel_conflicts(
             .operations
             .iter()
             .position(|operation| operation == &movement.operation)
-            .ok_or_else(|| {
-                ChannelError::FleetOperationNotFound(movement.movement_id.clone())
-            })?;
+            .ok_or_else(|| ChannelError::FleetOperationNotFound(movement.movement_id.clone()))?;
         if !matched_operation_indices.insert(matching_index) {
             return Err(ChannelError::DuplicateMovement(
                 movement.movement_id.clone(),
@@ -482,10 +481,10 @@ pub fn evaluate_channel_conflicts(
             let second = &workload.movements[right_index];
 
             for rule in &graph.conflict_rules {
-                let matches_forward = matches_member(first, &rule.member_a)
-                    && matches_member(second, &rule.member_b);
-                let matches_reverse = matches_member(first, &rule.member_b)
-                    && matches_member(second, &rule.member_a);
+                let matches_forward =
+                    matches_member(first, &rule.member_a) && matches_member(second, &rule.member_b);
+                let matches_reverse =
+                    matches_member(first, &rule.member_b) && matches_member(second, &rule.member_a);
                 if !matches_forward && !matches_reverse {
                     continue;
                 }
