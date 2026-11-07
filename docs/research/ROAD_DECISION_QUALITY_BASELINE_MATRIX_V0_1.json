@@ -72,17 +72,6 @@
       "claim": "paper-reported; first reproduction target"
     },
     {
-      "track": "hugsim",
-      "metric": "HD-Score",
-      "benchmark_version": "current public aggregator snapshot",
-      "method": "DriveZero-Scale",
-      "score": 46.6,
-      "unit": "points",
-      "protocol": "aggregator's listed public task; verify exact scope and split before comparison",
-      "source": "https://scholarcompass.net/en/tasks/autonomous-driving/benchmarks/hugsim",
-      "claim": "aggregator snapshot; not assumed protocol-equivalent to PlanWAM"
-    },
-    {
       "track": "wosac",
       "metric": "Realism Score",
       "benchmark_version": "2025 challenge snapshot",
@@ -235,6 +224,159 @@
       "protocol": "official leaderboard README; row is copied from its cited publication; methods differ in datasets, experts, pre-training, training and inference compute",
       "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
       "claim": "self-reported public reference; whole-system result, not a matched architecture comparison"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 navtest",
+      "method": "FPD-Drive-Pro",
+      "score": 95.57,
+      "unit": "points",
+      "protocol": "official implementation README; student deploys on four current camera views + ego history + nav command; teacher uses future observations only during training; Safety-Aware Score Correction",
+      "source": "https://github.com/CountNemoChan/FPD-Drive",
+      "claim": "official implementation report; reproduced checkpoint, metric cache and exact environment still required"
+    },
+    {
+      "track": "navsim_v2_navhard",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navhard",
+      "method": "FPD-Drive-Pro",
+      "score": 58.07,
+      "unit": "points",
+      "protocol": "official implementation README specifies navhard_two_stage assets; distinct from NAVSIM-v2 navtest",
+      "source": "https://github.com/CountNemoChan/FPD-Drive",
+      "claim": "official implementation report; never compare to NAVSIM-v2 navtest EPDMS"
+    },
+    {
+      "track": "navsim_v2_navhard",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navhard",
+      "method": "FPD-Drive base",
+      "score": 54.75,
+      "unit": "points",
+      "protocol": "unscaled base model; navhard_two_stage; distinct from NAVSIM-v2 navtest",
+      "source": "https://github.com/CountNemoChan/FPD-Drive",
+      "claim": "official implementation report"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 navtest",
+      "method": "DriveZero-Scale",
+      "score": 95.3,
+      "unit": "points",
+      "protocol": "camera-only; includes 237K OOD SimScale simulation scenes beyond navtrain; 64 trajectory proposals; paper notes human-driver comparison uses ground-truth symbolic inputs while DriveZero uses cameras",
+      "source": "https://arxiv.org/html/2609.06055v1",
+      "claim": "paper-reported; pseudo-closed-loop NAVSIM score; not a live interactive traffic test"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 navtest",
+      "method": "DriveZero",
+      "score": 94.8,
+      "unit": "points",
+      "protocol": "camera-only; no human trajectory supervision; no SimScale scaling",
+      "source": "https://arxiv.org/html/2609.06055v1",
+      "claim": "paper-reported"
+    },
+    {
+      "track": "navsim_v2_navhard",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navhard",
+      "method": "DriveZero-Scale",
+      "score": 57.1,
+      "unit": "points",
+      "protocol": "pseudo-closed-loop two-stage navhard; includes 237K OOD SimScale scenes; Stage 1 and Stage 2 reported separately in paper",
+      "source": "https://arxiv.org/html/2609.06055v1",
+      "claim": "paper-reported; not comparable with navtest EPDMS"
+    },
+    {
+      "track": "navsim_v2_navhard",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navhard",
+      "method": "DriveZero",
+      "score": 51.5,
+      "unit": "points",
+      "protocol": "pseudo-closed-loop two-stage navhard; no SimScale scaling",
+      "source": "https://arxiv.org/html/2609.06055v1",
+      "claim": "paper-reported"
+    },
+    {
+      "track": "hugsim",
+      "metric": "HD-Score",
+      "benchmark_version": "HUGSIM true closed-loop zero-shot",
+      "method": "DriveZero-Scale",
+      "score": 46.6,
+      "unit": "points",
+      "secondary_metric": "Route Completion",
+      "secondary_score": 54.5,
+      "secondary_unit": "percent",
+      "protocol": "Easy/Medium/Hard/Extreme tiers; strongest average and Easy/Medium/Hard, not best on Extreme; zero HUGSIM-specific fine-tuning",
+      "source": "https://arxiv.org/html/2609.06055v1",
+      "claim": "paper-reported true closed-loop result; retain per-tier values"
+    },
+    {
+      "track": "hugsim",
+      "metric": "HD-Score",
+      "benchmark_version": "HUGSIM preliminary zero-shot",
+      "method": "FPD-Drive base",
+      "score": 45.1,
+      "unit": "points",
+      "secondary_metric": "Route Completion",
+      "secondary_score": 55.3,
+      "secondary_unit": "percent",
+      "protocol": "official repository labels HD-Score preliminary; abstract reports zero-shot closed-loop HUGSIM",
+      "source": "https://github.com/CountNemoChan/FPD-Drive",
+      "claim": "preliminary public result; exact model/split/reproduction required"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 navtest",
+      "method": "NTR",
+      "score": 94.1,
+      "unit": "points",
+      "protocol": "standard navtrain only; no extra simulated data; four camera views; 16 scene tokens per camera",
+      "source": "https://arxiv.org/abs/2605.31116",
+      "claim": "paper-reported; auxiliary reconstruction is training-only"
+    },
+    {
+      "track": "navsim_v2_navtest",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navtest",
+      "method": "NTR",
+      "score": 90.9,
+      "unit": "points",
+      "protocol": "standard navtrain only; no extra simulated data; paper Table 3",
+      "source": "https://arxiv.org/abs/2605.31116",
+      "claim": "paper-reported; keep separate from NAVSIM-v2 navhard"
+    },
+    {
+      "track": "waymo_e2e",
+      "metric": "RFS",
+      "benchmark_version": "Waymo Open Dataset vision-based E2E track",
+      "method": "NTR (ensemble)",
+      "score": 8.0461,
+      "unit": "RFS points",
+      "secondary_metric": "RFS single model",
+      "secondary_score": 7.9982,
+      "protocol": "paper final Waymo test submission; 8 NVIDIA A800 training cluster; ensemble and single model separate",
+      "source": "https://arxiv.org/abs/2605.31116",
+      "claim": "paper-reported; not comparable with NAVSIM PDMS/EPDMS"
+    },
+    {
+      "track": "scene_token_diagnostic",
+      "metric": "Effective Rank",
+      "benchmark_version": "NTR Waymo validation scene-token budget diagnostic (16 tokens)",
+      "method": "NTR",
+      "score": 3.38,
+      "unit": "effective-rank points",
+      "secondary_metric": "Pairwise cosine similarity",
+      "secondary_score": 0.407,
+      "protocol": "16-token budget; planning-only baseline effective rank 2.080 and similarity 0.953; lower similarity and higher effective rank indicate less redundancy",
+      "source": "https://arxiv.org/abs/2605.31116",
+      "claim": "paper-reported representation diagnostic; not a driving benchmark score"
     }
   ],
   "interpretation_rules": [
@@ -246,6 +388,12 @@
     "Do not treat the 90.2 DriveVLA-W0 one-camera PDMS row and its separate dagger-marked 93.0 entry as the same configuration.",
     "PlanWAM and World4Scorer both use K=64 candidate configurations; the EGCI selector reproduction ladder must include K=64 and charge generation, scoring, continuation and replay costs separately.",
     "ReWAM is an existing reciprocal-response architecture; EGCI must not claim to invent reciprocal planning. Its contribution is independently verifiable execution, support-qualified counterfactual evaluation and evidence-audited decision quality.",
-    "The 2026-11-06 Bench2Drive 0.0.3 leaderboard lists TFv6+ScaleDrive 96.65 DS / 90.45 SR above BridgeDrive 96.34 / 89.25 in the non-privileged section; keep both separate from ground-truth-perception privileged rows."
+    "The 2026-11-06 Bench2Drive 0.0.3 leaderboard lists TFv6+ScaleDrive 96.65 DS / 90.45 SR above BridgeDrive 96.34 / 89.25 in the non-privileged section; keep both separate from ground-truth-perception privileged rows.",
+    "FPD-Drive-Pro 58.07 EPDMS and DriveZero-Scale 57.1 EPDMS are NAVSIM-v2 navhard results. Never place them on the NAVSIM-v2 navtest line beside NTR/PlanWAM/World4Scorer.",
+    "NAVSIM-v1 and v2 are pseudo-closed-loop/open-loop scoring protocols, not fully reciprocal live traffic. NAVSIM docs describe v1 as a four-second non-reactive simulation with logged future actors and LQR ego control; v2 adds precomputed follow-up scenes.",
+    "DriveZero-Scale's NAVSIM-v1 row uses camera inputs, while its paper's human-driver reference uses ground-truth symbolic inputs; do not call that a matched human comparison.",
+    "DriveZero-Scale's HUGSIM 46.6 HD-Score is true closed-loop and zero-shot; it is strongest on Easy/Medium/Hard but not Extreme. Retain the tier breakdown and route completion.",
+    "NTR's 94.1 PDMS and 90.9 EPDMS are navtest rows; its 8.0461 Waymo E2E RFS and token effective-rank diagnostics are separate metrics/tracks.",
+    "FPD-Drive teacher future observations are training-only; deployed student uses current four-camera views, ego history and nav command without teacher inference."
   ]
 }
