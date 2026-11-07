@@ -36,6 +36,8 @@ pub mod geodesic;
 pub mod metric;
 /// Posterior-preserving transforms for Kerr remnant horizon observables.
 pub mod posterior;
+/// Noise-weighted frequency-domain waveform comparison and error diagnostics.
+pub mod waveform_metrics;
 
 /// Newtonian gravitational constant in SI units (m^3 kg^-1 s^-2).
 pub const GRAVITATIONAL_CONSTANT_M3_KG_S2: f64 = 6.674_30e-11;
