@@ -845,7 +845,11 @@ pub fn evaluate_mobile_assistance_for_plan(
             ));
         }
 
-        if !plan.operations.iter().any(|candidate| candidate == operation) {
+        if !plan
+            .operations
+            .iter()
+            .any(|candidate| candidate == operation)
+        {
             return Err(MobileError::FleetOperationNotFound(task.task_id.clone()));
         }
     }
