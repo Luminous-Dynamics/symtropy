@@ -108,3 +108,13 @@ Run exact source schedule tests, then matched-load examples with and without tar
 ## 5. Claim ceiling
 
 This profile qualifies the interpretation of three published South African sources and a set of arithmetic checks. It does not establish eligibility for a specific site, reproduce an electricity invoice, provide an interval/marginal emissions signal, prove an energy saving or authorize an operational dispatch policy.
+
+
+## Synthetic demand-ratchet negative control
+
+A tariff controller must distinguish kWh-charge reduction from billed-demand reduction. For a synthetic 100 kWh shift from winter peak to off-peak:
+- Energy charge difference: `100 × (766.24 − 200.44) c/kWh ÷ 100 = R565.80` before account surcharges, VAT and demand/fixed charges.
+- Suppose previous 12-month top-three demand average is 125 kVA. The 80% rolling floor is 100 kVA. If measured maximum demand falls from 95 to 80 kVA, billed demand remains `max(measured, 70 kVA, 100 kVA) = 100 kVA` both before and after.
+- Therefore, in this synthetic case, the energy-charge component falls but the demand-charge component does not.
+
+This fixture is an arithmetic / conformance negative control. It is not an estimate of any actual consumer bill. Real billed demand depends on actual metered half-hour maximums, the rolling history, supply tariff, power factor, account surcharges and VAT.
