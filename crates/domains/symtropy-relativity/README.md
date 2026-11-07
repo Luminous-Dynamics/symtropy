@@ -37,15 +37,15 @@ The posterior transform preserves each input sample ID, order, and paired mass/s
 
 ## Deliberate limits
 
-This crate calculates Riemann/Ricci/Einstein curvature for the Schwarzschild analytic fixture and integrates Schwarzschild timelike/null geodesics. It does not yet provide Kerr curvature derivatives, Kerr geodesics, horizon-regular charts, a GRHD/GRMHD solver, a gravitational-wave waveform generator, or numerical-relativity evolution. The generic metric-component constructor does not certify Lorentzian signature. It makes no observational-validation or state-of-the-art performance claim.
+This crate calculates Riemann/Ricci/Einstein curvature for the Schwarzschild analytic fixture and integrates Schwarzschild timelike/null geodesics using fixed-step RK4 and step-doubling adaptive control. Adaptive tolerances are dimension-specific for coordinates and tangent components. It does not yet provide Kerr curvature derivatives, Kerr geodesics, horizon-regular charts, a GRHD/GRMHD solver, a gravitational-wave waveform generator, or numerical-relativity evolution. The generic metric-component constructor does not certify Lorentzian signature. It makes no observational-validation or state-of-the-art performance claim.
 
-Next gates are Riemann curvature from connection derivatives, coordinate-invariant checks (including Schwarzschild/Kerr curvature scalars), geodesic integration with normalization/Killing-constant drift, and then waveform/ringdown reproduction and numerical-relativity comparisons.
+Next gates are Kerr curvature and coordinate-invariant cross-chart checks, generic Kerr geodesics and horizon-regular charts, followed by perturbation/waveform reproduction and numerical-relativity comparisons.
 
 ## Run
 
 `cargo test -p symtropy-relativity`
 
-**Validation status:** 36 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there.
+**Validation status:** 48 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. Independent array-based numerical checks match Schwarzschild vacuum Ricci, Kretschmann and Riemann algebraic identities to floating-point roundoff; these are not Rust test or build results.
 
 
 ## Versioned benchmark manifests
