@@ -24,7 +24,7 @@ The evaluator distinguishes a reference scenario from an invoice-equivalent clai
 - industrial TOU application / approval is confirmed;
 - the actual account tariff/contract is confirmed;
 - VAT rate is supplied;
-- any applicable 2% surcharge basis is explicitly resolved.
+- any applicable 2% surcharge basis is explicitly resolved and marked confirmed.
 
 The budget-published energy charges exclude the 6 c/kWh network surcharge, 2% business/LPU surcharge and VAT. Fixed network charge and 6 c/kWh surcharge are separate charges.
 
@@ -44,6 +44,8 @@ The two cases use the same total energy (200 kWh):
 With prior top-three demand values [125,125,125] kVA, the 80% ratchet floor is 100 kVA. Billed demand remains 100 kVA in both cases. The 100 kWh shift saves R565.80 on the winter energy-charge component only, before fixed charges, surcharges and VAT. It does not reduce this case's demand charge.
 
 These are synthetic calculations; they do not describe a real site or reproduce an invoice.
+
+An assumed surcharge basis may be used for sensitivity analysis, but it does not create an invoice-equivalent total. VAT is withheld when the surcharge itself is not calculable from admitted inputs.
 
 ## Evidence boundary
 
