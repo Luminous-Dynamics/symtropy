@@ -1,6 +1,5 @@
 // Fixed 4D tensor contractions retain explicit Einstein-index loops.
 #![allow(clippy::needless_range_loop)]
-
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
