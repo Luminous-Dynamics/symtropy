@@ -727,14 +727,14 @@ mod tests {
         let pos = SVector::<f64, 0>::zeros();
         let velocity = SVector::<f64, 0>::zeros();
 
-        assert_eq!(
+        assert!(matches!(
             sphere_sphere_checked(&pos, &velocity, 0.5, &pos, &velocity, 0.5, 1.0),
             Err(CcdInputError::ZeroDimension)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             sphere_halfspace_checked(&pos, &velocity, 0.5, &pos, 0.0, 1.0),
             Err(CcdInputError::ZeroDimension)
-        );
+        ));
         assert!(sphere_sphere(&pos, &velocity, 0.5, &pos, &velocity, 0.5, 1.0).is_none());
         assert!(sphere_halfspace(&pos, &velocity, 0.5, &pos, 0.0, 1.0).is_none());
     }
