@@ -170,7 +170,7 @@ impl AnalysisConfig {
 /// Analyze matched increasing/decreasing sweeps and regress apparent width
 /// against measured ramp rate:
 ///
-///     width = quasi_static_width + 2 * effective_loop_delay * rate
+/// `width = quasi_static_width + 2 * effective_loop_delay * rate`
 ///
 /// At least three distinct ramp-rate levels are required for a non-saturated
 /// residual degree of freedom and a meaningful standard-error estimate.
