@@ -205,6 +205,7 @@ A simulation result, benchmark pass, prototype or provenance record does not gra
 1. [First decision experiment v0.1](./first-decision-experiment-v0.1.md): Wren 2 / Wayfarer 4 mission contracts, baseline families, C0/C1/C2/C5P/C5S down-selection, preregistered benchmarks and falsification rules.
 2. [Machine-readable mission cards v0.1](./mission-cards-v0.1.json): six Wren 2 / Wayfarer 4 mission templates, with unknown values and source status preserved.
 3. [Architecture discovery benchmark v0.1](./architecture-discovery-benchmark-v0.1.md): separate architecture choice, parameter optimization, analysis-graph activation and fidelity acquisition; matched-budget participant matrix and failure tests.
+4. [External benchmark reference manifest v0.1](./external-benchmark-reference-manifest-v0.1.json): pins OpenMDAO 3.45.2 and SU2 8.6.0, separates historical/current release lanes, and records licensing/build caveats; this is a reference manifest, not run receipts.
 4. Baseline cards with exact variants and evidence classes.
 5. C0–C7 decision matrix with unknowns preserved.
 6. Initial mass/CG/energy/power bookkeeping with transparent assumptions.
