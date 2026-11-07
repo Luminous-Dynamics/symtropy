@@ -557,7 +557,7 @@ fn dispatch(scenario: &Scenario, policy: Policy) -> Result<DispatchReport, Strin
             batch_id,
             batch_energy_requested_wh: batch_energy_requested,
             batch_processed,
-            batch_feed_consumed_g,
+            batch_feed_consumed_g: batch_feed_consumed,
             batch_product_g: batch_product,
             batch_residue_g: batch_residue,
             battery_start_soc_wh: battery_start_soc,
