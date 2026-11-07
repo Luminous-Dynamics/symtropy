@@ -19,9 +19,9 @@ Public physical parameters use SI units. The metric component basis is (x^\mu=(c
 The metric determinant is coordinate-dependent, not a curvature scalar. Generic `MetricComponents4::new` checks finiteness and symmetry but does not certify Lorentzian signature. The analytic Schwarzschild/Kerr constructors are the known exterior solutions.
 
 For Kerr:
-- (\Omega_H=ac/(r_+^2+a^2)) is in rad/s.
-- The surface-gravity decay rate (\kappa_t=c\sqrt{r_g^2-a^2}/(2r_g r_+)\) is in s\(^{-1}\).
-- (f_{2\Omega_H}=\Omega_H/\pi\) is the Hz reference corresponding to an angular frequency (2\Omega_H\).
+- `Omega_H = a*c/(r_plus^2 + a^2)` is in rad/s.
+- `kappa_t = c*sqrt(r_g^2-a^2)/(2*r_g*r_plus)` is in s^-1.
+- `f_2OmegaH = Omega_H/pi` is the Hz reference corresponding to angular frequency `2*Omega_H`.
 
 The direct-wave reference frequency is a theory-derived scale motivated by a published GW250114 analysis. It is not itself a waveform, a detection, or a verified universal feature.
 
