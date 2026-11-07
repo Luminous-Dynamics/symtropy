@@ -75,6 +75,8 @@ fn plan(operations: Vec<OperationPlacement>) -> FleetPlan {
 
 fn resource() -> TrafficResource {
     let mut resource = TrafficResource {
+        corridor_id: "oracle-corridor".to_owned(),
+        time_basis_id: "oracle-time-basis-v1".to_owned(),
         resource_id: "conflict-zone".to_owned(),
         revision: "zone-r1".to_owned(),
         kind: TrafficResourceKind::ConflictZone,
@@ -95,6 +97,7 @@ fn resource() -> TrafficResource {
 
 fn occupancy(id: &str, op: OperationPlacement, early: u64, late: u64) -> TrafficOccupancy {
     let mut item = TrafficOccupancy {
+        corridor_id: "oracle-corridor".to_owned(),
         occupancy_id: id.to_owned(),
         resource_id: "conflict-zone".to_owned(),
         route_revision: "route-r1".to_owned(),
