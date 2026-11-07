@@ -17,9 +17,9 @@
 use core::fmt;
 
 use super::{
+    PhysicsDomainError, SchwarzschildBlackHole,
     connection::{ConnectionError, LeviCivitaConnection4, MetricDerivatives4},
     metric::{MetricComponents4, MetricError, schwarzschild_exterior_metric},
-    PhysicsDomainError, SchwarzschildBlackHole,
 };
 
 /// Meaning of the geodesic parameter and its normalization.
@@ -224,17 +224,15 @@ impl SchwarzschildGeodesicIntegrator {
         let metric = schwarzschild_exterior_metric(self.black_hole, radius, theta)?;
         let derivatives =
             MetricDerivatives4::schwarzschild_exterior(self.black_hole, radius, theta)?;
-        let connection =
-            LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives)?;
+        let connection = LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives)?;
 
         let mut acceleration = [0.0; 4];
         for rho in 0..4 {
             let mut value = 0.0;
             for mu in 0..4 {
                 for nu in 0..4 {
-                    value += connection.coefficient(rho, mu, nu)
-                        * state.tangent[mu]
-                        * state.tangent[nu];
+                    value +=
+                        connection.coefficient(rho, mu, nu) * state.tangent[mu] * state.tangent[nu];
                 }
             }
             acceleration[rho] = -value;
@@ -265,11 +263,7 @@ impl SchwarzschildGeodesicIntegrator {
         GeodesicState::new(coordinates, tangent)
     }
 
-    fn rk4_step(
-        &self,
-        state: GeodesicState,
-        step_m: f64,
-    ) -> Result<GeodesicState, GeodesicError> {
+    fn rk4_step(&self, state: GeodesicState, step_m: f64) -> Result<GeodesicState, GeodesicError> {
         if !step_m.is_finite() || step_m == 0.0 {
             return Err(GeodesicError::InvalidStep(step_m));
         }
@@ -374,9 +368,7 @@ impl SchwarzschildGeodesicIntegrator {
 
         for _ in 0..max_attempts {
             let endpoint_tolerance = 32.0 * f64::EPSILON * parameter_span_m.max(initial_step_m);
-            if advanced >= parameter_span_m
-                || parameter_span_m - advanced <= endpoint_tolerance
-            {
+            if advanced >= parameter_span_m || parameter_span_m - advanced <= endpoint_tolerance {
                 return Ok(AdaptiveGeodesicResult {
                     states,
                     accepted_steps: accepted,
@@ -397,11 +389,7 @@ impl SchwarzschildGeodesicIntegrator {
             let full = self.rk4_step(current, trial_step)?;
             let first_half = self.rk4_step(current, 0.5 * trial_step)?;
             let two_half = self.rk4_step(first_half, 0.5 * trial_step)?;
-            let error = self.step_doubling_error(
-                full,
-                two_half,
-                tolerances,
-            );
+            let error = self.step_doubling_error(full, two_half, tolerances);
 
             if error <= 1.0 {
                 current = two_half;
@@ -526,11 +514,8 @@ impl SchwarzschildGeodesicIntegrator {
         let theta = state.coordinates[2];
         let metric = schwarzschild_exterior_metric(self.black_hole, radius, theta)?;
         let inverse = metric.inverse()?;
-        let derivatives = MetricDerivatives4::schwarzschild_exterior(
-            self.black_hole,
-            radius,
-            theta,
-        )?;
+        let derivatives =
+            MetricDerivatives4::schwarzschild_exterior(self.black_hole, radius, theta)?;
         let d = derivatives.components();
 
         let mut velocity = [0.0; 4];
@@ -585,15 +570,12 @@ impl SchwarzschildGeodesicIntegrator {
             return Err(GeodesicError::InvalidStep(step_m));
         }
         let k1 = self.hamiltonian_derivative(&state)?;
-        let k2 = self.hamiltonian_derivative(&Self::shifted_hamiltonian_state(
-            state, k1, 0.5 * step_m,
-        ))?;
-        let k3 = self.hamiltonian_derivative(&Self::shifted_hamiltonian_state(
-            state, k2, 0.5 * step_m,
-        ))?;
-        let k4 = self.hamiltonian_derivative(&Self::shifted_hamiltonian_state(
-            state, k3, step_m,
-        ))?;
+        let k2 =
+            self.hamiltonian_derivative(&Self::shifted_hamiltonian_state(state, k1, 0.5 * step_m))?;
+        let k3 =
+            self.hamiltonian_derivative(&Self::shifted_hamiltonian_state(state, k2, 0.5 * step_m))?;
+        let k4 =
+            self.hamiltonian_derivative(&Self::shifted_hamiltonian_state(state, k3, step_m))?;
 
         let mut coordinates = state.coordinates;
         let mut momenta = state.canonical_momenta;
@@ -649,10 +631,7 @@ impl SchwarzschildGeodesicIntegrator {
 
     /// Evaluate H = 1/2 g^mu nu p_mu p_nu. Timelike proper-length
     /// parameterization has H=-1/2; null affine trajectories have H=0.
-    pub fn hamiltonian_value(
-        &self,
-        state: HamiltonianGeodesicState,
-    ) -> Result<f64, GeodesicError> {
+    pub fn hamiltonian_value(&self, state: HamiltonianGeodesicState) -> Result<f64, GeodesicError> {
         self.validate_hamiltonian_state(&state)?;
         let metric = schwarzschild_exterior_metric(
             self.black_hole,
@@ -677,10 +656,7 @@ impl SchwarzschildGeodesicIntegrator {
     }
 
     /// Compute g_mu_nu u^mu u^nu for a state in the Schwarzschild exterior.
-    pub fn normalization(
-        &self,
-        state: GeodesicState,
-    ) -> Result<f64, GeodesicError> {
+    pub fn normalization(&self, state: GeodesicState) -> Result<f64, GeodesicError> {
         let metric = self.metric_at(&state)?;
         let g = metric.covariant();
         let mut value = 0.0;
@@ -810,12 +786,18 @@ impl fmt::Display for GeodesicError {
             Self::PhysicsDomain(error) => write!(f, "{error}"),
             Self::Metric(error) => write!(f, "{error}"),
             Self::Connection(error) => write!(f, "{error}"),
-            Self::InvalidStep(value) => write!(f, "geodesic step {value} m must be finite and nonzero"),
+            Self::InvalidStep(value) => {
+                write!(f, "geodesic step {value} m must be finite and nonzero")
+            }
             Self::InvalidPositiveParameter { name, value } => {
                 write!(f, "{name} must be finite and positive, got {value}")
             }
             Self::ZeroMaximumAttempts => write!(f, "maximum adaptive attempts must be nonzero"),
-            Self::InvalidTolerance { group, index, value } => {
+            Self::InvalidTolerance {
+                group,
+                index,
+                value,
+            } => {
                 write!(f, "invalid {group} tolerance at {index:?}: {value}")
             }
             Self::NonFiniteCoordinate { index } => {
@@ -831,19 +813,28 @@ impl fmt::Display for GeodesicError {
                 write!(f, "Hamiltonian derivative component {index} is non-finite")
             }
             Self::NonFiniteHamiltonian => write!(f, "Hamiltonian value is non-finite"),
-            Self::OutsideExteriorChart { radius_m, horizon_m } => write!(
+            Self::OutsideExteriorChart {
+                radius_m,
+                horizon_m,
+            } => write!(
                 f,
                 "Schwarzschild chart requires r > r_s; received r={radius_m} m, r_s={horizon_m} m"
             ),
             Self::OutsidePolarChart { theta_rad } => {
-                write!(f, "Schwarzschild spherical chart requires 0 < theta < pi, got {theta_rad}")
+                write!(
+                    f,
+                    "Schwarzschild spherical chart requires 0 < theta < pi, got {theta_rad}"
+                )
             }
             Self::NonFiniteAcceleration { index } => {
                 write!(f, "geodesic acceleration component {index} is non-finite")
             }
             Self::NonFiniteNormalization => write!(f, "geodesic normalization is non-finite"),
             Self::NonFiniteKillingConstant => write!(f, "geodesic Killing constant is non-finite"),
-            Self::StepSizeUnderflow { step_m, minimum_step_m } => write!(
+            Self::StepSizeUnderflow {
+                step_m,
+                minimum_step_m,
+            } => write!(
                 f,
                 "adaptive geodesic step {step_m} m fell below minimum {minimum_step_m} m"
             ),
@@ -863,15 +854,15 @@ impl std::error::Error for GeodesicError {}
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::MassKg;
+    use super::*;
 
     const SOLAR_MASS_KG: f64 = 1.988_47e30;
 
     fn integrator() -> SchwarzschildGeodesicIntegrator {
-        SchwarzschildGeodesicIntegrator::new(
-            SchwarzschildBlackHole::new(MassKg::new(SOLAR_MASS_KG).unwrap()),
-        )
+        SchwarzschildGeodesicIntegrator::new(SchwarzschildBlackHole::new(
+            MassKg::new(SOLAR_MASS_KG).unwrap(),
+        ))
     }
 
     fn circular_timelike_state(
@@ -895,10 +886,12 @@ mod tests {
         let integrator = integrator();
         let rg = integrator.black_hole().gravitational_radius_m();
         let initial = circular_timelike_state(integrator, 6.0);
-        assert!(integrator
-            .normalization_residual(initial, GeodesicParameterization::TimelikeProperLength)
-            .unwrap()
-            < 2e-14);
+        assert!(
+            integrator
+                .normalization_residual(initial, GeodesicParameterization::TimelikeProperLength)
+                .unwrap()
+                < 2e-14
+        );
 
         let initial_constants = integrator.killing_constants(initial).unwrap();
         let states = integrator.integrate_fixed(initial, 0.05 * rg, 200).unwrap();
@@ -907,13 +900,12 @@ mod tests {
 
         assert!((final_state.coordinates[1] - initial.coordinates[1]).abs() < 2e-12 * rg);
         assert!((final_state.coordinates[2] - initial.coordinates[2]).abs() < 2e-13);
-        assert!(integrator
-            .normalization_residual(
-                final_state,
-                GeodesicParameterization::TimelikeProperLength
-            )
-            .unwrap()
-            < 2e-12);
+        assert!(
+            integrator
+                .normalization_residual(final_state, GeodesicParameterization::TimelikeProperLength)
+                .unwrap()
+                < 2e-12
+        );
         assert!((final_constants.energy - initial_constants.energy).abs() < 2e-12);
         assert!(
             (final_constants.angular_momentum_z_m - initial_constants.angular_momentum_z_m).abs()
@@ -982,9 +974,7 @@ mod tests {
         let integrator = integrator();
         let state = circular_timelike_state(integrator, 6.0);
         assert!(state.tangent[0] > 1.0);
-        assert!(
-            (integrator.normalization(state).unwrap() + 1.0).abs() < 2e-14
-        );
+        assert!((integrator.normalization(state).unwrap() + 1.0).abs() < 2e-14);
         // For a circular Schwarzschild geodesic, dx^0/d(c*tau)=dt/dtau > 1.
         // Coordinate time is x^0/c, not the integration parameter.
     }
@@ -1053,11 +1043,7 @@ mod tests {
                 (coordinate_final.coordinates[index] - hamiltonian_final.coordinates[index]).abs()
                     < 2e-10 * scale
             );
-            let tangent_absolute_tolerance = if index < 2 {
-                2e-10
-            } else {
-                2e-10 / rg
-            };
+            let tangent_absolute_tolerance = if index < 2 { 2e-10 } else { 2e-10 / rg };
             assert!(
                 (coordinate_final.tangent[index] - hamiltonian_final.tangent[index]).abs()
                     < tangent_absolute_tolerance
@@ -1093,9 +1079,7 @@ mod tests {
             .integrate_hamiltonian_fixed(canonical, 0.02 * rg, 100)
             .unwrap();
         let canonical_final = *hamiltonian_states.last().unwrap();
-        let hamiltonian_final = integrator
-            .from_hamiltonian_state(canonical_final)
-            .unwrap();
+        let hamiltonian_final = integrator.from_hamiltonian_state(canonical_final).unwrap();
 
         for index in 0..4 {
             let coordinate_scale = if index < 2 { rg } else { 1.0 };
@@ -1111,25 +1095,20 @@ mod tests {
         }
         // Time-translation and axial-rotation symmetries imply constant p_t
         // and p_phi in this stationary, axisymmetric background.
-        assert!((canonical_final.canonical_momenta[0] - canonical.canonical_momenta[0]).abs() < 2e-10);
-        assert!((canonical_final.canonical_momenta[3] - canonical.canonical_momenta[3]).abs() < 2e-10 * rg);
         assert!(
-            integrator
-                .hamiltonian_value(canonical_final)
-                .unwrap()
-                .abs()
-                < 2e-10
+            (canonical_final.canonical_momenta[0] - canonical.canonical_momenta[0]).abs() < 2e-10
         );
+        assert!(
+            (canonical_final.canonical_momenta[3] - canonical.canonical_momenta[3]).abs()
+                < 2e-10 * rg
+        );
+        assert!(integrator.hamiltonian_value(canonical_final).unwrap().abs() < 2e-10);
     }
 
     #[test]
     fn adaptive_integrator_rejects_nonpositive_component_tolerances() {
         assert!(matches!(
-            GeodesicTolerances::new(
-                1e-8,
-                [1e-8, 1e-8, 1e-10, 1e-10],
-                [1e-8, 1e-8, 1e-12, 0.0],
-            ),
+            GeodesicTolerances::new(1e-8, [1e-8, 1e-8, 1e-10, 1e-10], [1e-8, 1e-8, 1e-12, 0.0],),
             Err(GeodesicError::InvalidTolerance {
                 group: "tangent_absolute",
                 index: Some(3),
