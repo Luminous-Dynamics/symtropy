@@ -357,3 +357,42 @@ The report no longer calls an energy-per-slot quantum a power quantum. It record
 - per-session site-source Wh and average-W schedule.
 
 v0 requires the Wh-per-slot quantum to map to an exact integer average watt value for the declared slot duration; it rejects non-integral conversions rather than silently rounding. These are average real-power accounting values at the named PCC boundary, not instantaneous peaks, channel-input power or receiver-end useful power.
+
+
+## 14. New airborne replenishment comparators: beam power versus energy-carrier logistics
+
+Two 2026 studies clarify that "airborne charging" should not be reduced to WPT alone.
+
+### Mid-air autonomous battery exchange — physical outdoor evidence
+
+Choi et al., *A Mid-Air Autonomous Battery Exchange Aerial System*, IEEE Robotics and Automation Letters 11(7), 8108–8115 (published 14 May 2026; DOI [10.1109/LRA.2026.3693549](https://doi.org/10.1109/LRA.2026.3693549)), report simulations and outdoor flight tests in moderate wind. A supplier UAV performs RTK-guided rendezvous and docks with a receiver UAV; a belt/stepper mechanism transfers a charged battery to the receiver. Purdue's lab summary reports successful outdoor rendezvous, docking and exchange.
+
+This is a genuine airborne replenishment comparator, but it is **energy-carrier transfer**, not wireless power. Its costs include supplier UAV, charged spare battery, swap mechanism, rendezvous/return trajectory, docking risk, added mass, inventory and supplier recharge. It must be compared on completed useful mission service and fleet energy/cost, not DC-to-DC efficiency.
+
+### Mid-air cooperative WPT — simulation evidence
+
+Coşar, *Telemetry-guided cooperative control for safe mid-air wireless power transfer in autonomous UAV systems*, Array 31 (2026), 101149 (DOI [10.1016/j.array.2026.101149](https://doi.org/10.1016/j.array.2026.101149)), reports telemetry-guided multi-UAV rendezvous, continuous control barrier functions for separation, adaptive WPT and an eight-realization Monte Carlo study. Reported means are 38.16% Energy Transfer Efficiency, 1.0000 Energy Fairness Index and 0.8418 Mission Endurance Index, with no collisions in its reported simulation runs. The paper states its telemetry is derived from an open UAV autonomous-navigation dataset. This is a useful **simulation/controller comparator**, not a demonstrated in-flight RF/inductive power-transfer hardware result.
+
+### Paradigm shift: transport energy or transport the energy carrier?
+
+The site-level architecture should model two fundamentally different service graphs:
+
+1. **Direct energy transfer:** site electrical source → qualified ground/air transmitter → receiver conversion chain → vehicle battery or load.
+2. **Energy-carrier logistics:** site source → charge and qualify spare battery → store/track battery state and identity → ground/air supplier transports it → safe docking/exchange → receiving aircraft.
+
+The second graph may outperform beaming for some missions even though it adds logistics. It moves the energy to the aircraft rather than transmitting energy through the air. A supplier UAV's own mission energy and spare-pack mass must be charged to the service economics; it cannot be treated as free.
+
+Future episode contracts should represent battery inventory as typed, serialized assets with pack identity, chemistry/configuration, SOC/SOH, temperature, cycle history, inspection state and custody. Reuse Symtropy's aircraft energy co-design (#3885), Mycelix's component/pack provenance and manufacturing evidence, and existing lifecycle/health work. Battery identity or a high SOC alone does not prove a pack is safe or fit for service.
+
+### Expanded comparison matrix
+
+For matched mission families, compare:
+- onboard battery-only;
+- conductive or robotic fixed dock;
+- near-field IPT/CPT fixed dock;
+- tethered aircraft power for allowed stationary/hover use;
+- RF/optical power beaming for declared path/range cases;
+- ground-based automated battery swapping;
+- supplier-UAV mid-air battery exchange.
+
+Report mission completion, useful work, time-to-ready/mission interruption, fleet and site source Wh, receiver/supplier mass penalty, battery inventory, charging and exchange availability, rendezvous/docking success, failure recovery, maintenance and lifecycle cost. Keep the direct-transfer efficiency metric restricted to declared electrical meter boundaries. Carrier logistics gets its own energy-accounting path and should never receive an invented "wireless efficiency."
