@@ -14,7 +14,7 @@ use core::fmt;
 use civdyn_cross_scale_resilience::{
     BASIN, DEFAULT_RECOVERY_THRESHOLD, FIRST_HOUSEHOLD, HOUSEHOLD_COUNT,
     InterventionPolicy, REGION_COUNT, ResilienceError, RunOutcome, Scenario, ShockKind,
-    SHOCK_START_TICK, TICKS, reference_scenario, run_scenario,
+    SHOCK_START_TICK, reference_scenario, run_scenario,
 };
 use civdyn_resource_ledger::{Production, ResourceVector};
 
@@ -532,7 +532,7 @@ pub fn run_parameterized_scenario(
         minimum_energy_coverage: outcome.minimum_energy_coverage,
         water_floor_breach_fraction: water_breaches as f64 / household_tick_count,
         energy_floor_breach_fraction: energy_breaches as f64 / household_tick_count,
-        recovery_success: f64::from(outcome.recovery_after_ticks.is_some()),
+        recovery_success: if outcome.recovery_after_ticks.is_some() { 1.0 } else { 0.0 },
     };
     for metric in OutcomeMetric::ALL {
         let value = metrics.value(metric);
