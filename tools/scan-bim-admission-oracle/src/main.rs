@@ -31,6 +31,7 @@ struct SplitGuard {
 #[serde(deny_unknown_fields)]
 struct Case {
     case_id: String,
+    split_group_id: String,
     reference: Reference,
     candidate: Candidate,
     expected: Expected,
@@ -422,6 +423,13 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
         if case.case_id.is_empty() || !ids.insert(case.case_id.as_str()) {
             return Err(format!("empty or duplicate case id: {}", case.case_id).into());
         }
+        if !evaluation_groups.contains(case.split_group_id.as_str()) {
+            return Err(format!(
+                "case {} belongs to a non-evaluation split group: {}",
+                case.case_id, case.split_group_id
+            )
+            .into());
+        }
         let (disposition, reason_codes) = evaluate(case);
         let matches_expected =
             disposition == case.expected.disposition && reason_codes == case.expected.reason_codes;
@@ -541,6 +549,7 @@ mod tests {
         candidate.topology.reverse();
         let mutated = Case {
             case_id: case.case_id.clone(),
+            split_group_id: case.split_group_id.clone(),
             reference: Reference {
                 asset_id: case.reference.asset_id.clone(),
                 model_revision: case.reference.model_revision.clone(),
@@ -603,6 +612,15 @@ mod tests {
         let mut corpus: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
         corpus["split_guard"]["evaluation_group_ids"] =
             serde_json::json!(["synthetic-building-train-A"]);
+        let bytes = serde_json::to_vec(&corpus).expect("fixture serializes");
+        assert!(evaluate_corpus(&bytes).is_err());
+    }
+
+    #[test]
+    fn evaluation_cases_must_belong_to_declared_heldout_groups() {
+        let mut corpus: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
+        corpus["cases"][0]["split_group_id"] =
+            Value::String("synthetic-building-train-A".to_owned());
         let bytes = serde_json::to_vec(&corpus).expect("fixture serializes");
         assert!(evaluate_corpus(&bytes).is_err());
     }
