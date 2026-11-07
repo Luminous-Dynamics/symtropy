@@ -362,7 +362,11 @@ mod tests {
     fn rejects_harvest_mass_imbalance() {
         let bad = FIXTURE.replace("spoiled_g=5000", "spoiled_g=4000");
         let input = parse_input(&bad).expect("syntactically valid fixture");
-        assert!(evaluate(&input).unwrap_err().contains("harvest mass imbalance"));
+        assert!(
+            evaluate(&input)
+                .unwrap_err()
+                .contains("harvest mass imbalance")
+        );
     }
 
     #[test]
@@ -371,7 +375,11 @@ mod tests {
         assert!(parse_input(&unknown).unwrap_err().contains("unknown key"));
 
         let duplicate = format!("{FIXTURE}period_days=365\n");
-        assert!(parse_input(&duplicate).unwrap_err().contains("duplicate key"));
+        assert!(
+            parse_input(&duplicate)
+                .unwrap_err()
+                .contains("duplicate key")
+        );
     }
 
     #[test]
