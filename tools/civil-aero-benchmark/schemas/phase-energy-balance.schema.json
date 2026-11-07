@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/phase-energy-balance-0.1.json",
+  "title": "AER-01 Phase Energy Balance v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "phase_id",
+    "bus",
+    "motor",
+    "shaft",
+    "energy_store",
+    "peak_source_power_w",
+    "continuous_source_power_limit_w",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "phase-energy-balance/0.1.0"
+    },
+    "phase_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "bus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_energy_j",
+        "motor_bus_input_j",
+        "auxiliary_bus_load_j",
+        "thermal_bus_load_j",
+        "other_conversion_loss_j",
+        "residual_j"
+      ],
+      "properties": {
+        "source_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "motor_bus_input_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "auxiliary_bus_load_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "thermal_bus_load_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "other_conversion_loss_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "residual_j": {
+          "type": "number"
+        }
+      }
+    },
+    "motor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bus_input_j",
+        "shaft_output_j",
+        "conversion_loss_j",
+        "residual_j"
+      ],
+      "properties": {
+        "bus_input_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shaft_output_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "conversion_loss_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "residual_j": {
+          "type": "number"
+        }
+      }
+    },
+    "shaft": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shaft_output_j",
+        "propulsive_useful_energy_j",
+        "propulsor_loss_j",
+        "residual_j"
+      ],
+      "properties": {
+        "shaft_output_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "propulsive_useful_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "propulsor_loss_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "residual_j": {
+          "type": "number"
+        }
+      }
+    },
+    "energy_store": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "usable_energy_start_j",
+        "bus_source_energy_j",
+        "usable_energy_end_j",
+        "reserve_required_j",
+        "reserve_margin_j"
+      ],
+      "properties": {
+        "usable_energy_start_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bus_source_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "usable_energy_end_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reserve_required_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reserve_margin_j": {
+          "type": "number"
+        }
+      }
+    },
+    "peak_source_power_w": {
+      "type": "number",
+      "minimum": 0
+    },
+    "continuous_source_power_limit_w": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
