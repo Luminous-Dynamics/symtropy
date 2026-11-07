@@ -36,7 +36,7 @@ pub struct Report {
     pub claim_ceiling: &'static str,
 }
 
-const REQUIRED: [(&str, &str, &[&str]); 11] = [
+const REQUIRED: [(&str, &str, &[&str]); 12] = [
     ("VH-001", "candidate_for_comparison", &["opening_inventory_complete", "screen_integrity_known", "species_context_declared"]),
     ("VH-002", "protection_not_established", &["damage_not_silently_ignored", "maintenance_state_preserved"]),
     ("VH-003", "infeasible_or_requires_review", &["ventilation_floor_not_traded_away", "no_aggregate_score_compensation"]),
@@ -48,6 +48,7 @@ const REQUIRED: [(&str, &str, &[&str]); 11] = [
     ("VH-009", "rejected_or_quarantined", &["crs_validated", "transformation_lineage_retained"]),
     ("VH-010", "vector_endpoint_only", &["no_clinical_efficacy_claim", "measurement_tier_preserved"]),
     ("VH-011", "blocked_pending_professional_review", &["egress_is_hard_floor", "accessibility_is_hard_floor"]),
+    ("VH-012", "requires_paired_security_and_ventilation_evidence", &["night_use_observed_not_assumed", "physical_security_and_airflow_jointly_tested", "no_ventilation_credit_when_closed"]),
 ];
 
 pub fn verify(bytes: &[u8]) -> Report {
@@ -161,4 +162,16 @@ mod tests {
         assert!(report.errors.iter().any(|e| e.starts_with("empty_or_duplicate_id:")));
         assert!(report.errors.iter().any(|e| e == "missing_case: VH-011"));
     }
+    #[test]
+    fn closed_night_windows_do_not_earn_ventilation_credit() {
+        let changed = FIXTURE.replace(
+            "\"expected_state\": \"requires_paired_security_and_ventilation_evidence\"",
+            "\"expected_state\": \"ventilation_qualified_from_plan_only\"",
+        );
+        assert_ne!(changed, FIXTURE);
+        let report = verify(changed.as_bytes());
+        assert_eq!(report.status, "REJECTED");
+        assert!(report.errors.iter().any(|e| e.starts_with("state_mismatch: VH-012")));
+    }
+
 }
