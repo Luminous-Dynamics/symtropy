@@ -348,26 +348,26 @@ fn run_branch(speed_limit_mps: f64, branch_id: &str) -> Result<BranchRun, String
 
         let ego_receipt_id = format!("decision-{EGO_ID}-{tick}");
         let actor_receipt_id = format!("decision-{ACTOR_ID}-{tick}");
-        let ego_visible_digest = permitted_history_digest(
-            EGO_ID,
+        let ego_visible_digest = permitted_history_digest(PermittedHistoryInput {
+            actor_id: EGO_ID,
             tick,
-            cutoff,
-            &ego_prior_state_digest,
-            &ego_observation_profile_digest(),
-            &ego_visible,
-            &cue_index,
-            &ego_prior_receipts,
-        )?;
-        let actor_visible_digest = permitted_history_digest(
-            ACTOR_ID,
+            input_cutoff_event_sequence: cutoff,
+            prior_policy_state_digest: &ego_prior_state_digest,
+            observation_profile_digest: &ego_observation_profile_digest(),
+            visible_cue_ids: &ego_visible,
+            cues: &cue_index,
+            prior_action_receipt_ids: &ego_prior_receipts,
+        })?;
+        let actor_visible_digest = permitted_history_digest(PermittedHistoryInput {
+            actor_id: ACTOR_ID,
             tick,
-            cutoff,
-            &actor_prior_state_digest,
-            &actor_observation_profile_digest(),
-            &actor_visible,
-            &cue_index,
-            &actor_prior_receipts,
-        )?;
+            input_cutoff_event_sequence: cutoff,
+            prior_policy_state_digest: &actor_prior_state_digest,
+            observation_profile_digest: &actor_observation_profile_digest(),
+            visible_cue_ids: &actor_visible,
+            cues: &cue_index,
+            prior_action_receipt_ids: &actor_prior_receipts,
+        })?;
 
         decisions.push(PolicyDecision {
             decision_receipt_id: ego_receipt_id.clone(),
@@ -603,67 +603,67 @@ fn make_tick_observations(
     let mut output = Vec::with_capacity(if tick == 0 { 3 } else { 2 });
 
     if tick == 0 {
-        output.push(observation_delivery(
-            actor_cue_id.clone(),
-            "source-actor-ttc-t0",
-            ACTOR_ID,
-            digest(&format!("actor-ego-ttc:{actor_ttc_seconds:.9}")),
+        output.push(observation_delivery(ObservationDeliveryInput {
+            cue_id: actor_cue_id.clone(),
+            source_event_id: "source-actor-ttc-t0",
+            recipient_actor_id: ACTOR_ID,
+            observation_payload_digest: digest(&format!("actor-ego-ttc:{actor_ttc_seconds:.9}")),
             tick,
-            1,
-            4,
-            1,
-            actor_observation_profile_digest(),
-        ));
-        output.push(observation_delivery(
-            ego_zone_cue_id.clone(),
-            "source-ego-zone-t0",
-            EGO_ID,
-            digest("actor-in-zone:false"),
+            generated_event_sequence: 1,
+            delivered_event_sequence: 4,
+            delivery_sequence: 1,
+            visibility_profile_digest: actor_observation_profile_digest(),
+        }));
+        output.push(observation_delivery(ObservationDeliveryInput {
+            cue_id: ego_zone_cue_id.clone(),
+            source_event_id: "source-ego-zone-t0",
+            recipient_actor_id: EGO_ID,
+            observation_payload_digest: digest("actor-in-zone:false"),
             tick,
-            2,
-            5,
-            1,
-            ego_observation_profile_digest(),
-        ));
+            generated_event_sequence: 2,
+            delivered_event_sequence: 5,
+            delivery_sequence: 1,
+            visibility_profile_digest: ego_observation_profile_digest(),
+        }));
         let speed_limit_cue_id = "ego-speed-limit-0".to_owned();
-        output.push(observation_delivery(
-            speed_limit_cue_id.clone(),
-            &format!("source-ego-speed-limit:{speed_limit_mps:.6}"),
-            EGO_ID,
-            digest(&format!("ego-speed-limit:{speed_limit_mps:.9}")),
+        output.push(observation_delivery(ObservationDeliveryInput {
+            cue_id: speed_limit_cue_id.clone(),
+            source_event_id: &format!("source-ego-speed-limit:{speed_limit_mps:.6}"),
+            recipient_actor_id: EGO_ID,
+            observation_payload_digest: digest(&format!("ego-speed-limit:{speed_limit_mps:.9}")),
             tick,
-            3,
-            6,
-            2,
-            ego_observation_profile_digest(),
-        ));
+            generated_event_sequence: 3,
+            delivered_event_sequence: 6,
+            delivery_sequence: 2,
+            visibility_profile_digest: ego_observation_profile_digest(),
+        }));
         return (output, actor_cue_id, ego_zone_cue_id, speed_limit_cue_id);
     }
 
     let delivery_base = phase + 1;
     let source = format!("world-snapshot-after-tick-{}", tick - 1);
-    output.push(observation_delivery(
-        actor_cue_id.clone(),
-        &source,
-        ACTOR_ID,
-        digest(&format!("actor-ego-ttc:{actor_ttc_seconds:.9}")),
+    output.push(observation_delivery(ObservationDeliveryInput {
+        cue_id: actor_cue_id.clone(),
+        source_event_id: &source,
+        recipient_actor_id: ACTOR_ID,
+        observation_payload_digest: digest(&format!("actor-ego-ttc:{actor_ttc_seconds:.9}")),
         tick,
-        phase,
-        delivery_base,
-        tick + 1,
-        actor_observation_profile_digest(),
-    ));
-    output.push(observation_delivery(
-        ego_zone_cue_id.clone(),
-        &source,
-        EGO_ID,
-        digest(&format!("actor-in-zone:{actor_in_conflict_zone}")),
+        generated_event_sequence: phase,
+        delivered_event_sequence: delivery_base,
+        delivery_sequence: tick + 1,
+        visibility_profile_digest: actor_observation_profile_digest(),
+    }));
+    output.push(observation_delivery(ObservationDeliveryInput {
+        cue_id: ego_zone_cue_id.clone(),
+        source_event_id: &source,
+        recipient_actor_id: EGO_ID,
+        observation_payload_digest: digest(&format!("actor-in-zone:{actor_in_conflict_zone}")),
         tick,
-        phase,
-        delivery_base + 1,
-        tick + 2,
-        ego_observation_profile_digest(),
-    ));
+        generated_event_sequence: phase,
+        delivered_event_sequence: delivery_base + 1,
+        delivery_sequence: tick + 2,
+        visibility_profile_digest: ego_observation_profile_digest(),
+    }));
     (
         output,
         actor_cue_id,
@@ -672,31 +672,33 @@ fn make_tick_observations(
     )
 }
 
-fn observation_delivery(
+struct ObservationDeliveryInput<'a> {
     cue_id: String,
-    source_event_id: &str,
-    recipient_actor_id: &str,
+    source_event_id: &'a str,
+    recipient_actor_id: &'a str,
     observation_payload_digest: String,
     tick: u64,
     generated_event_sequence: u64,
     delivered_event_sequence: u64,
     delivery_sequence: u64,
     visibility_profile_digest: String,
-) -> ObservationDelivery {
+}
+
+fn observation_delivery(input: ObservationDeliveryInput<'_>) -> ObservationDelivery {
     ObservationDelivery {
-        cue_id,
-        source_event_id: source_event_id.into(),
-        recipient_actor_id: recipient_actor_id.into(),
-        observation_payload_digest,
+        cue_id: input.cue_id,
+        source_event_id: input.source_event_id.into(),
+        recipient_actor_id: input.recipient_actor_id.into(),
+        observation_payload_digest: input.observation_payload_digest,
         // The cue is derived from the last committed physics snapshot and
         // delivered to the policy in the current decision epoch.
-        observed_tick: tick.saturating_sub(1),
-        generated_tick: tick,
-        generated_event_sequence,
-        delivered_tick: Some(tick),
-        delivered_event_sequence: Some(delivered_event_sequence),
-        delivery_sequence,
-        visibility_profile_digest,
+        observed_tick: input.tick.saturating_sub(1),
+        generated_tick: input.tick,
+        generated_event_sequence: input.generated_event_sequence,
+        delivered_tick: Some(input.tick),
+        delivered_event_sequence: Some(input.delivered_event_sequence),
+        delivery_sequence: input.delivery_sequence,
+        visibility_profile_digest: input.visibility_profile_digest,
         disposition: ObservationDisposition::Delivered,
     }
 }
@@ -773,26 +775,29 @@ fn ego_config_digest() -> String {
     digest("ego-observation=actor-zone+own-speed-limit;yield-if-zone")
 }
 
-fn permitted_history_digest(
-    actor_id: &str,
+struct PermittedHistoryInput<'a> {
+    actor_id: &'a str,
     tick: u64,
     input_cutoff_event_sequence: u64,
-    prior_policy_state_digest: &str,
-    observation_profile_digest: &str,
-    visible_cue_ids: &[String],
-    cues: &BTreeMap<String, ObservationDelivery>,
-    prior_action_receipt_ids: &[String],
-) -> Result<String, String> {
-    let mut history = Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.2");
-    hash_str(&mut history, actor_id);
-    hash_u64(&mut history, tick);
-    hash_u64(&mut history, input_cutoff_event_sequence);
-    hash_str(&mut history, prior_policy_state_digest);
-    hash_str(&mut history, observation_profile_digest);
-    hash_len(&mut history, visible_cue_ids.len());
+    prior_policy_state_digest: &'a str,
+    observation_profile_digest: &'a str,
+    visible_cue_ids: &'a [String],
+    cues: &'a BTreeMap<String, ObservationDelivery>,
+    prior_action_receipt_ids: &'a [String],
+}
 
-    for cue_id in visible_cue_ids {
-        let cue = cues
+fn permitted_history_digest(input: PermittedHistoryInput<'_>) -> Result<String, String> {
+    let mut history = Hasher::new_derive_key("Symtropy EGCI permitted policy history v0.2");
+    hash_str(&mut history, input.actor_id);
+    hash_u64(&mut history, input.tick);
+    hash_u64(&mut history, input.input_cutoff_event_sequence);
+    hash_str(&mut history, input.prior_policy_state_digest);
+    hash_str(&mut history, input.observation_profile_digest);
+    hash_len(&mut history, input.visible_cue_ids.len());
+
+    for cue_id in input.visible_cue_ids {
+        let cue = input
+            .cues
             .get(cue_id)
             .ok_or_else(|| format!("visible cue {cue_id} is missing"))?;
         let delivered_tick = cue
@@ -812,8 +817,8 @@ fn permitted_history_digest(
         hash_u64(&mut history, cue.delivery_sequence);
         hash_str(&mut history, &cue.visibility_profile_digest);
     }
-    hash_len(&mut history, prior_action_receipt_ids.len());
-    for receipt_id in prior_action_receipt_ids {
+    hash_len(&mut history, input.prior_action_receipt_ids.len());
+    for receipt_id in input.prior_action_receipt_ids {
         hash_str(&mut history, receipt_id);
     }
     Ok(hex(history.finalize().as_bytes()))
@@ -838,40 +843,9 @@ fn joint_action_digest(decisions: &[PolicyDecision]) -> String {
     hex(h.finalize().as_bytes())
 }
 
-fn hash_strs(h: &mut Hasher, values: &[String]) {
-    hash_len(h, values.len());
-    for value in values {
-        hash_str(h, value);
-    }
-}
-
 fn hash_str(h: &mut Hasher, value: &str) {
     hash_len(h, value.len());
     h.update(value.as_bytes());
-}
-
-fn hash_opt_str(h: &mut Hasher, value: Option<&str>) {
-    match value {
-        Some(value) => {
-            h.update(&[1]);
-            hash_str(h, value);
-        }
-        None => {
-            h.update(&[0]);
-        }
-    }
-}
-
-fn hash_opt_u64(h: &mut Hasher, value: Option<u64>) {
-    match value {
-        Some(value) => {
-            h.update(&[1]);
-            hash_u64(h, value);
-        }
-        None => {
-            h.update(&[0]);
-        }
-    }
 }
 
 fn hash_u64(h: &mut Hasher, value: u64) {
