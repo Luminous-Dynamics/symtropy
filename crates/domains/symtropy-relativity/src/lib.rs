@@ -28,6 +28,8 @@ use core::fmt;
 pub mod connection;
 /// Riemann, Ricci and Einstein curvature tensors from explicit derivatives.
 pub mod curvature;
+/// Schwarzschild timelike and null geodesic integration.
+pub mod geodesic;
 /// Validated stationary black-hole metric components in a declared chart.
 pub mod metric;
 /// Posterior-preserving transforms for Kerr remnant horizon observables.
