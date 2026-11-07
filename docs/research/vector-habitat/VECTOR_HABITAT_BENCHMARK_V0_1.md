@@ -31,6 +31,8 @@ This benchmark composes existing work and adds no parallel geometry or building-
 
 Study effect sizes are source observations, not benchmark thresholds or guaranteed product outcomes.
 
+A design-relevant caveat from the same pilot must become an explicit benchmark case: 67.5% of the 40 baseline houses lacked windows, and residents often closed windows at night because of security concerns. The cross-ventilation arm showed no Heat Index difference from control in this pilot; the paper discusses behavioural and structural barriers, including closed windows and screened eaves limiting airflow. Therefore, do not award ventilation performance from a plan or nominal opening area. Test secure, insect-excluding ventilation under actual occupied night use, with measured airflow and occupant use. This small pilot did not establish a clinical disease-incidence effect. See https://www.nature.com/articles/s41591-025-04104-9.
+
 ## Paradigm shift
 
 Move from single interventions and nominal scores to a whole-life, evidence-qualified habitat:
