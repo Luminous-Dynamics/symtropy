@@ -23,18 +23,54 @@ pub const PAPER_12_SOURCE_ROOT_TREE: &str = "9b56c62406fb6b77d87d5032c3c6906583a
 
 /// Exact data/studies/study_NNN Git tree identities at the original paper repository commit.
 pub const PAPER_12_STUDY_PINS: [StudyPin; 12] = [
-    StudyPin { study_id: "study_001", tree_sha: "ada9bcfe467e82acd230f08b4970e5eff3fff7f9" },
-    StudyPin { study_id: "study_002", tree_sha: "f20390e427b48e081c07273c70fda897e04a16bf" },
-    StudyPin { study_id: "study_003", tree_sha: "bbdba6bd7f4a71270a13d889bfb71c51d633398b" },
-    StudyPin { study_id: "study_004", tree_sha: "1af52b05645a9e9f9936e2c458ad8460a521c934" },
-    StudyPin { study_id: "study_005", tree_sha: "ed29e5fe8711402977e7bb7385a6f939f1ed4bfd" },
-    StudyPin { study_id: "study_006", tree_sha: "739255d6b6746ba9e93360d07f12cf631ad7d8d2" },
-    StudyPin { study_id: "study_007", tree_sha: "480c0468a8e3f588dfb67a827f6320581847132a" },
-    StudyPin { study_id: "study_008", tree_sha: "15d397ca8e7781ed6a3efcfdbb0c6eacf825964f" },
-    StudyPin { study_id: "study_009", tree_sha: "ba78aafc24a997eeb6957a2607a9ee8475b2c45f" },
-    StudyPin { study_id: "study_010", tree_sha: "1e49238a66b4da4fc4f6bfb44cb628c39aa1b7b8" },
-    StudyPin { study_id: "study_011", tree_sha: "aa5858deda592a67e391d271c1fc3c64d8d9362e" },
-    StudyPin { study_id: "study_012", tree_sha: "1a4979759d78205621080f7fb7a261c132051886" },
+    StudyPin {
+        study_id: "study_001",
+        tree_sha: "ada9bcfe467e82acd230f08b4970e5eff3fff7f9",
+    },
+    StudyPin {
+        study_id: "study_002",
+        tree_sha: "f20390e427b48e081c07273c70fda897e04a16bf",
+    },
+    StudyPin {
+        study_id: "study_003",
+        tree_sha: "bbdba6bd7f4a71270a13d889bfb71c51d633398b",
+    },
+    StudyPin {
+        study_id: "study_004",
+        tree_sha: "1af52b05645a9e9f9936e2c458ad8460a521c934",
+    },
+    StudyPin {
+        study_id: "study_005",
+        tree_sha: "ed29e5fe8711402977e7bb7385a6f939f1ed4bfd",
+    },
+    StudyPin {
+        study_id: "study_006",
+        tree_sha: "739255d6b6746ba9e93360d07f12cf631ad7d8d2",
+    },
+    StudyPin {
+        study_id: "study_007",
+        tree_sha: "480c0468a8e3f588dfb67a827f6320581847132a",
+    },
+    StudyPin {
+        study_id: "study_008",
+        tree_sha: "15d397ca8e7781ed6a3efcfdbb0c6eacf825964f",
+    },
+    StudyPin {
+        study_id: "study_009",
+        tree_sha: "ba78aafc24a997eeb6957a2607a9ee8475b2c45f",
+    },
+    StudyPin {
+        study_id: "study_010",
+        tree_sha: "1e49238a66b4da4fc4f6bfb44cb628c39aa1b7b8",
+    },
+    StudyPin {
+        study_id: "study_011",
+        tree_sha: "aa5858deda592a67e391d271c1fc3c64d8d9362e",
+    },
+    StudyPin {
+        study_id: "study_012",
+        tree_sha: "1a4979759d78205621080f7fb7a261c132051886",
+    },
 ];
 
 #[derive(Clone, Copy)]
@@ -346,7 +382,9 @@ fn validate_study(study: &StudyReceipt, errors: &mut Vec<String>) {
 pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
     let Some(profile) = pinned_protocol(&receipt.protocol_id) else {
-        return Err(vec!["protocol_id does not match a pinned protocol profile".to_string()]);
+        return Err(vec![
+            "protocol_id does not match a pinned protocol profile".to_string(),
+        ]);
     };
 
     if receipt.source_repository != profile.source_repository {
@@ -374,7 +412,11 @@ pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
         if !seen.insert(study.study_id.as_str()) {
             errors.push(format!("duplicate study receipt: {}", study.study_id));
         }
-        match profile.study_pins.iter().find(|pin| pin.study_id == study.study_id) {
+        match profile
+            .study_pins
+            .iter()
+            .find(|pin| pin.study_id == study.study_id)
+        {
             Some(pin) if pin.tree_sha == study.study_tree_sha => {}
             Some(_) => errors.push(format!(
                 "{}: study tree does not match the selected pinned source",
@@ -499,7 +541,6 @@ mod tests {
         receipt.studies = PAPER_12_STUDY_PINS.iter().copied().map(study).collect();
         assert!(validate_run(&receipt).is_err());
     }
-
 
     #[test]
     fn synthetic_complete_receipt_passes_structure() {
