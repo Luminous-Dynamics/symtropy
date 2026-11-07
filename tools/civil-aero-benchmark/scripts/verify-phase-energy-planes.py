@@ -133,6 +133,10 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
         fuel_input = finite_nonnegative(engine["fuel_energy_input_j"], "engine fuel input")
         mechanical = finite_nonnegative(engine["mechanical_output_j"], "engine mechanical output")
         heat_loss = finite_nonnegative(engine["thermal_and_exhaust_loss_j"], "engine thermal loss")
+        average_mechanical_limit = positive(engine["average_mechanical_output_power_limit_w"], "engine average mechanical output limit")
+        peak_mechanical = finite_nonnegative(engine["peak_mechanical_output_power_w"], "engine peak mechanical output")
+        peak_mechanical_limit = positive(engine["peak_mechanical_output_power_limit_w"], "engine peak mechanical output limit")
+        average_mechanical = mechanical / duration
         direct_shaft = finite_nonnegative(engine["direct_propulsor_shaft_j"], "engine direct shaft")
         accessory = finite_nonnegative(engine["accessory_mechanical_load_j"], "engine accessory load")
         mechanical_loss = finite_nonnegative(engine["mechanical_distribution_loss_j"], "engine mechanical loss")
@@ -270,14 +274,15 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
     if not close(bus_residual, 0.0, "electrical bus", tolerance):
         errors.append("electrical_bus")
 
-    peak = finite_nonnegative(balance["peak_source_power_w"], "phase peak source power")
-    peak_limit = positive(balance["peak_source_power_limit_w"], "peak source power limit")
-    continuous_limit = positive(balance["continuous_source_power_limit_w"], "continuous source power limit")
+    tolerance_w = finite_nonnegative(balance["tolerance_w"], "tolerance_w")
+    peak = finite_nonnegative(balance["peak_bus_supply_power_w"], "phase peak bus supply power")
+    peak_limit = positive(balance["peak_bus_supply_power_limit_w"], "peak bus supply power limit")
+    continuous_limit = positive(balance["continuous_bus_supply_power_limit_w"], "continuous bus supply power limit")
     continuous = total_supply / duration
-    if peak > peak_limit:
-        errors.append("peak_source_power")
-    if continuous > continuous_limit:
-        errors.append("continuous_source_power")
+    if peak > peak_limit + tolerance_w or peak + tolerance_w < continuous:
+        errors.append("peak_bus_supply_power")
+    if continuous > continuous_limit + tolerance_w:
+        errors.append("continuous_bus_supply_power")
 
     require(bool(engines) or bool(stores), "phase must declare a generator/prime mover or energy store")
     status = "infeasible" if errors else "conserved_within_declared_model"
