@@ -310,7 +310,10 @@ fn validate_opportunity(value: &Value) -> Result<(u64, u64), String> {
     let valid_from = unsigned(value, "envelope_valid_from_ms", path)?;
     let valid_until = unsigned(value, "envelope_valid_until_ms", path)?;
     if valid_from >= valid_until {
-        return Err(fail(path, "envelope validity interval must have positive duration"));
+        return Err(fail(
+            path,
+            "envelope validity interval must have positive duration",
+        ));
     }
     Ok((valid_from, valid_until))
 }
@@ -445,7 +448,10 @@ fn validate_evidence(value: &Value, path: &str) -> Result<(), String> {
     let local_valid_from = unsigned(value, "local_protection_valid_from_ms", path)?;
     let local_valid_until = unsigned(value, "local_protection_valid_until_ms", path)?;
     if local_valid_from >= local_valid_until {
-        return Err(fail(path, "local protection validity interval must have positive duration"));
+        return Err(fail(
+            path,
+            "local protection validity interval must have positive duration",
+        ));
     }
     Ok(())
 }
@@ -473,9 +479,12 @@ fn validity_covers_event(
     valid_until_ms: u64,
     path: &str,
 ) -> Result<(), String> {
-    let earliest = at_ms
-        .checked_sub(uncertainty_ms)
-        .ok_or_else(|| fail(path, "clock uncertainty extends before the validity interval"))?;
+    let earliest = at_ms.checked_sub(uncertainty_ms).ok_or_else(|| {
+        fail(
+            path,
+            "clock uncertainty extends before the validity interval",
+        )
+    })?;
     let latest = at_ms
         .checked_add(uncertainty_ms)
         .ok_or_else(|| fail(path, "clock uncertainty overflows the event time"))?;
@@ -684,37 +693,58 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
         if string(evidence, "receiver_id", &evidence_path)?
             != string(receiver, "receiver_id", "$.receiver")?
         {
-            return Err(fail(&evidence_path, "receiver_id does not match episode receiver"));
+            return Err(fail(
+                &evidence_path,
+                "receiver_id does not match episode receiver",
+            ));
         }
         if string(evidence, "trajectory_sha256", &evidence_path)?
             != string(receiver, "trajectory_sha256", "$.receiver")?
         {
-            return Err(fail(&evidence_path, "trajectory_sha256 does not match episode trajectory"));
+            return Err(fail(
+                &evidence_path,
+                "trajectory_sha256 does not match episode trajectory",
+            ));
         }
         if string(evidence, "opportunity_id", &evidence_path)?
             != string(opportunity, "opportunity_id", "$.opportunity")?
         {
-            return Err(fail(&evidence_path, "opportunity_id does not match episode opportunity"));
+            return Err(fail(
+                &evidence_path,
+                "opportunity_id does not match episode opportunity",
+            ));
         }
         if string(evidence, "envelope_sha256", &evidence_path)?
             != string(opportunity, "envelope_sha256", "$.opportunity")?
         {
-            return Err(fail(&evidence_path, "envelope_sha256 does not match opportunity envelope"));
+            return Err(fail(
+                &evidence_path,
+                "envelope_sha256 does not match opportunity envelope",
+            ));
         }
         if string(evidence, "allocation_id", &evidence_path)?
             != string(allocation, "allocation_id", "$.site_allocation_receipt")?
         {
-            return Err(fail(&evidence_path, "allocation_id does not match site allocation receipt"));
+            return Err(fail(
+                &evidence_path,
+                "allocation_id does not match site allocation receipt",
+            ));
         }
         if string(evidence, "allocation_sha256", &evidence_path)?
             != string(allocation, "allocation_sha256", "$.site_allocation_receipt")?
         {
-            return Err(fail(&evidence_path, "allocation_sha256 does not match site allocation receipt"));
+            return Err(fail(
+                &evidence_path,
+                "allocation_sha256 does not match site allocation receipt",
+            ));
         }
         let event_clock_id = string(evidence, "clock_id", &evidence_path)?.to_string();
         match &episode_clock_id {
             Some(expected) if expected != &event_clock_id => {
-                return Err(fail(&evidence_path, "clock_id changes within one monotonic event trace"));
+                return Err(fail(
+                    &evidence_path,
+                    "clock_id changes within one monotonic event trace",
+                ));
             }
             None => episode_clock_id = Some(event_clock_id),
             _ => {}
@@ -730,7 +760,13 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
                 return Err(fail(&path, "opportunity envelope is not admitted"));
             }
             let clock_uncertainty = unsigned(evidence, "clock_uncertainty_ms", &evidence_path)?;
-            validity_covers_event(at_ms, clock_uncertainty, valid_from, valid_until, &evidence_path)?;
+            validity_covers_event(
+                at_ms,
+                clock_uncertainty,
+                valid_from,
+                valid_until,
+                &evidence_path,
+            )?;
             validity_covers_event(
                 at_ms,
                 clock_uncertainty,
@@ -784,7 +820,13 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
                 ));
             }
             let clock_uncertainty = unsigned(evidence, "clock_uncertainty_ms", &evidence_path)?;
-            validity_covers_event(at_ms, clock_uncertainty, valid_from, valid_until, &evidence_path)?;
+            validity_covers_event(
+                at_ms,
+                clock_uncertainty,
+                valid_from,
+                valid_until,
+                &evidence_path,
+            )?;
             validity_covers_event(
                 at_ms,
                 clock_uncertainty,
