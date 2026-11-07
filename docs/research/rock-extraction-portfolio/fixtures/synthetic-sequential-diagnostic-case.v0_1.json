@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-SEQUENTIAL-DIAGNOSTIC-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "decision_profile": {
+    "decision_profile_ref": "decision-profile:three-state-demo-v1",
+    "decision_owner_ref": "decision-owner:synthetic-review",
+    "utility_validation_ref": "utility-validation:synthetic-only",
+    "utility_unit": "synthetic-benefit-points"
+  },
+  "states": [
+    {
+      "state_id": "A-fragmentation-dominant",
+      "prior_probability": 0.34,
+      "evidence": {
+        "evidence_role": "SIMULATION_ONLY",
+        "method_ref": "method:synthetic-prior",
+        "source_ref": "source:synthetic-prior"
+      }
+    },
+    {
+      "state_id": "B-transport-restriction",
+      "prior_probability": 0.33,
+      "evidence": {
+        "evidence_role": "SIMULATION_ONLY",
+        "method_ref": "method:synthetic-prior",
+        "source_ref": "source:synthetic-prior"
+      }
+    },
+    {
+      "state_id": "C-filter-loading",
+      "prior_probability": 0.33,
+      "evidence": {
+        "evidence_role": "SIMULATION_ONLY",
+        "method_ref": "method:synthetic-prior",
+        "source_ref": "source:synthetic-prior"
+      }
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "address-A",
+      "utilities": [
+        {
+          "state_id": "A-fragmentation-dominant",
+          "value": 10
+        },
+        {
+          "state_id": "B-transport-restriction",
+          "value": -10
+        },
+        {
+          "state_id": "C-filter-loading",
+          "value": -10
+        }
+      ]
+    },
+    {
+      "action_id": "address-B",
+      "utilities": [
+        {
+          "state_id": "A-fragmentation-dominant",
+          "value": -10
+        },
+        {
+          "state_id": "B-transport-restriction",
+          "value": 10
+        },
+        {
+          "state_id": "C-filter-loading",
+          "value": -10
+        }
+      ]
+    },
+    {
+      "action_id": "address-C",
+      "utilities": [
+        {
+          "state_id": "A-fragmentation-dominant",
+          "value": -10
+        },
+        {
+          "state_id": "B-transport-restriction",
+          "value": -10
+        },
+        {
+          "state_id": "C-filter-loading",
+          "value": 10
+        }
+      ]
+    }
+  ],
+  "experiments": [
+    {
+      "experiment_id": "coarse-passive-observation",
+      "cost": {
+        "value": 0.2,
+        "unit": "synthetic-benefit-points",
+        "boundary_ref": "boundary:synthetic-measurement-only",
+        "source_ref": "cost:synthetic-coarse"
+      },
+      "likelihood_evidence": {
+        "evidence_role": "SIMULATION_ONLY",
+        "method_ref": "method:synthetic-coarse-likelihood",
+        "source_ref": "source:synthetic-coarse-likelihood"
+      },
+      "domain_ref": "domain:synthetic-rock-path",
+      "outcomes": [
+        {
+          "outcome_id": "A-like",
+          "likelihoods": [
+            {
+              "state_id": "A-fragmentation-dominant",
+              "probability": 0.9
+            },
+            {
+              "state_id": "B-transport-restriction",
+              "probability": 0.05
+            },
+            {
+              "state_id": "C-filter-loading",
+              "probability": 0.05
+            }
+          ]
+        },
+        {
+          "outcome_id": "B-or-C-like",
+          "likelihoods": [
+            {
+              "state_id": "A-fragmentation-dominant",
+              "probability": 0.1
+            },
+            {
+              "state_id": "B-transport-restriction",
+              "probability": 0.95
+            },
+            {
+              "state_id": "C-filter-loading",
+              "probability": 0.95
+            }
+          ]
+        }
+      ],
+      "independence_group_ref": "independent-group:coarse-sensor-observation",
+      "dependence_evidence_ref": "dependence-evidence:synthetic-coarse"
+    },
+    {
+      "experiment_id": "B-vs-C-passive-sample",
+      "cost": {
+        "value": 0.2,
+        "unit": "synthetic-benefit-points",
+        "boundary_ref": "boundary:synthetic-measurement-only",
+        "source_ref": "cost:synthetic-bc"
+      },
+      "likelihood_evidence": {
+        "evidence_role": "SIMULATION_ONLY",
+        "method_ref": "method:synthetic-bc-likelihood",
+        "source_ref": "source:synthetic-bc-likelihood"
+      },
+      "domain_ref": "domain:synthetic-rock-path",
+      "outcomes": [
+        {
+          "outcome_id": "B-signature",
+          "likelihoods": [
+            {
+              "state_id": "A-fragmentation-dominant",
+              "probability": 0.1
+            },
+            {
+              "state_id": "B-transport-restriction",
+              "probability": 0.9
+            },
+            {
+              "state_id": "C-filter-loading",
+              "probability": 0.1
+            }
+          ]
+        },
+        {
+          "outcome_id": "C-signature",
+          "likelihoods": [
+            {
+              "state_id": "A-fragmentation-dominant",
+              "probability": 0.1
+            },
+            {
+              "state_id": "B-transport-restriction",
+              "probability": 0.1
+            },
+            {
+              "state_id": "C-filter-loading",
+              "probability": 0.9
+            }
+          ]
+        },
+        {
+          "outcome_id": "A-only-ambiguous",
+          "likelihoods": [
+            {
+              "state_id": "A-fragmentation-dominant",
+              "probability": 0.8
+            },
+            {
+              "state_id": "B-transport-restriction",
+              "probability": 0
+            },
+            {
+              "state_id": "C-filter-loading",
+              "probability": 0
+            }
+          ]
+        }
+      ],
+      "independence_group_ref": "independent-group:material-sample",
+      "dependence_evidence_ref": "dependence-evidence:synthetic-material-sample"
+    }
+  ],
+  "policy": {
+    "remaining_budget": 0.4,
+    "budget_unit": "synthetic-benefit-points",
+    "maximum_measurements_remaining": 2,
+    "maximum_horizon": 2,
+    "minimum_net_value_to_continue": 0.01,
+    "stop_consequence_ref": "stop:retain-best-supported-hypothesis-for-review",
+    "human_review_authority_ref": "authority:human-review-required",
+    "conditional_independence_assumption_ref": "assumption:synthetic-conditional-independence-given-hypothesis"
+  }
+}
