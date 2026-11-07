@@ -5,7 +5,7 @@
 
 use maritime_channel_conflict_contract::{
     ChannelMovement, ChannelSegmentRule, ChannelWorkload, DirectionPermission, DirectionWindow,
-    EvidenceReceipt, EvidenceState, evaluate_channel_workload, TrafficDisposition,
+    EvidenceReceipt, EvidenceState, TrafficDisposition, evaluate_channel_workload,
 };
 use maritime_service_chain_contract::TickWindow;
 use maritime_service_chain_fleet::OperationPlacement;
@@ -43,7 +43,13 @@ fn movement(id: &str, start: u64, end: u64) -> ChannelMovement {
     }
 }
 
-fn workload(start_a: u64, end_a: u64, start_b: u64, end_b: u64, minimum_gap: u64) -> ChannelWorkload {
+fn workload(
+    start_a: u64,
+    end_a: u64,
+    start_b: u64,
+    end_b: u64,
+    minimum_gap: u64,
+) -> ChannelWorkload {
     ChannelWorkload {
         corridor_id: "corridor-1".to_owned(),
         time_basis_id: "ticks-1".to_owned(),
