@@ -308,6 +308,7 @@ pub enum LedgerError {
     ActualEventOutsideWindow(String),
     TerminalMismatch(String),
     DuplicateVesselExit(String),
+    VesselExitBeforeArrival(String),
     NegativeVesselQueue(u64),
     VesselQueueOverflow(u64),
     CargoMovementIdMismatch(String),
@@ -337,15 +338,30 @@ fn resolve_observations<'a, T: LedgerObservation>(
         if header.entity_id.trim().is_empty() {
             return Err(LedgerError::EmptyEntityId);
         }
-        if !by_id.insert(header.event_id.as_str(), index).is_none() {
+        if by_id
+            .insert(header.event_id.as_str(), index)
+            .is_some()
+        {
             return Err(LedgerError::DuplicateEventId(
                 header.event_id.clone(),
             ));
         }
     }
 
+    // Future observations do not influence this information-cutoff snapshot,
+    // including their correction graph or later conflicts.
+    let visible: Vec<&T> = observations
+        .iter()
+        .filter(|item| item.header().observed_tick <= as_of_tick)
+        .collect();
+    let visible_ids: BTreeSet<&str> = visible
+        .iter()
+        .map(|item| item.header().event_id.as_str())
+        .collect();
+
     let mut child_by_parent = BTreeMap::<&str, &str>::new();
-    for observation in observations {
+    let mut superseded = BTreeSet::<&str>::new();
+    for observation in &visible {
         let header = observation.header();
         let Some(parent_id) = header.supersedes_event_id.as_deref() else {
             continue;
@@ -365,6 +381,11 @@ fn resolve_observations<'a, T: LedgerObservation>(
         };
         let parent = &observations[parent_index];
         let parent_header = parent.header();
+        if !visible_ids.contains(parent_id) {
+            return Err(LedgerError::UnknownSupersededEvent(
+                parent_id.to_owned(),
+            ));
+        }
         if parent_header.entity_id != header.entity_id {
             return Err(LedgerError::SupersessionEntityMismatch(
                 header.event_id.clone(),
@@ -393,28 +414,7 @@ fn resolve_observations<'a, T: LedgerObservation>(
                 parent_id.to_owned(),
             ));
         }
-    }
-
-    let visible: Vec<&T> = observations
-        .iter()
-        .filter(|item| item.header().observed_tick <= as_of_tick)
-        .collect();
-
-    let visible_ids: BTreeSet<&str> = visible
-        .iter()
-        .map(|item| item.header().event_id.as_str())
-        .collect();
-
-    let mut superseded = BTreeSet::<&str>::new();
-    for observation in &visible {
-        if let Some(parent_id) = observation.header().supersedes_event_id.as_deref() {
-            if !visible_ids.contains(parent_id) {
-                return Err(LedgerError::UnknownSupersededEvent(
-                    parent_id.to_owned(),
-                ));
-            }
-            superseded.insert(parent_id);
-        }
+        superseded.insert(parent_id);
     }
 
     let active: Vec<&T> = visible
@@ -513,6 +513,8 @@ pub fn audit_vessel_queue(
     let active = resolve_observations(&ledger.observations, as_of_tick)?;
     let mut by_tick = BTreeMap::<u64, (u128, u128, usize, usize)>::new();
     let mut exits_by_call = BTreeSet::new();
+    let mut arrival_tick_by_call = BTreeMap::new();
+    let mut exit_tick_by_call = BTreeMap::new();
     let mut actual_observations_applied = 0_usize;
     let mut non_actual_observations_excluded = 0_usize;
 
@@ -529,6 +531,7 @@ pub fn audit_vessel_queue(
                 .0
                 .checked_add(1)
                 .ok_or(LedgerError::ArithmeticOverflow)?;
+            arrival_tick_by_call.insert(header.entity_id.as_str(), header.event_tick);
         } else {
             if !exits_by_call.insert(header.entity_id.as_str()) {
                 return Err(LedgerError::DuplicateVesselExit(
@@ -539,9 +542,21 @@ pub fn audit_vessel_queue(
                 .1
                 .checked_add(1)
                 .ok_or(LedgerError::ArithmeticOverflow)?;
+            exit_tick_by_call.insert(header.entity_id.as_str(), header.event_tick);
         }
         entry.2 += 1;
         actual_observations_applied += 1;
+    }
+
+    for (call_id, exit_tick) in &exit_tick_by_call {
+        if arrival_tick_by_call
+            .get(call_id)
+            .is_some_and(|arrival_tick| exit_tick < arrival_tick)
+        {
+            return Err(LedgerError::VesselExitBeforeArrival(
+                (*call_id).to_owned(),
+            ));
+        }
     }
 
     let mut queue = ledger.opening_queue;
