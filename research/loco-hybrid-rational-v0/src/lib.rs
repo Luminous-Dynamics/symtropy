@@ -618,4 +618,107 @@ mod tests {
             vec![Vec::<String>::new()]
         );
     }
+
+    #[test]
+    fn interval_multiplication_contains_every_endpoint_product_on_small_grid() {
+        for a_lower in -2..=2 {
+            for a_upper in a_lower..=2 {
+                for b_lower in -2..=2 {
+                    for b_upper in b_lower..=2 {
+                        let left = interval((a_lower, 1), (a_upper, 1));
+                        let right = interval((b_lower, 1), (b_upper, 1));
+                        let image = left.multiply(&right).unwrap();
+                        for x in [a_lower, a_upper] {
+                            for y in [b_lower, b_upper] {
+                                let value = Rational::integer(x * y);
+                                assert!(image.contains(&value).unwrap());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn widening_state_interval_cannot_shrink_affine_image() {
+        let narrow_state = interval((1, 1), (2, 1));
+        let wide_state = interval((0, 1), (3, 1));
+        let slope = interval((-2, 1), (3, 1));
+        let offset = interval((-1, 1), (1, 1));
+
+        let narrow_image = narrow_state.affine_image(&slope, &offset).unwrap();
+        let wide_image = wide_state.affine_image(&slope, &offset).unwrap();
+
+        assert!(
+            wide_image.lower().checked_cmp(narrow_image.lower()).unwrap()
+                != Ordering::Greater
+        );
+        assert!(
+            wide_image.upper().checked_cmp(narrow_image.upper()).unwrap()
+                != Ordering::Less
+        );
+    }
+
+    #[test]
+    fn event_order_enumerator_omits_no_strict_order_from_small_integer_grid() {
+        for a_lower in 0..=2 {
+            for a_upper in a_lower..=2 {
+                for b_lower in 0..=2 {
+                    for b_upper in b_lower..=2 {
+                        let orders = enumerate_possible_event_orders(
+                            vec![
+                                event("a", a_lower, a_upper),
+                                event("b", b_lower, b_upper),
+                            ],
+                            2,
+                        )
+                        .unwrap();
+
+                        for time_a in a_lower..=a_upper {
+                            for time_b in b_lower..=b_upper {
+                                if time_a < time_b {
+                                    assert!(orders.contains(&vec![
+                                        "a".to_owned(),
+                                        "b".to_owned()
+                                    ]));
+                                } else if time_b < time_a {
+                                    assert!(orders.contains(&vec![
+                                        "b".to_owned(),
+                                        "a".to_owned()
+                                    ]));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn touching_windows_are_conservative_and_can_include_spurious_reverse_order() {
+        let orders = enumerate_possible_event_orders(
+            vec![event("a", 0, 1), event("b", 1, 2)],
+            2,
+        )
+        .unwrap();
+
+        // A at t=0.9 and B at t=1.1 are ordered A-before-B; equality at
+        // t=1 is a simultaneous case. B-before-A is intentionally retained
+        // as a conservative linearization, not claimed physically necessary.
+        assert_eq!(orders.len(), 2);
+        assert!(orders.contains(&vec!["a".to_owned(), "b".to_owned()]));
+        assert!(orders.contains(&vec!["b".to_owned(), "a".to_owned()]));
+    }
+
+    #[test]
+    fn rational_comparison_overflow_is_explicit() {
+        let left = r(i128::MAX, i128::MAX - 1);
+        let right = r(i128::MAX - 1, i128::MAX);
+        assert_eq!(
+            left.checked_cmp(&right),
+            Err(HybridMathError::ArithmeticOverflow)
+        );
+    }
 }
