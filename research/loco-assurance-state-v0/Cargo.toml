@@ -1,0 +1,9 @@
+[package]
+name = "loco-assurance-state"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic certificate-validity and deadline-gating reference for locomotion assurance"
+
+[workspace]
