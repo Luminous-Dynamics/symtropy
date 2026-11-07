@@ -189,15 +189,15 @@ fn search_node(
         });
     }
 
-    *expanded_nodes =
-        expanded_nodes
-            .checked_add(1)
-            .ok_or(ScenarioTreeError::NodeBudgetExceeded {
-                maximum: context.planning_config.maximum_tree_nodes,
-            })?;
-    context.expanded_nodes = context.expanded_nodes; // no-op placeholder
+    context.expanded_nodes = context
+        .expanded_nodes
+        .checked_add(1)
+        .ok_or(ScenarioTreeError::NodeBudgetExceeded {
+            maximum: context.planning_config.maximum_tree_nodes,
+        })?;
+    if context.expanded_nodes > context.planning_config.maximum_tree_nodes {
         return Err(ScenarioTreeError::NodeBudgetExceeded {
-            maximum: planning_config.maximum_tree_nodes,
+            maximum: context.planning_config.maximum_tree_nodes,
         });
     }
 
