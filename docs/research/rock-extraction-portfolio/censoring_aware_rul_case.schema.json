@@ -12,7 +12,8 @@
     "causes",
     "censoring_policy",
     "episodes",
-    "predictions"
+    "predictions",
+    "split_policy"
   ],
   "$defs": {
     "ref": {
@@ -316,6 +317,37 @@
       "minItems": 1,
       "items": {
         "$ref": "#/$defs/prediction"
+      }
+    },
+    "split_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "held_out_group_dimensions",
+        "no_group_overlap_across_partitions",
+        "partition_profile_ref"
+      ],
+      "properties": {
+        "held_out_group_dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "ASSET_ID",
+              "CAMPAIGN_REF",
+              "SITE_REF",
+              "MATERIAL_COHORT_REF",
+              "MACHINE_CONFIGURATION_REF"
+            ]
+          }
+        },
+        "no_group_overlap_across_partitions": {
+          "const": true
+        },
+        "partition_profile_ref": {
+          "$ref": "#/$defs/ref"
+        }
       }
     }
   }
