@@ -16,7 +16,8 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Fixed-size second-order forward-mode automatic differentiation for Schwarzschild, Kerr, ingoing Eddington-Finkelstein, and ingoing Kerr metric values, gradients, and Hessians; AD-generated Kerr curvature is checked against vacuum and analytic Kretschmann fixtures.
 - Horizon-regular ingoing charts for Schwarzschild and Kerr, with curvature tests at/inside their horizons and scalar-invariant comparisons against exterior coordinates.
 - Noise-weighted frequency-domain waveform comparison: one-sided PSD inner product, constant-phase-maximized mismatch, explicit best phase offset, separate amplitude L2 and frequency-dependent phase residual diagnostics, and strict grid/PSD/domain validation. The caller must pre-align waveforms; no hidden time maximization, interpolation, resampling, or PSD estimation.
-- **73 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, and waveform metrics.
+- Kerr equatorial prograde/retrograde circular-null-orbit reference observables: analytic photon-orbit radius and signed frequency, metric null/radial circularity residuals, impact parameter, and coordinate-time radial Lyapunov exponent. Extremal prograde Boyer-Lindquist horizon limit returns explicit unavailable impact/Lyapunov values rather than a fabricated finite result.
+- **81 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, waveform metrics, and light-ring references.
 
 ## Conventions
 
@@ -45,6 +46,10 @@ For Kerr:
 
 The direct-wave reference frequency is a theory-derived scale motivated by a published GW250114 analysis. It is not itself a waveform, a detection, or a verified universal feature.
 
+## Eikonal light-ring reference calculations
+
+`light_ring.rs` provides equatorial Kerr prograde/retrograde circular-null-orbit references. It reports the closed-form photon-orbit radius and signed coordinate frequency, calculates the impact parameter from equatorial metric components, checks the local null and radial circularity conditions, and computes the coordinate-time radial Lyapunov exponent from the null radial potential. For the extremal prograde orbit, the radius and horizon-generator frequency are returned but Boyer-Lindquist impact-parameter / Lyapunov calculations are marked unavailable because the orbit coincides with the horizon. These are geometric/eikonal reference quantities, not exact finite-mode QNM eigenfrequencies.
+
 The posterior transform preserves each input sample ID, order, and paired mass/spin draw. It does not infer parameters, resample, marginalize, or fit waveforms.
 
 ## Deliberate limits
@@ -58,6 +63,7 @@ The generic metric-component constructor does not certify Lorentzian signature. 
 - Add waveform-metric fixture cross-checks against an independent Python/NumPy reference and validate PSD-weighting / alignment behavior on real SXS test signals.
 - Propagate waveform discrepancy through a simple posterior-recovery fixture before any surrogate posterior-accuracy claim.
 - Kerr further independent curvature-invariant fixtures and full tensor conditioning/error estimates.
+- Cross-check the equatorial Kerr light-ring frequency and Lyapunov references against independent closed-form/eikonal calculations and compare to finite-l QNM spectra without conflating the asymptotic eikonal correspondence with exact QNM values.
 - Differential Bianchi identity and higher-derivative consistency checks.
 - More exhaustive horizon-regular coordinate and cross-chart scalar-invariant comparisons.
 - Extend the Schwarzschild geodesics to horizon-regular coordinate charts, then add Kerr equatorial/inclined geodesics, Carter-constant diagnostics, and an independent formulation with its own convergence suite.
@@ -78,7 +84,7 @@ These files are literature / experiment specifications. They are not benchmark e
 
 `cargo test -p symtropy-relativity`
 
-**Validation status:** 73 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. No build/test pass, waveform benchmark result, or geodesic accuracy claim is made.
+**Validation status:** 81 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. No build/test pass, waveform benchmark result, light-ring Rust result, or geodesic accuracy claim is made.
 
 
 ## Schwarzschild geodesic scope
