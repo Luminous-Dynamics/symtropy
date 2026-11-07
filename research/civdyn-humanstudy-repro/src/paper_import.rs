@@ -15,7 +15,7 @@ use super::{
     PAPER_12_SOURCE_REPOSITORY, PAPER_12_SOURCE_ROOT_TREE, PAPER_12_STUDY_PINS, StudyReceipt,
     validate_run,
 };
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -737,6 +737,7 @@ pub fn assemble_paper_run_receipt(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
     use std::sync::atomic::{AtomicU64, Ordering};
 
     static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(0);
