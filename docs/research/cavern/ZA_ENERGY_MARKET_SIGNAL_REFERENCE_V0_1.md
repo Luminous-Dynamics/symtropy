@@ -121,3 +121,16 @@ A tariff controller must distinguish kWh-charge reduction from billed-demand red
 - Therefore, in this synthetic case, the energy-charge component falls but the demand-charge component does not.
 
 This fixture is an arithmetic / conformance negative control. It is not an estimate of any actual consumer bill. Real billed demand depends on actual metered half-hour maximums, the rolling history, supply tariff, power factor, account surcharges and VAT.
+
+
+### Eligibility versus service-connection capacity — important clarification
+
+The Industrial TOU gate remains **strictly greater than 100 kVA**, not 70 kVA:
+- Industrial TOU clause 5.4.3 (printed p. 97) says business consumers must have supply capacity exceeding 100 kVA and apply; clause 5.4.6 requires approval.
+- Annexure E (printed p. 101) separately gives the LV LPU service-connection range as 70–1,000 kVA at 400 V AC.
+- Clause 5.3.1.2 separately sets 70 kVA as a minimum billed-demand floor.
+
+These numbers serve different purposes. The tariff calculator must not infer TOU eligibility from the 70 kVA service-connection range or billed-demand floor. Focal Energy's 2026/27 City Power reference describes the LPU LV range as 70–1,000 kVA and TOU on application; the primary City's tariff-specific clause is the source for the published tariff eligibility gate. Retain account approval as a mandatory gate and treat any discrepancy with the customer's approved account tariff as NEEDS_EVIDENCE.
+
+Primary budget source: https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf  
+Specialist comparator: https://www.focalenergy.co.za/knowledge/city-power-tariffs-johannesburg
