@@ -16,4 +16,5 @@ name = "robust-policy-sweep"
 path = "src/bin/robust_policy_sweep.rs"
 
 [dependencies]
+civdyn-cross-scale-resilience = { path = "../civdyn-cross-scale-resilience" }
 civdyn-resilience-uq = { path = "../civdyn-resilience-uq" }
