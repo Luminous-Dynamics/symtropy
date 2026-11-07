@@ -1,0 +1,717 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-MEASUREMENT-QUALIFICATION-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "instrument": {
+    "instrument_id": "instrument:synthetic-dynamic-imager-01",
+    "method": "DYNAMIC_2D_IMAGE",
+    "spatial_resolution_mm": 0.08,
+    "descriptor_resolution": 0.005,
+    "calibration_ref": "cal:synthetic-imager-r1",
+    "source_artifact_ref": "artifact:synthetic-reference-and-particle-images-01",
+    "reference_profile_ref": "reference-profile:synthetic-shape-artifacts"
+  },
+  "protocol": {
+    "parent_morphology_case_id": "SYNTHETIC-FRAGMENT-MORPHOLOGY-001",
+    "parent_interval_id": "synthetic-interval-001",
+    "sampling_frame_ref": "sampling-frame:synthetic-size-stratum-00-05mm",
+    "sampling_protocol_ref": "sampling:randomized-single-particle-acquisition-v1",
+    "quantile_method_ref": "method:exact-binomial-order-statistic-ci-v1",
+    "review_authority_ref": "review:synthetic-metrology-panel"
+  },
+  "reference_checks": [
+    {
+      "reference_id": "reference:certified-circularity-artifact-01",
+      "descriptor_type": "CIRCULARITY_2D",
+      "basis": "PROJECTION_2D",
+      "descriptor_definition_ref": "descriptor:circularity-2d-v1",
+      "certified_value": 0.72,
+      "certified_standard_uncertainty": 0.005,
+      "feature_dimension_mm": 5,
+      "maximum_abs_error": 0.04,
+      "calibration_ref": "cal:synthetic-imager-r1",
+      "certificate_ref": "certificate:synthetic-reference-01",
+      "replicates": [
+        {
+          "replicate_id": "rep-01",
+          "session_ref": "session-01",
+          "operator_ref": "operator-01",
+          "orientation_ref": "orientation-0",
+          "measured_value": 0.715
+        },
+        {
+          "replicate_id": "rep-02",
+          "session_ref": "session-01",
+          "operator_ref": "operator-02",
+          "orientation_ref": "orientation-90",
+          "measured_value": 0.721
+        },
+        {
+          "replicate_id": "rep-03",
+          "session_ref": "session-02",
+          "operator_ref": "operator-01",
+          "orientation_ref": "orientation-180",
+          "measured_value": 0.724
+        },
+        {
+          "replicate_id": "rep-04",
+          "session_ref": "session-02",
+          "operator_ref": "operator-02",
+          "orientation_ref": "orientation-270",
+          "measured_value": 0.719
+        },
+        {
+          "replicate_id": "rep-05",
+          "session_ref": "session-03",
+          "operator_ref": "operator-03",
+          "orientation_ref": "orientation-45",
+          "measured_value": 0.723
+        },
+        {
+          "replicate_id": "rep-06",
+          "session_ref": "session-03",
+          "operator_ref": "operator-03",
+          "orientation_ref": "orientation-135",
+          "measured_value": 0.717
+        }
+      ]
+    }
+  ],
+  "sample_sets": [
+    {
+      "sample_set_id": "sample-set:bin-00-05-circularity",
+      "parent_morphology_case_id": "SYNTHETIC-FRAGMENT-MORPHOLOGY-001",
+      "parent_interval_id": "synthetic-interval-001",
+      "parent_bin_index": 0,
+      "descriptor_type": "CIRCULARITY_2D",
+      "basis": "PROJECTION_2D",
+      "descriptor_definition_ref": "descriptor:circularity-2d-v1",
+      "sampling_protocol_ref": "sampling:randomized-single-particle-acquisition-v1",
+      "selection_method": "RANDOMIZED_WITHIN_PARENT_SIZE_STRATUM",
+      "independence_basis": "ONE_PARTICLE_PER_INDEPENDENT_ACQUISITION_BLOCK",
+      "domain_lower_bound": 0,
+      "domain_upper_bound": 1,
+      "descriptor_resolution": 0.005,
+      "minimum_resolvable_feature_mm": 0.24,
+      "quantile_targets": [
+        {
+          "probability": 0.05,
+          "confidence_level": 0.9,
+          "maximum_interval_width": 0.9
+        },
+        {
+          "probability": 0.5,
+          "confidence_level": 0.9,
+          "maximum_interval_width": 0.5
+        },
+        {
+          "probability": 0.95,
+          "confidence_level": 0.9,
+          "maximum_interval_width": 0.9
+        }
+      ],
+      "samples": [
+        {
+          "particle_id": "particle-001",
+          "acquisition_block_ref": "block-001",
+          "resolution_status": "EXACT",
+          "value": 0.42
+        },
+        {
+          "particle_id": "particle-002",
+          "acquisition_block_ref": "block-002",
+          "resolution_status": "EXACT",
+          "value": 0.605
+        },
+        {
+          "particle_id": "particle-003",
+          "acquisition_block_ref": "block-003",
+          "resolution_status": "EXACT",
+          "value": 0.79
+        },
+        {
+          "particle_id": "particle-004",
+          "acquisition_block_ref": "block-004",
+          "resolution_status": "EXACT",
+          "value": 0.47500000000000003
+        },
+        {
+          "particle_id": "particle-005",
+          "acquisition_block_ref": "block-005",
+          "resolution_status": "EXACT",
+          "value": 0.66
+        },
+        {
+          "particle_id": "particle-006",
+          "acquisition_block_ref": "block-006",
+          "resolution_status": "EXACT",
+          "value": 0.845
+        },
+        {
+          "particle_id": "particle-007",
+          "acquisition_block_ref": "block-007",
+          "resolution_status": "EXACT",
+          "value": 0.53
+        },
+        {
+          "particle_id": "particle-008",
+          "acquisition_block_ref": "block-008",
+          "resolution_status": "EXACT",
+          "value": 0.715
+        },
+        {
+          "particle_id": "particle-009",
+          "acquisition_block_ref": "block-009",
+          "resolution_status": "EXACT",
+          "value": 0.9
+        },
+        {
+          "particle_id": "particle-010",
+          "acquisition_block_ref": "block-010",
+          "resolution_status": "EXACT",
+          "value": 0.585
+        },
+        {
+          "particle_id": "particle-011",
+          "acquisition_block_ref": "block-011",
+          "resolution_status": "EXACT",
+          "value": 0.77
+        },
+        {
+          "particle_id": "particle-012",
+          "acquisition_block_ref": "block-012",
+          "resolution_status": "EXACT",
+          "value": 0.455
+        },
+        {
+          "particle_id": "particle-013",
+          "acquisition_block_ref": "block-013",
+          "resolution_status": "EXACT",
+          "value": 0.64
+        },
+        {
+          "particle_id": "particle-014",
+          "acquisition_block_ref": "block-014",
+          "resolution_status": "EXACT",
+          "value": 0.8250000000000001
+        },
+        {
+          "particle_id": "particle-015",
+          "acquisition_block_ref": "block-015",
+          "resolution_status": "EXACT",
+          "value": 0.51
+        },
+        {
+          "particle_id": "particle-016",
+          "acquisition_block_ref": "block-016",
+          "resolution_status": "EXACT",
+          "value": 0.6950000000000001
+        },
+        {
+          "particle_id": "particle-017",
+          "acquisition_block_ref": "block-017",
+          "resolution_status": "EXACT",
+          "value": 0.88
+        },
+        {
+          "particle_id": "particle-018",
+          "acquisition_block_ref": "block-018",
+          "resolution_status": "EXACT",
+          "value": 0.5650000000000001
+        },
+        {
+          "particle_id": "particle-019",
+          "acquisition_block_ref": "block-019",
+          "resolution_status": "EXACT",
+          "value": 0.75
+        },
+        {
+          "particle_id": "particle-020",
+          "acquisition_block_ref": "block-020",
+          "resolution_status": "EXACT",
+          "value": 0.435
+        },
+        {
+          "particle_id": "particle-021",
+          "acquisition_block_ref": "block-021",
+          "resolution_status": "EXACT",
+          "value": 0.62
+        },
+        {
+          "particle_id": "particle-022",
+          "acquisition_block_ref": "block-022",
+          "resolution_status": "EXACT",
+          "value": 0.805
+        },
+        {
+          "particle_id": "particle-023",
+          "acquisition_block_ref": "block-023",
+          "resolution_status": "EXACT",
+          "value": 0.49
+        },
+        {
+          "particle_id": "particle-024",
+          "acquisition_block_ref": "block-024",
+          "resolution_status": "EXACT",
+          "value": 0.675
+        },
+        {
+          "particle_id": "particle-025",
+          "acquisition_block_ref": "block-025",
+          "resolution_status": "EXACT",
+          "value": 0.86
+        },
+        {
+          "particle_id": "particle-026",
+          "acquisition_block_ref": "block-026",
+          "resolution_status": "EXACT",
+          "value": 0.545
+        },
+        {
+          "particle_id": "particle-027",
+          "acquisition_block_ref": "block-027",
+          "resolution_status": "EXACT",
+          "value": 0.73
+        },
+        {
+          "particle_id": "particle-028",
+          "acquisition_block_ref": "block-028",
+          "resolution_status": "EXACT",
+          "value": 0.915
+        },
+        {
+          "particle_id": "particle-029",
+          "acquisition_block_ref": "block-029",
+          "resolution_status": "EXACT",
+          "value": 0.6
+        },
+        {
+          "particle_id": "particle-030",
+          "acquisition_block_ref": "block-030",
+          "resolution_status": "EXACT",
+          "value": 0.785
+        },
+        {
+          "particle_id": "particle-031",
+          "acquisition_block_ref": "block-031",
+          "resolution_status": "EXACT",
+          "value": 0.47000000000000003
+        },
+        {
+          "particle_id": "particle-032",
+          "acquisition_block_ref": "block-032",
+          "resolution_status": "EXACT",
+          "value": 0.655
+        },
+        {
+          "particle_id": "particle-033",
+          "acquisition_block_ref": "block-033",
+          "resolution_status": "EXACT",
+          "value": 0.84
+        },
+        {
+          "particle_id": "particle-034",
+          "acquisition_block_ref": "block-034",
+          "resolution_status": "EXACT",
+          "value": 0.525
+        },
+        {
+          "particle_id": "particle-035",
+          "acquisition_block_ref": "block-035",
+          "resolution_status": "EXACT",
+          "value": 0.71
+        },
+        {
+          "particle_id": "particle-036",
+          "acquisition_block_ref": "block-036",
+          "resolution_status": "EXACT",
+          "value": 0.895
+        },
+        {
+          "particle_id": "particle-037",
+          "acquisition_block_ref": "block-037",
+          "resolution_status": "EXACT",
+          "value": 0.58
+        },
+        {
+          "particle_id": "particle-038",
+          "acquisition_block_ref": "block-038",
+          "resolution_status": "EXACT",
+          "value": 0.765
+        },
+        {
+          "particle_id": "particle-039",
+          "acquisition_block_ref": "block-039",
+          "resolution_status": "EXACT",
+          "value": 0.45
+        },
+        {
+          "particle_id": "particle-040",
+          "acquisition_block_ref": "block-040",
+          "resolution_status": "EXACT",
+          "value": 0.635
+        },
+        {
+          "particle_id": "particle-041",
+          "acquisition_block_ref": "block-041",
+          "resolution_status": "EXACT",
+          "value": 0.8200000000000001
+        },
+        {
+          "particle_id": "particle-042",
+          "acquisition_block_ref": "block-042",
+          "resolution_status": "EXACT",
+          "value": 0.505
+        },
+        {
+          "particle_id": "particle-043",
+          "acquisition_block_ref": "block-043",
+          "resolution_status": "EXACT",
+          "value": 0.6900000000000001
+        },
+        {
+          "particle_id": "particle-044",
+          "acquisition_block_ref": "block-044",
+          "resolution_status": "EXACT",
+          "value": 0.875
+        },
+        {
+          "particle_id": "particle-045",
+          "acquisition_block_ref": "block-045",
+          "resolution_status": "EXACT",
+          "value": 0.56
+        },
+        {
+          "particle_id": "particle-046",
+          "acquisition_block_ref": "block-046",
+          "resolution_status": "EXACT",
+          "value": 0.745
+        },
+        {
+          "particle_id": "particle-047",
+          "acquisition_block_ref": "block-047",
+          "resolution_status": "EXACT",
+          "value": 0.43
+        },
+        {
+          "particle_id": "particle-048",
+          "acquisition_block_ref": "block-048",
+          "resolution_status": "EXACT",
+          "value": 0.615
+        },
+        {
+          "particle_id": "particle-049",
+          "acquisition_block_ref": "block-049",
+          "resolution_status": "EXACT",
+          "value": 0.8
+        },
+        {
+          "particle_id": "particle-050",
+          "acquisition_block_ref": "block-050",
+          "resolution_status": "EXACT",
+          "value": 0.485
+        },
+        {
+          "particle_id": "particle-051",
+          "acquisition_block_ref": "block-051",
+          "resolution_status": "EXACT",
+          "value": 0.67
+        },
+        {
+          "particle_id": "particle-052",
+          "acquisition_block_ref": "block-052",
+          "resolution_status": "EXACT",
+          "value": 0.855
+        },
+        {
+          "particle_id": "particle-053",
+          "acquisition_block_ref": "block-053",
+          "resolution_status": "EXACT",
+          "value": 0.54
+        },
+        {
+          "particle_id": "particle-054",
+          "acquisition_block_ref": "block-054",
+          "resolution_status": "EXACT",
+          "value": 0.725
+        },
+        {
+          "particle_id": "particle-055",
+          "acquisition_block_ref": "block-055",
+          "resolution_status": "EXACT",
+          "value": 0.91
+        },
+        {
+          "particle_id": "particle-056",
+          "acquisition_block_ref": "block-056",
+          "resolution_status": "EXACT",
+          "value": 0.595
+        },
+        {
+          "particle_id": "particle-057",
+          "acquisition_block_ref": "block-057",
+          "resolution_status": "EXACT",
+          "value": 0.78
+        },
+        {
+          "particle_id": "particle-058",
+          "acquisition_block_ref": "block-058",
+          "resolution_status": "EXACT",
+          "value": 0.465
+        },
+        {
+          "particle_id": "particle-059",
+          "acquisition_block_ref": "block-059",
+          "resolution_status": "EXACT",
+          "value": 0.65
+        },
+        {
+          "particle_id": "particle-060",
+          "acquisition_block_ref": "block-060",
+          "resolution_status": "EXACT",
+          "value": 0.835
+        },
+        {
+          "particle_id": "particle-061",
+          "acquisition_block_ref": "block-061",
+          "resolution_status": "EXACT",
+          "value": 0.52
+        },
+        {
+          "particle_id": "particle-062",
+          "acquisition_block_ref": "block-062",
+          "resolution_status": "EXACT",
+          "value": 0.705
+        },
+        {
+          "particle_id": "particle-063",
+          "acquisition_block_ref": "block-063",
+          "resolution_status": "EXACT",
+          "value": 0.89
+        },
+        {
+          "particle_id": "particle-064",
+          "acquisition_block_ref": "block-064",
+          "resolution_status": "EXACT",
+          "value": 0.5750000000000001
+        },
+        {
+          "particle_id": "particle-065",
+          "acquisition_block_ref": "block-065",
+          "resolution_status": "EXACT",
+          "value": 0.76
+        },
+        {
+          "particle_id": "particle-066",
+          "acquisition_block_ref": "block-066",
+          "resolution_status": "EXACT",
+          "value": 0.445
+        },
+        {
+          "particle_id": "particle-067",
+          "acquisition_block_ref": "block-067",
+          "resolution_status": "EXACT",
+          "value": 0.63
+        },
+        {
+          "particle_id": "particle-068",
+          "acquisition_block_ref": "block-068",
+          "resolution_status": "EXACT",
+          "value": 0.8150000000000001
+        },
+        {
+          "particle_id": "particle-069",
+          "acquisition_block_ref": "block-069",
+          "resolution_status": "EXACT",
+          "value": 0.5
+        },
+        {
+          "particle_id": "particle-070",
+          "acquisition_block_ref": "block-070",
+          "resolution_status": "EXACT",
+          "value": 0.685
+        },
+        {
+          "particle_id": "particle-071",
+          "acquisition_block_ref": "block-071",
+          "resolution_status": "EXACT",
+          "value": 0.87
+        },
+        {
+          "particle_id": "particle-072",
+          "acquisition_block_ref": "block-072",
+          "resolution_status": "EXACT",
+          "value": 0.555
+        },
+        {
+          "particle_id": "particle-073",
+          "acquisition_block_ref": "block-073",
+          "resolution_status": "EXACT",
+          "value": 0.74
+        },
+        {
+          "particle_id": "particle-074",
+          "acquisition_block_ref": "block-074",
+          "resolution_status": "EXACT",
+          "value": 0.425
+        },
+        {
+          "particle_id": "particle-075",
+          "acquisition_block_ref": "block-075",
+          "resolution_status": "EXACT",
+          "value": 0.61
+        },
+        {
+          "particle_id": "particle-076",
+          "acquisition_block_ref": "block-076",
+          "resolution_status": "EXACT",
+          "value": 0.795
+        },
+        {
+          "particle_id": "particle-077",
+          "acquisition_block_ref": "block-077",
+          "resolution_status": "EXACT",
+          "value": 0.48
+        },
+        {
+          "particle_id": "particle-078",
+          "acquisition_block_ref": "block-078",
+          "resolution_status": "EXACT",
+          "value": 0.665
+        },
+        {
+          "particle_id": "particle-079",
+          "acquisition_block_ref": "block-079",
+          "resolution_status": "EXACT",
+          "value": 0.85
+        },
+        {
+          "particle_id": "particle-080",
+          "acquisition_block_ref": "block-080",
+          "resolution_status": "EXACT",
+          "value": 0.535
+        },
+        {
+          "particle_id": "particle-081",
+          "acquisition_block_ref": "block-081",
+          "resolution_status": "EXACT",
+          "value": 0.72
+        },
+        {
+          "particle_id": "particle-082",
+          "acquisition_block_ref": "block-082",
+          "resolution_status": "EXACT",
+          "value": 0.905
+        },
+        {
+          "particle_id": "particle-083",
+          "acquisition_block_ref": "block-083",
+          "resolution_status": "EXACT",
+          "value": 0.59
+        },
+        {
+          "particle_id": "particle-084",
+          "acquisition_block_ref": "block-084",
+          "resolution_status": "EXACT",
+          "value": 0.775
+        },
+        {
+          "particle_id": "particle-085",
+          "acquisition_block_ref": "block-085",
+          "resolution_status": "EXACT",
+          "value": 0.46
+        },
+        {
+          "particle_id": "particle-086",
+          "acquisition_block_ref": "block-086",
+          "resolution_status": "EXACT",
+          "value": 0.645
+        },
+        {
+          "particle_id": "particle-087",
+          "acquisition_block_ref": "block-087",
+          "resolution_status": "EXACT",
+          "value": 0.8300000000000001
+        },
+        {
+          "particle_id": "particle-088",
+          "acquisition_block_ref": "block-088",
+          "resolution_status": "EXACT",
+          "value": 0.515
+        },
+        {
+          "particle_id": "particle-089",
+          "acquisition_block_ref": "block-089",
+          "resolution_status": "EXACT",
+          "value": 0.7000000000000001
+        },
+        {
+          "particle_id": "particle-090",
+          "acquisition_block_ref": "block-090",
+          "resolution_status": "EXACT",
+          "value": 0.885
+        },
+        {
+          "particle_id": "particle-091",
+          "acquisition_block_ref": "block-091",
+          "resolution_status": "EXACT",
+          "value": 0.5700000000000001
+        },
+        {
+          "particle_id": "particle-092",
+          "acquisition_block_ref": "block-092",
+          "resolution_status": "EXACT",
+          "value": 0.755
+        },
+        {
+          "particle_id": "particle-093",
+          "acquisition_block_ref": "block-093",
+          "resolution_status": "EXACT",
+          "value": 0.44
+        },
+        {
+          "particle_id": "particle-094",
+          "acquisition_block_ref": "block-094",
+          "resolution_status": "EXACT",
+          "value": 0.625
+        },
+        {
+          "particle_id": "particle-095",
+          "acquisition_block_ref": "block-095",
+          "resolution_status": "EXACT",
+          "value": 0.81
+        },
+        {
+          "particle_id": "particle-096",
+          "acquisition_block_ref": "block-096",
+          "resolution_status": "EXACT",
+          "value": 0.495
+        },
+        {
+          "particle_id": "particle-097",
+          "acquisition_block_ref": "block-097",
+          "resolution_status": "EXACT",
+          "value": 0.68
+        },
+        {
+          "particle_id": "particle-098",
+          "acquisition_block_ref": "block-098",
+          "resolution_status": "EXACT",
+          "value": 0.865
+        },
+        {
+          "particle_id": "particle-099",
+          "acquisition_block_ref": "block-099",
+          "resolution_status": "EXACT",
+          "value": 0.55
+        },
+        {
+          "particle_id": "particle-100",
+          "acquisition_block_ref": "block-100",
+          "resolution_status": "EXACT",
+          "value": 0.735
+        }
+      ]
+    }
+  ]
+}
