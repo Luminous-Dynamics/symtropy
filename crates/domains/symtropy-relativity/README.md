@@ -11,8 +11,9 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Posterior-preserving transformation from paired remnant mass/spin samples to Kerr horizon observables.
 - Schwarzschild and Kerr exterior metric components in the declared `(ct, r, theta, phi)` basis.
 - Symmetric finite 4x4 metric component representation, pivoted determinant and inverse, and inverse-identity residual diagnostic.
-- Levi-Civita connection coefficients from an explicit first-derivative tensor, with an analytic Schwarzschild derivative fixture. No finite-difference step size is hidden in the API.
-- 32 authored analytic, limiting-case, invalid-domain, matrix, connection, and posterior-transform tests.
+- Levi-Civita connection coefficients from an explicit first-derivative tensor, with an analytic Schwarzschild derivative fixture and metric-compatibility residual diagnostic. No finite-difference step size is hidden in the API.
+- Riemann, Ricci and Einstein tensors from explicit connection derivatives; fully lowered Riemann tensor; algebraic symmetry / first-Bianchi residual; scalar curvature and Kretschmann contraction. An analytic Schwarzschild second-derivative fixture is included.
+- 42 authored analytic, limiting-case, invalid-domain, matrix, connection, curvature, and posterior-transform tests.
 
 ## Conventions
 
@@ -35,7 +36,7 @@ The posterior transform preserves each input sample ID, order, and paired mass/s
 
 ## Deliberate limits
 
-This crate does not yet implement Riemann/Ricci/Einstein curvature tensors, geodesic integration, a GRHD/GRMHD solver, a gravitational-wave waveform generator, or numerical-relativity evolution. The generic metric-component constructor does not certify Lorentzian signature. It makes no observational-validation or state-of-the-art performance claim.
+This crate now calculates Riemann/Ricci/Einstein curvature for the Schwarzschild analytic fixture, but does not yet provide Kerr curvature derivatives, horizon-regular charts, geodesic integration, a GRHD/GRMHD solver, a gravitational-wave waveform generator, or numerical-relativity evolution. The generic metric-component constructor does not certify Lorentzian signature. It makes no observational-validation or state-of-the-art performance claim.
 
 Next gates are Riemann curvature from connection derivatives, coordinate-invariant checks (including Schwarzschild/Kerr curvature scalars), geodesic integration with normalization/Killing-constant drift, and then waveform/ringdown reproduction and numerical-relativity comparisons.
 
