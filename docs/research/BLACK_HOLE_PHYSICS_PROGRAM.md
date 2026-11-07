@@ -522,3 +522,25 @@ In addition to GWOSC strain and SXS numerical-relativity waveforms, pin:
 - [Nature direct-wave analysis Zenodo package, 10.5281/zenodo.20017347](https://doi.org/10.5281/zenodo.20017347).
 
 These datasets support exact reproduction of multiple independent pipelines. Their hashes and software revisions should be included in Mycelix evidence packages.
+
+
+## Implementation and benchmark update — 2026-11-07
+
+A fresh implementation branch, `research/black-hole-physics-program-v3`, is based on current `main`. It introduces a separate workspace crate, `symtropy-relativity`, with:
+- SI-valued Schwarzschild and Kerr analytic observables;
+- Schwarzschild and Kerr exterior metric components, determinant and inverse;
+- explicit metric derivatives and a Levi-Civita connection;
+- metric-compatibility residual diagnostics;
+- sample-preserving transforms from joint remnant mass/spin posterior samples to Kerr horizon observables;
+- numerical hardening for small spin, near-extremal spin, and the Kerr exterior-horizon boundary.
+
+Three versioned benchmark manifests are included:
+- `benchmarks/analytic_reference_cases.json` — Schwarzschild and Kerr analytic fixtures;
+- `benchmarks/direct_wave_sxs_spin_sweep.json` — ten exact SXS cases, published filter composition, and competing horizon / News-peak / BOB / QNM models;
+- `benchmarks/waveform_surrogate_baselines.json` — published 2026 waveform-surrogate baselines and their parameter-domain / metric caveats.
+
+The crate has **36 authored tests** (15 scalar/root, 11 metric, 6 connection, 4 posterior). They have not been executed because this editing environment has no `rustc` or `cargo`. The JSON manifests have been parsed successfully, but their benchmark results have not been reproduced by this crate.
+
+The competitive research direction is not another uncalibrated fast waveform network. It is a **physics-qualified surrogate** with held-out error calibration, explicit applicability domain, out-of-domain abstention, posterior-coverage checks, cross-model disagreement, and active selection of the next expensive NR simulation. See [BH-SURROGATE-CERT-001 #3998](https://github.com/Luminous-Dynamics/symtropy/issues/3998).
+
+The next mathematical gates remain curvature tensors and coordinate-invariant checks ([#3981](https://github.com/Luminous-Dynamics/symtropy/issues/3981)), followed by geodesic integration ([#3982](https://github.com/Luminous-Dynamics/symtropy/issues/3982)). No complete GR solver, waveform generator, observational reproduction, or SOTA performance result is claimed.
