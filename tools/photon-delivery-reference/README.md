@@ -2,7 +2,7 @@
 
 A dependency-free Rust analytical budget tool comparing solar/optical photon delivery plus supplemental LEDs with LED-only delivery for a declared canopy DLI requirement.
 
-It separates **requested design dose** from **dose physically deliverable under the declared lighting power and daily-energy caps**. This distinction matters: a plan can have enough daily kWh but insufficient peak kW, leaving the canopy below its target DLI.
+It separates **requested design dose** from **dose deliverable under declared optical-auxiliary, lighting-power and daily-energy limits**. A plan is not credited with photons from an active optical system if its tracking/relay auxiliary service cannot be powered.
 
 The tool deliberately stops at a simplified source-to-canopy photon budget. It does not predict crop growth or yield.
 
@@ -32,14 +32,31 @@ solar_mean_DLI =
   ÷ 1,000,000
 ```
 
-The solar canopy-uniformity floor converts mean solar DLI into a conservative minimum-zone estimate. The LED supplement is then sized to close the minimum-zone DLI gap. LED fixture efficacy is supplied at the declared electrical meter boundary; a separate LED uniformity floor converts its mean DLI into a conservative minimum-zone contribution.
+A solar canopy-uniformity floor converts mean solar DLI into a conservative minimum-zone estimate. The LED supplement is sized to close that minimum-zone DLI gap. LED fixture efficacy is supplied at the declared electrical meter boundary; a separate LED uniformity floor converts its mean DLI into a conservative minimum-zone contribution.
+
+### Resource-constrained delivery
+
+The requested optical auxiliary service has both a peak-kW and daily-kWh requirement. The reference calculates a conservative first-order optical-service fraction:
+
+```text
+optical_service_fraction =
+  min(1,
+      available_lighting_power / optical_auxiliary_peak_power,
+      available_lighting_energy / optical_auxiliary_daily_energy)
+```
+
+Zero auxiliary demand on a dimension uses a fraction of 1 for that dimension. The resulting fraction scales the declared optical availability and auxiliary energy/peak together. The remaining power and daily energy are then allocated to the supplemental LEDs. LED output is recomputed from the remaining DLI gap, the LED canopy-uniformity floor, the available LED energy and the remaining peak-power envelope.
+
+This proportional throttle is an explicit simplified assumption. It is not a time-resolved tracking controller, battery model, optical pointing model or crop photoperiod simulation. More detailed dispatch must replace it when time-series/real hardware evidence becomes available.
 
 The tool reports:
-- the LED power and energy required to meet the target;
-- the available LED power and energy after reserving optical auxiliary loads;
-- the actual LED energy deliverable under both limits;
-- the resource-constrained DLI and remaining shortfall;
-- independent daily-energy and instantaneous-peak-power feasibility flags.
+- requested solar and LED DLI;
+- requested hybrid LED and auxiliary electricity / peak power;
+- optical service fraction after power and energy constraints;
+- resource-constrained solar DLI and auxiliary electricity actually supported;
+- LED energy deliverable from the remaining budget;
+- resource-constrained minimum-zone DLI and remaining shortfall;
+- separate daily-energy and instantaneous-peak-power feasibility flags.
 
 A nominal/requested DLI is **not** marked achieved merely because the lighting plan asks for it. The `dli_met` result is based on resource-constrained delivered DLI.
 
@@ -72,7 +89,7 @@ The requested target-dose comparison gives:
 - requested hybrid lighting energy: 859.822 kWh/day;
 - requested hybrid peak: 53.289 kW.
 
-However, the available 40 kW lighting limit leaves only 39.2 kW after the optical auxiliary peak. Over the 16-hour LED window this permits at most 627.2 kWh of LED energy. Therefore:
+In the reference fixture the auxiliary service itself is supportable (optical service fraction = 1). However, the 40 kW total lighting limit leaves only 39.2 kW after the optical auxiliary peak. Over the 16-hour LED window this permits at most 627.2 kWh of LED energy. Therefore:
 - delivered LED energy: 627.2 kWh/day;
 - resource-constrained hybrid lighting energy: 647.2 kWh/day;
 - delivered minimum-zone DLI: 18.0864 mol m^-2 day^-1;
@@ -81,9 +98,11 @@ However, the available 40 kW lighting limit leaves only 39.2 kW after the optica
 - peak-power check: infeasible;
 - target DLI actually achieved under these constraints: **no**.
 
-This is the key demonstration: an energy budget can pass while peak power prevents the required crop-light dose from being delivered. The nominal energy-saving percentage is a requested-service comparison, not evidence of an achieved equal-service farm improvement in this peak-constrained case.
+A separate negative control halves available optical auxiliary peak power; the optical service fraction falls to 0.5 and the minimum-zone solar DLI halves to 6.2208 mol m^-2 day^-1 before any LED supplement is counted. Other tests show that daily-energy limits can bind independently, poor LED uniformity raises required power, and high optical auxiliary loads can make the hybrid request worse than LED-only.
 
-These values do not describe an actual lunar site, actual collector/relay efficiencies, an actual crop, or qualified hardware. The DLI target, photon efficacy, uniformity floors and power caps are scenario assumptions.
+The nominal/requested energy-saving percentage is a requested-service comparison, not evidence of an achieved equal-service farm improvement whenever resource constraints prevent DLI delivery.
+
+These values do not describe an actual lunar site, actual collector/relay efficiencies, an actual crop, or qualified hardware. DLI target, photon efficacy, uniformity floors, optical auxiliary loads and power caps are scenario assumptions.
 
 ## Important omissions
 
@@ -92,10 +111,10 @@ These values do not describe an actual lunar site, actual collector/relay effici
 - spatial ray tracing and optical thermal safety;
 - actual mirror/fibre/light-pipe degradation, dust abrasion and cleaning intervals;
 - crop-specific DLI, photoperiod, spectral, dark-period and growth-response models;
+- time-resolved lighting schedules, overlapping solar/LED periods and photoperiod compliance;
 - LED dimming curves, fixture heat, driver efficiency and lifetime;
 - battery charge/discharge efficiency, ageing, thermal limits and power dispatch;
 - HVAC, dehumidification, heat rejection and full facility boundary;
-- time-resolved lighting schedules, overlapping solar/LED periods and photoperiod compliance;
 - crop yield, nutrient composition, food safety and accepted edible output.
 
 ## Evidence ceiling
