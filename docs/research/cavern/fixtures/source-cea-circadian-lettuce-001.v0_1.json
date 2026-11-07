@@ -12,13 +12,13 @@
   },
   "study_context": {
     "accession_count": 20,
-    "reported_heads_across_six_treatments": 2000,
     "rack_count": 2,
     "horizontal_levels_per_rack": 5,
     "treatment_assignment_unit_reported": "individual rack level",
     "plant_positions_randomized": "row-column",
     "harvest_phenotyping_per_accession_treatment": "n>=7-16 plants",
-    "independent_compartment_replicates_per_treatment": "not clearly documented in accessible methods"
+    "independent_compartment_replicates_per_treatment": "not clearly documented in accessible methods",
+    "reported_heads": ">2000"
   },
   "matched_pairs": [
     {
