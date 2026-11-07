@@ -62,8 +62,9 @@ Use recognized measurement methods as the instrument / M&V layer, while retainin
 - ANSI/ASHRAE Standard 41.1-2024: temperature measurement under laboratory and field conditions.
 - ANSI/ASHRAE Standard 41.2-2026: air velocity and airflow measurement, including density effects and airflow-mixing considerations.
 - ANSI/ASHRAE Standard 41.3-2025: pressure measurement.
-- ANSI/ASHRAE Standard 41.6-2021: humidity measurement.
+- ANSI/ASHRAE Standard 41.6-2025: humidity measurement (supersedes 41.6-2021).
 - ANSI/ASHRAE Standard 41.7-2025: gas-flow measurement, where the measured stream falls within its stated scope.
+- ANSI/ASHRAE Standard 41.8-2023, including Addendum a: liquid-flow measurement, where condensate / water streams are tested.
 - ANSI/ASHRAE Standard 41.11-2023: power measurement for HVAC/R systems and components.
 - ASHRAE Guideline 14-2023, including Addendum a: measurement and verification of energy, demand and water savings using pre/post billing or meter data. It does not prescribe instrument metering standards.
 - ICCEG / NCERA-101: crop-growth-room, greenhouse and controlled-environment plant-experiment reporting guidance: https://www.controlledenvironments.org/reporting-guidelines/
