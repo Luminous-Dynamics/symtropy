@@ -942,6 +942,16 @@ pub fn bundled_fixture() -> Result<Value, String> {
     .map_err(|error| format!("synthetic ground-air coexistence scenario JSON: {error}"))
 }
 
+/// Load the synthetic M1 scenario: dynamic road IPT plus an independent
+/// docked-UAV inductive channel. This changes modality metadata only; it is
+/// not a physical mutual-coupling or coexistence model.
+pub fn bundled_m1_fixture() -> Result<Value, String> {
+    serde_json::from_str(include_str!(
+        "../../../research/ground-air-energy-coexistence-v0/scenario.m1-dual-wireless.synthetic-example.json"
+    ))
+    .map_err(|error| format!("synthetic M1 ground-air coexistence scenario JSON: {error}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1073,6 +1083,37 @@ mod tests {
         let report = evaluate_scenario(&scenario).unwrap();
         assert_eq!(report["disposition"], "PASS_SYNTHETIC_OPTIMAL");
         assert!(report["simultaneous_delivery_slot_count"].as_u64().unwrap() > 0);
+    }
+
+    #[test]
+    fn m1_dual_wireless_channels_keep_distinct_meter_boundaries() {
+        let scenario = bundled_m1_fixture().unwrap();
+        let expected: Value = serde_json::from_str(include_str!(
+            "../../../research/ground-air-energy-coexistence-v0/report.expected.m1-dual-wireless.synthetic.json"
+        ))
+        .unwrap();
+        let report = evaluate_scenario(&scenario).unwrap();
+        assert_eq!(report, expected);
+        let ground = scenario["channels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|channel| channel["domain"] == "GROUND")
+            .unwrap();
+        let air = scenario["channels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|channel| channel["domain"] == "AIR")
+            .unwrap();
+        assert_eq!(ground["modality"], "GROUND_DYNAMIC_INDUCTIVE");
+        assert_eq!(ground["channel_input_boundary_id"], "GROUND_ROAD_INVERTER_DC_INPUT");
+        assert_eq!(air["modality"], "AIR_DOCK_INDUCTIVE");
+        assert_eq!(air["channel_input_boundary_id"], "AIR_DOCK_INVERTER_DC_INPUT");
+        assert_eq!(report["simultaneous_delivery_slot_count"], 4);
+        assert_eq!(report["total_source_energy_wh"], 80);
+        assert_eq!(report["total_useful_energy_wh"], 28);
+        assert_eq!(report["evidence_class"], "SYNTHETIC_KNOWN_TRUTH");
     }
 
     #[test]
