@@ -27,9 +27,9 @@ The `independent_unit_id` is retained so the next uncertainty layer can resample
 
 The tests compare:
 - Observed: 50% low-income/low-health and 50% high-income/high-health.
-- Simulated: 50% low-income/high-health and 50% high-income/low-health.
+- Simulated: 25% each of low-income/low-health, low-income/high-health, high-income/low-health and high-income/high-health.
 
-Both marginal distributions match exactly (TV = 0), but the joint supports are disjoint (joint TV = 1), and the observed mutual information is ln(2) nats while the simulated mutual information is 0.
+Both marginal distributions match exactly (TV = 0), but the joint distributions differ (joint TV = 0.5); observed mutual information is ln(2) nats while simulated mutual information is 0.
 
 This is a software-control fixture, not a human-data result or SSDataBench reproduction.
 
