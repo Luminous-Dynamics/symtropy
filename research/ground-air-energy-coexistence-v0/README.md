@@ -2,7 +2,7 @@
 
 **Status:** research specification and synthetic-only implementation target. No integrated hardware, field test, aviation approval or safety claim.
 
-Tracking issue: [#undefined](https://github.com/Luminous-Dynamics/symtropy/issues/undefined)
+Tracking issue: [#3980](https://github.com/Luminous-Dynamics/symtropy/issues/3980)
 
 ## 1. Core thesis
 
