@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/cea-rootzone-research-registry-v0.1.json",
+  "title": "CEA Root-Zone Circularity and Biosecurity Evidence Registry v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_id",
+    "created_on",
+    "comparators",
+    "interpretation_rules",
+    "claim_ceiling"
+  ],
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "value",
+        "unit",
+        "basis",
+        "evidence_status"
+      ],
+      "properties": {
+        "metric_id": {
+          "$ref": "#/$defs/text"
+        },
+        "value": {
+          "type": [
+            "number",
+            "string",
+            "boolean"
+          ]
+        },
+        "unit": {
+          "$ref": "#/$defs/text"
+        },
+        "basis": {
+          "$ref": "#/$defs/text"
+        },
+        "evidence_status": {
+          "enum": [
+            "MEASURED_EXPERIMENT",
+            "COMMERCIAL_FIELD_MONITORING",
+            "MODEL_SCENARIO",
+            "AUTHOR_REPORTED_QUALITATIVE",
+            "DERIVED_ARITHMETIC",
+            "UNKNOWN"
+          ]
+        },
+        "uncertainty": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "comparator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparator_id",
+        "title",
+        "authors",
+        "publication_date",
+        "venue",
+        "doi",
+        "source_url",
+        "evidence_class",
+        "system",
+        "reported_metrics",
+        "limitations",
+        "transferability",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "comparator_id": {
+          "$ref": "#/$defs/text"
+        },
+        "title": {
+          "$ref": "#/$defs/text"
+        },
+        "authors": {
+          "$ref": "#/$defs/text"
+        },
+        "publication_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "venue": {
+          "$ref": "#/$defs/text"
+        },
+        "doi": {
+          "$ref": "#/$defs/text"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "evidence_class": {
+          "enum": [
+            "LONGITUDINAL_CONTROLLED_EXPERIMENT",
+            "CONTROLLED_EXPERIMENT",
+            "COMMERCIAL_FACILITY_MONITORING",
+            "PATHOGEN_PERSISTENCE_EXPERIMENT",
+            "SYSTEMATIC_REVIEW",
+            "SIMULATOR_SCENARIOS"
+          ]
+        },
+        "system": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "crop_or_subject",
+            "system_type",
+            "setting"
+          ],
+          "properties": {
+            "crop_or_subject": {
+              "$ref": "#/$defs/text"
+            },
+            "system_type": {
+              "$ref": "#/$defs/text"
+            },
+            "setting": {
+              "$ref": "#/$defs/text"
+            },
+            "duration": {
+              "type": "string"
+            },
+            "replication": {
+              "type": "string"
+            },
+            "sample_basis": {
+              "type": "string"
+            }
+          }
+        },
+        "reported_metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metric"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "transferability": {
+          "$ref": "#/$defs/text"
+        },
+        "claim_ceiling": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "registry_id": {
+      "$ref": "#/$defs/text"
+    },
+    "created_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "comparators": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/comparator"
+      }
+    },
+    "interpretation_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/text"
+      }
+    },
+    "claim_ceiling": {
+      "$ref": "#/$defs/text"
+    }
+  }
+}
