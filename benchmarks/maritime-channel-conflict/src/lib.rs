@@ -403,9 +403,7 @@ pub fn evaluate_channel_conflicts(
             return Err(ChannelError::UnknownMovementEdge(movement.edge_id.clone()));
         };
         if edge.edge_id != movement.edge_id {
-            return Err(ChannelError::UnknownMovementEdge(
-                movement.edge_id.clone(),
-            ));
+            return Err(ChannelError::UnknownMovementEdge(movement.edge_id.clone()));
         }
         if edge.route_revision != movement.route_revision
             || graph.route_revision != movement.route_revision
