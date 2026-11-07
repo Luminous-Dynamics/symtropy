@@ -1589,6 +1589,129 @@ mod tests {
     }
 
     #[test]
+    fn synthetic_specific_energy_matches_independent_reference_replay() {
+        let report = evaluate_case(&fixture()).unwrap();
+        let specific = output(&report, "specific_energy");
+        assert!((specific.mean.unwrap() - 3.0131656977).abs() < 0.002);
+        assert!((specific.standard_deviation.unwrap() - 0.3011179330).abs() < 0.002);
+        assert!((specific.quantiles[0].estimate - 2.54239175).abs() < 0.002);
+        assert!((specific.median.unwrap() - 2.99894365).abs() < 0.002);
+        assert!((specific.quantiles[2].estimate - 3.5305094).abs() < 0.002);
+        assert!((specific.standard_error_of_mean.unwrap() - 0.000588121).abs() < 0.00005);
+        assert_eq!(specific.disposition, "PASS_FOR_DECLARED_MODEL");
+    }
+
+    #[test]
+    fn exact_monte_carlo_quantile_intervals_have_golden_coverage() {
+        let report = evaluate_case(&fixture()).unwrap();
+        let specific = output(&report, "specific_energy");
+        let p05 = &specific.quantiles[0];
+        assert!((p05.monte_carlo_interval_lower.unwrap() - 2.5396076).abs() < 0.002);
+        assert!((p05.monte_carlo_interval_upper.unwrap() - 2.5450279).abs() < 0.002);
+        assert!((p05.achieved_confidence.unwrap() - 0.9900186).abs() < 0.0001);
+        assert_eq!(p05.disposition, "PASS_MC_QUANTILE_PRECISION");
+    }
+
+    #[test]
+    fn shared_draws_preserve_joint_output_correlation() {
+        let report = evaluate_case(&fixture()).unwrap();
+        let covariance = &report.joint_output_dependence.covariance_matrix;
+        let correlation = &report.joint_output_dependence.correlation_matrix;
+        assert!((covariance[0][1].unwrap() - (-0.0179147067)).abs() < 0.001);
+        assert!((correlation[0][1].unwrap() - (-0.89199436)).abs() < 0.01);
+        assert_eq!(report.joint_output_dependence.joint_valid_sample_count, 262_144);
+    }
+
+    #[test]
+    fn running_joint_moments_match_exact_covariance_golden() {
+        let mut moments = RunningJointMoments::new(2);
+        moments.update(&[1.0, 2.0]);
+        moments.update(&[2.0, 4.0]);
+        moments.update(&[3.0, 6.0]);
+        let (covariance, correlation) = moments.matrices();
+        assert_eq!(covariance[0][0], Some(1.0));
+        assert_eq!(covariance[0][1], Some(2.0));
+        assert_eq!(covariance[1][1], Some(4.0));
+        assert!((correlation[0][1].unwrap() - 1.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn dimensionless_log_expression_is_admitted() {
+        let mut case = fixture();
+        case["outputs"][0]["dimension"] = serde_json::json!([0,0,0,0,0,0,0]);
+        case["outputs"][0]["unit"] = serde_json::json!("1");
+        case["outputs"][0]["scale_from_si"] = serde_json::json!(1.0);
+        case["outputs"][0]["instructions"] = serde_json::json!([
+            {"op":"INPUT","input_id":"accepted_volume"},
+            {"op":"INPUT","input_id":"generated_volume"},
+            {"op":"DIVIDE"},
+            {"op":"LOG"}
+        ]);
+        assert!(validate_case(&case).is_empty());
+    }
+
+    #[test]
+    fn quantile_precision_gate_fails_at_too_small_monte_carlo_width() {
+        let mut case = fixture();
+        case["simulation"]["sample_count"] = serde_json::json!(1024);
+        case["simulation"]["batch_size"] = serde_json::json!(128);
+        for output in case["outputs"].as_array_mut().unwrap() {
+            for target in output["quantile_targets"].as_array_mut().unwrap() {
+                target["maximum_mc_interval_width"] = serde_json::json!(1.0e-10);
+            }
+        }
+        let report = evaluate_case(&case).unwrap();
+        assert_eq!(output(&report, "specific_energy").disposition, "FAIL_MC_QUANTILE_PRECISION");
+        assert_eq!(report.overall_disposition, "NOT_QUALIFIED_MC_QUANTILE_PRECISION");
+    }
+
+    #[test]
+    fn invalid_division_samples_are_counted_and_fail_closed() {
+        let mut case = fixture();
+        case["simulation"]["sample_count"] = serde_json::json!(1024);
+        case["simulation"]["batch_size"] = serde_json::json!(128);
+        case["outputs"][0]["dimension"] = serde_json::json!([0,0,0,0,0,0,0]);
+        case["outputs"][0]["unit"] = serde_json::json!("1");
+        case["outputs"][0]["scale_from_si"] = serde_json::json!(1.0);
+        case["outputs"][0]["instructions"] = serde_json::json!([
+            {"op":"INPUT","input_id":"accepted_volume"},
+            {"op":"INPUT","input_id":"generated_volume"},
+            {"op":"INPUT","input_id":"generated_volume"},
+            {"op":"SUBTRACT"},
+            {"op":"DIVIDE"}
+        ]);
+        let report = evaluate_case(&case).unwrap();
+        let result = output(&report, "specific_energy");
+        assert_eq!(result.invalid_samples, 1024);
+        assert_eq!(result.valid_samples, 0);
+        assert_eq!(result.mean, None);
+        assert_eq!(result.disposition, "INVALID_SAMPLE_LIMIT_EXCEEDED");
+        assert_eq!(report.overall_disposition, "INVALID_SAMPLE_LIMIT_EXCEEDED");
+    }
+
+    #[test]
+    fn exponential_overflow_is_an_invalid_output_sample() {
+        let instructions = vec![
+            Instruction::Constant { si_value: 1000.0 },
+            Instruction::Exp,
+        ];
+        assert_eq!(evaluate_instructions(&instructions, &[]), Err("NONFINITE_EQUATION_RESULT"));
+    }
+
+    #[test]
+    fn dimension_addition_overflow_is_rejected() {
+        let mut case = fixture();
+        case["inputs"][0]["dimension"] = serde_json::json!([12,12,12,12,12,12,12]);
+        case["outputs"][0]["dimension"] = serde_json::json!([24,24,24,24,24,24,24]);
+        case["outputs"][0]["instructions"] = serde_json::json!([
+            {"op":"INPUT","input_id":"total_energy"},
+            {"op":"INPUT","input_id":"total_energy"},
+            {"op":"MULTIPLY"}
+        ]);
+        assert!(has(&validate_case(&case), "DIMENSION_EXPONENT_OVERFLOW"));
+    }
+
+    #[test]
     fn dimension_mismatch_on_addition_is_rejected_before_sampling() {
         let mut case = fixture();
         case["outputs"][0]["instructions"] = serde_json::json!([
