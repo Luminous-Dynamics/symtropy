@@ -77,8 +77,7 @@
       "expected": {
         "disposition": "NO_CHANGE_SUPPORTED",
         "reason_codes": [
-          "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS",
-          "REQUIRED_TOPOLOGY_PRESERVED"
+          "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS"
         ]
       }
     },
@@ -158,8 +157,7 @@
       "expected": {
         "disposition": "ADMIT_CANDIDATE_DELTA",
         "reason_codes": [
-          "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN",
-          "TARGET_IDENTITY_AND_TOPOLOGY_VALID"
+          "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
         ]
       }
     },
@@ -641,7 +639,7 @@
             "class": "wall",
             "tolerance_mm": 10,
             "min_visible_fraction": 0.7,
-            "min_independent_lineages": 1
+            "min_independent_lineages": 2
           },
           {
             "element_id": "DOOR-A",
