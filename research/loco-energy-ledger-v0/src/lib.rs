@@ -363,9 +363,7 @@ fn validate_and_sort_joint_samples<'a>(
         if sample.quality != SampleQuality::Measured {
             return Err(EnergyError::InvalidSampleQuality);
         }
-        if !sample.torque_newton_metres.is_finite()
-            || !sample.angular_velocity_rad_s.is_finite()
-        {
+        if !sample.torque_newton_metres.is_finite() || !sample.angular_velocity_rad_s.is_finite() {
             return Err(EnergyError::NonFiniteValue);
         }
         if !(sample.torque_newton_metres * sample.angular_velocity_rad_s).is_finite() {
@@ -808,13 +806,7 @@ mod tests {
                 quality: SampleQuality::Measured,
             },
         ];
-        let work = integrate_joint_work(
-            &run_receipt(),
-            &receipt,
-            &samples,
-            1_000_000_000,
-        )
-        .unwrap();
+        let work = integrate_joint_work(&run_receipt(), &receipt, &samples, 1_000_000_000).unwrap();
         assert!((work.positive_work_joules - 0.5).abs() < 1.0e-12);
         assert!((work.negative_work_joules - 0.5).abs() < 1.0e-12);
     }
