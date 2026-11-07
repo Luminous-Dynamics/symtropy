@@ -873,11 +873,11 @@ mod tests {
         .unwrap();
         assert_eq!(report, expected);
         assert_eq!(report["disposition"], "PASS_SYNTHETIC_OPTIMAL");
-        assert_eq!(report["exact_bounded_optimum"], true);
+        assert!(report["exact_bounded_optimum"].as_bool().unwrap());
         assert_eq!(report["total_useful_energy_wh"], 28);
         assert_eq!(report["total_source_energy_wh"], 80);
         assert_eq!(report["minimum_service_met_count"], 2);
-        assert_eq!(report["minimum_service_all_met"], true);
+        assert!(report["minimum_service_all_met"].as_bool().unwrap());
         assert!(report["simultaneous_delivery_slot_count"].as_u64().unwrap() > 0);
         assert!(report["maximum_pcc_input_quanta_used"].as_u64().unwrap() <= 3);
     }
@@ -898,9 +898,45 @@ mod tests {
         scenario["site"]["total_source_energy_budget_wh"] = Value::from(20);
         let report = evaluate_scenario(&scenario).unwrap();
         assert_eq!(report["disposition"], "MINIMUM_SERVICE_INFEASIBLE_BEST_EFFORT");
-        assert_eq!(report["minimum_service_all_met"], false);
+        assert!(!report["minimum_service_all_met"].as_bool().unwrap());
         assert!(report["simultaneous_delivery_slot_count"].as_u64().unwrap() > 0);
         assert!(report["total_source_energy_wh"].as_u64().unwrap() <= 20);
+    }
+
+    #[test]
+    fn multiple_air_receivers_share_one_channel_cap_while_ground_service_continues() {
+        let mut scenario = fixture();
+        scenario["site"]["total_source_energy_budget_wh"] = Value::from(100);
+        scenario["sessions"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "session_id": "air-uav-02",
+                "domain": "AIR",
+                "receiver_class": "UAV_DOCKED",
+                "channel_id": "air-dock-channel-01",
+                "start_slot": 0,
+                "end_slot": 4,
+                "requested_useful_energy_wh": 6,
+                "minimum_useful_energy_wh": 6,
+                "maximum_input_quanta_per_slot": 1,
+                "useful_energy_wh_per_input_quantum_slot": 3,
+                "authorization_state": "SYNTHETIC_FIXTURE_ONLY"
+            }));
+        let report = evaluate_scenario(&scenario).unwrap();
+        assert_eq!(report["minimum_service_met_count"], 3);
+        assert!(report["minimum_service_all_met"].as_bool().unwrap());
+        assert_eq!(report["total_source_input_quanta_slots"], 10);
+        for slot in report["per_slot"].as_array().unwrap() {
+            let air_quanta = slot["session_allocations"][0]["input_power_quanta"]
+                .as_u64()
+                .unwrap()
+                + slot["session_allocations"][1]["input_power_quanta"]
+                    .as_u64()
+                    .unwrap();
+            assert!(air_quanta <= 2);
+            assert!(slot["total_input_power_quanta"].as_u64().unwrap() <= 3);
+        }
     }
 
     #[test]
@@ -918,6 +954,7 @@ mod tests {
 
         let mut scenario = fixture();
         scenario["sessions"][0]["domain"] = Value::String("GROUND".into());
+        scenario["sessions"][0]["receiver_class"] = Value::String("ROAD_CAR".into());
         assert!(evaluate_scenario(&scenario).unwrap_err().contains("channel domain"));
     }
 
