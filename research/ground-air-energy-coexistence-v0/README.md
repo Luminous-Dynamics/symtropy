@@ -156,3 +156,12 @@ This work authorizes research, schemas, synthetic software and offline/emulator 
 - [Drone in-flight IPT 2024](https://doi.org/10.1109/TPEL.2024.3440963)
 - [Reach Power 10-hour flight announcement](https://reachpower.com/news/wireless-powered-drone-10-hour-flight/)
 - [IEC/IEEE 63184:2025](https://standards.ieee.org/ieee/63184/10156/)
+
+
+## Machine-readable starting artifacts
+
+- [coexistence.schema.json](./coexistence.schema.json) defines source, site, modality, channel qualification, ground/air sessions, allocations, limits and separate safety/coexistence states.
+- [coexistence.NOT_RUN.template.json](./coexistence.NOT_RUN.template.json) is deliberately empty and explicitly NOT_RUN. It is not a benchmark result.
+- The non-NOT_RUN contract requires at least one ground and one air session. Temporal overlap, channel-to-domain identity, source/PCC sums, storage accounting, allocation coverage and concurrent-window constraints are evaluator invariants; JSON shape validation alone cannot prove them.
+
+The first positive known-truth fixture must use synthetic, fully declared source/channel numbers and independently hand-computed allocations. It must not be assembled by relabelling separate ground and UAV prototype measurements as one co-located experiment.
