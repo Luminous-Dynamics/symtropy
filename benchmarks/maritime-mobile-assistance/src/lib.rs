@@ -55,8 +55,7 @@ impl EvidenceReceipt {
     }
 
     fn covers(&self, window: TickWindow) -> bool {
-        self.valid_from_tick <= window.start_tick
-            && self.valid_through_tick >= window.end_tick
+        self.valid_from_tick <= window.start_tick && self.valid_through_tick >= window.end_tick
     }
 
     fn covers_tick(&self, tick: u64) -> bool {
@@ -215,16 +214,12 @@ impl MobileViolation {
         matches!(
             self,
             Self::EvidenceStateNotCurrent {
-                state: EvidenceState::Stale
-                    | EvidenceState::Unknown
-                    | EvidenceState::Disputed,
+                state: EvidenceState::Stale | EvidenceState::Unknown | EvidenceState::Disputed,
                 ..
             } | Self::EvidenceWindowInsufficient { .. }
                 | Self::RepositionRouteRevisionMismatch(_)
                 | Self::RepositionEvidenceStateNotCurrent {
-                    state: EvidenceState::Stale
-                        | EvidenceState::Unknown
-                        | EvidenceState::Disputed,
+                    state: EvidenceState::Stale | EvidenceState::Unknown | EvidenceState::Disputed,
                     ..
                 }
                 | Self::RepositionEvidenceWindowInsufficient { .. }
@@ -270,20 +265,13 @@ fn unique_nonempty_identifiers(values: &[String]) -> bool {
         .all(|value| !value.trim().is_empty() && seen.insert(value))
 }
 
-fn validate_availability(
-    resource_id: &str,
-    windows: &[TickWindow],
-) -> Result<(), MobileError> {
+fn validate_availability(resource_id: &str, windows: &[TickWindow]) -> Result<(), MobileError> {
     if windows.iter().any(|window| !window.is_valid()) {
-        return Err(MobileError::InvalidAvailability(
-            resource_id.to_owned(),
-        ));
+        return Err(MobileError::InvalidAvailability(resource_id.to_owned()));
     }
     for pair in windows.windows(2) {
         if pair[0].start_tick > pair[1].start_tick {
-            return Err(MobileError::InvalidAvailability(
-                resource_id.to_owned(),
-            ));
+            return Err(MobileError::InvalidAvailability(resource_id.to_owned()));
         }
         if pair[0].end_tick > pair[1].start_tick {
             return Err(MobileError::AvailabilityWindowsOverlap(
@@ -433,17 +421,13 @@ fn check_resource_sequence(
 
         if let Some(end_tick) = previous_end {
             if task.operation.start_tick < end_tick {
-                violations.insert(MobileViolation::ResourceOverlap(
-                    resource_id.to_owned(),
-                ));
+                violations.insert(MobileViolation::ResourceOverlap(resource_id.to_owned()));
                 continue;
             }
         }
 
         if !availability_covers(availability, operation_window) {
-            violations.insert(MobileViolation::ResourceUnavailable(
-                resource_id.to_owned(),
-            ));
+            violations.insert(MobileViolation::ResourceUnavailable(resource_id.to_owned()));
         }
 
         if current_node != task.location_node_id {
@@ -462,10 +446,7 @@ fn check_resource_sequence(
                 continue;
             };
 
-            let Some(departure_tick) = task
-                .operation
-                .start_tick
-                .checked_sub(leg.duration_ticks)
+            let Some(departure_tick) = task.operation.start_tick.checked_sub(leg.duration_ticks)
             else {
                 violations.insert(MobileViolation::RepositionTimeInsufficient(
                     resource_id.to_owned(),
@@ -496,17 +477,9 @@ fn check_resource_sequence(
                     start_tick: departure_tick,
                     end_tick: arrival_tick,
                 };
-                evidence_violation(
-                    resource_id,
-                    &leg.evidence,
-                    travel_window,
-                    true,
-                    violations,
-                );
+                evidence_violation(resource_id, &leg.evidence, travel_window, true, violations);
                 if !availability_covers(availability, travel_window) {
-                    violations.insert(MobileViolation::ResourceUnavailable(
-                        resource_id.to_owned(),
-                    ));
+                    violations.insert(MobileViolation::ResourceUnavailable(resource_id.to_owned()));
                 }
             }
         }
@@ -519,9 +492,7 @@ fn check_resource_sequence(
 
 /// Recompute resource compatibility and reposition feasibility for fixed
 /// fleet-oracle operation placements. It does not choose or optimize assignments.
-pub fn evaluate_mobile_assistance(
-    workload: &MobileWorkload,
-) -> Result<MobileReport, MobileError> {
+pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileReport, MobileError> {
     if workload.corridor_id.trim().is_empty() {
         return Err(MobileError::EmptyCorridor);
     }
@@ -586,7 +557,10 @@ pub fn evaluate_mobile_assistance(
         if pilot.pilot_id.trim().is_empty()
             || pilot.revision.trim().is_empty()
             || pilot.position_node_id.trim().is_empty()
-            || pilot.qualification_ids.iter().any(|item| item.trim().is_empty())
+            || pilot
+                .qualification_ids
+                .iter()
+                .any(|item| item.trim().is_empty())
         {
             return Err(MobileError::InvalidPilot(pilot.pilot_id.clone()));
         }
@@ -657,16 +631,12 @@ pub fn evaluate_mobile_assistance(
             .insert(assignment.task_id.as_str(), assignment)
             .is_some()
         {
-            return Err(MobileError::DuplicateAssignment(
-                assignment.task_id.clone(),
-            ));
+            return Err(MobileError::DuplicateAssignment(assignment.task_id.clone()));
         }
         let mut unique_tugs = BTreeSet::new();
         for tug_id in &assignment.tug_ids {
             if !unique_tugs.insert(tug_id.as_str()) {
-                return Err(MobileError::InvalidAssignment(
-                    assignment.task_id.clone(),
-                ));
+                return Err(MobileError::InvalidAssignment(assignment.task_id.clone()));
             }
             if !tug_by_id.contains_key(tug_id.as_str()) {
                 return Err(MobileError::UnknownTug(tug_id.clone()));
@@ -685,16 +655,12 @@ pub fn evaluate_mobile_assistance(
 
     for task in &workload.tasks {
         let Some(assignment) = assignments_by_task.get(task.task_id.as_str()) else {
-            violations.insert(MobileViolation::MissingTaskAssignment(
-                task.task_id.clone(),
-            ));
+            violations.insert(MobileViolation::MissingTaskAssignment(task.task_id.clone()));
             continue;
         };
 
         if assignment.tug_ids.len() < usize::from(task.required_tug_count) {
-            violations.insert(MobileViolation::InsufficientTugCount(
-                task.task_id.clone(),
-            ));
+            violations.insert(MobileViolation::InsufficientTugCount(task.task_id.clone()));
         }
         if task.required_tug_count == 0 && !assignment.tug_ids.is_empty() {
             violations.insert(MobileViolation::UnexpectedTugAssignment(
