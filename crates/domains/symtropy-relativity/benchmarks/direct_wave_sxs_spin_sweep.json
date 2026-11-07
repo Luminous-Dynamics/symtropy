@@ -50,6 +50,17 @@
       "kind": "filter_implementation",
       "title": "qnm_filter",
       "url": "https://github.com/Sizheng-Ma/qnm_filter"
+    },
+    {
+      "kind": "peer_reviewed_NR_spin_sweep_and_reinterpretation",
+      "title": "Moving Beyond Quasinormal Modes and Reinterpreting Direct Waves in Binary Black Hole Merger-Ringdowns",
+      "authors": "Dyer, Kankani, Marks, McWilliams, Moore (2026)",
+      "url": "https://github.com/Richardvnd/direct_waves_LR",
+      "code_repository": "https://github.com/Richardvnd/direct_waves_LR",
+      "code_commit": "8348e198c683a9ba212a312f3e2e36373e2d8f1b",
+      "simulations_catalog_blob_sha": "a0a7c29346717820f5da4a716d8056cc66592fac",
+      "readme_blob_sha": "4563bc8ec10a225d7359d9461ba522a84519a34b",
+      "license": "MIT"
     }
   ],
   "data_selection": {
@@ -165,6 +176,18 @@
       "predictor": "no coherent astrophysical component",
       "damping": "not_applicable",
       "status": "null_model"
+    },
+    {
+      "id": "rescaled_light_ring",
+      "predictor": "Re omega approximately 0.73*m*Omega_LR; -Im omega approximately 0.68*lambda",
+      "damping": "light-ring Lyapunov exponent rescaling",
+      "status": "published_NR_spin_sweep_predictor"
+    },
+    {
+      "id": "filtered_vacuum_perturbation",
+      "predictor": "no material source-specific direct wave required; filtered Gaussian-initial-data vacuum perturbations can generate direct-wave-like residuals",
+      "damping": "depends on initial-data location relative to light ring and filter configuration",
+      "status": "published_filter-artifact_or_generic_perturbation_control"
     }
   ],
   "required_metrics": [
@@ -176,7 +199,11 @@
     "model evidence under matched likelihoods and priors",
     "false-positive rate on null/noise and off-source controls",
     "injection-recovery sensitivity and posterior coverage",
-    "actual NR remnant horizon area versus area inferred through each frequency/damping mapping"
+    "actual NR remnant horizon area versus area inferred through each frequency/damping mapping",
+    "frequency and damping trajectories compared to horizon and rescaled light-ring predictions over the 125+43 SXS catalog",
+    "cross-extraction comparison between extrapolated SXS waveforms and 13 CCE Bondi-News products",
+    "sensitivity to removal of all prograde/retrograde QNMs with ell=2..6 and n<=2 versus the earlier reduced rational-filter mode set",
+    "recovery and robustness of the 9-system Bayesian free-frequency subset (t0=0M, duration=15M, 200000 steps, 48 walkers)"
   ],
   "null_controls": [
     "noise-only and off-source segments",
@@ -184,7 +211,9 @@
     "wrong remnant mass/spin posterior samples",
     "incorrect or incomplete QNM subtraction",
     "time windows before and after the claimed direct-wave region",
-    "synthetic signals with no injected direct-wave component"
+    "synthetic signals with no injected direct-wave component",
+    "linear vacuum perturbations with Gaussian initial data at varied radii relative to the light ring, passed through the same QNM filter",
+    "same injected vacuum perturbation analyzed with alternate QNM removal sets and filter settings"
   ],
   "provenance_requirements": [
     "exact SXS waveform file and digest",
@@ -194,5 +223,104 @@
     "remnant mass/spin source and posterior identifier",
     "metric/connection/curvature code commit and benchmark fixture version"
   ],
-  "execution_state": "specification_only_no_waveforms_downloaded_no_analysis_run"
+  "execution_state": "specification_only_no_waveforms_downloaded_no_analysis_run",
+  "broad_validation_dataset": {
+    "source": "Richardvnd/direct_waves_LR",
+    "code_repository": "https://github.com/Richardvnd/direct_waves_LR",
+    "code_commit": "8348e198c683a9ba212a312f3e2e36373e2d8f1b",
+    "simulation_catalog_path": "simulations.txt",
+    "simulation_catalog_blob_sha": "a0a7c29346717820f5da4a716d8056cc66592fac",
+    "catalog_counts": {
+      "total": 168,
+      "aligned_precessing_eccentric": 125,
+      "anti_aligned": 43,
+      "subgroups": {
+        "sun_km": 10,
+        "sun_nonspinning": 6,
+        "sun_cce": 13,
+        "main": 96,
+        "antialigned": 43
+      },
+      "types": {
+        "aligned": 106,
+        "precessing": 11,
+        "eccentric": 8,
+        "anti_aligned": 43
+      }
+    },
+    "waveform_content": {
+      "extrapolated_sxs": "125 systems include the `sun_km`, `sun_nonspinning`, and `main` batches; exact waveform resolution and extrapolation order must be recorded per SXS download",
+      "cce_count": 13,
+      "cce_ids": "SXS:BBH_ExtCCE:0001–0013",
+      "cce_processing": "superrest-frame pickles; Bondi News data",
+      "anti_aligned": "43 separate anti-aligned remnant systems"
+    },
+    "qnm_filter": {
+      "target": "Bondi News",
+      "modes": "each l=m mode, l=2..6",
+      "removed_modes": "all prograde and retrograde QNMs with 2<=ell<=6 and overtone n<=2",
+      "method": "rational filter following Sun et al., arXiv:2608.23209",
+      "code_paths": [
+        "0a_filtered_frequency.py",
+        "core.py"
+      ],
+      "rationale": "Independent broad catalog extraction; distinct from the earlier 10-case / 7+2+one-mode filter configuration."
+    },
+    "predictors": {
+      "horizon": "Kerr horizon frequency and surface gravity",
+      "light_ring": {
+        "real_frequency": "Re(omega_res) approximately 0.73*m*Omega_LR",
+        "damping": "-Im(omega_res) approximately 0.68*lambda",
+        "code_path": "core.py",
+        "reference_function": "DW_LR_frequency"
+      },
+      "backwards_one_body": {
+        "code_path": "core.py",
+        "panel": "4_freq_evolution.py",
+        "omega0": 0.155,
+        "time_evaluation": 0
+      }
+    },
+    "fitting_and_window_settings": {
+      "frequency_evolution": {
+        "anchor": "filtered-amplitude peak",
+        "end_condition": "first maximum of -Im(omega) or filtered amplitude falls below 1e-2 of peak, whichever occurs first",
+        "time_marker_spacing_M": 5,
+        "time_unit": "remnant mass M_f"
+      },
+      "mass_ratio_trend": {
+        "anchor": "News peak with aligned-system delay correction",
+        "evaluation_time_M": 0,
+        "comparison_window_M": [
+          -7.5,
+          7.5
+        ],
+        "mode": [
+          2,
+          2
+        ]
+      },
+      "bayesian_free_frequency_subset": {
+        "number_of_simulations": 9,
+        "start_time_M": 0,
+        "duration_M": 15,
+        "mcmc_steps": 200000,
+        "walkers": 48,
+        "note": "This is the specific free-frequency subset/configuration documented by the upstream README; do not assume it applies to all 168 catalogue entries."
+      }
+    },
+    "processing_and_error_controls": {
+      "sxs_resolution": "Top two available resolution levels are loaded; record both exact levels.",
+      "pre_merger_alignment_window_M": [
+        -100,
+        0
+      ],
+      "alignment_tolerance": 0.001,
+      "residual_duration_M": 200,
+      "residual_sampling_dt_M": 0.1,
+      "cce_crosscheck": "13 CCE waveforms provide an independent waveform-extraction path; preserve their own processing provenance.",
+      "extrapolation_and_resolution_sensitivity": "Run explicit convergence comparisons; do not collapse top-two-level residual into an exact numerical error estimate."
+    },
+    "download_status": "catalog_manifest_pinned; waveforms_not_downloaded; no direct-wave analysis executed by Symtropy"
+  }
 }
