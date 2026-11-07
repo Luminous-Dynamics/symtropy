@@ -82,6 +82,19 @@ It evaluates five declared principle-outage scenarios: pressure, airflow, gravim
 
 The #4005 observation envelopes are synthetic. The Pareto set, if any, is a software demonstration only. It must not be used to purchase or install physical equipment.
 
+## 5A. Structural replay result (synthetic only)
+
+The current seven-candidate fixture enumerates all 127 non-empty subsets. Structural replay finds four subsets satisfying the critical-pair constraints and five declared independent-principle outage scenarios; two layouts are nondominated:
+
+| Synthetic candidate layout | Lifecycle cost points | Sensors | Maintenance h/year | Planned unavailable h/year | Worst-case identified pairs |
+|---|---:|---:|---:|---:|---:|
+| airflow + blower current + line pressure + gravimetric + health diagnostic | 6,950 | 5 | 12.2 | 3.8 | 7/8 |
+| airflow + blower current + ECC estimator + gravimetric + health diagnostic | 8,050 | 5 | 11.5 | 3.6 | 7/8 |
+
+The first has lower fabricated lifecycle cost; the second has lower fabricated maintenance and planned-unavailability burdens. Neither dominates the other. The non-critical normal-versus-OOD pair remains INSUFFICIENT_EVIDENCE in every scenario.
+
+These values are exact results of the current fabricated fixture and objective definitions. They are not actual costs, measured availability, procurement advice or a recommended installed sensor layout.
+
 ## 6. Benchmark gates
 
 Software:
