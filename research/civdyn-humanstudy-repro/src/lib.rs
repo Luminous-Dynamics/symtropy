@@ -27,6 +27,7 @@ const PAPER_REQUIRED_ARTIFACT_ROLES: &[&str] = &[
     "paper_full_benchmark",
     "paper_detailed_stats",
     "paper_evaluation_results",
+    "paper_run_attestation",
 ];
 const COMMUNITY_REQUIRED_ARTIFACT_ROLES: &[&str] = &[
     "community_run_manifest",
@@ -94,7 +95,7 @@ struct PinnedProtocol {
     source_root_tree: &'static str,
     study_pins: &'static [StudyPin],
     metric_contract_id: &'static str,
-    require_official_metrics: bool,
+    require_official_pas: bool,
     required_artifact_roles: &'static [&'static str],
 }
 
@@ -106,7 +107,7 @@ fn pinned_protocol(protocol_id: &str) -> Option<PinnedProtocol> {
             source_root_tree: SOURCE_ROOT_TREE,
             study_pins: &STUDY_PINS,
             metric_contract_id: COMMUNITY_16_METRIC_CONTRACT_ID,
-            require_official_metrics: false,
+            require_official_pas: false,
             required_artifact_roles: COMMUNITY_REQUIRED_ARTIFACT_ROLES,
         }),
         PAPER_12_PROTOCOL_ID => Some(PinnedProtocol {
@@ -115,7 +116,7 @@ fn pinned_protocol(protocol_id: &str) -> Option<PinnedProtocol> {
             source_root_tree: PAPER_12_SOURCE_ROOT_TREE,
             study_pins: &PAPER_12_STUDY_PINS,
             metric_contract_id: PAPER_12_METRIC_CONTRACT_ID,
-            require_official_metrics: true,
+            require_official_pas: true,
             required_artifact_roles: PAPER_REQUIRED_ARTIFACT_ROLES,
         }),
         _ => None,
@@ -291,7 +292,7 @@ fn check_ci(label: &str, ci: Option<[f64; 2]>, errors: &mut Vec<String>) {
 
 fn validate_study(
     study: &StudyReceipt,
-    require_official_metrics: bool,
+    require_official_pas: bool,
     required_roles: &[&str],
     errors: &mut Vec<String>,
 ) {
@@ -326,7 +327,7 @@ fn validate_study(
         ));
     }
 
-    match (require_official_metrics, study.official_pas) {
+    match (require_official_pas, study.official_pas) {
         (true, None) => errors.push(format!(
             "{}: paper protocol requires official PAS",
             study.study_id
@@ -339,18 +340,15 @@ fn validate_study(
         }
         _ => {}
     }
-    match (require_official_metrics, study.official_ecs) {
-        (true, None) => errors.push(format!(
-            "{}: paper protocol requires official ECS",
+    // Upstream per-study ECS can be undefined when fewer than three valid
+    // standardized-effect pairs exist. Preserve it when present; never invent it.
+    if let Some(value) = study.official_ecs
+        && (!value.is_finite() || !(-1.0..=1.0).contains(&value))
+    {
+        errors.push(format!(
+            "{}: ECS must be finite and in [-1, 1]",
             study.study_id
-        )),
-        (_, Some(value)) if !value.is_finite() || !(-1.0..=1.0).contains(&value) => {
-            errors.push(format!(
-                "{}: ECS must be finite and in [-1, 1]",
-                study.study_id
-            ));
-        }
-        _ => {}
+        ));
     }
 
     let mut roles = BTreeSet::new();
@@ -670,6 +668,13 @@ mod tests {
                             true,
                             true,
                         ),
+                        artifact_at(
+                            "paper_run_attestation",
+                            "civdyn_paper_run_attestation.json",
+                            false,
+                            true,
+                            true,
+                        ),
                     ];
                     study
                 })
@@ -686,13 +691,12 @@ mod tests {
     }
 
     #[test]
-    fn paper_protocol_rejects_missing_official_pas_or_ecs() {
+    fn paper_protocol_rejects_missing_official_pas() {
         let mut receipt = paper_valid_run();
         receipt.studies[0].official_pas = None;
         assert!(validate_run(&receipt).is_err());
-        let mut receipt = paper_valid_run();
-        receipt.studies[0].official_ecs = None;
-        assert!(validate_run(&receipt).is_err());
+        let receipt = paper_valid_run();
+        assert!(validate_run(&receipt).is_ok());
     }
 
     #[test]
