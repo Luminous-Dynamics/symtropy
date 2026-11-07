@@ -207,6 +207,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "airborne-energy-observability-validator"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "airborne-energy-session-validator"
 version = "0.1.0"
 dependencies = [
