@@ -310,13 +310,13 @@ The bridge accepts one typed assessment envelope for every action × admitted-hy
 - the original SAM evidence-manifest identifier preserved verbatim;
 - BLAKE3 commitments to canonical support-manifest and trajectory-query bytes;
 - a BLAKE3 commitment to canonical SAM source-generated assessment-receipt bytes;
-- target policy and context digests;
+- separate support-manifest and query target-policy/context digests;
 - whether the finite path universe is exhaustive;
 - query completeness, decision-point count and finite-path membership;
 - the exact SAM disposition; and
 - an unkeyed content checksum over those fields.
 
-The schema ID belongs to this **Symtropy adapter envelope**, not to a SAM-emitted wire format. SAM exposes canonical bytes for `SupportManifest`, `TrajectoryQuery` and `Assessment`, and `assess_with_receipt` returns an `AssessmentReceipt` that length-prefixes and binds all three exact artifacts. The bridge's `seal_from_sam_artifacts` and `verify_against_sam_artifacts` recompute that source-receipt byte string from the retained support-manifest bytes, query bytes and assessment fields, then compare it byte-for-byte before accepting the envelope. A shared four-vector fixture pins the manifest, query, result and combined receipt formats across repositories. These are content commitments, not signatures, authentication, proof of origin, or independent verification of the SAM binary. A consumer requiring authenticity must anchor the SAM build and artifact digests through an independently controlled channel.
+The schema ID belongs to this **Symtropy adapter envelope**, not to a SAM-emitted wire format. SAM exposes canonical bytes for `SupportManifest`, `TrajectoryQuery` and `Assessment`, and `assess_with_receipt` returns an `AssessmentReceipt` that length-prefixes and binds all three exact artifacts. The bridge's `seal_from_sam_artifacts` and `verify_against_sam_artifacts` recompute that source-receipt byte string from the retained support-manifest bytes, query bytes, repeated source/query scope metadata and assessment fields, then compare it byte-for-byte before accepting the envelope. A shared four-vector fixture pins the manifest, query, result and combined receipt formats across repositories. These are content commitments, not signatures, authentication, proof of origin, or independent verification of the SAM binary. A consumer requiring authenticity must anchor the SAM build and artifact digests through an independently controlled channel.
 
 ### Five disposition rules
 

@@ -21,7 +21,7 @@
     "matched_finite_path",
     "disposition",
     "assessment_receipt_digest",
-    "assessment_digest"
+    "sam_assessment_receipt_digest"
   ],
   "properties": {
     "schema_id": {
@@ -90,10 +90,10 @@
       "type": "string",
       "minLength": 1
     },
-    "assessment_digest": {
+    "sam_assessment_receipt_digest": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$",
-      "description": "BLAKE3 content digest of SAM AssessmentReceipt::canonical_bytes(), which binds the canonical support manifest, query and assessment result"
+      "description": "BLAKE3 digest of SAM AssessmentReceipt::canonical_bytes(), including canonical support-manifest, query, repeated scope metadata and assessment bytes."
     }
   }
 }

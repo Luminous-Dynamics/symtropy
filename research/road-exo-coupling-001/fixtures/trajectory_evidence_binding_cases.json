@@ -13,7 +13,11 @@
         "Unsupported",
         "NotIdentified",
         "Incomplete"
-      ]
+      ],
+      "support_target_policy_digest": "policy-v1",
+      "support_context_digest": "context-v1",
+      "query_target_policy_digest": "policy-v1",
+      "query_context_digest": "context-v1"
     },
     {
       "id": "exhaustive-missing-path",
@@ -21,7 +25,11 @@
       "path_universe_exhaustive": true,
       "query_complete": true,
       "matched_finite_path": false,
-      "expected_cell_support": "Unsupported"
+      "expected_cell_support": "Unsupported",
+      "support_target_policy_digest": "policy-v1",
+      "support_context_digest": "context-v1",
+      "query_target_policy_digest": "policy-v1",
+      "query_context_digest": "context-v1"
     },
     {
       "id": "non-exhaustive-missing-path",
@@ -29,7 +37,11 @@
       "path_universe_exhaustive": false,
       "query_complete": true,
       "matched_finite_path": false,
-      "expected_cell_support": "NotIdentified"
+      "expected_cell_support": "NotIdentified",
+      "support_target_policy_digest": "policy-v1",
+      "support_context_digest": "context-v1",
+      "query_target_policy_digest": "policy-v1",
+      "query_context_digest": "context-v1"
     },
     {
       "id": "censored-or-incomplete-query",
@@ -37,7 +49,11 @@
       "path_universe_exhaustive": false,
       "query_complete": false,
       "matched_finite_path": false,
-      "expected_cell_support": "Incomplete"
+      "expected_cell_support": "Incomplete",
+      "support_target_policy_digest": "policy-v1",
+      "support_context_digest": "context-v1",
+      "query_target_policy_digest": "policy-v1",
+      "query_context_digest": "context-v1"
     },
     {
       "id": "policy-or-context-mismatch",
@@ -45,7 +61,11 @@
       "path_universe_exhaustive": true,
       "query_complete": true,
       "matched_finite_path": false,
-      "expected_cell_support": "Incomplete"
+      "expected_cell_support": "Incomplete",
+      "support_target_policy_digest": "policy-v1",
+      "support_context_digest": "context-v1",
+      "query_target_policy_digest": "policy-v2",
+      "query_context_digest": "context-v1"
     }
   ],
   "adversarial_cases": [

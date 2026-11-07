@@ -51,8 +51,8 @@ pub struct SamTrajectoryAssessmentBinding {
     pub decision_points: u64,
     pub matched_finite_path: bool,
     pub disposition: SamTrajectoryDisposition,
-    /// BLAKE3 digest of SAM Assessment::canonical_bytes().
-    pub assessment_digest: [u8; 32],
+    /// BLAKE3 digest of SAM AssessmentReceipt::canonical_bytes().
+    pub sam_assessment_receipt_digest: [u8; 32],
     /// Unkeyed digest over every preceding field; not a signature.
     pub assessment_receipt_digest: [u8; 32],
 }
@@ -79,7 +79,7 @@ impl SamTrajectoryAssessmentBinding {
         {
             return Err(TrajectoryEvidenceError::AssessmentArtifactMismatch);
         }
-        self.assessment_digest = *blake3::hash(assessment_receipt_bytes).as_bytes();
+        self.sam_assessment_receipt_digest = *blake3::hash(assessment_receipt_bytes).as_bytes();
         self.seal()
     }
 
@@ -101,7 +101,7 @@ impl SamTrajectoryAssessmentBinding {
         }
         if self.canonical_assessment_receipt_bytes(support_manifest_bytes, query_bytes)
             != assessment_receipt_bytes
-            || *blake3::hash(assessment_receipt_bytes).as_bytes() != self.assessment_digest
+            || *blake3::hash(assessment_receipt_bytes).as_bytes() != self.sam_assessment_receipt_digest
         {
             return Err(TrajectoryEvidenceError::AssessmentArtifactMismatch);
         }
@@ -153,7 +153,7 @@ impl SamTrajectoryAssessmentBinding {
         require_identity(&self.evidence_manifest_id, "evidence_manifest_id")?;
         require_digest(&self.support_manifest_digest, "support_manifest_digest")?;
         require_digest(&self.query_digest, "query_digest")?;
-        require_digest(&self.assessment_digest, "assessment_digest")?;
+        require_digest(&self.sam_assessment_receipt_digest, "sam_assessment_receipt_digest")?;
         require_identity(&self.target_policy_digest, "target_policy_digest")?;
         require_identity(&self.context_digest, "context_digest")?;
 
@@ -212,7 +212,7 @@ impl SamTrajectoryAssessmentBinding {
         out.extend_from_slice(&self.decision_points.to_le_bytes());
         out.push(u8::from(self.matched_finite_path));
         out.push(self.disposition as u8);
-        out.extend_from_slice(&self.assessment_digest);
+        out.extend_from_slice(&self.sam_assessment_receipt_digest);
         out
     }
 }
@@ -234,7 +234,7 @@ pub struct TrajectorySupportReference {
     pub evidence_manifest_id: String,
     pub support_manifest_digest: [u8; 32],
     pub query_digest: [u8; 32],
-    pub assessment_digest: [u8; 32],
+    pub sam_assessment_receipt_digest: [u8; 32],
     pub assessment_receipt_digest: [u8; 32],
 }
 
@@ -433,7 +433,7 @@ fn support_reference(binding: &SamTrajectoryAssessmentBinding) -> TrajectorySupp
         evidence_manifest_id: binding.evidence_manifest_id.clone(),
         support_manifest_digest: binding.support_manifest_digest,
         query_digest: binding.query_digest,
-        assessment_digest: binding.assessment_digest,
+        sam_assessment_receipt_digest: binding.sam_assessment_receipt_digest,
         assessment_receipt_digest: binding.assessment_receipt_digest,
     }
 }
@@ -453,7 +453,7 @@ fn certificate_bytes(certificate: &TrajectoryEvidenceBoundDecisionCertificate) -
         push_string(&mut out, &reference.evidence_manifest_id);
         out.extend_from_slice(&reference.support_manifest_digest);
         out.extend_from_slice(&reference.query_digest);
-        out.extend_from_slice(&reference.assessment_digest);
+        out.extend_from_slice(&reference.sam_assessment_receipt_digest);
         out.extend_from_slice(&reference.assessment_receipt_digest);
     }
     out
@@ -630,7 +630,7 @@ mod tests {
             evidence_manifest_id: "evidence-v1".to_owned(),
             support_manifest_digest: [3; 32],
             query_digest: [4; 32],
-            assessment_digest: [0; 32],
+            sam_assessment_receipt_digest: [0; 32],
             target_policy_digest: "policy-digest".to_owned(),
             context_digest: "context-digest".to_owned(),
             path_universe_exhaustive,
@@ -640,7 +640,7 @@ mod tests {
             disposition,
             assessment_receipt_digest: [0; 32],
         };
-        binding.assessment_digest = *blake3::hash(&binding.canonical_assessment_bytes()).as_bytes();
+        binding.sam_assessment_receipt_digest = *blake3::hash(&binding.canonical_assessment_bytes()).as_bytes();
         binding.seal().unwrap()
     }
 
@@ -931,6 +931,57 @@ mod tests {
                 &mutated_assessment_receipt
             ),
             Err(TrajectoryEvidenceError::AssessmentArtifactMismatch)
+        );
+    }
+
+    #[test]
+    fn out_of_scope_requires_an_actual_support_query_scope_mismatch() {
+        let mut binding = sam_binding(SamTrajectoryDisposition::OutOfScope);
+        assert_eq!(binding.verify_receipt(), Ok(()));
+
+        binding.query_target_policy_digest = binding.support_target_policy_digest.clone();
+        assert_eq!(
+            binding.seal(),
+            Err(TrajectoryEvidenceError::InvalidSamDisposition)
+        );
+    }
+
+    #[test]
+    fn in_scope_disposition_rejects_mismatched_policy_or_context() {
+        let mut binding = sam_binding(SamTrajectoryDisposition::SupportUnknown);
+        binding.query_context_digest = "different-context".to_owned();
+        assert_eq!(
+            binding.seal(),
+            Err(TrajectoryEvidenceError::InvalidSamDisposition)
+        );
+    }
+
+    #[test]
+    fn repeated_scope_metadata_is_bound_by_source_assessment_receipt() {
+        let support_bytes = canonical_vector("manifest");
+        let query_bytes = canonical_vector("query");
+        let assessment_receipt_bytes = canonical_vector("assessment_receipt");
+        let mut binding = sam_binding(SamTrajectoryDisposition::SupportUnknown);
+        binding.decision_points = 1;
+        binding.support_target_policy_digest = "policy-v1".to_owned();
+        binding.support_context_digest = "context-v1".to_owned();
+        binding.query_target_policy_digest = "policy-v1".to_owned();
+        binding.query_context_digest = "context-v1".to_owned();
+        binding.support_manifest_digest = *blake3::hash(&support_bytes).as_bytes();
+        binding.query_digest = *blake3::hash(&query_bytes).as_bytes();
+
+        let sealed = binding
+            .seal_from_sam_artifacts(&support_bytes, &query_bytes, &assessment_receipt_bytes)
+            .unwrap();
+        let mut tampered = sealed.clone();
+        tampered.support_target_policy_digest = "other-policy".to_owned();
+        assert_eq!(
+            tampered.verify_against_sam_artifacts(
+                &support_bytes,
+                &query_bytes,
+                &assessment_receipt_bytes
+            ),
+            Err(TrajectoryEvidenceError::AssessmentReceiptMismatch)
         );
     }
 
