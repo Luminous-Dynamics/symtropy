@@ -15,7 +15,7 @@ use super::{
     curvature::{CurvatureError, MetricSecondDerivatives4, RiemannTensor4},
     metric::{
         MetricComponents4, MetricError, kerr_exterior_metric,
-        schwarzschild_exterior_metric,
+        schwarzschild_exterior_metric, schwarzschild_ingoing_ef_metric,
     },
     DimensionlessSpin, KerrBlackHole, PhysicsDomainError, SchwarzschildBlackHole,
 };
@@ -234,6 +234,42 @@ impl DifferentiatedMetric4 {
             [Jet2::constant(0.0), g_rr, Jet2::constant(0.0), Jet2::constant(0.0)],
             [Jet2::constant(0.0), Jet2::constant(0.0), g_theta_theta, Jet2::constant(0.0)],
             [Jet2::constant(0.0), Jet2::constant(0.0), Jet2::constant(0.0), g_phi_phi],
+        ])
+    }
+
+    /// Build the horizon-regular Schwarzschild ingoing Eddington-Finkelstein
+    /// metric and its first/second derivatives using automatic differentiation.
+    ///
+    /// This chart remains regular at r=2GM/c^2 and is suitable for testing
+    /// curvature invariants at and across the future event horizon.
+    pub fn schwarzschild_ingoing_ef(
+        hole: SchwarzschildBlackHole,
+        radius_m: f64,
+        theta_rad: f64,
+    ) -> Result<Self, JetError> {
+        let _ = schwarzschild_ingoing_ef_metric(hole, radius_m, theta_rad)?;
+        let r = Jet2::variable(radius_m, 1)?;
+        let theta = Jet2::variable(theta_rad, 2)?;
+        let rg = Jet2::constant(hole.gravitational_radius_m());
+        let two = Jet2::constant(2.0);
+        let one = Jet2::constant(1.0);
+        let f = one.sub(two.mul(rg).mul(r.reciprocal()?));
+        let r_squared = r.mul(r);
+        let sin_theta = theta.sin();
+        let sin_squared = sin_theta.mul(sin_theta);
+
+        let zero = Jet2::constant(0.0);
+        let one_cross = Jet2::constant(1.0);
+        let g_vv = f.neg();
+        let g_vr = one_cross;
+        let g_theta_theta = r_squared;
+        let g_phi_phi = r_squared.mul(sin_squared);
+
+        Self::from_jets([
+            [g_vv, g_vr, zero, zero],
+            [g_vr, zero, zero, zero],
+            [zero, zero, g_theta_theta, zero],
+            [zero, zero, zero, g_phi_phi],
         ])
     }
 
@@ -484,6 +520,53 @@ mod tests {
         let expected = 48.0*rg*rg*numerator/sigma.powi(6);
         let actual = curvature.kretschmann_scalar(&differentiated.metric).unwrap();
         close(actual,expected,2e-8);
+    }
+
+    #[test]
+    fn ingoing_ef_chart_is_regular_at_schwarzschild_horizon() {
+        let h = SchwarzschildBlackHole::new(mass());
+        let r = h.horizon_radius_m();
+        let theta = 0.9;
+        let differentiated =
+            DifferentiatedMetric4::schwarzschild_ingoing_ef(h,r,theta).unwrap();
+        assert_eq!(differentiated.metric.covariant()[0][0],0.0);
+        assert_eq!(differentiated.metric.covariant()[0][1],1.0);
+        assert!(differentiated.metric.determinant().unwrap().is_finite());
+        assert!(differentiated.metric.inverse_identity_residual().unwrap() < 1e-13);
+
+        let curvature = differentiated.curvature().unwrap();
+        let expected = 48.0*h.gravitational_radius_m().powi(2)/r.powi(6);
+        let actual = curvature.kretschmann_scalar(&differentiated.metric).unwrap();
+        close(actual,expected,2e-11);
+    }
+
+    #[test]
+    fn schwarzschild_curvature_scalar_agrees_across_exterior_charts() {
+        let h = SchwarzschildBlackHole::new(mass());
+        let r = 8.0*h.gravitational_radius_m();
+        let theta = 0.9;
+        let schwarzschild =
+            DifferentiatedMetric4::schwarzschild_exterior(h,r,theta).unwrap();
+        let ingoing =
+            DifferentiatedMetric4::schwarzschild_ingoing_ef(h,r,theta).unwrap();
+        let k_s = schwarzschild.curvature().unwrap()
+            .kretschmann_scalar(&schwarzschild.metric).unwrap();
+        let k_ef = ingoing.curvature().unwrap()
+            .kretschmann_scalar(&ingoing.metric).unwrap();
+        close(k_s,k_ef,2e-11);
+    }
+
+    #[test]
+    fn ingoing_ef_chart_curvature_is_regular_inside_horizon() {
+        let h = SchwarzschildBlackHole::new(mass());
+        let r = 1.5*h.gravitational_radius_m();
+        let theta = 1.0;
+        let differentiated =
+            DifferentiatedMetric4::schwarzschild_ingoing_ef(h,r,theta).unwrap();
+        let curvature = differentiated.curvature().unwrap();
+        let expected = 48.0*h.gravitational_radius_m().powi(2)/r.powi(6);
+        let actual = curvature.kretschmann_scalar(&differentiated.metric).unwrap();
+        close(actual,expected,2e-10);
     }
 
     #[test]
