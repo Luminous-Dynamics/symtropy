@@ -259,3 +259,91 @@ A first bounded Rust implementation slice has been added on branch `research/bla
 
 **Validation status:** tests are authored but not executed in this editing environment because no Rust toolchain is available here (`rustc` is absent). No compilation, test pass, CI pass, numerical-relativity result, observational validation, or performance comparison is claimed. Before merge, run `cargo test -p symtropy-relativity` on the exact PR head and review the API/math conventions. The new crate is an analytic scalar kernel only; it is not yet a metric/tensor implementation or geodesic solver.
 
+
+
+## Research update — direct waves, orthonormal QNMs, and the new GPU-NR baseline (2026-11-07)
+
+### A new observationally motivated black-hole channel: direct waves
+
+A peer-reviewed Nature paper published 2026-06-24, *GW250114 reveals signatures of post-merger black-hole horizon*, reports evidence for a post-merger direct-wave component in GW250114. The paper describes a component oscillating near angular frequency (2\Omega_H), with increasing damping characterized by the Kerr horizon surface-gravity parameter (\kappa), and quotes 90%-credible matched-filter SNRs of (15.8^{+0.1}_{-0.5}) (Hanford) and (17.1^{+0.1}_{-0.4}) (Livingston).
+
+Public replication inputs are unusually good:
+- Analysis data products: [Zenodo DOI 10.5281/zenodo.20017347](https://doi.org/10.5281/zenodo.20017347).
+- Rational QNM filter implementation: [Sizheng-Ma/qnm_filter](https://github.com/Sizheng-Ma/qnm_filter).
+- Underlying direct-wave theory: [Oshita et al., arXiv:2509.09165](https://arxiv.org/abs/2509.09165).
+- Nature paper: [doi:10.1038/s41586-026-10696-0](https://doi.org/10.1038/s41586-026-10696-0).
+
+The Nature paper reports robustness checks across segment length, sampling frequency, detector peak times, sky location/timing, and remnant mass/spin marginalization. Its data availability and code availability make it a high-value replication target.
+
+**Claim ceiling:** this is an important published interpretation based on one exceptionally loud event. Our systems must call it a reported direct-wave component / hypothesis under test, not an independently established generic black-hole emission law, a direct photograph of the horizon, or proof that every merger carries an observable component at the same significance.
+
+### A second, complementary ringdown development: orthonormalized QNMs
+
+A separate Physical Review D paper, *Ringdown analysis of GW250114 with orthonormal modes* (published 2026-08-26), addresses an important identifiability problem: Kerr quasinormal modes are not orthogonal, and simultaneous fitting can induce strong correlations among subdominant modes. In its three-((\ell,m)=(2,2))-mode model through the second overtone, it reports the inferred support for the first overtone increasing from 86.2% in the compared non-orthogonal analysis to 99.9% with the orthonormalized-QNM framework. The earlier arXiv version reported a different baseline value (82.5%); preserve paper/version provenance rather than mixing those values.
+
+Reference: [Suzuki et al., Phys. Rev. D 114, 044099 (2026), doi:10.1103/6x5z-q9ml](https://doi.org/10.1103/6x5z-q9ml); [arXiv:2605.03576](https://arxiv.org/abs/2605.03576).
+
+This does not conflict with the LVK result by default: model basis, start time, included overtones, and inference procedure differ. We should compare methods as distinct analyses, preserving their model assumptions and posterior definitions.
+
+### Required GW250114 comparison matrix
+
+Do not collapse the following into one generic “ringdown” score:
+
+| Track | Scientific object | Required comparison |
+|---|---|---|
+| LVK QNM analyses | Fundamental mode, first overtone, full-signal constraints and Kerr consistency | Reproduce published posterior / credible regions under the matching data and assumptions |
+| Non-orthogonal QNM sum | Correlated damped-mode basis | Evidence, parameter covariance, start-time stability, injection recovery |
+| Orthonormalized QNM basis | Reconditioned mode representation | Mode-support calibration, basis-construction sensitivity, held-out injection recovery |
+| Rational-filter / mode-cleaning analysis | Filtered separation and evidence curves | Reproduce public qnm_filter pipeline, frequency/damping posteriors, detector consistency |
+| Direct-wave model | Additional waveform component tied to (\Omega_H) and (\kappa) | Reproduce the published matched-filter result, test alternatives and null controls, validate out-of-event injections |
+
+The campaign must:
+1. Pin exact Zenodo record files, qnm_filter commit, analysis scripts, GWOSC strain release, detector calibration, and noise segment versions.
+2. Reproduce the published pipeline before writing an independent implementation.
+3. Keep QNM subtraction choices explicit (including which overtones and which remnant posterior are used).
+4. Reconstruct the direct-wave template and reproduce the published SNR/posterior summaries in each detector.
+5. Compare ordinary QNM, orthonormal-QNM, QNM-plus-direct-wave, and suitably flexible noise/transient alternatives using consistent likelihoods and model-complexity accounting.
+6. Run signal injections, off-source time slides, phase/time scrambling, noise-only and wrong-remnant-parameter null controls.
+7. Vary start time, segment length, sampling frequency, detector peak time, sky/timing uncertainty, remnant mass/spin, and calibration uncertainty.
+8. Test cross-detector coherence and posterior predictive residuals; retain failed or inconclusive runs.
+9. Only then attempt an independent Rust implementation of the stable mathematical core, keeping the published Python code as a reference/compatibility path rather than copying its implementation.
+
+Primary success metric: calibrated false-positive rate and injection-recovery / posterior coverage across a preregistered set of realistic noise and signal conditions—not the highest SNR on the one target event.
+
+### New analytic Kerr observables in Symtropy
+
+The initial `symtropy-relativity` crate now includes:
+- (\Omega_H = a c/(r_+^2+a^2)), in rad/s;
+- (\kappa_t = c\sqrt{r_g^2-a^2}/(2r_g r_+)), in s(^{-1});
+- (f_{2\Omega_H}=\Omega_H/\pi), the Hz reference for a component whose angular frequency is (2\Omega_H).
+
+These are Kerr background reference scales. They do **not** constitute a direct-wave waveform model, nor do they imply that a measured feature has been attributed to the horizon. The next implementation must propagate remnant mass/spin posterior samples into correlated (\Omega_H), (\kappa), and reference-frequency distributions rather than evaluating only a best-fit point.
+
+### Updated numerical-relativity state of the art: GRACE
+
+An especially important new comparator appeared immediately before this research update: the GRACE paper was accepted by Physical Review D on 2026-11-02. GRACE is a public C++20/Kokkos/p4est GPU-portable framework that evolves ideal GRMHD coupled to Einstein's equations in Z4c, with constrained transport, AMR, and waveform diagnostics. It reports validation from shock tubes and Bondi accretion through perturbed spinning-puncture ringdown and binary-black-hole evolution, plus binary-neutron-star applications.
+
+Primary references:
+- [GRACE paper, arXiv:2607.09854](https://arxiv.org/abs/2607.09854).
+- [GRACE source repository](https://github.com/GRACE-astro/grace).
+- [GRACEpy post-processing repository](https://github.com/GRACE-astro/GRACEpy).
+- [Physical Review D accepted paper, 2026-11-02](https://doi.org/10.1103/yq78-m749).
+
+Its published single-device FMR TOV benchmark (reported as (10^6) zone-cycles/s) is:
+| Device | Cowling evolution | Full spacetime evolution |
+|---|---:|---:|
+| AMD MI300A | 24.8 | 16.8 |
+| NVIDIA A100 | 10.5 | 6.7 |
+| Intel Xeon Gold 6148 (20 physical cores) | 0.33 | 0.18 |
+
+Important comparability caveats: the A100 configuration used five refinement levels rather than six to fit memory; throughput tests ran 50 timesteps with output disabled except scalar reductions; these are zone-cycle throughput measurements, not time-to-validated-waveform-accuracy. Reported strong-scaling efficiency at the largest tested configurations was approximately 44% (unigrid) and 54% (FMR); weak-scaling efficiency was approximately 90% (unigrid, 2 to 128 devices) and 98% (FMR, 4 to 256 devices).
+
+**Implication for Luminous Dynamics:** do not compete by starting a general-purpose GPU GRMHD solver from scratch. GRACE now makes that an even less credible first move. Use it as an external reproducibility baseline, study its published verification and bottlenecks, and focus our differentiators on:
+- independent analytic/tensor/geodesic verification;
+- posterior- and uncertainty-aware black-hole inference;
+- reproducible, cross-method model discrimination;
+- scientific evidence lineage;
+- narrow, measured time-to-error or robustness improvements.
+
+GRACE is GPL-3.0; our Apache/MIT analytic crate must not copy or vendor GRACE implementation code. Interoperability and independent validation are the appropriate first relationship.
+
