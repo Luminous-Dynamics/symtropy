@@ -56,6 +56,15 @@ The generic metric-component constructor does not certify Lorentzian signature. 
 - Timelike/null geodesics with normalization and Killing-constant drift.
 - QNM / waveform and public detector-data replication.
 
+## Versioned benchmark registries
+
+Two machine-readable research manifests are maintained beside the crate:
+
+- `benchmarks/direct_wave_sxs_spin_sweep.json` — ten SXS remnant-spin cases, exact identified QNM-filter mode removals, horizon/News/BOB/free-fit/QNM/noise competing models, null controls, and provenance requirements. Exact fitting-window boundaries remain null until transcribed from the cited paper supplement.
+- `benchmarks/waveform_surrogate_baselines.json` — versioned literature baselines for NRSur7dq4 NN, NRSur7dq4v2, SEOBNRv5PHM_NNSur7dq10, AESur3dq8, NRSurE_q4NoSpin_22, BOB, and the 2026 SpEC accuracy study.
+
+These files are literature / experiment specifications. They are not benchmark execution results, model certifications, or evidence that the reported paper metrics have been reproduced by Symtropy.
+
 ## Run
 
 `cargo test -p symtropy-relativity`
