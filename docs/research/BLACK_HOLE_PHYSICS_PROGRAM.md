@@ -596,3 +596,46 @@ They remain unexecuted because this editing environment has no `rustc` or `cargo
 - numerical-relativity evolution, waveforms and observational reproduction.
 
 The next step should be Kerr curvature with a second independent coordinate/chart check, then Hamiltonian-vs-second-order geodesic cross-validation. No production numerical-relativity or SOTA performance claim is made.
+
+
+## Further implementation update — Schwarzschild curvature and geodesics (2026-11-07)
+
+The current branch now includes two more mathematical layers.
+
+### Riemann / Ricci / Einstein curvature
+
+`curvature.rs` accepts explicit connection derivatives and computes the mixed Riemann tensor under a declared sign convention, lowers the first index, contracts Ricci/scalar/Einstein tensors, and evaluates the Kretschmann scalar. It also checks pair antisymmetry, pair exchange and the algebraic first Bianchi identity.
+
+The analytic Schwarzschild fixture tests:
+- flat Cartesian Minkowski has zero curvature;
+- Schwarzschild vacuum Ricci and Einstein tensors vanish to numerical tolerance;
+- (K=48r_g^2/r^6) is reproduced;
+- the Riemann algebraic identities hold;
+- invalid derivative/chart domains fail closed.
+
+### Schwarzschild timelike and null geodesics
+
+`geodesic.rs` implements a fixed-background RK4 integrator plus step-doubling adaptive control.
+- Timelike parameterization is explicitly (lambda=c\tau), so (g_{\mu\nu}u^\mu u^\nu=-1).
+- Null trajectories use an affine parameter and zero normalization.
+- Adaptive tolerances are dimensioned separately for coordinate and tangent components.
+- Killing energy and axial angular momentum can be inspected across a trajectory.
+- The Schwarzschild-coordinate horizon and polar-axis boundaries return typed errors rather than being crossed silently.
+
+Tests include a circular timelike orbit, radial null propagation, conservation diagnostics, adaptive stepping against the analytic circular orbit, proper-time/coordinate-time distinction, and invalid-domain/tolerance checks.
+
+### Updated test and independent formula-check inventory
+
+There are now **48 authored Rust tests**: 15 scalar/root, 11 metric, 6 connection, 6 curvature, 6 geodesic and 4 posterior. Tests have not been executed because `rustc` and `cargo` are unavailable in this editing environment.
+
+Separate NumPy-style array calculations of the same analytic Schwarzschild formulas at several exterior radii found:
+- maximum absolute Ricci component around (10^{-16}) in units (r_g=1);
+- Kretschmann ratio to (48/r^6) equal to 1 to floating-point precision;
+- Riemann pair/Bianchi residuals around (10^{-15});
+- circular timelike and radial null normalization / Killing-constant drift around (10^{-12}) or less for the stated fixed-step checks.
+
+These are independent equation-level sanity checks, not evidence that the Rust files compile or that the test suite passes.
+
+### Next gates
+
+The analytic and geodesic implementations are Schwarzschild-only. Follow-on work must add Kerr connection derivatives/curvature, Kerr geodesics (including Carter-constant checks), horizon-regular charts, a Hamiltonian formulation as an independent geodesic implementation, and cross-chart invariant comparison before progressing to perturbation theory and waveform generation.
