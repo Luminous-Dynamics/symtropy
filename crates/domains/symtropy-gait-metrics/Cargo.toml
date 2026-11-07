@@ -1,0 +1,10 @@
+[package]
+name = "symtropy-gait-metrics"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Versioned, deterministic gait-event and inter-leg coordination metrics."
+
+[lib]
+path = "src/lib.rs"
