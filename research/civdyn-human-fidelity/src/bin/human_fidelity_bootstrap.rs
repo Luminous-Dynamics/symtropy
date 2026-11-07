@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn bootstrap_coverage_design_has_five_sizes_and_eight_metrics() {
         assert_eq!(COVERAGE_SIZES.len(), 5);
-        assert_eq!(BootstrapMetric::ALL.len(), 8);
+        assert_eq!(civdyn_human_fidelity::BootstrapMetric::ALL.len(), 8);
         assert_eq!(COVERAGE_SIZES[4], 60);
     }
 }
