@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 
 const SUMMER_MONTHS: [u8; 9] = [9, 10, 11, 12, 1, 2, 3, 4, 5];
 const NETWORK_SURCHARGE_C_PER_KWH: f64 = 6.0;
@@ -45,6 +46,7 @@ pub enum SurchargeBasis {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Fixture {
     pub schema_version: u8,
     pub profile_id: String,
@@ -53,6 +55,7 @@ pub struct Fixture {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BillingCase {
     pub case_id: String,
     pub description: String,
@@ -70,6 +73,7 @@ pub struct BillingCase {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Account {
     pub distributor: String,
     pub voltage_class: VoltageClass,
@@ -79,6 +83,7 @@ pub struct Account {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Interval {
     pub day_type: DayType,
     /// Local minutes after midnight. Intervals must not cross midnight.
@@ -503,6 +508,15 @@ pub fn evaluate_fixture(fixture: &Fixture) -> Result<Vec<Evaluation>, String> {
     if fixture.cases.is_empty() {
         return Err("fixture must contain at least one case".to_owned());
     }
+    let mut case_ids = BTreeSet::new();
+    for case in &fixture.cases {
+        if case.case_id.trim().is_empty() {
+            return Err("case_id must not be empty".to_owned());
+        }
+        if !case_ids.insert(case.case_id.as_str()) {
+            return Err(format!("duplicate case_id {}", case.case_id));
+        }
+    }
     fixture.cases.iter().map(evaluate).collect()
 }
 
@@ -542,6 +556,21 @@ mod tests {
                 maximum_demand_kva: 80.0,
             }],
         }
+    }
+
+
+    #[test]
+    fn duplicate_case_ids_are_rejected() {
+        let mut fixture = Fixture {
+            schema_version: 1,
+            profile_id: "test".to_owned(),
+            source_note: "test".to_owned(),
+            cases: vec![base_case(), base_case()],
+        };
+        fixture.cases[1].case_id = fixture.cases[0].case_id.clone();
+        assert!(evaluate_fixture(&fixture)
+            .expect_err("duplicate identities must be rejected")
+            .contains("duplicate case_id"));
     }
 
     #[test]
