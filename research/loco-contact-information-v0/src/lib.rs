@@ -621,8 +621,6 @@ mod tests {
 
     fn observation(
         evidence_id: &str,
-        event_id: &str,
-        foot_id: &str,
         measurement_model_id: &str,
         sensor_id: &str,
         channel: SensorChannel,
@@ -632,8 +630,8 @@ mod tests {
     ) -> ContactObservation {
         ContactObservation {
             evidence_id: evidence_id.to_owned(),
-            contact_event_id: event_id.to_owned(),
-            foot_id: foot_id.to_owned(),
+            contact_event_id: "contact-1".to_owned(),
+            foot_id: "left-front".to_owned(),
             sensor_id: sensor_id.to_owned(),
             channel,
             measurement_model_id: measurement_model_id.to_owned(),
@@ -686,8 +684,6 @@ mod tests {
 
         let measured = observation(
             "evidence-1",
-            "contact-1",
-            "left-front",
             "model-x",
             "sensor-interface",
             SensorChannel::D1Interface,
@@ -753,8 +749,6 @@ mod tests {
         );
         let a = observation(
             "same-evidence",
-            "contact-1",
-            "left-front",
             "model-x",
             "sensor-x",
             SensorChannel::D1Interface,
@@ -781,8 +775,6 @@ mod tests {
         );
         let o = observation(
             "evidence-1",
-            "contact-1",
-            "left-front",
             "model-x",
             "sensor-x",
             SensorChannel::D1Interface,
@@ -807,8 +799,6 @@ mod tests {
         );
         let mut o = observation(
             "evidence-1",
-            "contact-1",
-            "left-front",
             "model-x",
             "sensor-x",
             SensorChannel::D1Interface,
@@ -841,8 +831,6 @@ mod tests {
         );
         let mut oa = observation(
             "ea",
-            "contact-1",
-            "left-front",
             "model-a",
             "sensor-a",
             SensorChannel::D1Interface,
@@ -852,8 +840,6 @@ mod tests {
         );
         let ob = observation(
             "eb",
-            "contact-1",
-            "left-front",
             "model-b",
             "sensor-b",
             SensorChannel::D3Proprioceptive,
@@ -942,8 +928,6 @@ mod tests {
         );
         let a = observation(
             "evidence-a",
-            "contact-1",
-            "left-front",
             "model-x",
             "sensor-x",
             SensorChannel::D1Interface,
@@ -953,8 +937,6 @@ mod tests {
         );
         let mut b = observation(
             "evidence-b",
-            "contact-1",
-            "left-front",
             "model-x",
             "sensor-x",
             SensorChannel::D1Interface,
