@@ -413,3 +413,33 @@ The official IEC webstore page confirms that PAS 61980-4:2025 is the stationary 
 
 The highest-value next test is a **class-A/class-B compatibility separation**: independently verify each network's frequency, input rated power, receiver class, FOD/EMF/EMC and cross-vendor pairing, while testing the class-B 20 kHz mode for safety without calling it interoperable under the PAS's class-A definition.
 
+
+
+## 2026-11-07 aviation/UAV WPT evidence lane
+
+The source catalogue now includes a small, source-linked aviation/robotics subset. Four DOI-backed realizations were added; all remain `DEVELOPMENT`, not dual-annotated or expert-reviewed.
+
+| Prototype family | Technology / evidence | Reported result | What remains unknown |
+|---|---|---|---|
+| Sukvanachaikul et al. 2025 dual-drone | IPT; experimental | 500 W prototype; 5 A charging current per drone; operational air gap extended from 150 to 175 mm | Receiver voltage, per-drone W/Wh, frequency, exact meter boundaries and efficiency are not stated in the abstract |
+| Li et al. 2026 position-adaptive array | IPT; measured prototype | 350 W, 85 kHz, 50 mm gap; peak DC–DC efficiency 88.6% (2-Tx) / 87.9% (4-Tx) | Peak-point output power and precise DC meter nodes not stated in the abstract; lateral response needs full-text extraction |
+| Zhang et al. 2026 UAV swarm | CPT; experimental | Maximum single-load output 709.9 W; separate peak DC–DC efficiency 89.06%; lateral tolerance reported to +/-125 mm | Do not combine maximum single-load watts with peak efficiency as one operating point; exact frequency, gap, meter nodes and receiver-load distribution need recovery |
+| Coşar 2026 mid-air cooperative WPT | Simulation only | 38.16% mean simulated Energy Transfer Efficiency; 1.0000 Energy Fairness Index; 0.8418 Mission Endurance Index over eight Monte Carlo runs | No physical transmitter/receiver power-transfer hardware, exact modality, frequency, range or measured electrical meter boundaries in the abstract |
+
+### Interpretation rules
+
+- Dual-drone IPT current is not watts: without receiver voltage and meter boundaries, 5 A per drone cannot be compared with a watt-valued charging prototype.
+- The 500 W dual-drone figure is a prototype description, not evidence of 500 W delivered to each drone.
+- The 350 W multi-transmitter prototype's nominal power is kept separate from the two peak-efficiency values; no output watts are attached to those peak-efficiency points without a matched source locator.
+- The CPT 709.9 W maximum single-load output and 89.06% peak DC–DC efficiency are two distinct measurements. The record intentionally does not assert they occurred at the same operating point or that each UAV received 709.9 W simultaneously.
+- The Coşar result belongs in a simulation/controller lane. It must never be ranked as measured hardware efficiency or evidence of collision-free physical flight.
+- The Reach Power 28 October 2026 announcement is present in `sources.jsonl` as a non-peer-reviewed RF endurance source. It is not in `realizations.jsonl`: this v0 realization schema requires a DOI, and no DOI is invented for a corporate announcement. The ten-hour company-reported endurance statement has no disclosed link power, distance, frequency or efficiency and remains a separate operational claim.
+- Choi et al.'s mid-air battery exchange is excluded from this WPT dataset because it transfers a charged battery pack, not wireless power. Compare it as energy-carrier logistics under the ground–air service workstream, not as a WPT prototype.
+
+Primary locators:
+- Sukvanachaikul et al., IEEE Access 13 (2025), 148145–148158, DOI [10.1109/ACCESS.2025.3601215](https://doi.org/10.1109/ACCESS.2025.3601215).
+- Li et al., IEEE JESTPE (early access, 17 August 2026), DOI [10.1109/JESTPE.2026.3724184](https://doi.org/10.1109/JESTPE.2026.3724184).
+- Zhang et al., IEEE Transactions on Power Electronics 41(2) (2026), 2927–2942, DOI [10.1109/TPEL.2025.3603638](https://doi.org/10.1109/TPEL.2025.3603638).
+- Coşar, Array 31 (2026), 101149, DOI [10.1016/j.array.2026.101149](https://doi.org/10.1016/j.array.2026.101149).
+
+All UAV realizations are source-bound development records. Full-text dual annotation, exact operating-point recovery, prototype deduplication and independent review remain required before these records can enter validation/test splits.
