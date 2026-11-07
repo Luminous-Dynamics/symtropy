@@ -144,18 +144,9 @@ struct SweepSummary {
     direction: SweepDirection,
     transition: TransitionBracket,
     ramp_rate: f64,
-    ramp_r_squared: f64,
 }
 
 #[derive(Debug, Clone, Copy)]
-struct RegressionSums {
-    mean_x: f64,
-    mean_y: f64,
-    sxx: f64,
-    syy: f64,
-    sxy: f64,
-}
-
 impl AnalysisConfig {
     pub fn validate(self) -> Result<(), TransitionError> {
         if !self.maximum_pair_rate_relative_error.is_finite()
@@ -382,7 +373,6 @@ fn summarize_trace(
         direction: trace.direction,
         transition,
         ramp_rate,
-        ramp_r_squared,
     })
 }
 
