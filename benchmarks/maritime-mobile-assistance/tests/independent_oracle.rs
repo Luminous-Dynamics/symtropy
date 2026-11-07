@@ -67,24 +67,14 @@ fn task(task_id: &str, segment: &str, start: u64, location: &str) -> AssistanceT
     }
 }
 
-fn reposition(
-    resource_id: &str,
-    from: &str,
-    to: &str,
-    duration: u64,
-    id: &str,
-) -> RepositionLeg {
+fn reposition(resource_id: &str, from: &str, to: &str, duration: u64, id: &str) -> RepositionLeg {
     RepositionLeg {
         resource_id: resource_id.to_owned(),
         from_node_id: from.to_owned(),
         to_node_id: to.to_owned(),
         duration_ticks: duration,
         route_revision: "route-r1".to_owned(),
-        evidence: evidence(
-            id,
-            &format!("{resource_id}|{from}->{to}"),
-            "route-r1",
-        ),
+        evidence: evidence(id, &format!("{resource_id}|{from}->{to}"), "route-r1"),
     }
 }
 
