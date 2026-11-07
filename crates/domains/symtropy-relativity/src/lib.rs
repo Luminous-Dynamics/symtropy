@@ -26,6 +26,8 @@ use core::fmt;
 
 /// Levi-Civita connection coefficients from explicit metric derivatives.
 pub mod connection;
+/// Riemann curvature, Ricci/Einstein contractions, and scalar invariants.
+pub mod curvature;
 /// Fixed-size second-order automatic differentiation for metric derivatives.
 pub mod autodiff;
 /// Convention-explicit Riemann, Ricci, and Einstein curvature tensors.
