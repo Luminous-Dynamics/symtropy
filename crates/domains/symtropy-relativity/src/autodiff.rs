@@ -14,7 +14,7 @@ use super::{
     connection::{ConnectionError, MetricDerivatives4},
     curvature::{CurvatureError, MetricSecondDerivatives4, RiemannTensor4},
     metric::{
-        MetricComponents4, MetricError, kerr_exterior_metric,
+        MetricComponents4, MetricError, kerr_exterior_metric, kerr_ingoing_metric,
         schwarzschild_exterior_metric, schwarzschild_ingoing_ef_metric,
     },
     DimensionlessSpin, KerrBlackHole, PhysicsDomainError, SchwarzschildBlackHole,
@@ -333,6 +333,62 @@ impl DifferentiatedMetric4 {
         ])
     }
 
+    /// Build the horizon-regular ingoing Kerr metric and its first/second
+    /// derivatives using second-order automatic differentiation.
+    pub fn kerr_ingoing(
+        hole: KerrBlackHole,
+        radius_m: f64,
+        theta_rad: f64,
+    ) -> Result<Self, JetError> {
+        let _ = kerr_ingoing_metric(hole, radius_m, theta_rad)?;
+        let r = Jet2::variable(radius_m, 1)?;
+        let theta = Jet2::variable(theta_rad, 2)?;
+        let rg = Jet2::constant(hole.gravitational_radius_m());
+        let a = Jet2::constant(hole.kerr_parameter_m());
+        let a_squared = a.mul(a);
+        let two = Jet2::constant(2.0);
+
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let sin_squared = sin_theta.mul(sin_theta);
+        let cos_squared = cos_theta.mul(cos_theta);
+        let r_squared = r.mul(r);
+        let sigma = r_squared.add(a_squared.mul(cos_squared));
+
+        let g_vv = Jet2::constant(1.0)
+            .sub(two.mul(rg).mul(r).div(sigma)?)
+            .neg();
+        let g_vr = Jet2::constant(1.0);
+        let g_v_phi = two
+            .mul(rg)
+            .mul(a)
+            .mul(r)
+            .mul(sin_squared)
+            .div(sigma)?
+            .neg();
+        let g_r_phi = a.mul(sin_squared).neg();
+        let g_theta_theta = sigma;
+        let g_phi_phi = sin_squared.mul(
+            r_squared
+                .add(a_squared)
+                .add(
+                    two.mul(rg)
+                        .mul(a_squared)
+                        .mul(r)
+                        .mul(sin_squared)
+                        .div(sigma)?,
+                ),
+        );
+
+        let zero = Jet2::constant(0.0);
+        Self::from_jets([
+            [g_vv, g_vr, zero, g_v_phi],
+            [g_vr, zero, zero, g_r_phi],
+            [zero, zero, g_theta_theta, zero],
+            [g_v_phi, g_r_phi, zero, g_phi_phi],
+        ])
+    }
+
     fn from_jets(jets: [[Jet2; 4]; 4]) -> Result<Self, JetError> {
         let mut metric = [[0.0; 4]; 4];
         let mut first = [[[0.0; 4]; 4]; 4];
@@ -567,6 +623,54 @@ mod tests {
         let expected = 48.0*h.gravitational_radius_m().powi(2)/r.powi(6);
         let actual = curvature.kretschmann_scalar(&differentiated.metric).unwrap();
         close(actual,expected,2e-10);
+    }
+
+    #[test]
+    fn ingoing_kerr_chart_is_regular_at_outer_horizon() {
+        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.8).unwrap());
+        let r = h.outer_horizon_radius_m();
+        let theta = 0.8;
+        let differentiated = DifferentiatedMetric4::kerr_ingoing(h,r,theta).unwrap();
+        let determinant = differentiated.metric.determinant().unwrap();
+        let sigma = r*r+h.kerr_parameter_m().powi(2)*theta.cos().powi(2);
+        close(determinant,-sigma.powi(2)*theta.sin().powi(2),2e-12);
+        assert!(differentiated.metric.inverse_identity_residual().unwrap()<2e-12);
+        let curvature = differentiated.curvature().unwrap();
+        let numerator = r.powi(6)
+            -15.0*h.kerr_parameter_m().powi(2)*r.powi(4)*theta.cos().powi(2)
+            +15.0*h.kerr_parameter_m().powi(4)*r.powi(2)*theta.cos().powi(4)
+            -h.kerr_parameter_m().powi(6)*theta.cos().powi(6);
+        let expected = 48.0*h.gravitational_radius_m().powi(2)*numerator/sigma.powi(6);
+        close(curvature.kretschmann_scalar(&differentiated.metric).unwrap(),expected,3e-8);
+    }
+
+    #[test]
+    fn kerr_curvature_scalar_agrees_across_boyer_lindquist_and_ingoing_charts() {
+        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.7).unwrap());
+        let r = 7.0*h.gravitational_radius_m();
+        let theta = 1.0;
+        let bl = DifferentiatedMetric4::kerr_exterior(h,r,theta).unwrap();
+        let ingoing = DifferentiatedMetric4::kerr_ingoing(h,r,theta).unwrap();
+        let k_bl = bl.curvature().unwrap().kretschmann_scalar(&bl.metric).unwrap();
+        let k_in = ingoing.curvature().unwrap().kretschmann_scalar(&ingoing.metric).unwrap();
+        close(k_bl,k_in,3e-8);
+    }
+
+    #[test]
+    fn ingoing_kerr_chart_curvature_is_finite_inside_outer_horizon() {
+        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.8).unwrap());
+        let r = 0.8*h.outer_horizon_radius_m();
+        let theta = 0.8;
+        let differentiated = DifferentiatedMetric4::kerr_ingoing(h,r,theta).unwrap();
+        let curvature = differentiated.curvature().unwrap();
+        let sigma = r*r+h.kerr_parameter_m().powi(2)*theta.cos().powi(2);
+        let a = h.kerr_parameter_m();
+        let rg = h.gravitational_radius_m();
+        let cos = theta.cos();
+        let numerator = r.powi(6)-15.0*a*a*r.powi(4)*cos.powi(2)
+            +15.0*a.powi(4)*r*r*cos.powi(4)-a.powi(6)*cos.powi(6);
+        let expected = 48.0*rg*rg*numerator/sigma.powi(6);
+        close(curvature.kretschmann_scalar(&differentiated.metric).unwrap(),expected,4e-8);
     }
 
     #[test]
