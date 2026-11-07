@@ -61,7 +61,7 @@ impl Jet2 {
         self.second
     }
 
-    pub fn add(self, other: Self) -> Self {
+    pub fn plus(self, other: Self) -> Self {
         let mut result = Self::constant(self.value + other.value);
         for i in 0..4 {
             result.first[i] = self.first[i] + other.first[i];
@@ -72,7 +72,7 @@ impl Jet2 {
         result
     }
 
-    pub fn neg(self) -> Self {
+    pub fn negative(self) -> Self {
         let mut result = Self::constant(-self.value);
         for i in 0..4 {
             result.first[i] = -self.first[i];
@@ -83,11 +83,11 @@ impl Jet2 {
         result
     }
 
-    pub fn sub(self, other: Self) -> Self {
-        self.add(other.neg())
+    pub fn minus(self, other: Self) -> Self {
+        self.plus(other.negative())
     }
 
-    pub fn mul(self, other: Self) -> Self {
+    pub fn times(self, other: Self) -> Self {
         let mut result = Self::constant(self.value * other.value);
         for i in 0..4 {
             result.first[i] = self.first[i] * other.value + self.value * other.first[i];
@@ -123,8 +123,8 @@ impl Jet2 {
         Ok(result)
     }
 
-    pub fn div(self, other: Self) -> Result<Self, JetError> {
-        self.mul(other.reciprocal()?).ensure_finite("division")
+    pub fn over(self, other: Self) -> Result<Self, JetError> {
+        self.times(other.reciprocal()?).ensure_finite("division")
     }
 
     pub fn sin(self) -> Self {
@@ -212,15 +212,15 @@ impl DifferentiatedMetric4 {
         let two = Jet2::constant(2.0);
         let one = Jet2::constant(1.0);
 
-        let f = one.sub(two.mul(rg).mul(r.reciprocal()?));
-        let r_squared = r.mul(r);
+        let f = one.minus(two.times(rg).times(r.reciprocal()?));
+        let r_squared = r.times(r);
         let sin_theta = theta.sin();
-        let sin_squared = sin_theta.mul(sin_theta);
+        let sin_squared = sin_theta.times(sin_theta);
 
-        let g_tt = f.neg();
+        let g_tt = f.negative();
         let g_rr = f.reciprocal()?;
         let g_theta_theta = r_squared;
-        let g_phi_phi = r_squared.mul(sin_squared);
+        let g_phi_phi = r_squared.times(sin_squared);
 
         Self::from_jets([
             [
@@ -266,17 +266,17 @@ impl DifferentiatedMetric4 {
         let rg = Jet2::constant(hole.gravitational_radius_m());
         let two = Jet2::constant(2.0);
         let one = Jet2::constant(1.0);
-        let f = one.sub(two.mul(rg).mul(r.reciprocal()?));
-        let r_squared = r.mul(r);
+        let f = one.minus(two.times(rg).times(r.reciprocal()?));
+        let r_squared = r.times(r);
         let sin_theta = theta.sin();
-        let sin_squared = sin_theta.mul(sin_theta);
+        let sin_squared = sin_theta.times(sin_theta);
 
         let zero = Jet2::constant(0.0);
         let one_cross = Jet2::constant(1.0);
-        let g_vv = f.neg();
+        let g_vv = f.negative();
         let g_vr = one_cross;
         let g_theta_theta = r_squared;
-        let g_phi_phi = r_squared.mul(sin_squared);
+        let g_phi_phi = r_squared.times(sin_squared);
 
         Self::from_jets([
             [g_vv, g_vr, zero, zero],
@@ -298,35 +298,35 @@ impl DifferentiatedMetric4 {
         let theta = Jet2::variable(theta_rad, 2)?;
         let rg = Jet2::constant(hole.gravitational_radius_m());
         let a = Jet2::constant(hole.kerr_parameter_m());
-        let a_squared = a.mul(a);
+        let a_squared = a.times(a);
         let two = Jet2::constant(2.0);
         let one = Jet2::constant(1.0);
 
         let sin_theta = theta.sin();
         let cos_theta = theta.cos();
-        let sin_squared = sin_theta.mul(sin_theta);
-        let cos_squared = cos_theta.mul(cos_theta);
-        let r_squared = r.mul(r);
+        let sin_squared = sin_theta.times(sin_theta);
+        let cos_squared = cos_theta.times(cos_theta);
+        let r_squared = r.times(r);
 
-        let sigma = r_squared.add(a_squared.mul(cos_squared));
-        let delta = r_squared.sub(two.mul(rg).mul(r)).add(a_squared);
+        let sigma = r_squared.plus(a_squared.times(cos_squared));
+        let delta = r_squared.minus(two.times(rg).times(r)).plus(a_squared);
 
-        let two_m_r_over_sigma = two.mul(rg).mul(r).div(sigma)?;
-        let g_tt = one.sub(two_m_r_over_sigma).neg();
+        let two_m_r_over_sigma = two.times(rg).times(r).over(sigma)?;
+        let g_tt = one.minus(two_m_r_over_sigma).negative();
 
-        let g_t_phi = two.mul(rg).mul(a).mul(r).mul(sin_squared).div(sigma)?.neg();
+        let g_t_phi = two.times(rg).times(a).times(r).times(sin_squared).over(sigma)?.negative();
 
-        let g_rr = sigma.div(delta)?;
+        let g_rr = sigma.over(delta)?;
         let g_theta_theta = sigma;
 
-        let azimuthal_bracket = r_squared.add(a_squared).add(
-            two.mul(rg)
-                .mul(a_squared)
-                .mul(r)
-                .mul(sin_squared)
-                .div(sigma)?,
+        let azimuthal_bracket = r_squared.plus(a_squared).plus(
+            two.times(rg)
+                .times(a_squared)
+                .times(r)
+                .times(sin_squared)
+                .over(sigma)?,
         );
-        let g_phi_phi = sin_squared.mul(azimuthal_bracket);
+        let g_phi_phi = sin_squared.times(azimuthal_bracket);
 
         Self::from_jets([
             [g_tt, Jet2::constant(0.0), Jet2::constant(0.0), g_t_phi],
@@ -358,30 +358,30 @@ impl DifferentiatedMetric4 {
         let theta = Jet2::variable(theta_rad, 2)?;
         let rg = Jet2::constant(hole.gravitational_radius_m());
         let a = Jet2::constant(hole.kerr_parameter_m());
-        let a_squared = a.mul(a);
+        let a_squared = a.times(a);
         let two = Jet2::constant(2.0);
 
         let sin_theta = theta.sin();
         let cos_theta = theta.cos();
-        let sin_squared = sin_theta.mul(sin_theta);
-        let cos_squared = cos_theta.mul(cos_theta);
-        let r_squared = r.mul(r);
-        let sigma = r_squared.add(a_squared.mul(cos_squared));
+        let sin_squared = sin_theta.times(sin_theta);
+        let cos_squared = cos_theta.times(cos_theta);
+        let r_squared = r.times(r);
+        let sigma = r_squared.plus(a_squared.times(cos_squared));
 
         let g_vv = Jet2::constant(1.0)
-            .sub(two.mul(rg).mul(r).div(sigma)?)
-            .neg();
+            .minus(two.times(rg).times(r).over(sigma)?)
+            .negative();
         let g_vr = Jet2::constant(1.0);
-        let g_v_phi = two.mul(rg).mul(a).mul(r).mul(sin_squared).div(sigma)?.neg();
-        let g_r_phi = a.mul(sin_squared).neg();
+        let g_v_phi = two.times(rg).times(a).times(r).times(sin_squared).over(sigma)?.negative();
+        let g_r_phi = a.times(sin_squared).negative();
         let g_theta_theta = sigma;
-        let g_phi_phi = sin_squared.mul(
-            r_squared.add(a_squared).add(
-                two.mul(rg)
-                    .mul(a_squared)
-                    .mul(r)
-                    .mul(sin_squared)
-                    .div(sigma)?,
+        let g_phi_phi = sin_squared.times(
+            r_squared.plus(a_squared).plus(
+                two.times(rg)
+                    .times(a_squared)
+                    .times(r)
+                    .times(sin_squared)
+                    .over(sigma)?,
             ),
         );
 
@@ -515,7 +515,7 @@ mod tests {
     fn jet2_product_and_chain_rules_match_polynomial() {
         let x = Jet2::variable(3.0, 1).unwrap();
         let y = Jet2::variable(2.0, 2).unwrap();
-        let f = x.mul(x).mul(y);
+        let f = x.times(x).times(y);
         close(f.value(), 18.0, 1e-14);
         close(f.first_derivatives()[1], 12.0, 1e-14);
         close(f.first_derivatives()[2], 9.0, 1e-14);
