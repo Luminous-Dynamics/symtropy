@@ -1,0 +1,11 @@
+configuration_sha256,item_id,category,mass_kg,geometry_kind,x_m,y_m,z_m,Ixx,Iyy,Izz,Ixy,Ixz,Iyz
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,left_wing_lump,primary_structure,50,point,1.30,-1.80,0.40,,,,,,
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,right_wing_lump,primary_structure,50,point,1.30,1.80,0.40,,,,,,
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,fuselage_structure_lump,primary_structure,260,point,1.60,0.0,0.35,,,,,,
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,propulsion_lump,propulsion,120,point,2.20,0.0,0.60,,,,,,
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,fuel_lump,fuel_and_fluids,85,point,2.10,0.0,0.25,,,,,,
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,systems_lump,avionics,95,point,1.20,0.0,0.45,,,,,,
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,pilot_point_mass,payload,80,point,2.70,-0.35,0.55,,,,,,
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,passenger_point_mass,payload,80,point,2.70,0.35,0.55,,,,,,
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,baggage_point_mass,payload,25,point,3.10,0.0,0.35,,,,,,
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,cooling_system,thermal_management,,unknown,,,,,,,,,
