@@ -161,10 +161,7 @@ fn evaluate(
     graph: ConflictGraph,
 ) -> Result<ChannelConflictReport, ChannelError> {
     let plan = plan_for(&movements);
-    evaluate_channel_conflicts(
-        &plan,
-        &ChannelConflictWorkload { graph, movements },
-    )
+    evaluate_channel_conflicts(&plan, &ChannelConflictWorkload { graph, movements })
 }
 
 fn one_way_main_channel(
@@ -172,7 +169,15 @@ fn one_way_main_channel(
     minimum_headway_ticks: u64,
 ) -> (Vec<ChannelMovement>, ConflictGraph) {
     let movements = vec![
-        movement("move-in", "demand-in", "main-segment", "main-edge", "inbound", 4, 8),
+        movement(
+            "move-in",
+            "demand-in",
+            "main-segment",
+            "main-edge",
+            "inbound",
+            4,
+            8,
+        ),
         movement(
             "move-out",
             "demand-out",
@@ -218,26 +223,58 @@ fn opposing_one_way_movements_reject_insufficient_clearance_headway() {
     let (movements, graph) = one_way_main_channel(10, 3);
     let report = evaluate(movements, graph).expect("valid graph and plan");
     assert_eq!(report.disposition, ChannelDisposition::Infeasible);
-    assert!(report.violations.contains(&ChannelViolation::ConflictHeadwayViolation {
-        rule_id: "opposing-channel".to_owned(),
-        first_movement_id: "move-in".to_owned(),
-        second_movement_id: "move-out".to_owned(),
-        overlaps: false,
-        actual_gap_ticks: 2,
-        required_gap_ticks: 3,
-    }));
+    assert!(
+        report
+            .violations
+            .contains(&ChannelViolation::ConflictHeadwayViolation {
+                rule_id: "opposing-channel".to_owned(),
+                first_movement_id: "move-in".to_owned(),
+                second_movement_id: "move-out".to_owned(),
+                overlaps: false,
+                actual_gap_ticks: 2,
+                required_gap_ticks: 3,
+            })
+    );
 }
 
 #[test]
 fn merge_conflict_applies_headway_across_different_edges() {
     let movements = vec![
-        movement("from-west", "west-demand", "west-segment", "west-edge", "in", 0, 4),
-        movement("from-north", "north-demand", "north-segment", "north-edge", "in", 5, 8),
+        movement(
+            "from-west",
+            "west-demand",
+            "west-segment",
+            "west-edge",
+            "in",
+            0,
+            4,
+        ),
+        movement(
+            "from-north",
+            "north-demand",
+            "north-segment",
+            "north-edge",
+            "in",
+            5,
+            8,
+        ),
     ];
     let graph = graph(
         vec![
-            edge("west-segment", "west-edge", "west", "merge", vec![window(0, 20, &["in"])]),
-            edge("north-segment", "north-edge", "north", "merge", vec![window(0, 20, &["in"])]),
+            edge(
+                "west-segment",
+                "west-edge",
+                "west",
+                "merge",
+                vec![window(0, 20, &["in"])],
+            ),
+            edge(
+                "north-segment",
+                "north-edge",
+                "north",
+                "merge",
+                vec![window(0, 20, &["in"])],
+            ),
         ],
         vec![rule(
             "merge-headway",
@@ -261,13 +298,41 @@ fn merge_conflict_applies_headway_across_different_edges() {
 #[test]
 fn crossing_conflict_rejects_overlapping_movements_on_distinct_edges() {
     let movements = vec![
-        movement("movement-a", "demand-a", "segment-a", "edge-a", "north", 2, 8),
-        movement("movement-b", "demand-b", "segment-b", "edge-b", "east", 7, 12),
+        movement(
+            "movement-a",
+            "demand-a",
+            "segment-a",
+            "edge-a",
+            "north",
+            2,
+            8,
+        ),
+        movement(
+            "movement-b",
+            "demand-b",
+            "segment-b",
+            "edge-b",
+            "east",
+            7,
+            12,
+        ),
     ];
     let graph = graph(
         vec![
-            edge("segment-a", "edge-a", "a0", "a1", vec![window(0, 20, &["north"])]),
-            edge("segment-b", "edge-b", "b0", "b1", vec![window(0, 20, &["east"])]),
+            edge(
+                "segment-a",
+                "edge-a",
+                "a0",
+                "a1",
+                vec![window(0, 20, &["north"])],
+            ),
+            edge(
+                "segment-b",
+                "edge-b",
+                "b0",
+                "b1",
+                vec![window(0, 20, &["east"])],
+            ),
         ],
         vec![rule(
             "crossing-rule",
@@ -280,14 +345,18 @@ fn crossing_conflict_rejects_overlapping_movements_on_distinct_edges() {
     );
     let report = evaluate(movements, graph).expect("valid crossing graph");
     assert_eq!(report.disposition, ChannelDisposition::Infeasible);
-    assert!(report.violations.contains(&ChannelViolation::ConflictHeadwayViolation {
-        rule_id: "crossing-rule".to_owned(),
-        first_movement_id: "movement-a".to_owned(),
-        second_movement_id: "movement-b".to_owned(),
-        overlaps: true,
-        actual_gap_ticks: 0,
-        required_gap_ticks: 1,
-    }));
+    assert!(
+        report
+            .violations
+            .contains(&ChannelViolation::ConflictHeadwayViolation {
+                rule_id: "crossing-rule".to_owned(),
+                first_movement_id: "movement-a".to_owned(),
+                second_movement_id: "movement-b".to_owned(),
+                overlaps: true,
+                actual_gap_ticks: 0,
+                required_gap_ticks: 1,
+            })
+    );
 }
 
 #[test]
@@ -354,13 +423,7 @@ fn one_way_policy_rejects_direction_not_open_in_the_operation_window() {
 #[test]
 fn movement_not_fully_covered_by_a_direction_window_needs_evidence() {
     let movements = vec![movement(
-        "movement",
-        "demand-a",
-        "segment",
-        "edge",
-        "inbound",
-        8,
-        12,
+        "movement", "demand-a", "segment", "edge", "inbound", 8, 12,
     )];
     let graph = graph(
         vec![edge(
@@ -451,10 +514,7 @@ fn channel_movement_must_be_exact_member_of_selected_fleet_plan() {
         8,
     )]);
     assert_eq!(
-        evaluate_channel_conflicts(
-            &plan,
-            &ChannelConflictWorkload { graph, movements },
-        ),
+        evaluate_channel_conflicts(&plan, &ChannelConflictWorkload { graph, movements },),
         Err(ChannelError::FleetOperationNotFound("move-in".to_owned()))
     );
 }
@@ -462,18 +522,18 @@ fn channel_movement_must_be_exact_member_of_selected_fleet_plan() {
 #[test]
 fn channel_movement_must_match_selected_alternative() {
     let movements = vec![movement(
-        "movement",
-        "demand-a",
-        "segment",
-        "edge",
-        "in",
-        1,
-        3,
+        "movement", "demand-a", "segment", "edge", "in", 1, 3,
     )];
     let mut plan = plan_for(&movements);
     plan.selections[0].alternative_id = "other-alt".to_owned();
     let graph = graph(
-        vec![edge("segment", "edge", "start", "finish", vec![window(0, 20, &["in"])])],
+        vec![edge(
+            "segment",
+            "edge",
+            "start",
+            "finish",
+            vec![window(0, 20, &["in"])],
+        )],
         Vec::new(),
         TopologyReviewState::Reviewed,
     );
@@ -486,15 +546,15 @@ fn channel_movement_must_match_selected_alternative() {
 #[test]
 fn topology_review_state_never_silently_promotes_unknown_or_unsupported_graph() {
     let movements = vec![movement(
-        "movement",
-        "demand-a",
+        "movement", "demand-a", "segment", "edge", "in", 1, 3,
+    )];
+    let edges = vec![edge(
         "segment",
         "edge",
-        "in",
-        1,
-        3,
+        "start",
+        "finish",
+        vec![window(0, 20, &["in"])],
     )];
-    let edges = vec![edge("segment", "edge", "start", "finish", vec![window(0, 20, &["in"])])];
 
     let unknown = evaluate(
         movements.clone(),
@@ -525,7 +585,13 @@ fn equivalent_input_permutations_produce_identical_conflict_reports() {
 #[test]
 fn unknown_conflict_edge_is_a_structural_error() {
     let graph = graph(
-        vec![edge("segment", "edge", "start", "finish", vec![window(0, 20, &["in"])])],
+        vec![edge(
+            "segment",
+            "edge",
+            "start",
+            "finish",
+            vec![window(0, 20, &["in"])],
+        )],
         vec![rule(
             "bad-rule",
             "zone",
@@ -535,18 +601,16 @@ fn unknown_conflict_edge_is_a_structural_error() {
         )],
         TopologyReviewState::Reviewed,
     );
-    let movements = vec![movement("movement", "demand-a", "segment", "edge", "in", 1, 3)];
+    let movements = vec![movement(
+        "movement", "demand-a", "segment", "edge", "in", 1, 3,
+    )];
     assert_eq!(
         evaluate(movements, graph),
         Err(ChannelError::UnknownConflictEdge("missing-edge".to_owned()))
     );
 }
 
-fn reference_conflict(
-    first: TickWindow,
-    second: TickWindow,
-    minimum_headway_ticks: u64,
-) -> bool {
+fn reference_conflict(first: TickWindow, second: TickWindow, minimum_headway_ticks: u64) -> bool {
     let horizon = first.end_tick.max(second.end_tick);
     let mut simultaneous_ticks = 0_u64;
     for tick in 0..horizon {
