@@ -304,6 +304,7 @@
       "case_id": "DPW8-CRM-FEM-V1B",
       "title": "NASA CRM finite-element-model validation",
       "authority_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
       "required": true,
       "physics_track": "structural_model_verification_validation",
       "conditions": {
