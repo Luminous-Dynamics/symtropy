@@ -106,7 +106,7 @@ fn render_reference_report() -> Result<String, String> {
     let lhc_beam = beam_energy_from_center_of_mass(lhc_cm)?;
     let candidate_gamma = lorentz_factor_from_beam(candidate_beam)?;
     let lhc_gamma = lorentz_factor_from_beam(lhc_beam)?;
-    let gamma_ratio = candidate_gamma.0 / lhc_gamma.0;
+    let gamma_ratio = gamma_ratio_from_cm(candidate_cm, lhc_cm)?;
 
     // A 47,000 km circumference is the worked orbital-scale example.
     let circumference_m = 47_000_000.0;
@@ -227,7 +227,7 @@ mod tests {
     fn rigidity_reference_reproduces_the_preprint_table_radius() {
         let radius = required_ring_radius_m(CenterOfMassEnergyGeV(GEV_PER_PEV), 2.0, 0.7)
             .expect("valid magnet parameters");
-        close(radius / 1000.0, 1191.300_339_993_400_3, 1e-9);
+        close(radius / 1000.0, 1_191.300_339_993_400_3, 1e-9);
     }
 
     #[test]
