@@ -56,7 +56,8 @@ fn demo_input() -> TariffInput {
             },
         ],
         interval_series_complete: true,
-        interval_coverage_evidence_reference: "SYNTHETIC-COMPLETE-MONTHLY-INTERVAL-COVERAGE".to_owned(),
+        interval_coverage_evidence_reference: "SYNTHETIC-COMPLETE-MONTHLY-INTERVAL-COVERAGE"
+            .to_owned(),
         declared_active_energy_kwh: 25.0,
         measured_monthly_peak_demand_kva: 95.0,
         preceding_12_month_demand_history,
