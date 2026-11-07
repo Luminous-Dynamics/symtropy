@@ -497,15 +497,16 @@ pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
 mod tests {
     use super::*;
 
-    fn artifact(
+    fn artifact_at(
         role: &str,
+        path: &str,
         record_level: bool,
         published: bool,
         authorized: bool,
     ) -> ArtifactReceipt {
         ArtifactReceipt {
             role: role.to_string(),
-            path: format!("artifacts/{role}.json"),
+            path: path.to_string(),
             sha256: "a".repeat(64),
             record_count: 120,
             contains_record_level_human_data: record_level,
@@ -513,6 +514,16 @@ mod tests {
             redistribution_authorized: authorized,
             rights_basis: "synthetic conformance fixture".to_string(),
         }
+    }
+
+    fn artifact(role: &str, record_level: bool, published: bool, authorized: bool) -> ArtifactReceipt {
+        artifact_at(
+            role,
+            &format!("artifacts/{role}.json"),
+            record_level,
+            published,
+            authorized,
+        )
     }
 
     fn study(pin: StudyPin) -> StudyReceipt {
@@ -539,10 +550,10 @@ mod tests {
                 simulated_ci95: Some([0.08, 0.68]),
             }],
             artifacts: vec![
-                artifact("community_run_manifest", false, true, true),
-                artifact("community_responses", false, true, true),
-                artifact("community_evaluation", false, true, true),
-                artifact("community_analysis", false, true, true),
+                artifact_at("community_run_manifest", "run.json", false, true, true),
+                artifact_at("community_responses", "output/responses.json", false, true, true),
+                artifact_at("community_evaluation", "output/evaluation.json", false, true, true),
+                artifact_at("community_analysis", "output/analysis.json", false, true, true),
             ],
         }
     }
@@ -601,9 +612,9 @@ mod tests {
                 .map(|pin| {
                     let mut study = study(pin);
                     study.artifacts = vec![
-                        artifact("paper_full_benchmark", false, true, true),
-                        artifact("paper_detailed_stats", false, true, true),
-                        artifact("paper_evaluation_results", false, true, true),
+                        artifact_at("paper_full_benchmark", "full_benchmark.json", false, true, true),
+                        artifact_at("paper_detailed_stats", "detailed_stats.csv", false, true, true),
+                        artifact_at("paper_evaluation_results", "evaluation_results.json", false, true, true),
                     ];
                     study
                 })
