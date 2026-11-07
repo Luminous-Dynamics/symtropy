@@ -468,8 +468,8 @@ mod tests {
 
     #[test]
     fn sphere_sphere_rejects_invalid_dimensions_and_parameters() {
-        let pos = SVector::zeros();
-        let velocity = SVector::zeros();
+        let pos: SVector<f64, 3> = SVector::zeros();
+        let velocity: SVector<f64, 3> = SVector::zeros();
 
         assert!(matches!(
             try_sphere_sphere(&pos, &velocity, -0.5, &pos, &velocity, 0.5, 1.0),
