@@ -388,6 +388,50 @@ mod tests {
     }
 
     #[test]
+    fn sphere_sphere_is_symmetric_under_body_swap() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([2.0, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0, 0.0, 0.0]);
+        let vel_b = SVector::from([-2.0, 0.0, 0.0]);
+
+        let ab = try_sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 2.0)
+            .unwrap()
+            .unwrap();
+        let ba = try_sphere_sphere(&pos_b, &vel_b, 0.5, &pos_a, &vel_a, 0.5, 2.0)
+            .unwrap()
+            .unwrap();
+
+        assert!((ab.toi - ba.toi).abs() < 1e-12);
+        assert!((ab.normal + ba.normal).norm() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_sphere_toi_is_galilean_invariant() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([2.0, 0.5, 0.0]);
+        let pos_b = SVector::from([5.0, 0.0, 0.0]);
+        let vel_b = SVector::from([-2.0, -0.5, 0.0]);
+        let boost = SVector::from([123.0, -44.0, 9.0]);
+
+        let original = try_sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 2.0)
+            .unwrap()
+            .unwrap();
+        let boosted = try_sphere_sphere(
+            &pos_a,
+            &(vel_a + boost),
+            0.5,
+            &pos_b,
+            &(vel_b + boost),
+            0.5,
+            2.0,
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!((original.toi - boosted.toi).abs() < 1e-12);
+    }
+
+    #[test]
     fn sphere_sphere_grazing_contact_has_finite_toi() {
         let pos_a = SVector::zeros();
         let vel_a = SVector::from([10.0, 0.0, 0.0]);
