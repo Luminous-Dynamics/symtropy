@@ -98,7 +98,10 @@ pub fn evaluate_case_with_mass_properties(
 
     let mass_residual = (total_mass_kg - mass_properties.known_mass_subtotal_kg).abs();
     let mass_tolerance = MASS_CLOSURE_RELATIVE_TOLERANCE
-        * total_mass_kg.abs().max(mass_properties.known_mass_subtotal_kg.abs()).max(1.0);
+        * total_mass_kg
+            .abs()
+            .max(mass_properties.known_mass_subtotal_kg.abs())
+            .max(1.0);
     if mass_residual > mass_tolerance {
         return Err("complete mass report total does not match known mass subtotal".to_owned());
     }
@@ -130,7 +133,10 @@ fn validate_mass_properties_report(report: &MassPropertiesReport) -> Result<(), 
     if report.evidence_level != "screening_only" {
         return Err("mass-properties report has an unsupported evidence level".to_owned());
     }
-    validate_sha256(&report.configuration_sha256, "mass_properties.configuration_sha256")?;
+    validate_sha256(
+        &report.configuration_sha256,
+        "mass_properties.configuration_sha256",
+    )?;
 
     let total = report
         .total_mass_kg
@@ -192,11 +198,46 @@ mod tests {
         MassLedger {
             configuration_sha256: CONFIG.to_owned(),
             items: vec![
-                point("left_wing", MassItemCategory::PrimaryStructure, 50.0, 1.3, -1.8, 0.4),
-                point("right_wing", MassItemCategory::PrimaryStructure, 50.0, 1.3, 1.8, 0.4),
-                point("fuselage", MassItemCategory::PrimaryStructure, 260.0, 1.6, 0.0, 0.35),
-                point("propulsion", MassItemCategory::Propulsion, 120.0, 2.2, 0.0, 0.6),
-                point("fuel", MassItemCategory::FuelAndFluids, 85.0, 2.1, 0.0, 0.25),
+                point(
+                    "left_wing",
+                    MassItemCategory::PrimaryStructure,
+                    50.0,
+                    1.3,
+                    -1.8,
+                    0.4,
+                ),
+                point(
+                    "right_wing",
+                    MassItemCategory::PrimaryStructure,
+                    50.0,
+                    1.3,
+                    1.8,
+                    0.4,
+                ),
+                point(
+                    "fuselage",
+                    MassItemCategory::PrimaryStructure,
+                    260.0,
+                    1.6,
+                    0.0,
+                    0.35,
+                ),
+                point(
+                    "propulsion",
+                    MassItemCategory::Propulsion,
+                    120.0,
+                    2.2,
+                    0.0,
+                    0.6,
+                ),
+                point(
+                    "fuel",
+                    MassItemCategory::FuelAndFluids,
+                    85.0,
+                    2.1,
+                    0.0,
+                    0.25,
+                ),
                 point("systems", MassItemCategory::Avionics, 95.0, 1.2, 0.0, 0.45),
                 point("pilot", MassItemCategory::Payload, 80.0, 2.7, -0.35, 0.55),
                 point("passenger", MassItemCategory::Payload, 80.0, 2.7, 0.35, 0.55),
@@ -297,11 +338,46 @@ mod tests {
 
     fn complete_report_items() -> Vec<MassItem> {
         vec![
-            point("left_wing", MassItemCategory::PrimaryStructure, 50.0, 1.3, -1.8, 0.4),
-            point("right_wing", MassItemCategory::PrimaryStructure, 50.0, 1.3, 1.8, 0.4),
-            point("fuselage", MassItemCategory::PrimaryStructure, 260.0, 1.6, 0.0, 0.35),
-            point("propulsion", MassItemCategory::Propulsion, 120.0, 2.2, 0.0, 0.6),
-            point("fuel", MassItemCategory::FuelAndFluids, 85.0, 2.1, 0.0, 0.25),
+            point(
+                "left_wing",
+                MassItemCategory::PrimaryStructure,
+                50.0,
+                1.3,
+                -1.8,
+                0.4,
+            ),
+            point(
+                "right_wing",
+                MassItemCategory::PrimaryStructure,
+                50.0,
+                1.3,
+                1.8,
+                0.4,
+            ),
+            point(
+                "fuselage",
+                MassItemCategory::PrimaryStructure,
+                260.0,
+                1.6,
+                0.0,
+                0.35,
+            ),
+            point(
+                "propulsion",
+                MassItemCategory::Propulsion,
+                120.0,
+                2.2,
+                0.0,
+                0.6,
+            ),
+            point(
+                "fuel",
+                MassItemCategory::FuelAndFluids,
+                85.0,
+                2.1,
+                0.0,
+                0.25,
+            ),
             point("systems", MassItemCategory::Avionics, 95.0, 1.2, 0.0, 0.45),
             point("pilot", MassItemCategory::Payload, 80.0, 2.7, -0.35, 0.55),
             point("passenger", MassItemCategory::Payload, 80.0, 2.7, 0.35, 0.55),
