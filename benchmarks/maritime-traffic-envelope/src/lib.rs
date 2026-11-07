@@ -463,9 +463,7 @@ pub fn evaluate_traffic_plan(
     let mut resources = BTreeMap::<&str, &TrafficResource>::new();
     for resource in &workload.resources {
         if resource.resource_id.trim().is_empty() || resource.revision.trim().is_empty() {
-            return Err(TrafficError::InvalidResource(
-                resource.resource_id.clone(),
-            ));
+            return Err(TrafficError::InvalidResource(resource.resource_id.clone()));
         }
         validate_windows(resource)?;
         resource.evidence.validate()?;
