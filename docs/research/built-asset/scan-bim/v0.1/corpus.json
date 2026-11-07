@@ -1844,6 +1844,171 @@
         ]
       },
       "split_group_id": "synthetic-building-heldout-C"
+    },
+    {
+      "case_id": "SB-024",
+      "split_group_id": "synthetic-building-heldout-C",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "none",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        }
+      },
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "reason_codes": [
+          "NO_CHANGE_DELTA_HAS_TARGETS"
+        ]
+      }
+    },
+    {
+      "case_id": "SB-025",
+      "split_group_id": "synthetic-building-heldout-C",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          },
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "magically_connected"
+          }
+        ],
+        "delta": {
+          "operation": "none",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": []
+        }
+      },
+      "expected": {
+        "disposition": "REJECTED_TOPOLOGY",
+        "reason_codes": [
+          "TOPOLOGY_RELATION_UNSUPPORTED"
+        ]
+      }
     }
   ],
   "split_guard": {
