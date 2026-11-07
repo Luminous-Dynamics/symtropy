@@ -48,13 +48,12 @@
     "source_rate_basis": {
       "energy_charge_unit": "c/kWh",
       "fixed_charge_unit": "ZAR/month",
-      "demand_charge_unit": "ZAR/kVA",
-      "published_schedule_excludes_vat": true,
-      "annexure_b_excludes_network_surcharge_c_per_kwh": 6,
-      "annexure_b_excludes_business_lpu_surcharge_percent": 2,
-      "annexure_b_excludes_vat": true,
-      "source_locator": "Annexure B, printed pages 78–81",
-      "notes": "Do not confuse the 6 c/kWh per-kWh network surcharge with the separate monthly network charge in the three-part tariff table."
+      "demand_charge_unit": "ZAR/kVA/month",
+      "published_rates_ex_vat": true,
+      "excludes_network_surcharge": true,
+      "excludes_business_lpu_surcharge": true,
+      "excludes_vat": true,
+      "notes": "Annexure B excludes 6 c/kWh per-kWh Network Surcharge, 2% Business/LPU surcharge and VAT. The per-kWh surcharge is distinct from the monthly network charge."
     },
     "additional_charges": {
       "network_surcharge_c_per_kwh": 6,
