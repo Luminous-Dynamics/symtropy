@@ -5,6 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub const SCHEMA: &str = "luminous.interactive_sim_cases.v0.1";
 pub const STATUS: &str = "synthetic_non_operational";
 pub const COMPARISON_POLICY: &str = "matched_workload_or_explicitly_non_comparable";
+pub const EXPECTED_FIXTURE_SHA256: &str = "686cb2246cd0b5dd2f1307c5b620d798d653c21451a06970f3af337eaae00534";
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -49,6 +50,13 @@ const REQUIRED: [(&str, &str, &[&str]); 8] = [
 pub fn verify(bytes: &[u8]) -> Report {
     let source_sha256 = format!("{:x}", Sha256::digest(bytes));
     let mut errors = Vec::new();
+    if source_sha256 != EXPECTED_FIXTURE_SHA256 {
+        errors.push(format!(
+            "fixture_digest_mismatch: expected {}, got {}",
+            EXPECTED_FIXTURE_SHA256,
+            source_sha256
+        ));
+    }
     let mut case_count = 0;
 
     match serde_json::from_slice::<Manifest>(bytes) {
@@ -118,7 +126,7 @@ mod tests {
         let report = verify(FIXTURE.as_bytes());
         assert_eq!(report.status, "CONFORMS", "{:?}", report.errors);
         assert_eq!(report.case_count, REQUIRED.len());
-        assert_eq!(report.source_sha256.len(), 64);
+        assert_eq!(report.source_sha256, EXPECTED_FIXTURE_SHA256);
     }
 
     #[test]
@@ -162,4 +170,13 @@ mod tests {
         assert_eq!(report.status, "REJECTED");
         assert!(report.errors.iter().any(|e| e.starts_with("required_assertion_missing: IS-008")));
     }
+    #[test]
+    fn fixture_byte_change_is_rejected_by_digest() {
+        let changed = FIXTURE.replace("same_build_replay", "same_build_replay ");
+        assert_ne!(changed, FIXTURE);
+        let report = verify(changed.as_bytes());
+        assert_eq!(report.status, "REJECTED");
+        assert!(report.errors.iter().any(|e| e.starts_with("fixture_digest_mismatch:")));
+    }
+
 }
