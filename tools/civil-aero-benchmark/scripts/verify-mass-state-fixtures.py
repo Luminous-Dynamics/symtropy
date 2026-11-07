@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import math
+from datetime import datetime
 import sys
 from pathlib import Path
 from typing import Any
@@ -53,7 +54,6 @@ def validate_source_units(fixture: dict[str, Any]) -> None:
     for item in fixture["base_items"]:
         captured_at = item.get("source_captured_at_utc", "")
         try:
-            from datetime import datetime
             datetime.strptime(captured_at, "%Y-%m-%dT%H:%M:%SZ")
         except ValueError as error:
             raise ValueError(f"base item {item['id']}: invalid UTC source capture time") from error
