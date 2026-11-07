@@ -94,16 +94,23 @@ The original paper repository also contains a stored results summary generated o
 
 These are historical repository results, not a present-day leaderboard, not independently reproduced in this phase, and not accompanied here by a confidence interval. PAS and ECS are separate metrics; do not combine them or compare their scales with SimBench/SSDataBench scores.
 
-## What is not yet implemented
+## Implemented paper-native importer v0.1
 
-- No importer from the original `full_benchmark.json` / `detailed_stats.csv` / `evaluation_results.json` native result set.
-- No importer from the Community playground `run.json` / `responses.json` / `evaluation.json` / `analysis.json` set.
-- No HumanStudy model run is claimed as reproduced.
-- No PAS/ECS or replication-rate improvement is claimed.
-- No claim is made that the 30 January 2026 stored summary is a current SOTA result.
-- No raw participant data or study instruments are copied into this repository.
+The Rust adapter now imports one original paper-run study directory containing:
+- `full_benchmark.json`
+- `detailed_stats.csv`
+- `evaluation_results.json`
+- `civdyn_paper_run_attestation.json` (a CIVDYN sidecar, not an upstream-generated file)
 
-The next implementation should be two narrow source-pinned importers that hash native bytes first, decode only documented fields, retain unknown fields/artifacts, and produce the common receipt. They should be tested against sanitized or synthetic fixtures plus independently verified official outputs.
+It hashes exact bytes before parsing; checks the native study, model and prompt preset against the sidecar; validates the sidecar’s paper commit and study-specific config/evaluator Git blob SHAs; checks the detailed CSV header and row count against the official evaluator’s `test_results`; derives an agent-configuration digest from the settings recorded in the full benchmark; and carries the exact frozen source-pin manifest digest into each study receipt.
+
+The importer copies `score` as official PAS and preserves `ecs_corr_study` / `ecs_corr` only when upstream supplies a finite value. **Per-study ECS is optional** because the pinned upstream metric can be undefined when fewer than three valid effect-size pairs are present. No score is reconstructed or reimplemented. Effect rows are emitted only when both `human_effect_d` and `agent_effect_d` are present.
+
+The sidecar is an operator attestation of which upstream source revision, study config/evaluator, prompt and independent unit were used. The importer checks its identity fields against the frozen profile, but cannot independently prove which external Python process produced a pre-existing output directory. It is provenance evidence, not a cryptographic execution proof.
+
+The importer is a per-study adapter plus a 12-study receipt assembler. The community playground importer remains unimplemented. No model execution, HumanStudy reproduction, PAS/ECS improvement, or benchmark SOTA claim is made by these synthetic conformance tests.
+
+No raw participant data or study instruments are copied into this repository. The adapter marks run artifacts as local, not automatically publishable; source-code licensing does not settle the rights to each paper, instrument, prompt stimulus or human dataset.
 
 ## Run
 
