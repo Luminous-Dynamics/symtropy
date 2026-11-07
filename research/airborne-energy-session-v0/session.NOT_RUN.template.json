@@ -1,0 +1,12 @@
+{
+  "schema_version": "airborne-energy-session-v0",
+  "episode_id": "NOT_RUN",
+  "record_state": "NOT_RUN",
+  "evidence_class": "NOT_RUN",
+  "receiver": null,
+  "opportunity": null,
+  "site_allocation_receipt": null,
+  "events": [],
+  "energy_accounting": null,
+  "claim_ceiling": "Template only. No receiver, opportunity, allocation, event, energy measurement or physical authorization has been supplied. NOT_RUN is not a pass."
+}
