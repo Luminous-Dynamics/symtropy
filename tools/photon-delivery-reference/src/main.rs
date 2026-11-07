@@ -569,6 +569,51 @@ mod tests {
     }
 
     #[test]
+    fn daily_energy_limit_can_bind_even_when_peak_power_is_adequate() {
+        let energy_limited = FIXTURE
+            .replace(
+                "available_lighting_power_kw=40.0",
+                "available_lighting_power_kw=100.0",
+            )
+            .replace(
+                "available_lighting_energy_kwh_day=960.0",
+                "available_lighting_energy_kwh_day=300.0",
+            );
+        let input = parse_input(&energy_limited).expect("syntactically valid fixture");
+        let report = evaluate(&input).expect("valid energy-limited case");
+        assert!(report.peak_power_feasible);
+        assert!(!report.daily_energy_feasible);
+        assert!(!report.dli_met);
+        close(report.resource_constrained_dli_mol_m2_day, 14.9616, 1e-9);
+    }
+
+    #[test]
+    fn high_optical_auxiliary_load_can_make_hybrid_worse_than_led_only() {
+        let high_aux = FIXTURE
+            .replace(
+                "optical_auxiliary_electricity_wh_day=20000.0",
+                "optical_auxiliary_electricity_wh_day=3000000.0",
+            )
+            .replace(
+                "optical_auxiliary_peak_kw=0.8",
+                "optical_auxiliary_peak_kw=10.0",
+            )
+            .replace(
+                "available_lighting_power_kw=40.0",
+                "available_lighting_power_kw=100.0",
+            )
+            .replace(
+                "available_lighting_energy_kwh_day=960.0",
+                "available_lighting_energy_kwh_day=5000.0",
+            );
+        let input = parse_input(&high_aux).expect("syntactically valid fixture");
+        let report = evaluate(&input).expect("valid high-auxiliary case");
+        assert!(report.requested_energy_saving_vs_led_only_percent < 0.0);
+        assert!(report.peak_power_feasible);
+        assert!(!report.daily_energy_feasible);
+    }
+
+    #[test]
     fn missing_optical_efficiency_is_not_assumed_to_be_perfect() {
         let missing = FIXTURE.replace("relay_transmission=0.5\n", "");
         assert!(
