@@ -716,9 +716,10 @@ mod tests {
 
     #[test]
     fn unsupported_or_unknown_sam_path_cannot_be_labelled_supported_utility() {
+        let evidence = empirical_binding("traffic-model-h1", "action-a", 1);
         let supported_utility = OutcomeSupport::Supported {
             utility: ExactRational::new(10, 1).unwrap(),
-            evidence_digest: [9; 32],
+            evidence_digest: evidence.qualification.receipt_digest,
         };
         for disposition in [
             SamTrajectoryDisposition::UnsupportedSequence,
@@ -726,14 +727,19 @@ mod tests {
             SamTrajectoryDisposition::Incomplete,
             SamTrajectoryDisposition::OutOfScope,
         ] {
-            let manifest = bundle(supported_utility.clone(), disposition, true);
+            let manifest = TrajectoryEvidenceBoundDecisionManifest {
+                evidence_bound_decision: evidence_manifest(
+                    supported_utility.clone(),
+                    vec![evidence.clone()],
+                ),
+                trajectory_support: vec![sam_binding(disposition)],
+            };
             assert_eq!(
                 manifest.validate(),
                 Err(TrajectoryEvidenceError::SupportOutcomeMismatch)
             );
         }
     }
-
     #[test]
     fn supported_path_may_still_have_unidentified_utility() {
         // Trajectory membership is necessary for a supported utility cell,
