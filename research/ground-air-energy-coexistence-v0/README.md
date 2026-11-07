@@ -274,3 +274,74 @@ The evaluator rejects a channel meter boundary inconsistent with the transfer mo
 ### Concurrency continuity metric
 
 The exact report exposes `simultaneous_delivery_slot_count` and a per-slot `simultaneous_ground_air_delivery` Boolean. The frozen fixture achieves 4/4 concurrent slots. This is a synthetic service-continuity target; physical validation must separately measure actual ground and aircraft delivery windows, meter windows, channel availability and transient dropouts.
+
+## 13. Operational autonomy benchmark update — 7 November 2026
+
+The open-access review by Wu et al., *Autonomous Charging and Battery Swapping for Unmanned Aerial Vehicles: A Review*, first published 25 October 2026 (DOI [10.1002/aisy.70584](https://doi.org/10.1002/aisy.70584)), materially changes the technology ordering. The review screened roughly 100 studies but explicitly targets **rotary-wing UAVs**; it excludes fixed-wing UAV charging studies. Its evidence must not be generalized to eVTOL or fixed-wing aircraft without separate data.
+
+### Contact/robotic docking is the near-term reference
+
+The review reports a contact-charging platform that operated across 832 landing poses at greater than 98% efficiency and completed 30/30 outdoor flights. The 832 figure denotes tested landing poses, not 832 independent flights. The review also warns that environmental conditions can reduce landing accuracy and that long-term UAV-specific connector durability evidence is thin. Its ~3,000-cycle connector-degradation reference comes from general electrical connector accelerated testing, not a UAV dock lifetime qualification.
+
+Therefore conductive/robotic docking is a mandatory comparator for M0 and not an inferior fallback by assumption. Compare it on complete service: autonomous approach/landing, docking success, charging, release, contamination tolerance, connector wear, maintenance, and time-to-ready.
+
+### Near-field wireless ranges and gaps
+
+The review's inductive table includes:
+- 85.2 W with 89% peak efficiency, with >75% efficiency over a 300×700 mm charging area in one transmitter-array study;
+- 175 W / 92.3% at a 5 mm transfer gap, with 200 mm lateral tolerance in one particular geometry;
+- 260 W / 91.57% at 2 mm gap, with stable operation over 25 mm X, 40 mm Y and 25° rotation;
+- 125 W / 97.66% peak, falling to 85.48% at 100 mm X misalignment;
+- 350 W / 85 kHz / 50 mm gap, with 88.6% (two-transmitter) and 87.9% (four-transmitter) peak DC–DC efficiency in the position-adaptive array.
+
+Its CPT table includes one SIMO UAV-swarm prototype reporting up to 709.9 W maximum single-load output, 89.06% peak DC–DC efficiency, less than 10% power drop within 125 mm lateral offset and up to 60° angular misalignment. That is a study-specific single-load maximum within a multi-output architecture; do not report it as proven simultaneous power per aircraft or a general UAV rating.
+
+The differences in gap, alignment, receiver mass, transmitter/receiver electronics, load profile and measurement boundary make these incomparable as a single efficiency ranking. Store each result as a source-bound operating point with its own conditions.
+
+### Far-field power is promising but not yet a generic UAV power supply
+
+The review's listed microwave examples report received power from milliwatts to ~2.28 W under their stated short-range conditions, with low efficiencies. Its laser examples range from tens of milliwatts to around 5 W for several experimental systems; the cited 180 W laser row omits efficiency and range. The review emphasizes beam divergence, pointing, limited receiver area and safety. These values should be treated as representative research examples, not upper bounds for the whole field.
+
+Reach Power's 28 October 2026 announcement reports a 10-hour autonomous RF-beam-powered quadcopter demonstration with machine-to-machine power requests, beam release and reacquisition. Aviation Week reported the announcement the following day. The public materials still do not disclose range, delivered electrical power, frequency, transmitter electrical input or end-to-end efficiency. Classify this as an autonomy/endurance milestone with unreported energy performance—not a measured efficiency comparator.
+
+### Add non-wireless energy replenishment baselines
+
+For an actual UAV mission, wireless charging is not automatically superior. Add:
+- contact/robotic dock;
+- autonomous battery swapping;
+- tethered power for stationary/hovering missions (direct aircraft-bus supply is not battery charging; count the onboard battery as any buffer/reserve);
+- power-line perching/replenishment only for specifically approved infrastructure-inspection missions;
+- onboard battery-only operation;
+- near-field IPT/CPT dock/hover;
+- RF/optical beaming.
+
+The review describes power-line perching systems, including a 5 W inductive perching example and a 2024 field system with five outdoor inspection/charging cycles over more than two hours, but notes that autonomous charge initiation/interruption was not fully tested. This is a mission-specific option, not a generic airport/vertiport interface. High-voltage line work remains outside this software workstream and requires the relevant utility and aviation safety approvals.
+
+### Updated demonstrator ladder
+
+- **M0 — shared energy-site service:** dynamic ground IPT plus a separately metered conductive/robotic docked-UAV charger on a shared, constrained PCC. Also compare a tethered-UAV service case for missions that permit stationary operation. This qualifies simultaneous site service and accounting, but is **not** a dual-wireless demonstration.
+- **M1 — dual near-field wireless:** replace or supplement the conductive aircraft dock with a separately qualified docked-UAV IPT or CPT channel while ground dynamic IPT continues. This is the first actual simultaneous ground-wireless + air-wireless target.
+- **M2 — autonomous multi-UAV service:** landing/hover alignment, two-or-more receivers, departure/reacquisition, per-session service, inactive-port isolation and maintenance while the roadway lane remains active.
+- **M3 — far-field research:** RF and optical sessions, each with its own acquisition/path safety, spectrum or laser controls, receiver mass, environment and independent energy meter evidence.
+- **M4 — parked eVTOL service:** mission-matched conductive and optional inductive charging integrated with vertiport/grid demand. Do not infer eVTOL charging performance from rotary-wing UAV studies.
+- **M5 — airborne eVTOL beaming:** future exploratory work only, requiring an independent power/range/receiver-mass/airworthiness and safety case.
+
+### New evaluation principle: mission replenishment autonomy
+
+Peak link efficiency is only one axis. Each autonomous episode should record:
+- approach and alignment success;
+- successful authorization and safe start;
+- delivered useful endpoint Wh and exact meter planes;
+- interruption, abort, re-acquisition and safe-release counts;
+- time from arrival to mission-ready departure;
+- availability over repeated episodes;
+- maintenance burden, connector/coupler wear and cleaning;
+- receiver mass and payload lost to the energy interface;
+- mission completion and useful work per site energy;
+- uncertainty and independent evidence for all reported values.
+
+Report reliability with denominators and confidence intervals. For example, 30/30 successful flights is promising but still a small sample; it is not evidence of a zero-failure rate. Do not turn the proposed 99.99% software-event target into a field-reliability claim.
+
+### Scope limitation of the v0 oracle
+
+The executable allocator remains a shared-source, synthetic scheduling oracle. Its input coefficients are synthetic mappings from site energy to useful endpoint energy; the named intermediate channel meter boundary is identity metadata in v0, not a separately simulated or measured conversion stage. It does not model landing dynamics, contact resistance, coil coupling, CPT fields, RF propagation, laser pointing, queueing, storage, feeder voltage dynamics or aircraft propulsion. Those require the domain owners and later adapters. The v0 exact result is an allocation proof for its discrete assumptions only.
