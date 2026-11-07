@@ -688,6 +688,18 @@ mod tests {
     }
 
     #[test]
+    fn all_cause_brier_and_integrated_score_match_golden_vectors() {
+        let report = evaluate_case(&fixture()).unwrap();
+        let h5 = score(&report, "ALL_CAUSE_SURVIVAL", None, 5.0);
+        let h8 = score(&report, "ALL_CAUSE_SURVIVAL", None, 8.0);
+        assert!((h5.brier_score - 0.0656).abs() <= TOL);
+        assert!((h8.brier_score - 0.07696).abs() <= TOL);
+        let ibs = report.integrated_brier_scores.iter()
+            .find(|value| value.forecast_kind == "ALL_CAUSE_SURVIVAL").unwrap();
+        assert!((ibs.integrated_brier_score.unwrap() - 0.07128).abs() <= TOL);
+    }
+
+    #[test]
     fn cause_specific_cumulative_incidence_is_scored_per_failure_cause() {
         let report = evaluate_case(&fixture()).unwrap();
         assert!(report.brier_scores.iter().any(|s| s.forecast_kind == "CAUSE_CUMULATIVE_INCIDENCE" && s.cause_id.as_deref() == Some("PICK_FRACTURE")));
