@@ -376,23 +376,35 @@ fn pair_status(
         let a = responses[&(state_a, channel_id)];
         let b = responses[&(state_b, channel_id)];
 
-        for response in [a, b] {
+        let evidence_admissible = |response: &Value| {
             match text(response, "evidence_role") {
-                Some("INDEPENDENT_MEASUREMENT") if text(observability, "evidence_class") == Some("MEASURED") => {}
-                Some("SYNTHETIC_CONFORMANCE_FIXTURE") if text(observability, "evidence_class") == Some("SYNTHETIC_CONFORMANCE_FIXTURE") => {}
-                _ => unresolved = true,
+                Some("INDEPENDENT_MEASUREMENT") => text(observability, "evidence_class") == Some("MEASURED"),
+                Some("SYNTHETIC_CONFORMANCE_FIXTURE") => text(observability, "evidence_class") == Some("SYNTHETIC_CONFORMANCE_FIXTURE"),
+                _ => false,
             }
-            if text(response, "availability") == Some("UNKNOWN") {
-                unresolved = true;
-            }
+        };
+        if !evidence_admissible(a) || !evidence_admissible(b) {
+            unresolved = true;
+            continue;
+        }
+        if text(a, "availability") == Some("UNKNOWN")
+            || text(b, "availability") == Some("UNKNOWN")
+        {
+            unresolved = true;
+            continue;
         }
 
         if text(a, "availability") != Some("VALID")
             || text(b, "availability") != Some("VALID")
         {
-            let known_fault = known_fault_unavailability(observability, state_a, channel_id, a)
-                || known_fault_unavailability(observability, state_b, channel_id, b);
-            if !known_fault {
+            if text(a, "availability") != Some("VALID")
+                && !known_fault_unavailability(observability, state_a, channel_id, a)
+            {
+                unresolved = true;
+            }
+            if text(b, "availability") != Some("VALID")
+                && !known_fault_unavailability(observability, state_b, channel_id, b)
+            {
                 unresolved = true;
             }
             continue;
@@ -784,6 +796,53 @@ mod tests {
         }));
         let report = optimize_layout(&observability(), &case).unwrap();
         assert!(report.pareto_layouts.is_empty());
+    }
+
+    #[test]
+    fn model_estimate_response_cannot_contribute_a_principle() {
+        let mut obs = observability();
+        let pair = obs["required_state_pairs"].as_array_mut().unwrap()
+            .iter_mut().find(|pair| pair["pair_id"] == "normal-vs-blockage").unwrap();
+        pair["minimum_independent_principles"] = serde_json::json!(5);
+        let response = obs["responses"].as_array_mut().unwrap()
+            .iter_mut().find(|response| response["state_id"] == "DEVELOPING_BLOCKAGE" && response["channel_id"] == "ecc-flow").unwrap();
+        response["evidence_role"] = serde_json::json!("MODEL_ESTIMATE");
+        let selected: BTreeSet<String> = obs["channels"].as_array().unwrap().iter()
+            .map(|channel| text(channel, "channel_id").unwrap().to_owned()).collect();
+        let result = pair_status(
+            &obs,
+            obs["required_state_pairs"].as_array().unwrap().iter()
+                .find(|pair| pair["pair_id"] == "normal-vs-blockage").unwrap(),
+            &selected,
+            &BTreeSet::new(),
+            &BTreeSet::new()
+        );
+        assert_eq!(result.status, "INSUFFICIENT_EVIDENCE");
+        assert_eq!(result.observed_independent_principles, 4);
+    }
+
+    #[test]
+    fn unexpected_dropout_is_not_treated_as_a_known_sensor_fault() {
+        let mut obs = observability();
+        let pair = obs["required_state_pairs"].as_array_mut().unwrap()
+            .iter_mut().find(|pair| pair["pair_id"] == "normal-vs-blockage").unwrap();
+        pair["minimum_independent_principles"] = serde_json::json!(6);
+        let response = obs["responses"].as_array_mut().unwrap()
+            .iter_mut().find(|response| response["state_id"] == "NORMAL_STABLE" && response["channel_id"] == "blower-current").unwrap();
+        response["availability"] = serde_json::json!("MISSING");
+        response["value_lower"] = Value::Null;
+        response["value_upper"] = Value::Null;
+        let selected: BTreeSet<String> = obs["channels"].as_array().unwrap().iter()
+            .map(|channel| text(channel, "channel_id").unwrap().to_owned()).collect();
+        let result = pair_status(
+            &obs,
+            obs["required_state_pairs"].as_array().unwrap().iter()
+                .find(|pair| pair["pair_id"] == "normal-vs-blockage").unwrap(),
+            &selected,
+            &BTreeSet::new(),
+            &BTreeSet::new()
+        );
+        assert_eq!(result.status, "INSUFFICIENT_EVIDENCE");
     }
 
     #[test]
