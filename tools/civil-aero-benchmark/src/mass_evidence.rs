@@ -585,6 +585,7 @@ impl MassEvidenceLedger {
             } else {
                 StateEvidenceStatus::Indeterminate
             },
+            unknown_geometry_item_ids: mass_properties.unknown_geometry_item_ids.clone(),
             mass_properties,
             total_mass_standard_uncertainty_kg,
             total_mass_uncertainty_status: if total_mass_standard_uncertainty_kg.is_some() {
@@ -598,7 +599,6 @@ impl MassEvidenceLedger {
             rejected_item_ids,
             unresolved_installation_item_ids,
             unknown_mass_item_ids: mass_ledger_unknown_mass(&mass_properties),
-            unknown_geometry_item_ids: mass_properties.unknown_geometry_item_ids.clone(),
         })
     }
 
@@ -658,11 +658,6 @@ impl MassEvidenceLedger {
             return Err("mass evidence ledger must contain at least one record".to_owned());
         }
         let mut previous: Option<&str> = None;
-        let record_ids: HashSet<&str> = self
-            .records
-            .iter()
-            .map(|record| record.item.id.as_str())
-            .collect();
         for record in &self.records {
             if let Some(parent) = &record.parent_id {
                 let parent_record = self
