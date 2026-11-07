@@ -66,7 +66,10 @@ fn parse_input(source: &str) -> Result<MissionInput, String> {
         let value = value.trim();
 
         if key.is_empty() || value.is_empty() {
-            return Err(format!("line {}: key and value must be non-empty", line_index + 1));
+            return Err(format!(
+                "line {}: key and value must be non-empty",
+                line_index + 1
+            ));
         }
         if !REQUIRED_KEYS.contains(&key) {
             return Err(format!("line {}: unknown key {key}", line_index + 1));
@@ -95,13 +98,13 @@ fn parse_input(source: &str) -> Result<MissionInput, String> {
         .chars()
         .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-')
     {
-        return Err("scenario_id must contain only lowercase ASCII, digits, and hyphens".to_owned());
+        return Err(
+            "scenario_id must contain only lowercase ASCII, digits, and hyphens".to_owned(),
+        );
     }
 
     let parse_number = |key: &str| -> Result<f64, String> {
-        let raw = values
-            .get(key)
-            .ok_or_else(|| format!("missing {key}"))?;
+        let raw = values.get(key).ok_or_else(|| format!("missing {key}"))?;
         let number = raw
             .parse::<f64>()
             .map_err(|_| format!("{key} must be a number"))?;
@@ -152,19 +155,19 @@ fn evaluate(input: &MissionInput) -> Result<MissionReport, String> {
     }
 
     let cruise_coordinate_seconds = cruise_distance_m / (beta * C_M_S);
-    let coordinate_seconds =
-        2.0 * acceleration_coordinate_seconds + cruise_coordinate_seconds;
-    let proper_seconds =
-        2.0 * acceleration_proper_seconds + cruise_coordinate_seconds / gamma;
+    let coordinate_seconds = 2.0 * acceleration_coordinate_seconds + cruise_coordinate_seconds;
+    let proper_seconds = 2.0 * acceleration_proper_seconds + cruise_coordinate_seconds / gamma;
 
     // This is kinetic energy at peak cruise speed, not total propulsion-system energy.
     // It excludes conversion losses, propulsion dry mass, reaction mass and braking recovery.
-    let peak_kinetic_energy_j =
-        (gamma - 1.0) * input.spacecraft_mass_kg * C_M_S * C_M_S;
+    let peak_kinetic_energy_j = (gamma - 1.0) * input.spacecraft_mass_kg * C_M_S * C_M_S;
 
     let computed_values = [
         ("lorentz_factor", gamma),
-        ("acceleration_coordinate_seconds", acceleration_coordinate_seconds),
+        (
+            "acceleration_coordinate_seconds",
+            acceleration_coordinate_seconds,
+        ),
         ("acceleration_proper_seconds", acceleration_proper_seconds),
         ("one_leg_distance_m", one_leg_distance_m),
         ("total_distance_m", total_distance_m),
@@ -176,7 +179,9 @@ fn evaluate(input: &MissionInput) -> Result<MissionReport, String> {
     ];
     for (name, value) in computed_values {
         if !value.is_finite() {
-            return Err(format!("computed {name} is not finite; input exceeds numeric range"));
+            return Err(format!(
+                "computed {name} is not finite; input exceeds numeric range"
+            ));
         }
     }
 
@@ -259,8 +264,7 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
-    const FIXTURE: &str =
-        include_str!("../fixtures/proxima-4p24ly-stop-at-target-0p1c.input");
+    const FIXTURE: &str = include_str!("../fixtures/proxima-4p24ly-stop-at-target-0p1c.input");
 
     fn close(actual: f64, expected: f64, tolerance: f64) {
         assert!(
@@ -308,7 +312,11 @@ mod tests {
     #[test]
     fn rejects_duplicate_and_unknown_fixture_keys() {
         let duplicate = format!("{FIXTURE}distance_ly=4.24\n");
-        assert!(parse_input(&duplicate).unwrap_err().contains("duplicate key"));
+        assert!(
+            parse_input(&duplicate)
+                .unwrap_err()
+                .contains("duplicate key")
+        );
         let unknown = format!("{FIXTURE}warp_factor=2\n");
         assert!(parse_input(&unknown).unwrap_err().contains("unknown key"));
     }
@@ -317,10 +325,8 @@ mod tests {
     fn rejects_non_finite_and_superluminal_values() {
         let non_finite = FIXTURE.replace("distance_ly=4.24", "distance_ly=NaN");
         assert!(parse_input(&non_finite).unwrap_err().contains("finite"));
-        let superluminal = FIXTURE.replace(
-            "peak_speed_fraction_c=0.1",
-            "peak_speed_fraction_c=1.0",
-        );
+        let superluminal =
+            FIXTURE.replace("peak_speed_fraction_c=0.1", "peak_speed_fraction_c=1.0");
         let input = parse_input(&superluminal).expect("numeric fixture is parseable");
         assert!(evaluate(&input).unwrap_err().contains("strictly between"));
     }
@@ -338,11 +344,13 @@ mod tests {
         let input = parse_input(&zero_mass).expect("numeric fixture is parseable");
         assert!(evaluate(&input).unwrap_err().contains("spacecraft_mass_kg"));
 
-        let zero_accel = FIXTURE.replace(
-            "proper_acceleration_m_s2=1.0",
-            "proper_acceleration_m_s2=0",
-        );
+        let zero_accel =
+            FIXTURE.replace("proper_acceleration_m_s2=1.0", "proper_acceleration_m_s2=0");
         let input = parse_input(&zero_accel).expect("numeric fixture is parseable");
-        assert!(evaluate(&input).unwrap_err().contains("proper_acceleration_m_s2"));
+        assert!(
+            evaluate(&input)
+                .unwrap_err()
+                .contains("proper_acceleration_m_s2")
+        );
     }
 }
