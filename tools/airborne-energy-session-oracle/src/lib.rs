@@ -13,10 +13,12 @@ use std::fmt;
 
 use serde_json::Value;
 
-const POSITIVE_FIXTURE: &str =
-    include_str!("../../../research/airborne-energy-session-v0/session.synthetic-reacquire.example.json");
-const REVOKED_FIXTURE: &str =
-    include_str!("../../../research/airborne-energy-session-v0/session.adversarial-revoked-authorization.example.json");
+const POSITIVE_FIXTURE: &str = include_str!(
+    "../../../research/airborne-energy-session-v0/session.synthetic-reacquire.example.json"
+);
+const REVOKED_FIXTURE: &str = include_str!(
+    "../../../research/airborne-energy-session-v0/session.adversarial-revoked-authorization.example.json"
+);
 const NOT_RUN_FIXTURE: &str =
     include_str!("../../../research/airborne-energy-session-v0/session.NOT_RUN.template.json");
 
@@ -121,18 +123,16 @@ fn exact_keys(value: &Value, expected: &[&str], path: &str) -> Result<(), EvalEr
         .ok_or_else(|| fail(path, "must be an object"))?;
     let expected_set: BTreeSet<&str> = expected.iter().copied().collect();
     if fields.len() != expected_set.len()
-        || fields.keys().any(|key| !expected_set.contains(key.as_str()))
+        || fields
+            .keys()
+            .any(|key| !expected_set.contains(key.as_str()))
     {
         return Err(fail(path, "missing or unknown object property"));
     }
     Ok(())
 }
 
-fn string_field<'a>(
-    value: &'a Value,
-    key: &str,
-    path: &str,
-) -> Result<&'a str, EvalError> {
+fn string_field<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a str, EvalError> {
     value
         .get(key)
         .and_then(Value::as_str)
@@ -166,20 +166,26 @@ fn allowed_transition(from: State, to: State) -> bool {
     match from {
         State::Unavailable => matches!(to, State::Discovered | State::Aborted),
         State::Discovered => {
-            matches!(to, State::AdmissionPending | State::Unavailable | State::Aborted)
+            matches!(
+                to,
+                State::AdmissionPending | State::Unavailable | State::Aborted
+            )
         }
         State::AdmissionPending => {
-            matches!(to, State::AcquisitionPending | State::Aborted | State::RecoveryRequired)
+            matches!(
+                to,
+                State::AcquisitionPending | State::Aborted | State::RecoveryRequired
+            )
         }
         State::AcquisitionPending => {
-            matches!(to, State::TrackedNoPower | State::Aborted | State::RecoveryRequired)
+            matches!(
+                to,
+                State::TrackedNoPower | State::Aborted | State::RecoveryRequired
+            )
         }
         State::TrackedNoPower => matches!(
             to,
-            State::PowerActive
-                | State::DeparturePending
-                | State::Aborted
-                | State::RecoveryRequired
+            State::PowerActive | State::DeparturePending | State::Aborted | State::RecoveryRequired
         ),
         State::PowerActive => matches!(to, State::DeparturePending | State::RecoveryRequired),
         State::DeparturePending => matches!(to, State::SafeOff | State::RecoveryRequired),
@@ -188,7 +194,10 @@ fn allowed_transition(from: State, to: State) -> bool {
             State::ReacquisitionPending | State::Complete | State::RecoveryRequired
         ),
         State::ReacquisitionPending => {
-            matches!(to, State::AdmissionPending | State::Aborted | State::RecoveryRequired)
+            matches!(
+                to,
+                State::AdmissionPending | State::Aborted | State::RecoveryRequired
+            )
         }
         State::Complete | State::Aborted | State::RecoveryRequired => false,
     }
@@ -305,7 +314,10 @@ fn validate_energy_ledger(ledger: &Value) -> Result<(u64, u64, u64), EvalError> 
         .ok_or_else(|| fail("$.energy_accounting", "aggregate balance overflow"))?;
 
     if source != source_rhs {
-        return Err(fail("$.energy_accounting", "source-to-channel energy does not close"));
+        return Err(fail(
+            "$.energy_accounting",
+            "source-to-channel energy does not close",
+        ));
     }
     if channel != channel_rhs {
         return Err(fail(
@@ -320,7 +332,10 @@ fn validate_energy_ledger(ledger: &Value) -> Result<(u64, u64, u64), EvalError> 
         ));
     }
     if source != aggregate_rhs {
-        return Err(fail("$.energy_accounting", "aggregate source-to-battery ledger does not close"));
+        return Err(fail(
+            "$.energy_accounting",
+            "aggregate source-to-battery ledger does not close",
+        ));
     }
     Ok((source, useful, residual))
 }
@@ -364,7 +379,10 @@ pub fn evaluate_json(input: &str) -> Result<Report, EvalError> {
             || !events.is_empty()
             || !value["energy_accounting"].is_null()
         {
-            return Err(fail("$", "NOT_RUN record must contain no evidence or energy"));
+            return Err(fail(
+                "$",
+                "NOT_RUN record must contain no evidence or energy",
+            ));
         }
         return Ok(Report {
             disposition: Disposition::NotRun,
@@ -398,10 +416,17 @@ pub fn evaluate_json(input: &str) -> Result<Report, EvalError> {
     let receiver_class = string_field(receiver, "receiver_class", "$.receiver")?;
     if !matches!(
         receiver_class,
-        "UAV_DOCKED" | "UAV_HOVERING" | "UAV_MOVING" | "UAV_FIXED_WING"
-            | "EVTOL_DOCKED" | "EVTOL_AIRBORNE"
+        "UAV_DOCKED"
+            | "UAV_HOVERING"
+            | "UAV_MOVING"
+            | "UAV_FIXED_WING"
+            | "EVTOL_DOCKED"
+            | "EVTOL_AIRBORNE"
     ) {
-        return Err(fail("$.receiver.receiver_class", "unsupported receiver class"));
+        return Err(fail(
+            "$.receiver.receiver_class",
+            "unsupported receiver class",
+        ));
     }
     require_sha256(
         string_field(receiver, "trajectory_sha256", "$.receiver")?,
@@ -507,11 +532,17 @@ pub fn evaluate_json(input: &str) -> Result<Report, EvalError> {
         }
         let sequence = uint_field(event, "sequence", &path)?;
         if sequence != index as u64 {
-            return Err(fail(&format!("{path}.sequence"), "must be contiguous from zero"));
+            return Err(fail(
+                &format!("{path}.sequence"),
+                "must be contiguous from zero",
+            ));
         }
         let timestamp = uint_field(event, "at_ms", &path)?;
         if index > 0 && timestamp < last_timestamp {
-            return Err(fail(&format!("{path}.at_ms"), "timestamps must be monotonic"));
+            return Err(fail(
+                &format!("{path}.at_ms"),
+                "timestamps must be monotonic",
+            ));
         }
         last_timestamp = timestamp;
 
@@ -546,10 +577,19 @@ pub fn evaluate_json(input: &str) -> Result<Report, EvalError> {
         let motion_state = string_field(evidence, "motion_state", &path)?;
         if !matches!(
             motion_state,
-            "PARKED_LANDED_DOCKED" | "QUASI_STATIC_HOVER" | "MOVING_HOVER"
-                | "TRANSLATION" | "CLIMB" | "DESCENT" | "DYNAMIC_FLIGHT" | "DIVERSION"
+            "PARKED_LANDED_DOCKED"
+                | "QUASI_STATIC_HOVER"
+                | "MOVING_HOVER"
+                | "TRANSLATION"
+                | "CLIMB"
+                | "DESCENT"
+                | "DYNAMIC_FLIGHT"
+                | "DIVERSION"
         ) {
-            return Err(fail(&format!("{path}.evidence.motion_state"), "unsupported motion state"));
+            return Err(fail(
+                &format!("{path}.evidence.motion_state"),
+                "unsupported motion state",
+            ));
         }
 
         if to == State::AdmissionPending {
@@ -602,7 +642,10 @@ pub fn evaluate_json(input: &str) -> Result<Report, EvalError> {
 
         if to == State::DeparturePending {
             if from != State::PowerActive {
-                return Err(fail(&path, "DEPARTURE_PENDING must close an active power interval"));
+                return Err(fail(
+                    &path,
+                    "DEPARTURE_PENDING must close an active power interval",
+                ));
             }
             require_evidence_string(evidence, "local_protection_state", "INHIBIT", &path)?;
             require_evidence_string(evidence, "tracking_state", "LOST", &path)?;
@@ -639,7 +682,10 @@ pub fn evaluate_json(input: &str) -> Result<Report, EvalError> {
         return Err(fail("$.events", "trace ends before a safe-off disposition"));
     }
     if power_active_intervals != safe_off_intervals {
-        return Err(fail("$.events", "every power-active interval requires a safe-off disposition"));
+        return Err(fail(
+            "$.events",
+            "every power-active interval requires a safe-off disposition",
+        ));
     }
     if state != State::Complete && state != State::Aborted && state != State::RecoveryRequired {
         return Err(fail("$.events", "trace must end in a terminal disposition"));
@@ -712,14 +758,17 @@ mod tests {
         value["events"][8]["from_state"] = Value::String("REACQUISITION_PENDING".into());
         value["events"][8]["to_state"] = Value::String("ACQUISITION_PENDING".into());
         let error = evaluate_json(&value.to_string()).expect_err("reacquisition must re-admit");
-        assert!(error.to_string().contains("transition is not in the v0 state graph"));
+        assert!(
+            error
+                .to_string()
+                .contains("transition is not in the v0 state graph")
+        );
     }
 
     #[test]
     fn safe_off_requires_positive_deenergization_confirmation() {
         let mut value = fixture_value();
-        value["events"][6]["evidence"]["deenergized_state"] =
-            Value::String("UNCONFIRMED".into());
+        value["events"][6]["evidence"]["deenergized_state"] = Value::String("UNCONFIRMED".into());
         let error = evaluate_json(&value.to_string()).expect_err("unconfirmed safe-off rejects");
         assert!(error.to_string().contains("deenergized_state"));
     }
@@ -727,11 +776,12 @@ mod tests {
     #[test]
     fn energy_ledger_must_close_at_each_plane() {
         let mut value = fixture_value();
-        value["energy_accounting"]["battery_terminal_useful_energy_wh"] =
-            Value::from(23_u64);
+        value["energy_accounting"]["battery_terminal_useful_energy_wh"] = Value::from(23_u64);
         let error = evaluate_json(&value.to_string()).expect_err("non-closing ledger rejects");
-        assert!(error.to_string().contains("receiver-to-battery")
-            || error.to_string().contains("aggregate source-to-battery"));
+        assert!(
+            error.to_string().contains("receiver-to-battery")
+                || error.to_string().contains("aggregate source-to-battery")
+        );
     }
 
     #[test]
@@ -747,7 +797,11 @@ mod tests {
         let mut value = fixture_value();
         value["events"][3]["from_state"] = Value::String("DISCOVERED".into());
         let error = evaluate_json(&value.to_string()).expect_err("broken state chain rejects");
-        assert!(error.to_string().contains("from_state does not match previous to_state"));
+        assert!(
+            error
+                .to_string()
+                .contains("from_state does not match previous to_state")
+        );
     }
 
     #[test]
@@ -755,6 +809,10 @@ mod tests {
         let mut value = fixture_value();
         value["site_allocation_receipt"]["valid_until_ms"] = Value::from(1000_u64);
         let error = evaluate_json(&value.to_string()).expect_err("expired allocation rejects");
-        assert!(error.to_string().contains("outside the site allocation validity window"));
+        assert!(
+            error
+                .to_string()
+                .contains("outside the site allocation validity window")
+        );
     }
 }
