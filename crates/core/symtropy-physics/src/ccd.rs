@@ -330,11 +330,7 @@ pub fn try_sphere_halfspace<const D: usize>(
         return Err(CcdInputError::NumericalOverflow);
     }
 
-    Ok(Some(CcdHit {
-        toi,
-        point,
-        normal,
-    }))
+    Ok(Some(CcdHit { toi, point, normal }))
 }
 
 /// Compatibility wrapper for try_sphere_halfspace.
