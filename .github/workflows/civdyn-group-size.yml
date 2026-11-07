@@ -64,7 +64,7 @@ jobs:
               rows = list(csv.DictReader(handle))
 
           assert len(rows) == 1260, f"expected 1,260 complete run records, got {len(rows)}"
-          assert all(len(row) == 22 for row in rows)
+          assert all(len(row) == 26 for row in rows)
           assert {row["population_size"] for row in rows} == {"2","3","4","6","10","24","100"}
           assert {row["memory_capacity"] for row in rows} == {"5"}
           assert {row["memory_state_count"] for row in rows} == {"1365"}
@@ -107,7 +107,48 @@ jobs:
           assert all(abs(float(row["initial_individual_bias"])) < 1e-12 for row in neutral)
           assert all(abs(float(row["initial_individual_bias"]) - 0.05) < 1e-9 for row in weak_bias)
 
-          print("CIVDYN-GROUPSIZE-001 memory-state domain, group-size grid, full replication denominator and deterministic replay verified.")
+          memory_independent = {
+              "always_option_0": 1.0,
+              "always_option_1": 0.0,
+              "neutral_memory_independent": 0.5,
+              "weak_option_0_bias": 0.55,
+          }
+          for policy, probability in memory_independent.items():
+              expected_agreement = probability**2 + (1.0 - probability)**2
+              for population_size in {"2","3","4","6","10","24","100"}:
+                  subset = [
+                      row for row in rows
+                      if row["policy_id"] == policy and row["population_size"] == population_size
+                  ]
+                  assert all(row["oracle_expected_option0_action_share"] != "" for row in subset)
+                  assert all(row["oracle_expected_pairwise_agreement_rate"] != "" for row in subset)
+                  assert all(row["oracle_option0_share_standard_deviation"] != "" for row in subset)
+                  assert all(row["oracle_pairwise_agreement_standard_deviation"] != "" for row in subset)
+                  n = int(population_size)
+                  expected_share_sd = (probability * (1.0 - probability) / (2.0 * n)) ** 0.5
+                  expected_agreement_sd = (expected_agreement * (1.0 - expected_agreement) / n) ** 0.5
+                  assert all(abs(float(row["oracle_expected_option0_action_share"]) - probability) < 1e-9 for row in subset)
+                  assert all(abs(float(row["oracle_expected_pairwise_agreement_rate"]) - expected_agreement) < 1e-9 for row in subset)
+                  assert all(abs(float(row["oracle_option0_share_standard_deviation"]) - expected_share_sd) < 1e-8 for row in subset)
+                  assert all(abs(float(row["oracle_pairwise_agreement_standard_deviation"]) - expected_agreement_sd) < 1e-8 for row in subset)
+                  mean_share = sum(float(row["final_option0_action_share"]) for row in subset) / len(subset)
+                  mean_agreement = sum(float(row["final_agreement_rate"]) for row in subset) / len(subset)
+                  share_se = expected_share_sd / (len(subset) ** 0.5)
+                  agreement_se = expected_agreement_sd / (len(subset) ** 0.5)
+                  assert abs(mean_share - probability) <= 5.0 * share_se + 1e-9
+                  assert abs(mean_agreement - expected_agreement) <= 5.0 * agreement_se + 1e-9
+
+          memory_dependent = {
+              "copy_partner_majority",
+              "anti_copy_partner_majority",
+          }
+          assert all(
+              row["oracle_expected_option0_action_share"] == ""
+              and row["oracle_expected_pairwise_agreement_rate"] == ""
+              for row in rows if row["policy_id"] in memory_dependent
+          )
+
+          print("CIVDYN-GROUPSIZE-001 memory-state domain, group-size grid, analytical oracle, finite-N sampling and deterministic replay verified.")
           PY
 
           {
