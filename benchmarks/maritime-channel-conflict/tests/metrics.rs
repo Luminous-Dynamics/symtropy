@@ -515,7 +515,7 @@ fn channel_movement_must_be_exact_member_of_selected_fleet_plan() {
     )]);
     assert_eq!(
         evaluate_channel_conflicts(&plan, &ChannelConflictWorkload { graph, movements },),
-        Err(ChannelError::FleetOperationNotFound("move-in".to_owned()))
+        Err(ChannelError::FleetOperationNotFound("main-segment".to_owned()))
     );
 }
 
@@ -630,7 +630,7 @@ fn reference_conflict(first: TickWindow, second: TickWindow, minimum_headway_tic
         (second.end_tick, first.start_tick)
     };
     let mut free_ticks = 0_u64;
-    for tick in earlier_end..later_start {
+    for _ in earlier_end..later_start {
         free_ticks += 1;
     }
     free_ticks < minimum_headway_ticks
