@@ -20,9 +20,10 @@
     "bus_loads",
     "motor_drives",
     "propulsors",
-    "peak_source_power_w",
-    "peak_source_power_limit_w",
-    "continuous_source_power_limit_w"
+    "tolerance_w",
+    "peak_bus_supply_power_w",
+    "peak_bus_supply_power_limit_w",
+    "continuous_bus_supply_power_limit_w"
   ],
   "properties": {
     "schema_version": {
@@ -94,14 +95,18 @@
         "$ref": "#/$defs/propulsor"
       }
     },
-    "peak_source_power_w": {
+    "tolerance_w": {
+      "type": "number",
+      "minimum": 0
+    },
+    "peak_bus_supply_power_w": {
       "$ref": "#/$defs/nonnegative"
     },
-    "peak_source_power_limit_w": {
+    "peak_bus_supply_power_limit_w": {
       "type": "number",
       "exclusiveMinimum": 0
     },
-    "continuous_source_power_limit_w": {
+    "continuous_bus_supply_power_limit_w": {
       "type": "number",
       "exclusiveMinimum": 0
     }
@@ -160,7 +165,10 @@
         "thermal_and_exhaust_loss_j",
         "direct_propulsor_shaft_j",
         "accessory_mechanical_load_j",
-        "mechanical_distribution_loss_j"
+        "mechanical_distribution_loss_j",
+        "average_mechanical_output_power_limit_w",
+        "peak_mechanical_output_power_w",
+        "peak_mechanical_output_power_limit_w"
       ],
       "properties": {
         "prime_mover_id": {
@@ -191,6 +199,17 @@
         },
         "mechanical_distribution_loss_j": {
           "$ref": "#/$defs/nonnegative"
+        },
+        "average_mechanical_output_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_mechanical_output_power_w": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "peak_mechanical_output_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     },
@@ -203,7 +222,10 @@
         "prime_mover_id",
         "mechanical_input_j",
         "electrical_output_to_bus_j",
-        "conversion_loss_j"
+        "conversion_loss_j",
+        "average_electrical_output_power_limit_w",
+        "peak_electrical_output_power_w",
+        "peak_electrical_output_power_limit_w"
       ],
       "properties": {
         "generator_id": {
@@ -225,6 +247,17 @@
         },
         "conversion_loss_j": {
           "$ref": "#/$defs/nonnegative"
+        },
+        "average_electrical_output_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_electrical_output_power_w": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "peak_electrical_output_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     },
