@@ -265,7 +265,6 @@ pub fn measure_hysteresis(
     })
 }
 
-
 /// Speed and first-order lagged observation at the same timestamp.
 ///
 /// The actual speed is retained separately from the lagged signal so an
@@ -305,15 +304,13 @@ pub fn apply_first_order_speed_lag(
         let previous = pair[0];
         let current = pair[1];
         let elapsed = current.timestamp_seconds - previous.timestamp_seconds;
-        let slope =
-            (current.speed_metres_per_second - previous.speed_metres_per_second) / elapsed;
+        let slope = (current.speed_metres_per_second - previous.speed_metres_per_second) / elapsed;
         let attenuation = (-elapsed / time_constant_seconds).exp();
 
         // Exact solution for linearly changing input over this interval.
         observed_speed = previous.speed_metres_per_second
             + slope * (elapsed - time_constant_seconds)
-            + (observed_speed - previous.speed_metres_per_second
-                + slope * time_constant_seconds)
+            + (observed_speed - previous.speed_metres_per_second + slope * time_constant_seconds)
                 * attenuation;
 
         if !observed_speed.is_finite() {
@@ -395,8 +392,7 @@ pub fn measure_latency_induced_hysteresis(
 
     let up = up_event.ok_or(TransitionError::NoCompleteLatencyCrossing)?;
     let down = down_event.ok_or(TransitionError::NoCompleteLatencyCrossing)?;
-    let width =
-        up.actual_speed_metres_per_second - down.actual_speed_metres_per_second;
+    let width = up.actual_speed_metres_per_second - down.actual_speed_metres_per_second;
     if !width.is_finite() || width < 0.0 {
         return Err(TransitionError::InvalidSweepOrder);
     }
@@ -691,9 +687,7 @@ mod tests {
             },
         ];
         let lagged = apply_first_order_speed_lag(&samples, 1.0).unwrap();
-        assert!(
-            (lagged[1].observed_speed_metres_per_second - (-1.0_f64).exp()).abs() < 1.0e-12
-        );
+        assert!((lagged[1].observed_speed_metres_per_second - (-1.0_f64).exp()).abs() < 1.0e-12);
     }
 
     #[test]
@@ -749,6 +743,4 @@ mod tests {
             measure_latency_induced_hysteresis(&samples, f64::NAN),
             Err(TransitionError::InvalidSpeedThreshold)
         );
-    }
-
-}
+    }}
