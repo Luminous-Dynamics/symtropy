@@ -1,0 +1,71 @@
+{
+  "manifest_id": "CIVDYN-ECO-FLOW-RECOVERY-001",
+  "version": "0.1.0",
+  "status": "synthetic_reference",
+  "resource_ledger_authority": "civdyn-resource-ledger",
+  "resource": "water",
+  "unit": "m3",
+  "initial_basin_stock_m3": 200,
+  "household_nodes": [
+    {
+      "id": "household_a",
+      "population": 1,
+      "essential_demand_per_capita_m3_per_tick": 12.5
+    },
+    {
+      "id": "household_b",
+      "population": 1,
+      "essential_demand_per_capita_m3_per_tick": 12.5
+    }
+  ],
+  "environmental_flow_obligation": {
+    "node_id": "wetland_flow_obligation",
+    "ledger_obligation_units": 1,
+    "required_flow_m3_per_tick": 10,
+    "caveat": "Ledger representation of a synthetic flow obligation only; not an ecological population, environmental-flow standard or ecosystem-health model."
+  },
+  "phase_ticks": {
+    "pre_shock": 2,
+    "first_shock": 4,
+    "recovery": 2,
+    "repeated_shock": 6
+  },
+  "recharge_m3_per_tick": {
+    "pre_shock": 35,
+    "first_shock": 0,
+    "recovery_service_only": 35,
+    "recovery_capital_rebuilding": 55,
+    "repeated_shock": 0
+  },
+  "policies": [
+    "household_priority",
+    "ecological_flow_priority"
+  ],
+  "paths": [
+    "service_only",
+    "capital_rebuilding"
+  ],
+  "recovery_threshold": 0.95,
+  "sustained_recovery_ticks": 2,
+  "outputs": [
+    "household_unmet_water_m3",
+    "environmental_flow_unmet_water_m3",
+    "minimum_household_coverage",
+    "minimum_environmental_flow_coverage",
+    "reserve_after_first_shock_m3",
+    "reserve_after_recovery_m3",
+    "reserve_recovery_ratio",
+    "repeat_shock_household_unmet_m3",
+    "repeat_shock_environmental_flow_unmet_m3",
+    "household_recovery_ticks",
+    "environmental_flow_recovery_ticks",
+    "maximum_conservation_residual_m3"
+  ],
+  "claims_not_supported": [
+    "real-world hydrological prediction",
+    "ecosystem health or biodiversity recovery",
+    "aquifer safe yield",
+    "empirical causal effect",
+    "universal normative policy ranking"
+  ]
+}

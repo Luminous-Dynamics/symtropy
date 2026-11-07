@@ -1,0 +1,45 @@
+name: CIVDYN ecological-flow recovery
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-eco-flow-recovery/**"
+      - ".github/workflows/civdyn-eco-flow-recovery.yml"
+  push:
+    paths:
+      - "research/civdyn-eco-flow-recovery/**"
+      - ".github/workflows/civdyn-eco-flow-recovery.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-eco-flow-recovery/Cargo.toml --all -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-eco-flow-recovery/Cargo.toml --all-targets -- -D warnings
+      - name: Compile
+        run: cargo check --locked --manifest-path research/civdyn-eco-flow-recovery/Cargo.toml --all-targets
+      - name: Test allocation, recovery and conservation controls
+        run: cargo test --locked --manifest-path research/civdyn-eco-flow-recovery/Cargo.toml --all-targets
+      - name: Validate deterministic CSV export
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-eco-flow-recovery/Cargo.toml --bin eco-flow-recovery-sweep > /tmp/eco-flow-recovery.csv
+          awk -F, '
+            NR == 1 { if (NF != 29) exit 10; next }
+            NF != 29 { exit 11 }
+            $1 == "summary" { summaries++ }
+            $1 == "tick" { ticks++ }
+            END {
+              if (summaries != 4 || ticks != 56) exit 12
+              print "CSV schema valid: 4 summaries, 56 ledger ticks, 29 columns"
+            }
+          ' /tmp/eco-flow-recovery.csv
