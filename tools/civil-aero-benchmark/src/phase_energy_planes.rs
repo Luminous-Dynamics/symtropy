@@ -365,7 +365,7 @@ impl PhaseEnergyBalance {
                 - fuel.chemical_energy_consumed_j
                 - fuel.chemical_energy_end_j;
             let reserve_margin = fuel.chemical_energy_end_j - fuel.required_reserve_j;
-            if residual.abs() > self.tolerance_j || reserve_margin < -self.tolerance_j {
+            if residual.abs() > self.tolerance_j || reserve_margin < 0.0 {
                 infeasible = true;
             }
             fuel_residuals.push(FuelEnergyResidual {
@@ -673,7 +673,7 @@ impl PhaseEnergyBalance {
             let average_discharge = store.discharge_to_bus_j / self.duration_s;
             let average_charge = store.charge_from_bus_j / self.duration_s;
             if residual.abs() > self.tolerance_j
-                || reserve_margin < -self.tolerance_j
+                || reserve_margin < 0.0
                 || store.state_of_health_fraction < store.minimum_state_of_health_fraction
                 || store.temperature_c < store.minimum_temperature_c
                 || store.temperature_c > store.maximum_temperature_c
@@ -1222,6 +1222,7 @@ mod tests {
         let mut value = generator_only();
         value.phase_id = "parallel-hybrid".to_owned();
         value.fuel_states[0].chemical_energy_start_j = 500_000_000.0;
+        value.prime_movers[0].fuel_energy_input_j = 300_000_000.0;
         value.fuel_states[0].chemical_energy_consumed_j = 300_000_000.0;
         value.fuel_states[0].chemical_energy_end_j = 200_000_000.0;
         value.prime_movers[0].fuel_energy_input_j = 300_000_000.0;
@@ -1329,6 +1330,7 @@ mod tests {
         let mut capacitor = battery_store(10_000_000.0, 0.0, 40_000_000.0, 28_888_888.888_888_89);
         capacitor.store_id = "supercapacitor".to_owned();
         capacitor.kind = EnergyStoreKind::Supercapacitor;
+        capacitor.reserve_floor_j = 10_000_000.0;
         let mut battery = battery_store(20_000_000.0, 0.0, 200_000_000.0, 177_777_777.777_777_77);
         battery.average_discharge_power_limit_w = 30_000.0;
         value.stores = vec![battery, capacitor];
