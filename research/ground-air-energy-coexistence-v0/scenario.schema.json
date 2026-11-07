@@ -153,7 +153,8 @@
             "AIR_HOVER_INDUCTIVE",
             "AIR_HOVER_CAPACITIVE",
             "AIR_RF_POWER_BEAMING",
-            "AIR_OPTICAL_POWER_BEAMING"
+            "AIR_OPTICAL_POWER_BEAMING",
+            "AIR_DOCK_CONDUCTIVE"
           ]
         },
         "maximum_input_quanta_per_slot": {
