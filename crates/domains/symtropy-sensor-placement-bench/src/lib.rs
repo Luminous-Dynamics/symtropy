@@ -110,6 +110,80 @@ fn validate_observability_parent(case: &Value, observability: &Value) -> Vec<Vio
             "placement case must reference the exact supplied observability response matrix",
         );
     }
+    if text(observability, "case_id").is_none() {
+        push(&mut errors, "OBSERVABILITY_CASE_ID_MISSING", "$.observability.case_id", "observability case ID is required");
+    }
+    let channels = observability.get("channels").and_then(Value::as_array);
+    let states = observability.get("states").and_then(Value::as_array);
+    let pairs = observability.get("required_state_pairs").and_then(Value::as_array);
+    let responses = observability.get("responses").and_then(Value::as_array);
+    let (Some(channels), Some(states), Some(pairs), Some(responses)) = (channels, states, pairs, responses) else {
+        push(&mut errors, "OBSERVABILITY_CASE_INCOMPLETE", "$.observability", "channels, states, required pairs and response matrix are all required");
+        return errors;
+    };
+    let mut channel_ids = BTreeSet::new();
+    let mut channel_map = BTreeMap::new();
+    for channel in channels {
+        if let Some(id) = text(channel, "channel_id") {
+            if !channel_ids.insert(id.to_owned()) {
+                push(&mut errors, "OBSERVABILITY_DUPLICATE_CHANNEL", "$.observability.channels", "channel IDs must be unique");
+            }
+            channel_map.insert(id.to_owned(), channel);
+        } else {
+            push(&mut errors, "OBSERVABILITY_CHANNEL_ID_MISSING", "$.observability.channels", "channel IDs are required");
+        }
+    }
+    let mut state_ids = BTreeSet::new();
+    for state in states {
+        if let Some(id) = text(state, "state_id") {
+            if !state_ids.insert(id.to_owned()) {
+                push(&mut errors, "OBSERVABILITY_DUPLICATE_STATE", "$.observability.states", "state IDs must be unique");
+            }
+        } else {
+            push(&mut errors, "OBSERVABILITY_STATE_ID_MISSING", "$.observability.states", "state IDs are required");
+        }
+    }
+    let mut response_keys = BTreeSet::new();
+    for response in responses {
+        let state_id = text(response, "state_id");
+        let channel_id = text(response, "channel_id");
+        let (Some(state_id), Some(channel_id)) = (state_id, channel_id) else {
+            push(&mut errors, "OBSERVABILITY_RESPONSE_IDENTITY_MISSING", "$.observability.responses", "every response must identify a state and channel");
+            continue;
+        };
+        if !state_ids.contains(state_id) || !channel_map.contains_key(channel_id) {
+            push(&mut errors, "OBSERVABILITY_RESPONSE_REFERENCE_UNKNOWN", "$.observability.responses", "response references a state or channel outside the declared matrix");
+        }
+        if !response_keys.insert((state_id.to_owned(), channel_id.to_owned())) {
+            push(&mut errors, "OBSERVABILITY_DUPLICATE_RESPONSE", "$.observability.responses", "each state/channel cell must appear once");
+        }
+        if let Some(channel) = channel_map.get(channel_id) {
+            if text(response, "unit") != text(channel, "unit") {
+                push(&mut errors, "OBSERVABILITY_RESPONSE_UNIT_MISMATCH", "$.observability.responses", "response unit must match its channel");
+            }
+            if !["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"].iter().all(|key| {
+                text(&response["domain"], key).is_some()
+                    && text(&response["domain"], key) == text(&channel["domain"], key)
+            }) {
+                push(&mut errors, "OBSERVABILITY_RESPONSE_DOMAIN_MISMATCH", "$.observability.responses", "response domain must match its channel");
+            }
+        }
+    }
+    for state_id in &state_ids {
+        for channel_id in &channel_ids {
+            if !response_keys.contains(&(state_id.clone(), channel_id.clone())) {
+                push(&mut errors, "OBSERVABILITY_RESPONSE_MATRIX_INCOMPLETE", "$.observability.responses", "every state/channel response cell is required");
+            }
+        }
+    }
+    for pair in pairs {
+        if text(pair, "state_a_id").is_none_or(|id| !state_ids.contains(id))
+            || text(pair, "state_b_id").is_none_or(|id| !state_ids.contains(id))
+            || pair.get("minimum_independent_principles").and_then(Value::as_u64).is_none_or(|n| n == 0)
+        {
+            push(&mut errors, "OBSERVABILITY_REQUIRED_PAIR_INVALID", "$.observability.required_state_pairs", "required pairs must reference declared states and positive independence thresholds");
+        }
+    }
     errors
 }
 
@@ -146,6 +220,11 @@ pub fn validate_case(case: &Value, observability: &Value) -> Vec<Violation> {
     }
     if profile.get("maximum_selected_channels").and_then(Value::as_u64).is_none_or(|n| n == 0) {
         push(&mut errors, "INVALID_MAXIMUM_CHANNELS", "$.placement_profile.maximum_selected_channels", "maximum selected channels must be positive");
+    }
+    for key in ["require_all_critical_pairs_nominal", "require_all_critical_pairs_under_outages"] {
+        if profile.get(key).and_then(Value::as_bool).is_none() {
+            push(&mut errors, "MISSING_CRITICAL_PAIR_REQUIREMENT", &format!("$.placement_profile.{key}"), "critical-pair nominal/outage requirements must be explicit booleans");
+        }
     }
     match profile.get("max_lifecycle_cost_units") {
         Some(Value::Null) => {}
@@ -436,8 +515,10 @@ pub fn optimize_layout(
             continue;
         }
 
-        let candidate_ids: Vec<String> = selected.iter().map(|c| text(c, "candidate_id").unwrap().to_owned()).collect();
-        let channel_ids: Vec<String> = selected.iter().map(|c| text(c, "channel_id").unwrap().to_owned()).collect();
+        let mut candidate_ids: Vec<String> = selected.iter().map(|c| text(c, "candidate_id").unwrap().to_owned()).collect();
+        let mut channel_ids: Vec<String> = selected.iter().map(|c| text(c, "channel_id").unwrap().to_owned()).collect();
+        candidate_ids.sort();
+        channel_ids.sort();
         let selected_channels: BTreeSet<String> = channel_ids.iter().cloned().collect();
         let maintenance_hours: f64 = selected.iter().map(|c| finite(c, "maintenance_hours_per_year").unwrap()).sum();
         let planned_unavailability: f64 = selected.iter().map(|c| finite(c, "planned_unavailability_hours_per_year").unwrap()).sum();
@@ -631,6 +712,16 @@ mod tests {
         case["outage_scenarios"][0]["failed_independence_group_refs"] =
             serde_json::json!(["not-a-principle"]);
         assert!(has(&validate_case(&case, &observability()), "UNKNOWN_OUTAGE_GROUP"));
+    }
+
+    #[test]
+    fn incomplete_observability_matrix_is_rejected() {
+        let mut obs = observability();
+        obs["responses"].as_array_mut().unwrap().pop();
+        assert!(has(
+            &validate_case(&placement(), &obs),
+            "OBSERVABILITY_RESPONSE_MATRIX_INCOMPLETE"
+        ));
     }
 
     #[test]
