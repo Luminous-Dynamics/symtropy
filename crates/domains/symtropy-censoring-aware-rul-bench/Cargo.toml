@@ -1,0 +1,14 @@
+[package]
+name = "symtropy-censoring-aware-rul-bench"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Censoring-aware competing-risk prognosis and IPCW Brier evaluation"
+
+[dependencies]
+serde_json = "1"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
