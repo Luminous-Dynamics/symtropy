@@ -7,7 +7,7 @@ on:
       - "tools/za-energy-billing-bench/**"
       - ".github/workflows/za-energy-billing-bench.yml"
   push:
-    branches: ["feat/za-energy-billing-bench-v0-1"]
+    branches: ["feat/za-tariff-reference-evaluator-v0-1"]
     paths:
       - "tools/za-energy-billing-bench/**"
       - ".github/workflows/za-energy-billing-bench.yml"
