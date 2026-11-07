@@ -28,9 +28,9 @@ Each EnergyChannelReceipt identifies exactly one boundary:
 - actuator electrical;
 - auxiliary electrical.
 
-Each stream produces its own EnergyLedger. The package intentionally has no function that adds nested battery, bus, motor and auxiliary streams into an invented total: those may be sub-boundaries of the battery meter and double counting is prohibited.
+Each stream produces its own EnergyLedger, which retains its run, channel, boundary, calibration, clock and timebase-receipt identity. CoT rejects an energy ledger whose run ID differs from the mass/distance receipt. The package intentionally has no function that adds nested battery, bus, motor and auxiliary streams into an invented total: those may be sub-boundaries of the battery meter and double counting is prohibited.
 
-Mechanical work is computed independently from calibrated joint torque and angular velocity:
+Mechanical work is computed independently from calibrated joint torque and angular velocity. The joint-work ledger preserves the run, joint, torque/velocity calibration, clock and timebase identities:
 
     p_joint(t) = tau(t) * omega(t)
     W_positive = integral max(p_joint(t), 0) dt
@@ -57,8 +57,10 @@ V0 rejects:
 - duplicate sample IDs or timestamps;
 - wrong channel identity;
 - mismatched run, calibration, clock or timebase receipt;
-- non-monotonic or overly large sample gaps;
+- duplicate timestamps or overly large sample gaps;
 - invalid route/mass/distance receipts.
+
+Out-of-order rows are sorted by timestamp before integration, making the calculation deterministic under input permutation. All rows must still share the same qualified channel clock and timebase receipt.
 
 The presence of a receipt ID does not cryptographically verify the source artifact. Upstream instrument and calibration qualification remain part of the trust boundary.
 
