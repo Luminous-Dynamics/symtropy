@@ -66,6 +66,23 @@ Nine deterministic tests cover:
 
 These tests validate the formula and guards on synthetic fixtures only.
 
+## Individual-cluster aggregation
+
+A per-trial gradient is not a species-level result. The crate adds an explicit second stage that consumes one already-aggregated gradient summary per independent individual:
+
+    individual summaries
+      -> deterministic resampling of individual IDs
+      -> species mean gradient and percentile interval
+
+- The individual is the bootstrap replication unit; frames, cycles and sessions must be aggregated before entering this function.
+- Duplicate rows for the same individual and quantity are rejected.
+- Species and measurement quantity are kept explicit; angular and linear gradients are never pooled.
+- SplitMix64 seed, bootstrap count, independent-unit count, point estimate, sample standard deviation and percentile bounds are returned.
+- At least two independent individuals and 100 resamples are required; small-cluster intervals remain descriptive and must not be mistaken for strong population-level inference.
+- Results are deterministic and invariant to input row ordering for a fixed seed.
+
+This is a simple individual-cluster percentile bootstrap reference, not a substitute for a hierarchical model or a study/site-aware multilevel analysis. It does not correct for unobserved confounding or dependence between individuals from one cage, litter, colony, site or study. Those grouping structures must be represented in the sampling design before using the output inferentially.
+
 ## Required next increments
 
 1. Add measurement uncertainty and tracking-confidence propagation instead of treating landmark trajectories as exact.
