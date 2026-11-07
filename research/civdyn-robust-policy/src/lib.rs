@@ -10,7 +10,7 @@
 //! combine native-unit outcomes into one universal policy score.
 
 use civdyn_resilience_uq::{
-    DesignPoint, InterventionPolicy, OutcomeMetric, RunMetrics, ShockKind, UqError,
+    DesignPoint, InterventionPolicy, OutcomeMetric, ParameterSet, RunMetrics, ShockKind, UqError,
     latin_hypercube_design, run_parameterized_scenario,
 };
 use core::fmt;
@@ -293,6 +293,17 @@ pub fn analyze_policy_runs(
             .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
         {
             return Err(DecisionError::InvalidDesignPoint { design_id });
+        }
+        let mapped_parameters = ParameterSet::from_unit_coordinates(
+            run.design_point.unit_coordinates,
+        )
+        .map_err(|_| DecisionError::InvalidDesignPoint {
+            design_id: run.design_point.design_id.clone(),
+        })?;
+        if mapped_parameters != run.design_point.parameters {
+            return Err(DecisionError::InvalidDesignPoint {
+                design_id: run.design_point.design_id.clone(),
+            });
         }
 
         if let Some(previous) = design_points.get(&run.design_point.design_id) {
@@ -764,7 +775,9 @@ mod tests {
         ));
 
         let mut inconsistent = complete_fixture();
-        inconsistent[1].design_point.unit_coordinates[0] = 0.5;
+        inconsistent[1].design_point.unit_coordinates = [0.5; 7];
+        inconsistent[1].design_point.parameters =
+            ParameterSet::from_unit_coordinates([0.5; 7]).unwrap();
         assert!(matches!(
             analyze_policy_runs(1, ServiceConstraints::default(), &inconsistent),
             Err(DecisionError::InconsistentDesignPoint { .. })
