@@ -442,6 +442,7 @@ pub fn canonical_traffic_coverage_subject_id(manifest: &TrafficCoverageManifest)
             left.occupancy_id
                 .cmp(&right.occupancy_id)
                 .then_with(|| left.resource_id.cmp(&right.resource_id))
+                .then_with(|| left.resource_revision.cmp(&right.resource_revision))
                 .then_with(|| left.direction_id.cmp(&right.direction_id))
         });
         push_field(&mut identity, &uses.len().to_string());
@@ -960,6 +961,15 @@ pub fn evaluate_traffic_plan(
             ));
         }
         let effective_window = effective.window();
+
+        if workload.coverage.evidence.state == EvidenceState::Current
+            && !workload.coverage.evidence.covers(effective_window)
+        {
+            violations.insert(TrafficViolation::EvidenceWindowInsufficient {
+                subject_id: "traffic-coverage-manifest".to_owned(),
+                evidence_id: workload.coverage.evidence.evidence_id.clone(),
+            });
+        }
 
         if resource.evidence.state != EvidenceState::Current {
             violations.insert(TrafficViolation::ResourceEvidenceNotCurrent {
