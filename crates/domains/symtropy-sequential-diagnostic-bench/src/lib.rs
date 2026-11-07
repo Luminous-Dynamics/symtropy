@@ -74,7 +74,6 @@ struct CompiledOutcome {
 }
 
 #[derive(Clone)]
-#[derive(Clone)]
 struct CompiledExperiment {
     id: String,
     cost: f64,
