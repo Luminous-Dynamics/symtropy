@@ -1,0 +1,194 @@
+name: CivDyn causal-path conformance reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-causal-path/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-causal-path.yml"
+  push:
+    paths:
+      - "research/civdyn-causal-path/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-causal-path.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute ledger-backed causal path
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-causal-path/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-causal-path/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-causal-path/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-causal-path/Cargo.toml --all-targets
+
+      - name: Execute ledger-backed paired intervention
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-causal-path-evidence
+          cargo run --locked --manifest-path research/civdyn-causal-path/Cargo.toml --bin causal-path-sweep \
+            | tee target/civdyn-causal-path-evidence/causal-path.csv
+
+      - name: Verify path continuity, ledger outcome and negative control
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/civdyn-causal-path-evidence/causal-path.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) == 11, f"expected 4 arm + 4 edge + 1 paired + 1 negative + 1 ablation rows, got {len(rows)}"
+          assert all(len(row) == 29 for row in rows)
+
+          arms = {row["arm_id"]: row for row in rows if row["record_type"] == "arm_outcome"}
+          assert set(arms) == {"control", "treatment", "negative_control", "mechanism_ablation"}
+          assert float(arms["control"]["value"]) == 0.0
+          assert float(arms["treatment"]["value"]) == 1.0
+          assert float(arms["negative_control"]["value"]) == 0.0
+          assert float(arms["mechanism_ablation"]["value"]) == 0.0
+          assert float(arms["control"]["reservoir_closing_water_m3"]) == 20.0
+          assert float(arms["treatment"]["reservoir_closing_water_m3"]) == 10.0
+          assert float(arms["negative_control"]["reservoir_closing_water_m3"]) == 20.0
+          assert float(arms["mechanism_ablation"]["reservoir_closing_water_m3"]) == 20.0
+          assert float(arms["treatment"]["household_served_water_m3"]) == 10.0
+          assert float(arms["mechanism_ablation"]["household_served_water_m3"]) == 0.0
+          assert all(row["ledger_record_key"].startswith("resource-ledger:") for row in arms.values())
+          assert all(float(row["max_water_conservation_residual_m3"]) < 1e-9 for row in arms.values())
+
+          edges = [row for row in rows if row["record_type"] == "path_edge"]
+          assert len(edges) == 4
+          assert all(row["path_complete"] == "true" for row in edges)
+          assert all(row["transition_applied"] == "true" for row in edges)
+          assert all(row["source_changed"] == "true" for row in edges)
+          assert all(float(row["treatment_source_value"]) != float(row["control_source_value"]) for row in edges)
+
+          paired = next(row for row in rows if row["record_type"] == "paired_effect")
+          assert paired["qualified"] == "true"
+          assert paired["path_complete"] == "true"
+          assert paired["value"] == "1.000000"
+          assert paired["first_broken_edge"] == ""
+
+          negative = next(row for row in rows if row["record_type"] == "negative_control")
+          assert negative["qualified"] == "true"
+          assert float(negative["value"]) == 0.0
+          assert negative["control_outcome"] == negative["treatment_outcome"]
+
+          ablation = next(row for row in rows if row["record_type"] == "mechanism_ablation")
+          assert ablation["qualified"] == "true"
+          assert ablation["path_complete"] == "true"
+          assert ablation["first_broken_edge"] == ""
+          assert ablation["transition_applied"] == ""
+          assert ablation["control_outcome"] == "0.000000"
+          assert ablation["treatment_outcome"] == "1.000000"
+          assert ablation["ablation_block_variable_id"] == "mechanism_blocked"
+          assert ablation["ablation_block_switch_changed"] == "true"
+          assert ablation["ablation_primary_intervention_preserved"] == "true"
+          assert ablation["ablation_blocked_mediator_variable_id"] == "transfer_eligible"
+          assert ablation["ablation_mediator_suppressed"] == "true"
+          assert ablation["ablation_protocol_valid"] == "true"
+          assert ablation["mechanism_necessity_supported"] == "true"
+          assert ablation["ablation_outcome"] == "0.000000"
+          assert ablation["ablation_effect"] == "0.000000"
+          assert ablation["observed_treatment_effect"] == "1.000000"
+
+          print("CIVDYN causal path, single-intervention match, independent ledger outcome, mediator ablation, conservation and negative control verified.")
+          PY
+
+          {
+            echo "## CIVDYN causal-path execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-causal-path-evidence/causal-path.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: deterministic model path conformance, not empirical causal identification"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Execute paired common-random-number contrast controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --manifest-path research/civdyn-causal-path/Cargo.toml --bin causal-contrast-sweep \
+            | tee target/civdyn-causal-path-evidence/paired-contrasts.csv
+
+      - name: Verify positive, equivalence, disconnected and observational controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/civdyn-causal-path-evidence/paired-contrasts.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+          assert len(rows) == 4, f"expected 4 paired contrast rows, got {len(rows)}"
+          assert all(len(row) == 13 for row in rows)
+          by_name = {row["scenario"]: row for row in rows}
+          assert set(by_name) == {
+              "positive_control",
+              "equivalence_negative_control",
+              "disconnected_outcome_movement",
+              "matched_observational_only",
+          }
+
+          positive = by_name["positive_control"]
+          assert positive["pair_count"] == "30"
+          assert positive["status"] == "directionally_consistent_with_declared_path"
+          assert positive["control_gate_passed"] == "true"
+          assert float(positive["ci95_lower"]) > 0.0
+
+          equivalent = by_name["equivalence_negative_control"]
+          assert equivalent["status"] == "equivalent_within_margin"
+          assert equivalent["control_gate_passed"] == "true"
+          assert float(equivalent["ci95_lower"]) >= -0.01
+          assert float(equivalent["ci95_upper"]) <= 0.01
+
+          disconnected = by_name["disconnected_outcome_movement"]
+          assert disconnected["has_declared_path"] == "false"
+          assert disconnected["status"] == "movement_without_declared_path"
+          assert disconnected["control_gate_passed"] == "false"
+
+          observational = by_name["matched_observational_only"]
+          assert observational["status"] == "descriptive_only"
+          assert observational["confirmatory_eligible"] == "false"
+          assert observational["control_gate_passed"] == "false"
+
+          print("Paired causal contrast intervals, strict equivalence, disconnected-path and observational claim-ceiling controls verified.")
+          PY
+
+          {
+            echo "## CIVDYN paired contrast execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-causal-path-evidence/paired-contrasts.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: paired synthetic model contrasts, not real-world causal identification"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload causal-path evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-causal-path
+          path: target/civdyn-causal-path-evidence/causal-path.csv
+          if-no-files-found: error
+          retention-days: 30

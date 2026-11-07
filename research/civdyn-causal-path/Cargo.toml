@@ -1,0 +1,23 @@
+[workspace]
+
+[package]
+name = "civdyn-causal-path"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Matched causal-path qualification over the shared socio-ecological resource ledger"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "causal-path-sweep"
+path = "src/bin/causal_path_sweep.rs"
+
+[dependencies]
+civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
+
+[[bin]]
+name = "causal-contrast-sweep"
+path = "src/bin/causal_contrast_sweep.rs"
