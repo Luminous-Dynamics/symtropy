@@ -50,7 +50,9 @@
         "calendar_throughput_ratio": 0.9908925319,
         "calendar_throughput_change_percent": -0.91074681,
         "total_photons_per_m2_over_cycles": 432,
-        "source_claim_ceiling": "Published study mean plus arithmetic normalization; no facility-wide energy conclusion"
+        "source_claim_ceiling": "Published study mean plus arithmetic normalization; no facility-wide energy conclusion",
+        "single_30_cycle_mean_calendar_ratio": 0.9908925319,
+        "interpretation": "Limited arithmetic sanity check from a single 30-cycle group mean. This is not the authors' full time- and area-corrected annual-yield analysis and must not be used to contradict Supplementary Fig. S4."
       }
     },
     {
@@ -82,7 +84,9 @@
         "calendar_throughput_ratio": 1.1428571429,
         "calendar_throughput_change_percent": 14.28571429,
         "total_photons_per_m2_over_cycles": 432,
-        "source_claim_ceiling": "Published study mean plus arithmetic normalization; no facility-wide energy conclusion"
+        "source_claim_ceiling": "Published study mean plus arithmetic normalization; no facility-wide energy conclusion",
+        "single_30_cycle_mean_calendar_ratio": 1.1428571429,
+        "interpretation": "Limited arithmetic sanity check from a single 30-cycle group mean. This is not the authors' full time- and area-corrected annual-yield analysis and must not be used to contradict Supplementary Fig. S4."
       }
     }
   ],
@@ -109,7 +113,19 @@
     "co2 delivery energy",
     "cold-storage energy",
     "accepted harvest after all commercial rejection criteria",
-    "annualized kg per square metre",
-    "between-compartment treatment variance"
-  ]
+    "between-compartment treatment variance",
+    "independent reproduction of the authors' time- and area-corrected annual-yield calculations from plant-level supplementary data",
+    "whole-facility energy impact of the extra 12.5% cycle time"
+  ],
+  "source_annualization": {
+    "source_location": "Supplementary Figure S4 and Results section 'Circadian resonance maintains annual productivity under extended diel cycles in long- and normal-clock lettuce accessions'",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13529320/",
+    "crop_rotations_per_year": {
+      "cycle_24h": 12.2,
+      "cycle_27h": 10.8
+    },
+    "source_reported_conclusion": "Time- and area-corrected projected annual yield per square metre was equivalent or greater for long-clock accessions under 27 h cycles than for the same accessions under 24 h cycles. No such compensation was reported for normal-clock accessions.",
+    "status": "SOURCE_REPORTED_NOT_RECOMPUTED",
+    "reproduction_requirement": "Obtain and independently recompute the source supplementary raw observations and exact area/time correction, preserving harvest-time basis and plant-density changes."
+  }
 }
