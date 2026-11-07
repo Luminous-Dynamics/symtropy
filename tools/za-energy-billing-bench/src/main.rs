@@ -63,7 +63,9 @@ fn demo_input() -> TariffInput {
         power_factor: 0.95,
         measured_reactive_energy_kvarh: 10.0,
         network_surcharge_applies: Some(true),
-        network_surcharge_evidence_reference: Some("SYNTHETIC-ACCOUNT-NETWORK-SURCHARGE-STATUS".to_owned()),
+        network_surcharge_evidence_reference: Some(
+            "SYNTHETIC-ACCOUNT-NETWORK-SURCHARGE-STATUS".to_owned(),
+        ),
         business_lpu_surcharge: Some(AssessedInvoiceLine {
             amount_zar: 12.34,
             evidence_reference: "SYNTHETIC-ASSESSED-BUSINESS-LPU-LINE".to_owned(),
