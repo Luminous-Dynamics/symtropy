@@ -179,6 +179,48 @@ impl LeviCivitaConnection4 {
         self.symbols[upper][lower_first][lower_second]
     }
 
+    /// Maximum scale-normalized residual of metric compatibility:
+    /// nabla_alpha g_(mu nu) = partial_alpha g_(mu nu)
+    ///   - Gamma^sigma_(alpha mu) g_(sigma nu)
+    ///   - Gamma^sigma_(alpha nu) g_(mu sigma) = 0.
+    ///
+    /// This is a diagnostic, not a rigorous floating-point error bound.
+    pub fn metric_compatibility_relative_residual(
+        &self,
+        metric: &MetricComponents4,
+        derivatives: &MetricDerivatives4,
+    ) -> Result<f64, ConnectionError> {
+        let g = metric.covariant();
+        let d = derivatives.components();
+        let mut maximum: f64 = 0.0;
+
+        for alpha in 0..4 {
+            for mu in 0..4 {
+                for nu in 0..4 {
+                    let mut first = 0.0;
+                    let mut second = 0.0;
+                    for sigma in 0..4 {
+                        first += self.symbols[sigma][alpha][mu] * g[sigma][nu];
+                        second += self.symbols[sigma][alpha][nu] * g[mu][sigma];
+                    }
+                    let derivative = d[alpha][mu][nu];
+                    let residual = derivative - first - second;
+                    let scale = derivative.abs().max(first.abs()).max(second.abs());
+                    let normalized = if scale == 0.0 {
+                        residual.abs()
+                    } else {
+                        residual.abs() / scale
+                    };
+                    if !normalized.is_finite() {
+                        return Err(ConnectionError::NonFiniteMetricCompatibility);
+                    }
+                    maximum = maximum.max(normalized);
+                }
+            }
+        }
+        Ok(maximum)
+    }
+
     /// Maximum absolute asymmetry between the two lower connection indices.
     pub fn lower_index_symmetry_residual(&self) -> f64 {
         let mut maximum: f64 = 0.0;
@@ -213,6 +255,7 @@ pub enum ConnectionError {
         lower_first: usize,
         lower_second: usize,
     },
+    NonFiniteMetricCompatibility,
 }
 
 impl From<MetricError> for ConnectionError {
@@ -255,6 +298,9 @@ impl fmt::Display for ConnectionError {
                 f,
                 "connection coefficient Gamma^{upper}_{{{lower_first}{lower_second}}} is non-finite"
             ),
+            Self::NonFiniteMetricCompatibility => {
+                write!(f, "metric compatibility residual is non-finite")
+            }
         }
     }
 }
@@ -346,6 +392,25 @@ mod tests {
             connection.coefficient(3, 2, 3),
             theta.cos() / theta.sin(),
             2e-13,
+        );
+    }
+
+    #[test]
+    fn schwarzschild_connection_is_metric_compatible() {
+        let hole = SchwarzschildBlackHole::new(solar_mass());
+        let radius = 6.0 * hole.gravitational_radius_m();
+        let theta = 0.9;
+        let metric = schwarzschild_exterior_metric(hole, radius, theta).unwrap();
+        let derivatives =
+            MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
+        let connection =
+            LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
+
+        assert!(
+            connection
+                .metric_compatibility_relative_residual(&metric, &derivatives)
+                .unwrap()
+                < 2e-15
         );
     }
 
