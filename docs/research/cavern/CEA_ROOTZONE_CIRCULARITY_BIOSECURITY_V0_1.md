@@ -182,3 +182,55 @@ The registry is source evidence only. A nutrient balance is not food safety. A n
 
 
 Accepted-food interface: #1649 consumes only qualified edible-food / lot-level output. Keep harvested biomass, edible/marketable mass, held/rejected batches, released quantities, fulfilled quantities and recall corrections distinct. A root-zone nutrient or microbial evidence record is an input to responsible adjudication, not a Symtropy food-release decision.
+
+
+
+## South African food-hygiene and hydroponic-water evidence baseline
+
+These references add a jurisdiction-specific evidence layer. They are **not** a substitute for a site-specific legal review, local-authority determination or accredited laboratory advice.
+
+### Codex CXC 53-2003 — directly covers hydroponic fresh-produce systems
+
+The Codex *Code of Hygienic Practice for Fresh Fruits and Vegetables* (CXC 53-2003; revised 2017) explicitly covers produce grown in protected facilities, including hydroponic systems:
+- Official Codex code list: https://www.fao.org/fao-who-codexalimentarius/codex-texts/codes-of-practice/en/
+- South African Agriculture / DALRRD hosted copy: https://www.nda.gov.za/images/Branches/AgricProducHealthFoodSafety/food-safety-and-quality-assurance/food-safety/audit-policy/cxc-codes-of-hygienic-practices-for-fresh-fruits-and-vegetables.pdf
+
+Relevant technical guidance:
+- Environmental hygiene should review present and previous site uses and adjoining land. The code explicitly lists industry, sewage-treatment and hazardous-waste sites, and names mining extraction as a possible chemical/environmental contamination source. Unknown previous use or identified hazards may warrant contaminant analysis; serious risks can mean a site should not be used for fresh-produce production.
+- Hydroponic nutrient solution may enhance survival or growth of pathogens compared with soil irrigation water. Reused hydroponic water should be treated to minimize microbial and chemical contamination; delivery systems should be maintained and cleaned.
+- Non-potable systems should be separately identified and should not connect to, or allow reflux into, potable systems.
+- If irrigation source water is known or likely to contain human pathogens and connector failures can overspray edible crops or cause localized flooding, a no-harvest zone should be considered.
+
+This is international code-of-practice guidance, not automatically a South African statutory clause. It is an appropriate technical comparator for the underground CEA hazard / sampling design.
+
+### South Africa — R638 of 2018 food premises, handling and transport
+
+The South African Department of Health's *Regulations Governing General Hygiene Requirements for Food Premises, the Transport of Food and Related Matters*, R638 (22 June 2018), is published in Government Gazette 41730:
+- Official gazette PDF: https://www.gov.za/sites/default/files/gcis_document/201806/41730gon638.pdf
+- Official Government page: https://www.gov.za/documents/notices/foodstuffs-cosmetics-and-disinfectants-act-regulations-general-hygiene-0
+
+R638 requires a valid Certificate of Acceptability for food handling on food premises within its scope, subject to the regulation's exceptions and specific-food rules. The certificate follows local-authority application and inspection, is not transferable between persons or premises, and is valid for the nature of handling specified in the application/certificate. Changes to food-premises conditions governed by regulations 5/6 require advance written notification to the local authority. A certificate is not blanket approval under every other law.
+
+The regulation defines statutory "water" as potable water complying with SANS 241 for domestic supplies. Do not confuse that definition with every agricultural nutrient-solution use: Codex distinguishes source/irrigation, hydroponic nutrient solution, clean water and potable water according to intended use. A potable-water test does not establish a nutrient-loop pathogen outcome, and a root-zone EC or microbial test does not establish potable-water suitability.
+
+**Applicability gate:** determine with the responsible local authority and qualified South African food-safety professionals whether a given grow room, harvest/packing area, storage area, transport vehicle or co-located facility is a food premise / handling activity under R638, which Certificate of Acceptability and handling categories apply, and what additional product-specific rules apply. Do not make this determination from a software field alone.
+
+### South Africa — R692 microbiological standards
+
+The Department of Health's R692 of 16 May 1997, as amended through notices listed in its official consolidated copy, governs specified microbiological standards and methods for the foodstuffs covered by its Schedule:
+- Department of Health copy: https://www.health.gov.za/wp-content/uploads/2024/10/Regulations-governing-microbiological-standards-for-foodstuffs-and-related-matters-R692-of-1997.pdf
+- Department of Health current food-control regulation index: https://www.health.gov.za/food-control-regulations/
+
+The regulation links analyses for covered foodstuffs to the methods in Annex A and contains product-specific standards. It is **not** a universal microbiological limit for every raw leafy vegetable, hydroponic nutrient solution, irrigation-water stream, floor drain or environmental swab. Before applying a numerical specification, the responsible specialist must confirm that the exact product, intended use, sample matrix and applicable current amendment are covered.
+
+### Benchmark consequences
+
+Add explicit evidence fields and controls for:
+- jurisdiction, instrument_id, revision/effective_date, applicability_status, responsible_authority_ref and review_date;
+- exact premises, responsible person, food-handling activity and Certificate of Acceptability scope where applicable;
+- site-use history including mine extraction, hazardous waste, sewage, industrial operations and adjacent land;
+- separate water classes: potable/domestic, clean process water, crop-source water, hydroponic nutrient solution, condensate, MTES/minewater and post-harvest wash/rinse water;
+- prevention of physical cross-connection or backflow between non-potable/process and potable systems;
+- food product category and intended use linked to the actual microbiological specification / analytical method selected by a qualified authority.
+
+Do not encode a regulation summary as a self-executing food-safety approval. Store the applicable source and human/authority decision as evidence; when applicability or product scope is unresolved, return HUMAN_REVIEW / INDETERMINATE.
