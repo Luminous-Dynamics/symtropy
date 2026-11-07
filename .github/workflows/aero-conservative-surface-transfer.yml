@@ -1,0 +1,40 @@
+name: AER-01 conservative 3-D surface transfer oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-conservative-surface-transfer.yml"
+      - "tools/civil-aero-benchmark/conservative-surface-transfer-oracle/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-conservative-surface-transfer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/conservative-surface-transfer-oracle/Cargo.toml -- --check
+
+      - name: Run Rust surface-transfer known-answer and hostile tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/conservative-surface-transfer-oracle/Cargo.toml
+
+      - name: Run Rust executable and retain JSON result
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/conservative-surface-transfer-oracle/Cargo.toml > surface-transfer-result.json
+
+      - name: Independently replay mesh integration and transfer in Python
+        run: python3 tools/civil-aero-benchmark/conservative-surface-transfer-oracle/verify_independent.py --rust-output surface-transfer-result.json
