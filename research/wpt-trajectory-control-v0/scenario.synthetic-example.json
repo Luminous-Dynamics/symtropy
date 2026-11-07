@@ -1,0 +1,66 @@
+{
+  "schema_version": "wpt-trajectory-control-v0",
+  "scenario_id": "four-sample-lateral-wander-known-truth",
+  "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+  "quality_flags": [
+    "SYNTHETIC_ONLY"
+  ],
+  "trajectory_id": "trajectory-control-known-truth-01",
+  "coordinate_frame_id": "road-local-enu-mm",
+  "request": {
+    "requested_useful_energy_mwh": 12,
+    "minimum_service_energy_mwh": 9,
+    "initial_setpoint_quanta": 1
+  },
+  "control_limits": {
+    "max_slew_quanta_per_interval": 1,
+    "cumulative_asset_stress_budget_units": 7
+  },
+  "policy": {
+    "maximum_search_nodes": 100000
+  },
+  "candidate_controller_setpoints_quanta": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "intervals": [
+    {
+      "trajectory_sample_id": "pose-000",
+      "envelope_id": "em-envelope-sample-000",
+      "envelope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "support_state": "WITHIN_VALIDATED_SUPPORT",
+      "max_setpoint_quanta": 3,
+      "useful_energy_mwh_per_setpoint_quantum": 2,
+      "asset_stress_units_per_setpoint_quantum": 2
+    },
+    {
+      "trajectory_sample_id": "pose-001",
+      "envelope_id": "em-envelope-sample-001",
+      "envelope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "support_state": "WITHIN_VALIDATED_SUPPORT",
+      "max_setpoint_quanta": 2,
+      "useful_energy_mwh_per_setpoint_quantum": 2,
+      "asset_stress_units_per_setpoint_quantum": 1
+    },
+    {
+      "trajectory_sample_id": "pose-002",
+      "envelope_id": "em-envelope-sample-002",
+      "envelope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "support_state": "WITHIN_VALIDATED_SUPPORT",
+      "max_setpoint_quanta": 3,
+      "useful_energy_mwh_per_setpoint_quantum": 1,
+      "asset_stress_units_per_setpoint_quantum": 1
+    },
+    {
+      "trajectory_sample_id": "pose-003",
+      "envelope_id": "em-envelope-sample-003",
+      "envelope_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "support_state": "WITHIN_VALIDATED_SUPPORT",
+      "max_setpoint_quanta": 2,
+      "useful_energy_mwh_per_setpoint_quantum": 2,
+      "asset_stress_units_per_setpoint_quantum": 1
+    }
+  ]
+}
