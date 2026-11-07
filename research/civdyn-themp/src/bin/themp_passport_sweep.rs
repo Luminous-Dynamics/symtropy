@@ -40,7 +40,9 @@ fn scenarios() -> Vec<(&'static str, ModelPassport)> {
     leakage.evidence_uses[2].partition_id = "calibration_wave_01".into();
 
     let mut unoperationalized = reference.clone();
-    unoperationalized.constructs[0].operationalization_ids.clear();
+    unoperationalized.constructs[0]
+        .operationalization_ids
+        .clear();
 
     let mut unfalsifiable = reference.clone();
     unfalsifiable.mechanisms[0].falsifier.clear();
@@ -53,7 +55,10 @@ fn scenarios() -> Vec<(&'static str, ModelPassport)> {
         ("calibration_holdout_leakage", leakage),
         ("unoperationalized_construct", unoperationalized),
         ("mechanism_without_falsifier", unfalsifiable),
-        ("model_inference_as_external_validation", inference_as_validation),
+        (
+            "model_inference_as_external_validation",
+            inference_as_validation,
+        ),
     ]
 }
 
@@ -64,7 +69,11 @@ fn summary_row(scenario_id: &str, report: &ConformanceReport) {
         report.passport_id.clone(),
         report.purpose.name().into(),
         String::new(),
-        if report.has_errors() { "error".into() } else { "none".into() },
+        if report.has_errors() {
+            "error".into()
+        } else {
+            "none".into()
+        },
         String::new(),
         String::new(),
         report.error_count().to_string(),
@@ -130,10 +139,22 @@ mod tests {
     fn adversarial_scenarios_trigger_their_declared_controls() {
         let values = scenarios();
         let expected = [
-            ("calibration_holdout_leakage", "calibration_external_partition_leakage"),
-            ("unoperationalized_construct", "construct_not_operationalized"),
-            ("mechanism_without_falsifier", "mechanism_explanation_incomplete"),
-            ("model_inference_as_external_validation", "non_empirical_external_validation"),
+            (
+                "calibration_holdout_leakage",
+                "calibration_external_partition_leakage",
+            ),
+            (
+                "unoperationalized_construct",
+                "construct_not_operationalized",
+            ),
+            (
+                "mechanism_without_falsifier",
+                "mechanism_explanation_incomplete",
+            ),
+            (
+                "model_inference_as_external_validation",
+                "non_empirical_external_validation",
+            ),
         ];
         for (scenario_id, code) in expected {
             let passport = values
