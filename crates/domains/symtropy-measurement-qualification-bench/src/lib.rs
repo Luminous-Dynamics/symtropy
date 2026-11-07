@@ -490,8 +490,12 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
             let batch_id = text(sample, "batch_id");
             match (batch_index, batch_id) {
                 (Some(index), Some(id)) => {
-                    if previous_batch_index.is_some_and(|previous| index < previous || index > previous + 1) {
-                        push(&mut errors, "NONCONTIGUOUS_OR_UNSORTED_SAMPLE_BATCH", &sample_path, "sample batches must be ordered and contiguous from index zero");
+                    match previous_batch_index {
+                        None if index != 0 => push(&mut errors, "NONCONTIGUOUS_OR_UNSORTED_SAMPLE_BATCH", &sample_path, "the first sample batch must have index zero"),
+                        Some(previous) if index < previous || index > previous + 1 => {
+                            push(&mut errors, "NONCONTIGUOUS_OR_UNSORTED_SAMPLE_BATCH", &sample_path, "sample batches must be ordered and contiguous from index zero");
+                        }
+                        _ => {}
                     }
                     previous_batch_index = Some(index);
                     if let Some((existing_id, count)) = batch_counts.get_mut(&index) {
@@ -1130,6 +1134,18 @@ mod tests {
         let report = evaluate_against_parent(&case, &parent()).unwrap();
         assert_eq!(report.sample_sets[0].sequential_stability[1].terminal_stable_transition_count, 2);
         assert_eq!(report.sample_sets[0].sequential_stability[1].disposition, "FAIL_TERMINAL_STABILITY");
+    }
+
+    #[test]
+    fn first_batch_index_must_be_zero() {
+        let mut case = fixture();
+        for sample in case["sample_sets"][0]["samples"].as_array_mut().unwrap() {
+            sample["batch_index"] = serde_json::json!(sample["batch_index"].as_u64().unwrap() + 1);
+        }
+        assert!(has(
+            &validate_against_parent(&case, &parent()),
+            "NONCONTIGUOUS_OR_UNSORTED_SAMPLE_BATCH"
+        ));
     }
 
     #[test]
