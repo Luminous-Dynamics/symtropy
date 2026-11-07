@@ -1,0 +1,845 @@
+{
+  "suite_id": "MEDICAL_ROBOT_TOOL_GATE",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "purpose": "Fail-closed manifest eligibility for concept-stage tool proposals for the Symtropy Careframe research platform.",
+  "claim_ceiling": "Simulation-only manifest contract. No CAD verification, mechanical strength, cleanability, sterility, physical safety, clinical performance, or regulatory claim.",
+  "execution_mode": "manifest_qualification_only_no_hardware_authority",
+  "expected_case_count": 16,
+  "cases": [
+    {
+      "case_id": "SEALED_SUPPLY_GRIPPER_VALID_SIMULATION",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-SUPPLY-GRIPPER-001",
+        "revision": 1,
+        "tool_kind": "sealed_supply_gripper",
+        "intended_task": "sealed_supply_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            120,
+            180
+          ],
+          "max_object_force_n": 15,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "SIMULATION_ONLY",
+      "expected_findings": []
+    },
+    {
+      "case_id": "EMPTY_TRAY_CARRIER_VALID_SIMULATION",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-TRAY-CARRIER-001",
+        "revision": 1,
+        "tool_kind": "tray_carrier",
+        "intended_task": "tray_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 700,
+          "payload_g": 2000,
+          "geometry_bbox_mm": [
+            420,
+            280,
+            80
+          ],
+          "max_object_force_n": 10,
+          "max_torque_nm": 2,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": false,
+          "max_power_w": 0,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "SIMULATION_ONLY",
+      "expected_findings": []
+    },
+    {
+      "case_id": "PRIVACY_FIRST_TELEPRESENCE_HEAD",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-TELEPRESENCE-001",
+        "revision": 1,
+        "tool_kind": "telepresence_head",
+        "intended_task": "telepresence_support",
+        "contact_class": "none",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1000,
+          "payload_g": 0,
+          "geometry_bbox_mm": [
+            220,
+            150,
+            180
+          ],
+          "max_object_force_n": 0,
+          "max_torque_nm": 0,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 25,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": true,
+          "captures_video": true,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "SIMULATION_ONLY",
+      "expected_findings": []
+    },
+    {
+      "case_id": "MANNEQUIN_ONLY_TRAINING_PROBE_HOLDER",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-TRAINING-PROBE-001",
+        "revision": 1,
+        "tool_kind": "trainer_probe",
+        "intended_task": "training_mannequin_measurement",
+        "contact_class": "mannequin_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 500,
+          "payload_g": 100,
+          "geometry_bbox_mm": [
+            160,
+            60,
+            50
+          ],
+          "max_object_force_n": 3,
+          "max_torque_nm": 0.4,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "SIMULATION_ONLY",
+      "expected_findings": []
+    },
+    {
+      "case_id": "PATIENT_TRANSFER_TOOL_BLOCKED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-PATIENT-TRANSFER-001",
+        "revision": 1,
+        "tool_kind": "patient_transfer",
+        "intended_task": "patient_transfer",
+        "contact_class": "patient_contact",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 2000,
+          "payload_g": 100000,
+          "geometry_bbox_mm": [
+            900,
+            600,
+            200
+          ],
+          "max_object_force_n": 0,
+          "max_torque_nm": 0,
+          "retention_fail_closed": false
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "MECHANICAL_ENVELOPE_INVALID",
+        "PATIENT_CONTACT_NOT_AUTHORIZED",
+        "TASK_NOT_SUPPORTED",
+        "TOOL_KIND_OUT_OF_SCOPE"
+      ]
+    },
+    {
+      "case_id": "MEDICATION_DISPENSER_AUTHORITY_BLOCKED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-MEDICATION-DISPENSER-001",
+        "revision": 1,
+        "tool_kind": "medication_dispenser",
+        "intended_task": "medication_dispensation",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            120,
+            180
+          ],
+          "max_object_force_n": 15,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": false,
+          "physical_actuation_authorized": true,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": true
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "CLINICAL_USE_AUTHORITY_FORBIDDEN",
+        "PHYSICAL_ACTUATION_AUTHORITY_FORBIDDEN",
+        "SIMULATION_ONLY_REQUIRED",
+        "TASK_NOT_SUPPORTED",
+        "TOOL_KIND_OUT_OF_SCOPE"
+      ]
+    },
+    {
+      "case_id": "CLEANING_VALIDATION_CLAIM_BLOCKED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-UNVALIDATED-CLEANING-CLAIM",
+        "revision": 1,
+        "tool_kind": "sealed_supply_gripper",
+        "intended_task": "sealed_supply_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            120,
+            180
+          ],
+          "max_object_force_n": 15,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "HYGIENE_VALIDATION_CLAIM_UNSUPPORTED"
+      ]
+    },
+    {
+      "case_id": "CAMERA_WITHOUT_CLOSED_PRIVACY_SHUTTER_BLOCKED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-PRIVACY-FAIL",
+        "revision": 1,
+        "tool_kind": "telepresence_head",
+        "intended_task": "telepresence_support",
+        "contact_class": "none",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1000,
+          "payload_g": 0,
+          "geometry_bbox_mm": [
+            220,
+            150,
+            180
+          ],
+          "max_object_force_n": 0,
+          "max_torque_nm": 0,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": true,
+          "captures_video": true,
+          "physical_privacy_shutter": false,
+          "default_capture_state": "enabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "PRIVACY_FAIL_CLOSED_REQUIRED"
+      ]
+    },
+    {
+      "case_id": "GRIPPER_WITHOUT_FAIL_CLOSED_RETENTION_BLOCKED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-RETENTION-FAIL",
+        "revision": 1,
+        "tool_kind": "sealed_supply_gripper",
+        "intended_task": "sealed_supply_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            120,
+            180
+          ],
+          "max_object_force_n": 15,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": false
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "FAIL_CLOSED_RETENTION_REQUIRED"
+      ]
+    },
+    {
+      "case_id": "UNSUPPORTED_TOOL_MOUNT_BLOCKED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-MOUNT-FAIL",
+        "revision": 1,
+        "tool_kind": "sealed_supply_gripper",
+        "intended_task": "sealed_supply_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "UNKEYED_GENERIC_MOUNT",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            120,
+            180
+          ],
+          "max_object_force_n": 15,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "MOUNT_INTERFACE_UNSUPPORTED"
+      ]
+    },
+    {
+      "case_id": "GEOMETRY_OUT_OF_ENVELOPE_BLOCKED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-GEOMETRY-FAIL",
+        "revision": 1,
+        "tool_kind": "sealed_supply_gripper",
+        "intended_task": "sealed_supply_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            0,
+            180
+          ],
+          "max_object_force_n": 15,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "GEOMETRY_OUT_OF_ENVELOPE"
+      ]
+    },
+    {
+      "case_id": "UNKNOWN_TOP_LEVEL_CAPABILITY_REJECTED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-UNKNOWN-FIELD",
+        "revision": 1,
+        "tool_kind": "sealed_supply_gripper",
+        "intended_task": "sealed_supply_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            120,
+            180
+          ],
+          "max_object_force_n": 15,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        },
+        "unreviewed_autonomy_level": 9
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "UNKNOWN_FIELD"
+      ]
+    },
+    {
+      "case_id": "TASK_TOOL_MISMATCH_REJECTED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-TASK-MISMATCH",
+        "revision": 1,
+        "tool_kind": "trainer_probe",
+        "intended_task": "tray_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            120,
+            180
+          ],
+          "max_object_force_n": 15,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "CONTACT_SCOPE_MISMATCH",
+        "TASK_TOOL_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MISSING_RETENTION_GUARANTEE_BLOCKED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-NOT-DECLARED-RETENTION",
+        "revision": 1,
+        "tool_kind": "sealed_supply_gripper",
+        "intended_task": "sealed_supply_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            120,
+            180
+          ],
+          "max_object_force_n": 15,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": false
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "FAIL_CLOSED_RETENTION_REQUIRED"
+      ]
+    },
+    {
+      "case_id": "POWERED_TOOL_WITHOUT_ISOLATION_BLOCKED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-POWER-ISOLATION-FAIL",
+        "revision": 1,
+        "tool_kind": "sealed_supply_gripper",
+        "intended_task": "sealed_supply_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            120,
+            180
+          ],
+          "max_object_force_n": 15,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": false
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "POWER_ENVELOPE_INVALID"
+      ]
+    },
+    {
+      "case_id": "OBJECT_TOOL_WITH_ZERO_FORCE_LIMIT_BLOCKED",
+      "manifest": {
+        "schema_version": "medical-robot-tool-manifest-v0",
+        "tool_id": "TOOL-OBJECT-NO-FORCE",
+        "revision": 1,
+        "tool_kind": "sealed_supply_gripper",
+        "intended_task": "sealed_supply_transfer",
+        "contact_class": "object_only",
+        "design_stage": "concept",
+        "evidence_class": "synthetic_design_proposal",
+        "mechanical": {
+          "mount_interface": "SMF-TOOL-01",
+          "mass_g": 1500,
+          "payload_g": 1500,
+          "geometry_bbox_mm": [
+            250,
+            120,
+            180
+          ],
+          "max_object_force_n": 0,
+          "max_torque_nm": 1.5,
+          "retention_fail_closed": true
+        },
+        "hygiene": {
+          "surface_materials_declared": true,
+          "cleaning_claim": "not_validated",
+          "single_use": false
+        },
+        "electrical": {
+          "powered": true,
+          "max_power_w": 20,
+          "protective_isolation_declared": true
+        },
+        "privacy": {
+          "captures_audio": false,
+          "captures_video": false,
+          "physical_privacy_shutter": true,
+          "default_capture_state": "disabled"
+        },
+        "authority": {
+          "simulation_only": true,
+          "physical_actuation_authorized": false,
+          "patient_contact_authorized": false,
+          "clinical_use_authorized": false
+        }
+      },
+      "expected_disposition": "BLOCKED",
+      "expected_findings": [
+        "FAIL_CLOSED_RETENTION_REQUIRED",
+        "MECHANICAL_ENVELOPE_INVALID"
+      ]
+    }
+  ]
+}
