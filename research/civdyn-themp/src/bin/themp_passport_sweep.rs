@@ -47,6 +47,10 @@ fn scenarios() -> Vec<(&'static str, ModelPassport)> {
     let mut unfalsifiable = reference.clone();
     unfalsifiable.mechanisms[0].falsifier.clear();
 
+    let mut non_discriminating_alternative = reference.clone();
+    non_discriminating_alternative.alternatives[0].discriminating_predictions[0]
+        .expected_direction = civdyn_themp_passport::ExpectedDirection::Positive;
+
     let mut inference_as_validation = reference.clone();
     inference_as_validation.evidence_uses[2].evidence_class = EvidenceClass::ModelInference;
 
@@ -55,6 +59,7 @@ fn scenarios() -> Vec<(&'static str, ModelPassport)> {
         ("calibration_holdout_leakage", leakage),
         ("unoperationalized_construct", unoperationalized),
         ("mechanism_without_falsifier", unfalsifiable),
+        ("non_discriminating_alternative", non_discriminating_alternative),
         (
             "model_inference_as_external_validation",
             inference_as_validation,
@@ -125,7 +130,7 @@ mod tests {
 
     #[test]
     fn all_reference_scenarios_are_present() {
-        assert_eq!(scenarios().len(), 5);
+        assert_eq!(scenarios().len(), 6);
     }
 
     #[test]
