@@ -913,6 +913,9 @@ mod tests {
         value.prime_movers[0].fuel_energy_input_j = 300_000_000.0;
         value.prime_movers[0].mechanical_output_j = 100_000_000.0;
         value.prime_movers[0].thermal_and_exhaust_loss_j = 200_000_000.0;
+        value.prime_movers[0].average_mechanical_output_power_limit_w = 30_000.0;
+        value.prime_movers[0].peak_mechanical_output_power_w = 30_000.0;
+        value.prime_movers[0].peak_mechanical_output_power_limit_w = 35_000.0;
         value.prime_movers[0].direct_propulsor_shaft_j = 80_000_000.0;
         value.generators[0].mechanical_input_j = 20_000_000.0;
         value.generators[0].electrical_output_to_bus_j = 16_000_000.0;
@@ -945,9 +948,15 @@ mod tests {
         value.phase_id = "generator-charge".to_owned();
         value.prime_movers[0].mechanical_output_j = 120_000_000.0;
         value.prime_movers[0].thermal_and_exhaust_loss_j = 180_000_000.0;
+        value.prime_movers[0].average_mechanical_output_power_limit_w = 40_000.0;
+        value.prime_movers[0].peak_mechanical_output_power_w = 40_000.0;
+        value.prime_movers[0].peak_mechanical_output_power_limit_w = 45_000.0;
         value.generators[0].mechanical_input_j = 120_000_000.0;
         value.generators[0].electrical_output_to_bus_j = 100_000_000.0;
         value.generators[0].conversion_loss_j = 20_000_000.0;
+        value.generators[0].average_electrical_output_power_limit_w = 30_000.0;
+        value.generators[0].peak_electrical_output_power_w = 30_000.0;
+        value.generators[0].peak_electrical_output_power_limit_w = 35_000.0;
         value.fuel_states[0].chemical_energy_consumed_j = 300_000_000.0;
         value.fuel_states[0].chemical_energy_end_j = 200_000_000.0;
         value.fuel_states[0].chemical_energy_start_j = 500_000_000.0;
@@ -964,6 +973,9 @@ mod tests {
         };
         value.motor_drives = vec![motor(50_000_000.0, 2_000_000.0, 3_000_000.0, 45_000_000.0)];
         value.propulsors = vec![propulsor(45_000_000.0, 38_000_000.0, 7_000_000.0)];
+        value.peak_bus_supply_power_w = 35_000.0;
+        value.peak_bus_supply_power_limit_w = 40_000.0;
+        value.continuous_bus_supply_power_limit_w = 30_000.0;
         let report = value.evaluate(CONFIG, MISSION, START, END).expect("balanced charging phase");
         assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
         assert!(report.store_results[0].transition_residual_j.abs() < 1.0);
@@ -978,9 +990,15 @@ mod tests {
         value.prime_movers[0].fuel_energy_input_j = 200_000_000.0;
         value.prime_movers[0].mechanical_output_j = 80_000_000.0;
         value.prime_movers[0].thermal_and_exhaust_loss_j = 120_000_000.0;
+        value.prime_movers[0].average_mechanical_output_power_limit_w = 30_000.0;
+        value.prime_movers[0].peak_mechanical_output_power_w = 30_000.0;
+        value.prime_movers[0].peak_mechanical_output_power_limit_w = 35_000.0;
         value.generators[0].mechanical_input_j = 80_000_000.0;
         value.generators[0].electrical_output_to_bus_j = 70_000_000.0;
         value.generators[0].conversion_loss_j = 10_000_000.0;
+        value.generators[0].average_electrical_output_power_limit_w = 25_000.0;
+        value.generators[0].peak_electrical_output_power_w = 20_000.0;
+        value.generators[0].peak_electrical_output_power_limit_w = 25_000.0;
         value.fuel_states[0].chemical_energy_consumed_j = 200_000_000.0;
         value.fuel_states[0].chemical_energy_end_j = 300_000_000.0;
         value.fuel_states[0].chemical_energy_start_j = 500_000_000.0;
@@ -1000,6 +1018,9 @@ mod tests {
         );
         battery.average_discharge_power_limit_w = 30_000.0;
         value.stores = vec![battery, capacitor];
+        value.peak_bus_supply_power_w = 35_000.0;
+        value.peak_bus_supply_power_limit_w = 40_000.0;
+        value.continuous_bus_supply_power_limit_w = 35_000.0;
         value.bus_loads = BusLoads {
             auxiliary_load_j: 5_000_000.0,
             thermal_electrical_load_j: 5_000_000.0,
