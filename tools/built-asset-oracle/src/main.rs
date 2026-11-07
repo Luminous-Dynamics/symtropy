@@ -257,24 +257,35 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
         );
     }
 
-    if let Some(measurements) = input
-        .get("independent_measurements")
-        .and_then(Value::as_array)
-    {
+    if let Some(measurement_value) = input.get("independent_measurements") {
+        let Some(measurements) = measurement_value.as_array() else {
+            return result(
+                case_id,
+                "INVALID_INPUT",
+                &["INDEPENDENT_MEASUREMENTS_MUST_BE_ARRAY"],
+                expected,
+            );
+        };
         let offsets: Option<Vec<f64>> = measurements
             .iter()
             .map(|measurement| measurement.get("offset_mm").and_then(Value::as_f64))
             .collect();
-        if let Some(offsets) = offsets
-            && let (Some(minimum), Some(maximum)) = (
-                offsets.iter().copied().reduce(f64::min),
-                offsets.iter().copied().reduce(f64::max),
-            )
-        {
+        let Some(offsets) = offsets else {
+            return result(
+                case_id,
+                "INVALID_INPUT",
+                &["INDEPENDENT_MEASUREMENT_OFFSET_MISSING_OR_INVALID"],
+                expected,
+            );
+        };
+        if let (Some(minimum), Some(maximum)) = (
+            offsets.iter().copied().reduce(f64::min),
+            offsets.iter().copied().reduce(f64::max),
+        ) {
             let threshold = reference
                 .get("reference_conflict_threshold_mm")
                 .and_then(Value::as_f64)
-                .unwrap_or(0.0);
+                .ok_or("reference conflict threshold missing")?;
             if maximum - minimum > threshold {
                 return result(
                     case_id,
@@ -433,6 +444,15 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
         .and_then(Value::as_array)
         .ok_or("cases must be an array")?;
 
+    let mut case_ids = BTreeSet::new();
+    for case in cases {
+        let Some(case_id) = case.get("case_id").and_then(Value::as_str) else {
+            return Err("case_id missing or invalid".into());
+        };
+        if case_id.is_empty() || !case_ids.insert(case_id) {
+            return Err(format!("case_id empty or duplicated: {case_id}").into());
+        }
+    }
     let mut results: Vec<CaseResult> = cases
         .iter()
         .map(|case| evaluate_case(case, reference))
@@ -598,6 +618,75 @@ mod tests {
         mutated["candidate_input"]["calibration_state"] = Value::String("expired".to_owned());
         let evaluated = evaluate_case(&mutated, reference);
         assert_eq!(evaluated.disposition, "STALE_EVIDENCE");
+    }
+
+ 
+    #[test]
+    fn wrong_coordinate_frame_blocks_geometry_evidence() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("corpus parses");
+        let reference = corpus.get("reference_subject").expect("reference exists");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases exist")
+            .iter()
+            .find(|case| case["case_id"] == "BA-001")
+            .expect("nominal case exists");
+        let mut mutated = case.clone();
+        mutated["candidate_input"]["frame_id"] = Value::String("WRONG-FRAME".to_owned());
+        let evaluated = evaluate_case(&mutated, reference);
+        assert_eq!(evaluated.disposition, "INVALID_INPUT");
+    }
+
+    #[test]
+    fn stale_design_revision_requires_reobservation() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("corpus parses");
+        let reference = corpus.get("reference_subject").expect("reference exists");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases exist")
+            .iter()
+            .find(|case| case["case_id"] == "BA-001")
+            .expect("nominal case exists");
+        let mut mutated = case.clone();
+        mutated["candidate_input"]["design_revision"] = Value::String("D-01".to_owned());
+        let evaluated = evaluate_case(&mutated, reference);
+        assert_eq!(evaluated.disposition, "STALE_EVIDENCE");
+    }
+
+    #[test]
+    fn duplicate_sensor_lineage_is_not_independent_corroboration() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("corpus parses");
+        let reference = corpus.get("reference_subject").expect("reference exists");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases exist")
+            .iter()
+            .find(|case| case["case_id"] == "BA-001")
+            .expect("nominal case exists");
+        let mut mutated = case.clone();
+        mutated["candidate_input"]["sensor_lineages"] =
+            serde_json::json!(["LINEAGE-A", "LINEAGE-A"]);
+        let evaluated = evaluate_case(&mutated, reference);
+        assert_eq!(evaluated.disposition, "INSUFFICIENT_INDEPENDENT_EVIDENCE");
+    }
+
+    #[test]
+    fn unit_consistent_scaled_measurement_preserves_defect_classification() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("corpus parses");
+        let reference = corpus.get("reference_subject").expect("reference exists");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases exist")
+            .iter()
+            .find(|case| case["case_id"] == "BA-002")
+            .expect("displacement case exists");
+        let mut scaled = case.clone();
+        scaled["candidate_input"]["unit"] = Value::String("m".to_owned());
+        scaled["candidate_input"]["finding"]["value"]["unit"] = Value::String("m".to_owned());
+        scaled["candidate_input"]["finding"]["value"]["offset_mm"] = Value::from(0.006);
+        scaled["candidate_input"]["finding"]["value"]["tolerance_mm"] = Value::from(0.002);
+        let evaluated = evaluate_case(&scaled, reference);
+        assert_eq!(evaluated.disposition, "DEFECT_OBSERVED");
     }
 
     #[test]
