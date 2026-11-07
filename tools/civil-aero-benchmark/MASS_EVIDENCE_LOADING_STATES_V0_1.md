@@ -49,6 +49,12 @@ An item must match the ledger's aircraft family, model and configuration SHA-256
 
 The source SHA-256 identifies the bytes **claimed** by the source record. The Rust layer does not download or authenticate the source bytes. A valid digest does not establish source authenticity, currency, applicability or physical truth. Those require separate acquisition, review and admission.
 
+## Source capture and physical measurement provenance
+
+Each source record now retains a UTC capture timestamp in the strict `YYYY-MM-DDTHH:MM:SSZ` form. Directly measured evidence additionally requires the physical article identifier, instrument reference, calibration certificate reference/revision and calibration-record SHA-256, plus the measurement timestamp. These fields are included in the canonical source-generation and loading-state digests.
+
+The software validates timestamp shape/calendar ranges and calibration digest syntax. It does not retrieve or authenticate source/calibration bytes, verify calibration status with a metrology authority, or establish measurement traceability by itself. A local `AdmittedForScreening` value remains a review assertion, not an approval.
+
 ## Units and uncertainty
 
 Canonical computation units are kg, m and kg m². Original source values/units remain next to the canonical values and are checked by conversion:
