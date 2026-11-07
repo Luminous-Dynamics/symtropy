@@ -141,6 +141,22 @@ The Results text states that the photoperiod treatments did not significantly in
 - A reported EUE improvement does not imply significant yield gain or lower total facility energy. Peak kW, LED kWh, HVAC/dehumidification kWh, pumping, fixed loads and tariff exposure are separate axes.
 - The study is lettuce / two cultivars / one walk-in chamber. Continuous light is not a universal recommendation for all species or cultivars.
 
+### Independent arithmetic checks for the continuous-light comparator
+
+The machine-readable fixture recomputes DLI from the source-reported mean PPFD and photoperiod:
+- 16:8 at 250 µmol m^-2 s^-1 -> 14.400 mol m^-2 day^-1;
+- 12:12 at 340 -> 14.688 mol m^-2 day^-1;
+- 24:0 at 170 -> 14.688 mol m^-2 day^-1.
+
+All three lie within the reported 14.4 ±0.4 mol m^-2 day^-1 target.
+
+It also conditionally recomputes LED EUE as reported yield (g m^-2) divided by the LED energy value:
+- 1271 / 129 = 9.8527 g/kWh, versus reported 9.8;
+- 1255 / 140 = 8.9643 g/kWh, versus reported 9.0;
+- 1390 / 122 = 11.3934 g/kWh, versus reported 11.4.
+
+The EUE check depends on interpreting the energy denominator as kWh m^-2 as stated in the methods/results prose. The table header prints kW m^-2; the fixture preserves that source inconsistency. These are arithmetic consistency checks only, not independent validation of the meters, the experimental result or whole-facility energy accounting.
+
 ### Integration rule
 
 Treat lighting optimization as a product space with orthogonal dimensions:
