@@ -26,14 +26,14 @@ use core::fmt;
 
 /// Fixed-size second-order automatic differentiation for metric derivatives.
 pub mod autodiff;
-/// Kerr equatorial circular-null-orbit and light-ring observables.
-pub mod light_ring;
 /// Levi-Civita connection coefficients from explicit metric derivatives.
 pub mod connection;
 /// Convention-explicit Riemann, Ricci, and Einstein curvature tensors.
 pub mod curvature;
 /// Schwarzschild timelike/null geodesics with Christoffel and Hamiltonian formulations.
 pub mod geodesic;
+/// Kerr equatorial circular-null-orbit and light-ring observables.
+pub mod light_ring;
 /// Validated stationary black-hole metric components in a declared chart.
 pub mod metric;
 /// Posterior-preserving transforms for Kerr remnant horizon observables.
@@ -500,10 +500,7 @@ mod tests {
 
     #[test]
     fn small_spin_inner_horizon_avoids_subtractive_cancellation() {
-        let hole = KerrBlackHole::new(
-            solar_mass(),
-            DimensionlessSpin::new(1.0e-8).unwrap(),
-        );
+        let hole = KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(1.0e-8).unwrap());
         let rg = hole.gravitational_radius_m();
         let expected = rg * 0.5e-16;
         let actual = hole.inner_horizon_radius_m();
@@ -513,16 +510,10 @@ mod tests {
 
     #[test]
     fn near_extremal_surface_gravity_remains_positive_and_finite() {
-        let hole = KerrBlackHole::new(
-            solar_mass(),
-            DimensionlessSpin::new(1.0 - 1.0e-12).unwrap(),
-        );
+        let hole = KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(1.0 - 1.0e-12).unwrap());
         let kappa = hole.surface_gravity_rate_s_inv();
         assert!(kappa.is_finite() && kappa > 0.0);
-        let exact_extremal = KerrBlackHole::new(
-            solar_mass(),
-            DimensionlessSpin::new(1.0).unwrap(),
-        );
+        let exact_extremal = KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(1.0).unwrap());
         assert_eq!(exact_extremal.surface_gravity_rate_s_inv(), 0.0);
     }
 
