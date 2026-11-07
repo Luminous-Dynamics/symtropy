@@ -300,6 +300,7 @@ pub enum LedgerError {
         entity_id: String,
         semantic_kind: String,
     },
+    ConflictingCargoMovementKind(String),
     ActualEventObservedBeforeItOccurred(String),
     ActualEventOutsideWindow(String),
     TerminalMismatch(String),
@@ -498,16 +499,15 @@ pub fn audit_vessel_queue(
         return Err(LedgerError::SnapshotBeforeWindow);
     }
 
-    for observation in &ledger.observations {
+    let active = resolve_observations(&ledger.observations, as_of_tick)?;
+    for observation in &active {
         if observation.terminal_id != ledger.terminal_id {
             return Err(LedgerError::TerminalMismatch(
                 observation.header.event_id.clone(),
             ));
         }
     }
-
-    let active = resolve_observations(&ledger.observations, as_of_tick)?;
-    let mut by_tick = BTreeMap::<u64, (u128, u128, usize, usize)>::new();
+    let mut by_tick = BTreeMap::<u64, (u128, u128)>::new();
     let mut exits_by_call = BTreeSet::new();
     let mut arrival_tick_by_call = BTreeMap::new();
     let mut exit_tick_by_call = BTreeMap::new();
@@ -540,7 +540,6 @@ pub fn audit_vessel_queue(
                 .ok_or(LedgerError::ArithmeticOverflow)?;
             exit_tick_by_call.insert(header.entity_id.as_str(), header.event_tick);
         }
-        entry.2 += 1;
         actual_observations_applied += 1;
     }
 
@@ -562,7 +561,7 @@ pub fn audit_vessel_queue(
     let mut area = 0_u128;
     let mut cursor = ledger.window.start_tick;
 
-    for (tick, (added, removed, _, _)) in by_tick {
+    for (tick, (added, removed)) in by_tick {
         add_area(&mut area, queue, tick - cursor)?;
         let added_u64 = u64::try_from(added).map_err(|_| LedgerError::ArithmeticOverflow)?;
         let removed_u64 = u64::try_from(removed).map_err(|_| LedgerError::ArithmeticOverflow)?;
@@ -627,7 +626,9 @@ pub fn audit_cargo_inventory(
         return Err(LedgerError::SnapshotBeforeWindow);
     }
 
-    for observation in &ledger.observations {
+    let active = resolve_observations(&ledger.observations, as_of_tick)?;
+    let mut movement_ids_by_class = BTreeSet::new();
+    for observation in &active {
         if observation.terminal_id != ledger.terminal_id {
             return Err(LedgerError::TerminalMismatch(
                 observation.header.event_id.clone(),
@@ -648,9 +649,15 @@ pub fn audit_cargo_inventory(
                 observation.header.event_id.clone(),
             ));
         }
+        if !movement_ids_by_class.insert((
+            observation.header.entity_id.as_str(),
+            observation.header.event_class,
+        )) {
+            return Err(LedgerError::ConflictingCargoMovementKind(
+                observation.movement_id.clone(),
+            ));
+        }
     }
-
-    let active = resolve_observations(&ledger.observations, as_of_tick)?;
     let mut by_tick = BTreeMap::<u64, (u128, u128)>::new();
     let mut actual_observations_applied = 0_usize;
     let mut non_actual_observations_excluded = 0_usize;
