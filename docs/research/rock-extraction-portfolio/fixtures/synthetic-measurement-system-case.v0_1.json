@@ -811,7 +811,8 @@
       "bias": -0.01,
       "max_absolute_relative_error": 0.05,
       "residual_artifact_ref": "artifact:ecc-calibration-residuals",
-      "adjudication_ref": "adjudication:synthetic-calibration"
+      "adjudication_ref": "adjudication:synthetic-calibration",
+      "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
     },
     {
       "comparison_id": "ecc-validation-pair-001",
@@ -827,7 +828,8 @@
       "bias": 0.005,
       "max_absolute_relative_error": 0.055,
       "residual_artifact_ref": "artifact:ecc-validation-residuals",
-      "adjudication_ref": "adjudication:synthetic-validation"
+      "adjudication_ref": "adjudication:synthetic-validation",
+      "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
     }
   ]
 }
