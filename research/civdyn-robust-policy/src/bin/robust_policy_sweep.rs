@@ -20,7 +20,11 @@ fn opt(value: Option<f64>) -> String {
 }
 
 fn emit(row: Vec<String>) {
-    assert_eq!(row.len(), CSV_COLUMNS, "robust-policy CSV schema must remain fixed");
+    assert_eq!(
+        row.len(),
+        CSV_COLUMNS,
+        "robust-policy CSV schema must remain fixed"
+    );
     println!("{}", row.join(","));
 }
 
@@ -114,12 +118,9 @@ fn main() {
         "record_type,seed,design_id,shock_kind,policy,metric,lhs_point_count,valid_point_count,unknown_point_count,constraint_pass_count,constraint_fail_count,constraint_unknown_count,finite_design_robust_feasible,worst_water_coverage_margin,worst_energy_coverage_margin,worst_water_breach_margin,worst_energy_breach_margin,mean_regret,p95_regret,worst_regret,best_count,best_fraction,distinct_best_policy_count,unique_winner_points,tied_winner_points,unknown_comparison_points,water_supply_multiplier,energy_supply_multiplier,demand_multiplier,distributed_reserve_multiplier,water_shock_retention,energy_shock_retention,shock_duration_ticks,total_unmet_water_m3,total_unmet_energy_kwh,minimum_water_coverage,minimum_energy_coverage,water_floor_breach_fraction,energy_floor_breach_fraction,recovery_success"
     );
 
-    let (runs, report) = execute_policy_design(
-        SEED,
-        DEFAULT_LHS_POINTS,
-        ServiceConstraints::default(),
-    )
-    .expect("declared CivDyn LHS policy experiment must validate");
+    let (runs, report) =
+        execute_policy_design(SEED, DEFAULT_LHS_POINTS, ServiceConstraints::default())
+            .expect("declared CivDyn LHS policy experiment must validate");
 
     for run in &runs {
         emit(raw_row(run));
@@ -135,12 +136,16 @@ mod tests {
 
     #[test]
     fn small_finite_design_emits_metric_specific_not_aggregate_regret() {
-        let (runs, report) =
-            execute_policy_design(SEED, 2, ServiceConstraints::default()).unwrap();
+        let (runs, report) = execute_policy_design(SEED, 2, ServiceConstraints::default()).unwrap();
         assert_eq!(runs.len(), 2 * 3 * 4);
         assert_eq!(report.constraint_summaries.len(), 3 * 4);
         assert_eq!(report.metric_regrets.len(), 3 * 4 * 9);
         assert_eq!(report.distinct_winner_counts.len(), 3 * 9);
-        assert!(report.metric_regrets.iter().all(|entry| entry.metric.name() != "universal_score"));
+        assert!(
+            report
+                .metric_regrets
+                .iter()
+                .all(|entry| entry.metric.name() != "universal_score")
+        );
     }
 }
