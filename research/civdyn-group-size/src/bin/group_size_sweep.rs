@@ -5,8 +5,8 @@
 
 use civdyn_group_size::{
     DEFAULT_CONVERGENCE_THRESHOLD, DEFAULT_CONVERGENCE_WINDOW, DEFAULT_MATCH_PAYOFF,
-    DEFAULT_MAX_POPULATION_ROUNDS, DEFAULT_MEMORY_CAPACITY, DEFAULT_MISMATCH_PAYOFF,
-    GameConfig, PolicyTable, memory_state_count, simulate_population,
+    DEFAULT_MAX_POPULATION_ROUNDS, DEFAULT_MEMORY_CAPACITY, DEFAULT_MISMATCH_PAYOFF, GameConfig,
+    PolicyTable, memory_state_count, simulate_population,
 };
 
 const POPULATION_SIZES: [usize; 7] = [2, 3, 4, 6, 10, 24, 100];
@@ -71,7 +71,11 @@ fn fmt(value: f64) -> String {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "group-size CSV width must remain fixed");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "group-size CSV width must remain fixed"
+    );
     println!("{}", fields.join(","));
 }
 
@@ -96,9 +100,15 @@ fn replicate_row(
         result.rounds_run().to_string(),
         result.total_pairwise_interactions.to_string(),
         result.agreement_converged.to_string(),
-        result.agreement_convergence_round.map_or_else(String::new, |v| v.to_string()),
-        result.convergence_window_convention.map_or_else(String::new, |v| v.to_string()),
-        result.true_action_unanimity_round.map_or_else(String::new, |v| v.to_string()),
+        result
+            .agreement_convergence_round
+            .map_or_else(String::new, |v| v.to_string()),
+        result
+            .convergence_window_convention
+            .map_or_else(String::new, |v| v.to_string()),
+        result
+            .true_action_unanimity_round
+            .map_or_else(String::new, |v| v.to_string()),
         fmt(result.final_option0_action_share),
         fmt(result.final_agreement_rate),
         fmt(result.final_mean_agent_payoff),
