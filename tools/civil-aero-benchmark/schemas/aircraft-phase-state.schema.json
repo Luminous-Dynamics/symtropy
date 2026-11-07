@@ -67,7 +67,8 @@
     },
     "state_sha256": {
       "type": "string",
-      "pattern": "^[0-9a-fA-F]{64}$"
+      "pattern": "^[0-9a-fA-F]{64}$",
+      "description": "SHA-256 of the canonical UTF-8 JSON representation of the entire AircraftPhaseState object after removing only this state_sha256 property; sort object keys lexicographically, emit compact JSON separators with no insignificant whitespace, preserve array order, and encode without ASCII escaping. previous_state_sha256 is included in the hashed payload."
     },
     "reference_frame_id": {
       "type": "string",
