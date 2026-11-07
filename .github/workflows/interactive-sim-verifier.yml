@@ -1,0 +1,28 @@
+name: Interactive simulation fixture verifier
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/interactive-sim/**"
+      - "tools/interactive-sim-verifier/**"
+      - ".github/workflows/interactive-sim-verifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: interactive-sim-verifier-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  strict-fixture-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test independent verifier
+        run: cargo test --manifest-path tools/interactive-sim-verifier/Cargo.toml
+      - name: Verify committed corpus
+        run: cargo run --manifest-path tools/interactive-sim-verifier/Cargo.toml -- docs/research/interactive-sim/INTERACTIVE_SIM_CASES_V0_1.json
