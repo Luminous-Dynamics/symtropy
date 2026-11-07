@@ -53,6 +53,8 @@ pub enum CcdInputError {
     ZeroPlaneNormal,
     /// Finite inputs produced a non-finite intermediate or output.
     NumericalOverflow,
+    /// Floating-point error prevents a reliable classification near contact.
+    NumericalAmbiguity,
 }
 
 /// Speed threshold below which CCD is not applied (optimization).
@@ -194,13 +196,13 @@ pub fn try_sphere_sphere<const D: usize>(
 
     let entry_time = closest_time - half_chord_time;
     let exit_time = closest_time + half_chord_time;
-    let toi = if entry_time >= 0.0 && entry_time <= dt {
-        entry_time
-    } else if exit_time >= 0.0 && exit_time <= dt {
-        exit_time
-    } else {
+    if entry_time < 0.0 && exit_time >= 0.0 {
+        return Err(CcdInputError::NumericalAmbiguity);
+    }
+    if entry_time < 0.0 || entry_time > dt {
         return Ok(None);
-    };
+    }
+    let toi = entry_time;
 
     let pos_a_at_hit = pos_a + vel_a * toi;
     let relative_at_hit = dp + dv * toi;
@@ -437,6 +439,19 @@ mod tests {
         .unwrap();
 
         assert!((original.toi - boosted.toi).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_sphere_initial_state_is_not_reclassified_as_exit_contact() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([1.0, 0.0, 0.0]);
+        let pos_b = SVector::from([0.5, 0.0, 0.0]);
+        let vel_b = SVector::zeros();
+
+        let hit = try_sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .unwrap()
+            .unwrap();
+        assert_eq!(hit.toi, 0.0);
     }
 
     #[test]
