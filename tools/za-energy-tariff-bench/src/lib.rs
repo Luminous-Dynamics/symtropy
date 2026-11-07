@@ -305,7 +305,10 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
     valid_non_negative(case.power_factor, "power_factor")?;
     valid_non_negative(case.reactive_energy_kvarh, "reactive_energy_kvarh")?;
     for (index, demand) in case.previous_twelve_month_top_three_kva.iter().enumerate() {
-        valid_non_negative(*demand, &format!("previous_twelve_month_top_three_kva[{index}]"))?;
+        valid_non_negative(
+            *demand,
+            &format!("previous_twelve_month_top_three_kva[{index}]"),
+        )?;
     }
     if case.power_factor > 1.0 {
         return Err("power_factor must be <= 1.0".to_owned());
@@ -353,14 +356,10 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
         }
     }
 
-    let measured_max = case
-        .measured_monthly_max_demand_kva
-        .max(interval_max_kva);
+    let measured_max = case.measured_monthly_max_demand_kva.max(interval_max_kva);
     let rolling_top_three_average =
         case.previous_twelve_month_top_three_kva.iter().sum::<f64>() / 3.0;
-    let demand_floor = DEMAND_FLOOR_KVA.max(
-        DEMAND_RATCHET_FRACTION * rolling_top_three_average,
-    );
+    let demand_floor = DEMAND_FLOOR_KVA.max(DEMAND_RATCHET_FRACTION * rolling_top_three_average);
     let billed_demand = measured_max.max(demand_floor);
     let demand_charge_zar = billed_demand * rates.demand_zar_per_kva_month;
 
@@ -404,15 +403,11 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
                 amount,
             )
         } else {
-            (
-                None,
-                "not_calculated_basis_not_confirmed".to_owned(),
-                0.0,
-            )
+            (None, "not_calculated_basis_not_confirmed".to_owned(), 0.0)
         };
 
-    let surcharge_calculable = !case.apply_business_lpu_surcharge
-        || business_lpu_surcharge_zar.is_some();
+    let surcharge_calculable =
+        !case.apply_business_lpu_surcharge || business_lpu_surcharge_zar.is_some();
     let surcharge_confirmed = !case.apply_business_lpu_surcharge
         || (business_lpu_surcharge_zar.is_some() && case.surcharge_basis_confirmed);
     let subtotal_before_vat_zar = subtotal_before_surcharge_zar + surcharge_amount;
@@ -424,7 +419,8 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
         "vat_basis_not_confirmed".to_owned()
     };
     let vat_zar = if surcharge_calculable && case.vat_basis_confirmed {
-        case.vat_rate.map(|rate| round2(subtotal_before_vat_zar * rate))
+        case.vat_rate
+            .map(|rate| round2(subtotal_before_vat_zar * rate))
     } else {
         None
     };
@@ -446,7 +442,12 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
             .to_owned(),
     );
 
-    let invoice_equivalent_total_zar = match (is_eligible, surcharge_confirmed, case.vat_basis_confirmed, vat_zar) {
+    let invoice_equivalent_total_zar = match (
+        is_eligible,
+        surcharge_confirmed,
+        case.vat_basis_confirmed,
+        vat_zar,
+    ) {
         (true, true, true, Some(vat)) => Some(round2(subtotal_before_vat_zar + vat)),
         _ => None,
     };
@@ -504,7 +505,10 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
 
 pub fn evaluate_fixture(fixture: &Fixture) -> Result<Vec<Evaluation>, String> {
     if fixture.schema_version != 1 {
-        return Err(format!("unsupported schema_version {}", fixture.schema_version));
+        return Err(format!(
+            "unsupported schema_version {}",
+            fixture.schema_version
+        ));
     }
     if fixture.cases.is_empty() {
         return Err("fixture must contain at least one case".to_owned());
@@ -560,7 +564,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn duplicate_case_ids_are_rejected() {
         let mut fixture = Fixture {
@@ -570,9 +573,11 @@ mod tests {
             cases: vec![base_case(), base_case()],
         };
         fixture.cases[1].case_id = fixture.cases[0].case_id.clone();
-        assert!(evaluate_fixture(&fixture)
-            .expect_err("duplicate identities must be rejected")
-            .contains("duplicate case_id"));
+        assert!(
+            evaluate_fixture(&fixture)
+                .expect_err("duplicate identities must be rejected")
+                .contains("duplicate case_id")
+        );
     }
 
     #[test]
@@ -588,7 +593,9 @@ mod tests {
         let off_peak_eval = evaluate(&off_peak).expect("off-peak evaluates");
         assert!((peak_eval.energy_charge_zar - 766.24).abs() < 0.001);
         assert!((off_peak_eval.energy_charge_zar - 200.44).abs() < 0.001);
-        assert!((peak_eval.energy_charge_zar - off_peak_eval.energy_charge_zar - 565.80).abs() < 0.001);
+        assert!(
+            (peak_eval.energy_charge_zar - off_peak_eval.energy_charge_zar - 565.80).abs() < 0.001
+        );
     }
 
     #[test]
@@ -678,7 +685,6 @@ mod tests {
         assert_eq!(result.invoice_equivalent_total_zar, None);
     }
 
-
     #[test]
     fn assumed_surcharge_basis_does_not_create_invoice_total() {
         let mut case = base_case();
@@ -691,9 +697,12 @@ mod tests {
         assert!(result.business_lpu_surcharge_zar.is_some());
         assert!(result.vat_zar.is_some());
         assert_eq!(result.invoice_equivalent_total_zar, None);
-        assert!(result.surcharge_basis_status.contains("requires_invoice_confirmation"));
+        assert!(
+            result
+                .surcharge_basis_status
+                .contains("requires_invoice_confirmation")
+        );
     }
-
 
     #[test]
     fn invoice_total_requires_confirmed_eligibility_surcharge_basis_and_vat() {
@@ -727,12 +736,19 @@ mod tests {
     fn invalid_month_and_non_finite_power_factor_are_rejected() {
         let mut case = base_case();
         case.billing_month = 13;
-        assert!(evaluate(&case).expect_err("month must be rejected").contains("billing_month"));
+        assert!(
+            evaluate(&case)
+                .expect_err("month must be rejected")
+                .contains("billing_month")
+        );
         case = base_case();
         case.power_factor = f64::NAN;
-        assert!(evaluate(&case).expect_err("NaN PF must be rejected").contains("power_factor"));
+        assert!(
+            evaluate(&case)
+                .expect_err("NaN PF must be rejected")
+                .contains("power_factor")
+        );
     }
-
 
     #[test]
     fn vat_rate_without_confirmed_taxable_basis_does_not_create_vat_or_invoice_total() {
