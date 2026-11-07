@@ -1,0 +1,336 @@
+{
+  "schema_version": "aero-reference-catalog/0.1.0",
+  "catalog_id": "AER-01-DPW8-AEPW4-INTAKE-2026-11",
+  "retrieved_on_utc_date": "2026-11-07",
+  "claim_ceiling": "public_source_discovery_and_partial_content_inspection_only",
+  "acquisition_policy": {
+    "exact_bytes_required_before_admission": true,
+    "hash_algorithm": "SHA-256",
+    "no_inferred_units_or_terms": true,
+    "unknown_is_not_zero_or_pass": true,
+    "archives_are_not_extracted_until_safety_limits_are_set": true
+  },
+  "sources": [
+    {
+      "source_id": "dpw8-root-index",
+      "publisher": "NASA Langley Research Center DPW-8 file curator",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/",
+      "source_kind": "public_directory_index",
+      "artifact_role": "workshop_reference_index",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "DPW8 index lists Buffet, ONERA_OAT15A, Scatter, Static_Deformation and Test_Environment collections",
+        "DPW8 index labels the directory as the Eighth Drag Prediction Workshop (2026)"
+      ],
+      "terms_status": "not_reviewed",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "No source bundle acquired",
+        "Directory listings do not establish archive contents",
+        "Publisher authenticity and artifact hashes have not been independently authenticated"
+      ]
+    },
+    {
+      "source_id": "onera-oat15a-experimental-archive",
+      "publisher": "NASA Langley Research Center DPW-8 file curator; underlying geometry is identified by AIAA as ONERA intellectual property",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/Experimental_Data/onera-oat15a.zip",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/Experimental_Data/",
+      "source_kind": "zip_archive",
+      "artifact_role": "experimental_reference_bundle_uninspected",
+      "acquisition_state": "listing_only",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": "207 KB",
+      "last_modified": "2026-06-25 16:26:56 (source directory listing time; timezone not supplied)",
+      "observed_facts": [
+        "NASA directory lists onera-oat15a.zip at 207 KB",
+        "AIAA DPW page describes ONERA OAT15A experimental data, airfoil coordinates and IGES geometry as available",
+        "DPW-8 Verification 1a is the required ONERA OAT15A steady-CFD grid-convergence/polar case"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Archive member list and byte hashes",
+        "Exact measured variables, data units and calibration records in this particular archive",
+        "Whether this archive contains geometry, measurements, both or supporting metadata",
+        "Dataset redistribution permission",
+        "Experimental uncertainty and case-by-case applicability"
+      ]
+    },
+    {
+      "source_id": "crm-halfspan-equivalent-beam-bdf",
+      "publisher": "NASA Langley Research Center DPW-8 file curator; model attributed by source README to DPW-8/AePW-4",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_HALFSPAN_FEM.REV00/equivalent_beam_january_2025.bdf",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_HALFSPAN_FEM.REV00/",
+      "source_kind": "nastran_bulk_data_file",
+      "artifact_role": "equivalent_beam_structural_model_preview",
+      "acquisition_state": "text_preview_inspected_exact_bytes_not_acquired",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": "8 KB",
+      "last_modified": "2025-03-20 12:18:37 (source directory listing time; timezone not supplied)",
+      "preview_source": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_HALFSPAN_FEM.REV00/equivalent_beam_january_2025.bdf",
+      "observed_facts": [
+        "Text preview contained 180 numbered source lines",
+        "Observed card families include SOL 101, GRID, CBEAM, MAT1, PBEAM, CONM2, SPC, RBE2 and FORCE",
+        "Preview includes 16 CBEAM entries joining beam grids 1 through 17",
+        "Preview includes 16 PBEAM entries, 15 CONM2 entries and 16 RBE2 connection entries",
+        "Preview includes a root SPC entry and a FORCE entry at beam grid 17",
+        "The displayed MAT1 card contains E=1.0, G=1.0 and NU=0.0 fields; their unit interpretation is unknown",
+        "The deck includes PARAM WTMASS 0.00259; its dimensional interpretation is not admitted"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "known_unknowns": [
+        "Exact file bytes and SHA-256",
+        "Coordinate and force units",
+        "Material and beam property unit system",
+        "Meaning and intended use of WTMASS for this deck",
+        "Load normalization, boundary-condition rationale and expected solver result",
+        "Whether the model is intended only as an equivalent-beam method comparison or has additional approved uses",
+        "No NASTRAN solution has been independently reproduced"
+      ],
+      "unknowns": [
+        "No claim is made that this model is a validated aircraft structural model",
+        "No material allowables or certification basis are inferred from the deck",
+        "The browser text preview does not replace exact-byte acquisition and digest verification"
+      ]
+    },
+    {
+      "source_id": "crm-halfspan-fem-bdf",
+      "publisher": "NASA Langley Research Center DPW-8 file curator",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_HALFSPAN_FEM.REV00/CRM-mode-tet4-001-den-noEng_sk_halfspan.bdf",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/",
+      "source_kind": "nastran_bulk_data_file",
+      "artifact_role": "halfspan_crm_finite_element_model",
+      "acquisition_state": "listing_only",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": "219 MB",
+      "last_modified": "2025-03-20 12:18:48 (source directory listing time; timezone not supplied)",
+      "observed_facts": [
+        "NASA directory lists a half-span CRM FEM bulk-data file at 219 MB",
+        "README identifies this as a semispan model generated for DPW-8/AePW-4"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact bytes, digest, card inventory and model units",
+        "Solver compatibility and model assumptions",
+        "Material/property interpretation and intended applicability"
+      ]
+    },
+    {
+      "source_id": "crm-fullspan-fem-bdf-archive",
+      "publisher": "NASA Langley Research Center DPW-8 file curator; source README attributes it to the CRM website",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_FULLSPAN_WBT0.REV00/CRM-mode-tet4-001-den-noEng_sk.bdf_.zip",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/",
+      "source_kind": "zip_archive",
+      "artifact_role": "fullspan_crm_wing_body_tail_finite_element_model",
+      "acquisition_state": "listing_only",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": "112 MB",
+      "last_modified": "2025-03-21 16:46:55 (source directory listing time; timezone not supplied)",
+      "observed_facts": [
+        "NASA directory lists a 112 MB full-span WBT0 model archive",
+        "README points to the CRM website as the source of this model"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Archive members and exact bytes",
+        "Source model revision, terms and solver compatibility",
+        "Model units and all physical property assumptions"
+      ]
+    },
+    {
+      "source_id": "crm-static-fsi-test2-grid-family",
+      "publisher": "NASA Langley Research Center DPW-8 file curator",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/",
+      "source_kind": "grid_family_directory",
+      "artifact_role": "cfd_grid_family_for_crm_static_fsi",
+      "acquisition_state": "listing_only",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "Directory lists Ames, Cadence and Helden grid-family revisions",
+        "AIAA Test Case 2a(E)/2b(E) maps the FSI study to the Test_Case_2 grid family",
+        "The AIAA case sheet labels grid levels L1 Tiny, L2 Coarse, L3 Medium, L4 Fine, L5 eXtra-fine and L6 Ultra-fine"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Individual grid files, exact sizes and bytes",
+        "Grid-generation details, topology, wall treatment and mesh quality",
+        "Applicability to any aircraft other than the named CRM workshop configurations"
+      ]
+    },
+    {
+      "source_id": "crm-static-fsi-test4-ames-grid-family",
+      "publisher": "NASA Langley Research Center DPW-8 file curator",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_4/Ames_Grids.REV00/",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_4/Ames_Grids.REV00/",
+      "source_kind": "grid_archive_family_directory",
+      "artifact_role": "cfd_grid_family_for_crm_wing_body_nacelle_pylon_static_fsi",
+      "acquisition_state": "listing_only",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_members": [
+        {"name": "L1.zip", "listed_size": "361 MB"},
+        {"name": "L2.zip", "listed_size": "834 MB"},
+        {"name": "L3.zip", "listed_size": "1 GB"},
+        {"name": "L4.zip", "listed_size": "5 GB"},
+        {"name": "L5.zip", "listed_size": "12 GB"},
+        {"name": "L6.zip", "listed_size": "33 GB"}
+      ],
+      "last_modified": "2026-05-08 (listing shows individual timestamps)",
+      "observed_facts": [
+        "AIAA Test Case 4a(E)/4b(E) is Configuration D: CRM wing/body/nacelle/pylon static fluid-structure interaction",
+        "The Test Case 4 grid directory exposes six zip archives from 361 MB through 33 GB"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Archive member manifests, exact bytes and SHA-256 digests",
+        "Mesh cell/point counts and exact grid levels",
+        "Whether all six levels are required for a selected benchmark result"
+      ]
+    }
+  ],
+  "benchmark_cases": [
+    {
+      "case_id": "DPW8-OAT15A-V1A",
+      "title": "ONERA OAT15A steady RANS grid-convergence and polar",
+      "authority_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "required": true,
+      "physics_track": "steady_transonic_cfd_verification",
+      "conditions": {
+        "mach": 0.73,
+        "reynolds_chord": 3000000,
+        "static_temperature_k": 271.0,
+        "angles_of_attack_deg": [1.36, 1.5, 2.5, 3.0, 3.1],
+        "analysis": "steady CFD (e.g. RANS)"
+      },
+      "grid_family": {
+        "levels": [1, 2, 3, 4, 5, 6],
+        "minimum_required_members": 4,
+        "desirable_members": 6,
+        "sidewall_boundary_condition": "periodic"
+      },
+      "comparison_outputs": [
+        "force_and_moment_polar",
+        "grid_convergence",
+        "reported_solver_residuals"
+      ],
+      "claim_ceiling": "OAT15A case-specific CFD method verification; not CRM or low-speed aircraft validation"
+    },
+    {
+      "case_id": "DPW8-CRM-STATIC-FSI-2A-E",
+      "title": "CRM wing/body static fluid-structure interaction at cruise lift coefficient",
+      "authority_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/TestCases/staticdeformation-case2aE-2bE-v1.pdf",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "required": true,
+      "physics_track": "static_aeroelastic_fsi",
+      "conditions": {
+        "mach": 0.85,
+        "reynolds_chord": 5000000,
+        "dynamic_pressure_psf": 1384.0,
+        "lift_coefficient_target": 0.5,
+        "lift_coefficient_tolerance": 0.0001,
+        "angle_of_attack_approx_deg": 2.75,
+        "static_temperature_k": 322.04,
+        "initial_geometry": "jig_unloaded_wind_off",
+        "wing_trip_location": "10 percent chord upper and lower surfaces"
+      },
+      "grid_family": {
+        "levels": [1, 2, 3, 4, 5, 6],
+        "level_names": ["tiny", "coarse", "medium", "fine", "extra_fine", "ultra_fine"]
+      },
+      "measured_span_stations_eta": [0.0, 0.4286, 0.5546, 0.6773, 0.7954, 0.9150],
+      "comparison_outputs": [
+        "integrated_forces_and_moments",
+        "sectional_twist_and_deformation",
+        "sectional_pressure_coefficient_distribution",
+        "flow_solver_residuals",
+        "structural_solver_residuals"
+      ],
+      "structural_reference_source_ids": [
+        "crm-halfspan-equivalent-beam-bdf",
+        "crm-halfspan-fem-bdf",
+        "crm-fullspan-fem-bdf-archive"
+      ],
+      "claim_ceiling": "CRM workshop static-FSI reproduction for the admitted geometry, model and conditions only"
+    },
+    {
+      "case_id": "DPW8-CRM-STATIC-FSI-2B-E",
+      "title": "CRM wing/body static FSI angle-of-attack polar",
+      "authority_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/TestCases/staticdeformation-case2aE-2bE-v1.pdf",
+      "required": true,
+      "physics_track": "static_aeroelastic_fsi_polar",
+      "conditions": {
+        "mach": 0.85,
+        "reynolds_chord": 5000000,
+        "dynamic_pressure_psf": 1384.0,
+        "angles_of_attack_deg": [-1.5, 0.0, 1.5, 2.5, 3.0, 3.5, 4.0, 4.5],
+        "static_temperature_k": 322.04,
+        "initial_geometry": "jig_unloaded_wind_off"
+      },
+      "grid_family": {
+        "levels": [3],
+        "note": "The case sheet identifies grid level 3 for this polar test"
+      },
+      "measured_span_stations_eta": [0.0, 0.4286, 0.5546, 0.6773, 0.7954, 0.9150],
+      "comparison_outputs": [
+        "integrated_forces_and_moments",
+        "sectional_twist_and_deformation",
+        "sectional_pressure_coefficient_distribution",
+        "flow_solver_residuals",
+        "structural_solver_residuals"
+      ],
+      "claim_ceiling": "CRM workshop static-FSI polar reproduction for admitted conditions only"
+    },
+    {
+      "case_id": "DPW8-CRM-FEM-V1B",
+      "title": "NASA CRM finite-element-model validation",
+      "authority_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "required": true,
+      "physics_track": "structural_model_verification_validation",
+      "conditions": {
+        "test_case": "Verification 4 / static deformation working group Test Case 1b",
+        "detailed_conditions_status": "not_supplied_on_public_test_matrix_page"
+      },
+      "structural_reference_source_ids": [
+        "crm-halfspan-equivalent-beam-bdf",
+        "crm-halfspan-fem-bdf",
+        "crm-fullspan-fem-bdf-archive"
+      ],
+      "claim_ceiling": "CRM FEM case-specific model verification/validation; not low-speed aircraft validation"
+    }
+  ],
+  "data_format_observations": {
+    "submission_overview_url": "https://www.aiaa-dpw.org/postprocessing.html",
+    "container_format": "Tecplot-readable ASCII templates are used for workshop submissions",
+    "identified_data_products": [
+      "vehicle integrated forces and moments",
+      "surface pressure",
+      "spanwise load distribution",
+      "boundary-layer profiles",
+      "bending and twist deformations"
+    ],
+    "bending_twist_template_version": 3,
+    "bending_twist_template_date": "2026-05-06",
+    "normalization_note": "The AIAA change log states version 3 reports deflection normalized by reference semi-span",
+    "optional_missing_value_sentinel": -999,
+    "admission_note": "Read the actual template and preserve its columns, units, coordinates and missing-value semantics before implementing an importer"
+  }
+}
