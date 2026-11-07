@@ -2,8 +2,9 @@
 //!
 //! The existing `Case` model accepts a separated airframe mass and payload mass.
 //! A complete itemized aircraft mass ledger already contains both. This adapter
-//! reconciles the payload category exactly, derives the corresponding airframe
-//! subtotal, and then invokes the existing mission screen without double-counting.
+//! recomputes mass properties from the ledger, reconciles the Payload category,
+//! derives the non-payload subtotal, and invokes the mission screen without
+//! double-counting or accepting a caller-supplied mass-properties report.
 //!
 //! This is a screening adapter only. It does not add climb/takeoff/landing,
 //! fuel/energy chronology, trim, structural loads, or flightworthiness semantics.
@@ -273,8 +274,7 @@ mod tests {
     fn complete_mass_ledger_flows_into_mission_screen_without_payload_double_count() {
         let ledger = complete_ledger();
         let case = mission_case();
-        let bound =
-            evaluate_case_with_mass_ledger(&case, &ledger, CONFIG).expect("bound mission");
+        let bound = evaluate_case_with_mass_ledger(&case, &ledger, CONFIG).expect("bound mission");
 
         assert_eq!(bound.evidence_level, "screening_only");
         assert_eq!(bound.configuration_sha256, CONFIG);
@@ -282,7 +282,10 @@ mod tests {
         assert!((bound.result.total_mass_kg - 845.0).abs() < 1.0e-12);
         assert!((bound.result.case.airframe_mass_kg - 660.0).abs() < 1.0e-12);
         assert!((bound.result.case.payload_mass_kg - 185.0).abs() < 1.0e-12);
-        assert!((bound.result.total_mass_kg - bound.mass_properties.total_mass_kg.unwrap()).abs() < 1.0e-12);
+        assert!(
+            (bound.result.total_mass_kg - bound.mass_properties.total_mass_kg.unwrap()).abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
@@ -378,13 +381,13 @@ mod tests {
             point("systems", MassItemCategory::Avionics, 95.0, 1.2, 0.0, 0.45),
             point("pilot", MassItemCategory::Payload, 80.0, 2.7, -0.35, 0.55),
             point(
-                    "passenger",
-                    MassItemCategory::Payload,
-                    80.0,
-                    2.7,
-                    0.35,
-                    0.55,
-                ),
+                "passenger",
+                MassItemCategory::Payload,
+                80.0,
+                2.7,
+                0.35,
+                0.55,
+            ),
             point("baggage", MassItemCategory::Payload, 25.0, 3.1, 0.0, 0.35),
         ]
     }
