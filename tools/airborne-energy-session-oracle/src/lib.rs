@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 #![forbid(unsafe_code)]
 
 //! Deterministic semantic verifier for the aerial energy-session v0 contract.
@@ -706,13 +707,12 @@ mod tests {
     }
 
     #[test]
-    fn power_active_cannot_reuse_the_previous_admission_epoch() {
+    fn reacquisition_must_repeat_admission_before_acquisition() {
         let mut value = fixture_value();
-        value["events"][8]["to_state"] = Value::String("REACQUISITION_PENDING".into());
-        value["events"][8]["from_state"] = Value::String("SAFE_OFF".into());
-        let error = evaluate_json(&value.to_string()).expect_err("fresh admission is required");
-        assert!(error.to_string().contains("transition is not in the v0 state graph")
-            || error.to_string().contains("from_state does not match previous to_state"));
+        value["events"][8]["from_state"] = Value::String("REACQUISITION_PENDING".into());
+        value["events"][8]["to_state"] = Value::String("ACQUISITION_PENDING".into());
+        let error = evaluate_json(&value.to_string()).expect_err("reacquisition must re-admit");
+        assert!(error.to_string().contains("transition is not in the v0 state graph"));
     }
 
     #[test]
