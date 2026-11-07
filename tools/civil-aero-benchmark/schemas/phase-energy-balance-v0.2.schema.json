@@ -1,0 +1,469 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/phase-energy-balance-0.2.0.json",
+  "title": "AER-01 carrier-aware phase energy balance v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mission_id",
+    "phase_id",
+    "configuration_sha256",
+    "start_state_sha256",
+    "end_state_sha256",
+    "duration_s",
+    "tolerance_j",
+    "fuel_states",
+    "prime_movers",
+    "generators",
+    "stores",
+    "bus_loads",
+    "motor_drives",
+    "propulsors",
+    "tolerance_w",
+    "peak_bus_supply_power_w",
+    "peak_bus_supply_power_limit_w",
+    "continuous_bus_supply_power_limit_w",
+    "peak_bus_power_trace_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "phase-energy-balance/0.2.0"
+    },
+    "mission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "phase_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "configuration_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "start_state_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "end_state_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "duration_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "tolerance_j": {
+      "type": "number",
+      "minimum": 0
+    },
+    "fuel_states": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/fuel_state"
+      }
+    },
+    "prime_movers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/prime_mover"
+      }
+    },
+    "generators": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/generator"
+      }
+    },
+    "stores": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/store"
+      }
+    },
+    "bus_loads": {
+      "$ref": "#/$defs/bus_loads"
+    },
+    "motor_drives": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/motor"
+      }
+    },
+    "propulsors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/propulsor"
+      }
+    },
+    "tolerance_w": {
+      "type": "number",
+      "minimum": 0
+    },
+    "peak_bus_supply_power_w": {
+      "$ref": "#/$defs/nonnegative"
+    },
+    "peak_bus_supply_power_limit_w": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "continuous_bus_supply_power_limit_w": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "peak_bus_power_trace_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "nonnegative": {
+      "type": "number",
+      "minimum": 0
+    },
+    "fuel_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fuel_source_id",
+        "evidence_sha256",
+        "chemical_energy_start_j",
+        "chemical_energy_consumed_j",
+        "chemical_energy_end_j",
+        "required_reserve_j"
+      ],
+      "properties": {
+        "fuel_source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "chemical_energy_start_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "chemical_energy_consumed_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "chemical_energy_end_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "required_reserve_j": {
+          "$ref": "#/$defs/nonnegative"
+        }
+      }
+    },
+    "prime_mover": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prime_mover_id",
+        "model_evidence_sha256",
+        "fuel_source_id",
+        "fuel_energy_input_j",
+        "mechanical_output_j",
+        "thermal_and_exhaust_loss_j",
+        "direct_propulsor_shaft_j",
+        "accessory_mechanical_load_j",
+        "mechanical_distribution_loss_j",
+        "average_mechanical_output_power_limit_w",
+        "peak_mechanical_output_power_w",
+        "peak_mechanical_output_power_limit_w"
+      ],
+      "properties": {
+        "prime_mover_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "fuel_source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fuel_energy_input_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "mechanical_output_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "thermal_and_exhaust_loss_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "direct_propulsor_shaft_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "accessory_mechanical_load_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "mechanical_distribution_loss_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "average_mechanical_output_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_mechanical_output_power_w": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "peak_mechanical_output_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generator_id",
+        "model_evidence_sha256",
+        "prime_mover_id",
+        "mechanical_input_j",
+        "electrical_output_to_bus_j",
+        "conversion_loss_j",
+        "average_electrical_output_power_limit_w",
+        "peak_electrical_output_power_w",
+        "peak_electrical_output_power_limit_w"
+      ],
+      "properties": {
+        "generator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "prime_mover_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanical_input_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "electrical_output_to_bus_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "conversion_loss_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "average_electrical_output_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_electrical_output_power_w": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "peak_electrical_output_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "store": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "store_id",
+        "kind",
+        "installed_system_evidence_sha256",
+        "operating_envelope_evidence_sha256",
+        "usable_energy_start_j",
+        "usable_energy_end_j",
+        "usable_capacity_j",
+        "reserve_floor_j",
+        "discharge_to_bus_j",
+        "charge_from_bus_j",
+        "discharge_efficiency",
+        "charge_efficiency",
+        "state_of_health_fraction",
+        "minimum_state_of_health_fraction",
+        "temperature_c",
+        "minimum_temperature_c",
+        "maximum_temperature_c",
+        "average_discharge_power_limit_w",
+        "peak_discharge_power_w",
+        "peak_discharge_power_limit_w",
+        "average_charge_power_limit_w",
+        "peak_charge_power_w",
+        "peak_charge_power_limit_w"
+      ],
+      "properties": {
+        "store_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "battery",
+            "supercapacitor",
+            "other_electrical_storage"
+          ]
+        },
+        "installed_system_evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "operating_envelope_evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "usable_energy_start_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "usable_energy_end_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "usable_capacity_j": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reserve_floor_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "discharge_to_bus_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "charge_from_bus_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "discharge_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "charge_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "state_of_health_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_state_of_health_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "temperature_c": {
+          "type": "number"
+        },
+        "minimum_temperature_c": {
+          "type": "number"
+        },
+        "maximum_temperature_c": {
+          "type": "number"
+        },
+        "average_discharge_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_discharge_power_w": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "peak_discharge_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "average_charge_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "peak_charge_power_w": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "peak_charge_power_limit_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "bus_loads": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "auxiliary_load_j",
+        "thermal_electrical_load_j",
+        "distribution_loss_j"
+      ],
+      "properties": {
+        "auxiliary_load_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "thermal_electrical_load_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "distribution_loss_j": {
+          "$ref": "#/$defs/nonnegative"
+        }
+      }
+    },
+    "motor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "motor_id",
+        "model_evidence_sha256",
+        "bus_input_j",
+        "inverter_loss_j",
+        "motor_loss_j",
+        "shaft_output_j"
+      ],
+      "properties": {
+        "motor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bus_input_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "inverter_loss_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "motor_loss_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "shaft_output_j": {
+          "$ref": "#/$defs/nonnegative"
+        }
+      }
+    },
+    "propulsor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "propulsor_id",
+        "model_evidence_sha256",
+        "shaft_input_j",
+        "useful_propulsive_energy_j",
+        "propulsor_loss_j"
+      ],
+      "properties": {
+        "propulsor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "shaft_input_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "useful_propulsive_energy_j": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "propulsor_loss_j": {
+          "$ref": "#/$defs/nonnegative"
+        }
+      }
+    }
+  }
+}

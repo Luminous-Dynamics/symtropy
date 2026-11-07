@@ -20,6 +20,7 @@ pub mod mass_evidence;
 pub mod mass_properties;
 pub mod mission_mass_coupling;
 pub mod optimizer_qualification;
+pub mod phase_energy_planes;
 pub mod policy_aggregate;
 pub mod policy_benchmark;
 pub mod reference_data;
