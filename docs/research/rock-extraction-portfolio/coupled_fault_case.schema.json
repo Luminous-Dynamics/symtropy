@@ -1,0 +1,358 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/coupled-fault-case-v0.1.json",
+  "title": "Symtropy Coupled Fault Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "observability_case_id",
+    "parent_context",
+    "baseline_state_id",
+    "null_model",
+    "fault_catalog",
+    "combined_states",
+    "responses",
+    "required_combination_pairs"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fault": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault_id",
+        "singleton_state_id",
+        "fault_layer",
+        "causal_group_ref",
+        "mutually_exclusive_group_ref",
+        "affected_channel_ids",
+        "source_ref"
+      ],
+      "properties": {
+        "fault_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "singleton_state_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "fault_layer": {
+          "enum": [
+            "PROCESS",
+            "SENSOR",
+            "COMMON_CAUSE"
+          ]
+        },
+        "causal_group_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "mutually_exclusive_group_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "affected_channel_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "combined_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "combination_id",
+        "active_fault_ids",
+        "combination_type",
+        "onset_relation",
+        "onset_order",
+        "faulted_channel_ids",
+        "evidence_class",
+        "event_window_ref",
+        "adjudication_ref"
+      ],
+      "properties": {
+        "combination_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "active_fault_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "combination_type": {
+          "enum": [
+            "CO_OCCURRENCE",
+            "CAUSAL_CHAIN",
+            "COMMON_CAUSE"
+          ]
+        },
+        "onset_relation": {
+          "enum": [
+            "SIMULTANEOUS",
+            "KNOWN_ORDER",
+            "UNKNOWN_ORDER"
+          ]
+        },
+        "onset_order": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "faulted_channel_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "evidence_class": {
+          "enum": [
+            "SYNTHETIC_CONFORMANCE_FIXTURE",
+            "MEASURED"
+          ]
+        },
+        "event_window_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "adjudication_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "combination_id",
+        "channel_id",
+        "availability",
+        "value_lower",
+        "value_upper",
+        "unit",
+        "evidence_role",
+        "domain",
+        "measurement_window_ref",
+        "source_ref",
+        "adjudication_ref"
+      ],
+      "properties": {
+        "combination_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "channel_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "availability": {
+          "enum": [
+            "VALID",
+            "DEGRADED",
+            "MISSING",
+            "UNKNOWN"
+          ]
+        },
+        "value_lower": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "value_upper": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "evidence_role": {
+          "enum": [
+            "INDEPENDENT_MEASUREMENT",
+            "SYNTHETIC_CONFORMANCE_FIXTURE",
+            "MODEL_ESTIMATE",
+            "OPERATOR_REPORTED"
+          ]
+        },
+        "domain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "material_cohort_ref",
+            "path_configuration_ref",
+            "geometry_profile_ref"
+          ],
+          "properties": {
+            "material_cohort_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "path_configuration_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "geometry_profile_ref": {
+              "$ref": "#/$defs/ref"
+            }
+          }
+        },
+        "measurement_window_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "adjudication_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "combination_a_id",
+        "combination_b_id",
+        "minimum_independent_principles"
+      ],
+      "properties": {
+        "pair_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "combination_a_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "combination_b_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "minimum_independent_principles": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MEASURED"
+      ]
+    },
+    "observability_case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "parent_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parent_case_id",
+        "parent_interval_id",
+        "trial_id",
+        "material_cohort_ref",
+        "machine_configuration_ref",
+        "transport_configuration_ref"
+      ],
+      "properties": {
+        "parent_case_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "parent_interval_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "trial_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "material_cohort_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "machine_configuration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "transport_configuration_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "baseline_state_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "null_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_kind",
+        "equation_ref",
+        "assumption_ref",
+        "dependence_note_ref",
+        "source_ref"
+      ],
+      "properties": {
+        "model_kind": {
+          "const": "ADDITIVE_DIFFERENTIAL_SCREENING_ONLY"
+        },
+        "equation_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "assumption_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "dependence_note_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "fault_catalog": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/fault"
+      }
+    },
+    "combined_states": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/combined_state"
+      }
+    },
+    "responses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/response"
+      }
+    },
+    "required_combination_pairs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pair"
+      }
+    }
+  }
+}
