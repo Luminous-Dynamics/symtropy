@@ -275,6 +275,7 @@
       "case_id": "DPW8-CRM-STATIC-FSI-2B-E",
       "title": "CRM wing/body static FSI angle-of-attack polar",
       "authority_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/TestCases/staticdeformation-case2aE-2bE-v1.pdf",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
       "required": true,
       "physics_track": "static_aeroelastic_fsi_polar",
       "conditions": {
