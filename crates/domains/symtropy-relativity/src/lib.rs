@@ -4,10 +4,10 @@
 //! Analytic, SI-dimensional reference calculations for stationary black holes.
 //!
 //! This crate is deliberately narrower than a general-relativity solver. It
-//! provides validated parameters and closed-form scalar results that can be
-//! checked against analytic fixtures. It does not implement a metric tensor,
-//! connection, curvature tensor, geodesic integrator, waveform model, or
-//! numerical-relativity evolution.
+//! provides validated parameters, closed-form Kerr/Schwarzschild observables,
+//! and analytic exterior metric components checked against exact fixtures.
+//! It does not yet implement connection/curvature tensors, geodesic
+//! integration, waveform generation, or numerical-relativity evolution.
 //!
 //! Conventions:
 //! - SI units are used at the public API boundary.
