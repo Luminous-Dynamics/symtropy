@@ -1,0 +1,53 @@
+name: Built Asset Synthetic Oracle
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/built-asset-oracle/**"
+      - "docs/research/built-asset/**"
+      - ".github/workflows/built-asset-oracle.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/built-asset-oracle/**"
+      - "docs/research/built-asset/**"
+      - ".github/workflows/built-asset-oracle.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: built-asset-oracle-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-oracle:
+    name: Synthetic corpus oracle (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/built-asset-oracle/Cargo.toml -- --check
+
+      - name: Test independent oracle
+        run: cargo test --manifest-path tools/built-asset-oracle/Cargo.toml
+
+      - name: Clippy
+        run: cargo clippy --manifest-path tools/built-asset-oracle/Cargo.toml --all-targets -- -D warnings
+
+      - name: Evaluate frozen corpus
+        run: |
+          cargo run --manifest-path tools/built-asset-oracle/Cargo.toml -- \
+            --corpus docs/research/built-asset/fixtures/v0.1/corpus.json \
+            --output /tmp/built-asset-oracle-report.json
+          jq -e '.passed == true and .case_count == 16 and .mismatched_cases == 0' \
+            /tmp/built-asset-oracle-report.json
