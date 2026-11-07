@@ -17,6 +17,7 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Horizon-regular ingoing charts for Schwarzschild and Kerr, with curvature tests at/inside their horizons and scalar-invariant comparisons against exterior coordinates.
 - Noise-weighted frequency-domain waveform comparison: one-sided PSD inner product, constant-phase-maximized mismatch, explicit best phase offset, separate amplitude L2 and frequency-dependent phase residual diagnostics, and strict grid/PSD/domain validation. The caller must pre-align waveforms; no hidden time maximization, interpolation, resampling, or PSD estimation.
 - Kerr equatorial prograde/retrograde circular-null-orbit reference observables: analytic photon-orbit radius and signed frequency, metric null/radial circularity residuals, impact parameter, and coordinate-time radial Lyapunov exponent. Extremal prograde Boyer-Lindquist horizon limit returns explicit unavailable impact/Lyapunov values rather than a fabricated finite result.
+- A 20-case independently generated Kerr light-ring reference grid spanning zero, positive, negative, near-extremal, and extremal spin.
 - **81 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, waveform metrics, and light-ring references.
 
 ## Conventions
@@ -77,6 +78,7 @@ Five versioned machine-readable research manifests are maintained beside the cra
 - `benchmarks/waveform_surrogate_baselines.json` — versioned literature baselines for NRSur7dq4 NN/v2, SEOBNRv5PHM_NNSur7dq10, AESur3dq8, NRSurE_q4NoSpin_22, BOB, SpEC accuracy, SEOBNRv6EPHM, and SEOBNRv6EHM.
 - `benchmarks/waveform_surrogate_certification_v1.json` — grouped simulation-ID splits, waveform error distributions, posterior coverage, OOD abstention and active-NR selection protocol.
 - `benchmarks/analytic_reference_cases.json` and `benchmarks/geodesic_reference_cases.json` — exact SI Kerr/Schwarzschild and Schwarzschild geodesic reference fixtures.
+- `benchmarks/light_ring_reference_cases.json` — independently generated 20-case equatorial Kerr photon-orbit / Lyapunov reference grid.
 
 These files are literature / experiment specifications. They are not benchmark execution results, model certifications, or evidence that the reported paper metrics have been reproduced by Symtropy.
 
