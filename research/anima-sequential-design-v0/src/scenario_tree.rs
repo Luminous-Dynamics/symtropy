@@ -189,12 +189,13 @@ fn search_node(
         });
     }
 
-    context.expanded_nodes = context
-        .expanded_nodes
-        .checked_add(1)
-        .ok_or(ScenarioTreeError::NodeBudgetExceeded {
-            maximum: context.planning_config.maximum_tree_nodes,
-        })?;
+    context.expanded_nodes =
+        context
+            .expanded_nodes
+            .checked_add(1)
+            .ok_or(ScenarioTreeError::NodeBudgetExceeded {
+                maximum: context.planning_config.maximum_tree_nodes,
+            })?;
     if context.expanded_nodes > context.planning_config.maximum_tree_nodes {
         return Err(ScenarioTreeError::NodeBudgetExceeded {
             maximum: context.planning_config.maximum_tree_nodes,
@@ -210,7 +211,8 @@ fn search_node(
         history: Vec::new(),
     };
 
-    let mut ordered_candidates: Vec<&InterventionCandidate> = context.candidates
+    let mut ordered_candidates: Vec<&InterventionCandidate> = context
+        .candidates
         .iter()
         .filter(|candidate| {
             transition_allows(
