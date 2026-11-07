@@ -247,3 +247,12 @@ This order distinguishes the **shared-energy-site problem** from the much harder
 Every modality must compete on useful mission service, turnaround, payload/receiver mass, availability, energy per completed mission, source-to-endpoint energy, alignment/position tolerance, field/path safety, maintainability and lifecycle cost. For docked aircraft, include conductive charging, robotic contact, battery swapping and near-field IPT/CPT. For airborne charging, compare onboard battery, tethered power, near-field relay/landing opportunities and RF/optical beaming only within a matched mission and safety envelope.
 
 The 7 September 2026 eVTOL charging review in IEEE Transactions on Smart Grid further supports modelling aircraft charging as a mission-driven distribution-network load, including vertiport aggregation, uncertain arrivals and coordinated grid operation (DOI [10.1109/TSG.2026.3731478](https://doi.org/10.1109/TSG.2026.3731478)).
+
+
+### M0 baseline is conductive air docking, not dual wireless charging
+
+The shared-site allocator's known-truth scenario now uses:
+- ground lane: `GROUND_DYNAMIC_INDUCTIVE`;
+- air lane: `AIR_DOCK_CONDUCTIVE`.
+
+This is intentional. M0 validates concurrent ground and aircraft energy service behind one PCC/source constraint using independent meter planes. It does **not** demonstrate two wireless links operating concurrently. M1 changes the air channel to IPT or CPT and adds channel-specific electromagnetic/thermal/interference measurements. The schema accepts the conductive aircraft-dock modality for service-allocation studies while retaining separate air-near-field and air-far-field modality values.
