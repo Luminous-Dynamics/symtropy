@@ -40,7 +40,16 @@
         "position_state": "UNKNOWN",
         "tracking_state": "UNKNOWN",
         "local_protection_state": "INHIBIT",
-        "deenergized_state": "NOT_REQUIRED"
+        "deenergized_state": "NOT_REQUIRED",
+        "receiver_id": "synthetic-uav-01",
+        "trajectory_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "opportunity_id": "synthetic-optical-opportunity-01",
+        "envelope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "allocation_id": "synthetic-allocation-01",
+        "allocation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "clock_id": "synthetic-monotonic-clock-01",
+        "clock_uncertainty_ms": 1,
+        "local_protection_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -59,7 +68,16 @@
         "position_state": "IN_DOMAIN_SYNTHETIC",
         "tracking_state": "NOT_REQUIRED",
         "local_protection_state": "INHIBIT",
-        "deenergized_state": "NOT_REQUIRED"
+        "deenergized_state": "NOT_REQUIRED",
+        "receiver_id": "synthetic-uav-01",
+        "trajectory_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "opportunity_id": "synthetic-optical-opportunity-01",
+        "envelope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "allocation_id": "synthetic-allocation-01",
+        "allocation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "clock_id": "synthetic-monotonic-clock-01",
+        "clock_uncertainty_ms": 1,
+        "local_protection_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -78,7 +96,16 @@
         "position_state": "IN_DOMAIN_SYNTHETIC",
         "tracking_state": "NOT_REQUIRED",
         "local_protection_state": "INHIBIT",
-        "deenergized_state": "NOT_REQUIRED"
+        "deenergized_state": "NOT_REQUIRED",
+        "receiver_id": "synthetic-uav-01",
+        "trajectory_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "opportunity_id": "synthetic-optical-opportunity-01",
+        "envelope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "allocation_id": "synthetic-allocation-01",
+        "allocation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "clock_id": "synthetic-monotonic-clock-01",
+        "clock_uncertainty_ms": 1,
+        "local_protection_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -97,7 +124,16 @@
         "position_state": "IN_DOMAIN_SYNTHETIC",
         "tracking_state": "TRACKED_SYNTHETIC",
         "local_protection_state": "INHIBIT",
-        "deenergized_state": "NOT_REQUIRED"
+        "deenergized_state": "NOT_REQUIRED",
+        "receiver_id": "synthetic-uav-01",
+        "trajectory_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "opportunity_id": "synthetic-optical-opportunity-01",
+        "envelope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "allocation_id": "synthetic-allocation-01",
+        "allocation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "clock_id": "synthetic-monotonic-clock-01",
+        "clock_uncertainty_ms": 1,
+        "local_protection_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -116,7 +152,16 @@
         "position_state": "IN_DOMAIN_SYNTHETIC",
         "tracking_state": "TRACKED_SYNTHETIC",
         "local_protection_state": "INHIBIT",
-        "deenergized_state": "NOT_REQUIRED"
+        "deenergized_state": "NOT_REQUIRED",
+        "receiver_id": "synthetic-uav-01",
+        "trajectory_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "opportunity_id": "synthetic-optical-opportunity-01",
+        "envelope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "allocation_id": "synthetic-allocation-01",
+        "allocation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "clock_id": "synthetic-monotonic-clock-01",
+        "clock_uncertainty_ms": 1,
+        "local_protection_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
     }
   ],
