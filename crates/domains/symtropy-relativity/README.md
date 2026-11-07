@@ -6,7 +6,7 @@ A bounded Rust research crate for analytic and differentiated Lorentzian-spaceti
 
 - Positive finite SI mass and signed dimensionless Kerr spin validation, including rejection when derived length scales are not representable.
 - Schwarzschild gravitational radius, horizon, photon sphere, ISCO, Kretschmann scalar, static-observer lapse, and redshift.
-- Kerr inner/outer Boyer-Lindquist horizons, ergosurface, signed horizon angular velocity, surface-gravity rate, and nonnegative 2|Omega_H| reference frequency.
+- Kerr inner/outer Boyer-Lindquist horizons, ergosurface, signed horizon angular velocity, surface-gravity rate, and nonnegative m=2 horizon-rotation comparison frequency (without assuming a non-QNM signal follows it).
 - Posterior-preserving transformation of paired remnant mass/spin samples into correlated Kerr horizon observables.
 - Schwarzschild and Kerr exterior metrics; horizon-regular ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr metrics.
 - Finite symmetric 4x4 metric components, pivoted determinant/inverse, and inverse-identity residual.
@@ -14,7 +14,8 @@ A bounded Rust research crate for analytic and differentiated Lorentzian-spaceti
 - Explicit second metric derivatives, mixed-index Riemann tensor, Ricci tensor/scalar, Einstein tensor, Kretschmann contraction, and algebraic Riemann symmetry diagnostics.
 - Fixed-size second-order forward-mode automatic differentiation (Jet2), producing first/second metric derivatives for Schwarzschild/Kerr and their horizon-regular ingoing charts.
 - Curvature verification across Schwarzschild and Kerr charts, including horizon and interior fixtures; Kerr vacuum Ricci and analytic Kretschmann comparisons.
-- **50 authored Rust tests** across scalar physics, metric matrices, connection, curvature, automatic differentiation, charts, and posterior transforms.
+- Kerr equatorial prograde/retrograde circular-null-orbit radii and signed coordinate angular frequencies, with Schwarzschild and extremal limits.
+- **57 authored Rust tests** across scalar physics, metric matrices, connection, curvature, automatic differentiation, horizon-regular charts, posterior transforms, and light-ring limits.
 
 ## Conventions
 
@@ -36,9 +37,9 @@ All derivative arrays must use the same chart, coordinate order, units, and sign
 For Kerr:
 - Omega_H = a*c/(r_plus^2 + a^2), in radians per second, retaining spin sign.
 - kappa_t = c*sqrt(r_g^2-a^2)/(2*r_g*r_plus), in inverse seconds.
-- f_2OmegaH = abs(Omega_H)/pi, a nonnegative Hz reference corresponding to angular-frequency magnitude 2*abs(Omega_H).
+- f_m2_horizon = abs(Omega_H)/pi is a nonnegative m=2 horizon-rotation comparison scale. It does not imply an observed non-QNM residual follows that scale.
 
-The direct-wave reference frequency is a theory-derived Kerr scale motivated by a published GW250114 analysis. It is not a waveform, a detection, or a verified universal feature. Recent numerical-relativity counteranalysis disputes the proposed universal identification of an extracted post-merger component with Omega_H and kappa; see the research charter and Symthaea replication campaign.
+The m=2 horizon-rotation frequency is a Kerr background comparison scale only. Recent work disputes a universal identification of the extracted non-QNM merger-ringdown component with horizon frequency/surface gravity and instead investigates light-ring and peak-news dynamics; see the research charter and Symthaea replication campaign.
 
 The posterior transform preserves each input sample ID, order, and paired mass/spin draw. It does not infer parameters, resample, marginalize, or fit waveforms.
 
@@ -54,11 +55,12 @@ Curvature results do not yet carry automatic conditioning estimates. Numerical t
 2. Add a Kerr analytic/AD cross-check with a second independent differentiation route and further parameter sweeps.
 3. Add regular-chart transition maps and invariant comparisons across additional coordinate systems.
 4. Implement timelike/null geodesics using both second-order and Hamiltonian formulations; validate normalization, Killing energy/angular momentum, and convergence.
-5. Add curvature Bianchi differential-identity checks where third derivatives are available.
-6. Connect the verified background/curvature API to QNM perturbation and GW250114 model-discrimination work.
+5. Implement the light-ring radial Lyapunov exponent and compare eikonal QNM predictions.
+6. Add curvature Bianchi differential-identity checks where third derivatives are available.
+7. Connect the verified background/curvature API to QNM perturbation and GW250114 model-discrimination work.
 
 ## Run
 
 `cargo test -p symtropy-relativity`
 
-**Validation status:** the 50 tests are authored but have not been executed in the current editing environment because `rustc` and `cargo` are unavailable.
+**Validation status:** the 57 tests are authored but have not been executed in the current editing environment because `rustc` and `cargo` are unavailable.
