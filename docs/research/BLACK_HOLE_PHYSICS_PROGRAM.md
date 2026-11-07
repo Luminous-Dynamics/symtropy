@@ -743,3 +743,18 @@ The proposed extension is not “use GPs” as a novel claim. It is a joint, par
 Primary evaluation is posterior calibration (50/90/95% coverage with confidence intervals), posterior bias and sharpness, proper scoring rules, residual checks, false-positive rate for GR deviations, OOD abstention, and time-to-posterior-accuracy. The manifest defines whole-simulation train/test grouping, untouched test IDs, blind injections across SNR 10–330, adversarial model errors and active-NR acquisition baselines.
 
 **Execution status:** manifest specification only. No discrepancy process has been fitted, no posterior injection campaign has been run, and no improved calibration result is claimed.
+
+
+### Independent formula-level light-ring cross-check — 2026-11-07
+
+A separate V8 calculation re-evaluated all 20 cases in `light_ring_reference_cases.json`: it recomputed the closed-form Kerr equatorial photon radius and signed coordinate frequency, then reconstructed (b=L/E), the null radial potential (R), (R'), (R''), and the coordinate-time radial Lyapunov exponent from the metric / geodesic first integrals.
+
+Results against the checked-in reference grid:
+- maximum relative difference in radius: 0 at the stored precision;
+- maximum relative difference in signed angular frequency: 0 at the stored precision;
+- maximum relative difference in impact parameter: 0 at the stored precision;
+- maximum relative difference in radial Lyapunov exponent: (3.3\times10^{-11});
+- maximum normalized (R) residual: (1.5\times10^{-9}), at the near-extremal prograde case (|\chi|=0.999999);
+- maximum normalized (R') residual: below the displayed precision of the independent calculation.
+
+This is a formula-level reimplementation / reference-grid cross-check, **not** execution of the Rust tests, an external numerical-relativity comparison, or a finite-(\ell) QNM validation. The near-extremal residual is an explicit conditioning signal and should remain separately tracked rather than hidden behind a global tolerance.
