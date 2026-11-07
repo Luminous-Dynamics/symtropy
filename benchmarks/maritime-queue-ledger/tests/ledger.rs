@@ -464,6 +464,37 @@ fn a_vessel_call_cannot_exit_before_its_observed_in_window_arrival() {
 }
 
 #[test]
+fn cyclic_correction_chain_is_rejected() {
+    let ledger = vessel_ledger(
+        0,
+        vec![
+            vessel(
+                "event-one",
+                "call-a",
+                VesselEventKind::EligibleArrival,
+                EventClass::Actual,
+                2,
+                3,
+                Some("event-two"),
+            ),
+            vessel(
+                "event-two",
+                "call-a",
+                VesselEventKind::EligibleArrival,
+                EventClass::Actual,
+                2,
+                3,
+                Some("event-one"),
+            ),
+        ],
+    );
+    assert_eq!(
+        audit_vessel_queue(&ledger, 4),
+        Err(LedgerError::SupersessionCycle("event-one".to_owned()))
+    );
+}
+
+#[test]
 fn corrections_not_yet_observed_do_not_rewrite_historical_snapshots() {
     let ledger = vessel_ledger(
         0,
