@@ -18,12 +18,13 @@ Implements [issue #3961](https://github.com/Luminous-Dynamics/symtropy/issues/39
 - Exact, distribution-free order-statistic confidence intervals for predeclared p05/p50/p95 quantile targets under the explicitly declared independent random-sampling design.
 - Precision gate: each interval width must satisfy a predeclared descriptor-unit maximum.
 - Censored values remain censored and prevent an exact quantile qualification.
+- Sequential cumulative quantile estimates are tracked across predeclared batches; qualification requires a terminal run of stable batch-to-batch changes after the last observed instability.
 
 ## Statistical scope
 
 For independent observations X_1,...,X_n, the count B of observations at or below the population p-quantile has Binomial(n,p) distribution. The interval [X_(r), X_(s)] has coverage P(r <= B <= s-1). v0.1 searches order-statistic bounds and uses declared descriptor-domain limits only where a finite sample bound is unavailable.
 
-The interval is distribution-free **conditional on the IID sampling premise**. It does not correct selection bias, hidden acquisition clustering, unrepresentative material collection, operator bias, changing geology, censoring, or domain shift. One particle per independently declared acquisition block is required in v0.1; cluster-aware bootstrap and finite-population corrections are future work.
+The interval is distribution-free **conditional on the IID sampling premise**. It does not correct selection bias, hidden acquisition clustering, unrepresentative material collection, operator bias, changing geology, censoring, or domain shift. One particle per independently declared acquisition block is required in v0.1; cluster-aware bootstrap, finite-population corrections and adaptive sample-size planning are future work. The v0.1 terminal-stability rule is a custom explicit rule, not the paper's Last-Exit algorithm.
 
 The reference bias envelope is intentionally conservative and is not a full GUM uncertainty budget. It does not combine correlated components by RSS or imply metrological traceability beyond the references supplied by the experiment owner.
 
