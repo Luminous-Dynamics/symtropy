@@ -203,3 +203,47 @@ The channel records intentionally declare `DECLARED_SYNTHETIC_SUPPORT`, `NOT_EVA
 Nine Rust unit-test declarations cover the known-truth allocation, row-order determinism, insufficient budget, unresolved safety/coexistence states, domain/modality mismatch, non-overlapping sessions, search-bound exhaustion, energy-coefficient conservation and unknown/non-synthetic input rejection.
 
 No local `cargo`, `rustc` or `rustfmt` is installed in this authoring environment. The source, lockfile and CI wiring are committed, but compilation, formatting and test execution are **not claimed** pending exact-head CI.
+
+
+## 12. UAV charging evidence update — 7 November 2026
+
+A new open-access review, Wu et al., *Autonomous Charging and Battery Swapping for Unmanned Aerial Vehicles: A Review*, first published 25 October 2026 (DOI [10.1002/aisy.70584](https://doi.org/10.1002/aisy.70584)), compares autonomous contact docking, IPT, CPT, laser power transfer, microwave power transfer and battery swapping. It changes the first-demonstrator priority:
+
+### Contact docking is a mandatory baseline, not an afterthought
+
+The review reports one autonomous contact-charging platform that charged reliably across 832 landing poses at greater than 98% efficiency and completed 30/30 outdoor flights. It also notes that environmental conditions affect precision landing and that connector durability remains insufficiently characterized for UAV service; the cited approximately 3,000 mating-cycle degradation figure is from general connector testing, not a UAV-specific endurance result.
+
+Therefore the first shared-site demonstration should include an independently metered **conductive/robotic aircraft dock** alongside the ground dynamic-inductive roadway. This already tests true concurrent site-energy allocation and metrology without pretending that every aircraft must be wirelessly charged.
+
+### Near-field UAV WPT is credible, but must be compared by the full operating envelope
+
+The review's heterogeneous source table includes:
+- IPT at 125 W and 97.66% peak efficiency, falling to 85.48% at 100 mm lateral misalignment in the same study;
+- IPT at 260 W and 91.57%, with reported tolerance to 25 mm X, 40 mm Y and 25° rotational misalignment;
+- IPT at 175 W and 92.3% at a 5 mm gap, with 200 mm lateral tolerance;
+- a 350 W / 85 kHz multi-transmitter UAV IPT study with 88.6% (two transmitters) and 87.9% (four transmitters), which also treats field uniformity and off-target leakage as objectives;
+- a 500 kHz single-input/multiple-output CPT experiment reporting 709.9 W maximum single-load output, 89.06% peak DC–DC efficiency and tolerance to 125 mm lateral / 60° angular misalignment.
+
+These are different topologies, gaps, receiver masses, measurement conditions and peak/steady-state profiles. Preserve each as its own source-bound benchmark lane; do not construct a universal UAV charging envelope from their maxima.
+
+### Far-field UAV power remains a distinct readiness class
+
+The review's microwave examples include approximately 2.28 W received at 1 m with about 0.7% efficiency, 17.6 mW at 0.8 m with about 0.6% efficiency, and approximately 1.7 mW at 1.5 m with 0.044% efficiency. It concludes that the surveyed microwave systems do not yet meet typical rotary-wing UAV propulsion demand. Older laser-powered UAV research has demonstrated long endurance in constrained operating areas, but the review identifies alignment, low end-to-end efficiency and laser safety as major practical obstacles.
+
+Reach Power's 28 October 2026 announcement is a separate and important operational milestone: it reports a 10-hour autonomous RF-beam-powered quadcopter flight, autonomous energy requests, beam release, departure and reacquisition. The public announcement does not disclose delivered RF power, transmitter-to-aircraft distance or end-to-end energy efficiency. It therefore belongs in an **autonomous endurance / reacquisition** benchmark, not a numeric efficiency leaderboard.
+
+### Staged demonstrator sequence
+
+1. **M0 — shared-site concurrency:** dynamic ground IPT plus a separately metered conductive/robotic docked-UAV charger on one constrained site source. Demonstrate simultaneous demand, allocation, source accounting and service fairness.
+2. **M1 — two near-field channels:** replace or supplement the aircraft conductive dock with a separately qualified UAV IPT/CPT pad. Retain independent converters and channel-local protection.
+3. **M2 — multi-air receiver service:** multiple docked/hovering UAVs, channel caps, misalignment envelopes, load decoupling, inactive-port leakage and fair service while the road lane remains active.
+4. **M3 — far-field UAV research:** RF and optical power beaming, each with its own path/acquisition, receiver-mass, spectrum/exposure or laser/interlock and weather/availability evidence. Keep delivered power and range null until measured.
+5. **M4 — parked eVTOL:** mission-matched high-power aircraft ground charging and vertiport/grid integration. In-flight eVTOL power beaming remains outside the near-term product assumption.
+
+This order distinguishes the **shared-energy-site problem** from the much harder **in-flight energy-transfer problem**. We can validate the first with M0 while the far-field research remains immature.
+
+### Updated benchmark principle
+
+Every modality must compete on useful mission service, turnaround, payload/receiver mass, availability, energy per completed mission, source-to-endpoint energy, alignment/position tolerance, field/path safety, maintainability and lifecycle cost. For docked aircraft, include conductive charging, robotic contact, battery swapping and near-field IPT/CPT. For airborne charging, compare onboard battery, tethered power, near-field relay/landing opportunities and RF/optical beaming only within a matched mission and safety envelope.
+
+The 7 September 2026 eVTOL charging review in IEEE Transactions on Smart Grid further supports modelling aircraft charging as a mission-driven distribution-network load, including vertiport aggregation, uncertain arrivals and coordinated grid operation (DOI [10.1109/TSG.2026.3731478](https://doi.org/10.1109/TSG.2026.3731478)).
