@@ -42,11 +42,7 @@ fn sphere_cases() -> Vec<SphereCase> {
             pos_a: SVector::zeros(),
             vel_a: SVector::from([30.0, 0.0, 0.0]),
             radius_a: 0.75,
-            pos_b: SVector::from([
-                80.0 + index as f64 * 0.05,
-                (index % 17) as f64 * 0.05,
-                0.0,
-            ]),
+            pos_b: SVector::from([80.0 + index as f64 * 0.05, (index % 17) as f64 * 0.05, 0.0]),
             vel_b: SVector::from([-1.0, 0.0, 0.0]),
             radius_b: 0.25,
             dt: 10.0,
@@ -74,29 +70,32 @@ fn bench_ccd(c: &mut Criterion) {
     let mut group = c.benchmark_group("ccd_analytic_queries");
     group.throughput(Throughput::Elements(CASE_COUNT as u64));
 
-    group.bench_function(BenchmarkId::new("sphere_sphere_mixed_512", CASE_COUNT), |bench| {
-        bench.iter(|| {
-            let mut hits = 0_u64;
-            let mut toi_sum = 0.0;
-            for case in &sphere_cases {
-                if let Some(hit) = try_sphere_sphere(
-                    &case.pos_a,
-                    &case.vel_a,
-                    case.radius_a,
-                    &case.pos_b,
-                    &case.vel_b,
-                    case.radius_b,
-                    case.dt,
-                )
-                .expect("frozen finite CCD inputs must be valid")
-                {
-                    hits += 1;
-                    toi_sum += hit.toi;
+    group.bench_function(
+        BenchmarkId::new("sphere_sphere_mixed_512", CASE_COUNT),
+        |bench| {
+            bench.iter(|| {
+                let mut hits = 0_u64;
+                let mut toi_sum = 0.0;
+                for case in &sphere_cases {
+                    if let Some(hit) = try_sphere_sphere(
+                        &case.pos_a,
+                        &case.vel_a,
+                        case.radius_a,
+                        &case.pos_b,
+                        &case.vel_b,
+                        case.radius_b,
+                        case.dt,
+                    )
+                    .expect("frozen finite CCD inputs must be valid")
+                    {
+                        hits += 1;
+                        toi_sum += hit.toi;
+                    }
                 }
-            }
-            black_box((hits, toi_sum))
-        });
-    });
+                black_box((hits, toi_sum))
+            });
+        },
+    );
 
     group.bench_function(
         BenchmarkId::new("sphere_halfspace_mixed_512", CASE_COUNT),
