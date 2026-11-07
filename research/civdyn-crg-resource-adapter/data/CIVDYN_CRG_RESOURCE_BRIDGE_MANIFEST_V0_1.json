@@ -8,12 +8,18 @@
     "collective_risk": {
       "crate": "civdyn-collective-risk",
       "version": "0.1.0",
-      "source_branch": "research/civdyn-collective-risk-2026-11"
+      "source_branch": "research/civdyn-collective-risk-2026-11",
+      "path": "research/civdyn-collective-risk/src/lib.rs",
+      "blob_sha": "ad1d28939f6514d4fe763ab97673f1803c29572a",
+      "manifest_blob_sha": "04318907c33251258e899ecec778dbf90508fa22"
     },
     "resource_ledger": {
       "crate": "civdyn-resource-ledger",
       "version": "0.1.0",
-      "source_branch": "research/civdyn-resource-ledger-2026-11"
+      "source_branch": "research/civdyn-collective-risk-2026-11",
+      "path": "research/civdyn-resource-ledger/src/lib.rs",
+      "blob_sha": "d04e25084e46eb0529ea135305668eb70ed6ec3f",
+      "manifest_blob_sha": "03c2dc7bdb638d685fa8674ecc4d2396a8cca059"
     }
   },
   "mapping": {
@@ -27,9 +33,17 @@
     "seats": 6,
     "rounds": 10,
     "endowment_per_seat": 40,
-    "allowed_actions": [0, 2, 4],
+    "allowed_actions": [
+      0,
+      2,
+      4
+    ],
     "shared_target": 120,
-    "risk_values": [0.1, 0.5, 0.9]
+    "risk_values": [
+      0.1,
+      0.5,
+      0.9
+    ]
   },
   "world": {
     "donor_regions": 6,
@@ -56,7 +70,11 @@
   "output": {
     "format": "CSV",
     "records_per_episode": 71,
-    "record_kinds": ["episode_summary", "agent_tick", "shared_tick"],
+    "record_kinds": [
+      "episode_summary",
+      "agent_tick",
+      "shared_tick"
+    ],
     "columns": [
       "record_type",
       "scenario_id",
@@ -95,5 +113,13 @@
     "love",
     "welfare_or_moral_worth",
     "universal_moral_obligation"
-  ]
+  ],
+  "integration_parent": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "branch": "research/civdyn-collective-risk-2026-11",
+    "commit": "8971e23b4439c8ab2ace44277d587ef816f1db1a",
+    "pull_request": 3609,
+    "transitive_resource_ledger_pull_request": 3391,
+    "note": "This exact parent tree contains both path dependencies. The collective-risk branch is itself stacked on the resource-ledger branch."
+  }
 }
