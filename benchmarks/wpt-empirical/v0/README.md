@@ -454,3 +454,45 @@ The realization schema and Rust validator now explicitly distinguish:
 This resolves existing records that already used these meanings without forcing assumptions into `SIMULATED` or unsupported claims into `RECONCILED`. `ASSUMED` is permitted only for engineering metrics, not for physical measurement records. The measurement evidence vocabulary remains unchanged.
 
 The corpus preflight also repaired legacy structural mismatches without changing reported numeric claims: missing source-author arrays were populated only with recovered names and explicitly marked partial; four legacy null efficiency values now use the schema's `value_percent: null` field; and a foreign-object-detection research realization uses the allowed `RESEARCH` application domain while retaining its detailed description.
+
+
+## 2026 ground–aerial charging coordination and trajectory-energy comparators
+
+Two more peer-reviewed **simulation-system** records extend the UAV evidence lane. They are not physical WPT prototypes and are not added to hardware efficiency leaderboards.
+
+### Shaikh, Mouftah and Kantarci — SAFE-DDPG CAEV/UAV coordination
+
+*Intelligent Charging Reservation and Trip Planning of CAEVs and UAVs*, Electronics 15(2), 440 (2026), DOI [10.3390/electronics15020440](https://doi.org/10.3390/electronics15020440).
+
+This is a direct ground–aerial coordination comparator. It models:
+- a three-layer reservation, billing, charging-network management and trip-planning architecture;
+- cabled, static/dynamic wireless, V2V and laser-beaming charging-network classes;
+- 50 CAEVs, 8 LBUAVs and 6 EIUAVs over a two-day discrete-event simulation (5–6 June 2025), with CAEV traffic represented by SUMO;
+- SH-CSP, DH-CSP, vanilla DDPG and feasibility-filtered SAFE-DDPG, with 50 independent simulation replications reported for confidence intervals.
+
+Selected published simulation results:
+- CCN_1 mean wait: SAFE-DDPG 0.067 min; DH-CSP 0.234 min; SH-CSP 0.467 min.
+- Battery consumption: 3.4726 / 3.8321 / 4.2105 kWh for SAFE-DDPG / DH-CSP / SH-CSP.
+- Travel time: 30.33 / 33.78 / 37.41 min for the same methods.
+- Abstract reports over 70% wait-time reduction versus DH-CSP and over 85% versus SH-CSP at selected high-demand nodes, 9–18% battery-consumption reductions and 10–19% travel-time reductions across compared cases.
+- Figures 9–10 report approximately 98.7% CAEV and 98.52% UAV using requested/reserved/delivered charge comparisons.
+
+**Metric boundary:** the 98.7% / 98.52% values are simulated service fulfilment, not coil-to-coil, DC-to-DC or grid-to-battery efficiency. They must not be compared with measured prototype efficiency values.
+
+This simulation is a direct baseline for ground–aerial coordination. The source does not establish an independently metered physical same-site ground/air prototype or a measured cross-channel coexistence test. Its assumed charging models, laser links and network constraints require separate physical qualification before deployment claims.
+
+### Wei, Li, Sun and Bai — EA-RRT UAV trajectory/energy planning
+
+*Joint Trajectory Design and Energy Scheduling for UAVs With Hybrid Wireless Charging Strategy*, IEEE Wireless Communications Letters 15 (2026), pp.3214–3218, DOI [10.1109/LWC.2026.3693755](https://doi.org/10.1109/LWC.2026.3693755).
+
+This is a UAV-only simulation comparator. It combines charging-station opportunities and SWIPT, and uses Energy-Aware Rapidly-exploring Random Tree (EA-RRT) sampling to maximize residual UAV energy under mobility, communication and charging constraints. The abstract reports simulation improvements over conventional heuristics but no numeric effect size or measured hardware transfer result.
+
+### How to use these records
+
+- Reproduce SAFE-DDPG on its published agent mix, duration, road/UAV energy models, charging-network inventory, tariffs, reward weights and baseline methods wherever source data and seeds can be recovered.
+- Reproduce EA-RRT on the same 3D environment, UAV dynamics, obstacle map, charging opportunities and trajectory budget.
+- Add exact bounded allocations and robust/MPC baselines only after all methods receive identical scenario inputs.
+- Score waiting, travel, battery consumption, service fulfilment, fairness, charger utilization, mission reserve, source/PCC Wh, per-channel input Wh, useful endpoint Wh, and hard-limit violations separately.
+- Preserve the source classification: the published scheduling improvements are simulation outcomes; they do not establish physical wireless power efficiency, cross-channel EMC or simultaneous hardware coexistence.
+
+These records deliberately correct any implication that ground–aerial charging coordination itself is a new research idea. The unqualified engineering target is physical same-site coexistence with source-to-endpoint energy conservation, independent channel qualification, cross-channel measurements and held-out validation.
