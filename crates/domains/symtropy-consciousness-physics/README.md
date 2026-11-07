@@ -1,6 +1,6 @@
 # symtropy-consciousness-physics
 
-Consciousness (Φ) as a first-class physics parameter. The novel layer that makes Symtropy unique.
+Experimental Φ-coupled simulation policies for Symtropy. Φ is an integrated-information quantity supplied by a declared estimator and used as a model input; this crate does not establish consciousness, a new physical force, or a validated thermodynamic law.
 
 ```rust
 use symtropy_physics::PhysicsWorld;
@@ -12,7 +12,7 @@ use nalgebra::SVector;
 let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, -9.81, 0.0]));
 let mut consciousness = ConsciousnessField::<3>::new();
 
-// Add a conscious entity
+// Add an entity with an experimental Phi-coupling state
 let handle = world.add_sphere(Point::new([0.0, 10.0, 0.0]), 1.0, 1.0);
 consciousness.register(handle, 1000.0, 20.0); // 1000J budget, 20m sanctuary radius
 
@@ -29,12 +29,13 @@ world.step_with_callback(0.016, &mut consciousness);
 4. **Harmony → Friction**: Resonant agents reduce friction, dissonant agents increase it
 5. **Collision → Prediction error**: Unexpected collision spikes error → reduces motor precision → habituates
 
-## Thermodynamic Closure
+## Energy Accounting and Thermodynamic Scope
 
-The `ThermodynamicLedger` tracks energy conservation with scientific rigor:
-- **Joules-per-Phi**: novel metric — energy cost of consciousness (no prior publication)
-- **Landauer bound**: minimum thermodynamic cost enforced (2.87×10⁻²¹ J/bit at 310K)
-- **Conservation error**: tracked and reported each tick
+The `ThermodynamicLedger` currently records selected model energy-cost and dissipation counters. It is not yet a complete first-law ledger: changes in stored energy, external work/heat, inter-entity transfers, and a fully declared system boundary are not all represented.
+
+- **Joules-per-Φ**: descriptive statistic of the configured simulation, not a measured energy cost of consciousness.
+- **Landauer reference**: the bound applies to logically irreversible bit erasure under stated thermal-bath assumptions, not arbitrary information processing. At 310 K it is approximately 2.966678×10⁻²¹ J per bit erased; this model does not currently count bit erasures or enforce a general computation floor.
+- **Balance diagnostic**: per-tick counters are reported, but they do not establish global energy conservation. See [the formal specification](../../docs/tech/FORMAL_SPECIFICATION.md) and [PHYS-THERMO-SEMANTICS-001](https://github.com/Luminous-Dynamics/symtropy/issues/3577).
 
 ## Harmony Fields
 
@@ -44,7 +45,7 @@ Inspired by McFadden's CEMI field theory (2020). Each of the 8 harmonies creates
 
 ## Sanctuary Zones
 
-When Sacred Stillness > 0.6 and Φ > 0.3, a consciousness-created safe zone forms. Collision impulses dampened up to 90%. The physics literally protects conscious beings.
+When the configured Sacred Stillness and Φ thresholds are met, a sanctuary policy can damp collision impulses by up to 90%. This is a simulation rule, not a physical field claim, safety certification, or evidence that an entity is conscious.
 
 ## Benchmarks
 

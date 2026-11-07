@@ -1,25 +1,35 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-//! Thermodynamic closure: unifying consciousness energy and physics energy.
+//! Experimental energy accounting for Φ-coupled simulation dynamics.
 //!
-//! This module implements the novel Joules-per-Phi energy accounting system.
-//! Every action costs physical energy from the consciousness budget. Collision
-//! impulses dissipate energy as heat. The total energy is tracked and conserved.
+//! The resource-budget and coupling rules in this module are model policies.
+//! They are not, by themselves, a closed thermodynamic model or evidence that
+//! Φ has a measured physical energy cost. A physical conservation claim requires
+//! a declared system boundary, stored-energy changes, external work/heat,
+//! inter-reservoir transfers, and named dissipation destinations.
 //!
-//! # Key Quantities
+//! # Key quantities
 //!
-//! - **Landauer bound**: minimum energy per bit of information processing
-//!   (k_B * T * ln(2) ≈ 2.87 × 10⁻²¹ J at body temperature 310K)
-//! - **Joules-per-Phi**: novel metric — how many Joules does it cost to
-//!   maintain a given Φ level? No one has published this.
-//! - **Conservation error**: measures violation of energy conservation law.
-//!   Should remain < 1% for a valid simulation.
+//! - **Landauer erasure bound**: minimum heat for a logically irreversible
+//!   one-bit erasure under the stated thermal-bath assumptions:
+//!   k_B * T * ln(2) (about 2.97e-21 J at 310 K). This is not a universal
+//!   lower bound for arbitrary information processing.
+//! - **Joules-per-Φ**: a descriptive model statistic; not a measured
+//!   thermodynamic cost of consciousness without independent calibration.
+//! - **Energy-balance residual**: a diagnostic for the terms actually entered
+//!   into the ledger; it is not a conservation proof unless the system boundary
+//!   and every energy store/flow are represented.
 
-/// Landauer bound at body temperature (310K): k_B * T * ln(2).
-/// Minimum energy to erase one bit of information.
-/// Ref: Landauer (1961), "Irreversibility and Heat Generation"
-pub const LANDAUER_BOUND_310K: f64 = 2.87e-21; // Joules per bit
+/// Exact SI Boltzmann constant, in joules per kelvin.
+pub const BOLTZMANN_CONSTANT_J_PER_K: f64 = 1.380_649e-23;
+
+/// Landauer erasure bound at 310 K: k_B * T * ln(2).
+/// Minimum heat dissipated to erase one bit in a logically irreversible
+/// operation under the standard thermal-bath assumptions. This does not bound
+/// arbitrary reversible or information-processing operations.
+pub const LANDAUER_BOUND_310K: f64 =
+    BOLTZMANN_CONSTANT_J_PER_K * BODY_TEMPERATURE_K * std::f64::consts::LN_2;
 
 /// Body (baseline) temperature for consciousness clarity calculations.
 /// At or below this temperature, no penalty applies.
@@ -59,9 +69,10 @@ pub fn smooth_temperature_penalty(temperature_k: f64) -> f64 {
     (TEMP_CLARITY_FLOOR + (1.0 - TEMP_CLARITY_FLOOR) * sigmoid).clamp(TEMP_CLARITY_FLOOR, 1.0)
 }
 
-/// Default energy per cognitive operation (empirical estimate).
-/// Cortical synapses operate at ~16.6× Landauer limit.
-/// Ref: Laughlin & Sejnowski (2003)
+/// Legacy model estimate for energy per cognitive operation.
+/// Its relationship to physical bit erasure and its empirical calibration
+/// remain to be independently qualified; do not interpret it as a universal
+/// biological or computational energy constant.
 pub const ENERGY_PER_COGNITIVE_OP: f64 = LANDAUER_BOUND_310K * 16.6;
 
 /// Tunable thermodynamic constants for the enforcement layer.
@@ -226,16 +237,45 @@ impl ThermodynamicLedger {
         Some(self.phi_energy_integral / self.phi_change_total)
     }
 
-    /// Minimum thermodynamic cost of processing `bits` of information.
-    /// Based on the Landauer bound at body temperature.
-    pub fn landauer_floor(bits: f64) -> f64 {
-        LANDAUER_BOUND_310K * bits
+    /// Minimum heat for logically irreversible erasure of bits_erased bits
+    /// at temperature_k, assuming a thermal bath at that temperature.
+    ///
+    /// Returns None for negative or non-finite bit counts or non-positive /
+    /// non-finite temperatures. This is an erasure bound, not a feasibility
+    /// test for arbitrary information processing.
+    pub fn landauer_erasure_floor(bits_erased: f64, temperature_k: f64) -> Option<f64> {
+        if !bits_erased.is_finite()
+            || bits_erased < 0.0
+            || !temperature_k.is_finite()
+            || temperature_k <= 0.0
+        {
+            return None;
+        }
+
+        let floor =
+            BOLTZMANN_CONSTANT_J_PER_K * temperature_k * std::f64::consts::LN_2 * bits_erased;
+        floor.is_finite().then_some(floor)
     }
 
-    /// Whether an energy cost exceeds the Landauer floor for given bits processed.
-    /// If the energy is below the floor, the computation is thermodynamically impossible.
-    pub fn above_landauer_floor(energy: f64, bits: f64) -> bool {
-        energy >= Self::landauer_floor(bits)
+    /// Compatibility helper: 310 K Landauer heat bound for bits_erased
+    /// logically irreversible bit erasures. Prefer landauer_erasure_floor
+    /// with an explicit temperature for new code.
+    pub fn landauer_floor(bits_erased: f64) -> f64 {
+        LANDAUER_BOUND_310K * bits_erased
+    }
+
+    /// Whether heat dissipated meets the 310 K Landauer bound for the
+    /// specified number of logically irreversible bit erasures. The energy
+    /// argument must represent heat from those erasures, not total energy used
+    /// by an arbitrary computation. Passing this comparison does not establish
+    /// general computational feasibility or thermodynamic efficiency.
+    pub fn above_landauer_floor(energy: f64, bits_erased: f64) -> bool {
+        if !energy.is_finite() || energy < 0.0 {
+            return false;
+        }
+
+        Self::landauer_erasure_floor(bits_erased, BODY_TEMPERATURE_K)
+            .is_some_and(|floor| energy >= floor)
     }
 
     /// Lifetime conservation error rate.
@@ -331,13 +371,37 @@ mod tests {
 
         // 1 billion bits
         let floor_1g = ThermodynamicLedger::landauer_floor(1e9);
-        assert!(floor_1g > 1e-12); // ~2.87e-12 J for 1 Gbit
+        assert!(floor_1g > 1e-12); // ~2.97e-12 J for 1 Gbit
+    }
+
+    #[test]
+    fn landauer_erasure_floor_is_temperature_and_bit_scaled() {
+        let one_bit_310k = ThermodynamicLedger::landauer_erasure_floor(1.0, 310.0).unwrap();
+        let two_bits_310k = ThermodynamicLedger::landauer_erasure_floor(2.0, 310.0).unwrap();
+        let one_bit_300k = ThermodynamicLedger::landauer_erasure_floor(1.0, 300.0).unwrap();
+
+        assert!((one_bit_310k - LANDAUER_BOUND_310K).abs() < 1e-35);
+        assert!((one_bit_310k - 2.966_678_181_248_014_7e-21).abs() < 1e-35);
+        assert!((two_bits_310k - 2.0 * one_bit_310k).abs() < 1e-35);
+        assert!((one_bit_310k / one_bit_300k - 310.0 / 300.0).abs() < 1e-14);
+    }
+
+    #[test]
+    fn landauer_erasure_floor_rejects_invalid_inputs() {
+        assert!(ThermodynamicLedger::landauer_erasure_floor(-1.0, 310.0).is_none());
+        assert!(ThermodynamicLedger::landauer_erasure_floor(f64::NAN, 310.0).is_none());
+        assert!(ThermodynamicLedger::landauer_erasure_floor(1.0, 0.0).is_none());
+        assert!(ThermodynamicLedger::landauer_erasure_floor(1.0, f64::INFINITY).is_none());
+        assert!(ThermodynamicLedger::landauer_erasure_floor(f64::MAX, f64::MAX).is_none());
+        assert!(!ThermodynamicLedger::above_landauer_floor(f64::NAN, 1.0));
+        assert!(!ThermodynamicLedger::above_landauer_floor(-1.0, 1.0));
+        assert!(!ThermodynamicLedger::above_landauer_floor(1.0, -1.0));
     }
 
     #[test]
     fn above_landauer_floor_check() {
-        assert!(ThermodynamicLedger::above_landauer_floor(1e-20, 1.0)); // Way above
-        assert!(!ThermodynamicLedger::above_landauer_floor(1e-22, 1.0)); // Below
+        assert!(ThermodynamicLedger::above_landauer_floor(1e-20, 1.0)); // Meets bound
+        assert!(!ThermodynamicLedger::above_landauer_floor(1e-22, 1.0)); // Below bound
     }
 
     #[test]
