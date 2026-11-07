@@ -448,7 +448,7 @@ fn resolve_observations<'a, T: LedgerObservation>(
             if !visited.insert(current) {
                 return Err(LedgerError::SupersessionCycle(current.to_owned()));
             }
-            current = next_id;
+            current = *next_id;
         }
     }
 
