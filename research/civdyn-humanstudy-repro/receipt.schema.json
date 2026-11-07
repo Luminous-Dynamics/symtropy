@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.luminousdynamics.org/civdyn/humanstudy-run-receipt/0.2",
-  "title": "CIVDYN HumanStudy run receipt (multi-profile)",
+  "$id": "https://schemas.luminousdynamics.org/civdyn/humanstudy-run-receipt/0.3",
+  "title": "CIVDYN HumanStudy run receipt (paper and community protocols)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,9 +14,6 @@
     "studies"
   ],
   "properties": {
-    "source_repository": {
-      "const": "HumanStudy-Hub/HumanStudy-Bench"
-    },
     "run_id": {
       "type": "string",
       "minLength": 1
@@ -30,20 +27,23 @@
     {
       "properties": {
         "protocol_id": {
-          "const": "HSB-FOUNDATIONAL-12-FFB1F72A"
+          "const": "HSB-PAPER-12-CF05D330"
+        },
+        "source_repository": {
+          "const": "AISmithLab/HumanStudy-Bench"
         },
         "source_commit": {
-          "const": "ffb1f72a8bab327d7f4a6b7e43e7be4d3af10f61"
+          "const": "cf05d330fc315168c8c8e23b4acd882f91bb7408"
         },
         "source_root_tree": {
-          "const": "75af151f4a8e256fa5c6c0375b9ea84fb741b107"
+          "const": "9b56c62406fb6b77d87d5032c3c6906583aca24e"
         },
         "studies": {
           "type": "array",
           "minItems": 12,
           "maxItems": 12,
           "items": {
-            "$ref": "#/$defs/study12"
+            "$ref": "#/$defs/studyPaper12"
           }
         }
       }
@@ -52,6 +52,9 @@
       "properties": {
         "protocol_id": {
           "const": "HSB-COMMUNITY-16-2026-11-07"
+        },
+        "source_repository": {
+          "const": "HumanStudy-Hub/HumanStudy-Bench"
         },
         "source_commit": {
           "const": "b34d214b980be13ec5944a4d570a38bc4047b0f9"
@@ -64,7 +67,7 @@
           "minItems": 16,
           "maxItems": 16,
           "items": {
-            "$ref": "#/$defs/study16"
+            "$ref": "#/$defs/studyCommunity16"
           }
         }
       }
@@ -78,6 +81,20 @@
     "sha256": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
+    },
+    "ci": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
     },
     "effect": {
       "type": "object",
@@ -120,20 +137,6 @@
           "$ref": "#/$defs/ci"
         }
       }
-    },
-    "ci": {
-      "type": "array",
-      "prefixItems": [
-        {
-          "type": "number"
-        },
-        {
-          "type": "number"
-        }
-      ],
-      "items": false,
-      "minItems": 2,
-      "maxItems": 2
     },
     "artifact": {
       "type": "object",
@@ -224,7 +227,7 @@
         }
       ]
     },
-    "study12": {
+    "studyCommon": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -243,22 +246,6 @@
         "artifacts"
       ],
       "properties": {
-        "study_id": {
-          "enum": [
-            "study_001",
-            "study_002",
-            "study_003",
-            "study_004",
-            "study_005",
-            "study_006",
-            "study_007",
-            "study_008",
-            "study_009",
-            "study_010",
-            "study_011",
-            "study_012"
-          ]
-        },
         "study_tree_sha": {
           "$ref": "#/$defs/gitTree"
         },
@@ -315,102 +302,65 @@
         }
       }
     },
-    "study16": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "study_id",
-        "study_tree_sha",
-        "participant_count",
-        "trial_count",
-        "independent_unit",
-        "analysis_pipeline_sha256",
-        "agent_config_sha256",
-        "prompt_template_sha256",
-        "analysis_protocol_preserved",
-        "official_pas",
-        "official_ecs",
-        "effects",
-        "artifacts"
-      ],
-      "properties": {
-        "study_id": {
-          "$ref": "#/$defs/studyId16"
+    "studyPaper12": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/studyCommon"
         },
-        "study_tree_sha": {
-          "$ref": "#/$defs/gitTree"
-        },
-        "participant_count": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "trial_count": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "independent_unit": {
-          "enum": [
-            "participant",
-            "group",
-            "session",
-            "cluster"
-          ]
-        },
-        "analysis_pipeline_sha256": {
-          "$ref": "#/$defs/sha256"
-        },
-        "agent_config_sha256": {
-          "$ref": "#/$defs/sha256"
-        },
-        "prompt_template_sha256": {
-          "$ref": "#/$defs/sha256"
-        },
-        "analysis_protocol_preserved": {
-          "const": true
-        },
-        "official_pas": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "official_ecs": {
-          "type": "number",
-          "minimum": -1,
-          "maximum": 1
-        },
-        "effects": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/effect"
-          }
-        },
-        "artifacts": {
-          "type": "array",
-          "minItems": 4,
-          "items": {
-            "$ref": "#/$defs/artifact"
+        {
+          "properties": {
+            "study_id": {
+              "enum": [
+                "study_001",
+                "study_002",
+                "study_003",
+                "study_004",
+                "study_005",
+                "study_006",
+                "study_007",
+                "study_008",
+                "study_009",
+                "study_010",
+                "study_011",
+                "study_012"
+              ]
+            },
+            "study_tree_sha": {
+              "$ref": "#/$defs/gitTree"
+            }
           }
         }
-      }
+      ]
     },
-    "studyId16": {
-      "enum": [
-        "study_001",
-        "study_002",
-        "study_003",
-        "study_004",
-        "study_005",
-        "study_006",
-        "study_007",
-        "study_008",
-        "study_009",
-        "study_010",
-        "study_011",
-        "study_012",
-        "study_013",
-        "study_014",
-        "study_015",
-        "study_016"
+    "studyCommunity16": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/studyCommon"
+        },
+        {
+          "properties": {
+            "study_id": {
+              "enum": [
+                "study_001",
+                "study_002",
+                "study_003",
+                "study_004",
+                "study_005",
+                "study_006",
+                "study_007",
+                "study_008",
+                "study_009",
+                "study_010",
+                "study_011",
+                "study_012",
+                "study_013",
+                "study_014",
+                "study_015",
+                "study_016"
+              ]
+            }
+          }
+        }
       ]
     }
   }
