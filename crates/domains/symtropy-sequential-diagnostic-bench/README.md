@@ -41,3 +41,22 @@ The synthetic fixture illustrates an adaptive policy:
 All priors, likelihoods, utilities and costs in the fixture are fabricated. The result is SYNTHETIC_ONLY. Real policies need independent evidence, a decision owner's approved utility, qualified measurement domains and review.
 
 This crate never issues physical actuation or changes machine settings. It can only return a passive measurement candidate, STOP or HUMAN_REVIEW.
+
+
+## Conditional dependence rule
+
+The policy requires a case-level conditional-independence assumption and a dependence-evidence reference for each measurement. Measurements with the same declared independence group cannot both be selected along one policy path. This prevents obvious double-counting of repeated or shared-principle observations.
+
+Different groups are still a declared modelling assumption, not proof of statistical independence. A later version must support history-conditioned likelihoods and empirically estimated dependence where sequential observations are correlated.
+
+## Synthetic replay
+
+The three-hypothesis example evaluates 18 recursion nodes and produces:
+- current stop value: -3.2 synthetic benefit points;
+- selected first measurement: `coarse-passive-observation`;
+- `A-like` outcome: stop and retain `address-A`;
+- `B-or-C-like` outcome: perform `B-vs-C-passive-sample`;
+- second-stage outcomes select `address-A`, `address-B` or `address-C`;
+- expected adaptive policy value: 7.6178 synthetic benefit points.
+
+The values are fabricated to exercise branching and stopping. They are not a real experiment recommendation, operational utility or mine economics.
