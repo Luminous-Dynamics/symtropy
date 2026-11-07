@@ -126,6 +126,8 @@ pub struct TrafficOccupancy {
 pub struct RequiredTrafficUse {
     pub occupancy_id: String,
     pub resource_id: String,
+    /// Exact TrafficResource revision whose windows/guards were reviewed.
+    pub resource_revision: String,
     pub direction_id: Option<String>,
 }
 
@@ -275,6 +277,7 @@ pub enum TrafficError {
     InvalidCoverageEntry(String),
     DuplicateRequiredTrafficUse(String),
     UnknownCoverageResource(String),
+    CoverageResourceRevisionMismatch(String),
     MissingRequiredOccupancy(String),
     UnmappedOccupancy(String),
     CoverageRouteRevisionMismatch(String),
@@ -445,6 +448,7 @@ pub fn canonical_traffic_coverage_subject_id(manifest: &TrafficCoverageManifest)
         for required in uses {
             push_field(&mut identity, &required.occupancy_id);
             push_field(&mut identity, &required.resource_id);
+            push_field(&mut identity, &required.resource_revision);
             push_field(
                 &mut identity,
                 required.direction_id.as_deref().unwrap_or(""),
@@ -570,6 +574,7 @@ fn validate_coverage_manifest(
         for required in &entry.required_uses {
             if required.occupancy_id.trim().is_empty()
                 || required.resource_id.trim().is_empty()
+                || required.resource_revision.trim().is_empty()
                 || !required_use_ids.insert(required.occupancy_id.as_str())
             {
                 return Err(TrafficError::DuplicateRequiredTrafficUse(
@@ -581,6 +586,11 @@ fn validate_coverage_manifest(
                     required.resource_id.clone(),
                 ));
             };
+            if required.resource_revision != resource.revision {
+                return Err(TrafficError::CoverageResourceRevisionMismatch(
+                    required.resource_id.clone(),
+                ));
+            }
             match resource.kind {
                 TrafficResourceKind::OneWayChannel => {
                     if required
