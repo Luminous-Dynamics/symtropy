@@ -153,3 +153,44 @@ Treat lighting optimization as a product space with orthogonal dimensions:
 - accepted fresh mass, dry biomass, marketable fraction and nutritional quality.
 
 Do not combine continuous 24:0, dynamic spectrum and 27 h circadian alignment into one treatment label. Pre-register which dimension is changed and hold the others fixed in a confirmatory contrast.
+
+
+## 10. Resource-timed light and climate co-scheduling
+
+The crop schedule is a time series, not a single photoperiod scalar. Compose the biology, photon delivery, facility climate and utility signals while preserving independent units and ownership:
+
+- #4060 owns cultivar clock / phase, cycle duration, photoperiod, crop quality and calendar-time service.
+- #3985 owns delivered photon flux / spectrum, DLI, LED electrical load and peak power.
+- #4065 owns climate-zone dynamics, sensible/latent load, HVAC/dehumidification, and heat rejection.
+- #3957 owns the integrated whole-facility ledger, tariff, meter reconciliation, accepted crop output and final service metrics.
+- #1916 owns multi-period thermal integration / storage dispatch where applicable; #1970 remains the lunar energy-reserve/dispatch owner.
+
+Compare fixed 16:8, equal-DLI 12:12, equal-DLI 24:0 (only crop-qualified), source-qualified 27 h circadian-aligned schedules, dynamic spectra, tariff-responsive schedules, carbon-responsive schedules and joint climate/peak-aware schedules under identical crop/service, budget and weather/price inputs.
+
+The objective is not to maximize arbitrage. Hard constraints include crop-specific biological limits, DLI and spectrum, accepted-food quality, climate / condensation, power caps, reserves and preservation/safety rules. A lowest-price-only policy is a negative control and must be rejected when it violates any such constraint.
+
+Keep the following axes distinct:
+- LED kWh, instantaneous/interval LED kW and peak demand;
+- whole-facility kWh and peak kW;
+- tariff-weighted energy cost and demand charges, with currency/time/contract version;
+- operational emissions only when an interval-matched, geographically applicable, source-qualified grid carbon-intensity series exists;
+- useful heat/cooling, rejected heat and dehumidification / water burden;
+- crop fresh mass, dry biomass, marketable fraction and nutritional service;
+- kg/m²/calendar-year, crop-cycle duration and outage continuity.
+
+Tariff arbitrage is not energy efficiency. Shifting load to another interval is not automatically emissions reduction. LED-only EUE is not whole-facility EUE.
+
+### Equal-budget benchmark
+
+Freeze paired weather, tariff, grid-carbon and outage profiles. Compare:
+1. fixed schedule under incumbent control;
+2. crop-only schedule without price/carbon response;
+3. tariff-responsive schedule with hard crop/climate constraints;
+4. carbon-responsive schedule where carbon data are qualified;
+5. joint schedule with measured climate and peak-power feedback;
+6. greedy lowest-price / lowest-carbon policy as an adversarial baseline;
+7. exact oracle on small, declared discrete schedule cases.
+
+Charge optimizer computation, forecasts, storage losses, failed runs, measurement and actuation overhead. Hold out entire weather / tariff / carbon profiles. Use independent plant/crop data for validation. Preserve schedule decisions and outcome traces by interval.
+
+Advance only if a candidate improves a pre-registered Pareto dimension (whole-facility cost, peak demand, or time-matched operational emissions) without degrading biological/quality, climate, reliability, energy or water constraints beyond approved tolerances. Do not set a universal percentage target before actual facility tariff, grid, climate and crop response data are admitted.
