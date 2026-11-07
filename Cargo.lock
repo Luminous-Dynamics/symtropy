@@ -217,6 +217,7 @@ dependencies = [
 name = "airborne-energy-session-validator"
 version = "0.1.0"
 dependencies = [
+ "airborne-energy-observability-validator",
  "serde_json",
 ]
 
