@@ -7,7 +7,7 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Positive finite mass and signed dimensionless Kerr spin validation.
 - SI-valued Schwarzschild gravitational radius, event horizon, photon sphere, ISCO, Kretschmann scalar, static-observer lapse and redshift.
 - SI-valued Kerr inner/outer Boyer-Lindquist horizons and angle-dependent ergosurface.
-- Kerr horizon angular velocity, surface-gravity decay rate, and the reference frequency for the proposed (2\Omega_H) direct-wave component.
+- Kerr horizon angular velocity, surface-gravity decay rate, positive direct-wave reference frequency, and posterior-preserving transforms from joint remnant mass/spin samples.
 - Schwarzschild and Kerr exterior metric components in the declared ((ct,r,\theta,\phi)) basis.
 - Symmetric finite 4x4 metric component representation, pivoted determinant and inverse, and inverse-identity residual diagnostic.
 - Analytic, limiting-case, chart-domain, singular-matrix, and invalid-input tests.
@@ -21,7 +21,7 @@ The metric determinant is coordinate-dependent, not a curvature scalar. Generic 
 For Kerr:
 - `Omega_H = a*c/(r_plus^2 + a^2)` is in rad/s.
 - `kappa_t = c*sqrt(r_g^2-a^2)/(2*r_g*r_plus)` is in s^-1.
-- `f_2OmegaH = Omega_H/pi` is the Hz reference corresponding to angular frequency `2*Omega_H`.
+- `f_2OmegaH = abs(Omega_H)/pi` is the nonnegative Hz reference corresponding to angular-frequency magnitude `2*abs(Omega_H)`.
 
 The direct-wave reference frequency is a theory-derived scale motivated by a published GW250114 analysis. It is not itself a waveform, a detection, or a verified universal feature.
 
