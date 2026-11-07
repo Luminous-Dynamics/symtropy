@@ -6,7 +6,7 @@
 use civdyn_cross_scale_resilience::{InterventionPolicy, ShockKind};
 use civdyn_resilience_uq::{
     BenchmarkReport, FACTOR_COUNT, LHS_DEFAULT_POINTS, MORRIS_DEFAULT_TRAJECTORIES,
-    MorrisEffectSummary, MorrisPointRecord, OutcomeMetric, ParameterFactor, execute_benchmark,
+    MorrisEffectSummary, MorrisPointRecord, execute_benchmark,
 };
 
 const CSV_COLUMNS: usize = 42;
