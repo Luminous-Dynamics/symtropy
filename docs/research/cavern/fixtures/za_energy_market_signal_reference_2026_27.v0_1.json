@@ -281,7 +281,7 @@
     {
       "check_id": "winter_peak_to_offpeak_tariff_ratio",
       "formula": "766.24 / 200.44",
-      "result": 3.8229904,
+      "result": 3.8227899,
       "unit": "ratio",
       "interpretation": "Winter peak energy charge is about 3.82 times the winter off-peak energy charge for the budget-published schedule; this ratio applies only to the energy-charge component and excludes billed demand, fixed charges, surcharges and VAT.",
       "status": "ARITHMETIC_CHECK"
@@ -289,7 +289,7 @@
     {
       "check_id": "summer_peak_to_offpeak_tariff_ratio",
       "formula": "322.00 / 186.35",
-      "result": 1.7284677,
+      "result": 1.7279313,
       "unit": "ratio",
       "interpretation": "Summer peak energy charge is about 1.73 times the summer off-peak energy charge for the budget-published schedule; not a full-bill saving estimate.",
       "status": "ARITHMETIC_CHECK"
