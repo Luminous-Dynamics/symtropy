@@ -1,0 +1,86 @@
+{
+  "schema": "luminous.black-hole-direct-wave-spin-sweep",
+  "schema_version": 1,
+  "purpose": "Reproduce and independently challenge direct-wave/horizon associations using public numerical-relativity strain.",
+  "status": "pre-registered benchmark specification; no results claimed",
+  "primary_counteranalysis": {
+    "title": "The Direct Wave is Not a Meaningful Test of Horizon Properties",
+    "authors": ["Anuj Kankani", "Sean T. McWilliams"],
+    "arxiv": "2607.02380",
+    "url": "https://arxiv.org/abs/2607.02380",
+    "scope": "equal-mass, quasicircular, non-precessing SXS systems with remnant |chi_f| >= about 0.5",
+    "claims_to_test": [
+      "direct-wave instantaneous frequency does not generally track 2*Omega_H",
+      "direct-wave damping does not generally track surface gravity kappa and evolves over short fitting intervals",
+      "the apparent frequency coincidence near chi_f about 0.69 is not a universal horizon relation",
+      "mapping direct-wave fit parameters to horizon observables can yield spurious apparent area-law violations"
+    ]
+  },
+  "published_sxs_cases": [
+    {"sxs_id": "SXS:BBH:2089", "final_spin": 0.4942},
+    {"sxs_id": "SXS:BBH:2088", "final_spin": 0.5478},
+    {"sxs_id": "SXS:BBH:3919", "final_spin": 0.6215},
+    {"sxs_id": "SXS:BBH:4434", "final_spin": 0.6864},
+    {"sxs_id": "SXS:BBH:0305", "final_spin": 0.6921},
+    {"sxs_id": "SXS:BBH:2095", "final_spin": 0.7447},
+    {"sxs_id": "SXS:BBH:3927", "final_spin": 0.8029},
+    {"sxs_id": "SXS:BBH:2099", "final_spin": 0.8574},
+    {"sxs_id": "SXS:BBH:3897", "final_spin": 0.9075},
+    {"sxs_id": "SXS:BBH:0178", "final_spin": 0.9499}
+  ],
+  "published_filter_configuration": {
+    "waveform_mode": [2, 2],
+    "prograde_qnms": 7,
+    "retrograde_qnms": 2,
+    "additional_spherical_spheroidal_mixing_mode": {"l": 3, "m": 2, "n": 0, "direction": "prograde"},
+    "reason": "remove spherical-spheroidal mode mixing in SXS data"
+  },
+  "models_to_compare": [
+    "free_complex_frequency_constant_damped_sinusoid",
+    "free_time_evolving_complex_frequency",
+    "horizon_tied_frequency_and_surface_gravity_model",
+    "plunge_orbit_driven_time_evolving_model",
+    "ordinary_qnm_overtone_and_mode_mixing_residual",
+    "noise_and_transient_alternatives"
+  ],
+  "analysis_dimensions": [
+    "four predeclared fitting intervals around merger; exact bounds must be transcribed from the paper supplement before execution",
+    "NR resolution level",
+    "QNM filter basis and removed-mode set",
+    "spherical-spheroidal mode mixing",
+    "waveform extraction radius and extrapolation order",
+    "remnant mass and spin uncertainty",
+    "mass ratio and spin configuration where an expanded SXS corpus is used"
+  ],
+  "required_observables": [
+    "instantaneous direct-wave real frequency divided by 2*Omega_H",
+    "instantaneous damping rate -Im(omega) divided by kappa",
+    "frequency and damping evolution over fitting interval",
+    "NR remnant horizon area from final mass and spin",
+    "horizon area inferred from direct-wave-derived Omega_H and kappa",
+    "waveform residuals and cross-resolution discrepancies"
+  ],
+  "negative_controls": [
+    "off-source/noise-only segments",
+    "time and phase scrambles",
+    "wrong remnant mass/spin",
+    "QNM over-subtraction and under-subtraction",
+    "randomized or label-permuted remnant spin",
+    "held-out SXS simulations not used for fitting"
+  ],
+  "acceptance": [
+    "reproduce the published counteranalysis figures under pinned input and filter versions",
+    "reproduce the GW250114 direct-wave paper result under its declared assumptions",
+    "distinguish extraction reproducibility from horizon interpretation",
+    "report calibration, false-positive rate, and held-out predictive performance",
+    "preserve contradictory and inconclusive results",
+    "independent implementation reproduces the same quantitative conclusions"
+  ],
+  "claim_ceiling": "A filtered component may be reproducible without being a measurement of horizon frequency or surface gravity. A direct-wave-derived area estimate is not a Hawking-area-law test unless the mapping to horizon observables is independently validated over parameter space.",
+  "sources": [
+    "https://arxiv.org/abs/2607.02380",
+    "https://www.nature.com/articles/s41586-026-10696-0",
+    "https://github.com/Sizheng-Ma/qnm_filter",
+    "https://data.black-holes.org/waveforms/"
+  ]
+}
