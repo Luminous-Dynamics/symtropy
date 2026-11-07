@@ -125,9 +125,12 @@ fn parse_interval(value: &str, line_index: usize) -> Result<Interval, String> {
     }
 
     let parse_num = |index: usize, label: &str| -> Result<u64, String> {
-        fields[index]
-            .parse::<u64>()
-            .map_err(|_| format!("line {}: {label} must be a non-negative integer", line_index + 1))
+        fields[index].parse::<u64>().map_err(|_| {
+            format!(
+                "line {}: {label} must be a non-negative integer",
+                line_index + 1
+            )
+        })
     };
 
     let id = fields[0]
@@ -139,7 +142,12 @@ fn parse_interval(value: &str, line_index: usize) -> Result<Interval, String> {
     let light_window = match fields[4] {
         "true" => true,
         "false" => false,
-        _ => return Err(format!("line {}: light_window must be true or false", line_index + 1)),
+        _ => {
+            return Err(format!(
+                "line {}: light_window must be true or false",
+                line_index + 1
+            ));
+        }
     };
     let batch_id = fields[5];
     let batch_energy_wh = parse_num(6, "batch_energy_wh")?;
@@ -149,12 +157,18 @@ fn parse_interval(value: &str, line_index: usize) -> Result<Interval, String> {
 
     let batch = if batch_id == "none" {
         if batch_energy_wh != 0 || feed_mass_g != 0 || product_mass_g != 0 || residue_mass_g != 0 {
-            return Err(format!("line {}: absent batch must have zero energy and mass fields", line_index + 1));
+            return Err(format!(
+                "line {}: absent batch must have zero energy and mass fields",
+                line_index + 1
+            ));
         }
         None
     } else {
         if batch_id.is_empty() || batch_energy_wh == 0 || feed_mass_g == 0 {
-            return Err(format!("line {}: present batch needs id, positive energy and positive feed mass", line_index + 1));
+            return Err(format!(
+                "line {}: present batch needs id, positive energy and positive feed mass",
+                line_index + 1
+            ));
         }
         Some(Batch {
             id: batch_id.to_owned(),
@@ -228,8 +242,14 @@ fn parse_scenario(source: &str) -> Result<Scenario, String> {
         initial_soc_wh: parse_u64(&headers, "initial_soc_wh")?,
         charge_efficiency_bps: parse_u64(&headers, "charge_efficiency_bps")?,
         discharge_efficiency_bps: parse_u64(&headers, "discharge_efficiency_bps")?,
-        charge_power_limit_wh_per_interval: parse_u64(&headers, "charge_power_limit_wh_per_interval")?,
-        discharge_power_limit_wh_per_interval: parse_u64(&headers, "discharge_power_limit_wh_per_interval")?,
+        charge_power_limit_wh_per_interval: parse_u64(
+            &headers,
+            "charge_power_limit_wh_per_interval",
+        )?,
+        discharge_power_limit_wh_per_interval: parse_u64(
+            &headers,
+            "discharge_power_limit_wh_per_interval",
+        )?,
         reserve_horizon_intervals: parse_u64(&headers, "reserve_horizon_intervals")? as usize,
         intervals,
     };
@@ -268,7 +288,10 @@ fn validate(scenario: &Scenario) -> Result<(), String> {
             return Err("interval ids must be contiguous, sorted and start at zero".to_owned());
         }
         if !interval.light_window && interval.farm_lighting_wh > 0 {
-            return Err(format!("interval {} requests farm lighting outside its declared light window", interval.id));
+            return Err(format!(
+                "interval {} requests farm lighting outside its declared light window",
+                interval.id
+            ));
         }
         if let Some(batch) = &interval.batch {
             if !batch_ids.insert(batch.id.clone()) {
@@ -328,8 +351,7 @@ fn serve_load(
         return Ok(from_generation);
     }
 
-    let desired_internal =
-        required_internal_for_bus(deficit, discharge_efficiency_bps)?;
+    let desired_internal = required_internal_for_bus(deficit, discharge_efficiency_bps)?;
     let internal = desired_internal.min(*soc_wh).min(*discharge_remaining_wh);
     let bus_output = bus_output_for_internal(internal, discharge_efficiency_bps)?;
 
@@ -350,10 +372,7 @@ fn serve_load(
     Ok(from_generation + served_from_battery)
 }
 
-fn future_critical_reserve(
-    scenario: &Scenario,
-    current_index: usize,
-) -> Result<u64, String> {
+fn future_critical_reserve(scenario: &Scenario, current_index: usize) -> Result<u64, String> {
     let end = current_index
         .saturating_add(1)
         .saturating_add(scenario.reserve_horizon_intervals)
@@ -427,19 +446,19 @@ fn dispatch(scenario: &Scenario, policy: Policy) -> Result<DispatchReport, Strin
             let battery_deficit = batch.energy_wh - from_generation;
             let required_internal =
                 required_internal_for_bus(battery_deficit, scenario.discharge_efficiency_bps)?;
-            let energy_feasible = required_internal <= soc
-                && required_internal <= discharge_remaining;
+            let energy_feasible =
+                required_internal <= soc && required_internal <= discharge_remaining;
             let reserve_feasible = policy == Policy::Greedy
                 || soc.saturating_sub(required_internal) >= reserve_required;
 
             if energy_feasible && reserve_feasible {
                 generation_pool -= from_generation;
-                let bus_output = bus_output_for_internal(
-                    required_internal,
-                    scenario.discharge_efficiency_bps,
-                )?;
+                let bus_output =
+                    bus_output_for_internal(required_internal, scenario.discharge_efficiency_bps)?;
                 if bus_output < battery_deficit {
-                    return Err("internal battery calculation failed to cover batch deficit".to_owned());
+                    return Err(
+                        "internal battery calculation failed to cover batch deficit".to_owned(),
+                    );
                 }
                 soc -= required_internal;
                 discharge_remaining -= required_internal;
@@ -465,17 +484,13 @@ fn dispatch(scenario: &Scenario, policy: Policy) -> Result<DispatchReport, Strin
 
         let headroom = scenario.battery_capacity_wh - soc;
         let max_charge_input_for_headroom = u64::try_from(
-            u128::from(headroom) * u128::from(BPS)
-                / u128::from(scenario.charge_efficiency_bps),
+            u128::from(headroom) * u128::from(BPS) / u128::from(scenario.charge_efficiency_bps),
         )
         .map_err(|_| "battery charge headroom overflow".to_owned())?;
         let charge_input = generation_pool
             .min(scenario.charge_power_limit_wh_per_interval)
             .min(max_charge_input_for_headroom);
-        let charge_stored = bus_output_for_internal(
-            charge_input,
-            scenario.charge_efficiency_bps,
-        )?;
+        let charge_stored = bus_output_for_internal(charge_input, scenario.charge_efficiency_bps)?;
         if charge_stored > headroom {
             return Err("battery charge calculation exceeds storage capacity".to_owned());
         }
@@ -491,21 +506,24 @@ fn dispatch(scenario: &Scenario, policy: Policy) -> Result<DispatchReport, Strin
             .ok_or_else(|| "energy supply overflow".to_owned())?;
         let energy_sinks = critical_served
             .checked_add(lighting_served)
-            .and_then(|x| x.checked_add(if batch_processed { batch_energy_requested } else { 0 }))
+            .and_then(|x| {
+                x.checked_add(if batch_processed {
+                    batch_energy_requested
+                } else {
+                    0
+                })
+            })
             .and_then(|x| x.checked_add(charge_input))
             .and_then(|x| x.checked_add(curtailed))
             .ok_or_else(|| "energy sink sum overflow".to_owned())?;
         let energy_balance_residual = i128::from(energy_supply) - i128::from(energy_sinks);
 
-        let expected_soc_end = i128::from(battery_start_soc)
-            - i128::from(battery_internal_total)
+        let expected_soc_end = i128::from(battery_start_soc) - i128::from(battery_internal_total)
             + i128::from(charge_stored);
         let soc_balance_residual = i128::from(soc) - expected_soc_end;
 
         let mass_balance_residual = if batch_processed {
-            i128::from(batch_feed_consumed)
-                - i128::from(batch_product)
-                - i128::from(batch_residue)
+            i128::from(batch_feed_consumed) - i128::from(batch_product) - i128::from(batch_residue)
         } else {
             0
         };
@@ -596,12 +614,18 @@ fn verify_report(report: &DispatchReport) -> Result<(), String> {
         if interval.critical_served_wh + interval.critical_unserved_wh
             != interval.critical_requested_wh
         {
-            return Err(format!("interval {} critical-load accounting mismatch", interval.interval_id));
+            return Err(format!(
+                "interval {} critical-load accounting mismatch",
+                interval.interval_id
+            ));
         }
         if interval.farm_lighting_served_wh + interval.farm_lighting_unserved_wh
             != interval.farm_lighting_requested_wh
         {
-            return Err(format!("interval {} farm-light accounting mismatch", interval.interval_id));
+            return Err(format!(
+                "interval {} farm-light accounting mismatch",
+                interval.interval_id
+            ));
         }
     }
     let critical_sum = report.intervals.iter().try_fold(0_u64, |sum, interval| {
@@ -622,27 +646,32 @@ fn verify_report(report: &DispatchReport) -> Result<(), String> {
 
 fn render_json(scenario: &Scenario, greedy: &DispatchReport, reserve: &DispatchReport) -> String {
     let render_policy = |report: &DispatchReport| {
-        let rows = report.intervals.iter().map(|i| {
-            format!(
-                concat!(
-                    "{{\"interval\":{},\"critical_unserved_wh\":{},",
-                    "\"farm_light_unserved_wh\":{},\"batch_processed\":{},",
-                    "\"battery_end_soc_wh\":{},\"reserve_required_wh\":{},",
-                    "\"reserve_violation_wh\":{},\"energy_balance_residual_wh\":{},",
-                    "\"soc_balance_residual_wh\":{},\"mass_balance_residual_g\":{}}}"
-                ),
-                i.interval_id,
-                i.critical_unserved_wh,
-                i.farm_lighting_unserved_wh,
-                i.batch_processed,
-                i.battery_end_soc_wh,
-                i.reserve_required_wh,
-                i.reserve_violation_wh,
-                i.energy_balance_residual_wh,
-                i.soc_balance_residual_wh,
-                i.batch_mass_balance_residual_g
-            )
-        }).collect::<Vec<_>>().join(",\n");
+        let rows = report
+            .intervals
+            .iter()
+            .map(|i| {
+                format!(
+                    concat!(
+                        "{{\"interval\":{},\"critical_unserved_wh\":{},",
+                        "\"farm_light_unserved_wh\":{},\"batch_processed\":{},",
+                        "\"battery_end_soc_wh\":{},\"reserve_required_wh\":{},",
+                        "\"reserve_violation_wh\":{},\"energy_balance_residual_wh\":{},",
+                        "\"soc_balance_residual_wh\":{},\"mass_balance_residual_g\":{}}}"
+                    ),
+                    i.interval_id,
+                    i.critical_unserved_wh,
+                    i.farm_lighting_unserved_wh,
+                    i.batch_processed,
+                    i.battery_end_soc_wh,
+                    i.reserve_required_wh,
+                    i.reserve_violation_wh,
+                    i.energy_balance_residual_wh,
+                    i.soc_balance_residual_wh,
+                    i.batch_mass_balance_residual_g
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",\n");
 
         format!(
             concat!(
@@ -707,8 +736,8 @@ fn run() -> Result<(), String> {
         _ => return Err("usage: lunar-seed-dispatch-reference [--input PATH]".to_owned()),
     };
 
-    let source = fs::read_to_string(&path)
-        .map_err(|error| format!("could not read {path}: {error}"))?;
+    let source =
+        fs::read_to_string(&path).map_err(|error| format!("could not read {path}: {error}"))?;
     let scenario = parse_scenario(&source)?;
     let greedy = dispatch(&scenario, Policy::Greedy)?;
     let reserve = dispatch(&scenario, Policy::ForecastReserve)?;
@@ -769,7 +798,11 @@ mod tests {
     fn a_deferred_batch_consumes_no_feedstock() {
         let scenario = parse_scenario(FIXTURE).expect("valid synthetic scenario");
         let reserve = dispatch(&scenario, Policy::ForecastReserve).expect("reserve dispatch");
-        let batch_interval = reserve.intervals.iter().find(|i| i.batch_id.is_some()).unwrap();
+        let batch_interval = reserve
+            .intervals
+            .iter()
+            .find(|i| i.batch_id.is_some())
+            .unwrap();
         assert!(!batch_interval.batch_processed);
         assert_eq!(batch_interval.batch_feed_consumed_g, 0);
         assert_eq!(batch_interval.batch_product_g, 0);
@@ -778,24 +811,51 @@ mod tests {
 
     #[test]
     fn rejects_invalid_efficiency_duplicate_interval_and_bad_mass_balance() {
-        let bad_efficiency = FIXTURE.replace("discharge_efficiency_bps=9500", "discharge_efficiency_bps=10001");
-        assert!(parse_scenario(&bad_efficiency).unwrap_err().contains("efficiency"));
+        let bad_efficiency = FIXTURE.replace(
+            "discharge_efficiency_bps=9500",
+            "discharge_efficiency_bps=10001",
+        );
+        assert!(
+            parse_scenario(&bad_efficiency)
+                .unwrap_err()
+                .contains("efficiency")
+        );
 
         let duplicate_header = format!("{FIXTURE}battery_capacity_wh=120000\n");
-        assert!(parse_scenario(&duplicate_header).unwrap_err().contains("duplicate header"));
+        assert!(
+            parse_scenario(&duplicate_header)
+                .unwrap_err()
+                .contains("duplicate header")
+        );
 
-        let bad_mass = FIXTURE.replace("interval=18,40000,20000,0,false,water_batch_01,60000,100000,5000,95000",
-            "interval=18,40000,20000,0,false,water_batch_01,60000,100000,5000,94000");
-        assert!(parse_scenario(&bad_mass).unwrap_err().contains("mass does not close"));
+        let bad_mass = FIXTURE.replace(
+            "interval=18,40000,20000,0,false,water_batch_01,60000,100000,5000,95000",
+            "interval=18,40000,20000,0,false,water_batch_01,60000,100000,5000,94000",
+        );
+        assert!(
+            parse_scenario(&bad_mass)
+                .unwrap_err()
+                .contains("mass does not close")
+        );
     }
 
     #[test]
     fn rejects_light_outside_crop_window_and_soc_above_capacity() {
-        let bad_light = FIXTURE.replace("interval=16,40000,20000,0,false,none,0,0,0,0",
-            "interval=16,40000,20000,5000,false,none,0,0,0,0");
-        assert!(parse_scenario(&bad_light).unwrap_err().contains("outside its declared light window"));
+        let bad_light = FIXTURE.replace(
+            "interval=16,40000,20000,0,false,none,0,0,0,0",
+            "interval=16,40000,20000,5000,false,none,0,0,0,0",
+        );
+        assert!(
+            parse_scenario(&bad_light)
+                .unwrap_err()
+                .contains("outside its declared light window")
+        );
 
         let bad_soc = FIXTURE.replace("initial_soc_wh=120000", "initial_soc_wh=120001");
-        assert!(parse_scenario(&bad_soc).unwrap_err().contains("exceeds battery capacity"));
+        assert!(
+            parse_scenario(&bad_soc)
+                .unwrap_err()
+                .contains("exceeds battery capacity")
+        );
     }
 }
