@@ -204,12 +204,13 @@ A simulation result, benchmark pass, prototype or provenance record does not gra
 
 1. [First decision experiment v0.1](./first-decision-experiment-v0.1.md): Wren 2 / Wayfarer 4 mission contracts, baseline families, C0/C1/C2/C5P/C5S down-selection, preregistered benchmarks and falsification rules.
 2. [Machine-readable mission cards v0.1](./mission-cards-v0.1.json): six Wren 2 / Wayfarer 4 mission templates, with unknown values and source status preserved.
-3. Baseline cards with exact variants and evidence classes.
-2. Wren 2 / Wayfarer 4 mission contract table with hot/high sensitivity cases.
-3. C0–C7 decision matrix with unknowns preserved.
-4. Initial mass/CG/energy/power bookkeeping with transparent assumptions.
-5. An independent oracle fixture set before optimization.
-7. [Mass-properties implementation PR #3977](https://github.com/Luminous-Dynamics/symtropy/pull/3977): configuration-bound itemized mass, CG and inertia; currently draft and CI qualification pending.
-8. Only then, down-select candidate geometries for OpenVSP/VSPAERO and selected SU2/structural analysis.
+3. [Architecture discovery benchmark v0.1](./architecture-discovery-benchmark-v0.1.md): separate architecture choice, parameter optimization, analysis-graph activation and fidelity acquisition; matched-budget participant matrix and failure tests.
+4. Baseline cards with exact variants and evidence classes.
+5. C0–C7 decision matrix with unknowns preserved.
+6. Initial mass/CG/energy/power bookkeeping with transparent assumptions.
+7. [Mass-properties implementation PR #3977](https://github.com/Luminous-Dynamics/symtropy/pull/3977): configuration-bound itemized mass, CG and inertia; draft, with exact-head software checks passed.
+8. [Mass-to-mission coupling PR #3979](https://github.com/Luminous-Dynamics/symtropy/pull/3979): exact-configuration ledger-to-cruise-screen adapter; draft, with exact-head software checks passed.
+9. [Mass provenance/loading states PR #4000](https://github.com/Luminous-Dynamics/symtropy/pull/4000): source-bound item evidence and immutable state manifests; draft, qualification in progress.
+10. Only then, down-select candidate geometries for OpenVSP/VSPAERO and selected SU2/structural analysis.
 
 **Claim ceiling:** This brief is a source-bound concept-search plan. It cannot establish optimality, safety, flightworthiness, certification, commercial readiness, better-than-SOTA performance or readiness to build.
