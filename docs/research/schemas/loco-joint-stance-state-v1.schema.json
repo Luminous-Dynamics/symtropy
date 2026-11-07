@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/schemas/loco-joint-stance-state-v1.schema.json",
+  "title": "Six-leg joint stance-state metric input V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "metric_id",
+    "tick_timebase_hz",
+    "leg_order",
+    "parity_worlds",
+    "transition_traces",
+    "incomplete_control",
+    "oracle_expectations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "metric_id": {
+      "const": "SIX_LEG_JOINT_STANCE_V1"
+    },
+    "tick_timebase_hz": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "leg_order": {
+      "const": [
+        "LEFT_FORE",
+        "LEFT_MIDDLE",
+        "LEFT_HIND",
+        "RIGHT_FORE",
+        "RIGHT_MIDDLE",
+        "RIGHT_HIND"
+      ]
+    },
+    "parity_worlds": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/parity_world"
+      }
+    },
+    "transition_traces": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/trace"
+      }
+    },
+    "incomplete_control": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/interval"
+      }
+    },
+    "oracle_expectations": {
+      "$ref": "#/$defs/oracle"
+    }
+  },
+  "$defs": {
+    "leg_state": {
+      "enum": [
+        "STANCE",
+        "SWING",
+        "MISSING_TRACK",
+        "OUT_OF_SUPPORT",
+        "FAILED_ASSAY",
+        "NOT_ASSESSED",
+        "DISPUTED"
+      ]
+    },
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_tick",
+        "end_tick",
+        "legs"
+      ],
+      "properties": {
+        "start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "legs": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/leg_state"
+          }
+        }
+      }
+    },
+    "parity_world": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "world_id",
+        "intervals"
+      ],
+      "properties": {
+        "world_id": {
+          "enum": [
+            "EVEN_PARITY",
+            "ODD_PARITY"
+          ]
+        },
+        "intervals": {
+          "type": "array",
+          "minItems": 32,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/interval"
+          }
+        }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trace_id",
+        "intervals"
+      ],
+      "properties": {
+        "trace_id": {
+          "enum": [
+            "FORWARD",
+            "REVERSE"
+          ]
+        },
+        "intervals": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/interval"
+          }
+        }
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_count",
+        "even_world_total_ticks",
+        "odd_world_total_ticks",
+        "per_leg_stance_ticks",
+        "pairwise_diagonal_ticks",
+        "pairwise_off_diagonal_ticks",
+        "tripod_stance_overlap_ticks",
+        "tripod_swing_overlap_ticks",
+        "even_count_by_stance_legs_ticks",
+        "odd_count_by_stance_legs_ticks",
+        "lower_order_subset_marginals_equal_through_order",
+        "forward_transition_edges",
+        "reverse_transition_edges",
+        "transition_trace_occupancy_ticks",
+        "incomplete_total_ticks",
+        "incomplete_observed_mask"
+      ],
+      "properties": {
+        "state_count": {
+          "const": 64
+        },
+        "even_world_total_ticks": {
+          "const": 32
+        },
+        "odd_world_total_ticks": {
+          "const": 32
+        },
+        "per_leg_stance_ticks": {
+          "const": [
+            16,
+            16,
+            16,
+            16,
+            16,
+            16
+          ]
+        },
+        "pairwise_diagonal_ticks": {
+          "const": 16
+        },
+        "pairwise_off_diagonal_ticks": {
+          "const": 8
+        },
+        "tripod_stance_overlap_ticks": {
+          "const": [
+            4,
+            4
+          ]
+        },
+        "tripod_swing_overlap_ticks": {
+          "const": [
+            4,
+            4
+          ]
+        },
+        "even_count_by_stance_legs_ticks": {
+          "const": [
+            1,
+            0,
+            15,
+            0,
+            15,
+            0,
+            1
+          ]
+        },
+        "odd_count_by_stance_legs_ticks": {
+          "const": [
+            0,
+            6,
+            0,
+            20,
+            0,
+            6,
+            0
+          ]
+        },
+        "lower_order_subset_marginals_equal_through_order": {
+          "const": 5
+        },
+        "forward_transition_edges": {
+          "const": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "reverse_transition_edges": {
+          "const": [
+            [
+              0,
+              2
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "transition_trace_occupancy_ticks": {
+          "const": [
+            2,
+            1,
+            1
+          ]
+        },
+        "incomplete_total_ticks": {
+          "const": 5
+        },
+        "incomplete_observed_mask": {
+          "const": 3
+        }
+      }
+    }
+  }
+}
