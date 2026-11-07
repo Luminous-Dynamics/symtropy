@@ -1,0 +1,18 @@
+[workspace]
+
+[package]
+name = "civdyn-themp-passport"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Machine-auditable theory and empirical evidence conformance passport"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "themp-passport-sweep"
+path = "src/bin/themp_passport_sweep.rs"
+
+[dependencies]
