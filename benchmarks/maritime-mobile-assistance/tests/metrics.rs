@@ -128,9 +128,30 @@ fn task(task_id: &str, spec: TaskSpec<'_>) -> AssistanceTask {
     }
 }
 
+fn canonical_reposition_subject(leg: &RepositionLeg, time_basis_id: &str) -> String {
+    let duration = leg.duration_ticks.to_string();
+    let fields = [
+        leg.leg_id.as_str(),
+        leg.resource_id.as_str(),
+        leg.from_node_id.as_str(),
+        leg.to_node_id.as_str(),
+        leg.route_revision.as_str(),
+        duration.as_str(),
+        time_basis_id,
+    ];
+    let mut subject = String::from("maritime-reposition-evidence-v1");
+    for field in fields {
+        subject.push(':');
+        subject.push_str(&field.len().to_string());
+        subject.push(':');
+        subject.push_str(field);
+    }
+    subject
+}
+
 fn leg(resource_id: &str, from: &str, to: &str, duration: u64) -> RepositionLeg {
     let leg_id = format!("leg-{resource_id}-{from}-{to}");
-    RepositionLeg {
+    let mut reposition = RepositionLeg {
         leg_id: leg_id.clone(),
         resource_id: resource_id.to_owned(),
         from_node_id: from.to_owned(),
@@ -142,10 +163,13 @@ fn leg(resource_id: &str, from: &str, to: &str, duration: u64) -> RepositionLeg 
             EvidenceState::Current,
             0,
             40,
-            &leg_id,
+            "",
             "route-r1",
         ),
-    }
+    };
+    reposition.evidence.subject_id =
+        canonical_reposition_subject(&reposition, "synthetic-ticks-v1");
+    reposition
 }
 
 fn fleet_plan(input: &MobileWorkload) -> FleetPlan {
