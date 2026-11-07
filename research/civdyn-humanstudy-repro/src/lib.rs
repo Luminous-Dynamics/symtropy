@@ -269,7 +269,9 @@ fn is_safe_relative_path(value: &str) -> bool {
         && !value.contains('\\')
         && !value.contains(':')
         && !value.contains('\0')
-        && value.split('/').all(|part| !part.is_empty() && part != "." && part != "..")
+        && value
+            .split('/')
+            .all(|part| !part.is_empty() && part != "." && part != "..")
 }
 
 fn is_lower_hex(value: &str, expected_len: usize) -> bool {
@@ -325,16 +327,28 @@ fn validate_study(
     }
 
     match (require_official_metrics, study.official_pas) {
-        (true, None) => errors.push(format!("{}: paper protocol requires official PAS", study.study_id)),
+        (true, None) => errors.push(format!(
+            "{}: paper protocol requires official PAS",
+            study.study_id
+        )),
         (_, Some(value)) if !value.is_finite() || !(0.0..=1.0).contains(&value) => {
-            errors.push(format!("{}: PAS must be finite and in [0, 1]", study.study_id));
+            errors.push(format!(
+                "{}: PAS must be finite and in [0, 1]",
+                study.study_id
+            ));
         }
         _ => {}
     }
     match (require_official_metrics, study.official_ecs) {
-        (true, None) => errors.push(format!("{}: paper protocol requires official ECS", study.study_id)),
+        (true, None) => errors.push(format!(
+            "{}: paper protocol requires official ECS",
+            study.study_id
+        )),
         (_, Some(value)) if !value.is_finite() || !(-1.0..=1.0).contains(&value) => {
-            errors.push(format!("{}: ECS must be finite and in [-1, 1]", study.study_id));
+            errors.push(format!(
+                "{}: ECS must be finite and in [-1, 1]",
+                study.study_id
+            ));
         }
         _ => {}
     }
@@ -516,7 +530,12 @@ mod tests {
         }
     }
 
-    fn artifact(role: &str, record_level: bool, published: bool, authorized: bool) -> ArtifactReceipt {
+    fn artifact(
+        role: &str,
+        record_level: bool,
+        published: bool,
+        authorized: bool,
+    ) -> ArtifactReceipt {
         artifact_at(
             role,
             &format!("artifacts/{role}.json"),
@@ -551,9 +570,27 @@ mod tests {
             }],
             artifacts: vec![
                 artifact_at("community_run_manifest", "run.json", false, true, true),
-                artifact_at("community_responses", "output/responses.json", false, true, true),
-                artifact_at("community_evaluation", "output/evaluation.json", false, true, true),
-                artifact_at("community_analysis", "output/analysis.json", false, true, true),
+                artifact_at(
+                    "community_responses",
+                    "output/responses.json",
+                    false,
+                    true,
+                    true,
+                ),
+                artifact_at(
+                    "community_evaluation",
+                    "output/evaluation.json",
+                    false,
+                    true,
+                    true,
+                ),
+                artifact_at(
+                    "community_analysis",
+                    "output/analysis.json",
+                    false,
+                    true,
+                    true,
+                ),
             ],
         }
     }
@@ -612,9 +649,27 @@ mod tests {
                 .map(|pin| {
                     let mut study = study(pin);
                     study.artifacts = vec![
-                        artifact_at("paper_full_benchmark", "full_benchmark.json", false, true, true),
-                        artifact_at("paper_detailed_stats", "detailed_stats.csv", false, true, true),
-                        artifact_at("paper_evaluation_results", "evaluation_results.json", false, true, true),
+                        artifact_at(
+                            "paper_full_benchmark",
+                            "full_benchmark.json",
+                            false,
+                            true,
+                            true,
+                        ),
+                        artifact_at(
+                            "paper_detailed_stats",
+                            "detailed_stats.csv",
+                            false,
+                            true,
+                            true,
+                        ),
+                        artifact_at(
+                            "paper_evaluation_results",
+                            "evaluation_results.json",
+                            false,
+                            true,
+                            true,
+                        ),
                     ];
                     study
                 })
