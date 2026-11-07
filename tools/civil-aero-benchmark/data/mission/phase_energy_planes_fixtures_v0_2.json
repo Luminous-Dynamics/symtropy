@@ -77,7 +77,8 @@
         "tolerance_w": 0.000001,
         "peak_bus_supply_power_w": 40000,
         "peak_bus_supply_power_limit_w": 50000,
-        "continuous_bus_supply_power_limit_w": 35000
+        "continuous_bus_supply_power_limit_w": 35000,
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     },
     {
@@ -160,7 +161,8 @@
         "tolerance_w": 0.000001,
         "peak_bus_supply_power_w": 20000,
         "peak_bus_supply_power_limit_w": 30000,
-        "continuous_bus_supply_power_limit_w": 15000
+        "continuous_bus_supply_power_limit_w": 15000,
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     },
     {
@@ -269,7 +271,8 @@
         "tolerance_w": 0.000001,
         "peak_bus_supply_power_w": 45000,
         "peak_bus_supply_power_limit_w": 55000,
-        "continuous_bus_supply_power_limit_w": 40000
+        "continuous_bus_supply_power_limit_w": 40000,
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     },
     {
@@ -378,7 +381,8 @@
         "tolerance_w": 0.000001,
         "peak_bus_supply_power_w": 50000,
         "peak_bus_supply_power_limit_w": 55000,
-        "continuous_bus_supply_power_limit_w": 20000
+        "continuous_bus_supply_power_limit_w": 20000,
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     },
     {
@@ -487,7 +491,8 @@
         "tolerance_w": 0.000001,
         "peak_bus_supply_power_w": 40000,
         "peak_bus_supply_power_limit_w": 50000,
-        "continuous_bus_supply_power_limit_w": 30000
+        "continuous_bus_supply_power_limit_w": 30000,
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     },
     {
@@ -621,7 +626,8 @@
         "tolerance_w": 0.000001,
         "peak_bus_supply_power_w": 55000,
         "peak_bus_supply_power_limit_w": 60000,
-        "continuous_bus_supply_power_limit_w": 35000
+        "continuous_bus_supply_power_limit_w": 35000,
+        "peak_bus_power_trace_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
       }
     }
   ]
