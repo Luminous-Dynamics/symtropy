@@ -286,7 +286,14 @@ impl SplitMix64 {
     }
 
     fn index(&mut self, upper_exclusive: usize) -> usize {
-        (self.next_u64() % upper_exclusive as u64) as usize
+        let bound = upper_exclusive as u64;
+        let threshold = bound.wrapping_neg() % bound;
+        loop {
+            let value = self.next_u64();
+            if value >= threshold {
+                return (value % bound) as usize;
+            }
+        }
     }
 }
 
@@ -362,7 +369,7 @@ pub fn compare_pair_cluster_bootstrap(
             requested: replicates,
         });
     }
-    if !confidence_level.is_finite() || !(0.0..1.0).contains(&confidence_level) {
+    if !confidence_level.is_finite() || confidence_level <= 0.0 || confidence_level >= 1.0 {
         return Err(FidelityError::InvalidConfidenceLevel);
     }
 
@@ -622,12 +629,14 @@ mod tests {
     }
 
     #[test]
-    fn bootstrap_rejects_invalid_confidence_level() {
+    fn bootstrap_rejects_confidence_levels_outside_open_unit_interval() {
         let observed = rows("observed", &correlated(), "all");
         let simulated = rows("simulated", &correlated(), "all");
-        assert!(matches!(
-            compare_pair_cluster_bootstrap(&observed, &simulated, 100, 1.0, 9),
-            Err(FidelityError::InvalidConfidenceLevel)
-        ));
+        for confidence_level in [0.0, 1.0, f64::NAN, f64::INFINITY] {
+            assert!(matches!(
+                compare_pair_cluster_bootstrap(&observed, &simulated, 100, confidence_level, 9),
+                Err(FidelityError::InvalidConfidenceLevel)
+            ));
+        }
     }
 }
