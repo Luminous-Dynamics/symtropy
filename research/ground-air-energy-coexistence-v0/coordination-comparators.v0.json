@@ -94,42 +94,42 @@
           "notes": "Table 7; simulation mean at CCN_1."
         },
         {
-          "metric": "mean_battery_consumption_SAFE_DDPG",
+          "metric": "table7_battery_consumption_safe_ddpg",
           "value": 3.4726,
           "qualifier": "EXACT",
           "unit": "kWh",
           "notes": "Table 7; simulation result."
         },
         {
-          "metric": "mean_battery_consumption_DH_CSP",
+          "metric": "table7_battery_consumption_dh_csp",
           "value": 3.8321,
           "qualifier": "EXACT",
           "unit": "kWh",
           "notes": "Table 7; simulation result."
         },
         {
-          "metric": "mean_battery_consumption_SH_CSP",
+          "metric": "table7_battery_consumption_sh_csp",
           "value": 4.2105,
           "qualifier": "EXACT",
           "unit": "kWh",
           "notes": "Table 7; simulation result."
         },
         {
-          "metric": "mean_travel_time_SAFE_DDPG",
+          "metric": "table7_travel_cost_safe_ddpg",
           "value": 30.33,
           "qualifier": "EXACT",
           "unit": "minutes",
           "notes": "Table 7; simulation result."
         },
         {
-          "metric": "mean_travel_time_DH_CSP",
+          "metric": "table7_travel_cost_dh_csp",
           "value": 33.78,
           "qualifier": "EXACT",
           "unit": "minutes",
           "notes": "Table 7; simulation result."
         },
         {
-          "metric": "mean_travel_time_SH_CSP",
+          "metric": "table7_travel_cost_sh_csp",
           "value": 37.41,
           "qualifier": "EXACT",
           "unit": "minutes",
