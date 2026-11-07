@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mission-timeline-0.1.json",
+  "title": "AER-01 Mission Timeline v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mission_id",
+    "configuration_sha256",
+    "source_generation_sha256",
+    "status",
+    "primary_metric",
+    "reserve_policy",
+    "phases",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "mission-timeline/0.1.0"
+    },
+    "mission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "configuration_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "source_generation_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "status": {
+      "enum": [
+        "unfrozen",
+        "synthetic_fixture",
+        "source_reviewed",
+        "frozen"
+      ]
+    },
+    "primary_metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "unit",
+        "direction"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "enum": [
+            "minimize",
+            "maximize"
+          ]
+        }
+      }
+    },
+    "reserve_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "required_remaining_energy_j",
+        "source_ref"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_remaining_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/phase"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase_id",
+        "sequence",
+        "kind",
+        "start_state_sha256",
+        "end_state_sha256",
+        "duration_s",
+        "assessment_status"
+      ],
+      "properties": {
+        "phase_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "enum": [
+            "dispatch",
+            "taxi",
+            "takeoff",
+            "climb",
+            "cruise",
+            "descent",
+            "approach",
+            "landing",
+            "go_around",
+            "diversion",
+            "reserve"
+          ]
+        },
+        "start_state_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "end_state_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "duration_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "assessment_status": {
+          "enum": [
+            "assessed_screening",
+            "not_assessed",
+            "indeterminate",
+            "failed"
+          ]
+        },
+        "energy_balance_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
