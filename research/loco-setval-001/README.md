@@ -4,6 +4,8 @@ Status: research specification, not an implemented solver or physical safety cer
 
 Issue: https://github.com/Luminous-Dynamics/symtropy/issues/4083
 
+Exact rational interval/event-order fixtures are tracked separately in [LOCO-HYBRID-MATH-001 / #4113](https://github.com/Luminous-Dynamics/symtropy/issues/4113), with implementation in [PR #4107](https://github.com/Luminous-Dynamics/symtropy/pull/4107).
+
 ## Purpose
 
 Bridge the finite nondeterministic robust-viability oracle in `loco-robust-viability-v0` to continuous and hybrid locomotor models without silently omitting admissible physical outcomes.
