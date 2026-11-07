@@ -1003,6 +1003,42 @@ mod tests {
     }
 
     #[test]
+    fn source_channel_and_receiver_energy_boundaries_cannot_be_conflated() {
+        let scenario = fixture();
+        let report = evaluate_scenario(&scenario).unwrap();
+        assert_eq!(report["source_power_boundary_id"], "SITE_PCC_GRID_AC_INPUT");
+        let air = report["per_session"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["domain"] == "AIR")
+            .unwrap();
+        assert_eq!(air["channel_input_boundary_id"], "AIR_DOCK_CHARGER_AC_INPUT");
+        assert_eq!(
+            air["useful_energy_boundary_id"],
+            "AIRCRAFT_BATTERY_TERMINAL_INPUT"
+        );
+
+        let mut wrong_channel = fixture();
+        wrong_channel["channels"][0]["channel_input_boundary_id"] =
+            Value::String("GROUND_ROAD_INVERTER_DC_INPUT".into());
+        assert!(
+            evaluate_scenario(&wrong_channel)
+                .unwrap_err()
+                .contains("channel input meter boundary")
+        );
+
+        let mut wrong_receiver = fixture();
+        wrong_receiver["sessions"][0]["useful_energy_boundary_id"] =
+            Value::String("GROUND_VEHICLE_BATTERY_TERMINAL_INPUT".into());
+        assert!(
+            evaluate_scenario(&wrong_receiver)
+                .unwrap_err()
+                .contains("useful-energy meter boundary")
+        );
+    }
+
+    #[test]
     fn unresolved_safety_or_coexistence_state_is_rejected_not_promoted() {
         let mut scenario = fixture();
         scenario["channels"][0]["safety_state"] = Value::String("UNKNOWN".into());
