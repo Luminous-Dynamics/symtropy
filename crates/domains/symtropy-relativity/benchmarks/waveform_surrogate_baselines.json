@@ -235,6 +235,37 @@
       },
       "implementation": "time-domain multipolar effective-one-body waveform model, not a neural surrogate",
       "comparability": "Distinct from generic spin-precessing SEOBNRv6EPHM and from neural reduced-order surrogates. Preserve its planar-orbit, eccentricity, modes, mass range, and SXS comparison domain."
+    },
+    {
+      "id": "SEOBNRv6EHM_catalog_PE_systematics_2026",
+      "kind": "waveform_model_parameter_estimation_and_systematics_study",
+      "reference": "https://doi.org/10.1103/cx64-gmkk",
+      "publication_date": "2026-11-03",
+      "model": "SEOBNRv6EHM",
+      "sample": {
+        "observing_runs": "O1-O4",
+        "events_analyzed": 27,
+        "event_classes": [
+          "binary black hole",
+          "neutron-star black hole",
+          "binary neutron star"
+        ]
+      },
+      "findings": {
+        "mild_eccentricity_support_events": 5,
+        "eccentricity_support_threshold": "log10 Bayes factor > 0.5 against quasi-circular precessing-spin hypothesis",
+        "high_mass_events_reanalyzed_for_unbound_initial_conditions": 5,
+        "events_with_unbound_configuration_comparable_or_marginally_favored": 3,
+        "caveat": "Recovered unbound configurations are astrophysically unrealistic and not confidently distinguishable from highly eccentric bound orbits; these results do not alone establish an unbound origin."
+      },
+      "reported_performance": {
+        "parameter_estimation_speedup_vs_SEOBNRv5EHM": [
+          3,
+          5
+        ],
+        "metric": "end-to-end parameter-estimation runtime"
+      },
+      "comparability": "This is a PE/systematics study using SEOBNRv6EHM, not an independent waveform family or a direct waveform-mismatch benchmark. Keep its astrophysical interpretation caveats."
     }
   ],
   "symtropy_differentiator": {
@@ -249,5 +280,10 @@
       "comparison with random and space-filling acquisition at equal simulation budget"
     ],
     "success_claim_ceiling": "bounded, independently validated surrogate with calibrated applicability and uncertainty; no universal SOTA claim"
-  }
+  },
+  "newest_sota_notes": [
+    "SEOBNRv6EHM was published in PRD on 2026-11-03 (DOI 10.1103/shbg-989s). The final paper validates 592 quasi-circular, 319 eccentric, 1 capture and 2 scattering SXS waveforms; for high eccentricity it reports mismatches below/near 2% up to e~0.9 at 14 periastron passages before merger and 2-8x speedup over other state-of-the-art EOB eccentric models.",
+    "The companion SEOBNRv6EHM catalogue PE/systematics study (DOI 10.1103/cx64-gmkk, published 2026-11-03) analyzed 27 O1-O4 events, finds five with mild eccentricity support, and explores unbound configurations in five high-mass events. Three have comparable/marginally favored unbound fits, but the recovered configurations are astrophysically unrealistic and not confidently separable from high-eccentricity bound orbits.",
+    "Do not collapse waveform-generation speedup, parameter-estimation speedup, mismatch, and Bayesian evidence into one performance figure."
+  ]
 }
