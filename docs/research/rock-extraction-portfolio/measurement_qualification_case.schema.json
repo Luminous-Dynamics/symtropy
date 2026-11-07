@@ -164,7 +164,10 @@
         "resolution_status",
         "feature_dimension_mm",
         "source_artifact_ref",
-        "segmentation_record_ref"
+        "segmentation_record_ref",
+        "particle_size_lower_mm",
+        "particle_size_upper_mm",
+        "size_measurement_ref"
       ],
       "properties": {
         "particle_id": {
@@ -194,6 +197,17 @@
           "$ref": "#/$defs/ref"
         },
         "segmentation_record_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "particle_size_lower_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "particle_size_upper_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "size_measurement_ref": {
           "$ref": "#/$defs/ref"
         }
       }
