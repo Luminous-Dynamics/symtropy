@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/cavern-experiment-campaign-v0.1.json",
+  "title": "Cavern Experiment Campaign Adapter v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "decision",
+    "campaign",
+    "measurement_candidates",
+    "routing"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resource_cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource", "value", "unit", "boundary_ref", "source_ref"],
+      "properties": {
+        "resource": {
+          "enum": [
+            "ELECTRICAL_ENERGY",
+            "INSTRUMENT_TIME",
+            "OPERATOR_TIME",
+            "SPECIALIST_TIME",
+            "ASSAY_CONSUMABLE",
+            "CROP_CYCLE_SLOT",
+            "MONETARY_COST",
+            "OTHER"
+          ]
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "boundary_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "budget_constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource", "maximum", "unit", "scope_ref", "source_ref"],
+      "properties": {
+        "resource": {
+          "enum": [
+            "ELECTRICAL_ENERGY",
+            "INSTRUMENT_TIME",
+            "OPERATOR_TIME",
+            "SPECIALIST_TIME",
+            "ASSAY_CONSUMABLE",
+            "CROP_CYCLE_SLOT",
+            "MONETARY_COST",
+            "OTHER"
+          ]
+        },
+        "maximum": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "scope_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "measurement_candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "measurement_class",
+        "method_ref",
+        "instrument_ref",
+        "domain_ref",
+        "calibration_status",
+        "dependence_group_ref",
+        "resource_costs",
+        "likelihood_status",
+        "admissibility",
+        "admissibility_reason_ref",
+        "raw_data_contract_ref"
+      ],
+      "properties": {
+        "candidate_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "measurement_class": {
+          "enum": ["PASSIVE_OBSERVATION", "INTERVENTION"]
+        },
+        "method_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "instrument_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "domain_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "calibration_status": {
+          "enum": [
+            "QUALIFIED_IN_DOMAIN",
+            "EXPIRED",
+            "OUT_OF_RANGE",
+            "UNQUALIFIED",
+            "NOT_APPLICABLE",
+            "UNKNOWN"
+          ]
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependence_group_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "resource_costs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/resource_cost"
+          }
+        },
+        "likelihood_status": {
+          "enum": [
+            "CALIBRATED_IN_DOMAIN",
+            "BOUNDED_NOT_PROBABILISTIC",
+            "SIMULATION_ONLY",
+            "MISSING",
+            "OUT_OF_DOMAIN"
+          ]
+        },
+        "likelihood_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "admissibility": {
+          "enum": ["ACCEPT", "REJECT", "NEEDS_EVIDENCE"]
+        },
+        "admissibility_reason_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "raw_data_contract_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "BENCH_MEASUREMENT",
+        "PROSPECTIVE_CAMPAIGN",
+        "MEASURED_CAMPAIGN"
+      ]
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_ref",
+        "decision_owner_ref",
+        "functional_unit_ref",
+        "system_boundary_ref",
+        "baseline_ref",
+        "effect_threshold_ref",
+        "hard_constraint_refs"
+      ],
+      "properties": {
+        "decision_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "decision_owner_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "functional_unit_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "system_boundary_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "baseline_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "effect_threshold_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "hard_constraint_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "approved_utility_mapping_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "campaign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaign_ref",
+        "campaign_window_ref",
+        "budget_constraints",
+        "maximum_measurements",
+        "physical_authorization_ref"
+      ],
+      "properties": {
+        "campaign_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "campaign_window_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "budget_constraints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/budget_constraint"
+          }
+        },
+        "maximum_measurements": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "physical_authorization_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "measurement_candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/measurement_candidate"
+      }
+    },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probability_model_status",
+        "requested_engine",
+        "route_reason_ref",
+        "selected_candidate_ids"
+      ],
+      "properties": {
+        "probability_model_status": {
+          "enum": [
+            "CALIBRATED",
+            "FINITE_MODEL_SET_ONLY",
+            "UNSUPPORTED",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "requested_engine": {
+          "enum": [
+            "BAYESIAN_SEQUENTIAL_4027",
+            "ROBUST_MODEL_SET_4057",
+            "HUMAN_REVIEW",
+            "ADMISSIBILITY_ONLY"
+          ]
+        },
+        "route_reason_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "selected_candidate_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        }
+      }
+    }
+  }
+}
