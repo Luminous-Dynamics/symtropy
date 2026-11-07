@@ -415,7 +415,7 @@ fn push_row(output: &mut String, row: [String; 25]) {
 }
 
 fn csv_escape(value: String) -> String {
-    if value.contains([',', '"', '\n', '\r']) {
+    if value.chars().any(|character| matches!(character, ',' | '"' | '\n' | '\r')) {
         format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value
