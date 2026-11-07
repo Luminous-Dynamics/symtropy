@@ -256,3 +256,16 @@ The shared-site allocator's known-truth scenario now uses:
 - air lane: `AIR_DOCK_CONDUCTIVE`.
 
 This is intentional. M0 validates concurrent ground and aircraft energy service behind one PCC/source constraint using independent meter planes. It does **not** demonstrate two wireless links operating concurrently. M1 changes the air channel to IPT or CPT and adds channel-specific electromagnetic/thermal/interference measurements. The schema accepts the conductive aircraft-dock modality for service-allocation studies while retaining separate air-near-field and air-far-field modality values.
+
+
+### v0 meter-boundary identity contract
+
+The allocator now requires three distinct measurement identities:
+
+- Site source power boundary: `SITE_PCC_GRID_AC_INPUT`.
+- Channel input boundary, selected by transfer modality (for this M0 fixture: `GROUND_ROAD_INVERTER_DC_INPUT` versus `AIR_DOCK_CHARGER_AC_INPUT`).
+- Useful receiver energy boundary, selected by receiver class (ground-vehicle battery terminal versus aircraft battery terminal).
+
+The allocation quanta are normalized synthetic site-PCC input energy. The useful-energy coefficient maps that site input to the declared receiver endpoint for arithmetic purposes only. The channel-input boundary is a separate typed reference; v0 does not calculate intermediate conversion losses or pretend the shared feeder meter is a channel meter. A future measured adapter must provide actual synchronized readings and uncertainty at each boundary before emitting physical efficiency values.
+
+The evaluator rejects a channel meter boundary inconsistent with the transfer modality and a useful-energy boundary inconsistent with the receiver class. This prevents a vehicle-battery figure, aircraft-battery figure and inverter-input figure from being treated as interchangeable Wh.
