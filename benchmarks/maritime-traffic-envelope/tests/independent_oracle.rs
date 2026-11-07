@@ -185,6 +185,128 @@ fn direct_reference_has_no_conflict(
     first.0 >= second.1 || second.0 >= first.1
 }
 
+/// Independent roster-to-occupancy completeness calculation. This deliberately
+/// compares public fields directly and does not call the production coverage
+/// validator or canonical identity helpers.
+fn reference_coverage_is_complete(
+    plan: &FleetPlan,
+    input: &TrafficWorkload,
+) -> bool {
+    if plan.operations.is_empty()
+        || plan.operations.len() != input.coverage.entries.len()
+        || input.coverage.corridor_id != input.corridor_id
+        || input.coverage.time_basis_id != input.time_basis_id
+    {
+        return false;
+    }
+
+    for operation in &plan.operations {
+        let entries: Vec<_> = input
+            .coverage
+            .entries
+            .iter()
+            .filter(|entry| entry.operation == *operation)
+            .collect();
+        if entries.len() != 1 {
+            return false;
+        }
+        let entry = entries[0];
+        if entry.required_uses.is_empty() {
+            if entry
+                .no_resource_basis
+                .as_ref()
+                .is_none_or(|basis| basis.trim().is_empty())
+            {
+                return false;
+            }
+        } else if entry.no_resource_basis.is_some() {
+            return false;
+        }
+
+        for required in &entry.required_uses {
+            let resource_matches = input.resources.iter().any(|resource| {
+                resource.resource_id == required.resource_id
+                    && resource.revision == required.resource_revision
+            });
+            if !resource_matches {
+                return false;
+            }
+            let occupancy_matches: Vec<_> = input
+                .occupancies
+                .iter()
+                .filter(|occupancy| occupancy.occupancy_id == required.occupancy_id)
+                .collect();
+            if occupancy_matches.len() != 1 {
+                return false;
+            }
+            let occupancy = occupancy_matches[0];
+            if occupancy.operation != *operation
+                || occupancy.resource_id != required.resource_id
+                || occupancy.route_revision != entry.route_revision
+                || occupancy.direction_id != required.direction_id
+            {
+                return false;
+            }
+        }
+    }
+
+    input.occupancies.iter().all(|occupancy| {
+        input.coverage.entries.iter().any(|entry| {
+            entry.operation == occupancy.operation
+                && entry.route_revision == occupancy.route_revision
+                && entry.required_uses.iter().any(|required| {
+                    required.occupancy_id == occupancy.occupancy_id
+                        && required.resource_id == occupancy.resource_id
+                        && required.direction_id == occupancy.direction_id
+                })
+        })
+    })
+}
+
+#[test]
+fn production_coverage_validator_matches_direct_roster_oracle_for_all_two_operation_subsets() {
+    let first = operation("demand-a", 10);
+    let second = operation("demand-b", 20);
+    let first_use = occupancy("use-a", first.clone(), 0, 0);
+    let second_use = occupancy("use-b", second.clone(), 0, 0);
+    let selected = plan(vec![first, second]);
+    let baseline = workload(
+        &selected.operations,
+        vec![first_use, second_use],
+    );
+
+    for mask in 0_u8..4 {
+        let mut candidate = baseline.clone();
+        candidate.occupancies.retain(|item| {
+            (item.occupancy_id == "use-a" && mask & 1 != 0)
+                || (item.occupancy_id == "use-b" && mask & 2 != 0)
+        });
+
+        let expected = reference_coverage_is_complete(&selected, &candidate);
+        let actual = evaluate_traffic_plan(&selected, &candidate);
+        assert_eq!(
+            actual.is_ok(),
+            expected,
+            "coverage mismatch for two-operation presence mask {mask:02b}"
+        );
+        if mask == 3 {
+            assert_eq!(
+                actual.expect("complete operation and occupancy roster").disposition,
+                TrafficDisposition::ReadyForComparison
+            );
+        } else {
+            assert_eq!(
+                actual,
+                Err(
+                    maritime_traffic_envelope_contract::TrafficError::MissingRequiredOccupancy(
+                        if mask & 1 == 0 { "use-a" } else { "use-b" }.to_owned()
+                    )
+                )
+            );
+        }
+    }
+}
+
 #[test]
 fn production_traffic_conflict_disposition_matches_direct_oracle_over_256_cases() {
     let mut comparisons = 0;
