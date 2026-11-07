@@ -113,16 +113,25 @@ pub enum TransitionError {
     EmptyPairId,
     DuplicateTraceId(String),
     InvalidSampleCount(String),
-    NonFiniteSample { trace_id: String, sample_index: usize },
+    NonFiniteSample {
+        trace_id: String,
+        sample_index: usize,
+    },
     NonIncreasingTimestamp { trace_id: String, sample_index: usize },
     NonMonotonicMeasuredSpeed { trace_id: String, sample_index: usize },
     WrongInitialRegime(String),
     WrongFinalRegime(String),
     MissingTransition(String),
     MultipleTransitions(String),
-    InvalidRampLinearity { trace_id: String, r_squared: f64 },
+    InvalidRampLinearity {
+        trace_id: String,
+        r_squared: f64,
+    },
     PairMustContainOneSweepEach(String),
-    PairRampRatesMismatch { pair_id: String, relative_error: f64 },
+    PairRampRatesMismatch {
+        pair_id: String,
+        relative_error: f64,
+    },
     TooFewDistinctRampRates,
     InvalidAnalysisConfig,
     NumericalFailure,
@@ -193,7 +202,10 @@ pub fn analyze_hysteresis(
         }
 
         let summary = summarize_trace(trace, config.minimum_ramp_linearity_r_squared)?;
-        grouped.entry(trace.pair_id.clone()).or_default().push(summary);
+        grouped
+            .entry(trace.pair_id.clone())
+            .or_default()
+            .push(summary);
     }
 
     let mut pairs = Vec::with_capacity(grouped.len());
@@ -506,11 +518,7 @@ mod tests {
         }
     }
 
-    fn synthetic_traces(
-        static_width: f64,
-        effective_delay: f64,
-        rates: &[f64],
-    ) -> Vec<SweepTrace> {
+    fn synthetic_traces(static_width: f64, effective_delay: f64, rates: &[f64]) -> Vec<SweepTrace> {
         let centre = 3.0;
         let mut traces = Vec::new();
         for (index, rate) in rates.iter().enumerate() {
@@ -538,11 +546,8 @@ mod tests {
 
     #[test]
     fn recovers_static_hysteresis_with_no_loop_delay() {
-        let fit = analyze_hysteresis(
-            &synthetic_traces(0.4, 0.0, &[0.5, 1.0, 2.0]),
-            config(),
-        )
-        .unwrap();
+        let fit =
+            analyze_hysteresis(&synthetic_traces(0.4, 0.0, &[0.5, 1.0, 2.0]), config()).unwrap();
         assert!((fit.quasi_static_width - 0.4).abs() < 1.0e-10);
         assert!(fit.effective_loop_delay.abs() < 1.0e-10);
         assert!((fit.fit_r_squared - 1.0).abs() < 1.0e-10);
@@ -550,11 +555,8 @@ mod tests {
 
     #[test]
     fn delay_only_apparent_loop_has_zero_static_width_intercept() {
-        let fit = analyze_hysteresis(
-            &synthetic_traces(0.0, 0.25, &[0.5, 1.0, 2.0]),
-            config(),
-        )
-        .unwrap();
+        let fit =
+            analyze_hysteresis(&synthetic_traces(0.0, 0.25, &[0.5, 1.0, 2.0]), config()).unwrap();
         assert!(fit.quasi_static_width.abs() < 1.0e-10);
         assert!((fit.effective_loop_delay - 0.25).abs() < 1.0e-10);
     }
@@ -576,10 +578,18 @@ mod tests {
         let traces = synthetic_traces(0.3, 0.2, &[0.5, 1.0, 2.0]);
         let fit = analyze_hysteresis(&traces, config()).unwrap();
         for pair in fit.pairs {
-            assert!(pair.increasing_transition.lower_speed <= pair.increasing_transition.midpoint_speed);
-            assert!(pair.increasing_transition.midpoint_speed <= pair.increasing_transition.upper_speed);
-            assert!(pair.decreasing_transition.lower_speed <= pair.decreasing_transition.midpoint_speed);
-            assert!(pair.decreasing_transition.midpoint_speed <= pair.decreasing_transition.upper_speed);
+            assert!(
+                pair.increasing_transition.lower_speed <= pair.increasing_transition.midpoint_speed
+            );
+            assert!(
+                pair.increasing_transition.midpoint_speed <= pair.increasing_transition.upper_speed
+            );
+            assert!(
+                pair.decreasing_transition.lower_speed <= pair.decreasing_transition.midpoint_speed
+            );
+            assert!(
+                pair.decreasing_transition.midpoint_speed <= pair.decreasing_transition.upper_speed
+            );
             assert!(pair.width_lower_bound <= pair.apparent_width);
             assert!(pair.apparent_width <= pair.width_upper_bound);
         }
@@ -618,7 +628,10 @@ mod tests {
         assert!(matches!(result, Err(TransitionError::WrongFinalRegime(_))));
         let down = trace("p", SweepDirection::Decreasing, 1.0, 2.0);
         let result = analyze_hysteresis(&[multiple, down], config());
-        assert!(matches!(result, Err(TransitionError::MultipleTransitions(_))));
+        assert!(matches!(
+            result,
+            Err(TransitionError::MultipleTransitions(_))
+        ));
     }
 
     #[test]
