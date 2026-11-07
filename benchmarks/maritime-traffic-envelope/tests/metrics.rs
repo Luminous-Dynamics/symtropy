@@ -37,6 +37,8 @@ fn resource(
     clearance_after_ticks: u64,
 ) -> TrafficResource {
     let mut item = TrafficResource {
+        corridor_id: "synthetic-corridor".to_owned(),
+        time_basis_id: "synthetic-ticks-v1".to_owned(),
         resource_id: id.to_owned(),
         revision: revision.to_owned(),
         kind,
@@ -133,6 +135,7 @@ struct OccupancySpec<'a> {
 
 fn occupancy(spec: OccupancySpec<'_>) -> TrafficOccupancy {
     let mut item = TrafficOccupancy {
+        corridor_id: "synthetic-corridor".to_owned(),
         occupancy_id: spec.id.to_owned(),
         resource_id: spec.resource_id.to_owned(),
         route_revision: spec.route_revision.to_owned(),
@@ -461,6 +464,37 @@ fn stale_traffic_evidence_needs_review_and_revoked_evidence_is_unsupported() {
     let report = evaluate(vec![op], vec![conflict_resource(0, 0)], vec![revoked])
         .expect("revoked evidence is a disposition");
     assert_eq!(report.disposition, TrafficDisposition::Unsupported);
+}
+
+#[test]
+fn traffic_resource_profile_is_scoped_to_corridor_and_time_basis() {
+    let op = operation("demand-a", "participant-a", 10, 12);
+    let item = occupancy(OccupancySpec {
+        id: "use-a",
+        resource_id: "crossing-zone-1",
+        route_revision: "route-a",
+        operation: op.clone(),
+        direction_id: None,
+        early_entry_ticks: 0,
+        late_clearance_ticks: 0,
+        time_basis_id: "synthetic-ticks-v1",
+    });
+    let mut resource = conflict_resource(0, 0);
+    resource.time_basis_id = "different-epoch-v1".to_owned();
+    // The scope check happens before the stale subject digest check.
+    assert_eq!(
+        evaluate(vec![op.clone()], vec![resource], vec![item.clone()]),
+        Err(TrafficError::ResourceScopeMismatch(
+            "crossing-zone-1".to_owned()
+        ))
+    );
+
+    let mut item = item;
+    item.corridor_id = "another-corridor".to_owned();
+    assert_eq!(
+        evaluate(vec![op], vec![conflict_resource(0, 0)], vec![item]),
+        Err(TrafficError::OccupancyScopeMismatch("use-a".to_owned()))
+    );
 }
 
 #[test]
