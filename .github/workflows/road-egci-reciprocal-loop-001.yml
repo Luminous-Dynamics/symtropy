@@ -35,5 +35,13 @@ jobs:
           git diff --no-ext-diff --unified=3 -- research/road-egci-reciprocal-loop-001/Cargo.lock
       - name: Run paired reciprocal conformance tests
         run: cargo test --manifest-path research/road-egci-reciprocal-loop-001/Cargo.toml --locked
+      - name: Upload regenerated standalone lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: road-egci-standalone-cargo-lock
+          path: research/road-egci-reciprocal-loop-001/Cargo.lock
+          if-no-files-found: error
+          retention-days: 1
       - name: Strict Clippy
         run: cargo clippy --manifest-path research/road-egci-reciprocal-loop-001/Cargo.toml --all-targets --locked -- -D warnings
