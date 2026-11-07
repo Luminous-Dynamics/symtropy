@@ -1,0 +1,684 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/measurement-system-case-v0.1.json",
+  "title": "Symtropy Measurement System Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "parent_context",
+    "timebase",
+    "channels",
+    "calibrations",
+    "measurement_records",
+    "reference_comparisons"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_cohort_ref",
+        "path_configuration_ref",
+        "geometry_profile_ref",
+        "environment_profile_ref"
+      ],
+      "properties": {
+        "material_cohort_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "path_configuration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "geometry_profile_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "environment_profile_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "role",
+        "measurand",
+        "technique",
+        "station_id",
+        "unit",
+        "instrument_ref",
+        "manufacturer_ref",
+        "model_ref",
+        "serial_ref",
+        "source_artifact_ref",
+        "domain"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "role": {
+          "enum": [
+            "PRIMARY_REFERENCE",
+            "SECONDARY_ESTIMATOR",
+            "DIAGNOSTIC_SENSOR",
+            "PARTICLE_CHARACTERIZATION",
+            "TIMEBASE"
+          ]
+        },
+        "measurand": {
+          "enum": [
+            "DRY_SOLID_MASS",
+            "DRY_SOLID_MASS_FLOW",
+            "PARTICLE_VELOCITY",
+            "PARTICLE_CONCENTRATION",
+            "PRESSURE",
+            "DIFFERENTIAL_PRESSURE",
+            "AIRFLOW",
+            "CURRENT",
+            "VOLTAGE",
+            "REAL_POWER",
+            "TEMPERATURE",
+            "VIBRATION",
+            "PARTICLE_SIZE_DISTRIBUTION",
+            "PARTICLE_MORPHOLOGY",
+            "TIME"
+          ]
+        },
+        "technique": {
+          "enum": [
+            "GRAVIMETRIC_CATCH_AND_WEIGH",
+            "STATIC_BALANCE",
+            "LOAD_CELL_HOPPER",
+            "ELECTROSTATIC_COUPLED_CAPACITANCE",
+            "ELECTROSTATIC_VELOCIMETER",
+            "PRESSURE_TRANSDUCER",
+            "AIRFLOW_METER",
+            "CURRENT_TRANSDUCER",
+            "POWER_ANALYZER",
+            "TEMPERATURE_SENSOR",
+            "VIBRATION_SENSOR",
+            "SIEVE_ANALYSIS",
+            "DYNAMIC_IMAGE_ANALYSIS",
+            "LIDAR_POINT_CLOUD",
+            "DAQ_TIMEBASE"
+          ]
+        },
+        "station_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "instrument_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "manufacturer_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "model_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "serial_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "domain": {
+          "$ref": "#/$defs/domain"
+        }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calibration_id",
+        "channel_id",
+        "status",
+        "certificate_ref",
+        "issuing_laboratory_ref",
+        "accreditation_scope_ref",
+        "method_ref",
+        "traceability_chain_ref",
+        "valid_from",
+        "valid_until",
+        "as_found_status",
+        "as_left_status",
+        "range_lower",
+        "range_upper",
+        "unit",
+        "domain",
+        "source_artifact_ref"
+      ],
+      "properties": {
+        "calibration_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "channel_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "status": {
+          "enum": [
+            "VALID",
+            "EXPIRED",
+            "SUSPENDED",
+            "UNKNOWN"
+          ]
+        },
+        "certificate_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "issuing_laboratory_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "accreditation_scope_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "method_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "traceability_chain_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "valid_from": {
+          "type": "string",
+          "format": "date"
+        },
+        "valid_until": {
+          "type": "string",
+          "format": "date"
+        },
+        "as_found_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_RECORDED"
+          ]
+        },
+        "as_left_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_RECORDED"
+          ]
+        },
+        "range_lower": {
+          "type": "number"
+        },
+        "range_upper": {
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "domain": {
+          "$ref": "#/$defs/domain"
+        },
+        "source_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "uncertainty_component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component_id",
+        "uncertainty_type",
+        "standard_uncertainty",
+        "unit",
+        "distribution",
+        "source_ref"
+      ],
+      "properties": {
+        "component_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "uncertainty_type": {
+          "enum": [
+            "TYPE_A_REPEATABILITY",
+            "TYPE_B_CALIBRATION",
+            "SAMPLING",
+            "RESOLUTION",
+            "DRIFT",
+            "TIME_ALIGNMENT",
+            "MODEL_DISCREPANCY",
+            "ENVIRONMENTAL",
+            "OTHER"
+          ]
+        },
+        "standard_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sensitivity_coefficient": {
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "distribution": {
+          "enum": [
+            "NORMAL",
+            "RECTANGULAR",
+            "TRIANGULAR",
+            "EMPIRICAL",
+            "BOUNDED_INTERVAL",
+            "OTHER"
+          ]
+        },
+        "correlation_group_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "bound_lower": {
+          "type": "number"
+        },
+        "bound_upper": {
+          "type": "number"
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "model_linearity",
+        "component_set_ref",
+        "components",
+        "between_group_independence_ref"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "LINEARIZED_GUM",
+            "MONTE_CARLO",
+            "INTERVAL_BOUNDS_ONLY",
+            "NOT_EVALUATED"
+          ]
+        },
+        "model_linearity": {
+          "enum": [
+            "LINEAR",
+            "NONLINEAR",
+            "UNKNOWN"
+          ]
+        },
+        "component_set_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/uncertainty_component"
+          }
+        },
+        "correlation_evidence_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "covariance_model_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "monte_carlo_result_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "monte_carlo_sample_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "between_group_independence_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_id",
+        "channel_id",
+        "station_id",
+        "calibration_id",
+        "measurement_date",
+        "measurement_window_ref",
+        "window_start_ms",
+        "window_end_ms",
+        "timebase_channel_id",
+        "clock_sync_ref",
+        "latency_ms",
+        "time_uncertainty_ms",
+        "value",
+        "unit",
+        "domain",
+        "evidence_role",
+        "sample_protocol_ref",
+        "sample_lineage_ref",
+        "source_artifact_ref",
+        "measurement_model",
+        "uncertainty"
+      ],
+      "properties": {
+        "measurement_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "channel_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "station_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "calibration_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "measurement_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "measurement_window_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "window_start_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "window_end_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timebase_channel_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "clock_sync_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "latency_ms": {
+          "type": "number"
+        },
+        "time_uncertainty_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "domain": {
+          "$ref": "#/$defs/domain"
+        },
+        "evidence_role": {
+          "enum": [
+            "INDEPENDENT_REFERENCE_OBSERVATION",
+            "ONLINE_ESTIMATOR_OBSERVATION",
+            "DIAGNOSTIC_OBSERVATION",
+            "PARTICLE_SAMPLE_RESULT",
+            "TIMEBASE_OBSERVATION"
+          ]
+        },
+        "sample_protocol_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sample_lineage_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "measurement_model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mapping_kind",
+            "linearity",
+            "equation_ref",
+            "model_digest_ref",
+            "calibration_domain_ref"
+          ],
+          "properties": {
+            "mapping_kind": {
+              "enum": [
+                "DIRECT",
+                "DERIVED"
+              ]
+            },
+            "linearity": {
+              "enum": [
+                "LINEAR",
+                "NONLINEAR",
+                "UNKNOWN"
+              ]
+            },
+            "equation_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "model_digest_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "calibration_domain_ref": {
+              "$ref": "#/$defs/ref"
+            }
+          }
+        },
+        "uncertainty": {
+          "$ref": "#/$defs/uncertainty"
+        }
+      }
+    },
+    "reference_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparison_id",
+        "reference_measurement_id",
+        "estimator_measurement_id",
+        "material_cohort_ref",
+        "path_configuration_ref",
+        "geometry_profile_ref",
+        "measurement_window_ref",
+        "dataset_partition",
+        "independent_of_model_training",
+        "paired_sample_count",
+        "bias",
+        "max_absolute_relative_error",
+        "residual_artifact_ref",
+        "adjudication_ref",
+        "environment_profile_ref"
+      ],
+      "properties": {
+        "comparison_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "reference_measurement_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "estimator_measurement_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "material_cohort_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "path_configuration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "geometry_profile_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "measurement_window_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "dataset_partition": {
+          "enum": [
+            "CALIBRATION",
+            "VALIDATION",
+            "PROSPECTIVE_HOLDOUT"
+          ]
+        },
+        "independent_of_model_training": {
+          "type": "boolean"
+        },
+        "paired_sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bias": {
+          "type": "number"
+        },
+        "max_absolute_relative_error": {
+          "type": "number",
+          "minimum": 0
+        },
+        "residual_artifact_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "adjudication_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "environment_profile_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MEASURED"
+      ]
+    },
+    "parent_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parent_case_id",
+        "parent_interval_id",
+        "trial_id",
+        "material_cohort_ref",
+        "machine_configuration_ref",
+        "transport_configuration_ref",
+        "clock_sync_protocol_ref"
+      ],
+      "properties": {
+        "parent_case_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "parent_interval_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "trial_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "material_cohort_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "machine_configuration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "transport_configuration_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "clock_sync_protocol_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "timebase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timebase_channel_id",
+        "clock_sync_ref",
+        "sync_protocol_ref",
+        "latency_validation_ref",
+        "time_uncertainty_ms"
+      ],
+      "properties": {
+        "timebase_channel_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "clock_sync_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "sync_protocol_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "latency_validation_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "time_uncertainty_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/channel"
+      }
+    },
+    "calibrations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/calibration"
+      }
+    },
+    "measurement_records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/measurement"
+      }
+    },
+    "reference_comparisons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reference_comparison"
+      }
+    }
+  }
+}
