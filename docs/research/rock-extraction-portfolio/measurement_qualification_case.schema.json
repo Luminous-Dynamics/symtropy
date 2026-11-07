@@ -148,7 +148,8 @@
       "required": [
         "particle_id",
         "acquisition_block_ref",
-        "resolution_status"
+        "resolution_status",
+        "feature_dimension_mm"
       ],
       "properties": {
         "particle_id": {
@@ -169,6 +170,10 @@
         },
         "censor_bound": {
           "type": "number"
+        },
+        "feature_dimension_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     },
