@@ -39,10 +39,10 @@ pub struct QuantileReport {
     pub probability: f64,
     pub confidence_target: f64,
     pub achieved_confidence: f64,
-    pub estimate: f64,
-    pub interval_lower: f64,
-    pub interval_upper: f64,
-    pub interval_width: f64,
+    pub estimate: Option<f64>,
+    pub interval_lower: Option<f64>,
+    pub interval_upper: Option<f64>,
+    pub interval_width: Option<f64>,
     pub maximum_interval_width: f64,
     pub disposition: String,
 }
@@ -56,7 +56,7 @@ pub struct SampleSetReport {
     pub exact_sample_count: usize,
     pub left_censored_count: usize,
     pub right_censored_count: usize,
-    pub minimum_observed_feature_mm: f64,
+    pub minimum_observed_feature_mm: Option<f64>,
     pub quantiles: Vec<QuantileReport>,
     pub disposition: String,
 }
@@ -228,7 +228,9 @@ pub fn validate_against_parent(case: &Value, parent: &Value) -> Vec<Violation> {
     if text(protocol, "parent_morphology_case_id") != text(parent, "case_id") {
         push(&mut errors, "PARENT_MORPHOLOGY_CASE_MISMATCH", "$.protocol.parent_morphology_case_id", "exact morphology parent case identity is required");
     }
-    let parent_interval_id = text(parent.get("acquisition").unwrap_or(&Value::Null), "parent_interval_id");
+    let null_acquisition = Value::Null;
+    let parent_acquisition = parent.get("acquisition").unwrap_or(&null_acquisition);
+    let parent_interval_id = text(parent_acquisition, "parent_interval_id");
     if text(protocol, "parent_interval_id") != parent_interval_id {
         push(&mut errors, "PARENT_MORPHOLOGY_INTERVAL_MISMATCH", "$.protocol.parent_interval_id", "exact morphology parent interval identity is required");
     }
@@ -651,10 +653,10 @@ fn sample_set_reports(case: &Value) -> Vec<SampleSetReport> {
                         probability: p,
                         confidence_target: finite(target, "confidence_level").expect("validated confidence"),
                         achieved_confidence: 0.0,
-                        estimate: f64::NAN,
-                        interval_lower: f64::NAN,
-                        interval_upper: f64::NAN,
-                        interval_width: f64::NAN,
+                        estimate: None,
+                        interval_lower: None,
+                        interval_upper: None,
+                        interval_width: None,
                         maximum_interval_width: finite(target, "maximum_interval_width").expect("validated width"),
                         disposition: "NOT_QUALIFIED_CENSORED_OBSERVATIONS".to_owned(),
                     });
@@ -687,10 +689,10 @@ fn sample_set_reports(case: &Value) -> Vec<SampleSetReport> {
                                 probability,
                                 confidence_target: confidence,
                                 achieved_confidence: achieved,
-                                estimate,
-                                interval_lower: lower,
-                                interval_upper: upper,
-                                interval_width: width,
+                                estimate: Some(estimate),
+                                interval_lower: Some(lower),
+                                interval_upper: Some(upper),
+                                interval_width: Some(width),
                                 maximum_interval_width: maximum_width,
                                 disposition: if pass {
                                     "PASS"
@@ -708,10 +710,10 @@ fn sample_set_reports(case: &Value) -> Vec<SampleSetReport> {
                                 probability,
                                 confidence_target: confidence,
                                 achieved_confidence: 0.0,
-                                estimate,
-                                interval_lower: f64::NAN,
-                                interval_upper: f64::NAN,
-                                interval_width: f64::INFINITY,
+                                estimate: Some(estimate),
+                                interval_lower: None,
+                                interval_upper: None,
+                                interval_width: None,
                                 maximum_interval_width: maximum_width,
                                 disposition: "INSUFFICIENT_SAMPLE_FOR_FINITE_INTERVAL".to_owned(),
                             });
@@ -735,7 +737,7 @@ fn sample_set_reports(case: &Value) -> Vec<SampleSetReport> {
                 exact_sample_count: exact_values.len(),
                 left_censored_count: left_censored,
                 right_censored_count: right_censored,
-                minimum_observed_feature_mm: if min_feature.is_finite() { min_feature } else { 0.0 },
+                minimum_observed_feature_mm: if min_feature.is_finite() { Some(min_feature) } else { None },
                 quantiles: quantile_reports,
                 disposition: disposition.to_owned(),
             }
@@ -932,9 +934,8 @@ mod tests {
     #[test]
     fn sample_size_cannot_exceed_parent_morphology_descriptor_count() {
         let mut case = fixture();
-        case["sample_sets"][0]["samples"].as_array_mut().unwrap().push(
-            case["sample_sets"][0]["samples"][0].clone()
-        );
+        let duplicate = case["sample_sets"][0]["samples"][0].clone();
+        case["sample_sets"][0]["samples"].as_array_mut().unwrap().push(duplicate);
         assert!(has(&validate_against_parent(&case, &parent()), "SAMPLE_COUNT_EXCEEDS_PARENT_DECLARATION"));
     }
 
