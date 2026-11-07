@@ -10,7 +10,11 @@
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AssuranceStatus { Valid, Unknown, Invalid }
+pub enum AssuranceStatus {
+    Valid,
+    Unknown,
+    Invalid,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AssuranceFinding {
@@ -151,9 +155,10 @@ pub fn evaluate_assurance(
     if certificate.certificate_id.trim().is_empty()
         || certificate.model_digest.trim().is_empty()
         || certificate.issued_at_ns > certificate.valid_until_ns
-        || certificate.required_sensor_calibrations.iter().any(|(id, digest)| {
-            id.trim().is_empty() || digest.trim().is_empty()
-        })
+        || certificate
+            .required_sensor_calibrations
+            .iter()
+            .any(|(id, digest)| id.trim().is_empty() || digest.trim().is_empty())
     {
         findings.push(AssuranceFinding::InvalidCertificateShape);
     }
@@ -180,7 +185,9 @@ pub fn evaluate_assurance(
         };
 
         if sensor.sensor_id != *sensor_id || sensor.calibration_digest != *required_calibration {
-            findings.push(AssuranceFinding::SensorCalibrationMismatch(sensor_id.clone()));
+            findings.push(AssuranceFinding::SensorCalibrationMismatch(
+                sensor_id.clone(),
+            ));
         }
         if !sensor.healthy {
             findings.push(AssuranceFinding::SensorUnhealthy(sensor_id.clone()));
@@ -215,9 +222,7 @@ pub fn evaluate_assurance(
     if runtime.actuator.supply_voltage_mv < certificate.minimum_supply_voltage_mv {
         findings.push(AssuranceFinding::SupplyVoltageBelowMinimum);
     }
-    if runtime.actuator.tracking_error_microrad
-        > certificate.maximum_tracking_error_microrad
-    {
+    if runtime.actuator.tracking_error_microrad > certificate.maximum_tracking_error_microrad {
         findings.push(AssuranceFinding::ActuatorTrackingErrorExceeded);
     }
     if runtime.actuator.derated {
@@ -370,7 +375,10 @@ mod tests {
         for evidence in at_issue.sensors.values_mut() {
             evidence.observed_at_ns = Some(90);
         }
-        assert_eq!(evaluate_assurance(&cert, &at_issue).status, AssuranceStatus::Valid);
+        assert_eq!(
+            evaluate_assurance(&cert, &at_issue).status,
+            AssuranceStatus::Valid
+        );
 
         let mut at_expiry = at_issue;
         at_expiry.now_ns = cert.valid_until_ns;
@@ -378,7 +386,10 @@ mod tests {
         for evidence in at_expiry.sensors.values_mut() {
             evidence.observed_at_ns = Some(110);
         }
-        assert_eq!(evaluate_assurance(&cert, &at_expiry).status, AssuranceStatus::Valid);
+        assert_eq!(
+            evaluate_assurance(&cert, &at_expiry).status,
+            AssuranceStatus::Valid
+        );
     }
 
     #[test]
@@ -388,13 +399,21 @@ mod tests {
         before.now_ns = 89;
         let before_report = evaluate_assurance(&cert, &before);
         assert_eq!(before_report.status, AssuranceStatus::Invalid);
-        assert!(before_report.findings.contains(&AssuranceFinding::CertificateNotYetValid));
+        assert!(
+            before_report
+                .findings
+                .contains(&AssuranceFinding::CertificateNotYetValid)
+        );
 
         let mut after = runtime();
         after.now_ns = 111;
         let after_report = evaluate_assurance(&cert, &after);
         assert_eq!(after_report.status, AssuranceStatus::Invalid);
-        assert!(after_report.findings.contains(&AssuranceFinding::CertificateExpired));
+        assert!(
+            after_report
+                .findings
+                .contains(&AssuranceFinding::CertificateExpired)
+        );
     }
 
     #[test]
@@ -403,7 +422,11 @@ mod tests {
         current.model_digest = "model-b".to_owned();
         let report = evaluate_assurance(&certificate(), &current);
         assert_eq!(report.status, AssuranceStatus::Invalid);
-        assert!(report.findings.contains(&AssuranceFinding::ModelDigestMismatch));
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::ModelDigestMismatch)
+        );
     }
 
     #[test]
@@ -412,9 +435,13 @@ mod tests {
         current.sensors.remove("contact-left");
         let report = evaluate_assurance(&certificate(), &current);
         assert_eq!(report.status, AssuranceStatus::Unknown);
-        assert!(report.findings.contains(&AssuranceFinding::MissingSensorEvidence(
-            "contact-left".to_owned()
-        )));
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::MissingSensorEvidence(
+                    "contact-left".to_owned()
+                ))
+        );
         assert_eq!(
             operational_decision(true, &report),
             OperationalDecision::EvidenceUnknown
@@ -424,13 +451,16 @@ mod tests {
     #[test]
     fn calibration_mismatch_invalidates_even_healthy_fresh_sensor() {
         let mut current = runtime();
-        current.sensors.get_mut("imu").unwrap().calibration_digest =
-            "old-calibration".to_owned();
+        current.sensors.get_mut("imu").unwrap().calibration_digest = "old-calibration".to_owned();
         let report = evaluate_assurance(&certificate(), &current);
         assert_eq!(report.status, AssuranceStatus::Invalid);
-        assert!(report.findings.contains(&AssuranceFinding::SensorCalibrationMismatch(
-            "imu".to_owned()
-        )));
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::SensorCalibrationMismatch(
+                    "imu".to_owned()
+                ))
+        );
     }
 
     #[test]
@@ -445,27 +475,40 @@ mod tests {
         assert!(report.findings.contains(&AssuranceFinding::SensorUnhealthy(
             "contact-left".to_owned()
         )));
-        assert!(report.findings.contains(&AssuranceFinding::SensorOutOfDistribution(
-            "contact-left".to_owned()
-        )));
-        assert!(report.findings.contains(&AssuranceFinding::SensorStale(
-            "contact-left".to_owned()
-        )));
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::SensorOutOfDistribution(
+                    "contact-left".to_owned()
+                ))
+        );
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::SensorStale(
+                    "contact-left".to_owned()
+                ))
+        );
     }
 
     #[test]
     fn missing_or_future_sensor_timestamp_is_unknown() {
         let mut missing = runtime();
         missing.sensors.get_mut("imu").unwrap().observed_at_ns = None;
-        assert_eq!(evaluate_assurance(&certificate(), &missing).status, AssuranceStatus::Unknown);
+        assert_eq!(
+            evaluate_assurance(&certificate(), &missing).status,
+            AssuranceStatus::Unknown
+        );
 
         let mut future = runtime();
         future.sensors.get_mut("imu").unwrap().observed_at_ns = Some(101);
         let report = evaluate_assurance(&certificate(), &future);
         assert_eq!(report.status, AssuranceStatus::Unknown);
-        assert!(report.findings.contains(&AssuranceFinding::SensorTimestampInFuture(
-            "imu".to_owned()
-        )));
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::SensorTimestampInFuture("imu".to_owned()))
+        );
     }
 
     #[test]
@@ -477,9 +520,21 @@ mod tests {
         current.actuator.derated = true;
         let report = evaluate_assurance(&certificate(), &current);
         assert_eq!(report.status, AssuranceStatus::Invalid);
-        assert!(report.findings.contains(&AssuranceFinding::ActuatorOverTemperature));
-        assert!(report.findings.contains(&AssuranceFinding::SupplyVoltageBelowMinimum));
-        assert!(report.findings.contains(&AssuranceFinding::ActuatorTrackingErrorExceeded));
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::ActuatorOverTemperature)
+        );
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::SupplyVoltageBelowMinimum)
+        );
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::ActuatorTrackingErrorExceeded)
+        );
         assert!(report.findings.contains(&AssuranceFinding::ActuatorDerated));
     }
 
@@ -489,7 +544,10 @@ mod tests {
         current.actuator.temperature_millicelsius = 55_000;
         current.actuator.supply_voltage_mv = 4_500;
         current.actuator.tracking_error_microrad = 500;
-        assert_eq!(evaluate_assurance(&certificate(), &current).status, AssuranceStatus::Valid);
+        assert_eq!(
+            evaluate_assurance(&certificate(), &current).status,
+            AssuranceStatus::Valid
+        );
     }
 
     #[test]
@@ -498,7 +556,11 @@ mod tests {
         current.action_deadline_at_ns = 99;
         let report = evaluate_assurance(&certificate(), &current);
         assert_eq!(report.status, AssuranceStatus::Invalid);
-        assert!(report.findings.contains(&AssuranceFinding::ComputeDeadlineMissed));
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::ComputeDeadlineMissed)
+        );
     }
 
     #[test]
@@ -506,23 +568,37 @@ mod tests {
         let mut slow_compute = runtime();
         slow_compute.compute_started_at_ns = 70;
         let report = evaluate_assurance(&certificate(), &slow_compute);
-        assert!(report.findings.contains(&AssuranceFinding::ComputeLatencyExceeded));
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::ComputeLatencyExceeded)
+        );
 
         let mut stale_command = runtime();
         stale_command.compute_completed_at_ns = Some(80);
         let report = evaluate_assurance(&certificate(), &stale_command);
-        assert!(report.findings.contains(&AssuranceFinding::CommandAgeExceeded));
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::CommandAgeExceeded)
+        );
     }
 
     #[test]
     fn missing_or_future_compute_completion_is_unknown() {
         let mut missing = runtime();
         missing.compute_completed_at_ns = None;
-        assert_eq!(evaluate_assurance(&certificate(), &missing).status, AssuranceStatus::Unknown);
+        assert_eq!(
+            evaluate_assurance(&certificate(), &missing).status,
+            AssuranceStatus::Unknown
+        );
 
         let mut future = runtime();
         future.compute_completed_at_ns = Some(101);
-        assert_eq!(evaluate_assurance(&certificate(), &future).status, AssuranceStatus::Unknown);
+        assert_eq!(
+            evaluate_assurance(&certificate(), &future).status,
+            AssuranceStatus::Unknown
+        );
     }
 
     #[test]
@@ -532,10 +608,16 @@ mod tests {
         current.clock_uncertain = true;
         let report = evaluate_assurance(&certificate(), &current);
         assert_eq!(report.status, AssuranceStatus::Unknown);
-        assert!(!report.findings.contains(&AssuranceFinding::CertificateExpired));
-        assert!(!report.findings.contains(&AssuranceFinding::SensorStale(
-            "imu".to_owned()
-        )));
+        assert!(
+            !report
+                .findings
+                .contains(&AssuranceFinding::CertificateExpired)
+        );
+        assert!(
+            !report
+                .findings
+                .contains(&AssuranceFinding::SensorStale("imu".to_owned()))
+        );
         assert!(report.findings.contains(&AssuranceFinding::ClockUncertain));
     }
 
@@ -594,6 +676,10 @@ mod tests {
         cert.valid_until_ns = cert.issued_at_ns - 1;
         let report = evaluate_assurance(&cert, &runtime());
         assert_eq!(report.status, AssuranceStatus::Invalid);
-        assert!(report.findings.contains(&AssuranceFinding::InvalidCertificateShape));
+        assert!(
+            report
+                .findings
+                .contains(&AssuranceFinding::InvalidCertificateShape)
+        );
     }
 }
