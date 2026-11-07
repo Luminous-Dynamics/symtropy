@@ -18,10 +18,44 @@ use core::fmt;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MetricComponents4 {
     covariant: [[f64; 4]; 4],
+    /// Positive diagonal congruence scales used for numerically conditioned
+    /// tensor contractions and inversion. They do not change the represented
+    /// metric; the public covariant components remain in the original basis.
+    basis_scales: [f64; 4],
 }
 
 impl MetricComponents4 {
-    pub fn new(mut covariant: [[f64; 4]; 4]) -> Result<Self, MetricError> {
+    /// Construct with the identity congruence scale. This is appropriate
+    /// for generic matrices whose coordinate components already share a
+    /// common numerical scale.
+    pub fn new(covariant: [[f64; 4]; 4]) -> Result<Self, MetricError> {
+        Self::new_with_basis_scales(covariant, [1.0; 4])
+    }
+
+    /// Construct a metric while retaining positive diagonal basis scales for
+    /// stable inversion and residual evaluation.
+    ///
+    /// The normalized matrix is B = D g D, where D = diag(basis_scales).
+    /// Its inverse is mapped back as g^{-1} = D B^{-1} D. The represented
+    /// covariant tensor and its public coordinate components are unchanged.
+    /// For SI Boyer-Lindquist / spherical charts (ct,r,theta,phi), a useful
+    /// scale is [1,1,1/r_g,1/r_g], which removes the metre and square-metre
+    /// disparity in the angular blocks.
+    pub fn new_with_basis_scales(
+        mut covariant: [[f64; 4]; 4],
+        basis_scales: [f64; 4],
+    ) -> Result<Self, MetricError> {
+        for (i, scale) in basis_scales.iter().copied().enumerate() {
+            if !scale.is_finite() {
+                return Err(MetricError::ComputationNonFinite("metric basis scale"));
+            }
+            if scale <= 0.0 {
+                return Err(MetricError::InvalidBasisScale {
+                    coordinate: i,
+                    value: scale,
+                });
+            }
+        }
         for (i, row) in covariant.iter().enumerate() {
             for (j, value) in row.iter().enumerate() {
                 if !value.is_finite() {
@@ -33,8 +67,8 @@ impl MetricComponents4 {
             for j in (i + 1)..4 {
                 let a = covariant[i][j];
                 let b = covariant[j][i];
-                let scale = a.abs().max(b.abs()).max(f64::MIN_POSITIVE);
-                let tol = 64.0 * f64::EPSILON * scale;
+                let component_scale = a.abs().max(b.abs()).max(f64::MIN_POSITIVE);
+                let tol = 64.0 * f64::EPSILON * component_scale;
                 if (a - b).abs() > tol {
                     return Err(MetricError::AsymmetricComponents { row: i, column: j });
                 }
@@ -43,7 +77,14 @@ impl MetricComponents4 {
                 covariant[j][i] = mean;
             }
         }
-        Ok(Self { covariant })
+        Ok(Self {
+            covariant,
+            basis_scales,
+        })
+    }
+
+    pub const fn basis_scales(&self) -> &[f64; 4] {
+        &self.basis_scales
     }
 
     pub const fn covariant(&self) -> &[[f64; 4]; 4] {
@@ -90,9 +131,23 @@ impl MetricComponents4 {
         }
     }
 
-    /// Contravariant matrix via pivoted Gauss-Jordan elimination.
-    pub fn inverse(&self) -> Result<[[f64; 4]; 4], MetricError> {
-        let mut a = self.covariant;
+    /// Inverse of B = D g D in the numerically scaled basis, where D is
+    /// the retained positive diagonal basis scale.
+    fn inverse_in_scaled_basis(&self) -> Result<[[f64; 4]; 4], MetricError> {
+        let mut a = [[0.0; 4]; 4];
+        for i in 0..4 {
+            for j in 0..4 {
+                a[i][j] = self.basis_scales[i]
+                    * self.covariant[i][j]
+                    * self.basis_scales[j];
+                if !a[i][j].is_finite() {
+                    return Err(MetricError::ComputationNonFinite(
+                        "scaled metric component",
+                    ));
+                }
+            }
+        }
+
         let mut inv = [[0.0; 4]; 4];
         for i in 0..4 {
             inv[i][i] = 1.0;
@@ -133,15 +188,41 @@ impl MetricComponents4 {
         Ok(inv)
     }
 
-    /// max absolute residual of g_{mu a} g^{a nu} - delta_mu^nu.
+    /// Contravariant matrix in the original coordinate basis.
+    ///
+    /// The inversion is performed on B = D g D, then transformed back as
+    /// g^{-1} = D B^{-1} D. This avoids mixing poorly scaled SI components
+    /// in the elimination pivots.
+    pub fn inverse(&self) -> Result<[[f64; 4]; 4], MetricError> {
+        let mut inv = self.inverse_in_scaled_basis()?;
+        for i in 0..4 {
+            for j in 0..4 {
+                inv[i][j] *= self.basis_scales[i] * self.basis_scales[j];
+                if !inv[i][j].is_finite() {
+                    return Err(MetricError::ComputationNonFinite("metric inverse"));
+                }
+            }
+        }
+        Ok(inv)
+    }
+
+    /// Maximum absolute identity residual in the declared normalized basis:
+    /// max |(D g D)(D^{-1} g^{-1} D^{-1}) - I|.
+    ///
+    /// Unlike a raw componentwise residual in a dimensionful coordinate basis,
+    /// this diagnostic is invariant to the retained positive diagonal
+    /// congruence scaling used by this metric object.
     pub fn inverse_identity_residual(&self) -> Result<f64, MetricError> {
-        let inv = self.inverse()?;
+        let inv = self.inverse_in_scaled_basis()?;
         let mut max: f64 = 0.0;
         for i in 0..4 {
             for j in 0..4 {
                 let mut sum = 0.0;
                 for k in 0..4 {
-                    sum += self.covariant[i][k] * inv[k][j];
+                    let normalized = self.basis_scales[i]
+                        * self.covariant[i][k]
+                        * self.basis_scales[k];
+                    sum += normalized * inv[k][j];
                 }
                 let expected = if i == j { 1.0 } else { 0.0 };
                 max = max.max((sum - expected).abs());
@@ -164,6 +245,7 @@ pub enum MetricError {
     NonFiniteComponent { row: usize, column: usize },
     AsymmetricComponents { row: usize, column: usize },
     SingularMatrix,
+    InvalidBasisScale { coordinate: usize, value: f64 },
     ComputationNonFinite(&'static str),
 }
 
@@ -185,6 +267,9 @@ impl fmt::Display for MetricError {
                 write!(f, "metric is not symmetric at ({row}, {column})")
             }
             Self::SingularMatrix => write!(f, "metric component matrix is singular"),
+            Self::InvalidBasisScale { coordinate, value } => {
+                write!(f, "metric basis scale for coordinate {coordinate} must be positive, got {value}")
+            }
             Self::ComputationNonFinite(op) => write!(f, "{op} produced a non-finite result"),
         }
     }
@@ -226,12 +311,16 @@ pub fn schwarzschild_exterior_metric(
     }
     let r2 = radius_m * radius_m;
     let s2 = theta_rad.sin().powi(2);
-    MetricComponents4::new([
-        [-f, 0.0, 0.0, 0.0],
-        [0.0, 1.0 / f, 0.0, 0.0],
-        [0.0, 0.0, r2, 0.0],
-        [0.0, 0.0, 0.0, r2 * s2],
-    ])
+    let rg = 0.5 * rs;
+    MetricComponents4::new_with_basis_scales(
+        [
+            [-f, 0.0, 0.0, 0.0],
+            [0.0, 1.0 / f, 0.0, 0.0],
+            [0.0, 0.0, r2, 0.0],
+            [0.0, 0.0, 0.0, r2 * s2],
+        ],
+        [1.0, 1.0, 1.0 / rg, 1.0 / rg],
+    )
 }
 
 /// Schwarzschild metric in ingoing Eddington-Finkelstein coordinates
@@ -255,12 +344,16 @@ pub fn schwarzschild_ingoing_ef_metric(
     }
     let r_squared = radius_m * radius_m;
     let sin_squared = theta_rad.sin().powi(2);
-    MetricComponents4::new([
-        [-f, 1.0, 0.0, 0.0],
-        [1.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, r_squared, 0.0],
-        [0.0, 0.0, 0.0, r_squared * sin_squared],
-    ])
+    let rg = 0.5 * hole.horizon_radius_m();
+    MetricComponents4::new_with_basis_scales(
+        [
+            [-f, 1.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, r_squared, 0.0],
+            [0.0, 0.0, 0.0, r_squared * sin_squared],
+        ],
+        [1.0, 1.0, 1.0 / rg, 1.0 / rg],
+    )
 }
 
 /// Kerr metric in ingoing Kerr coordinates (v, r, theta, phi).
@@ -298,12 +391,15 @@ pub fn kerr_ingoing_metric(
     let g_phi_phi = sin_squared
         * (radius_m * radius_m + a * a + 2.0 * rg * a * a * radius_m * sin_squared / sigma);
 
-    MetricComponents4::new([
-        [g_vv, g_v_r, 0.0, g_v_phi],
-        [g_v_r, 0.0, 0.0, g_r_phi],
-        [0.0, 0.0, g_theta_theta, 0.0],
-        [g_v_phi, g_r_phi, 0.0, g_phi_phi],
-    ])
+    MetricComponents4::new_with_basis_scales(
+        [
+            [g_vv, g_v_r, 0.0, g_v_phi],
+            [g_v_r, 0.0, 0.0, g_r_phi],
+            [0.0, 0.0, g_theta_theta, 0.0],
+            [g_v_phi, g_r_phi, 0.0, g_phi_phi],
+        ],
+        [1.0, 1.0, 1.0 / rg, 1.0 / rg],
+    )
 }
 
 /// Kerr metric in Boyer-Lindquist coordinates (ct,r,theta,phi).
@@ -342,12 +438,15 @@ pub fn kerr_exterior_metric(
     let g_theta_theta = sigma;
     let g_phi_phi =
         s2 * (radius_m.powi(2) + a.powi(2) + 2.0 * rg * a.powi(2) * radius_m * s2 / sigma);
-    MetricComponents4::new([
-        [g_tt, 0.0, 0.0, g_t_phi],
-        [0.0, g_rr, 0.0, 0.0],
-        [0.0, 0.0, g_theta_theta, 0.0],
-        [g_t_phi, 0.0, 0.0, g_phi_phi],
-    ])
+    MetricComponents4::new_with_basis_scales(
+        [
+            [g_tt, 0.0, 0.0, g_t_phi],
+            [0.0, g_rr, 0.0, 0.0],
+            [0.0, 0.0, g_theta_theta, 0.0],
+            [g_t_phi, 0.0, 0.0, g_phi_phi],
+        ],
+        [1.0, 1.0, 1.0 / rg, 1.0 / rg],
+    )
 }
 
 #[cfg(test)]
