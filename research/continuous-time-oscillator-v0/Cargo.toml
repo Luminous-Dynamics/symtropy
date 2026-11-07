@@ -1,0 +1,9 @@
+[package]
+name = "continuous-time-oscillator"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Exact damped two-dimensional oscillator transitions for locomotion state-space research"
+
+[workspace]
