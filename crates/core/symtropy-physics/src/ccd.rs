@@ -659,6 +659,87 @@ mod tests {
     }
 
     #[test]
+    fn plane_equation_scale_is_invariant_for_nonzero_offsets() {
+        let pos = SVector::from([0.0, 3.0, 0.0]);
+        let velocity = SVector::from([0.0, -1.0, 0.0]);
+        let expected = sphere_halfspace_checked(
+            &pos,
+            &velocity,
+            0.5,
+            &SVector::from([0.0, 1.0, 0.0]),
+            1.0,
+            3.0,
+        )
+        .unwrap()
+        .unwrap();
+
+        for scale in [1e-20, 1e-6, 1.0, 1e6, 1e20] {
+            let normal = SVector::from([0.0, scale, 0.0]);
+            let offset = scale;
+            let hit = sphere_halfspace_checked(
+                &pos,
+                &velocity,
+                0.5,
+                &normal,
+                offset,
+                3.0,
+            )
+            .unwrap()
+            .unwrap();
+
+            assert!((hit.toi - expected.toi).abs() < 1e-12);
+            assert!((hit.point - expected.point).norm() < 1e-12);
+            assert!((hit.normal - expected.normal).norm() < 1e-12);
+            assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+        }
+        assert!((expected.toi - 1.5).abs() < 1e-12);
+        assert!((expected.point[1] - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn tiny_relative_speed_over_long_timestep_is_not_discarded() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let pos_b = SVector::from([2.0, 0.0, 0.0]);
+        let vel_a = SVector::from([1e-10, 0.0, 0.0]);
+        let vel_b = SVector::zeros();
+
+        let hit = sphere_sphere_checked(
+            &pos_a,
+            &vel_a,
+            0.5,
+            &pos_b,
+            &vel_b,
+            0.5,
+            1e10,
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!((hit.toi - 1e10).abs() < 1e-3);
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+        let center_a = pos_a + vel_a * hit.toi;
+        let center_b = pos_b + vel_b * hit.toi;
+        assert!(((center_b - center_a).norm() - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn zero_dimensional_queries_fail_without_indexing_a_normal() {
+        let pos = SVector::<f64, 0>::zeros();
+        let velocity = SVector::<f64, 0>::zeros();
+
+        assert_eq!(
+            sphere_sphere_checked(&pos, &velocity, 0.5, &pos, &velocity, 0.5, 1.0),
+            Err(CcdInputError::ZeroDimension)
+        );
+        assert_eq!(
+            sphere_halfspace_checked(&pos, &velocity, 0.5, &pos, 0.0, 1.0),
+            Err(CcdInputError::ZeroDimension)
+        );
+        assert!(sphere_sphere(&pos, &velocity, 0.5, &pos, &velocity, 0.5, 1.0).is_none());
+        assert!(sphere_halfspace(&pos, &velocity, 0.5, &pos, 0.0, 1.0).is_none());
+    }
+
+    #[test]
     fn invalid_halfspace_geometry_and_sphere_parameters_fail_closed() {
         let pos = SVector::from([0.0, 3.0, 0.0]);
         let velocity = SVector::from([0.0, -1.0, 0.0]);
