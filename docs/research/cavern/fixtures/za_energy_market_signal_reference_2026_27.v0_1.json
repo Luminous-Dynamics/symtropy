@@ -43,7 +43,10 @@
       "city_power_approval_required": true,
       "large_consumer_load_shifting_profile_required": true,
       "site_eligibility_status": "NOT_ASSESSED",
-      "legacy_exception": "Customers with demand-tariff supply agreements originally concluded before 1 July 1999 and demand below 100 kVA may, until further notice, continue on this tariff."
+      "legacy_exception": "Customers with demand-tariff supply agreements originally concluded before 1 July 1999 and demand below 100 kVA may, until further notice, continue on this tariff.",
+      "service_connection_context": "Annexure E provides a Low Voltage Large Power User service-connection range from 70 kVA to 1,000 kVA at 400 V AC. This is a service-connection classification, not a substitute for Industrial TOU tariff clause 5.4.3 eligibility.",
+      "tariff_specific_threshold_source_ref": "City of Johannesburg 2026/27 Medium-Term Budget, clause 5.4.3, printed page 97: business supply capacity must exceed 100 kVA and application/approval is required.",
+      "service_connection_source_ref": "City of Johannesburg 2026/27 Medium-Term Budget, Annexure E, printed page 101: LV LPU service connection from 70 kVA to 1,000 kVA at 400 V AC."
     },
     "source_rate_basis": {
       "energy_charge_unit": "c/kWh",
