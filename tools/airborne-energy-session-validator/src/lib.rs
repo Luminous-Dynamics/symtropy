@@ -452,19 +452,28 @@ fn validate_energy(value: &Value) -> Result<(u64, u64, u64), String> {
     let loss_c = unsigned(value, "receiver_to_battery_loss_wh", path)?;
     let residual = unsigned(value, "residual_wh", path)?;
 
-    if source != loss_a.saturating_add(channel) {
+    let expected_source = loss_a
+        .checked_add(channel)
+        .ok_or_else(|| fail(path, "source-to-channel energy sum overflow"))?;
+    if source != expected_source {
         return Err(fail(
             path,
             "source energy must equal source-to-channel loss plus channel input",
         ));
     }
-    if channel != loss_b.saturating_add(receiver) {
+    let expected_channel = loss_b
+        .checked_add(receiver)
+        .ok_or_else(|| fail(path, "channel-to-receiver energy sum overflow"))?;
+    if channel != expected_channel {
         return Err(fail(
             path,
             "channel input must equal channel-to-receiver loss plus receiver DC energy",
         ));
     }
-    if receiver != loss_c.saturating_add(useful) {
+    let expected_receiver = loss_c
+        .checked_add(useful)
+        .ok_or_else(|| fail(path, "receiver-to-battery energy sum overflow"))?;
+    if receiver != expected_receiver {
         return Err(fail(
             path,
             "receiver DC energy must equal receiver-to-battery loss plus battery-terminal useful energy",
@@ -648,14 +657,17 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
                 ));
             }
             if string(evidence, "tracking_state", &evidence_path)? != "TRACKED_SYNTHETIC" {
-                return Err(fail(&path, "POWER_ACTIVE requires live synthetic tracking"));
+                return Err(fail(
+                    &path,
+                    "POWER_ACTIVE requires tracking_state=TRACKED_SYNTHETIC",
+                ));
             }
             if string(evidence, "local_protection_state", &evidence_path)?
                 != "PERMIT_SYNTHETIC_ONLY"
             {
                 return Err(fail(
                     &path,
-                    "POWER_ACTIVE requires PERMIT_SYNTHETIC_ONLY; this is not a hardware permit",
+                    "POWER_ACTIVE requires local_protection_state=PERMIT_SYNTHETIC_ONLY; this is not a hardware permit",
                 ));
             }
             if at_ms < valid_from || at_ms >= valid_until {
@@ -787,7 +799,7 @@ mod tests {
         let mut value = positive_value();
         value["events"][4]["evidence"]["tracking_state"] = json!("LOST");
         let error = validate_episode(&value).expect_err("lost tracking must fail");
-        assert!(error.contains("tracking_state"));
+        assert!(error.contains("tracking_state=TRACKED_SYNTHETIC"));
     }
 
     #[test]
@@ -795,7 +807,7 @@ mod tests {
         let mut value = positive_value();
         value["events"][4]["evidence"]["local_protection_state"] = json!("INHIBIT");
         let error = validate_episode(&value).expect_err("inhibited protection must fail");
-        assert!(error.contains("local protection"));
+        assert!(error.contains("local_protection_state=PERMIT_SYNTHETIC_ONLY"));
     }
 
     #[test]
@@ -895,6 +907,16 @@ mod tests {
         value["energy_accounting"]["battery_terminal_useful_energy_wh"] = json!(23);
         let error = validate_episode(&value).expect_err("battery boundary mismatch must fail");
         assert!(error.contains("receiver DC energy must equal"));
+    }
+
+    #[test]
+    fn energy_accounting_integer_overflow_is_rejected() {
+        let mut value = positive_value();
+        value["energy_accounting"]["source_energy_wh"] = json!(u64::MAX);
+        value["energy_accounting"]["channel_input_energy_wh"] = json!(1);
+        value["energy_accounting"]["source_to_channel_loss_wh"] = json!(u64::MAX);
+        let error = validate_episode(&value).expect_err("overflow must fail closed");
+        assert!(error.contains("source-to-channel energy sum overflow"));
     }
 
     #[test]
