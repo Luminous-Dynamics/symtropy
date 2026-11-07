@@ -10,6 +10,7 @@ use std::fs;
 use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Corpus {
     corpus_id: String,
     schema_version: String,
@@ -19,6 +20,7 @@ struct Corpus {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct SplitGuard {
     training_group_ids: Vec<String>,
     evaluation_group_ids: Vec<String>,
@@ -26,6 +28,7 @@ struct SplitGuard {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Case {
     case_id: String,
     reference: Reference,
@@ -34,6 +37,7 @@ struct Case {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Reference {
     asset_id: String,
     model_revision: String,
@@ -43,6 +47,7 @@ struct Reference {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ElementRequirement {
     element_id: String,
     class: String,
@@ -52,6 +57,7 @@ struct ElementRequirement {
 }
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(deny_unknown_fields)]
 struct TopologyEdge {
     from: String,
     to: String,
@@ -59,6 +65,7 @@ struct TopologyEdge {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Candidate {
     asset_id: String,
     base_model_revision: String,
@@ -71,6 +78,7 @@ struct Candidate {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ObservedElement {
     element_id: String,
     class: String,
@@ -81,6 +89,7 @@ struct ObservedElement {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ProposedDelta {
     operation: String,
     base_model_revision: String,
@@ -88,6 +97,7 @@ struct ProposedDelta {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Expected {
     disposition: String,
     reason_codes: Vec<String>,
@@ -146,11 +156,23 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
     if candidate.frame_id != reference.frame_id {
         return decision("STALE_OR_INVALID_EVIDENCE", "COORDINATE_FRAME_MISMATCH");
     }
+    if reference.asset_id.is_empty()
+        || reference.model_revision.is_empty()
+        || reference.frame_id.is_empty()
+    {
+        return decision("INVALID_INPUT", "REFERENCE_CONTEXT_INCOMPLETE");
+    }
     if candidate.claims_unobserved_geometry {
         return decision(
             "PARTIAL_WITH_UNKNOWN",
             "UNOBSERVED_GEOMETRY_CLAIMED_AS_KNOWN",
         );
+    }
+
+    let required_edges: BTreeSet<TopologyEdge> =
+        reference.required_topology.iter().cloned().collect();
+    if required_edges.len() != reference.required_topology.len() {
+        return decision("INVALID_INPUT", "REFERENCE_TOPOLOGY_HAS_DUPLICATE_EDGES");
     }
 
     let mut requirements = BTreeMap::new();
@@ -251,8 +273,6 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
         }
     }
 
-    let required_edges: BTreeSet<TopologyEdge> =
-        reference.required_topology.iter().cloned().collect();
     let candidate_edges: BTreeSet<TopologyEdge> = candidate.topology.iter().cloned().collect();
     if candidate_edges.len() != candidate.topology.len() {
         return decision("REJECTED_TOPOLOGY", "DUPLICATE_TOPOLOGY_EDGE");
@@ -278,6 +298,11 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
             "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS",
         ),
         "modify" => {
+            let unique_targets: BTreeSet<&str> =
+                candidate.delta.target_ids.iter().map(String::as_str).collect();
+            if unique_targets.len() != candidate.delta.target_ids.len() {
+                return decision("INVALID_INPUT", "MODIFY_DELTA_HAS_DUPLICATE_TARGETS");
+            }
             if candidate.delta.target_ids.is_empty() {
                 return decision("INVALID_INPUT", "MODIFY_DELTA_HAS_NO_TARGETS");
             }
@@ -307,7 +332,10 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
 
 fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
     let corpus: Corpus = serde_json::from_slice(bytes)?;
-    if corpus.corpus_id.is_empty() || corpus.schema_version != "0.1" {
+    if corpus.corpus_id.trim().is_empty()
+        || corpus.schema_version != "0.1"
+        || corpus.claim_ceiling.trim().is_empty()
+    {
         return Err("unsupported or missing corpus identity/schema version".into());
     }
     if corpus.cases.is_empty() {
@@ -320,6 +348,29 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
         return Err(
             "split guard must declare train groups, evaluation groups and candidate inputs".into(),
         );
+    }
+    if corpus
+        .split_guard
+        .training_group_ids
+        .iter()
+        .chain(corpus.split_guard.evaluation_group_ids.iter())
+        .any(|group| group.trim().is_empty())
+        || corpus
+            .split_guard
+            .candidate_input_fields
+            .iter()
+            .any(|field| field.trim().is_empty())
+    {
+        return Err("split guard entries must be non-empty".into());
+    }
+    let unique_candidate_fields: BTreeSet<&str> = corpus
+        .split_guard
+        .candidate_input_fields
+        .iter()
+        .map(String::as_str)
+        .collect();
+    if unique_candidate_fields.len() != corpus.split_guard.candidate_input_fields.len() {
+        return Err("candidate input allowlist contains duplicate fields".into());
     }
     let training_groups: BTreeSet<&str> = corpus
         .split_guard
