@@ -9,13 +9,13 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - SI-valued Kerr inner/outer Boyer-Lindquist horizons and angle-dependent ergosurface.
 - Kerr horizon angular velocity, surface-gravity decay rate, and nonnegative direct-wave reference frequency.
 - Posterior-preserving transformation from paired remnant mass/spin samples to Kerr horizon observables.
-- Schwarzschild and Kerr exterior metric components in the declared `(ct, r, theta, phi)` basis.
+- Schwarzschild/Kerr exterior metric components plus horizon-regular ingoing Eddington-Finkelstein and ingoing Kerr charts in declared coordinate bases.
 - Symmetric finite 4x4 metric component representation, pivoted determinant and inverse, and inverse-identity residual diagnostic.
 - Explicit first metric derivatives and Levi-Civita connection coefficients, with an analytic Schwarzschild derivative fixture.
 - Explicit second metric derivatives, mixed-index Riemann tensor, Ricci tensor/scalar, Einstein tensor, Kretschmann contraction, and algebraic Riemann-symmetry residuals.
-- Fixed-size second-order forward-mode automatic differentiation for Schwarzschild, Kerr, and ingoing Eddington-Finkelstein metric values, gradients, and Hessians; AD-generated Kerr curvature is checked against vacuum and analytic Kretschmann fixtures.
-- Horizon-regular ingoing Eddington-Finkelstein Schwarzschild chart, with curvature tests at and inside the event horizon and scalar-invariant comparison against Schwarzschild coordinates.
-- 47 authored analytic, limiting-case, invalid-domain, matrix, connection, curvature, automatic-differentiation, chart, and posterior-transform tests.
+- Fixed-size second-order forward-mode automatic differentiation for Schwarzschild, Kerr, ingoing Eddington-Finkelstein, and ingoing Kerr metric values, gradients, and Hessians; AD-generated Kerr curvature is checked against vacuum and analytic Kretschmann fixtures.
+- Horizon-regular ingoing charts for Schwarzschild and Kerr, with curvature tests at/inside their horizons and scalar-invariant comparisons against exterior coordinates.
+- 50 authored analytic, limiting-case, invalid-domain, matrix, connection, curvature, automatic-differentiation, chart, and posterior-transform tests.
 
 ## Conventions
 
@@ -44,15 +44,15 @@ The posterior transform preserves each input sample ID, order, and paired mass/s
 
 ## Deliberate limits
 
-The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path generates first/second derivatives and curvature for Schwarzschild and Kerr exterior charts. It also supports ingoing Eddington-Finkelstein Schwarzschild coordinates, with tests at/inside the horizon and scalar-invariant comparison outside it. Kerr vacuum-Ricci and analytic Kretschmann tests are authored. There is no geodesic integrator, GRHD/GRMHD solver, waveform generator, or numerical-relativity evolution code.
+The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path generates first/second derivatives and curvature for Schwarzschild and Kerr exterior charts. It also supports ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr coordinates, with tests at/inside the horizons and scalar-invariant comparisons across charts. Kerr vacuum-Ricci and analytic Kretschmann tests are authored. There is no geodesic integrator, GRHD/GRMHD solver, waveform generator, or numerical-relativity evolution code.
 
 The generic metric-component constructor does not certify Lorentzian signature. Curvature output is not yet accompanied by automatic conditioning estimates; tolerances must be interpreted for the declared fixture and coordinate chart. No observational-validation or state-of-the-art performance claim is made.
 
 ## Next gates
 
-- Kerr first/second derivatives and independent curvature-invariant fixtures.
-- Riemann/Ricci/Einstein tensor identities and Bianchi identities.
-- Horizon-regular coordinate charts and cross-chart scalar-invariant comparisons.
+- Kerr further independent curvature-invariant fixtures and full tensor conditioning/error estimates.
+- Differential Bianchi identity and higher-derivative consistency checks.
+- More exhaustive horizon-regular coordinate and cross-chart scalar-invariant comparisons.
 - Timelike/null geodesics with normalization and Killing-constant drift.
 - QNM / waveform and public detector-data replication.
 
