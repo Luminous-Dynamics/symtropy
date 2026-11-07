@@ -323,4 +323,127 @@ mod tests {
         cache.begin_frame();
         assert_eq!(cache.pair_count(), 0);
     }
+    fn kinetic_energy<const D: usize>(mass: f64, velocity: &SVector<f64, D>) -> f64 {
+        0.5 * mass * velocity.norm_squared()
+    }
+
+    #[test]
+    fn elastic_unequal_mass_impulse_conserves_momentum_and_kinetic_energy() {
+        let mass_a = 2.0;
+        let mass_b = 3.0;
+        let velocity_a = SVector::from([3.0, 1.25]);
+        let velocity_b = SVector::from([-1.0, -2.0]);
+        let normal = SVector::from([1.0, 0.0]);
+        let relative_velocity = velocity_b - velocity_a;
+        let manifold = ContactManifold::<2>::single(
+            BodyHandle(0),
+            BodyHandle(1),
+            normal,
+            SVector::zeros(),
+            0.0,
+        );
+
+        let impulse = manifold.impulse_magnitude(
+            &relative_velocity,
+            1.0 / mass_a,
+            1.0 / mass_b,
+            1.0,
+        );
+        let post_a = velocity_a - normal * (impulse / mass_a);
+        let post_b = velocity_b + normal * (impulse / mass_b);
+
+        let momentum_before = velocity_a * mass_a + velocity_b * mass_b;
+        let momentum_after = post_a * mass_a + post_b * mass_b;
+        let energy_before =
+            kinetic_energy(mass_a, &velocity_a) + kinetic_energy(mass_b, &velocity_b);
+        let energy_after = kinetic_energy(mass_a, &post_a) + kinetic_energy(mass_b, &post_b);
+        let relative_normal_before = relative_velocity.dot(&normal);
+        let relative_normal_after = (post_b - post_a).dot(&normal);
+
+        assert!((impulse - 9.6).abs() < 1e-12);
+        assert!((momentum_after - momentum_before).norm() < 1e-12);
+        assert!((energy_after - energy_before).abs() < 1e-11);
+        assert!((relative_normal_after + relative_normal_before).abs() < 1e-12);
+        assert!((post_a[1] - velocity_a[1]).abs() < 1e-12);
+        assert!((post_b[1] - velocity_b[1]).abs() < 1e-12);
+    }
+
+    #[test]
+    fn perfectly_inelastic_impulse_conserves_momentum_without_increasing_energy() {
+        let mass_a = 2.0;
+        let mass_b = 3.0;
+        let velocity_a = SVector::from([3.0, 1.0]);
+        let velocity_b = SVector::from([-1.0, -2.0]);
+        let normal = SVector::from([1.0, 0.0]);
+        let relative_velocity = velocity_b - velocity_a;
+        let manifold = ContactManifold::<2>::single(
+            BodyHandle(0),
+            BodyHandle(1),
+            normal,
+            SVector::zeros(),
+            0.0,
+        );
+
+        let impulse = manifold.impulse_magnitude(
+            &relative_velocity,
+            1.0 / mass_a,
+            1.0 / mass_b,
+            0.0,
+        );
+        let post_a = velocity_a - normal * (impulse / mass_a);
+        let post_b = velocity_b + normal * (impulse / mass_b);
+
+        let momentum_before = velocity_a * mass_a + velocity_b * mass_b;
+        let momentum_after = post_a * mass_a + post_b * mass_b;
+        let energy_before =
+            kinetic_energy(mass_a, &velocity_a) + kinetic_energy(mass_b, &velocity_b);
+        let energy_after = kinetic_energy(mass_a, &post_a) + kinetic_energy(mass_b, &post_b);
+
+        assert!((momentum_after - momentum_before).norm() < 1e-12);
+        assert!(((post_b - post_a).dot(&normal)).abs() < 1e-12);
+        assert!(energy_after <= energy_before + 1e-12);
+    }
+
+    #[test]
+    fn separating_and_two_immovable_bodies_receive_no_impulse() {
+        let manifold = ContactManifold::<2>::single(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::from([1.0, 0.0]),
+            SVector::zeros(),
+            0.0,
+        );
+        let separating = SVector::from([2.0, 0.0]);
+        assert_eq!(manifold.impulse_magnitude(&separating, 0.5, 1.0 / 3.0, 1.0), 0.0);
+
+        let approaching = SVector::from([-2.0, 0.0]);
+        assert_eq!(manifold.impulse_magnitude(&approaching, 0.0, 0.0, 1.0), 0.0);
+    }
+
+    #[test]
+    fn swapping_bodies_and_reversing_normal_preserves_impulse_magnitude() {
+        let relative_velocity = SVector::from([-4.0, 0.5]);
+        let normal = SVector::from([1.0, 0.0]);
+        let forward = ContactManifold::<2>::single(
+            BodyHandle(0),
+            BodyHandle(1),
+            normal,
+            SVector::zeros(),
+            0.0,
+        );
+        let reversed = ContactManifold::<2>::single(
+            BodyHandle(1),
+            BodyHandle(0),
+            -normal,
+            SVector::zeros(),
+            0.0,
+        );
+
+        let forward_impulse = forward.impulse_magnitude(&relative_velocity, 0.5, 1.0 / 3.0, 0.6);
+        let reversed_impulse =
+            reversed.impulse_magnitude(&-relative_velocity, 1.0 / 3.0, 0.5, 0.6);
+        assert!((forward_impulse - reversed_impulse).abs() < 1e-12);
+    }
+
+
 }
