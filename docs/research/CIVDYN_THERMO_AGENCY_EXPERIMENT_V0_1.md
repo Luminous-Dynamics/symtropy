@@ -205,7 +205,11 @@ No aggregate may conceal a hard service-floor, consent or resource-conservation 
 - No physical entropy-production claim until #3577 is qualified.
 - No SOTA or moral-superiority claim without exact source protocol, matched budgets and independent reproduction.
 
-## 9. Exit criteria
+## 9. First executable child
+
+[**CIVDYN-CRG-RESOURCE-ADAPTER-001 #4022**](https://github.com/Luminous-Dynamics/symtropy/issues/4022) is the first code implementation: replay the existing six-seat collective-risk action trace through the existing resource ledger using a frozen synthetic contribution-unit-to-kWh mapping, then independently report donor and shared-service outcomes. It is an open-loop adapter; it does not create a second agent simulator, feed ledger state back into policy selection, or claim physical thermodynamics. This should be completed and independently validated before attempting closed-loop agent/resource co-adaptation.
+
+## 10. Exit criteria
 
 1. Exact-head reference output census captured for all consumed parent kernels.
 2. Frozen six-agent manifest and explicit policy/observation/action contracts.
