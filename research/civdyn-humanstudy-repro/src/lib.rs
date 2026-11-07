@@ -11,8 +11,8 @@
 
 pub mod paper_import;
 pub use paper_import::{
-    assemble_paper_run_receipt, import_paper_study_run, paper_execution_manifest_sha256,
-    PaperImportError, PaperRunAttestation, PaperStudyImport,
+    PaperImportError, PaperRunAttestation, PaperStudyImport, assemble_paper_run_receipt,
+    import_paper_study_run, paper_execution_manifest_sha256,
 };
 
 use std::collections::BTreeSet;
