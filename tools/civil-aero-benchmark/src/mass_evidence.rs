@@ -571,6 +571,8 @@ impl MassEvidenceLedger {
             } else {
                 None
             };
+        let unknown_mass_item_ids = mass_properties.unknown_mass_item_ids.clone();
+        let unknown_geometry_item_ids = mass_properties.unknown_geometry_item_ids.clone();
 
         Ok(MassPropertiesStateReport {
             schema_version: MASS_STATE_REPORT_SCHEMA_VERSION,
@@ -585,7 +587,7 @@ impl MassEvidenceLedger {
             } else {
                 StateEvidenceStatus::Indeterminate
             },
-            unknown_geometry_item_ids: mass_properties.unknown_geometry_item_ids.clone(),
+            unknown_geometry_item_ids: unknown_geometry_item_ids.clone(),
             mass_properties,
             total_mass_standard_uncertainty_kg,
             total_mass_uncertainty_status: if total_mass_standard_uncertainty_kg.is_some() {
@@ -598,7 +600,7 @@ impl MassEvidenceLedger {
             pending_item_ids,
             rejected_item_ids,
             unresolved_installation_item_ids,
-            unknown_mass_item_ids: mass_ledger_unknown_mass(&mass_properties),
+            unknown_mass_item_ids,
         })
     }
 
