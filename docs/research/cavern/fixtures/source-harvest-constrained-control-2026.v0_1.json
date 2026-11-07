@@ -6,10 +6,10 @@
     "species": "Lactuca sativa",
     "cultivar_ref": "cultivar:Batavia-Othilie",
     "crop_stage_ref": "crop-stage:full-cycle-harvest",
-    "plant_density": 0,
+    "plant_density": null,
     "plant_density_unit": "UNKNOWN",
     "crop_model_ref": "source-model:mechanistic-lettuce-growth-and-indoor-climate",
-    "model_validity_ref": "model-validity:source-calibration-envelope"
+    "model_validity_ref": "source-summary-validity-envelope-not-fully-disclosed"
   },
   "harvest_contract": {
     "target_mass": {
