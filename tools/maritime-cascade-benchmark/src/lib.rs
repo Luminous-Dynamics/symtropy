@@ -402,7 +402,7 @@ fn evaluate_timeline(
     model: &ValidatedModel,
     delay_floor_by_operation: &BTreeMap<String, i64>,
 ) -> Result<BTreeMap<String, Timing>, ModelError> {
-    let mut timings = BTreeMap::new();
+    let mut timings: BTreeMap<String, Timing> = BTreeMap::new();
 
     for operation_id in &model.topological_order {
         let operation = model
