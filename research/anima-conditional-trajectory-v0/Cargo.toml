@@ -1,0 +1,9 @@
+[package]
+name = "anima-conditional-trajectory"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "History-conditioned Gaussian trajectory likelihood kernel for locomotion mechanism discovery"
+
+[workspace]
