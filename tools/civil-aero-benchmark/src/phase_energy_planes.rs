@@ -1029,6 +1029,126 @@ mod tests {
     }
 
     #[test]
+    fn conventional_direct_drive_does_not_require_an_electrical_motor_path() {
+        let mut value = generator_only();
+        value.phase_id = "conventional-direct-drive".to_owned();
+        value.generators.clear();
+        value.stores.clear();
+        value.motor_drives.clear();
+        value.bus_loads = BusLoads {
+            auxiliary_load_j: 0.0,
+            thermal_electrical_load_j: 0.0,
+            distribution_loss_j: 0.0,
+        };
+        value.prime_movers[0].direct_propulsor_shaft_j = 35_000_000.0;
+        value.prime_movers[0].accessory_mechanical_load_j = 2_000_000.0;
+        value.prime_movers[0].mechanical_distribution_loss_j = 3_000_000.0;
+        value.prime_movers[0].average_mechanical_output_power_limit_w = 15_000.0;
+        value.prime_movers[0].peak_mechanical_output_power_w = 13_000.0;
+        value.prime_movers[0].peak_mechanical_output_power_limit_w = 16_000.0;
+        value.propulsors = vec![propulsor(35_000_000.0, 30_000_000.0, 5_000_000.0)];
+        value.peak_bus_supply_power_w = 0.0;
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced conventional direct-drive phase");
+        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        assert_eq!(report.continuous_bus_supply_power_w, 0.0);
+        assert!(report.shaft_combiner_residual_j.abs() < 1.0);
+    }
+
+    #[test]
+    fn fuel_cell_only_path_reconciles_fuel_chemical_and_electrical_bus_energy() {
+        let mut value = balance();
+        value.phase_id = "fuel-cell-only".to_owned();
+        value.stores.clear();
+        value.prime_movers.clear();
+        value.generators.clear();
+        value.fuel_states = vec![FuelStateTransition {
+            fuel_source_id: "hydrogen-tank".to_owned(),
+            evidence_sha256: MODEL.to_owned(),
+            chemical_energy_start_j: 500_000_000.0,
+            chemical_energy_consumed_j: 200_000_000.0,
+            chemical_energy_end_j: 300_000_000.0,
+            required_reserve_j: 100_000_000.0,
+        }];
+        value.fuel_cells = vec![FuelCellConversion {
+            fuel_cell_id: "pem-stack".to_owned(),
+            model_evidence_sha256: MODEL.to_owned(),
+            fuel_source_id: "hydrogen-tank".to_owned(),
+            fuel_energy_input_j: 200_000_000.0,
+            electrical_output_to_bus_j: 80_000_000.0,
+            thermal_loss_j: 120_000_000.0,
+            average_electrical_output_power_limit_w: 30_000.0,
+            peak_electrical_output_power_w: 25_000.0,
+            peak_electrical_output_power_limit_w: 28_000.0,
+        }];
+        value.bus_loads = BusLoads {
+            auxiliary_load_j: 5_000_000.0,
+            thermal_electrical_load_j: 2_000_000.0,
+            distribution_loss_j: 3_000_000.0,
+        };
+        value.motor_drives = vec![motor(70_000_000.0, 4_000_000.0, 6_000_000.0, 60_000_000.0)];
+        value.propulsors = vec![propulsor(60_000_000.0, 50_000_000.0, 10_000_000.0)];
+        value.peak_bus_supply_power_w = 25_000.0;
+        value.peak_bus_supply_power_limit_w = 28_000.0;
+        value.continuous_bus_supply_power_limit_w = 30_000.0;
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced fuel-cell-only phase");
+        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        assert!(report.fuel_residuals[0].reserve_margin_j > 0.0);
+        assert!(report.fuel_cell_residuals[0].residual_j.abs() < 1.0);
+        assert!(report.bus_residual_j.abs() < 1.0);
+    }
+
+    #[test]
+    fn fuel_cell_and_battery_buffer_are_counted_once_at_the_bus() {
+        let mut value = balance();
+        value.phase_id = "fuel-cell-battery-buffer".to_owned();
+        value.fuel_states = vec![FuelStateTransition {
+            fuel_source_id: "hydrogen-tank".to_owned(),
+            evidence_sha256: MODEL.to_owned(),
+            chemical_energy_start_j: 500_000_000.0,
+            chemical_energy_consumed_j: 150_000_000.0,
+            chemical_energy_end_j: 350_000_000.0,
+            required_reserve_j: 100_000_000.0,
+        }];
+        value.fuel_cells = vec![FuelCellConversion {
+            fuel_cell_id: "pem-stack".to_owned(),
+            model_evidence_sha256: MODEL.to_owned(),
+            fuel_source_id: "hydrogen-tank".to_owned(),
+            fuel_energy_input_j: 150_000_000.0,
+            electrical_output_to_bus_j: 50_000_000.0,
+            thermal_loss_j: 100_000_000.0,
+            average_electrical_output_power_limit_w: 20_000.0,
+            peak_electrical_output_power_w: 15_000.0,
+            peak_electrical_output_power_limit_w: 20_000.0,
+        }];
+        value.stores = vec![battery_store(
+            30_000_000.0,
+            0.0,
+            100_000_000.0,
+            66_666_666.666_666_67,
+        )];
+        value.bus_loads = BusLoads {
+            auxiliary_load_j: 5_000_000.0,
+            thermal_electrical_load_j: 0.0,
+            distribution_loss_j: 5_000_000.0,
+        };
+        value.motor_drives = vec![motor(70_000_000.0, 4_000_000.0, 3_000_000.0, 63_000_000.0)];
+        value.propulsors = vec![propulsor(63_000_000.0, 55_000_000.0, 8_000_000.0)];
+        value.peak_bus_supply_power_w = 24_000.0;
+        value.peak_bus_supply_power_limit_w = 28_000.0;
+        value.continuous_bus_supply_power_limit_w = 25_000.0;
+        let report = value
+            .evaluate(CONFIG, MISSION, START, END)
+            .expect("balanced fuel-cell/battery phase");
+        assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
+        assert!(report.bus_residual_j.abs() < 1.0);
+        assert!(report.store_results[0].transition_residual_j.abs() < 1.0);
+    }
+
+    #[test]
     fn battery_only_discharge_closes_internal_energy_and_bus_planes() {
         let value = balance();
         let report = value
