@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-analytic-harmonic-oscillator-v0",
+  "status": "research_only_no_sota_claim",
+  "model": {
+    "system": "one_degree_of_freedom_harmonic_oscillator",
+    "implementation": "single dynamic sphere in 3D with x-axis force F=-k*x",
+    "mass_kg": 1.0,
+    "spring_constant_n_per_m": 1.0,
+    "angular_frequency_rad_per_s": 1.0,
+    "gravity_m_per_s2": [0.0, 0.0, 0.0],
+    "damping_per_s": 0.0,
+    "initial_position_m": [1.0, 0.0, 0.0],
+    "initial_velocity_m_per_s": [0.0, 0.0, 0.0],
+    "force_law": "F_x = -spring_constant_n_per_m * x",
+    "final_time_seconds": 1.0
+  },
+  "analytic_solution": {
+    "position_x_m": "cos(omega_rad_per_s * t_seconds)",
+    "velocity_x_m_per_s": "-omega_rad_per_s * sin(omega_rad_per_s * t_seconds)",
+    "energy_j": "0.5*m*v_x^2 + 0.5*k*x^2"
+  },
+  "integrator": {
+    "name": "semi_implicit_euler",
+    "update": [
+      "v[n+1] = v[n] - dt * omega^2 * x[n]",
+      "x[n+1] = x[n] + dt * v[n+1]"
+    ],
+    "linear_stability_condition_for_this_model": "0 < dt * omega < 2",
+    "unconditional_stability_claim": false
+  },
+  "refinement": {
+    "dt_seconds": [0.1, 0.05, 0.025, 0.0125],
+    "step_counts": [10, 20, 40, 80],
+    "position_error_unit": "m",
+    "velocity_error_unit": "m/s",
+    "position_refinement_ratio_expected": 2.0,
+    "position_refinement_ratio_acceptance": [1.8, 2.2],
+    "velocity_error_monotonic_decrease": true,
+    "metrics_must_remain_separate_by_unit": true
+  },
+  "execution": {
+    "path": "PhysicsWorld::step",
+    "force_application": "RigidBody::apply_force each timestep",
+    "backend": "default",
+    "source_commit": "record_at_execution",
+    "toolchain": "record_at_execution"
+  },
+  "acceptance": {
+    "finite_position_and_velocity_errors": true,
+    "position_error_decreases_with_refinement": true,
+    "position_refinement_ratio_in_band": true,
+    "velocity_error_decreases_with_refinement": true,
+    "physical_validation_claimed": false,
+    "SOTA_superiority_claimed": false
+  },
+  "future_metrics": [
+    "phase_error_radians",
+    "energy_error_j",
+    "maximum_energy_envelope_deviation_j",
+    "work_per_simulated_second",
+    "wall_time_per_simulated_second",
+    "measured_joules_per_simulated_second"
+  ]
+}
