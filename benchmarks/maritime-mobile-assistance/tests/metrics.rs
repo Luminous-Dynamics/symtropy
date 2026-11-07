@@ -280,7 +280,9 @@ fn fleet_plan_binding_rejects_missing_demand_selection() {
         .retain(|selection| selection.demand_id != "demand-task-a");
     assert_eq!(
         evaluate_mobile_assistance_for_plan(&input, &plan),
-        Err(MobileError::FleetSelectionMismatch("demand-task-a".to_owned()))
+        Err(MobileError::FleetSelectionMismatch(
+            "demand-task-a".to_owned()
+        ))
     );
 }
 
