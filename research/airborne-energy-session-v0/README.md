@@ -27,7 +27,7 @@ This directory owns the aerial opportunity/session lifecycle only: discover, adm
 1. Event IDs are unique; sequence numbers are unique, contiguous and start at zero; timestamps are monotonic.
 2. Each event's `from_state` equals the preceding state, starting at UNAVAILABLE.
 3. Every transition is checked against the declared finite-state graph.
-4. Every event binds the exact receiver ID and trajectory digest, opportunity ID and envelope digest, allocation ID and digest, and one monotonic clock ID. Cross-session or stale-revision receipts are rejected. Clock uncertainty is retained per event rather than silently discarded.
+4. Every event binds the exact receiver ID and trajectory digest, opportunity ID and envelope digest, allocation ID and digest, and one monotonic clock ID. Cross-session or stale-revision receipts are rejected. Clock uncertainty is retained per event rather than silently discarded. Site allocation, opportunity envelope and local-protection permits each carry validity intervals, checked against the full clock-uncertainty interval.
 5. A transition into ACQUISITION_PENDING from ADMISSION_PENDING requires a fresh matched receiver identity, valid authorization, valid allocation, admitted envelope and in-domain position. The allocation receipt must cover the event time.
 6. A transition into TRACKED_NO_POWER requires fresh admission and tracking evidence.
 7. A transition into POWER_ACTIVE requires a tracked no-power state, fresh admission, in-domain position, current allocation, valid envelope, a valid local-protection receipt digest and `PERMIT_SYNTHETIC_ONLY`.
