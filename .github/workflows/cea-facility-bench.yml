@@ -1,0 +1,46 @@
+name: cea-facility-bench
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cea-facility-bench.yml"
+      - "tools/cea-facility-bench/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/cea-facility-bench.yml"
+      - "tools/cea-facility-bench/**"
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: facility accounting reference and frozen fixture
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/cea-facility-bench/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path tools/cea-facility-bench/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/cea-facility-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Execute frozen accounting case
+        run: |
+          cargo run --manifest-path tools/cea-facility-bench/Cargo.toml --release -- \
+            --input tools/cea-facility-bench/fixtures/synthetic-lettuce-facility-v0-1.input \
+            | tee cea-facility-report.json
+          grep -q '"evidence_class": "synthetic"' cea-facility-report.json

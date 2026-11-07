@@ -1,0 +1,22 @@
+# All values in this fixture are synthetic and chosen to exercise arithmetic.
+# They are not measured farm performance or an empirical literature reproduction.
+schema_version=0.1
+scenario_id=synthetic-lettuce-facility-annual
+evidence_class=synthetic
+period_days=365
+facility_area_m2=2
+lighting_electricity_wh=1100000
+hvac_electricity_wh=450000
+pumping_electricity_wh=80000
+water_treatment_electricity_wh=25000
+co2_system_electricity_wh=35000
+cold_storage_electricity_wh=50000
+controls_electricity_wh=10000
+gross_harvest_g=180000
+accepted_edible_g=120000
+rejected_g=10000
+spoiled_g=5000
+inedible_residue_g=45000
+makeup_water_ml=1200000
+useful_heat_wh_th=100000
+heat_rejected_wh_th=700000
