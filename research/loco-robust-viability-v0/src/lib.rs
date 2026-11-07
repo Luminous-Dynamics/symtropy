@@ -342,7 +342,9 @@ fn validate_system(
     }
 
     for actions in actions_by_state.values_mut() {
-        actions.sort_by(|left, right| left.id.cmp(&right.id));
+        actions.sort_unstable_by(|left, right| {
+            left.id.as_bytes().cmp(right.id.as_bytes())
+        });
     }
 
     Ok(ValidatedSystem {
@@ -392,7 +394,6 @@ fn robust_predecessor(
             });
         }
     }
-    assessments.sort_by_key(|item| (&item.state_id, &item.action_id));
     (predecessor, assessments)
 }
 
