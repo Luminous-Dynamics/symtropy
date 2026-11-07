@@ -125,7 +125,8 @@
           "kind": "panel_displacement",
           "region_id": "PANEL-FRONT",
           "value": {
-            "offset_mm": 6
+            "offset_mm": 6,
+            "tolerance_mm": 2
           }
         },
         "capture_revision": "CAP-01"
