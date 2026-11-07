@@ -103,6 +103,13 @@ pub struct MassPropertiesReport {
     pub unknown_geometry_item_ids: Vec<String>,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct ResolvedMassItem {
+    mass_kg: f64,
+    position_m: [f64; 3],
+    local_inertia_kg_m2: [f64; 6],
+}
+
 impl MassLedger {
     /// Recompute mass properties from the ledger, using no caller-supplied CG
     /// or inertia values. Missing material inputs return an Indeterminate report.
@@ -118,7 +125,7 @@ impl MassLedger {
         let mut known_mass_subtotal_kg = 0.0;
         let mut weighted_position = [0.0_f64; 3];
         let mut category_mass = BTreeMap::<MassItemCategory, f64>::new();
-        let mut known = Vec::<(&MassItem, f64, [f64; 3], [f64; 6])>::new();
+        let mut known = Vec::<ResolvedMassItem>::new();
 
         for item in &self.items {
             if item.id.trim().is_empty() {
@@ -167,7 +174,7 @@ impl MassLedger {
             for (weighted, coordinate) in weighted_position.iter_mut().zip(position_m) {
                 *weighted += mass_kg * coordinate;
             }
-            known.push((item, mass_kg, position_m, local_inertia));
+            known.push(ResolvedMassItem { mass_kg, position_m, local_inertia_kg_m2: local_inertia });
         }
 
         unknown_mass_item_ids.sort();
@@ -196,10 +203,12 @@ impl MassLedger {
             ];
 
             let mut inertia = [0.0_f64; 6];
-            for (_item, mass_kg, position_m, local_inertia) in &known {
-                let dx = position_m[0] - center[0];
-                let dy = position_m[1] - center[1];
-                let dz = position_m[2] - center[2];
+            for item in &known {
+                let dx = item.position_m[0] - center[0];
+                let dy = item.position_m[1] - center[1];
+                let dz = item.position_m[2] - center[2];
+                let mass_kg = item.mass_kg;
+                let local_inertia = item.local_inertia_kg_m2;
 
                 inertia[0] += local_inertia[0] + mass_kg * (dy * dy + dz * dz);
                 inertia[1] += local_inertia[1] + mass_kg * (dx * dx + dz * dz);
