@@ -9,9 +9,10 @@ use maritime_service_chain_fleet::{
     DemandSelection, FleetObjective, FleetPlan, OperationPlacement,
 };
 use maritime_traffic_envelope_contract::{
-    EvidenceReceipt, EvidenceState, TrafficDisposition, TrafficOccupancy, TrafficResource,
+    EvidenceReceipt, EvidenceState, RequiredTrafficUse, TrafficCoverageEntry,
+    TrafficCoverageManifest, TrafficDisposition, TrafficOccupancy, TrafficResource,
     TrafficResourceKind, TrafficWindow, TrafficWorkload, canonical_occupancy_subject_id,
-    canonical_resource_subject_id, evaluate_traffic_plan,
+    canonical_resource_subject_id, canonical_traffic_coverage_subject_id, evaluate_traffic_plan,
 };
 
 fn receipt(id: &str, subject_id: &str, revision: &str) -> EvidenceReceipt {
@@ -111,11 +112,61 @@ fn occupancy(id: &str, op: OperationPlacement, early: u64, late: u64) -> Traffic
     item
 }
 
-fn workload(uses: Vec<TrafficOccupancy>) -> TrafficWorkload {
+fn coverage_manifest(
+    operations: &[OperationPlacement],
+    uses: &[TrafficOccupancy],
+) -> TrafficCoverageManifest {
+    let entries = operations
+        .iter()
+        .map(|operation| {
+            let matching: Vec<&TrafficOccupancy> = uses
+                .iter()
+                .filter(|occupancy| occupancy.operation == *operation)
+                .collect();
+            let route_revision = matching
+                .first()
+                .map_or_else(|| "no-resource-route-r1".to_owned(), |item| {
+                    item.route_revision.clone()
+                });
+            let required_uses = matching
+                .iter()
+                .map(|item| RequiredTrafficUse {
+                    occupancy_id: item.occupancy_id.clone(),
+                    resource_id: item.resource_id.clone(),
+                    resource_revision: "zone-r1".to_owned(),
+                    direction_id: item.direction_id.clone(),
+                })
+                .collect();
+            TrafficCoverageEntry {
+                operation: operation.clone(),
+                route_revision,
+                required_uses,
+                no_resource_basis: None,
+            }
+        })
+        .collect();
+    let mut manifest = TrafficCoverageManifest {
+        schema_version: "traffic-coverage-v1".to_owned(),
+        corridor_id: "oracle-corridor".to_owned(),
+        time_basis_id: "oracle-time-basis-v1".to_owned(),
+        graph_revision: "graph-r1".to_owned(),
+        entries,
+        evidence: receipt("coverage-evidence", "", "graph-r1"),
+    };
+    manifest.evidence.subject_id = canonical_traffic_coverage_subject_id(&manifest);
+    manifest
+}
+
+fn workload(
+    operations: &[OperationPlacement],
+    uses: Vec<TrafficOccupancy>,
+) -> TrafficWorkload {
+    let coverage = coverage_manifest(operations, &uses);
     TrafficWorkload {
         corridor_id: "oracle-corridor".to_owned(),
         time_basis_id: "oracle-time-basis-v1".to_owned(),
         decision_tick: 0,
+        coverage,
         resources: vec![resource()],
         occupancies: uses,
     }
@@ -147,10 +198,13 @@ fn production_traffic_conflict_disposition_matches_direct_oracle_over_256_cases(
                         direct_reference_has_no_conflict(first_start, second_start, early, late);
                     let actual = evaluate_traffic_plan(
                         &plan(vec![first.clone(), second.clone()]),
-                        &workload(vec![
-                            occupancy("use-a", first, early, late),
-                            occupancy("use-b", second, early, late),
-                        ]),
+                        &workload(
+                            &[first.clone(), second.clone()],
+                            vec![
+                                occupancy("use-a", first, early, late),
+                                occupancy("use-b", second, early, late),
+                            ],
+                        ),
                     )
                     .expect("frozen synthetic traffic input");
 
