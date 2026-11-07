@@ -367,7 +367,7 @@ fn validate_interventions(
                     return Err(CoordinationError::SelfCouplingCut);
                 }
                 if config.coupling_gains[source.index()][target.index()] <= 0.0
-                    || (reciprocal && config.coupling_gains[target.index()][source.index()] <= 0.0)
+                    || (*reciprocal && config.coupling_gains[target.index()][source.index()] <= 0.0)
                 {
                     return Err(CoordinationError::CouplingEdgeAbsent);
                 }
