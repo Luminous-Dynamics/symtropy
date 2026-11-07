@@ -405,7 +405,10 @@
       },
       "peak_source_power_w": 90000,
       "continuous_source_power_limit_w": 100000,
-      "claim_ceiling": "synthetic_energy_balance_arithmetic_only"
+      "claim_ceiling": "synthetic_energy_balance_arithmetic_only",
+      "duration_s": 3600,
+      "continuous_source_power_w": 27777.777777777777,
+      "peak_source_power_limit_w": 110000
     }
   ],
   "expected_mission_status": "INDETERMINATE",
