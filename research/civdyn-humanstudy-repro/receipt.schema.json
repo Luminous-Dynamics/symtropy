@@ -299,6 +299,10 @@
           "items": {
             "$ref": "#/$defs/artifact"
           }
+        },
+        "study_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
