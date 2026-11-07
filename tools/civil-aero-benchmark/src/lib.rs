@@ -22,6 +22,7 @@ pub mod mission_mass_coupling;
 pub mod optimizer_qualification;
 pub mod policy_aggregate;
 pub mod policy_benchmark;
+pub mod phase_energy_planes;
 pub mod reference_data;
 pub mod risk_credibility;
 pub mod robust_voi;
